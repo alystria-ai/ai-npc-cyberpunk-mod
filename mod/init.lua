@@ -422,7 +422,10 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         for _, person in ipairs(round and round.participants or {}) do
             if person.entity == entity and person.spawned then return nil end
         end
-        return adoption and adoption.leaveOffer(entity, context) or nil
+        local offer = adoption and adoption.leaveOffer(entity, context) or nil
+        -- A housemate who lives in another of V's flats is asked first (mod/housemates.lua).
+        if offer and convaiHousemateLeaveOffer then offer = convaiHousemateLeaveOffer(offer) end
+        return offer
     end,
     queueFollow = function(offer, entity, requestId)
         if not adoption then return false, ui.t('That action is not available.') end
@@ -430,7 +433,23 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     end,
     queueLeave = function(target, offer, entity, requestId, groupId)
         if not adoption then return false, ui.t('That action is not available.') end
+        if convaiHousemateQueueLeave then
+            return convaiHousemateQueueLeave(target, offer, entity, requestId, groupId,
+                function(t, o, e, r, g) return adoption.queueLeave(t, o, e, r, g) end)
+        end
         return adoption.queueLeave(target, offer, entity, requestId, groupId)
+    end,
+    -- Housemates: moving in and out, and calling the ones at home along (docs/HOUSEMATES.md).
+    homeOffer = function(entity, context)
+        if convaiStory and convaiStory.entity == entity then return nil end
+        return convaiHousemateOffer and convaiHousemateOffer(entity, context) or nil
+    end,
+    groupHomeOffer = function(entity, context)
+        return convaiHousemateGroupOffer and convaiHousemateGroupOffer(entity, context) or nil
+    end,
+    queueHome = function(home, offer, entity, requestId, groupId)
+        if not convaiHousemateQueue then return false, ui.t('That action is not available.') end
+        return convaiHousemateQueue(home, offer, entity, requestId, groupId)
     end,
     -- An ordinary world NPC's reaction to the conversation (docs/NPC_REACTIONS.md, mod/npc-reactions.lua): leave, call the police or
     -- attack. A global service, so these two lines add no upvalue. Nothing is offered or started when the module is missing.
@@ -2102,6 +2121,8 @@ do
         -- The gesture catalogue (1.4 MB of generated Lua) is compiled and held once, shared with the gesture controller.
         catalog = controller and type(controller.catalog) == 'table' and controller.catalog or nil,
         gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
+        -- V settled on a seat: its root is learned so that no housemate is given it (mod/housemates.lua).
+        onSettled = function(anchor, forward, kind) if convaiHousemateLearn then convaiHousemateLearn(anchor, forward, kind) end end,
         log = function(kind, fields)
             if manager.developerMode() then
                 local ok, text = pcall(json.encode, fields)
@@ -2379,6 +2400,11 @@ local function beginFocus(player, npc)
     -- so its follow and pose commands are never fought.
     local policy = convaiWorldPolicy
     local keepAI = policy ~= nil and policy.spawned(npc) == true
+    -- A housemate keeps her seat or her bed: eyes and head only, no hold or turn (mod/housemates.lua).
+    if not keepAI and convaiResidentNpc ~= nil and convaiHousemates ~= nil and convaiResidentNpc(npc) then
+        keepAI = true
+        if convaiHousemateTalk then pcall(convaiHousemateTalk, tostring(npc:GetEntityID().hash)) end
+    end
     local ok, focused = pcall(function()
         if keepAI then return player:ConvaiBeginFocus(npc, true) end
         return player:ConvaiBeginFocus(npc)
@@ -3114,6 +3140,8 @@ local function sendRequest(context)
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
     if not context.reaction and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
     if not context.reaction and context.turnContext and convaiAppointmentTurn then context.turnContext = convaiAppointmentTurn(context.turnContext, context.profileKey) end
+    -- Housemates: where she lives, whether she is home, who else lives there (bridge/turn-context.mjs `housemate`).
+    if not context.reaction and context.turnContext and convaiHousemateTurn then context.turnContext = convaiHousemateTurn(context.turnContext, context.profileKey) end
     -- Street reputation (docs/REPUTATION_DESIGN.md): nil checks only while the setting is off.
     if convaiReputation or convaiReputationPending then pcall(convaiReputationAttach, context) end
     -- Automatic turns have one subject. Manual conversations may still discuss
@@ -3124,6 +3152,8 @@ local function sendRequest(context)
     else context.battle = context.battle or (battles.captureManual or battles.capture)() end
     -- A greeting at a meeting (immersive invitations) has one subject too.
     if context.reaction and context.reaction.kind == 'meet' then context.battle = nil end
+    -- So has a housemates' chat line or greeting (mod/housemates.lua).
+    if context.reaction and context.reaction.kind == 'house' then context.battle = nil end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then
@@ -3676,6 +3706,335 @@ do
     end
 end
 
+-- ---- Housemates (docs/HOUSEMATES.md) -------------------------------------------------------------------------------------------------------
+-- Characters V told "you can stay at my place" live in V's flats. The glue (mod/housemate-service.lua) is loaded on the first world-ready tick; the
+-- controller, the game adapter, the chat scheduler and the spot data only when somebody lives somewhere or a conversation offer asks. Nothing
+-- runs per frame. Globals and one do-block: the main chunk is near Lua's limit of locals.
+convaiHousemates = nil
+convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
+do
+    local districtHooked = false
+    local lastWelcomeLine
+    local function held()
+        local sample = battleSample
+        if type(sample) ~= 'table' then return nil end
+        if sample.combat then return 'combat' end
+        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then
+            -- V sitting, sleeping or washing at home plays as a scene of tier 3 or 4: V's own interaction, not a quest scene.
+            if not sample.dialogue and not sample.choices then
+                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(Game.GetPlayer()) == true end)
+                if ok and inside then return nil end
+            end
+            return 'scene'
+        end
+        if sample.call or (convaiHolocall and convaiHolocall.call) then return 'call' end
+        return nil
+    end
+    local function mayChat()
+        if held() then return false end
+        if active ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil or pending ~= nil or automatic ~= nil then return false end
+        if speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+        if microphone.context ~= nil and microphone.state ~= 'reply' then return false end
+        if type(battleSample) == 'table' and (battleSample.vehicle or battleSample.combat) then return false end
+        return true
+    end
+    local function notify(text)
+        local player = Game.GetPlayer()
+        if player and type(text) == 'string' and text ~= '' then convaiNotices.send(player, 'housemate-notice', text) end
+    end
+    local function gameHours()
+        local system = Game.GetTimeSystem()
+        local stamp = system and system:GetGameTime()
+        if stamp == nil then return nil end
+        local ok, value = pcall(function()
+            return GameTime.Days(stamp) * 24 + GameTime.Hours(stamp) + GameTime.Minutes(stamp) / 60
+        end)
+        if ok and type(value) == 'number' then return value end
+        local okSeconds, seconds = pcall(function() return stamp.seconds end)
+        if okSeconds and tonumber(seconds) then return tonumber(seconds) / 3600 end
+        return nil
+    end
+    local learnedPath = 'runtime/housemate-learned.json'
+    local persist = {
+        load = function()
+            local file = io.open(learnedPath, 'rb')
+            if not file then return nil end
+            local raw = file:read('*a'); file:close()
+            local ok, value = pcall(json.decode, raw)
+            return ok and type(value) == 'table' and value or nil
+        end,
+        store = function(value)
+            local ok, encoded = pcall(json.encode, value)
+            if not ok then return end
+            local file = io.open(learnedPath, 'wb')
+            if file then file:write(encoded); file:close() end
+        end}
+    local function eligible(key)
+        if type(key) ~= 'string' or not companions.definition(key) then return false end
+        for _, profile in ipairs(profiles) do
+            if profile.key == key then return profile.invite ~= false end
+        end
+        return true
+    end
+    local function knownKeys()
+        local list, seen = {}, {}
+        for _, profile in ipairs(profiles) do
+            if type(profile.key) == 'string' and not seen[profile.key] then seen[profile.key] = true; list[#list + 1] = profile.key end
+        end
+        for key in pairs(supportedProfiles) do
+            if type(key) == 'string' and not seen[key] and key ~= 'resident-male' and key ~= 'resident-female' and not key:match('^npc%-') then
+                seen[key] = true; list[#list + 1] = key
+            end
+        end
+        return list
+    end
+    local function service()
+        if convaiHousemates then return convaiHousemates end
+        local loaded, module = pcall(dofile, 'housemate-service.lua')
+        if not loaded or type(module) ~= 'table' then
+            convaiLogOnce('housemate-service', 'Housemates are unavailable: ' .. tostring(module))
+            return nil
+        end
+        local built, value = pcall(module.new, {
+            load = dofile, companions = companions,
+            queue = function() return managerUi.party and managerUi.party() end,
+            catalog = function() return convaiGestures and convaiGestures.catalog or nil end,
+            seating = function() return convaiSeating end,
+            fact = function(name)
+                local quests = Game.GetQuestsSystem()
+                return quests and tonumber(quests:GetFactStr(name)) or 0
+            end,
+            place = function()
+                local district = currentDistrict()
+                return district and (district.area or district.district) or nil
+            end,
+            hours = gameHours, held = held,
+            vpos = function()
+                local player = Game.GetPlayer()
+                local at = player and player:GetWorldPosition()
+                return at and {x = at.x, y = at.y, z = at.z} or nil
+            end,
+            knownKeys = knownKeys, eligible = eligible,
+            profileName = function(key)
+                local definition = companions.definition(key)
+                return definition and (definition.profileName or definition.name) or nil
+            end,
+            notify = notify, t = function(text, vars) return ui.t(text, vars) end, log = log,
+            devLog = function(kind, fields)
+                if manager.developerMode() then
+                    local ok, text = pcall(json.encode, fields)
+                    log('Housemates ' .. kind .. ' ' .. (ok and text or ''))
+                end
+            end,
+            talking = function()
+                local npc = speech.target
+                if not npc then return nil end
+                local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
+                return ok and id or nil
+            end,
+            random = math.random,
+            speak = convaiHouseSpeak, speakStatus = convaiHouseSpeakStatus, speakCancel = convaiHouseSpeakCancel,
+            greet = convaiHouseGreeting,
+            level = function() return manager.companionSpeakUp and manager.companionSpeakUp() or 'rare' end,
+            mayChat = mayChat,
+            -- The shared arbiter of unprompted lines (Johnny, companions speaking up) when that feature is installed; nil: only the cooldown.
+            limiter = rawget(_G, 'convaiProactive'),
+            outfits = function() return rawget(_G, 'convaiOutfitApi') end,
+            leave = function(serial, entity, key, name)
+                local departure = convaiCompanionAdoption
+                if not departure then return false end
+                local offer = {available = true, actor = {id = entity, key = key}, members = {{serial = serial, id = entity, key = key, name = name}}}
+                return departure.queueLeave(entity, offer, entity, nil, nil)
+            end,
+            persist = persist,
+            hookDistrict = function()
+                if districtHooked then return end
+                districtHooked = true
+                -- The game pushes a district when V crosses a district volume (a door of the flat): the one event that wakes the idle controller.
+                local ok, err = pcall(function()
+                    ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', function() convaiHousemateWake() end)
+                end)
+                if not ok then log('Housemates: the district hook could not be installed: ' .. tostring(err)) end
+            end,
+            storeMode = function() return nil end})
+        if not built then
+            convaiLogOnce('housemate-build', 'Housemates are unavailable: ' .. tostring(value))
+            return nil
+        end
+        convaiHousemates = value
+        return value
+    end
+    function convaiHousemateWake()
+        local glue = convaiHousemates
+        if glue and glue.controller then glue.controller.wake() end
+    end
+    -- Every 0.1 s of play time, from the world-ready part of onUpdate.
+    function convaiHousemateTick(delta)
+        local glue = convaiHousemates or service()
+        if glue then glue.tick(delta) end
+    end
+    function convaiHousemateReset(reason, preserve)
+        convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
+        if convaiHousemates then convaiHousemates.reset(reason, preserve) end
+    end
+    -- Offers for a conversation turn (mod/gameplay-actions.lua): in person, and the first speaker of a group round.
+    function convaiHousemateOffer(entity, context)
+        local glue = service()
+        return glue and glue.homeOffer(entity, context) or nil
+    end
+    function convaiHousemateGroupOffer(entity, context)
+        local glue = service()
+        return glue and glue.groupHomeOffer(entity, context) or nil
+    end
+    function convaiHousemateQueue(home, offer, entity, requestId, groupId)
+        local glue = service()
+        if not glue then return false, 'That action is not available.' end
+        return glue.queueHome(home, offer, entity, requestId, groupId)
+    end
+    function convaiHousemateLeaveOffer(offer)
+        if not convaiHousemates then return offer end
+        return convaiHousemates.decorateLeave(offer)
+    end
+    function convaiHousemateQueueLeave(target, offer, entity, requestId, groupId, adoptionQueue)
+        if not convaiHousemates then return adoptionQueue(target, offer, entity, requestId, groupId) end
+        return convaiHousemates.queueLeave(target, offer, entity, requestId, groupId, adoptionQueue)
+    end
+    function convaiHousemateTurn(snapshot, profileKey)
+        if not convaiHousemates then return snapshot end
+        return convaiHousemates.turn(snapshot, profileKey)
+    end
+    function convaiHousemateTalk(entity)
+        -- A chat line that is only waiting for the channel gives way to V's talk at once.
+        if convaiHouseWaiting then convaiHouseSpeakCancel() end
+        if convaiHousemates then convaiHousemates.talkStarted(entity) end
+    end
+    function convaiHousemateLearn(anchor, forward, kind)
+        if convaiHousemates then convaiHousemates.learnV(anchor, forward, kind) end
+    end
+    -- The manager's page: the housemates and a Move out for each.
+    function convaiHousemateRows()
+        if not convaiHousemates then return {} end
+        return convaiHousemates.rows()
+    end
+    function convaiHousemateMoveOut(key)
+        return convaiHousemates ~= nil and convaiHousemates.moveOut(key) == true
+    end
+    -- Is this body one of the housemates' own? (A talk with her keeps her workspot: eyes and head only.)
+    function convaiResidentNpc(npc)
+        local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        if not ok then return false end
+        for _, row in ipairs(companions.visitors()) do
+            if row.owner == 'housemates' and row.entityID == id then return true end
+        end
+        return false
+    end
+    -- The phone: a contact who may live at V's place (mod/phone-chat.lua captureHomeOffer / onHomeAction).
+    phoneChat.captureHomeOffer = function(contact, profileKey)
+        local glue = service()
+        local key = companions.phoneContactKey(contact)
+        return glue and key and glue.phoneOffer(key, profileKey) or nil
+    end
+    phoneChat.onHomeAction = function(profileKey, action)
+        if convaiHousemates then convaiHousemates.phoneAction(profileKey, action) end
+    end
+
+    -- The spoken lines (a chat line, a greeting): one automatic reaction of kind 'house' at a time, spoken like any reply. It waits for the
+    -- channel to be free (at most 45 s) and gives way to anything V does.
+    local function finish(status, text)
+        convaiHouseWaiting, convaiHouseCurrent = nil, nil
+        convaiHouseResult = {status = status, text = text}
+    end
+    function convaiHouseSpeak(request)
+        if convaiHouseWaiting or convaiHouseCurrent or type(request) ~= 'table' then return false end
+        convaiHouseWaiting = {request = request, at = os.time()}
+        convaiHouseText = nil
+        convaiHouseResult = {status = 'busy'}
+        return true
+    end
+    function convaiHouseSpeakStatus()
+        local result = convaiHouseResult
+        if not result then return nil end
+        return result.status, result.text
+    end
+    function convaiHouseSpeakCancel()
+        if automatic and automatic.reaction.kind == 'house' then cancelAutomatic('house-cancelled') end
+        finish('cancelled')
+    end
+    function convaiHouseGreeting(info)
+        if type(info) ~= 'table' then return false end
+        return convaiHouseSpeak({kind = 'welcome', speaker = {key = info.key, name = info.name, serial = info.serial, entity = info.entity},
+            place = info.place, awayHours = info.awayHours, others = info.others})
+    end
+    function convaiHouseReplyText(replyPending, text)
+        if replyPending and replyPending.reaction and replyPending.reaction.kind == 'house' then convaiHouseText = text end
+    end
+    local function placeName()
+        local glue = convaiHousemates
+        local controller = glue and glue.controller
+        return controller and controller.placeName and controller.placeName() or ''
+    end
+    function convaiHouseTick(player, now, worldReady, outputs, manual)
+        if automatic and automatic.reaction.kind == 'house' then
+            if automatic.playbackAt then convaiHouseWaiting = nil end
+            local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+                or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+            local shown = automatic.shown == true
+            if reason then
+                cancelAutomatic('house-' .. reason)
+                finish(reason == 'manual-priority' and 'cancelled' or 'failed')
+            elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
+                cancelAutomatic('completed')
+                finish(shown and 'done' or 'failed', convaiHouseText)
+            elseif not reactionLease(true) then
+                cancelAutomatic('lease-write-failed')
+                finish('failed')
+            end
+            return true
+        end
+        if convaiHouseCurrent then
+            -- Her line ended without being heard.
+            finish('failed')
+        end
+        local waiting = convaiHouseWaiting
+        if not waiting or automatic then return false end
+        if os.time() - waiting.at > 45 then finish('failed'); return false end
+        if not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+        local request = waiting.request
+        local npc = companions.residentNpc(request.speaker.serial)
+        if not npc then finish('failed'); return false end
+        local available = battleObserver.canSpeak(npc, 'start')
+        if not available then return false end
+        generation = generation + 1
+        local reaction
+        if request.kind == 'welcome' then
+            reaction = {kind = 'house', event = 'welcome', place = request.place or placeName(), awayHours = request.awayHours or 0,
+                others = request.others or {}, expiresAt = math.floor((now + 25) * 1000)}
+        else
+            reaction = {kind = 'house', event = 'chat', partner = request.partner.name, partnerKey = request.partner.key,
+                place = placeName(), n = request.n, of = request.of, topic = request.topic, lines = request.lines or {},
+                expiresAt = math.floor((now + 30) * 1000)}
+        end
+        local context = {generation = generation, entity = request.speaker.entity, name = request.speaker.name, bodyType = '',
+            profileKey = request.speaker.key, sentAt = now, reaction = reaction,
+            text = request.kind == 'welcome' and 'V has just come home. Give a brief in-character greeting.'
+                or 'You are talking with ' .. tostring(request.partner.name) .. ' at V\'s place. Say your next line.'}
+        context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+        automatic = context
+        captureReactionGuard(worldReady, outputs, nil)
+        convaiHouseWaiting = nil
+        if reactionLease(true) and sendRequest(context) then
+            speech.target = npc
+            lastAutomatic = {at = now, requestId = context.requestId, kind = 'house'}
+            convaiHouseCurrent = request
+            log('Automatic house line: speaker=' .. tostring(request.speaker.key) .. ' event=' .. reaction.event)
+        else
+            cancelAutomatic('request-write-failed')
+            finish('failed')
+        end
+        return true
+    end
+end
+
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
     if not battleSample or battlePoll >= 0.5 then
@@ -3714,6 +4073,8 @@ local function updateBattles(player, elapsed, worldReady)
     local outputs = battleOutputs or reactionOutputs(player)
     if automatic and automatic.reaction.kind == 'meet' then
         convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'house' then
+        convaiHouseTick(player, now, worldReady, outputs, manual)
     elseif automatic and automatic.reaction.kind == 'head' then
         convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual)
     elseif automatic then
@@ -3737,6 +4098,9 @@ local function updateBattles(player, elapsed, worldReady)
     end
     if not automatic and (convaiMeetGreetingWaiting or convaiMeetGreetingCurrent) then
         convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+    end
+    if not automatic and (convaiHouseWaiting or convaiHouseCurrent) then
+        convaiHouseTick(player, now, worldReady, outputs, manual)
     end
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil
     local function mayFollow(event, kind)
@@ -4624,6 +4988,8 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     companions.abandon(preserveTransit==true)
     -- Immersive invitations: the references are dropped after the party's own, with no call into the game (mod/immersive-invitations.lua bind).
     if convaiImmersiveReset then convaiImmersiveReset(reason, preserveTransit == true) end
+    -- Housemates: the registry is read again from the save that loads next; a fast travel keeps it (the bodies were deleted before it).
+    if convaiHousemateReset then convaiHousemateReset(reason, preserveTransit == true) end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
     managerUi.resetSession()
     speech.abandon()
@@ -5187,6 +5553,8 @@ registerForEvent('onUpdate', function(delta)
     if worldReady then
         local immersiveOk, immersiveError = pcall(convaiImmersiveTick, elapsedPoll)
         if not immersiveOk then convaiLogOnce('immersive-tick', 'Immersive invitations failed: ' .. tostring(immersiveError)) end
+        local housemateOk, housemateError = pcall(convaiHousemateTick, elapsedPoll)
+        if not housemateOk then convaiLogOnce('housemate-tick', 'Housemates failed: ' .. tostring(housemateError)) end
     end
     -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).
     if worldReady and convaiCompanionAdoption then
@@ -5416,6 +5784,10 @@ registerForEvent('onUpdate', function(delta)
                         -- An add-on remark's text goes to its remarkStarted event (docs/ADDON_API.md): one table write, no native call.
                         if pending.reaction and pending.reaction.kind == 'addon' and convaiAddons and convaiAddons.live then
                             pcall(convaiAddons.replyText, pending, reply.text)
+                        end
+                        -- A housemate's chat line: its text is the next speaker's context (mod/housemate-chat.lua).
+                        if pending.reaction and pending.reaction.kind == 'house' and convaiHouseReplyText then
+                            pcall(convaiHouseReplyText, pending, reply.text)
                         end
                         speech.start(pending, reply)
                     end

@@ -99,6 +99,31 @@ function appointmentSentence({kind, place, minutes}) {
   if (kind === 'stood-up') return `V arranged to meet you at ${where} and never came; you waited about ${minutes} minutes and left angry. Bring it up in your own way only if it fits, do not recite it.`;
   return `V called off your meeting at ${where}; you were a little put out. Mention it only if it fits.`;
 }
+// A housemate (docs/HOUSEMATES.md, mod/housemates.lua): a character who lives in one of V's apartments. {apartment, atHome, others, moved?, asked?}. The apartment
+// and the names are game-made words (a fixed apartment list and the roster), cleaned and bounded; any bad field makes the whole note absent, never the message.
+const HOUSEMATE_WORDS = 80, HOUSEMATE_OTHERS = 8;
+export function parseHousemate(value) {
+  if (!plain(value) || typeof value.atHome !== 'boolean') return null;
+  const apartment = clean(value.apartment, HOUSEMATE_WORDS);
+  const rows = value.others === undefined ? [] : sequence(value.others, HOUSEMATE_OTHERS);
+  if (!apartment || !rows) return null;
+  const others = [];
+  for (const row of rows) { const name = clean(row, HOUSEMATE_WORDS); if (name && !others.includes(name)) others.push(name); }
+  return {apartment, atHome: value.atHome, others, ...(value.moved === 'now' ? {moved: 'now'} : {}),
+    ...(typeof value.asked === 'boolean' ? {asked: value.asked} : {})};
+}
+// The sentences of a housemate note, in her own voice. A phone contact or a caller gets where she lives only: whether she is home right now, and who else is
+// there, would be a place of her own that the remote rules say she does not have. Nothing tells her to recite any of it.
+function housemateSentences(note, remote) {
+  const lines = [`You live at V's place in ${note.apartment}.`];
+  if (!remote) {
+    lines.push(note.atHome ? 'You are home.' : 'You are out with V.');
+    if (note.others.length) lines.push(`Also living there: ${listOf(note.others)}.`);
+  }
+  if (note.moved === 'now') lines.push('V has just told you that you can stay at their place.');
+  if (note.asked === true) lines.push('You asked V which of their flats you should move into and are waiting for the answer.');
+  return lines;
+}
 // A remote character is told she is not there and names no place of her own; the meeting she arranged is the one place she may speak of.
 const MEETING_EXCEPTION = ' The one exception is the meeting you arranged with V: you may say you are on your way to that place or waiting there.';
 
@@ -131,6 +156,9 @@ export function parseTurnContext(value) {
   // An appointment this character has with V (docs/IMMERSIVE_INVITATIONS.md, mod/immersive-invitations.lua): bounded, and absent when malformed.
   const appointment = parseAppointment(value.appointment);
   if (appointment) result.appointment = appointment;
+  // A housemate note (docs/HOUSEMATES.md): where she lives and whether she is home. It counts as company: Dynamic info's company switch drops it too.
+  const housemate = parseHousemate(value.housemate);
+  if (housemate) result.housemate = housemate;
   const rows = sequence(value.party, MAX_PARTY * 2);
   if (rows) {
     const party = [], seen = new Set();
@@ -283,7 +311,9 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const meeting = !ambient && !head && snapshot.appointment ? appointmentSentence(snapshot.appointment) : null;
   const remoteMeeting = meeting && (phone || call) && ['on-the-way', 'waiting'].includes(snapshot.appointment.kind);
   // A stranger hears who V is to them on every turn, with or without other facts: a player report (2026-10-25) had every pedestrian and guard talk as if they knew V.
-  if (!sentences.length && !meeting) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
+  // A housemate's note: a named character in person, on a phone or in a call; not a stranger, not Johnny in V's head. Room of its own, like the meeting.
+  const housing = !ambient && !head && snapshot.housemate ? housemateSentences(snapshot.housemate, phone) : [];
+  if (!sentences.length && !meeting && !housing.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
   const prefix = 'Right now (from the game, this turn only): ';
   let suffix = ambient
     ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
@@ -294,6 +324,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();
   if (meeting) sentences.splice(Math.min(lead, sentences.length), 0, meeting);
+  if (housing.length) sentences.splice(Math.min(lead + (meeting ? 1 : 0), sentences.length), 0, ...housing);
   if (remoteMeeting) suffix = suffix.slice(0, suffix.length - MENTION.length) + MEETING_EXCEPTION + MENTION;
   if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget'};
   return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: ''};

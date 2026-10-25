@@ -51,6 +51,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `immersive-on-the-way` | Player | {name} is on her way. / {name} is on her way. About {minutes} minutes. | Invite (the manager button or the Contacts J key) with Settings > Immersive invitations On | 5 |
 | `immersive-text` | Player | {name}: {her text} | A text a character sent on her own: she arrived, V was stood up, the meeting was called off (also in the phone's Chat). Without a phone contact the plain line | 5 |
 | `immersive-greeting` | Player | {name}: Good to see you. Let us go. | Her spoken greeting at the meeting could not be played | 20 |
+| `housemate-notice` | Player | {name} moves into {apartment}. / {name} has moved out. / {name} joins you. / {name} is back at home. | A character was told she can live at V's place, moved out, was called to the party from home, or was released into her routine at home (docs/HOUSEMATES.md) | 5 |
 | `phone-queued` | Removed | {name}: invite queued. / {name}: dismiss queued. | The native queue accepted a request; it appeared only after the phone closed and repeated the row's own text | never |
 | `party-dismissed` | Developer | {name} dismissed. | A dismissal finished | none |
 | `service-down` | Player | The conversation service needs your Convai API key. Add it, then restart the game. | Once per supervisor failure, in gameplay | once |

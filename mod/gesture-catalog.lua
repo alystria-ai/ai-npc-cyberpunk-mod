@@ -35336,6 +35336,10 @@ local catalog = {
         chair = "convai_sit_chair",
         bar = "convai_sit_bar",
         stool = "convai_sit_stool",
+        bed = "convai_sit_bed",
+        chairsleep = "convai_sit_chairsleep",
+        lean = "convai_sit_lean",
+        sink = "convai_sit_sink",
     },
     characters = {
         ["Character.Judy"] = {

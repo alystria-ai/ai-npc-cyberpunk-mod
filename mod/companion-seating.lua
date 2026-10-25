@@ -598,6 +598,10 @@ function M.new(options)
                     session.forward = {x = seat.forward.x / len, y = seat.forward.y / len}
                     session.orientation = seat.orientation or session.orientation
                     session.search = {side = 1, samples = {}}
+                    -- V's seat root, where V's own workspot plays: housemates (mod/housemates.lua) learn it so none of them is ever given it.
+                    if type(options.onSettled) == 'function' then
+                        pcall(options.onSettled, copy(session.anchor), {x = session.forward.x, y = session.forward.y}, session.kind)
+                    end
                 end
             end
             return

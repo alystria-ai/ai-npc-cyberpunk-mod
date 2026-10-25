@@ -9,7 +9,7 @@
 // The kinds, what each one covers, and where it is dropped:
 //   location   the district, V's apartment or the named place, indoors or outdoors      turn context, ordinary NPCs' "where you are"
 //   time       the hour of the day and the weather                                       turn context
-//   company    who is with V, the vehicle, V's motion, what a companion is doing         turn context
+//   company    who is with V, the vehicle, V's motion, what a companion is doing, a housemate's note   turn context
 //   condition  V's health, the police heat, and the last fight                           turn context, the battle block of a manual turn
 //   money      V's money band                                                            turn context
 //   gear       V's clothes, weapons and cyberware                                        the gear block
@@ -23,7 +23,7 @@ export const NO_KINDS = Object.freeze(new Set());
 
 // The fields of a turn-context snapshot (bridge/turn-context.mjs parseTurnContext) each kind owns.
 const SNAPSHOT_FIELDS = Object.freeze({
-  location: ['district', 'area', 'indoors'], time: ['hour', 'minute', 'weather'], company: ['party', 'vehicle', 'driving', 'motion'],
+  location: ['district', 'area', 'indoors'], time: ['hour', 'minute', 'weather'], company: ['party', 'vehicle', 'driving', 'motion', 'housemate'],
   condition: ['health', 'heat'], money: ['money'], about: ['gender', 'lifepath']});
 
 /** The snapshot without what the off kinds own; the same object when nothing applies. `voice` and `dialogueVolume` always stay. */

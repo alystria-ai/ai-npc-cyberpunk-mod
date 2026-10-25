@@ -79,6 +79,8 @@
   "state": [
     "addon-settings.json",
     "decision-ledger.json",
+    "housemate-learned.json",
+    "housemates.json",
     "immersive-invitations.json",
     "memory-chat-resets.json",
     "npc-names.json",
@@ -97,6 +99,9 @@
     "diagnostic-response.txt",
     "dialogue-level.json",
     "game-dialogue-probe.json",
+    "housemate-qualify.txt",
+    "housemate-scan.json",
+    "housemate-survey.txt",
     "johnny-probe.json",
     "knowledge-activation.json",
     "knowledge-binding.json",

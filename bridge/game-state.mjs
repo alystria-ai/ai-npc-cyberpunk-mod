@@ -28,7 +28,8 @@ import {dirname, join} from 'node:path';
 // The `state` class of packaging/runtime-exchange.json (a test keeps the two lists equal) plus runtime/npc-names.json, which the Lua
 // used to keep next to init.lua and now keeps beside the other state.
 export const GAME_STATE_FILES = Object.freeze(['settings.json', 'settings.json.previous', 'phone-history.json', 'phone-history.json.previous',
-  'memory-chat-resets.json', 'witness-receipts.json', 'decision-ledger.json', 'addon-settings.json', 'npc-names.json', 'immersive-invitations.json']);
+  'memory-chat-resets.json', 'witness-receipts.json', 'decision-ledger.json', 'addon-settings.json', 'npc-names.json', 'immersive-invitations.json',
+  'housemate-learned.json', 'housemates.json']);
 export const GAME_STATE_FOLDER = 'game-state';
 export const OLDER_FOLDER = 'older';
 export const RESTORE_SIGNAL = 'state-restore.json';

@@ -87,9 +87,12 @@ const seatFiles = workspots.filter((name) => name.startsWith('convai_seat_'));
 check(seatFiles.length >= 1, 'no endless sit workspots in the archive');
 for (const name of seatFiles) {
     let lists = 0;
+    let repeating = 0;
     (function visit(node, parent) {
         if (Array.isArray(node)) { node.forEach((item) => visit(item, parent)); return; }
         if (!node || typeof node !== 'object') return;
+        // A sleep workspot has no fidget list: its main sequence repeats for ever.
+        if (node.$type === 'workSequence' && Number(node.loopInfinitely) === 1) repeating++;
         if (node.$type === 'workRandomList') {
             lists++;
             check(Number(node.minClips) >= 100 && Number(node.maxClips) >= 100, `${name}: random list ends after ${node.minClips}-${node.maxClips} clips`);
@@ -98,7 +101,7 @@ for (const name of seatFiles) {
         const next = typeof node.$type === 'string' && node.$type.startsWith('work') ? node : parent;
         Object.values(node).forEach((value) => visit(value, next));
     })(read(roundtrip, name).Data.RootChunk.workspotTree, null);
-    check(lists >= 1, `${name} has no random list`);
+    check(lists >= 1 || repeating >= 1, `${name} has no random list and no repeating sequence`);
 }
 const sitComponents = entity.components.filter((c) => c.split(':')[1].startsWith('convai_sit_'));
 check(sitComponents.length >= 1 && sitComponents.every((c) => c.includes('convai_seat_')), `sit components must play the endless copies: ${sitComponents.join(', ')}`);

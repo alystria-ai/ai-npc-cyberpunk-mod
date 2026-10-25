@@ -13,9 +13,10 @@ import {parseTurnContext} from './turn-context.mjs';
 import {parseHead, parseHeadReaction} from './johnny-head.mjs';
 import {parseMeetReaction} from './appointment-events.mjs';
 import {parseCallMeetOffer} from './call-meet.mjs';
+import {parseHouseReaction} from './house-chat.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
-import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
+import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
 
 export {parseMeetReaction};
@@ -69,7 +70,9 @@ function parseRequest(raw) {
     : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
       // She met V at the place she was invited to (docs/IMMERSIVE_INVITATIONS.md): her own greeting, a private turn only (bridge/appointment-events.mjs).
       : value.reaction?.kind === 'meet' ? parseMeetReaction(value.reaction, {group: !!group})
-        : parseReaction(value.reaction, battle, loot);
+        // A housemate speaks (docs/HOUSEMATES.md): a line of a chat with another housemate, or a welcome home; a private turn only (bridge/house-chat.mjs).
+        : value.reaction?.kind === 'house' ? parseHouseReaction(value.reaction, {group: !!group})
+          : parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   // A malformed optional offer removes only gameplay admission; the original
   // conversation is still valid and must keep its actor/request identity.
@@ -77,10 +80,12 @@ function parseRequest(raw) {
   const tacticOffer = parseTacticOffer(value.tacticOffer);
   // Party membership offers (docs/WORLD_COMPANIONS.md): join V, leave V's party, or why joining is refused.
   const followOffer = parseFollowOffer(value.followOffer), leaveOffer = parseLeaveOffer(value.leaveOffer);
+  // Housemates (docs/HOUSEMATES.md): stay at V's place, move out, join V's party from home. A malformed offer is dropped, the message stands.
+  const homeOffer = parseHomeOffer(value.homeOffer);
   // An ordinary world NPC's reaction offer (docs/NPC_REACTIONS.md); a person with any of the offers above is a companion and has none.
-  const reactionOffer = chauffeurOffer || tacticOffer || followOffer || leaveOffer ? null : parseReactionOffer(value.reactionOffer);
+  const reactionOffer = chauffeurOffer || tacticOffer || followOffer || leaveOffer || homeOffer ? null : parseReactionOffer(value.reactionOffer);
   // An offer the game sent that did not survive the parser is not silent: the turn's reaction line says so (bridge/companion-actions.mjs admit).
-  const reactionOfferDropped = value.reactionOffer !== undefined && !reactionOffer && !(chauffeurOffer || tacticOffer || followOffer || leaveOffer)
+  const reactionOfferDropped = value.reactionOffer !== undefined && !reactionOffer && !(chauffeurOffer || tacticOffer || followOffer || leaveOffer || homeOffer)
     ? 'malformed-offer' : undefined;
   const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
@@ -99,7 +104,7 @@ function parseRequest(raw) {
     ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
-    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
+    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(homeOffer ? {homeOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
     ...(reactionOfferDropped ? {reactionOfferDropped} : {}),
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),

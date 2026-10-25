@@ -822,3 +822,9 @@ hole it leaves in its section list, and checks that the widgets on screen are wh
   area are MCM's), and that no Native Settings UI tab is listed in MCM when both are installed.
 - The debounce times (0.3, 0.4 and 0.6 s, at most 2 s) are chosen, not measured against real widget callbacks.
 - The visibility and timing of the invitation notices (the 3 s and 5 s stays) in the running game.
+
+## Housemates (2026-10-25, docs/HOUSEMATES.md)
+
+Current party lists the characters who live at V's place under the party copies, one row each: "{name} · lives in {apartment} · at home / with you / out"
+with a **Move out** button (MCM and Native Settings UI share the page). Move out ends the housemate arrangement only; she stays as she is otherwise. A
+housemate's body is not a party copy: it is not listed as one and does not count in the party. The page reads the list when it is built; there is no setting.

@@ -180,3 +180,9 @@ diagnostic code and stage without exposing provider responses or identifiers.
 After the October 4 CET reload, the user confirmed that Hanako joins. This
 accepts the retry/spawn path. The earlier discarded cause remains unknown;
 no additional failure was induced just to repeat the notification check.
+
+## Housemates (2026-10-25, docs/HOUSEMATES.md)
+
+A housemate's body is a visiting copy that belongs to the housemates (`entry.owner = 'housemates'`, `entry.home`): it is created by a quiet job with no preparation (`extra.resident`:
+no memory or connection is prepared, the profile is assigned as she spawns, the connection opens when someone talks to her), it is not listed in Current party and does not count in
+`Q.count()`. Tagging along gives her the follower role on the same body (`joinVisitor`); resting at home takes it away again (`companions.releaseToHome`).

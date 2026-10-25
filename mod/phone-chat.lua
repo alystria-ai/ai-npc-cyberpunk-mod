@@ -657,6 +657,8 @@ function M.update(player, delta)
             M.pending.turnContext = turnContext
             -- Immersive invitations (mod/immersive-invitations.lua): the meeting V could ask for, nil while the setting is Off.
             M.pending.meetOffer = capture(M.captureMeetOffer, submission.contact, key)
+            -- Housemates (mod/housemates.lua): moving in at V's place or moving out, for a contact who may be invited.
+            M.pending.homeOffer = capture(M.captureHomeOffer, submission.contact, key)
             M.sentAt = os.time()
             M.replyWaitSeconds = replyWait()
             M.errors[submission.contact] = nil
@@ -696,6 +698,10 @@ function M.update(player, delta)
                     local item = M.eventItem
                     M.eventItem = nil
                     if item and type(M.onEventDelivered) == 'function' then pcall(M.onEventDelivered, item, reply.text) end
+                elseif accepted.homeOffer and type(reply.action) == 'table' and type(reply.action.token) == 'string'
+                    and reply.action.token:sub(1, 5) == 'home-' and type(M.onHomeAction) == 'function' then
+                    -- The bridge's answer to the housing offer (bridge/home-requests.mjs); the game checks it against the offer it sent.
+                    pcall(M.onHomeAction, accepted.profileKey, reply.action, accepted.contact)
                 elseif accepted.meetOffer and type(reply.action) == 'table' and type(M.onMeetAction) == 'function' then
                     -- The bridge's answer to the offer (bridge/meet-requests.mjs); the game checks it against the offer it sent.
                     pcall(M.onMeetAction, accepted.profileKey, reply.action, accepted.contact)
