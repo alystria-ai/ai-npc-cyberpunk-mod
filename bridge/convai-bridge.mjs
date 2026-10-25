@@ -101,6 +101,7 @@ import {RelationshipRouting, retireRelationshipConnections} from './relationship
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
+import {publishCallOff} from './call-off.mjs';
 import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
@@ -2288,6 +2289,8 @@ function decideCallMeet(input, result, signal) {
 async function publishResult(input, profile, result, current = async () => true, signal) {
   if (!await current()) return false;
   if (input.holocall && input.meetOffer && mistral.active) decideCallMeet(input, result, signal);
+  // "Never mind, cancel that" said to a companion at V's side calls off a meeting V arranged with someone who is not here (bridge/call-off.mjs).
+  publishCallOff(runtime, atomic, input, result?.userText);
   // A reply published as a whole (OmniVoice) is ready now: V's typed line, if it is audible, finishes first; if it is not, it is dropped.
   await current.vLine?.()?.waitClear(signal);
   if (!await current()) return false;

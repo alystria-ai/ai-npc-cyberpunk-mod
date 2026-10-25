@@ -7,7 +7,7 @@
 local M = {}
 
 -- deps: manager (immersive()), queue() -> the party queue, companions, phoneChat, load(name) -> module, notify(kind, text), log(line),
---       logOnce(key, line), held(), districtOf(), greet(info), persist = {load, store}, wall(), random()
+--       logOnce(key, line), held(), districtOf(), greet(info), persist = {load, store}, wall(), random(), nowMs() (epoch ms), readCallOff() -> table|nil
 function M.new(deps)
     local S = {controller = nil, state = {acc = 0, key = false}}
 
@@ -136,6 +136,24 @@ function M.new(deps)
             end
         end
         if state.key ~= false then controller.update(delta) end
+        -- A plain call-off V said to someone else (bridge/call-off.mjs writes runtime/call-off.json): looked at once a second, and only while a meeting
+        -- stands. A call-off that was said before the meeting was made does not count.
+        if deps.readCallOff and controller.standing and controller.standing() then
+            state.armedMs = state.armedMs or deps.nowMs()
+            state.callOffAcc = (state.callOffAcc or 0) + delta
+            if state.callOffAcc >= 1 then
+                state.callOffAcc = 0
+                local ok, row = pcall(deps.readCallOff)
+                if ok and type(row) == 'table' and row.id ~= state.callOffId and type(row.updated) == 'number' then
+                    state.callOffId = row.id
+                    if row.updated >= state.armedMs and type(row.text) == 'string' and controller.callOff(row.text) then
+                        deps.log('Immersive invitations: a plain call-off said to someone else ended the meeting')
+                    end
+                end
+            end
+        else
+            state.armedMs, state.callOffAcc = nil, nil
+        end
         -- Car arrival keeps a short trail of the roads V has driven (the one place a road is known for certain).
         if options.arrival == 'car' then
             state.trail = (state.trail or 0) + delta

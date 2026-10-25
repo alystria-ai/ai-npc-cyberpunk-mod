@@ -181,3 +181,25 @@ test('the trail of roads V drives is sampled every two seconds, only while Car i
   for _ = 1, 100 do service.tick(0.1) end
   assert(log.trail >= 4 and log.trail <= 6, tostring(log.trail))
 `));
+
+test('a call-off file (bridge/call-off.mjs) is read once a second, only while a meeting stands, once per id, and never from before the meeting', () => run(`
+  options.enabled = true
+  phoneChat.world = 'world-1'
+  local standing, now, row, reads, called = false, 10000, nil, 0, {}
+  controller.standing = function() return standing end
+  controller.callOff = function(text) called[#called + 1] = text; return true end
+  deps.nowMs = function() return now end
+  deps.readCallOff = function() reads = reads + 1; return row end
+  service = Module.new(deps)
+  row = {id = 'a', updated = 9000, text = 'never mind, cancel that'}
+  for _ = 1, 30 do service.tick(0.1) end
+  assert(reads == 0 and #called == 0, 'no meeting, no read')
+  standing = true
+  for _ = 1, 25 do service.tick(0.1) end
+  assert(reads == 2 and #called == 0, 'the call-off was said before the meeting stood: ' .. reads)
+  row = {id = 'b', updated = 10500, text = 'never mind, cancel that'}
+  for _ = 1, 10 do service.tick(0.1) end
+  assert(#called == 1 and called[1] == 'never mind, cancel that')
+  for _ = 1, 30 do service.tick(0.1) end
+  assert(#called == 1, 'the same id is not used twice')
+`));

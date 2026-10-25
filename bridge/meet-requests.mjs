@@ -166,6 +166,20 @@ export function screenMeet(text) {
   const sure = cancel && !has('meet', said.replace(patterns.cancel[2], ' ')) && !mark;
   return {kind: cancel ? 'cancel' : waypoint ? 'waypoint' : meet ? 'here' : null, meet: meet || waypoint, waypoint: mark, cancel, sure};
 }
+// The explicit words of a call-off, for a call-off said to someone who is not the one coming (a companion at V's side): the loose stems above ("no thanks",
+// "not anymore") are fine for the person V arranged the meeting with and could mean anything else said to somebody else.
+const STRICT_CALL_OFF = new RegExp(String.raw`(?<![\p{L}\p{N}])(?:never ?mind|nvm|forget (?:it|that|about it)|cancel(?:l?ed)?(?![\p{L}])|(?:don'?t|do not) come|call it off|not coming|change of plans|changed my mind|scratch that|belay that|false alarm|`
+  + String.raw`vergiss es|abgesagt|absagen|stornier|komm nicht|plan[äa]nderung|laisse tomber|annule|ne viens pas|changement de plans?|`
+  + String.raw`olv[ií]dalo|cancela|cancelado|no vengas|cambio de planes|cambi[eé] de idea|lascia perdere|annulla|annullato|non venire|cambio di piani|ho cambiato idea|`
+  + String.raw`esquece|deixa pra l[aá]|n[aã]o venha|mudan[cç]a de planos|mudei de ideia|zapomnij|anuluj|odwo[lł]aj|nie przychod[zź]|zmiana plan[oó]w|`
+  + String.raw`забудь|отмена|отмени|отбой|не приходи|не приезжай|планы изменились|передумал|скасуй|не приходь|не приїжджай|плани змінилися|відбій|`
+  + String.raw`bo[sş] ver|[iİ]ptal|gelme(?![\p{L}])|plan de[gğ]i[sş]ti|fikrimi de[gğ]i[sş]tirdim|vazge[cç]|zapome[nň]|zru[sš]|nechoď|nep[rř]ij[dď]|zm[eě]na pl[aá]n[uů]|`
+  + String.raw`felejtsd el|ne j[oö]jj|meggondoltam)|キャンセル|来なくて|来ないで|忘れて|予定変更|中止|取り消し|취소|오지 ?마|계획 변경|取消|算了|别来|不用来|不要来|别过来`, 'iu');
+/** A plain, explicit call-off with no meeting word left in it ("never mind, cancel that"): safe to act on when it was said to a third person. */
+export function plainCallOff(text) {
+  const value = normal(text);
+  return screenMeet(value).sure && STRICT_CALL_OFF.test(value.replace(NOT_A_CANCEL, ' '));
+}
 /** 'here' | 'waypoint' | 'cancel' | null: which request V's message could be. */
 export const meetKind = text => screenMeet(text).kind;
 /** Whether V's words name the waypoint at all (a meet-waypoint tag needs it). */

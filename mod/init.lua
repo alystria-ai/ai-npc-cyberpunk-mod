@@ -3726,7 +3726,17 @@ do
             built, glue = pcall(module.new, {
                 manager = manager, queue = function() return managerUi.party and managerUi.party() end, companions = companions,
                 phoneChat = phoneChat, load = dofile, notify = notify, log = log, logOnce = convaiLogOnce, held = held,
-                districtOf = currentDistrict, greet = convaiMeetGreeting, persist = persist, wall = os.clock, random = math.random})
+                districtOf = currentDistrict, greet = convaiMeetGreeting, persist = persist, wall = os.clock, random = math.random,
+                nowMs = function() return os.time() * 1000 end,
+                -- bridge/call-off.mjs: a plain call-off V said to a character who is here (read at most once a second, only while a meeting stands).
+                readCallOff = function()
+                    local file = io.open('runtime/call-off.json', 'rb')
+                    if not file then return nil end
+                    local raw = file:read('*a')
+                    file:close()
+                    local decoded, row = pcall(json.decode, raw)
+                    return decoded and type(row) == 'table' and row or nil
+                end})
         end
         if not built then
             failed = true
