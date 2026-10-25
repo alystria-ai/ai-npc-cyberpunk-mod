@@ -1038,7 +1038,9 @@ function M.activityInputs(seats)
             local owned=okTactic and tactic and tactic.active and tactic.serial==entry.serial
             -- 'home' or 'changed' when the copy wears other clothes than its appearance text describes (mod/companion-outfits.lua status).
             local okOutfit,outfit=pcall(function() return M.outfitStatus and M.outfitStatus(entry.serial) end)
-            rows[entry.profileKey]={transport=transport and {owned=transport.owned,phase=transport.phase,seat=transport.seat,
+            -- 'weapon' when a real weapon is drawn in her hand, 'empty' when not (one guarded read of the hand slot; a failed read says nothing).
+            local okHand,drawn=pcall(function() return equipment.draw.weapon(entry.npc) end)
+            rows[entry.profileKey]={holding=okHand and (drawn and 'weapon' or 'empty') or nil,transport=transport and {owned=transport.owned,phase=transport.phase,seat=transport.seat,
                 mountedSeat=transport.mountedSeat} or nil,
                 tactic=owned and {kind=tactic.kind,phase=tactic.phase} or nil,
                 seating=type(seats)=='table' and seats[entry.serial] or nil,
