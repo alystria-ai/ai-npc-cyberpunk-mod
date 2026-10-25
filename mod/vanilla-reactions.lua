@@ -24,7 +24,7 @@
 -- of a running group chat, and a short grace after either ends. Holds are kept
 -- by entity hash; they expire on their own, and a load or detach clears them.
 -- Ambient barks (the bark window): the game's own greeting, grunt and bump voice lines of any NPC within 15 m of V are dropped
--- while V talks to an NPC and while an AI line plays (r6 Engagement.reds ConvaiBarkGate wraps GameObject.PlayVoiceOver). This
+-- while V talks to an NPC, while an AI line plays and for a quiet tail after it (the gaps between turns; r6 Engagement.reds ConvaiBarkGate wraps GameObject.PlayVoiceOver). This
 -- file only opens and closes that window on conversation events (R.barkHold, R.barkRelease, R.speechStarted, R.speechEnded):
 -- one native call per event, never per frame and never a poll; the window also ends by itself. See R.barkHold.
 -- Each suppression writes "Suppressed vanilla reaction <kind> for <entity>"
@@ -37,11 +37,12 @@ M.DEFAULTS = {
     grace = 6,        -- seconds an NPC stays quiet after the mod stops addressing it
     maxPinned = 900,  -- a focus older than this is no longer trusted (a missed release)
     logEvery = 3,     -- seconds between two log lines for one NPC and kind
-    talkHold = 45,    -- bark window: V pressed the talk key (the composer or the microphone is open)
-    requestHold = 20, -- bark window: V's line was sent and the reply is on its way
-    speechHold = 90,  -- bark window: an AI line starts to play (its end closes the window, this only caps a missed end)
-    lineTail = 2,     -- bark window: seconds kept after an AI line ends (the next speaker of a group, a follow-up line)
-    endGrace = 3,     -- bark window: seconds kept after the conversation ends
+    talkHold = 120,   -- bark window: V pressed the talk key (the composer or the microphone is open, V may take a while to write)
+    requestHold = 45, -- bark window: V's line was sent and the reply is on its way (a slow model, a queue)
+    speechHold = 90,  -- bark window: an AI line starts to play (its end shortens the window to lineTail, this only caps a missed end)
+    lineTail = 25,    -- bark window: seconds kept after an AI line ends: the gap before V's next turn, a group's next speaker, a follow-up
+    idleTail = 25,    -- bark window: seconds kept after the conversation's focus ran out by itself (V went quiet, nothing playing)
+    endGrace = 3,     -- bark window: seconds kept after V closes the conversation on purpose (the manager opens)
 }
 
 -- Stimuli the reaction system turns into stare, proximity and bump reactions.
@@ -276,8 +277,8 @@ function M.new(options)
         return true
     end
 
-    -- Ends the window `grace` seconds from now (also when it was longer), only when one is open.
-    function R.barkRelease(grace)
+    -- Ends the window `grace` seconds from now (also when it was longer), only when one is open. One probe line says why.
+    function R.barkRelease(grace, reason)
         if barkMissing then return false end
         local ok, now = pcall(clock)
         if not ok or type(now) ~= 'number' or now >= barkUntil then barkUntil = -math.huge; return false end
@@ -285,8 +286,12 @@ function M.new(options)
         local called = pcall(barkGate.release, grace)
         if not called then return false end
         barkUntil, barkCalls = now + grace, barkCalls + 1
+        log('Ambient barks released in ' .. tostring(grace) .. ' s (' .. tostring(reason or 'conversation end') .. ')')
         return true
     end
+
+    -- The conversation's focus ran out by itself: the quiet tail, then the barks may play again.
+    function R.barkIdle() return R.barkRelease(cfg.idleTail, 'quiet') end
 
     -- V pressed the talk key (the composer or the microphone opened), and V's line was sent.
     function R.talkPressed() return R.barkHold(cfg.talkHold, 'talk key') end
@@ -298,12 +303,12 @@ function M.new(options)
         return R.barkHold(cfg.speechHold, 'AI line')
     end
 
-    -- An AI line ended (or was cut): a short tail, then the barks may play again. Only a line that held the window shortens it,
+    -- An AI line ended (or was cut): the quiet tail (V's next turn or a follow-up refreshes it), then the barks may play again. Only a line that held the window shortens it,
     -- so a stop with nothing playing never ends the conversation's own window.
     function R.speechEnded()
         if not barkSpeaking then return false end
         barkSpeaking = false
-        return R.barkRelease(cfg.lineTail)
+        return R.barkRelease(cfg.lineTail, 'line ended')
     end
 
     function R.status()

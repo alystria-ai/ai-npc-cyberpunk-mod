@@ -342,36 +342,39 @@ test('the talk key opens the bark window with one native call, and a repeat insi
   run(`${barkFixture}
     local R = opened()
     assert(R.talkPressed() == true)
-    assert(#calls == 1 and calls[1] == 'hold:45', table.concat(calls, ','))
-    assert(count('Ambient barks held for 45 s (talk key)') == 1)
+    assert(#calls == 1 and calls[1] == 'hold:120', table.concat(calls, ','))
+    assert(count('Ambient barks held for 120 s (talk key)') == 1)
     -- Nothing longer is asked inside the window: no native call, no log line.
     assert(R.talkPressed() == true)
     wall = wall + 10
     assert(R.requestSent() == true)
     assert(#calls == 1, 'repeat events called the game: ' .. table.concat(calls, ','))
     -- Another talk key press later in the window asks for more time than is left, so it extends.
-    assert(R.talkPressed() == true and #calls == 2 and calls[2] == 'hold:45')
+    wall = wall + 10
+    assert(R.talkPressed() == true and #calls == 2 and calls[2] == 'hold:120')
     calls[2] = nil
     assert(count('Ambient barks held') == 1)
     -- A longer ask extends it (never shortens), still without a second log line while it is open.
-    assert(R.barkHold(90, 'x') and #calls == 2 and calls[2] == 'hold:90', table.concat(calls, ','))
+    assert(R.barkHold(300, 'x') and #calls == 2 and calls[2] == 'hold:300', table.concat(calls, ','))
     assert(count('Ambient barks held') == 1)
     -- After it ran out the next event opens it again.
-    wall = wall + 200
+    wall = wall + 400
     assert(R.talkPressed() and #calls == 3 and count('Ambient barks held') == 2)
     local status = R.status().bark
     assert(status.open == true and status.unavailable == false)
   `);
 });
 
-test('an AI line holds the window until it ends, then a short tail; a stop with no line playing changes nothing', () => {
+test('an AI line holds the window until it ends, then the quiet tail; a stop with no line playing changes nothing', () => {
   run(`${barkFixture}
     local R = opened()
     assert(R.speechEnded() == false and #calls == 0, 'a stop with no line released the window')
     assert(R.talkPressed())
+    wall = wall + 40
     assert(R.speechStarted() and last() == 'hold:90', tostring(last()))
     wall = wall + 7
-    assert(R.speechEnded() == true and last() == 'release:2', tostring(last()))
+    assert(R.speechEnded() == true and last() == 'release:25', tostring(last()))
+    assert(count('Ambient barks released in 25 s (line ended)') == 1)
     -- The same end twice is one release; a second stop is not a line.
     assert(R.speechEnded() == false)
     local n = #calls
@@ -379,10 +382,32 @@ test('an AI line holds the window until it ends, then a short tail; a stop with 
     wall = wall + 1
     assert(R.speechStarted() and #calls == n + 1 and last() == 'hold:90')
     -- The conversation ends: the grace, only while a window is open.
-    assert(R.barkRelease() == true and last() == 'release:3')
+    assert(R.barkRelease(nil, 'closed') == true and last() == 'release:3')
+    assert(count('Ambient barks released in 3 s (closed)') == 1)
     wall = wall + 5
     local m = #calls
     assert(R.barkRelease() == false and #calls == m, 'released a window that was already closed')
+    assert(R.status().bark.open == false)
+  `);
+});
+
+test('the gap after a line is covered: the window stays open for the quiet tail and a new turn refreshes it', () => {
+  run(`${barkFixture}
+    local R = opened()
+    assert(R.talkPressed() and R.requestSent())
+    assert(R.speechStarted())
+    wall = wall + 8
+    assert(R.speechEnded() and last() == 'release:25')
+    -- 20 s into the gap (V is reading or composing) the window is still open, and the next talk key refreshes it.
+    wall = wall + 20
+    assert(R.status().bark.open == true, 'the window closed inside the gap')
+    assert(R.talkPressed() and last() == 'hold:120')
+    -- The focus ran out by itself after the line: the same tail; a window already closed stays closed and silent.
+    assert(R.barkIdle() == true and last() == 'release:25')
+    assert(count('Ambient barks released in 25 s (quiet)') == 1)
+    wall = wall + 30
+    local n = #calls
+    assert(R.barkIdle() == false and #calls == n)
     assert(R.status().bark.open == false)
   `);
 });
@@ -417,9 +442,9 @@ test('the bark window is opened by the talk key, the sent line and every AI line
   assert.match(init, /focusMode, focusEntity, focusUntil = 'chat', entity, os\.time\(\) \+ 120\n\s+if convaiVanillaReactions then pcall\(convaiVanillaReactions\.talkPressed\) end/);
   assert.match(init, /pcall\(convaiVanillaReactions\.requestSent\)/);
   // The conversation's end goes through one global; onUpdate gains no upvalue and still names no module.
-  assert.match(init, /convaiBarkEnd = function\(\)\n\s+if convaiVanillaReactions and not \(convaiSpeech and convaiSpeech\.requestId\) then pcall\(convaiVanillaReactions\.barkRelease\) end/);
+  assert.match(init, /convaiBarkEnd = function\(quiet\)\n\s+if convaiVanillaReactions and not \(convaiSpeech and convaiSpeech\.requestId\) then\n\s+if quiet then pcall\(convaiVanillaReactions\.barkIdle\) else pcall\(convaiVanillaReactions\.barkRelease, nil, 'closed'\) end/);
   const expiry = init.slice(init.indexOf('if focusUntil and not active and not pending'), init.indexOf('if focusedCrowd and not focusedCrowd.checked'));
-  assert.match(expiry, /endFocus\(player\)\n\s+if convaiBarkEnd then convaiBarkEnd\(\) end/);
+  assert.match(expiry, /endFocus\(player\)\n\s+if convaiBarkEnd then convaiBarkEnd\(true\) end/);
   // speech.lua: one call when a line starts, one when it ends, none per frame.
   assert.match(speech, /function M\.stop\(reason\)\n[^\n]*\n\s+if M\.requestId and convaiVanillaReactions then pcall\(convaiVanillaReactions\.speechEnded\) end/);
   assert.match(speech, /pcall\(convaiVanillaReactions\.speechStarted\) end\n\s+publish\(\); return true/);

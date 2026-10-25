@@ -129,6 +129,16 @@ If `CrimeWitnessRequestToPreventionSystem` is missing or fails (three times), `c
 
 Not used, and why: the game's own reaction outputs (`gamedataOutput.WalkAway`, `Flee`, `CallPolice` through `ReactionManagerComponent.TriggerReactionBehaviorForCrowd`, a private overloaded function) would give the full vanilla animations, but an overloaded private call is a guess from CET and only works for crowd AI. `AIMoveToCommand` is the call this mod already knows works. If the live test shows crowd NPCs ignore the walk command, the reaction call is the next thing to try.
 
+## Ambient-bark window (the gaps between turns)
+
+The game's own greeting, grunt and bump barks (`greeting`, `fear_foll`, `stlh_curious_grunt`, `bump`) of NPCs within 15 m of V are dropped while a window on the player is open (Engagement.reds `ConvaiBarkGate`, opened and closed from mod/vanilla-reactions.lua on conversation events only, never per frame). Combat lines, scene dialogue and every other voice line pass.
+
+- Opens: talk key (120 s, V may be composing), request sent (45 s, the reply is on its way), AI line starts (90 s cap).
+- Line ends: the window is cut to a 25 s quiet tail (`lineTail`), no longer to 2 s as before. That short tail was the bug: the focus ended about 1 s after the line and released the window with a 3 s grace, so the NPC barked in the gap before V's next turn. A new turn (talk key, request, next line) refreshes it.
+- Focus runs out by itself: 25 s tail (`idleTail`). The manager opening closes it with the 3 s grace. A line still playing keeps it. `clear()` (load, detach) closes it at once. It always ends by itself (simulation time), so it never sticks.
+- Probe lines: `Ambient barks held for N s (reason)` and `Ambient barks released in N s (reason)` (`line ended`, `quiet`, `closed`).
+- Story characters get no window of their own (voice and face only); the window is global to the player, so a story NPC's ambient barks within 15 m are muted too while a talk runs.
+
 ## Setting
 
 None. The project prefers no toggles, the feature is rare and bounded, and it never touches a story character. A player who never wants police heat or a hostile pedestrian simply does not threaten pedestrians. If that proves wrong, one row next to "Talk to ordinary NPCs" (`manager.lua`, `manager-ui.lua`, every `mod/locales/*.lua`, then `node scripts/Extract-UiCatalog.mjs`) would turn the offer off at `reactionOffer` in `mod/init.lua`; nothing else would change.

@@ -2462,10 +2462,13 @@ local function endFocus(player)
     if player then pcall(function() player:ConvaiEndFocus() end) end
     if convaiVanillaReactions then pcall(convaiVanillaReactions.release) end
 end
--- The conversation is over (its focus window ran out, or the manager opened): the ambient-bark window closes after a short grace
--- (vanilla-reactions.lua). A global, so onUpdate gains no upvalue. A line that still plays keeps the window until it ends.
-convaiBarkEnd = function()
-    if convaiVanillaReactions and not (convaiSpeech and convaiSpeech.requestId) then pcall(convaiVanillaReactions.barkRelease) end
+-- The conversation is over: when its focus ran out by itself (quiet = true) the ambient-bark window keeps a quiet tail, when V closed
+-- it (the manager opened) a short grace (vanilla-reactions.lua). A global, so onUpdate gains no upvalue. A line that still plays keeps
+-- the window until it ends.
+convaiBarkEnd = function(quiet)
+    if convaiVanillaReactions and not (convaiSpeech and convaiSpeech.requestId) then
+        if quiet then pcall(convaiVanillaReactions.barkIdle) else pcall(convaiVanillaReactions.barkRelease, nil, 'closed') end
+    end
 end
 -- An ordinary NPC that reacts (walks off, attacks) first lets go of the conversation's hold and look-at, the same release.
 if convaiNpcReactions then convaiNpcReactions.options.release = function(player) endFocus(player) end end
@@ -6467,7 +6470,7 @@ registerForEvent('onUpdate', function(delta)
     end
     if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)
-        if convaiBarkEnd then convaiBarkEnd() end
+        if convaiBarkEnd then convaiBarkEnd(true) end
         focusUntil = nil
         focusMode = nil
         focusEntity = nil
