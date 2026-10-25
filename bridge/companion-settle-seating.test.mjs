@@ -271,3 +271,16 @@ test('the home API: ending a home that was replaced, and the learned seat of V',
   c.abandon()
   assert(c.homeActive()==false)
 `));
+
+test('the first party tick of a world asks the home once (onWorld), and again after the world was abandoned', () => run(`
+  local asked=0
+  local c2=m.new({catalog=catalog,native=native,onWorld=function() asked=asked+1 end})
+  local rows={{entry=party[1]}}
+  c2.tick(player,.1,rows);c2.tick(player,.1,rows);c2.tick(player,.1,rows)
+  assert(asked==1,'once: '..asked)
+  c2.abandon()
+  c2.tick(player,.1,rows)
+  assert(asked==2,'again in the next world: '..asked)
+  local c3=m.new({catalog=catalog,native=native,onWorld=function() error('boom') end})
+  c3.tick(player,.1,rows)
+`));

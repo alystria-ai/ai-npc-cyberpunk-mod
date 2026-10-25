@@ -319,7 +319,10 @@ test('init.lua: the district event is the only thing that wakes it, and away fro
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(init, /ObserveAfter\('PreventionSystem', 'OnDistrictAreaEntered', function\(\)\s*if not worldSuspended and convaiSettleWake then convaiSettleWake\(\) end/);
   assert.match(init, /local z = convaiSettle\s*\r?\n\s*if z then pcall\(z\.tick, player, step, rows\) end/);
-  assert.match(init, /convaiSettle, convaiSettlePending = nil, true/);
+  assert.match(init, /\nconvaiSettle = nil\r?\ndo\r?\n/);
+  // The first party tick of a world is the only other trigger: the seating controller asks once (options.onWorld); the frame loop never does.
+  assert.match(init, /onWorld = function\(\) if convaiSettleWake then convaiSettleWake\(\) end end/);
+  assert.equal(/convaiSettlePending/.test(init), false);
   // No per-tick read of the district anywhere in the settle block.
   const block = init.slice(init.indexOf('-- ---- Companions settle in V\'s flat'), init.indexOf('-- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2)'));
   assert.ok(block.length > 500);

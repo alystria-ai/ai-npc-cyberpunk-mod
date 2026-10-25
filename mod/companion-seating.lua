@@ -1429,7 +1429,12 @@ function M.new(options)
     function self.tick(player, step, rows)
         local dt = tonumber(step) or 0
         self.clock, self.tickCount, self.player = self.clock + dt, self.tickCount + 1, player
-        if not self.swept then self.swept = true; nat.sweep() end
+        if not self.swept then
+            self.swept = true
+            nat.sweep()
+            -- The first tick with a party in a new world (or after fast travel): the home asks once whether V is in one of V's flats.
+            if type(options.onWorld) == 'function' then pcall(options.onWorld) end
+        end
         local present = {}
         for _, row in ipairs(rows or {}) do present[row.entry.serial] = row end
         for serial, s in pairs(self.states) do

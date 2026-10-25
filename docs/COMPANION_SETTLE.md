@@ -94,7 +94,7 @@ asked of it.
 * **Away from V's flats: nothing.** One `ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered')` callback (installed in `onInit` with the other
   hooks) that reads the district when the game pushes a change (a few native calls, a few times per hour of play) and one nil global read per
   companions tick. No polling of V's position, no timer.
-* **Once per world**: one district read when the world is up (a save made at home), and one when V sits down on a seat anywhere (a net for a
+* **Once per world**: one district read on the first party tick of a world (a save made at home with companions already there, or fast travel into a flat), and one when V sits down on a seat anywhere (a net for a
   missed event).
 * **In a flat**: a step every 0.5 s: one native read of V's position (none while the party is empty), the busy flag from the battle sample the mod
   already takes (no native call), one district check every 6 s. While a companion still waits for a place: at most 24 surface reads per step.
@@ -114,7 +114,7 @@ asked of it.
 ## What only a live run can settle
 
 1. **The district event fires for the flats.** `OnDistrictAreaEntered` is assumed to be pushed when V crosses the door (the housemates assume the same
-   and were never run live either). If it does not, the safety nets are the one read at world-up and the read when V sits; the log shows
+   and were never run live either). If it does not, the safety nets are the one read on the first party tick of a world and the read when V sits; the log shows
    `Settle settle-enter` (Developer mode) when it works.
 2. **An apartment with three companions** (the Corpo Plaza flat is the one with measured seats): they follow V in, V stays 10 s, they spread over the
    couch, the bar stools and the chairs, sit with the right pose, and walk there without sliding through furniture.

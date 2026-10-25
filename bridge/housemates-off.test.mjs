@@ -158,7 +158,11 @@ test('init.lua: the tick returns before any module when the setting is Off, and 
   assert.doesNotMatch(early, /Game\.|dofile|pcall/);
   assert.doesNotMatch(init.replace(block, ''), /dofile\('housemate-[a-z-]+\.lua'\)/);
   assert.match(block, /pcall\(dofile, 'housemate-service\.lua'\)/);
-  // the district hook is installed by the glue's build, which only runs while the setting is On
-  assert.equal((init.match(/ObserveAfter\('PreventionSystem', 'OnDistrictAreaEntered'/g) || []).length, 1);
+  // the housemates' district hook is installed by the glue's build, which only runs while the setting is On; the one hook outside this block
+  // belongs to the companions settling in V's flat (docs/COMPANION_SETTLE.md), which has no setting and does not touch the housemates
+  assert.equal((block.match(/ObserveAfter\('PreventionSystem', 'OnDistrictAreaEntered'/g) || []).length, 1);
+  const outside = init.slice(0, start) + init.slice(init.indexOf('function convaiHouseTick('));
+  assert.equal((outside.match(/ObserveAfter\('PreventionSystem', 'OnDistrictAreaEntered'/g) || []).length, 1);
+  assert.match(outside, /ObserveAfter\('PreventionSystem', 'OnDistrictAreaEntered', function\(\)\s+if not worldSuspended and convaiSettleWake then convaiSettleWake\(\) end/);
   assert.match(block, /local function service\(\)\n\s+if not on\(\) then return nil end/);
 });

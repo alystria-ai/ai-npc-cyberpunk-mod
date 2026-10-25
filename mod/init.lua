@@ -2167,6 +2167,8 @@ do
             if convaiHousemateLearn then convaiHousemateLearn(anchor, forward, kind) end
             if convaiSettleSat then convaiSettleSat(anchor) end
         end,
+        -- The first party tick of a world (a save made at home, fast travel into a flat): is V in one of V's flats? (mod/companion-settle.lua)
+        onWorld = function() if convaiSettleWake then convaiSettleWake() end end,
         log = function(kind, fields)
             if manager.developerMode() then
                 local ok, text = pcall(json.encode, fields)
@@ -4114,7 +4116,7 @@ end
 -- away from home: mod/companion-settle.lua is built when the game pushes a district change into one of the five flats (the hook in onInit) and is
 -- dropped on the next change out. It is driven by the companions' own body animation tick, so there is no timer of its own. No setting: away from
 -- home it is one global that is nil. Globals and one do-block (the main chunk is near Lua's limit of locals).
-convaiSettle, convaiSettlePending = nil, true
+convaiSettle = nil
 do
     local FLATS = {LittleChina_VApartment = 'h10', CorpoPlaza_Apartment = 'corpo', Glen_Apartment = 'glen',
         JapanTown_Apartment = 'japan', Northside_Apartment = 'north'}
@@ -4177,9 +4179,8 @@ do
         end
         return value
     end
-    -- The game pushed a district change (or the world just came up, or V sat down at home): is V in one of the flats now?
+    -- The game pushed a district change (or the party's first tick of a world, or V sat down at home): is V in one of the flats now?
     function convaiSettleWake()
-        convaiSettlePending = false
         local ok, flat = pcall(flatNow)
         flat = ok and flat or nil
         if flat then
@@ -4198,7 +4199,7 @@ do
     end
     -- The world ended or V fast travelled: the seating controller has let go of its places already (no native calls here).
     function convaiSettleReset(reason, preserve)
-        convaiSettle, convaiSettlePending = nil, true
+        convaiSettle = nil
     end
     -- "Come with me" to a settled companion: the follow offer of the conversation actions, and its execution.
     function convaiSettleOffer(entity, context)
@@ -6279,8 +6280,6 @@ registerForEvent('onUpdate', function(delta)
         if not immersiveOk then convaiLogOnce('immersive-tick', 'Immersive invitations failed: ' .. tostring(immersiveError)) end
         local housemateOk, housemateError = pcall(convaiHousemateTick, elapsedPoll)
         if not housemateOk then convaiLogOnce('housemate-tick', 'Housemates failed: ' .. tostring(housemateError)) end
-        -- Companions settling in V's flat: one district read per world, then only the game's own district events.
-        if convaiSettlePending then convaiSettlePending = false; pcall(convaiSettleWake) end
         mark('init:tick')
     end
     -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).
