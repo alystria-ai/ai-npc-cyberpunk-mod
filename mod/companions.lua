@@ -2774,18 +2774,29 @@ function M.outfitRows(known)
     return rows
 end
 
--- Why this copy must not change its clothes now (a car, a lift, a seat, a fight, a command), or nil.
+-- Why this copy must not change its clothes now, as a code for the probe log ('vehicle' car or lift, 'seated', 'command' leaving / tactic / placing,
+-- 'combat'), or nil.
+local OUTFIT_CODES={lift='vehicle',leaving='command',tactic='command',placing='command'}
 function M.outfitBusy(serial)
     for _,entry in ipairs(entries) do
         if entry.serial==serial then
             if not outfitEligible(entry) or entry.removed then return 'not ready' end
             local reason=stanceBlocker(entry)
-            if reason then return reason end
+            if reason then return OUTFIT_CODES[reason] or reason end
             if entry.person and (entry.person.phase=='combat' or entry.person.phase=='recover') then return entry.person.phase end
             return nil
         end
     end
     return 'gone'
+end
+
+-- A copy seated or posted on a place of V's flat (mod/companion-settle.lua) stands up for a change of clothes and takes no place for `hold` seconds:
+-- 'released', 'waiting' (already on her way up), or nil (no home place to release). The caller is outfitBusy's 'seated'.
+function M.outfitStandUp(serial,hold)
+    local body=M.bodyAnimation
+    if not body or not body.standUp then return nil end
+    local ok,result=pcall(body.standUp,serial,hold)
+    return ok and result or nil
 end
 
 -- mode 'prefetch': load the appearance (no visible change). mode 'apply': schedule it, and remember it as the look a recreated copy is made in

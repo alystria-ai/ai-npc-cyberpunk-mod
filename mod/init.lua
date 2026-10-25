@@ -2229,6 +2229,13 @@ do
             local ok, owned = pcall(s.owns, entry)
             return ok and owned == true
         end,
+        -- A change of clothes on a home place (mod/companion-outfits.lua): stand up, take no place for `hold` seconds.
+        standUp = function(serial, hold)
+            local s = currentSeating()
+            if not s or not s.homeStandUp then return nil end
+            local ok, result = pcall(s.homeStandUp, serial, hold)
+            return ok and result or nil
+        end,
         -- Decision override before behavior (a walk to a seat, then a hold).
         steer = function(entry, context, step)
             local s = currentSeating()
@@ -5689,10 +5696,13 @@ function convaiOutfitModule()
             local sample = battleObserver.sample(Game.GetPlayer())
             if sample.available ~= true then return 'unreadable' end
             if sample.combat then return 'combat' end
-            if sample.blocked then return sample.reason end
+            if sample.blocked then
+                return sample.vehicle and 'vehicle' or sample.call and 'call' or sample.sitting and 'v-seated' or 'scene'
+            end
             return nil
         end,
         busy = function(row) return companions.outfitBusy(row.serial) end,
+        standUp = function(row, hold) return companions.outfitStandUp(row.serial, hold) end,
         -- The game's own "could be seen" test, with the margins its reaction and vehicle code uses for it.
         frustum = function(npc) return Game.GetCameraSystem():IsInCameraFrustum(npc, 2.0, 0.75) end,
         -- A wall between V's eyes and her (the same line-of-sight test the invitation spot search uses): true hidden, false visible, nil cannot say.

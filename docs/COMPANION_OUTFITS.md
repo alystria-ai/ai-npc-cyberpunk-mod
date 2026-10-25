@@ -12,7 +12,8 @@ mod's own party copies. Added 2026-10-25 on branch `feat/outfits`; built and uni
 - **At home.** In V's apartment (the game's district is one of the five apartment records, below) a copy that has a casual home look puts it on, and takes it off
   when V leaves with them. Another feature can also put a companion at home by name (the home outfit API, below).
 - **Only out of sight.** A change is due, then waits until the game's own camera test says the copy is outside what V can see; it does not happen in a fight, a
-  scene, a call, a ride, on a lift or a seat, or while a command (a tactic) or the copy's own recovery is running (the same blockers the stance module uses). A new copy is created in the right clothes straight away (it is placed in view, so nothing is
+  scene, a call, a ride, on a lift or a seat of V's (beside V), or while a command (a tactic) or the copy's own recovery is running (the same blockers the stance module uses). A copy
+  seated or posted on a place of V's flat (`companion-settle`) is the exception: she stands up first, see "Seated at home" below. A new copy is created in the right clothes straight away (it is placed in view, so nothing is
   changed in front of V).
 - **Off.** Nothing is loaded, ticked or changed. Turning it off keeps what the companions wear until their copies are dismissed (nothing runs to change them back).
 
@@ -60,6 +61,19 @@ changes are rolled: once per game hour, 30 %). "Out of view" is the game's frust
 test is called with wide margins (2.0, 0.75) and says nothing about walls, so in a small flat it can keep saying "may be seen" for a copy beside or behind V. A variety
 look that is rolled at the hour change stays wanted (10 minutes at most) while the copy waits. The probe log shows where it stops, codes only, once per change of state:
 `outfit-seen frustum|angle|unreadable`, `outfit-unseen 0` (the count starts), `outfit-unseen 20` and `outfit-change-start <look>`.
+
+**What holds a change back.** The probe line `<name> wants <look> (<why>), waiting: <code>` is written once per change of reason, codes only: `combat`, `scene`, `call`,
+`vehicle` (V mounted, or the copy in a car or the lift), `v-seated` (V sits in an ordinary seat: the sit's own scene tier blocks, as before), `seated` (a seat that is not a
+place of the flat), `command` (leaving, a tactic, placing), `unreadable`. Until 2026-10-25 the line said "waiting for open gameplay (Scripted scene, call or vehicle)" for every
+blocker of V's world, and a seated copy was held back without any line at all (the live flat: `judy-alvarez wants judy__mq055__apartment_01 ... Scripted scene, call or
+vehicle` was V boarding a car at 12:20:10Z; the three bar-stool minutes before it had no outfit line, because `outfitBusy` said `seated` silently).
+
+**Seated at home.** A copy that sits or stands on a place of V's flat (`mod/companion-settle.lua`, the seating controller's home places) is not changed on the seat: no code of ours
+swaps an appearance on a workspot, so the safe route is used. When a change is wanted and she has been out of view for `UNSEEN_S`, the module calls `standUp` (`companions.outfitStandUp`
+-> `seating.homeStandUp`): a seated copy leaves with the native exit, a standing post is let go, her place goes back to the flat unharmed (`settle-freed`, reason `outfit`) and she
+takes no place for `STAND_HOLD_S` = 90 s (`cooldownUntil`; the flat's claim waits). The probe line is `<name> stands up from her place to change into <look>`. Once she stands the change runs
+as always (out of view for 5 s again, load, schedule, read back); afterwards the flat gives her a place again by its own timers. A copy that is still on her way up renews the hold at
+each look (5 s). Housemates' own workspots are not touched, and V's own seat session (beside V) is not a home place: it stays a `seated` blocker.
 
 **Applied.** On the party copy's puppet: `PrefetchAppearanceChange(name)` to load the look (no visible change), a second later `ScheduleAppearanceChange(name)` when
 the copy is still unseen, and `GetCurrentAppearanceName()` a second after that to confirm. A look that does not show within 20 s is given up (the name a recreated

@@ -230,6 +230,36 @@ test('one companion is told to follow: she stands up and takes no other place in
   assert(#freed==1 and freed[1].bad==false)
 `));
 
+test('a change of clothes: the seated companion stands up, takes no place during the hold, then the home gives her one again', () => run(`
+  local again={id='sofa2',kind='couch',x=5,y=5,z=0,yaw=0,approach={x=5,y=6,z=0}}
+  home({sofa,again})
+  step(3)
+  assert(held[1]==true and #claims==1, 'seated on the first place')
+  assert(c.homeStandUp(99,40)==nil, 'nobody of that serial')
+  assert(c.homeStandUp(1,40)=='released', 'released')
+  step(.3)
+  assert(count('exit')==1 and not last('exit').instant, 'the native exit, not an instant one')
+  assert(c.homeStandUp(1,40)~=nil)
+  step(3)
+  assert(held[1]==false and c.snapshot().companions[1].phase=='off', 'standing, free')
+  assert(#freed==1 and freed[1].id=='sofa1' and freed[1].bad==false and freed[1].reason=='outfit', 'the home is told, the place is fine')
+  step(30)
+  assert(#claims==1 and held[1]==false, 'no claim while the hold lasts')
+  step(12)
+  assert(#claims==2 and c.snapshot().companions[1].place=='sofa2', 'the home gives her a place afterwards')
+`));
+
+test('a change of clothes: a standing post is let go at once, and a copy with no home place has nothing to release', () => run(`
+  party={companion(1,1.5,1.5),companion(2,-1.5,1.5)}
+  home({stand,{id='stand2',kind='stand',x=-3,y=3,z=0,yaw=0}})
+  step(3)
+  assert(c.homeStandUp(1,20)=='released' and count('exit')==0, 'a post has no workspot to leave')
+  step(.3)
+  assert(c.snapshot().companions[1].phase=='off' and decisions[2].operation.kind=='hold', 'the other stays')
+  c.clearHome('V left')
+  assert(c.homeStandUp(2,20)==nil, 'no home, nothing to release')
+`));
+
 test('a companion far from V gets no place; a new home starts over', () => run(`
   party[1].playerGap=40
   home({stand})
