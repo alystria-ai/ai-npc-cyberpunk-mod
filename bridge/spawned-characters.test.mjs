@@ -457,7 +457,7 @@ test('reaction people: spawned witnesses join the observer list after our compan
 });
 
 test('turn context: the spawned characters of the group round are with V, with no activity; other turns are unchanged', () => {
-  const partySource = between('        party = function(player, radius)', '        -- Read the game\'s dialogue volume').replace(/,\s*$/, '');
+  const partySource = between('        party = function(player, radius)', '        -- Music and TV, and other mods\' state').replace(/,\s*$/, '');
   run(`
     companions = {conversationCandidates = function() return {{profileKey = 'panam-palmer', name = 'Panam'}} end}
     groupChat = {round = nil}

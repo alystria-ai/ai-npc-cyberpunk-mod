@@ -18,6 +18,7 @@ import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {CustomEndpoint, parseEndpointUrl} from './custom-endpoint.mjs';
 import {vGenderOf} from './v-voice.mjs';
+import {lastTalk} from './last-talk.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';   // the safe constant the other provider tests use
@@ -29,7 +30,13 @@ const book = new PersonaBook(roster);
 const MARKERS = {
   location: /Embers|Heywood/, time: /late night|2 AM|raining/, company: /Also with V|Panam|in a vehicle/,
   condition: /badly hurt|police chase|Maelstrom/, money: /nearly broke/, gear: /Samurai Jacket|Kyubi/, about: /Street Kid|woman \(she\/her\)/,
-  quest: /The Heist|Reach the vault door|broader current-save journal history/, dialogue: /Meet me at the Afterlife tonight/};
+  quest: /The Heist|Reach the vault door|broader current-save journal history/, dialogue: /Meet me at the Afterlife tonight/, lastTalk: /You last talked with V/,
+  media: /car radio|pocket radio|TV nearby/, mods: /exhausted|parched|dehydrated|starving|on edge/};
+// Time since the last talk: the turns below are Judy's, with the game clock at 02:10 of day 40 and the real clock fixed. Every turn is built with a distinct id, and
+// the shared store decides once per id, so each one is parsed after Judy's last talk is put back three days (game) and four days (real) before it.
+const GAME_NOW = 40 * 86400 + 2 * 3600 + 10 * 60, REAL_NOW = 1_800_000_000_000;
+await lastTalk.configure({path: null, now: () => REAL_NOW, keyFor: key => key});
+const seedLastTalk = () => lastTalk.record('judy-alvarez', GAME_NOW - 3 * 86400, REAL_NOW - 4 * 86400_000);
 let serial = 100;
 function rawTurn(extra = {}, entity = `${++serial}ULL`) {
   return {requestId: `${serial}-1-${entity}`, generation: 1, entity, profileKey: 'judy-alvarez', name: 'Judy', bodyType: 'WomanAverage', text: 'So what now?',
@@ -39,12 +46,14 @@ function rawTurn(extra = {}, entity = `${++serial}ULL`) {
     gameDialogue: {version: 1, status: 'ready', lines: [{id: 'g-1', age: 20, kind: 'line', channel: 'scene', speaker: 'npc', entity, profileKey: 'judy-alvarez',
       name: 'Judy', text: 'Meet me at the Afterlife tonight.'}]},
     battle: {version: 1, status: 'fighting', encounter: 'battle-12', ageSeconds: 5, durationSeconds: 20, opponents: [{name: 'Maelstrom Thug', count: 2}], witnesses: ['judy-alvarez']},
-    turnContext: {version: 1, status: 'ready', hour: 2, minute: 10, district: 'Heywood', area: 'Glen_Embers', indoors: true, gender: 'female', voice: 'female',
+    turnContext: {version: 1, status: 'ready', gameTime: GAME_NOW, hour: 2, minute: 10, district: 'Heywood', area: 'Glen_Embers', indoors: true, gender: 'female', voice: 'female',
       lifepath: 'streetkid', weather: 'rain', health: 'badly-hurt', heat: 3, money: 'broke', vehicle: true, driving: false,
+      media: {radio: {source: 'car', station: 'Growl FM', track: 'Rebel Path'}},
+      mods: {darkFuture: {energy: 4, hydration: 3}},
       party: [{key: 'judy-alvarez', name: 'Judy', activity: 'passenger'}, {key: 'panam-palmer', name: 'Panam'}]},
     ...extra};
 }
-const parsed = (extra, entity) => parseInput(JSON.stringify(rawTurn(extra, entity)));
+const parsed = (extra, entity) => { seedLastTalk(); return parseInput(JSON.stringify(rawTurn(extra, entity))); };
 const withOff = (...kinds) => { const info = new DynamicInfo(); info.update({dynamicInfo: Object.fromEntries(kinds.map(kind => [kind, false]))}); return info; };
 
 // What the bridge hands a text provider for one turn (bridge/convai-bridge.mjs contextPartsOf): the same blocks, laid out by how often they change.
@@ -99,7 +108,7 @@ function withInfo(info, build) {
 test('the kinds are the twelve of the page, in page order, and every kind has a marker in this test turn', () => {
   assert.deepEqual([...KINDS], ['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods']);
   assert.deepEqual(Object.keys(MARKERS), [...KINDS]);
-  const luaKinds = /local dynamicInfoKinds = \{([^}]*)\}/.exec(readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8'))[1].match(/'([a-z]+)'/g).map(text => text.slice(1, -1));
+  const luaKinds = /local dynamicInfoKinds = \{([^}]*)\}/.exec(readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8'))[1].match(/'([A-Za-z]+)'/g).map(text => text.slice(1, -1));
   assert.deepEqual(luaKinds, [...KINDS], 'the game side and the bridge name the same kinds in the same order');
 });
 

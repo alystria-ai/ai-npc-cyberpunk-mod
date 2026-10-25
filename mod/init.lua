@@ -1389,6 +1389,8 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     -- Always on (the setting was removed 2026-10-20): no `enabled` option, so the recorder is on.
     -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a named character V just heard in person may get a remark from him later.
     onRow = function(row) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end end,
+    -- Music and TV (Settings > Dynamic info): the last TV lines are kept only while the switch is on, for mod/media-context.lua (one boolean read per subtitle line).
+    heardWanted = function() return manager.dynamicInfo == nil or manager.dynamicInfo('media') end,
     -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
     onGameLineWanted = function() return convaiAddons ~= nil and convaiAddons.live == true end,
     onGameLine = function(seconds, kind, measured) convaiAddons.gameLine(seconds, kind, measured) end,
@@ -1487,12 +1489,27 @@ do
             end
             return convaiMediaContext and convaiMediaContext.read(player) or nil
         end,
+        -- Other mods' state: Dark Future's own classes are looked up before anything is loaded (docs/DYNAMIC_INFO.md, "Other mods' state"). One
+        -- class name or two, pcall'd. Absent: mod-state.lua is never read from disk, and the probe is repeated at most once a minute (it may
+        -- not exist yet during a loading screen), so a player without the mod pays one failed lookup a minute while talking and nothing else.
+        -- Present: the module is loaded once (a failed load is not retried) and read per turn window.
         mods = function(player)
             if convaiModState == nil then
+                local now = os.time()
+                local probedAt = convaiModStateProbedAt
+                if probedAt ~= nil and now >= probedAt and now - probedAt < 60 then return nil end
+                convaiModStateProbedAt = now
+                local present = false
+                for _, name in ipairs({'DarkFuture.Main.DFMainSystem', 'DarkFuture.Needs.DFHydrationSystem'}) do
+                    local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
+                    if ok and system ~= nil then present = true; break end
+                end
+                if not present then return nil end
                 local loaded, module = pcall(dofile, 'mod-state.lua')
                 convaiModState = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+                if convaiLogLine then convaiLogLine('Mod state: Dark Future found, reader ' .. (convaiModState and 'loaded' or 'failed to load')) end
             end
-            return convaiModState and convaiModState.read(player) or nil
+            return convaiModState and convaiModState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end) or nil
         end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,

@@ -346,6 +346,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-remarks.lua"
         },
         {
+          "source": "mod/mod-state.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mod-state.lua"
+        },
+        {
           "source": "mod/johnny-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-probe.lua"
         },
@@ -360,6 +364,14 @@
         {
           "source": "mod/combat-feats-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/combat-feats-probe.lua"
+        },
+        {
+          "source": "mod/media-context.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-context.lua"
+        },
+        {
+          "source": "mod/media-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-probe.lua"
         },
         {
           "source": "mod/talk-target.lua",
@@ -694,6 +706,7 @@
             "bridge/language-lexicon.mjs",
             "bridge/language-ui-vocab.mjs",
             "bridge/last-reply-capture.mjs",
+            "bridge/last-talk.mjs",
             "bridge/live-voices.mjs",
             "bridge/local-ai-pack.mjs",
             "bridge/local-embed.mjs",
@@ -709,6 +722,7 @@
             "bridge/mature-guard-terms.mjs",
             "bridge/mature-guard.mjs",
             "bridge/mature-pack.mjs",
+            "bridge/media-context.mjs",
             "bridge/memory-scope.mjs",
             "bridge/memory-store.mjs",
             "bridge/mic-live.mjs",
@@ -720,6 +734,7 @@
             "bridge/mistral-memory.mjs",
             "bridge/mistral-prompt.mjs",
             "bridge/mistral-rate.mjs",
+            "bridge/mod-state.mjs",
             "bridge/mouth-cues.mjs",
             "bridge/multilingual.mjs",
             "bridge/natural-speech-talk.mjs",

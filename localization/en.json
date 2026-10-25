@@ -215,7 +215,7 @@
     "Choose profile": "Choose profile",
     "Choose the mod interface language independently of character voices and conversation language.": "Choose the mod interface language independently of character voices and conversation language.",
     "Choose the personality this copy should use in conversations. Its model stays the same.": "Choose the personality this copy should use in conversations. Its model stays the same.",
-    "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, recent game dialogue, time since the last talk, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.": "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, recent game dialogue, time since the last talk, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.",
+    "Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.": "Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.",
     "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.": "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.",
     "Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.": "Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.",
     "Chosen file: {name} ({size}). It is checked when you save it.": "Chosen file: {name} ({size}). It is checked when you save it.",
@@ -249,7 +249,7 @@
     "Companion preparation returned an invalid state.": "Companion preparation returned an invalid state.",
     "Companion voices": "Companion voices",
     "Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.": "Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.",
-    "Companions in your party sometimes start talking to you on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the two rates add up and they take turns.": "Companions in your party sometimes start talking to you on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the two rates add up and they take turns.",
+    "Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.": "Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.",
     "Companions now and then pause, hesitate, laugh or sigh, as their personality would. It stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.": "Companions now and then pause, hesitate, laugh or sigh, as their personality would. It stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.",
     "Companions speak up": "Companions speak up",
     "Company and vehicle": "Company and vehicle",
@@ -479,7 +479,7 @@
     "It picks the voice when the character has no clip.": "It picks the voice when the character has no clip.",
     "Italian": "Italian",
     "Japanese": "Japanese",
-    "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the two rates add up and they take turns.": "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the two rates add up and they take turns.",
+    "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.": "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.",
     "Johnny in your head": "Johnny in your head",
     "Joining...": "Joining...",
     "Keep at least one rule.": "Keep at least one rule.",
@@ -1589,7 +1589,7 @@
       "Character editor",
       "Check",
       "Check my plan",
-      "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, recent game dialogue, time since the last talk, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.",
+      "Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.",
       "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.",
       "Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.",
       "Companion driver",
@@ -1874,7 +1874,7 @@
       "Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.",
       "Cinematic: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nThe Subtitles switch turns both off.",
       "Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.",
-      "Companions in your party sometimes start talking to you on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the two rates add up and they take turns.",
+      "Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.",
       "Companions now and then pause, hesitate, laugh or sigh, as their personality would. It stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.",
       "Companions speak up",
       "Controller talk button",
@@ -1890,7 +1890,7 @@
       "Head tracking strength",
       "How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.",
       "Interface language",
-      "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the two rates add up and they take turns.",
+      "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.",
       "Johnny in your head",
       "Lip sync delay (Bluetooth)",
       "Mature content",
@@ -3169,7 +3169,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4366"
+        "mod/init.lua:4383"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -3177,7 +3177,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4232"
+        "mod/init.lua:4249"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -3185,7 +3185,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4278"
+        "mod/init.lua:4295"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -3193,7 +3193,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4231"
+        "mod/init.lua:4248"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -3201,7 +3201,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4277"
+        "mod/init.lua:4294"
       ]
     },
     "Above the speaker": {
@@ -3520,7 +3520,7 @@
         "page.reply-language"
       ],
       "references": [
-        "mod/init.lua:3674",
+        "mod/init.lua:3691",
         "mod/manager-ui.lua:195"
       ]
     },
@@ -3807,7 +3807,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3863"
+        "mod/init.lua:3880"
       ]
     },
     "Characters": {
@@ -4251,7 +4251,7 @@
         "mod/manager.lua:1724"
       ]
     },
-    "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, recent game dialogue, time since the last talk, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.": {
+    "Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.": {
       "contexts": [
         "page.action"
       ],
@@ -4535,7 +4535,7 @@
         "mod/manager-ui.lua:1683"
       ]
     },
-    "Companions in your party sometimes start talking to you on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the two rates add up and they take turns.": {
+    "Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.": {
       "contexts": [
         "page.setting"
       ],
@@ -4641,7 +4641,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3730"
+        "mod/init.lua:3747"
       ]
     },
     "Convai could not start the payment. Try again later.": {
@@ -4674,7 +4674,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3706"
+        "mod/init.lua:3723"
       ]
     },
     "Convai does not show a paid plan for your key yet.": {
@@ -5184,7 +5184,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:364",
-        "mod/init.lua:3831"
+        "mod/init.lua:3848"
       ]
     },
     "Custom: free daily limit reached": {
@@ -5647,7 +5647,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2341"
+        "mod/init.lua:2358"
       ]
     },
     "Facts the character noticed while you talked. Change or delete the ones that are wrong.": {
@@ -5863,7 +5863,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3818",
+        "mod/init.lua:3835",
         "mod/manager-ui.lua:195"
       ]
     },
@@ -6002,7 +6002,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3818",
+        "mod/init.lua:3835",
         "mod/manager-ui.lua:195"
       ]
     },
@@ -6067,8 +6067,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2630",
-        "mod/init.lua:2772"
+        "mod/init.lua:2647",
+        "mod/init.lua:2789"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -6077,8 +6077,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2629",
-        "mod/init.lua:2771"
+        "mod/init.lua:2646",
+        "mod/init.lua:2788"
       ]
     },
     "Head tracking strength": {
@@ -6430,7 +6430,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3818",
+        "mod/init.lua:3835",
         "mod/manager-ui.lua:195"
       ]
     },
@@ -6442,7 +6442,7 @@
         "mod/manager-ui.lua:196"
       ]
     },
-    "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the two rates add up and they take turns.": {
+    "Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.": {
       "contexts": [
         "page.setting"
       ],
@@ -6646,7 +6646,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3779"
+        "mod/init.lua:3796"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -6654,8 +6654,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3767",
-        "mod/init.lua:3771",
+        "mod/init.lua:3784",
+        "mod/init.lua:3788",
         "mod/manager-ui.lua:92"
       ]
     },
@@ -6732,7 +6732,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3793"
+        "mod/init.lua:3810"
       ]
     },
     "Local AI stopped working and was restarted.": {
@@ -6740,7 +6740,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3789"
+        "mod/init.lua:3806"
       ]
     },
     "Local AI switched to {model}: the game is using most of your graphics memory.": {
@@ -6748,7 +6748,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3810"
+        "mod/init.lua:3827"
       ]
     },
     "Local AI, Lite": {
@@ -7072,7 +7072,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3734",
+        "mod/init.lua:3751",
         "mod/phone-chat-style.lua:53",
         "mod/phone-chat.lua:10"
       ]
@@ -7098,7 +7098,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3825"
+        "mod/init.lua:3842"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -7106,7 +7106,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3827"
+        "mod/init.lua:3844"
       ]
     },
     "Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.": {
@@ -7147,7 +7147,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3736",
+        "mod/init.lua:3753",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:11"
       ]
@@ -7513,7 +7513,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5077"
+        "mod/init.lua:5094"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -7614,7 +7614,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3765",
+        "mod/init.lua:3782",
         "mod/manager-ui.lua:91",
         "mod/setup-check.lua:593"
       ]
@@ -8247,7 +8247,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2258"
+        "mod/init.lua:2275"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -8330,7 +8330,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3818",
+        "mod/init.lua:3835",
         "mod/manager-ui.lua:195"
       ]
     },
@@ -8706,7 +8706,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3814"
+        "mod/init.lua:3831"
       ]
     },
     "Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.": {
@@ -9456,7 +9456,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3818",
+        "mod/init.lua:3835",
         "mod/manager-ui.lua:195"
       ]
     },
@@ -9490,7 +9490,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3050"
+        "mod/init.lua:3067"
       ]
     },
     "Speaks up normally": {
@@ -9558,7 +9558,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:4058"
+        "mod/init.lua:4075"
       ]
     },
     "Starting": {
@@ -10073,7 +10073,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3803"
+        "mod/init.lua:3820"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -10106,7 +10106,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3738",
+        "mod/init.lua:3755",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:12"
       ]
@@ -10245,7 +10245,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3775"
+        "mod/init.lua:3792"
       ]
     },
     "The car has stopped. Step out so your companion can leave the driver seat.": {
@@ -10444,7 +10444,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3702"
+        "mod/init.lua:3719"
       ]
     },
     "The conversation service cannot reach the internet. See Help in Settings.": {
@@ -10468,7 +10468,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3843"
+        "mod/init.lua:3860"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -10628,7 +10628,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:352",
-        "mod/init.lua:3743",
+        "mod/init.lua:3760",
         "mod/phone-chat-style.lua:56",
         "mod/phone-chat.lua:13"
       ]
@@ -10640,7 +10640,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:362",
-        "mod/init.lua:3760",
+        "mod/init.lua:3777",
         "mod/phone-chat-style.lua:62",
         "mod/phone-chat.lua:19"
       ]
@@ -10652,7 +10652,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:354",
-        "mod/init.lua:3747",
+        "mod/init.lua:3764",
         "mod/phone-chat-style.lua:58",
         "mod/phone-chat.lua:15"
       ]
@@ -10663,7 +10663,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:363",
-        "mod/init.lua:3829"
+        "mod/init.lua:3846"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -10673,7 +10673,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:355",
-        "mod/init.lua:3749",
+        "mod/init.lua:3766",
         "mod/phone-chat-style.lua:59",
         "mod/phone-chat.lua:16"
       ]
@@ -10685,7 +10685,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:353",
-        "mod/init.lua:3745",
+        "mod/init.lua:3762",
         "mod/phone-chat-style.lua:57",
         "mod/phone-chat.lua:14"
       ]
@@ -10850,7 +10850,7 @@
       "references": [
         "mod/custom-provider.lua:234",
         "mod/custom-provider.lua:358",
-        "mod/init.lua:3754"
+        "mod/init.lua:3771"
       ]
     },
     "The free daily limit for this model was reached. Try again after it resets.": {
@@ -10860,7 +10860,7 @@
       "references": [
         "mod/custom-provider.lua:235",
         "mod/custom-provider.lua:359",
-        "mod/init.lua:3756"
+        "mod/init.lua:3773"
       ]
     },
     "The game could not verify a safe companion position.": {
@@ -11380,7 +11380,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3797"
+        "mod/init.lua:3814"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -11471,7 +11471,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3862",
+        "mod/init.lua:3879",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:451"
       ]
     },
@@ -11547,7 +11547,7 @@
       "references": [
         "mod/custom-provider.lua:237",
         "mod/custom-provider.lua:361",
-        "mod/init.lua:3758"
+        "mod/init.lua:3775"
       ]
     },
     "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.": {
@@ -11630,7 +11630,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3697"
+        "mod/init.lua:3714"
       ]
     },
     "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
@@ -11638,7 +11638,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3695"
+        "mod/init.lua:3712"
       ]
     },
     "Tone line": {
@@ -12145,7 +12145,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:4323"
+        "mod/init.lua:4340"
       ]
     },
     "Voice conversation failed. Check your microphone and try again.": {
@@ -12153,7 +12153,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3845"
+        "mod/init.lua:3862"
       ]
     },
     "Voice input could not reach Convai. Hold the voice key again, or type.": {
@@ -12817,7 +12817,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3704"
+        "mod/init.lua:3721"
       ]
     },
     "Your Convai plan": {
@@ -12833,7 +12833,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3708"
+        "mod/init.lua:3725"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -12841,7 +12841,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3725"
+        "mod/init.lua:3742"
       ]
     },
     "Your Convai plan is active.": {
@@ -13001,7 +13001,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2871"
+        "mod/init.lua:2888"
       ]
     },
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.": {
@@ -13010,7 +13010,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3783",
+        "mod/init.lua:3800",
         "mod/phone-chat-style.lua:73",
         "mod/phone-chat.lua:27"
       ]
@@ -13021,7 +13021,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3785",
+        "mod/init.lua:3802",
         "mod/phone-chat-style.lua:74",
         "mod/phone-chat.lua:28"
       ]
@@ -13130,8 +13130,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3802",
-        "mod/init.lua:3809"
+        "mod/init.lua:3819",
+        "mod/init.lua:3826"
       ]
     },
     "before V’s words": {
@@ -13280,7 +13280,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3821"
+        "mod/init.lua:3838"
       ]
     },
     "{message} The change is active, but could not be saved for next time.": {
@@ -13337,7 +13337,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2611"
+        "mod/init.lua:2628"
       ]
     },
     "{name} answers typed messages only for now. Use {key}.": {
@@ -13345,7 +13345,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2610"
+        "mod/init.lua:2627"
       ]
     },
     "{name} can't come along right now.": {
@@ -13401,8 +13401,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2673",
-        "mod/init.lua:3854"
+        "mod/init.lua:2690",
+        "mod/init.lua:3871"
       ]
     },
     "{name} is a child and cannot be talked to.": {
@@ -13435,9 +13435,9 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2652",
-        "mod/init.lua:2706",
-        "mod/init.lua:2724"
+        "mod/init.lua:2669",
+        "mod/init.lua:2723",
+        "mod/init.lua:2741"
       ]
     },
     "{name} is coming with you.": {
@@ -13497,7 +13497,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:4123"
+        "mod/init.lua:4140"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": {
@@ -13506,7 +13506,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2668"
+        "mod/init.lua:2685"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.": {
@@ -13514,7 +13514,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3849"
+        "mod/init.lua:3866"
       ]
     },
     "{name} joined your group.": {
@@ -13967,8 +13967,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2629",
-        "mod/init.lua:2771"
+        "mod/init.lua:2646",
+        "mod/init.lua:2788"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -14254,8 +14254,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2673",
-        "mod/init.lua:3854"
+        "mod/init.lua:2690",
+        "mod/init.lua:3871"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -14279,7 +14279,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:4123"
+        "mod/init.lua:4140"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

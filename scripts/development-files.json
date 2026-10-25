@@ -410,6 +410,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-remarks.lua"
     },
     {
+      "source": "mod/mod-state.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mod-state.lua"
+    },
+    {
       "source": "mod/johnny-probe.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-probe.lua"
     },
@@ -424,6 +428,14 @@
     {
       "source": "mod/combat-feats-probe.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/combat-feats-probe.lua"
+    },
+    {
+      "source": "mod/media-context.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-context.lua"
+    },
+    {
+      "source": "mod/media-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-probe.lua"
     },
     {
       "source": "mod/talk-target.lua",

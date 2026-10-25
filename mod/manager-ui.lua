@@ -1535,18 +1535,18 @@ local function schema()
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
                     or snapshot.settings.johnnyRemarks == 'medium' and 4 or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
-                'Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the two rates add up and they take turns.',
+                'Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
                 {'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
             -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
             setting('companionSpeakUp', 'Companions speak up', 'select',
                 snapshot.settings.companionSpeakUp == 'normal' and 4 or snapshot.settings.companionSpeakUp == 'medium' and 3
                     or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 2,
-                'Companions in your party sometimes start talking to you on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the two rates add up and they take turns.',
+                'Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
                 {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
         table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
-            'Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, recent game dialogue, time since the last talk, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.',
+            'Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.',
             function() return navigate('dynamic-info') end))
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then
