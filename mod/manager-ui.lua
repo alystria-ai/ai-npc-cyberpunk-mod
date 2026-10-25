@@ -1414,9 +1414,23 @@ local function schema()
                 end
             end
         end
+        -- Housemates (mod/housemates.lua, docs/HOUSEMATES.md): the characters who live at V's place, and a Move out for each.
+        local housemates = convaiHousemateRows and convaiHousemateRows() or {}
+        for index, housemate in ipairs(housemates) do
+            if index > 30 then
+                rows[#rows + 1] = readonly('housemates-more', ui.t('{count} more housemates', {count = #housemates - 30}), '', ui.t('{count} more housemates', {count = #housemates - 30}))
+                break
+            end
+            local where = housemate.state == 'party' and ui.t('with you') or housemate.state == 'home' and ui.t('at home') or ui.t('out')
+            local key = housemate.key
+            rows[#rows + 1] = action('housemate:' .. key, ui.t('{name} · lives in {apartment} · {state}',
+                    {name = housemate.name, apartment = ui.t(housemate.apartmentName), state = where}), 'Move out',
+                ui.t('{name} stops living at your place. She stays as she is otherwise.', {name = housemate.name}),
+                function() return convaiHousemateMoveOut ~= nil and convaiHousemateMoveOut(key) end, canInvite, {label = true, description = true})
+        end
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.')
-        elseif shown == 0 and #meetings == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
+        elseif shown == 0 and #meetings == 0 and #housemates == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         categories[#categories + 1] = category('party', 'Current party', rows)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models

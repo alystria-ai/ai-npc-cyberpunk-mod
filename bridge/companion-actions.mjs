@@ -127,8 +127,11 @@ const apartmentId = value => typeof value === 'string' && HOME_APARTMENT_IDS.inc
 
 // {serial, id, key, name} rows, up to MEMBERS_MAX. Optional keys come from the leave offer only: away (she lives in another of V's flats than the one
 // V is in), homeName, hereName and confirmed (the question "stay here or go back?" was asked in the previous turn).
-function parseMembers(list, optional = []) {
-  if (!Array.isArray(list) || list.length > MEMBERS_MAX) return null;
+// The game's JSON encoder may write an empty list as an empty object: that is an empty list.
+const asList = value => Array.isArray(value) ? value : (object(value) && Object.keys(value).length === 0 ? [] : null);
+function parseMembers(value, optional = []) {
+  const list = asList(value);
+  if (!list || list.length > MEMBERS_MAX) return null;
   const members = [];
   for (const member of list) {
     if (!object(member) || !only(member, ['serial', 'id', 'key', 'name'], optional) || !Number.isSafeInteger(member.serial)
@@ -155,9 +158,9 @@ export function parseHomeOffer(value) {
   if (!object(value) || value.available !== true || !object(value.actor)
       || !only(value, ['available', 'actor', 'apartments', 'members'], ['here', 'lives', 'moveOut', 'asked'])
       || !keys(value.actor, ['id', 'key']) || !entityId(value.actor.id) || !profile(value.actor.key)
-      || !Array.isArray(value.apartments) || value.apartments.length > HOME_MAX_APARTMENTS) return null;
+      || !asList(value.apartments) || asList(value.apartments).length > HOME_MAX_APARTMENTS) return null;
   const apartments = [];
-  for (const apartment of value.apartments) {
+  for (const apartment of asList(value.apartments)) {
     if (!object(apartment) || !keys(apartment, ['id', 'name']) || !apartmentId(apartment.id) || !string(apartment.name, 60)) return null;
     apartments.push({id: apartment.id, name: apartment.name});
   }

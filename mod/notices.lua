@@ -38,6 +38,8 @@ M.catalog = {
     ['immersive-on-the-way'] = {class = PLAYER, repeatS = 5},  -- Invite with the setting On: she is on her way
     ['immersive-text'] = {class = PLAYER, repeatS = 5},        -- a text she sent: she arrived, V was stood up, the meeting was called off
     ['immersive-greeting'] = {class = PLAYER, repeatS = 20},   -- the plain greeting when her spoken one could not be played
+    -- Housemates (docs/HOUSEMATES.md)
+    ['housemate-notice'] = {class = PLAYER, repeatS = 5},      -- she moved in or out, joined the party, or is back at home
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)

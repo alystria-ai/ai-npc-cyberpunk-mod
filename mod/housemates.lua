@@ -82,7 +82,17 @@ function M.new(env)
     local counter = 0
 
     local function log(line) if env.log then pcall(env.log, line) end end
-    local function t(text, vars) if env.t then return env.t(text, vars) end if vars then return (text:gsub('{(%w+)}', function(k) return tostring(vars[k]) end)) end return text end
+    local function translate(text, vars) if env.t then return env.t(text, vars) end if vars then return (text:gsub('{(%w+)}', function(k) return tostring(vars[k]) end)) end return text end
+    -- `ui.t('literal')` so that scripts/Extract-UiCatalog.mjs finds every text of this file.
+    local ui = {t = translate}
+    local function aptName(id)
+        if id == 'h10' then return ui.t('Megabuilding H10')
+        elseif id == 'corpo' then return ui.t('Corpo Plaza')
+        elseif id == 'glen' then return ui.t('Heywood Glen')
+        elseif id == 'japan' then return ui.t('Westbrook Japantown')
+        elseif id == 'north' then return ui.t('Watson Northside') end
+        return tostring(id)
+    end
     local function say(text) if env.notify and text and text ~= '' then pcall(env.notify, text) end end
     local function random() return env.random and env.random() or 0.5 end
     local function guard(fn, ...) if type(fn) ~= 'function' then return nil end local ok, a, b, c = pcall(fn, ...) if ok then return a, b, c end return nil end
@@ -382,7 +392,7 @@ function M.new(env)
                 if ok then
                     if env.outfits then guard(env.outfits.setHome, r.key, false) end
                     r.state, r.serial, r.entity, r.spot = 'party', nil, nil, nil
-                    say(t('{name} joins you.', {name = r.name}))
+                    say(ui.t('{name} joins you.', {name = r.name}))
                 else
                     log('Housemates: ' .. r.key .. ' could not join: ' .. tostring(err))
                     r.state = 'placing'; r.handle = nil
@@ -545,6 +555,10 @@ function M.new(env)
     end
 
     function C.setChat(module) chat = module end
+    -- The name of the flat V is in now (the chat prompt says where they are).
+    function C.placeName() return zone and M.NAMES[zone] or '' end
+    -- The housemates that can chat or be greeted by now: settled, awake, not in a talk with V.
+    function C.people() return settledPeople() end
     -- A district event (V crossed a boundary): look at once.
     function C.wake() acc = 0 end
 
@@ -602,7 +616,7 @@ function M.new(env)
                 guard(env.companions.leave, member.serial)
             end
         end
-        say(t('{name} moves into {apartment}.', {name = r.name, apartment = M.NAMES[apt]}))
+        say(ui.t('{name} moves into {apartment}.', {name = r.name, apartment = aptName(apt)}))
         log('Housemates: ' .. key .. ' lives at ' .. apt)
         acc = 0
         return true
@@ -618,7 +632,7 @@ function M.new(env)
             local name = r.name
             if r.serial and r.state ~= 'party' then dropBody(r, 'moved-out') end
             rec[key] = nil
-            say(t('{name} has moved out.', {name = name}))
+            say(ui.t('{name} has moved out.', {name = name}))
         end
         restAsk[key] = nil
         return true
@@ -752,19 +766,19 @@ function M.new(env)
 
     -- A `companion-home` packet: home = {op = 'stay', apartment} | {op = 'move-out'} | {op = 'join', target}. offer is the leased one.
     function C.queueHome(home, offer, entity, requestId)
-        if type(home) ~= 'table' or type(offer) ~= 'table' then return false, 'That action is not available.' end
+        if type(home) ~= 'table' or type(offer) ~= 'table' then return false, ui.t('That action is not available.') end
         local key = offer.actor and offer.actor.key
         if home.op == 'stay' then
             local allowed = false
             for _, a in ipairs(offer.apartments or {}) do if a.id == home.apartment then allowed = true end end
-            if not allowed then return false, 'That action is not available.' end
+            if not allowed then return false, ui.t('That action is not available.') end
             local ok, why = C.stay(key, home.apartment)
-            if not ok then return false, why == 'not-owned' and 'You do not have that apartment.' or 'That action is not available.' end
+            if not ok then return false, why == 'not-owned' and ui.t('You do not have that apartment.') or ui.t('That action is not available.') end
             return true, nil
         elseif home.op == 'move-out' then
-            if not offer.moveOut then return false, 'That action is not available.' end
+            if not offer.moveOut then return false, ui.t('That action is not available.') end
             local ok = C.moveOut(key)
-            if not ok then return false, 'That action is not available.' end
+            if not ok then return false, ui.t('That action is not available.') end
             return true, nil
         elseif home.op == 'join' then
             local joined, names = 0, {}
@@ -774,10 +788,10 @@ function M.new(env)
                     if r and r.entity == member.id and C.recallOne(r) then joined = joined + 1; names[#names + 1] = r.name end
                 end
             end
-            if joined == 0 then return false, 'That companion is not available.' end
+            if joined == 0 then return false, ui.t('That companion is not available.') end
             return true, nil
         end
-        return false, 'That action is not available.'
+        return false, ui.t('That action is not available.')
     end
 
     -- Phone: the offer carries a one-use token.
@@ -816,7 +830,7 @@ function M.new(env)
             if key ~= profileKey and other.apt == apt and #others < 8 then others[#others + 1] = other.name end
         end
         table.sort(others)
-        local note = {apartment = M.NAMES[apt], atHome = r ~= nil and r.state ~= 'party', others = others}
+        local note = {apartment = aptName(apt), atHome = r ~= nil and r.state ~= 'party', others = others}
         if r and r.moved == 'now' and clock - (r.movedAt or 0) < 600 then note.moved = 'now' end
         if askedFor(profileKey) then note.asked = true end
         return note

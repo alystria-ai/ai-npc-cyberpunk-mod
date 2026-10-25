@@ -294,7 +294,7 @@ function M.new(options)
         for _, id in ipairs(entities) do
             local member = type(id) == 'string' and not seen[id] and guard(companions.partyMember, id) or nil
             seen[id] = true
-            if member and not member.driving and not leaving[member.serial] and #members < 3 then
+            if member and not member.driving and not leaving[member.serial] and #members < 12 then
                 members[#members + 1] = {serial = member.serial, id = member.id, key = member.key,
                     name = clip(member.name or member.key)}
             end

@@ -7,7 +7,7 @@ import fengari from 'fengari';
 
 const modDir = new URL('../mod/', import.meta.url);
 const NAMES = ['housemate-registry.lua', 'housemate-plan.lua', 'housemate-chat.lua', 'housemates.lua', 'housemate-spots-data.lua',
-  'housemate-world.lua'];
+  'housemate-world.lua', 'housemate-service.lua'];
 
 export function modules(extra = []) {
   const sources = {};
