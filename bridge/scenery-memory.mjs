@@ -34,6 +34,7 @@ const TIME_ASK = /\b(?:what time|the time|time is it|o'?clock|clock|hour|hours|l
 export const IDLE_MS = 20 * 60_000;      // a conversation silent for this long hears the scenery again
 export const MAX_CONVERSATIONS = 256;    // least recently used go first (every stranger V talks to is a conversation)
 const ALL = Object.freeze({weather: true, time: true});
+const NO_SIGNALS = Object.freeze({});
 
 export class SceneryMemory {
   constructor({idleMs = IDLE_MS, limit = MAX_CONVERSATIONS, now = Date.now} = {}) {
@@ -46,12 +47,15 @@ export class SceneryMemory {
    *   weather  the weather kind the game sent, or undefined
    *   part     the part of the day, or undefined
    *   text     what V said (a keyword check: asking about the weather or the hour always gets it)
+   *   signals  {media, mods}: a short text per fact that changes when the fact does (bridge/media-context.mjs, bridge/mod-state.mjs), or undefined
+   *            when there is nothing to say; such a fact is told on the first turn, on a change and after a long silence, never on every turn
    */
-  decide({key, id, weather, part, text = ''}) {
+  decide({key, id, weather, part, text = '', signals = NO_SIGNALS}) {
     if (typeof key !== 'string' || typeof id !== 'string' || !id) return ALL;
     const asked = String(text ?? ''), at = this.now(), entry = this.conversations.get(key);
     // The same turn again: the same answer, whatever was recorded since.
-    if (entry && entry.id === id && entry.weather === weather && entry.part === part && entry.text === asked) {
+    const signalKey = JSON.stringify([signals.media ?? null, signals.mods ?? null]);
+    if (entry && entry.id === id && entry.weather === weather && entry.part === part && entry.text === asked && entry.signalKey === signalKey) {
       this.conversations.delete(key); this.conversations.set(key, entry);
       return entry.decision;
     }
@@ -61,9 +65,14 @@ export class SceneryMemory {
       // The first turn of a conversation does not announce the weather (response audit 2026-10-22: told "It is raining." on a first turn, a vendor or a bartender
       // mentioned the rain in 11 replies of 12, against 1 of 12 in dry weather); it comes when V asks, and when it changes later in the talk.
       weather: weather !== undefined && (before ? before.weather !== weather || WEATHER_ASK.test(asked) : WEATHER_ASK.test(asked)),
-      time: part !== undefined && (!before || before.part !== part || TIME_ASK.test(asked))};
+      time: part !== undefined && (!before || before.part !== part || TIME_ASK.test(asked)),
+      // Present only when there is something to say about them.
+      ...(signals.media !== undefined ? {media: !before || before.media !== signals.media} : {}),
+      ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods} : {})};
     this.conversations.delete(key);
-    this.conversations.set(key, {id, weather, part, text: asked, at, decision, known: {weather: weather ?? before?.weather, part: part ?? before?.part}});
+    // A turn with nothing to say about media or mods keeps no earlier signature: when it comes back it is new again.
+    this.conversations.set(key, {id, weather, part, text: asked, signalKey, at, decision,
+      known: {weather: weather ?? before?.weather, part: part ?? before?.part, media: signals.media, mods: signals.mods}});
     while (this.conversations.size > this.limit) this.conversations.delete(this.conversations.keys().next().value);
     return decision;
   }
