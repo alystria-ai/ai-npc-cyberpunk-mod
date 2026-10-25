@@ -527,7 +527,11 @@ function Instance:read()
             if type(info) == 'table' then
                 for _, row in ipairs(party) do
                     local inputs = type(info.rows) == 'table' and info.rows[row.key] or nil
-                    if type(inputs) == 'table' then row.activity = M.classify(inputs) end
+                    if type(inputs) == 'table' then
+                        row.activity = M.classify(inputs)
+                        -- Clothes other than the ones her appearance text describes (mod/companion-outfits.lua): 'home' or 'changed'.
+                        if inputs.outfit == 'home' or inputs.outfit == 'changed' then row.outfit = inputs.outfit end
+                    end
                 end
                 if MOTIONS[info.motion] and not snapshot.vehicle then snapshot.motion = info.motion end
             end
@@ -567,7 +571,7 @@ function Instance:capture()
             -- What each companion was found doing, and V's motion (only when there was something to say).
             local doing = {}
             for _, row in ipairs(snapshot.party or {}) do
-                if row.activity then doing[#doing + 1] = row.key .. '=' .. row.activity end
+                if row.activity then doing[#doing + 1] = row.key .. '=' .. row.activity .. (row.outfit and ('+' .. row.outfit) or '') end
             end
             if #doing > 0 then line = line .. ' activity=' .. table.concat(doing, ',') end
             if snapshot.driving ~= nil then line = line .. ' driving=' .. tostring(snapshot.driving) end
