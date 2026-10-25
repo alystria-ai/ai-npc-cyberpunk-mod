@@ -25,7 +25,7 @@
         "cyberEngineTweaks": "1.38.0 (official release, game version 2.5)",
         "red4ext": "1.31.0 or newer (official release, the first for game 2.5, tested live 25 Oct; it does not start on 2.31)",
         "redscript": "0.5.32",
-        "codeware": "1.20.6 2.5 Unofficial (https://github.com/alystria-ai/codeware-game-2.5, our copy since Nexus hid page 35697 on 24 Oct; upstream PR psiberx/cp2077-codeware#63)",
+        "codeware": "1.21.0",
         "nativeSettingsUi": "1.97",
         "modConfigurationMenu": "0.10.5 or newer (0.10.6-hf1 tested live on 2.5 by the owner, 24 Oct: the Companion Manager opens and settings apply; alternative to Native Settings UI)"
       }
