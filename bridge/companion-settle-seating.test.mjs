@@ -249,6 +249,50 @@ test('a change of clothes: the seated companion stands up, takes no place during
   assert(#claims==2 and c.snapshot().companions[1].place=='sofa2', 'the home gives her a place afterwards')
 `));
 
+test('a change of clothes: when the change is over the hold ends within seconds, and the probe says why she waits', () => run(`
+  local again={id='sofa2',kind='couch',x=5,y=5,z=0,yaw=0,approach={x=5,y=6,z=0}}
+  home({sofa,again})
+  step(3)
+  assert(c.homeStandUp(1,90)=='released')
+  assert(c.homeSitAgain(99,3)==false, 'nobody of that serial')
+  step(3)
+  assert(held[1]==false and #claims==1)
+  step(5)
+  assert(#claims==1, 'no claim while the change lasts')
+  local waits=countLog('home-wait')
+  assert(waits==1 and lastLog('home-wait').fields.why=='outfit' and lastLog('home-wait').fields.serial==1, 'said once, with the reason')
+  step(20)
+  assert(countLog('home-wait')==1 and #claims==1, 'not said again, still held')
+  assert(c.homeSitAgain(1,3)==true, 'the change is over')
+  step(1.5)
+  assert(#claims==1, 'a moment of grace after the change')
+  step(3)
+  assert(#claims==2 and c.snapshot().companions[1].place=='sofa2', 'a place within seconds, not after the 90 s')
+  assert(c.homeSitAgain(1,3)==false, 'no hold on her any more')
+`));
+
+test('a change of clothes: the end of the change that comes while she is still on her way up counts from the moment she stands', () => run(`
+  local again={id='sofa2',kind='couch',x=5,y=5,z=0,yaw=0,approach={x=5,y=6,z=0}}
+  home({sofa,again})
+  step(3)
+  assert(c.homeStandUp(1,90)=='released')
+  step(.1)
+  assert(c.homeSitAgain(1,3)==true, 'taken while the exit is still running')
+  step(1)
+  assert(#claims==1, 'no claim while she is still on her way up')
+  step(10)
+  assert(#claims==2 and countLog('home-wait')>=1 and lastLog('home-wait').fields.why=='outfit', 'a place within seconds of standing, not after the 90 s')
+`));
+
+test('a place a companion cannot take while V is far from her is said once, with the reason', () => run(`
+  party[1].playerGap=40
+  home({stand})
+  step(3)
+  assert(#claims==0 and countLog('home-wait')==1 and lastLog('home-wait').fields.why=='far')
+  step(3)
+  assert(countLog('home-wait')==1)
+`));
+
 test('a change of clothes: a standing post is let go at once, and a copy with no home place has nothing to release', () => run(`
   party={companion(1,1.5,1.5),companion(2,-1.5,1.5)}
   home({stand,{id='stand2',kind='stand',x=-3,y=3,z=0,yaw=0}})

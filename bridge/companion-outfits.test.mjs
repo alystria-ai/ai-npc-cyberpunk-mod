@@ -116,7 +116,7 @@ dofile = function(name)
   assert(name == 'companion-outfits-data.lua', name)
   return (function() ${dataSource} end)()
 end
-local f = {enabled = true, world = nil, busy = {}, stand = nil, standCalls = {}, seen = false, hidden = nil, angle = nil, place = nil, failPrefetch = false, failApply = false, applyTakes = true, rolls = {}}
+local f = {enabled = true, world = nil, busy = {}, stand = nil, standCalls = {}, sitCalls = {}, sit = true, seen = false, hidden = nil, angle = nil, place = nil, failPrefetch = false, failApply = false, applyTakes = true, rolls = {}}
 local worn, rowsList, logs, calls = {}, {}, {}, {rows = 0, hours = 0, world = 0, prefetch = {}, apply = {}, remember = {}, busy = 0, frustum = 0, place = 0}
 outfits.deps = {
   enabled = function() return f.enabled end,
@@ -139,6 +139,7 @@ outfits.deps = {
   world = function() calls.world = calls.world + 1; return f.world end,
   busy = function(row) calls.busy = calls.busy + 1; return f.busy[row.serial] end,
   standUp = function(row, hold) f.standCalls[#f.standCalls + 1] = row.serial .. ':' .. hold; return f.stand end,
+  sitAgain = function(row, delay) f.sitCalls[#f.sitCalls + 1] = row.serial .. ':' .. delay; return f.sit end,
   frustum = function() calls.frustum = calls.frustum + 1; return f.seen end,
   hidden = function() return f.hidden end,
   angle = function() return f.angle end,
@@ -269,6 +270,40 @@ test('a copy seated on a place of the flat stands up once she has been out of vi
   f.busy[1] = nil; cycle(5); assert(#calls.prefetch == 0, 'standing: the count of unseen seconds starts again')
   cycle(5); assert(#calls.prefetch == 1, 'then the normal change')
   cycle(1.0); assert(#calls.apply == 1)
+  assert(#f.sitCalls == 0, 'still holding until the new look shows')
+  cycle(1.0)
+  assert(#f.sitCalls == 1 and f.sitCalls[1] == '1:3' and logged('may sit again (changed)'), 'the change is over: the flat may give her a place')
+  cycle(20); assert(#f.sitCalls == 1, 'said once')
+`));
+
+test('a copy that stood up for a change is let back to the flat when the change fails, is given up, or is no longer wanted', () => runWith(`${fixture}
+  member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
+  at(3, 20); f.busy[1] = 'seated'; f.stand = 'released'; f.seen = false
+  cycle(5); cycle(5); assert(#f.standCalls == 1)
+  -- the change cannot be prepared
+  f.busy[1] = nil; f.failPrefetch = true; unseen()
+  assert(#f.sitCalls == 1 and logged('may sit again (failed)'))
+  -- a copy that was never stood up for a change has nothing to give back
+  f.failPrefetch = false; f.sitCalls = {}; at(3, 10)
+  cycle(); assert(#f.sitCalls == 0)
+`));
+
+test('a copy that stood up and then needs no change any more (the look was changed meanwhile) is let back at once', () => runWith(`${fixture}
+  member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
+  at(3, 20); f.busy[1] = 'seated'; f.stand = 'released'; f.seen = false
+  cycle(5); cycle(5); assert(#f.standCalls == 1 and #f.sitCalls == 0)
+  worn[1] = 'panam_default'; f.busy[1] = nil
+  cycle(5)
+  assert(#f.sitCalls == 1 and logged('may sit again (no change wanted)'))
+`));
+
+test('a change that never shows is given up, and the copy is let back to the flat', () => runWith(`${fixture}
+  member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
+  at(3, 20); f.busy[1] = 'seated'; f.stand = 'released'; f.seen = false; f.applyTakes = false
+  cycle(5); cycle(5); f.busy[1] = nil; cycle(5); cycle(5)
+  cycle(1.0); assert(#calls.apply == 1 and #f.sitCalls == 0)
+  cycle(21)
+  assert(#f.sitCalls == 1 and logged('may sit again (given up)'))
 `));
 
 test('a seat that is not the flat\'s (nothing to release) stays a blocker, said as seated', () => runWith(`${fixture}
@@ -529,6 +564,13 @@ test('companions: a copy that is not ready or is busy is not changed', () => run
   assert(companions.outfitStandUp(serial, 90) == 'released' and asked == serial .. ':90')
   companions.bodyAnimation = {standUp = function() error('boom') end}
   assert(companions.outfitStandUp(serial, 90) == nil, 'a failing release says nothing')
+  assert(companions.outfitSitAgain(serial, 3) == nil, 'no body animation layer: nothing to give back')
+  companions.bodyAnimation = {sitAgain = function(s, delay) asked = s .. ':' .. delay; return true end}
+  assert(companions.outfitSitAgain(serial, 3) == true and asked == serial .. ':3')
+  companions.bodyAnimation = {sitAgain = function() return false end}
+  assert(companions.outfitSitAgain(serial, 3) == false, 'no hold on her says false')
+  companions.bodyAnimation = {sitAgain = function() error('boom') end}
+  assert(companions.outfitSitAgain(serial, 3) == nil, 'a failing call says nothing')
   companions.bodyAnimation = nil
   function judy:IsDeadNoStatPool() return true end
   assert(not pcall(companions.changeAppearance, serial, 'x', 'apply'))
@@ -562,6 +604,7 @@ test('init.lua: the tick is in the 10 Hz branch after the poll gate, off costs o
   assert.match(initSource, /IsInCameraFrustum\(npc, 2\.0, 0\.75\)/);
   assert.match(initSource, /world = function\(\)\s*local sample = battleObserver\.sample\(Game\.GetPlayer\(\)\)/);
   assert.match(initSource, /standUp = function\(row, hold\) return companions\.outfitStandUp\(row\.serial, hold\) end/);
+  assert.match(initSource, /sitAgain = function\(row, delay\) return companions\.outfitSitAgain\(row\.serial, delay\) end/);
   assert.match(initSource, /return sample\.vehicle and 'vehicle' or sample\.call and 'call' or sample\.sitting and 'v-seated' or 'scene'/);
   assert.match(initSource, /gameHours = function\(\)\s*local seconds = worldKnowledgeModule\.nativeGameTime/);
 });

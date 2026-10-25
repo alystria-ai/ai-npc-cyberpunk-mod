@@ -2820,6 +2820,15 @@ function M.outfitStandUp(serial,hold)
     return ok and result or nil
 end
 
+-- The change of a copy that stood up for it is over: the flat may give her a place again in `delay` seconds. false: no hold on her, nil: nothing asked.
+function M.outfitSitAgain(serial,delay)
+    local body=M.bodyAnimation
+    if not body or not body.sitAgain then return nil end
+    local ok,result=pcall(body.sitAgain,serial,delay)
+    if ok then return result end
+    return nil
+end
+
 -- mode 'prefetch': load the appearance (no visible change). mode 'apply': schedule it, and remember it as the look a recreated copy is made in
 -- (fast travel). mode 'forget': a change that never showed; remember the previous name. Errors are the caller's to log.
 function M.changeAppearance(serial,name,mode)

@@ -589,7 +589,10 @@ function M.new(options)
         if s.rehome then
             -- V sat on her place: she takes another one.
             s.rehome = nil
-            if s.home and wasLive then s.session, s.cooldownUntil = nil, self.clock + (s.rehomeHold or 1) end
+            if s.home and wasLive then
+                s.session, s.cooldownUntil = nil, self.clock + (s.rehomeHold or 1)
+                s.outfitHold = s.rehomeHold ~= nil
+            end
             s.rehomeHold = nil
         end
         if s.reseat then
@@ -1150,6 +1153,7 @@ function M.new(options)
     end
     local function beginHome(s, entry, place)
         s.session, s.home, s.place, s.homeEnding = home.id, true, place, nil
+        s.outfitHold, s.waitWhy = nil, nil
         s.holdOp, s.playedAt, s.device, s.deviceID, s.failingSince, s.slide = nil, nil, nil, nil, nil, nil
         s.stuck, s.walkFrom, s.arrivedAt, s.closingSince, s.blendSince = nil, nil, nil, nil, nil
         local root = {x = place.x, y = place.y, z = place.z}
@@ -1191,16 +1195,20 @@ function M.new(options)
 
     -- A companion without a place, while a home exists: ask the home for one (at most once a second, never during a fight).
     local function tryHome(s, entry, context)
-        if context.combat or self.clock < (s.cooldownUntil or 0) or self.clock < (s.homeTryAt or 0) then return nil end
+        if context.combat then return nil end
+        -- Why she takes no place now, said once per change of reason (the probe log): outfit (the change of clothes is not over), cooldown, far, gesture, nothing free.
+        local function wait(why) if s.waitWhy ~= why then s.waitWhy = why; note('home-wait', {serial = s.serial, why = why}) end end
+        if self.clock < (s.cooldownUntil or 0) then wait(s.outfitHold and 'outfit' or 'cooldown'); return nil end
+        if self.clock < (s.homeTryAt or 0) then return nil end
         if s.homeOut == home.id then return nil end
         -- V's seats come first: while V sits down and the seats beside V are still being found, she waits a moment.
         if session and not session.seats and self.clock - session.since < policy.homeWaitV then return nil end
         s.homeTryAt = self.clock + policy.homeTry
-        if (tonumber(entry.playerGap) or math.huge) > policy.homeReach then return nil end
-        if nat.inWorkspot(entry.npc) ~= false then return nil end -- a gesture stance is still leaving
+        if (tonumber(entry.playerGap) or math.huge) > policy.homeReach then wait('far'); return nil end
+        if nat.inWorkspot(entry.npc) ~= false then wait('gesture'); return nil end -- a gesture stance is still leaving
         local ok, place = pcall(home.claim, entry)
         if not ok then failNote('home claim: ' .. tostring(place)); return nil end
-        if type(place) ~= 'table' then return nil end
+        if type(place) ~= 'table' then wait('no place'); return nil end
         s.homeTryAt = nil
         return beginHome(s, entry, place)
     end
@@ -1530,6 +1538,18 @@ function M.new(options)
         s.homeEnding = true
         requestExit(s, 'outfit', false)
         return 'released'
+    end
+    -- The change of clothes is over (or given up): the hold ends `delay` seconds from now (a hold that is still waiting for her to stand ends that long after
+    -- she stands). false when no outfit hold is on her.
+    function self.homeSitAgain(serial, delay)
+        local s = self.states[serial]
+        if not s then return false end
+        delay = tonumber(delay) or 3
+        if s.rehome then s.rehomeHold = math.min(s.rehomeHold or delay, delay); return true end
+        if not s.outfitHold then return false end
+        s.cooldownUntil = math.min(s.cooldownUntil or math.huge, self.clock + delay)
+        s.homeTryAt = nil
+        return true
     end
     function self.homeActive() return home ~= nil end
     -- The places companions hold now, and where V sits: the home never gives the same spot twice.
