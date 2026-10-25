@@ -1331,7 +1331,11 @@ end
 local function dynamicInfoRows(snapshot)
     local on = snapshot.settings.dynamicInfo or {}
     local function row(kind, label, description)
-        return setting('dynamic:' .. kind, label, 'bool', on[kind] ~= false, true, description)
+        -- All on by default except Other mods' state.
+        local default = kind ~= 'mods'
+        local value = on[kind]
+        if type(value) ~= 'boolean' then value = default end
+        return setting('dynamic:' .. kind, label, 'bool', value, default, description)
     end
     return {
         row('location', 'Location',
@@ -1355,7 +1359,7 @@ local function dynamicInfoRows(snapshot)
         row('media', 'Music and TV',
             'The song playing on the car radio while V rides with the character, or on V’s pocket radio, and what is on a TV near V.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
         row('mods', 'Other mods’ state',
-            'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example.\n\nOff: it is not sent, and nothing is read from those mods.'),
+            'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.'),
         row('dialogue', 'Recent game dialogue',
             'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.'),
     }
@@ -1749,7 +1753,7 @@ local function schema()
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
         table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
-            'Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.',
+            'Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default except other mods’ state, which is off. An off kind is not sent to any conversation provider.',
             function() return navigate('dynamic-info') end))
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then

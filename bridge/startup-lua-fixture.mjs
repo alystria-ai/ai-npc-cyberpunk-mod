@@ -242,7 +242,7 @@ export const managerLua = `
 export const freshSettings = {
   version: 2, uiLanguage: 'auto', voice: true, subtitles: true, errorReports: true, subtitleStyle: 'dialogue', audioDelay: 'auto', replyLanguage: 'en', voiceVolume: 100,
   relationshipModes: {'judy-alvarez': 'auto', 'panam-palmer': 'auto', 'river-ward': 'auto', 'kerry-eurodyne': 'auto', 'meredith-stout': 'auto'},
-  dynamicInfo: {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: true},
+  dynamicInfo: {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false},
   immersive: {enabled: false, arrival: 'walk', delay: 0, wait: 5, waypoint: true, texts: true},
   housemates: {enabled: false, chat: true},
   developerMode: false, useOwnConvaiKey: false, conversationProvider: 'convai',

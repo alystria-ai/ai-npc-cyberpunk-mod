@@ -87,7 +87,7 @@ local relationshipProfiles = {
 local relationshipKeys = {}
 for _, profile in ipairs(relationshipProfiles) do relationshipKeys[profile.key] = true end
 -- Dynamic info (Settings > Dynamic info): the kinds of live game information a turn's context can carry. Each is one saved on/off value in
--- settings.dynamicInfo (on by default; a missing or malformed value is on). The bridge reads the same table from runtime/settings.json and drops an
+-- settings.dynamicInfo (on by default, except 'mods' (Other mods' state), which is off by default; a missing or malformed value takes the default). The bridge reads the same table from runtime/settings.json and drops an
 -- off kind from every provider's prompt (bridge/dynamic-info.mjs); this side stops reading the game for it (mod/turn-context.lua, init.lua).
 -- Order is the order of the page.
 local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
@@ -96,11 +96,17 @@ local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', '
 local SPEAK_UP_LEVELS = {off = true, rare = true, medium = true, normal = true}
 local dynamicInfoKnown = {}
 for _, kind in ipairs(dynamicInfoKinds) do dynamicInfoKnown[kind] = true end
+-- A kind's value when nothing valid is saved: on, except Other mods' state (reading other mods stays something the player opts into).
+local function dynamicInfoDefault(kind) return kind ~= 'mods' end
 -- The switches as a plain table in a global (convaiDynamicInfo, replaced only when the settings load or change): the one place something that
 -- runs every frame (the journal collector in init.lua) can ask without a call.
 local function publishDynamicInfo(from)
     local flags = {}
-    for _, kind in ipairs(dynamicInfoKinds) do flags[kind] = from.dynamicInfo[kind] ~= false end
+    for _, kind in ipairs(dynamicInfoKinds) do
+        local value = from.dynamicInfo[kind]
+        if type(value) ~= 'boolean' then value = dynamicInfoDefault(kind) end
+        flags[kind] = value
+    end
     convaiDynamicInfo = flags
 end
 -- Immersive invitations (Settings > Immersive invitations, docs/IMMERSIVE_INVITATIONS.md): one saved table. Off by default; with it Off an
@@ -757,7 +763,7 @@ local function loadSettings()
         if not dynamicInfoKnown[key] then settings.dynamicInfo[key], settingsNeedSave = nil, true end
     end
     for _, kind in ipairs(dynamicInfoKinds) do
-        if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = true, true end
+        if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = dynamicInfoDefault(kind), true end
     end
     publishDynamicInfo(settings)
     do
@@ -1361,12 +1367,13 @@ end
 -- The kinds of live game info of Settings > Dynamic info, in page order.
 function M.dynamicInfoKinds() return dynamicInfoKinds end
 
--- Whether one kind is on (true unless the player turned it off). A table lookup once the settings are loaded: the turn builders ask it at
--- send time, never per frame.
+-- Whether one kind is on (its default unless the player set it: on, except Other mods' state). A table lookup once the settings are loaded:
+-- the turn builders ask it at send time, never per frame.
 function M.dynamicInfo(kind)
     loadSettings()
     local value = settings.dynamicInfo and settings.dynamicInfo[kind]
-    return value ~= false
+    if type(value) ~= 'boolean' then return dynamicInfoDefault(kind) end
+    return value
 end
 
 function M.subtitleStyle()
@@ -2009,7 +2016,7 @@ function M.snapshot(player)
     local relationshipModes = {}
     for key in pairs(relationshipKeys) do relationshipModes[key] = settings.relationshipModes[key] end
     local dynamicInfo = {}
-    for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = settings.dynamicInfo[kind] ~= false end
+    for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = M.dynamicInfo(kind) end
     return {
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,

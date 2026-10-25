@@ -54,7 +54,7 @@ function rawTurn(extra = {}, entity = `${++serial}ULL`) {
     ...extra};
 }
 const parsed = (extra, entity) => { seedLastTalk(); return parseInput(JSON.stringify(rawTurn(extra, entity))); };
-const withOff = (...kinds) => { const info = new DynamicInfo(); info.update({dynamicInfo: Object.fromEntries(kinds.map(kind => [kind, false]))}); return info; };
+const withOff = (...kinds) => { const info = new DynamicInfo(); info.update({dynamicInfo: {mods: true, ...Object.fromEntries(kinds.map(kind => [kind, false]))}}); return info; };
 
 // What the bridge hands a text provider for one turn (bridge/convai-bridge.mjs contextPartsOf): the same blocks, laid out by how often they change.
 function partsOf(blocks) {
@@ -112,19 +112,25 @@ test('the kinds are the twelve of the page, in page order, and every kind has a 
   assert.deepEqual(luaKinds, [...KINDS], 'the game side and the bridge name the same kinds in the same order');
 });
 
-test('the setting follows settings.json: all on by default, only a saved false turns a kind off, anything unreadable changes nothing', () => {
+test('the setting follows settings.json: all on by default except mods, only a saved false turns a kind off, anything unreadable changes nothing', () => {
   const info = new DynamicInfo();
-  assert.equal(info.describe(), 'all on');
+  assert.equal(info.describe(), 'off: mods');
+  assert.equal(info.update({dynamicInfo: {mods: true}}), true); assert.equal(info.describe(), 'all on');
   assert.equal(info.update(undefined), false); assert.equal(info.update(null), false); assert.equal(info.update('x'), false);
-  assert.equal(info.update({}), false); assert.equal(info.update({dynamicInfo: 'off'}), false); assert.equal(info.update({dynamicInfo: ['location']}), false);
-  assert.equal(info.update({dynamicInfo: {location: 'no', time: 0, gear: null, bogus: false}}), false, 'only the boolean false counts, and unknown kinds are ignored');
-  assert.equal(info.update({dynamicInfo: {location: false, gear: false, quest: true}}), true);
+  assert.equal(info.update({dynamicInfo: {mods: true}}), false);
+  assert.equal(info.update({dynamicInfo: 'off'}), true, 'a malformed table takes the defaults: mods is off again'); assert.equal(info.update({dynamicInfo: {mods: true}}), true);
+  assert.equal(info.update({dynamicInfo: ['location']}), true); assert.equal(info.update({dynamicInfo: {mods: true}}), true);
+  assert.equal(info.update({dynamicInfo: {mods: true, location: 'no', time: 0, gear: null, bogus: false}}), false, 'only the boolean false counts, and unknown kinds are ignored');
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, gear: false, quest: true}}), true);
   assert.deepEqual([...info.off], ['location', 'gear']);
   assert.equal(info.on('location'), false); assert.equal(info.on('time'), true); assert.equal(info.describe(), 'off: location, gear');
-  assert.equal(info.update({dynamicInfo: {location: false, gear: false}}), false, 'the same set is no change');
-  assert.equal(info.update({version: 2}), true, 'a file without the key counts as everything on');
-  assert.equal(info.off.size, 0);
-  assert.deepEqual(offKinds({dynamicInfo: {money: false}}), ['money']);
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, gear: false}}), false, 'the same set is no change');
+  assert.equal(info.update({version: 2}), true, 'a file without the key takes the defaults: only mods is off');
+  assert.deepEqual([...info.off], ['mods']);
+  assert.deepEqual(offKinds({dynamicInfo: {mods: true, money: false}}), ['money']);
+  assert.deepEqual(offKinds({dynamicInfo: {money: false}}), ['money', 'mods']);
+  assert.deepEqual(offKinds({}), ['mods']);
+  assert.deepEqual(offKinds({dynamicInfo: {mods: 'yes'}}), ['mods'], 'only the boolean true turns Other mods state on');
 });
 
 test('stripSnapshot removes only what the off kinds own, and always keeps V\'s voice gender and the dialogue volume', () => {
@@ -152,6 +158,16 @@ test('with every kind on, each marker is in the Convai context and in the prompt
       for (const [kind, marker] of Object.entries(MARKERS)) assert.match(prompt, marker, `${kind} is in the ${name} prompt`);
     } finally { provider.close(); }
   }
+});
+
+test('a settings file without mods: the turn carries no mod-state block, and with mods saved as true it does', () => {
+  const info = new DynamicInfo(); info.update({version: 2, dynamicInfo: {location: true}});
+  assert.deepEqual([...info.off], ['mods']);
+  const without = withInfo(info, () => conversationContext(parsed()));
+  assert.doesNotMatch(without, MARKERS.mods);
+  for (const [kind, marker] of Object.entries(MARKERS)) if (kind !== 'mods') assert.match(without, marker, `${kind} stays`);
+  const on = new DynamicInfo(); on.update({dynamicInfo: {mods: true}});
+  assert.match(withInfo(on, () => conversationContext(parsed())), MARKERS.mods);
 });
 
 for (const kind of KINDS) {

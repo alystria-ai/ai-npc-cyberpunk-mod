@@ -154,7 +154,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
   assert.equal(out.language, 'auto');
 });
 
-test('Dynamic info: every kind is on unless saved as the boolean false, unknown kinds are dropped, and what is saved survives a restart', () => {
+test('Dynamic info: every kind is on unless saved as the boolean false (the mods kind is off unless saved true), unknown kinds are dropped, and what is saved survives a restart', () => {
   const out = run(`${managerLua}
     files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, dynamicInfo: {location: false, time: 'no', company: 0, gear: false, bogus: true, quest: null}}))}
     local manager = newManager()
@@ -162,6 +162,7 @@ test('Dynamic info: every kind is on unless saved as the boolean false, unknown 
     report('info', snapshot.settings.dynamicInfo)
     report('text', settingsText())
     report('flags', convaiDynamicInfo)
+    report('mods', manager.dynamicInfo('mods'))
     report('answers', {manager.dynamicInfo('location'), manager.dynamicInfo('time'), manager.dynamicInfo('gear'), manager.dynamicInfo('nothing')})
     -- An apply that turns one more off is saved, and a restart reads it back.
     local ok, problem = manager.applySettings(newPlayer(), {dynamicInfo = {money = false, location = true}})
@@ -176,11 +177,12 @@ test('Dynamic info: every kind is on unless saved as the boolean false, unknown 
     report('badTable', {notTable[1]})
     report('after', settingsText())
   `);
-  const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: true};
+  const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false};
   assert.deepEqual(out.info, {...all, location: false, gear: false});
   assert.deepEqual(JSON.parse(out.text).dynamicInfo, {...all, location: false, gear: false}, 'the file is rewritten clean');
   assert.deepEqual(out.flags, {...all, location: false, gear: false}, 'the table the per-frame collectors read');
   assert.deepEqual(out.answers.slice(0, 3), [false, true, false]); assert.equal(out.answers[3], true, 'an unknown kind counts as on');
+  assert.equal(out.mods, false);
   assert.equal(out.applied[0], true);
   assert.deepEqual(out.restart, {...all, gear: false, money: false}, 'the saved choice survives a restart');
   assert.equal(out.badValue[0], false); assert.equal(out.badKind[0], false); assert.equal(out.badTable[0], false);
@@ -675,4 +677,22 @@ test('quest memory: an older file with both saved false moves to on once, and a 
   assert.equal(out.revision2, 1);
   assert.equal(out.ledger3, false);
   assert.equal(out.receipts3, false);
+});
+
+test('Dynamic info: a fresh settings file has the mods kind off and the other eleven on', () => {
+  const out = run(`${managerLua}
+    local manager = newManager()
+    report('info', manager.snapshot(newPlayer()).settings.dynamicInfo)
+    report('flags', convaiDynamicInfo)
+    report('mods', {manager.dynamicInfo('mods'), manager.dynamicInfo('location')})
+    report('text', settingsText())
+    files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, dynamicInfo: {mods: 'yes'}}))}
+    report('malformed', newManager().snapshot(newPlayer()).settings.dynamicInfo.mods)
+  `);
+  const expected = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false};
+  assert.deepEqual(out.info, expected);
+  assert.deepEqual(out.flags, expected);
+  assert.deepEqual(out.mods, [false, true]);
+  assert.deepEqual(JSON.parse(out.text).dynamicInfo, expected);
+  assert.equal(out.malformed, false);
 });
