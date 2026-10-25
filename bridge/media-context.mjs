@@ -15,7 +15,7 @@
 
 const MAX_STATION = 40, MAX_TRACK = 80, MAX_CHANNEL = 40, MAX_SAID = 120;
 /** The whole wording of one turn, both sentences together. */
-export const MAX_CHARS = 250;
+export const MAX_CHARS = 300;
 const SOURCES = new Set(['car', 'pocket']);
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 
@@ -61,11 +61,14 @@ export function mediaSignature(media) {
 
 const quote = text => JSON.stringify(text);
 
+// She is in the car or next to V, so she hears it: the wording says so (a live turn of 2026-10-25 had a companion in the car answer "what song is this?" with
+// "I can't hear it" from "The car radio is playing ..." under a Background header), and says what to do when V asks, without asking her to bring it up.
+const RADIO_ASK = ' If V asks what is on, answer from this.';
 function radioSentence(radio) {
-  const who = radio.source === 'pocket' ? "V's pocket radio" : 'The car radio';
-  if (radio.track) return `${who} is playing ${quote(radio.track)}${radio.station ? ` on ${quote(radio.station)}` : ''}.`;
-  if (radio.station) return `${who} is tuned to ${quote(radio.station)}.`;
-  return `${who} is on.`;
+  const hear = radio.source === 'pocket' ? "You can hear V's pocket radio, playing nearby" : 'You can hear the car radio';
+  if (radio.track) return `${hear}: ${quote(radio.track)}${radio.station ? ` on ${quote(radio.station)}` : ''}.${RADIO_ASK}`;
+  if (radio.station) return `${hear}, tuned to ${quote(radio.station)}.${RADIO_ASK}`;
+  return `${hear}.`;
 }
 
 function tvSentence(tv, said = tv.said) {

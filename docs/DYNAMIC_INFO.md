@@ -168,8 +168,8 @@ A different save with a larger game clock is not told apart from the same save a
 ## Music and TV
 
 Added 2026-10-25 (on by default; Settings > Conversations > Dynamic info > Music and TV). A companion in person and Johnny in V's head hear what V hears, so
-they are told, as background, what is playing: "The car radio is playing "<track>" on "<station>"." while V rides in a car with the radio on,
-"V's pocket radio is playing ..." on foot, and "A TV nearby is on "<channel>"; it just said: "<line>"." beside a TV that is on. A stranger, a phone chat, a
+they are told, as background, what is playing: "You can hear the car radio: "<track>" on "<station>". If V asks what is on, answer from this." while V rides in a car with the radio on,
+"You can hear V's pocket radio, playing nearby: ..." on foot, and "A TV nearby is on "<channel>"; it just said: "<line>"." beside a TV that is on. A stranger, a phone chat, a
 holocall and an add-on voice get nothing of it (they are not in the car, and it is no business of theirs).
 
 **Game side** (`mod/media-context.lua`, read when a turn is built, inside the 5 s turn-context snapshot, never per frame; loaded the first time a turn is built with the
@@ -225,7 +225,7 @@ switch on, through the `media` option in `mod/init.lua`; nothing is read or load
 
 **Bridge side** (`bridge/media-context.mjs`): `parseMedia` validates the table (a source of `car` or `pocket`, text fields cleaned of tags, control characters and `LocKey#` leftovers, raw-looking
 keys dropped, 40/80/40/120 characters), `mediaSignature` changes with the song, station or channel (not with the TV's last line), and `mediaSentences` words it for the person and head forms,
-JSON-quoting every name so an odd or hostile title reads as a name, in at most 250 characters (the TV line is shortened first). The sentences go in the Background line, which the scenery
+JSON-quoting every name so an odd or hostile title reads as a name, in at most 300 characters (the TV line is shortened first). The sentences go in the Background line, which the scenery
 memory tells a conversation only when new: the first turn, a change of song, station or channel, and after a long silence (`bridge/scenery-memory.mjs` `signals.media`).
 
 **Not verified in the game.** The names above exist in the game's script caches (2.5 and 2.31, the same on both), but the game cannot be driven offline: that CET can call them, what the
