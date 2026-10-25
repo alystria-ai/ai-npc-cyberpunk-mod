@@ -259,6 +259,18 @@ function cleanStrings(value, clean) {
   return value;
 }
 
+// The error lines of a log. After redscript's "This error has been caused by mods listed below:" the lines that name those mods are kept too: they hold no
+// error word and they say which mod broke the compile (3 reports of 0.3.1 ended on that line with the names cut off).
+export function errorLines(lines) {
+  let names = 0;
+  return lines.filter(line => {
+    if (/caused by mods? listed below/i.test(line)) { names = 6; return true; }
+    if (/\[ERROR|\berror\b/i.test(line)) { names = 0; return true; }
+    if (line.trim() === '') { names = 0; return false; }
+    return names-- > 0;
+  });
+}
+
 const needleOf = message => String(message ?? '').replace(/^\w*Error: /, '').replace(/[^\x20-\x7e]/g, ' ').trim().slice(0, 48);
 
 async function collectLogs({paths, record, clean}) {
@@ -270,7 +282,7 @@ async function collectLogs({paths, record, clean}) {
     const tail = await tailFile(path, {maxBytes: 1024 * 1024, maxLines: 4000});
     if (!tail?.lines.length) continue;
     let lines = tail.lines;
-    if (source.errors) lines = lines.filter(line => /\[ERROR|\berror\b/i.test(line)).slice(-source.lines);
+    if (source.errors) lines = errorLines(lines).slice(-source.lines);
     else {
       let at = -1;
       if (source.anchor && needle.length >= 8) for (let index = lines.length - 1; index >= 0 && at < 0; index--) if (lines[index].includes(needle)) at = index;

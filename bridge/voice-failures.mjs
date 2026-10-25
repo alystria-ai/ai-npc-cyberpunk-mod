@@ -37,6 +37,21 @@ export const pagingFileFailed = text => {
   return PAGING_FILE_WORDS.test(value) || (ACCESS_VIOLATION.test(value) && COMMIT_CODE.test(value));
 };
 
+// A faulthandler dump lists the crashing thread's frames innermost first ("Current thread 0x... (most recent call first):", then `  File "x.py", line 117 in forward`
+// per frame), so the last line of the dump is the outermost frame, the worker's own `<module>` call. Reports of 2026-10-24 and 25 (three installs) named only that line
+// and nothing of where the native code failed. This gives the innermost frames, as "x.py:117 forward < y.py:1750 _call_impl", with no folder.
+function faultFrames(lines) {
+  const at = lines.findLastIndex(line => /^Current thread\b.*most recent call first/i.test(line));
+  if (at < 0) return '';
+  const frames = [];
+  for (const line of lines.slice(at + 1)) {
+    const frame = /^File "([^"]*)", line (\d+) in (\S+)/.exec(line);
+    if (!frame) break;
+    if (frames.length < 4) frames.push(`${frame[1].split(/[\\/]/).pop()}:${frame[2]} ${frame[3]}`);
+  }
+  return frames.length ? `fault in ${frames.join(' < ')}` : '';
+}
+
 /**
  * The line of a worker's stderr that says why it died: the last one that names an error (a Python exception, an out-of-memory error, a Windows
  * fatal exception), else the last line. Short, no control characters; a report removes any folder from it. A paging-file line (pagingFileFailed) wins over
@@ -48,6 +63,8 @@ export function stderrReason(tail, limit = 160) {
   const paging = [...lines].reverse().find(line => PAGING_FILE_WORDS.test(line))
     ?? (lines.some(line => ACCESS_VIOLATION.test(line)) ? [...lines].reverse().find(line => COMMIT_CODE.test(line)) : undefined);
   if (paging) return paging.slice(0, limit);
+  const fault = faultFrames(lines);
+  if (fault) return fault.slice(0, limit);
   const named = [...lines].reverse().find(line => /(?:error|exception|exit|out of memory|fatal|violation|cuda|failed|cannot|could not)/i.test(line));
   return (named ?? lines.at(-1)).slice(0, limit);
 }
