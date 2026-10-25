@@ -158,7 +158,7 @@ test('the voice keys without any add-on behave exactly as before, whatever the r
 test('the add-on voice reaches the microphone only through generic seams: recognition asked on the key press, blocks added at begin and finish', () => {
   const toggle = init.slice(init.indexOf('local function toggleVoice'), init.indexOf('local function sendRequest'));
   assert.match(toggle, /local addonHears = convaiAddons ~= nil and convaiAddons\.live == true and manager\.speechRecognitionReady\(\) or false/);
-  assert.match(toggle, /selectConversation\(player, groupMode, 'cyberpunk_convai_voice', addonHears\)/);
+  assert.match(toggle, /selectConversation\(player, groupMode, 'cyberpunk_convai_voice', addonHears, talkJohnny\)/);
   assert.match(init, /microphone\.decorate = function\(context\)\n    if context\.voiceOnly and not context\.holocall and convaiAddons and convaiAddons\.live then convaiAddons\.decorate\(context\) end/);
   const microphone = readFileSync(new URL('../mod/microphone.lua', import.meta.url), 'utf8');
   assert.equal(microphone.match(/pcall\(M\.decorate, context\)/g).length, 2, 'begin and finish');

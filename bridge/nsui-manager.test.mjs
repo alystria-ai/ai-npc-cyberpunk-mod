@@ -1103,7 +1103,7 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   assert(managerUi.inspect().view == 'key-bindings')
   local names = {}
   for _, s in ipairs(ns.sections()) do names[#names + 1] = s.label end
-  assert(table.concat(names, ' | ') == 'Companion Manager | Talk by voice | Talk by text | Group voice chat | Group text chat | Companion Manager | Controller', table.concat(names, ' | '))
+  assert(table.concat(names, ' | ') == 'Companion Manager | Talk by voice | Talk by text | Group voice chat | Group text chat | Talk to Johnny by voice | Talk to Johnny by text | Companion Manager | Controller', table.concat(names, ' | '))
   for _, name in ipairs({'Talk by voice', 'Talk by text', 'Group voice chat', 'Group text chat', 'Companion Manager'}) do
     local keySection = ns.sections()
     local target = name == 'Companion Manager' and keySection[6] or section(name)

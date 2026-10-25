@@ -300,18 +300,18 @@ test('loader: nothing is loaded while the setting is off; loaded once on first n
   `);
 });
 
-test('talk keys: with nobody in front of V and private talk, Johnny answers, is busy, or the old notice stays', () => {
-  const select = between('local function selectConversation(player, groupMode, singleAction, addonHears)', 'local function voiceTargetValid');
-  const head = between('-- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with nobody in front of V', "if not npc then convaiNotices.send(player, 'talk-no-target'", select);
-  // After the crosshair, the add-on voices and the group candidates; before the "face a nearby character" notice; private only.
-  assert.ok(select.indexOf('targetAtCrosshair()') < select.indexOf(head) && select.indexOf('convaiAddons.talkCandidates') < select.indexOf(head));
-  assert.match(head, /if not npc and not groupMode then/);
+test('Talk to Johnny keys: Johnny answers, is busy, or the notice says why; the talk keys with nobody in front no longer reach him', () => {
+  const select = between('local function selectConversation(player, groupMode, singleAction, addonHears, talkJohnny)', 'local function voiceTargetValid');
+  const head = between('function convaiTalkJohnny(player)', '-- addonHears: this computer');
+  // The Johnny keys skip the crosshair, the holocall and the add-on voices altogether.
+  assert.match(select, /if talkJohnny then return convaiTalkJohnny\(player\) end/);
+  assert.ok(select.indexOf('if talkJohnny then') < select.indexOf('targetAtCrosshair()'));
+  assert.doesNotMatch(select, /convaiJohnnyHeadService/, 'facing nobody no longer asks for Johnny');
   assert.match(head, /local head = type\(convaiJohnnyHeadService\) == 'function' and convaiJohnnyHeadService\(\) or nil/);
-  assert.match(head, /if head and why == nil and supportedProfiles\[head\.key\] and profileEnabled\(player, head\.key\) then/, 'a muted Johnny stays muted');
+  assert.match(head, /if why == nil and supportedProfiles\[head\.key\] and profileEnabled\(player, head\.key\) then/, 'a muted Johnny stays muted');
   assert.match(head, /convaiHeadTalk = \{entity = partner\.entity\}/);
   assert.match(head, /why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then[\s\S]*convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.', \{name = head\.name\}\)\)\s+return nil/);
-  // A holocall still wins: it is asked first.
-  assert.ok(select.indexOf('convaiHolocall.partner(player, groupMode)') < select.indexOf(head));
+  assert.match(head, /'talk-johnny-off'[\s\S]*'talk-johnny-away'/);
   // A refusal logs its reason and the facts behind it (2026-10-21), on the key press and when it ends his reply; nothing runs otherwise.
   assert.match(head, /log\('Johnny in your head: refused reason=' \.\. why \.\. ' facts\[' \.\. head:detail\(\) \.\. '\]'\)/);
   assert.match(init, /log\('Johnny in your head: reply ended reason=' \.\. why[\s\S]*?head and head:detail\(\) or 'off'/);

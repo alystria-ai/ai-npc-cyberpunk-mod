@@ -668,7 +668,7 @@ end
 
 -- The mod's own key bindings (mod/key-bindings.lua): the five actions, and a key is stored by the game's name for it ('IK_F7'). Which names the player can
 -- choose is that module's business; here a stored name only has to look like one.
-local keyBindingOrder = {'voice', 'text', 'group_voice', 'group_text', 'manager'}
+local keyBindingOrder = {'voice', 'text', 'group_voice', 'group_text', 'manager', 'johnny_voice', 'johnny_text'}
 local keyBindingActions = {}
 for _, action in ipairs(keyBindingOrder) do keyBindingActions[action] = true end
 local function validKeyName(name)
@@ -1074,8 +1074,8 @@ function M.reputation()
     return settings.reputation == true
 end
 
--- Johnny in your head: the talk keys with nobody in front of V address Johnny Silverhand (mod/johnny-head.lua). Read on a talk key
--- press that found nobody and when the settings page is drawn, never per frame.
+-- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
+-- press and when the settings page is drawn, never per frame.
 function M.johnnyInHead()
     loadSettings()
     return settings.johnnyInHead == true

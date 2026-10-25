@@ -1,5 +1,5 @@
--- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): for each of the five actions (talk by voice, talk by text, group voice
--- chat, group text chat, the Companion Manager) the player presses Set and then the keyboard key or controller button they want. They work at once, with no
+-- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): for each of the seven actions (talk by voice, talk by text, group voice
+-- chat, group text chat, the Companion Manager, talk to Johnny by voice and by text) the player presses Set and then the keyboard key or controller button they want. They work at once, with no
 -- restart, next to the Cyber Engine Tweaks bindings of the same actions, which keep working. The redscript half (r6/scripts/CyberpunkConvai/KeyBinds.reds)
 -- listens to the game's key events for the chosen keys only; this half decides whether the moment is allowed and runs the code path the CET key of that action
 -- runs (init.lua voiceKeyEdge, beginText, openManager), so the behaviour and the gating are the same.
@@ -9,17 +9,19 @@
 -- registers the saved keys again for a new player after a load, and ends a Set that nobody answered. With no binding saved and no Set in progress the tick costs
 -- one table check and the redscript listener is not registered.
 --
---   hold actions (talk by voice, group voice chat)   key down = V's turn begins, key up = it ends, as the CET voice keys (hold to talk)
---   tap actions (text, group text, manager)          the action runs when the key comes back up, as a CET hotkey does (so the key's character is not typed
+--   hold actions (talk by voice, group voice chat, talk to Johnny by voice)   key down = V's turn begins, key up = it ends, as the CET voice keys (hold to talk)
+--   tap actions (text, group text, manager, talk to Johnny by text)           the action runs when the key comes back up, as a CET hotkey does (so the key's character is not typed
 --                                                    into the box it opens)
 local M = {}
 M.clock = os.clock
 
--- The five actions, in the order of the page and of the redscript slots (slot 1 is voice), and the CET binding (hotkey or input) each one has.
-M.ACTIONS = {'voice', 'text', 'group_voice', 'group_text', 'manager'}
+-- The seven actions, in the order of the redscript slots (slot 1 is voice; the two Johnny actions came last so the slots of an older list stay as they were; the page
+-- shows them in its own order), and the CET binding (hotkey or input) each one has.
+M.ACTIONS = {'voice', 'text', 'group_voice', 'group_text', 'manager', 'johnny_voice', 'johnny_text'}
 M.CET_ID = {voice = 'cyberpunk_convai_voice', text = 'cyberpunk_convai_text', group_voice = 'cyberpunk_convai_group_voice',
-    group_text = 'cyberpunk_convai_group_text', manager = 'cyberpunk_convai_manager'}
-M.HOLD = {voice = true, group_voice = true}
+    group_text = 'cyberpunk_convai_group_text', manager = 'cyberpunk_convai_manager',
+    johnny_voice = 'cyberpunk_convai_johnny_voice', johnny_text = 'cyberpunk_convai_johnny_text'}
+M.HOLD = {voice = true, group_voice = true, johnny_voice = true}
 local SLOT = {}
 for index, action in ipairs(M.ACTIONS) do SLOT[action] = index end
 
@@ -88,8 +90,9 @@ function M.valid(name)
     return type(name) == 'string' and M.describe(name) ~= nil
 end
 
--- The list the redscript half takes: the key of each slot in order, '-' for none; '' when there is none at all. The 10 Hz tick asks this, so the answer is
--- kept with the five names it was made from and handed back as it is while none of them changed (no table and no string built per tick).
+-- The list the redscript half takes: the key of each slot in order, '-' for none (the two Johnny slots come only when one of them has a key, so a list without
+-- them is the list it always was); '' when there is none at all. The 10 Hz tick asks this, so the answer is
+-- kept with the seven names it was made from and handed back as it is while none of them changed (no table and no string built per tick).
 local listed = {names = {}, text = ''}
 function M.list(bindings)
     if type(bindings) ~= 'table' then listed.names, listed.text = {}, ''; return '' end
@@ -98,13 +101,14 @@ function M.list(bindings)
         if names[index] ~= bindings[action] then same = false; break end
     end
     if same then return listed.text end
-    local parts, any = {}, false
+    local parts, any, last = {}, false, 0
     names = {}
     for index, action in ipairs(M.ACTIONS) do
         local name = bindings[action]
         names[index] = name
-        if M.valid(name) then parts[index] = name; any = true else parts[index] = '-' end
+        if M.valid(name) then parts[index] = name; any = true; last = index else parts[index] = '-' end
     end
+    for index = #parts, math.max(last, 5) + 1, -1 do parts[index] = nil end
     listed.names, listed.text = names, any and table.concat(parts, ',') or ''
     return listed.text
 end
@@ -160,7 +164,7 @@ function M.bindText(keys)
     return table.concat(words, ' + ')
 end
 
--- The text of the five actions in CET's bindings.json: {action = 'F6'}. Only this mod's own entries are read (the names are unique to it, wherever the
+-- The text of the seven actions in CET's bindings.json: {action = 'F6'}. Only this mod's own entries are read (the names are unique to it, wherever the
 -- mod's folder is called), and an action without a binding (or a 0) is left out.
 function M.decodeCet(text)
     local result = {}

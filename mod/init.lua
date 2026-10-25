@@ -2616,9 +2616,72 @@ function convaiFacingCharacter()
     return {record = record, name = name, gender = gender == 'FEMALE' and 'female' or gender == 'MALE' and 'male' or nil}
 end
 
+-- Talking with nobody in view goes to the party (docs/TALK_FALLBACK.md), decided once on the key press, never polled. Global functions: the
+-- main chunk is at Lua's limit of local variables.
+-- Private talk: the first party member, in the Companion Manager's Current party order, who is within talk range and whose
+-- profile can answer. nil when there is none.
+function convaiTalkFirstParty(player)
+    if type(companions.partyInOrder) ~= 'function' then return nil end
+    local ok, rows = pcall(companions.partyInOrder, player, 8)
+    if not ok or type(rows) ~= 'table' then return nil end
+    for _, row in ipairs(rows) do
+        if supportedProfiles[row.profileKey] and profileEnabled(player, row.profileKey) then return row end
+    end
+    return nil
+end
+
+-- Group talk: the first party member, then two more picked at random from the rest of the party (fewer when the party is
+-- smaller), then the unchosen party members and everyone else in the list (visiting housemates, spawned characters), who fill
+-- the round only when the party cannot (groupChat.choose takes three). nil when no party member is in the list.
+function convaiTalkGroupFromParty(candidates, random)
+    local party, others = {}, {}
+    for _, candidate in ipairs(candidates) do
+        if candidate.party then party[#party + 1] = candidate else others[#others + 1] = candidate end
+    end
+    if #party == 0 then return nil end
+    table.sort(party, function(a, b) return (a.order or 0) < (b.order or 0) end)
+    random = random or math.random
+    local list = {table.remove(party, 1)}
+    for _ = 1, 2 do
+        if #party == 0 then break end
+        list[#list + 1] = table.remove(party, random(#party))
+    end
+    for _, candidate in ipairs(party) do list[#list + 1] = candidate end
+    for _, candidate in ipairs(others) do list[#list + 1] = candidate end
+    return list
+end
+
+-- The Johnny keys (docs/JOHNNY_IN_YOUR_HEAD.md): Johnny as the voice in V's head, wherever V faces, while the story has him there and
+-- the game does not have the floor. Otherwise a notice says why and nothing starts.
+function convaiTalkJohnny(player)
+    local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
+    if not head then
+        convaiNotices.send(player, 'talk-johnny-off', ui.t('Johnny in your head is off. Turn it on in Settings > Conversations.'))
+        return nil
+    end
+    local why = head:refusal(player)
+    if why == nil and supportedProfiles[head.key] and profileEnabled(player, head.key) then
+        local partner = head:partner(player)
+        if partner then
+            convaiHeadTalk = {entity = partner.entity}
+            log('Johnny in your head: conversation stage=' .. tostring(partner.head.stage))
+            return partner
+        end
+    elseif why ~= nil and why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then
+        log('Johnny in your head: refused reason=' .. why .. ' facts[' .. head:detail() .. ']')
+        convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = head.name}))
+        return nil
+    end
+    log('Johnny in your head: not in V\'s head (' .. tostring(why or 'muted') .. ')')
+    convaiNotices.send(player, 'talk-johnny-away', ui.t('{name} is not in your head right now.', {name = head.name}))
+    return nil
+end
+
 -- addonHears: this computer can recognise speech locally (manager.speechRecognitionReady), which an add-on voice needs to answer the
 -- voice keys; the caller asks it on the key press only, and only while an add-on is live.
-local function selectConversation(player, groupMode, singleAction, addonHears)
+-- talkJohnny: the Johnny keys (Talk to Johnny by voice or text): Johnny, whoever V faces.
+local function selectConversation(player, groupMode, singleAction, addonHears, talkJohnny)
+    if talkJohnny then return convaiTalkJohnny(player) end
     -- A character the player made may have been saved since the last look: the list is read if it is due (at most every 3 s, and only while
     -- there are characters or the editor was opened lately: mod/custom-characters.lua).
     if convaiCustomCharacters then pcall(convaiCustomCharacters.refresh); pcall(convaiCustomCharacters.checkProvider) end
@@ -2654,6 +2717,15 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
                 .. ' (found=' .. tostring(stats.found) .. ' generic=' .. tostring(stats.generic) .. ' noProfile=' .. tostring(stats.noProfile)
                 .. ' unsupported=' .. tostring(stats.unsupported) .. ' disabled=' .. tostring(stats.disabled) .. ')'
                 .. convaiSpawnedPeople.describe())
+        end
+        -- Nobody faced: the first party member leads and two more come at random from the party (fewer in a smaller party).
+        if not npc then
+            local ordered = convaiTalkGroupFromParty(candidates)
+            if ordered then
+                candidates = ordered
+                log('Talk fallback: group of the party, first=' .. tostring(ordered[1].profileKey)
+                    .. ' then=' .. tostring(ordered[2] and ordered[2].profileKey) .. ',' .. tostring(ordered[3] and ordered[3].profileKey))
+            end
         end
     end
     -- An installed add-on's voice (docs/ADDON_API.md: a talking gun in V's hand, a cab's voice) answers the talk keys while it
@@ -2694,24 +2766,13 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         end
     end
     if not npc and groupMode and candidates[1] and not candidates[1].voiceOnly then npc = candidates[1].npc end
-    -- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with nobody in front of V, private talk addresses Johnny while the story has
-    -- him in V's head and the game does not have the floor. Not in V's head (or the setting off): the notice below, as before.
+    -- Nobody faced (docs/TALK_FALLBACK.md): private talk goes to the first party member in range. Without a party, the notice below.
+    -- Johnny has his own keys (Talk to Johnny, convaiTalkJohnny above): facing nobody no longer reaches him.
     if not npc and not groupMode then
-        local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
-        local why = head and head:refusal(player) or nil
-        if head and why == nil and supportedProfiles[head.key] and profileEnabled(player, head.key) then
-            local partner = head:partner(player)
-            if partner then
-                convaiHeadTalk = {entity = partner.entity}
-                log('Johnny in your head: conversation stage=' .. tostring(partner.head.stage))
-                return partner
-            end
-        elseif head and why ~= nil and why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then
-            log('Johnny in your head: refused reason=' .. why .. ' facts[' .. head:detail() .. ']')
-            convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = head.name}))
-            return nil
-        elseif head then
-            log('Johnny in your head: not in V\'s head (' .. tostring(why or 'muted') .. ')')
+        local member = convaiTalkFirstParty(player)
+        if member then
+            npc = member.npc
+            log('Talk fallback: first party member ' .. tostring(member.profileKey))
         end
     end
     if not npc then convaiNotices.send(player, 'talk-no-target', ui.t(reason)); return nil end
@@ -2978,11 +3039,11 @@ local function moveStateText(player)
     if not ok or type(held) ~= 'boolean' then return 'n/a' end
     return held and 'held' or 'free'
 end
-local function beginTextNow(groupMode, waited)
+local function beginTextNow(groupMode, waited, talkJohnny)
     local ok, err = pcall(function()
         local player = Game.GetPlayer()
         if not player or not gameplayCanAcquire(player) then return end
-        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_text')
+        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_text', nil, talkJohnny)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
@@ -3040,18 +3101,18 @@ local function beginTextNow(groupMode, waited)
     if not ok then log('Open failed: ' .. tostring(err)) end
 end
 
-local function beginText(groupMode)
+local function beginText(groupMode, talkJohnny)
     local player = Game.GetPlayer()
     local gate = convaiTalkGate
     if player and gate and moveStateText(player) == 'held' then
         -- A second press while waiting only updates which chat was asked for.
         local waiting = gate.waiting
-        gate.waiting = {group = groupMode, waited = waiting and waiting.waited or 0}
+        gate.waiting = {group = groupMode, johnny = talkJohnny, waited = waiting and waiting.waited or 0}
         if not waiting then log('Talk box waits for the movement keys to be released') end
         return
     end
     if gate then gate.waiting = nil end
-    beginTextNow(groupMode)
+    beginTextNow(groupMode, nil, talkJohnny)
 end
 
 -- Called from onUpdate (a nil check per frame while nobody is waiting). Opens the
@@ -3071,7 +3132,7 @@ function convaiTalkGate.update(delta, worldReady)
     -- A reading that never cleared is probably an unseen key-up: forget it so the
     -- next talk request is not delayed by it, then open the box anyway.
     if stillHeld then pcall(function() player:ConvaiMoveForget() end) end
-    beginTextNow(waiting.group, waiting.waited)
+    beginTextNow(waiting.group, waiting.waited, waiting.johnny)
 end
 
 -- Hold to talk: the voice key records from the moment it goes down until it comes up, and V's turn ends there (docs/VOICE_INPUT.md).
@@ -3079,7 +3140,7 @@ end
 -- or 'vad' (Voice activation heard V start speaking: begin, with no key; mod/voice-activation.lua).
 -- holdId: this key press's id, already told to the bridge (mod/microphone.lua holdKey) so its microphone tap is open. vadId: the detector's id for the start.
 -- No notice is shown for a normal turn: no "connecting", no "listening", no "finished". Only a real failure speaks (no microphone, no connection).
-local function toggleVoice(groupMode, source, holdId, vadId)
+local function toggleVoice(groupMode, source, holdId, vadId, talkJohnny)
     source = source or 'press'
     local player = Game.GetPlayer()
     if not player then return end
@@ -3113,7 +3174,7 @@ local function toggleVoice(groupMode, source, holdId, vadId)
         end
         if not gameplayCanAcquire(player) then return end
         local addonHears = convaiAddons ~= nil and convaiAddons.live == true and manager.speechRecognitionReady() or false
-        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice', addonHears)
+        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice', addonHears, talkJohnny)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         -- The target is known: the bridge opens the microphone now and keeps what it hears, before the preparation below and the connection
@@ -5270,7 +5331,7 @@ registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text 
 -- A hold shorter than HOLD_S is a bounce or an accidental tap: the recording is dropped without a word. Every edge and what it did is logged.
 local HOLD_S = 0.2
 local voiceKeys = {}
-local function voiceKeyEdge(id, groupMode, isDown)
+local function voiceKeyEdge(id, groupMode, isDown, talkJohnny)
     local now = os.clock()
     local ok, err = pcall(function()
         local key = voiceKeys[id]
@@ -5280,7 +5341,7 @@ local function voiceKeyEdge(id, groupMode, isDown)
             key = {at = now, seen = now, holdId = microphone.newHoldId()}
             voiceKeys[id] = key
             local before = microphone.context and tostring(microphone.state) or 'idle'
-            toggleVoice(groupMode, 'press', key.holdId)
+            toggleVoice(groupMode, 'press', key.holdId, nil, talkJohnny)
             local after = microphone.context and tostring(microphone.state) or 'idle'
             key.began = before ~= 'starting' and after == 'starting'
             log('Voice key ' .. id .. ' down: recording ' .. before .. ' -> ' .. after .. (key.began and ' (this press began it)' or ''))
@@ -5309,6 +5370,9 @@ local function voiceKeyEdge(id, groupMode, isDown)
 end
 registerInput('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
+-- Johnny has his own keys (docs/TALK_FALLBACK.md): the talk keys with nobody faced go to the party, so the voice in V's head is asked for by name.
+registerHotkey('cyberpunk_convai_johnny_text', 'AI NPC Cyberpunk Mod: talk to Johnny by text', function() if convaiTapOnce('johnny_text') then beginText(false, true) end end)
+registerInput('cyberpunk_convai_johnny_voice', 'AI NPC Cyberpunk Mod: talk to Johnny by voice', function(isDown) voiceKeyEdge('johnny_voice', false, isDown, true) end)
 
 -- The talk key's microphone device is opened by the key press and stays open, unread, for about 15 s after a voice turn so the next press of a
 -- conversation starts at once (docs/VOICE_INPUT.md; the bridge times it, bridge/mic-tap.mjs). This tick tells the bridge when the game is BUSY (a menu, a
@@ -5415,9 +5479,10 @@ function convaiKeyBindsModule()
     convaiKeyBinds.deps = {
         bindings = function() return manager.keyBindings() end,
         save = function(action, name) return manager.setKeyBinding(Game.GetPlayer(), action, name) end,
-        voice = function(action, isDown) voiceKeyEdge(action, action == 'group_voice', isDown) end,
+        voice = function(action, isDown) voiceKeyEdge(action, action == 'group_voice', isDown, action == 'johnny_voice') end,
         tap = function(action)
-            if action == 'text' then beginText(false) elseif action == 'group_text' then beginText(true) else openManager() end
+            if action == 'text' then beginText(false) elseif action == 'group_text' then beginText(true)
+            elseif action == 'johnny_text' then beginText(false, true) else openManager() end
         end,
         -- The phone's chat box: V types there with the game's controls still live. The text box and the menus are refused by the actions themselves.
         typing = function(who) return who:ConvaiPhoneChatTyping() end,

@@ -6321,18 +6321,19 @@ test('V speaks your microphone lines is off by default, only a boolean is kept, 
   `);
 });
 
-test('own key bindings: none by default, only game key names of the five actions are kept, no key twice, and a binding is set and cleared in one validated save', () => {
+test('own key bindings: none by default, only game key names of the seven actions are kept, no key twice, and a binding is set and cleared in one validated save', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     assert(type(saved.keyBindings) == 'table' and next(saved.keyBindings) == nil and next(manager.keyBindings()) == nil, 'none by default, and saved so')
     assert(next(manager.snapshot(player).settings.keyBindings) == nil)
     -- A saved file is cleaned up: an unknown action, a value that is no game key name and a key another action already has are dropped; the rest is kept.
     seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'},
-      keyBindings = {voice = 'IK_F7', text = 'IK_F7', group_voice = 'IK_Pad_Start', group_text = 5, manager = 'not a key', nonsense = 'IK_A'}}
+      keyBindings = {voice = 'IK_F7', text = 'IK_F7', group_voice = 'IK_Pad_Start', group_text = 5, manager = 'not a key', nonsense = 'IK_A', johnny_voice = 'IK_J', johnny_text = 'IK_J'}}
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
     local keys = manager.keyBindings()
     assert(keys.voice == 'IK_F7' and keys.text == nil and keys.group_voice == 'IK_Pad_Start' and keys.group_text == nil and keys.manager == nil and keys.nonsense == nil)
+    assert(keys.johnny_voice == 'IK_J' and keys.johnny_text == nil, 'the Johnny actions are kept, and a key twice is dropped for them too')
     assert(saved.keyBindings.voice == 'IK_F7' and saved.keyBindings.nonsense == nil and saved.future.keep == 'unchanged', 'the cleaned table was saved, the rest untouched')
     -- A file that holds something else than a table gets the default.
     for _, wrong in ipairs({'IK_F7', 5, true}) do

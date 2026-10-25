@@ -93,6 +93,8 @@ M.catalog = {
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},
+    ['talk-johnny-off'] = {class = PLAYER, repeatS = 20},    -- the Talk to Johnny keys with Settings > Johnny in your head off (docs/TALK_FALLBACK.md)
+    ['talk-johnny-away'] = {class = PLAYER, repeatS = 20},   -- ... while the story does not have Johnny in V's head (before, after, unreadable) or his profile is switched off
     ['talk-busy'] = {class = PLAYER, repeatS = 10},          -- a story character the game has in a scene, a fight or a ride is not talked to (mod/world-talk.lua)
     ['group-needs-two'] = {class = PLAYER, repeatS = 20},
     ['talk-connecting'] = {class = PLAYER, repeatS = 10},

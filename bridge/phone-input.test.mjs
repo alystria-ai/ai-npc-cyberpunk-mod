@@ -208,12 +208,12 @@ test('redscript tracks only the MoveX and MoveY axes, from change events, with n
 const gateSource = () => {
   const text = normalize(initLua);
   const start = text.indexOf('local TALK_WAIT_MAX = 1.5');
-  const end = text.indexOf('local function toggleVoice(groupMode, source, holdId, vadId)');
+  const end = text.indexOf('local function toggleVoice(groupMode, source, holdId, vadId, talkJohnny)');
   assert.ok(start > 0 && end > start);
   const code = text.slice(start, end);
   // beginTextNow itself needs the whole game adapter; the gate tests replace it with a recorder
   const open = code.indexOf('local function beginTextNow');
-  const gate = code.indexOf('local function beginText(groupMode)');
+  const gate = code.indexOf('local function beginText(groupMode, talkJohnny)');
   assert.ok(open > 0 && gate > open);
   return {state: code.slice(0, open), gate: code.slice(gate)};
 };
@@ -227,7 +227,7 @@ local forgotten = 0
 local player = {ConvaiMoveHeld = function() return held end, ConvaiMoveForget = function() forgotten = forgotten + 1; held = false end}
 Game = {GetPlayer = function() return player end}
 ${gateSource().state}
-local function beginTextNow(groupMode, waited) opened[#opened + 1] = {group = groupMode, waited = waited} end
+local function beginTextNow(groupMode, waited, talkJohnny) opened[#opened + 1] = {group = groupMode, waited = waited, johnny = talkJohnny} end
 ${gateSource().gate}
 ${extra}
 `;
@@ -287,6 +287,23 @@ assert(#opened == 1 and opened[1].group == true)
 local waits = 0
 for _, line in ipairs(logs) do if line:find('waits for the movement keys', 1, true) then waits = waits + 1 end end
 assert(waits == 1, 'one log line per wait')
+`));
+});
+
+test('the Johnny text key waits like the others and stays the Johnny chat; a plain press while waiting asks for the plain chat', () => {
+  runLua(gateHarness('true', `
+beginText(false, true)
+held = false
+convaiTalkGate.update(0.01, true)
+assert(#opened == 1 and opened[1].group == false and opened[1].johnny == true, 'opened as the Johnny chat')
+held = true
+beginText(false, true)
+beginText(false)
+held = false
+convaiTalkGate.update(0.01, true)
+assert(#opened == 2 and opened[2].johnny == nil, 'the last press decides')
+beginText(false, true)
+assert(#opened == 3 and opened[3].johnny == true and opened[3].waited == nil, 'no wait when the axes are free')
 `));
 });
 

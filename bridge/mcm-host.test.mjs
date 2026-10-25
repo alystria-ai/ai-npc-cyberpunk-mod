@@ -1742,11 +1742,11 @@ const keyPlayer = `
   local function key(token) keyQueue[#keyQueue + 1] = token; convaiKeyBinds.take(player) end
 `;
 
-test('MCM: Key bindings lists the five actions with the key set here and the key set in Cyber Engine Tweaks, sets one from a key event and clears it', () => withScreen(`
+test('MCM: Key bindings lists the seven actions with the key set here and the key set in Cyber Engine Tweaks, sets one from a key event and clears it', () => withScreen(`
   ${keyPlayer}
   press('Key bindings')
   assert(managerUi.inspect().view == 'key-bindings' and mcm.config().navigation.pageId == 'key-bindings|1|1')
-  for _, action in ipairs({'voice', 'text', 'group_voice', 'group_text', 'manager'}) do
+  for _, action in ipairs({'voice', 'text', 'group_voice', 'group_text', 'johnny_voice', 'johnny_text', 'manager'}) do
     -- One look on the page (2026-10-25): the key's own button shows the key and sets it; no text rows and no Cyber Engine Tweaks row (the owner's call).
     local mine = mcm.row('kb:set:' .. action)
     assert(mine and mine.type == 'action' and mine.label == 'Key or button' and mine.value == 'Not set', action)
@@ -1765,6 +1765,12 @@ test('MCM: Key bindings lists the five actions with the key set here and the key
   -- A controller button for another action; the key set in CET shows beside it.
   press('kb:set:group_text'); clock = clock + 1; key('kIK_Pad_LeftShoulder'); frames(6)
   assert(mcm.row('kb:set:group_text').value == 'Controller LB' and mcm.status() == 'Group text chat is set to Controller LB.', mcm.status())
+  -- Talk to Johnny has its own rows and slots: saved, and sent to the redscript after the five.
+  press('kb:set:johnny_voice'); clock = clock + 1; key('kIK_F9'); frames(6)
+  assert(mcm.status() == 'Talk to Johnny by voice is set to F9.' and manager.snapshot(player).settings.keyBindings.johnny_voice == 'IK_F9', mcm.status())
+  assert(keyList == 'IK_F7,-,-,IK_Pad_LeftShoulder,-,IK_F9', keyList)
+  press('kb:clear:johnny_voice'); frames(4); convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
+  assert(manager.snapshot(player).settings.keyBindings.johnny_voice == nil and keyList == 'IK_F7,-,-,IK_Pad_LeftShoulder,-', keyList)
   -- The same key twice is refused with the name of the action that has it.
   press('kb:set:text'); clock = clock + 1; key('kIK_F7'); frames(6)
   assert(mcm.status() == 'F7 is already used for Talk by voice. Choose another.' and not manager.snapshot(player).settings.keyBindings.text, mcm.status())
