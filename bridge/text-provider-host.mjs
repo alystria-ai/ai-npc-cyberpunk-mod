@@ -612,12 +612,15 @@ export class TextProviderHost {
    * remembered: nothing is recorded once the turn is cancelled. With `deferRecord` (a function, from the bridge) the exchange is handed to it as a
    * one-shot `commit` and recorded only when the bridge publishes the reply; without it the exchange is recorded now, as before.
    */
-  #remember({signal, deferRecord}, {memoryKey, text, spoken, route, profileKey}) {
+  // `event` ({v}): the turn was a message the character started (a phone appointment event, bridge/appointment-events.mjs), so `text` is the mod's trigger and
+  // never V's words. The exchange recorded is `event.v` (a bracketed note) with her text, or nothing at all when `v` is null.
+  #remember({signal, deferRecord}, {memoryKey, text, spoken, route, profileKey, event}) {
+    if (event && typeof event.v !== 'string') return;
     let done = false;
     const commit = () => {
       if (done) return;
       done = true;
-      this.memory.record({...memoryKey, v: text, r: stripSpeechTags(spoken)});
+      this.memory.record({...memoryKey, v: event ? event.v : text, r: stripSpeechTags(spoken)});
       this.#summarize(route, profileKey, memoryKey.profileKey);
     };
     if (typeof deferRecord === 'function') deferRecord(commit);
@@ -710,7 +713,7 @@ export class TextProviderHost {
         // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk. A reply the
         // hard-limit guard replaced is not remembered, and neither are the words that led to it.
         if (!reaction && !outcome.guarded) {
-          this.#remember({signal, deferRecord}, {memoryKey, text, spoken: reply, route, profileKey: local.profileKey});
+          this.#remember({signal, deferRecord}, {memoryKey, text, spoken: reply, route, profileKey: local.profileKey, event: config.phoneEvent});
         }
         markStage('replyReturned');
         // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
@@ -804,7 +807,7 @@ export class TextProviderHost {
     if (!head && (reaction || !error.slow || route.holdingLines === false)) return null;
     const spoken = head || HOLDING_LINES[this.holdingTurns++ % HOLDING_LINES.length];
     // What the character really said is remembered; the holding line is not (it answers nothing).
-    if (head && !reaction) this.#remember({signal, deferRecord}, {memoryKey, text, spoken: head, route, profileKey});
+    if (head && !reaction) this.#remember({signal, deferRecord}, {memoryKey, text, spoken: head, route, profileKey, event: config.phoneEvent});
     this.log(head ? `${route.label} stopped after the first sentence (${error.kind}); that sentence is the reply`
       : `${route.label} did not answer in time (${(error.failed ?? []).map(item => `${item.kind} ${item.ms} ms`).join(', ') || error.kind}); the character says a short holding line`);
     markStage('replyReturned');
@@ -1225,14 +1228,15 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
   const withoutLocal = config => {
     if (!config || !('local' in config || 'contextParts' in config)) return config;
-    const {local: _local, contextParts: _parts, ...rest} = config;
+    const {local: _local, contextParts: _parts, phoneEvent: _event, ...rest} = config;
     return rest;
   };
   const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
   host.reply = function reply(config, options) {
     // The language of what the player types tells the microphone which language to expect (bridge/speech-language.mjs). Automatic
     // reactions carry a `reaction` and English prompts of the mod's own: they say nothing about the player.
-    if (provider.active && onPlayerText && !config?.reaction && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
+    // (An appointment event's text is the mod's trigger too: config.phoneEvent.)
+    if (provider.active && onPlayerText && !config?.reaction && !config?.phoneEvent && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
     return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
   };
   host.prepare = function prepare(config, options) {

@@ -62,8 +62,8 @@ function reasonFor(error, text) {
 }
 
 /** The one log line for a failed message. Never the message or the reply: the contact, the provider, the step and the reason. */
-export function phoneFailureLine({contact, provider, stage, reason, detail}) {
-  return `Phone chat message failed: reason=${reason} stage=${stage} contact=${clip(contact, 60) || '?'} provider=${clip(provider, 20) || '?'}`
+export function phoneFailureLine({contact, provider, stage, reason, detail, event}) {
+  return `Phone chat ${event ? `${clip(event, 20)} event` : 'message'} failed: reason=${reason} stage=${stage} contact=${clip(contact, 60) || '?'} provider=${clip(provider, 20) || '?'}`
     + (detail ? ` detail="${detail}"` : '');
 }
 
@@ -97,7 +97,10 @@ export class PhoneFailureLog {
   }
   note(info) {
     let provider; try { provider = this.provider(); } catch { provider = undefined; }
-    try { this.log(phoneFailureLine({contact: info.contact, provider, stage: info.stage, reason: info.reason, detail: info.detail})); } catch { /* a log line never fails a send */ }
+    try { this.log(phoneFailureLine({contact: info.contact, provider, stage: info.stage, reason: info.reason, detail: info.detail, event: info.event})); } catch { /* a log line never fails a send */ }
+    // An appointment event the character started (bridge/appointment-events.mjs) is not a message V sent and the game has a template for it: the log line
+    // above is all it leaves, no automatic report and no count in the failure record.
+    if (info.event) return Promise.resolve();
     try { if (!PHONE_NOT_A_FAULT.has(info.reason)) this.report({...info, provider}); } catch { /* a report never fails a send */ }
     this.chain = this.chain.catch(() => {}).then(async () => {
       if (this.previous === undefined) this.previous = await Promise.resolve().then(() => this.read()).catch(() => null);

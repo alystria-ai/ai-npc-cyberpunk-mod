@@ -33,6 +33,7 @@ import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
+import {eventExchange} from './appointment-events.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
 import {GroupLookahead, lookaheadAllowed, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
@@ -862,6 +863,9 @@ const phone = new PhoneChat({
       sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
       scope: prepared.scope, ...remote,
       ...textProviderContext(prepared.input),
+      // An appointment event is a message the character starts (bridge/appointment-events.mjs): its text is a trigger, so the local memory routes record a
+      // bracketed note in V's place (or nothing) instead of it.
+      ...(options.input.event ? {phoneEvent: {v: eventExchange(options.input.event)}} : {}),
       text: options.input.text, ttsEnabled: false, local: localTurn(prepared.input, prepared)}), options.profileKey), {signal: options.signal});
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
@@ -1316,7 +1320,7 @@ const expressiveEmotionsContext = input => {
 const followUpContext = input => {
   if (!followUp.enabled) return '';
   return followUp.contextFor({sessionId: sessionKey(input), turn: input?.requestId || input?.id, trait: traitFor(input.profileKey),
-    text: input.text, reaction: !!input.reaction, battle: input.battle, group: !!input.group});
+    text: input.text, reaction: !!input.reaction || !!input.event, battle: input.battle, group: !!input.group});
 };
 // One line per reply while the setting is on: whether a pull was offered and why, and whether the reply ended in a question
 // (so the effect can be checked without the game). The reply's ending is also remembered: no pull right after a question.
@@ -1451,6 +1455,8 @@ const conversationBlocks = input => {
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
+    // A phone message that can be a request to meet carries the game's offer as an instruction (bridge/meet-requests.mjs); '' for every other turn.
+    block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : ''),
     block('volatile', admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : ''),
     // The player's world rules (bridge/world-rules.mjs): Convai's characters live on Convai's side and cannot be edited, so the rules reach them in the
     // dynamic info this context is (realtime-client.mjs updateContext sends it, replacing the last one, every turn), after all the game's facts in it (world,
@@ -1467,8 +1473,8 @@ const conversationBlocks = input => {
     // notes are the same every turn for a given setting.
     block('volatile', naturalSpeechContext(input)), block('notes', expressiveEmotionsContext(input)),
     block('volatile', firstPersonReminder(input)),
-    // The reply language, last so it outweighs the English notes above: the player's own language on every route (nothing in an English conversation; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md).
-    block('volatile', multilingual.contextFor(input.reaction ? '' : input.text, input.reaction ? null : speechLanguage.evidence?.language))];
+    // The reply language, last so it outweighs the English notes above: the player's own language on every route (nothing in an English conversation; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md). An appointment event (the character texting first) has the mod's English trigger as its text, which says nothing of the player's language: the last turns do.
+    block('volatile', multilingual.contextFor(input.reaction || input.event ? '' : input.text, input.reaction ? null : speechLanguage.evidence?.language))];
 };
 const joinedContext = blocks => blocks.map(item => item.text).filter(Boolean).join('\n\n');
 const conversationContext = input => joinedContext(conversationBlocks(input));
