@@ -491,3 +491,20 @@ test('cost: nothing of it runs per frame', () => {
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));
   assert.doesNotMatch(update, /convaiMediaContext|media-context|heardMedia/, 'onUpdate is untouched');
 });
+
+test('a receiver whose own track name is empty falls back to the station\'s current track by index, and probe.log says why the first read gave nothing', () => lua$(`
+  W.vehicle, W.carTrack = {}, nil
+  make('trackByIndex', function(index) return index == 3 and 'tr_rebel' or nil end)
+  local result = reader:read(PLAYER)
+  assert(result.radio.station == 'Growl FM' and result.radio.track == 'Rebel Path', tostring(result.radio.track))
+  assert(calls.trackByIndex == 1 and calls.carIndex == 1)
+  assert(logs[#logs]:find('index/ByKey', 1, true), logs[#logs])
+  -- both reads give nothing: the station alone is sent, and the log line carries the reason
+  W.carTrack = 'None'
+  make('trackByIndex', function() return nil end)
+  local again = M.new({native = N})
+  W.failing.carTrack = true
+  local result2 = again:read(PLAYER)
+  assert(result2.radio.station == 'Growl FM' and result2.radio.track == nil)
+  assert(logs[#logs]:find('trackWhy=error:', 1, true), logs[#logs])
+`));

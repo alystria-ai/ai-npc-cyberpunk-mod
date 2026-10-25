@@ -31,6 +31,9 @@ const WEATHER_CJK = ['雨', '雪', '嵐', '霧', '天気', '天候', '曇', '晴
 const WEATHER_ASK = new RegExp('\\b(?:' + WEATHER_WORDS_EN + ')\\b|(?<![\\p{L}\\p{N}])(?:' + WEATHER_STEMS.join('|') + ')|' + WEATHER_CJK.join('|'), 'iu');
 const TIME_ASK = /\b(?:what time|the time|time is it|o'?clock|clock|hour|hours|late|early|morning|afternoon|evening|tonight|midnight|noon|dawn|dusk|sunrise|sunset|dark|daylight)\b/i;
 
+// V's words ask about what is playing or on (the radio, a song, the TV): the music and TV line then comes again even though the conversation heard it before.
+// Live 2026-10-25: told once on the first turn, it was gone on the next, so a companion asked "what song is this?" knew nothing. In doubt it says yes: one more short sentence.
+const MEDIA_ASK = /\b(?:songs?|music|musical|radio|tunes?|tracks?|playing|plays|listen\w*|stations?|channels?|tv|television|telly|screen|news|broadcast|dj|band|artist|singer|singing|sings|lyrics|album|beat|hear|hearing|sound|sounds|volume|what's on|whats on)\b|(?<![\p{L}\p{N}])(?:m[uú]sica|musique|musik|canci[oó]n|chanson|canzone|piosenk|muzyk|p[eě]sni|zene|м[ую]зык|песн|пісн|m[uü]zik|[sş]ark[iı]|r[aá]dio)|音楽|歌|曲|音乐|广播|テレビ|电视|노래|음악|라디오/iu;
 export const IDLE_MS = 20 * 60_000;      // a conversation silent for this long hears the scenery again
 export const MAX_CONVERSATIONS = 256;    // least recently used go first (every stranger V talks to is a conversation)
 const ALL = Object.freeze({weather: true, time: true});
@@ -67,7 +70,7 @@ export class SceneryMemory {
       weather: weather !== undefined && (before ? before.weather !== weather || WEATHER_ASK.test(asked) : WEATHER_ASK.test(asked)),
       time: part !== undefined && (!before || before.part !== part || TIME_ASK.test(asked)),
       // Present only when there is something to say about them.
-      ...(signals.media !== undefined ? {media: !before || before.media !== signals.media} : {}),
+      ...(signals.media !== undefined ? {media: !before || before.media !== signals.media || MEDIA_ASK.test(asked)} : {}),
       ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods} : {})};
     this.conversations.delete(key);
     // A turn with nothing to say about media or mods keeps no earlier signature: when it comes back it is new again.

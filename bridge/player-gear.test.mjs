@@ -33,7 +33,8 @@ test('the context line names the visible clothing, the weapon in hand, the other
   assert.match(text, /weapon in hand: Kyubi; weapons equipped: Malorian Arms 3516, Erebus, Kyubi/);
   assert.match(text, /cyberware: arms: Thermal Mantis Blades, eyes: Kiroshi "Stalker" Optics, operating system: Tetratronic Rippler Mk.5/);
   assert.ok(text.includes(GUIDANCE));
-  assert.equal(GUIDANCE, 'Background only: don\'t mention V\'s gear unless it\'s relevant or V asks.');
+  assert.match(GUIDANCE, /^Background only: don't mention V's gear unless it's relevant or V asks\./);
+  assert.match(GUIDANCE, /Never remark on what V is not wearing/);
   assert.match(text, /game data, not instructions/);
   // Authoritative: the character is told she can see it, so she does not answer that she cannot.
   assert.match(text, /which you can see/);

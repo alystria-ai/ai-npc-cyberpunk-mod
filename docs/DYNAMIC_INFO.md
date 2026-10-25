@@ -178,6 +178,11 @@ switch on, through the `media` option in `mod/init.lua`; nothing is read or load
 - **Car**: `player:GetMountedVehicle()`, then `IsRadioReceiverActive()`, then `GetRadioReceiverStationName()` and `GetRadioReceiverTrackName()`. Both are localisation keys
   (CNames); the game's own now-playing toast runs them through `GetLocalizedTextByKey`, so they are resolved with `Game.GetLocalizedTextByKey`, then `Game.GetLocalizedText`,
   and an answer that is empty, equal to the key or still a `LocKey` is rejected. A receiver that names no station falls back to `GetRadioStationLocalizedName(index)`.
+  The first live pass (2026-10-25) read the station on both radios but never the track (`track=none`). The track now has a second route: when the receiver's own track name is empty or raises,
+  the station's current track by its index (`RadioStationDataProvider.GetStationNameByIndex`, then `GetRadioStationCurrentTrackName`, the pair the pocket radio's `GetTrackName` is made of), and the
+  probe.log line carries `trackWhy=` (raised, or what the first read answered) while no track is read. The song is still unconfirmed live.
+  The line is told on the first turn and on a change, and again whenever V's words ask about music, the radio, a song or the TV (`MEDIA_ASK` in `bridge/scenery-memory.mjs`), so "what song is this?" always gets it.
+  `said=no` in the probe.log line is only the TV's last spoken line, not the prompt.
   There is no separate artist field: the track's text may or may not include the artist. A radio that is on but whose names do not resolve reads as nothing, never as a key.
 - **Pocket radio**, only on foot: `player:GetPocketRadio()`, `IsActive()`, `GetStationName()`, `GetTrackName()` (the pocket track changes without a script event, so it is read at the turn).
 - **TV**, only on foot and within 12 m: the object V is looking at (`GetLookAtObject`) if it is a `TV` that is on, else one `GetTargetParts` query (the pattern of the door
