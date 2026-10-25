@@ -90,7 +90,10 @@ for _, profile in ipairs(relationshipProfiles) do relationshipKeys[profile.key] 
 -- settings.dynamicInfo (on by default; a missing or malformed value is on). The bridge reads the same table from runtime/settings.json and drops an
 -- off kind from every provider's prompt (bridge/dynamic-info.mjs); this side stops reading the game for it (mod/turn-context.lua, init.lua).
 -- Order is the order of the page.
-local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue'}
+local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
+-- The stored values of both speak-up lists: off, rare (about 2 an hour), medium (about 4, shown as Normally) and normal (about 6, shown as Often:
+-- 'normal' is the name it has had since 2026-10-19, so an older file reads as before).
+local SPEAK_UP_LEVELS = {off = true, rare = true, medium = true, normal = true}
 local dynamicInfoKnown = {}
 for _, kind in ipairs(dynamicInfoKinds) do dynamicInfoKnown[kind] = true end
 -- The switches as a plain table in a global (convaiDynamicInfo, replaced only when the settings load or change): the one place something that
@@ -851,10 +854,12 @@ local function loadSettings()
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
     -- list for both settings (Off, On, Speaks up rarely, Speaks up often); Off means not in V's head, so remarks are off with it (an older file
     -- with remarks set but Johnny in your head off reads as Off, and the remarks key is put right).
-    if settings.johnnyRemarks ~= 'off' and settings.johnnyRemarks ~= 'rare' and settings.johnnyRemarks ~= 'normal' then
+    if not SPEAK_UP_LEVELS[settings.johnnyRemarks] then
         settings.johnnyRemarks, settingsNeedSave = 'off', true
     end
     if settings.johnnyInHead ~= true and settings.johnnyRemarks ~= 'off' then settings.johnnyRemarks, settingsNeedSave = 'off', true end
+    -- On by default (Rarely): party companions start a conversation on their own now and then (docs/COMPANION_SPEAK_UP.md). Same values as Johnny's.
+    if not SPEAK_UP_LEVELS[settings.companionSpeakUp] then settings.companionSpeakUp, settingsNeedSave = 'rare', true end
     -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
@@ -1063,7 +1068,17 @@ end
 -- while a remark waits, never per frame.
 function M.johnnyRemarks()
     loadSettings()
-    return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
+    local level = settings.johnnyRemarks
+    return (level == 'rare' or level == 'medium' or level == 'normal') and level or 'off'
+end
+
+-- Companions speak up (docs/COMPANION_SPEAK_UP.md): 'off', 'rare', 'medium' or 'normal', the values of Johnny's list, so one rate table reads both
+-- (rare about 2 an hour, medium about 4, normal about 6; shown as Rarely, Normally, Often). Read on the 0.1 s game tick while the setting is
+-- on and when the settings page is drawn, never per frame.
+function M.companionSpeakUp()
+    loadSettings()
+    local level = settings.companionSpeakUp
+    return (level == 'rare' or level == 'medium' or level == 'normal') and level or 'off'
 end
 
 -- Is Mistral or the Local AI answering conversations right now (the bridge's applied provider)? Asked when a character the player made is
@@ -2013,6 +2028,7 @@ function M.snapshot(player)
             reputation = settings.reputation == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
+            companionSpeakUp = M.companionSpeakUp(),
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -2140,8 +2156,11 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value
         elseif key == 'johnnyRemarks' then
-            if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often Johnny speaks up.' end
+            if not SPEAK_UP_LEVELS[value] then return false, 'Choose how often Johnny speaks up.' end
             nextSettings.johnnyRemarks = value
+        elseif key == 'companionSpeakUp' then
+            if not SPEAK_UP_LEVELS[value] then return false, 'Choose how often companions speak up.' end
+            nextSettings.companionSpeakUp = value
         elseif RETIRED_SET[key] then
             -- A setting that is gone (RETIRED_SETTINGS): an old caller's value is ignored, nothing is saved for it.
         elseif key == 'conversationProvider' then

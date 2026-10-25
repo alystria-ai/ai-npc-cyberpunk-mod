@@ -434,6 +434,52 @@ test('the default adapter reads the clock natively, falls back to the seconds co
   assert(lines[1]:find('^Turn context: 23:59%(seconds%) Watson'), lines[1])
 `));
 
+test('the game time for "time since last talk" is read the proven way: two readings that must agree, the timestamp as the last resort, only while the kind is on', () => runLua(`${fakeGame}
+  local function place() return {district = 'Watson'} end
+  local ctx = api.new({place = place})
+  local snap = ctx:capture()
+  assert(snap.gameTime == 9361340, tostring(snap.gameTime))
+  assert(math.type == nil or math.type(snap.gameTime) == 'integer', 'whole seconds')
+  -- The switch off: not read and not sent.
+  local reads = 0
+  local counting = Game.GetTimeSystem
+  Game.GetTimeSystem = function() reads = reads + 1; return counting() end
+  local off = api.new({enabled = function(kind) return kind ~= 'lastTalk' end, place = place})
+  local quiet = off:capture()
+  assert(quiet.gameTime == nil and quiet.hour == 8, 'the clock itself is another kind')
+  local withOff = reads
+  Game.GetTimeSystem = counting
+  -- The two readings disagree: no time rather than a wrong one (the same refusal as mod/world-knowledge.lua).
+  local total = GameTime.GetSeconds
+  GameTime.GetSeconds = function() return 5 end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == nil and snap.hour == 8, tostring(snap.gameTime))
+  -- The struct field fails and the accessor works, and the other way round.
+  local broken = setmetatable({}, {__index = function() error('no field') end})
+  Game.GetTimeSystem = function() return {GetGameTime = function() return broken end} end
+  GameTime.GetSeconds = function() return 777 end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == 777, tostring(snap.gameTime))
+  Game.GetTimeSystem = counting
+  GameTime.GetSeconds = function() error('no accessor') end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == 9361340, 'the field alone is accepted')
+  -- Neither works: the time system's own timestamp.
+  Game.GetTimeSystem = function() return {GetGameTime = function() return broken end, GetGameTimeStamp = function() return 4242.7 end} end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == 4242 and snap.hour == nil, 'the timestamp is a float: whole seconds ' .. tostring(snap.gameTime))
+  -- Nothing readable, or nothing sensible: no field, and the turn is still built from the rest.
+  for _, bad in ipairs({-5, 12.5, 0/0, 1e12, 'x'}) do
+    Game.GetTimeSystem = function() return {GetGameTime = function() return {seconds = bad} end, GetGameTimeStamp = function() return bad ~= 12.5 and bad or nil end} end
+    GameTime.GetSeconds = function() return bad end
+    ctx:reset('test'); snap = ctx:capture()
+    assert(snap.gameTime == nil and snap.gender == 'female', tostring(bad))
+  end
+  Game.GetTimeSystem = function() return nil end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == nil)
+`));
+
 test('the module is on demand only: no frame hook, no observer, no file, no timer, and nothing is sent unless asked', () => {
   assert.doesNotMatch(source, /registerForEvent|onUpdate|Observe\(|ObserveAfter|Override\(|io\.open|os\.execute|json\./);
   assert.match(source, /^local M = \{\}/m);
@@ -446,7 +492,7 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
 
 test('every manual send path captures the block (in person, microphone and phone); reactions never do', () => {
   const send = initSource.slice(initSource.indexOf('local function sendRequest(context)'), initSource.indexOf('-- A managed copy can be reassigned'));
-  assert.match(send, /if not context\.reaction and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
+  assert.match(send, /if \(not context\.reaction or speakUp\) and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
   // The wrapper takes the speaker's profile key so a pending appointment note (immersive invitations) can ride on a copy of the snapshot.
   assert.match(initSource, /microphone\.captureTurnContext = function\(profileKey\)\s+local snapshot = convaiTurnContext and convaiTurnContext:capture\(\) or nil/);
   assert.match(initSource, /pcall\(dofile, 'turn-context\.lua'\)/);
@@ -460,7 +506,7 @@ test('every manual send path captures the block (in person, microphone and phone
   assert.equal(phoneSource.match(/captureTurnContext/g).length, 2, 'two reads: the send path and the start of a text she sends herself (immersive invitations)');
   assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
   // The only readers are those turn paths.
-  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 2, 'the send path and the microphone wrapper');
+  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 3, 'the send path, the microphone wrapper and the speak-up request (captured when it is built, so a line prepared ahead is the one sent)');
 });
 
 test('the new files ship: the development install list, the release plan and the bridge layout', () => {

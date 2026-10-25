@@ -32,6 +32,9 @@ import {describePlace} from './place-names.mjs';
 import {headOf} from './johnny-head.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {stripSnapshot, NO_KINDS} from './dynamic-info.mjs';
+import {parseGameTime} from './last-talk.mjs';
+import {parseMedia, mediaSignature, mediaSentences} from './media-context.mjs';
+import {parseMods, modsSignature, modsSentences} from './mod-state.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
@@ -156,6 +159,11 @@ export function parseTurnContext(value) {
   if (Object.hasOwn(HEALTH, value.health)) result.health = value.health;
   if (Number.isInteger(value.heat) && value.heat >= 0 && value.heat <= 5) result.heat = value.heat;
   if (Object.hasOwn(MONEY, value.money)) result.money = value.money;
+  // Time since the last talk (the game clock in seconds), music and TV, other mods' state: each validated by its own module.
+  const gameTime = parseGameTime(value.gameTime), media = parseMedia(value.media), mods = parseMods(value.mods);
+  if (gameTime !== undefined) result.gameTime = gameTime;
+  if (media !== undefined) result.media = media;
+  if (mods !== undefined) result.mods = mods;
   if (typeof value.vehicle === 'boolean') result.vehicle = value.vehicle;
   if (value.vehicle === true && typeof value.driving === 'boolean') result.driving = value.driving;
   if (Object.hasOwn(MOTIONS, value.motion) && value.vehicle !== true) result.motion = value.motion;
@@ -186,7 +194,7 @@ export function parseTurnContext(value) {
   return {...result, ...volume};
 }
 
-const dayPart = hour => hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
+export const dayPart = hour => hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
   : hour < 17 ? 'afternoon' : hour < 20 ? 'evening' : 'night';
 
 /** "late night, about 2 AM": the part of the day, then the hour to the nearest whole hour. */
@@ -234,26 +242,32 @@ function voiceTurnContext(input, snapshot) {
   return {text: prefix + sentences.join(' ') + suffix, parts: sentences.length, reason: ''};
 }
 
+// A companion speaking up on her own (bridge/speakup-context.mjs) is the one automatic reaction that gets the right-now block: it is about what is going on around her and V.
+const speaksUp = input => input?.reaction?.kind === 'speakup';
+
 // Which of the weather and the part of the day this turn states ({weather, time}, booleans): each only when new to the conversation
 // (bridge/scenery-memory.mjs). Everything is stated for a turn with nothing to decide on (no snapshot, a reaction, no turn id).
-const EVERYTHING = Object.freeze({weather: true, time: true});
+const EVERYTHING = Object.freeze({weather: true, time: true});   // a key that is absent counts as true (media, mods)
 export function sceneryFor(input, memory = sceneryMemory, off = NO_KINDS) {
-  if (!input || input.reaction || input.turnContext === undefined) return EVERYTHING;
+  if (!input || (input.reaction && !speaksUp(input)) || input.turnContext === undefined) return EVERYTHING;
   const snapshot = stripSnapshot(parseTurnContext(input.turnContext), off);
   if (!snapshot || snapshot.status !== 'ready') return EVERYTHING;
   // One conversation: a character, one physical NPC (its entity) or one phone contact.
   return memory.decide({key: `${input.channel === 'phone' ? 'phone' : 'talk'}|${input.profileKey}|${input.entity ?? ''}`, id: input.requestId ?? input.id,
-    weather: snapshot.weather, part: snapshot.hour === undefined ? undefined : dayPart(snapshot.hour), text: input.text});
+    weather: snapshot.weather, part: snapshot.hour === undefined ? undefined : dayPart(snapshot.hour),
+    // A speak-up's text is a placeholder, not V's words: V asking about the weather cannot be read from it.
+    text: speaksUp(input) ? '' : input.text,
+    signals: {media: mediaSignature(snapshot.media), mods: modsSignature(snapshot.mods)}});
 }
 const BACKGROUND = 'Background (mention only if it matters or V asks):';
 
 // The block, plus what a per-turn diagnostic needs: how many facts it states, its length, or why there is none.
-// `fresh` ({weather, time}, default both) leaves out a fact the conversation was already told. `split` moves the weather and the time out
+// `fresh` ({weather, time, and media, mods when there is something to say}, default all) leaves out a fact the conversation was already told. `gap`: the time since the last talk, worded (bridge/last-talk.mjs). `split` moves the weather and the time out
 // of the block into `background` (its own short line, "" when there is none), so the block itself does not change when they come and go and
 // the text provider's prompt cache keeps its prefix: the bridge puts it in the volatile tail (bridge/quest-context.mjs).
-export function describeTurnContext(input, {ambient = false, voice = false, split = false, fresh = EVERYTHING, off = NO_KINDS} = {}) {
+export function describeTurnContext(input, {ambient = false, voice = false, split = false, fresh = EVERYTHING, off = NO_KINDS, gap = ''} = {}) {
   if (!input) return {text: '', background: '', parts: 0, reason: 'no input'};
-  if (input.reaction) return {text: '', background: '', parts: 0, reason: 'automatic reaction'};
+  if (input.reaction && !speaksUp(input)) return {text: '', background: '', parts: 0, reason: 'automatic reaction'};
   if (input.turnContext === undefined) return {text: '', background: '', parts: 0, reason: 'the game sent none'};
   const snapshot = stripSnapshot(parseTurnContext(input.turnContext), off);
   if (!snapshot || snapshot.status !== 'ready') return {text: '', background: '', parts: 0, reason: 'unavailable or malformed'};
@@ -291,6 +305,12 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   if (snapshot.hour !== undefined) scene('time', `It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
   // The weather goes to all three kinds of turn: a stranger or a contact on the phone could know it as well.
   if (snapshot.weather) scene('weather', WEATHER[snapshot.weather]);
+  // Music and TV, other mods' state and the time since the last talk (docs/DYNAMIC_INFO.md): worded by their own modules for this form of turn,
+  // told with the scenery (a short Background line) only when new to the conversation, never as a fact to recite.
+  const form = head ? 'head' : call ? 'call' : input.channel === 'phone' ? 'phone' : ambient ? 'ambient' : 'person';
+  for (const sentence of mediaSentences(snapshot.media, form)) scene('media', sentence);
+  for (const sentence of modsSentences(snapshot.mods, form)) scene('mods', sentence);
+  if (gap && form !== 'ambient') scene('gap', gap);
   // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
   if (ambient && spot && !input.archetype?.district) pushWhere(YOU);
   const others = phone ? [] : (snapshot.party ?? []).filter(row => row.key !== input.profileKey);

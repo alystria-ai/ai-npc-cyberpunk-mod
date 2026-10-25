@@ -162,6 +162,12 @@ const reviewed = {
     'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.',
     'Recent game dialogue',
     'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.',
+    'Time since last talk',
+    'How long it has been since V last talked to this character, in the game and in real days: since last night, or days ago. Said only when the gap is long enough to matter, and not again in the same conversation.\n\nOff: it is not sent, and the mod stops reading the game clock for it.',
+    'Music and TV',
+    'The song playing on the car radio while V rides with the character, or on V’s pocket radio, and what is on a TV near V.\n\nOff: it is not sent, and the mod stops reading it from the game.',
+    'Other mods’ state',
+    'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example.\n\nOff: it is not sent, and nothing is read from those mods.',
   ],
   // The words of Companion Manager > Key bindings that are a key's own name: mod/key-bindings.lua holds them as literals and mod/manager-ui.lua keyText
   // passes each through ui.t. A letter, a digit or a symbol is the same in every language and is not listed. Set and Cancel are the text of the Set button.

@@ -1542,11 +1542,16 @@ export class LocalLlmServer extends EventEmitter {
   // Marks a request in flight (blocks the idle stop). Returns a one-shot release function; end() is the manual form.
   // `background`: work no player is waiting on (a persona warm-up, the memory work after a reply) does not raise the child's priority.
   // `cancel` (background work only): how to stop this request; a turn calls it through preempt() so the single slot is free for the turn.
-  begin({background = false, cancel = null} = {}) {
+  // `raise` (background work only): the child still runs at normal priority while this request is in flight, as for a turn. A line prepared ahead of the moment it is
+  // heard (docs/COMPANION_SPEAK_UP.md) is background work for the slot (a turn stops it, it never starts beside one) but must be ready when the line before it ends.
+  begin({background = false, cancel = null, raise = false} = {}) {
     this.#inflight++;
     this.#disarm();
     if (!background) { this.#foreground++; this.#raise(); }
-    else if (typeof cancel === 'function') this.#yieldable.add(cancel);
+    else {
+      if (raise) this.#raise();
+      if (typeof cancel === 'function') this.#yieldable.add(cancel);
+    }
     // The first request the model gets after a load, and a turn that has had no answer after SPILL_LIMITS.noHeadersMs, read the memory counters once (nothing per frame, nothing per turn).
     this.#lookAfterLoad(background ? 'the first persona warm-up after the load' : 'the first turn after the load');
     const watch = background ? null : this.#watchHeaders();
@@ -1709,6 +1714,21 @@ export class LocalLlmServer extends EventEmitter {
     if (this.#foreground > 0) why = 'a turn is using the model';
     else if (this.now() - this.#foregroundEndedAt < this.backgroundQuietMs) why = 'a turn has just ended';
     else if (this.#yieldable.size > 0) why = 'other background work is running';
+    if (why) this.#queue.refused++;
+    return why;
+  }
+
+  /**
+   * Why a line prepared ahead of the moment it is heard (a follow-on, an after-scene line) must not start now, or null. It is the lowest-priority work there is:
+   * it starts only when NOTHING else holds the slot (no turn, no persona warm-up, no summary or memory work), so it can never be in front of a turn of V's, and a
+   * turn that comes while it runs stops it through preempt() (it is registered like a summary). Unlike a summary it does not wait out backgroundQuietMs: it is wanted
+   * within seconds of the turn that just ended.
+   */
+  preparedRefusal() {
+    let why = null;
+    if (this.#foreground > 0) why = 'a turn is using the model';
+    else if (this.#prewarming) why = 'a persona warm-up is running';
+    else if (this.#yieldable.size > 0 || this.#inflight > 0) why = 'other work is running';
     if (why) this.#queue.refused++;
     return why;
   }

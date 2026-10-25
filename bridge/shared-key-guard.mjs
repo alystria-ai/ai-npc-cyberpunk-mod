@@ -195,8 +195,11 @@ export class SharedKeyGuard {
 // other, but on the shared key they may use at most REMARK_SHARE of the day's limit (10 of 100), so a chatty Johnny never eats the turns
 // a player wants for talking. Counted in their own signed record (the same format and secret as the turn count, its own files), where a
 // remark goes to Convai; a remark answered by Mistral or Local AI is not a shared-key turn and is not counted.
+// One pool covers every line nobody asked for (docs/COMPANION_SPEAK_UP.md): Johnny's remarks and follow-ons (reaction kind 'head') and a companion's
+// speak-up (kind 'speakup'). A line prepared ahead and then dropped was still a provider interaction and stays counted.
 export const REMARK_SHARE = 0.1;
-export const isRemark = config => config?.reaction?.kind === 'head';
+export const UNPROMPTED_KINDS = Object.freeze(['head', 'speakup']);
+export const isRemark = config => UNPROMPTED_KINDS.includes(config?.reaction?.kind);
 export const remarkCap = limit => Math.max(1, Math.floor(limit * REMARK_SHARE));
 
 /** The remarks' share of the shared key. Follows the guard's limit and day; does nothing for a remark that is not on the shared key. */

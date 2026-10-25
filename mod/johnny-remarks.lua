@@ -21,7 +21,8 @@
 local M = {}
 
 -- Rare: at least 15 minutes between remarks and at most 2 an hour. Normal: at least 5 minutes and at most 6 an hour.
-M.LEVELS = {rare = {gap = 900, hour = 2}, normal = {gap = 300, hour = 6}}
+-- (Replaced by the unified scheduler of mod/speak-up.lua, which paces both speakers by target rates; kept so the stored value 'medium' reads as a level.)
+M.LEVELS = {rare = {gap = 900, hour = 2}, medium = {gap = 450, hour = 4}, normal = {gap = 300, hour = 6}}
 M.SUBJECT_SECONDS = 3600   -- the same person, job or romance is not remarked on again for an hour (a place has its own cooldown)
 M.QUIET_SECONDS = 10       -- never within 10 s of the last game line the event saw (a scene is still going on)
 M.SEND_SECONDS = 60        -- a remark that was sent must be heard within this (the reaction's deadline)
@@ -255,7 +256,10 @@ function M.placeTracker()
     return tracker
 end
 
--- options.level(): 'off', 'rare' or 'normal'. Times are os.time seconds, passed in.
+-- options.level(): 'off', 'rare', 'medium' or 'normal'. Times are os.time seconds, passed in.
+-- options.paced (optional, set by mod/init.lua): the unified speak-up scheduler (mod/speak-up.lua) paces Johnny's unprompted lines by target rates
+-- together with the companions', so `allowed` no longer applies the old per-level gap and hourly count; the queue, the quiet time, the
+-- cooldowns and the time limits below stay as they were.
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local service = {queue = {}, said = {}, subjects = {}, cooldowns = {}}
@@ -285,6 +289,7 @@ function M.new(options)
     function service:allowed(now)
         local cfg = level()
         if not cfg then return false end
+        if options.paced == true then return true end
         local recent = 0
         for index = #self.said, 1, -1 do
             local at = self.said[index]

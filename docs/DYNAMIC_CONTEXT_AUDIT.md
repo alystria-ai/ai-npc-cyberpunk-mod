@@ -1,5 +1,7 @@
 # Dynamic context audit (2026-10-12)
 
+> **Update 2026-10-25:** three more kinds were added, each with its switch and each worded as background, told once and again only on a change (the lesson of this audit: a fact that arrives fresh on every turn is reacted to on every turn): the time since V last talked to this character, in game and real time (`bridge/last-talk.mjs`, decided once per turn id and recorded per memory scope, so the next turn of the same talk is silent), the song on the car or pocket radio and what a TV near V shows (`mod/media-context.lua`), and V's state from Dark Future when it is installed (`mod/mod-state.lua`). See `docs/DYNAMIC_INFO.md`. Companions' and Johnny's unprompted lines (`docs/COMPANION_SPEAK_UP.md`) carry the right-now block and the tracked quest too, which an automatic reaction did not before.
+>
 > **Update 2026-10-22:** the player can now turn each kind of live info off (Settings > Conversations > Dynamic info) and the place is worded more modestly; see `docs/DYNAMIC_INFO.md`. The tables below describe the 2026-10-12 state.
 
 Read-only audit of what game state the companion AI is told on each turn, how it gets there, what is missing and what to

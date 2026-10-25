@@ -438,10 +438,10 @@ test('shipping: the module ships and dev-installs; the setting has its row and h
   for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
     assert.match(read(plan), /"source": "mod\/johnny-head\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/johnny-head\.lua"/, plan);
   }
-  assert.match(read('../mod/manager-ui.lua'), /setting\('johnnyInHead', 'Johnny in your head', 'select',[^]*?\{'Off', 'On', 'Speaks up rarely', 'Speaks up often'\}\)/);
+  assert.match(read('../mod/manager-ui.lua'), /setting\('johnnyInHead', 'Johnny in your head', 'select',[^]*?\{'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'\}\)/);
   const en = JSON.parse(read('../localization/en.json')).strings;
-  const strings = Object.keys(en).filter(key => /Johnny|^Speaks up (rarely|often)$|^On$|^Off$/.test(key));
-  for (const key of ['Johnny in your head', 'Speaks up rarely', 'Speaks up often']) assert.ok(strings.includes(key), key);
+  const strings = Object.keys(en).filter(key => /Johnny|^Speaks up (rarely|normally|often)$|^On$|^Off$/.test(key));
+  for (const key of ['Johnny in your head', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often']) assert.ok(strings.includes(key), key);
   assert.ok(!strings.some(key => /Not in your head yet|Gone after the ending|Grudging respect|standing/i.test(key)), 'the standing row texts are gone');
   for (const locale of ['cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl', 'pt-br', 'ru', 'tr', 'uk', 'zh-cn', 'zh-tw']) {
     const source = read(`../mod/locales/${locale}.lua`);

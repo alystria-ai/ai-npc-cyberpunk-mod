@@ -1349,6 +1349,12 @@ local function dynamicInfoRows(snapshot)
             'Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.'),
         row('quest', 'Quest and journal',
             'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.'),
+        row('lastTalk', 'Time since last talk',
+            'How long it has been since V last talked to this character, in the game and in real days: since last night, or days ago. Said only when the gap is long enough to matter, and not again in the same conversation.\n\nOff: it is not sent, and the mod stops reading the game clock for it.'),
+        row('media', 'Music and TV',
+            'The song playing on the car radio while V rides with the character, or on V’s pocket radio, and what is on a TV near V.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
+        row('mods', 'Other mods’ state',
+            'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example.\n\nOff: it is not sent, and nothing is read from those mods.'),
         row('dialogue', 'Recent game dialogue',
             'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.'),
     }
@@ -1713,16 +1719,22 @@ local function schema()
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
             setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
                 'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
-            -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up often.
+            -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
             setting('johnnyInHead', 'Johnny in your head', 'select',
-                snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 4
-                    or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
-                'Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, at most twice an hour. Often: at most six an hour, five minutes apart at least.',
-                {'Off', 'On', 'Speaks up rarely', 'Speaks up often'}),
+                snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
+                    or snapshot.settings.johnnyRemarks == 'medium' and 4 or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
+                'Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
+                {'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
+            -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
+            setting('companionSpeakUp', 'Companions speak up', 'select',
+                snapshot.settings.companionSpeakUp == 'normal' and 4 or snapshot.settings.companionSpeakUp == 'medium' and 3
+                    or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 2,
+                'Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
+                {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
         table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
-            'Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.',
+            'Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default. An off kind is not sent to any conversation provider.',
             function() return navigate('dynamic-info') end))
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then
@@ -2256,10 +2268,16 @@ function M.apply(changes)
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'johnnyInHead' then
-            -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
-            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose how often Johnny speaks up.') end
+            -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
+            local pick = ({'off', 'off', 'rare', 'medium', 'normal'})[change.value]
+            if not pick or change.value ~= math.floor(change.value) then return refused('Choose how often Johnny speaks up.') end
             values.johnnyInHead = change.value ~= 1
-            values.johnnyRemarks = ({'off', 'off', 'rare', 'normal'})[change.value]
+            values.johnnyRemarks = pick
+        elseif key == 'companionSpeakUp' then
+            -- Order: 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
+            local pick = ({'off', 'rare', 'medium', 'normal'})[change.value]
+            if not pick or change.value ~= math.floor(change.value) then return refused('Choose how often companions speak up.') end
+            values.companionSpeakUp = pick
         elseif key:sub(1, 6) == 'addon:' and addonSettingsInUse() then
             local staged, problem = convaiAddons.stageSetting(key, change.value)
             if not staged then convaiAddons.discardSettings(); return refused(problem) end
