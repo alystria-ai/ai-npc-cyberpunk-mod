@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {parseTurnContext, describeTurnContext, turnContext, turnContextDiagnostic, timeOfDay, sceneryFor, MAX_CHARS}
+import {parseTurnContext, describeTurnContext, turnContext, turnContextDiagnostic, timeOfDay, sceneryFor, MAX_CHARS, STRANGER_NOTE}
   from './turn-context.mjs';
 import {SceneryMemory, sceneryMemory} from './scenery-memory.mjs';
 import {parseInput, isAmbientProfile, archetypeContext} from './protocol.mjs';
@@ -185,7 +185,7 @@ test('an ordinary NPC gets no journal, no jobs, no history and no gear list; onl
     assert.match(text, /V is in a vehicle\./);
     assert.match(text, /V has 2 other people with them\./);
     assert.match(text, /V looks like a woman \(she\/her\)\./);
-    assert.match(text, /You are a stranger to V and know only what you can see and hear\./);
+    assert.match(text, /You have never met V and do not know who V is/); assert.match(text, /Never call them V or by any name/);
     assert.doesNotMatch(text, /Street Kid|lifepath|Judy|Panam/, 'a stranger knows neither the lifepath nor the party');
     // What a bystander can see of V: the clothing and the weapon in hand.
     assert.match(text, /What you can see of V right now - wearing: outer torso: Samurai Jacket, legs: Cargo Pants; weapon in hand: Kyubi\./);
@@ -512,7 +512,7 @@ test('V is described as driving or moving only when the game said so; the cap st
 test('a stranger is told nothing about what it does; a phone contact is told the call says nothing of her place', () => {
   const stranger = conversationContext(parseInput(JSON.stringify(resident({turnContext: scene({party: [{key: 'resident-male', name: 'X', activity: 'seated'}]})}))));
   assert.doesNotMatch(stranger, /in person|sitting beside|Treat this as fact/);
-  assert.match(stranger, /You are a stranger to V/);
+  assert.match(stranger, /You have never met V and do not know who V is/);
   const phone = turnContext(turn({channel: 'phone', turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}]})}));
   assert.doesNotMatch(phone, /on foot|following V|in person in/);
   assert.match(phone, /You are somewhere else; where you are and what you are doing are not given/);
@@ -1203,9 +1203,9 @@ test('describeTurnContext: `split` moves the weather and the time to `background
   // A stranger whose only facts are the scenery still gets them; an add-on voice never does.
   const lonely = turn({profileKey: 'resident-male', turnContext: {version: 1, status: 'ready', hour: 9, minute: 5, weather: 'smog'}});
   const quiet = describeTurnContext(lonely, {ambient: true, split: true});
-  assert.equal(quiet.text, ''); assert.equal(quiet.background, `${BACKGROUND_LEAD} It is morning, about 9 AM. The air is thick with smog.`);
+  assert.equal(quiet.text, STRANGER_NOTE, 'a stranger always hears that it does not know V'); assert.equal(quiet.background, `${BACKGROUND_LEAD} It is morning, about 9 AM. The air is thick with smog.`);
   assert.equal(quiet.reason, '');
-  assert.equal(describeTurnContext(lonely, {ambient: true, split: true, fresh: {weather: false, time: false}}).reason, 'empty');
+  assert.equal(describeTurnContext(lonely, {ambient: true, split: true, fresh: {weather: false, time: false}}).text, STRANGER_NOTE, 'nothing else to say: the stranger note alone');
   assert.equal(describeTurnContext(body(full), {voice: true, split: true}).background, '');
 });
 

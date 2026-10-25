@@ -7,7 +7,7 @@ import {readFileSync} from 'node:fs';
 import {
   ambientProfile, groupFor, districtKey, QUEST_ROWS, gigDistrict, storyStanding, LIFEPATH_SEEDS, normalizeEvent, effectsOf, deedStanding,
   standingOf, describeStanding, tierOf, fameOf, parseReputationSnapshot, reputationApplies, ReputationStore, addDeeds, forgetFuture,
-  bookOf, DAY, MAX_CHARS, HEADER, LIMITS,
+  bookOf, DAY, MAX_CHARS, HEADER, LIMITS, recognisesV, saysOwnName,
 } from './reputation.mjs';
 import {isAmbientProfile, parseInput} from './protocol.mjs';
 import {run, managerLua, modSource} from './startup-lua-fixture.mjs';
@@ -165,7 +165,7 @@ test('the snapshot fails closed on its shape and drops a bad deed; CET\'s empty 
 
 const requestId = (n = 1, entity = '42ULL') => `${100 + n}-1-${entity}`;
 const turn = (extra = {}) => ({requestId: requestId(), generation: 1, entity: '42ULL', name: 'Ganger', bodyType: 'b', profileKey: 'npc-maelstrom-male',
-  text: 'hey', archetype: {base: 'maelstrom', category: 'gang', district: 'Watson'}, ...extra});
+  text: "hey, I'm V", archetype: {base: 'maelstrom', category: 'gang', district: 'Watson'}, ...extra});   // V names themselves: the store tests are about the standing, not recognition
 
 test('gates: only an ordinary NPC\'s private turn that carries the snapshot (the setting is on) ever gets a line', () => {
   const snapshot = {version: 1, session: 's', events: []};
@@ -403,4 +403,29 @@ test('the setting\'s two strings are in the catalog and in every locale', () => 
     assert.ok(source.includes(`["${row[1]}"]`), `${locale}: label`);
     assert.ok(source.includes(`["${row[2]}"]`), `${locale}: description`);
   }
+});
+
+test('a stranger knows who V is only by fame (a fixed share per person, growing with Street Cred), when V says their name, or as a cop while V is wanted', () => {
+  // A player report (2026-10-25): every pedestrian and guard talked as if they knew V. Strangers who do not know V hear nothing of the word on the street.
+  const ids = Array.from({length: 2000}, (_, i) => `${1000 + i}ULL`);
+  const share = cred => ids.filter(id => recognisesV(id, cred)).length / ids.length;
+  assert.equal(share(0), 0); assert.equal(share(19), 0);
+  assert.ok(Math.abs(share(20) - 0.10) < 0.03, String(share(20)));
+  assert.ok(Math.abs(share(35) - 0.25) < 0.04, String(share(35)));
+  assert.ok(Math.abs(share(60) - 0.40) < 0.04, String(share(60)));
+  assert.equal(recognisesV('77ULL', 60), recognisesV('77ULL', 60), 'the same person always decides the same');
+  for (const line of ["I'm V", 'my name is V.', "Name's V, nice to meet you", 'call me V']) assert.ok(saysOwnName(line), line);
+  for (const line of ['hey', 'V is cool', 'I am very tired', "I'm Vincent"]) assert.equal(saysOwnName(line), false, line);
+  const s = store(fakeFs());
+  const kills = [1, 2, 3, 4, 5].map(n => lua('kill', {a: 'Maelstrom', w: true, s: n, t: 10 * DAY + n}));
+  const snap = parseReputationSnapshot({version: 1, session: 'lua-a', cred: 5, level: 15, t: 10 * DAY + 600, events: kills});
+  const [other, stranger] = ids.filter(id => !recognisesV(id, 5));
+  assert.equal(s.contextFor(turn({entity: other, text: 'hey', reputation: snap})), '', 'a plain stranger hears nothing');  const told = s.contextFor(turn({entity: stranger, requestId: requestId(2), text: "I'm V, who runs this block?", reputation: snap}));
+  assert.match(told, /V just told you their name, and you have heard of V, but you have never met V./);
+  assert.match(told, /Word among Maelstrom: V is bad news/);
+  assert.match(s.contextFor(turn({entity: stranger, requestId: requestId(3), text: 'and the bar?', reputation: snap})), /Word among Maelstrom/, 'remembered for the session');
+  const famous = parseReputationSnapshot({version: 1, session: 'lua-a', cred: 60, level: 40, t: 10 * DAY + 600, events: kills});
+  const fan = ids.find(id => recognisesV(id, 60));
+  assert.match(s.contextFor(turn({entity: fan, requestId: requestId(4), text: 'hey', reputation: famous})), /You recognise V from what people say, but you have never met V./);
+  assert.doesNotMatch(describeStanding({group: 'residents:Watson', standing: 80, reasons: []}), /friend,|like a respected friend|Greet V/, 'no tier treats V as an old acquaintance');
 });

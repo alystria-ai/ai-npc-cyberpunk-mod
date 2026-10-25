@@ -250,18 +250,23 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // Money is the least urgent fact, so it goes last and is the first to go in a budget cut. A companion in person only.
   if (!ambient && !phone && MONEY[snapshot.money]) sentences.push(MONEY[snapshot.money]);
   const background = scenery.length ? `${BACKGROUND} ${scenery.join(' ')}` : '';
-  if (!sentences.length) return {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
+  // A stranger hears who V is to them on every turn, with or without other facts: a player report (2026-10-25) had every pedestrian and guard talk as if they knew V.
+  if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient
-    ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it matters to what V says.'
+    ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
     : head ? HEAD_SUFFIX : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
       + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them.' + MENTION;
   // Over budget: drop whole sentences from the end, never cut one in half.
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();
-  if (!sentences.length) return {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget'};
+  if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget'};
   return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: ''};
 }
+
+// What a stranger knows of V: nothing, not even the name the prompt uses for the player.
+export const STRANGER_NOTE = 'You have never met V and do not know who V is: "V" is only what this prompt calls the person in front of you, not a name you know. '
+  + 'Never call them V or by any name, and never talk as if you knew them, unless they tell you their name in this talk or the context says you know who they are. You know only what you can see and hear.';
 
 export const turnContext = (input, options) => describeTurnContext(input, options).text;   // options: {ambient, voice, split, fresh}
 

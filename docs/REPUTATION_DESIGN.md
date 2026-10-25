@@ -144,9 +144,22 @@ characters in all. With Settings > Dynamic info > Location off, the district is 
 
 The tier sentence carries the behaviour: **hostile**: open hostility, no trust, no help, may threaten or send V away (the
 model may then pick an existing reaction, leave or attack, which fits); **wary**: guarded, short, slow to trust, little help;
-**friendly**: a warmer greeting, some trust, readier to help or share; **trusted**: greets V like a respected friend, trusts
-V, helps. A disliked V with Street Cred 35+ is also **feared**: "stay wary and comply rather than defy V openly". The reaction
+**friendly**: warmer than with a stranger, some trust, readier to help or share; **trusted**: the respect people here have for
+V, trust, help. A disliked V with Street Cred 35+ is also **feared**: "stay wary and comply rather than defy V openly". The reaction
 kinds are not changed in code (that would be a new rule on game characters); the prompt is what shifts them.
+
+**Who knows it is V (2026-10-25, a player report that every pedestrian and guard talked as if they knew V).** A stranger hears the
+standing lines only when it knows who V is:
+- **By fame.** A fixed share of people recognise V on sight, set per person by a hash of the entity id, so the same guard always
+  does or never does: 10% at Street Cred 20+, 25% at 35+, 40% at 50+ (`recognisesV`). Their lines start "You recognise V from what
+  people say, but you have never met V."
+- **By name.** V says it in the talk ("I'm V", "name's V", "call me V", `saysOwnName`). From then on, for the session, that
+  person's lines start "V just told you their name, and you have heard of V, but you have never met V."
+- **As police.** A police officer while V is wanted knows the face from the alert.
+
+Everyone else gets nothing from here. Every stranger's turn also carries the stranger note of `bridge/turn-context.mjs`
+(`STRANGER_NOTE`: never met V, does not know the name, never calls V by it), and the shipped prompt's intro for ordinary people
+says the same. The tier words never describe V as an old acquaintance.
 
 ## 10. Never for named and story characters
 

@@ -292,9 +292,26 @@ export const TIERS = Object.freeze([
   {name: 'hostile', max: -50, label: 'an enemy', how: 'Greet V with open hostility, trust nothing V says and refuse help; you may threaten V or tell V to get lost.'},
   {name: 'wary', max: -20, label: 'bad news', how: 'Be guarded and short with V, slow to trust, and unwilling to help or share much.'},
   {name: 'neutral', max: 19},
-  {name: 'friendly', max: 49, label: 'one of the good ones', how: 'Greet V warmer than a stranger, trust V a little and be readier to help or share.'},
-  {name: 'trusted', max: Infinity, label: 'a friend', how: 'Greet V like a respected friend, trust V and help or share what you know if you can.'},
+  // Words for how to treat someone people speak well of, never for an old acquaintance: a stranger who recognises V has still never met V (a player report, 2026-10-25).
+  {name: 'friendly', max: 49, label: 'one of the good ones', how: 'Be warmer with V than with a stranger, trust V a little and be readier to help or share.'},
+  {name: 'trusted', max: Infinity, label: 'a friend to people here', how: 'Treat V with the respect people here have for V, trust V and help or share what you know if you can.'},
 ]);
+// A stranger recognises V on sight only by fame: the share of people who do grows with Street Cred, and it is fixed per person (the same guard
+// always does or never does). Everyone else is a plain stranger to V until V says their name in the talk.
+const RECOGNISED_SHARE = [[50, 40], [35, 25], [20, 10]];
+export function recognisesV(entity, cred) {
+  if (typeof entity !== 'string' || !Number.isInteger(cred)) return false;
+  const share = RECOGNISED_SHARE.find(([least]) => cred >= least)?.[1] ?? 0;
+  if (!share) return false;
+  let hash = 2166136261;   // FNV-1a: stable across restarts, no crypto needed
+  for (let i = 0; i < entity.length; i++) hash = Math.imul(hash ^ entity.charCodeAt(i), 16777619) >>> 0;
+  return hash % 100 < share;
+}
+// V gives their name in the line ("I'm V", "name's V", "call me V"): from then on this person knows who V is.
+const SAYS_NAME = /\b(?:i'?m|i am|it'?s|name'?s|name is|call me|they call me)\s+v\b/i;
+export const saysOwnName = text => typeof text === 'string' && SAYS_NAME.test(text);
+const RECOGNISED = 'You recognise V from what people say, but you have never met V.';
+const INTRODUCED = 'V just told you their name, and you have heard of V, but you have never met V.';
 export const tierOf = standing => TIERS.find(tier => standing <= tier.max);
 const FEARED_CRED = 35;
 export function fameOf(cred) {
@@ -306,8 +323,15 @@ export const HEADER = 'STREET STANDING (word on the street in this save):';
 export const MAX_CHARS = 480;
 const sentence = text => text.charAt(0).toUpperCase() + text.slice(1);
 
-/** The lines for one ordinary NPC: '' when the standing is neutral and V is nobody. Pure. */
-export function describeStanding({group, standing, reasons = [], cred, heat, place = true}) {
+/** The lines for one ordinary NPC: '' when the standing is neutral and V is nobody. Pure. `known` ('recognised' or 'introduced') says how this
+ * stranger knows who V is; absent, the lines are written as before (callers that decided recognition already). */
+export function describeStanding({group, standing, reasons = [], cred, heat, place = true, known}) {
+  const lines = describeStandingLines({group, standing, reasons, cred, heat, place});
+  if (!lines || !known) return lines;
+  const text = lines.replace(HEADER, `${HEADER} ${known === 'introduced' ? INTRODUCED : RECOGNISED}`);
+  return text.length > MAX_CHARS ? text.split('\n')[0] : text;
+}
+function describeStandingLines({group, standing, reasons = [], cred, heat, place = true}) {
   if (!group) {
     const fame = fameOf(cred);
     return fame ? `${HEADER} ${sentence(fame)}. You know nothing else about V.` : '';
@@ -411,7 +435,7 @@ export function forgetFuture(book, {t, cred, level} = {}) {
 export class ReputationStore {
   #path; #eventsPath; #readFile; #statFile; #write; #log; #now;
   #state = null; #eventsStamp; #dirty = false; #saving = null; #timer = null;
-  #talks = new Map(); #logged = new Set(); #warned = new Set();
+  #talks = new Map(); #logged = new Set(); #warned = new Set(); #introduced = new Set();   // entities V told their name this session
 
   constructor({path, eventsPath, readFile = file => readFileSync(file, 'utf8'), statFile = statSync, write, log = () => {}, now = Date.now} = {}) {
     if (typeof path !== 'string' || !path) throw Error('Invalid reputation store configuration');
@@ -537,7 +561,15 @@ export class ReputationStore {
       const story = storyStanding(input.worldKnowledge, name === 'unknown' ? undefined : name);
       const result = group ? standingOf(group, story, deedStanding(book.buckets, now)) : {standing: 0, reasons: []};
       const heat = input.turnContext?.heat;
-      const text = describeStanding({group, standing: result.standing, reasons: result.reasons, cred: snapshot.cred, heat, place});
+      // Only a stranger who knows who V is hears the word on the street: one who recognises V by fame, or one V told their name (remembered for the session).
+      if (typeof input.entity === 'string' && saysOwnName(input.text)) {
+        if (!this.#introduced.has(input.entity) && this.#introduced.size >= LIMITS.entities) this.#introduced.delete(this.#introduced.values().next().value);
+        this.#introduced.add(input.entity);
+      }
+      // A police officer while V is wanted knows the face from the alert.
+      const wantedByThem = group === 'ncpd' && Number.isInteger(heat) && heat >= 1;
+      const known = recognisesV(input.entity, snapshot.cred) || wantedByThem ? 'recognised' : this.#introduced.has(input.entity) ? 'introduced' : null;
+      const text = known ? describeStanding({group, standing: result.standing, reasons: result.reasons, cred: snapshot.cred, heat, place, known}) : '';
       if (!this.#logged.has(input.requestId)) {
         if (this.#logged.size > 64) this.#logged.clear();
         this.#logged.add(input.requestId);
