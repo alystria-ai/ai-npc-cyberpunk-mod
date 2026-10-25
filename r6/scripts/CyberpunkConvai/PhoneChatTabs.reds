@@ -147,16 +147,18 @@ private final func ConvaiShowChatContacts() -> Void {
     // with the rest by name. Her row has no journal hash: opening it carries her id and name instead (ConvaiOpenChat).
     // The shipped phone contacts are registered without a name and appear only once the journal unlocks them.
     for id in this.m_player.ConvaiPhoneChatContactIds() {
-        if ArrayContains(listed, id) || StrLen(this.m_player.ConvaiPhoneChatContactName(id)) == 0 { continue; };
-        let row = new ContactData();
-        row.convaiChat = true;
-        row.type = MessengerContactType.Contact;
-        row.id = id;
-        row.contactId = id;
-        row.hash = 0;
-        row.localizedName = this.m_player.ConvaiPhoneChatContactName(id);
-        row.isCallable = true;
-        ArrayPush(contacts, row);
+        let name = this.m_player.ConvaiPhoneChatContactName(id);
+        if !ArrayContains(listed, id) && StrLen(name) > 0 {
+            let row = new ContactData();
+            row.convaiChat = true;
+            row.type = MessengerContactType.Contact;
+            row.id = id;
+            row.contactId = id;
+            row.hash = 0;
+            row.localizedName = name;
+            row.isCallable = true;
+            ArrayPush(contacts, row);
+        };
     };
     this.m_screenType = PhoneScreenType.Contacts;
     this.m_convaiChatState = ConvaiPhoneChatState.List;
