@@ -14,7 +14,7 @@ Restore defaults (Native Settings UI's own button, and the Defaults footer butto
 | --- | --- | --- | --- | --- |
 | Location (`dynamic:location`) | `dynamicInfo.location` | the district, V's apartment or the named place, indoors or outdoors; an ordinary NPC's "where you are now" | the place sentence of the right-now block (every form), `archetypeContext` | `currentDistrict()`, the indoors read, Johnny's arrival-at-a-place sampling. Not covered: the picture Convai gets of what V sees, and an add-on's own text |
 | Time and weather (`dynamic:time`) | `dynamicInfo.time` | the hour and the weather | the Background line (and the clock in the block) | the game clock, the weather |
-| Company and vehicle (`dynamic:company`) | `dynamicInfo.company` | who is with V, in a vehicle, driving, V's motion, what a companion is doing and whether she wears other clothes than her appearance text (docs/COMPANION_OUTFITS.md) | "Also with V", "V is in a vehicle / driving / walking" and the companion's own activity | the party read, the activity inputs, the vehicle read |
+| Company and vehicle (`dynamic:company`) | `dynamicInfo.company` | who is with V, in a vehicle, driving, V's motion, what a companion is doing, whether a weapon is drawn in her hand ("You have a weapon drawn in your hand." / "Your hands are empty.") and whether she wears other clothes than her appearance text (docs/COMPANION_OUTFITS.md) | "Also with V", "V is in a vehicle / driving / walking" and the companion's own activity | the party read, the activity inputs, the vehicle read |
 | Health, heat and fights (`dynamic:condition`) | `dynamicInfo.condition` | V's health band, the police heat, the last fight | "V is hurt", the heat sentence, the battle block of a manual turn | the health and heat reads, and the fight read of a manual turn (`battles.captureManual`: group, phone, microphone and typed text). The battle module's own capture is never gated: battle reactions carry their own fight whatever the switch says |
 | V's money (`dynamic:money`) | `dynamicInfo.money` | a rough band: nearly broke ... rich | the money sentence | the money read |
 | V's gear and clothes (`dynamic:gear`) | `dynamicInfo.gear` | clothes, weapons, cyberware | the gear block (and what a bystander can see) | `playerGear:capture()` |
@@ -71,6 +71,14 @@ form above, not the apartment. Only V's own apartment records (`HOME_PLACES` in 
 `bridge/dynamic-info.test.mjs` (every kind off, for Convai, Mistral, Local AI and Custom, with every other kind still present; the Lua reads; the location
 wording), and the Dynamic info and Forget cases in `bridge/manager.test.mjs`, `bridge/nsui-manager.test.mjs`, `bridge/mcm-host.test.mjs`,
 `bridge/settings-file-lua.test.mjs` and `bridge/support-report*.test.mjs`, plus `bridge/nsui-labels.test.mjs` (every label of the page fits, in all 16 languages).
+
+## Money talk (2026-10-26)
+
+The mod detects no payment: nothing moves eddies between V and a character, and the turn context carries only V's money band. A player report ("I gave you eddies to do a task"
+answered "I'm not going to give you eddies") came from the model reading a bare "eddies" the wrong way round. So when V's own words speak of eddies, cash, paying or a tip
+(`MONEY_TALK` in bridge/turn-context.mjs), the volatile tail of every provider's context (Convai dynamic info, Mistral, Local AI, Custom) gets one `Money:` note: V is the one
+paying the character, and what V says they gave or paid is received. It is not live game info, so no Dynamic info switch turns it off, and it is absent from turns that are
+not about money and from automatic reactions. Nearby strangers are not read anywhere (no scan was added); a companion knows only V and the party.
 
 ## Other mods' state: Equipment-EX outfits
 
