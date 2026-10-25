@@ -1432,3 +1432,58 @@ test('a failure that carries the worker graphics memory passes it on to the obse
   assert.deepEqual(h.failures, [{engine: 'omni', reason: 'Local voice generation timed out', gpu: {dedicatedMiB: 2100, sharedMiB: 1650}},
     {engine: 'pocket', reason: 'Pocket student runtime is unavailable'}]);
 });
+
+test('the player\'s own Python (omni-python.txt) runs the Omni worker only after its self-test passed, with the pack\'s OmniVoice code', async () => {
+  const PY = 'C:/Users/Player/omni-rocm/.venv/Scripts/python.exe', SOURCE = 'C:/Game/app/omni/python/Lib/site-packages/omnivoice';
+  let own = null;
+  const h = retryFixture({options: {gpuVendors: () => ['amd'], omniOwnPython: () => own}});
+  // ROCm: the worker gets the player's python.exe and is told where OmniVoice's code is; the menu does not say "needs NVIDIA".
+  own = {configured: true, used: true, path: PY, source: SOURCE, backend: 'rocm', hip: '10.1.0', torch: '2.14.0+rocm10.1.0', device: 'AMD Radeon RX 9070 XT', vramMiB: 16304, reason: null};
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  const hooks = h.omniWorkers()[0].hooks;
+  assert.equal(hooks.pythonExecutable, PY);
+  assert.deepEqual(hooks.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: SOURCE});
+  assert.equal(h.states.at(-1).omniNoNvidia, false, 'an AMD card with a ROCm PyTorch that passed is not told it needs NVIDIA');
+  assert.deepEqual(h.states.at(-1).omniPython, {used: true, backend: 'rocm', reason: null, module: null, torch: '2.14.0+rocm10.1.0', hip: '10.1.0', cuda: null,
+    device: 'AMD Radeon RX 9070 XT', vramMiB: 16304});
+  await h.voice.close();
+});
+
+test('without omni-python.txt, or with a refused one, the Omni worker uses the Runtime\'s Python exactly as before', async () => {
+  for (const own of [null, {configured: false}, {configured: true, used: false, path: 'C:/x/python.exe', backend: 'none', reason: 'no-gpu'},
+    {configured: true, used: false, pending: true, reason: null}]) {
+    const h = retryFixture({options: {gpuVendors: () => ['nvidia'], omniOwnPython: () => own}});
+    h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+    const hooks = h.omniWorkers()[0].hooks;
+    assert.equal(hooks.pythonExecutable, undefined, 'the Runtime\'s CYBERPUNK_CONVAI_PYTHON (ResidentVoice\'s default)');
+    assert.equal(hooks.extraEnvironment, undefined);
+    assert.equal(h.states.at(-1).omniPython, own?.configured ? h.states.at(-1).omniPython : null);
+    await h.voice.close();
+  }
+});
+
+test('the "needs NVIDIA" hint on an AMD PC: kept for no override or a refused one, held back while one waits for its self-test', async () => {
+  let own = null;
+  const h = retryFixture({options: {gpuVendors: () => ['amd'], omniOwnPython: () => own}});
+  h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, true);
+  own = {configured: true, used: false, pending: true, reason: null}; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, false);
+  own = {configured: true, used: false, backend: 'none', reason: 'no-gpu'}; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, true);
+  assert.equal(h.states.at(-1).omniPython.reason, 'no-gpu');
+  own = {configured: true, used: true, path: 'C:/p/python.exe', source: 'C:/s', backend: 'rocm'}; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, false);
+  // A worker that still found no CUDA is a fact about this PC, whatever the file says.
+  h.voice.omniNoCuda = true; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, true);
+  const broken = retryFixture({options: {gpuVendors: () => ['amd'], omniOwnPython: () => { throw Error('x'); }}});
+  broken.voice.publish(); assert.equal(broken.states.at(-1).omniNoNvidia, true); assert.equal(broken.states.at(-1).omniPython, null);
+  await h.voice.close(); await broken.voice.close();
+});
+
+test('the CUDA graph retry after a memory fault keeps the own Python\'s environment', async () => {
+  const own = {configured: true, used: true, path: 'C:/p/python.exe', source: 'C:/s', backend: 'rocm'};
+  const h = retryFixture({omni: ['fault', 'ok'], options: {omniOwnPython: () => own}});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  h.advance(5000); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 2);
+  assert.equal(h.omniWorkers()[1].hooks.pythonExecutable, 'C:/p/python.exe');
+  assert.deepEqual(h.omniWorkers()[1].hooks.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: 'C:/s', CYBERPUNK_CONVAI_CUDA_GRAPH: '0'});
+  await h.voice.close();
+});

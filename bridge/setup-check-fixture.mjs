@@ -231,6 +231,8 @@ function answer(checks, request)
   end
   -- a check the defaults do not have (the bridge adds the 'voice' check only when it can say): added as given
   if checks and checks.voice then document.checks[#document.checks + 1] = checks.voice end
+  -- and the 'omni-python' check only with the player's omni-python.txt
+  if checks and checks['omni-python'] then document.checks[#document.checks + 1] = checks['omni-python'] end
   put('runtime/setup-check.json', document)
   return document
 end

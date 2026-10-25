@@ -157,6 +157,70 @@ class PortableVoicePaths(unittest.TestCase):
             with self.assertRaises(worker.ReferenceUnavailable):
                 worker.validate_portable_source(paths)
 
+    def packaged_source(self, base):
+        package = base / 'python/Lib/site-packages/omnivoice'
+        (package / 'models').mkdir(parents=True)
+        (package / '__init__.py').write_text('# source fixture\n', encoding='utf-8')
+        (package / 'models/__init__.py').write_text('', encoding='utf-8')
+        (package / 'models/omnivoice.py').write_text('# model source fixture\n', encoding='utf-8')
+        return package
+
+    def own_python(self, source):
+        return {worker.OWN_PYTHON_VARIABLE: '1', worker.OMNI_SOURCE_VARIABLE: str(source)}
+
+    def test_the_own_python_loads_omnivoice_from_the_pack_and_the_source_check_still_holds(self):
+        paths = worker.resolve_worker_paths(self.app, self.environment())
+        package = self.packaged_source(self.app)
+        before = list(worker.sys.meta_path)
+        try:
+            self.assertEqual(worker.use_packaged_omnivoice(paths, self.own_python(package)), package.resolve())
+            # The real lookup now finds the pack's copy, whatever this Python has installed, and the packaged-source check accepts it.
+            self.assertEqual(Path(worker.importlib.util.find_spec('omnivoice').origin).resolve(), (package / '__init__.py').resolve())
+            self.assertEqual(Path(worker.importlib.util.find_spec('omnivoice.models.omnivoice').origin).resolve(), (package / 'models/omnivoice.py').resolve())
+            worker.validate_portable_source(paths)
+        finally:
+            worker.sys.meta_path[:] = before
+            for name in [name for name in worker.sys.modules if name == 'omnivoice' or name.startswith('omnivoice.')]:
+                del worker.sys.modules[name]
+
+    def test_without_the_flag_nothing_changes_and_a_source_outside_the_app_or_incomplete_is_refused(self):
+        paths = worker.resolve_worker_paths(self.app, self.environment())
+        before = list(worker.sys.meta_path)
+        self.assertIsNone(worker.use_packaged_omnivoice(paths, {worker.OMNI_SOURCE_VARIABLE: str(self.app)}))
+        self.assertEqual(worker.sys.meta_path, before)
+        # An OmniVoice copy outside the application directory (the player's own install) is refused like an editable checkout.
+        elsewhere = self.packaged_source(self.root / 'player venv')
+        with self.assertRaisesRegex(RuntimeError, 'outside the application directory'):
+            worker.use_packaged_omnivoice(paths, self.own_python(elsewhere))
+        for invalid in ('', 'relative/omnivoice', None):
+            with self.subTest(source=invalid), self.assertRaises(ValueError):
+                worker.use_packaged_omnivoice(paths, {worker.OWN_PYTHON_VARIABLE: '1', **({worker.OMNI_SOURCE_VARIABLE: invalid} if invalid is not None else {})})
+        package = self.packaged_source(self.app)
+        (package / 'models/omnivoice.py').unlink()
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.use_packaged_omnivoice(paths, self.own_python(package))
+        self.assertEqual(worker.sys.meta_path, before, 'a refused source installs no finder')
+
+    def test_the_cuda_graph_is_off_by_default_on_rocm_and_on_by_default_on_cuda(self):
+        rocm = SimpleNamespace(version=SimpleNamespace(hip='10.1.0', cuda=None))
+        cuda = SimpleNamespace(version=SimpleNamespace(hip=None, cuda='12.8'))
+        self.assertFalse(worker.cuda_graph_wanted(rocm, {}))
+        self.assertTrue(worker.cuda_graph_wanted(rocm, {'CYBERPUNK_CONVAI_CUDA_GRAPH': '1'}))
+        self.assertTrue(worker.cuda_graph_wanted(cuda, {}))
+        self.assertFalse(worker.cuda_graph_wanted(cuda, {'CYBERPUNK_CONVAI_CUDA_GRAPH': '0'}))
+
+    def test_the_backend_line_names_rocm_or_cuda_and_the_card_from_pytorch(self):
+        def fake(hip, cuda, available=True):
+            properties = SimpleNamespace(name='AMD Radeon RX 9070 XT' if hip else 'NVIDIA GeForce RTX 4070', total_memory=16304 * 1048576)
+            return SimpleNamespace(__version__='2.x', version=SimpleNamespace(hip=hip, cuda=cuda),
+                                   cuda=SimpleNamespace(is_available=lambda: available, get_device_properties=lambda index: properties))
+        with patch.dict(os.environ, {worker.OWN_PYTHON_VARIABLE: '1'}):
+            self.assertEqual(worker.gpu_backend_line(fake('10.1.0', None)), '[gpu] PyTorch 2.x, ROCm/HIP 10.1.0, AMD Radeon RX 9070 XT, 16304 MiB (own Python, experimental)')
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(worker.gpu_backend_line(fake(None, '12.8')), '[gpu] PyTorch 2.x, CUDA 12.8, NVIDIA GeForce RTX 4070, 16304 MiB')
+            self.assertEqual(worker.gpu_backend_line(fake(None, None, available=False)), '[gpu] PyTorch 2.x, no GPU build')
+            self.assertTrue(worker.gpu_backend_line(SimpleNamespace()).startswith('[gpu] backend unknown'))
+
     def test_changed_data_reference_cannot_render_from_an_old_prompt(self):
         registry = self.registry()
         renders, frames = [], []

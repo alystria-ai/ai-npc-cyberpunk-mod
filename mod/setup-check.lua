@@ -169,6 +169,18 @@ local function bridgeCheck(id)
     return nil
 end
 
+-- The player's own Python for OmniVoice (omni-python.txt, docs/OMNIVOICE_AMD.md), one English line in probe.log each time the service's answer about it
+-- changes (a report is read in English): which backend it found (CUDA, ROCm or none) and why a Python was refused. Read when an answer arrives, never per frame.
+local omniPythonLogged
+local function noteOmniPython()
+    local check = bridgeCheck('omni-python')
+    if type(check) ~= 'table' then return end
+    local said = 'Setup check: omni-python ' .. tostring(text(check.code, 20)) .. ' backend=' .. tostring(text(check.backend, 10) or 'unknown')
+    if check.code == 'refused' then said = said .. ' reason=' .. tostring(text(check.reason, 30)) .. (text(check.module, 60) and (' module=' .. text(check.module, 60)) or '') end
+    if check.code == 'used' then said = said .. ' card=' .. tostring(text(check.device, 80)) .. ' memoryMiB=' .. tostring(check.memoryMiB) end
+    if said ~= omniPythonLogged then omniPythonLogged = said; appendLog(said) end
+end
+
 ------------------------------------------------------------------ game side
 
 
@@ -298,6 +310,7 @@ function M.run(now)
     if type(answer) == 'table' and answer.version == 1 and type(answer.checks) == 'table' and type(answer.updated) == 'number'
         and answer.updated >= (loadedAt - SESSION_WINDOW_S) * 1000.0 then
         bridge, silent = answer, false
+        noteOmniPython()
     end
     local checks = {}
     checks.service = serviceCheck(now)
@@ -571,6 +584,32 @@ local function bridgeLines(out)
     elseif voice and voice.code == 'pocket-failed' then
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.'))
     end
+    -- The player's own Python for OmniVoice (omni-python.txt, docs/OMNIVOICE_AMD.md): a row only when the file names one. Experimental: untested on AMD cards.
+    local ownPython = bridgeCheck('omni-python')
+    if ownPython and type(ownPython.code) == 'string' then
+        local label = ui.t('OmniVoice Python')
+        if ownPython.code == 'used' then
+            local backend = ownPython.backend == 'rocm' and 'ROCm' or 'CUDA'
+            local size, name = gigabytes(ownPython.memoryMiB), text(ownPython.device, 80) or '?'
+            out[#out + 1] = line('omni-python', label, 'ok', ui.t('Your own Python (omni-python.txt) runs OmniVoice with {backend} on {card}. Experimental.',
+                {backend = backend, card = size and (name .. ', ' .. size .. ' GB') or name}))
+        elseif ownPython.code == 'refused' then
+            local reason, why = text(ownPython.reason, 30), nil
+            if reason == 'not-absolute' or reason == 'not-found' or reason == 'not-python' then why = ui.t('the file does not name a python.exe that exists')
+            elseif reason == 'no-pack' then why = ui.t('the OmniVoice pack is not installed')
+            elseif reason == 'no-torch' then why = ui.t('PyTorch is not installed in it')
+            elseif reason == 'no-gpu' then why = ui.t('its PyTorch finds no graphics card (no CUDA or ROCm)')
+            elseif reason == 'op-failed' then why = ui.t('a test on the graphics card failed')
+            elseif reason == 'missing-module' then why = ui.t('the module {module} is missing in it', {module = text(ownPython.module, 60) or '?'})
+            elseif reason == 'omnivoice-failed' then why = ui.t('OmniVoice’s code could not load in it')
+            else why = ui.t('it did not start or did not answer in time') end
+            out[#out + 1] = line('omni-python', label, 'problem', ui.t('Your own Python (omni-python.txt) was not used: {reason}. OmniVoice uses the Runtime’s Python, which needs an NVIDIA card.', {reason = why}))
+        elseif ownPython.code == 'testing' then
+            out[#out + 1] = line('omni-python', label, 'note', ui.t('Your own Python (omni-python.txt) is being tested. Open this page again in a minute.'))
+        else
+            out[#out + 1] = line('omni-python', label, 'note', ui.t('Your own Python (omni-python.txt) is tested when OmniVoice starts or when this page checks again.'))
+        end
+    end
     -- A Local AI or Mature pack that is one folder too deep is "not installed" to Local AI until the launcher moves it. The packs line above says
     -- where it is, so a second line telling the player to download a pack they already have is left out.
     local nestedLocalAi = false
@@ -686,6 +725,7 @@ local function follow(now)
     local answer = readJson(RESULT)
     if type(answer) == 'table' and answer.version == 1 and answer.request == pending.id and type(answer.checks) == 'table' then
         bridge, pending, silent = answer, nil, false
+        noteOmniPython()
         content = contentOf()
     end
 end
