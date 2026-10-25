@@ -117,7 +117,7 @@ stage that moves, a new state, a substance added), or after a long silence (`bri
 every turn, and a change below stage 3 changes nothing.
 
 **Not verified** (the live check in the captain's log): that a build of Dark Future for game 2.5 exists and keeps these names (none was published on 2026-10-25:
-the GitHub releases end at 2.0 for game 2.31, 2026-01-06; the Nexus page answered 403 to a read-only fetch); that CET returns nil for a class name that does
+the GitHub releases end at 2.0 for game 2.31, 2026-01-06; the Nexus page answered 403 to a plain fetch, but its Files tab, read in a browser on 2026-10-25 without logging in, lists one main file, 2.0.3-for-2.31 (20 January 2026), and the older 2.0.2, 2.0.1, 2.0.0, 1.4.2 and earlier: no build for game 2.5); that CET returns nil for a class name that does
 not exist; that CET calls `:GetNeedStage()` on the handle `Get()` returns. The first reading writes one `probe.log` line per distinct reading:
 `Mod state: dark-future hydration=3 nutrition=0 energy=4 nerve=? alcohol=3 nicotine=0 narcotic=0 injury=0 humanity=0` (the raw stages; `?` unknown or not running,
 `-` the system was not found; the addictions show the withdrawal level), and one line per name that answered or failure kind. The status effects Dark Future applies

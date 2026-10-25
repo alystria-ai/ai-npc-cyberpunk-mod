@@ -492,7 +492,7 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
 
 test('every manual send path captures the block (in person, microphone and phone); reactions never do', () => {
   const send = initSource.slice(initSource.indexOf('local function sendRequest(context)'), initSource.indexOf('-- A managed copy can be reassigned'));
-  assert.match(send, /if not context\.reaction and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
+  assert.match(send, /if \(not context\.reaction or speakUp\) and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
   assert.match(initSource, /microphone\.captureTurnContext = function\(\) return convaiTurnContext and convaiTurnContext:capture\(\) or nil end/);
   assert.match(initSource, /pcall\(dofile, 'turn-context\.lua'\)/);
   assert.match(initSource, /place = function\(\) return currentDistrict\(\) end/);
@@ -505,7 +505,7 @@ test('every manual send path captures the block (in person, microphone and phone
   assert.equal(phoneSource.match(/captureTurnContext/g).length, 1, 'one read, on the send path');
   assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
   // The only readers are those turn paths.
-  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 2, 'the send path and the microphone wrapper');
+  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 3, 'the send path, the microphone wrapper and the speak-up request (captured when it is built, so a line prepared ahead is the one sent)');
 });
 
 test('the new files ship: the development install list, the release plan and the bridge layout', () => {

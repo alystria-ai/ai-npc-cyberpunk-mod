@@ -129,9 +129,9 @@ local function finish()
 end
 
 function M.stop(reason)
-    local stoppedId = M.requestId
     -- The AI line is over: the game's own ambient barks may play again after a short tail (vanilla-reactions.lua). One event.
     if M.requestId and convaiVanillaReactions then pcall(convaiVanillaReactions.speechEnded) end
+    local stoppedId = M.requestId
     if M.context and M.utterance and M.utterance.requestId == M.requestId then
         local delivered = M.lastDelivery
         M.utterance.finished, M.utterance.failed = true, reason ~= 'finished'

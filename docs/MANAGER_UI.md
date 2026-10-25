@@ -45,7 +45,7 @@ Mods screen (Esc > Mods)
 | Model browser | Home | Installed character models |
 | Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
 | Memory | Settings | Memory, Whose memories |
-| Dynamic info | Settings | Dynamic info (nine switches, `docs/DYNAMIC_INFO.md`) |
+| Dynamic info | Settings | Dynamic info (twelve switches, `docs/DYNAMIC_INFO.md`) |
 | Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
 | Convai paid tier | Settings | Convai paid tier, Plans |
 | Custom endpoint | Settings | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
@@ -101,10 +101,11 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Interface: Interface language. Its help says the setting changes this mod's menus and notices only, that character voices and the language the
     player talks in are separate, and that the microphone uses this language as a hint for non-English speech (the bridge reads it, `bridge/speech-language.mjs`).
   - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (one list: Off, On, Speaks up
-    rarely, Speaks up often; default Off). (The Multilingual conversations row was removed on 2026-10-21: the language is detected per message.)
-  - Dynamic info (a page of its own, opened by the Dynamic info row of Conversations; view `dynamic-info`, back to Settings): nine switches, one per kind of live game info a turn's
+    rarely, Speaks up normally, Speaks up often; default Off), Companions speak up (one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; default Speaks up
+    rarely, 2026-10-25, `docs/COMPANION_SPEAK_UP.md`). (The Multilingual conversations row was removed on 2026-10-21: the language is detected per message.)
+  - Dynamic info (a page of its own, opened by the Dynamic info row of Conversations; view `dynamic-info`, back to Settings): twelve switches, one per kind of live game info a turn's
     context can carry (Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, Recent game
-    dialogue), all on by default. Row ids `dynamic:<kind>`; saved as `dynamicInfo.<kind>`; the rows apply through `M.apply` as one `dynamicInfo` table (`manager.applySettings`).
+    dialogue, and since 2026-10-25 Time since last talk (`lastTalk`), Music and TV (`media`) and Other mods' state (`mods`)), all on by default. Row ids `dynamic:<kind>`; saved as `dynamicInfo.<kind>`; the rows apply through `M.apply` as one `dynamicInfo` table (`manager.applySettings`).
     What each switch removes, on the game side and in every provider's prompt, is in `docs/DYNAMIC_INFO.md`.
   - Relationships (a page of its own, opened by the Relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
@@ -223,10 +224,14 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     pack is gone and is OmniVoice again when it returns. A batch that moves the companion voice off OmniVoice while V's engine is `omni` sets `vVoiceEngine` to `pocket` in the same
     save (`manager.applySettings`; no restore record) and the feedback line says "V’s voice switches from OmniVoice to Pocket." (only when V is on and was showing OmniVoice).
     The help text says plainly that V's line is always waited for and is given up only if it is stuck with no audio after about 30 s (2026-10-22; before that Pocket and Voxtral lines not ready in time were skipped while an OmniVoice line was waited for). An OmniVoice line adds about a second more than Pocket before V starts, then V's own speaking time, because V speaks first and the companion answers after. The row shows the saved engine, Voxtral without a Mistral key included (its entry reads "Voxtral · needs Mistral key").
-  - Johnny is one list (2026-10-20): Off, On (he answers the talk keys, no unprompted remarks), Speaks up rarely (at most twice an hour), Speaks up often (at most
-    six times an hour, never closer than five minutes). The row writes both stored keys (`johnnyInHead`, `johnnyRemarks`): Off means no remarks, and an old file with
-    `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up rarely, `normal` to Speaks up often. The read-only
-    "Johnny's standing" line was removed.
+  - Johnny is one list (2026-10-20, Normally added 2026-10-25): Off, On (he answers the talk keys, no unprompted remarks), Speaks up rarely (a target of about 2 an hour), Speaks up
+    normally (about 4), Speaks up often (about 6). These are target rates of calm play, random around the rate, not caps; with the companions' list on too the two rates add up and
+    they take turns, never closer than 2.5 minutes (except Johnny's follow-on to a companion's line, which is one exchange). The row writes both stored keys (`johnnyInHead`,
+    `johnnyRemarks`): Off means no remarks, and an old file with `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up
+    rarely, `medium` (new) to Speaks up normally, `normal` to Speaks up often. The read-only "Johnny's standing" line was removed.
+  - Companions speak up (2026-10-25, one list right after Johnny's): Off, Speaks up rarely (default), Speaks up normally, Speaks up often; stored `companionSpeakUp` = `off` / `rare` /
+    `medium` / `normal`; the help says "Rarely: about 2 an hour. Normally: about 4. Often: about 6." and that with Johnny speaking up too the rates add up and they take turns. One scheduler
+    (`mod/speak-up.lua`) paces both lists; see `docs/COMPANION_SPEAK_UP.md`.
 - **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
   page, the Relationships page and the Dynamic info page it applies every saved row of all three pages that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits), then says

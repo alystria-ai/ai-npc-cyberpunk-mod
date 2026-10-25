@@ -2,7 +2,78 @@
 
 Written 2026-10-25 on branch `feat/dynamic-info-speak-up` (feature 4 of the Dynamic info work). Party companions sometimes say one short thing nobody asked for: at random at a calm moment, or after a game dialogue or scene they were present for has ended, commenting on it with the mission and the journal in mind. Johnny Silverhand (in V's head, only V hears him) may follow up on such a line, or on a reply in a conversation V is having, with one brief remark. Who speaks and when is a random schedule on the game side (`mod/speak-up.lua`); no model decides anything on any provider. A line that is going to follow another is written and voiced while the first is still playing and is heard right after it, with no wait for the provider in the gap. Nothing here is stored in conversation memory.
 
-This file has the bridge half under "Bridge side". The game half (the scheduler, the arbiter, the settings and the Lua wiring) is added by the game side's author.
+The game half is the first sections, the bridge half is under "Bridge side".
+
+## What the player sees
+
+**Settings > Conversations > Companions speak up** (a list: **Off**, **Speaks up rarely**, **Speaks up normally**, **Speaks up often**; **Rarely** by default, so the feature is on for everyone). **Johnny in your head** has the same three speaking choices after Off and On (**Off**, **On**, **Speaks up rarely**, **Speaks up normally**, **Speaks up often**). The help of both rows says the numbers plainly: Rarely about 2 an hour, Normally about 4, Often about 6, and that when both are on the two rates add up and the two take turns.
+
+| Stored value (`runtime/settings.json`) | Companions (`companionSpeakUp`) | Johnny (`johnnyRemarks`, with `johnnyInHead` true) | Target rate |
+|---|---|---|---|
+| `off` | Off | Off, or On (he answers the talk keys; no unprompted lines) | none |
+| `rare` | Speaks up rarely | Speaks up rarely | 2 an hour |
+| `medium` | Speaks up normally | Speaks up normally | 4 an hour |
+| `normal` | Speaks up often | Speaks up often | 6 an hour |
+
+`normal` is the name Johnny's "often" has always had in the file, so an older file reads exactly as before; `medium` is the new value for Normally, in both keys. Anything else in `companionSpeakUp` reads as `rare` and is put right once; anything else in `johnnyRemarks` reads as `off`. The housemates feature accepts these level names too (`rare` / `medium` / `normal` next to rarely / normally / often).
+
+**Rarely, Normally and Often are TARGET rates, not caps.** The scheduler (`mod/speak-up.lua`) draws a random gap around `3600 / rate` seconds (0.4 to 1.6 times the mean, the mean kept) and counts only ELIGIBLE play: time in combat, a scene, a call, a menu, a conversation, with V typing or recording, or with a line playing is not counted, so nothing piles up afterwards (an hour of fighting is followed by no burst). "An hour" here is an hour of that calm play, counted in real seconds of the 0.1 s game tick (not game time, which runs faster), the same kind of clock Johnny's old limiter used (`os.time`). With both lists on the rates ADD UP: rare + rare is 4 an hour, normal + normal 8 (Normally twice), often + often 12, rare + often 8. Any two unprompted lines are at least **150 seconds** apart (2.5 minutes; 12 an hour averages one every five minutes). Nobody speaks twice in a row because of the merge: when both could speak, the one who did not speak last goes. Johnny's follow-on to a companion's line or a conversation reply counts towards HIS rate and is exempt from the 150 seconds (it is one exchange).
+
+## What a companion says on her own
+
+Only a party companion that is one of OUR copies and is ready, within 15 m (`companions.conversationCandidates`), never a character another mod spawned, never Johnny, never a game-placed character.
+
+- **(a) At a calm moment (`calm`).** After 20 seconds of calm play with a companion beside V (open gameplay: no combat, scene, dialogue, choice list, call, vehicle or replacer; nothing playing; V not typing or recording and not within 45 seconds of V's last line to anyone), when her turn comes up on the schedule. She says one short thing, from the right-now facts (where V is, the time, who is with V, V's state) and V's tracked quest.
+- **(b) After a scene she was in (`scene`).** `mod/game-dialogue.lua` hands every recorded scene line to `convaiSpeakUpScene`; a scene is two or more lines with a companion among those present (the line's `present` list or its speaker). Once the scene has been quiet 2.5 seconds her line is prepared ahead (below), and it is said once it has been quiet 6 seconds and the gates still hold. The request carries the game dialogue (who spoke, what was said, scoped to her by the bridge), the tracked quest and the right-now facts. One try per scene: if another line comes while it is prepared, it is dropped and that scene gets no comment. Needs Dynamic info > Recent game dialogue on.
+- **Never** during combat, scenes, dialogue choices, calls, menus or an ongoing conversation; the line is withdrawn (nothing is heard) if any of those starts first, and a line already playing is ended the way a fight reaction is (`convaiSpeakUpManage`: combat, a scene or a blocked sample, V typing or recording, the speaker gone or unavailable). In a vehicle nothing is said (the same rule as the fight reactions).
+- **One speaker at a time.** The scheduler's floor (`holder`) is taken when a line is chosen and given back by `cancelAutomatic` (unheard lines do not count against the rate and come back no sooner than 15 seconds); a battle or loot reaction, a conversation and a Johnny remark are all `busy` for it.
+- **Not remembered.** Like a battle quip, the line is a reaction: it is in nobody's conversation memory, so a statement, never a question.
+
+## What Johnny does with it
+
+Johnny's rate and the list are unchanged in kind. His queued remarks (a person, a job, a romance, a place, the Relic, a fight; `mod/johnny-remarks.lua`) now compete with the companions' candidate through `sched:pick`, so the arbiter lets only one of them start: he never cuts in on a companion and a companion never starts while he talks. The old per-level gap and hourly count of that module are replaced by the scheduler (`paced = true`); its queue, quiet time, cooldowns and time limits stay. In addition, on his own list (Rarely, Normally or Often) he may FOLLOW UP, "sometimes, not every time" (half the time, and only when his own timer allows it, so it counts towards his rate):
+
+- after a companion's speak-up has finished (`via = 'companion'`), and
+- after a reply in a conversation V is having with a named character, once the reply has finished and never in the middle of one (`via = 'talk'`; not a group round, a holocall, an ordinary NPC, an add-on or his own turn).
+
+The scene-end remark he already had ("meeting a named person") stays and goes through the same arbiter. Johnny only speaks to V: his lines never reach a companion's context, memory or history (bridge side below), and the companions never answer him.
+
+**Prepared ahead.** As soon as the whole text of the line that is playing is known (`speech.transcript(...).textComplete`), `convaiSpeakUpPlanFollow` decides (the dice and his timer) and, if yes, builds Johnny's request and writes it to `runtime/group-prefetch.json` as `{kind = 'follow', sourceRequestId, input}`. The bridge writes and voices his line meanwhile and holds it. When the source line has been heard to its end (`speech.lua` calls `speech.onStopped(requestId, 'finished')` at the end of `M.stop`) the companion's floor is released at once (not when her caption has faded), `convaiSpeakUpSubmitFollow` claims the floor for Johnny with `follow = true` and sends the very same request table, and the bridge releases the held line. If anything else happens first the plan is withdrawn (`{}` is written): V sends or opens a line, a source that did not finish normally, a scene, combat, a call or the choice list (`head:refusal`), the setting turned off, the plan older than 120 seconds. A scene line (case b) is the same with `{kind = 'ahead', input}` and no source turn.
+
+## Game side (files)
+
+| File | Role |
+|---|---|
+| `mod/speak-up.lua` (new, pure) | rates, jittered timers on the eligible clock, `pick`, `claim`, `release`, `followOn` (`during` for a decision taken while the companion still speaks), `external` / `externalAllowed` for other features' exchanges, `reset` |
+| `mod/init.lua` (block "Companions and Johnny speak up on their own", globals `convaiSpeakUp*`) | `convaiSpeakUpService` (loads the scheduler while either list is on and unloads it when both are Off), `convaiSpeakUpAdvance` (the clock, once per 0.1 s tick in `updateBattles`), `convaiSpeakUpCompanion` (who and about what), `convaiSpeakUpBuild` / `Submit` / `StartJohnny` / `Offer` / `Manage` (the request, the lease, the line in progress), `convaiSpeakUpPlanFollow` / `PlanTick` / `SubmitFollow` / `Withdraw` (prepared ahead), `convaiSpeakUpScene` (a recorded scene line), `convaiSpeakUpManualSent` (V's own line), `convaiSpeakUpStopped` (the end of a line of speech) and `convaiProactive` |
+| `mod/speech.lua` | `M.stop` calls `M.onStopped(requestId, reason)` at its end: the only event the follow-on needs |
+| `mod/johnny-remarks.lua` | `paced`: the scheduler does the pacing; `medium` is a level |
+| `mod/game-dialogue.lua` | unchanged; its `onRow` callback also feeds `convaiSpeakUpScene` |
+| `mod/manager.lua`, `mod/manager-ui.lua` | the `companionSpeakUp` setting and row, `medium` on Johnny's list, the help texts in 15 languages |
+
+**Cost.** Nothing in `onUpdate`. On the existing 0.1 s tick: three settings reads, a handful of comparisons, one `scheduler:tick`, and (only while a line plays and Johnny's list is on) one `speech.transcript` per source line until its text is complete. A recorded scene line is a few table writes. Both lists Off: the scheduler is not loaded, the tick returns after the settings reads, and a scene line returns at its first test. Nothing is hooked: the only new event is the end of a line of speech.
+
+## `convaiProactive` (for the housemates)
+
+`convaiProactive.allow(kind, lines)` answers whether a proactive exchange of `kind` (for example `'house'`) of about `lines` lines may start now: true when nobody holds the floor and 150 seconds of calm play have passed since the last unprompted line ended (and always true while both speak-up lists are Off, when there is nothing to merge with). `convaiProactive.note(kind, lines)` records one: the end of the last line moves to the end of the exchange (about 5 seconds a line) and the companions' timer is drawn again, so the merged pace and the gaps count it. Both never raise. The time-awareness sentence ("You last talked with V last night") also works for a `house` reaction (`reaction.kind = 'house'` in `bridge/last-talk.mjs`: it reads the gap and counts as a talk; the `gameTime` must come with the request's `turnContext`).
+
+## Convai budget
+
+Each line is a provider interaction. On the free shared key all unprompted lines share the one pool of a tenth of the day's turns (10 of 100; `docs/JOHNNY_IN_YOUR_HEAD.md`, Quota), so the free key sees at most about ten of them a day, a line refused by the allowance just stops. At the default (Rarely, 2 an hour) a two-hour session uses about four. A player's own key is not limited by us; its plan's interactions are, and Rarely is the default for that reason.
+
+## Tests
+
+`bridge/speak-up.test.mjs` (the scheduler: each speaker alone at the three rates, the merged pace, the gap, Off for either, ineligible time, the arbiter, the follow-on), `bridge/speak-up-game.test.mjs` (the block of `init.lua` in fengari: a calm line, the rate over ten hours, the arbiter, the follow-on prepared and submitted unchanged, every drop reason, a reply in a conversation, a scene prepared and said or dropped, eligibility, load and unload, `convaiProactive`), `bridge/johnny-remarks.test.mjs` (the wiring pins), plus the bridge files in the table under "Tests" below, `bridge/manager.test.mjs`, `bridge/nsui-manager.test.mjs`, `bridge/mcm-host.test.mjs`, `bridge/settings-file-lua.test.mjs` (the setting) and `bridge/description-fit.test.mjs` / `bridge/nsui-labels.test.mjs` / `bridge/select-labels.test.mjs` (the strings fit in all 16 languages).
+
+## Left for the live test (game side)
+
+1. A save with a companion: Companions speak up at its default (Rarely). Play calmly and open the Settings page: the row is there in both hosts, on Speaks up rarely. After about half an hour of calm play (it is random: 30 minutes on average), the companion says one short line nobody asked for. `probe.log`: `Speak up: companion calm speaker=<key>`.
+2. Never in combat, a cutscene, a call, a menu, a dialogue choice, a vehicle, or within 45 seconds of talking to someone. Start one of those just before her line would come: nothing is heard, and `probe.log` shows `Automatic reaction released: <reason>` if a line had already started.
+3. Walk through a scene with a companion beside V (a quest conversation): about 3 to 6 seconds after the last line she may comment on it with the mission in mind. `probe.log`: `Speak up: companion scene line prepared`, then `companion scene speaker=<key> (prepared ahead)` and no `prepared line withdrawn` line. A scene that goes on after a pause: `prepared line withdrawn (scene-continued)`.
+4. Johnny set to Rarely, Normally or Often as well: after some of her lines, Johnny follows with one remark about it, starting within about half a second of her last word (the stage clock: `runtime/bridge-latency.json` of his turn, `preparation.mode = lookahead`, `readyBeforeClaim = true`). `probe.log`: `Speak up: Johnny follow-on prepared via=companion`, then `Speak up: Johnny follow-on via=companion`. Talk to a companion yourself: sometimes (about every other time he is allowed) Johnny follows her reply; never while you are still talking or typing.
+5. Pace: with both on at Normally, about 8 unprompted lines an hour in total, never two within 2.5 minutes (apart from Johnny's follow-on), never two overlapping, never the same speaker twice in a row when both could speak.
+6. Set both lists to Off (or Johnny to On): no further unprompted line; `probe.log` has no `Speak up:` lines; nothing new in the perf probe.
+7. The default is Rarely for everyone: a fresh `settings.json` has `"companionSpeakUp": "rare"`; Restore defaults puts it back to Rarely.
 
 ## Bridge side
 

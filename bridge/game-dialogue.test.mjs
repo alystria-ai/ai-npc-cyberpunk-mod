@@ -547,7 +547,7 @@ test('group rounds share one snapshot with the prepared and voiced speakers', ()
 
 test('every manual send path captures the snapshot; automatic reactions never do', () => {
   const send = initSource.slice(initSource.indexOf('local function sendRequest(context)'), initSource.indexOf('-- A managed copy can be reassigned'));
-  assert.match(send, /if not context\.reaction and convaiGameDialogue then\s+context\.gameDialogue = context\.gameDialogue or convaiGameDialogue:capture\(\)/);
+  assert.match(send, /if \(not context\.reaction or \(speakUp and context\.reaction\.event == 'scene'\)\) and convaiGameDialogue then\s+context\.gameDialogue = context\.gameDialogue or convaiGameDialogue:capture\(\)/);
   assert.match(initSource, /groupChat\.captureGameDialogue = captureGameDialogue/);
   assert.match(initSource, /phoneChat\.captureGameDialogue = captureGameDialogue/);
   assert.match(initSource, /microphone\.captureGameDialogue = captureGameDialogue/);

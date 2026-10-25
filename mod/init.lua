@@ -2864,6 +2864,8 @@ local function acceptVoiceSubmission(context)
         microphone.cancel('stale-group'); return false
     end
     claimPrivateReply(context, 'voice')
+    -- A spoken line is V talking too: nothing prepared ahead survives it, and a reply to it may get a follow-on (docs/COMPANION_SPEAK_UP.md).
+    if convaiSpeakUpManualSent then pcall(convaiSpeakUpManualSent, context) end
     if context.holocall and convaiHolocall then convaiHolocall.touch() end
     pending, pendingKnowledgeOwner = context, microphone.knowledgeOwner
     pending.sentAt, focusUntil = os.time(), os.time() + 90
@@ -3710,7 +3712,6 @@ function convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, 
     captureReactionGuard(worldReady, outputs, person)
     if reactionLease(true) and sendRequest(context) then
         speech.target = person and person.npc or player
-        if person and person.spawned then pcall(function() return person.npc:ConvaiFaceRequest() end) end
         st.hold = {who = who, requestId = context.requestId}
         lastAutomatic = {at = now, requestId = context.requestId, kind = context.reaction.kind == 'head' and 'head' or 'speakup'}
         log('Speak up: ' .. label)

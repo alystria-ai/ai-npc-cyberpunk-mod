@@ -403,10 +403,11 @@ test('convaiProactive: the housemates ask before a proactive exchange and note i
 
 test('wiring: the hooks that feed the block exist in init.lua and speech.lua, and nothing in onUpdate mentions it', () => {
   const speech = read('../mod/speech.lua');
-  assert.match(speech, /local stoppedId = M\.requestId/);
+  assert.match(speech, /pcall\(convaiVanillaReactions\.speechEnded\) end\s+local stoppedId = M\.requestId/);
   assert.match(speech, /if stoppedId and M\.onStopped then pcall\(M\.onStopped, stoppedId, reason or 'idle'\) end/);
   assert.match(init, /if sent and not context\.reaction and convaiSpeakUpManualSent then pcall\(convaiSpeakUpManualSent, context\) end/);
   assert.match(init, /if hold and hold\.requestId == automatic\.requestId then\s+convaiSpeakUpState\.hold = nil\s+if convaiSpeakUp then pcall\(convaiSpeakUp\.release, convaiSpeakUp, hold\.who, automatic\.playbackAt ~= nil\) end/);
+  assert.match(init, /claimPrivateReply\(context, 'voice'\)\s+--[^\n]*\s+if convaiSpeakUpManualSent then pcall\(convaiSpeakUpManualSent, context\) end/, 'a spoken line is V talking too');
   assert.match(init, /local speakUpOn = convaiSpeakUpAdvance\(now, elapsed, worldReady, manual, outputs\)/);
   assert.match(init, /if convaiSpeakUpReset then pcall\(convaiSpeakUpReset, 'world-change'\) end/);
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));
