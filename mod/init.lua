@@ -464,6 +464,17 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         if not convaiNpcReactions then return false, 'not-available' end
         return convaiNpcReactions.start(kind, offer, entity, requestId)
     end,
+    -- Paying a character in eddies (docs/EDDIES_PAYMENT.md, mod/eddies-payment.lua): an offer on a typed private line to one of our copies, only while the setting is On.
+    payOffer = function(entity, context)
+        return convaiEddies and convaiEddies.offer(entity, context) or nil
+    end,
+    queuePay = function(amount, offer, entity, requestId)
+        if not convaiEddies then return false, ui.t('The payment could not be made.') end
+        local paid, code = convaiEddies.pay(amount, offer, entity, requestId)
+        if paid then return true end
+        if code == 'balance' then return false, ui.t('You do not have enough eddies for that.') end
+        return false, ui.t('The payment could not be made.')
+    end,
     -- A meeting V may ask for on a holocall (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"): nothing is offered while Immersive invitations is Off.
     meetOffer = function(entity, context)
         return convaiMeetCallOffer and convaiMeetCallOffer(context) or nil
@@ -948,6 +959,21 @@ do
     local loaded, module = pcall(dofile, 'world-talk.lua')
     convaiWorldTalk = loaded and type(module) == 'table' and type(module.new) == 'function'
         and module.new({sample = function(player) return battleObserver.sample(player) end}) or nil
+end
+
+-- Paying a character in eddies (docs/EDDIES_PAYMENT.md, mod/eddies-payment.lua): a global service, asked once when a typed line to one of our characters is admitted and once
+-- when the bridge hands a payment back. Off by default: the setting is one boolean read at those two moments, never per frame.
+do
+    local loaded, module = pcall(dofile, 'eddies-payment.lua')
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local built, service = pcall(module.new, {
+            enabled = function() return manager.payCharacters() end,
+            payable = function(entity, profileKey) return companions.payable(entity, profileKey) end,
+            player = function() return Game.GetPlayer() end,
+            log = function(line) if convaiLogFile then convaiLogFile(line) end end,
+        })
+        if built then convaiEddies = service else print('[CyberpunkConvai] Eddies payment unavailable: ' .. tostring(service)) end
+    elseif not loaded then print('[CyberpunkConvai] eddies-payment.lua unavailable: ' .. tostring(module)) end
 end
 
 -- What a conversation can do to an ordinary world NPC (docs/NPC_REACTIONS.md, mod/npc-reactions.lua): the person walks off, calls the
