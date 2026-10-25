@@ -186,7 +186,9 @@ switch on, through the `media` option in `mod/init.lua`; nothing is read or load
   There is no separate artist field: the track's text may or may not include the artist. A radio that is on but whose names do not resolve reads as nothing, never as a key.
 - **Pocket radio**, only on foot: `player:GetPocketRadio()`, `IsActive()`, `GetStationName()`, `GetTrackName()` (the pocket track changes without a script event, so it is read at the turn).
 - **TV**, only on foot and within 12 m: the object V is looking at (`GetLookAtObject`) if it is a `TV` that is on, else one `GetTargetParts` query (the pattern of the door
-  search in `mod/companion-passage.lua`), the nearest `TV` that is on, with at most six asked. "On" is `IsON()` and not unpowered or disabled; the channel (`GetActiveStationIndex`,
+  search in `mod/companion-passage.lua`, with secondary targets too), the nearest `TV` that is on, with at most six asked. A TV is an entity of class `TV` (or any entity whose
+  device controller is a `TVControllerPS`). Up to 400 target parts are looked at (the first version stopped at 40, in no order, and a companion's body brings many parts, so the
+  apartment test of 2026-10-25 with Judy and Alex beside V read `query found 0 TVs` beside a TV that was on and talking). "On" is `IsON()` and not unpowered or disabled; the channel (`GetActiveStationIndex`,
   read only for a TV that is already on, because it can initialise one that never was, then `GetChannelName`) is resolved like a radio name, with the channel's TweakDB record as the second try.
   The game exposes the channel, not the programme. What is on is told with the TV's own recent speech: `mod/game-dialogue.lua` keeps the last three lines of type `GlobalTV` /
   `GlobalTVAlwaysVisible` (160 characters each, with when they were heard) from the subtitle callbacks it already has, only while this switch is on. They are kept apart from
@@ -195,7 +197,9 @@ switch on, through the `media` option in `mod/init.lua`; nothing is read or load
 - **The one log line**: each distinct reading writes one line to probe.log, for example
   `Media: radio=car station=[<raw key>]->[Growl FM](ByKey) track=[<raw key>]->[...](ByKey) tv=skipped(in a vehicle)`, with the raw key, the text and the resolver that worked
   (`ByKey`, `Text`, `raw`, `index/...`, `record/...`, or `unresolved`), at most 200 per game session. When nothing is read it says why (`radio=car:inactive`, `radio=pocket:inactive`,
-  `tv=none(query found 0 TVs)`).
+  `tv=none(query found 0 TVs)`). A line with no TV found ends with `why: parts=37 objects=12 seen=Door:3,Light:2` (target parts looked at, `+` when the limit cut them, distinct objects,
+  the commonest classes among them that are not TVs), `beyondRadius=N` (TVs found farther than 12 m), `notOn=N` (TVs found that were not on) and `lookedAtTvNotOn`, so the next
+  live pass says which check turned the TV away. That tail is not part of the line's identity: a changed count alone writes no new line.
 
 **Bridge side** (`bridge/media-context.mjs`): `parseMedia` validates the table (a source of `car` or `pocket`, text fields cleaned of tags, control characters and `LocKey#` leftovers, raw-looking
 keys dropped, 40/80/40/120 characters), `mediaSignature` changes with the song, station or channel (not with the TV's last line), and `mediaSentences` words it for the person and head forms,
@@ -206,4 +210,5 @@ memory tells a conversation only when new: the first turn, a change of song, sta
 values look like, whether the localised track includes the artist, whether a TV shows up as a target part, and whether the TV line ring catches the lines that matter. Tests use fake natives
 (`bridge/media-context-lua.test.mjs`, `bridge/media-context.test.mjs`). The live check is the probe.log line above plus the developer probe
 `scripts/Send-JohnnyProbe.ps1 media read` (`mod/media-probe.lua`, Developer mode only, never loaded for players), which dumps the raw value of every candidate read into `runtime/johnny-probe.json`.
-A targeting query reports only what the camera can see, so a TV behind V is missed; the look-at read and the spoken-line fallback cover the common case. In-world radios (`Radio`, `Jukebox`) are not read.
+Whether the query returns a TV's targeting component at all is still the one thing only the game can confirm (the fix above is the limit of 40 parts and the secondary targets; if the next live
+`why:` shows the apartment's devices but no TV, the TV has no target part and the look-at read and the spoken-line fallback are all there is). In-world radios (`Radio`, `Jukebox`) are not read.

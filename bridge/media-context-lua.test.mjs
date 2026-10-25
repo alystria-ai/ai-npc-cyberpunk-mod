@@ -306,6 +306,66 @@ test('the default adapter asks the game for exactly the things the research foun
   assert.ok(source.indexOf('ps:IsON()') < source.indexOf('ps:GetActiveStationIndex()'));
 });
 
+test('the default adapter TV query: no part limit of 40 that NPC parts can fill, secondary targets, a TV by class or by controller, and what it saw', () => run(`
+  local M = (function() ${source} end)()
+  local asked = {}
+  local function entity(id, class, ps)
+    return {id = id, class = class, ps = ps,
+      IsA = function(self, name) return name == self.class end,
+      GetEntityID = function(self) return {hash = self.id} end,
+      GetClassName = function(self) return self.class end,
+      GetDevicePS = function(self) if self.ps == false then error('not a device') end return self.ps end}
+  end
+  local function part(e) return {GetComponent = function() return {GetEntity = function() return e end} end} end
+  -- Judy and Alex bring 60 parts before the room's devices do; the TV is the 71st part
+  local parts = {}
+  for i = 1, 30 do parts[#parts + 1] = part(entity(100, 'NPCPuppet', false)) end
+  for i = 1, 30 do parts[#parts + 1] = part(entity(101, 'NPCPuppet', false)) end
+  parts[#parts + 1] = part(entity(1, 'Door', {IsA = function() return false end}))
+  parts[#parts + 1] = part(entity(1, 'Door', {IsA = function() return false end}))
+  local tvEntity = entity(2, 'TV', {})
+  parts[#parts + 1] = part(tvEntity)
+  local odd = entity(3, 'Screen', {IsA = function(_, name) return name == 'TVControllerPS' end})
+  parts[#parts + 1] = part(odd)
+  TargetSearchQuery = {new = function() return {} end}
+  Enum = {new = function(name, value) return name .. '.' .. value end}
+  Game = {NameToString = function(value) return value end,
+    GetTargetingSystem = function() return {GetTargetParts = function(_, player, query) asked = query; return true, parts end} end}
+  local N = M.adapter()
+  local list, stats = N.tvQuery({}, 12, M.QUERY_PARTS)
+  assert(#list == 2 and list[1] == tvEntity and list[2] == odd, 'the TV by its class and the one by its controller, each once')
+  assert(asked.includeSecondaryTargets == true and asked.testedSet == 'TargetingSet.Complete' and asked.maxDistance == 12)
+  assert(stats.parts == 64 and stats.objects == 5 and stats.classes == 'NPCPuppet:2,Door:1', stats.classes)
+  assert(M.QUERY_PARTS >= 200, 'more than the 40 parts the first version looked at')
+  -- a limit cuts the list and says so; a part that raises costs that part only
+  local limited, cut = N.tvQuery({}, 12, 62)
+  assert(#limited == 0 and cut.cut == true and cut.parts == 62)
+  parts[1] = {GetComponent = function() error('boom') end}
+  assert(#N.tvQuery({}, 12, 100) == 2)
+  Game.GetTargetingSystem = function() return {GetTargetParts = function() return true, nil end} end
+  local none, empty = N.tvQuery({}, 12, 100)
+  assert(#none == 0 and empty.parts == 0 and empty.classes == '')
+`));
+
+test('probe.log says why no TV was found: how many parts and objects the query saw, which classes, and what turned TVs away', () => lua$(`
+  W.lookAt = nil
+  N.tvQuery = function() return {}, {parts = 37, objects = 12, classes = 'Door:3,Light:2'} end
+  assert(reader:read(PLAYER) == nil)
+  assert(logs[#logs]:find('tv=none(query found 0 TVs) said=no why: parts=37 objects=12 seen=Door:3,Light:2', 1, true), logs[#logs])
+  -- TVs found but none on, one beyond the radius, and the look-at TV off
+  W.lookAt = tv(3, {on = false})
+  N.tvQuery = function() return {tv(5, {on = false}), tv(M.TV_RADIUS + 3, on('ch_news'))}, {parts = 400, cut = true, objects = 20, classes = ''} end
+  assert(reader:read(PLAYER) == nil)
+  local line = logs[#logs]
+  assert(line:find('query found 2 TVs', 1, true) and line:find('parts=400+', 1, true) and line:find('beyondRadius=1', 1, true)
+    and line:find('notOn=1', 1, true) and line:find('lookedAtTvNotOn', 1, true), line)
+  -- the reason is not part of the dedupe key: a new part count on the same outcome adds no line
+  local count = #logs
+  N.tvQuery = function() return {tv(5, {on = false}), tv(M.TV_RADIUS + 3, on('ch_news'))}, {parts = 399, cut = true, objects = 21, classes = ''} end
+  reader:read(PLAYER)
+  assert(#logs == count)
+`));
+
 // ---- the TV line ring of mod/game-dialogue.lua --------------------------------------------------------------------------------------------------
 const dialoguePrelude = `
 local api = (function() ${dialogueSource} end)()

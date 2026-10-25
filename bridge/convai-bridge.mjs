@@ -1244,8 +1244,11 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
       const route = routeFor(input), characterId = route?.guard?.characterId;
       if (characterId) character = {key: route.route?.providerProfileKey ?? input.profileKey, id: characterId};
     } catch {}
+    // What the Mistral voice really clones from (known once the reference was built; the line's ref is the registry's first choice).
+    let sent;
+    try { if (reply?.engine === 'pocket' && localVoice.cloudActive) sent = voxtralVoice.referenceInfo(voiceKey ?? input.profileKey, reply.language); } catch {}
     routingLog.record(describeVoiceRoute({voice: localVoice, input, profile, plan: turnVoice(input), reply,
-      sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, pocketModel, ...extra}));
+      sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, pocketModel, sent, ...extra}));
   } catch {}
 }
 // The multilingual pack's entry that speaks a reply, or null (the English reference speaks): OmniVoice and the Mistral voice, a reply in a language that has a pack,
