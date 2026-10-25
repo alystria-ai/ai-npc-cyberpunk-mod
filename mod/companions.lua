@@ -2743,9 +2743,10 @@ end
 -- never per frame), all for a ready managed copy only.
 -- The ready copies whose model record the outfit list knows: {serial, key, record, npc}. known(record) -> boolean.
 -- A resident of V's flat (a visiting copy owned by the housemates module) is dressed like a party copy: day and night looks, home clothes. An immersive
--- visitor is not.
+-- visitor is not. While Settings > Housemates is Off (M.housematesOn, set by mod/init.lua; nil: no such setting) no resident is dressed.
 local function outfitEligible(entry)
-    return entry.state=='ready' or (entry.state=='visiting' and entry.owner=='housemates')
+    if entry.state=='ready' then return true end
+    return entry.state=='visiting' and entry.owner=='housemates' and (M.housematesOn==nil or M.housematesOn()==true)
 end
 function M.outfitRows(known)
     local rows={}

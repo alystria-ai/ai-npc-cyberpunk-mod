@@ -285,7 +285,7 @@ local function schema()
     end
     -- Restore defaults, on Settings and on the pages that open from it with settings of their own (Relationships, Dynamic info), and on Key bindings.
     local view = core.view()
-    if view == 'settings' or view == 'relationships' or view == 'dynamic-info' or view == 'key-bindings' or view == 'immersive-invitations' then
+    if view == 'settings' or view == 'relationships' or view == 'dynamic-info' or view == 'key-bindings' or view == 'immersive-invitations' or view == 'housemates' then
         -- Two short words, not "Restore defaults" / "Press again to restore": with pending changes the footer holds five buttons (Revert,
         -- Apply, MCM's Add to favorites, this one, Back) and MCM gives each one the same share of the row, cutting the text that is
         -- longer. The footer is only read again when the page is loaded again, which MCM refuses while changes are pending, so the button

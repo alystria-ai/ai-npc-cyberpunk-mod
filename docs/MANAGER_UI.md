@@ -51,8 +51,9 @@ Mods screen (Esc > Mods)
 | Convai paid tier | Settings | Convai paid tier, Plans |
 | Custom endpoint | Settings | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
 | Immersive invitations | Settings | Immersive invitations (six rows: the switch, how she arrives, when, how long she waits, the waypoint, her texts; `docs/IMMERSIVE_INVITATIONS.md`) |
+| Housemates | Settings | Housemates (two rows: the switch, Off by default, and Housemates talk to each other; `docs/HOUSEMATES.md`) |
 
-The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other six (Memory, Relationships, Dynamic info, Help, paid tier, Custom endpoint). It is the first row of
+The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the others (Memory, Relationships, Dynamic info, Help, paid tier, Custom endpoint, Immersive invitations, Housemates). It is the first row of
 the first section, so it is always the first row of the page. Memory (Manage), Dynamic info (Open, since 2026-10-22) and Relationships (Open) are rows of Settings > Conversations, Help and support is
 the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row, and Custom endpoint (Open, since 2026-10-20) a row of the same section right after the Mistral key row. The Help
 entry is absent when `mod/support-report.lua` did not load, the paid tier entry when `mod/convai-paid-tier.lua` did not (both are loaded
@@ -116,7 +117,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
     one the player muted earlier stays muted, since nothing resets the saved value.
   - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, Custom endpoint (a button that
     opens the Custom page, below), Convai API key, Convai paid tier, Edit characters.
-  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong), and an **Immersive invitations** button (Open, since 2026-10-25) to its own page. Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
+  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong), an **Immersive invitations** button (Open, since 2026-10-25) to its own page and a **Housemates** button (Open, since 2026-10-26) to its own page. Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
   - Voices: Voice playback, Companion voices, Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
     Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; default Pocket,
     `docs/V_VOICE.md`).
@@ -832,4 +833,6 @@ hole it leaves in its section list, and checks that the widgets on screen are wh
 
 Current party lists the characters who live at V's place under the party copies, one row each: "{name} · lives in {apartment} · at home / with you / out"
 with a **Move out** button (MCM and Native Settings UI share the page). Move out ends the housemate arrangement only; she stays as she is otherwise. A
-housemate's body is not a party copy: it is not listed as one and does not count in the party. The page reads the list when it is built; there is no setting.
+housemate's body is not a party copy: it is not listed as one and does not count in the party. The page reads the list when it is built. While
+Settings > Companion behavior > Housemates is Off (the default) there are no housemate rows. That setting has a page of its own with two rows, **Housemates**
+(Off, On) and **Housemates talk to each other** (On, Off), and is part of Restore defaults.
