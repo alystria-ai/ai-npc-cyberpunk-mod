@@ -121,7 +121,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Voices: Voice playback, Companion voices, Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
     Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; default Pocket,
     `docs/V_VOICE.md`).
-  - Subtitles; Automatic reactions (React to battles, React to collected loot; both on by default since 2026-10-20); one section per installed add-on that has settings
+  - Subtitles; Automatic reactions (React to battles, React to collected loot; both on by default since 2026-10-26); one section per installed add-on that has settings
     (see [ADDON_API.md](ADDON_API.md); the add-on wrote its own labels); Development (Developer mode); Help.
 
   Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),
@@ -154,8 +154,8 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
   "Conversations go back to Convai free tier." (the provider is Mistral), "Voxtral stops speaking; companion replies show as text until a key is saved." (the companion voice
   is Voxtral), "V's voice switches from Voxtral to Pocket." (V's voice is on and its engine is Voxtral). With none of them: "Nothing you use now depends on
   it." The Convai key's Remove help stays "Deletes the saved key. Conversations go back to Convai free tier."
-- **Battle and loot reactions are off by default** (owner, 2026-10-20; a same-day on-by-default change never shipped). No migration, no Chosen keys.
-  Restore defaults turns both off. See `docs/BATTLE_REACTIONS.md` and `docs/LOOT_REACTIONS.md` for what each costs on the Convai free tier.
+- **Battle and loot reactions are on by default** (owner, 2026-10-26). A saved off the player never chose moves to on once (`battleReactionsChosen` / `lootReactionsChosen`).
+  Restore defaults turns both on. See `docs/BATTLE_REACTIONS.md` and `docs/LOOT_REACTIONS.md` for what each costs on the Convai free tier.
 - **Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough
   memory)", "(Unavailable)") and its help starts with the loading sentence. The provider notes (Mistral limit reached, key not accepted
   or model unavailable; the Convai free tier's "x of y left today" or limit reached; your key's plan limit, rejected, no memory room;

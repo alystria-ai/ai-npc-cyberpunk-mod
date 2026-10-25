@@ -159,7 +159,7 @@ test('Restore defaults while Mature content is on gives the default voices, what
   assert(now.matureContent == false and now.conversationProvider == 'convai')
   assert(now.voiceProvider == 'pocket', 'the default voice is Pocket, got ' .. tostring(now.voiceProvider))
   assert(now.vVoice == true and now.vVoiceEngine == 'pocket', 'V speaks with Pocket by default')
-  assert(now.battleReactions == false and now.lootReactions == false and now.johnnyInHead == false and now.johnnyRemarks == 'off')
+  assert(now.battleReactions == true and now.lootReactions == true and now.johnnyInHead == false and now.johnnyRemarks == 'off')
 `));
 
 test('D3 (2026-10-20, revised): Mature content from Convai or Mistral without the Local AI pack selects Custom when it is ready, else it refuses, and never selects Mistral, with or without a key', () => run(`${harness()}

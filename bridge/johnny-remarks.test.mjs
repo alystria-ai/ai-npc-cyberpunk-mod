@@ -280,8 +280,8 @@ test('shared key: remarks count as turns and may use at most REMARK_SHARE of the
   assert.match(read('./realtime-host.mjs'), /this\.guard\.check\(config\); this\.guard\.consume\(config\);/);
   const bridge = read('./convai-bridge.mjs');
   assert.match(bridge, /const remarkAllowance = await new RemarkAllowance\(\{guard: turnGuard,/);
-  assert.match(bridge, /check: config => \{ turnGuard\.check\(\); remarkAllowance\.check\(config\); if \(tokenSource\) keys\.assertAllowed\(\); \}/);
-  assert.match(bridge, /consume: config => \{ turnGuard\.consume\(\); remarkAllowance\.consume\(config\); \}/);
+  assert.match(bridge, /check: config => \{ turnGuard\.check\(\); remarkAllowance\.check\(config\); reactionAllowance\.check\(config\); if \(tokenSource\) keys\.assertAllowed\(\); \}/);
+  assert.match(bridge, /consume: config => \{ turnGuard\.consume\(\); remarkAllowance\.consume\(config\); reactionAllowance\.consume\(config\); \}/);
   assert.match(bridge, /'remark-usage\.json'/);
 });
 

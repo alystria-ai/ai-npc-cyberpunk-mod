@@ -810,10 +810,17 @@ local function loadSettings()
         and settings.conversationProvider ~= 'local' and settings.conversationProvider ~= 'custom' then
         settings.conversationProvider, settingsNeedSave = 'convai', true
     end
-    -- React to battles and to collected loot: off by default (owner, 2026-10-20: the short-lived "on by default" with its once-only migration
-    -- never shipped and is gone; a file with leftover battleReactionsChosen / lootReactionsChosen keys is read like any other, the keys unread).
-    if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
-    if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = false, true end
+    -- React to battles and to collected loot: on by default (owner, 2026-10-26). A saved false counts only once the player has set it
+    -- themselves (an Apply that carried it: battleReactionsChosen, lootReactionsChosen); an unchosen false is the old default the mod wrote
+    -- itself, so it becomes true once (the pattern of vVoice below).
+    if type(settings.battleReactionsChosen) ~= 'boolean' then settings.battleReactionsChosen = false end
+    if type(settings.battleReactions) ~= 'boolean' or (not settings.battleReactions and not settings.battleReactionsChosen) then
+        settings.battleReactions, settingsNeedSave = true, true
+    end
+    if type(settings.lootReactionsChosen) ~= 'boolean' then settings.lootReactionsChosen = false end
+    if type(settings.lootReactions) ~= 'boolean' or (not settings.lootReactions and not settings.lootReactionsChosen) then
+        settings.lootReactions, settingsNeedSave = true, true
+    end
     -- Settings that are gone (RETIRED_SETTINGS): auto-connect, expressive emotions, game dialogue, the live holocall picture and body
     -- gestures are always on, and the two developer-only features are removed. A saved value, a false included, is ignored; the key is dropped
     -- from the file once.
@@ -2118,6 +2125,8 @@ function M.applySettings(player, values)
     nextSettings.housemates = cleanHousemates(settings.housemates)
     for key, value in pairs(values) do
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
+        if key == 'battleReactions' then nextSettings.battleReactionsChosen = true end
+        if key == 'lootReactions' then nextSettings.lootReactionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
             or key == 'naturalSpeech' or key == 'errorReports'

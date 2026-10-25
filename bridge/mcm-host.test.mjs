@@ -234,7 +234,7 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   mcm.set('Voice volume (%)', 120)
   mcm.revert()
   assert(not next(mcm.drafts()) and mcm.row('Voice volume (%)').value == 100)
-  assert(manager.applySettings(player, {followUpInterest = false, voiceVolume = 150, battleReactions = true}))
+  assert(manager.applySettings(player, {followUpInterest = false, voiceVolume = 150, battleReactions = false}))
   frames(10)
   assert(mcm.row('Follow-up questions').value == false and mcm.row('Voice volume (%)').value == 150, 'an outside change is drawn')
   -- No row has a default, so MCM's own Defaults button and its Modified counter are not there; the manager's own button is.
@@ -256,7 +256,7 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
-  assert(settings.followUpInterest == true and settings.voiceVolume == 100 and settings.battleReactions == false, 'defaults saved')
+  assert(settings.followUpInterest == true and settings.voiceVolume == 100 and settings.battleReactions == true, 'defaults saved')
   assert(mcm.row('Follow-up questions').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
   frames(8)   -- the status line follows within a moment
   assert(mcm.status() == 'Defaults restored.', mcm.status())
@@ -1636,25 +1636,25 @@ test('the OmniVoice entry of V’s voice is a normal choice with the pack instal
   assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
 `));
 
-test('React to battles and to collected loot are off by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions off', () => withScreen(`
+test('React to battles and to collected loot are on by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions on', () => withScreen(`
   press('Settings')
-  assert(mcm.row('React to battles').value == false and mcm.row('React to collected loot').value == false)
-  assert(mcm.set('React to battles', true) and mcm.set('React to collected loot', true) and mcm.set('Johnny in your head', 5) and mcm.set('V’s voice for typed lines', 1)
+  assert(mcm.row('React to battles').value == true and mcm.row('React to collected loot').value == true)
+  assert(mcm.set('React to battles', false) and mcm.set('React to collected loot', false) and mcm.set('Johnny in your head', 5) and mcm.set('V’s voice for typed lines', 1)
     and mcm.set('Companions speak up', 4))
   assert(mcm.apply())
   assert(saved.companionSpeakUp == 'normal')
-  assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
+  assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   frames(6)
   press('Defaults'); press('Defaults')
   frames(8)
   local settings = manager.snapshot(player).settings
-  assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are off again')
+  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
   assert(settings.companionSpeakUp == 'rare' and mcm.row('Companions speak up').value == 2, 'companions are back to Rarely')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(mcm.row('Johnny in your head').value == 1 and mcm.row('V’s voice for typed lines').value == 2)
-  assert(mcm.row('React to battles').value == false and mcm.row('React to collected loot').value == false)
+  assert(mcm.row('React to battles').value == true and mcm.row('React to collected loot').value == true)
 `));
 
 // A setting's label is drawn by MCM in a box that ends in "..." when the text does not fit (MCMPanelWidgetFactory.McmUiApplyTextBounds, textOverflowPolicy

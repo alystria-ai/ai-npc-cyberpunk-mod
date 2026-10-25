@@ -161,13 +161,13 @@ test('the manager opens on its first page: after leaving the tab, after closing 
 test('a change is applied for real after a moment, as one transaction; rows the rules corrected are put back in place with one line under the way back', () => run(`${harness()}
   press('Settings')
   local gestures = ns.find('React to battles')
-  assert(gestures.state == false, 'battle reactions are off by default')
+  assert(gestures.state == true, 'battle reactions are on by default')
   ns.interact.toggle(gestures)
   frames(1)
-  assert(manager.snapshot(player).settings.battleReactions == false, 'nothing is saved at the moment of the click')
+  assert(manager.snapshot(player).settings.battleReactions == true, 'nothing is saved at the moment of the click')
   frames(6)
-  assert(manager.snapshot(player).settings.battleReactions == true and saved.battleReactions == true and saved.battleReactionsChosen == nil, 'applied once the changes have settled')
-  assert(ns.find('React to battles') == gestures and gestures.state == true, 'the row is the same widget and shows the saved value')
+  assert(manager.snapshot(player).settings.battleReactions == false and saved.battleReactions == false and saved.battleReactionsChosen == true, 'applied once the changes have settled')
+  assert(ns.find('React to battles') == gestures and gestures.state == false, 'the row is the same widget and shows the saved value')
   -- Two changes close together are one transaction (one save).
   local writes = #fileWrites
   ns.interact.toggle(ns.find('Subtitles')); ns.interact.toggle(ns.find('Voice playback'))
@@ -342,17 +342,17 @@ test('Restore defaults goes through the same validated path, only on the Setting
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
   press('Settings')
-  assert(manager.applySettings(player, {battleReactions = true, followUpInterest = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
+  assert(manager.applySettings(player, {battleReactions = false, followUpInterest = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
     naturalSpeech = false}))
   frames(20)
-  assert(ns.find('React to battles').state == true and ns.find('Subtitle display').selectedElementIndex == 2)
+  assert(ns.find('React to battles').state == false and ns.find('Subtitle display').selectedElementIndex == 2)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.followUpInterest == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == false)
+  assert(settings.followUpInterest == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
   assert(ns.find('Follow-up questions').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
-  assert(ns.find('React to battles').state == false and ns.find('Companion voices').selectedElementIndex == 1)
+  assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 1)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
   -- Restore defaults after the cloud voice was chosen puts the default voice back.
   assert(manager.applySettings(player, {voiceProvider = 'convai'}))
@@ -840,7 +840,7 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   -- A switch, a slider and a selector, each applied the way MCM does (a draft applied through setOption, one after the other).
   local gestures = ns.find('React to battles', TAB)
   ns.setOption(gestures, not gestures.state); frames(8)
-  assert(manager.snapshot(player).settings.battleReactions == true, 'the change was applied')
+  assert(manager.snapshot(player).settings.battleReactions == false, 'the change was applied')
   assert(stale(held) == 0, 'switch: handles that no longer resolve to their option: ' .. stale(held))
   ns.setOption(ns.find('Voice volume (%)', TAB), 135); frames(8)
   assert(saved.voiceVolume == 135 and stale(held) == 0, 'slider: ' .. stale(held))
@@ -1020,24 +1020,24 @@ test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; choosing Voxtral
   assert(saved.vVoice == false and saved.vVoiceEngine == 'voxtral')
 `));
 
-test('React to battles and to collected loot are off by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions off', () => run(`${harness()}
+test('React to battles and to collected loot are on by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions on', () => run(`${harness()}
   press('Settings')
-  assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
+  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
   ns.interact.toggle(ns.find('React to battles')); ns.interact.toggle(ns.find('React to collected loot'))
   ns.interact.select(ns.find('Johnny in your head'), 5); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
   ns.interact.select(ns.find('Companions speak up'), 4)
   frames(10); ns.verify()
   assert(saved.companionSpeakUp == 'normal')
-  assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
+  assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are off again')
+  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
   assert(settings.companionSpeakUp == 'rare' and ns.find('Companions speak up').selectedElementIndex == 2, 'companions are back to Rarely')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
-  assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
+  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
 `));
 

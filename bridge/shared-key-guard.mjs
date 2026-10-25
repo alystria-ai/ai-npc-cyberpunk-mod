@@ -200,17 +200,24 @@ export class SharedKeyGuard {
 export const REMARK_SHARE = 0.1;
 export const UNPROMPTED_KINDS = Object.freeze(['head', 'speakup']);
 export const isRemark = config => UNPROMPTED_KINDS.includes(config?.reaction?.kind);
-export const remarkCap = limit => Math.max(1, Math.floor(limit * REMARK_SHARE));
+export const remarkCap = (limit, share = REMARK_SHARE) => Math.max(1, Math.floor(limit * share));
+
+// React to battles and to collected loot are on by default. Each is a turn on the shared key, so together they may use at most REACTION_SHARE of the
+// day's limit (20 of 100), counted apart from the remarks' tenth: a long fight or a looting spree never eats the turns a player wants for talking.
+// The cooldowns in the game (ten minutes between fights and between ordinary pickups, two between Legendary ones) come first; this is the ceiling.
+export const REACTION_SHARE = 0.2;
+export const REACTION_KINDS = Object.freeze(['battle', 'loot']);
+export const isReaction = config => REACTION_KINDS.includes(config?.reaction?.kind);
 
 /** The remarks' share of the shared key. Follows the guard's limit and day; does nothing for a remark that is not on the shared key. */
 export class RemarkAllowance {
-  constructor({guard, store, now = guard.now} = {}) {
-    Object.assign(this, {guard, store, now});
+  constructor({guard, store, now = guard.now, applies = isRemark, share = REMARK_SHARE} = {}) {
+    Object.assign(this, {guard, store, now, kind: applies, share});
     this.day = dayOf(now()); this.count = 0; this.seen = now();
     this.saving = Promise.resolve();
   }
-  get cap() { return remarkCap(this.guard.limit); }
-  #applies(config) { return isRemark(config) && this.guard.enabled && this.guard.applies(); }
+  get cap() { return remarkCap(this.guard.limit, this.share); }
+  #applies(config) { return this.kind(config) && this.guard.enabled && this.guard.applies(); }
   #roll() {
     const now = this.now(), today = dayOf(Math.max(now, this.seen));
     if (today !== this.day && today > this.day) { this.day = today; this.count = 0; }
