@@ -1849,6 +1849,19 @@ phoneChat.typingOpened = function(player, contact)
 end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
+-- A wardrobe outfit of Equipment-EX shows instead of V's equipped clothes in that gear (docs/PLAYER_GEAR_CONTEXT.md). Only while Settings > Dynamic info >
+-- Other mods' state is on: off, the module is never loaded and nothing is read from that mod. Called inside the gear's cached read, once per window.
+if playerGear then
+    local equipmentEx
+    playerGear.options.outfit = function(player)
+        if not (manager.dynamicInfo and manager.dynamicInfo('mods')) then return nil end
+        if equipmentEx == nil then
+            local loaded, module = pcall(dofile, 'equipment-ex.lua')
+            equipmentEx = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+        end
+        return equipmentEx and equipmentEx.read(player, log) or nil
+    end
+end
 if convaiTurnContext then convaiTurnContext.options.log = log end
 if convaiNpcReactions then convaiNpcReactions.options.log, convaiNpcReactions.options.logOnce = log, convaiLogOnce end
 -- Street reputation (docs/REPUTATION_DESIGN.md, mod/reputation.lua): the module is loaded and its hooks registered only once the setting is

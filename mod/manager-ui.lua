@@ -1359,7 +1359,7 @@ local function dynamicInfoRows(snapshot)
         row('media', 'Music and TV',
             'The song playing on the car radio while V rides with the character, or on V’s pocket radio, and what is on a TV near V.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
         row('mods', 'Other mods’ state',
-            'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.'),
+            'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example. Also what V visibly wears while an Equipment-EX outfit is on, so characters describe the outfit and not the clothes it hides.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.'),
         row('dialogue', 'Recent game dialogue',
             'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.'),
     }

@@ -11,6 +11,7 @@ does not turn into talk about jackets. Asking "what am I wearing?" gets a correc
 | --- | --- | --- |
 | Reader | `mod/player-gear.lua` | Reads V's equipment through the game's `EquipmentSystemPlayerData`, names the items, returns a small snapshot. |
 | Wiring | `mod/init.lua`, `mod/group-chat.lua`, `mod/microphone.lua` | Attach the snapshot to a manual in-person turn (text, voice, group). |
+| Wardrobe outfit | `mod/equipment-ex.lua` | Only with Settings > Dynamic info > Other mods' state On: reads the active Equipment-EX outfit (see below). |
 | Parser and wording | `bridge/player-gear.mjs` | Validates the snapshot, words it as one line, caps it. |
 
 **On demand only.** The snapshot is read when a conversation turn is built (text send, voice start and finish, group round
@@ -55,6 +56,24 @@ V's current gear (what V is wearing and carrying right now, which you can see) -
 The whole block is at most 900 characters (`MAX_CHARS`); each name is at most 60 characters (80 accepted by the bridge). Over
 budget, whole items are dropped from the end: cyberware first, then the weapon slots, then the weapon in hand, then
 clothing from the last slot. A malformed snapshot is replaced by "unavailable", adds nothing, and never loses V's message.
+
+## Wardrobe outfits (Equipment-EX)
+
+Added 2026-10-25 after a player report: with the Equipment-EX wardrobe mod a character remarked on clothes V did not visibly wear. Equipment-EX shows a saved
+outfit by attaching preview items to extra slots while the game's own equipment keeps the real items, so the equipment system no longer says what is visible.
+
+- **Gate.** Off by default: the read happens only with **Other mods' state** (`dynamic:mods`) On. Off, `mod/equipment-ex.lua` is never loaded and nothing is read from
+  Equipment-EX. With it On and the mod absent, the cost is one failed class lookup a minute at most, inside the gear's 5 second read.
+- **What is read** (Equipment-EX 1.2.9, from its redscript; it needs Codeware 1.18, ArchiveXL 1.26 and TweakXL 1.11, so it targets game 2.31 and later): the scriptable system
+  `EquipmentEx.OutfitSystem` (`Game.GetScriptableSystemsContainer():Get(CName.new(...))`): `IsActive()`, `GetUsedSlots()` and, per slot, the item that the transaction
+  system holds in it (`GetItemInSlot(V, slotID):GetItemID()`, the same lookup the mod's own item print makes). The item names come from the same naming as every other
+  gear item. The saved outfit's name comes from `GetOutfits()` and `IsEquipped(name)` and only goes to `probe.log`, never to a character.
+- **Result.** While an outfit is active it replaces the whole clothing list: its slots map onto the usual categories (head, face, outer torso, inner torso, legs, feet,
+  outfit) plus ears, neck, back, waist, arms and hands, and several items may share a category (the snapshot then carries `layered`). The real clothes are not listed:
+  Equipment-EX hides them (it unequips the Outfit-area item and clears the visuals of every base slot), so an outfit that shows nothing means nothing is listed.
+  Weapons and cyberware are unchanged. With no outfit active, the mod absent, or any read failing, the equipment is read exactly as before.
+- **Log.** `probe.log` once per change: `equipment-ex outfit=<saved name, unsaved or off> parts=N`.
+- **Not confirmed in the game:** the class and method names are cited from the mod's scripts, but the CET side is untested: that `TweakDBID.new(name) == slotID` compares ids, that `IsEquipped(CName)` picks the name overload, and that `Game.NameToString` exists. A wrong one fails quietly (the real clothes are listed, or the outfit goes unnamed in the log).
 
 ## Install
 

@@ -490,6 +490,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mod-state.lua"
     },
     {
+      "source": "mod/equipment-ex.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/equipment-ex.lua"
+    },
+    {
       "source": "mod/johnny-probe.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-probe.lua"
     },

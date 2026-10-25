@@ -167,7 +167,7 @@ const reviewed = {
     'Music and TV',
     'The song playing on the car radio while V rides with the character, or on V’s pocket radio, and what is on a TV near V.\n\nOff: it is not sent, and the mod stops reading it from the game.',
     'Other mods’ state',
-    'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.',
+    'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example. Also what V visibly wears while an Equipment-EX outfit is on, so characters describe the outfit and not the clothes it hides.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.',
   ],
   // The words of Companion Manager > Key bindings that are a key's own name: mod/key-bindings.lua holds them as literals and mod/manager-ui.lua keyText
   // passes each through ui.t. A letter, a digit or a symbol is the same in every language and is not listed. Cancel is the key button's text while it waits for a key.
