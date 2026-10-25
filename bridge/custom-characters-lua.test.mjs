@@ -236,3 +236,47 @@ test('a character renamed or given another match rule in the editor is found by 
   `);
   assert.equal(out.ok, true);
 });
+
+// Player report 2026-10-25: a copy of a custom character's model spawned from another mod's spawn menu was the character only some of the
+// time. The game's text of a record id carries the record's readable name only when the scripting layer knows it at that moment, so the id
+// printed at load (before the other mod made its record) and the id printed from the spawned person differed for the same record.
+test('a record is compared by its id (hash and length), whatever readable name the game printed with it at load or later', () => {
+  lua(`
+    -- At load the scripting layer cannot name a record another mod creates later; from the spawned person it can.
+    local service = customApi.new({read = function() return text end, decode = function(raw) return json.decode(raw) end,
+      hash = function(record)
+        if record == 'Custom_MM_Character.rebecca' then return 'ToTweakDBID{ hash = 0x1A2B3C4D, length = 27 }' end
+        return 'ToTweakDBID{ hash = 0x99999999, length = 14 --[[ ' .. record .. ' --]] }'
+      end, prefixes = {'NCA.'}, enabled = function() return true end, clock = function() return clock end})
+    text = listing({{key = 'custom-becca-aaaa', name = 'Becca', gender = 'female', records = {'Custom_MM_Character.rebecca'}, names = {}}})
+    service.refresh(true)
+    local function key(actor) local entry = service.match(actor); return entry and entry.key end
+    assert(key({record = 'ToTweakDBID{ hash = 0x1A2B3C4D, length = 27 --[[ Custom_MM_Character.rebecca --]] }', name = 'NC Resident'}) == 'custom-becca-aaaa',
+      'the spawned person, printed with the readable name')
+    assert(key({record = 'ToTweakDBID{ hash = 0x1a2b3c4d, length = 27 }', name = 'NC Resident'}) == 'custom-becca-aaaa', 'printed without it, any case of hex')
+    assert(key({record = 'ToTweakDBID{ hash = 0x1A2B3C4D, length = 28 }', name = 'NC Resident'}) == nil, 'another length is another record')
+    assert(key({record = 'ToTweakDBID{ hash = 0x1A2B3C4E, length = 27 }', name = 'NC Resident'}) == nil, 'another hash is another record')
+    -- The readable record name of the facts (the roster's second lookup) finds her too.
+    assert(key({record = 'ToTweakDBID{ hash = 0x00000001, length = 3 }', name = 'X', facts = {recordName = 'Custom_MM_Character.rebecca'}}) == 'custom-becca-aaaa')
+    assert(customApi.idKey('ToTweakDBID{ hash = 0xABCDEF01, length = 12 --[[ Character.Judy --]] }') == '0xabcdef01:12')
+    assert(customApi.idKey('Character.Judy') == 'Character.Judy' and customApi.idKey(nil) == nil)
+  `);
+});
+
+test('a spawned copy is matched the same on every spawn: the answer depends on the record and name only, never on a cache or the look', () => {
+  lua(`
+    text = listing({rebecca}); local service = newService(); service.refresh(true)
+    local archetypes = catalogApi.buildArchetypes(catalogApi.ARCHETYPES)
+    local catalog = catalogApi.build({{key = 'resident-female', name = 'Night City Resident Female'}}, archetypes)
+    catalog.custom = service
+    -- Ten copies spawned from the same entry of a spawn menu: other looks, a name the spawner may set late; an earlier "not her" answer
+    -- for somebody else changes nothing for the next look at any of them.
+    assert(catalogApi.resolve(catalog, {name = 'NC Resident', record = '<Character.Other>', spawned = true, crowd = false,
+      facts = {bodyType = 'WomanAverage', human = true}}) ~= 'custom-rebecca-k3j9')
+    for copy = 1, 10 do
+      local key = catalogApi.resolve(catalog, {name = copy % 2 == 0 and 'Rebecca' or 'NC Resident', record = '<Character.Rebecca>', spawned = true,
+        crowd = false, appearance = 'look_' .. copy, facts = {bodyType = 'WomanAverage', human = true}})
+      assert(key == 'custom-rebecca-k3j9', 'copy ' .. copy .. ': ' .. tostring(key))
+    end
+  `);
+});
