@@ -1,3 +1,5 @@
+-- Start-up clock (probe.log "Start-up:" lines): when this file began, then the load, onInit and title-screen figures. A global, so no local slot.
+pcall(function() convaiBoot = {t0 = os.clock(), frames = 0, worst = 0, total = 0} end)
 -- AI NPC Cyberpunk Mod game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
 -- probe.log and mcm.log are appended for ever (many thousands of lines over weeks of play): once per load, before the native core takes over io,
@@ -5920,6 +5922,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
 end
 
 registerForEvent('onInit', function()
+    local initStart = os.clock()
     -- The native core plugin's classes are bound by now, not when init.lua first ran.
     if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onInit') end
     -- Development switch for the ordinary-NPC face comparison (runtime/crowd-face-mode.txt, docs/FACIAL_ANIMATION.md). Once per
@@ -6099,6 +6102,8 @@ registerForEvent('onInit', function()
         worldSuspended = false
     end)
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
+    convaiBoot.init = os.clock()
+    log(string.format('Start-up: onInit ran in %.0f ms, %.1f s after init.lua began', (convaiBoot.init - initStart) * 1000, convaiBoot.init - convaiBoot.t0))
     -- Requests are one-shot commands. A CET reload must not replay a spawn or
     -- other game mutation left in the request file by an earlier session.
     local request = io.open('runtime/diagnostic-request.txt', 'rb')
@@ -6227,7 +6232,15 @@ registerForEvent('onUpdate', function(delta)
         if not knowledgeInvalidated then invalidateKnowledge('world unavailable') end
         -- No world (the main menu, a loading screen): the manager's page still has to answer its buttons here. The Settings page and the
         -- rest of the Mods screen work without a save; one quarter-second slow tick and a few comparisons, never in gameplay.
+        local titleStart = os.clock()
         local titleOk, titleError = pcall(managerUi.update, nil, false)
+        -- What the mod spent in the title and loading frames (reported with the first world frame, below): the count, the worst, the sum.
+        local boot = convaiBoot
+        if boot and not boot.reported then
+            local spent = os.clock() - titleStart
+            boot.frames, boot.total = boot.frames + 1, boot.total + spent
+            if spent > boot.worst then boot.worst, boot.worstAt = spent, os.clock() - boot.t0 end
+        end
         if not titleOk and convaiHeartbeat.titleManagerError ~= tostring(titleError) then
             convaiHeartbeat.titleManagerError = tostring(titleError)
             log('Manager update failed without a world: ' .. tostring(titleError))
@@ -6235,6 +6248,12 @@ registerForEvent('onUpdate', function(delta)
         return
     end
     if fastTravelActive and fastTravelActive.finished then fastTravelActive=nil end
+    local boot = convaiBoot
+    if boot and not boot.reported then
+        boot.reported = true
+        log(string.format('Start-up: first world frame %.1f s after init.lua began (onInit at %.1f s); %d title frames, the mod used %.1f ms in them, worst %.2f ms at %.1f s',
+            os.clock() - boot.t0, (boot.init or boot.t0) - boot.t0, boot.frames, boot.total * 1000, boot.worst * 1000, boot.worstAt or 0))
+    end
     sessionHasState = true
     knowledgeAllowed, knowledgeInvalidated = true, false
     mark('init:knowledge')
@@ -6815,6 +6834,9 @@ registerForEvent('onShutdown', function()
     -- (deliverables/perf/LUA_HEAP.md). Nothing runs after onShutdown, so nothing else changes.
     if type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.uninstall) == 'function' then pcall(convaiPerfProbe.uninstall) end
 end)
+
+convaiBoot.loaded = os.clock()
+log(string.format('Start-up: init.lua loaded in %.0f ms', (convaiBoot.loaded - convaiBoot.t0) * 1000))
 
 -- GetMod('AiNpcCyberpunkMod') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).
 return {addons = convaiAddons and convaiAddons.public or nil}
