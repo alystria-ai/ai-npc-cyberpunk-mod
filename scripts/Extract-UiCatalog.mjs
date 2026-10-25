@@ -297,7 +297,7 @@ const reviewed = {
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.",
     "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).",
     'Write a message...  /  Enter to send  /  Esc to stop typing',
-    'Press Enter to write  /  Esc to stop typing',
+    'Press Enter to write  /  Esc to close',
   ],
   'world.conversation': ['Player unavailable', 'Face a nearby character to talk.', 'Type your message to the character.'],
   'phone.native-feedback': [

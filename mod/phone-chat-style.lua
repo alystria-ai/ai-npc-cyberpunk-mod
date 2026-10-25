@@ -339,7 +339,7 @@ function M.input(input)
     M.fontDirty = true
     input:SetDefaultText(text(input:IsFocused()
         and 'Write a message...  /  Enter to send  /  Esc to stop typing'
-        or 'Press Enter to write  /  Esc to stop typing'))
+        or 'Press Enter to write  /  Esc to close'))
     local text = find(root, 'text', 4)
     if text and text:GetController() then M.inputText(text:GetController()) end
 end
