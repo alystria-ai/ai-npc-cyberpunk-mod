@@ -287,8 +287,7 @@ nearest point that passes 1, 2 and 4; if even that fails the appointment fails w
 
 ### Car arrival
 
-Requested when the setting is Car, the character drives (`companion-vehicle-catalog.lua` `drives()`; Alt Cunningham never does) and
-the cap of simultaneously driving visitors (3) is not reached. Otherwise Walk, with a log line.
+Requested when the setting is Car and the cap of simultaneously driving visitors (3) is not reached (everyone drives, Alt Cunningham included: she gets the fallback car). Otherwise Walk, with a log line.
 
 * **Road end point R** (where the car stops):
   * destination = V's place: `Game.GetScriptableSystemsContainer()` -> `PreventionSpawnSystem:GetNearestRoadFromPlayerInfo()` gives
@@ -403,7 +402,7 @@ At `tWaitEnd` (and not held, and V not met):
   seat, V enters a passenger seat, the trip runs, the same cancel and interruption rules. If her car is farther than 25 m the offer
   is unavailable with a new reason code (`her-car-distant`) and the text-route character can say where she left it (the registry's
   place text). Fetching the car to V is a possible later step, not part of the first build.
-* **Passenger-only** (Alt Cunningham) never gets a car; **Johnny and others with a personal car** use the catalog car
+* **Everyone can drive**, Alt Cunningham included (she has no car record, so she gets the fallback car). **Johnny and others with a personal car** use the catalog car
   (`preferred`), everyone else the fallback.
 
 ## Persistence and save/load
