@@ -5695,6 +5695,8 @@ function convaiOutfitModule()
         busy = function(row) return companions.outfitBusy(row.serial) end,
         -- The game's own "could be seen" test, with the margins its reaction and vehicle code uses for it.
         frustum = function(npc) return Game.GetCameraSystem():IsInCameraFrustum(npc, 2.0, 0.75) end,
+        -- A wall between V's eyes and her (the same line-of-sight test the invitation spot search uses): true hidden, false visible, nil cannot say.
+        hidden = function(npc) return companions.hiddenFromPlayer(npc:GetWorldPosition()) end,
         angle = function(npc, who)
             local forward = Game.GetCameraSystem():GetActiveCameraForward()
             local a, b = who:GetWorldPosition(), npc:GetWorldPosition()

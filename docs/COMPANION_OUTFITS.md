@@ -54,7 +54,7 @@ it also shows names that only its own archives add, which the installed game doe
 meshes of the looks that were chosen were checked in the `.app` files (a look whose only clothes are underwear, a bloody jacket, a prostitute outfit, an accessory
 removed from the character's signature look: left out; the rule is in the file's header and enforced by `bridge/companion-outfits.test.mjs`).
 
-**Unseen first.** A change starts only after the copy has been out of view for 20 real seconds in a row (`UNSEEN_S`; a glance back starts the count again). While a copy
+**Unseen first.** A change starts only after the copy has been out of view for 5 real seconds in a row (`UNSEEN_S`, 5 s since the owner's live test; a glance back starts the count again; a wall between V and her counts as out of view even when the camera cone says seen, `outfit-seen wall`). While a copy
 waits for the camera to look away it is looked at every 5 s (`LOOK_S`, one view read per waiting copy; the 20 s party check is unchanged and so is how often random
 changes are rolled: once per game hour, 30 %). "Out of view" is the game's frustum test, and also any copy more than 85 degrees off the camera's direction: the frustum
 test is called with wide margins (2.0, 0.75) and says nothing about walls, so in a small flat it can keep saying "may be seen" for a copy beside or behind V. A variety

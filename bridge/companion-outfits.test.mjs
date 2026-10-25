@@ -116,7 +116,7 @@ dofile = function(name)
   assert(name == 'companion-outfits-data.lua', name)
   return (function() ${dataSource} end)()
 end
-local f = {enabled = true, world = nil, busy = {}, seen = false, angle = nil, place = nil, failPrefetch = false, failApply = false, applyTakes = true, rolls = {}}
+local f = {enabled = true, world = nil, busy = {}, seen = false, hidden = nil, angle = nil, place = nil, failPrefetch = false, failApply = false, applyTakes = true, rolls = {}}
 local worn, rowsList, logs, calls = {}, {}, {}, {rows = 0, hours = 0, world = 0, prefetch = {}, apply = {}, remember = {}, busy = 0, frustum = 0, place = 0}
 outfits.deps = {
   enabled = function() return f.enabled end,
@@ -139,6 +139,7 @@ outfits.deps = {
   world = function() calls.world = calls.world + 1; return f.world end,
   busy = function(row) calls.busy = calls.busy + 1; return f.busy[row.serial] end,
   frustum = function() calls.frustum = calls.frustum + 1; return f.seen end,
+  hidden = function() return f.hidden end,
   angle = function() return f.angle end,
   random = function() if #f.rolls > 0 then return table.remove(f.rolls, 1) end return 0 end,
   log = function(line) logs[#logs + 1] = line end,
@@ -151,7 +152,7 @@ local function logged(text) for _, line in ipairs(logs) do if line:find(text, 1,
 -- One check: the tick is given a step as long as the wait, so exactly one cycle runs.
 local function cycle(seconds) clock = clock + (seconds or 20); outfits.tick({}, seconds or 20, true) end
 local function at(day, hour) hours = day * 24 + hour end
--- A change needs her out of view for UNSEEN_S (20 s): the first look starts the count, the next one 20 s later starts the change.
+-- A change needs her out of view for UNSEEN_S (5 s): the first look starts the count, a look 5 s or more later starts the change.
 local function unseen() cycle(); cycle(20) end
 local function count(list) return #list end
 `;
@@ -193,6 +194,14 @@ test('the decision: day and night, required and variety, home, bad looks, and a 
   end
 `));
 
+test('a wall between V and her counts as out of view even when the camera cone says seen, and an unreadable wall test changes nothing', () => runWith(`${fixture}
+  member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
+  local ok, why
+  f.seen = true; f.hidden = nil;   ok, why = outfits.inView(rowsList[1], {}); assert(ok == true and why == 'frustum', 'wall test cannot say: still seen')
+  f.hidden = false;                ok, why = outfits.inView(rowsList[1], {}); assert(ok == true and why == 'frustum', 'no wall: seen')
+  f.hidden = true;                 ok, why = outfits.inView(rowsList[1], {}); assert(ok == false and why == 'wall', 'a wall hides her')
+`))
+
 test('a change waits until nobody is looking, then loads, schedules and is read back; the copy is then flagged as changed', () => runWith(`${fixture}
   member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
   at(3, 17); cycle()                                   -- first look: sets the hour, no change due (it is a day look at 17:00)
@@ -201,14 +210,13 @@ test('a change waits until nobody is looking, then loads, schedules and is read 
   assert(#calls.prefetch == 0 and #calls.apply == 0, 'nothing happens in view')
   assert(logged('waiting until nobody is looking'))
   assert(calls.frustum >= 1)
-  f.seen = false; cycle()                              -- out of view: the count of unseen seconds starts
+  f.seen = false; cycle(5)                             -- out of view: the count of unseen seconds starts (a waiting copy is looked at every LOOK_S = 5 s)
   assert(#calls.prefetch == 0 and logged('outfit-unseen 0'), 'not yet')
-  cycle(10); assert(#calls.prefetch == 0, 'ten seconds are not enough')
   f.seen = true; cycle(5); assert(#calls.prefetch == 0 and logged('outfit-seen frustum'), 'a glance back starts the count again')
-  f.seen = false; cycle(); cycle(15); assert(#calls.prefetch == 0, '15 s unseen: not yet')
-  cycle(5)                                             -- 20 s unseen: the look is loaded first
+  f.seen = false; cycle(5); assert(#calls.prefetch == 0, 'the count starts again: not yet')
+  cycle(5)                                             -- 5 s unseen: the look is loaded first
   assert(#calls.prefetch == 1 and calls.prefetch[1] == '1:panam_default' and #calls.apply == 0)
-  assert(logged('outfit-unseen 20') and logged('outfit-change-start panam_default'))
+  assert(logged('outfit-unseen 5') and logged('outfit-change-start panam_default'))
   assert(outfits.snapshot()[1].staged == 'panam_default')
   cycle(1.0)                                           -- a second later: still unseen, scheduled
   assert(#calls.apply == 1 and calls.apply[1] == '1:panam_default' and outfits.snapshot()[1].pending == 'panam_default')

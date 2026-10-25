@@ -31,7 +31,7 @@ M.deps = nil
 M.data = nil
 
 local CHECK_S = 20          -- real seconds between looks at the party
-local UNSEEN_S = 20         -- real seconds a copy must stay out of view before a change starts (a glance back starts the count again)
+local UNSEEN_S = 5         -- real seconds a copy must stay out of view before a change starts (a glance back starts the count again)
 local LOOK_S = 5            -- real seconds between looks at a copy that waits for the camera to look away (one view read per waiting copy)
 local WANT_S = 600          -- a variety change that waited this long for the camera to look away is dropped
 local STAGE_S = 1.0         -- real seconds between the prefetch and the change, and between read-backs
@@ -220,6 +220,11 @@ function M.inView(row, player)
             -- Clearly off the camera's direction counts as out of view.
             local okAngle, angle = pcall(deps.angle, row.npc, player)
             if okAngle and type(angle) == 'number' and angle >= FAR_OFF_DEG then return false, 'angle' end
+        end
+        if seen and deps.hidden then
+            -- The frustum is a cone with no walls: a copy in the next room is inside it. A wall between V's eyes and her hides her.
+            local okHidden, hidden = pcall(deps.hidden, row.npc)
+            if okHidden and hidden == true then return false, 'wall' end
         end
         return seen, seen and 'frustum' or 'clear'
     end
