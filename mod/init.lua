@@ -1453,6 +1453,24 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     end}) or nil
 convaiGameDialogue = gameDialogue
 
+-- Music and TV, the song (mod/media-song.lua): the game's own song-change events, cached for mod/media-context.lua. Loaded and hooked only
+-- while the switch is on: at start (onInit) when it is on then, else the first time a turn is built with it on. Once hooked, a callback with
+-- the switch off returns after one boolean read. A failed load is not retried. Globals: the main chunk is near Lua's limit of locals.
+convaiMediaSongInstall = function()
+    if convaiMediaSong ~= nil then return end
+    if manager.dynamicInfo ~= nil and not manager.dynamicInfo('media') then return end
+    local loaded, module = pcall(dofile, 'media-song.lua')
+    if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
+        convaiMediaSong = false
+        convaiLogOnce('media-song-load', 'Media song: not loaded: ' .. tostring(module))
+        return
+    end
+    convaiMediaSong = module.new({observe = ObserveAfter, wanted = function() return manager.dynamicInfo == nil or manager.dynamicInfo('media') end})
+    local hooked = convaiMediaSong:install()
+    -- convaiLogLine, not log: this runs before the local log is defined in the chunk.
+    if convaiLogLine then convaiLogLine('Media song: ' .. tostring(hooked) .. ' of ' .. #module.HOOKS .. ' song events hooked') end
+end
+
 -- Witness receipts (docs/QUEST_DECISIONS.md 4.3): on unless settings.witnessReceipts is turned off. When a world scan sees a quest fact or journal entry
 -- change, who stood within 15 m is written to runtime/witness-receipts.json. One boolean check per scan; optional like the modules above.
 do
@@ -1518,6 +1536,7 @@ do
         -- Music and TV, and other mods' state (Settings > Dynamic info): the readers are loaded the first time a turn is built with their switch on,
         -- so nothing is loaded while a switch is off or the module is absent. Each answers a plain table or nothing (mod/media-context.lua, mod/mod-state.lua).
         media = function(player)
+            if convaiMediaSong == nil then convaiMediaSongInstall() end
             if convaiMediaContext == nil then
                 local loaded, module = pcall(dofile, 'media-context.lua')
                 convaiMediaContext = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
@@ -5865,6 +5884,8 @@ registerForEvent('onInit', function()
         if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
     end
     convaiGuarded('Subtitle hooks', subtitles.install)
+    -- Music and TV: the song-change events, only with the switch on (convaiMediaSongInstall; with it off nothing is loaded or hooked).
+    convaiGuarded('Media song hooks', convaiMediaSongInstall)
     -- Free look while V sits (docs/COMPANION_SEATING.md): one Observe pair on
     -- the player's Workspot state; widens the camera limits once per sit.
     local lookLoaded, lookResult, lookReason = pcall(function()

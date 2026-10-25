@@ -510,6 +510,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-context.lua"
     },
     {
+      "source": "mod/media-song.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-song.lua"
+    },
+    {
       "source": "mod/media-probe.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-probe.lua"
     },

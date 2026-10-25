@@ -4,7 +4,8 @@
 -- conversation turn at most once per 5 s snapshot and never per frame; it has no timer, hook, observer, file or cache of its own.
 -- Every native call is guarded (a missing or changed game API drops that field, never the turn) and one turn reads at most a handful of natives:
 --   in a vehicle   the car receiver: IsRadioReceiverActive, then the station and track names (and the station index only as a fallback)
---   on foot        the pocket radio (IsActive, then the same), then one look-at read; and when that finds no TV, one targeting query
+--   on foot        the pocket radio (IsActive, then the same), then one look-at read, then the TV that last spoke by its ID (one
+--                  FindEntityByID), and when those find no TV, one targeting query
 -- Everything below is VERIFIED to exist in the game's script caches (2.5 and 2.31) but NOT yet to answer through CET, nor what the values look like:
 -- the station and track are localisation keys (CNames) that the game's own now-playing toast runs through GetLocalizedTextByKey. So each one is
 -- resolved with Game.GetLocalizedTextByKey and then Game.GetLocalizedText, a result that is empty, equal to the key or still a LocKey is rejected,
@@ -16,6 +17,7 @@
 --   {radio = {source = 'car' | 'pocket', station = <text>, track = <text>}, tv = {channel = <text>, said = <the last line a TV said>}}
 local M = {}
 M.TV_RADIUS, M.QUERY_PARTS, M.TV_CANDIDATES = 12, 400, 6   -- metres, targeting parts looked at, TVs asked whether they are on
+M.TV_MEMORY = 1800                    -- seconds: a TV that spoke this long ago is still looked up by its ID (it must still be near and on)
 M.SAID_AGE, M.HEARD_AGE = 90, 20      -- seconds: a TV line this young is "just said"; a TV line alone (no TV located) counts this long
 M.MAX_TEXT, M.MAX_LOGS = 120, 200
 
@@ -37,6 +39,16 @@ local function nameText(value)
     return nil
 end
 M.nameText = nameText
+
+-- A CName's hash as hex, or nil (a string, a None name, or no hash to read). The song's CName is real but its text is not in CET's name pool,
+-- so nameText gives '' for it (the live pass of 2026-10-25: trackWhy=none: with nothing after it); the game localises it by this hash.
+local function nameHash(value)
+    if value == nil or type(value) == 'string' then return nil end
+    local ok, hi, lo = pcall(function() return value.hash_hi, value.hash_lo end)
+    if not ok or type(hi) ~= 'number' or type(lo) ~= 'number' or (hi == 0 and lo == 0) then return nil end
+    return string.format('%08x%08x', hi, lo)
+end
+M.nameHash = nameHash
 
 local function clean(value, limit)
     if type(value) ~= 'string' then return nil end
@@ -182,6 +194,21 @@ local function nativeAdapter()
         return record and record:LocalizedName()
     end
     -- The last thing a TV said, from the ring mod/game-dialogue.lua keeps (empty unless the Music and TV switch is on).
+    -- The TV a TV line came from (its subtitle's speaker, kept by mod/game-dialogue.lua beside the line ring): the entity ID, the line's age and
+    -- the speaker's class. The targeting query does not list a TV at all (live 2026-10-25: parts=13 objects=3 seen=NPCPuppet:2,GenericDevice:1
+    -- beside a TV that was on and talking), so a TV that spoke this session is found by its ID instead.
+    function N.tvHeard(maxAge)
+        local dialogue = convaiGameDialogue
+        if type(dialogue) == 'table' and type(dialogue.heardTv) == 'function' then return dialogue:heardTv(maxAge) end
+        return nil
+    end
+    function N.entityById(id) return Game.FindEntityByID(id) end
+    -- The song from the game's own song-change events (mod/media-song.lua, installed by init.lua only while the switch is on).
+    function N.cachedSong(stationKey)
+        local songs = convaiMediaSong
+        if type(songs) == 'table' and type(songs.song) == 'function' then return songs:song(stationKey) end
+        return nil, 'event:off'
+    end
     function N.tvLine(maxAge)
         local dialogue = convaiGameDialogue
         if type(dialogue) == 'table' and type(dialogue.heardMedia) == 'function' then return dialogue:heardMedia(maxAge) end
@@ -216,7 +243,16 @@ function Instance:resolve(value)
     if value == nil then return nil end
     local N = self.native
     local raw = nameText(value)
-    if raw == nil or raw == '' or raw == 'None' then return nil end
+    if raw == 'None' then return nil end
+    if raw == nil or raw == '' then
+        -- A CName whose text CET does not know (a song's): still a key the game localises by its hash, as its own now-playing toast does.
+        local hash = nameHash(value)
+        if hash == nil then return nil end
+        raw = '#' .. hash
+        local byHash = readable(call(N.localizeKey, value), raw)
+        if byHash then return {raw = raw, text = byHash, via = 'ByKey'} end
+        return {raw = raw, via = 'unresolved'}
+    end
     local text = readable(call(N.localizeKey, value), raw)
     if text then return {raw = raw, text = text, via = 'ByKey'} end
     text = readable(call(N.localizeText, raw), raw)
@@ -238,15 +274,31 @@ function Instance:stationByIndex(index)
 end
 
 -- The song: the receiver's own track name; when that gives nothing (the live pass of 2026-10-25 read the station but never the track from either
--- radio), the station's current track by its index. `detail.trackWhy` says how it went (raised, nothing, or the first read's answer) for probe.log.
-function Instance:track(detail, holder, read, readIndex)
+-- radio), the station's current track by its index, then the song the game's own song-change event carried (mod/media-song.lua) while it is
+-- still the tuned station's and young. `detail.trackWhy` says, in codes for probe.log, how each route went: the first read (raised, nil,
+-- None, a name, or `unnamed` for a CName with a hash and no text), then the event cache (event:off, none, empty, old, otherStation, unresolved).
+function Instance:track(detail, holder, read, readIndex, station)
     local N = self.native
     local ok, value = pcall(read, holder)
     local found = ok and self:resolve(value) or nil
     if found and found.text then return found end
-    detail.trackWhy = ok and ('none:' .. tostring(value == nil and 'nil' or nameText(value))) or ('error:' .. tostring(value):sub(1, 60))
+    local first
+    if not ok then first = 'error:' .. tostring(value):sub(1, 60)
+    elseif value == nil then first = 'none:nil'
+    elseif found then first = 'none:' .. tostring(found.raw)
+    else
+        local name = nameText(value)
+        first = 'none:' .. ((name == nil or name == '') and 'unnamed' or name)
+    end
     local byIndex = self:resolve(call(N.trackByIndex, call(readIndex, holder)))
     if byIndex and byIndex.text then byIndex.via = 'index/' .. byIndex.via; return byIndex end
+    local song, why = call(N.cachedSong, station and station.raw or nil)
+    if song ~= nil then
+        local byEvent = self:resolve(song)
+        if byEvent and byEvent.text then byEvent.via = 'event/' .. byEvent.via; return byEvent end
+        why = 'event:unresolved'
+    end
+    detail.trackWhy = first .. ' ' .. tostring(why or 'event:off')
     return found
 end
 
@@ -259,7 +311,8 @@ function Instance:radio(player, detail)
         detail.radio = 'car'
         local active = call(N.carActive, vehicle)
         if active ~= true then detail.radio = active == false and 'car:inactive' or 'car:unknown'; return nil, true end
-        local station, track = self:resolve(call(N.carStation, vehicle)), self:track(detail, vehicle, N.carTrack, N.carIndex)
+        local station = self:resolve(call(N.carStation, vehicle))
+        local track = self:track(detail, vehicle, N.carTrack, N.carIndex, station)
         if not (station and station.text) then station = self:stationByIndex(call(N.carIndex, vehicle)) or station end
         detail.station, detail.track = station, track
         if not ((station and station.text) or (track and track.text)) then detail.radio = 'car:unresolved'; return nil, true end
@@ -270,14 +323,16 @@ function Instance:radio(player, detail)
     detail.radio = 'pocket'
     local active = call(N.pocketActive, radio)
     if active ~= true then detail.radio = active == false and 'pocket:inactive' or 'pocket:unknown'; return nil, false end
-    local station, track = self:resolve(call(N.pocketStation, radio)), self:track(detail, radio, N.pocketTrack, N.pocketIndex)
+    local station = self:resolve(call(N.pocketStation, radio))
+    local track = self:track(detail, radio, N.pocketTrack, N.pocketIndex, station)
     if not (station and station.text) then station = self:stationByIndex(call(N.pocketIndex, radio)) or station end
     detail.station, detail.track = station, track
     if not ((station and station.text) or (track and track.text)) then detail.radio = 'pocket:unresolved'; return nil, false end
     return {source = 'pocket', station = station and station.text, track = track and track.text}, false
 end
 
--- The nearest TV that is on within TV_RADIUS: the one V looks at, else the nearest of one targeting query. Returns the entity, its state and distance.
+-- The nearest TV that is on within TV_RADIUS: the one V looks at, else the TV that last spoke (remembered from its
+-- subtitle), else the nearest of one targeting query. Returns the entity, its state and distance.
 function Instance:findTv(player, detail)
     local N = self.native
     local function consider(entity)
@@ -292,6 +347,18 @@ function Instance:findTv(player, detail)
         local state, distance = consider(looked)
         if state then detail.tv = 'lookat'; return looked, state, distance end
         detail.lookedOff = true
+    end
+    -- The TV that last spoke (its subtitle's speaker): one FindEntityByID, no search. It must still be near and on.
+    local heardId, _, speakerClass = call(N.tvHeard, M.TV_MEMORY)
+    detail.speaker = speakerClass
+    if heardId ~= nil then
+        local entity = call(N.entityById, heardId)
+        if entity == nil then detail.heardTv = 'gone'
+        else
+            local state, distance = consider(entity)
+            if state then detail.tv = 'speaker'; return entity, state, distance end
+            detail.heardTv = 'farOrOff'
+        end
     end
     local list, stats = call(N.tvQuery, player, M.TV_RADIUS, M.QUERY_PARTS)
     detail.queried = type(list) == 'table' and #list or -1
@@ -327,6 +394,9 @@ local function whyNone(detail)
     if detail.far and detail.far > 0 then bits[#bits + 1] = 'beyondRadius=' .. detail.far end
     if detail.off and detail.off > 0 then bits[#bits + 1] = 'notOn=' .. detail.off end
     if detail.lookedOff then bits[#bits + 1] = 'lookedAtTvNotOn' end
+    -- The TV remembered from its subtitle: gone (no longer in the world) or farOrOff; and what spoke the last TV line (a class, or none).
+    if detail.heardTv then bits[#bits + 1] = 'heardTv=' .. detail.heardTv end
+    if detail.speaker then bits[#bits + 1] = 'tvSpeaker=' .. tostring(detail.speaker) end
     return #bits > 0 and table.concat(bits, ' ') or nil
 end
 
@@ -341,7 +411,7 @@ function Instance:tv(player, detail)
     if not entity then
         -- No TV located, but one just spoke and its subtitle only shows near V.
         local recent = heard(M.HEARD_AGE)
-        if recent then detail.tv, detail.said = 'heard', true; return {said = recent} end
+        if recent then detail.tv, detail.said, detail.why = 'heard', true, whyNone(detail); return {said = recent} end
         local queried = detail.queried
         detail.tv = 'none(' .. (queried == nil and 'no query' or queried < 0 and 'query failed' or ('query found ' .. queried .. ' TVs')) .. ')'
         detail.why = whyNone(detail)
