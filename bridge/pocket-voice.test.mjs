@@ -2,7 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough, Writable} from 'node:stream';
-import {resolve} from 'node:path';
+import {resolve, join} from 'node:path';
+import {mkdtempSync, mkdirSync, symlinkSync, realpathSync, rmSync, rmdirSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {PocketVoice, validatePocketConfig, POCKET_LIMITS,
   POCKET_SOURCE_REVISION, POCKET_SOURCE_SHA256} from './pocket-voice.mjs';
 
@@ -75,6 +77,19 @@ test('starts one hidden CPU worker and attests every selected asset before readi
   assert.equal(h.client.loaded,true);assert.equal(h.client.profileReady(profile),false);
   assert.equal(h.states.at(-1).engine,'pocket-tts');assert.equal(h.states.at(-1).gpuVramBytes,0);
   await h.close();assert.equal(h.child.stdin.writableEnded,true);assert.equal(h.client.loaded,false);
+});
+
+test('a Runtime behind a junction or symlink above its folders starts: the worker reports the real places, and the bridge compares real places',async t=>{
+  const base=realpathSync.native(mkdtempSync(join(tmpdir(),'pocket-link-'))),real=join(base,'real'),library=join(base,'library');
+  const fields=['sourceDirectory','exportDirectory','referenceDirectory','workDirectory'];
+  for (const key of fields) mkdirSync(join(real,key),{recursive:true});
+  try { symlinkSync(real,library,'junction'); } catch (error) { rmSync(base,{recursive:true,force:true}); return t.skip(`directory links are not available here: ${error.code}`); }
+  try {
+    const settings={...config(),runtime:Object.fromEntries(fields.map(key=>[key,join(library,key)]))};
+    const h=harness({autoReady:false,settings});const starting=h.client.start();await tick();
+    h.ready({workerPaths:Object.fromEntries(fields.map(key=>[key,join(real,key)]))});await starting;
+    assert.equal(h.client.loaded,true);await h.close();
+  } finally { try { rmdirSync(library); } catch {} rmSync(base,{recursive:true,force:true}); }
 });
 
 test('a worker that cannot start says why in its fatal frame: the failure keeps the reason, cut short and without control characters',async()=>{

@@ -702,11 +702,16 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
     of its own, outside the Runtime's folder. A player on MO2 (0.2.4, same code in 0.2.5) got no voice at all: Pocket "export asset is missing
     or linked", OmniVoice "Portable voice assets must remain in the application directory". Now, when `CYBERPUNK_CONVAI_USVFS=1`
     (every process the service starts under MO2), both workers compare the paths as spelled (absolute, `..` collapsed, never resolved) and
-    still refuse a symlink or junction in any component; the pinned SHA-256 checks read the real bytes as before. The OmniVoice worker also
+    still refuse a symlink or junction inside the Runtime's `app` folder; the pinned SHA-256 checks read the real bytes as before. The OmniVoice worker also
     takes the pack's own folder as a second approved root for its model, adapter and Python package: `start-service.mjs` names it in
     `CYBERPUNK_CONVAI_OMNI_PACK` (`serviceEnvironment(..., {usvfs})`; only under usvfs), and the persistent voice data must stay apart from it too.
-    A physical install sets neither variable and every check is as before. Tests: `scripts/test_pocket_voice_runtime.py` (`UsvfsPaths`),
-    `scripts/test_resident_voice_paths.py` (`UsvfsVoicePaths`), `packaging/mo2-voice-workers.test.mjs`. The phone-analysis worker is unchanged: nothing in the
+    A physical install sets neither variable and every check is as before. **Links above the `app` folder are accepted** (a junctioned Steam
+    library, a moved Documents, OneDrive, MO2, the Runtime root itself): both workers find the resolved `app` folder and refuse only a link
+    below it (model folders, packages, Python, the OmniVoice source), a link that leaves it, or a link from outside that leads into it. The player's
+    data folders (outside `app`) may sit behind a link but must not themselves be one. Pocket's message names a link inside the app folder as
+    "linked directories inside the app folder (junction, N folders above it)"; OmniVoice's is "Linked directories inside the application directory
+    are not supported". The portable worker still refuses an OmniVoice package outside the pack. Tests: `scripts/test_pocket_voice_runtime.py` (`UsvfsPaths`),
+    `scripts/test_resident_voice_paths.py` (`UsvfsVoicePaths`, `AppLinks`), `scripts/test_pocket_voice_runtime.py` (`AppLinks`), `packaging/mo2-voice-workers.test.mjs`, `bridge/pocket-voice.test.mjs`. The phone-analysis worker is unchanged: nothing in the
     player install writes its `phone-analysis.json`, so it is not started for players.
   - **Where the files were found** is in the service log (`Mod Organizer 2: Local AI pack files, where each really is (...)`: one line per marker,
     model, the server with whether its DLLs are beside it, the embedding model) and in the support report's `localAi.packFiles` (`foundIn`: the MO2
