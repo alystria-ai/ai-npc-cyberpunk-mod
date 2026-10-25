@@ -31,7 +31,7 @@ Mods screen (Esc > Mods)
  +-- tab "AI NPC Cyberpunk Mod"            id aiNpcCyberpunkMod; one tab for the whole manager
       +-- section "Companion Manager"      first section of every page, kept when the page changes
       |     Home:         Characters to invite, Current party, Model browser, Character editor,   (button "Open")
-      |                   Settings
+      |                   Key bindings, Settings
       |     other pages:  the Back row at the TOP                                         (button "Back")
       |     then, only when there is something to say: one feedback line
       +-- the sections of the page that is open (table below)
@@ -39,7 +39,8 @@ Mods screen (Esc > Mods)
 
 | Page | Back goes to | Sections |
 | --- | --- | --- |
-| Home | none | none: the five destinations are the page (the fourth, Character editor, above Settings, opens the browser at once and has no page) |
+| Home | none | none: the six destinations are the page (the fourth, Character editor, opens the browser at once and has no page; Key bindings sits between it and Settings) |
+| Key bindings | Home | one section for each of the five actions (the key set here, the key set in Cyber Engine Tweaks, Set, Clear), Controller (`docs/KEY_BINDINGS.md`) |
 | Characters to invite | Home | Characters to invite |
 | Current party | Home | Your group (only while a companion drives), Current party |
 | Model browser | Home | Installed character models |
@@ -72,8 +73,10 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 
 ## Player flow
 
-- **Home:** five destinations: Characters to invite, Current party, Model browser, Settings, Character editor. The first four move to a page
-  of the manager. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
+- **Home:** six destinations: Characters to invite, Current party, Model browser, Character editor, Key bindings, Settings (2026-10-25: Key bindings between the
+  Character editor and Settings). All but the Character editor move to a page of the manager.
+  **Key bindings** (`docs/KEY_BINDINGS.md`) is where the player gives the mod's own actions a key or controller button (Set, then press it; Clear). Set and Clear are
+  actions, applied at once on both hosts (MCM refuses an action while drafts are pending, as for every button); the Controller talk button is the Settings row again. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
   when `mod/character-editor.lua` loaded, and pressing it opens the character editor in the player's browser through the very request of
   Settings > Conversation provider > **Edit characters** (`editor.request()`: one small `runtime/editor-command.json`, nothing polled and
   nothing per frame). The player stays on Home; the result is the line under the way back (NSUI) or the status line (MCM): "Opening the
@@ -228,10 +231,10 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up rarely, `normal` to Speaks up often. The read-only
     "Johnny's standing" line was removed.
 - **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
-  page, the Relationships page and the Dynamic info page it applies every saved row of all three pages that is not at
-  its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits), then says
-  "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says "Open Settings to
-  restore its defaults."
+  page, the Relationships page, the Dynamic info page and the Key bindings page it applies every saved row of all four pages that is not at
+  its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits; the own key bindings are cleared in the same
+  save as one change, `keyBindings:clear`), then says "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says
+  "Open Settings to restore its defaults."
 
 On the bridge side a changed value takes effect at a safe boundary, not mid-reply (README, "How a change applies").
 

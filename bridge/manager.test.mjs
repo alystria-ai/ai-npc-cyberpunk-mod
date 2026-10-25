@@ -433,7 +433,7 @@ test('Current party has no drive initiation and defers active-trip stopping unti
   `);
 });
 
-test('manager home owns the four destinations and every inner page has one parent Back action at the top', () => {
+test('manager home owns the five destinations and every inner page has one parent Back action at the top', () => {
   run(`${nsuiFixture}
     local function category(id)
       for _, item in ipairs(loaded.categories) do if item.id == id then return item end end
@@ -444,7 +444,7 @@ test('manager home owns the four destinations and every inner page has one paren
       assert(loaded.categories[1].id == 'navigation', 'the way back is not the first section')
       local first = loaded.categories[1].settings
       assert(#first == 1 and first[1].id == back and first[1].value == 'Back', 'the first row of ' .. expected .. ' is not its Back')
-      for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+      for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end
       local count = 0
@@ -461,8 +461,8 @@ test('manager home owns the four destinations and every inner page has one paren
         'party status, the limit or the last action leaked onto the page')
     end
     assert(managerUi.inspect().view == 'home' and #loaded.categories == 1)
-    assert(#category('navigation').settings == 4 and not row('party-count'))
-    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+    assert(#category('navigation').settings == 5 and not row('party-count'))
+    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
       local destination = row('tab:' .. name)
       assert(destination and destination.value == 'Open' and not destination.disabled)
       assert(invoke(destination.id).ok)
@@ -6154,20 +6154,20 @@ const homeEditorFixture = (options = {}) => `${nsuiHarness({modules: homeEditorM
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
 `;
 
-test('Home offers the Character editor as the fourth row, above Settings, an action with its own id, and the Settings row stays', () => {
+test('Home offers the Character editor as the fourth row, then Key bindings, above Settings, an action with its own id, and the Settings row stays', () => {
   run(`${homeEditorFixture()}
     assert(managerUi.inspect().view == 'home')
     local nav = loaded.categories[1].settings
-    -- The owner's order: the Character editor sits above Settings, which stays last.
-    assert(#nav == 5 and nav[4].id == 'character-editor:home' and nav[5].id == 'tab:settings', 'five rows, the editor above Settings: ' .. #nav)
+    -- The owner's order: the Character editor, then Key bindings, above Settings, which stays last.
+    assert(#nav == 6 and nav[4].id == 'character-editor:home' and nav[5].id == 'tab:key-bindings' and nav[6].id == 'tab:settings', 'six rows, the editor and Key bindings above Settings: ' .. #nav)
     local open = row('character-editor:home')
     assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
     assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
     assert(open.description:find('Mistral, Local AI and Custom, not Convai', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
-    -- Ids are unique on the page and the four navigations keep theirs.
+    -- Ids are unique on the page and the navigations keep theirs.
     local seen = {}
     for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end
-    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do assert(row('tab:' .. name)) end
+    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do assert(row('tab:' .. name)) end
     -- It is on Home only: an inner page has neither it nor a second Back.
     assert(invoke('tab:settings').ok and not row('character-editor:home'))
     local settingsRow = row('character-editor:open')
@@ -6224,9 +6224,9 @@ test('Home > Character editor says so when the service is stopped or the write f
   `);
 });
 
-test('Home has no Character editor row without the editor module, and the four destinations are as before', () => {
+test('Home has no Character editor row without the editor module, and the other destinations are as before', () => {
   run(`${homeEditorFixture({modules: {'service-status.lua': homeEditorModules['service-status.lua'], 'support-report.lua': homeEditorModules['support-report.lua']}, absent: ['character-editor.lua']})}
-    assert(#loaded.categories[1].settings == 4 and not row('character-editor:home'), 'no row without the module')
+    assert(#loaded.categories[1].settings == 5 and not row('character-editor:home'), 'no row without the module')
     assert(not invoke('character-editor:home').ok, 'a stale press does nothing')
     assert(invoke('tab:settings').ok and not row('character-editor:open'))
   `);
@@ -6277,5 +6277,67 @@ test('V speaks your microphone lines is off by default, only a boolean is kept, 
     loaded = registered.loadMod('manager')
     assert(row('vVoiceMic').value == true)
     assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = false}}).ok and saved.vVoiceMic == false)
+  `);
+});
+
+test('own key bindings: none by default, only game key names of the five actions are kept, no key twice, and a binding is set and cleared in one validated save', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(type(saved.keyBindings) == 'table' and next(saved.keyBindings) == nil and next(manager.keyBindings()) == nil, 'none by default, and saved so')
+    assert(next(manager.snapshot(player).settings.keyBindings) == nil)
+    -- A saved file is cleaned up: an unknown action, a value that is no game key name and a key another action already has are dropped; the rest is kept.
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'},
+      keyBindings = {voice = 'IK_F7', text = 'IK_F7', group_voice = 'IK_Pad_Start', group_text = 5, manager = 'not a key', nonsense = 'IK_A'}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    local keys = manager.keyBindings()
+    assert(keys.voice == 'IK_F7' and keys.text == nil and keys.group_voice == 'IK_Pad_Start' and keys.group_text == nil and keys.manager == nil and keys.nonsense == nil)
+    assert(saved.keyBindings.voice == 'IK_F7' and saved.keyBindings.nonsense == nil and saved.future.keep == 'unchanged', 'the cleaned table was saved, the rest untouched')
+    -- A file that holds something else than a table gets the default.
+    for _, wrong in ipairs({'IK_F7', 5, true}) do
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, keyBindings = wrong}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(next(manager.keyBindings()) == nil and type(saved.keyBindings) == 'table', tostring(wrong))
+    end
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    -- One save sets a binding; another action keeps its own; setKeyBinding clears with nil.
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and saved.keyBindings.voice == 'IK_F7')
+    assert(manager.setKeyBinding(player, 'text', 'IK_Pad_LeftShoulder') and saved.keyBindings.text == 'IK_Pad_LeftShoulder' and saved.keyBindings.voice == 'IK_F7')
+    assert(manager.setKeyBinding(player, 'voice', nil) and saved.keyBindings.voice == nil and saved.keyBindings.text == 'IK_Pad_LeftShoulder')
+    -- Refused, and nothing changes: a key another action has, a name that is no key, an unknown action, a value of the wrong kind.
+    local ok, why = manager.setKeyBinding(player, 'voice', 'IK_Pad_LeftShoulder')
+    assert(ok == false and why == 'That key is already used for another action.' and manager.keyBindings().voice == nil)
+    for _, bad in ipairs({{'voice', 'F7'}, {'voice', 7}, {'voice', ''}, {'voice', 'IK_' .. string.rep('A', 60)}, {'nonsense', 'IK_A'}}) do
+      local accepted, reason = manager.setKeyBinding(player, bad[1], bad[2])
+      assert(accepted == false and reason == 'Choose a key or a controller button.', tostring(bad[2]))
+    end
+    assert(manager.applySettings(player, {keyBindings = 'IK_F7'}) == false)
+    -- It survives other changes, and a batch with a bad binding changes nothing at all.
+    assert(manager.applySettings(player, {followUpInterest = false}) and manager.keyBindings().text == 'IK_Pad_LeftShoulder')
+    local mixed = manager.applySettings(player, {followUpInterest = true, keyBindings = {voice = 'bad'}})
+    assert(mixed == false and manager.snapshot(player).settings.followUpInterest == false)
+    -- Every action at once, as Restore defaults clears them.
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and manager.setKeyBinding(player, 'manager', 'IK_F4'))
+    assert(manager.applySettings(player, {keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false}}))
+    assert(next(manager.keyBindings()) == nil and next(saved.keyBindings) == nil)
+  `);
+});
+
+test('Key bindings page: Restore defaults lists one clearing change for the keys and the Controller talk button once, and nothing when both are at their defaults', () => {
+  run(`${nsuiFixture}
+    assert(next(core.defaults()) == nil, 'nothing to restore')
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and manager.applySettings(player, {padTalk = true}))
+    local changes = core.defaults()
+    local ids = {}
+    for _, change in ipairs(changes) do ids[#ids + 1] = change.id end
+    table.sort(ids)
+    assert(table.concat(ids, ',') == 'keyBindings:clear,padTalk', table.concat(ids, ','))
+    local result = core.apply(changes)
+    assert(result.ok, tostring(result.error))
+    assert(next(manager.keyBindings()) == nil and manager.padTalk() == false)
+    assert(next(core.defaults()) == nil)
   `);
 });

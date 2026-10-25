@@ -61,6 +61,14 @@ local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
 -- without the file its rows and notes are not shown. `factory` is what the file returned (or the error text), `instance` is made in
 -- M.configure.
 local customProvider = {factory = select(2, pcall(dofile, 'custom-provider.lua'))}
+-- Key bindings (docs/KEY_BINDINGS.md): the mod's own keys for its five actions, set from a page of their own. The module that listens for them
+-- (mod/key-bindings.lua) is loaded by init.lua (convaiKeyBindsModule) when this page opens or a binding is saved, so a player who never opens the page
+-- and sets nothing loads nothing.
+local function keyBinds()
+    if type(convaiKeyBindsModule) ~= 'function' then return nil end
+    local ok, module = pcall(convaiKeyBindsModule)
+    return ok and type(module) == 'table' and module or nil
+end
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -230,6 +238,8 @@ end
 
 -- Moves to another page of the manager. Its long list starts at the first page, and the line of the last action is dropped.
 local function navigate(nextView)
+    -- A Set that is waiting belongs to its page (mod/key-bindings.lua, loaded only once the page was opened).
+    if view == 'key-bindings' and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     view, listPage, listGroup = nextView, 1, 1
     modelFind.text, modelFind.words = '', {}
     actionFeedback, preparationActionFeedback = nil, false
@@ -1159,6 +1169,16 @@ local function pageSignature(snapshot)
         add('custom-page:' .. (read and signature or ''))
     end
     if view == 'relationships' or view == 'dynamic-info' then add(settingsDigest(snapshot.settings)) end
+    if view == 'key-bindings' then
+        add(settingsDigest(snapshot.settings))
+        -- A Set waiting or ended, the saved keys and what Cyber Engine Tweaks has bound (its answer is a live call, a few of them once a second).
+        local module = keyBinds()
+        if module then
+            local cet = {}
+            for index, id in ipairs(module.ACTIONS) do cet[index] = tostring(module.cetBinding(id)) end
+            add('keys:' .. tostring(module.capturing()) .. '|' .. module.list(snapshot.settings.keyBindings) .. '|' .. table.concat(cet, ','))
+        end
+    end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
@@ -1196,6 +1216,95 @@ end
 -- Set by M.update when the game has no world (the main menu, a loading screen): Game.GetPlayer() can still hand back an object there,
 -- and the pages must not offer invitations without a loaded save.
 local noWorld = false
+
+local function keyActionName(id)
+    if id == 'voice' then return ui.t('Talk by voice')
+    elseif id == 'text' then return ui.t('Talk by text')
+    elseif id == 'group_voice' then return ui.t('Group voice chat')
+    elseif id == 'group_text' then return ui.t('Group text chat') end
+    return ui.t('Companion Manager')
+end
+-- A key as the page says it: the key's name, 'Controller LB' for a controller button, or 'Not set'. The keys that have a word of their own (Space, Page up,
+-- D-pad up ...) are literals in mod/key-bindings.lua, which the catalogue reads (scripts/Extract-UiCatalog.mjs, page.key-bindings); the other keys are a
+-- letter, a digit or a symbol, the same in every language.
+local function keyText(module, name)
+    local kind, word = module.describe(name)
+    if not kind then return ui.t('Not set') end
+    if kind == 'pad' then return ui.t('Controller {button}', {button = ui.t(word)}) end
+    return ui.t(word)
+end
+-- One section of the page: an action with the key set for it here, the key set in Cyber Engine Tweaks (shown, never changed), Set and Clear.
+local function bindingSection(snapshot, module, id, name, how)
+    local mine = (snapshot.settings.keyBindings or {})[id]
+    local waiting = module.capturing() == id
+    local cet = module.cetBinding(id)
+    local rows = {
+        readonly('kb:key:' .. id, 'Key or button', keyText(module, mine), how, {value = true}),
+        readonly('kb:cet:' .. id, 'In Cyber Engine Tweaks', cet or ui.t('Not set'),
+            'The key you set for this action in Cyber Engine Tweaks (its Bindings window). It keeps working next to the key or button above, and when both are the same key it runs once.',
+            {value = true}),
+        action('kb:set:' .. id, 'Set key or button', waiting and 'Cancel' or 'Set',
+            'Press Set, then the key or controller button you want. Esc or B cancels. It works at once.',
+            function()
+                local currentPlayer = player()
+                if waiting then module.abandonCapture(currentPlayer); return true end
+                local ok, reason = module.beginCapture(currentPlayer, id)
+                if ok then return true, ui.t('Press the key or controller button for {action}. Esc or B cancels.', {action = keyActionName(id)}) end
+                if reason == 'codeware' then return false, ui.t('Key bindings need Codeware, and this game does not have it. Open Help for what is missing.') end
+                return false, ui.t('The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.')
+            end),
+    }
+    if mine then
+        rows[#rows + 1] = action('kb:clear:' .. id, 'Clear', 'Clear', 'Remove the key or button you set here.', function()
+            module.abandonCapture(player())
+            local ok, reason = manager.setKeyBinding(player(), id, nil)
+            if not ok then return false, reason end
+            return true, ui.t('{action} cleared.', {action = keyActionName(id)})
+        end)
+    end
+    return category('kb:' .. id, name, rows, how)
+end
+local function keyBindingSections(snapshot)
+    local module = keyBinds()
+    if not module then
+        return {category('key-bindings', 'Key bindings', {readonly('kb:missing', 'Key bindings', 'Not available',
+            'The mod’s key bindings could not be loaded. Open Help for what is wrong.')})}
+    end
+    local sections = {
+        bindingSection(snapshot, module, 'voice', 'Talk by voice', 'Hold the key or button while you speak and let go to send, like the Cyber Engine Tweaks talk key.'),
+        bindingSection(snapshot, module, 'text', 'Talk by text', 'Press it to type to the character you face.'),
+        bindingSection(snapshot, module, 'group_voice', 'Group voice chat', 'Hold it to talk to the characters around you at once, and let go to send.'),
+        bindingSection(snapshot, module, 'group_text', 'Group text chat', 'Press it to type to the characters around you at once.'),
+        bindingSection(snapshot, module, 'manager', 'Companion Manager', 'Press it to open the Companion Manager while you play.'),
+    }
+    -- The same setting as Settings > Voices (a row of its own there): changing it here changes it there.
+    sections[#sections + 1] = category('kb:controller', 'Controller', {
+        setting('padTalk', 'Controller talk button', 'bool', snapshot.settings.padTalk == true, false,
+            'Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand.'),
+    }, 'The same setting as Settings > Voices > Controller talk button.')
+    return sections
+end
+
+-- A Set ended (mod/key-bindings.lua, from the game's key event): the line under the way back says what came of it, and the page is drawn again.
+function M.keyBindResult(result)
+    if type(result) ~= 'table' then return end
+    local named = {action = keyActionName(result.action)}
+    local module = keyBinds()
+    if result.kind == 'bound' and module then
+        named.key = keyText(module, result.name)
+        actionFeedback = ui.t('{action} is set to {key}.', named)
+    elseif result.kind == 'duplicate' and module then
+        named.key, named.other = keyText(module, result.name), keyActionName(result.other)
+        actionFeedback = ui.t('{key} is already used for {other}. Choose another.', named)
+    elseif result.kind == 'timeout' then
+        actionFeedback = ui.t('No key was pressed, so nothing changed.')
+    elseif result.kind == 'failed' then
+        actionFeedback = ui.t(result.reason or 'The settings could not be saved. Nothing was changed.')
+    else
+        actionFeedback = ui.t('Cancelled.')
+    end
+    refreshQueued = true
+end
 -- Relationships: who speaks as a partner. The saved values stay auto / on / off; only the labels read Romantic (Casual for Meredith) /
 -- Ordinary. A page of its own, opened from the Conversations section of Settings (both hosts draw it from here).
 local function relationshipRows(snapshot)
@@ -1257,14 +1366,14 @@ local function schema()
     local canInvite = owner ~= nil
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
-    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
+    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
         ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
         -- the editor module loaded, and above Settings (the owner's order). Built with the page, never per frame.
         for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
-            {'models', 'Model browser'}, {'editor'}, {'settings', 'Settings'}}) do
+            {'models', 'Model browser'}, {'editor'}, {'key-bindings', 'Key bindings'}, {'settings', 'Settings'}}) do
             if tab[1] == 'editor' then
                 if editor then
                     nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
@@ -1275,6 +1384,8 @@ local function schema()
                 -- The Model browser lists every character model in the game, so it says that and what joining means.
                 local description = tab[1] == 'models'
                     and ui.t('Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.')
+                    or tab[1] == 'key-bindings'
+                    and ui.t('Choose the keys and controller buttons for talking by voice or text, the group chats and the Companion Manager. They work at once.')
                     or ui.t('Browse {section}. {query}', {section = ui.t(tab[2]):lower(), query = ''})
                 nav[#nav + 1] = action('tab:' .. tab[1], tab[2], 'Open', description, function() return navigate(tab[1]) end)
             end
@@ -1504,6 +1615,8 @@ local function schema()
     elseif view == 'dynamic-info' then
         categories[#categories + 1] = category('dynamic-info', 'Dynamic info', dynamicInfoRows(snapshot),
             'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).')
+    elseif view == 'key-bindings' then
+        for _, section in ipairs(keyBindingSections(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'settings' then
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
@@ -1721,7 +1834,10 @@ local function schema()
         nav[#nav + 1] = readonly('feedback', feedback, '', feedback, {label = true, description = true})
     end
     table.insert(categories, 1, category('navigation', LABEL, nav))
-    return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
+    return {name = ui.t(LABEL), categories = categories,
+        description = view == 'key-bindings'
+            and ui.t('Choose the keys and controller buttons for the mod’s actions. Press Set, then the key or button you want. Esc or B cancels. A change works at once, and the keys you set in Cyber Engine Tweaks keep working. Pick keys the game does not already use.')
+            or ui.t('Your companions, character models and conversation settings.')}
 end
 function M.configure(domain, companions, queueFactory, readiness)
     manager, queue = domain, queueFactory.new(companions, readiness, {developerMode = domain.developerMode})
@@ -1769,7 +1885,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true}
+    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['key-bindings'] = true}
 
 function M.view() return view end
 
@@ -1799,6 +1915,7 @@ function M.search() return modelFind.text end
 function M.setView(name)
     if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier)
         or (name == 'custom-endpoint' and not customProvider.instance) then name = 'home' end
+    if view == 'key-bindings' and name ~= view and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     local changed = name ~= view or listPage ~= 1 or listGroup ~= 1 or modelFind.text ~= ''
     view, listPage, listGroup = name, 1, 1
     modelFind.text, modelFind.words = '', {}
@@ -1899,16 +2016,17 @@ end
 -- The Local AI model has no default of its own (nothing chosen: the largest that fits), so it goes to the model shown as the default.
 function M.defaults()
     local previous = view
-    local changes, atDefault, turningMatureOff = {}, {}, false
-    -- Settings, and the Relationships and Dynamic info pages that open from it.
-    for _, name in ipairs({'settings', 'relationships', 'dynamic-info'}) do
+    local changes, atDefault, turningMatureOff, listed = {}, {}, false, {}
+    -- Settings, and the Relationships and Dynamic info pages that open from it, and Key bindings.
+    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'key-bindings'}) do
         view = name
         local ok, model = pcall(schema)
         if not ok then lastError = tostring(model); break end
         for _, section in ipairs(model.categories) do
             for _, row in ipairs(section.settings) do
                 local kind = row.type
-                if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then
+                if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') and not listed[row.id] then
+                    listed[row.id] = true
                     local target = row.defaultValue
                     if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
                     if row.value ~= target then
@@ -1926,6 +2044,8 @@ function M.defaults()
             if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
         end
     end
+    -- The own key bindings are cleared: one change for all five (the default is none).
+    if next(manager.keyBindings()) ~= nil then changes[#changes + 1] = {value = true, id = 'keyBindings:clear'} end
     -- Drawing the other pages replaced the page's actions and signature: the page on screen is built again.
     view = previous
     pcall(schema)
@@ -2039,6 +2159,7 @@ function M.apply(changes)
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
+        elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false}
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'johnnyInHead' then
             -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
@@ -2260,6 +2381,7 @@ function M.resetSession()
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     view, listPage, listGroup = 'home', 1, 1
     modelFind.text, modelFind.words = '', {}
+    if convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
 end
 
 function M.shutdown()

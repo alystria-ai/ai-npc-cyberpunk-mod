@@ -149,7 +149,7 @@ test('an MCM that loads after this mod is found by the once-a-second look, and t
 test('the home page: one category with the four destinations, explicit apply, no MCM internals touched', () => withScreen(`
   assert(mcm.config().applyPolicy == 'explicit')
   assert(table.concat(mcm.categories(), ',') == 'Companion Manager', table.concat(mcm.categories(), ','))
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings', labels())
   for _, row in ipairs(mcm.rows()) do
     assert(row.type == 'action' and row.value == 'Open' and row.capabilities.action == true and row.description ~= '')
   end
@@ -170,13 +170,13 @@ test('a page change: the way back is a footer action and Escape-back, the next v
   press('Memory')
   assert(mcm.config().navigation.backActionId == 'memory:settings', 'the memory page goes back to settings')
   press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings')
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings')
   -- Closing the screen and opening it again starts on the first page.
   press('Settings')
   mcm.closeScreen(); frames(3)
   assert(managerUi.inspect().view == 'home', 'closeMod puts the page back on Home')
   mcm.openScreen()
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings')
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings')
 `));
 
 test('every kind of row is one MCM can take: switches, selects, sliders, buttons and text, with ids, defaults and capabilities', () => withScreen(`
@@ -800,7 +800,7 @@ test('the shortcut opens MCM straight on the manager page with its public open c
   mcm.update()
   local context = mcm.api.ui.getContext()
   assert(context.open == true and context.modKey == 'cyberpunk-convai:manager', 'MCM opened on the manager page')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', 'on the first page: ' .. labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings', 'on the first page: ' .. labels())
   assert(#notices == 0, 'no notice: the page is opened for the player')
   -- Pressed again while it is open: nothing more to do (MCM has no public close call).
   assert(managerUi.open() == true)
@@ -1212,7 +1212,7 @@ test('MCM 0.10.5 keeps working exactly as today: the base presentation only, no 
   assert(mcm.config().actionVisibility == nil)
   for _, name in ipairs(mcm.calls) do assert(name ~= 'ui.close' and name ~= 'ui.setActionVisibility', 'called ' .. name) end
   -- Home: no footer, no Back; Settings: Defaults and Back, five buttons with changes pending.
-  assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings')
+  assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings')
   press('Settings')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.set('Subtitles', false))
@@ -1284,7 +1284,7 @@ test('MCM 0.10.6: Home has a Back in the footer that asks MCM to close, Escape s
   assert(config.navigation.backActionId == nil and config.navigation.escapeBack == true, 'Escape stays the close of MCM')
   local back = mcm.row('Back')
   assert(back and back.type == 'action' and back.value == 'Back' and back.description ~= '' and back.capabilities.action == true)
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings | Back', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings | Back', labels())
   -- The sub-pages keep their own Back, and Home's is only on Home.
   press('Settings')
   assert(footerLabels() == 'Restore defaults | Back' and mcm.config().navigation.backActionId == 'settings:back')
@@ -1320,7 +1320,7 @@ test('MCM 0.10.6: a close MCM refuses (no renderer) is answered with MCM\'s reas
   local lines = 0
   for _, line in ipairs(logged) do if line:find('would not close the page', 1, true) then lines = lines + 1 end end
   assert(lines == 1, 'one console line for three presses: ' .. lines)
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings | Back', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings | Back', labels())
 `));
 
 test('MCM 0.10.6 by version but refusing the new presentation options: the base ones are sent instead, Add to favorites is still hidden, and the old names are used', () => run(`${harness({screen: false, nsui: false, hideMcm: true, mcm: {version: '0.10.6'}})}
@@ -1500,7 +1500,7 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   press('Back to settings')
   assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Custom endpoint') and mcm.row('Custom endpoint URL (openrouter.ai)') == nil)
   press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings', labels())
 `));
 
 test('Custom endpoint with changes pending: MCM refuses the button until Apply, the change is saved by Apply, and the page then opens', () => withScreen(`
@@ -1705,7 +1705,7 @@ test('MCM: the Character editor row of Home writes one editor command, the page 
   assert(mcm.status() == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.', mcm.status())
   frames(40)
   assert(commandWrites() == before + 1, 'nothing more is sent by the frames that follow')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings', labels())
 `));
 
 test('MCM: the Character editor row says the service is not running and writes nothing; without the module it is not on Home', () => {
@@ -1720,6 +1720,96 @@ test('MCM: the Character editor row says the service is not running and writes n
   `);
   const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
   withScreen(`
-    assert(labels() == 'Characters to invite | Current party | Model browser | Settings' and not mcm.row('Character editor'), labels())
+    assert(labels() == 'Characters to invite | Current party | Model browser | Key bindings | Settings' and not mcm.row('Character editor'), labels())
   `, {modules: bare, absent: ['character-editor.lua']});
 });
+
+// ---------------------------------------------------------------------------------------------------- Key bindings (docs/KEY_BINDINGS.md)
+// A page of its own, opened from Home between the Character editor and Settings. The five actions show the key the player set and the key they set in Cyber
+// Engine Tweaks; Set waits for the game's next key (the redscript half is a fake player here), Clear removes it; the Controller talk button is the same setting
+// as on Settings; Restore defaults clears the keys.
+const keyPlayer = `
+  local keyQueue, keyList = {}, ''
+  function player:ConvaiKeyBindsReady() return true end
+  function player:ConvaiKeyBindsActive() return keyList end
+  function player:ConvaiKeyBindsConfigure(value) keyList = value; return true end
+  function player:ConvaiKeyBindsCapture(on) return true end
+  function player:ConvaiKeyBindTake() return table.remove(keyQueue, 1) or '' end
+  local function key(token) keyQueue[#keyQueue + 1] = token; convaiKeyBinds.take(player) end
+`;
+
+test('MCM: Key bindings lists the five actions with the key set here and the key set in Cyber Engine Tweaks, sets one from a key event and clears it', () => withScreen(`
+  ${keyPlayer}
+  press('Key bindings')
+  assert(managerUi.inspect().view == 'key-bindings' and mcm.config().navigation.pageId == 'key-bindings|1|1')
+  for _, action in ipairs({'voice', 'text', 'group_voice', 'group_text', 'manager'}) do
+    local mine, cet, set = mcm.row('kb:key:' .. action), mcm.row('kb:cet:' .. action), mcm.row('kb:set:' .. action)
+    assert(mine and mine.type == 'string' and mine.value == 'Not set' and cet.value == 'Not set', action)
+    assert(set.type == 'action' and set.value == 'Set' and set.label == 'Set key or button' and not mcm.row('kb:clear:' .. action), action)
+  end
+  assert(mcm.row('padTalk').type == 'bool' and mcm.row('padTalk').label == 'Controller talk button')
+  -- Set waits for a key: the line under the way back says so, and the button turns into Cancel.
+  press('kb:set:voice')
+  frames(4)
+  assert(mcm.status() == 'Press the key or controller button for Talk by voice. Esc or B cancels.', mcm.status())
+  assert(mcm.row('kb:set:voice').value == 'Cancel' and convaiKeyBinds.capturing() == 'voice')
+  clock = clock + 1; key('kIK_F7'); frames(6)
+  assert(mcm.status() == 'Talk by voice is set to F7.', mcm.status())
+  assert(mcm.row('kb:key:voice').value == 'F7' and mcm.row('kb:set:voice').value == 'Set' and mcm.row('kb:clear:voice'), 'the page shows the new key')
+  assert(manager.snapshot(player).settings.keyBindings.voice == 'IK_F7' and keyList == 'IK_F7,-,-,-,-', 'saved, and registered at once')
+  -- A controller button for another action; the key set in CET shows beside it.
+  press('kb:set:group_text'); clock = clock + 1; key('kIK_Pad_LeftShoulder'); frames(6)
+  assert(mcm.row('kb:key:group_text').value == 'Controller LB' and mcm.status() == 'Group text chat is set to Controller LB.', mcm.status())
+  keyFile = '{"AiNpcCyberpunkMod": {"cyberpunk_convai_voice": 33495522228568064, "cyberpunk_convai_manager": 32369622321725440}}'
+  clock = clock + 6; frames(12)
+  assert(mcm.row('kb:cet:voice').value == 'F8' and mcm.row('kb:cet:manager').value == 'F4' and mcm.row('kb:cet:text').value == 'Not set', 'what CET has')
+  -- The same key twice is refused with the name of the action that has it.
+  press('kb:set:text'); clock = clock + 1; key('kIK_F7'); frames(6)
+  assert(mcm.status() == 'F7 is already used for Talk by voice. Choose another.' and not manager.snapshot(player).settings.keyBindings.text, mcm.status())
+  -- Esc cancels, and leaving the page drops a Set that is waiting.
+  press('kb:set:text'); clock = clock + 1; key('kIK_Escape'); frames(6)
+  assert(mcm.status() == 'Cancelled.' and convaiKeyBinds.capturing() == nil)
+  press('kb:set:text'); assert(convaiKeyBinds.capturing() == 'text')
+  press('key-bindings:back'); frames(4)
+  assert(convaiKeyBinds.capturing() == nil and managerUi.inspect().view == 'home', 'the Set did not outlive the page')
+  press('Key bindings')
+  -- Clear removes it.
+  press('kb:clear:voice'); frames(4)
+  assert(mcm.status() == 'Talk by voice cleared.', tostring(mcm.status()))
+  assert(mcm.row('kb:key:voice').value == 'Not set' and not mcm.row('kb:clear:voice'), tostring(mcm.row('kb:key:voice').value) .. ' / ' .. tostring(manager.keyBindings().voice))
+  convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
+  assert(manager.snapshot(player).settings.keyBindings.voice == nil and keyList == '-,-,-,IK_Pad_LeftShoulder,-', keyList)
+`));
+
+test('MCM: the Controller talk button on Key bindings is the Settings row, and Restore defaults on the page clears the keys and the button together', () => withScreen(`
+  ${footer}
+  ${keyPlayer}
+  press('Key bindings')
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
+  assert(mcm.set('Controller talk button', true) and mcm.apply())
+  assert(manager.padTalk() == true, 'applied from this page')
+  press('key-bindings:back'); press('Settings')
+  assert(mcm.row('padTalk').value == true, 'the Settings row shows it')
+  press('settings:back'); press('Key bindings')
+  press('kb:set:text'); clock = clock + 1; key('kIK_T'); frames(4)
+  press('kb:set:manager'); clock = clock + 1; key('kIK_Pad_Start'); frames(4)
+  assert(manager.keyBindings().text == 'IK_T' and manager.keyBindings().manager == 'IK_Pad_Start')
+  press('Defaults'); assert(footerLabels() == 'Confirm | Back', footerLabels())
+  press('Defaults'); frames(8)
+  assert(next(manager.keyBindings()) == nil and manager.padTalk() == false, 'both back to the defaults')
+  assert(mcm.row('kb:key:text').value == 'Not set' and mcm.row('padTalk').value == false, 'the page shows them')
+  convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
+  assert(keyList == '', 'and the listeners stop')
+  assert(mcm.status() == 'Defaults restored.', mcm.status())
+`));
+
+test('MCM: without Codeware the Set button says so and nothing waits; without the scripts it says that', () => withScreen(`
+  press('Key bindings')
+  -- The fake player has no key methods at all: the mod's scripts did not load.
+  mcm.press('kb:set:voice'); frames(4)
+  assert(mcm.status() == 'The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.', mcm.status())
+  function player:ConvaiKeyBindsReady() return false end
+  mcm.press('kb:set:voice'); frames(4)
+  assert(mcm.status() == 'Key bindings need Codeware, and this game does not have it. Open Help for what is missing.', mcm.status())
+  assert(convaiKeyBinds.capturing() == nil)
+`));

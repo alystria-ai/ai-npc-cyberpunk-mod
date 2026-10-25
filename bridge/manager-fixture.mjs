@@ -16,6 +16,7 @@ export const hostSource = source('nsui.lua');
 export const entrySource = source('nsui-entry.lua');
 export const mcmHostSource = source('mcm-host.lua');
 export const voicePreviewSource = source('voice-preview.lua');
+export const keyBindingsSource = source('key-bindings.lua');
 export const fontsSource = source('ui-fonts.lua');
 
 export function run(code) {
@@ -199,6 +200,24 @@ ${lines.join('\n')}
   managerUi.attach(mcmHost)
   managerUi.install()
   local core = managerUi._test.core
+  -- The own key bindings (init.lua convaiKeyBindsModule): the real module over the fake player, with the actions it would run recorded in keyRuns.
+  local keyRuns, keyFile = {}, nil
+  function convaiKeyBindsModule()
+    if convaiKeyBinds then return convaiKeyBinds end
+    convaiKeyBinds = (function() ${keyBindingsSource} end)()
+    convaiKeyBinds.deps = {
+      bindings = function() return manager.keyBindings() end,
+      save = function(action, name) return manager.setKeyBinding(player, action, name) end,
+      voice = function(action, down) keyRuns[#keyRuns + 1] = action .. (down and ':down' or ':up') end,
+      tap = function(action) keyRuns[#keyRuns + 1] = action end,
+      observe = function() end,
+      readFile = function(path) return keyFile end,
+      changed = function(result) core.keyBindResult(result) end,
+      player = function() return player end,
+      log = function() end,
+    }
+    return convaiKeyBinds
+  end
   local TAB = 'aiNpcCyberpunkMod'
   if ${nsui && screen} then ns.openScreen(TAB) end
   local loaded = core.model()

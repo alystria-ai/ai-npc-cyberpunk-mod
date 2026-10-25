@@ -9,7 +9,7 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const files = [
-  'mod/manager-ui.lua', 'mod/nsui.lua', 'mod/mcm-host.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
+  'mod/manager-ui.lua', 'mod/key-bindings.lua', 'mod/nsui.lua', 'mod/mcm-host.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
   'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
@@ -162,6 +162,13 @@ const reviewed = {
     'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.',
     'Recent game dialogue',
     'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.',
+  ],
+  // The words of Companion Manager > Key bindings that are a key's own name: mod/key-bindings.lua holds them as literals and mod/manager-ui.lua keyText
+  // passes each through ui.t. A letter, a digit or a symbol is the same in every language and is not listed. Set and Cancel are the text of the Set button.
+  'page.key-bindings': [
+    'Space', 'Enter', 'Tab', 'Backspace', 'Insert', 'Delete', 'Home', 'End', 'Page up', 'Page down',
+    'Up arrow', 'Down arrow', 'Left arrow', 'Right arrow', 'Caps lock', 'Num lock', 'Scroll lock', 'Pause', 'Print screen',
+    'D-pad up', 'D-pad down', 'D-pad left', 'D-pad right', 'View', 'Menu', 'Set', 'Cancel',
   ],
   'page.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',
@@ -423,7 +430,7 @@ for (const [file, tokens] of tokenByFile) {
   const page = file === 'mod/manager-ui.lua';
   // keyRow(name, pasteHelp, removeHelp, ...) builds one API key row (mod/manager-ui.lua): its name and its two helps are source strings.
   // refused(text) turns a change down in M.apply: its text is a source string too.
-  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], refused: [0] } : {};
+  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], refused: [0], bindingSection: [3, 4] } : {};
   Object.assign(calls, { ConvaiPhoneFeedback: [0], SetDefaultText: [0] });
   if (file === 'mod/manager.lua') Object.assign(calls, { say: [0], savedFeedback: [0] });
   if (native) Object.assign(calls, {

@@ -146,6 +146,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/pad-binding.lua"
         },
         {
+          "source": "mod/key-bindings.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/key-bindings.lua"
+        },
+        {
           "source": "mod/player-gear.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
         },
@@ -539,6 +543,10 @@
         {
           "source": "r6/scripts/CyberpunkConvai/PadTalk.reds",
           "target": "r6/scripts/CyberpunkConvai/PadTalk.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/KeyBinds.reds",
+          "target": "r6/scripts/CyberpunkConvai/KeyBinds.reds"
         },
         {
           "source": "r6/scripts/CyberpunkConvai/NpcNames.reds",

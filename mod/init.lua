@@ -4212,8 +4212,8 @@ if convaiAddons then
     convaiAddons.attach(seams)
 end
 
-registerHotkey('cyberpunk_convai_text', 'AI NPC Cyberpunk Mod: talk by text', function() beginText(false) end)
-registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text chat', function() beginText(true) end)
+registerHotkey('cyberpunk_convai_text', 'AI NPC Cyberpunk Mod: talk by text', function() if convaiTapOnce('text') then beginText(false) end end)
+registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text chat', function() if convaiTapOnce('group_text') then beginText(true) end end)
 -- The talk keys are inputs, not hotkeys: a hotkey runs its function only when the key comes back UP (docs/COMPANION_HOTKEY_INPUT.md), so a held
 -- key did nothing until it was let go. An input reports both edges, which is what hold-to-talk needs (docs/VOICE_INPUT.md):
 --   down  the recording begins at once (the bridge's microphone opens for the press, the connection follows, nothing said is lost)
@@ -4347,7 +4347,57 @@ function convaiPadBindingTick(player, ready)
     end
     convaiPadBindingModule().tick(player, ready)
 end
-registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', openManager)
+-- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): a key or controller button the player chose for talk by voice, talk by text,
+-- group voice chat, group text chat or the Companion Manager. mod/key-bindings.lua decides whether the moment is allowed and runs the code path the CET key of
+-- the same action runs (voiceKeyEdge under the same key id, beginText, openManager), so the gating is the same; the redscript half (KeyBinds.reds) hears the keys.
+-- Event driven: nothing here runs per frame, and while no binding is saved the module is not even loaded. Global functions, so onUpdate reaches them without a
+-- new upvalue.
+function convaiKeyBindsModule()
+    if convaiKeyBinds then return convaiKeyBinds end
+    convaiKeyBinds = dofile('key-bindings.lua')
+    convaiKeyBinds.deps = {
+        bindings = function() return manager.keyBindings() end,
+        save = function(action, name) return manager.setKeyBinding(Game.GetPlayer(), action, name) end,
+        voice = function(action, isDown) voiceKeyEdge(action, action == 'group_voice', isDown) end,
+        tap = function(action)
+            if action == 'text' then beginText(false) elseif action == 'group_text' then beginText(true) else openManager() end
+        end,
+        -- The phone's chat box: V types there with the game's controls still live. The text box and the menus are refused by the actions themselves.
+        typing = function(who) return who:ConvaiPhoneChatTyping() end,
+        observe = function(fn) Observe('PlayerPuppet', 'ConvaiKeyBindNotify', function(this) fn(this) end) end,
+        boundKey = function(id)
+            if type(IsBound) ~= 'function' then return nil, false end
+            return ui.boundKey(id), true
+        end,
+        readFile = function(path)
+            local file = io.open(path, 'rb')
+            if not file then return nil end
+            local text = file:read('*a')
+            file:close()
+            return text
+        end,
+        changed = function(result) managerUi.keyBindResult(result) end,
+        player = function() return Game.GetPlayer() end,
+        log = log,
+    }
+    return convaiKeyBinds
+end
+
+function convaiKeyBindsTick(player, ready)
+    if next(manager.keyBindings()) == nil then
+        -- Nothing saved: the module (if the page was opened) ends a Set that nobody answered and lets go of what it listened to; otherwise this is the whole cost.
+        if convaiKeyBinds then convaiKeyBinds.tick(player, ready) end
+        return
+    end
+    convaiKeyBindsModule().tick(player, ready)
+end
+
+-- A tap action runs once for one press of a key: a CET hotkey and an own binding on the same key both fire when it comes up. Nothing to compare while no own
+-- binding was ever loaded.
+function convaiTapOnce(action)
+    return convaiKeyBinds == nil or convaiKeyBinds.once(action)
+end
+registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', function() if convaiTapOnce('manager') then openManager() end end)
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
 
@@ -4916,6 +4966,9 @@ registerForEvent('onUpdate', function(delta)
     -- Controller talk button (Settings > Voices, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local padOk, padError = pcall(convaiPadBindingTick, player, worldReady)
     if not padOk then convaiLogOnce('Controller talk button failed: ' .. tostring(padError)) end
+    -- The mod's own key bindings (Companion Manager > Key bindings): one table check per tick while none is saved; the module is not even loaded then.
+    local keysOk, keysError = pcall(convaiKeyBindsTick, player, worldReady)
+    if not keysOk then convaiLogOnce('Key bindings failed: ' .. tostring(keysError)) end
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
     if not warmOk then convaiLogOnce('Microphone linger check failed: ' .. tostring(warmError)) end
@@ -5293,6 +5346,7 @@ registerForEvent('onShutdown', function()
     microphone.cancel()
     if convaiVoiceActivation then pcall(convaiVoiceActivation.off) end
     if convaiPadBinding then pcall(convaiPadBinding.stop, liveWorld and Game.GetPlayer() or nil) end
+    if convaiKeyBinds then pcall(convaiKeyBinds.stop, liveWorld and Game.GetPlayer() or nil) end
     if liveWorld then speech.stop('shutdown'); subtitles.clear()
     else speech.abandon(); subtitles.abandon() end
     active = nil

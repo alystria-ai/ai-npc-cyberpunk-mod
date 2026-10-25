@@ -5,7 +5,7 @@
 // packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds, which differs in one function: Codeware 2.31's InputTarget.Key takes the
 // key's action, 2.5's own InputTarget.Key does not.
 //
-// Callers use ConvaiCallbackSystem(), ConvaiServiceContainer() and ConvaiKeyTarget(); nothing else in the folder names those engine functions.
+// Callers use ConvaiCallbackSystem(), ConvaiServiceContainer(), ConvaiKeyTarget() and ConvaiKeyTargetsByAction(); nothing else in the folder names those engine functions.
 
 @if(ModuleExists("Codeware"))
 public func ConvaiCallbackSystem() -> ref<CallbackSystem> {
@@ -17,6 +17,12 @@ public func ConvaiCallbackSystem() -> ref<CallbackSystem> {
 @if(ModuleExists("Codeware"))
 public func ConvaiKeyTarget(key: EInputKey, action: EInputAction) -> ref<InputTarget> {
     return InputTarget.Key(key, action);
+}
+
+// Whether a key target filters by the key's action (KeyBinds.reds adds a press target and a release target for each key it listens to when it does).
+@if(ModuleExists("Codeware"))
+public func ConvaiKeyTargetsByAction() -> Bool {
+    return true;
 }
 
 @if(ModuleExists("Codeware"))

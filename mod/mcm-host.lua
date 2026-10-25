@@ -283,9 +283,9 @@ local function schema()
             categories[#categories + 1] = {id = category.id, name = name, description = description, settings = settings}
         end
     end
-    -- Restore defaults, on Settings and on the pages that open from it with settings of their own (Relationships, Dynamic info).
+    -- Restore defaults, on Settings and on the pages that open from it with settings of their own (Relationships, Dynamic info), and on Key bindings.
     local view = core.view()
-    if view == 'settings' or view == 'relationships' or view == 'dynamic-info' then
+    if view == 'settings' or view == 'relationships' or view == 'dynamic-info' or view == 'key-bindings' then
         -- Two short words, not "Restore defaults" / "Press again to restore": with pending changes the footer holds five buttons (Revert,
         -- Apply, MCM's Add to favorites, this one, Back) and MCM gives each one the same share of the row, cutting the text that is
         -- longer. The footer is only read again when the page is loaded again, which MCM refuses while changes are pending, so the button
@@ -293,7 +293,7 @@ local function schema()
         -- MCM 0.10.6 wraps a label that does not fit (and Add to favorites is hidden there), so the whole name fits.
         local label = newUi.presentation and ui.t('Restore defaults') or ui.t('Defaults')
         footer[#footer + 1] = action(DEFAULTS_ID, label, restoreArmed and ui.t('Confirm') or label,
-            ui.t('Puts every setting on Settings, Relationships and Dynamic info back to its default. Press the button twice to confirm.'))
+            ui.t('Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.'))
     end
     -- Home's Back (MCM 0.10.6): the footer button that closes MCM's screen, like the Back of the pages under it. It is not the page's
     -- back action (no backActionId), so Escape stays MCM's own close.
@@ -439,7 +439,7 @@ local function restoreScroll(before)
 end
 
 -- Restore defaults: the first press asks for a second one (the button says so), the second puts every row on Settings and
--- Relationships and Dynamic info back to its default in ONE saved transaction, as MCM's own Defaults button did (that button is gone with the defaults).
+-- Relationships and Dynamic info back to its default, and clears the own key bindings, in ONE saved transaction, as MCM's own Defaults button did (that button is gone with the defaults).
 local function restoreDefaults()
     if not restoreArmed then
         restoreArmed, restorePage = true, core.pageId()

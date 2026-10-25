@@ -20,8 +20,8 @@ unsuffixed default and 2.5 the `-for-2.5` option. The source tree is still the 2
 1. `native/core` is compiled twice (`scripts/Build-NativeCore.ps1 -Game 2.31|2.5`, CMake option `CONVAI_GAME`): the SDK pin, the declared runtime and
    `kGameLabel` change. No source line changed for the 2.5 SDK: the plugin only goes through RTTI, `ExecuteFunction` and the SDK's own types, and it built
    and passed its headless tests against the 2.5 SDK as is. It still needs the in-game check (below).
-2. `r6/scripts/CyberpunkConvai/GameVariant.reds` is the only redscript that differs. It holds three helpers the rest of the scripts call
-   (`ConvaiCallbackSystem()`, `ConvaiServiceContainer()`, `ConvaiKeyTarget(key, action)`). The source tree holds the 2.31 file, and the 2.5 build (the default) replaces it with
+2. `r6/scripts/CyberpunkConvai/GameVariant.reds` is the only redscript that differs. It holds four helpers the rest of the scripts call
+   (`ConvaiCallbackSystem()`, `ConvaiServiceContainer()`, `ConvaiKeyTarget(key, action)`, `ConvaiKeyTargetsByAction()`: true on 2.31, false on 2.5, because a 2.5 target gets every action of the key; `KeyBinds.reds` adds one target per key there and a press and a release target on 2.31). The source tree holds the 2.31 file, and the 2.5 build (the default) replaces it with
    `packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds`, which differs in ONE function: Codeware 2.31's
    `InputTarget.Key(key, action)` filters by the key's action, 2.5's own `InputTarget.Key(key, <Float>)` has no action parameter, so the 2.5 target
    passes only the key and the three key handlers (Manager, PhoneChat, PhoneContacts) check `evt.GetAction()` themselves (a compare per key event of
