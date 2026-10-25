@@ -54,6 +54,12 @@ Places are found lazily: from 3 s after V came in (at once when V sits), at most
 are places for everybody plus one spare.
 A place that fails (no cushion there, no way up, the sit never plays, the walk is refused) is dropped for the visit and the next one is tried.
 
+**Facing of a seat (`yaw`, the direction the sitter looks, game yaw: forward = (-sin, cos)).** `housemate-world.lua` finds it with eight rays around the cushion. A couch
+or chair has its backrest behind her: she faces away from the higher surface. A bar stool or a stool has no backrest, the higher surface is the counter or the table:
+she faces it, as V's own seated body does on the same stool (the V-triggered path copies V's world orientation onto the device; the home path builds the same
+orientation from `yaw`, `Quaternion.BuildFromDirectionVector((-sin, cos))`). Rays that see the same counter edge are averaged, so a straight counter gives a straight
+facing. Until 2026-10-25 the couch rule was used for stools too: every bar stool seated on her own was turned 180 degrees (probe: corpo-bar-1 `yaw -1e-14` with the counter at -y).
+
 ## What a companion does
 
 * **Seat**: walk to the prepared way up (AI move command), then the seating code's settle, device, workspot, hold. While seated the talk key works

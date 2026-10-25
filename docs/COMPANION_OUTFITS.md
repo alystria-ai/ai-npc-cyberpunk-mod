@@ -54,6 +54,13 @@ it also shows names that only its own archives add, which the installed game doe
 meshes of the looks that were chosen were checked in the `.app` files (a look whose only clothes are underwear, a bloody jacket, a prostitute outfit, an accessory
 removed from the character's signature look: left out; the rule is in the file's header and enforced by `bridge/companion-outfits.test.mjs`).
 
+**Unseen first.** A change starts only after the copy has been out of view for 20 real seconds in a row (`UNSEEN_S`; a glance back starts the count again). While a copy
+waits for the camera to look away it is looked at every 5 s (`LOOK_S`, one view read per waiting copy; the 20 s party check is unchanged and so is how often random
+changes are rolled: once per game hour, 30 %). "Out of view" is the game's frustum test, and also any copy more than 85 degrees off the camera's direction: the frustum
+test is called with wide margins (2.0, 0.75) and says nothing about walls, so in a small flat it can keep saying "may be seen" for a copy beside or behind V. A variety
+look that is rolled at the hour change stays wanted (10 minutes at most) while the copy waits. The probe log shows where it stops, codes only, once per change of state:
+`outfit-seen frustum|angle|unreadable`, `outfit-unseen 0` (the count starts), `outfit-unseen 20` and `outfit-change-start <look>`.
+
 **Applied.** On the party copy's puppet: `PrefetchAppearanceChange(name)` to load the look (no visible change), a second later `ScheduleAppearanceChange(name)` when
 the copy is still unseen, and `GetCurrentAppearanceName()` a second after that to confirm. A look that does not show within 20 s is given up (the name a recreated
 copy would use is put back, and the look is not tried again in the session). No respawn, no new entity. The reference mod does the same two calls (prefetch then
@@ -104,7 +111,7 @@ A visiting copy owned by the housemates module (`entry.owner == 'housemates'`, s
 ## Cost
 
 Nothing per frame. `init.lua` calls `convaiOutfitTick` from the 10 Hz branch of `onUpdate` (after the 0.1 s gate, with `padTalk` and `voiceActivation`): with the setting
-off that is one boolean and the module is not loaded; on, the module subtracts the elapsed time from one counter and returns. Every 20 s it reads the ready copies the
+off that is one boolean and the module is not loaded; on, the module subtracts the elapsed time from one counter and returns. Every 20 s (every 5 s while a copy waits to be unseen) it reads the ready copies the
 list knows (usually none or two), the game clock (one native read) and, only when a copy wants to change, the world (the battle observer's read) and the copy's view
 (`GameInstance.GetCameraSystem():IsInCameraFrustum(npc, 2.0, 0.75)`, the margins the game's own reaction and vehicle code uses for "could be seen"; the camera
 direction against the copy is the fallback, and an unreadable view counts as seen). A change is two native calls on one copy and a read-back. No game handle is kept

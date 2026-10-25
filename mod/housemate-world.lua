@@ -120,14 +120,28 @@ function M.new(o)
         if not st.facing then
             if not spend(8) then return nil, nil, 'wait' end
             local best, bestScore = nil, 0
+            local scores = {}
             for step = 0, 7 do
                 local a = step * math.pi / 4
                 local h = nat.surface(c.x + math.cos(a) * 0.45, c.y + math.sin(a) * 0.45, floor + 1.4, seatH + 0.12)
                 local score = h and (h - seatH) or 0
+                scores[step] = score
                 if score > bestScore then best, bestScore = a, score end
             end
+            -- A couch or chair has its backrest behind the sitter: she faces away from the higher surface. A bar stool or a stool has no backrest: the higher
+            -- surface is the counter or the table, and she faces it (the way V's own seated body turns). Rays that see the same counter edge are averaged
+            -- so a straight counter gives a straight facing, not the first diagonal.
+            local toward = kind == 'bar' or kind == 'stool'
+            if best and toward then
+                local sx, sy = 0, 0
+                for step = 0, 7 do
+                    if scores[step] >= bestScore - 0.03 then sx, sy = sx + math.cos(step * math.pi / 4), sy + math.sin(step * math.pi / 4) end
+                end
+                if sx * sx + sy * sy > 1e-6 then best = atan2(sy, sx) end
+            end
             if best and bestScore > 0.15 then
-                st.facing = yawOf({x = -math.cos(best), y = -math.sin(best)})
+                local sign = toward and 1 or -1
+                st.facing = yawOf({x = sign * math.cos(best), y = sign * math.sin(best)})
             elseif spot.yaw then st.facing = spot.yaw
             elseif spot.face then st.facing = yawOf({x = spot.face.x - c.x, y = spot.face.y - c.y})
             else

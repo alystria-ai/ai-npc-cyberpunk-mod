@@ -31,12 +31,16 @@ M.deps = nil
 M.data = nil
 
 local CHECK_S = 20          -- real seconds between looks at the party
+local UNSEEN_S = 20         -- real seconds a copy must stay out of view before a change starts (a glance back starts the count again)
+local LOOK_S = 5            -- real seconds between looks at a copy that waits for the camera to look away (one view read per waiting copy)
+local WANT_S = 600          -- a variety change that waited this long for the camera to look away is dropped
 local STAGE_S = 1.0         -- real seconds between the prefetch and the change, and between read-backs
 local GIVE_UP_S = 20.0      -- a change that never shows is given up, and that look is not tried again this session
 local MIN_DWELL_H = 4       -- game hours between two changes made for variety
 local VARIETY_CHANCE = 0.3  -- per hour change, once the dwell has passed
 local NIGHT_FROM, NIGHT_TO = 19, 6
 local OUT_OF_VIEW_DEG = 75  -- the fallback when the frustum test is unavailable: a copy this far off the camera's direction is not on screen
+local FAR_OFF_DEG = 85      -- a copy this far off the camera's direction is out of view even when the frustum test (its margins are wider than the screen) says it may be seen
 
 -- The district records the game reports for V's apartments (the same five bridge/place-names.mjs HOME_PLACES lists; checked in final.redscripts 2026-10-14).
 M.HOME_PLACES = {LittleChina_VApartment = true, Northside_Apartment = true, JapanTown_Apartment = true, Glen_Apartment = true, CorpoPlaza_Apartment = true}
@@ -206,20 +210,28 @@ end
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Not while V looks.
 
--- true: the copy may be on screen (or nobody can tell); false: it is out of view.
+-- true: the copy may be on screen (or nobody can tell); false: it is out of view. The second value says why ('frustum', 'clear', 'angle', 'unreadable').
 function M.inView(row, player)
     local deps = M.deps
     local ok, seen = pcall(deps.frustum, row.npc)
-    if ok and type(seen) == 'boolean' then return seen end
+    if ok and type(seen) == 'boolean' then
+        if seen and deps.angle then
+            -- The frustum test is inflated (margins 2.0 and 0.75): in a small flat it can say "may be seen" for a copy far to the side of or behind V.
+            -- Clearly off the camera's direction counts as out of view.
+            local okAngle, angle = pcall(deps.angle, row.npc, player)
+            if okAngle and type(angle) == 'number' and angle >= FAR_OFF_DEG then return false, 'angle' end
+        end
+        return seen, seen and 'frustum' or 'clear'
+    end
     if not state.frustumLogged then
         state.frustumLogged = true
         say('Companion outfits: the frustum test of the game gave ' .. (ok and tostring(seen) or ('an error (' .. tostring(seen):sub(1, 100) .. ')')) .. ', the camera angle decides')
     end
     if deps.angle then
         local okAngle, angle = pcall(deps.angle, row.npc, player)
-        if okAngle and type(angle) == 'number' then return angle < OUT_OF_VIEW_DEG end
+        if okAngle and type(angle) == 'number' then return angle < OUT_OF_VIEW_DEG, 'angle' end
     end
-    return true
+    return true, 'unreadable'
 end
 
 local function currentName(row)
@@ -260,7 +272,7 @@ local function step(row, player, ctx)
         local stage = m.stage
         if now - stage.at < STAGE_S then return end
         m.stage = nil
-        if ctx.world() or (deps.busy and deps.busy(row)) or M.inView(row, player) then return end
+        if ctx.world() or (deps.busy and deps.busy(row)) or M.inView(row, player) then m.unseenSince = nil; return end
         local ok, err = pcall(deps.apply, row, stage.name)
         if not ok then
             m.bad[stage.name] = true
@@ -276,18 +288,34 @@ local function step(row, player, ctx)
     local target, why = M.choose(character, m.current, {
         period = ctx.period, home = home, hours = ctx.hours, changedAt = m.changedAt,
         hourChanged = ctx.hourChanged, bad = m.bad, random = deps.random or M.random})
-    if not target then m.waiting = nil; return end
+    -- A variety look is rolled once, at the hour change: it stays wanted while she waits for the camera to look away.
+    if not target and m.wanted and m.wanted.from == m.current and now - m.wanted.at < WANT_S then target, why = m.wanted.name, m.wanted.why end
+    if not target then m.waiting, m.wanted, m.unseenSince, m.seenWhy = nil, nil, nil, nil; return end
+    if not (m.wanted and m.wanted.name == target) then m.wanted = {name = target, why = why, from = m.current, at = now} end
     local blocked = ctx.world()
     if blocked then
+        m.unseenSince = nil
         if m.waiting ~= target then m.waiting = target; say('Companion outfits: ' .. describe(m) .. ' wants ' .. target .. ' (' .. why .. '), waiting for open gameplay (' .. tostring(blocked) .. ')') end
         return
     end
-    if deps.busy and deps.busy(row) then return end
-    if M.inView(row, player) then
+    if deps.busy and deps.busy(row) then m.unseenSince = nil; return end
+    local seen, seenWhy = M.inView(row, player)
+    if seen then
+        if m.seenWhy ~= seenWhy then m.seenWhy = seenWhy; say('Companion outfits: outfit-seen ' .. seenWhy) end
+        m.unseenSince = nil
+        ctx.looking = true
         if m.waiting ~= target then m.waiting = target; say('Companion outfits: ' .. describe(m) .. ' wants ' .. target .. ' (' .. why .. '), waiting until nobody is looking') end
         return
     end
-    m.waiting = nil
+    -- Out of view: she must stay out of it for UNSEEN_S before the change starts (a glance back starts the count again).
+    if not m.unseenSince then
+        m.unseenSince, m.seenWhy = now, nil
+        say('Companion outfits: outfit-unseen 0')
+    end
+    if now - m.unseenSince < UNSEEN_S then ctx.looking = true; return end
+    say('Companion outfits: outfit-unseen ' .. math.floor(now - m.unseenSince))
+    m.unseenSince, m.waiting, m.wanted = nil, nil, nil
+    say('Companion outfits: outfit-change-start ' .. target)
     local ok, err = pcall(deps.prefetch, row, target)
     if not ok then
         m.bad[target] = true
@@ -334,8 +362,8 @@ function M.tick(player, elapsed, ready)
         local m = state.members[row.serial]
         if m and (m.stage or m.pending) then follow = true end
     end
-    -- A started change is followed up quickly; a copy that only waits for the camera to look away is looked at again in CHECK_S.
-    if follow then state.wait = STAGE_S end
+    -- A started change is followed up quickly; a copy that waits for the camera to look away is looked at again in LOOK_S.
+    if follow then state.wait = STAGE_S elseif ctx.looking then state.wait = LOOK_S end
 end
 
 -- A new copy, at creation (key: its profile key, for a home setting made by name): the appearance to create it with, or nil to leave it as the game and companion-records.lua make it. The copy appears in

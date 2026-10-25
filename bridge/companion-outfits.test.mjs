@@ -151,6 +151,8 @@ local function logged(text) for _, line in ipairs(logs) do if line:find(text, 1,
 -- One check: the tick is given a step as long as the wait, so exactly one cycle runs.
 local function cycle(seconds) clock = clock + (seconds or 20); outfits.tick({}, seconds or 20, true) end
 local function at(day, hour) hours = day * 24 + hour end
+-- A change needs her out of view for UNSEEN_S (20 s): the first look starts the count, the next one 20 s later starts the change.
+local function unseen() cycle(); cycle(20) end
 local function count(list) return #list end
 `;
 
@@ -199,8 +201,14 @@ test('a change waits until nobody is looking, then loads, schedules and is read 
   assert(#calls.prefetch == 0 and #calls.apply == 0, 'nothing happens in view')
   assert(logged('waiting until nobody is looking'))
   assert(calls.frustum >= 1)
-  f.seen = false; cycle()                              -- out of view: the look is loaded first
+  f.seen = false; cycle()                              -- out of view: the count of unseen seconds starts
+  assert(#calls.prefetch == 0 and logged('outfit-unseen 0'), 'not yet')
+  cycle(10); assert(#calls.prefetch == 0, 'ten seconds are not enough')
+  f.seen = true; cycle(5); assert(#calls.prefetch == 0 and logged('outfit-seen frustum'), 'a glance back starts the count again')
+  f.seen = false; cycle(); cycle(15); assert(#calls.prefetch == 0, '15 s unseen: not yet')
+  cycle(5)                                             -- 20 s unseen: the look is loaded first
   assert(#calls.prefetch == 1 and calls.prefetch[1] == '1:panam_default' and #calls.apply == 0)
+  assert(logged('outfit-unseen 20') and logged('outfit-change-start panam_default'))
   assert(outfits.snapshot()[1].staged == 'panam_default')
   cycle(1.0)                                           -- a second later: still unseen, scheduled
   assert(#calls.apply == 1 and calls.apply[1] == '1:panam_default' and outfits.snapshot()[1].pending == 'panam_default')
@@ -215,11 +223,11 @@ test('a change waits until nobody is looking, then loads, schedules and is read 
 test('the camera looks back between the load and the change: the change is dropped and tried again later', () => runWith(`${fixture}
   member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
   f.seen = true
-  at(3, 20); cycle(); f.seen = false; cycle()
+  at(3, 20); cycle(); f.seen = false; unseen()
   assert(#calls.prefetch == 1)
   f.seen = true; cycle(1.0)
   assert(#calls.apply == 0 and outfits.snapshot()[1].staged == nil, 'in view at the second step: nothing scheduled')
-  f.seen = false; cycle(); assert(#calls.prefetch == 2)
+  f.seen = false; unseen(); assert(#calls.prefetch == 2)
   cycle(1.0); assert(#calls.apply == 1)
 `));
 
@@ -229,29 +237,32 @@ test('never during a fight, a scene, a seat or a ride, and the reason is said on
   assert(#calls.prefetch == 0 and logged('waiting for open gameplay (combat)'))
   local said = 0; for _, line in ipairs(logs) do if line:find('waiting for open gameplay', 1, true) then said = said + 1 end end
   assert(said == 1, 'said once: ' .. said)
-  f.world = nil; f.busy[1] = 'seated'; cycle(); assert(#calls.prefetch == 0 and #calls.apply == 0)
-  f.busy[1] = nil; cycle(); assert(#calls.prefetch == 1)
+  f.world = nil; f.busy[1] = 'seated'; unseen(); assert(#calls.prefetch == 0 and #calls.apply == 0)
+  f.busy[1] = nil; unseen(); assert(#calls.prefetch == 1)
   -- A fight that starts between the load and the change keeps the change back.
   f.world = 'combat'; cycle(1.0); assert(#calls.apply == 0)
-  f.world = nil; cycle(); cycle(1.0); assert(#calls.apply == 1)
+  f.world = nil; unseen(); cycle(1.0); assert(#calls.apply == 1)
 `));
 
 test('the frustum test is the games own; without it the angle decides, and an unreadable view counts as seen', () => runWith(`${fixture}
   member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
   at(3, 20); f.seen = nil; f.angle = 30; cycle(); assert(#calls.prefetch == 0, 'inside the angle: seen')
-  f.angle = 100; cycle(); assert(#calls.prefetch == 1, 'behind the camera: unseen')
+  f.angle = 100; unseen(); assert(#calls.prefetch == 1, 'behind the camera: unseen')
   assert(logged('the camera angle decides'), 'said once why the angle decides')
   f.angle = nil; f.seen = nil
   local second = outfits.inView({npc = {}}, {})
   assert(second == true, 'nothing readable: seen')
   f.seen = true; assert(outfits.inView({npc = {}}, {}) == true)
   f.seen = false; assert(outfits.inView({npc = {}}, {}) == false)
+  -- The frustum test has wide margins: a copy far off the camera's direction is out of view even when it says she may be seen.
+  f.seen = true; f.angle = 120; local far, why = outfits.inView({npc = {}}, {}); assert(far == false and why == 'angle', 'far to the side or behind V')
+  f.angle = 60; assert(outfits.inView({npc = {}}, {}) == true, 'inside the wide margin: seen')
 `));
 
 test('a look that never shows is given up after 20 s, the old name is remembered, and that look is not tried again', () => runWith(`${fixture}
   f.applyTakes = false
   member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
-  at(3, 20); cycle(); cycle(1.0)
+  at(3, 20); f.seen = false; unseen(); cycle(1.0)
   assert(#calls.prefetch == 1 and #calls.apply == 1)
   cycle(5.0); assert(outfits.snapshot()[1].pending == 'panam_default', 'still waiting')
   cycle(16.0)
@@ -261,7 +272,7 @@ test('a look that never shows is given up after 20 s, the old name is remembered
   -- An error from the game while preparing or scheduling is a bad look too.
   f.applyTakes = true; f.failPrefetch = true
   member(2, 'judy-alvarez', 'Character.Judy', 'judy__mq055__apartment_01')
-  cycle(); assert(logged('could not prepare judy_default'))
+  unseen(); assert(logged('could not prepare judy_default'))
   f.failPrefetch = false; cycle(); cycle(); assert(calls.prefetch[#calls.prefetch] ~= '2:judy_default', 'a look that failed to load is not retried')
 `));
 
@@ -272,20 +283,20 @@ test('home: set by name, by the game district, and by nothing for a character wi
   assert(#calls.prefetch == 0, 'not at home')
   -- Another feature: she lives here. The next look is within a second, not at the next hour change.
   assert(outfits.setHome('judy-alvarez', true) == true)
-  cycle(1.0); assert(calls.prefetch[1] == '1:judy__mq055__apartment_01' and #calls.prefetch == 1, 'only Judy has a home look')
+  cycle(1.0); cycle(20); assert(calls.prefetch[1] == '1:judy__mq055__apartment_01' and #calls.prefetch == 1, 'only Judy has a home look')
   cycle(1.0); cycle(1.0)
   assert(outfits.status(1) == 'home' and outfits.status(2) == nil)
   assert(outfits.isHome('judy-alvarez') == true)
   -- Not home any more (explicit false beats the district).
   f.place = 'LittleChina_VApartment'
-  outfits.setHome('judy-alvarez', false); cycle(1.0)
+  outfits.setHome('judy-alvarez', false); cycle(1.0); cycle(20)
   assert(calls.prefetch[2] == '1:judy_default', 'back in her own clothes: ' .. tostring(calls.prefetch[2]))
   cycle(1.0); cycle(1.0); assert(outfits.status(1) == nil)
   -- nil: follow the district. V in the apartment puts everybody who has a home look into it.
-  outfits.setHome('judy-alvarez', nil); cycle()
+  outfits.setHome('judy-alvarez', nil); unseen()
   assert(calls.prefetch[3] == '1:judy__mq055__apartment_01', 'the apartment district: ' .. tostring(calls.prefetch[3]))
   cycle(1.0); cycle(1.0)
-  f.place = 'Watson_Kabuki'; cycle(); assert(calls.prefetch[4] == '1:judy_default', 'left the apartment')
+  f.place = 'Watson_Kabuki'; unseen(); assert(calls.prefetch[4] == '1:judy_default', 'left the apartment')
   assert(outfits.setHome('', true) == false and outfits.setHome('x', 'yes') == false and outfits.setHome(nil, true) == false)
   for _, name in ipairs({'LittleChina_VApartment', 'Northside_Apartment', 'JapanTown_Apartment', 'Glen_Apartment', 'CorpoPlaza_Apartment'}) do
     f.place = name; assert(outfits.vAtHome() == true, name)
@@ -366,7 +377,7 @@ test('without a random function the module uses its own generator and leaves the
   assert(distinct == 10, 'ten tenths all visited: ' .. distinct)
   assert(math.random() == expected, 'math.random was not consumed')
   member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
-  at(3, 20); cycle(); assert(#calls.prefetch == 1, 'a decision without deps.random')
+  at(3, 20); unseen(); assert(#calls.prefetch == 1, 'a decision without deps.random')
 `));
 
 test('the module keeps no game handle and has no per-frame entry', () => {

@@ -235,3 +235,43 @@ test('creating a body goes through the party queue as a quiet resident with her 
     assert(extra.appointment.position.x == 1 and math.abs(extra.appointment.facing.x + 1) < 1e-6)
   `);
 });
+
+// A bar stool has no backrest: the higher surface beside it is the counter, and she faces it. (Before, the couch rule - face away from the higher
+// surface - turned every home-seated bar stool 180 degrees.) A stool at x 20 so the couch of the fixture does not interfere.
+test('a bar stool and a stool face the counter, and a straight counter gives a straight facing', () => {
+  lua(`${NATIVE}
+    box(19.8, 20.2, -0.2, 0.2, 0.75)    -- the stool seat
+    box(19.0, 19.7, -2, 2, 1.05)        -- a counter on the -x side, along y
+    local bar = prepare({id = 'bar', kind = 'bar', x = 20, y = 0, z = 0, conf = 'A'}, {key = 'bar'})
+    assert(bar, 'no bar spot')
+    -- facing -x is game yaw 90 (forward = (-sin, cos)); the diagonals that see the same counter are averaged into a straight 90
+    assert(math.abs(bar.yaw - 90) < 1, 'bar yaw ' .. tostring(bar.yaw))
+    local stool = prepare({id = 'stool', kind = 'stool', x = 20, y = 0, z = 0, conf = 'A'}, {key = 'stool'})
+    assert(stool and math.abs(stool.yaw - 90) < 1, 'stool yaw ' .. tostring(stool and stool.yaw))
+  `);
+});
+
+// The final facing of a home-seated stool is the quaternion built from the direction she should face; V's own seated body, which the V-triggered
+// path copies onto the device, faces the counter by definition. Both go through the strict placement call (a real Vector4 is required).
+test('the home path and the V-triggered path turn the same stool the same way (strict placement fake)', () => {
+  lua(`${NATIVE}
+    local VectorMeta = {}
+    Vector4 = {new = function(x, y, z, w) return setmetatable({x = x, y = y, z = z, w = w}, VectorMeta) end}
+    local built = {}
+    Quaternion = {BuildFromDirectionVector = function(v)
+      assert(getmetatable(v) == VectorMeta, 'BuildFromDirectionVector needs a Vector4')
+      built[#built + 1] = {x = v.x, y = v.y}
+      return {quat = true, x = v.x, y = v.y}
+    end}
+    local Seating = dofile('companion-seating.lua')
+    box(19.8, 20.2, -0.2, 0.2, 0.75)
+    box(19.0, 19.7, -2, 2, 1.05)
+    local bar = prepare({id = 'bar', kind = 'bar', x = 20, y = 0, z = 0, conf = 'A'}, {key = 'bar'})
+    assert(bar, 'no bar spot')
+    local home = Seating.native.orientation(bar.yaw)
+    assert(home, 'no home orientation')
+    -- V sitting on the same stool looks at the counter: toward -x. The device takes V's world orientation, i.e. the same direction vector.
+    local viaV = Quaternion.BuildFromDirectionVector(Vector4.new(-1, 0, 0, 0))
+    assert(math.abs(home.x - viaV.x) < 1e-6 and math.abs(home.y - viaV.y) < 1e-6, 'home facing ' .. home.x .. ',' .. home.y .. ' vs V ' .. viaV.x .. ',' .. viaV.y)
+  `, {extra: ['companion-seating.lua', 'gesture-workspot.lua']});
+});
