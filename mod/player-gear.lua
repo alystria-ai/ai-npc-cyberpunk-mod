@@ -46,6 +46,39 @@ local function nativeAdapter()
         if WeaponObject.IsFists(id) then return nil end
         return id
     end
+    -- The game's own Wardrobe (patch 2.0+, docs/PLAYER_GEAR_CONTEXT.md): the active saved clothing set, or nil. The scripted WardrobeSystem
+    -- (Game.GetWardrobeSystem()) answers GetActiveClothingSet() -> ClothingSet {setID, clothingList = array of {slotID, visualItem}}; the equipment
+    -- system's GetActiveWardrobeSet(V) is the second route. Returns {label = <set index text>, items = {ItemID, ...}}.
+    function N.wardrobeSet(player)
+        local set
+        local ok, system = pcall(function() return Game.GetWardrobeSystem() end)
+        if ok and system ~= nil then
+            local got, value = pcall(function() return system:GetActiveClothingSet() end)
+            if got then set = value end
+        end
+        if set == nil then
+            local got, value = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new('EquipmentSystem')):GetActiveWardrobeSet(player) end)
+            if got then set = value end
+        end
+        if set == nil then return nil end
+        local items = {}
+        for _, entry in ipairs(set.clothingList or {}) do
+            if entry.visualItem ~= nil and ItemID.IsValid(entry.visualItem) then items[#items + 1] = entry.visualItem end
+        end
+        local label
+        pcall(function() label = tostring(set.setID.value or set.setID) end)
+        return {label = label, items = items}
+    end
+    -- The equipment area name ('Head', 'OuterChest', ...) an item belongs to, from its record.
+    function N.itemArea(id)
+        local record = TweakDBInterface.GetItemRecord(ItemID.GetTDBID(id))
+        if not record then return nil end
+        local kind = record:EquipArea():Type()
+        for _, row in ipairs(M.CLOTHING) do
+            if kind == Enum.new('gamedataEquipmentArea', row[2]) then return row[2] end
+        end
+        return tostring(kind.value or kind)
+    end
     function N.valid(id) return id ~= nil and ItemID.IsValid(id) end
     function N.name(id, player)
         local record = TweakDBInterface.GetItemRecord(ItemID.GetTDBID(id))
@@ -65,7 +98,7 @@ Instance.__index = Instance
 -- outfit(player) (the visible outfit of a wardrobe mod or nil, set by init.lua).
 function M.new(options)
     options = options or {}
-    return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil}, Instance)
+    return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil, lastWardrobe = 'wardrobe outfit=off'}, Instance)
 end
 
 local function call(fn, ...)
@@ -112,13 +145,38 @@ function Instance:read()
         snapshot.layered = true
         for _, part in ipairs(outfit.parts) do add('clothing', part.slot, self:itemName(part.id, player)) end
     else
-        for _, row in ipairs(M.CLOTHING) do
-            local area = call(N.area, row[2])
-            if area ~= nil then
-                local id = call(N.visual, data, area)
-                if not call(N.valid, id) then id = call(N.equipped, data, area, 0) end
-                add('clothing', row[1], self:itemName(id, player))
+        -- The game's own Wardrobe: an active saved set shows its items on V; a slot the set does not cover keeps the visible/equipped item.
+        local set = call(N.wardrobeSet, player)
+        local covered, found = {}, nil
+        if type(set) == 'table' and type(set.items) == 'table' then
+            found = {}
+            for _, id in ipairs(set.items) do
+                local areaName = call(N.itemArea, id)
+                local name = self:itemName(id, player)
+                if name and areaName then
+                    for _, row in ipairs(M.CLOTHING) do
+                        if row[2] == areaName and not covered[areaName] then covered[areaName] = true; found[#found + 1] = {row[1], name} end
+                    end
+                end
             end
+            if #found == 0 then found, covered = nil, {} end
+        end
+        for _, row in ipairs(M.CLOTHING) do
+            if covered[row[2]] then
+                for _, item in ipairs(found) do if item[1] == row[1] then add('clothing', row[1], item[2]) end end
+            else
+                local area = call(N.area, row[2])
+                if area ~= nil then
+                    local id = call(N.visual, data, area)
+                    if not call(N.valid, id) then id = call(N.equipped, data, area, 0) end
+                    add('clothing', row[1], self:itemName(id, player))
+                end
+            end
+        end
+        local line = found and ('wardrobe outfit=' .. tostring(set.label or 'active') .. ' items=' .. #found) or 'wardrobe outfit=off'
+        if line ~= self.lastWardrobe then
+            self.lastWardrobe = line
+            if type(self.options.log) == 'function' then pcall(self.options.log, line) end
         end
     end
     add('weapons', 'hand', self:itemName(call(N.hand, player), player))

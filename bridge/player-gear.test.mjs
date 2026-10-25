@@ -301,3 +301,23 @@ test('every manual in-person send path captures the gear; reactions and the phon
   assert.equal((initSource.match(/playerGear:capture\(\)/g) || []).length, 1, 'the shared wrapper');
   assert.equal((initSource.match(/convaiPlayerGear:capture\(\)/g) || []).length, 1, 'the send path');
 });
+
+test('an active Wardrobe set shows its items; uncovered slots keep the visible or equipped item; each change logs once', () => lua$(`
+  local lines = {}
+  gear.options.log = function(line) lines[#lines + 1] = line end
+  local areaOf = {Coat = 'OuterChest', Cap = 'Head'}
+  N.itemArea = function(id) return areaOf[id.name] end
+  state.set = {label = 'Set2', items = {{name = 'Coat'}, {name = 'Cap'}}}
+  N.wardrobeSet = function() if state.failures.wardrobe then error('no wardrobe') end return state.set end
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat,innerTorso=Tee,legs=Jeans,feet=Boots', names(snap.clothing))
+  assert(lines[#lines - 1] == 'wardrobe outfit=Set2 items=2', lines[#lines - 1])
+  local count = #lines
+  now = now + api.MAX_AGE; gear:capture(); assert(#lines == count + 1 and lines[#lines] == 'Player gear: 10 items', 'an unchanged set logs nothing more')
+  state.set = nil; now = now + api.MAX_AGE; gear:capture()
+  assert(lines[#lines - 1] == 'wardrobe outfit=off', lines[#lines - 1])
+  state.set = {label = 'Set1', items = {{name = 'Coat'}}}; state.failures.wardrobe = true; now = now + api.MAX_AGE
+  assert(names(gear:capture().clothing):find('outerTorso=Jacket'), 'a failing wardrobe read falls back to the equipment')
+  state.failures.wardrobe = nil; state.set = {label = 'Set3', items = {{name = 'Unknown'}}}; now = now + api.MAX_AGE
+  assert(names(gear:capture().clothing):find('outerTorso=Jacket'), 'a set with no placeable item is not an outfit')
+`));
