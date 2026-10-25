@@ -35,7 +35,8 @@ local UNSEEN_S = 5         -- real seconds a copy must stay out of view before a
 local LOOK_S = 5            -- real seconds between looks at a copy that waits for the camera to look away (one view read per waiting copy)
 local WANT_S = 600          -- a variety change that waited this long for the camera to look away is dropped
 local STAGE_S = 1.0         -- real seconds between the prefetch and the change, and between read-backs
-local GIVE_UP_S = 20.0      -- a change that never shows is given up, and that look is not tried again this session
+local STAND_HOLD_S = 90     -- real seconds a copy that stood up for a change takes no place of the flat (stand, stay unseen UNSEEN_S, load, change)
+local GIVE_UP_S = 20.0     -- a change that never shows is given up, and that look is not tried again this session
 local MIN_DWELL_H = 4       -- game hours between two changes made for variety
 local VARIETY_CHANCE = 0.3  -- per hour change, once the dwell has passed
 local NIGHT_FROM, NIGHT_TO = 19, 6
@@ -297,19 +298,24 @@ local function step(row, player, ctx)
     if not target and m.wanted and m.wanted.from == m.current and now - m.wanted.at < WANT_S then target, why = m.wanted.name, m.wanted.why end
     if not target then m.waiting, m.wanted, m.unseenSince, m.seenWhy = nil, nil, nil, nil; return end
     if not (m.wanted and m.wanted.name == target) then m.wanted = {name = target, why = why, from = m.current, at = now} end
-    local blocked = ctx.world()
-    if blocked then
+    -- A blocker is said once per change of reason, as a code: combat, scene, call, vehicle, v-seated (V's world), seated, command, vehicle (hers).
+    local function blockedBy(code)
         m.unseenSince = nil
-        if m.waiting ~= target then m.waiting = target; say('Companion outfits: ' .. describe(m) .. ' wants ' .. target .. ' (' .. why .. '), waiting for open gameplay (' .. tostring(blocked) .. ')') end
-        return
+        local said = target .. ':' .. tostring(code)
+        if m.waiting ~= said then m.waiting = said; say('Companion outfits: ' .. describe(m) .. ' wants ' .. target .. ' (' .. why .. '), waiting: ' .. tostring(code)) end
     end
-    if deps.busy and deps.busy(row) then m.unseenSince = nil; return end
+    local blocked = ctx.world()
+    if blocked then blockedBy(blocked); return end
+    local busy = deps.busy and deps.busy(row)
+    -- On a place of V's flat she may be changed once she stands (below); a seat that is not the flat's own (V's) stays a blocker.
+    local seated = busy == 'seated' and deps.standUp ~= nil
+    if busy and not seated then blockedBy(busy); return end
     local seen, seenWhy = M.inView(row, player)
     if seen then
         if m.seenWhy ~= seenWhy then m.seenWhy = seenWhy; say('Companion outfits: outfit-seen ' .. seenWhy) end
         m.unseenSince = nil
         ctx.looking = true
-        if m.waiting ~= target then m.waiting = target; say('Companion outfits: ' .. describe(m) .. ' wants ' .. target .. ' (' .. why .. '), waiting until nobody is looking') end
+        if m.waiting ~= target .. ':seen' then m.waiting = target .. ':seen'; say('Companion outfits: ' .. describe(m) .. ' wants ' .. target .. ' (' .. why .. '), waiting until nobody is looking') end
         return
     end
     -- Out of view: she must stay out of it for UNSEEN_S before the change starts (a glance back starts the count again).
@@ -319,6 +325,19 @@ local function step(row, player, ctx)
     end
     if now - m.unseenSince < UNSEEN_S then ctx.looking = true; return end
     say('Companion outfits: outfit-unseen ' .. math.floor(now - m.unseenSince))
+    if seated then
+        -- Out of view on her place: she stands up first and takes no place for STAND_HOLD_S (the flat gives her one again afterwards); the change
+        -- itself starts at a later look, once she stands and is still unseen for UNSEEN_S.
+        local okStand, result = pcall(deps.standUp, row, STAND_HOLD_S)
+        m.unseenSince = nil
+        if okStand and (result == 'released' or result == 'waiting') then
+            if result == 'released' then say('Companion outfits: ' .. describe(m) .. ' stands up from her place to change into ' .. target) end
+            ctx.looking = true
+            return
+        end
+        blockedBy('seated')
+        return
+    end
     m.unseenSince, m.waiting, m.wanted = nil, nil, nil
     say('Companion outfits: outfit-change-start ' .. target)
     local ok, err = pcall(deps.prefetch, row, target)

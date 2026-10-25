@@ -116,7 +116,7 @@ dofile = function(name)
   assert(name == 'companion-outfits-data.lua', name)
   return (function() ${dataSource} end)()
 end
-local f = {enabled = true, world = nil, busy = {}, seen = false, hidden = nil, angle = nil, place = nil, failPrefetch = false, failApply = false, applyTakes = true, rolls = {}}
+local f = {enabled = true, world = nil, busy = {}, stand = nil, standCalls = {}, seen = false, hidden = nil, angle = nil, place = nil, failPrefetch = false, failApply = false, applyTakes = true, rolls = {}}
 local worn, rowsList, logs, calls = {}, {}, {}, {rows = 0, hours = 0, world = 0, prefetch = {}, apply = {}, remember = {}, busy = 0, frustum = 0, place = 0}
 outfits.deps = {
   enabled = function() return f.enabled end,
@@ -138,6 +138,7 @@ outfits.deps = {
   place = function() calls.place = calls.place + 1; return f.place end,
   world = function() calls.world = calls.world + 1; return f.world end,
   busy = function(row) calls.busy = calls.busy + 1; return f.busy[row.serial] end,
+  standUp = function(row, hold) f.standCalls[#f.standCalls + 1] = row.serial .. ':' .. hold; return f.stand end,
   frustum = function() calls.frustum = calls.frustum + 1; return f.seen end,
   hidden = function() return f.hidden end,
   angle = function() return f.angle end,
@@ -242,14 +243,39 @@ test('the camera looks back between the load and the change: the change is dropp
 test('never during a fight, a scene, a seat or a ride, and the reason is said once', () => runWith(`${fixture}
   member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
   at(3, 20); f.world = 'combat'; cycle(); cycle(); cycle()
-  assert(#calls.prefetch == 0 and logged('waiting for open gameplay (combat)'))
-  local said = 0; for _, line in ipairs(logs) do if line:find('waiting for open gameplay', 1, true) then said = said + 1 end end
+  assert(#calls.prefetch == 0 and logged('waiting: combat'))
+  local said = 0; for _, line in ipairs(logs) do if line:find('waiting: combat', 1, true) then said = said + 1 end end
   assert(said == 1, 'said once: ' .. said)
-  f.world = nil; f.busy[1] = 'seated'; unseen(); assert(#calls.prefetch == 0 and #calls.apply == 0)
-  f.busy[1] = nil; unseen(); assert(#calls.prefetch == 1)
+  f.world = nil; f.busy[1] = 'command'; unseen(); assert(#calls.prefetch == 0 and #calls.apply == 0 and logged('waiting: command'))
+  f.world = 'vehicle'; cycle(); assert(logged('waiting: vehicle'), 'the reason changed: said again, as a code')
+  f.world = nil; f.busy[1] = nil; unseen(); assert(#calls.prefetch == 1)
   -- A fight that starts between the load and the change keeps the change back.
   f.world = 'combat'; cycle(1.0); assert(#calls.apply == 0)
   f.world = nil; unseen(); cycle(1.0); assert(#calls.apply == 1)
+`));
+
+test('a copy seated on a place of the flat stands up once she has been out of view, then changes as usual; the hold renews while she is on her way up', () => runWith(`${fixture}
+  member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
+  at(3, 20); f.busy[1] = 'seated'; f.stand = 'released'; f.seen = true
+  cycle(); assert(#f.standCalls == 0 and logged('waiting until nobody is looking'), 'never stands up in view')
+  f.seen = false; cycle(5); assert(#f.standCalls == 0 and logged('outfit-unseen 0'))
+  cycle(5)
+  assert(#f.standCalls == 1 and f.standCalls[1] == '1:90' and logged('stands up from her place to change into panam_default'))
+  assert(#calls.prefetch == 0, 'the change waits until she stands')
+  f.stand = 'waiting'; cycle(5); cycle(5)
+  assert(#f.standCalls == 2 and #calls.prefetch == 0, 'on her way up: hold renewed, no second line')
+  local said = 0; for _, line in ipairs(logs) do if line:find('stands up from her place', 1, true) then said = said + 1 end end
+  assert(said == 1)
+  f.busy[1] = nil; cycle(5); assert(#calls.prefetch == 0, 'standing: the count of unseen seconds starts again')
+  cycle(5); assert(#calls.prefetch == 1, 'then the normal change')
+  cycle(1.0); assert(#calls.apply == 1)
+`));
+
+test('a seat that is not the flat\'s (nothing to release) stays a blocker, said as seated', () => runWith(`${fixture}
+  member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
+  at(3, 20); f.busy[1] = 'seated'; f.stand = nil; f.seen = false
+  cycle(5); cycle(5); cycle(5)
+  assert(#calls.prefetch == 0 and logged('waiting: seated'))
 `));
 
 test('the frustum test is the games own; without it the angle decides, and an unreadable view counts as seen', () => runWith(`${fixture}
@@ -497,6 +523,13 @@ test('companions: a copy that is not ready or is busy is not changed', () => run
   judy.combat = true; tick(2)
   assert(companions.outfitBusy(serial) == 'combat', tostring(companions.outfitBusy(serial)))
   judy.combat = false
+  assert(companions.outfitStandUp(serial, 90) == nil, 'no body animation layer: nothing to release')
+  local asked
+  companions.bodyAnimation = {standUp = function(s, hold) asked = s .. ':' .. hold; return 'released' end}
+  assert(companions.outfitStandUp(serial, 90) == 'released' and asked == serial .. ':90')
+  companions.bodyAnimation = {standUp = function() error('boom') end}
+  assert(companions.outfitStandUp(serial, 90) == nil, 'a failing release says nothing')
+  companions.bodyAnimation = nil
   function judy:IsDeadNoStatPool() return true end
   assert(not pcall(companions.changeAppearance, serial, 'x', 'apply'))
 `));
@@ -528,6 +561,8 @@ test('init.lua: the tick is in the 10 Hz branch after the poll gate, off costs o
   // The game's own frustum test and the margins its reaction code uses; the world check is the battle observer's.
   assert.match(initSource, /IsInCameraFrustum\(npc, 2\.0, 0\.75\)/);
   assert.match(initSource, /world = function\(\)\s*local sample = battleObserver\.sample\(Game\.GetPlayer\(\)\)/);
+  assert.match(initSource, /standUp = function\(row, hold\) return companions\.outfitStandUp\(row\.serial, hold\) end/);
+  assert.match(initSource, /return sample\.vehicle and 'vehicle' or sample\.call and 'call' or sample\.sitting and 'v-seated' or 'scene'/);
   assert.match(initSource, /gameHours = function\(\)\s*local seconds = worldKnowledgeModule\.nativeGameTime/);
 });
 

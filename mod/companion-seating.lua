@@ -589,7 +589,8 @@ function M.new(options)
         if s.rehome then
             -- V sat on her place: she takes another one.
             s.rehome = nil
-            if s.home and wasLive then s.session, s.cooldownUntil = nil, self.clock + 1 end
+            if s.home and wasLive then s.session, s.cooldownUntil = nil, self.clock + (s.rehomeHold or 1) end
+            s.rehomeHold = nil
         end
         if s.reseat then
             -- She stood up on her own while V is still seated: take a seat again.
@@ -1517,6 +1518,18 @@ function M.new(options)
             requestExit(s, reason or 'home ended', instant)
         end
         return true
+    end
+    -- A change of clothes (mod/companion-outfits.lua): she lets go of her home place (a seated one stands up with the native exit) and takes no
+    -- place for `hold` seconds, then the home gives her one again. 'released': she goes now; 'waiting': she is already on her way up (the hold
+    -- is renewed); nil: she holds no place of the home (V's own seat session, nothing to release).
+    function self.homeStandUp(serial, hold)
+        local s = self.states[serial]
+        if not s or not home or not s.home or s.session ~= home.id or s.phase == 'off' then return nil end
+        s.rehome, s.rehomeHold = true, hold
+        if s.phase == 'exiting' or s.phase == 'leaving' or s.phase == 'standing' then return 'waiting' end
+        s.homeEnding = true
+        requestExit(s, 'outfit', false)
+        return 'released'
     end
     function self.homeActive() return home ~= nil end
     -- The places companions hold now, and where V sits: the home never gives the same spot twice.
