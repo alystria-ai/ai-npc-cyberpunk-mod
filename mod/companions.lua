@@ -146,7 +146,15 @@ end
 
 function M.phoneContactKey(contactId)
     local contact = phoneContacts[contactId]
-    if not contact then return nil, 'This contact has no companion mapping yet.' end
+    if not contact then
+        -- A Chat row with no journal contact carries its profile key as id (phone-chat.lua): invited as that profile's copy.
+        local definition = records[contactId]
+        if definition and definition.profileKey == contactId and definition.id then
+            if not TweakDB:GetRecord(definition.id) then return nil, 'Character unavailable in this game installation.' end
+            return contactId, nil, definition.name
+        end
+        return nil, 'This contact has no companion mapping yet.'
+    end
     if contact.unavailable then return nil, contact.unavailable end
     if not TweakDB:GetRecord(contact.record) then return nil, 'Character unavailable in this game installation.' end
     return contact.key, nil, contact.name

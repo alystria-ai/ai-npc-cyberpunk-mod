@@ -183,6 +183,10 @@ private cb func OnConvaiPhoneKey(evt: ref<KeyInputEvent>) -> Void {
         || evt.IsControlDown() || evt.IsAltDown() || !IsDefined(this.m_contactListLogicController) {
         return;
     };
+    // A Chat conversation (or its opening) owns the keyboard: a J or L typed there is a letter.
+    if Equals(this.m_convaiChatState, ConvaiPhoneChatState.Opening) || Equals(this.m_convaiChatState, ConvaiPhoneChatState.Conversation) {
+        return;
+    };
     if this.m_contactListLogicController.ConvaiSelectedCompanionAction(Equals(evt.GetKey(), EInputKey.IK_J)) {
         this.m_audioSystem.Play(n"ui_phone_incoming_call_positive");
     };
@@ -264,7 +268,9 @@ private final func ConvaiLayoutActions(selected: Bool) -> Void {
     };
     let visible: Bool = selected && StrLen(this.ConvaiContactKey()) > 0;
     let player: ref<PlayerPuppet> = GetPlayer(GetGameInstance()) as PlayerPuppet;
-    let available: Bool = IsDefined(player) && player.ConvaiPhoneContactAvailable(this.ConvaiContactKey());
+    // A Chat row of a character with no phone-contact mapping is shown as available: the request is answered on the Lua side.
+    let available: Bool = IsDefined(player) && (player.ConvaiPhoneContactAvailable(this.ConvaiContactKey())
+        || (this.ConvaiIsChatRow() && !player.ConvaiPhoneContactMapped(this.ConvaiContactKey())));
     let label: wref<inkWidget> = inkWidgetRef.Get(this.m_label);
     if IsDefined(label) {
         if this.m_convaiLabelWidth <= 0.0 {
@@ -285,11 +291,18 @@ private final func ConvaiLayoutActions(selected: Bool) -> Void {
 }
 
 @addMethod(PhoneContactItemVirtualController)
+private final func ConvaiIsChatRow() -> Bool {
+    let contact: ref<ContactData> = this.GetContactData();
+    return IsDefined(contact) && contact.convaiChat;
+}
+
+@addMethod(PhoneContactItemVirtualController)
 private final func ConvaiContactKey() -> String {
     let contact: ref<ContactData> = this.GetContactData();
-    if !IsDefined(contact) || contact.convaiChat || NotEquals(contact.type, MessengerContactType.Contact) {
+    if !IsDefined(contact) || NotEquals(contact.type, MessengerContactType.Contact) {
         return "";
     };
+    // A Chat row carries the journal contact's id or, for a character the journal has none for, her profile key.
     return contact.id;
 }
 
@@ -351,7 +364,7 @@ public final func ConvaiRequestCompanion(join: Bool) -> Bool {
     let accepted: Bool = player.ConvaiPhoneQueue(key, join);
     this.ConvaiShowActionFeedback(accepted
         ? (join ? "INVITE QUEUED - CLOSE PHONE" : "DISMISS QUEUED - CLOSE PHONE")
-        : (player.ConvaiPhoneContactAvailable(key) ? "CLOSE PHONE TO CONTINUE" : "COMPANION UNAVAILABLE"));
+        : (player.ConvaiPhoneContactAvailable(key) || !player.ConvaiPhoneContactMapped(key) ? "CLOSE PHONE TO CONTINUE" : "COMPANION UNAVAILABLE"));
     return accepted;
 }
 
@@ -440,6 +453,11 @@ public final func ConvaiPhoneContactAvailable(id: String) -> Bool {
 }
 
 @addMethod(PlayerPuppet)
+public final func ConvaiPhoneContactMapped(id: String) -> Bool {
+    return ArrayContains(this.m_convaiPhoneContactIds, id);
+}
+
+@addMethod(PlayerPuppet)
 public final func ConvaiPhoneFeedback(message: String) -> Void {
     this.SetWarningMessage(message, SimpleMessageType.Neutral);
 }
@@ -447,6 +465,15 @@ public final func ConvaiPhoneFeedback(message: String) -> Void {
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneQueue(key: String, join: Bool) -> Bool {
     let index: Int32 = ArrayFindFirst(this.m_convaiPhoneContactIds, key);
+    if index < 0 && this.ConvaiPhoneChatHasContact(key) {
+        // A Chat contact with no phone-contact entry (a character of the roster): Lua resolves her by profile key and answers.
+        if ArraySize(this.m_convaiPhoneRequests) < 8 {
+            ArrayPush(this.m_convaiPhoneRequests, (join ? "+" : "-") + key);
+            return true;
+        };
+        this.ConvaiPhoneFeedback("Close the phone to finish the pending companion requests.");
+        return false;
+    };
     if index < 0 {
         this.ConvaiPhoneFeedback("This contact has no companion mapping yet.");
         return false;

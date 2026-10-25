@@ -75,3 +75,34 @@ test('catalog ids are unique so a later unlock cannot shadow an earlier mapping'
     assert.ok(entry.unavailable || (entry.key && entry.record), `${entry.contact} needs a model or a reason`);
   }
 });
+
+// A Chat row with no journal contact carries its profile key as id; J and L on it invite and dismiss that profile's copy.
+test('a Chat row id that is a profile key resolves to that profile, an unknown id still has no mapping', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const program = `
+    io.open = function() return nil end
+    json = {decode = function() return {} end}
+    Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
+    TweakDBID={new=function(v) return v end}
+    CName={new=function(v) return v end}
+    Game={GetJournalManager=function() error('journal read') end}
+    local missing = {}
+    TweakDB={GetRecord=function(_, id) if missing[id] then return nil end; return {} end}
+    NewObject=function() return {} end
+    Enum={new=function(_, value) return value end}
+    ${companionModules}
+    ${flatSpatial}
+    ${flatNavigation}
+    local companions = (function() ${source} end)()
+    local key, reason, name = companions.phoneContactKey('judy-alvarez')
+    assert(key == 'judy-alvarez' and reason == nil and name == 'Judy Alvarez')
+    local none, why = companions.phoneContactKey('nobody-here')
+    assert(none == nil and why == 'This contact has no companion mapping yet.')
+    missing['Character.Judy'] = true
+    local gone, gonewhy = companions.phoneContactKey('judy-alvarez')
+    assert(gone == nil and gonewhy == 'Character unavailable in this game installation.')
+  `;
+  const result = lauxlib.luaL_dostring(state, to_luastring(program));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
+});
