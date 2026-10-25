@@ -38,9 +38,10 @@ local fake = {
 local function dist(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
 local world = {}
 function world.state() return {running = fake.running, position = fake.pos, held = fake.held} end
-function world.describe(kind)
-  if kind == 'waypoint' then return fake.waypoint and {position = fake.waypoint.position, place = fake.waypoint.place} or nil end
-  return {position = {x = fake.pos.x, y = fake.pos.y, z = fake.pos.z}, place = fake.herePlace or "Lizzie's Bar, Kabuki, Watson"}
+function world.describe(kind, wantRoad)
+  if kind == 'waypoint' then return fake.waypoint and {position = fake.waypoint.position, place = fake.waypoint.place, road = fake.waypoint.road} or nil end
+  return {position = {x = fake.pos.x, y = fake.pos.y, z = fake.pos.z}, place = fake.herePlace or "Lizzie's Bar, Kabuki, Watson",
+    road = (wantRoad and not fake.noRoad) and {x = fake.pos.x + 8, y = fake.pos.y, z = 0} or nil}
 end
 function world.hasWaypoint() return fake.waypoint ~= nil end
 function world.findSpot(a, mode)
@@ -48,9 +49,44 @@ function world.findSpot(a, mode)
   if fake.deferNext then fake.deferNext = false; return nil, nil, true end
   if fake.spotFail > 0 then fake.spotFail = fake.spotFail - 1; return nil, 'none' end
   if mode == 'exit' then return {position = {x = a.dest.x + 80, y = a.dest.y, z = 0}} end
-  local d = mode == 'close' and 20 or mode == 'standing' and 3 or 60
-  return {position = {x = a.dest.x + d, y = a.dest.y, z = 0}, goal = {x = a.dest.x, y = a.dest.y, z = 0},
-    facing = {x = -1, y = 0}, distance = d, eta = d / 1.5, leg = 'walk'}
+  local d = mode == 'close' and 20 or mode == 'standing' and 3 or mode == 'car' and 200 or 60
+  local spot = {position = {x = a.dest.x + d, y = a.dest.y, z = 0}, goal = {x = a.dest.x, y = a.dest.y, z = 0},
+    facing = {x = -1, y = 0}, distance = d, eta = mode == 'car' and 40 or d / 1.5}
+  if mode == 'car' then
+    spot.car = {position = {x = a.dest.x + d + 3, y = a.dest.y, z = 0}, yaw = 90}
+    spot.roadEnd = {x = a.dest.x + 8, y = a.dest.y, z = 0}
+  end
+  return spot
+end
+fake.cars = {nextId = 0, created = {}, deleted = {}, positions = {}, steps = 0, deleteFails = 0}
+function world.carChoice(a) return {record = 'Vehicle.test', name = 'Test car'} end
+function world.carCreate(a)
+  if fake.carCreateFails then return nil, 'no car' end
+  fake.cars.nextId = fake.cars.nextId + 1
+  local car = {handle = {id = fake.cars.nextId}}
+  fake.cars.created[#fake.cars.created + 1] = car.handle.id
+  fake.cars.positions[car.handle.id] = {x = a.carSpot.position.x, y = a.carSpot.position.y, z = 0}
+  return car
+end
+function world.carReady(a, dt) return fake.carReady or 'ready', 'not on a road' end
+function world.carStep(a, dt)
+  fake.cars.steps = fake.cars.steps + 1
+  if fake.carFails then return 'failed', 'stuck' end
+  if fake.cars.steps >= (fake.carStepsToArrive or 3) then
+    local at = fake.cars.positions[a.car.handle.id]
+    fake.cars.positions[a.car.handle.id] = {x = a.roadEnd.x, y = a.roadEnd.y, z = 0}
+    local v = findVisitorByAppointment(a.id)
+    if v then v.position = {x = a.roadEnd.x + 2, y = a.roadEnd.y, z = 0} end
+    return 'arrived'
+  end
+  return true
+end
+function world.carPosition(handle) return fake.cars.positions[handle.id] end
+function world.carDelete(handle)
+  if fake.cars.deleteFails > 0 then fake.cars.deleteFails = fake.cars.deleteFails - 1; return false end
+  fake.cars.deleted[#fake.cars.deleted + 1] = handle.id
+  fake.cars.positions[handle.id] = nil
+  return true
 end
 function world.hidden() return fake.hiddenAnswer end
 function world.release() end
@@ -63,6 +99,7 @@ function companions.visitors()
   return rows
 end
 local function findVisitor(serial) for _, v in ipairs(fake.visitors) do if v.serial == serial then return v end end end
+function findVisitorByAppointment(id) for _, v in ipairs(fake.visitors) do if v.appointmentId == id then return v end end end
 function companions.visitorSense(serial, dt)
   local v = findVisitor(serial); if not v then return nil end
   if fake.stuck then return {position = v.position, active = true, complete = false, failed = false} end
@@ -100,12 +137,12 @@ function queue.invite(key, extra)
   fake.jobs[#fake.jobs + 1] = job
   return true, '', job.id
 end
-function queue.dismiss(id) for _, j in ipairs(fake.jobs) do if j.id == id then j.cancelled = true end end return true end
-function queue.list() local rows = {} for _, j in ipairs(fake.jobs) do if not j.cancelled and not j.spawned then rows[#rows + 1] = {id = j.id} end end return rows end
+function queue.cancelJob(id) for _, j in ipairs(fake.jobs) do if j.id == id then j.cancelled = true end end return true end
+function queue.hasJob(id) for _, j in ipairs(fake.jobs) do if j.id == id and not j.cancelled and not j.spawned then return true end end return false end
 -- The manager's flush: a job whose gate is open becomes a visiting copy at the appointment's position.
 local function flush()
   for _, job in ipairs(fake.jobs) do
-    if not job.spawned and not job.cancelled and job.extra.gate() == true then
+    if not job.spawned and not job.cancelled and not fake.noSpawn and job.extra.gate() == true then
       job.spawned = true
       fake.serial = fake.serial + 1
       fake.visitors[#fake.visitors + 1] = {serial = fake.serial, state = 'visiting', appointmentId = job.extra.appointment.id,
@@ -512,4 +549,195 @@ test('idle cost: a step with nothing to do reads no game state', () => run(`
   world.state = function() reads = reads + 1; return real() end
   for _ = 1, 400 do ctl.update(0.1) end
   assert(reads == 0, reads)
+`));
+
+// ---- Phase 2: she comes by car ---------------------------------------------------------------------------------------------------
+
+test('a car arrival: her car is made when she has to appear, the spawn waits until it stands on a road, she drives, gets out, walks, and texts', () => run(`
+  opts.arrival = 'car'
+  fake.carReady = 'wait'
+  ask('judy')
+  assert(ctl.appointment('judy-alvarez').method == 'car')
+  tick(4)
+  assert(#fake.cars.created == 1 and #fake.visitors == 0, 'the car exists, she does not: the gate is closed')
+  assert(fake.modes[1] == 'car')
+  fake.carReady = 'ready'
+  tick(2)
+  assert(#fake.visitors == 1, 'now she appears beside it')
+  tick(60)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a and a.phase == 'waiting' and a.body == 'visitor', tostring(a and a.phase))
+  assert(a.arrivedByCar == true and texts('arrived') == 1 and last(fake.texts).car == true, 'the text knows she came by car')
+  assert(#fake.cars.deleted == 0, 'her car stays')
+`));
+
+test('the car is not made before it is time: a timed arrival creates it just before she must spawn', () => run(`
+  opts.arrival = 'car'; opts.delay = 2
+  ask('judy')
+  tick(30)
+  assert(#fake.cars.created == 0)
+  tick(60)
+  assert(#fake.cars.created == 1)
+`));
+
+test('no road end point near V: the car request becomes a walk at once', () => run(`
+  opts.arrival = 'car'; fake.noRoad = true
+  ask('judy')
+  assert(ctl.appointment('judy-alvarez').method == 'walk')
+  tick(5)
+  assert(fake.modes[1] == 'walk' and #fake.cars.created == 0)
+`));
+
+test('a car that cannot be made, or that does not stand on a road, is replaced by a walk and nothing is left behind', () => run(`
+  opts.arrival = 'car'; fake.carCreateFails = true
+  ask('judy'); tick(20)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a.method == 'walk' and #fake.cars.created == 0)
+  fake.carCreateFails = false
+  ctl.cancel('judy-alvarez', 'x'); tick(1)
+  opts.arrival = 'car'; fake.carReady = 'bad'
+  ask('panam'); tick(20)
+  assert(ctl.appointment('panam-palmer').method == 'walk')
+  assert(#fake.cars.created >= 1 and #fake.cars.deleted == #fake.cars.created, 'the bad car was deleted')
+`));
+
+test('a car trip that fails removes her body and the car, and she walks in from close by', () => run(`
+  opts.arrival = 'car'; fake.carFails = true
+  ask('judy'); tick(30)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a == nil or a.method == 'walk', 'walking now')
+  assert(#fake.cars.created >= 1 and #fake.cars.deleted == #fake.cars.created, 'every car was deleted')
+  assert(#fake.dismissed >= 1)
+  tick(120)
+  local b = ctl.appointment('judy-alvarez')
+  assert(b ~= nil and b.phase == 'waiting', 'she arrived on foot')
+  assert(b.arrivedByCar ~= true)
+`));
+
+test('meeting V makes the car hers: it stays while she is in the group and V is near, and is not deleted', () => run(`
+  opts.arrival = 'car'
+  ask('judy'); tick(70)
+  assert(ctl.appointment('judy-alvarez').phase == 'waiting')
+  fake.pos = {x = fake.pos.x + 30, y = fake.pos.y, z = 0}
+  tick(3)
+  assert(#fake.joined == 1)
+  assert(ctl.carOf('judy-alvarez') ~= nil and #fake.cars.deleted == 0)
+  fake.party = {{profileKey = 'judy-alvarez', key = 'judy', state = 'ready'}}
+  tick(60)
+  assert(ctl.carOf('judy-alvarez') ~= nil and #fake.cars.deleted == 0, 'near V with her in the group: kept')
+`));
+
+test('her car is removed when V and she are far from it, and when she is dismissed, not before', () => run(`
+  opts.arrival = 'car'
+  ask('judy'); tick(70)
+  fake.pos = {x = fake.pos.x + 30, y = fake.pos.y, z = 0}; tick(3)
+  fake.party = {{profileKey = 'judy-alvarez', key = 'judy', state = 'ready'}}
+  tick(30); assert(ctl.carOf('judy-alvarez') ~= nil)
+  local carPos = fake.cars.positions[1]
+  fake.pos = {x = carPos.x + 400, y = carPos.y, z = 0}
+  tick(4); assert(ctl.carOf('judy-alvarez') ~= nil, 'a short walk away is no reason')
+  tick(6); assert(ctl.carOf('judy-alvarez') == nil and #fake.cars.deleted == 1, 'far away for a few seconds')
+  -- the same for a dismissal
+  opts.arrival = 'car'
+  fake.pos = {x = 0, y = 0, z = 0}
+  ask('panam'); tick(70)
+  fake.pos = {x = fake.pos.x + 30, y = fake.pos.y, z = 0}; tick(3)
+  fake.party = {{profileKey = 'panam-palmer', key = 'panam', state = 'ready'}}
+  tick(20); assert(ctl.carOf('panam-palmer') ~= nil)
+  fake.party = {}
+  tick(8); assert(ctl.carOf('panam-palmer') ~= nil, 'a short gap is no reason')
+  tick(6); assert(ctl.carOf('panam-palmer') == nil and #fake.cars.deleted == 2)
+`));
+
+test('stood up: the car goes when she has gone; never mind and a quiet end delete it at once', () => run(`
+  opts.arrival = 'car'; opts.wait = 2
+  ask('judy'); tick(70)
+  tick(130)
+  assert(ctl.appointment('judy-alvarez').phase == 'leaving' and #fake.cars.deleted == 0)
+  fake.hiddenAnswer = true; fake.visitors[1].position = {x = fake.pos.x + 40, y = fake.pos.y, z = 0}
+  tick(3)
+  assert(ctl.appointment('judy-alvarez') == nil and #fake.cars.deleted == 1)
+  opts.arrival = 'car'
+  ask('panam'); tick(10)
+  ctl.cancel('panam-palmer', 'dismissed'); tick(3)
+  assert(#fake.cars.created == 2 and #fake.cars.deleted == 2)
+`));
+
+test('a car that will not delete is asked again, and given up after the limit', () => run(`
+  opts.arrival = 'car'
+  ask('judy'); tick(10)
+  fake.cars.deleteFails = 3
+  ctl.cancel('judy-alvarez', 'x')
+  tick(2); assert(#fake.cars.deleted == 0)
+  tick(10); assert(#fake.cars.deleted == 1, 'deleted once it let go')
+  opts.arrival = 'car'
+  ask('panam'); tick(10)
+  fake.cars.deleteFails = 1000
+  ctl.cancel('panam-palmer', 'x')
+  tick(120)
+  assert(#fake.cars.deleted == 1)
+  fake.cars.deleteFails = 0
+  tick(10); assert(#fake.cars.deleted == 1, 'given up: no more asking')
+`));
+
+test('V fast travels while she drives in: the car goes with her body, and she arrives virtually', () => run(`
+  opts.arrival = 'car'
+  ask('judy'); tick(8)
+  assert(ctl.appointment('judy-alvarez').phase == 'en-route' and #fake.cars.created == 1)
+  local serial = fake.visitors[1].serial
+  fake.pos = {x = 5000, y = 0, z = 0}
+  ctl.visitorLost(serial, 'fast-travel'); fake.visitors = {}
+  tick(2)
+  assert(#fake.cars.deleted == 1 and ctl.appointment('judy-alvarez').phase == 'scheduled')
+  tick(120)
+  assert(ctl.appointment('judy-alvarez').body == 'virtual' and texts('arrived') == 1)
+`));
+
+test('a load drops the references without touching the game; another line in the same world removes her car; Off removes the rest', () => run(`
+  opts.arrival = 'car'
+  ctl.bind('line-1', 1)
+  ask('judy'); tick(70)
+  fake.pos = {x = fake.pos.x + 30, y = fake.pos.y, z = 0}; tick(3)
+  fake.party = {{profileKey = 'judy-alvarez', key = 'judy', state = 'ready'}}
+  assert(ctl.carOf('judy-alvarez') ~= nil)
+  ctl.bind(nil, nil)
+  assert(ctl.carOf('judy-alvarez') == nil and #fake.cars.deleted == 0, 'a load: nothing is asked of the game')
+  ctl.bind('line-2', 1)
+  opts.arrival = 'car'; fake.pos = {x = 0, y = 0, z = 0}
+  ask('panam'); tick(70)
+  fake.pos = {x = fake.pos.x + 30, y = fake.pos.y, z = 0}; tick(3)
+  fake.party = {{profileKey = 'panam-palmer', key = 'panam', state = 'ready'}}
+  assert(ctl.carOf('panam-palmer') ~= nil)
+  ctl.bind('line-3', 1)
+  assert(ctl.carOf('panam-palmer') == nil and #fake.cars.deleted == 1, 'another line in the same world: removed')
+  fake.pos = {x = 0, y = 0, z = 0}
+  opts.arrival = 'car'
+  ask('rita'); tick(10)
+  assert(#fake.cars.created == 3)
+  ctl.disable()
+  assert(#fake.cars.deleted == 2, 'the car of an appointment that was cut short goes with Off')
+`));
+
+test('a car costs nothing while there is none: no state read, however long it ticks', () => run(`
+  local reads = 0
+  local real = world.state
+  world.state = function() reads = reads + 1; return real() end
+  for _ = 1, 400 do ctl.update(0.1) end
+  assert(reads == 0, reads)
+`));
+
+test('a failed appointment sends a plain text: marked plain, so the phone shows her line without asking the bridge', () => run(`
+  fake.spotFail = 100
+  ask('judy'); tick(10)
+  assert(texts('failed') == 1 and last(fake.texts).plain == true)
+  assert(texts('arrived') == 0)
+`));
+
+test('a job that is still preparing is waited for however long; a job that vanished without a copy is given up', () => run(`
+  fake.noSpawn = true
+  ask('judy'); tick(100)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a and a.phase == 'preparing' and #fake.visitors == 0, 'a slow preparation is not a failure')
+  fake.jobs[1].cancelled = true
+  tick(3); assert(ctl.appointment('judy-alvarez') == nil and texts('failed') == 1, 'a vanished job is noticed')
 `));

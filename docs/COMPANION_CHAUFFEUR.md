@@ -15,6 +15,8 @@ The companion takes the driver seat and waits for V to enter a passenger seat th
 Every companion may be offered the wheel, Alt Cunningham included (she has a real body; the old passenger-only rule was removed on 2026-10-25).
 See `docs/COMPANION_VEHICLES_DESIGN.md`.
 
+**Her car.** A companion who arrived by car through Immersive invitations ([IMMERSIVE_INVITATIONS.md](IMMERSIVE_INVITATIONS.md)) can drive V in that car while it stands near V and V has no car of V's own to use: `companion-chauffeur-native.lua` asks the two globals `convaiCompanionCar` and `convaiCompanionCarIs`, the lease keeps a `companionCar` flag and her car always takes the Lua sampling path.
+
 Routine preparing, boarding, driving and exit popups are shown only with
 **Settings → Development → Developer mode** On. The setting defaults Off.
 Current party always retains the trip status; actionable errors remain visible.

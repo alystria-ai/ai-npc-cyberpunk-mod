@@ -3526,7 +3526,8 @@ do
         local sample = battleSample
         if type(sample) ~= 'table' then return nil end
         if sample.combat then return 'combat' end
-        if sample.scene or sample.dialogue or sample.choices then return 'scene' end
+        -- IsEntityInScene stays true in ordinary tier-one gameplay (mod/battle-observer.lua): the scene tier, a dialogue or a choice is a scene.
+        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then return 'scene' end
         if sample.call or (convaiHolocall and convaiHolocall.call) then return 'call' end
         return nil
     end
@@ -4544,13 +4545,14 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     local faceTest = convaiFacialPlayback and convaiFacialPlayback.faceTest
     if faceTest and type(faceTest.abandon) == 'function' then pcall(faceTest.abandon, reason) end
     cancelAutomatic(reason, true)
-    if convaiImmersiveReset then convaiImmersiveReset(reason, preserveTransit == true) end
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0
     battleSample, battlePeople, battlePoll = nil, {}, 0
     if tactics then tactics.abandon() end
     if marking then marking.abandon() end
     companions.abandon(preserveTransit==true)
+    -- Immersive invitations: the references are dropped after the party's own, with no call into the game (mod/immersive-invitations.lua bind).
+    if convaiImmersiveReset then convaiImmersiveReset(reason, preserveTransit == true) end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
     managerUi.resetSession()
     speech.abandon()

@@ -49,6 +49,7 @@ Mods screen (Esc > Mods)
 | Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
 | Convai paid tier | Settings | Convai paid tier, Plans |
 | Custom endpoint | Settings | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
+| Immersive invitations | Settings | Immersive invitations (six rows: the switch, how she arrives, when, how long she waits, the waypoint, her texts; `docs/IMMERSIVE_INVITATIONS.md`) |
 
 The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other six (Memory, Relationships, Dynamic info, Help, paid tier, Custom endpoint). It is the first row of
 the first section, so it is always the first row of the page. Memory (Manage), Dynamic info (Open, since 2026-10-22) and Relationships (Open) are rows of Settings > Conversations, Help and support is
@@ -111,7 +112,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
     one the player muted earlier stays muted, since nothing resets the saved value.
   - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, Custom endpoint (a button that
     opens the Custom page, below), Convai API key, Convai paid tier, Edit characters.
-  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
+  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong), and an **Immersive invitations** button (Open, since 2026-10-25) to its own page. Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
   - Voices: Voice playback, Companion voices, Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
     Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; default Pocket,
     `docs/V_VOICE.md`).

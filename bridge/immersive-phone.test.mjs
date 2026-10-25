@@ -150,3 +150,16 @@ assert(not m.pending and m.events==nil)
 update()
 assert(((m.errors or {}).judy)==nil and (m.drafts.judy or '')=='')
 `));
+
+test('a plain text (she could not come) is her fallback line at once: no request is written for the bridge', () => runLua(setup + `
+local delivered={}
+m.onEventDelivered=function(it,text) delivered[#delivered+1]=text end
+update()
+local plain={profileKey='judy-alvarez',name='Judy',kind='failed',place='x',minutes=0,car=false,plain=true,fallback="Something came up and I can't make it."}
+assert(m.sendEvent(plain))
+update()
+assert(not m.pending and #m.history.judy==1 and m.history.judy[1].text==plain.fallback and m.history.judy[1].sent==false)
+assert(delivered[1]==plain.fallback)
+local sent=files['runtime/phone-chat-input.json'] and json.decode(files['runtime/phone-chat-input.json']).request
+assert(sent==nil, 'nothing was asked of the bridge')
+`));

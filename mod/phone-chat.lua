@@ -734,7 +734,8 @@ function M.update(player, delta)
     if historyReady and not M.pending and M.events and M.events[1] and M.world then
         local entry = table.remove(M.events, 1)
         local key = M.catalog[entry.contact]
-        if M.blockAll or M.blockedProfiles[key] or not M.startEvent(player, entry) then
+        -- A plain text (item.plain: she could not come) is her fallback line at once: nothing for the bridge to write.
+        if entry.item.plain or M.blockAll or M.blockedProfiles[key] or not M.startEvent(player, entry) then
             M.deliverEvent(entry.contact, entry.item, entry.item.fallback)
         end
     end

@@ -104,3 +104,48 @@ test('a visitor is not part of the party frame: no group, no recovery teleport h
   for _,cmd in ipairs(npc.ai.commands) do if cmd.kind=='AITeleportCommand' then teleports=teleports+1 end end
   assert(teleports==0)
 `));
+
+test('a visitor boards and leaves a car by the animated mount commands, and reports whether she sits in it', () => run(`${visitor}
+  EntityID={new=function() return {hash='0ULL'} end}
+  local serial,npc=visit(11)
+  local car={id='77ULL',entityID={hash='77ULL'}}
+  assert(companions.visitorMount(serial,car,'seat_front_left',false))
+  local mount=last(npc,'AIMountCommand')
+  assert(mount and mount.mountData.slotName=='seat_front_left' and mount.mountData.isInstant==false and mount.mountData.mountParentEntityId.hash=='77ULL')
+  assert(companions.visitorMounted(serial,car)==false,'not yet')
+  Game.GetMountingFacility=function() return {GetMountingInfoSingleWithObjects=function() return {parentId={hash='77ULL'},slotId={id='seat_front_left'}} end} end
+  assert(companions.visitorMounted(serial,car)==true and companions.visitorMounted(serial,car,'seat_front_left')==true)
+  assert(companions.visitorMounted(serial,car,'seat_back_left')==false and companions.visitorMounted(serial,{id='88ULL'})==false)
+  assert(companions.visitorMount(serial,car,'seat_front_left',true,true))
+  local leave=last(npc,'AIUnmountCommand')
+  assert(leave and leave.mountData.isInstant==true and leave.mountData.allowFailsafeTeleport==true)
+  assert(not companions.visitorMount(9999,car,'seat_front_left',false),'an unknown serial')
+`));
+
+test('the hidden spot of a visitor: behind where V looks, far enough, reachable, and never beside another visitor', () => run(`${visitor}
+  companions.visibleFromCrosshair=function() return false end
+  local request={destination=Vector4.new(0,0,0),mode='walk',relax=0,maxDistance=90}
+  local state={}
+  local spot,reason,deferred=companions.findVisitorSpot('judy-alvarez',request,state)
+  for _=1,12 do if spot or reason then break end spot,reason,deferred=companions.findVisitorSpot('judy-alvarez',request,state) end
+  assert(spot,tostring(reason))
+  assert(math.abs(spot.goal.x)<.01 and spot.distance>=35 and spot.eta>20)
+  assert(spot.position.y<-30,'behind V, who faces +y: '..spot.position.y)
+  -- another visitor stands there: the next candidate is taken
+  local other={}
+  other.state={}
+  request.avoid={{x=spot.position.x,y=spot.position.y,z=0}}
+  local second,why=companions.findVisitorSpot('judy-alvarez',request,{})
+  for _=1,12 do if second or why then break end second,why=companions.findVisitorSpot('judy-alvarez',request,{}) end
+  assert(second and (math.abs(second.position.x-spot.position.x)>3 or math.abs(second.position.y-spot.position.y)>3))
+`));
+
+test('a spot search that spends the query budget asks again instead of failing', () => run(`${visitor}
+  companions.visibleFromCrosshair=function() return false end
+  local spent=0
+  local real=Game.GetAINavigationSystem
+  local request={destination=Vector4.new(0,0,0),mode='walk',relax=0,maxDistance=90}
+  local state={}
+  local first,reason,deferred=companions.findVisitorSpot('judy-alvarez',request,state)
+  assert(first or deferred==true or reason==nil,'a batch of candidates: found, or ask again')
+`));

@@ -753,6 +753,29 @@ function M.visitorHold(serial)
     local ok,sent=pcall(actuator.stay,entry.motor)
     return ok and sent==true
 end
+-- The party-car adapter, with its query budget set, for the immersive-invitation car module (mod/immersive-car.lua).
+M.vehicleAdapter=vehicleNative
+-- An animated mount or unmount of a visitor into the driver seat of a car (instant: the game's exit with its failsafe). `vehicle` is the
+-- car record the adapter returned (entityID). True when the command was accepted. The visitor is moved by nothing else meanwhile: a mount
+-- command replaces her walk command at the game's AI, and her module sends no walk while she boards or leaves.
+function M.visitorMount(serial,vehicle,seat,unmount,instant)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.npc or not vehicle or not vehicle.entityID then return false end
+    local ok,operation=pcall(function()
+        if entry.motor then pcall(actuator.release,entry.motor) end
+        return vehicleNative.mount(entry,vehicle,seat,unmount==true,instant==true)
+    end)
+    if not ok or type(operation)~='table' then return false end
+    return operation.sendError==nil and operation.refused~=true
+end
+-- Does this visitor sit in the car (any seat when `seat` is nil)?
+function M.visitorMounted(serial,vehicle,seat)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.npc or not vehicle then return false end
+    local ok,info=pcall(vehicleNative.mounting,entry)
+    return ok and type(info)=='table' and info.vehicle==vehicle.id and (seat==nil or info.seat==seat)
+end
+
 function M.dismissVisitor(serial,reason)
     for _,entry in ipairs(entries) do
         if entry.serial==serial and entry.visitor then entry.lostReason=reason or 'module'; break end
@@ -1555,6 +1578,7 @@ local setVisible
 -- the shared per-update query budget. Returns spot, or nil + reason (no candidate fits, final), or nil,nil,true (ask again).
 --   request = {destination, mode = 'walk' | 'close' | 'standing' | 'exit', maxDistance, relax = 0..4, from (exit: her position)}
 local VISITOR_BATCH,VISITOR_ROUTE_SLACK,VISITOR_ROUTE_CAP,VISITOR_FLOOR=3,6,160,2.5
+local atan2=math.atan2 or math.atan
 local function visitorBands(request)
     local mode,relax=request.mode,request.relax or 0
     local list
@@ -1600,8 +1624,8 @@ function M.findVisitorSpot(key,request,state)
     local origin=mode=='exit' and (request.from or viewer) or state.goal
     if not state.list then
         local forward=cameraForward(player)
-        local base=forward and math.atan2(-forward.y,-forward.x) or 0
-        if mode=='exit' then base=math.atan2(origin.y-viewer.y,origin.x-viewer.x) end
+        local base=forward and atan2(-forward.y,-forward.x) or 0
+        if mode=='exit' then base=atan2(origin.y-viewer.y,origin.x-viewer.x) end
         local bearings={0}
         for step=1,6 do bearings[#bearings+1]=step*math.pi/6; bearings[#bearings+1]=-step*math.pi/6 end
         if mode=='standing' then bearings={0,math.pi/2,-math.pi/2,math.pi,math.pi/4,-math.pi/4,3*math.pi/4,-3*math.pi/4} end
@@ -1670,6 +1694,87 @@ function M.findVisitorSpot(key,request,state)
         end
     end
     if state.index>=#state.list then return nil,'No hidden, reachable spot was found.' end
+    return nil,nil,true
+end
+-- A hidden spot on a road far from the meeting place for the car of a visitor who comes by car (mod/immersive-car.lua). The game has
+-- no road graph to ask, so the candidates are points V has driven through lately (request.trail) and a ring around the road end point,
+-- each judged by the same footprint test the party's own cars use and by a walkable point beside it for the driver; the road itself is
+-- confirmed by the car (it must report standing on a traffic lane), and a candidate that fails is replaced by the next call.
+-- request = {destination = the road end point, goal, trail, relax}; returns {position = where the driver appears, car = {position, yaw},
+-- roadEnd, goal, distance, eta} or nil + reason, or nil,nil,true (ask again).
+local CAR_BATCH,CAR_MIN_FROM_V=2,60
+local atan2=math.atan2 or math.atan
+function M.findCarSpot(key,request,state)
+    local player=Game.GetPlayer()
+    if not player then return nil,'World is not ready' end
+    local destination=request.destination
+    if not clearance.isPoint(destination) then return nil,'There is no road end point.' end
+    local nav=Game.GetAINavigationSystem()
+    local good=Enum.new('worldNavigationRequestStatus','OK')
+    local viewer=space.copy(player:GetWorldPosition())
+    -- Where she walks to from the car: walkable ground at the meeting place.
+    if not state.goal then
+        local wanted=request.goal or destination
+        local found=nav:FindPointInSphereForCharacter(Vector4.new(wanted.x,wanted.y,wanted.z,1),3,player)
+        if not found or found.status~=good or not clearance.isPoint(found.point) then
+            found=nav:FindPointInBoxForCharacter(Vector4.new(wanted.x,wanted.y,wanted.z,1),Vector4.new(3,3,25,0),player)
+        end
+        if not found or found.status~=good or not clearance.isPoint(found.point) then
+            return nil,'Walkable ground could not be found at the meeting place.'
+        end
+        state.goal=space.copy(found.point)
+    end
+    if not state.list then
+        state.list,state.index={},0
+        for _,point in ipairs(request.trail or {}) do
+            local gap=space.ground(point,destination)
+            if clearance.isPoint(point) and gap>=100 and gap<=350 then
+                state.list[#state.list+1]={x=point.x,y=point.y,z=point.z,gap=gap,road=true}
+            end
+        end
+        local base=cameraForward(player)
+        local start=base and atan2(-base.y,-base.x) or 0
+        for _,distance in ipairs({220,170,130}) do
+            for step=0,11 do
+                local angle=start+step*math.pi/6
+                state.list[#state.list+1]={x=destination.x+math.cos(angle)*distance,y=destination.y+math.sin(angle)*distance,
+                    z=destination.z,gap=distance}
+            end
+        end
+    end
+    local judged=0
+    while state.index<#state.list and judged<CAR_BATCH do
+        state.index=state.index+1
+        local c=state.list[state.index]
+        judged=judged+1
+        local center=Vector4.new(c.x,c.y,c.z,1)
+        local forward=space.bearing(c,destination)
+        local rotation=Quaternion.BuildFromDirectionVector(Vector4.new(forward.x,forward.y,0,0))
+        if space.ground(c,viewer)>=CAR_MIN_FROM_V then
+            local hidden=hiddenFromPlayer(player,c)
+            if hidden==nil then state.index=state.index-1; return nil,nil,true end
+            if hidden then
+                local spot,deferred=vehicleNative.clearAt(center,forward,rotation)
+                if deferred then state.index=state.index-1; return nil,nil,true end
+                if spot then
+                    -- The driver stands on walkable ground beside the car.
+                    local side=Vector4.new(spot.x-forward.y*3.2,spot.y+forward.x*3.2,spot.z,1)
+                    local walk=nav:FindPointInSphereForCharacter(side,3,player)
+                    if walk and walk.status==good and clearance.isPoint(walk.point) then
+                        local yaw=math.deg(atan2(-forward.x,forward.y))
+                        local gap=space.ground(spot,destination)
+                        local onFoot=space.ground(destination,state.goal)
+                        return {position={x=walk.point.x,y=walk.point.y,z=walk.point.z+.1},
+                            facing={x=forward.x,y=forward.y},
+                            car={position={x=spot.x,y=spot.y,z=spot.z},yaw=yaw},roadEnd=space.copy(destination),
+                            goal=space.copy(state.goal),distance=gap,leg='drive',
+                            eta=8+gap/10+onFoot/1.5}
+                    end
+                end
+            end
+        end
+    end
+    if state.index>=#state.list then return nil,'No hidden road spot was found.' end
     return nil,nil,true
 end
 -- Out of V's sight now? true / false, or nil when the query budget is spent (asked again on a later step).

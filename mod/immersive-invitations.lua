@@ -39,6 +39,11 @@ M.SAVE_PERIOD = 30
 M.LEAVE_CAP = 90
 M.SPOT_TRIES = 6
 M.TEXT_PATIENCE = 120
+M.CAR_SWEEP = 2              -- seconds of play time between looks at her cars
+M.CAR_FAR = 150              -- V this far from her car ...
+M.CAR_AWAY_GRACE = 6         -- ... for this long removes it (she is with V, or gone)
+M.CAR_GONE_GRACE = 10        -- no companion of that profile for this long removes her car
+M.CAR_DELETE_TRIES = 30
 
 local function ground(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
 local function copyPoint(p) return p and {x = p.x, y = p.y, z = p.z or 0} or nil end
@@ -62,6 +67,9 @@ function M.new(env)
     local C = {}
     local clock, acc, nextId = 0, 0, 0
     local appts, offers, ledger, texts = {}, {}, {}, {}
+    -- Her cars (docs/IMMERSIVE_INVITATIONS.md, "Her car"): herCars[profileKey] = {handle} for the car of a companion who met V, doomed = handles
+    -- waiting for their deletion. Never saved: a car is removed once she is dismissed, or she and V are far from it, and a load removes it.
+    local herCars, doomed, sweepAt = {}, {}, 0
     local saveKey, saveSeq, lastSave, dirty = nil, nil, 0, false
 
     local function settings()
@@ -131,7 +139,7 @@ function M.new(env)
     end
     local function queueText(a, kind, waited)
         if kind ~= 'failed' and settings().texts == false then return end
-        texts[#texts + 1] = {profileKey = a.profileKey, name = a.name, kind = kind, place = clip(a.place, 120) or '',
+        texts[#texts + 1] = {profileKey = a.profileKey, name = a.name, kind = kind, place = clip(a.place, 120) or '', plain = kind == 'failed' or nil,
             minutes = minutes(waited), car = a.method == 'car' and a.arrivedByCar == true, at = clock,
             fallback = fallbackText(kind, a, waited)}
     end
@@ -155,16 +163,23 @@ function M.new(env)
             pcall(env.companions.dismissVisitor, serial, reason or 'module')
         end
     end
+    local function discardCar(a)
+        if a.car then
+            doomed[#doomed + 1] = {handle = a.car.handle, tries = 0}
+            a.car = nil
+        end
+    end
     local function drop(a)
         for index, other in ipairs(appts) do
             if other == a then table.remove(appts, index); break end
         end
+        discardCar(a)
         a.dead = true
         dirty = true
     end
     local function endJob(a)
         if a.job then
-            pcall(env.queue.dismiss, a.job, true)
+            pcall(env.queue.cancelJob, a.job)
             a.job = nil
         end
     end
@@ -183,10 +198,10 @@ function M.new(env)
         if existing then quiet(existing, 'replaced') end
         local options = settings()
         nextId = nextId + 1
-        local method = options.arrival == 'car' and carsInUse() < M.MAX_CARS and 'car' or 'walk'
+        local method = options.arrival == 'car' and carsInUse() < M.MAX_CARS and spec.road and 'car' or 'walk'
         local delay = (tonumber(options.delay) or 0) * 60
         local a = {id = nextId, key = spec.key, profileKey = spec.profileKey, name = spec.name, kind = spec.kind,
-            dest = copyPoint(spec.dest), place = spec.place, road = spec.road, method = method, phase = 'scheduled',
+            dest = copyPoint(spec.dest), place = spec.place, road = copyPoint(spec.road), method = method, phase = 'scheduled',
             createdAt = clock, createdSeq = saveSeq, respawns = 0, stuck = 0, spotTries = 0}
         a.spawnInfo = {id = a.id}
         a.waitSec = (delay > 0 and delay or (tonumber(options.wait) or 5) * 60)
@@ -219,7 +234,7 @@ function M.new(env)
         end
         local existing = byProfile(profileKey)
         if existing then return false, ui.t('{name} is already on the way.', {name = existing.name}) end
-        local here, why = env.world.describe('here')
+        local here, why = env.world.describe('here', settings().arrival == 'car')
         if not here then return false, why or ui.t('Your position cannot be read yet.') end
         local a = create({key = key, profileKey = profileKey, name = definition.name, kind = 'here', dest = here.position,
             place = here.place, road = here.road})
@@ -262,7 +277,7 @@ function M.new(env)
         end
         local st = env.world.state()
         if st.held == 'combat' then return {version = 1, unavailable = 'combat'} end
-        local here = env.world.describe('here')
+        local here = env.world.describe('here', settings().arrival == 'car')
         if not here then return {version = 1, unavailable = 'busy'} end
         local value = settings()
         local waypoint
@@ -314,6 +329,63 @@ function M.new(env)
         return true
     end
 
+    -- ---- her cars ------------------------------------------------------------------------------------------------------
+    local function hasMember(profileKey)
+        for _, member in ipairs(env.companions.list()) do
+            if member.state ~= 'leaving' and (member.profileKey or member.key) == profileKey then return true end
+        end
+        return byProfile(profileKey) ~= nil
+    end
+    local function flushDoomed()
+        for index = #doomed, 1, -1 do
+            local item = doomed[index]
+            item.tries = item.tries + 1
+            local ok, done = pcall(env.world.carDelete, item.handle)
+            if (ok and done == true) or item.tries >= M.CAR_DELETE_TRIES then table.remove(doomed, index) end
+        end
+    end
+    local function sweepCars(st)
+        if clock < sweepAt then return end
+        sweepAt = clock + M.CAR_SWEEP
+        flushDoomed()
+        for profileKey, car in pairs(herCars) do
+            local position = env.world.carPosition(car.handle)
+            if not position then herCars[profileKey] = nil
+            else
+                local far = st.position ~= nil and ground(st.position, position) > M.CAR_FAR
+                car.away = far and (car.away or 0) + M.CAR_SWEEP or 0
+                car.gone = hasMember(profileKey) and 0 or (car.gone or 0) + M.CAR_SWEEP
+                if car.away >= M.CAR_AWAY_GRACE or car.gone >= M.CAR_GONE_GRACE then
+                    herCars[profileKey] = nil
+                    doomed[#doomed + 1] = {handle = car.handle, tries = 0}
+                    flushDoomed()
+                    log('her car of ' .. tostring(profileKey) .. ' removed (' .. (far and 'far away' or 'she is gone') .. ')')
+                end
+            end
+        end
+    end
+    -- The car of a companion who is in V's group, or nil: what a ride in it (the chauffeur) may use.
+    function C.carOf(profileKey)
+        local car = herCars[profileKey]
+        return car and car.handle or nil
+    end
+
+    -- The live entity of her car while it stands near V, for a ride in it (mod/companion-chauffeur-native.lua), and whether an entity is one of
+    -- her cars. The world adapter owns the lookups.
+    function C.carEntity(profileKey)
+        local car = herCars[profileKey]
+        return car and env.world.carEntity(car.handle, 25) or nil
+    end
+    function C.isHerCar(entity)
+        for _, car in pairs(herCars) do
+            if env.world.isCarEntity(entity, car.handle) then return true end
+        end
+        return false
+    end
+    function C.sampleTrail()
+        if env.world.sampleTrail then env.world.sampleTrail() end
+    end
+
     function C.cancelAll(why)
         for index = #appts, 1, -1 do quiet(appts[index], why or 'off') end
         offers, texts = {}, {}
@@ -322,6 +394,10 @@ function M.new(env)
     -- The feature was switched Off: nothing stays.
     function C.disable()
         C.cancelAll('off')
+        for profileKey, car in pairs(herCars) do doomed[#doomed + 1] = {handle = car.handle, tries = 0} end
+        herCars = {}
+        flushDoomed()
+        doomed = {}
         ledger = {}
         acc, dirty = 0, false
     end
@@ -344,7 +420,6 @@ function M.new(env)
         a.phase, a.body = 'waiting', 'visitor'
         a.waitLeft = a.waitLeft or a.waitSec
         a.arrivedAt = clock
-        a.arrivedByCar = a.leg == 'driven'
         if env.companions.visitorHold then pcall(env.companions.visitorHold, a.serial) end
         queueText(a, 'arrived', 0)
         dirty = true
@@ -373,6 +448,7 @@ function M.new(env)
     local function virtualize(a, reason)
         removeBody(a, reason or 'module')
         endJob(a)
+        discardCar(a)
         if a.phase == 'waiting' then
             a.body = 'virtual'
         else
@@ -410,6 +486,12 @@ function M.new(env)
         a.serial = nil
         log(tostring(a.name) .. ' met V and joined')
         local waited = clock - (a.arrivedAt or clock)
+        if a.car then
+            local previous = herCars[a.profileKey]
+            if previous then doomed[#doomed + 1] = {handle = previous.handle, tries = 0} end
+            herCars[a.profileKey] = {handle = a.car.handle, since = clock}
+            a.car = nil
+        end
         if env.world.claim then pcall(env.world.claim, a, serial) end
         if env.greet then pcall(env.greet, {serial = serial, key = a.key, profileKey = a.profileKey, name = a.name, place = clip(a.place, 160) or '',
             waitedMinutes = minutes(waited)}) end
@@ -418,6 +500,16 @@ function M.new(env)
     end
 
     -- The hidden spot and the readiness gate of a preparing appointment, then the spawn is watched for.
+    -- A drive that cannot be made (no road spot, the car does not stand on a road, it cannot attach): she walks in instead.
+    function C.walkInstead(a, why)
+        log(tostring(a.name) .. ': no car arrival, walking (' .. tostring(why) .. ')')
+        discardCar(a)
+        a.method, a.leg, a.spot, a.hold, a.go, a.roadEnd, a.carSpot = 'walk', nil, nil, false, false, nil, nil
+        a.spotTries, a.spotKey, a.spotState = 0, nil, nil
+        a.spawnInfo.position = nil
+        if env.world.release then pcall(env.world.release, a) end
+    end
+
     local function stepPreparing(a, st)
         if not a.serial and st.position and ground(st.position, a.dest) > M.FAR_RADIUS then
             -- V went away (a fast travel) before her body existed: nothing is simulated for a spot nobody is near.
@@ -436,7 +528,7 @@ function M.new(env)
                 quiet = true,
                 gate = function()
                     if a.dead then return nil, 'cancelled' end
-                    return a.go == true
+                    return a.go == true and a.hold ~= true
                 end,
                 appointment = a.spawnInfo})
             if not accepted then
@@ -456,6 +548,7 @@ function M.new(env)
                 return fail(a, 'no spot')
             end
             local mode = a.standing and 'standing' or a.close and 'close' or a.method
+            a.maxDistance = a.tArrive and math.max(35, math.min(90, (a.tArrive - clock) * M.WALK_SPEED)) or 90
             local spot, reason, deferred = env.world.findSpot(a, mode)
             if deferred then return end
             if not spot then
@@ -464,8 +557,14 @@ function M.new(env)
                 return
             end
             a.spot = spot
-            a.leg = spot.leg or (a.method == 'car' and 'drive' or 'walk')
+            a.leg = mode == 'car' and 'drive' or 'walk'
             a.goal = copyPoint(spot.goal or a.dest)
+            if a.leg == 'drive' then
+                a.roadEnd = copyPoint(spot.roadEnd or a.road)
+                a.carSpot = spot.car
+                a.carChoice = env.world.carChoice and env.world.carChoice(a) or nil
+                a.hold = true
+            end
             -- The spawn happens when she has just enough time left to arrive on time.
             local travel = spot.eta or M.ETA[a.method]
             a.tGo = (a.tArrive and not a.standing) and (a.tArrive - travel) or clock
@@ -473,6 +572,17 @@ function M.new(env)
             a.spawnInfo.facing = spot.facing
         end
         a.go = clock >= (a.tGo or clock)
+        -- Her car is made just before she is: it must stand on a road before she appears beside it.
+        if a.leg == 'drive' and a.go and not a.car then
+            local car, why = env.world.carCreate(a)
+            if not car then return C.walkInstead(a, why) end
+            a.car = car
+        end
+        if a.car and a.hold then
+            local state, why = env.world.carReady(a, M.STEP)
+            if state == 'ready' then a.hold = false
+            elseif state == 'bad' then discardCar(a); return C.walkInstead(a, why) end
+        end
         for _, row in ipairs(env.companions.visitors()) do
             if row.appointmentId == a.id and (row.state == 'visiting' or row.state == 'spawning') then
                 a.serial = row.serial
@@ -495,9 +605,10 @@ function M.new(env)
         end
         if a.go and a.job and not a.goneAt then a.goneAt = clock end
         if a.goneAt and clock - a.goneAt > 30 then
-            local listed = false
-            for _, item in ipairs(env.queue.list()) do if item.id == a.job then listed = true end end
-            if not listed then fail(a, 'her copy was not created') end
+            local waiting = false
+            local ok, there = pcall(env.queue.hasJob, a.job)
+            if ok and there == true then waiting = true end
+            if not waiting then fail(a, 'her copy was not created') end
         end
     end
 
@@ -518,14 +629,25 @@ function M.new(env)
         local feedback = env.companions.visitorSense(a.serial, M.STEP)
         local pos = feedback and feedback.position or row.position
         if not pos then return end
+        if a.leg == 'drive' then
+            -- The car trip: board, drive to the road end point, brake, get out (mod/immersive-car.lua); then she walks the rest.
+            local result, why = env.world.carStep(a, M.STEP)
+            if result == 'arrived' then
+                a.leg, a.commandSent, a.arrivedByCar = 'walk', false, true
+                a.tripStart, a.bestD, a.bestAt, a.stuck = clock, nil, clock, 0
+            elseif result == 'failed' then
+                log(tostring(a.name) .. ': the car trip failed (' .. tostring(why) .. ')')
+                removeBody(a, 'module')
+                discardCar(a)
+                a.method, a.leg, a.hold, a.close = 'walk', nil, false, true
+                if (a.respawns or 0) >= M.MAX_RESPAWNS then return fail(a, 'the car trip failed') end
+                a.respawns = (a.respawns or 0) + 1
+                return startPreparing(a, false)
+            end
+            return
+        end
         local d = ground(pos, a.goal)
         if d <= M.ARRIVE_DISTANCE or (feedback and feedback.complete and d <= 8) then return arrive(a) end
-        if env.world.carStep and a.leg == 'drive' then
-            local handled = env.world.carStep(a, pos, feedback, M.STEP)
-            if handled == 'arrived' then a.leg = 'walk'; a.commandSent = false; a.arrivedByCar = true
-            elseif handled == 'failed' then a.leg = 'walk'; a.method = 'walk'; a.commandSent = false
-            elseif handled then return end
-        end
         if not a.bestD or d < a.bestD - 1 then a.bestD, a.bestAt = d, clock end
         local remaining = a.tArrive and (a.tArrive - clock) or nil
         local gait = (remaining and d / M.WALK_SPEED > remaining + 5) and 'Run' or 'Walk'
@@ -565,7 +687,7 @@ function M.new(env)
         end
         if a.body == 'visitor' then
             if st.position and ground(st.position, a.dest) > M.FAR_RADIUS then
-                removeBody(a, 'module'); a.body = 'virtual'
+                removeBody(a, 'module'); a.body = 'virtual'; discardCar(a)
             else
                 local feedback = env.companions.visitorSense(a.serial, M.STEP)
                 local pos = feedback and feedback.position or row.position
@@ -630,7 +752,7 @@ function M.new(env)
                 a.serial = nil
                 if reason == 'fast-travel' then
                     if a.phase == 'preparing' then a.phase = 'scheduled' end
-                    if a.phase == 'en-route' then virtualize(a, 'module') else a.body = 'virtual'; endJob(a) end
+                    if a.phase == 'en-route' then virtualize(a, 'module') else a.body = 'virtual'; endJob(a); discardCar(a) end
                     return
                 end
                 -- Dismissed from the party list: V called it off.
@@ -647,13 +769,16 @@ function M.new(env)
         if acc < M.STEP then return end
         local step = acc
         acc = 0
-        if not appts[1] and next(offers) == nil and not texts[1] and next(ledger) == nil then return end
+        local busy = appts[1] ~= nil or next(offers) ~= nil or texts[1] ~= nil
+        local cars = next(herCars) ~= nil or doomed[1] ~= nil
+        if not busy and not cars and next(ledger) == nil then return end
         clock = clock + step
-        if not appts[1] and next(offers) == nil and not texts[1] then return end
+        if not busy and not cars then return end
         expireOffers()
         local st = env.world.state()
         if not st.running then return end
         if appts[1] then C.step(st) end
+        if next(herCars) ~= nil or doomed[1] ~= nil then sweepCars(st) end
         flushTexts(st.held)
         if dirty and clock - lastSave >= M.SAVE_PERIOD then C.save() end
     end
@@ -719,12 +844,17 @@ function M.new(env)
     function C.bind(key, sequence)
         if key == saveKey then saveSeq = sequence or saveSeq; return end
         if saveKey and dirty then C.save() end
-        local old = appts
-        for _, a in ipairs(old) do
-            removeBody(a, 'module')
+        -- key == nil: the world is going (a load): references are dropped, the game is not touched. Another line in the same world: removed.
+        local teardown = key ~= nil
+        for _, a in ipairs(appts) do
+            if teardown then removeBody(a, 'module'); discardCar(a) end
             a.dead = true
         end
-        appts, offers, texts, ledger = {}, {}, {}, {}
+        if teardown then
+            for _, car in pairs(herCars) do doomed[#doomed + 1] = {handle = car.handle, tries = 0} end
+            flushDoomed()
+        end
+        appts, offers, texts, ledger, herCars, doomed = {}, {}, {}, {}, {}, {}
         saveKey, saveSeq = key, sequence
         if key and env.persist then
             local ok, file = pcall(env.persist.load)

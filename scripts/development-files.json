@@ -386,6 +386,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-world.lua"
     },
     {
+      "source": "mod/immersive-car.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-car.lua"
+    },
+    {
       "source": "mod/place-words.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/place-words.lua"
     },

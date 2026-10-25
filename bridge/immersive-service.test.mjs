@@ -30,6 +30,9 @@ local controller = {
   accept = function(profileKey, action) log.accepted = profileKey .. ':' .. action.kind end,
   note = function(profileKey) if profileKey == 'judy-alvarez' then return {kind = 'stood-up', place = 'x', minutes = 5} end end,
   noted = function(profileKey) log.noted[#log.noted + 1] = profileKey end,
+  carEntity = function(profileKey) return profileKey == 'judy-alvarez' and 'her-car-entity' or nil end,
+  isHerCar = function(entity) return entity == 'her-car-entity' end,
+  sampleTrail = function() log.trail = (log.trail or 0) + 1 end,
 }
 local modules = {
   ['immersive-invitations.lua'] = {new = function(env) controllerEnv = env; return controller end},
@@ -145,4 +148,25 @@ test('a module that cannot be loaded leaves the feature off without an error', (
   service.tick(0.1)
   assert(service.get() == nil or true)
   assert(#log.updates == 0 and not phoneChat.captureMeetOffer)
+`));
+
+test('her car is offered to the chauffeur through two globals that exist only while the setting is On', () => run(`
+  assert(rawget(_G, 'convaiCompanionCar') == nil and rawget(_G, 'convaiCompanionCarIs') == nil)
+  options.enabled = true; phoneChat.world = 'w'
+  service.tick(0.1)
+  assert(convaiCompanionCar('judy-alvarez') == 'her-car-entity' and convaiCompanionCar('panam-palmer') == nil)
+  assert(convaiCompanionCarIs('her-car-entity') == true and convaiCompanionCarIs('other') == false)
+  options.enabled = false
+  service.tick(0.1)
+  assert(rawget(_G, 'convaiCompanionCar') == nil and rawget(_G, 'convaiCompanionCarIs') == nil)
+`));
+
+test('the trail of roads V drives is sampled every two seconds, only while Car is the arrival method', () => run(`
+  options.enabled = true; phoneChat.world = 'w'
+  options.arrival = 'walk'
+  for _ = 1, 100 do service.tick(0.1) end
+  assert(log.trail == nil, 'walking arrivals need no trail')
+  options.arrival = 'car'
+  for _ = 1, 100 do service.tick(0.1) end
+  assert(log.trail >= 4 and log.trail <= 6, tostring(log.trail))
 `));

@@ -22,6 +22,8 @@ function M.new(deps)
         local phone = deps.phoneChat
         phone.captureMeetOffer, phone.onMeetAction, phone.onEventDelivered = nil, nil, nil
         deps.companions.onVisitorLost = nil
+        rawset(_G, 'convaiCompanionCar', nil)
+        rawset(_G, 'convaiCompanionCarIs', nil)
     end
 
     function S.ensure()
@@ -43,6 +45,15 @@ function M.new(deps)
         companions.onVisitorLost = function(serial, reason)
             if S.controller then S.controller.visitorLost(serial, reason) end
         end
+        -- Her car, for a ride in it (docs/IMMERSIVE_INVITATIONS.md): the chauffeur asks for it by profile while the setting is On.
+        rawset(_G, 'convaiCompanionCar', function(profileKey)
+            local controller = S.controller
+            return controller and controller.carEntity(profileKey) or nil
+        end)
+        rawset(_G, 'convaiCompanionCarIs', function(entity)
+            local controller = S.controller
+            return controller ~= nil and controller.isHerCar(entity) == true
+        end)
         local phone = deps.phoneChat
         phone.captureMeetOffer = function(contact, profileKey)
             local controller = S.controller
@@ -71,7 +82,8 @@ function M.new(deps)
 
     -- Every 0.1 s of play time, from the world-ready part of onUpdate.
     function S.tick(delta)
-        if not deps.manager.immersive().enabled then
+        local options = deps.manager.immersive()
+        if not options.enabled then
             if S.controller then
                 pcall(S.controller.disable)
                 S.controller = nil
@@ -97,6 +109,11 @@ function M.new(deps)
             end
         end
         if state.key ~= false then controller.update(delta) end
+        -- Car arrival keeps a short trail of the roads V has driven (the one place a road is known for certain).
+        if options.arrival == 'car' then
+            state.trail = (state.trail or 0) + delta
+            if state.trail >= 2 then state.trail = 0; controller.sampleTrail() end
+        end
     end
 
     -- A save load or world loss ends what was simulated; a fast travel keeps the appointments (the visitors were deleted before it).

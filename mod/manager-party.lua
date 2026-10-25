@@ -636,6 +636,23 @@ function M.new(companions, readiness, options)
     -- other copy exists (a repeat press is then harmless), and a refused copy
     -- (a chauffeur driver) yields to another copy of the same character.
     -- Returns nil when the character is absent, else accepted, message, id.
+    -- An immersive-invitation appointment's job is not listed (the controller shows its own row), so it is cancelled and asked after by id.
+    function Q.hasJob(id)
+        for _, job in ipairs(joins) do if job.id == id then return true end end
+        return false
+    end
+    function Q.cancelJob(id)
+        for index, job in ipairs(joins) do
+            if job.id == id then
+                if readiness then readiness.cancel(job) end
+                if preparationId == id then preparationId = nil end
+                table.remove(joins, index)
+                return true
+            end
+        end
+        return false
+    end
+
     function Q.dismissCharacter(key)
         local ranked = {}
         for _, state in ipairs({'present', 'leaving'}) do
