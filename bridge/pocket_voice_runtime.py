@@ -335,9 +335,11 @@ def plain_absolute(value, label):
         raise ValueError(f"Pocket {label} must be an absolute local path")
     # Check ancestors too: a symlink/junction must not mix one export with
     # another owner's references or move writes into an immutable asset tree.
-    for candidate in (path, *path.parents):
+    for depth, candidate in enumerate((path, *path.parents)):
         if is_linked(candidate):
-            raise ValueError(f"Pocket {label} must not use linked directories")
+            # Which link, so a report can tell the game folder's own layout (a junctioned library, far above) from a link inside the Runtime (near).
+            kind = "symlink" if candidate.is_symlink() else "junction"
+            raise ValueError(f"Pocket {label} must not use linked directories ({kind}, {depth} folders above it)")
     # Inside USVFS the path stays as spelled: its resolved form is only where one mod happens to hold it (see above).
     return Path(os.path.abspath(path)) if usvfs_active() else path.resolve()
 
