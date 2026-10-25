@@ -41,7 +41,9 @@ function world.state() return {running = fake.running, position = fake.pos, held
 function world.describe(kind, wantRoad)
   if kind == 'waypoint' then return fake.waypoint and {position = fake.waypoint.position, place = fake.waypoint.place, road = fake.waypoint.road} or nil end
   return {position = {x = fake.pos.x, y = fake.pos.y, z = fake.pos.z}, place = fake.herePlace or "Lizzie's Bar, Kabuki, Watson",
-    road = (wantRoad and not fake.noRoad) and {x = fake.pos.x + 8, y = fake.pos.y, z = 0} or nil}
+    road = (wantRoad and not fake.noRoad) and {x = fake.pos.x + 8, y = fake.pos.y, z = 0} or nil,
+    roadHow = (wantRoad and not fake.noRoad) and (fake.roadHow or 'engine') or nil,
+    roadWhy = (wantRoad and fake.noRoad) and 'far:140' or nil, roadNote = wantRoad and 'point=1,2,3 pathLength=5' or nil}
 end
 function world.hasWaypoint() return fake.waypoint ~= nil end
 function world.findSpot(a, mode)
@@ -68,7 +70,11 @@ function world.carCreate(a)
   fake.cars.positions[car.handle.id] = {x = a.carSpot.position.x, y = a.carSpot.position.y, z = 0}
   return car
 end
-function world.carReady(a, dt) return fake.carReady or 'ready', 'not on a road' end
+function world.carReady(a, dt)
+  local state = fake.carReady or 'ready'
+  if fake.laneMisses and fake.laneMisses > 0 and state == 'ready' then fake.laneMisses = fake.laneMisses - 1; return 'bad', 'not on a road', 'off-lane' end
+  return state, 'not on a road', state == 'bad' and (fake.badCode or 'off-lane') or nil
+end
 function world.carStep(a, dt)
   fake.cars.steps = fake.cars.steps + 1
   if fake.carFails then return 'failed', 'stuck' end
@@ -598,6 +604,45 @@ test('no road end point near V: the car request becomes a walk at once', () => r
   assert(ctl.appointment('judy-alvarez').method == 'walk')
   tick(5)
   assert(fake.modes[1] == 'walk' and #fake.cars.created == 0)
+`));
+
+const lines = () => 'local function logged(text) for _, l in ipairs(fake.lines or {}) do if l:find(text, 1, true) then return true end end return false end ';
+
+test('every fall back to walking says why in the log: the road lookup, the road spot, the lane, the car', () => run(lines() + `
+  opts.arrival = 'car'; fake.noRoad = true
+  ask('judy')
+  assert(logged('walks: no-road:far:140'), 'the reason is in the will-meet line')
+  assert(logged('road lookup point=1,2,3 pathLength=5 (far:140)'), 'and what the engine showed')
+  opts.arrival = 'walk'; fake.noRoad = false
+  ask('panam')
+  assert(not logged('Panam will meet V (here, walk, 0.0 min, waits 5.0 min, walks'), 'a Walk setting is not a fallback')
+  opts.arrival = 'car'
+  fake.roadHow = 'guess'
+  ask('rita')
+  assert(logged('Rita will meet V (here, car, 0.0 min, waits 5.0 min, road guess)'))
+`));
+
+test('two failed road-spot searches turn the car into a walk and the log says so', () => run(lines() + `
+  opts.arrival = 'car'
+  fake.spotFail = 2
+  ask('bob'); tick(10)
+  assert(ctl.appointment('bob-x').method == 'walk')
+  assert(logged('Bob: no car arrival, walking (no-road-spot:'), 'no silent switch')
+`));
+
+test('a car that does not stand on a traffic lane is replaced by the next spot, and she walks only after the retries', () => run(lines() + `
+  opts.arrival = 'car'
+  fake.laneMisses = 2
+  ask('judy'); tick(20)
+  assert(ctl.appointment('judy-alvarez').method == 'car', 'two misses: still a car')
+  assert(#fake.cars.created == 3 and #fake.cars.deleted >= 2, 'two cars deleted, the third stands')
+  assert(logged('trying another spot (2)'))
+  tick(60)
+  assert(ctl.appointment('judy-alvarez').arrivedByCar == true)
+  fake.laneMisses = 100
+  ask('panam'); tick(40)
+  assert(ctl.appointment('panam-palmer').method == 'walk')
+  assert(logged('Panam: no car arrival, walking (off-lane:'))
 `));
 
 test('a car that cannot be made, or that does not stand on a road, is replaced by a walk and nothing is left behind', () => run(`

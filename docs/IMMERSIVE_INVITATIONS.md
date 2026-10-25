@@ -118,8 +118,16 @@ Three layers: the text is in the phone history (and the next phone turns see the
 
 ### Her car
 
-`mod/immersive-car.lua`. A car arrival needs a **road end point** (`GetNearestRoadFromPlayerInfo` within 60 m on foot for "here"; the AutoDrive road end point for the pin), else she
-walks (the request is turned into Walk at once). The car spot (`companions.findCarSpot`): points V drove through lately (a 40-point trail sampled every 2 s only while Car is
+`mod/immersive-car.lua`. The method is the **How she arrives** setting, not V's words ("by car" in a message changes nothing; the bridge only passes a meet tag). A car arrival needs a
+**road end point**: for "here" the engine's `GetNearestRoadFromPlayerInfo` (within 60 m on foot), else the nearest point of V's recent drives within 150 m, else, when the engine's answer is
+empty or unreadable (`call-failed`, `no-system`, `no-info`, `no-point`, `zero-point`), V's own spot as a guess (the car's driving AI finds the road; a drive that cannot be made walks, see the codes);
+for the pin the AutoDrive road end point. With none, she walks (the request is turned into Walk at once).
+
+**Why she walked is in `probe.log`**, one code word per fall back: `Immersive invitations: X will meet V (here, walk, ..., walks: <code>)` with `setting-walk` (no line suffix when the setting is Walk), `cars-busy`,
+`no-road:<code>` (the road lookup: `far:<m>`, `no-path`, `invalid`, `no-pin-road`, or the unreadable codes above, when no trail point helped); a car appointment says `road engine|trail|guess`; the next line
+`X: road lookup point=.. pathLength=.. (<code>)` shows the fields the engine's lookup returned. Later: `X: no car arrival, walking (no-road-spot: ...)` (two searches found no spot; the reasons follow),
+`(off-lane: ...)` (the new car never stood on a traffic lane, after `LANE_RETRIES` = 3 other spots), `(car-not-made: ...)`, `(not-attached|car-gone: ...)`, `(trip-failed: ...)`.
+A car that does not stand on a lane is replaced by the next candidate spot (`trying another spot (n)`) before she walks; the second search round also accepts spots in V's sight (130 m or more away). The car spot (`companions.findCarSpot`): points V drove through lately (a 40-point trail sampled every 2 s only while Car is
 the method and V is in a moving vehicle) and rings of 130 to 220 m around the road end point; each must be out of sight, 60 m from V, pass the party-car footprint test
 (`companion-vehicle-native.lua` `clearAt`) and have walkable ground beside it for the driver. The car (the character's catalog car or the fallback, tag
 `CyberpunkConvaiHerVehicle`, never the carpool's tag) must report `IsInTrafficLane()` within 2 s or it is deleted and she walks. The sequence: she appears beside the car, boards (animated
@@ -138,7 +146,7 @@ sampler knows only cars V owns). Everything after that is the existing chauffeur
 | --- | --- |
 | Stuck, very far, no route | Stuck ladder above; spot search relaxes (minimum distance 35 -> 14 -> 8 m, then visible but 8+ m away), then a plain failure text and no memory (the phone history gets her line directly, no bridge turn, plus a notice). |
 | Interior, lift, no navmesh | Spots need a route within 2.5 m of the floor, so a lift or a different floor is not a route; in a room with no outside route she appears in the nearest connected space. Nothing rides lifts. |
-| No road for Car | Walk (logged). Car cannot be made, does not stand on a lane, cannot attach: Walk. |
+| No road for Car | Walk, with the code in the log (see "Her car"). Car cannot be made, still off a lane after the retries, cannot attach: Walk. |
 | V in a scene/combat/call | Held (text queued, clock paused). A menu or the phone is a zero delta: the clock is paused anyway. |
 | V fast travels | Visitor deleted first, appointment goes virtual, her car with it; she still arrives and texts; a body appears standing when V comes within 120 m. |
 | Save/load, CET reload | Appointments are saved per save line (`campaign:branch`, or this session only without a save identity) with remaining seconds; a record created after the loaded save (ledger sequence) is dropped; a load drops bodies and cars without touching the game. |

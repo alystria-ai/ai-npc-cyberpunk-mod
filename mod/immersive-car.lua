@@ -39,19 +39,19 @@ function M.sequencer(api)
         return {handle = handle, stage = 'created', age = 0, laneAge = 0}
     end
 
-    -- 'ready' once the car is attached on a traffic lane, 'wait', or 'bad' + why (it did not attach, or it does not stand on a road).
+    -- 'ready' once the car is attached on a traffic lane, 'wait', or 'bad' + why + a code ('car-gone', 'not-attached', 'off-lane').
     function S.ready(car, dt)
         car.age = car.age + dt
         local status = api.status(car.handle)
-        if not status then return 'bad', 'The car is gone.' end
+        if not status then return 'bad', 'The car is gone.', 'car-gone' end
         if not status.attached then
-            if car.age > M.CREATE_TIMEOUT then return 'bad', 'The car did not attach.' end
+            if car.age > M.CREATE_TIMEOUT then return 'bad', 'The car did not attach.', 'not-attached' end
             return 'wait'
         end
         if status.lane == true then return 'ready' end
         car.laneAge = car.laneAge + dt
         if status.lane == nil and car.laneAge >= M.LANE_PATIENCE then return 'ready' end
-        if car.laneAge >= M.LANE_PATIENCE then return 'bad', 'The car does not stand on a road.' end
+        if car.laneAge >= M.LANE_PATIENCE then return 'bad', 'The car does not stand on a road.', 'off-lane' end
         return 'wait'
     end
 
