@@ -99,7 +99,7 @@ export const companionEngine = `
   Enum={new=function(_, value) return value end}; CName={new=function(value) return value end}
   TweakDBID={new=function(value) return value end}
   TweakDB={GetRecord=function() return {IsA=function() return true end} end}
-  WorldPosition={new=function() return {SetVector4=function(self,p) self.position=p end} end}
+  WorldPosition={new=function() return {SetVector4=strictNative('SetVector4',{1},function(self,p) self.position=p end)} end}
   AIPositionSpec={new=function() return {
     SetWorldPosition=function(self,p) self.position=p.position end,
     SetEntity=function(self,e) self.entity=e end} end}
