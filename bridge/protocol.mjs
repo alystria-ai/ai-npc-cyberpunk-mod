@@ -12,6 +12,7 @@ import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
 import {parseHead, parseHeadReaction} from './johnny-head.mjs';
 import {parseMeetReaction} from './appointment-events.mjs';
+import {parseCallMeetOffer} from './call-meet.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
@@ -87,6 +88,9 @@ function parseRequest(raw) {
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V (parsed above). Private turns only; never a holocall as well.
   const holocall = group || head ? null : parseHolocall(value.holocall);
+  // The meeting V could ask for on this call (docs/IMMERSIVE_INVITATIONS.md, bridge/call-meet.mjs): a holocall line only, kept as the game sent it (the
+  // packet that answers it echoes it, and the game compares); a malformed offer is no offer and never rejects the line.
+  const meetOffer = holocall ? parseCallMeetOffer(value.meetOffer)?.raw : undefined;
   // The Conversation provider the player had chosen when the game wrote this request (mod/init.lua sendRequest); the bridge follows it for the turn.
   const provider = typeof value.provider === 'string' && PROVIDER_NAMES.includes(value.provider) ? value.provider : undefined;
   // Street reputation (docs/REPUTATION_DESIGN.md): sent only while the setting is on, only for an ordinary NPC's private turn.
@@ -100,7 +104,7 @@ function parseRequest(raw) {
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),
-    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {}), ...(head ? {head} : {})};
+    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {}), ...(meetOffer ? {meetOffer} : {}), ...(head ? {head} : {})};
 }
 
 // {version: 1, contact, mode: 'audio' | 'holo'} from mod/holocall.lua -> {contact, mode}, or null.

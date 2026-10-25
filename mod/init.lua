@@ -441,6 +441,14 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         if not convaiNpcReactions then return false, 'not-available' end
         return convaiNpcReactions.start(kind, offer, entity, requestId)
     end,
+    -- A meeting V may ask for on a holocall (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"): nothing is offered while Immersive invitations is Off.
+    meetOffer = function(entity, context)
+        return convaiMeetCallOffer and convaiMeetCallOffer(context) or nil
+    end,
+    queueMeet = function(kind, offer, profileKey, requestId)
+        if not convaiMeetCallAccept then return false, 'not-available' end
+        return convaiMeetCallAccept(profileKey, kind, offer)
+    end,
     developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
@@ -3119,7 +3127,9 @@ local function sendRequest(context)
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then
-        -- A holocall's caller is not here (mod/holocall.lua): no gameplay actions (follow, fight, drive) are offered.
+        -- A holocall's caller is not here (mod/holocall.lua): no follow, fight or drive is offered. The one thing a call can ask for is a meeting
+        -- (immersive invitations): gameplay-actions.lua leases only that for a call, and only while the setting is On.
+        if not context.reaction then gameplayActions.capture(context, 'private-text') end
     elseif context.head then
         -- Johnny in V's head has no body (docs/JOHNNY_IN_YOUR_HEAD.md): no gameplay actions, no add-on blocks.
     elseif context.voiceOnly then
@@ -3590,6 +3600,17 @@ do
     function convaiAppointmentTurn(snapshot, profileKey)
         if not convaiImmersiveService then return snapshot end
         return convaiImmersiveService.appointmentTurn(snapshot, profileKey)
+    end
+    -- A holocall line: the meeting V could ask for on the call (nil while the setting is Off), and the bridge's answer to it, checked against that offer.
+    function convaiMeetCallOffer(context)
+        local options = manager.immersive and manager.immersive()
+        if not options or not options.enabled then return nil end
+        convaiImmersiveGet()
+        return convaiImmersiveService and convaiImmersiveService.callOffer(context) or nil
+    end
+    function convaiMeetCallAccept(profileKey, kind, offer)
+        if not convaiImmersiveService then return false, 'off' end
+        return convaiImmersiveService.callAccept(profileKey, kind, offer)
     end
     -- The greeting when V reaches her: one automatic reaction turn by her, spoken like any reply. It waits for the channel to be free
     -- (at most 20 s) and falls back to a notice with a plain line when no reply could be played.

@@ -124,6 +124,28 @@ function M.new(deps)
         S.state = {acc = 0, key = false}
     end
 
+    -- A holocall line (mod/gameplay-actions.lua `meetOffer`): the meeting V could ask for on the call, wrapped as the lease wants it, or nil. The offer
+    -- is the phone's (controller.offer), with its one-use token and frozen places; a call line that cannot be answered with a meeting (a fight, nowhere
+    -- to stand) still carries the reason so she does not promise to come, and a character who is already with V has nothing to arrange.
+    function S.callOffer(context)
+        local controller = S.get()
+        local call = type(context) == 'table' and context.holocall
+        if not controller or type(call) ~= 'table' or type(call.contact) ~= 'string' or type(context.profileKey) ~= 'string' then return nil end
+        local key = deps.companions.phoneContactKey(call.contact)
+        if not key then return nil end
+        local ok, offer = pcall(controller.offer, context.profileKey, key)
+        if not ok or type(offer) ~= 'table' or offer.unavailable == 'already-here' then return nil end
+        return {available = offer.unavailable == nil or offer.cancel == true, actor = {id = context.entity, key = context.profileKey}, meet = offer}
+    end
+
+    -- The bridge's answer to a call offer (kind: 'meet-here' | 'meet-waypoint' | 'cancel-meet'): the same one-use token check and the same appointment
+    -- flow as a phone text's tag.
+    function S.callAccept(profileKey, kind, offer)
+        local controller = S.controller
+        if not controller or type(offer) ~= 'table' or type(offer.meet) ~= 'table' then return false, 'off' end
+        return controller.accept(profileKey, {kind = kind, token = offer.meet.token})
+    end
+
     -- The note a turn with this character carries (bridge/turn-context.mjs `appointment`): on her way, waiting, stood up, called off.
     -- The snapshot may be shared and cached, so the note goes on a copy.
     function S.appointmentTurn(snapshot, profileKey)

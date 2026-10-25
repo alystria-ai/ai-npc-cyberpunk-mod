@@ -13,6 +13,7 @@ import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, ne
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {reactionTraceLine} from './companion-actions.mjs';
+import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
@@ -838,6 +839,54 @@ export class TextProviderHost {
         accepted => { if (!traced) this.log(`action ${code} ${accepted ? 'handed to the game' : 'was not accepted'}`); },
         error => this.log(`action ${code} failed: ${error?.message ?? 'error'}`));
     } catch (error) { this.log(`action ${code} failed: ${error?.message ?? 'error'}`); }
+  }
+
+  /**
+   * The meeting a finished holocall exchange arranged (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"; bridge/call-meet.mjs). A call reply streams straight to the voice,
+   * so no tag can be taken out of it: once her reply is complete, one tiny request with no persona reads V's call line and her reply and says meet-here,
+   * meet-waypoint, cancel-meet or none. The result is handed to the game the way a Convai action is (`deliverAction`), where the lease and the one-use token of the
+   * game's offer still decide. It is never awaited by the reply: it starts after the reply is complete and is background work (on the local AI it gives way to
+   * any turn, as a summary does; on Mistral it queues behind turns). A failure, a late answer or an unclear one is "none". Never throws.
+   * `plan`: planCallMeet's result; `token`: the turn's action token (CompanionActions); resolves to the kind handed to the game, or null.
+   */
+  async decideMeet({plan, userText, replyText, token, profileKey, signal}) {
+    const route = this.routes[this.provider.route];
+    if (!route || this.closed || !plan || typeof this.deliverAction !== 'function' || signal?.aborted) return null;
+    const stopper = route.name === 'local' ? new AbortController() : null;
+    if (stopper) this.stoppable.add(stopper);
+    const own = stopper ? (signal ? AbortSignal.any([signal, stopper.signal]) : stopper.signal) : signal;
+    let kind = null;
+    try {
+      // The Local AI's slot may be held for a moment by the summary of older talk (also background work, one at a time): ask again a couple of times, never
+      // longer than the offer lives.
+      for (let attempt = 1; ; attempt++) {
+        try {
+          const response = await this.#request(route, callMeetClassifier(plan, {userText, replyText}), own,
+            {slotKey: profileKey, maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, thinkingRoom: false, models: route.decisionModels?.(),
+              background: route.name === 'local', priority: 'background'});
+          kind = parseCallMeetAnswer(response.text, plan);
+          break;
+        } catch (error) {
+          if (error?.reason !== 'busy' || attempt >= 3 || own?.aborted) throw error;
+          await pause(1500, own);
+        }
+      }
+    } catch (error) {
+      if (stopper?.signal.aborted) this.log('call meeting decision put off: a turn needed the local model');
+      else if (!signal?.aborted) this.log('call meeting decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
+      return null;
+    } finally { if (stopper) this.stoppable.delete(stopper); }
+    // Codes only: never V's words or the reply.
+    this.log(`call meeting: ${kind ?? 'none'}`);
+    if (!kind || signal?.aborted) return null;
+    try {
+      const accepted = await this.deliverAction({version: 1, token, meet: kind});
+      this.log(`call meeting ${kind} ${accepted ? 'handed to the game' : 'was not accepted'}`);
+      return accepted ? kind : null;
+    } catch (error) {
+      this.log(`call meeting ${kind} failed: ${error?.message ?? 'error'}`);
+      return null;
+    }
   }
 
   /**

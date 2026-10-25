@@ -61,7 +61,7 @@ Turning it Off drops the controller (quietly ends every appointment, removes bod
 | Manager **Invite**, Contacts **J** | `controller.requestInvite(key)`: an appointment to V's place now. A character already in the party takes the old instant path (Add copy). A pending one answers "{name} is already on the way." |
 | Phone Chat text | The pending message carries a **meet offer** (`mod/phone-chat.lua` `captureMeetOffer`). The bridge (`bridge/meet-requests.mjs`) screens V's words in the game's menu languages, adds an instruction to the turn, and strips a leading or trailing tag (`[meet-here]`, `[meet-waypoint]`, `[cancel-meet]`) from her reply; a valid one comes back as `action` in `phone-chat-output.json` and the game checks it against the offer's one-use token. Works on Convai, Mistral, Local AI and Custom alike. |
 | Talking to her while she waits | She is a managed copy (`companions.identity` accepts `visiting`), so the talk key works; her turn context says she is waiting for V. |
-| Holocall | **Not wired.** A call's turns carry no gameplay actions by design (`mod/init.lua` sendRequest) and spoken replies are streamed, so a tag cannot be stripped from them. A text is the way; see "Open items". |
+| Holocall (typed or spoken) | A call line carries the same kind of meet offer and a **decision step after her reply is complete**; see "Holocalls" below. |
 
 Offer content: `kinds` is `["here"]`, or `["here","waypoint"]` when the player's own map pin is set and the row allows it; the place words of each; the ETA and
 the wait in minutes. Unavailable offers carry only a reason (`already-here`, `pending` with a cancel token, `combat`, `busy`) so she can decline in
@@ -151,20 +151,56 @@ Off: one table read per 0.1 s tick. On and idle: the same plus a few comparisons
 appointment is a handful of native reads. Spot searches spend the shared per-update query budget and defer. Movement is AI commands only; this feature never teleports. The trail runs only for Car
 arrivals while V drives. Nothing is polled per frame beyond the delta add.
 
+### Holocalls
+
+A call reply streams straight to the voice, so a tag cannot be taken out of it. A call therefore asks for a meeting the way a companion action is asked
+for (`mod/gameplay-actions.lua` lease, `runtime/companion-actions.json` mailbox), and the result goes through the same one-use token check and the same
+appointment flow as a text (`controller.offer` / `controller.accept`).
+
+* **Game**: for a context with `holocall`, `gameplayActions.capture` leases **only** a meeting offer (never a ride, fight, follow, leave or reaction: the caller
+  is not here). `options.meetOffer` -> `convaiMeetCallOffer` -> `service.callOffer` asks the controller for the phone's offer (frozen places, one-use token, 180 s
+  of wall time), wrapped as `{available, actor: {id, key}, meet}`. It is `available` when she could agree (an open offer, or a standing meeting that may be
+  cancelled). A call line she cannot answer with a meeting (combat, no place) still carries the offer with `available = false` so her note says so; a character already
+  with V gets none. Typed lines are captured in `sendRequest` (the holocall branch), spoken ones in `microphone.captureActions` at the key press. With the setting
+  Off `convaiMeetCallOffer` is one table read and nothing is asked. The packet that answers it is `action = 'companion-meet'` with `meet` (`meet-here`,
+  `meet-waypoint`, `cancel-meet`), `meetToken` and the echoed `meetOffer`; the lease compares the request, person, world, source, offer and token, spends
+  itself, and calls `queueMeet` -> `service.callAccept` -> `controller.accept`. A stale lease (the next line of the call) refuses it.
+* **Her note** (`bridge/call-meet.mjs`, `callMeetNote`): a short block in the volatile context (no tags): where V is, how long she would take and wait, the
+  waypoint if there is one, "if V clearly asks you to come and agree, say so in character", "never promise to come unless you really mean to", and for a
+  standing meeting how V may call it off. A typed line that cannot be about a meeting (the multilingual screen of `bridge/meet-requests.mjs`) adds nothing; a
+  spoken line (its words are not known when the context is made) always carries the note. A reason she cannot come (combat, busy) is told the same way.
+* **Mistral, Local AI, Custom** (`TextProviderHost.decideMeet`): after her reply is complete (`publishResult` starts it, **not awaited**, so it can never delay
+  the reply, the face or the voice), if V's words pass the screen and the offer allows the kind, one tiny request with no persona reads V's call line (the
+  typed text, or the recognised words of a spoken one) and her reply and answers `MEET`, `WAYPOINT`, `CANCEL` or `NONE`. **The waypoint is a choice only when
+  V named it**; a cancel is a choice only when a meeting stands. A plain call, small talk, a refusal, a failed or unclear answer, a slow model: nothing is made
+  and nothing waited for. It is background work: on Mistral it queues behind turns on the account's scheduler; on the Local AI it is a `background` lease (asked again up to three times when other background work holds the slot) that
+  a turn stops (as it stops a summary), with the line "call meeting decision put off". The answer goes to `CompanionActions.deliver` like any action.
+* **Convai** (`bridge/companion-actions.mjs`): the call turn arms the turn's action list with `Meet V Here <token>`, `Meet V At Waypoint <token>` (only when the offer has
+  a waypoint) and `Cancel Meeting <token>` (only when a meeting stands) plus a short prompt block; the model requests one in the same reply. A call needs no
+  Convai memory identity for this (the game's token authorizes it); the action list is armed only where Convai arms it for any private turn. If the Convai page cannot
+  take the action list, the call note says the request will have to wait.
+* **What a reply may promise**: the decision cannot hold back a reply that has already started to speak, so the note tells her to agree only when V clearly
+  asked, and to say so when she cannot (the game's reason is in the note). If the game still refuses (the world changed, the offer expired), nothing happens and she
+  has said she is coming; the log has the line (`Call meeting hand-over rejected: ...`). The live check below looks at how often that happens.
+* **Log lines** (codes only, never words): `call meeting: meet-here` / `none`, `call meeting meet-here handed to the game`, `call meeting decision failed: <kind>`,
+  and the game's `Call meeting packet refused: <rule>`.
+
 ## Files
 
 New: `mod/immersive-invitations.lua`, `mod/immersive-service.lua`, `mod/immersive-world.lua`, `mod/immersive-car.lua`, `mod/place-words.lua`, `bridge/meet-requests.mjs`,
-`bridge/appointment-events.mjs`. Changed: `mod/companions.lua` (visiting copies, `findVisitorSpot`, `findCarSpot`, mount wrappers, fast travel hook), `mod/companion-vehicle-native.lua` (`clearAt`, `spawnAt`, tag-aware
+`bridge/appointment-events.mjs`, `bridge/call-meet.mjs`. Changed: `mod/companions.lua` (visiting copies, `findVisitorSpot`, `findCarSpot`, mount wrappers, fast travel hook), `mod/companion-vehicle-native.lua` (`clearAt`, `spawnAt`, tag-aware
 `destroy`), `mod/companion-chauffeur-native.lua` (her car), `mod/companion-vehicle-catalog.lua` and `mod/companion-vehicles.lua` (Alt drives), `mod/manager.lua`, `mod/manager-ui.lua`,
-`mod/manager-party.lua`, `mod/init.lua`, `mod/phone-chat.lua`, `mod/microphone.lua`, `mod/nsui.lua`, `mod/mcm-host.lua`, `mod/notices.lua`, the 15 locales, and in the bridge `phone-chat.mjs`, `protocol.mjs`,
-`battle-context.mjs`, `turn-context.mjs`, `convai-bridge.mjs`, `text-provider-host.mjs` and friends (see `git log` for the exact list).
+`mod/manager-party.lua`, `mod/gameplay-actions.lua` (the call's meeting lease), `mod/init.lua`, `mod/phone-chat.lua`, `mod/microphone.lua`, `mod/nsui.lua`, `mod/mcm-host.lua`, `mod/notices.lua`, the 15 locales, and in the bridge `phone-chat.mjs`, `protocol.mjs`,
+`battle-context.mjs`, `turn-context.mjs`, `companion-actions.mjs` (the call's action), `convai-bridge.mjs`, `text-provider-host.mjs` (`decideMeet`) and friends (see `git log` for the exact list).
 
 ## Tests
 
 `npm run test:immersive` runs them. Lua state machine against fake seams: `immersive-invitations.test.mjs` (43: every phase, the frozen clock, held, offers and answers, virtual arrival,
 fast travel, persistence, cars and their lifecycle), `immersive-car.test.mjs`, `immersive-service.test.mjs`, `immersive-companions.test.mjs` (visitors in the real `companions.lua`),
 `immersive-phone.test.mjs`, `immersive-settings.test.mjs`, `immersive-place-words.test.mjs`, `immersive-vehicle-spot.test.mjs`, her-car cases in `companion-chauffeur-native.test.mjs`; bridge:
-`meet-requests`, `appointment-events`, `phone-chat-meet`, `turn-context-appointment`.
+`meet-requests`, `appointment-events`, `phone-chat-meet`, `turn-context-appointment`, and `call-meet.test.mjs` (21: the offer parser, the note, the plan and the decision request, the lease in
+a Lua VM over the real service and controller, and the whole path for the text route and for Convai: a call that says "come meet me" makes an appointment, one that names the waypoint uses it,
+"never mind" cancels, a plain call makes nothing and costs no request, the decision never delays the reply and is background work, and the game refuses a wrong token, kind, request, world, offer or an expired lease).
 
 ## What only a live run can settle
 
@@ -179,9 +215,12 @@ fast travel, persistence, cars and their lifecycle), `immersive-car.test.mjs`, `
 8. The meeting: 5 m for 1.5 s joins her, the greeting plays (or the notice), formation takes over, she boards V's car with the party.
 9. Interiors: V's apartment, a bar, a lift hallway: a same-floor spot is found or the failure is clean.
 10. No FPS change with the setting On and an appointment waiting, a visitor walking, or a car driving.
+11. **Holocall meetings**: on a call (typed and spoken, on Convai and on a text provider) "come meet me" makes the appointment within a second or two of the end of her reply (look for `call meeting: meet-here` and
+    the notices), the waypoint only when V names it, "never mind" cancels, a plain call makes nothing, and her reply never waits for the decision. How often she says she is coming but the game made nothing
+    (the log lines above), and whether the Convai model requests `Meet V Here` reliably on a call (the NPC reaction line of the turn shows what its page did with the offer).
 
 ## Open items
 
-* **Holocall**: needs the meet tag handled in the streamed spoken reply (Convai action config for calls, or the text route's decision step). A text is the supported way for now.
+* **Holocall**: built (see "Holocalls"); unseen in the game. A reply that promises before the decision cannot be taken back; the live check counts how often that happens.
 * The hand-made district map, only if the waypoint words prove too thin.
 * Fetching her car to V ("bring the car round") is not built.

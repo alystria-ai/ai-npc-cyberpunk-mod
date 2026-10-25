@@ -99,6 +99,7 @@ import {RelationshipRouting, retireRelationshipConnections} from './relationship
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
+import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
@@ -1456,7 +1457,8 @@ const conversationBlocks = input => {
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
     // A phone message that can be a request to meet carries the game's offer as an instruction (bridge/meet-requests.mjs); '' for every other turn.
-    block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : ''),
+    // A holocall line carries the game's meeting offer the same way, as a note without tags (bridge/call-meet.mjs).
+    block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : input.holocall && input.meetOffer ? callMeetNote(parseCallMeetOffer(input.meetOffer), input.text) : ''),
     block('volatile', admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : ''),
     // The player's world rules (bridge/world-rules.mjs): Convai's characters live on Convai's side and cannot be edited, so the rules reach them in the
     // dynamic info this context is (realtime-client.mjs updateContext sends it, replacing the last one, every turn), after all the game's facts in it (world,
@@ -2219,8 +2221,23 @@ function logEmotionTimeline(input, profile, {provider, text, plan, face, signal}
   } catch { /* logging never affects speech */ }
 }
 
+// A holocall reply is complete: V may have asked her to come and meet them, and she may have agreed (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"). On a text
+// provider one small request decides it, after the reply and beside everything else (never awaited, never in front of a turn); on Convai the action list of the
+// turn did (bridge/companion-actions.mjs). A line that cannot be about a meeting sends nothing to any model.
+function decideCallMeet(input, result, signal) {
+  try {
+    const pending = companionActions.pending;
+    if (!pending?.meet || pending.packet.requestId !== input.requestId || typeof result?.text !== 'string') return;
+    const userText = callLine(input, result);
+    const plan = planCallMeet(pending.meet, userText);
+    if (!plan) return;
+    void mistralHost.decideMeet({plan, userText, replyText: result.text, token: pending.packet.actionId, profileKey: input.profileKey, signal}).catch(() => {});
+  } catch { /* the call's reply never depends on this */ }
+}
+
 async function publishResult(input, profile, result, current = async () => true, signal) {
   if (!await current()) return false;
+  if (input.holocall && input.meetOffer && mistral.active) decideCallMeet(input, result, signal);
   // A reply published as a whole (OmniVoice) is ready now: V's typed line, if it is audible, finishes first; if it is not, it is dropped.
   await current.vLine?.()?.waitClear(signal);
   if (!await current()) return false;
