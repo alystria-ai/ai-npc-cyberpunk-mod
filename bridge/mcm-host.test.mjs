@@ -1747,9 +1747,10 @@ test('MCM: Key bindings lists the five actions with the key set here and the key
   press('Key bindings')
   assert(managerUi.inspect().view == 'key-bindings' and mcm.config().navigation.pageId == 'key-bindings|1|1')
   for _, action in ipairs({'voice', 'text', 'group_voice', 'group_text', 'manager'}) do
-    local mine, cet, set = mcm.row('kb:key:' .. action), mcm.row('kb:cet:' .. action), mcm.row('kb:set:' .. action)
-    assert(mine and mine.type == 'string' and mine.value == 'Not set' and cet.value == 'Not set', action)
-    assert(set.type == 'action' and set.value == 'Set' and set.label == 'Set key or button' and not mcm.row('kb:clear:' .. action), action)
+    -- One look on the page (2026-10-25): the key's own button shows the key and sets it, the CET button shows that key; no text rows.
+    local mine, cet = mcm.row('kb:set:' .. action), mcm.row('kb:cet:' .. action)
+    assert(mine and mine.type == 'action' and mine.label == 'Key or button' and mine.value == 'Not set', action)
+    assert(cet.type == 'action' and cet.value == 'Not set' and not mcm.row('kb:key:' .. action) and not mcm.row('kb:clear:' .. action), action)
   end
   assert(mcm.row('padTalk').type == 'bool' and mcm.row('padTalk').label == 'Controller talk button')
   -- Set waits for a key: the line under the way back says so, and the button turns into Cancel.
@@ -1759,11 +1760,11 @@ test('MCM: Key bindings lists the five actions with the key set here and the key
   assert(mcm.row('kb:set:voice').value == 'Cancel' and convaiKeyBinds.capturing() == 'voice')
   clock = clock + 1; key('kIK_F7'); frames(6)
   assert(mcm.status() == 'Talk by voice is set to F7.', mcm.status())
-  assert(mcm.row('kb:key:voice').value == 'F7' and mcm.row('kb:set:voice').value == 'Set' and mcm.row('kb:clear:voice'), 'the page shows the new key')
+  assert(mcm.row('kb:set:voice').value == 'F7' and mcm.row('kb:clear:voice'), 'the page shows the new key')
   assert(manager.snapshot(player).settings.keyBindings.voice == 'IK_F7' and keyList == 'IK_F7,-,-,-,-', 'saved, and registered at once')
   -- A controller button for another action; the key set in CET shows beside it.
   press('kb:set:group_text'); clock = clock + 1; key('kIK_Pad_LeftShoulder'); frames(6)
-  assert(mcm.row('kb:key:group_text').value == 'Controller LB' and mcm.status() == 'Group text chat is set to Controller LB.', mcm.status())
+  assert(mcm.row('kb:set:group_text').value == 'Controller LB' and mcm.status() == 'Group text chat is set to Controller LB.', mcm.status())
   keyFile = '{"AiNpcCyberpunkMod": {"cyberpunk_convai_voice": 33495522228568064, "cyberpunk_convai_manager": 32369622321725440}}'
   clock = clock + 6; frames(12)
   assert(mcm.row('kb:cet:voice').value == 'F8' and mcm.row('kb:cet:manager').value == 'F4' and mcm.row('kb:cet:text').value == 'Not set', 'what CET has')
@@ -1780,7 +1781,7 @@ test('MCM: Key bindings lists the five actions with the key set here and the key
   -- Clear removes it.
   press('kb:clear:voice'); frames(4)
   assert(mcm.status() == 'Talk by voice cleared.', tostring(mcm.status()))
-  assert(mcm.row('kb:key:voice').value == 'Not set' and not mcm.row('kb:clear:voice'), tostring(mcm.row('kb:key:voice').value) .. ' / ' .. tostring(manager.keyBindings().voice))
+  assert(mcm.row('kb:set:voice').value == 'Not set' and not mcm.row('kb:clear:voice'), tostring(mcm.row('kb:set:voice').value) .. ' / ' .. tostring(manager.keyBindings().voice))
   convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
   assert(manager.snapshot(player).settings.keyBindings.voice == nil and keyList == '-,-,-,IK_Pad_LeftShoulder,-', keyList)
 `));
@@ -1801,7 +1802,7 @@ test('MCM: the Controller talk button on Key bindings is the Settings row, and R
   press('Defaults'); assert(footerLabels() == 'Confirm | Back', footerLabels())
   press('Defaults'); frames(8)
   assert(next(manager.keyBindings()) == nil and manager.padTalk() == false, 'both back to the defaults')
-  assert(mcm.row('kb:key:text').value == 'Not set' and mcm.row('padTalk').value == false, 'the page shows them')
+  assert(mcm.row('kb:set:text').value == 'Not set' and mcm.row('padTalk').value == false, 'the page shows them')
   convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
   assert(keyList == '', 'and the listeners stop')
   assert(mcm.status() == 'Defaults restored.', mcm.status())

@@ -1241,13 +1241,11 @@ local function bindingSection(snapshot, module, id, name, how)
     local mine = (snapshot.settings.keyBindings or {})[id]
     local waiting = module.capturing() == id
     local cet = module.cetBinding(id)
+    -- Every row is a button row, so the page has one look (the hosts draw a read-only text row bigger and indented, the owner's check
+    -- of 2026-10-25): the key's own button shows the key and starts the capture, the Cyber Engine Tweaks button shows that key and only explains.
     local rows = {
-        readonly('kb:key:' .. id, 'Key or button', keyText(module, mine), how, {value = true}),
-        readonly('kb:cet:' .. id, 'In Cyber Engine Tweaks', cet or ui.t('Not set'),
-            'The key you set for this action in Cyber Engine Tweaks (its Bindings window). It keeps working next to the key or button above, and when both are the same key it runs once.',
-            {value = true}),
-        action('kb:set:' .. id, 'Set key or button', waiting and 'Cancel' or 'Set',
-            'Press Set, then the key or controller button you want. Esc or B cancels. It works at once.',
+        action('kb:set:' .. id, 'Key or button', waiting and ui.t('Cancel') or keyText(module, mine),
+            ui.t(how) .. '\n\n' .. ui.t('Press it, then the key or controller button you want. Esc or B cancels. It works at once.'),
             function()
                 local currentPlayer = player()
                 if waiting then module.abandonCapture(currentPlayer); return true end
@@ -1255,7 +1253,10 @@ local function bindingSection(snapshot, module, id, name, how)
                 if ok then return true, ui.t('Press the key or controller button for {action}. Esc or B cancels.', {action = keyActionName(id)}) end
                 if reason == 'codeware' then return false, ui.t('Key bindings need Codeware, and this game does not have it. Open Help for what is missing.') end
                 return false, ui.t('The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.')
-            end),
+            end, nil, {value = true, description = true}),
+        action('kb:cet:' .. id, 'In Cyber Engine Tweaks', cet or ui.t('Not set'),
+            'The key you set for this action in Cyber Engine Tweaks (its Bindings window). It keeps working next to the key or button above, and when both are the same key it runs once.',
+            function() return false, ui.t('The key you set for this action in Cyber Engine Tweaks (its Bindings window). It keeps working next to the key or button above, and when both are the same key it runs once.') end, nil, {value = true}),
     }
     if mine then
         rows[#rows + 1] = action('kb:clear:' .. id, 'Clear', 'Clear', 'Remove the key or button you set here.', function()

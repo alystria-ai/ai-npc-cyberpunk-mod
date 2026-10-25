@@ -170,11 +170,11 @@ const reviewed = {
     'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example.\n\nOff: it is not sent, and nothing is read from those mods.',
   ],
   // The words of Companion Manager > Key bindings that are a key's own name: mod/key-bindings.lua holds them as literals and mod/manager-ui.lua keyText
-  // passes each through ui.t. A letter, a digit or a symbol is the same in every language and is not listed. Set and Cancel are the text of the Set button.
+  // passes each through ui.t. A letter, a digit or a symbol is the same in every language and is not listed. Cancel is the key button's text while it waits for a key.
   'page.key-bindings': [
     'Space', 'Enter', 'Tab', 'Backspace', 'Insert', 'Delete', 'Home', 'End', 'Page up', 'Page down',
     'Up arrow', 'Down arrow', 'Left arrow', 'Right arrow', 'Caps lock', 'Num lock', 'Scroll lock', 'Pause', 'Print screen',
-    'D-pad up', 'D-pad down', 'D-pad left', 'D-pad right', 'View', 'Menu', 'Set', 'Cancel',
+    'D-pad up', 'D-pad down', 'D-pad left', 'D-pad right', 'View', 'Menu', 'Cancel',
   ],
   'page.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',

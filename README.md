@@ -115,7 +115,7 @@ Audioware and TweakXL are no longer needed. Voices play through the mod's own au
 
 ## First run
 
-1. **Bind your keys.** Either open Companion Manager > **Key bindings** and press **Set**, then the key or controller button you want for each action, or open Cyber Engine Tweaks' **Bindings** and give a key to each AI NPC Cyberpunk Mod action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
+1. **Bind your keys.** Either open Companion Manager > **Key bindings** and press an action's **Key or button** row, then the key or controller button you want, or open Cyber Engine Tweaks' **Bindings** and give a key to each AI NPC Cyberpunk Mod action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
 2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or hold **talk by voice** while you speak and let go: it records from the moment the key goes down, so you can start talking at once, and letting go sends your words. (Settings > Voices > **Voice activation** can do it with no key at all, and **Controller talk button** lets you hold the left stick click on a controller, see [docs/CONTROLLER_BINDING.md](docs/CONTROLLER_BINDING.md).)
 3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then Mods, then Companion Manager), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
 4. **Make it yours.** In the Companion Manager choose **Settings**. **Conversation provider** and **Voices** are the two pages that change the most. There is no Apply button: a change is saved a moment after you make it, and a row that cannot be used goes back with a line under **Back** that says why.
@@ -135,7 +135,7 @@ Out of the box you get the Convai free tier for the replies and Pocket TTS for t
 | **V** (the game's call key) on a Chat contact or inside a chat | Starts a holocall. Tap the phone button to hang up |
 | **J** / **L** on a contact in the phone's Contacts tab | Invites or dismisses that companion |
 
-You can also set these five actions inside the game: **Companion Manager > Key bindings**. Press **Set** next to an action, then the keyboard key or controller button you want (Esc or B cancels). It works at once, **Clear** removes it, and the Cyber Engine Tweaks bindings above keep working next to it (the page shows what you set there; a key set in both runs the action once). Pick keys the game does not already use. The **Controller talk button** (hold the left stick click) is on that page too. Details: [docs/KEY_BINDINGS.md](docs/KEY_BINDINGS.md).
+You can also set these five actions inside the game: **Companion Manager > Key bindings**. Press an action's **Key or button** row, then the keyboard key or controller button you want (Esc or B cancels). It works at once, **Clear** removes it, and the Cyber Engine Tweaks bindings above keep working next to it (the page shows what you set there; a key set in both runs the action once). Pick keys the game does not already use. The **Controller talk button** (hold the left stick click) is on that page too. Details: [docs/KEY_BINDINGS.md](docs/KEY_BINDINGS.md).
 
 The microphone only ever starts when you press the key. A recording stops by itself after 30 seconds, and opening a menu cancels it. If you see V keep walking after typing a message, tap that direction key (W, A, S or D) once.
 

@@ -76,7 +76,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 
 - **Home:** six destinations: Characters to invite, Current party, Model browser, Character editor, Key bindings, Settings (2026-10-25: Key bindings between the
   Character editor and Settings). All but the Character editor move to a page of the manager.
-  **Key bindings** (`docs/KEY_BINDINGS.md`) is where the player gives the mod's own actions a key or controller button (Set, then press it; Clear). Set and Clear are
+  **Key bindings** (`docs/KEY_BINDINGS.md`) is where the player gives the mod's own actions a key or controller button (press its Key or button row, then the key; Clear). Set and Clear are
   actions, applied at once on both hosts (MCM refuses an action while drafts are pending, as for every button); the Controller talk button is the Settings row again. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
   when `mod/character-editor.lua` loaded, and pressing it opens the character editor in the player's browser through the very request of
   Settings > Conversation provider > **Edit characters** (`editor.request()`: one small `runtime/editor-command.json`, nothing polled and
