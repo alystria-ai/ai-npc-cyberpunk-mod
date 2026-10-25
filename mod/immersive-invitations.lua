@@ -34,6 +34,7 @@ M.STUCK_WINDOW = 10          -- seconds without 1 m of progress
 M.TRIP_CAP_MIN = 90
 M.MAX_RESPAWNS = 2
 M.MAX_CARS = 3
+M.LANE_RETRIES = 3           -- other spots tried when a new car does not stand on a traffic lane, before she walks
 M.WALK_SPEED, M.RUN_SPEED, M.CAR_SPEED = 1.5, 4, 10
 M.ETA = {walk = 50, car = 45}        -- default trip estimates before a spot is known
 M.LEDGER_TTL = 12 * 3600             -- play seconds a stood-up or cancelled note is kept
@@ -202,9 +203,14 @@ function M.new(env)
         local options = settings()
         nextId = nextId + 1
         local method = options.arrival == 'car' and carsInUse() < M.MAX_CARS and spec.road and 'car' or 'walk'
+        -- Why a Car request walks (one code word for the log): the setting, too many cars, or what the road lookup said.
+        local why
+        if method == 'walk' then
+            why = options.arrival ~= 'car' and 'setting-walk' or carsInUse() >= M.MAX_CARS and 'cars-busy' or 'no-road:' .. tostring(spec.roadWhy or '?')
+        end
         local delay = (tonumber(options.delay) or 0) * 60
         local a = {id = nextId, key = spec.key, profileKey = spec.profileKey, name = spec.name, kind = spec.kind,
-            dest = copyPoint(spec.dest), place = spec.place, road = copyPoint(spec.road), method = method, phase = 'scheduled',
+            dest = copyPoint(spec.dest), place = spec.place, road = copyPoint(spec.road), roadHow = spec.roadHow, method = method, phase = 'scheduled',
             createdAt = clock, createdSeq = saveSeq, respawns = 0, stuck = 0, spotTries = 0}
         a.spawnInfo = {id = a.id}
         a.waitSec = (delay > 0 and delay or (tonumber(options.wait) or 5) * 60)
@@ -222,7 +228,11 @@ function M.new(env)
         appts[#appts + 1] = a
         dirty = true
         log(tostring(a.name) .. ' will meet V (' .. a.kind .. ', ' .. method .. ', ' .. tostring(delay / 60) .. ' min, waits '
-            .. tostring(a.waitSec / 60) .. ' min)')
+            .. tostring(a.waitSec / 60) .. ' min' .. (why and options.arrival == 'car' and (', walks: ' .. why) or '')
+            .. (method == 'car' and spec.roadHow and (', road ' .. spec.roadHow) or '') .. ')')
+        -- What the engine's road lookup showed, once per appointment: the one thing only the game can say.
+        if options.arrival == 'car' and spec.roadNote and spec.kind == 'here' then log(tostring(a.name) .. ': road lookup ' .. tostring(spec.roadNote)
+            .. (spec.roadWhy and (' (' .. spec.roadWhy .. ')') or '')) end
         return a
     end
 
@@ -241,7 +251,7 @@ function M.new(env)
         local here, why = env.world.describe('here', settings().arrival == 'car')
         if not here then return false, why or ui.t('Your position cannot be read yet.') end
         local a = create({key = key, profileKey = profileKey, name = definition.name, kind = 'here', dest = here.position,
-            place = here.place, road = here.road})
+            place = here.place, road = here.road, roadHow = here.roadHow, roadWhy = here.roadWhy, roadNote = here.roadNote})
         local when = settings().delay
         env.notify('on-the-way', (when and when > 0)
             and ui.t('{name} is on her way. About {minutes} minutes.', {name = a.name, minutes = when})
@@ -313,7 +323,7 @@ function M.new(env)
         local kind = action.kind == 'meet-waypoint' and offer.waypoint and 'waypoint' or 'here'
         if not use then return false, 'no-place' end
         create({key = offer.key, profileKey = profileKey, name = offer.name, kind = kind, dest = use.position,
-            place = use.place, road = use.road})
+            place = use.place, road = use.road, roadHow = use.roadHow, roadWhy = use.roadWhy, roadNote = use.roadNote})
         return true
     end
 
@@ -532,8 +542,8 @@ function M.new(env)
 
     -- The hidden spot and the readiness gate of a preparing appointment, then the spawn is watched for.
     -- A drive that cannot be made (no road spot, the car does not stand on a road, it cannot attach): she walks in instead.
-    function C.walkInstead(a, why)
-        log(tostring(a.name) .. ': no car arrival, walking (' .. tostring(why) .. ')')
+    function C.walkInstead(a, why, code)
+        log(tostring(a.name) .. ': no car arrival, walking (' .. tostring(code or 'car-failed') .. ': ' .. tostring(why) .. ')')
         discardCar(a)
         a.method, a.leg, a.spot, a.hold, a.go, a.roadEnd, a.carSpot = 'walk', nil, nil, false, false, nil, nil
         a.spotTries, a.spotKey, a.spotState = 0, nil, nil
@@ -573,7 +583,7 @@ function M.new(env)
             if a.spotTries >= M.SPOT_TRIES then
                 if a.method == 'car' then
                     a.method, a.spotTries = 'walk', 0
-                    log(tostring(a.name) .. ': no road spot, walking')
+                    log(tostring(a.name) .. ': no car arrival, walking (no-road-spot: ' .. table.concat(a.spotLog or {}, ' | ') .. ')')
                     return
                 end
                 return fail(a, 'no spot (' .. table.concat(a.spotLog or {}, ' | ') .. ')')
@@ -589,7 +599,10 @@ function M.new(env)
                     a.spotLog[#a.spotLog + 1] = a.method .. a.spotTries .. ' ' .. (clip(tostring(reason):gsub('^No hidden, reachable spot was found%. ', ''), 90) or '?')
                 end
                 a.spotTries = a.spotTries + 1
-                if a.method == 'car' and a.spotTries >= 2 then a.method, a.spotTries = 'walk', 0 end
+                if a.method == 'car' and a.spotTries >= 2 then
+                    a.method, a.spotTries = 'walk', 0
+                    log(tostring(a.name) .. ': no car arrival, walking (no-road-spot: ' .. table.concat(a.spotLog, ' | ') .. ')')
+                end
                 return
             end
             a.spot = spot
@@ -621,13 +634,24 @@ function M.new(env)
         -- Her car is made just before she is: it must stand on a road before she appears beside it.
         if a.leg == 'drive' and a.go and not a.car then
             local car, why = env.world.carCreate(a)
-            if not car then return C.walkInstead(a, why) end
+            if not car then return C.walkInstead(a, why, 'car-not-made') end
             a.car = car
         end
         if a.car and a.hold then
-            local state, why = env.world.carReady(a, M.STEP)
+            local state, why, code = env.world.carReady(a, M.STEP)
             if state == 'ready' then a.hold = false
-            elseif state == 'bad' then discardCar(a); return C.walkInstead(a, why) end
+            elseif state == 'bad' then
+                discardCar(a)
+                if code == 'off-lane' and (a.laneMisses or 0) < M.LANE_RETRIES then
+                    -- A candidate spot is judged by room and sight, not by road: the next one is tried before she walks.
+                    a.laneMisses = (a.laneMisses or 0) + 1
+                    log(tostring(a.name) .. ': the car did not stand on a traffic lane, trying another spot (' .. a.laneMisses .. ')')
+                    a.spot, a.leg, a.hold, a.go, a.carSpot, a.roadEnd = nil, nil, false, false, nil, nil
+                    a.spawnInfo.position = nil
+                    return
+                end
+                return C.walkInstead(a, why, code)
+            end
         end
         for _, row in ipairs(env.companions.visitors()) do
             if row.appointmentId == a.id and (row.state == 'visiting' or row.state == 'spawning') then
@@ -701,7 +725,7 @@ function M.new(env)
                 -- V is the one she walks to now (V came to the car), not the place V once asked for.
                 if a.metEarly and st.position then a.goal = copyPoint(st.position) end
             elseif result == 'failed' then
-                log(tostring(a.name) .. ': the car trip failed (' .. tostring(why) .. ')')
+                log(tostring(a.name) .. ': no car arrival, walking (trip-failed: ' .. tostring(why) .. ')')
                 removeBody(a, 'module')
                 discardCar(a)
                 a.method, a.leg, a.hold, a.close = 'walk', nil, false, true

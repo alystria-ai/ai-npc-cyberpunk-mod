@@ -1859,7 +1859,7 @@ end
 -- no road graph to ask, so the candidates are points V has driven through lately (request.trail) and a ring around the road end point,
 -- each judged by the same footprint test the party's own cars use and by a walkable point beside it for the driver; the road itself is
 -- confirmed by the car (it must report standing on a traffic lane), and a candidate that fails is replaced by the next call.
--- request = {destination = the road end point, goal, trail, relax}; returns {position = where the driver appears, car = {position, yaw},
+-- request = {destination = the road end point, goal, trail, relax (1: also spots in sight)}; returns {position = where the driver appears, car = {position, yaw},
 -- roadEnd, goal, distance, eta} or nil + reason, or nil,nil,true (ask again).
 local CAR_BATCH,CAR_MIN_FROM_V=2,60
 local atan2=math.atan2 or math.atan
@@ -1910,7 +1910,8 @@ function M.findCarSpot(key,request,state)
         local forward=space.bearing(c,destination)
         local rotation=Quaternion.BuildFromDirectionVector(Vector4.new(forward.x,forward.y,0,0))
         if space.ground(c,viewer)>=CAR_MIN_FROM_V then
-            local hidden=hiddenFromPlayer(player,c)
+            -- The second round (request.relax) takes a spot in sight too: 130 m or more away she is not seen to appear.
+            local hidden=(request.relax or 0)>=1 or hiddenFromPlayer(player,c)
             if hidden==nil then state.index=state.index-1; return nil,nil,true end
             if hidden then
                 local spot,deferred=vehicleNative.clearAt(center,forward,rotation)

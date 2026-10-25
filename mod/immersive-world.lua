@@ -8,6 +8,7 @@ local M = {}
 local HER_CAR_TAG = 'CyberpunkConvaiHerVehicle'
 local ROAD_MAX_WALK = 60          -- a road end point this far on foot from V is still "a road nearby"
 local TRAIL_LIMIT, TRAIL_STEP, TRAIL_SPEED = 40, 30, 6
+local TRAIL_NEAR = 150            -- a road V drove along this close to V is a road nearby
 
 local WAYPOINT_LANDMARK_RADIUS = 250   -- the nearest fast travel point within this far names the place
 local WAYPOINT_NEAR_V = 150            -- a waypoint this close to V is worded with V's own district
@@ -134,19 +135,61 @@ function M.new(deps)
         return nil
     end
 
-    -- The nearest road to V by foot (the game's own prevention system measures it for its police fallback): the point, or nil when none is
-    -- near. Asked only when a car arrival is wanted.
-    local function nearestRoad()
-        local ok, found = pcall(function()
+    -- The game's own nearest road to V (the prevention system measures it for its police fallback): point, nil + a code word + the fields it
+    -- showed. It is kept for the police logic, so on a calm walk it may be an empty struct (live 2026-10-25/26: Car asked outdoors by a road
+    -- still walked, and nothing said why); every way it can fail has its own code, and the fields it did show go to the log with the first appointment.
+    local function engineRoad(from)
+        local ok, info = pcall(function()
             local system = Game.GetPreventionSpawnSystem()
-            local info = system and system:GetNearestRoadFromPlayerInfo()
-            if type(info) ~= 'table' and type(info) ~= 'userdata' then return nil end
-            local length = tonumber(info.pathLength)
-            local at = point(info.point)
-            if not at or not length or length < 0 or length > ROAD_MAX_WALK then return nil end
-            return at
+            if not system then return false end
+            return system:GetNearestRoadFromPlayerInfo()
         end)
-        return ok and found or nil
+        if not ok then return nil, 'call-failed', tostring(info):sub(1, 80) end
+        if info == false then return nil, 'no-system' end
+        if info == nil then return nil, 'no-info' end
+        local seen, shown = {}, {}
+        for _, name in ipairs({'point', 'pathLength', 'distance', 'length', 'isValid', 'valid'}) do
+            local called, value = pcall(function() return info[name] end)
+            if called and value ~= nil then
+                seen[name] = value
+                local at = name == 'point' and point(value)
+                shown[#shown + 1] = name .. '=' .. (at and string.format('%.0f,%.0f,%.0f', at.x, at.y, at.z) or tostring(value):sub(1, 20))
+            end
+        end
+        local note = #shown > 0 and table.concat(shown, ' ') or 'no-fields'
+        if seen.isValid == false or seen.valid == false then return nil, 'invalid', note end
+        local at = point(seen.point)
+        if not at then return nil, 'no-point', note end
+        if at.x == 0 and at.y == 0 then return nil, 'zero-point', note end
+        local length = tonumber(seen.pathLength) or tonumber(seen.distance) or tonumber(seen.length)
+        if length and length < 0 then return nil, 'no-path', note end
+        local gap = math.sqrt((at.x - from.x) ^ 2 + (at.y - from.y) ^ 2)
+        local far = length or gap
+        if far > ROAD_MAX_WALK then return nil, string.format('far:%.0f', far), note end
+        return at, nil, note
+    end
+
+    -- The point of V's recent drives that is nearest to V, within TRAIL_NEAR: a road for certain.
+    local function trailRoad(from)
+        local best, bestGap
+        for _, at in ipairs(trail) do
+            local gap = math.sqrt((at.x - from.x) ^ 2 + (at.y - from.y) ^ 2)
+            if gap <= TRAIL_NEAR and (not bestGap or gap < bestGap) then best, bestGap = at, gap end
+        end
+        return best
+    end
+    -- Codes of an engine answer that says nothing (as opposed to "no road within reach"): the car then drives toward V's own spot and the
+    -- engine's driving AI finds the road; a drive that cannot be made walks instead, with its own code.
+    local UNREADABLE = {['call-failed'] = true, ['no-system'] = true, ['no-info'] = true, ['no-point'] = true, ['zero-point'] = true}
+
+    -- road, how ('engine' | 'trail' | 'guess'), or nil + code, and the note on what the engine showed.
+    local function findRoad(from)
+        local at, why, note = engineRoad(from)
+        if at then return at, 'engine', nil, note end
+        local drove = trailRoad(from)
+        if drove then return drove, 'trail', why, note end
+        if UNREADABLE[why] then return {x = from.x, y = from.y, z = from.z}, 'guess', why, note end
+        return nil, nil, why, note
     end
 
     -- {position, place, road} for 'here' (V's position now) or 'waypoint' (the player's pin), or nil + reason.
@@ -154,7 +197,12 @@ function M.new(deps)
         local state = W.state()
         if not state.position then return nil end
         if kind ~= 'waypoint' then
-            return {position = state.position, place = hereWords() or 'where V is', road = wantRoad and nearestRoad() or nil}
+            local here = {position = state.position, place = hereWords() or 'where V is'}
+            if wantRoad then
+                local road, how, why, note = findRoad(state.position)
+                here.road, here.roadHow, here.roadWhy, here.roadNote = road, how, why, note
+            end
+            return here
         end
         local marker, road, name = trackedWaypoint()
         if not marker then return nil end
@@ -174,7 +222,7 @@ function M.new(deps)
         elseif near and not place:find(near, 1, true) then
             place = place .. ', ' .. near
         end
-        return {position = marker, place = place, road = road}
+        return {position = marker, place = place, road = road, roadHow = road and 'engine' or nil, roadWhy = (not road) and 'no-pin-road' or nil}
     end
 
     -- ---- spots -----------------------------------------------------------------------------------------------------------
@@ -248,7 +296,7 @@ function M.new(deps)
     end
     function W.carReady(a, dt)
         local sequence = cars()
-        if not sequence or not a.car then return 'bad', 'There is no car.' end
+        if not sequence or not a.car then return 'bad', 'There is no car.', 'car-gone' end
         return sequence.ready(a.car, dt)
     end
     function W.carStep(a, dt)
