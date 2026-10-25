@@ -17,17 +17,24 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak and let go to send, or type. They answer out loud with subtitles, cinematic or above the speaker, and now and then ask you something back.
 [*][b]Hold to talk, instantly.[/b] The microphone opens the moment you press the talk key, so your first words are not lost, and it stays ready for 15 seconds after a voice turn. After a pause the first press shows Opening microphone and then Speak now. Prefer to leave your hands free? Turn on Voice activation in Settings > Voices (off by default) and the mod hears when you start speaking.
 [*][b]Controller talk button.[/b] Turn on Settings > Voices > Controller talk button (off by default), then hold the left stick click while you look at someone, speak and let go to send. It does nothing in menus, scenes, calls, combat or vehicles.
+[*][b]Nobody in front of you? Your party answers.[/b] Press the talk key without facing anyone and the first member of your party answers. The group keys take the first plus two others.
+[*][b]Key bindings page.[/b] Companion Manager > Key bindings gives each action a keyboard key or a controller button from inside the game, with no restart and no trip to Cyber Engine Tweaks. Johnny has his own talk keys there.
 [*][b]The game's named cast.[/b] 126 named characters: Panam, Johnny, Judy, Takemura, Kerry, River, Alt Cunningham and many more, each with a personality researched from the game's own lore.
 [*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person (everyone you can aim at, receptionists and quest extras included): 40 kinds of people, with 80 personalities (a woman's and a man's for each, MaxTac, NUSA and joytoys included), and shopkeepers you come back to remember you. Every nameless passer-by gets their own Night City name that fits who they are (a Valentino gets a Latino name, a Tyger Claw a Japanese one), from about 13,000 names in 16 cultures, shown on the scanner and in the subtitles. Quest crowds such as the patrons of the Afterlife answer too, with a speaking face.
 [*][b]Talk has consequences.[/b] Threaten an ordinary pedestrian and they react: they walk or run off, call the police, or, if they are a ganger, merc or guard, fight back. It depends on who they are and where you are. Story and quest characters are never affected.
 [*][b]Story characters where they stand.[/b] Turn on Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer in place, with voice and face only. The story is left alone.
 [*][b]Group chat.[/b] Talk to two or three companions at once. They take turns and pick up from each other.
-[*][b]Phone Chat and holocalls.[/b] Text any supported contact from a Chat tab on V's phone, or call them and watch them pick up live on screen.
+[*][b]Phone Chat and holocalls.[/b] Text any character that has a profile here, not only the game's contacts, from a Chat tab on V's phone, or call them and watch them pick up live on screen.
 [*][b]No waiting.[/b] Characters you look at or walk up to get their conversation ready in the background, so they answer straight away.
 [*][b]Replies that sound like people.[/b] Characters echo your question back less, lean on stock closing lines less, and no longer recite where they are or what the weather is. Their character text is leaner, with lore fixes for many named characters.
 [/list][b]Companions[/b][list]
 [*][b]Invite almost anyone[/b] from Characters to invite, plus hundreds more character models from the Model browser. With Mod Configuration Menu, type a name in its Search settings box to find a model at once, Rita Wheeler included, and every model shows a proper name. No party size limit.
 [*][b]They live alongside you.[/b] They walk beside you, follow you through doors, lifts and fast travel, sit with you on couches, benches and bar stools, ride in your car and fight with the game's own combat AI.
+[*][b]Immersive invitations (new, off by default).[/b] Switch it on in Settings > Companion behavior > Immersive invitations and inviting a character becomes an appointment: they come to you on foot or by car, text when they arrive and wait a while. You can meet them somewhere on the way, or cancel it with plain words like "never mind".
+[*][b]Housemates (new, off by default).[/b] Switch it on in Settings > Companion behavior > Housemates and a character you tell they can stay at your place moves into one of your apartments and lives there.
+[*][b]At home in your flat.[/b] While you stay in your own apartment, companions sit down on seats by themselves instead of trailing you, and on a bar stool they face the counter.
+[*][b]Companions change outfits (new, off by default).[/b] Switch it on in Settings > Companion behavior > Companions change outfits and companions change into other looks, only while you are not looking.
+[*][b]They speak up.[/b] Now and then a companion starts a remark by themselves at a calm moment. Settings > Conversations > Companions speak up (Speaks up rarely by default, Off turns it off).
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
 [*][b]Send them home.[/b] Tell them to leave, or use Dismiss in Current party.
@@ -38,9 +45,11 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]Bodies that act.[/b] They gesture, nod and hold idle poses with props such as a cigarette, a cup or a pair of shades.
 [*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral 3 makes each voice in the cloud with a Mistral key (one steady voice per passer-by), and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
 [*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, with Pocket. Turn on Settings > Voices > V speaks your microphone lines (off by default) and the lines you speak are repeated in V's voice too, with the reply following V's line. OmniVoice for V is offered only while your companions use OmniVoice (Settings > Voices), so it never loads just for V. Use a mod that replaces V's voice? V's lines follow it by themselves, or give V your own clip in the character editor.
-[*][b]Voices that hold up.[/b] The voice workers recover from a stuck start, a Pocket line that breaks up refills with more audio each time, a stalled Voxtral request is asked again in parallel, and V's lines are no longer dropped. If a voice fails after a reply has started, you still get the whole reply as text, even with Subtitles off.
+[*][b]Voices that hold up.[/b] The voice workers recover from a stuck start, a Pocket line that breaks up refills with more audio each time, a stalled Voxtral request is asked again in parallel, and V's lines are no longer dropped. If a voice fails after a reply has started, you still get the whole reply as text, even with Subtitles off. The voice workers also start when the Runtime sits behind a symlink or junction above its app folder.
+[*][b]OmniVoice on AMD Radeon cards (experimental).[/b] Untested on AMD hardware. You install AMD's ROCm PyTorch in your own Python and the mod downloads nothing for it. On a PC with an AMD card and no NVIDIA card the game points you to the steps by itself.
 [/list][b]Story and memory[/b][list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
+[*][b]They know who you are to them.[/b] Strangers no longer act as if they knew V, "I gave you eddies" is understood as a payment from V to them, and a companion knows whether they hold a weapon.
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make one character, or everyone, forget at any time.
 [*][b]Johnny in your head.[/b] Turn it on (off by default), give a key to Talk to Johnny by voice or by text, and Johnny answers in V's head wherever you look. He knows your jobs, his own history and how things stand between you. Choose Speaks up rarely or Speaks up often and he also comments on people you meet, jobs you finish and romances. He is only busy during real scenes, such as a cutscene with a choice on screen or a call, and should no longer turn you away while you ride a lift or stand around.
 [/list][b]Make it yours[/b][list]
@@ -49,7 +58,7 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]Prompting.[/b] On the editor's Prompting tab, tune the prompt for each AI option: Mistral, Local AI standard and lite, the Mature models and every Custom model you add. Edit the output rules, example replies, opening and closing lines, sampling (temperature, Top P, Top K, Min P and the repeat, presence and frequency penalties) and length limits, add any other setting your model server understands in the Advanced parameters box (JSON, Local AI and Custom), watch a live preview and reset any part. Where Mature is on, the Mature wording is yours to edit too. The game facts, the safety rules and the Mature hard limits stay locked, and Convai's prompting lives on Convai's side.
 [*][b]Content packs.[/b] A content pack is a small add-on made only of a settings file and some text, with no code of its own. It changes how the characters talk: world rules, prompt wording, a character's backstory, style and name, name pools for passers-by, Convai twins and a separate memory. Switch each pack on or off in Settings > Content packs. Your own edits in the editor still win over a pack. [url=[MEDIEVAL_URL]][b]Medieval AI NPCs[/b][/url], a separate add-on page, is the first one and turns Night City into a medieval world.
 [*][b]Tuned for each model.[/b] Mistral, Local AI standard and lite and the Mature models each start from a prompt tuned for them and tested on sample conversations, so they slip into fewer echoes, lectures and off-character lines.
-[*][b]Choose what they know.[/b] Settings > Conversations > Dynamic info has nine switches: Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, and Recent game dialogue. Turn one off and it is left out of what the characters are told, on every provider.
+[*][b]Choose what they know.[/b] Settings > Conversations > Dynamic info has twelve switches: Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, Recent game dialogue, Time since last talk, Music and TV (new: the radio station and song playing, and the TV channel) and Other mods' state (off by default, it reads Dark Future and the Equipment-EX outfit V wears). Turn one off and it is left out of what the characters are told, on every provider.
 [*][b]Voice clips.[/b] Give a character a new voice from a 5 to 20 second recording. It applies without a restart.
 [*][b]Bring your own AI.[/b] The Custom provider works with OpenRouter, Nano-GPT, Ollama, LM Studio or any OpenAI-compatible service, and Local AI can run your own model files (see below). Switch provider in Settings and the very next line uses it.
 [*][b]Any language.[/b] Menus in sixteen languages (all fifteen translations were reviewed and fixed, with the game's official names for Johnny), characters that answer in English, or in the language you write in when Settings > Voices > Voice language is on Automatic (a short line never switches it), or in a fixed language, and microphone packs for European and Asian languages. Spoken other languages need the OmniVoice, Voxtral or Convai voice. Pocket speaks English, and French, Italian, German, Spanish and Portuguese with an optional PocketTTS model. With a [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/multilingual]multilingual pack[/url], OmniVoice and Voxtral speak in the game's own dubbed voices for ten languages.
@@ -57,6 +66,7 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*]The heavy work runs in a separate background service, not inside the game, and the default setup uses no video memory.
 [*]Unused models unload on their own, and Local AI steps down to a lighter model when the game needs the memory. On cards from 12 to 24 GB it leaves more room for the game.
 [*]Works with Vortex, Mod Organizer 2 or a manual install.
+[*]A stale player-memory lock no longer stops the background service from starting, and the logs are quieter.
 [/list]
 
 [size=4][b]Recommended settings[/b][/size]
@@ -110,7 +120,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*]Download [b]Scripts[/b] from this page (the main file for game 2.5, or the optional file for the older 2.31, Vortex or by hand) and the Runtime from Hugging Face: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip][b]Runtime for game 2.5[/b][/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip][b]Runtime for game 2.31[/b][/url]. Use the same version and the same game for both.
 [*]Close the game. Extract both zips into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract the Runtime before the OmniVoice pack.
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
-[*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
+[*]Give a key to each AI NPC Cyberpunk Mod action (talk by text, talk by voice, Group Chat, Talk to Johnny and the companion manager), in game under [b]Companion Manager > Key bindings[/b] or in Cyber Engine Tweaks' [b]Bindings[/b]. The mod never sets keys for you.
 [/list]
 
 [b]Vortex[/b][list]
@@ -130,7 +140,7 @@ Updating? Download the new Scripts (the main file for game 2.5, or the optional 
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own. Install none, some or all, the same way as the Runtime.[list]
-[*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/voice/OmniPack.zip][b]OmniVoice[/b][/url] (about 7.4 GB installed): a richer voice that can laugh and sigh, for NVIDIA cards with at least 12 GB of video memory. Choose it in Settings > Voices. Extract this pack by hand, Vortex can't install it.
+[*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/voice/OmniPack.zip][b]OmniVoice[/b][/url] (about 7.4 GB installed): a richer voice that can laugh and sigh, for NVIDIA cards with at least 12 GB of video memory (on AMD Radeon cards it is experimental and untested, see Key features). Choose it in Settings > Voices. Extract this pack by hand, Vortex can't install it.
 [*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Standard.zip][b]Local AI standard[/b][/url] (about 5.3 GB): the local language model with the best replies.
 [*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Lite.zip][b]Local AI lite[/b][/url] (about 1.3 GB): the same kind of model for smaller graphics cards.
 [*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/mature/Mature-Lite.zip][b]Mature lite[/b][/url] (about 2.8 GB) and [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/mature/Mature-Standard.zip][b]Mature standard[/b][/url] (about 5.5 GB): uncensored local models. Each works on its own, so no Local AI pack is needed. The Mature content setting is off by default.
@@ -218,13 +228,13 @@ Game 2.5 is the default and the main file, game 2.31 is an optional file ("Optio
 Scripts (the main file, game 2.5, zip Scripts.zip):
 
 ```text
-Game version 2.5. Get the Runtime from Hugging Face. New: content packs, Model browser search, Rita Wheeler invitable, readable model names, Top K, Min P and penalty sampling, advanced parameters, editable Mature layer, official RED4ext for 2.5.
+Game version 2.5. Get the Runtime from Hugging Face. New: content packs, key bindings page, invitations by car, housemates, outfits, Music and TV info, Model browser search, sampling controls, experimental OmniVoice on AMD, official RED4ext.
 ```
 
 Scripts - for game 2.31 (older game version) (optional file, zip Scripts-for-game-2.31.zip):
 
 ```text
-Older game version 2.31. Get the Runtime for game 2.31 from Hugging Face. New: content packs, Model browser search, Rita Wheeler invitable, readable model names, Top K, Min P and penalty sampling, advanced parameters, editable Mature layer.
+Older game version 2.31. Get the Runtime for game 2.31 from Hugging Face. New: content packs, key bindings page, invitations by car, housemates, outfits, Music and TV info, Model browser search, sampling controls, experimental OmniVoice on AMD.
 ```
 
 ## 3. Short summary (brief overview field)

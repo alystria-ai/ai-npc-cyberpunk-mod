@@ -68,6 +68,12 @@ Nexus Mods (one page): the Main file is the 2.5 build, `AI NPC Cyberpunk Mod - S
 
 A player who moves from 2.31 to 2.5 downloads the 2.5 Scripts and Runtime (the 2.5 Runtime is a full zip), or on 0.3.0 applies the one switch zip (below).
 
+## Release 0.3.2 on both games
+
+0.3.2 is one source built twice, so the features are the same on 2.5 and 2.31: content packs (the Medieval AI NPCs add-on), Model browser search, extra sampling controls, the editable Mature layer, the Key bindings page (Johnny's own talk keys, the talk key falling back to the first party member), immersive invitations (on foot or by car), housemates and companion outfits (both off by default), companions settling in V's flat, twelve Dynamic info switches (Music and TV is new, Other mods' state is off by default), companions speaking up, Phone Chat for every character with a profile, and the experimental OmniVoice route on AMD Radeon cards (untested on AMD hardware). The new features were built from source and tests and have not been seen in a running game on either version.
+
+What differs between the games is the requirement set, as in 0.3.1: 2.5 uses the official RED4ext 1.31.0 or newer and the official Codeware 1.21.0, 2.31 uses RED4ext 1.30.0 and Codeware 1.20.5 (both from Nexus Mods). The update step 0.3.1 to 0.3.2 is a plain step for 2.5 and is named `-for-2.31` for 2.31.
+
 ## Wrong build
 
 * Scripts and Runtime of one version but different games: `bridge/setup-check.mjs` answers `versions: game-mismatch`; the Help page line names both games and
