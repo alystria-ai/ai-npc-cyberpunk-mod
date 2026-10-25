@@ -23,7 +23,7 @@ Restore defaults (Native Settings UI's own button, and the Defaults footer butto
 | Recent game dialogue (`dynamic:dialogue`) | `dynamicInfo.dialogue` | the last lines of scenes and V's chosen replies | the game-dialogue block | `gameDialogue:capture()` (the recorder stays: Johnny's remarks and the add-ons hear the game's lines through it, and it only works when the game shows a line) |
 | Time since last talk (`dynamic:lastTalk`) | `dynamicInfo.lastTalk` | how long since V last talked to this character, in the game and in real days | the Background line "You last talked with V ..." (and nothing is stored for the character) | the game clock in seconds (one read inside the turn-context snapshot) |
 | Music and TV (`dynamic:media`) | `dynamicInfo.media` | the song on the car radio while V rides in a car, or on V's pocket radio on foot; a TV that is on near V (its channel and what it just said) | the Background line's radio and TV sentences, for a companion in person and for Johnny in V's head | `mod/media-context.lua` (the radio and TV reads), `mod/media-song.lua` (the game's song-change events, hooked only while on) and the TV line ring in `mod/game-dialogue.lua` |
-| Other mods' state (`dynamic:mods`) | `dynamicInfo.mods` | V's thirst, hunger, tiredness, nerve, withdrawal, humanity and lasting injuries, from the Dark Future mod when it is installed | the "V is exhausted and parched" sentences of the Background line | `mod/mod-state.lua` is not loaded and Dark Future's classes are not asked (with the switch off nothing at all is read from other mods and no probe line is logged; with the switch on and the mod absent: one failed lookup a minute at most, while a turn is built) |
+| Other mods' state (`dynamic:mods`) | `dynamicInfo.mods` | V's thirst, hunger, tiredness, nerve, withdrawal, humanity and lasting injuries, from the Dark Future mod when it is installed | the "V is exhausted and parched" sentences of the Background line | `mod/mod-state.lua` is not loaded and Dark Future's classes are not asked, and `mod/equipment-ex.lua` is not loaded and Equipment-EX is not asked (with the switch off nothing at all is read from other mods and no probe line is logged; with the switch on and the mod absent: one failed lookup a minute at most, while a turn is built) |
 
 What is deliberately not a switch: what each character knows about the story (the world facts and the recent shared events, they are the character's own
 knowledge and the bridge binds a conversation to the save with them), a fight reaction's own subject (battle reactions have their own setting), the pickups
@@ -71,6 +71,13 @@ form above, not the apartment. Only V's own apartment records (`HOME_PLACES` in 
 `bridge/dynamic-info.test.mjs` (every kind off, for Convai, Mistral, Local AI and Custom, with every other kind still present; the Lua reads; the location
 wording), and the Dynamic info and Forget cases in `bridge/manager.test.mjs`, `bridge/nsui-manager.test.mjs`, `bridge/mcm-host.test.mjs`,
 `bridge/settings-file-lua.test.mjs` and `bridge/support-report*.test.mjs`, plus `bridge/nsui-labels.test.mjs` (every label of the page fits, in all 16 languages).
+
+## Other mods' state: Equipment-EX outfits
+
+Added 2026-10-25. The same switch also lets **V's gear and clothes** follow the Equipment-EX wardrobe: while one of its outfits is active, the gear block lists the
+outfit's items instead of the equipped clothes that the outfit hides (docs/PLAYER_GEAR_CONTEXT.md, "Wardrobe outfits"). `mod/equipment-ex.lua` is loaded the first time a
+gear block is built with the switch On, reads on demand only (inside the gear's 5 second cache), and logs `equipment-ex outfit=<name> parts=N` once per change.
+With the switch Off nothing is read from Equipment-EX and the gear block is what the equipment system says, as before.
 
 ## Other mods' state: Dark Future
 
