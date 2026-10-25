@@ -79,3 +79,75 @@ test('a saved bad value falls back to the default (Off, chat On) and the cleaned
     assert(saved.housemates.enabled == case[2] and saved.housemates.chat == case[3] and saved.housemates.extra == nil and saved.future.keep == 'unchanged')
   end
 `));
+
+test('the options: Move-in apartment lists Ask me and the flats V owns, the pause and the chat size are lists, and every change is saved', () => run(`${harness()}
+  local owned = {{id = 'h10', name = 'Megabuilding H10'}, {id = 'glen', name = 'Heywood Glen'}}
+  convaiHousemateOwned = function() return owned end
+  press('Settings'); press('Housemates')
+  local move = assert(ns.find('Move-in apartment'), 'no Move-in apartment row')
+  assert(move.type == 'selectorString' and #move.elements == 3 and move.selectedElementIndex == 1, 'Ask me, then the two flats')
+  assert(move.elements[1] == 'Ask me' and move.elements[2] == 'Megabuilding H10' and move.elements[3] == 'Heywood Glen')
+  local pause, size = assert(ns.find('Pause between chats')), assert(ns.find('Housemates in one chat'))
+  assert(#pause.elements == 4 and pause.selectedElementIndex == 2, 'the pause starts at 2 minutes')
+  assert(pause.elements[1] == '1 minute' and pause.elements[4] == '10 minutes')
+  assert(#size.elements == 3 and size.selectedElementIndex == 1, 'the chat starts as a pair')
+  local value = manager.housemates()
+  assert(value.moveIn == 'ask' and value.chatCooldown == 120 and value.chatSize == 2)
+  ns.interact.select(move, 3); frames(8); ns.verify()
+  ns.interact.select(ns.find('Pause between chats'), 4); frames(8); ns.verify()
+  ns.interact.select(ns.find('Housemates in one chat'), 3); frames(8); ns.verify()
+  value = manager.housemates()
+  assert(value.moveIn == 'glen' and value.chatCooldown == 600 and value.chatSize == 4, value.moveIn)
+  assert(saved.housemates.moveIn == 'glen' and saved.housemates.chatCooldown == 600 and saved.housemates.chatSize == 4, 'saved in settings.json')
+  -- the flat is no longer owned: the page shows Ask me, and the saved word waits (it is only used when she can use it)
+  owned = {{id = 'h10', name = 'Megabuilding H10'}}
+  press('Back to settings'); press('Housemates')
+  assert(ns.find('Move-in apartment').selectedElementIndex == 1 and #ns.find('Move-in apartment').elements == 2)
+  assert(manager.housemates().moveIn == 'glen')
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  value = manager.housemates()
+  assert(value.moveIn == 'ask' and value.chatCooldown == 120 and value.chatSize == 2 and value.chat == true and value.enabled == false)
+`));
+
+test('the options are validated: a value outside the lists is refused, a damaged saved one is the default', () => run(`${harness()}
+  for _, bad in ipairs({{chatCooldown = 90}, {chatCooldown = '120'}, {chatSize = 1}, {chatSize = 5}, {chatSize = 2.5}, {moveIn = 'penthouse'}, {moveIn = 3}, {moveIn = true}}) do
+    assert(not manager.applySettings(player, {housemates = bad}), 'accepted ' .. tostring(next(bad)))
+  end
+  assert(manager.housemates().chatCooldown == 120 and manager.housemates().chatSize == 2 and manager.housemates().moveIn == 'ask')
+  assert(manager.applySettings(player, {housemates = {chatCooldown = 60, chatSize = 3, moveIn = 'japan'}}))
+  local value = manager.housemates()
+  assert(value.chatCooldown == 60 and value.chatSize == 3 and value.moveIn == 'japan' and value.chat == true)
+  assert(manager.applySettings(player, {housemates = {moveIn = 'ask'}}))
+  assert(manager.housemates().moveIn == 'ask' and manager.housemates().chatCooldown == 60, 'a field is merged, the others are kept')
+  local arrivals = {manager.housemateChoices()}
+  assert(#arrivals[1] == 4 and arrivals[1][1] == 60 and arrivals[1][4] == 600 and #arrivals[2] == 3 and arrivals[2][3] == 4)
+`));
+
+test('a saved bad option falls back to its default, the cleaned table is saved and a good one is kept', () => run(`${managerFixture}
+  for _, case in ipairs({
+      {{chatCooldown = 90, chatSize = 9, moveIn = 'nowhere'}, 120, 2, 'ask'}, {{chatCooldown = 600, chatSize = 4, moveIn = 'corpo'}, 600, 4, 'corpo'},
+      {{chatCooldown = '60', chatSize = '3', moveIn = false}, 120, 2, 'ask'}, {{}, 120, 2, 'ask'}}) do
+    seed = {version = 2, voiceProvider = 'pocket', housemates = case[1], enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    local value = manager.housemates()
+    assert(value.chatCooldown == case[2] and value.chatSize == case[3] and value.moveIn == case[4], tostring(value.chatCooldown) .. '/' .. tostring(value.chatSize) .. '/' .. tostring(value.moveIn))
+    assert(saved.housemates.chatCooldown == case[2] and saved.housemates.chatSize == case[3] and saved.housemates.moveIn == case[4])
+  end
+`));
+
+test('Evict all housemates is a button on the page: off while nobody lives there, then it evicts, says how many and the list is empty', () => run(`${harness()}
+  local rows, evicted = {}, 0
+  convaiHousemateRows = function() return rows end
+  convaiHousemateEvictAll = function() evicted = evicted + 1; local n = #rows; rows = {}; return n end
+  press('Settings'); press('Housemates')
+  local button = assert(ns.find('Evict all housemates'), 'no Evict all housemates row')
+  assert(button.type == 'button' and button.buttonText == 'Evict')
+  ns.interact.press(button); frames(3); ns.verify()
+  assert(evicted == 0, 'disabled while nobody lives there')
+  rows = {{key = 'judy-alvarez', name = 'Judy', apartment = 'corpo', apartmentName = 'Corpo Plaza', state = 'home'},
+    {key = 'rogue', name = 'Rogue', apartment = 'glen', apartmentName = 'Heywood Glen', state = 'party'}}
+  press('Back to settings'); press('Housemates')
+  ns.interact.press(ns.find('Evict all housemates')); frames(3); ns.verify()
+  assert(evicted == 1 and #rows == 0)
+`));

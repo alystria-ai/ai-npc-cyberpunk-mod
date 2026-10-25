@@ -162,10 +162,11 @@ function parseMembers(value, optional = []) {
 // addressed speaker; apartments are the ones V may name (id from a fixed list, never from the model); members are the residents and housemates V may
 // call (the speaker among them: her id equals actor.id). Optional keys, absent when they do not apply: here (the apartment V stands in), lives (the
 // speaker's current home), moveOut (the speaker is a housemate), asked ({from, here}: last turn she was told to ask whether she stays in this flat
-// or goes back to hers). An offer with nothing to choose (no apartment, no member, no move-out) is no offer.
+// or goes back to hers), fallback (the apartment V chose in Settings > Housemates for "move in" without naming one: one of the offered ids, used when V is
+// in none of them). An offer with nothing to choose (no apartment, no member, no move-out) is no offer.
 export function parseHomeOffer(value) {
   if (!object(value) || value.available !== true || !object(value.actor)
-      || !only(value, ['available', 'actor', 'apartments', 'members'], ['here', 'lives', 'moveOut', 'asked'])
+      || !only(value, ['available', 'actor', 'apartments', 'members'], ['here', 'lives', 'moveOut', 'asked', 'fallback'])
       || !keys(value.actor, ['id', 'key']) || !entityId(value.actor.id) || !profile(value.actor.key)
       || !asList(value.apartments) || asList(value.apartments).length > HOME_MAX_APARTMENTS) return null;
   const apartments = [];
@@ -176,15 +177,15 @@ export function parseHomeOffer(value) {
   if (new Set(apartments.map(apartment => apartment.id)).size !== apartments.length) return null;
   const members = parseMembers(value.members);
   if (!members) return null;
-  const {here, lives, moveOut, asked} = value;
-  if ((here !== undefined && !apartmentId(here))
+  const {here, lives, moveOut, asked, fallback} = value;
+  if ((here !== undefined && !apartmentId(here)) || (fallback !== undefined && !apartmentId(fallback))
       || (lives !== undefined && (!object(lives) || !keys(lives, ['id', 'name']) || !apartmentId(lives.id) || !string(lives.name, 60)))
       || (moveOut !== undefined && typeof moveOut !== 'boolean')
       || (asked !== undefined && (!object(asked) || !keys(asked, ['from', 'here']) || !apartmentId(asked.from) || !apartmentId(asked.here)))) return null;
   if (!apartments.length && !members.length && moveOut !== true) return null;
   return {available: true, actor: {id: value.actor.id, key: value.actor.key}, apartments, members,
-    ...(here !== undefined ? {here} : {}), ...(lives !== undefined ? {lives: {id: lives.id, name: lives.name}} : {}),
-    ...(moveOut !== undefined ? {moveOut} : {}), ...(asked !== undefined ? {asked: {from: asked.from, here: asked.here}} : {})};
+    ...(here !== undefined ? {here} : {}), ...(fallback !== undefined && apartments.some(apartment => apartment.id === fallback) ? {fallback} : {}),
+    ...(lives !== undefined ? {lives: {id: lives.id, name: lives.name}} : {}), ...(moveOut !== undefined ? {moveOut} : {}), ...(asked !== undefined ? {asked: {from: asked.from, here: asked.here}} : {})};
 }
 
 // Reactions of an ordinary world NPC (docs/NPC_REACTIONS.md): what V's conversation made the person do. The game offers only the kinds that
@@ -404,7 +405,7 @@ export class CompanionActions {
       generation: input.generation, entity: input.entity, profileKey: input.profileKey,
       worldToken: prepared.worldToken, worldGeneration: prepared.generation, source,
       createdAt: issuedAt, expiresAt: issuedAt + CHAUFFEUR_OFFER_TTL_MS, ...(offer ? {offer} : {})};
-    const homePick = home && !group ? this.homePicks.turn(input.profileKey, input.text, home.apartments, home.here) : false;
+    const homePick = home && !group ? this.homePicks.turn(input.profileKey, input.text, home.apartments, home.here, home.fallback) : false;
     this.pending = {input, packet, tactic, follow, leave, home, homePick, reaction, meet, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
       ...(reaction ? {trace: {person: input.profileKey, kinds: [...reaction.kinds], logged: false}} : {}),
       ...(home ? {homeTrace: {person: input.profileKey, apartments: home.apartments.map(apartment => apartment.id), here: home.here, pick: homePick, logged: false}} : {})};
@@ -570,11 +571,12 @@ function homeConfig(offer, pick = false) {
   return {apartments: offer.apartments.map(apartment => ({id: apartment.id, name: apartment.name})),
     members: offer.members.map(member => ({name: member.name, self: member.id === offer.actor.id})),
     ...(offer.moveOut === true ? {moveOut: true} : {}), ...(offer.here !== undefined ? {here: offer.here} : {}),
+    ...(offer.fallback !== undefined ? {fallback: offer.fallback} : {}),
     ...(offer.lives ? {lives: offer.lives.name} : {}), ...(offer.asked ? {asked: {from: offer.asked.from, here: offer.asked.here}} : {}),
     ...(pick === true && offer.apartments.length ? {pick: true} : {})};
 }
 function windowHome(value) {
-  return object(value) && only(value, ['apartments', 'members'], ['moveOut', 'here', 'lives', 'asked', 'pick'])
+  return object(value) && only(value, ['apartments', 'members'], ['moveOut', 'here', 'lives', 'asked', 'pick', 'fallback'])
     && (value.pick === undefined || (value.pick === true && Array.isArray(value.apartments) && value.apartments.length > 0))
     && Array.isArray(value.apartments) && value.apartments.length <= HOME_MAX_APARTMENTS
     && value.apartments.every(apartment => object(apartment) && keys(apartment, ['id', 'name']) && apartmentId(apartment.id) && string(apartment.name, 60))
@@ -584,6 +586,7 @@ function windowHome(value) {
     && value.members.filter(member => member.self).length <= 1
     && (value.moveOut === undefined || value.moveOut === true) && (value.here === undefined || apartmentId(value.here))
     && (value.lives === undefined || string(value.lives, 60))
+    && (value.fallback === undefined || (apartmentId(value.fallback) && value.apartments.some(apartment => apartment.id === value.fallback)))
     && (value.asked === undefined || (object(value.asked) && keys(value.asked, ['from', 'here']) && apartmentId(value.asked.from) && apartmentId(value.asked.here)))
     && (value.apartments.length > 0 || value.members.length > 0 || value.moveOut === true);
 }
@@ -680,6 +683,8 @@ function homeContextText(offered) {
       + 'Which apartment: the one V names. '
       + (home.here !== undefined && stays.some(row => row.apartment === home.here)
         ? 'If V names none, it is ' + quoted(homeApartmentName(home, home.here)) + ' (where V is now). '
+        : home.fallback !== undefined && stays.some(row => row.apartment === home.fallback)
+          ? 'If V names none, it is ' + quoted(homeApartmentName(home, home.fallback)) + ' (the apartment V chose in the settings for this): do not ask which one. '
         : stays.length === 1 ? 'If V names none, it is ' + quoted(homeApartmentName(home, stays[0].apartment)) + ', the only one V has. '
           : 'If V names none, ask V in your own words which of them it is and request nothing yet: V\'s answer comes in the next message, and then you request it. ')
       + 'Never request an apartment that is not listed and never invent one. ';

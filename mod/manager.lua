@@ -126,11 +126,21 @@ local function cleanImmersive(value)
     return result
 end
 -- Housemates (Settings > Companion behavior > Housemates, docs/HOUSEMATES.md): one saved table. Off by default; with it Off no housemate module is
--- loaded and nothing of the feature runs. chat: the housemates talk to each other.
-local housematesDefaults = {enabled = false, chat = true}
+-- loaded and nothing of the feature runs. chat: the housemates talk to each other; chatCooldown: seconds of pause after a chat; chatSize: how many
+-- housemates join one chat; moveIn: the apartment a character moves into when V names none and stands in none ('ask': she asks which; a flat V no
+-- longer owns counts as 'ask' where it is used, mod/housemates.lua).
+local housemateLists = {cooldowns = {60, 120, 300, 600}, sizes = {2, 3, 4}, flats = {h10 = true, corpo = true, glen = true, japan = true, north = true}}
+function housemateLists.has(list, value)
+    for _, item in ipairs(list) do if item == value then return true end end
+    return false
+end
+local housematesDefaults = {enabled = false, chat = true, chatCooldown = 120, chatSize = 2, moveIn = 'ask'}
 local function cleanHousemates(value)
     local from = type(value) == 'table' and value or {}
-    return {enabled = from.enabled == true, chat = from.chat ~= false}
+    return {enabled = from.enabled == true, chat = from.chat ~= false,
+        chatCooldown = housemateLists.has(housemateLists.cooldowns, from.chatCooldown) and from.chatCooldown or housematesDefaults.chatCooldown,
+        chatSize = housemateLists.has(housemateLists.sizes, from.chatSize) and from.chatSize or housematesDefaults.chatSize,
+        moveIn = type(from.moveIn) == 'string' and housemateLists.flats[from.moveIn] and from.moveIn or 'ask'}
 end
 local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
 local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
@@ -1376,6 +1386,8 @@ function M.immersive()
     return settings.immersive or immersiveDefaults
 end
 function M.immersiveChoices() return immersiveArrivals, immersiveDelays, immersiveWaits end
+-- Settings > Housemates: the pauses (seconds) and chat sizes the lists offer, in list order.
+function M.housemateChoices() return housemateLists.cooldowns, housemateLists.sizes end
 -- Settings > Companion behavior > Housemates. The live table (read every 0.1 s of play by mod/init.lua, On or Off): never changed in place,
 -- replaced whole by an Apply.
 function M.housemates()
@@ -2180,8 +2192,15 @@ function M.applySettings(player, values)
             if type(value) ~= 'table' then return false, 'This setting must be on or off.' end
             local merged = cleanHousemates(nextSettings.housemates)
             for field, item in pairs(value) do
-                if field ~= 'enabled' and field ~= 'chat' then return false, ui.t('Unknown setting: {setting}', {setting = tostring(field)}) end
-                if type(item) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                if field == 'enabled' or field == 'chat' then
+                    if type(item) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                elseif field == 'chatCooldown' then
+                    if not housemateLists.has(housemateLists.cooldowns, item) then return false, 'Choose one of the listed options.' end
+                elseif field == 'chatSize' then
+                    if not housemateLists.has(housemateLists.sizes, item) then return false, 'Choose one of the listed options.' end
+                elseif field == 'moveIn' then
+                    if item ~= 'ask' and not (type(item) == 'string' and housemateLists.flats[item]) then return false, 'Choose one of the listed options.' end
+                else return false, ui.t('Unknown setting: {setting}', {setting = tostring(field)}) end
                 merged[field] = item
             end
             nextSettings.housemates = merged

@@ -73,6 +73,7 @@ test('with the setting Off a tick and every entry point return at once: no house
   convaiHousemateTalk('1'); convaiHousemateLearn({x = 0, y = 0, z = 0}, {x = 0, y = 1, z = 0}, 'seat')
   assert(#convaiHousemateRows() == 0)
   assert(convaiHousemateMoveOut('judy-alvarez') == false)
+  assert(#convaiHousemateOwned() == 0 and convaiHousemateEvictAll() == 0)
   convaiHousemateWake()
   convaiHousemateReset('world-ended', false); convaiHousemateReset('fast-travel', true)
   assert(phoneChat.captureHomeOffer('judy-alvarez', 'judy-alvarez') == nil)
@@ -166,3 +167,54 @@ test('init.lua: the tick returns before any module when the setting is Off, and 
   assert.match(outside, /ObserveAfter\('PreventionSystem', 'OnDistrictAreaEntered', function\(\)\s+if not worldSuspended and convaiSettleWake then convaiSettleWake\(\) end/);
   assert.match(block, /local function service\(\)\n\s+if not on\(\) then return nil end/);
 });
+
+// probe.log 2026-10-25 22:34-22:37: Claire opened a chat, said her first line and the chat never went on. speech.target is never cleared, and the
+// housemates' "is she in a talk with V" read it as a talk for good, so the speaker was left out of the settled people for the rest of the visit.
+test('"talking" is V\'s talk only while a conversation is in flight, and never a housemate\'s own chat line', () => lua(`
+  ${people}
+  local captured
+  local counting = dofile
+  dofile = function(name)
+    local value = counting(name)
+    if name == 'housemate-service.lua' then return {new = function(d) captured = d; return value.new(d) end} end
+    return value
+  end
+  options = {enabled = true, chat = true}
+  convaiHousemateTick(0.1)
+  assert(captured and type(captured.talking) == 'function', 'the service was built with a talking seam')
+  local npc = {GetEntityID = function() return {hash = 4711} end}
+  speech.target = npc
+  assert(captured.talking() == nil, 'a target left over from an earlier line is no talk')
+  pending = {profileKey = 'judy-alvarez'}
+  assert(captured.talking() == '4711', 'V is talking to her (a reply is on its way)')
+  pending = nil
+  active = {profileKey = 'judy-alvarez'}
+  assert(captured.talking() == '4711', 'the composer is open on her')
+  active = nil
+  speech.requestId = 'r1'
+  assert(captured.talking() == '4711', 'her reply is being spoken')
+  speech.requestId = nil
+  subtitles.ownsUtterance = function() return true end
+  assert(captured.talking() == '4711', 'her words are still on screen')
+  -- her own chat line or greeting (an automatic reaction of kind house) is never V's talk
+  automatic = {reaction = {kind = 'house'}}
+  assert(captured.talking() == nil)
+  automatic = {reaction = {kind = 'battle'}}
+  assert(captured.talking() == '4711')
+  automatic = nil
+  subtitles.ownsUtterance = function() return false end
+  assert(captured.talking() == nil)
+  speech.target = nil
+  pending = {}
+  assert(captured.talking() == nil)
+  -- Settings > Housemates: the apartments V owns and Evict all are no-ops without a housemate to evict, and the options reach the chat
+  options = {enabled = true, chat = true, chatCooldown = 300, chatSize = 3, moveIn = 'corpo'}
+  assert(captured.chatCooldown() == 300 and captured.chatSize() == 3 and captured.moveIn() == 'corpo')
+  options = {enabled = true, chat = true}
+  assert(captured.chatCooldown() == 120 and captured.chatSize() == 2 and captured.moveIn() == 'ask')
+  local owned = convaiHousemateOwned()
+  assert(type(owned) == 'table')
+  assert(convaiHousemateEvictAll() == 2, 'the two who live there move out')
+  assert(next(convaiHousemates.controller.homes()) == nil)
+  assert(convaiHousemateEvictAll() == 0)
+`, {prelude: PRELUDE}));

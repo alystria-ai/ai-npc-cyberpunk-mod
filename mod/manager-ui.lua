@@ -1404,13 +1404,44 @@ local function immersiveRows(snapshot)
 end
 
 -- Housemates: its own page, opened from Companion behavior (docs/HOUSEMATES.md). Off by default: nothing of the feature is loaded while it is Off.
+-- The Move-in apartment list: "Ask me", then the apartments V owns now (the owned ones are known while Housemates is On). {ids, names (translated)}.
+local function moveInChoices()
+    local ids, names = {'ask'}, {ui.t('Ask me')}
+    for _, flat in ipairs(convaiHousemateOwned and convaiHousemateOwned() or {}) do
+        ids[#ids + 1], names[#names + 1] = flat.id, ui.t(flat.name)
+    end
+    return ids, names
+end
 local function housemateSettingRows(snapshot)
     local value = snapshot.settings.housemates or {}
+    local cooldowns, sizes = manager.housemateChoices()
+    local function index(list, wanted, fallback)
+        for position, item in ipairs(list) do if item == wanted then return position end end
+        return fallback
+    end
+    local moveIds, moveNames = moveInChoices()
+    local housemates = convaiHousemateRows and convaiHousemateRows() or {}
     return {
         setting('housemates:enabled', 'Housemates', 'bool', value.enabled == true, false,
             'On: characters you tell they can stay at your place move into your apartments and live there, and you can call them along.\n\nOff: nothing of this runs. Turning it off removes them from your apartments but remembers who lived there, so turning it on brings them back.'),
+        setting('housemates:moveIn', 'Move-in apartment', 'select', index(moveIds, value.moveIn, 1), 1,
+            'Where a character moves in when you say she can stay but name no apartment and you are not standing in one of yours.\n\nAsk me: she asks which one. Otherwise she takes the apartment you pick here. Only the apartments you own are listed.',
+            moveNames, {elements = true}),
         setting('housemates:chat', 'Housemates talk to each other', 'bool', value.chat ~= false, true,
             'When two or more housemates are home with you, they talk to each other now and then.'),
+        setting('housemates:chatCooldown', 'Pause between chats', 'select', index(cooldowns, value.chatCooldown, 2), 2,
+            'How long the housemates stay quiet after a chat before they may start another. The Companions speak up setting still limits how many chats come in an hour.',
+            {'1 minute', '2 minutes', '5 minutes', '10 minutes'}),
+        setting('housemates:chatSize', 'Housemates in one chat', 'select', index(sizes, value.chatSize, 1), 1,
+            'How many housemates join one chat when that many are home near each other. They speak one at a time. With fewer at home, the chat is as big as it can be.',
+            {'2 people', '3 people', '4 people'}),
+        action('housemates:evict', 'Evict all housemates', 'Evict',
+            'Every character who lives at your place moves out at once, from every apartment. Party members who do not live there are not touched. A housemate who is with you stays in your party.',
+            function()
+                local count = convaiHousemateEvictAll and convaiHousemateEvictAll() or 0
+                if count == 0 then return false, ui.t('Nobody lives at your place.') end
+                return true, ui.t('Housemates moved out: {count}', {count = count})
+            end, #housemates > 0),
     }
 end
 
@@ -2151,7 +2182,10 @@ function M.defaults()
                     listed[row.id] = true
                     local target = row.defaultValue
                     if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
-                    if row.value ~= target then
+                    -- A saved Move-in flat that V no longer owns shows as Ask me but is still saved: it is put back too.
+                    local shown = row.value
+                    if row.id == 'housemates:moveIn' and manager.housemates().moveIn ~= 'ask' then shown = 0 end
+                    if shown ~= target then
                         changes[#changes + 1] = {id = row.id, value = target}
                         if row.id == 'matureContent' then turningMatureOff = true end
                     else atDefault[row.id] = target end
@@ -2289,6 +2323,17 @@ function M.apply(changes)
         elseif key == 'housemates:enabled' or key == 'housemates:chat' then
             if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
             values.housemates[key:sub(12)] = change.value
+        elseif key == 'housemates:chatCooldown' or key == 'housemates:chatSize' then
+            local cooldowns, sizes = manager.housemateChoices()
+            local list = key == 'housemates:chatSize' and sizes or cooldowns
+            local picked = type(change.value) == 'number' and change.value == math.floor(change.value) and list[change.value] or nil
+            if picked == nil then return refused('Choose one of the listed options.') end
+            values.housemates[key:sub(12)] = picked
+        elseif key == 'housemates:moveIn' then
+            local ids = moveInChoices()
+            local picked = type(change.value) == 'number' and change.value == math.floor(change.value) and ids[change.value] or nil
+            if picked == nil then return refused('Choose one of the listed options.') end
+            values.housemates.moveIn = picked
         elseif key:sub(1, 8) == 'dynamic:' then
             if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
             values.dynamicInfo[key:sub(9)] = change.value

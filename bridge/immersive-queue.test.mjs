@@ -54,3 +54,33 @@ test('a gate that cancels (nil and a reason) ends the job with the reason, as fo
     assert(#spawned == 0 and not queue.hasJob(id))
   `);
 });
+
+// probe.log 2026-10-25: a housemate's body that the game refused ("Scenery or a vehicle is blocking the companion position") was tried again every
+// 77 seconds, and every try said "could not join" again. A resident's failure is shown once per character and reason.
+test('a housemate body that cannot be made says so once per reason, however often it is tried again; an ordinary invitation says it every time', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles)
+    api.spawn = function(key, job) return nil, 'Scenery or a vehicle is blocking the companion position.' end
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    local function attempt(extra)
+      local ok, _, id = queue.invite('johnny-silverhand', extra)
+      assert(ok and id)
+      queue.flush(); queue.flush()
+      local shown = {}
+      for _, notice in ipairs(queue.takeNotices()) do if notice.id == 'party-failed' then shown[#shown + 1] = notice.message end end
+      return shown
+    end
+    local resident = {quiet = true, resident = true, appointment = {id = 'hm:johnny-silverhand', position = {x = 0, y = 0, z = 0}, owner = 'housemates', home = 'corpo'}}
+    local first = attempt(resident)
+    assert(#first == 1 and first[1]:find('could not join', 1, true) and first[1]:find('blocking the companion position', 1, true), tostring(first[1]))
+    for _ = 1, 3 do assert(#attempt(resident) == 0, 'the same failure was said again') end
+    assert(queue.message():find('could not join', 1, true), 'the menu line still says it')
+    -- another reason is another cause
+    api.spawn = function(key, job) return nil, 'The game could not verify companion body clearance.' end
+    assert(#attempt(resident) == 1)
+    assert(#attempt(resident) == 0)
+    -- a player's own invitation is always told
+    assert(#attempt({}) == 1 and #attempt({}) == 1)
+  `);
+});

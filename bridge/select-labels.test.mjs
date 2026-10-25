@@ -32,6 +32,9 @@ const STATIC_OPTIONS = [
   'OmniVoice', 'OmniVoice · needs Omni voice', 'OmniVoice · needs Omni pack',
   // Settings > Immersive invitations
   'Walk', 'Car', 'Right now', 'In 2 minutes', 'In 5 minutes', 'In 10 minutes', '2 minutes', '5 minutes', '10 minutes',
+  // Settings > Housemates: the pause, the chat size, and the Move-in list (Ask me, then the apartments V owns)
+  '1 minute', '2 people', '3 people', '4 people', 'Ask me',
+  'Megabuilding H10', 'Corpo Plaza', 'Heywood Glen', 'Westbrook Japantown', 'Watson Northside',
 ];
 
 function localeTable(code) {

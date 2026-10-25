@@ -301,3 +301,33 @@ test('the transport advertises exactly the home action names of the offer', asyn
   await publishCompanionActionContext(client, {text: 'context'}, group);
   assert.deepEqual(sent[1].data.action_config.actions, [`Join V's Party ${TOKEN}`, `Panam Palmer Joins V's Party ${TOKEN}`, `Everyone Joins V's Party ${TOKEN}`]);
 });
+
+// ---- Move-in apartment (Settings > Housemates): the flat V chose for "move in" when V names none ------------------------------------------
+
+test('the offer may carry the chosen flat, only one of its own apartments, and the window and the prompt follow', () => {
+  const chosen = home({fallback: 'glen'});
+  assert.deepEqual(parseHomeOffer(chosen), chosen);
+  assert.equal(parseHomeOffer(home({fallback: 'h10'})).fallback, undefined, 'a flat the offer does not list is dropped, the offer stays');
+  assert.equal(parseHomeOffer(home({fallback: 'penthouse'})), null);
+  assert.equal(parseHomeOffer(home({fallback: 3})), null);
+  const window = new CompanionActionWindow({now: () => 10000});
+  assert.equal(window.open(config({fallback: 'glen'})), true);
+  assert.equal(window.open(config({fallback: 'h10'})), false);
+  assert.equal(window.open(config({fallback: 'nowhere'})), false);
+  const text = CompanionActionWindow.contextText(config({fallback: 'glen'}));
+  assert.match(text, /If V names none, it is "Heywood Glen" \(the apartment V chose in the settings for this\): do not ask which one\./);
+  assert.doesNotMatch(text, /ask V in your own words which of them it is/);
+  // Where V stands comes first, then the chosen flat, then the only one.
+  assert.match(CompanionActionWindow.contextText(config({fallback: 'glen', here: 'corpo'})), /If V names none, it is "Corpo Plaza" \(where V is now\)/);
+  assert.match(CompanionActionWindow.contextText(config()), /ask V in your own words which of them it is/);
+});
+
+test('with a chosen flat she does not ask, so V\'s next message is not an answer to a question that was never asked', () => {
+  const {actions, options} = broker();
+  const turn = (text, extra) => actions.admit(prepared({text, homeOffer: home(extra)}), options('private-text'))?.home;
+  assert.equal(turn('you can stay at my place', {here: undefined})?.pick, undefined);
+  assert.equal(turn('hmm', {here: undefined})?.pick, true, 'without a choice she asked, and the next message is the answer');
+  actions.homePicks.done('judy-alvarez');
+  assert.equal(turn('you can stay at my place', {fallback: 'glen'})?.fallback, 'glen', 'the choice reaches the window');
+  assert.equal(turn('hmm', {fallback: 'glen'})?.pick, undefined, 'with a choice there was no question');
+});
