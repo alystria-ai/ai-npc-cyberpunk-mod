@@ -521,13 +521,13 @@ const leaveSetup = `
   local leave=adoption.leaveOffer(row.entityID,{profileKey='judy-alvarez'})
   local function navigation(accept)
     Game.GetAINavigationSystem=function() return {
-      FindPointInSphereForCharacter=function(_,p,radius)
+      FindPointInSphereForCharacter=strictNative('FindPointInSphereForCharacter',{1},function(_,p,radius)
         if accept(p,radius) then return {status='OK',point=p} end
         return {status='Failed'}
-      end,
-      CalculatePathForCharacter=function(_,a,b)
+      end),
+      CalculatePathForCharacter=strictNative('CalculatePathForCharacter',{1,2},function(_,a,b)
         return {path={a,b},CalculateLength=function() return math.sqrt((a.x-b.x)^2+(a.y-b.y)^2+(a.z-b.z)^2) end}
-      end} end
+      end)} end
   end
   local function goal()
     local walk=last(copy,'AIMoveToCommand')
