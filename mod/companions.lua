@@ -547,6 +547,8 @@ local function spawnCopy(key, invitation, returning)
         person = behavior.new(returning and returning.serial or serial),
         transitRecreated = returning ~= nil,
         visitor = appointment and true or nil, appointmentId = appointment and appointment.id or nil,
+        -- Housemates (mod/housemates.lua): the module that owns this visiting copy and the flat she lives in. nil: an immersive visitor.
+        owner = appointment and appointment.owner or nil, home = appointment and appointment.home or nil,
     }
     if returning then
         for index,prior in ipairs(entries) do if prior==returning then entries[index]=entry; break end end
@@ -639,7 +641,8 @@ function M.dismiss(serialToDismiss)
             -- A visitor's module is told once why she is going (V dismissed her, a fast travel, or the module itself).
             if entry.visitor and not entry.lostNotified then
                 entry.lostNotified=true
-                if M.onVisitorLost then pcall(M.onVisitorLost,entry.serial,entry.lostReason or 'dismissed') end
+                local callback=entry.owner=='housemates' and M.onResidentLost or M.onVisitorLost
+                if callback then pcall(callback,entry.serial,entry.lostReason or 'dismissed') end
             end
             -- Removing a seated driver can make the native passenger state
             -- switch V into that seat. Retain the actor and role until the
@@ -711,7 +714,8 @@ function M.visitors()
     for _,entry in ipairs(entries) do
         if entry.visitor then
             local row={serial=entry.serial,key=entry.key,profileKey=entry.profileKey,name=entry.name,state=entry.state,
-                appointmentId=entry.appointmentId,error=entry.error}
+                appointmentId=entry.appointmentId,error=entry.error,owner=entry.owner,home=entry.home,
+                entityID=tostring(entry.entityID.hash)}
             if entry.state=='visiting' and entry.npc then
                 local ok,at=pcall(function()
                     if not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then return nil end
@@ -798,13 +802,93 @@ function M.joinVisitor(serial)
         entry.role=role
     end)
     if not ok then return false,tostring(err) end
-    entry.visitor,entry.appointmentId=nil,nil
+    entry.visitor,entry.appointmentId,entry.owner,entry.home=nil,nil,nil,nil
     entry.state='ready'
     if not groupFrame then
         groupFrame=travel.new(space.copy(player:GetWorldPosition()),player:GetWorldForward())
         commandCursor=0
     end
     if convaiLocomotion then convaiLocomotion.active=true end
+    if M.onPartyChanged then pcall(M.onPartyChanged) end
+    return true
+end
+
+-- ---- Housemates (mod/housemates.lua, docs/HOUSEMATES.md) --------------------------------------------------------------------------
+-- A housemate's body is a visiting copy that belongs to the housemates module (entry.owner == 'housemates', entry.home = the flat).
+-- It is hidden from the party list, moved by AI commands through the visitor calls above, and becomes a party member without a
+-- respawn through M.joinVisitor. M.releaseToHome is the way back: a party member of V's becomes a resident of the flat again.
+function M.residentNpc(serial)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.npc then return nil end
+    local ok,attached=pcall(function() return entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() end)
+    return ok and attached and entry.npc or nil
+end
+-- The ready party member that speaks as this profile (nil: none, a leaving copy does not count).
+function M.partyMemberOf(profileKey)
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' and entry.profileKey==profileKey then
+            return {serial=entry.serial,key=entry.key,profileKey=entry.profileKey,name=entry.profileName or entry.name,
+                entityID=tostring(entry.entityID.hash)}
+        end
+    end
+    return nil
+end
+-- A short straight step (no navigation): off a seat or a bed onto the floor in front of it, where the navmesh may not reach.
+function M.visitorStep(serial,target)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.motor then return false end
+    local ok,sent=pcall(actuator.board,entry.motor,target,{gait='Walk'})
+    return ok and sent==true
+end
+-- Stand at this place facing this way (game yaw, degrees): an AI teleport in place, which turns her without a visible step.
+function M.visitorFace(serial,position,yaw)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.motor then return false end
+    local ok,sent=pcall(actuator.teleport,entry.motor,position,yaw,'housemate-face')
+    return ok and sent==true
+end
+-- Show or hide a visiting copy (a scene or a quest is playing in her flat); the body stays where it is.
+function M.residentVisible(serial,visible)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.npc then return false end
+    return setVisible(entry,visible==true)
+end
+function M.releaseToHome(serial,home)
+    local entry
+    for _,candidate in ipairs(entries) do
+        if candidate.serial==serial and candidate.state=='ready' then entry=candidate; break end
+    end
+    if not entry then return false,'She is not in your party.' end
+    local ok,reason=pcall(function()
+        if not entry.npc or not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then error('She is no longer there.') end
+        local transport=vehicles.snapshot(fleet,entry.serial).people[1]
+        if transport and (transport.seat or transport.mountedSeat or transport.phase) then error('She is in a vehicle.') end
+        if M.bodyAnimation and M.bodyAnimation.release then pcall(M.bodyAnimation.release,entry,'home') end
+        if entry.equipment then pcall(equipment.release,entry.equipment) end
+        if entry.pace then
+            pcall(function()
+                if entry.npc:HasIndividualTimeDilation(CName.new('ConvaiCatchUp')) then
+                    entry.npc:UnsetIndividualTimeDilation(CName.new('KereznikovDodgeEaseOut'))
+                end
+            end)
+            entry.pace=nil
+        end
+        if entry.motor then pcall(actuator.release,entry.motor) end
+        if entry.role then
+            local ai=entry.npc:GetAIControllerComponent()
+            pcall(function() entry.role:OnRoleCleared(entry.npc) end)
+            ai:SetAIRole(NewObject('AINoRole')); ai:OnAttach()
+            entry.role=nil
+        end
+    end)
+    if not ok then return false,tostring(reason) end
+    entry.visitor,entry.owner,entry.home=true,'housemates',home
+    entry.appointmentId='hm:'..tostring(entry.profileKey)
+    entry.state='visiting'
+    entry.floorFix=nil
+    local anyReady=false
+    for _,candidate in ipairs(entries) do if candidate.state=='ready' then anyReady=true; break end end
+    if not anyReady then groupFrame=nil end
     if M.onPartyChanged then pcall(M.onPartyChanged) end
     return true
 end
@@ -1113,6 +1197,7 @@ function M.list()
         local focused=phase and phase:find('attend',1,true)~=nil or false
         rows[#rows+1]={
             serial=e.serial,key=e.key,baseName=e.name,name=e.name..(totals[e.key]>1 and (' #'..seen[e.key]) or ''),
+            owner=e.owner,home=e.home,
             profileKey=e.profileKey,profileName=e.profileName,record=e.record,slot=e.slot,lane=e.lane,
             spawnRecord=e.spawnRecord,
             entityID=tostring(e.entityID.hash),state=e.state,error=e.error,

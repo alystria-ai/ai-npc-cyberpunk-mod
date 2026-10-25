@@ -403,6 +403,7 @@ const ENDLESS_CLIPS = 127; // the clip counts are signed bytes (255 does not con
 const endless = (workspot, what) => {
     let lists = 0;
     let loops = 0;
+    let already = 0;
     (function walk(node, parent) {
         if (Array.isArray(node)) { node.forEach((item) => walk(item, parent)); return; }
         if (!node || typeof node !== 'object') return;
@@ -412,9 +413,12 @@ const endless = (workspot, what) => {
             lists++;
             if (parent && parent.$type === 'workSequence') { parent.loopInfinitely = 1; loops++; }
         }
+        // A sleep workspot (generic__lie_double_bed__sleep__NN) has no fidget list: its main sequence already repeats for ever.
+        if (node.$type === 'workSequence' && Number(node.loopInfinitely) === 1) already++;
         const next = typeof node.$type === 'string' && node.$type.startsWith('work') ? node : parent;
         Object.values(node).forEach((value) => walk(value, next));
     })(workspot.Data.RootChunk.workspotTree, null);
+    if (lists === 0 && already >= 1) return 0;
     if (lists === 0 || loops !== lists) fail(`${what}: found ${lists} random lists and ${loops} sequences to repeat, expected at least one of each and equal counts`);
     return lists;
 };

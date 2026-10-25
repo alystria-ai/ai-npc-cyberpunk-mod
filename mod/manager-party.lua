@@ -457,6 +457,8 @@ function M.new(companions, readiness, options)
         Q.bind(owner)
         local result = {}
         for _, member in ipairs(companions.list()) do
+          -- A housemate's body is not a party copy (mod/housemates.lua lists her in its own block of this page).
+          if member.owner ~= 'housemates' then
             local item = {}
             for key, value in pairs(member) do item[key] = value end
             item.id = 'live:' .. member.serial
@@ -464,6 +466,7 @@ function M.new(companions, readiness, options)
             if leaves[member.serial] then item.state = 'leaving' end
             item.dismissError = dismissErrors[member.serial]
             result[#result + 1] = item
+          end
         end
         local states = {memory = 'preparing-memory', connecting = 'connecting', ready = 'ready-to-join',
             ['model-only'] = 'ready-to-join', error = 'failed'}
@@ -483,7 +486,7 @@ function M.new(companions, readiness, options)
         Q.bind(owner)
         local count = #joins
         for _, member in ipairs(companions.list()) do
-            if not leaves[member.serial] then count = count + 1 end
+            if not leaves[member.serial] and member.owner ~= 'housemates' then count = count + 1 end
         end
         return count
     end
@@ -544,6 +547,11 @@ function M.new(companions, readiness, options)
         -- A generic person (no memory of its own to prepare) joins as a model
         -- and receives its conversation profile once attached.
         if type(extra) == 'table' and extra.modelOnly == true then job.profileKey, job.profileName = nil, nil end
+        -- A housemate's body (mod/housemates.lua): created at once with no memory or connection to prepare (it is opened when someone
+        -- talks to her), and given her conversation profile as she spawns, like a generic person.
+        if type(extra) == 'table' and extra.resident == true and job.profileKey then
+            job.attachProfileKey, job.attachProfileName, job.profileKey = job.profileKey, job.profileName, nil
+        end
         -- A generic profile (resident or NPC archetype, docs/NPC_ARCHETYPES.md) has no
         -- memory or bodiless connection to prepare: the copy joins as a model and its
         -- profile is assigned as it spawns, so it talks as that archetype.
