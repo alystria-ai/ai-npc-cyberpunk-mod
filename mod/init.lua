@@ -2819,10 +2819,11 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
     if not npc and groupMode and candidates[1] and not candidates[1].voiceOnly then npc = candidates[1].npc end
     -- Nobody faced (docs/TALK_FALLBACK.md): private talk goes to the first party member in range. Without a party, the notice below.
     -- Johnny has his own keys (Talk to Johnny, convaiTalkJohnny above): facing nobody no longer reaches him.
+    local fallback = nil
     if not npc and not groupMode then
         local member = convaiTalkFirstParty(player)
         if member then
-            npc = member.npc
+            npc, fallback = member.npc, true
             log('Talk fallback: first party member ' .. tostring(member.profileKey))
         end
     end
@@ -2847,7 +2848,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
     end
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key,
-        spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) or nil}
+        spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) or nil, fallback = fallback}
     -- A named character of the game (docs/WORLD_CHARACTERS.md) is talked to only while the game is not in charge of it: not in a
     -- scene or quest dialogue, not while V is in a quest conversation, not under a scene's or quest's AI, in a fight, hurt or
     -- riding. Read fresh on this key press; the same test then guards the recording and the reply. Nothing of the character
@@ -3138,6 +3139,8 @@ local function beginTextNow(groupMode, waited, talkJohnny)
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants, archetype = primary.archetype, voiceOnly = primary.voiceOnly,
             holocall = primary.holocall, head = primary.head}
+        -- Facing nobody, the first party member took the line (selectConversation): the hand-off says so in probe.log (a global, not in the request).
+        convaiTalkFallbackGeneration = primary.fallback and not participants and generation or nil
         warmConversation(participants, key, identity)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
         -- V types for seconds: the history rows of a scan under way are encoded now, a few per frame, not on the send frame.
@@ -5616,6 +5619,27 @@ function convaiPadBindingTick(player, ready)
     end
     convaiPadBindingModule().tick(player, ready)
 end
+-- A typed line was handed to the service (convaiTalkReceipt, set where the composer's submission is sent): 2 s later one probe.log line says whether the
+-- service took it, from the bridge's own status (mod/service-status.lua receipt), so a request that is never read shows in a report (game 2.31, 25 Oct: a
+-- typed line had no reply and nothing said where it stopped). Not yet taken: one more look at 6 s, then the line says what the service last wrote.
+-- Codes only. At most two looks at two small files per typed line; a global, so onUpdate reaches it without a new upvalue.
+function convaiTalkReceiptTick()
+    local watch = convaiTalkReceipt
+    local elapsed = os.clock() - watch.at
+    if elapsed < (watch.again and 6 or 2) and elapsed >= 0 then return end
+    local status = convaiServiceStatus
+    if type(status) ~= 'table' or type(status.receipt) ~= 'function' then convaiTalkReceipt = nil; return end
+    local received, state, statusAge, serviceAge = status.receipt(watch.requestId)
+    if not received and not watch.again then watch.again = true; return end
+    convaiTalkReceipt = nil
+    if received then
+        log('Talk request received by the service: generation=' .. tostring(watch.generation) .. ' state=' .. tostring(state) .. (watch.again and ' (after 2 s)' or ''))
+    else
+        log('Talk request not received by the service within 6 s: generation=' .. tostring(watch.generation) .. ' service=' .. tostring(state)
+            .. ' written=' .. tostring(statusAge) .. 's heartbeat=' .. tostring(serviceAge) .. 's')
+    end
+end
+
 -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): a key or controller button the player chose for talk by voice, talk by text,
 -- group voice chat, group text chat or the Companion Manager. mod/key-bindings.lua decides whether the moment is allowed and runs the code path the CET key of
 -- the same action runs (voiceKeyEdge under the same key id, beginText, openManager), so the gating is the same; the redscript half (KeyBinds.reds) hears the keys.
@@ -6679,6 +6703,8 @@ registerForEvent('onUpdate', function(delta)
     gameplayActions.update(worldReady)
     -- A reaction an ordinary NPC is waiting to start once its reply has been heard (one nil check while none waits).
     if convaiNpcReactions then convaiNpcReactions.update() end
+    -- A typed line handed to the service: whether the service took it (one nil check while none waits).
+    if convaiTalkReceipt then pcall(convaiTalkReceiptTick) end
     local ok, ready = pcall(convaiInvoke, player, 'ConvaiHasSubmission')
     if not ok or not ready then
         if active then
@@ -6704,6 +6730,13 @@ registerForEvent('onUpdate', function(delta)
                 context.text = message
                 context.sentAt = os.time()
                 sent = sendRequest(context)
+                if sent then
+                    -- A few seconds from now one probe line says whether the service took it (convaiTalkReceiptTick).
+                    convaiTalkReceipt = {requestId = context.requestId, generation = context.generation, at = os.clock()}
+                    if convaiTalkFallbackGeneration == context.generation then
+                        log('Talk fallback: request handed to the service: generation=' .. context.generation)
+                    end
+                end
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
             -- What V types is V's line: shown in the cinematic subtitles as V's own (docs/V_VOICE.md, "V's subtitle"), whether or not V's

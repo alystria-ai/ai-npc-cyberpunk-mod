@@ -4,10 +4,13 @@
 -- listens to the game's key events for the chosen keys only; this half decides whether the moment is allowed and runs the code path the CET key of that action
 -- runs (init.lua voiceKeyEdge, beginText, openManager), so the behaviour and the gating are the same.
 --
--- Nothing here runs per frame. The redscript half calls ConvaiKeyBindNotify when a key goes down or up, and this module observes it (CET Observe), so a key is
--- handled at the moment it happens. The game's 10 Hz tick drains the same queue (a call returning "" when empty) only when the observer was not installed,
--- registers the saved keys again for a new player after a load, and ends a Set that nobody answered. With no binding saved and no Set in progress the tick costs
--- one table check and the redscript listener is not registered.
+-- Nothing here runs per frame. The redscript half calls ConvaiKeyBindNotify when a bound key goes down or up, and this module observes it (CET Observe), so a
+-- key is handled at the moment it happens. The game's 10 Hz tick drains the same queue (a call returning "" when empty) only when the observer was not
+-- installed, registers the saved keys again for a new player after a load, and ends a Set that nobody answered. With no binding saved and no Set in progress
+-- the tick costs one table check and the redscript listener is not registered.
+-- A Set is read by the tick only, never from inside the game's key event: the key chosen is saved, its binding registered and the capture's listener
+-- unregistered at most 0.1 s later, outside the event (game 2.31 froze while a key was being set, 25 Oct). The capture listens to the keys a player may
+-- choose (captureKeys), not to every key, and closes itself in the redscript past a number of events or a time.
 --
 --   hold actions (talk by voice, group voice chat, talk to Johnny by voice)   key down = V's turn begins, key up = it ends, as the CET voice keys (hold to talk)
 --   tap actions (text, group text, manager, talk to Johnny by text)           the action runs when the key comes back up, as a CET hotkey does (so the key's character is not typed
@@ -88,6 +91,19 @@ end
 -- Whether a stored value is the name of a key (the manager checks this before saving; the names are the game's, 'IK_F7').
 function M.valid(name)
     return type(name) == 'string' and M.describe(name) ~= nil
+end
+
+-- The keys a Set listens to: every key and button a player may choose, and Escape (B is a pad button already) to cancel. Comma separated, in a fixed
+-- order, made once.
+local captureList
+function M.captureKeys()
+    if captureList then return captureList end
+    local names = {'IK_Escape'}
+    for name in pairs(KEYBOARD) do names[#names + 1] = name end
+    for name in pairs(PAD) do names[#names + 1] = name end
+    table.sort(names)
+    captureList = table.concat(names, ',')
+    return captureList
 end
 
 -- The list the redscript half takes: the key of each slot in order, '-' for none (the two Johnny slots come only when one of them has a key, so a list without
@@ -269,8 +285,8 @@ local function endCapture(player, result)
     state.capture = nil
     state.ignoreUntil = M.clock() + AFTER_S
     player = player or (M.deps.player and M.deps.player())
-    if player then pcall(function() return player:ConvaiKeyBindsCapture(false) end) end
-    say('Key binding ' .. capture.action .. ': ' .. result.kind .. (result.name and (' ' .. result.name) or ''))
+    if player then pcall(function() return player:ConvaiKeyBindsCapture('') end) end
+    say('Key binding ' .. capture.action .. ': ' .. result.kind .. (result.name and (' ' .. result.name) or '') .. (result.why and (' (' .. result.why .. ')') or ''))
     if M.deps.changed then pcall(M.deps.changed, result) end
 end
 
@@ -318,8 +334,31 @@ function M.take(player)
     end
 end
 
-local function install()
+-- The capture's own queue (kIK_.., x), from the tick while a Set waits. x: the redscript closed the capture (too many key events, or too long); the Set
+-- ends as cancelled and its listener is unregistered here.
+local function takeCaptured(player)
+    for _ = 1, 8 do
+        if not state.capture then return end
+        local ok, token = pcall(function() return player:ConvaiKeyBindCaptureTake() end)
+        if not ok or type(token) ~= 'string' or token == '' then return end
+        if token == 'x' then
+            endCapture(player, {kind = 'cancelled', action = state.capture.action, why = 'the capture closed itself'})
+            return
+        end
+        if token:sub(1, 1) == 'k' then captured(player, token:sub(2)) end
+    end
+end
+
+local function install(player)
     if state.observed ~= nil then return end
+    -- Game 2.31: the redscript half never calls into Lua from a key event (GameVariant.reds ConvaiKeyNotifyInEvent), so there is nothing to observe and
+    -- the tick reads the queue (a key acts up to 0.1 s later there). Scripts without the question are observed as before.
+    local asked, observable = pcall(function() return player:ConvaiKeyBindsObservable() end)
+    if asked and observable == false then
+        state.observed = false
+        say('Key bindings: read on the tick (this game build)')
+        return
+    end
     local ok = pcall(M.deps.observe, function(player) M.take(player) end)
     state.observed = ok == true
     say('Key bindings: observer ' .. (ok and 'installed' or 'not installed, the tick reads the queue'))
@@ -336,9 +375,10 @@ function M.beginCapture(player, action)
     if not ok then return false, 'scripts' end
     if ready ~= true then return false, 'codeware' end
     if state.capture then endCapture(player, {kind = 'cancelled', action = state.capture.action}) end
-    local started, listening = pcall(function() return player:ConvaiKeyBindsCapture(true) end)
+    local keys = M.captureKeys()
+    local started, listening = pcall(function() return player:ConvaiKeyBindsCapture(keys) end)
     if not started or listening ~= true then return false, 'scripts' end
-    install()
+    install(player)
     state.armed = {}
     state.capture = {action = action, at = M.clock()}
     say('Key binding ' .. action .. ': waiting for a key')
@@ -351,7 +391,7 @@ function M.abandonCapture(player)
     if not capture then return end
     state.capture = nil
     player = player or (M.deps and M.deps.player and M.deps.player())
-    if player then pcall(function() return player:ConvaiKeyBindsCapture(false) end) end
+    if player then pcall(function() return player:ConvaiKeyBindsCapture('') end) end
     say('Key binding ' .. capture.action .. ': Set dropped')
 end
 
@@ -403,13 +443,18 @@ function M.tick(player, ready)
     if state.capture and (now < state.capture.at or now - state.capture.at >= CAPTURE_S) then
         endCapture(player, {kind = 'timeout', action = state.capture.action})
     end
+    if state.capture then
+        takeCaptured(player)
+        -- A key chosen just now is saved and registered: the list to keep is the new one.
+        wanted = M.list(deps.bindings())
+    end
     if state.missingAt and now >= state.missingAt and now - state.missingAt < MISSING_RETRY_S then return end
     if not configure(player, wanted, now) then return end
     if wanted ~= '' or state.capture then
         -- Once the observer is installed every key event drains the queue as it happens, so the tick asks the game only when it is not (or just was: anything
         -- queued before it was installed is read once).
         local fresh = state.observed == nil
-        install()
+        install(player)
         if fresh or state.observed ~= true then M.take(player) end
     end
 end
