@@ -73,6 +73,17 @@ local function nativeAdapter()
         return GetRadioStationLocalizedName(index)
     end
     -- localisation: the game's own now-playing toast runs the CName through GetLocalizedTextByKey; GetLocalizedText takes the string form
+    -- The station's own current track by its index: the pocket radio's GetTrackName is exactly this (pocketRadio.script), so it is also a second way
+    -- to the car's song when the receiver's own track name comes back empty. The station id is the data provider's, not the localised key.
+    function N.trackByIndex(index)
+        local provider = RadioStationDataProvider
+        if provider == nil then return nil end
+        local key = provider.GetStationNameByIndex(index)
+        if key == nil then return nil end
+        local viaGame = Game ~= nil and Game.GetRadioStationCurrentTrackName
+        if type(viaGame) == 'function' then return Game.GetRadioStationCurrentTrackName(key) end
+        return GetRadioStationCurrentTrackName(key)
+    end
     function N.localizeKey(value)
         local key = value
         if type(key) == 'string' then key = CName.new(key) end
@@ -193,6 +204,19 @@ function Instance:stationByIndex(index)
     return found
 end
 
+-- The song: the receiver's own track name; when that gives nothing (the live pass of 2026-10-25 read the station but never the track from either
+-- radio), the station's current track by its index. `detail.trackWhy` says how it went (raised, nothing, or the first read's answer) for probe.log.
+function Instance:track(detail, holder, read, readIndex)
+    local N = self.native
+    local ok, value = pcall(read, holder)
+    local found = ok and self:resolve(value) or nil
+    if found and found.text then return found end
+    detail.trackWhy = ok and ('none:' .. tostring(value == nil and 'nil' or nameText(value))) or ('error:' .. tostring(value):sub(1, 60))
+    local byIndex = self:resolve(call(N.trackByIndex, call(readIndex, holder)))
+    if byIndex and byIndex.text then byIndex.via = 'index/' .. byIndex.via; return byIndex end
+    return found
+end
+
 -- The radio V can hear: the car's receiver while mounted, else the pocket radio. Returns {source, station, track}, the diagnostic table,
 -- and whether V is mounted (a TV is not looked for from a car).
 function Instance:radio(player, detail)
@@ -202,7 +226,7 @@ function Instance:radio(player, detail)
         detail.radio = 'car'
         local active = call(N.carActive, vehicle)
         if active ~= true then detail.radio = active == false and 'car:inactive' or 'car:unknown'; return nil, true end
-        local station, track = self:resolve(call(N.carStation, vehicle)), self:resolve(call(N.carTrack, vehicle))
+        local station, track = self:resolve(call(N.carStation, vehicle)), self:track(detail, vehicle, N.carTrack, N.carIndex)
         if not (station and station.text) then station = self:stationByIndex(call(N.carIndex, vehicle)) or station end
         detail.station, detail.track = station, track
         if not ((station and station.text) or (track and track.text)) then detail.radio = 'car:unresolved'; return nil, true end
@@ -213,7 +237,7 @@ function Instance:radio(player, detail)
     detail.radio = 'pocket'
     local active = call(N.pocketActive, radio)
     if active ~= true then detail.radio = active == false and 'pocket:inactive' or 'pocket:unknown'; return nil, false end
-    local station, track = self:resolve(call(N.pocketStation, radio)), self:resolve(call(N.pocketTrack, radio))
+    local station, track = self:resolve(call(N.pocketStation, radio)), self:track(detail, radio, N.pocketTrack, N.pocketIndex)
     if not (station and station.text) then station = self:stationByIndex(call(N.pocketIndex, radio)) or station end
     detail.station, detail.track = station, track
     if not ((station and station.text) or (track and track.text)) then detail.radio = 'pocket:unresolved'; return nil, false end
@@ -292,6 +316,7 @@ function Instance:report(detail)
     if detail.station or detail.track then
         parts[#parts + 1] = piece('station', detail.station)
         parts[#parts + 1] = piece('track', detail.track)
+        if detail.trackWhy and not (detail.track and detail.track.text) then parts[#parts + 1] = 'trackWhy=' .. detail.trackWhy end
     end
     if detail.tv then
         parts[#parts + 1] = 'tv=' .. detail.tv

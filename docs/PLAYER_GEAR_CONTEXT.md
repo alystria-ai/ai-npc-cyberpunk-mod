@@ -66,3 +66,6 @@ CET reload for `mod/player-gear.lua` (new), `mod/init.lua`, `mod/group-chat.lua`
 `bridge/player-gear.test.mjs`: parsing and the cap, the wording and guidance line, `parseInput` and `conversationContext`
 integration, the Lua reader against a fake game (visible-over-equipped, skipped empty slots, one read per window, failures
 contained), and the wiring of each send path.
+
+
+Only what V has on is ever listed; an empty slot is not mentioned. The guidance (and the stranger's line) also says never to remark on what V is not wearing (2026-10-25: a companion kept saying V wore no mask).
