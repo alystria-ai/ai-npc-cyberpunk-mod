@@ -12,7 +12,7 @@ import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs
 import {MistralError, newTrace} from './mistral-client.mjs';
 import {ErrorEvents, authCauseDetail, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
-import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
+import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
 import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
@@ -310,6 +310,13 @@ test('no planted secret, conversation text or account name gets out, and the pay
     assert.ok(payload.report.logs.some(item => item.source === 'redscript' && item.lines.some(line => line.includes('Cannot resolve type'))));
     assert.ok(!payload.report.logs.some(item => item.lines.some(line => line.includes('routine line 1000'))), 'only lines around the error');
   } finally { await f.cleanup(); }
+});
+
+test('the redscript excerpt keeps the mod names under "caused by mods listed below" and nothing else without an error word', () => {
+  const log = ['[INFO] Compiling files', '[ERROR - Sat] [UNRESOLVED_METHOD] At r6\scripts\Mod\A.reds:1:2:', '[ERROR - Sat] REDScript compilation has failed.', 'This error has been caused by mods listed below:',
+    '  - Some Other Mod', '  - Another Mod', '', '[INFO] done', 'plain line'];
+  assert.deepEqual(errorLines(log), log.slice(1, 6));
+  assert.deepEqual(errorLines(['plain', 'This error has been caused by mods listed below:']), ['This error has been caused by mods listed below:']);
 });
 
 test('the error-report cleaner hides account names in any path (two-letter ones too), emails and user:pass@host', () => {
