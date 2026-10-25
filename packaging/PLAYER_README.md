@@ -9,6 +9,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Rita Wheeler** can always be invited, and the Model browser shows proper names, never raw record codes.
 - **More sampling controls**: the Prompting page now has Top K, Min P, presence penalty and frequency penalty for each conversation option, and an Advanced parameters box (JSON) for Local AI and Custom models, for any other setting your model server understands.
 - **Game 2.5**: RED4ext 1.31.0 (the official release) is the one to use, Codeware for 2.5 now comes from our GitHub page, and Mod Configuration Menu 0.10.6-hf1 was tested on 2.5. The requirements below have the links.
+- **Local AI and the graphics card**: leaving Local AI for another conversation option no longer leaves a Local AI model loaded on the graphics card.
 - **Install notes**: this README now names the right Hugging Face folders for both game versions.
 
 ## What's new in 0.3.1
