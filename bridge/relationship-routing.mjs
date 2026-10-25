@@ -151,7 +151,7 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
   const saveRelationship = current && confirmed(profileKey, observed)
     ? {status: 'confirmed', evidenceRule: rule.rule} : null;
   return freeze({status: 'ready', profileKey, providerProfileKey, characterId: registry.providerIds[providerProfileKey],
-    style: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode, multilingual: !!twinKey,
+    style: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode, multilingual: !!twinKey, ...(packKey ? {pack: true} : {}),
     reason: !rule ? 'unsupported' : mode === 'on' ? 'explicit-on' : mode === 'off' ? 'explicit-off'
       : romantic ? 'verified-current-save' : current ? 'auto-unconfirmed' : 'relationship-state-unavailable',
     ...(romantic && mode === 'auto' ? {evidenceRule: rule.rule} : {}),

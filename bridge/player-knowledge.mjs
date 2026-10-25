@@ -156,9 +156,13 @@ export class PlayerKnowledge {
     try {
       const selection = this.selectProfile(route.profileKey, binding, turn);
       if (selection?.status !== 'ready') return {route, reason: 'relationship-profile-unavailable'};
-      if (selection.profileKey !== route.profileKey || !PROFILE.test(selection.providerProfileKey ?? '')
+      // The provider key is the character's own, its multilingual twin, or a content pack's twin of it ("<key>-<pack>", checked against the pack's list by the routing).
+      const provider = selection.providerProfileKey ?? '';
+      const expected = selection.multilingual === true ? route.profileKey + '-multilingual'
+        : selection.pack === true && provider.startsWith(route.profileKey + '-') && !provider.endsWith('-multilingual') ? provider : route.profileKey;
+      if (selection.profileKey !== route.profileKey || !PROFILE.test(provider)
           || !boundedId(selection.characterId) || !['ordinary', 'romantic'].includes(selection.style)
-          || selection.providerProfileKey !== route.profileKey + (selection.multilingual === true ? '-multilingual' : '')) {
+          || provider !== expected) {
         return {route, reason: 'invalid-relationship-profile'};
       }
       return freeze({route: {...route, providerProfileKey: selection.providerProfileKey,

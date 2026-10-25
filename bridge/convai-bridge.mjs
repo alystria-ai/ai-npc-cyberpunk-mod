@@ -3043,6 +3043,8 @@ async function runInput(request, prepared, clock) {
     stages.knowledgePreparedMs = performance.now() - preparationStarted;
     clock.mark('knowledge');
     input = knowledgeTurn.input; request.input = input; preparedInputs.set(input, knowledgeTurn);
+    // A turn the admission refuses ends here without a reply: its reason goes to the log, or the turn would vanish without a trace.
+    if (!knowledgeTurn.sendAllowed) console.error(`[Turn] ${profile.key} was not sent: ${knowledgeTurn.memoryReason ?? 'unavailable'}`);
     if (!await current()) return;
     // No speculative user turn may enter identified character memory.
     if (knowledgeTurn.remoteConfig?.endUserId) { prepared?.cancel(); prepared = undefined; }

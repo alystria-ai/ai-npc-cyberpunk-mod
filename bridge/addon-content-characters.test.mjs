@@ -222,6 +222,10 @@ test('Convai twins: used while the pack is on, a key without a twin keeps its ch
   assert.equal(pick('panam-palmer').characterId, 'id-panam', 'a key without a twin falls back to the ordinary Convai character');
   assert.equal(pick('judy-alvarez', true).characterId, 'id-judy-ml', 'a turn in another language goes to the multilingual twin, which answers in the player\'s language');
   assert.equal(pick('jackie-welles', true).characterId, 'id-jackie-medieval', 'no multilingual twin: the pack\'s');
+  // The selection says it is a pack twin, which the conversation's admission (bridge/player-knowledge.mjs) needs to accept the twin's key.
+  assert.equal(pick('judy-alvarez').pack, true);
+  assert.equal(pick('judy-alvarez', true).pack, undefined);
+  assert.equal(pick('panam-palmer').pack, undefined);
   // The registry knows the twins as siblings of the original (memory guards, Forget).
   assert.equal(routes.providerIds['judy-alvarez-medieval'], 'id-judy-medieval');
   assert.equal(routes.providerFamilies['judy-alvarez-medieval'], 'judy-alvarez');

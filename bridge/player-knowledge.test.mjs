@@ -59,6 +59,26 @@ test('a multilingual selection routes to the twin profile in either style, never
   assert.deepEqual(f.routes.map(route => route.profileKey), ['judy-alvarez-multilingual', 'judy-alvarez-multilingual']);
 });
 
+test('a content pack twin selection routes to the twin profile (a pack twin once left the turn unsent, with no reply)', async () => {
+  const f = fixture({selectProfile: () => ({status: 'ready', profileKey: 'judy-alvarez',
+    providerProfileKey: 'judy-alvarez-medieval', characterId: 'judy-medieval-provider', style: 'ordinary', multilingual: false, pack: true,
+    reason: 'explicit-off'})});
+  f.ids['judy-alvarez-medieval'] = 'judy-medieval-provider';
+  const prepared = await f.router.prepare(f.input);
+  assert.equal(prepared.sendAllowed, true);
+  assert.equal(prepared.route.providerProfileKey, 'judy-alvarez-medieval');
+  assert.equal(prepared.guard.characterId, 'judy-medieval-provider');
+  assert.equal(await f.router.current(prepared), true);
+  assert.deepEqual(f.routes.map(route => route.profileKey), ['judy-alvarez-medieval']);
+  // A pack twin is always the speaker's own: another character's key, or the multilingual suffix, is still refused.
+  for (const providerProfileKey of ['panam-palmer-medieval', 'judy-alvarez-multilingual']) {
+    const g = fixture({selectProfile: () => ({status: 'ready', profileKey: 'judy-alvarez', providerProfileKey,
+      characterId: 'judy-medieval-provider', style: 'ordinary', multilingual: false, pack: true})});
+    g.ids[providerProfileKey] = 'judy-medieval-provider';
+    assert.equal((await g.router.prepare(g.input)).sendAllowed, false, providerProfileKey);
+  }
+});
+
 test('missing or mismatched selected relationship profiles fail before a send instead of borrowing another character', async () => {
   for (const selection of [
     {status: 'unavailable'},
