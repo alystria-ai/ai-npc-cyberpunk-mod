@@ -181,16 +181,21 @@ function voiceTurnContext(input, snapshot) {
   return {text: prefix + sentences.join(' ') + suffix, parts: sentences.length, reason: ''};
 }
 
+// A companion speaking up on her own (bridge/speakup-context.mjs) is the one automatic reaction that gets the right-now block: it is about what is going on around her and V.
+const speaksUp = input => input?.reaction?.kind === 'speakup';
+
 // Which of the weather and the part of the day this turn states ({weather, time}, booleans): each only when new to the conversation
 // (bridge/scenery-memory.mjs). Everything is stated for a turn with nothing to decide on (no snapshot, a reaction, no turn id).
 const EVERYTHING = Object.freeze({weather: true, time: true});   // a key that is absent counts as true (media, mods)
 export function sceneryFor(input, memory = sceneryMemory, off = NO_KINDS) {
-  if (!input || input.reaction || input.turnContext === undefined) return EVERYTHING;
+  if (!input || (input.reaction && !speaksUp(input)) || input.turnContext === undefined) return EVERYTHING;
   const snapshot = stripSnapshot(parseTurnContext(input.turnContext), off);
   if (!snapshot || snapshot.status !== 'ready') return EVERYTHING;
   // One conversation: a character, one physical NPC (its entity) or one phone contact.
   return memory.decide({key: `${input.channel === 'phone' ? 'phone' : 'talk'}|${input.profileKey}|${input.entity ?? ''}`, id: input.requestId ?? input.id,
-    weather: snapshot.weather, part: snapshot.hour === undefined ? undefined : dayPart(snapshot.hour), text: input.text,
+    weather: snapshot.weather, part: snapshot.hour === undefined ? undefined : dayPart(snapshot.hour),
+    // A speak-up's text is a placeholder, not V's words: V asking about the weather cannot be read from it.
+    text: speaksUp(input) ? '' : input.text,
     signals: {media: mediaSignature(snapshot.media), mods: modsSignature(snapshot.mods)}});
 }
 const BACKGROUND = 'Background (mention only if it matters or V asks):';
@@ -201,7 +206,7 @@ const BACKGROUND = 'Background (mention only if it matters or V asks):';
 // the text provider's prompt cache keeps its prefix: the bridge puts it in the volatile tail (bridge/quest-context.mjs).
 export function describeTurnContext(input, {ambient = false, voice = false, split = false, fresh = EVERYTHING, off = NO_KINDS, gap = ''} = {}) {
   if (!input) return {text: '', background: '', parts: 0, reason: 'no input'};
-  if (input.reaction) return {text: '', background: '', parts: 0, reason: 'automatic reaction'};
+  if (input.reaction && !speaksUp(input)) return {text: '', background: '', parts: 0, reason: 'automatic reaction'};
   if (input.turnContext === undefined) return {text: '', background: '', parts: 0, reason: 'the game sent none'};
   const snapshot = stripSnapshot(parseTurnContext(input.turnContext), off);
   if (!snapshot || snapshot.status !== 'ready') return {text: '', background: '', parts: 0, reason: 'unavailable or malformed'};

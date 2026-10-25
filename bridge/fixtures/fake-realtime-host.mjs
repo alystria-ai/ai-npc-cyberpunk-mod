@@ -50,7 +50,8 @@ export class RealtimeHost {
     const own = new AbortController(); this.active.add(own);
     const cancel = () => own.abort(); signal?.addEventListener('abort', cancel, {once: true});
     if (signal?.aborted) cancel();
-    log({event: 'reply-start', characterId: config.characterId, context: config.context, ttsEnabled: config.ttsEnabled});
+    log({event: 'reply-start', characterId: config.characterId, context: config.context, ttsEnabled: config.ttsEnabled,
+      text: config.text, reaction: config.reaction?.kind, reactionEvent: config.reaction?.event});
     if (spec.connectMs) {
       const page = this.page(config.characterId, spec.connectMs), existed = page.opened;
       try { await sleep(Math.max(0, page.readyAt - Date.now()), own.signal); page.opened = true; }

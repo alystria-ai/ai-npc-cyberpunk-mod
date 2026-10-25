@@ -346,6 +346,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-remarks.lua"
         },
         {
+          "source": "mod/speak-up.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speak-up.lua"
+        },
+        {
           "source": "mod/mod-state.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mod-state.lua"
         },
@@ -793,6 +797,7 @@
             "bridge/setup-check.mjs",
             "bridge/shared-key-guard.mjs",
             "bridge/slow-turns.mjs",
+            "bridge/speakup-context.mjs",
             "bridge/speech-audio.mjs",
             "bridge/speech-language.mjs",
             "bridge/speech-pace.mjs",

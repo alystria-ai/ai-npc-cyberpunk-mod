@@ -63,8 +63,10 @@ export class GroupScenario {
   // often the game's update loop reads and writes files.
   // playerKey: null for the shared key (the default), or {connections} for a player's own Convai key whose plan allows that many
   // conversation connections at once (1: free or unread plan, 6: confirmed paid Gamer plan). The plan is never read from Convai.
-  constructor({mode = 'lookahead', timings = DEFAULT_TIMINGS, luaMs = 50, speakers = 3, hooks = {}, playerKey = null} = {}) {
-    Object.assign(this, {mode, timings, luaMs, speakers, hooks, playerKey});
+  // cast: every character the simulated provider knows (a subclass adds more than the three speakers); settings / stateFiles / env: more of the game's
+  // settings.json, files of the state folder and variables of the bridge's environment (the follow-on fixture runs the text providers this way).
+  constructor({mode = 'lookahead', timings = DEFAULT_TIMINGS, luaMs = 50, speakers = 3, hooks = {}, playerKey = null, cast = SPEAKERS, settings = {}, stateFiles = {}, env = {}} = {}) {
+    Object.assign(this, {mode, timings, luaMs, speakers, hooks, playerKey, cast, settings, stateFiles, extraEnv: env});
     this.round = 0; this.requests = []; this.sequence = 0; this.controlSequence = 0;
     this.replyIds = new Set(); this.replyErrors = [];
     this.nearbyState = null;   // set by setNearby(): the party heartbeat and the nearby/spawned list the game publishes
@@ -76,20 +78,21 @@ export class GroupScenario {
     this.runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime');
     await mkdir(state, {recursive: true}); await mkdir(this.runtime, {recursive: true});
     this.hostLog = join(this.folder, 'host.jsonl');
-    const ids = Object.fromEntries(SPEAKERS.map(speaker => [speaker.key, speaker.characterId]));
-    const byId = Object.fromEntries(SPEAKERS.map(speaker => [speaker.characterId, this.timings[speaker.key]]));
+    const ids = Object.fromEntries(this.cast.map(speaker => [speaker.key, speaker.characterId]));
+    const byId = Object.fromEntries(this.cast.map(speaker => [speaker.characterId, this.timings[speaker.key]]));
     await Promise.all([
       writeFile(join(state, 'convai-key.txt'), 'api-key=isolated-test-key-not-a-real-credential\n'),
       writeFile(join(state, 'characters.json'), JSON.stringify(ids)),
       writeFile(join(state, 'local-voices.json'), '{}'),
-      writeFile(join(this.runtime, 'settings.json'), JSON.stringify({voiceProvider: 'convai', ...(this.playerKey ? {useOwnConvaiKey: true} : {})})),
+      writeFile(join(this.runtime, 'settings.json'), JSON.stringify({voiceProvider: 'convai', ...(this.playerKey ? {useOwnConvaiKey: true} : {}), ...this.settings})),
       ...(this.playerKey ? [writeFile(join(state, 'player-convai-key.txt'), 'api-key=isolated-test-player-key-not-a-real-credential\n')] : []),
+      ...Object.entries(this.stateFiles).map(([name, text]) => writeFile(join(state, name), text)),
       writeFile(join(this.folder, 'timings.json'), JSON.stringify(byId)),
     ]);
     this.timingsPath = join(this.folder, 'timings.json');
     const env = {...process.env, CYBERPUNK_CONVAI_STATE: state, CYBERPUNK_CONVAI_GAME: game,
       CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_CONVAI_MUTE_BROWSER: '1', FAKE_HOST_LOG: this.hostLog, FAKE_HOST_TIMINGS: this.timingsPath,
-      FAKE_PAID_CONNECTIONS: String(this.playerKey?.connections ?? 1)};
+      FAKE_PAID_CONNECTIONS: String(this.playerKey?.connections ?? 1), ...this.extraEnv};
     delete env.NODE_OPTIONS; delete env.NODE_PATH;
     this.output = '';
     this.child = spawn(process.execPath, ['--import', register, bridge], {cwd: this.folder, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']});

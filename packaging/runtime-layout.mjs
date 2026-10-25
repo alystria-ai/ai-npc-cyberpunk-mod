@@ -174,6 +174,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/setup-check.mjs',
   'bridge/shared-key-guard.mjs',
   'bridge/slow-turns.mjs',
+  'bridge/speakup-context.mjs',
   'bridge/speech-audio.mjs',
   'bridge/speech-language.mjs',
   'bridge/speech-pace.mjs',

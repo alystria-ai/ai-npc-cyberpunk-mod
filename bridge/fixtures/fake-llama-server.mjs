@@ -143,6 +143,9 @@ const server = createServer((request, response) => {
       }
       requests.push({path: url, stream: Boolean(json.stream), maxTokens: json.max_tokens ?? null, promptChars, promptTokens,
         cachePrompt: json.cache_prompt ?? null, messages: messages.length});
+      // A request whose client went away before the reply was finished (an aborted generation) is marked in /__stats, as llama-server frees the slot then.
+      const mine = requests[requests.length - 1];
+      response.on('close', () => { if (!response.writableFinished) mine.aborted = true; });
       const last = [...messages].reverse().find(message => message.role === 'user')?.content ?? '';
       let reply = process.env.FAKE_LLAMA_REPLY ?? 'Echo: ' + String(last).slice(0, 40);
       if (json.max_tokens === 1) reply = reply.split(' ')[0];
