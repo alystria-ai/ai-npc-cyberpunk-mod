@@ -739,6 +739,17 @@ test('Mature content turned off after an uncensored model was loaded and pinned:
   assert.equal(h.server.modelId, 'mature:good');
 });
 
+test('a stop while a reload reads the free memory wins: leaving Local AI (which turns Mature content off in the same moment) leaves no model on the card', async t => {
+  const h = choiceHarness(t, {selected: {pin: 'mature:good', matureOn: true}});
+  await h.server.ensure();
+  h.state.matureOn = false;
+  const reload = h.server.reselect();   // waits on the free-memory reading
+  await h.server.stop();                // the provider switch unloads the model meanwhile
+  assert.equal(await reload, false);
+  await sleep(100);
+  assert.deepEqual([h.calls.length, h.server.status().state], [1, 'stopped'], 'the reload must not start the model again');
+});
+
 test('reselect does nothing while the server is stopped (the next start reads the choice itself), and a stop clears a queued reload', async t => {
   const h = choiceHarness(t);
   h.state.pin = 'lite';

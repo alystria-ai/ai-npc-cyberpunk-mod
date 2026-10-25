@@ -1045,9 +1045,12 @@ export class LocalLlmServer extends EventEmitter {
     const selected = this.#selected(this.pack);
     if (stillSatisfies({loadedId: this.#modelId, models: selected.models, pin: selected.pin, matureOn: selected.matureOn})) { this.#reselectPending = false; return false; }
     this.#reselectPending = false;
+    const generation = this.#generation;
     // A pinned model that does not fit the memory the card would have without ours is replaced by the default, which may be the model that is loaded: a reload would only read
     // the same 5 GB again (2026-10-20). Needs a free-memory reading; without one (no NVIDIA card) the reload is done as before.
     if (await this.#reloadWouldKeep(selected)) return false;
+    // Stopped while the memory was read (leaving Local AI turns Mature content off too, so the choice changes in the same moment): no reload, or the model would come back on the card under another provider.
+    if (generation !== this.#generation || this.#state !== 'ready') return false;
     this.log('[local] the model choice changed: reloading');
     await this.stop();
     void this.ensure({background: true}).catch(() => {});
