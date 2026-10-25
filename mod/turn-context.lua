@@ -212,17 +212,27 @@ local function nativeAdapter()
         return math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), 'seconds'
     end
     -- The game time in whole seconds since the game's epoch (days and hours together), for the time since a character was last talked to.
+    -- Read the way mod/world-knowledge.lua gameSeconds and mod/journal-history.lua do (both proven in game): the struct's seconds field and
+    -- GameTime.GetSeconds, each validated, and a disagreement gives no time rather than a wrong one (a wrong clock would word a wrong gap).
+    -- Then the time system's own timestamp as the last resort.
     function N.gameSeconds()
         local system = Game.GetTimeSystem()
-        local stamp = system and system:GetGameTime()
-        if stamp == nil then return nil end
-        local ok, seconds = pcall(function() return stamp.seconds end)
-        seconds = ok and tonumber(seconds) or nil
-        if not seconds then
-            local okTotal, total = pcall(function() return GameTime.GetSeconds(stamp) end)
-            seconds = okTotal and tonumber(total) or nil
+        if system == nil then return nil end
+        local function valid(value)
+            value = tonumber(value)
+            return integer(value, 0, 4294967295) and value or nil
         end
-        return seconds
+        local okStamp, stamp = pcall(function() return system:GetGameTime() end)
+        if okStamp and stamp ~= nil then
+            local okField, field = pcall(function() return valid(stamp.seconds) end)
+            local okTotal, total = pcall(function() return valid(GameTime.GetSeconds(stamp)) end)
+            field, total = okField and field or nil, okTotal and total or nil
+            if field and total and field ~= total then return nil end
+            if field or total then return field or total end
+        end
+        local okLast, last = pcall(function() return tonumber(system:GetGameTimeStamp()) end)
+        if okLast and last and last == last and last >= 0 and last <= 4294967295 then return math.floor(last) end
+        return nil
     end
     function N.gender(player) return player:GetResolvedGenderName() end
     -- V's voice tone ("brain gender" in the character creator), which can differ from the body. The game picks V's voice lines

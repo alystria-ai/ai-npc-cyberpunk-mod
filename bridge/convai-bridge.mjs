@@ -58,6 +58,7 @@ import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
+import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
@@ -1033,6 +1034,8 @@ const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, '
 // Convai's own memory is not part of it (a pack's Convai twins have ids of their own); an add-on speaker's and a player-made character's keys are never changed.
 // With no pack, or a pack with a shared memory, every key is the profile key, as before.
 const memoryNamespace = memoryScopes(addonContent);
+// When V last talked to each character (Settings > Dynamic info > Time since last talk, bridge/last-talk.mjs): kept per memory key, so a pack's characters have their own, read before the first turn.
+await lastTalk.configure({path: resolve(stateDirectory, 'last-talk.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[LastTalk] ' + message)});
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
   memoryKeyFor: memoryNamespace.keyFor,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
@@ -2456,6 +2459,7 @@ async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
     if (scope === 'all' && (await vendorMemory.forgetAll({scope: pack})).ok !== true) throw Error('Vendor memory could not be cleared');
     // The text providers keep their own conversation memory here (bridge/memory-store.mjs): Forget clears it too, records and vectors included.
     mistralMemory.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});
+    lastTalk.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});   // a forgotten character does not remember when it last met V
     await mistralMemory.flush().catch(() => {});
     return {quiesced: true};
   } finally { memoryQuiescing--; }
@@ -3833,6 +3837,7 @@ async function shutdown() {
   await Promise.allSettled([realtime.close(), phoneRealtime.close(), jaliFace?.close()]);
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
+  await lastTalk.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);
   await reputation.flush().catch(() => {});
   await vendorMemory.idle().catch(() => {});

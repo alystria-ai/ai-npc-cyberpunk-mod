@@ -133,7 +133,7 @@ export function parseTurnContext(value) {
   return {...result, ...volume};
 }
 
-const dayPart = hour => hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
+export const dayPart = hour => hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
   : hour < 17 ? 'afternoon' : hour < 20 ? 'evening' : 'night';
 
 /** "late night, about 2 AM": the part of the day, then the hour to the nearest whole hour. */
