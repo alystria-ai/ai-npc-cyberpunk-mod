@@ -86,3 +86,27 @@ test('destroy checks the car\'s own tag, so her car is deleted and a car with a 
   assert(done == false and why:find('tag'), tostring(why))
   assert(#world.deleted == 0)
 `));
+
+test('surfaceAt: the ground height and its material name in lower case; none when the trace names none, no ground, or the budget is spent', () => run(`
+  local hits = 0
+  function spatial:SyncRaycastByCollisionGroup(from, to, group)
+    hits = hits + 1
+    if world.noGround then return false end
+    if group == 'Terrain' then return true, {position = {x = from.x, y = from.y, z = world.ground - 0.5}, normal = {z = 1}, material = 'dirt.physmat'} end
+    if group ~= 'Static' then return false end
+    return true, {position = {x = from.x, y = from.y, z = world.ground}, normal = {z = 1}, material = world.material}
+  end
+  world.ground, world.material = 2, 'Asphalt.physmat'
+  local z, material = native.surfaceAt(5, 6, 1)
+  assert(z == 2 and material == 'asphalt.physmat' and hits == 2, tostring(z) .. ' ' .. tostring(material))
+  world.material = nil
+  z, material = native.surfaceAt(5, 6, 1)
+  assert(z == 2 and material == nil, 'a trace with no material name')
+  world.material = 'None'
+  assert(select(2, native.surfaceAt(5, 6, 1)) == nil, 'the empty name is no name')
+  world.noGround = true
+  assert(native.surfaceAt(5, 6, 1) == nil, 'no ground')
+  world.noGround = false; budget.left = 1
+  local none, deferred = native.surfaceAt(5, 6, 1)
+  assert(none == nil and deferred == true, 'the budget is spent: ask again')
+`));

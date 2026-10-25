@@ -1,6 +1,6 @@
 -- Her car (docs/IMMERSIVE_INVITATIONS.md, "Car arrival"): the sequence a visitor who comes by car goes through, and the game calls under it.
 --
--- M.sequencer(api) is the pure part: create the car, wait until it stands on a road, let her board, drive to the road end point, brake, let her
+-- M.sequencer(api) is the pure part: create the car, wait until it is known to stand on a road, let her board, drive to the road end point, brake, let her
 -- out. It knows nothing of the engine: every game call goes through `api`, so the whole sequence runs in the tests with a fake. M.nativeApi(deps) is
 -- the game-bound part: the party-car adapter (mod/companion-vehicle-native.lua) for the entity, and the same native driving command the
 -- chauffeur uses (AIVehicleDriveToPointAutonomousCommand, mod/companion-chauffeur-native.lua) with the car's own AI component.
@@ -9,7 +9,7 @@
 local M = {}
 
 M.CREATE_TIMEOUT = 12     -- seconds for the new car to attach
-M.LANE_PATIENCE = 2       -- seconds a new car may take to report that it stands on a traffic lane
+M.LANE_PATIENCE = 2       -- seconds a new car may take to report that it stands on a traffic lane (a spot known to be a street needs no report)
 M.BOARD_TIMEOUT = 20
 M.DRIVE_CAP = 240
 M.STALL_WINDOW = 25       -- seconds without 2 m of progress on the road
@@ -22,7 +22,7 @@ M.FAILSAFE_AFTER = 8      -- the instant exit with its failsafe, after this long
 local function ground(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
 
 -- api: create(spec) -> handle | nil, why      spec = {position, yaw, choice}
---      status(handle) -> {attached, lane, speed, position} | nil
+--      status(handle) -> {attached, lane, traffic, speed, position} | nil   (lane: IsInTrafficLane, traffic: IsInTrafficPhysicsState; nil when unreadable)
 --      mount(serial, handle) -> true | false       (the animated boarding of the driver seat)
 --      mounted(serial, handle) -> true | false     (she sits in the driver seat of this car)
 --      unmount(serial, handle, instant) -> true | false
@@ -36,10 +36,18 @@ function M.sequencer(api)
     function S.create(spot, choice)
         local handle, why = api.create({position = spot.car.position, yaw = spot.car.yaw, choice = choice})
         if not handle then return nil, why end
-        return {handle = handle, stage = 'created', age = 0, laneAge = 0}
+        -- road: how the spot is known (trail | traffic | surface | ring), force: the last try after the spots that failed, taken as it is.
+        return {handle = handle, stage = 'created', age = 0, laneAge = 0, road = spot.car.road, force = spot.force == true}
     end
 
-    -- 'ready' once the car is attached on a traffic lane, 'wait', or 'bad' + why + a code ('car-gone', 'not-attached', 'off-lane').
+    local function seen(status)
+        return 'lane=' .. tostring(status.lane) .. ' traffic=' .. tostring(status.traffic)
+    end
+
+    -- 'ready' + what the car reported once it is attached on a road, 'wait', or 'bad' + why + a code ('car-gone', 'not-attached', 'off-lane').
+    -- A traffic lane is what the engine's car answers for a car in the traffic system; a car the mod placed may never answer true there, so a spot
+    -- known to be a street (a place V drove through, a traffic car's lane, a street surface) is ready as soon as the car stands, and the drive that
+    -- follows is the proof (it fails to walking). A spot that is only ground waits for the lane answer; the last try after the retries goes anyway.
     function S.ready(car, dt)
         car.age = car.age + dt
         local status = api.status(car.handle)
@@ -48,10 +56,16 @@ function M.sequencer(api)
             if car.age > M.CREATE_TIMEOUT then return 'bad', 'The car did not attach.', 'not-attached' end
             return 'wait'
         end
-        if status.lane == true then return 'ready' end
+        if status.lane == true then return 'ready', seen(status) end
+        if car.road == 'trail' or car.road == 'traffic' or car.road == 'surface' then
+            return 'ready', seen(status) .. ' on a street (' .. car.road .. ')'
+        end
         car.laneAge = car.laneAge + dt
-        if status.lane == nil and car.laneAge >= M.LANE_PATIENCE then return 'ready' end
-        if car.laneAge >= M.LANE_PATIENCE then return 'bad', 'The car does not stand on a road.', 'off-lane' end
+        if status.lane == nil and car.laneAge >= M.LANE_PATIENCE then return 'ready', seen(status) end
+        if car.laneAge >= M.LANE_PATIENCE then
+            if car.force then return 'ready', seen(status) .. ' driving anyway' end
+            return 'bad', 'The car does not stand on a road. (' .. seen(status) .. ')', 'off-lane'
+        end
         return 'wait'
     end
 
@@ -149,14 +163,16 @@ function M.nativeApi(deps)
             local entity = Game.FindEntityByID(handle.entityID)
             if not entity or not entity:IsAttached() or entity:IsDestroyed() then return nil end
             local position = entity:GetWorldPosition()
-            local lane
+            local lane, traffic
             local asked, value = pcall(function() return entity:IsInTrafficLane() end)
             if asked and type(value) == 'boolean' then lane = value end
+            local told, state = pcall(function() return entity:IsInTrafficPhysicsState() end)
+            if told and type(state) == 'boolean' then traffic = state end
             local speed = 0
             local measured, current = pcall(function() return entity:GetCurrentSpeed() end)
             if measured and type(current) == 'number' then speed = math.abs(current) end
             handle.entity = entity
-            return {attached = true, lane = lane, speed = speed, position = {x = position.x, y = position.y, z = position.z}}
+            return {attached = true, lane = lane, traffic = traffic, speed = speed, position = {x = position.x, y = position.y, z = position.z}}
         end)
         if not ok then return nil end
         if status == nil then

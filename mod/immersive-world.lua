@@ -9,6 +9,8 @@ local HER_CAR_TAG = 'CyberpunkConvaiHerVehicle'
 local ROAD_MAX_WALK = 60          -- a road end point this far on foot from V is still "a road nearby"
 local TRAIL_LIMIT, TRAIL_STEP, TRAIL_SPEED = 40, 30, 6
 local TRAIL_NEAR = 150            -- a road V drove along this close to V is a road nearby
+local TRAFFIC_RADIUS, TRAFFIC_SPEED = 120, 3   -- traffic cars this near V are looked for; a crowd car this fast is on a lane even when it does not say so
+local TRAFFIC_KEEP = 6
 
 local WAYPOINT_LANDMARK_RADIUS = 250   -- the nearest fast travel point within this far names the place
 local WAYPOINT_NEAR_V = 150            -- a waypoint this close to V is worded with V's own district
@@ -36,6 +38,7 @@ end
 function M.new(deps)
     local W = {}
     local trail = {}
+    local lanes = {}           -- traffic cars on a lane near V (the last road lookup): spot candidates for her car
     local carModule, sequencer, carApi
 
     -- Cars made for a companion by an earlier load of this mod (a CET reload) are removed once, now; nothing is known yet.
@@ -178,18 +181,97 @@ function M.new(deps)
         end
         return best
     end
+    -- The cars of the traffic system near V that stand on a lane right now (the engine keeps them on one): {x, y, z, hx, hy} (position and heading),
+    -- nearest first, and how many vehicles were seen. One targeting query, asked once per appointment when the engine's road lookup says nothing.
+    local function trafficLanes(from)
+        local ok, rows, count = pcall(function()
+            local player = Game.GetPlayer()
+            local query = TSQ_ALL()
+            query.testedSet = Enum.new('TargetingSet', 'Complete')
+            query.maxDistance = TRAFFIC_RADIUS
+            query.filterObjectByDistance = true
+            query.ignoreInstigator = true
+            query.includeSecondaryTargets = true
+            local _, parts = Game.GetTargetingSystem():GetTargetParts(player, query)
+            local found, known, seen = {}, {}, 0
+            for _, part in ipairs(parts or {}) do
+                local good, entity = pcall(function() return TS_TargetPartInfo.GetComponent(part):GetEntity() end)
+                if good and entity and entity:IsVehicle() and entity:IsAttached() then
+                    local id = tostring(entity:GetEntityID().hash)
+                    if not known[id] then
+                        known[id] = true
+                        seen = seen + 1
+                        local mine = false
+                        pcall(function() mine = entity:IsPlayerVehicle() or entity:IsPlayerMounted() end)
+                        local lane = false
+                        pcall(function() lane = entity:IsInTrafficPhysicsState() == true end)
+                        if not lane then
+                            pcall(function() lane = entity:IsCrowdVehicle() == true and math.abs(entity:GetCurrentSpeed()) >= TRAFFIC_SPEED end)
+                        end
+                        local at = (lane and not mine) and point(entity:GetWorldPosition())
+                        if at and math.sqrt((at.x - from.x) ^ 2 + (at.y - from.y) ^ 2) <= TRAFFIC_RADIUS then
+                            local forward = entity:GetWorldForward()
+                            local run = math.sqrt(forward.x ^ 2 + forward.y ^ 2)
+                            if run > 0.1 then
+                                at.hx, at.hy = forward.x / run, forward.y / run
+                                found[#found + 1] = at
+                            end
+                        end
+                    end
+                end
+            end
+            table.sort(found, function(a, b)
+                return (a.x - from.x) ^ 2 + (a.y - from.y) ^ 2 < (b.x - from.x) ^ 2 + (b.y - from.y) ^ 2
+            end)
+            while #found > TRAFFIC_KEEP do found[#found] = nil end
+            return found, seen
+        end)
+        if not ok then return {}, 0, tostring(rows):sub(1, 60) end
+        return rows, count
+    end
+
+    -- The intersection the engine's prevention system names in front of V (its roadblock logic), within TRAIL_NEAR: a road, with what it said.
+    local function intersectionRoad(from)
+        local ok, value = pcall(function()
+            local system = Game.GetPreventionSpawnSystem()
+            return system and system:GetIntersectionInFrontOfPlayerPos()
+        end)
+        if not ok then return nil, 'intersection=error:' .. tostring(value):sub(1, 40) end
+        local at = point(value)
+        if not at then return nil, 'intersection=none' end
+        if at.x == 0 and at.y == 0 then return nil, 'intersection=zero' end
+        local gap = math.sqrt((at.x - from.x) ^ 2 + (at.y - from.y) ^ 2)
+        if gap > TRAIL_NEAR then return nil, string.format('intersection=far:%.0f', gap) end
+        return at, string.format('intersection=%.0f,%.0f,%.0f', at.x, at.y, at.z)
+    end
+
     -- Codes of an engine answer that says nothing (as opposed to "no road within reach"): the car then drives toward V's own spot and the
     -- engine's driving AI finds the road; a drive that cannot be made walks instead, with its own code.
     local UNREADABLE = {['call-failed'] = true, ['no-system'] = true, ['no-info'] = true, ['no-point'] = true, ['zero-point'] = true}
 
-    -- road, how ('engine' | 'trail' | 'guess'), or nil + code, and the note on what the engine showed.
+    -- road, how ('engine' | 'trail' | 'traffic' | 'intersection' | 'guess'), or nil + code, and the note on what the engine showed.
+    -- The engine's lookup is kept for the police logic and is empty on a calm walk (live 2026-10-26: point 0,0,0, pathLength -1), so an unreadable
+    -- answer is followed by the places a street is known for certain: V's drive trail, a traffic car's lane within ROAD_MAX_WALK, the engine's
+    -- intersection ahead; else V's own spot, with the traffic cars' lanes still offered for her car's spot.
     local function findRoad(from)
+        lanes = {}
         local at, why, note = engineRoad(from)
         if at then return at, 'engine', nil, note end
         local drove = trailRoad(from)
         if drove then return drove, 'trail', why, note end
-        if UNREADABLE[why] then return {x = from.x, y = from.y, z = from.z}, 'guess', why, note end
-        return nil, nil, why, note
+        if not UNREADABLE[why] then return nil, nil, why, note end
+        local found, count, failed = trafficLanes(from)
+        lanes = found
+        note = (note or '') .. ' traffic=' .. tostring(count) .. '/' .. #found
+            .. (found[1] and string.format(' nearest %.0f m', math.sqrt((found[1].x - from.x) ^ 2 + (found[1].y - from.y) ^ 2)) or '')
+            .. (failed and (' (' .. failed .. ')') or '')
+        if found[1] and math.sqrt((found[1].x - from.x) ^ 2 + (found[1].y - from.y) ^ 2) <= ROAD_MAX_WALK then
+            return {x = found[1].x, y = found[1].y, z = found[1].z}, 'traffic', why, note
+        end
+        local cross, crossNote = intersectionRoad(from)
+        note = note .. ' ' .. crossNote
+        if cross then return cross, 'intersection', why, note end
+        return {x = from.x, y = from.y, z = from.z}, 'guess', why, note
     end
 
     -- {position, place, road} for 'here' (V's position now) or 'waypoint' (the player's pin), or nil + reason.
@@ -233,7 +315,7 @@ function M.new(deps)
         if a.spotKey ~= key then a.spotKey, a.spotState = key, {} end
         if mode == 'car' then
             local ok, spot, reason, deferred = pcall(deps.companions.findCarSpot, a.key,
-                {destination = a.road, goal = a.dest, trail = trail, relax = relax}, a.spotState)
+                {destination = a.road, goal = a.dest, trail = trail, lanes = lanes, relax = relax}, a.spotState)
             if not ok then return nil, tostring(spot) end
             return spot, reason, deferred
         end
@@ -292,7 +374,7 @@ function M.new(deps)
     function W.carCreate(a)
         local sequence = cars()
         if not sequence then return nil, 'The car module is unavailable.' end
-        return sequence.create({car = a.carSpot}, a.carChoice or W.carChoice(a))
+        return sequence.create({car = a.carSpot, force = a.driveAnyway}, a.carChoice or W.carChoice(a))
     end
     function W.carReady(a, dt)
         local sequence = cars()

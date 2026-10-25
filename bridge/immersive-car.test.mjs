@@ -212,3 +212,42 @@ test('halt: V reached the car on the way, it brakes and she gets out; only while
   assert(step() == 'arrived')
   assert(sequencer.halt(a.car) == false, 'a parked car is not halted again')
 `));
+
+test('ready: a spot known to be a street is ready as soon as the car stands, whatever the lane answer; the last try goes anyway; the report says what the car answered', () => run(`
+  for _, how in ipairs({'trail', 'traffic', 'surface'}) do
+    a.car = assert(sequencer.create({car = {position = {x = 1, y = 2, z = 0}, yaw = 0, road = how}}, {record = 'Vehicle.test'}))
+    fake.status = {attached = true, lane = false, traffic = false, speed = 0, position = {x = 0, y = 0}}
+    local state, note = sequencer.ready(a.car, 0.5)
+    assert(state == 'ready' and note:find('lane=false traffic=false') and note:find(how), how .. ': ' .. tostring(state))
+  end
+  -- a ring spot (ground only) waits for the lane answer and is refused with what the car answered
+  a.car = assert(sequencer.create({car = {position = {x = 1, y = 2, z = 0}, yaw = 0, road = 'ring'}}, {record = 'Vehicle.test'}))
+  fake.status = {attached = true, lane = false, traffic = false, speed = 0, position = {x = 0, y = 0}}
+  local state, why, code
+  for _ = 1, 3 do state = sequencer.ready(a.car, 0.5) end
+  assert(state == 'wait')
+  state, why, code = sequencer.ready(a.car, 0.5)
+  assert(state == 'bad' and code == 'off-lane' and why:find('lane=false traffic=false'), tostring(why))
+  -- the same spot as the last try after the retries: taken as it is
+  a.car = assert(sequencer.create({car = {position = {x = 1, y = 2, z = 0}, yaw = 0, road = 'ring'}, force = true}, {record = 'Vehicle.test'}))
+  for _ = 1, 3 do sequencer.ready(a.car, 0.5) end
+  state, why = sequencer.ready(a.car, 0.5)
+  assert(state == 'ready' and why:find('driving anyway'), tostring(state))
+  -- a lane that answers true is ready for any spot
+  a.car = assert(sequencer.create({car = {position = {x = 1, y = 2, z = 0}, yaw = 0}}, {record = 'Vehicle.test'}))
+  fake.status = {attached = true, lane = true, traffic = true, speed = 0, position = {x = 0, y = 0}}
+  state, why = sequencer.ready(a.car, 0.5)
+  assert(state == 'ready' and why:find('lane=true'))
+`));
+
+test('the native status reads both the lane answer and the traffic physics state, each guarded', () => run(`
+  local entity = {IsAttached = function() return true end, IsDestroyed = function() return false end,
+    GetWorldPosition = function() return {x = 1, y = 2, z = 3} end, GetCurrentSpeed = function() return -2 end,
+    IsInTrafficLane = function() return false end, IsInTrafficPhysicsState = function() error('no such method') end}
+  Game = {FindEntityByID = function() return entity end}
+  local native = Car.nativeApi({vehicle = {}, companions = {}, tag = 't'})
+  local status = native.status({entityID = {}})
+  assert(status.attached and status.lane == false and status.traffic == nil and status.speed == 2, 'an unreadable state is nil, not an error')
+  entity.IsInTrafficPhysicsState = function() return true end
+  assert(native.status({entityID = {}}).traffic == true)
+`));
