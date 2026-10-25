@@ -1,7 +1,7 @@
 -- Display history and provider delivery have separate ownership. The current
 -- single-player policy retains local transcripts across saves; world/generation
 -- guards still prevent a delayed reply from crossing a load or memory reset.
-local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}}
+local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}, names = {}, groups = {}}
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
 local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
@@ -404,11 +404,44 @@ function M.storeReady()
     loadStore()
     return true
 end
+-- Every character with a profile is a Chat contact, not only those the game's journal knows: the shipped phone contacts keep
+-- their own ids (listed from the journal), every other profile gets its key as contact id and its name (no journal row; the list
+-- builds one, PhoneChatTabs.reds). A group is one source of such rows ({key, name}): the roster, the player's own characters.
+-- Rebuilt on demand (load, a custom character saved), never per frame; the next 10 Hz tick registers the new list with the game.
+local function rebuildContacts()
+    for contact in pairs(M.names) do M.catalog[contact], M.names[contact] = nil, nil end
+    local mapped = {}
+    for _, key in pairs(M.catalog) do mapped[key] = true end
+    local ids = {}
+    for group, rows in pairs(M.groups) do
+        for _, row in ipairs(rows) do
+            if type(row) == 'table' and type(row.key) == 'string' and #row.key <= 80 and row.key:match('^[a-z0-9][a-z0-9%-]*$') then
+                ids[#ids + 1] = {key = row.key, name = type(row.name) == 'string' and row.name ~= '' and row.name or row.key}
+            end
+        end
+    end
+    table.sort(ids, function(a, b) return a.key < b.key end)
+    for _, row in ipairs(ids) do
+        if not mapped[row.key] and not M.catalog[row.key] then
+            mapped[row.key], M.catalog[row.key], M.names[row.key] = true, row.key, row.name
+            if M.store and type(M.store.contactProfiles) == 'table' and not M.resetStoreFault then M.store.contactProfiles[row.key] = row.key end
+        end
+    end
+    M.registered = false
+end
+function M.setContacts(group, rows)
+    M.groups[group] = type(rows) == 'table' and rows or nil
+    rebuildContacts()
+end
 function M.configure(profiles, manager, options)
     local supported = {}; for _, p in ipairs(profiles) do supported[p.key] = true end
     for _, c in ipairs(read('phone-contacts.json') or {}) do
         if c.key and supported[c.key] then M.catalog[c.contact] = c.key end
     end
+    -- Named people only: the two ambient residents are crowd stand-ins, not someone to text.
+    local roster = {}
+    for _, p in ipairs(profiles) do if p.kind == nil or p.kind == 'named' then roster[#roster + 1] = p end end
+    M.setContacts('roster', roster)
     M.manager = manager
     options = options or {}
     M.captureBinding = options.captureBinding or M.captureBinding
@@ -588,7 +621,7 @@ function M.update(player, delta)
         player:ConvaiPhoneChatClearContacts()
         -- Without the text input no chat is offered (the tab lists nothing) instead of one that opens and cannot be typed in.
         if not textInputMissing(player) then
-            for id in pairs(M.catalog) do player:ConvaiPhoneChatRegisterContact(id) end
+            for id in pairs(M.catalog) do player:ConvaiPhoneChatRegisterContact(id, M.names[id] or '') end
         end
         M.registered = true
     end

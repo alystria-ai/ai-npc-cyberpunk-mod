@@ -126,11 +126,24 @@ private let m_convaiChatDraft: ref<ConvaiPhoneChatDraft>;
 private let m_convaiChatSubmission: ref<ConvaiPhoneChatDraft>;
 @addField(PlayerPuppet)
 private let m_convaiChatContacts: array<String>;
+// The name of each registered contact, same order: the list shows it for a character the game's journal has no entry for.
+@addField(PlayerPuppet)
+private let m_convaiChatContactNames: array<String>;
 
 @addMethod(PlayerPuppet)
-public final func ConvaiPhoneChatClearContacts() -> Void { ArrayClear(this.m_convaiChatContacts); }
+public final func ConvaiPhoneChatClearContacts() -> Void { ArrayClear(this.m_convaiChatContacts); ArrayClear(this.m_convaiChatContactNames); }
 @addMethod(PlayerPuppet)
-public final func ConvaiPhoneChatRegisterContact(contact: String) -> Void { ArrayPush(this.m_convaiChatContacts, contact); }
+public final func ConvaiPhoneChatRegisterContact(contact: String, name: String) -> Void {
+    ArrayPush(this.m_convaiChatContacts, contact);
+    ArrayPush(this.m_convaiChatContactNames, name);
+}
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatContactIds() -> array<String> { return this.m_convaiChatContacts; }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatContactName(contact: String) -> String {
+    let index = ArrayFindFirst(this.m_convaiChatContacts, contact);
+    return index >= 0 ? this.m_convaiChatContactNames[index] : "";
+}
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatHasContact(contact: String) -> Bool { return ArrayContains(this.m_convaiChatContacts, contact); }
 
@@ -183,11 +196,14 @@ private let m_convaiChatInitialized: Bool;
 private let m_convaiChatEscape: Bool;
 @addField(PhoneMessagePopupGameController)
 private let m_convaiChatEscapeFrames: Int32;
+// The contact id of the open chat: the journal entry's, or the character's own for one the journal has no entry for.
+@addField(PhoneMessagePopupGameController)
+private let m_convaiChatId: String;
 
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatContact() -> String {
-    if !this.m_isFocused || !IsDefined(this.m_contactEntry) || !this.m_data.convaiChat { return ""; };
-    return this.m_contactEntry.GetId();
+    if !this.m_isFocused || !this.m_data.convaiChat { return ""; };
+    return this.m_convaiChatId;
 }
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatTyping() -> Bool {
@@ -211,13 +227,20 @@ private func SetupData() -> Void {
     // AI chat has no quest message, attachment or read receipt. In particular,
     // the native SetupData changes journal state, so it must not run here.
     this.m_contactEntry = this.m_data.journalEntry as JournalContact;
+    this.m_convaiChatId = IsDefined(this.m_contactEntry) ? this.m_contactEntry.GetId() : this.m_data.convaiChatId;
     this.m_entry = null;
     this.m_attachment = null;
     this.m_attachmentHash = 0u;
     this.m_activeEntry = null;
     this.m_journalEntryHash = 0;
-    inkTextRef.SetText(this.m_title, this.m_contactEntry.GetLocalizedName(this.m_journalMgr));
-    InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
+    if IsDefined(this.m_contactEntry) {
+        inkTextRef.SetText(this.m_title, this.m_contactEntry.GetLocalizedName(this.m_journalMgr));
+        InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
+    } else {
+        // A character with no journal entry: her name and the game's unknown-caller picture.
+        inkTextRef.SetText(this.m_title, this.m_data.convaiChatName);
+        InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, t"");
+    };
     inkWidgetRef.SetVisible(this.m_menuBackgrouns, false);
     inkWidgetRef.SetVisible(this.m_hintTrack, false);
     // The game's own Call hint stays hidden here: the game's call is a quest call, and the composer panel would cover
@@ -330,9 +353,9 @@ private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatSaveDraft() -> Void {
     let player = this.m_player as PlayerPuppet;
-    if IsDefined(player) && IsDefined(this.m_contactEntry) && IsDefined(this.m_convaiChatInput) && this.m_convaiChatInitialized {
+    if IsDefined(player) && StrLen(this.m_convaiChatId) > 0 && IsDefined(this.m_convaiChatInput) && this.m_convaiChatInitialized {
         let draft = new ConvaiPhoneChatDraft();
-        draft.contact = this.m_contactEntry.GetId();
+        draft.contact = this.m_convaiChatId;
         draft.text = this.m_convaiChatInput.GetText();
         player.m_convaiChatDraft = draft;
     };
@@ -370,7 +393,7 @@ public final func ConvaiChatSubmit() -> Void {
     let text = this.m_convaiChatInput.GetText();
     if StrLen(text) == 0 { return; };
     let request = new ConvaiPhoneChatDraft();
-    request.contact = this.m_contactEntry.GetId();
+    request.contact = this.m_convaiChatId;
     request.text = text;
     player.m_convaiChatSubmission = request;
     this.m_convaiChatBusy = true;

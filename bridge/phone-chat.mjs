@@ -178,6 +178,20 @@ function sessionStore(value) {
   return {version: 2, scoped: {}, legacy: plain(value) && Object.keys(value).length ? clone(value) : null};
 }
 
+// Every named character of the roster is a Chat contact: those the game's journal has (characters/phone-contacts.json) keep their ids,
+// every other one is addressed by its profile key (the same rule as mod/phone-chat.lua setContacts). The ambient residents and the
+// add-on speakers are not people to text.
+export function rosterContacts(contacts, roster) {
+  const mapped = new Set(contacts.map(c => c.key).filter(Boolean)), taken = new Set(contacts.map(c => c.contact));
+  const extra = [];
+  for (const row of roster) {
+    if (row?.kind !== 'named' || typeof row.key !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(row.key)) continue;
+    if (mapped.has(row.key) || taken.has(row.key)) continue;
+    mapped.add(row.key); extra.push({contact: row.key, key: row.key});
+  }
+  return extra;
+}
+
 export class PhoneChat {
   constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode, onFailure}) {
     if (resetFor!==undefined && typeof resetFor!=='function') throw Error('Invalid phone reset ownership hook');
