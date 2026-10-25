@@ -246,3 +246,8 @@ Controller text entry is not implemented; keyboard typing is the current path.
 A phone message to a contact who may be invited can carry a housing offer next to the meeting offer: V's flats (from the quest facts of the purchases), the flat V is in,
 the flat she lives in, and Move out. The character answers with a tag at the start of her text (`[stay:corpo]`, `[move-out]`; `bridge/home-requests.mjs`), the game checks it
 against the one-use token it sent (`mod/housemates.lua phoneAction`) and moves her in. A message that is only a meeting request still goes to the meeting offer.
+
+## J and L on the Chat tab (2026-10-26)
+
+The Contacts list's J (Invite) and L (Dismiss) marks and keys are on every Chat row too (`PhoneContacts.reds`). A row with no journal contact carries her profile key as
+id, which `companions.phoneContactKey` resolves to that profile's copy (the same request path as Contacts). While a conversation is open or opening the keys are ignored, so a typed J or L stays a letter.
