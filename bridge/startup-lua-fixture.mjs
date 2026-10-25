@@ -246,7 +246,7 @@ export const freshSettings = {
   immersive: {enabled: false, arrival: 'walk', delay: 0, wait: 5, waypoint: true, texts: true},
   housemates: {enabled: false, chat: true},
   developerMode: false, useOwnConvaiKey: false, conversationProvider: 'convai',
-  battleReactions: false, lootReactions: false, decisionLedger: true, witnessReceipts: true, defaultsRevision: 1,
+  battleReactionsChosen: false, battleReactions: true, lootReactionsChosen: false, lootReactions: true, decisionLedger: true, witnessReceipts: true, defaultsRevision: 1,
   eyeContactHeight: 0, headFollowStrength: 1, voiceProvider: 'pocket', omniSteps: 16, omniReference: 'long', keepPreparedVoices: true,
   archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off', companionSpeakUp: 'rare',
   reputation: false, voiceActivation: false, padTalk: false, keyBindings: [], companionOutfits: false,

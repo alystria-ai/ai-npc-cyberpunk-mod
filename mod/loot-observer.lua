@@ -239,16 +239,18 @@ local function onIntent(inventory, event)
     local player = Game.GetPlayer()
     if not player or player:IsAttached() ~= true or player:IsDeadNoStatPool() ~= false
         or entity(event.activator) ~= entity(player) then return end
-    -- Menus/scenes can end between polling updates. Check the source callback's
-    -- current scene before consulting context-dependent player ownership.
-    local value = fresh(player)
-    if not value or not localPlayer(player) then return end
+    -- This fires for every interaction in the world (a door, a lift, a vendor), so the cheap checks of what was used come first and the
+    -- context capture (the battle sample, the blackboard, every witness) is paid only for a Loot action on another character's inventory.
     local wrapper = LootChoiceActionWrapper.Unwrap(event)
     if not wrapper or LootChoiceActionWrapper.IsValid(wrapper) ~= true or NameToString(wrapper.action) ~= 'Loot' then return end
     local id, source = wrapper.itemId, inventory:GetEntity()
     local key, from = identity(id), entity(source)
     if not key or not from or from == entity(player) or source:IsPlayer() ~= false
         or source:IsPlayerStash() ~= false or source:IsVehicle() ~= false then return end
+    -- Menus/scenes can end between polling updates. Check the source callback's
+    -- current scene before consulting context-dependent player ownership.
+    local value = fresh(player)
+    if not value or not localPlayer(player) then return end
     local transaction = Game.GetTransactionSystem()
     local previous, amount = transaction:GetItemQuantity(player, id), transaction:GetItemQuantity(source, id)
     if not quantity(previous) or (amount ~= nil and (not quantity(amount) or amount <= 0)) then return end

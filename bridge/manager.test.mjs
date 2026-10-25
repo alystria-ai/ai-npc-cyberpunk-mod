@@ -144,8 +144,8 @@ test('Manager settings apply as one saved transaction and leave playback unchang
       assert(manager.applySettings(player, {conversationProvider = 'local'}) and saved.matureContent == false, 'Local alone does not turn it back on')
       os.clock = realClock
     end
-    assert(not manager.battleReactions() and manager.snapshot(player).settings.battleReactions == false, 'battle reactions default off')
-    assert(not manager.lootReactions() and manager.snapshot(player).settings.lootReactions == false, 'loot reactions default off')
+    assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions == true, 'battle reactions default on')
+    assert(manager.lootReactions() and manager.snapshot(player).settings.lootReactions == true, 'loot reactions default on')
     assert(manager.followUpQuestions == nil and manager.snapshot(player).settings.followUpQuestions == nil)
     assert(manager.applySettings(player, {lootReactions = true}))
     assert(manager.lootReactions() and saved.lootReactions == true)
@@ -189,7 +189,7 @@ test('a saved retired follow-up setting loads fine, is dropped from the file and
   run(`${managerFixture}
     for _, savedValue in ipairs({'missing', 'on', 0, true, false}) do
       seed = {version = 2, voice = false, subtitles = false, subtitleStyle = 'dialogue',
-        voiceProvider = 'convai', omniSteps = 16, battleReactions = false, lootReactions = false,
+        voiceProvider = 'convai', omniSteps = 16, battleReactions = false, battleReactionsChosen = true, lootReactions = false, lootReactionsChosen = true,
         disappearingMessages = true, enabledByKey = {}, future = {keep = 'unchanged'}}
       for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
       if savedValue ~= 'missing' then seed.followUpQuestions = savedValue end
@@ -315,7 +315,7 @@ test('subtitle style defaults to dialogue and preserves explicit overhead, Conva
   run(`${managerFixture}
     for _, oldStyle in ipairs({'missing', 'invalid', false, 1}) do
       seed = {version = 2, voice = false, subtitles = false, voiceProvider = 'convai',
-        omniSteps = 16, battleReactions = false, lootReactions = false,
+        omniSteps = 16, battleReactions = false, battleReactionsChosen = true, lootReactions = false, lootReactionsChosen = true,
         disappearingMessages = true, enabledByKey = {}, future = {keep = 'unchanged'}}
       if oldStyle ~= 'missing' then seed.subtitleStyle = oldStyle end
       for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
@@ -2748,8 +2748,8 @@ test('the manager page uses real controls, operates on current copies while paus
     assert(row('keepPreparedVoices') == nil)
     assert(row('voice-pack') == nil, 'the OmniVoice pack has no row of its own')
     assert(row('disappearingMessages') == nil)
-    assert(row('battleReactions').type == 'bool' and row('battleReactions').value == false and row('battleReactions').defaultValue == false)
-    assert(row('lootReactions').type == 'bool' and row('lootReactions').value == false and row('lootReactions').defaultValue == false)
+    assert(row('battleReactions').type == 'bool' and row('battleReactions').value == true and row('battleReactions').defaultValue == true)
+    assert(row('lootReactions').type == 'bool' and row('lootReactions').value == true and row('lootReactions').defaultValue == true)
     -- The retired follow-up question toggle is no longer offered.
     assert(row('followUpQuestions') == nil)
     assert(registered.applyBatch('manager', {{id = 'lootReactions', value = false}}).ok)
@@ -3366,7 +3366,7 @@ test('Pocket TTS is the default while saved choices migrate to the nearest voice
     assert(saved.voice == true and saved.subtitles == true)
     for _, oldProvider in ipairs({'missing', 'hybrid', 'omni', 'omnivoice', 'pocket', 'pocket-student', 'Pocket-Base', 'convai', 'invalid', 'teacher', '', false, 7}) do
       seed = {version = 2, voice = false, subtitles = false, subtitleStyle = 'overhead',
-        omniSteps = 16, followUpQuestions = true, battleReactions = false, lootReactions = false,
+        omniSteps = 16, followUpQuestions = true, battleReactions = false, battleReactionsChosen = true, lootReactions = false, lootReactionsChosen = true,
         enabledByKey = {}, future = {keep = 'unchanged'}}
       if oldProvider ~= 'missing' then seed.voiceProvider = oldProvider end
       for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
@@ -6066,65 +6066,65 @@ test('an old settings.json with a removed setting set to false loads fine as if 
   `);
 });
 
-test('Battle and loot reactions are off by default; the short-lived on-by-default rule and its once-only migration are gone (no Chosen key is written or read); Restore defaults sets both back off', () => {
+test('Battle and loot reactions are on by default; an unchosen saved false moves to on once, a chosen false stays; Restore defaults sets both back on', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == false and manager.lootReactions() == false)
-    assert(saved.battleReactions == false and saved.lootReactions == false, 'a fresh file')
-    assert(saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil, 'no Chosen flag is written')
+    assert(manager.battleReactions() == true and manager.lootReactions() == true)
+    assert(saved.battleReactions == true and saved.lootReactions == true, 'a fresh file')
+    assert(saved.battleReactionsChosen == false and saved.lootReactionsChosen == false, 'nothing is chosen yet')
     local snapshot = manager.snapshot(player).settings
-    assert(snapshot.battleReactions == false and snapshot.lootReactions == false)
+    assert(snapshot.battleReactions == true and snapshot.lootReactions == true)
     local function load(extra)
       seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'pocket', omniSteps = 16, enabledByKey = {}}
       for key, value in pairs(extra) do seed[key] = value end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.reset(); manager.configure(api, profiles); manager.prepare(player)
     end
-    -- A saved value is read as it is, with or without a leftover Chosen key (the old migration never shipped): an unchosen false stays false.
-    for _, case in ipairs({{false, nil, false}, {false, false, false}, {false, true, false}, {true, nil, true}, {true, true, true}, {true, false, true},
-        {nil, nil, false}, {'no', nil, false}, {'no', true, false}}) do
+    -- {saved value, Chosen flag, result}: only a false the player chose stays false.
+    for _, case in ipairs({{false, nil, true}, {false, false, true}, {false, true, false}, {true, nil, true}, {true, true, true}, {true, false, true},
+        {nil, nil, true}, {nil, true, true}, {'no', nil, true}, {'no', true, true}}) do
       for _, key in ipairs({'battleReactions', 'lootReactions'}) do
         local chosen = key .. 'Chosen'
         load({[key] = case[1], [chosen] = case[2]})
         local label = key .. ' ' .. tostring(case[1]) .. ' chosen ' .. tostring(case[2])
         assert(manager[key]() == case[3] and saved[key] == case[3], label)
         assert(manager.snapshot(player).settings[key] == case[3], label)
-        -- The other one was absent from the file: it is the default, off.
+        -- The other one was absent from the file: it is the default, on.
         local other = key == 'battleReactions' and 'lootReactions' or 'battleReactions'
-        assert(manager[other]() == false, label)
+        assert(manager[other]() == true, label)
       end
     end
-    -- An Apply that turns one on writes the value and no Chosen flag; it survives a reload; a refused Apply changes nothing.
+    -- An Apply that carries one writes the value and that key's Chosen flag; it survives a reload; a refused Apply changes nothing.
     load({})
-    assert(manager.applySettings(player, {battleReactions = true}))
-    assert(saved.battleReactions == true and saved.lootReactions == false and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
+    assert(manager.applySettings(player, {battleReactions = false}))
+    assert(saved.battleReactions == false and saved.lootReactions == true and saved.battleReactionsChosen == true and saved.lootReactionsChosen == false)
     manager.reset(); manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == true and manager.lootReactions() == false, 'a chosen on survives a reload')
-    assert(manager.applySettings(player, {lootReactions = true}))
+    assert(manager.battleReactions() == false and manager.lootReactions() == true, 'a chosen off survives a reload')
+    assert(manager.applySettings(player, {lootReactions = false}))
     manager.reset(); manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == true and manager.lootReactions() == true)
-    assert(manager.applySettings(player, {battleReactions = false, lootReactions = false}))
-    assert(manager.battleReactions() == false and manager.lootReactions() == false and saved.battleReactionsChosen == nil)
-    assert(not manager.applySettings(player, {battleReactions = 'on'}) and manager.battleReactions() == false, 'a refused Apply changes nothing')
+    assert(manager.battleReactions() == false and manager.lootReactions() == false)
+    assert(manager.applySettings(player, {battleReactions = true, lootReactions = true}))
+    assert(manager.battleReactions() == true and manager.lootReactions() == true and saved.battleReactionsChosen == true)
+    assert(not manager.applySettings(player, {battleReactions = 'on'}) and manager.battleReactions() == true, 'a refused Apply changes nothing')
   `);
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local battle, loot = row('battleReactions'), row('lootReactions')
-    assert(battle.type == 'bool' and battle.defaultValue == false and battle.value == false and battle.label == 'React to battles')
-    assert(loot.type == 'bool' and loot.defaultValue == false and loot.value == false and loot.label == 'React to collected loot')
-    assert(registered.applyBatch('manager', {{id = 'battleReactions', value = true}, {id = 'lootReactions', value = true}}).ok)
-    assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
+    assert(battle.type == 'bool' and battle.defaultValue == true and battle.value == true and battle.label == 'React to battles')
+    assert(loot.type == 'bool' and loot.defaultValue == true and loot.value == true and loot.label == 'React to collected loot')
+    assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}, {id = 'lootReactions', value = false}}).ok)
+    assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
     loaded = registered.loadMod('manager')
-    assert(row('battleReactions').value == true and row('lootReactions').value == true)
-    -- Restore defaults sets both back off.
+    assert(row('battleReactions').value == false and row('lootReactions').value == false)
+    -- Restore defaults sets both back on.
     local changes = core.defaults()
     local back = {}
     for _, change in ipairs(changes) do back[change.id] = change.value end
-    assert(back.battleReactions == false and back.lootReactions == false, 'both are named, at their default')
+    assert(back.battleReactions == true and back.lootReactions == true, 'both are named, at their default')
     assert(registered.applyBatch('manager', changes).ok)
-    assert(saved.battleReactions == false and saved.lootReactions == false and not manager.battleReactions() and not manager.lootReactions())
+    assert(saved.battleReactions == true and saved.lootReactions == true and manager.battleReactions() and manager.lootReactions())
     manager.reset(); manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == false and manager.lootReactions() == false, 'a reload keeps the restored defaults')
+    assert(manager.battleReactions() == true and manager.lootReactions() == true, 'a reload keeps the restored defaults')
   `);
 });
 

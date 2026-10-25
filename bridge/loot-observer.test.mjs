@@ -413,3 +413,19 @@ local before=reads;intent(drink,1);assert(reads==before+1)
 m.configure({captureContext=function()reads=reads+1;return ctx end})
 before=reads;intent(drink,1);assert(reads==before+1)
 `));
+
+test('Loot reactions on: an interaction that is not a Loot action on another character (a door, a stash, a vehicle, V) captures no context; a Loot action does', () => run(fixture + `
+local reads=0
+m.configure({captureContext=function(p)reads=reads+1;ctx.now=now;return ctx end,enabled=function()return true end})
+update()
+local stash,vehicle=object('31ULL','stash'),object('32ULL','vehicle')
+intent(drink,1,world,player,'Examine');assert(reads==0,'another action: '..reads)
+intent(drink,1,stash);assert(reads==0,'a stash: '..reads)
+intent(drink,1,vehicle);assert(reads==0,'a vehicle: '..reads)
+intent(drink,1,player);assert(reads==0,'V: '..reads)
+before['Inventory.OnInteractionUsed']({GetEntity=function()return world end},{activator=player,wrapper={valid=false,itemId=drink,action='Loot'}});assert(reads==0,'an invalid wrapper: '..reads)
+before['Inventory.OnInteractionUsed']({GetEntity=function()return world end},{activator=player});assert(reads==0,'no wrapper: '..reads)
+player.quantities[drink.hash]=nil
+intent(drink,1);assert(reads==1,'a Loot action reads once: '..reads)
+added(drink,0,1,false);local rows=m.drain();assert(#rows==1)
+`));

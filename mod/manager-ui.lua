@@ -1897,9 +1897,9 @@ local function schema()
                 {'Cinematic subtitles', 'Above the speaker'}),
         })
         categories[#categories + 1] = category('reactions', 'Automatic reactions', {
-            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, false,
+            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
                 'A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.'),
-            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, false,
+            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
                 'Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.'),
         })
         -- One section per installed add-on that has settings (docs/ADDON_API.md). The add-on wrote its own labels.

@@ -4443,6 +4443,7 @@ function convaiSpeakUpEligible(now, worldReady, manual, outputs)
     if not sample or sample.available ~= true or sample.blocked or sample.combat then return false end
     if automatic ~= nil or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
     if convaiUnpromptedBusy and convaiUnpromptedBusy() then return false end
+    if convaiHolocall ~= nil and convaiHolocall.call ~= nil then return false end
     if battles.fighting() then return false end
     return now - convaiSpeakUpState.lastManualAt >= convaiSpeakUpConfig.QUIET
 end
@@ -4835,7 +4836,10 @@ local function updateBattles(player, elapsed, worldReady)
     if not automatic and (convaiHouseWaiting or convaiHouseCurrent) then
         convaiHouseTick(player, now, worldReady, outputs, manual)
     end
+    -- One unprompted floor: an open holocall (V's own call, between its turns), a housemate line or chat (also between two lines of it) and a greeting
+    -- waiting for the channel hold a fight's or a pickup's comment back, as they hold a companion's speak-up (convaiSpeakUpEligible).
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil
+        or (convaiHolocall ~= nil and convaiHolocall.call ~= nil) or (convaiUnpromptedBusy ~= nil and convaiUnpromptedBusy())
     local function mayFollow(event, kind)
         if not event or busy then return false end
         if not lastAutomatic then return true end
@@ -6648,7 +6652,9 @@ registerForEvent('onUpdate', function(delta)
                         elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-stepdown' or keyId == 'vision-border' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
-                        elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)
+                        -- A plan limit or a refused key: a turn V asked for says so; an automatic reaction (battle, loot) just stops.
+                        elseif keyId then
+                            if not pending.reaction then convaiNotices.send(player, 'quota-exhausted', keyText) end
                         elseif not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                     else
                         -- The first reply that runs without memory on a limited plan says so once.
