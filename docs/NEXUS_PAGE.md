@@ -24,21 +24,23 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]Talk has consequences.[/b] Threaten an ordinary pedestrian and they react: they walk or run off, call the police, or, if they are a ganger, merc or guard, fight back. It depends on who they are and where you are. Story and quest characters are never affected.
 [*][b]Story characters where they stand.[/b] Turn on Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer in place, with voice and face only. The story is left alone.
 [*][b]Group chat.[/b] Talk to two or three companions at once. They take turns and pick up from each other.
-[*][b]Phone Chat and holocalls.[/b] Text any character that has a profile here, not only the game's contacts, from a Chat tab on V's phone, or call them and watch them pick up live on screen.
+[*][b]Phone Chat and holocalls.[/b] Text any character that has a profile here, not only the game's contacts, from a Chat tab on V's phone (with the same J invite and L dismiss buttons as the Contacts list), or call them and watch them pick up live on screen.
 [*][b]No waiting.[/b] Characters you look at or walk up to get their conversation ready in the background, so they answer straight away.
 [*][b]Replies that sound like people.[/b] Characters echo your question back less, lean on stock closing lines less, and no longer recite where they are or what the weather is. Their character text is leaner, with lore fixes for many named characters.
 [/list][b]Companions[/b][list]
 [*][b]Invite almost anyone[/b] from Characters to invite, plus hundreds more character models from the Model browser. With Mod Configuration Menu, type a name in its Search settings box to find a model at once, Rita Wheeler included, and every model shows a proper name. No party size limit.
 [*][b]They live alongside you.[/b] They walk beside you, follow you through doors, lifts and fast travel, sit with you on couches, benches and bar stools, ride in your car and fight with the game's own combat AI.
-[*][b]Immersive invitations (new, off by default).[/b] Switch it on in Settings > Companion behavior > Immersive invitations and inviting a character becomes an appointment: they come to you on foot or by car, text when they arrive and wait a while. You can meet them somewhere on the way, or cancel it with plain words like "never mind".
-[*][b]Housemates (new, off by default).[/b] Switch it on in Settings > Companion behavior > Housemates and a character you tell they can stay at your place moves into one of your apartments and lives there.
+[*][b]Immersive invitations (new, off by default).[/b] Switch it on in Settings > Companion behavior > Immersive invitations and inviting a character becomes an appointment: they come to you on foot or by car, text when they arrive and wait a while. You can meet them somewhere on the way, or cancel it with plain words like "never mind, cancel that", also when you say it to someone else. If the car cannot be used, the character walks instead, and the game log says why.
+[*][b]Housemates (new, off by default).[/b] Switch it on in Settings > Companion behavior > Housemates and a character you tell they can stay at your place moves into one of your apartments and lives there. They no longer vanish when the flat has a story fact on: they stay in your own apartment and step out of the way only during real scenes.
 [*][b]At home in your flat.[/b] While you stay in your own apartment, companions sit down on seats by themselves instead of trailing you, and on a bar stool they face the counter.
-[*][b]Companions change outfits (new, off by default).[/b] Switch it on in Settings > Companion behavior > Companions change outfits and companions change into other looks, only while you are not looking.
+[*][b]Companions change outfits (new, off by default).[/b] Switch it on in Settings > Companion behavior > Companions change outfits and companions change into other looks, only while you are not looking. One who stood up to change sits down again within seconds.
+[*][b]Pay characters in eddies (new, experimental, off by default).[/b] Switch it on in Settings > Companion behavior > Pay characters in eddies, then type a plain line like "I pay you 500 eddies" to one of your own characters and the eddies leave your balance with the game's own pop-up. Voice, phone chat and calls do not pay yet. It is new and not yet widely tested.
 [*][b]They speak up.[/b] Now and then a companion starts a remark by themselves at a calm moment. Settings > Conversations > Companions speak up (Speaks up rarely by default, Off turns it off).
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
 [*][b]Send them home.[/b] Tell them to leave, or use Dismiss in Current party.
-[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up (off by default, switch them on under Automatic reactions).
+[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up. Both are on by default (Settings > Automatic reactions: React to battles and React to collected loot) and have their own cap on the shared Convai key.
+[*][b]Quieter streets in a talk.[/b] The game's own ambient barks of people nearby stay muted for the whole conversation, also in the gaps between turns.
 [*][b]Night City Allies followers talk.[/b] NCA followers who are characters here talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
 [/list][b]Faces and voices[/b][list]
 [*][b]Faces that act.[/b] Lips follow the words, the face changes at the very word where the feeling shifts, and eyes and head follow you.
@@ -49,7 +51,7 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]OmniVoice on AMD Radeon cards (experimental).[/b] Untested on AMD hardware. You install AMD's ROCm PyTorch in your own Python and the mod downloads nothing for it. On a PC with an AMD card and no NVIDIA card the game points you to the steps by itself.
 [/list][b]Story and memory[/b][list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
-[*][b]They know who you are to them.[/b] Strangers no longer act as if they knew V, "I gave you eddies" is understood as a payment from V to them, and a companion knows whether they hold a weapon.
+[*][b]They know who you are to them.[/b] Strangers no longer act as if they knew V, "I gave you eddies" is understood as a payment from V to them, and a companion knows whether they hold a weapon. A character also describes what V visibly wears when a saved Wardrobe outfit is on, not only the equipped clothes, and with Dark Future a hungry, thirsty or tired V is noticed from the first stage.
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make one character, or everyone, forget at any time.
 [*][b]Johnny in your head.[/b] Turn it on (off by default), give a key to Talk to Johnny by voice or by text, and Johnny answers in V's head wherever you look. He knows your jobs, his own history and how things stand between you. Choose Speaks up rarely or Speaks up often and he also comments on people you meet, jobs you finish and romances. He is only busy during real scenes, such as a cutscene with a choice on screen or a call, and should no longer turn you away while you ride a lift or stand around.
 [/list][b]Make it yours[/b][list]
@@ -66,7 +68,7 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*]The heavy work runs in a separate background service, not inside the game, and the default setup uses no video memory.
 [*]Unused models unload on their own, and Local AI steps down to a lighter model when the game needs the memory. On cards from 12 to 24 GB it leaves more room for the game.
 [*]Works with Vortex, Mod Organizer 2 or a manual install.
-[*]A stale player-memory lock no longer stops the background service from starting, and the logs are quieter.
+[*]A stale player-memory lock no longer stops the background service from starting, and the logs are quieter. The log now has start-up timing lines, and error reports are clearer.
 [/list]
 
 [size=4][b]Recommended settings[/b][/size]
@@ -228,13 +230,13 @@ Game 2.5 is the default and the main file, game 2.31 is an optional file ("Optio
 Scripts (the main file, game 2.5, zip Scripts.zip):
 
 ```text
-Game version 2.5. Get the Runtime from Hugging Face. New: content packs, key bindings page, invitations by car, housemates, outfits, Music and TV info, Model browser search, sampling controls, experimental OmniVoice on AMD, official RED4ext.
+Game version 2.5. Get the Runtime from Hugging Face. New: content packs, key bindings, car invitations, housemates, outfits, pay in eddies (experimental), battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
 ```
 
 Scripts - for game 2.31 (older game version) (optional file, zip Scripts-for-game-2.31.zip):
 
 ```text
-Older game version 2.31. Get the Runtime for game 2.31 from Hugging Face. New: content packs, key bindings page, invitations by car, housemates, outfits, Music and TV info, Model browser search, sampling controls, experimental OmniVoice on AMD.
+Older game version 2.31. Get its Runtime from Hugging Face. New: content packs, key bindings, car invitations, housemates, outfits, pay in eddies (experimental), battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
 ```
 
 ## 3. Short summary (brief overview field)
