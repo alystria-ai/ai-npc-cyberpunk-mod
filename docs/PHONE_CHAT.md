@@ -181,7 +181,7 @@ coverage is recorded in [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md).
   tab margin, and a matching 7-unit underline. The quest-reply container is hidden
   with its layout space removed. The idle composer measures 72 units high after
   removing the help row. The user's further request changes the input to cyan and
-  adds “Press Enter to write / Esc to stop typing” inside it, with an Enter-to-send
+  adds “Press Enter to write / Esc to close” inside it (Esc outside the box closes the conversation like the game's C, Esc inside only stops typing; Enter outside the box only focuses it), with an Enter-to-send
   cue while focused. Codeware's 15% placeholder opacity is raised to 75% only here.
 - 18 focused phone checks pass, including three new checks for opaque native names,
   stale quest renderers/activation, native visibility restoration and composer hints.

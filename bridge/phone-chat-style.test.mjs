@@ -140,7 +140,7 @@ input.controller={IsFocused=function() return focused end, GetRootWidget=functio
   SetText=function() error('A style change must not replace the draft') end}
 local popup={GetRootWidget=function() return root end, ConvaiChatContact=function() return contact end}
 m.composer(popup)
-assert(input.placeholder=='Press Enter to write  /  Esc to stop typing' and not hint.visible)
+assert(input.placeholder=='Press Enter to write  /  Esc to close' and not hint.visible)
 focused=true; m.composer(popup,'Unable to connect. Try again.')
 assert(input.placeholder:find('Enter to send') and hint.visible)
 contact=''; hint.visible=true; m.composer(popup,'')
@@ -172,14 +172,14 @@ observers['CyberpunkConvai.ConvaiPhoneChatInput.OnFocusReceived'](input.controll
 assert(input.placeholder:find('Enter to send'))
 focused=false
 observers['CyberpunkConvai.ConvaiPhoneChatInput.OnFocusLost'](input.controller)
-assert(input.placeholder=='Press Enter to write  /  Esc to stop typing')
+assert(input.placeholder=='Press Enter to write  /  Esc to close')
 assert(m.lastError==nil, m.lastError)
 `));
 
 test('world composer clears the placeholder of its own box without editing drafts or other notifications', () => runLua(setup + `
 textLetterCase={OriginalCase=3}
 local data={title='TALK TO JUDY',message='Type your message to the character.'}
-local placeholder='Press Enter to write  /  Esc to stop typing'
+local placeholder='Press Enter to write  /  Esc to close'
 local letterCase=1
 local input={SetDefaultText=function(_,value) placeholder=value end,
   GetDefaultText=function() return placeholder end,

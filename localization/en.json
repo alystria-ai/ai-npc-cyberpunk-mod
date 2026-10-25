@@ -393,7 +393,7 @@
     "Driving": "Driving",
     "Dynamic info": "Dynamic info",
     "ENTER  Write / Send   /   ESC  Stop typing": "ENTER  Write / Send   /   ESC  Stop typing",
-    "ENTER  Write message   /   ESC  Stop typing": "ENTER  Write message   /   ESC  Stop typing",
+    "ENTER  Write message   /   ESC  Close": "ENTER  Write message   /   ESC  Close",
     "Earlier turns kept": "Earlier turns kept",
     "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.": "Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.",
     "Edit characters": "Edit characters",
@@ -781,7 +781,7 @@
     "Preparing {name}: waiting for the voice model to load…": "Preparing {name}: waiting for the voice model to load…",
     "Presence penalty": "Presence penalty",
     "Press Confirm to put every setting back to its default.": "Press Confirm to put every setting back to its default.",
-    "Press Enter to write  /  Esc to stop typing": "Press Enter to write  /  Esc to stop typing",
+    "Press Enter to write  /  Esc to close": "Press Enter to write  /  Esc to close",
     "Press it to open the Companion Manager while you play.": "Press it to open the Companion Manager while you play.",
     "Press it to type to the character you face.": "Press it to type to the character you face.",
     "Press it to type to the characters around you at once.": "Press it to type to the characters around you at once.",
@@ -2204,7 +2204,7 @@
       "Mistral’s free limit is reached for now. Try again in a moment.",
       "No reply received. Your message is in the draft; press Enter to retry.",
       "Opening chat. Waiting for the conversation service.",
-      "Press Enter to write  /  Esc to stop typing",
+      "Press Enter to write  /  Esc to close",
       "Saved Chat cleanup could not be verified. Please wait for the memory service.",
       "The Mistral model is unavailable right now. Try again in a minute.",
       "The custom provider did not accept your key. Check it in Settings > Conversation provider.",
@@ -2235,7 +2235,7 @@
       "CHAT",
       "Chat",
       "Close the phone to finish the pending companion requests.",
-      "ENTER  Write message   /   ESC  Stop typing",
+      "ENTER  Write message   /   ESC  Close",
       "Microphone connection timed out. Please try again.",
       "Microphone unavailable. Check your Windows input device.",
       "No speech was heard. Hold the talk key while you speak.",
@@ -3980,7 +3980,7 @@
       "references": [
         "mod/phone-chat-style.lua:193",
         "mod/phone-chat-style.lua:267",
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:492",
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:522",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
       ]
     },
@@ -5973,15 +5973,15 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:366"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:388"
       ]
     },
-    "ENTER  Write message   /   ESC  Stop typing": {
+    "ENTER  Write message   /   ESC  Close": {
       "contexts": [
         "phone.native"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:277"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:292"
       ]
     },
     "Earlier turns kept": {
@@ -9199,7 +9199,7 @@
         "mod/mcm-host.lua:446"
       ]
     },
-    "Press Enter to write  /  Esc to stop typing": {
+    "Press Enter to write  /  Esc to close": {
       "contexts": [
         "phone.chat"
       ],
