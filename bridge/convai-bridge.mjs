@@ -66,7 +66,7 @@ import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
-import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
+import {PhoneChat, parsePhoneState, phoneRecentConversationContext, rosterContacts} from './phone-chat.mjs';
 import {PhoneWarm, PHONE_HOST_IDLE_MS} from './phone-warm.mjs';
 import {PhoneFailureLog, PHONE_CODES} from './phone-failure.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
@@ -832,6 +832,9 @@ const phoneOutput = resolve(runtime, 'phone-chat-output.json');
 const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
+// Every named character is a Chat contact (rosterContacts): the shipped phone contacts plus one per other profile.
+const shippedPhoneContacts = await requiredJson('characters/phone-contacts.json');
+const phoneContacts = [...shippedPhoneContacts, ...rosterContacts(shippedPhoneContacts, roster)];
 // Why a Phone Chat message failed (bridge/phone-failure.mjs): one log line, the small state file the support report carries, and the
 // automatic error report. The player's phone only says "Message could not be delivered"; this says why. No message or reply text.
 const phoneFailureStatePath = resolve(runtime, 'phone-failure-state.json');
@@ -844,7 +847,7 @@ const phoneFailures = new PhoneFailureLog({
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
-  contacts: await requiredJson('characters/phone-contacts.json'), ids,
+  contacts: phoneContacts, ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
   contextCurrent: context => phoneKnowledge.current(context),

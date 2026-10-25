@@ -19,9 +19,16 @@ typing, after which the normal back action returns to the Chat contact list.
 Typed case, clipboard operations and caret movement are preserved. Quest replies
 remain in the game's Messages and Contacts flows.
 
-The character does not have to be spawned or nearby. Chat lists active, known
-contacts supported by the conversation catalog, including contacts with no quest
-SMS. Newly unlocked contacts are picked up when opening the tab, because each open
+The character does not have to be spawned or nearby. Chat lists every character
+the mod has a profile for. The shipped phone contacts (`characters/phone-contacts.json`)
+appear once the journal has them as active, known contacts, including contacts with no
+quest SMS. Every other named profile (Rita Wheeler and the rest) is listed always, with
+the game's unknown-caller picture, because the game's journal has no contact for them;
+their contact id is their profile key and the list is sorted by name with the others
+(about 125 rows, in the phone's own scrolling list). The two ambient residents are not
+listed, and characters the player made are not yet (they have no Convai character for
+this route). Such a contact can be texted but cannot take a holocall (the call is refused
+with the usual notice). Content packs that rename a character show the new name. Newly unlocked contacts are picked up when opening the tab, because each open
 reads the journal's active contacts again. The Contacts J/L mapping needs no such
 refresh: `companions.registerPhoneContacts` registers every contact in
 `characters/phone-contacts.json` once per session, whether or not the game has

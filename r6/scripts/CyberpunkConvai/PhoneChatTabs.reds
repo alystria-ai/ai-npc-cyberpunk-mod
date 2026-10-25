@@ -15,6 +15,11 @@ public let convaiChat: Bool;
 public let convaiChat: Bool;
 @addField(JournalNotificationData)
 public let convaiChatGeneration: Uint32;
+// For a Chat contact the journal has no entry for: her contact id and name (journalEntry is empty then).
+@addField(JournalNotificationData)
+public let convaiChatId: String;
+@addField(JournalNotificationData)
+public let convaiChatName: String;
 
 public class ConvaiPhoneTabEvent extends Event {
     public let index: Int32;
@@ -116,6 +121,7 @@ private final func ConvaiShowChatContacts() -> Void {
     let contacts: array<ref<IScriptable>>;
     let entries: array<wref<JournalEntry>>;
     let context: JournalRequestContext;
+    let listed: array<String>;
     context.stateFilter.active = true;
     this.m_journalMgr.GetContacts(context, entries);
     // Read active, known contacts directly, including those with no quest SMS.
@@ -134,7 +140,23 @@ private final func ConvaiShowChatContacts() -> Void {
             // This is a display row. Activation below always opens AI chat.
             row.isCallable = true;
             ArrayPush(contacts, row);
+            ArrayPush(listed, row.id);
         };
+    };
+    // Every other registered character (a profile the game's journal has no contact for) is listed by her own name, sorted in
+    // with the rest by name. Her row has no journal hash: opening it carries her id and name instead (ConvaiOpenChat).
+    // The shipped phone contacts are registered without a name and appear only once the journal unlocks them.
+    for id in this.m_player.ConvaiPhoneChatContactIds() {
+        if ArrayContains(listed, id) || StrLen(this.m_player.ConvaiPhoneChatContactName(id)) == 0 { continue; };
+        let row = new ContactData();
+        row.convaiChat = true;
+        row.type = MessengerContactType.Contact;
+        row.id = id;
+        row.contactId = id;
+        row.hash = 0;
+        row.localizedName = this.m_player.ConvaiPhoneChatContactName(id);
+        row.isCallable = true;
+        ArrayPush(contacts, row);
     };
     this.m_screenType = PhoneScreenType.Contacts;
     this.m_convaiChatState = ConvaiPhoneChatState.List;
@@ -238,7 +260,9 @@ private final func ConvaiOpenChat(contact: wref<ContactData>) -> Void {
     let data = new JournalNotificationData();
     data.convaiChat = true;
     data.convaiChatGeneration = this.m_convaiChatGeneration;
-    data.journalEntry = this.m_journalMgr.GetEntry(Cast<Uint32>(contact.hash));
+    if contact.hash != 0 { data.journalEntry = this.m_journalMgr.GetEntry(Cast<Uint32>(contact.hash)); };
+    data.convaiChatId = contact.id;
+    data.convaiChatName = contact.localizedName;
     data.type = MessengerContactType.SingleThread;
     data.mode = JournalNotificationMode.HUD;
     data.openedFromPhone = true;

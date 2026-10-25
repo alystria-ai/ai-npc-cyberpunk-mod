@@ -4030,8 +4030,8 @@
       "references": [
         "mod/phone-chat-style.lua:193",
         "mod/phone-chat-style.lua:267",
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:522",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:545",
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:402"
       ]
     },
     "CLOSE PHONE TO CONTINUE": {
@@ -4255,7 +4255,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:250",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:331"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:355"
       ]
     },
     "Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.": {
@@ -5320,7 +5320,7 @@
       "references": [
         "mod/phone-chat-style.lua:40",
         "mod/phone-chat.lua:308",
-        "mod/phone-chat.lua:459"
+        "mod/phone-chat.lua:492"
       ]
     },
     "Conversation is unavailable for this contact.": {
@@ -5329,7 +5329,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:50",
-        "mod/phone-chat.lua:765"
+        "mod/phone-chat.lua:798"
       ]
     },
     "Conversation profile cleared.": {
@@ -5427,7 +5427,7 @@
       "references": [
         "mod/holocall.lua:730",
         "mod/phone-chat-style.lua:43",
-        "mod/phone-chat.lua:632"
+        "mod/phone-chat.lua:665"
       ]
     },
     "Conversations are disabled in Companion Manager.": {
@@ -5436,7 +5436,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:49",
-        "mod/phone-chat.lua:765"
+        "mod/phone-chat.lua:798"
       ]
     },
     "Conversations go back to Convai free tier.": {
@@ -6039,7 +6039,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:388"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:411"
       ]
     },
     "ENTER  Write message   /   ESC  Close": {
@@ -6047,7 +6047,7 @@
         "phone.native"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:292"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:315"
       ]
     },
     "Earlier turns kept": {
@@ -7734,8 +7734,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:39",
-        "mod/phone-chat.lua:628",
-        "mod/phone-chat.lua:766"
+        "mod/phone-chat.lua:661",
+        "mod/phone-chat.lua:799"
       ]
     },
     "Memory in use": {
@@ -7792,7 +7792,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:47",
-        "mod/phone-chat.lua:763"
+        "mod/phone-chat.lua:796"
       ]
     },
     "Microphone connection timed out. Please try again.": {
@@ -8349,7 +8349,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:46",
-        "mod/phone-chat.lua:684"
+        "mod/phone-chat.lua:717"
       ]
     },
     "No settings were supplied.": {
@@ -9988,8 +9988,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:38",
-        "mod/phone-chat.lua:622",
-        "mod/phone-chat.lua:767"
+        "mod/phone-chat.lua:655",
+        "mod/phone-chat.lua:800"
       ]
     },
     "Saved at {path}": {
@@ -12928,7 +12928,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:42",
-        "mod/phone-chat.lua:630"
+        "mod/phone-chat.lua:663"
       ]
     },
     "Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough.": {
@@ -12987,7 +12987,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:45",
-        "mod/phone-chat.lua:671"
+        "mod/phone-chat.lua:704"
       ]
     },
     "Unavailable": {
@@ -13539,7 +13539,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:44",
-        "mod/phone-chat.lua:634"
+        "mod/phone-chat.lua:667"
       ]
     },
     "Wait for your summoned car to arrive.": {
@@ -13704,7 +13704,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:48",
-        "mod/phone-chat.lua:763"
+        "mod/phone-chat.lua:796"
       ]
     },
     "Walk": {
