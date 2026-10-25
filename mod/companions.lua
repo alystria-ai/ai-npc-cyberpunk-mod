@@ -397,15 +397,23 @@ local function attachFollower(entry, player)
         return false, entry.error
     end
     entry.phantomControllersDisabled = appearance.prepare(npc)
-    local role = NewObject('AIFollowerRole')
-    role.followerRef = Game.CreateEntityReference('#player', {})
-    ai:SetAIRole(role)
-    ai:OnAttach()
-    npc.isPlayerCompanionCachedTimeStamp = 0
     entry.npc = npc
-    entry.role = role
-    entry.state = 'ready'
-    entry.floorFix = {at = runtimeClock + floorSettle.first, tries = 0}
+    if entry.visitor then
+        -- An immersive-invitation visitor (mod/immersive-invitations.lua): no follower role yet. She is moved by AI commands from
+        -- her own module and joins the party (M.joinVisitor) when V reaches her. Every loop below keys on state 'ready', so a
+        -- visiting copy is ignored by formation, fleet, recovery, tactics, gestures and seating.
+        entry.state = 'visiting'
+    else
+        local role = NewObject('AIFollowerRole')
+        role.followerRef = Game.CreateEntityReference('#player', {})
+        ai:SetAIRole(role)
+        ai:OnAttach()
+        npc.isPlayerCompanionCachedTimeStamp = 0
+        entry.role = role
+        entry.state = 'ready'
+    end
+    -- A visitor walks on the navmesh from her first command and is not in the party loop that settles a fresh copy on the floor.
+    if not entry.visitor then entry.floorFix = {at = runtimeClock + floorSettle.first, tries = 0} end
     -- Alt Cunningham's copy (companion-records.lua): invulnerable, once, no per-frame work. nil: not a protected model.
     entry.invulnerable = spawnRecords.protect(entry.entityID, entry.modelRecordID)
     -- Combat readiness (companion-records.lua): level scaling to V once, the attitude group read back once. A difference is
@@ -443,7 +451,11 @@ local function spawnCopy(key, invitation, returning)
     if not recordOk or not record then return nil, 'This model is not available in your installation.' end
     local typeOk, character = pcall(function() return record:IsA('gamedataCharacter_Record') end)
     if not typeOk or not character then return nil, 'This record is not a character model.' end
-    if not groupFrame then
+    -- An immersive-invitation visitor is created at a spot her module chose (hidden from V, far from V), not beside V, and is not
+    -- part of the group frame until she joins (M.joinVisitor).
+    local appointment=not returning and invitation and type(invitation.appointment)=='table' and invitation.appointment or nil
+    if appointment and not clearance.isPoint(appointment.position) then return nil,'The meeting spot is not valid.' end
+    if not groupFrame and not appointment then
         local ok, _, view = pcall(function() return crosshairData(Game.GetTargetingSystem(), player) end)
         local forward = ok and view or player:GetWorldForward()
         if not forward then forward = player:GetWorldForward() end
@@ -471,9 +483,13 @@ local function spawnCopy(key, invitation, returning)
     local adoption=not returning and invitation and type(invitation.adoption)=='table' and invitation.adoption or nil
     local preferred=adoption and clearance.isPoint(adoption.position) and copyPosition(adoption.position)
         or formationPosition(player, freeLane)
-    local spawnPosition, placementError, deferred = placement.find(player, preferred,occupiedPositions(),body)
-    if deferred then return nil,nil,true end
-    if not spawnPosition then return nil, placementError end
+    local spawnPosition, placementError, deferred
+    if appointment then spawnPosition=copyPosition(appointment.position)
+    else
+        spawnPosition, placementError, deferred = placement.find(player, preferred,occupiedPositions(),body)
+        if deferred then return nil,nil,true end
+        if not spawnPosition then return nil, placementError end
+    end
     local spawnRecord, recordError, spawnRecordName, spawnAppearance, spawnFallback = spawnRecords.resolve(recordID)
     if not spawnRecord then return nil, recordError end
     local spec = NewObject('DynamicEntitySpec')
@@ -492,6 +508,12 @@ local function spawnCopy(key, invitation, returning)
     if floorZ==false then return nil,nil,true end
     spec.position = floorZ and Vector4.new(spawnPosition.x,spawnPosition.y,floorZ,1) or spawnPosition
     spec.orientation = adoption and adoption.orientation or player:GetWorldOrientation()
+    if appointment and type(appointment.facing)=='table' then
+        local facingOk,facing=pcall(function()
+            return Quaternion.BuildFromDirectionVector(Vector4.new(appointment.facing.x or 0,appointment.facing.y or 0,0,0))
+        end)
+        if facingOk and facing then spec.orientation=facing end
+    end
     spec.spawnInView = true
     spec.active = true
     spec.alwaysSpawned = true
@@ -524,6 +546,7 @@ local function spawnCopy(key, invitation, returning)
         clearance = body, appearance = appearance,
         person = behavior.new(returning and returning.serial or serial),
         transitRecreated = returning ~= nil,
+        visitor = appointment and true or nil, appointmentId = appointment and appointment.id or nil,
     }
     if returning then
         for index,prior in ipairs(entries) do if prior==returning then entries[index]=entry; break end end
@@ -613,6 +636,11 @@ end
 function M.dismiss(serialToDismiss)
     for index,entry in ipairs(entries) do
         if entry.serial==serialToDismiss then
+            -- A visitor's module is told once why she is going (V dismissed her, a fast travel, or the module itself).
+            if entry.visitor and not entry.lostNotified then
+                entry.lostNotified=true
+                if M.onVisitorLost then pcall(M.onVisitorLost,entry.serial,entry.lostReason or 'dismissed') end
+            end
             -- Removing a seated driver can make the native passenger state
             -- switch V into that seat. Retain the actor and role until the
             -- chauffeur controller has confirmed the trip cleanup.
@@ -669,6 +697,95 @@ function M.dismiss(serialToDismiss)
     end
     return false
 end
+-- ---- Immersive-invitation visitors (mod/immersive-invitations.lua) ---------------------------------------------------------------
+-- A visitor is a managed copy in state 'visiting': created at a spot her module chose, moved only by AI commands through the same
+-- actuator party members use, and ignored by every party loop. M.joinVisitor makes her a normal party member without respawning.
+local function visitorEntry(serial)
+    for _,entry in ipairs(entries) do
+        if entry.serial==serial and entry.visitor and entry.state=='visiting' then return entry end
+    end
+    return nil
+end
+function M.visitors()
+    local rows={}
+    for _,entry in ipairs(entries) do
+        if entry.visitor then
+            local row={serial=entry.serial,key=entry.key,profileKey=entry.profileKey,name=entry.name,state=entry.state,
+                appointmentId=entry.appointmentId,error=entry.error}
+            if entry.state=='visiting' and entry.npc then
+                local ok,at=pcall(function()
+                    if not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then return nil end
+                    local p=entry.npc:GetWorldPosition()
+                    return {x=p.x,y=p.y,z=p.z}
+                end)
+                if ok and at then row.position=at else row.lost=true end
+            end
+            rows[#rows+1]=row
+        end
+    end
+    return rows
+end
+-- Sense this visitor's movement (call once per module step) and return its feedback, or nil when she is not a live visitor.
+function M.visitorSense(serial,dt)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.motor then return nil end
+    local ok,feedback=pcall(function()
+        local at=space.copy(entry.npc:GetWorldPosition())
+        local speed=entry.position and space.ground(entry.position,at)/math.max(dt,0.05) or 0
+        entry.position=at
+        local f=actuator.sense(entry.motor,at,speed,dt)
+        return {position=at,speed=speed,complete=f.complete==true,failed=f.failed==true,active=f.active==true,
+            stalled=f.stalled==true,state=f.state}
+    end)
+    return ok and feedback or nil
+end
+-- A native walk to the point (the navmesh route, the actuator's own obstacle handling). False while a cancellation is pending or when
+-- the command was refused: the caller asks again on a later step.
+function M.visitorWalk(serial,target,gait)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.motor then return false end
+    local ok,sent=pcall(actuator.board,entry.motor,target,{navigate=true,gait=gait or 'Walk'})
+    return ok and sent==true
+end
+function M.visitorHold(serial)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.motor then return false end
+    local ok,sent=pcall(actuator.stay,entry.motor)
+    return ok and sent==true
+end
+function M.dismissVisitor(serial,reason)
+    for _,entry in ipairs(entries) do
+        if entry.serial==serial and entry.visitor then entry.lostReason=reason or 'module'; break end
+    end
+    return M.dismiss(serial)
+end
+function M.joinVisitor(serial)
+    local entry=visitorEntry(serial)
+    if not entry then return false,'She is not waiting for V.' end
+    local player=Game.GetPlayer()
+    if not player then return false,'World is not ready' end
+    local ok,err=pcall(function()
+        if not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then error('She is no longer there.') end
+        pcall(actuator.release,entry.motor)
+        local ai=entry.npc:GetAIControllerComponent()
+        local role=NewObject('AIFollowerRole')
+        role.followerRef=Game.CreateEntityReference('#player',{})
+        ai:SetAIRole(role); ai:OnAttach()
+        entry.npc.isPlayerCompanionCachedTimeStamp=0
+        entry.role=role
+    end)
+    if not ok then return false,tostring(err) end
+    entry.visitor,entry.appointmentId=nil,nil
+    entry.state='ready'
+    if not groupFrame then
+        groupFrame=travel.new(space.copy(player:GetWorldPosition()),player:GetWorldForward())
+        commandCursor=0
+    end
+    if convaiLocomotion then convaiLocomotion.active=true end
+    if M.onPartyChanged then pcall(M.onPartyChanged) end
+    return true
+end
+
 function M.dismissAll()
     local result=true
     for index=#entries,1,-1 do if not M.dismiss(entries[index].serial) then result=false end end
@@ -721,7 +838,7 @@ function M.identity(npc)
     if not ok then return nil end
     for _, entry in ipairs(entries) do
         if tostring(entry.entityID.hash) == identity then
-            return entry.state == 'ready' and entry.profileKey or nil,
+            return (entry.state == 'ready' or entry.state == 'visiting') and entry.profileKey or nil,
                 entry.profileKey and entry.profileName or entry.name, true
         end
     end
@@ -734,7 +851,7 @@ function M.connectionProfiles()
     table.sort(ordered, function(a, b) return a.slot < b.slot end)
     for _, entry in ipairs(ordered) do
         local alive = entry.state == 'spawning'
-        if entry.state == 'ready' then
+        if entry.state == 'ready' or entry.state == 'visiting' then
             local ok, attached = pcall(function()
                 return entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool()
             end)
@@ -753,7 +870,7 @@ function M.conversationCandidates(player, radius)
     if not player then return result end
     local origin = player:GetWorldPosition()
     for _, entry in ipairs(entries) do
-        if entry.profileKey and entry.state == 'ready' and entry.npc and entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() then
+        if entry.profileKey and (entry.state == 'ready' or entry.state == 'visiting') and entry.npc and entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() then
             local pos = entry.npc:GetWorldPosition()
             local distance = math.sqrt((pos.x-origin.x)^2 + (pos.y-origin.y)^2 + (pos.z-origin.z)^2)
             if distance <= radius then
@@ -1144,6 +1261,15 @@ function M.beginFastTravel()
     -- suspended state stays the first travel's (it resumes once, when the last recovery ends).
     local previous=transit
     local party={}
+    -- An immersive-invitation visitor is never carried to V: she goes on to her meeting spot (mod/immersive-invitations.lua), so her
+    -- body is deleted here and a deletion the game has not finished stays in the list as a receipt (update retires it).
+    for index=#entries,1,-1 do
+        local entry=entries[index]
+        if entry.visitor and entry.state~='leaving' then
+            entry.lostReason='fast-travel'
+            pcall(M.dismiss,entry.serial)
+        end
+    end
     for _,entry in ipairs(entries) do
         local eligible=entry.state=='spawning'
         if previous and entry.state=='transit' then
@@ -1175,6 +1301,7 @@ function M.beginFastTravel()
                 retiredCommands=commands,
                 transitError=entry.motor and entry.motor.look and 'The previous gaze request could not be released.' or nil}
         end
+        if entry.state=='leaving' and entry.visitor then party[#party+1]=entry end
         -- A failed copy that is still standing goes with the party's receipts (retired again by update), never dropped without a delete.
         if entry.state=='failed' and not entry.removed and (entry.cleanupTries or 0)<5 then
             pcall(retireFailedCopy,entry)
@@ -1422,6 +1549,135 @@ local function hiddenFromPlayer(player,at)
         Vector4.new(at.x,at.y,at.z+1.2,1))
 end
 local setVisible
+-- ---- Where an immersive-invitation visitor appears (mod/immersive-world.lua, docs/IMMERSIVE_INVITATIONS.md) -------------------------
+-- A hidden, walkable, reachable spot at a distance from a meeting place. At most VISITOR_BATCH candidates are judged per call and the
+-- rest are left for the next call (the cursor lives in `state`), so a search spreads over several module steps and never spends more than
+-- the shared per-update query budget. Returns spot, or nil + reason (no candidate fits, final), or nil,nil,true (ask again).
+--   request = {destination, mode = 'walk' | 'close' | 'standing' | 'exit', maxDistance, relax = 0..4, from (exit: her position)}
+local VISITOR_BATCH,VISITOR_ROUTE_SLACK,VISITOR_ROUTE_CAP,VISITOR_FLOOR=3,6,160,2.5
+local function visitorBands(request)
+    local mode,relax=request.mode,request.relax or 0
+    local list
+    if mode=='close' then list={30,24,18,14}
+    elseif mode=='standing' then list={6,4,8,3}
+    elseif mode=='exit' then list={55,45,38,30}
+    else list={90,70,50,40,30,24,18} end
+    local maximum=request.maxDistance or 90
+    local minimum=mode=='walk' and 35 or mode=='close' and 15 or mode=='exit' and 28 or 0
+    if relax>=2 and mode=='walk' then minimum=14 end
+    if relax>=3 and mode=='walk' then minimum=8 end
+    local out={}
+    for _,distance in ipairs(list) do
+        if (mode=='exit' or mode=='standing' or distance<=maximum) and distance>=math.min(minimum,maximum) then out[#out+1]=distance end
+    end
+    if #out==0 then out[1]=math.max(minimum,math.min(maximum,18)) end
+    return out
+end
+function M.findVisitorSpot(key,request,state)
+    local player=Game.GetPlayer()
+    if not player then return nil,'World is not ready' end
+    local definition=records[key]
+    if not definition then return nil,'Unknown companion' end
+    local body=placement.profile(definition,key)
+    local nav=Game.GetAINavigationSystem()
+    local good=Enum.new('worldNavigationRequestStatus','OK')
+    local mode=request.mode
+    local destination=request.destination
+    if not clearance.isPoint(destination) then return nil,'The meeting place is not valid.' end
+    local viewer=space.copy(player:GetWorldPosition())
+    -- Where she walks to: walkable ground at the meeting place (V may stand on a ledge or in a car).
+    if mode~='exit' and not state.goal then
+        local found=nav:FindPointInSphereForCharacter(Vector4.new(destination.x,destination.y,destination.z,1),3,player)
+        if not found or found.status~=good or not clearance.isPoint(found.point) then
+            -- A map pin sits at some height above or below the street: look in a tall box before giving up.
+            found=nav:FindPointInBoxForCharacter(Vector4.new(destination.x,destination.y,destination.z,1),Vector4.new(3,3,25,0),player)
+        end
+        if not found or found.status~=good or not clearance.isPoint(found.point) then
+            return nil,'Walkable ground could not be found at the meeting place.'
+        end
+        state.goal=space.copy(found.point)
+    end
+    local origin=mode=='exit' and (request.from or viewer) or state.goal
+    if not state.list then
+        local forward=cameraForward(player)
+        local base=forward and math.atan2(-forward.y,-forward.x) or 0
+        if mode=='exit' then base=math.atan2(origin.y-viewer.y,origin.x-viewer.x) end
+        local bearings={0}
+        for step=1,6 do bearings[#bearings+1]=step*math.pi/6; bearings[#bearings+1]=-step*math.pi/6 end
+        if mode=='standing' then bearings={0,math.pi/2,-math.pi/2,math.pi,math.pi/4,-math.pi/4,3*math.pi/4,-3*math.pi/4} end
+        state.list={}
+        for _,distance in ipairs(visitorBands(request)) do
+            for _,offset in ipairs(bearings) do
+                local angle=base+offset
+                state.list[#state.list+1]={x=origin.x+math.cos(angle)*distance,y=origin.y+math.sin(angle)*distance,
+                    z=origin.z,distance=distance}
+            end
+        end
+        state.index=0
+    end
+    local relax=request.relax or 0
+    local judged=0
+    while state.index<#state.list and judged<VISITOR_BATCH do
+        state.index=state.index+1
+        local c=state.list[state.index]
+        local found=nav:FindPointInSphereForCharacter(Vector4.new(c.x,c.y,c.z,1),2.5,player)
+        if found and found.status==good and clearance.isPoint(found.point)
+            and math.abs(found.point.z-origin.z)<=VISITOR_FLOOR+1.5 then
+            judged=judged+1
+            local point=space.copy(found.point)
+            local fromViewer=space.ground(point,viewer)
+            local far=mode=='exit' or fromViewer>=(mode=='standing' and 3 or relax>=3 and 8 or relax>=2 and 14 or mode=='close' and 15 or 35)
+            -- A standing companion (V came back to a spot where she already waited) is hidden only on the first try.
+            local needHidden=not (mode=='standing' and relax>=1)
+            local hidden=nil
+            if far and needHidden then hidden=hiddenFromPlayer(player,point) end
+            if far and needHidden and hidden==nil then state.index=state.index-1; return nil,nil,true end
+            local accepted=far and (not needHidden or hidden==true or (relax>=4 and fromViewer>=8))
+            local route
+            if accepted then
+                local from,to=point,mode=='exit' and point or origin
+                if mode=='exit' then from,to=origin,point end
+                route=nav:CalculatePathForCharacter(from,to,.3,player)
+                local points=route and route.path
+                local straight=space.ground(from,to)
+                accepted=points and #points>0 and clearance.isPoint(points[#points])
+                if accepted then
+                    local length=route:CalculateLength()
+                    accepted=length<=math.min(VISITOR_ROUTE_CAP,straight*1.35+VISITOR_ROUTE_SLACK)
+                    for _,waypoint in ipairs(points) do
+                        if not clearance.isPoint(waypoint) or math.abs(waypoint.z-origin.z)>VISITOR_FLOOR then accepted=false; break end
+                    end
+                    c.pathLength=length
+                end
+            end
+            if accepted then
+                local fits,why,pending=clearance.body(point,body)
+                if pending then state.index=state.index-1; return nil,nil,true end
+                accepted=fits==true
+            end
+            if accepted and request.avoid then
+                for _,other in ipairs(request.avoid) do
+                    if clearance.isPoint(other) and space.ground(point,other)<4 then accepted=false; break end
+                end
+            end
+            if accepted then
+                local goal=mode=='exit' and point or state.goal
+                local toward=space.bearing(point,mode=='exit' and viewer or goal)
+                local length=c.pathLength or space.ground(point,goal)
+                return {position={x=point.x,y=point.y,z=point.z+.1},goal=space.copy(goal),facing={x=toward.x,y=toward.y},
+                    distance=space.ground(point,goal),pathLength=length,eta=length/1.5}
+            end
+        end
+    end
+    if state.index>=#state.list then return nil,'No hidden, reachable spot was found.' end
+    return nil,nil,true
+end
+-- Out of V's sight now? true / false, or nil when the query budget is spent (asked again on a later step).
+function M.hiddenFromPlayer(position)
+    local player=Game.GetPlayer()
+    if not player or not clearance.isPoint(position) then return nil end
+    return hiddenFromPlayer(player,position)
+end
 -- Who rides: a copy standing in the car with V when it departs (boarded this
 -- visit, or within 1.6 m of where V stood). Her offset from V is kept.
 local function boardRiders(s,now)

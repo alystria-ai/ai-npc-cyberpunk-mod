@@ -100,6 +100,22 @@ local function publishDynamicInfo(from)
     for _, kind in ipairs(dynamicInfoKinds) do flags[kind] = from.dynamicInfo[kind] ~= false end
     convaiDynamicInfo = flags
 end
+-- Immersive invitations (Settings > Immersive invitations, docs/IMMERSIVE_INVITATIONS.md): one saved table. Off by default; with it Off an
+-- invitation is the instant one and nothing of the feature is loaded. arrival: how she travels; delay: real minutes until she arrives
+-- (0 = right now); wait: real minutes she waits when she arrives right now (a timed arrival waits as long as the delay).
+local immersiveArrivals, immersiveDelays, immersiveWaits = {'walk', 'car'}, {0, 2, 5, 10}, {2, 5, 10}
+local immersiveDefaults = {enabled = false, arrival = 'walk', delay = 0, wait = 5, waypoint = true, texts = true}
+local function cleanImmersive(value)
+    local from = type(value) == 'table' and value or {}
+    local result = {}
+    result.enabled = from.enabled == true
+    result.arrival = from.arrival == 'car' and 'car' or 'walk'
+    result.delay = (from.delay == 2 or from.delay == 5 or from.delay == 10) and from.delay or 0
+    result.wait = (from.wait == 2 or from.wait == 10) and from.wait or 5
+    result.waypoint = from.waypoint ~= false
+    result.texts = from.texts ~= false
+    return result
+end
 local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
 local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
@@ -725,6 +741,16 @@ local function loadSettings()
         if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = true, true end
     end
     publishDynamicInfo(settings)
+    do
+        local clean = cleanImmersive(settings.immersive)
+        for key, value in pairs(clean) do
+            if type(settings.immersive) ~= 'table' or settings.immersive[key] ~= value then settingsNeedSave = true end
+        end
+        if type(settings.immersive) == 'table' then
+            for key in pairs(settings.immersive) do if clean[key] == nil then settingsNeedSave = true end end
+        end
+        settings.immersive = clean
+    end
     -- The retired Follow-up questions setting: an old saved key is dropped (nothing reads it).
     if settings.followUpQuestions ~= nil then settings.followUpQuestions, settingsNeedSave = nil, true end
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
@@ -1242,6 +1268,14 @@ function M.relationshipChoices()
     end
     return result
 end
+
+-- Settings > Immersive invitations. The live table (read every 0.1 s of play by mod/init.lua while the feature is on or off): never changed in
+-- place, replaced whole by an Apply.
+function M.immersive()
+    loadSettings()
+    return settings.immersive or immersiveDefaults
+end
+function M.immersiveChoices() return immersiveArrivals, immersiveDelays, immersiveWaits end
 
 -- The kinds of live game info of Settings > Dynamic info, in page order.
 function M.dynamicInfoKinds() return dynamicInfoKinds end
@@ -1903,6 +1937,7 @@ function M.snapshot(player)
             conversationProvider = settings.conversationProvider,
             relationshipModes = relationshipModes,
             dynamicInfo = dynamicInfo,
+            immersive = cleanImmersive(settings.immersive),
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             decisionLedger = settings.decisionLedger,
@@ -1972,6 +2007,7 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     nextSettings.dynamicInfo = {}
     for key, value in pairs(settings.dynamicInfo) do nextSettings.dynamicInfo[key] = value end
+    nextSettings.immersive = cleanImmersive(settings.immersive)
     for key, value in pairs(values) do
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
@@ -2004,6 +2040,25 @@ function M.applySettings(player, values)
                 if not dynamicInfoKnown[kind] or type(on) ~= 'boolean' then return false, 'This setting must be on or off.' end
                 nextSettings.dynamicInfo[kind] = on
             end
+        elseif key == 'immersive' then
+            if type(value) ~= 'table' then return false, 'This setting must be on or off.' end
+            local merged = cleanImmersive(nextSettings.immersive)
+            for field, item in pairs(value) do
+                if field == 'enabled' or field == 'waypoint' or field == 'texts' then
+                    if type(item) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                    merged[field] = item
+                elseif field == 'arrival' then
+                    if not isChoice(item, immersiveArrivals) then return false, 'Choose how she arrives.' end
+                    merged.arrival = item
+                elseif field == 'delay' then
+                    if not isChoice(item, immersiveDelays) then return false, 'Choose when she arrives.' end
+                    merged.delay = item
+                elseif field == 'wait' then
+                    if not isChoice(item, immersiveWaits) then return false, 'Choose how long she waits.' end
+                    merged.wait = item
+                else return false, ui.t('Unknown setting: {setting}', {setting = tostring(field)}) end
+            end
+            nextSettings.immersive = merged
         elseif key == 'archetypeConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value

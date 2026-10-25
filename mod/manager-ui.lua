@@ -1098,7 +1098,10 @@ local function settingsDigest(settings)
     local info = {}
     for key, on in pairs(settings.dynamicInfo or {}) do info[#info + 1] = key .. '=' .. tostring(on) end
     table.sort(info)
-    return table.concat(parts, ',') .. ';' .. table.concat(modes, ',') .. ';' .. table.concat(info, ',')
+    local immersive = {}
+    for key, value in pairs(settings.immersive or {}) do immersive[#immersive + 1] = key .. '=' .. tostring(value) end
+    table.sort(immersive)
+    return table.concat(parts, ',') .. ';' .. table.concat(modes, ',') .. ';' .. table.concat(info, ',') .. ';' .. table.concat(immersive, ',')
 end
 
 -- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
@@ -1158,7 +1161,7 @@ local function pageSignature(snapshot)
         local read, signature = pcall(customProvider.instance.signature)
         add('custom-page:' .. (read and signature or ''))
     end
-    if view == 'relationships' or view == 'dynamic-info' then add(settingsDigest(snapshot.settings)) end
+    if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' then add(settingsDigest(snapshot.settings)) end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
@@ -1242,6 +1245,44 @@ local function dynamicInfoRows(snapshot)
     }
 end
 
+-- Invite (Characters, Model browser): with Settings > Immersive invitations On it is an appointment she travels to; Off, or when it
+-- takes no part (the character is already in the party), the old instant invitation (docs/IMMERSIVE_INVITATIONS.md).
+local function inviteKey(key)
+    local service = convaiImmersiveGet and convaiImmersiveGet() or nil
+    if service then
+        local accepted, message = service.requestInvite(key)
+        if accepted ~= nil then return accepted, message end
+    end
+    return queue.invite(key)
+end
+
+-- Immersive invitations: its own page, opened from Companion behavior. The list values are positions in the lists of manager.immersiveChoices.
+local function immersiveRows(snapshot)
+    local value = snapshot.settings.immersive or {}
+    local arrivals, delays, waits = manager.immersiveChoices()
+    local function index(list, wanted, fallback)
+        for position, item in ipairs(list) do if item == wanted then return position end end
+        return fallback
+    end
+    return {
+        setting('immersive:enabled', 'Immersive invitations', 'bool', value.enabled == true, false,
+            'Off: Invite brings a companion to your side at once.\n\nOn: a companion you invite, by the Invite button, the Contacts tab or a text, travels to you and arrives after the time you choose here. She texts you when she is there, waits, and leaves angry (and remembers it) if you never come.'),
+        setting('immersive:arrival', 'How she arrives', 'select', index(arrivals, value.arrival, 1), 1,
+            'Walk: she appears out of your sight and walks to you.\n\nCar: when a road is near she drives in, stops on the road, gets out and walks the rest. Without a road she walks. The car stays near for a ride, and is removed when she leaves your group or you both go far from it.',
+            {'Walk', 'Car'}),
+        setting('immersive:delay', 'When she arrives', 'select', index(delays, value.delay, 1), 1,
+            'Right now: she is on her way as soon as she is ready.\n\nIn 2, 5 or 10 minutes: real minutes of play, so she arrives at that time. She then waits as long as that delay.',
+            {'Right now', 'In 2 minutes', 'In 5 minutes', 'In 10 minutes'}),
+        setting('immersive:wait', 'How long she waits', 'select', index(waits, value.wait, 2), 2,
+            'How long she waits for you after arriving right now. After a timed arrival she waits as long as the delay you chose. The wait stops while you are in a fight, a scene or a menu.',
+            {'2 minutes', '5 minutes', '10 minutes'}),
+        setting('immersive:waypoint', 'Meet at my waypoint when I ask', 'bool', value.waypoint ~= false, true,
+            'When you ask her to come to your waypoint and a map pin is set, she goes there and says so. Off: she always comes to where you are.'),
+        setting('immersive:texts', 'She texts you', 'bool', value.texts ~= false, true,
+            'She texts you when she arrives, when you cancel and when she gives up. Off: no texts (she still remembers being stood up).'),
+    }
+end
+
 local function schema()
     local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
@@ -1258,7 +1299,8 @@ local function schema()
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings'}
+        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings',
+        ['immersive-invitations'] = 'settings'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
@@ -1303,7 +1345,7 @@ local function schema()
             local available = manager.definition(key) ~= nil
             rows[#rows + 1] = action('invite:' .. key, profile.name,
                 available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
-                profileDescription(profile, snapshot, shared, count), function() return queue.invite(key) end, canInvite and available)
+                profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
         end
         categories[#categories + 1] = category('characters', 'Characters to invite', rows)
     elseif view == 'party' then
@@ -1331,6 +1373,22 @@ local function schema()
         local copies = {}
         for _, member in ipairs(party) do if member.state ~= 'leaving' then copies[#copies + 1] = member end end
         local shown = #copies
+        -- Meetings still on their way (Settings > Immersive invitations) that have no body yet: one row each, Cancel.
+        local meetings = {}
+        local service = convaiImmersiveGet and convaiImmersiveGet() or nil
+        if service then
+            for _, row in ipairs(service.rows()) do if not row.serial then meetings[#meetings + 1] = row end end
+        end
+        for _, row in ipairs(meetings) do
+            local meetingId = row.id
+            local state = row.phase == 'waiting' and ui.t('waiting at {place}', {place = tostring(row.place or '')}) or ui.t('on her way')
+            rows[#rows + 1] = action('meeting:' .. meetingId, ui.t('{name} · {state}', {name = row.name, state = state}), 'Cancel',
+                ui.t('Cancel this meeting. She is not told.'),
+                function()
+                    local live = convaiImmersiveGet and convaiImmersiveGet() or nil
+                    return live ~= nil and live.cancelById(meetingId)
+                end, nil, {description = true})
+        end
         local first, last, pages = pageRange(shown)
         if pages > 1 then
             for _, row in ipairs(pageRows(first, last, pages, function(index)
@@ -1358,7 +1416,7 @@ local function schema()
         end
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.')
-        elseif shown == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
+        elseif shown == 0 and #meetings == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         categories[#categories + 1] = category('party', 'Current party', rows)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models
@@ -1401,7 +1459,7 @@ local function schema()
                 rows[#rows + 1] = action('invite:' .. key, modelName, 'Invite',
                     model.record .. '\n\n' .. conversation
                         .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
-                    function() return queue.invite(key) end, canInvite)
+                    function() return inviteKey(key) end, canInvite)
             end
         end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
@@ -1501,6 +1559,9 @@ local function schema()
     elseif view == 'relationships' then
         local rows = relationshipRows(snapshot)
         if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
+    elseif view == 'immersive-invitations' then
+        categories[#categories + 1] = category('immersive-invitations', 'Immersive invitations', immersiveRows(snapshot),
+            'Invite a companion and she really travels to you: she appears out of sight, walks or drives in, texts you when she is there and waits for you.')
     elseif view == 'dynamic-info' then
         categories[#categories + 1] = category('dynamic-info', 'Dynamic info', dynamicInfoRows(snapshot),
             'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).')
@@ -1558,6 +1619,9 @@ local function schema()
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.',
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
+            action('immersive-invitations', 'Immersive invitations', 'Open',
+                'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
+                function() return navigate('immersive-invitations') end),
         })
         -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
         -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
@@ -1769,7 +1833,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true}
+    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['immersive-invitations'] = true}
 
 function M.view() return view end
 
@@ -1901,7 +1965,7 @@ function M.defaults()
     local previous = view
     local changes, atDefault, turningMatureOff = {}, {}, false
     -- Settings, and the Relationships and Dynamic info pages that open from it.
-    for _, name in ipairs({'settings', 'relationships', 'dynamic-info'}) do
+    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'immersive-invitations'}) do
         view = name
         local ok, model = pcall(schema)
         if not ok then lastError = tostring(model); break end
@@ -1940,7 +2004,7 @@ function M.apply(changes)
     local currentPlayer = player()
     local snapshot = manager.snapshot(currentPlayer)
     local batch, record, names, refusal = stageMature(changes, snapshot)
-    local values, applied = {relationshipModes = {}, dynamicInfo = {}}, {}
+    local values, applied = {relationshipModes = {}, dynamicInfo = {}, immersive = {}}, {}
     -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
     local addonChanges = 0
     if addonSettingsInUse() then convaiAddons.discardSettings() end
@@ -2032,6 +2096,18 @@ function M.apply(changes)
                 return refused('Choose one of the listed relationship options.')
             end
             values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
+        elseif key:sub(1, 10) == 'immersive:' then
+            local field = key:sub(11)
+            local arrivals, delays, waits = manager.immersiveChoices()
+            local lists = {arrival = arrivals, delay = delays, wait = waits}
+            if field == 'enabled' or field == 'waypoint' or field == 'texts' then
+                if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+                values.immersive[field] = change.value
+            elseif lists[field] then
+                local picked = type(change.value) == 'number' and change.value == math.floor(change.value) and lists[field][change.value] or nil
+                if picked == nil then return refused('Choose one of the listed options.') end
+                values.immersive[field] = picked
+            else return refused('That setting is read-only.') end
         elseif key:sub(1, 8) == 'dynamic:' then
             if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
             values.dynamicInfo[key:sub(9)] = change.value

@@ -310,6 +310,22 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/invitation-readiness.lua"
         },
         {
+          "source": "mod/immersive-invitations.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-invitations.lua"
+        },
+        {
+          "source": "mod/immersive-service.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-service.lua"
+        },
+        {
+          "source": "mod/immersive-world.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-world.lua"
+        },
+        {
+          "source": "mod/place-words.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/place-words.lua"
+        },
+        {
           "source": "mod/addons.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/addons.lua"
         },

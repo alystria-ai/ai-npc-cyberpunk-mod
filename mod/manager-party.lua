@@ -468,10 +468,13 @@ function M.new(companions, readiness, options)
         local states = {memory = 'preparing-memory', connecting = 'connecting', ready = 'ready-to-join',
             ['model-only'] = 'ready-to-join', error = 'failed'}
         for _, job in ipairs(joins) do
+          -- An immersive-invitation appointment is shown by its own row (mod/manager-ui.lua), not as an invitation being prepared.
+          if not job.appointment then
             local status = preparation(job)
             result[#result + 1] = {id = job.id, key = job.key, name = job.name, revision = job.revision,
                 record = job.record, profileKey = job.profileKey, profileName = job.profileName,
                 state = readiness and states[status.state] or (job.error and 'failed' or 'queued'), error = status.error}
+          end
         end
         return result
     end
@@ -535,7 +538,9 @@ function M.new(companions, readiness, options)
             profileName = definition.profileName or definition.name,
             adoption = type(extra) == 'table' and type(extra.adoption) == 'table' and extra.adoption or nil,
             gate = type(extra) == 'table' and type(extra.gate) == 'function' and extra.gate or nil,
-            quiet = type(extra) == 'table' and extra.quiet == true or nil}
+            quiet = type(extra) == 'table' and extra.quiet == true or nil,
+            -- An immersive-invitation visitor (mod/immersive-invitations.lua): where and when she is created.
+            appointment = type(extra) == 'table' and type(extra.appointment) == 'table' and extra.appointment or nil}
         -- A generic person (no memory of its own to prepare) joins as a model
         -- and receives its conversation profile once attached.
         if type(extra) == 'table' and extra.modelOnly == true then job.profileKey, job.profileName = nil, nil end
@@ -749,7 +754,7 @@ function M.new(companions, readiness, options)
             if leaves[serial] then
                 if readiness then readiness.cancel(job) end
                 attaching[serial] = nil
-            elseif member and member.state == 'ready' then
+            elseif member and (member.state == 'ready' or member.state == 'visiting') then
                 if readiness then readiness.finish(job) end
                 if not job.quiet or job.warning then
                     report('party-joined', ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''),

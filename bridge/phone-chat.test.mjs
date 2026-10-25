@@ -1220,9 +1220,9 @@ assert(m.pending and m.pending.text=='Third' and m.pending.turnContext==nil)
 test('phone Lua has a reader slot that init wires to the one shared snapshot reader, and nothing per frame', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(init, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
-  const read = adapter.match(/capture\(M\.captureTurnContext\)/g) || [];
-  assert.equal(read.length, 1, 'read in exactly one place: the send path');
-  assert.ok(adapter.indexOf('capture(M.captureTurnContext)') > adapter.indexOf('ConvaiPhoneChatTakeSubmission'), 'after the submission is taken, not on the tick');
+  const read = adapter.match(/capture\(M\.captureTurnContext, key\)/g) || [];
+  assert.equal(read.length, 2, 'read in two places only: the send path and the start of a text she sends herself (immersive invitations)');
+  assert.ok(adapter.lastIndexOf('capture(M.captureTurnContext, key)') > adapter.indexOf('ConvaiPhoneChatTakeSubmission'), 'the send path reads it after the submission is taken, not on the tick');
 });
 
 test('every present tells the phone style which messages it showed, once per present', () => runLua(setup + `

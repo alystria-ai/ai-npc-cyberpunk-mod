@@ -30,6 +30,8 @@ const STATIC_OPTIONS = [
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
   'Voxtral (recommended)', 'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key',
   'OmniVoice', 'OmniVoice · needs Omni voice', 'OmniVoice · needs Omni pack',
+  // Settings > Immersive invitations
+  'Walk', 'Car', 'Right now', 'In 2 minutes', 'In 5 minutes', 'In 10 minutes', '2 minutes', '5 minutes', '10 minutes',
 ];
 
 function localeTable(code) {

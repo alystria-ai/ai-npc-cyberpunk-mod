@@ -174,7 +174,7 @@ function M.begin(context, targetValid, source, extra)
     context.battle = M.captureBattle and M.captureBattle()
     context.gameDialogue = M.captureGameDialogue and M.captureGameDialogue()
     context.gear = M.capturePlayerGear and M.capturePlayerGear()
-    context.turnContext = M.captureTurnContext and M.captureTurnContext()
+    context.turnContext = M.captureTurnContext and M.captureTurnContext(context.profileKey)
     if type(M.decorate) == 'function' then pcall(M.decorate, context) end
     if not currentOwner() then M.knowledgeOwner = nil; return false end
     -- The old microphone owner has already been cancelled. Capture optional
@@ -209,7 +209,7 @@ function M.finish(mode, source)
     context.battle = M.captureBattle and M.captureBattle()
     context.gameDialogue = M.captureGameDialogue and M.captureGameDialogue()
     context.gear = M.capturePlayerGear and M.capturePlayerGear()
-    context.turnContext = M.captureTurnContext and M.captureTurnContext()
+    context.turnContext = M.captureTurnContext and M.captureTurnContext(context.profileKey)
     if type(M.decorate) == 'function' then pcall(M.decorate, context) end
     if M.context ~= context then return nil end
     local current, problem = currentOwner()
