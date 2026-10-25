@@ -20,21 +20,23 @@
 -- (not an error) for an unknown class name (pcall covers both), and that it dispatches :GetNeedStage() on the handle Get() returns (the standard
 -- CET behaviour, the same call PreventionSystem:GetHeatStage() makes in turn-context.lua); the first reading logs the names that answered.
 --
--- Result: nil, or {darkFuture = {hydration =, nutrition =, energy =, nerve = (stages 3 or 4), injury =, humanity = (levels 3 or 4),
+-- Result: nil, or {darkFuture = {hydration =, nutrition =, energy = (stages 1 to 4), nerve = (stages 3 or 4), injury =, humanity = (levels 3 or 4),
 -- alcohol = {stage =, withdrawal =}, nicotine = ..., narcotic = ... (only while the withdrawal level is 3 or more)}}: only what is known and
 -- worth saying. The bridge (bridge/mod-state.mjs) words it and decides what a character may know.
 local M = {}
 
--- The least stage a need or condition must reach to be sent, and the least withdrawal level. Below this a character would not notice
--- (Dark Future's stage 1 and 2 are "slightly thirsty", "a bit tired"); bridge/mod-state.mjs holds the same bar.
-M.MIN_STAGE, M.MIN_WITHDRAWAL = 3, 3
+-- The least stage a need or condition must reach to be sent, and the least withdrawal level; bridge/mod-state.mjs holds the same bars.
+-- Hunger, thirst and tiredness are sent from stage 1: that is where Dark Future itself starts a status effect on V (NeedPenalty_01, a live
+-- test of 2026-10-26: nutrition=1 and the owner was hungry, a bar of 3 said nothing). Nerve and the conditions stay at 3: nerve sits at 1
+-- nearly all day, and a companion would not see a lasting injury or a humanity loss before it is serious.
+M.MIN_STAGE, M.MIN_WITHDRAWAL, M.MIN_BODY_STAGE = 3, 3, 1
 
 -- Candidate class names per system, best first. The qualified name is what redscript registers; the bare name is a guess for a build that
 -- moved its modules. Each entry: {key, names, method}.
 M.NEEDS = {
-    {key = 'hydration', method = 'GetNeedStage', names = {'DarkFuture.Needs.DFHydrationSystem', 'DFHydrationSystem'}},
-    {key = 'nutrition', method = 'GetNeedStage', names = {'DarkFuture.Needs.DFNutritionSystem', 'DFNutritionSystem'}},
-    {key = 'energy', method = 'GetNeedStage', names = {'DarkFuture.Needs.DFEnergySystem', 'DFEnergySystem'}},
+    {key = 'hydration', body = true, method = 'GetNeedStage', names = {'DarkFuture.Needs.DFHydrationSystem', 'DFHydrationSystem'}},
+    {key = 'nutrition', body = true, method = 'GetNeedStage', names = {'DarkFuture.Needs.DFNutritionSystem', 'DFNutritionSystem'}},
+    {key = 'energy', body = true, method = 'GetNeedStage', names = {'DarkFuture.Needs.DFEnergySystem', 'DFEnergySystem'}},
     {key = 'nerve', method = 'GetNeedStage', names = {'DarkFuture.Needs.DFNerveSystem', 'DFNerveSystem'}},
 }
 M.ADDICTIONS = {
@@ -128,7 +130,7 @@ function M.read(player, log)
             found = found + 1
             local value = stage(system, entry, entry.method, 0, 4, log)
             raw[entry.key] = shown(value)
-            if value ~= nil and value >= M.MIN_STAGE then out[entry.key] = value; any = true end
+            if value ~= nil and value >= (entry.body and M.MIN_BODY_STAGE or M.MIN_STAGE) then out[entry.key] = value; any = true end
         else
             raw[entry.key] = '-'
         end
