@@ -1,7 +1,7 @@
 -- Two housemates talk to each other (docs/HOUSEMATES.md, "Pair chat").
 --
--- One conversation at a time, between two people picked at random, of at most MAX_LINES lines in all (both speakers), then a pause of about
--- two minutes. Every line is one automatic spoken reaction that the game side makes (mod/init.lua, reaction kind 'house'); this module is only
+-- One conversation at a time, between two people picked at random (up to four with Settings > Housemates > Housemates in one chat), of at most
+-- MAX_LINES lines in all (every speaker), then a pause of two minutes (Settings > Housemates > Pause between chats). Every line is one automatic spoken reaction that the game side makes (mod/init.lua, reaction kind 'house'); this module is only
 -- the scheduler: it decides when a chat may start, who talks, how many lines, and when it must stop. Pure: the clock, the random numbers and
 -- every game question come in through `env`.
 --
@@ -9,7 +9,8 @@
 -- elsewhere, and no request, no connection and no line is made when V is not at home.
 local M = {}
 
-M.COOLDOWN = 120        -- seconds after a chat ends before the next may start (owner, 2026-10-25: about two minutes, on every provider)
+M.COOLDOWN = 120        -- seconds after a chat ends before the next may start unless env.cooldown says otherwise (owner, 2026-10-25: about two minutes)
+M.MAX_PEOPLE = 4        -- the most people in one chat (env.groupSize, 2 to 4; the lines still come one at a time: one voice at a time)
 M.MAX_LINES = 8         -- a hard stop, both speakers together
 M.PLAN_LINES = 7        -- the usual length the speakers are told to aim for: 7 or 8 lines (MAX_LINES), the closing remark is the last one
 M.GAP = {0.8, 1.6}      -- seconds between a finished line and the next request
@@ -40,6 +41,17 @@ function M.new(env)
 
     local function random() return env.random and env.random() or 0.5 end
     local function log(line) if env.log then pcall(env.log, line) end end
+    -- The settings are read when a chat starts or ends, never per step. A missing or odd answer is the default.
+    local function cooldown()
+        local ok, value = pcall(env.cooldown or function() return M.COOLDOWN end)
+        value = ok and tonumber(value) or M.COOLDOWN
+        return (value >= 30 and value <= 3600) and value or M.COOLDOWN
+    end
+    local function groupSize()
+        local ok, value = pcall(env.groupSize or function() return 2 end)
+        value = ok and math.floor(tonumber(value) or 2) or 2
+        return math.max(2, math.min(M.MAX_PEOPLE, value))
+    end
 
     local function levelName()
         local ok, value = pcall(env.level)
@@ -63,10 +75,10 @@ function M.new(env)
         if chat.pendingLine and env.cancelSpeak then pcall(env.cancelSpeak) end
         if spoken > 0 and env.limiter and env.limiter.note then pcall(env.limiter.note, 'house', spoken) end
         if spoken > 0 then
-            state.recent[#state.recent + 1] = {keys = chat.a.key .. '|' .. chat.b.key, at = clock}
+            state.recent[#state.recent + 1] = {keys = chat.people[1].key .. '|' .. chat.people[2].key, at = clock}
             while #state.recent > 6 do table.remove(state.recent, 1) end
         end
-        state.nextAt = clock + M.COOLDOWN + (reason == 'failed' and M.FAIL_COOLDOWN or 0)
+        state.nextAt = clock + cooldown() + (reason == 'failed' and M.FAIL_COOLDOWN or 0)
         if not quiet then log('Housemate chat ended: ' .. reason .. ' lines=' .. tostring(spoken)) end
         if env.ended then pcall(env.ended, reason) end
         chat, state.phase = nil, 'idle'
@@ -78,23 +90,36 @@ function M.new(env)
         return nil
     end
 
+    -- The people take turns in order; line n is said by person ((n - 1) mod count) + 1 and answers the person before (the first line is
+    -- aimed at the next one). Somebody who has gone from the flat is left out; with fewer than two left the chat is over.
     local function request()
         local index = chat.n + 1
-        local speaker, partner = (index % 2 == 1) and chat.a or chat.b, (index % 2 == 1) and chat.b or chat.a
-        local fresh = still(speaker)
-        local other = still(partner)
-        if not fresh or not other then return finish('dropped') end
+        local present = {}
+        for _, person in ipairs(chat.people) do
+            local fresh = still(person)
+            if fresh then present[#present + 1] = fresh end
+        end
+        if #present < 2 then return finish('dropped') end
+        chat.people = present
+        local count = #present
+        local at = (index - 1) % count + 1
+        local speaker = present[at]
+        local partner = present[index == 1 and at % count + 1 or (at - 2) % count + 1]
+        local others = {}
+        for _, person in ipairs(present) do
+            if person.key ~= speaker.key and person.key ~= partner.key then others[#others + 1] = person.name end
+        end
         local lines = {}
         for i = math.max(1, #chat.lines - 5), #chat.lines do lines[#lines + 1] = chat.lines[i] end
-        local ok, accepted = pcall(env.speak, {speaker = fresh, partner = other, n = index, of = chat.of, lines = lines,
+        local ok, accepted = pcall(env.speak, {speaker = speaker, partner = partner, others = others, n = index, of = chat.of, lines = lines,
             topic = index == 1 and chat.topic or nil})
         if not ok or not accepted then return finish('failed') end
-        chat.n, chat.pendingLine, chat.requestedAt = index, true, clock
+        chat.n, chat.pendingLine, chat.requestedAt, chat.speaker = index, true, clock, speaker
         state.phase = 'line'
     end
 
-    -- A pair of two people near each other and V; the one pair that spoke last is least likely.
-    local function pick(people)
+    -- Up to `size` people near each other and V: a pair first (the pair that spoke last is least likely), then the nearest of the others.
+    local function pick(people, size)
         local candidates = {}
         for i = 1, #people do
             for j = i + 1, #people do
@@ -112,11 +137,21 @@ function M.new(env)
         for _, candidate in ipairs(candidates) do total = total + candidate.weight end
         if total <= 0 then return nil end
         local r = random() * total
+        local chosen = candidates[#candidates]
         for _, candidate in ipairs(candidates) do
-            if r < candidate.weight then return candidate end
+            if r < candidate.weight then chosen = candidate; break end
             r = r - candidate.weight
         end
-        return candidates[#candidates]
+        local group = {chosen.a, chosen.b}
+        if size > 2 then
+            local rest = {}
+            for _, person in ipairs(people) do
+                if person.key ~= chosen.a.key and person.key ~= chosen.b.key and flat(person, chosen.a) <= M.NEAR_EACH_OTHER then rest[#rest + 1] = person end
+            end
+            table.sort(rest, function(x, y) return flat(x, chosen.a) < flat(y, chosen.a) end)
+            for i = 1, math.min(#rest, size - 2) do group[#group + 1] = rest[i] end
+        end
+        return group
     end
 
     -- Called by the controller at its step (about once a second while two or more housemates are settled). dt: seconds since the last call.
@@ -141,13 +176,15 @@ function M.new(env)
             for _, person in ipairs(people) do
                 if not vp or flat(person, vp) <= M.NEAR_V then near[#near + 1] = person end
             end
-            local pair = pick(near)
-            if not pair then return end
+            local group = pick(near, groupSize())
+            if not group then return end
             local topic = M.TOPICS[math.floor(random() * #M.TOPICS) + 1]
             state.started[#state.started + 1] = clock
-            chat = {a = pair.a, b = pair.b, n = 0, of = random() < 0.5 and M.PLAN_LINES or M.MAX_LINES, lines = {}, spoken = 0, topic = topic,
+            chat = {people = group, n = 0, of = random() < 0.5 and M.PLAN_LINES or M.MAX_LINES, lines = {}, spoken = 0, topic = topic,
                 startedAt = clock}
-            log('Housemate chat started: ' .. tostring(pair.a.key) .. ' and ' .. tostring(pair.b.key))
+            local keys = {}
+            for _, person in ipairs(group) do keys[#keys + 1] = tostring(person.key) end
+            log('Housemate chat started: ' .. table.concat(keys, ' and '))
             return request()
         end
         if not chat then state.phase = 'idle'; return end
@@ -164,8 +201,7 @@ function M.new(env)
         if status == 'done' then
             chat.pendingLine = false
             chat.spoken = chat.spoken + 1
-            local speaker = ((chat.n % 2) == 1) and chat.a or chat.b
-            chat.lines[#chat.lines + 1] = {speaker = speaker.name, text = tostring(text or ''):sub(1, 300)}
+            chat.lines[#chat.lines + 1] = {speaker = chat.speaker.name, text = tostring(text or ''):sub(1, 300)}
             if chat.n >= M.MAX_LINES or chat.n >= chat.of then return finish('done') end
             if chat.stopAfterLine then return finish(chat.stopReason or 'interrupted') end
             state.phase = 'between'
@@ -188,11 +224,15 @@ function M.new(env)
     function C.force() state.nextAt, state.started = 0, {}; return true end
     function C.active() return chat ~= nil end
     -- Does this person take part in the chat now?
-    function C.involves(key) return chat ~= nil and (chat.a.key == key or chat.b.key == key) end
+    function C.involves(key)
+        if not chat then return false end
+        for _, person in ipairs(chat.people) do if person.key == key then return true end end
+        return false
+    end
     -- The text of a finished line is handed in by the speech pipeline before status() says 'done'; this only helps the tests.
     function C.snapshot()
         return {phase = state.phase, nextAt = state.nextAt, clock = clock, lines = chat and #chat.lines or 0, n = chat and chat.n or 0,
-            hour = hourlyCount(), pair = chat and {chat.a.key, chat.b.key} or nil}
+            hour = hourlyCount(), pair = chat and {chat.people[1].key, chat.people[2].key} or nil, people = chat and #chat.people or 0}
     end
     function C.reset() chat, state = nil, {phase = 'idle', nextAt = 0, started = {}, recent = {}} end
     return C

@@ -40,6 +40,7 @@ function M.new(d)
         if not chatLoaded or type(Chat) ~= 'table' then return end
         S.chat = Chat.new({
             random = d.random, level = d.level, mayStart = d.mayChat, vPos = d.vpos, limiter = d.limiter,
+            cooldown = d.chatCooldown, groupSize = d.chatSize,
             people = function() return controller.people() end,
             speak = d.speak, status = d.speakStatus, cancelSpeak = d.speakCancel, log = d.log})
         controller.setChat(S.chat)
@@ -80,7 +81,7 @@ function M.new(d)
                     end
                 end},
             outfits = outfits,
-            greet = d.greet,
+            greet = d.greet, moveIn = d.moveIn,
         }
         controller = Housemates.new(env)
         S.controller = controller
@@ -206,6 +207,15 @@ function M.new(d)
         local controller = S.controller
         if not controller then return false end
         return controller.moveOut(key)
+    end
+    function S.ownedApartments()
+        local controller = S.controller
+        return controller and controller.ownedApartments() or {}
+    end
+    function S.evictAll()
+        local controller = S.controller
+        if not controller then return 0 end
+        return controller.evictAll()
     end
     function S.snapshot() return S.controller and S.controller.snapshot() or nil end
 

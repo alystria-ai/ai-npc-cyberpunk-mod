@@ -280,7 +280,7 @@ export class PhoneChat {
         const meetScreen = meetOffer ? screenMeet(input.text) : null;
         // A message can carry both offers. When V's words screen as a meeting request the meet path wins, unless they plainly say she may live there
         // ("you can stay at my place" also names a place and would otherwise always be taken as "come over"): then the home path wins.
-        const picking = homeOffer ? this.homePicks.turn(contact.profile, input.text, homeOffer.apartments, homeOffer.here) : false;
+        const picking = homeOffer ? this.homePicks.turn(contact.profile, input.text, homeOffer.apartments, homeOffer.here, homeOffer.fallback) : false;
         const homeScreen = homeOffer ? screenHome(input.text, homeOffer, picking) : null;
         const homeWins = !!homeScreen?.kind && (!meetScreen?.kind || (meetScreen.kind === 'here' && homeScreen.strong));
         const screen = homeWins ? null : meetScreen;

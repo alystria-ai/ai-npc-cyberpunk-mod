@@ -105,8 +105,11 @@ like every other action, so an ordinary "stay for dinner" does not count):
 
 1. V names one ("the one in Glen", "my place in Megabuilding"): the model picks `Stay At <that>`.
 2. V names none and **V stands in an apartment**: `here`, no question.
-3. V names none, is elsewhere, and owns exactly one: that one.
-4. V names none, is elsewhere, and owns several: the character **asks which** in her own words and takes no action. The offer says so
+3. V names none, is elsewhere, and **chose a flat in Settings > Housemates > Move-in apartment** that V owns: that one (`fallback` in the offer), no question
+   (2026-10-26: V said "in this one" to Judy from the street, `here` was empty and the model picked Glen itself). The offer carries `fallback` only when the
+   chosen id is one of the owned apartments listed in it; a flat V no longer owns, or Ask me, sends none and the next rule applies.
+4. V names none, is elsewhere, and owns exactly one: that one.
+5. V names none, is elsewhere, and owns several (and chose none): the character **asks which** in her own words and takes no action. The offer says so
    ("V owns: Megabuilding H10, Corpo Plaza. V did not say which. Ask which, do not request the move yet."). V's next message is a new request with a
    fresh lease; its offer carries `asked: true` for her (remembered for 3 turns or 10 minutes) so she treats "the Glen one" as the answer.
    The bridge builds the line, the game keeps the flag in the turn context (`homeAsk`), so it works on Convai and on the text routes.
@@ -409,7 +412,7 @@ All must hold (checked at the scheduler's step, once a second, only while two or
 
 1. V is in the apartment (district record), not in combat, a scene, dialogue, a call, a menu, a vehicle, or the phone; no conversation, group round, phone message or automatic reaction in progress.
 2. At least two residents are settled (not asleep, not walking, not joining, not held, not in a talk with V), within 12 m of each other, and both within 25 m of V (V can hear).
-3. The pause since the last chat ended has passed (2 minutes) and the Companion speak-up level allows another chat this hour.
+3. The pause since the last chat ended has passed (Settings > Housemates > Pause between chats, 2 minutes by default) and the Companion speak-up level allows another chat this hour.
 4. Neither resident is in the party.
 
 When V is not in the flat nothing of this runs: the scheduler is not even called, so no request is made, no connection opened and no line spoken.
@@ -428,10 +431,24 @@ When V is not in the flat nothing of this runs: the scheduler is not even called
 * V calls someone back to the party: the normal `Join V's Party`; the chat ends.
 * V leaves, a scene or combat starts, or one of them is hidden or deleted: the chat is dropped at once, no cooldown penalty beyond a short one.
 
+### Two live bugs (2026-10-26)
+
+* **A chat that stopped after its first line.** probe.log 22:34:20 `Housemate chat started: claire-russell and panam-palmer`, 22:34:37 `Automatic reaction
+  released: completed`, then nothing until 22:37:09 `Housemate chat ended: left lines=0`. `mod/init.lua` gave the controller `talking` = `speech.target`, which is
+  set when a line starts and never cleared, so the speaker counted as "in a talk with V" for good: `engagedUntil` was renewed every step, she dropped out of
+  `settledPeople()`, and with fewer than two settled people `chat.update` was not called any more, so the scheduler never read the finished line. Now
+  `talking` is V's talk only while a conversation is in flight (`active`, `pending`, a speech request or subtitles on screen) and never a `house` reaction,
+  and a chat under way is stepped even when somebody is momentarily engaged (it ends as 'dropped' at the next line instead of hanging).
+* **"Could not join: Scenery or a vehicle is blocking the companion position" every 77 seconds.** The notice is ours: a housemate's body is made through the
+  party queue (`manager-party.lua`); when the game refuses the spot (`companion-clearance.lua`) the job fails with that reason, the controller waited 45 s
+  (`failed:spawn-timeout`), retried 30 s later at the same spot (corpo-bar-2 four times in probe.log 22:41-22:45) and each try posted the notice again.
+  Now a resident's failure is posted once per character and reason (the menu line still says it), and a spot that times out twice for her is given up
+  for the session (`spot-rejected ... why=no body could be made there`), so the next try is somewhere else.
+
 ### Rate and budget (owner, 2026-10-25)
 
 * **One chat at a time**, at most 8 lines (the speakers aim for 7 or 8; the last line is a closing remark).
-* **A pause of 2 minutes from the end of the last chat**, on every provider. There is **no special Convai share**: the idea of a `HouseChatAllowance` beside `RemarkAllowance` was dropped.
+* **A pause from the end of the last chat** (Settings > Housemates > Pause between chats: 1, 2, 5 or 10 minutes, 2 by default), on every provider. There is **no special Convai share**: the idea of a `HouseChatAllowance` beside `RemarkAllowance` was dropped.
 * The **Companion speak-up** level (Off, rarely, normally, often; the setting is changing names on `feat/dynamic-info-speak-up`) caps the chats per real hour: Off none, rarely 2, normally 4, often 6 (about 2, 4 and 6 an hour as the setting says). Off means no housemate chat. `mod/housemate-chat.lua` accepts the old names (rare, medium, normal) too.
 * The shared arbiter of unprompted lines (Johnny, companions speaking up) is used through `limiter.allow/note` when the speak-up branch provides it (`convaiProactive`); until then only the pause and the level apply.
 * V's own requests come first: a chat never starts while any request of V's is in flight, and a line that is only waiting for the channel is cancelled the moment V talks.
@@ -533,9 +550,13 @@ The owner's decision: "make the housemate thing a submenu setting off by default
 | --- | --- | --- | --- |
 | Housemates | Off, On | Off | `enabled` |
 | Housemates talk to each other | Off, On | On | `chat` |
+| Move-in apartment | Ask me, then the apartments V owns | Ask me | `moveIn` |
+| Pause between chats | 1, 2, 5, 10 minutes | 2 minutes | `chatCooldown` (seconds) |
+| Housemates in one chat | 2, 3, 4 | 2 | `chatSize` |
+| Evict all housemates | button | - | (not saved) |
 
-A bad saved value falls back to the default and the file is rewritten clean; an Apply with an unknown field or a non-boolean value is refused whole.
-Everything else stays as it was: the pair chat's frequency still follows **Companion speak-up** (Off: no chat), moving in is a conversation act and
+A bad saved value falls back to the default and the file is rewritten clean; an Apply with an unknown field, a wrong type or a value outside the lists is refused whole.
+Everything else stays as it was: the pair chat's frequency (chats an hour) still follows **Companion speak-up** (Off: no chat), moving in is a conversation act and
 moving out is a conversation act or the Move out row of Current party, and every tunable is a named constant at the top of the module.
 
 **While Housemates is Off nothing of the feature runs or is loaded**, the same rule as Immersive invitations (docs/IMMERSIVE_INVITATIONS.md):
@@ -556,6 +577,24 @@ moving out is a conversation act or the Move out row of Current party, and every
 same `dismissVisitor` call as when V leaves the flat, a housemate who is in the party stays a party member), lets go of the seats it holds, drops the
 pair chat, and the glue and the world adapter are dropped. The saved residency records (quest facts, `mod/housemate-registry.lua`) are **not written
 or cleared**, so turning it On again builds the service on the next tick, reads them again and the housemates come back when V enters their flat.
+
+**Move-in apartment.** A list: Ask me, then each apartment V owns now (`convaiHousemateOwned`, the controller's `ownedApartments`; unowned ones are not
+offered, and while Housemates is Off only Ask me is listed because nothing is loaded). Saved as `housemates.moveIn` (`ask` or an apartment id). Used by the
+offer (`fallback`, `bridge/companion-actions.mjs`, `bridge/home-requests.mjs`, `bridge/text-actions.mjs`): V's words and where V stands come first, and with
+a choice made the character does not ask which. A saved flat V no longer owns shows as Ask me and counts as Ask me where it is used; Restore defaults
+puts it back to Ask me.
+
+**Pause between chats** (1, 2, 5 or 10 minutes, default 2) replaces the fixed 120 s of `M.COOLDOWN` (that constant stays as the default and as the answer to
+a missing or odd setting); a failed chat still adds a minute. **Housemates in one chat** (2, 3 or 4, default 2): the chat starts from a pair as before, then
+adds the nearest housemates (within 12 m of the first, all within 25 m of V) up to the number; they speak in turn, each line answers the one before (the
+first is aimed at the next speaker), at most 8 lines in all, one voice at a time (the speech channel is single, so this is a bigger conversation, not
+simultaneous ones). The game sends `others` (the names of the rest) with each line (`bridge/house-chat.mjs`). With fewer housemates at home the chat is as
+big as it can be; somebody who leaves mid-chat is left out and below two the chat ends. The chats per hour still follow Companion speak-up (2, 4, 6).
+
+**Evict all housemates.** A button on the page (enabled while Housemates is On and somebody lives there): every housemate of every flat moves out through the
+one path of a single move-out (`controller.evictAll` calls `moveOut` for each key: registry written, body deleted, the workspot handle released, her place
+free again), a chat in progress ends, one status line says how many ("Housemates moved out: {count}") and no per-person notice is posted. Party members who
+are not housemates are not touched, and a housemate who is with V stays in the party (as with a single Move out).
 
 **Housemates talk to each other.** The pair chat module (`mod/housemate-chat.lua`) is loaded only while this is On and dropped (with a chat in progress
 interrupted) when it goes Off, checked on the tick of the controller. The welcome line when V comes home is not part of it.

@@ -40,6 +40,7 @@ M.HELD_DELETE = 60        -- seconds of a scene before the bodies are deleted (u
 M.CLEAR_FOR = 3           -- seconds a scene must be over before they are shown again
 M.COMBAT_RETURN = 60      -- seconds after a fight before anybody comes back
 M.SPAWN_TIMEOUT = 45
+M.SPAWN_MISSES = 2        -- spawn timeouts at the same spot before it is given up for the session
 M.OCCUPY_TIMEOUT = 40
 M.JOIN_WAIT = 3
 M.REST_ASK_TTL = 600      -- seconds a "stay here or go home?" question stays open
@@ -138,6 +139,8 @@ function M.new(env)
         for _, id in ipairs(M.ORDER) do if owned[id] then list[#list + 1] = {id = id, name = M.NAMES[id]} end end
         return list
     end
+    -- The apartments V owns now, in page order: [{id, name}] (the settings page lists them for the move-in default).
+    function C.ownedApartments() return ownedList() end
 
     -- ---- the registry -----------------------------------------------------------------------------------------------------------------
     function C.setHomes(map)
@@ -364,6 +367,15 @@ function M.new(env)
             end
             if r.state == 'spawning' and clock - (r.spawnedAt or clock) > M.SPAWN_TIMEOUT then
                 stage('failed:spawn-timeout', {key = r.key, after = M.SPAWN_TIMEOUT})
+                -- The game refused the body (probe.log 2026-10-25: "Scenery or a vehicle is blocking the companion position" at corpo-bar-2, four
+                -- times in a row, the same spot chosen again each time): a spot that fails twice for her is given up for the session.
+                local id = r.spot and r.spot.id
+                if id and not r.spot.procedural then
+                    r.spawnMiss = (r.spawnMissId == id and r.spawnMiss or 0) + 1
+                    r.spawnMissId = id
+                    if r.spawnMiss >= M.SPAWN_MISSES then rejected[id] = true; stage('spot-rejected', {key = r.key, id = id, why = 'no body could be made there'}) end
+                end
+                r.spot = nil
                 r.state, r.retryAt = 'virtual', clock + 30
                 for _, b in ipairs(rowCache) do if b.appointmentId == 'hm:' .. r.key then guard(env.bodies.delete, b.serial) end end
             end
@@ -588,7 +600,8 @@ function M.new(env)
             end
             -- Pair chat and greeting, only with everybody settled in this flat.
             local people = settledPeople()
-            if chat and #people >= 2 then chat.update(busy and M.STEP_BUSY or M.STEP) end
+            -- A chat under way is stepped even when a speaker is engaged for a moment (V spoke to her): it ends itself ('dropped') at the next line.
+            if chat and (#people >= 2 or (chat.active and chat.active())) then chat.update(busy and M.STEP_BUSY or M.STEP) end
             if welcome and #people >= 1 then
                 local v = guard(env.vpos)
                 local best, bestD
@@ -697,7 +710,7 @@ function M.new(env)
         return true
     end
 
-    function C.moveOut(key)
+    function C.moveOut(key, quiet)
         if not homes[key] then return false, 'not-housemate' end
         local ok, why = registry.write(env.store, key, nil)
         if not ok then return false, why end
@@ -707,10 +720,24 @@ function M.new(env)
             local name = r.name
             if r.serial and r.state ~= 'party' then dropBody(r, 'moved-out') end
             rec[key] = nil
-            say(ui.t('{name} has moved out.', {name = name}))
+            if not quiet then say(ui.t('{name} has moved out.', {name = name})) end
         end
         restAsk[key] = nil
         return true
+    end
+
+    -- Settings > Housemates > Evict all housemates: every housemate moves out, each by the one path of a single move-out (registry written, body and seat
+    -- let go, her place free for the others). Party members who are not housemates are not touched; a housemate who is with V stays in the party.
+    function C.evictAll()
+        local keys = {}
+        for key in pairs(homes) do keys[#keys + 1] = key end
+        table.sort(keys)
+        local count = 0
+        for _, key in ipairs(keys) do if C.moveOut(key, true) then count = count + 1 end end
+        if chat and chat.interrupt and chat.active and chat.active() then chat.interrupt('evicted', true) end
+        acc = 0
+        stage('evicted-all', {count = count, of = #keys})
+        return count
     end
 
     function C.learnV(anchor, forward, kind)
@@ -775,6 +802,15 @@ function M.new(env)
         return nil
     end
 
+    -- The apartment V chose in Settings > Housemates for "move in" without naming one (env.moveIn: 'ask' or an apartment id): only one that V owns and
+    -- the offer lists. Anything else is nil and she asks which one, as before.
+    local function moveInDefault(apartments)
+        local id = guard(env.moveIn)
+        if type(id) ~= 'string' or id == 'ask' then return nil end
+        for _, a in ipairs(apartments) do if a.id == id then return id end end
+        return nil
+    end
+
     -- The `home` offer of a conversation turn (in person, private or the first speaker of a group). nil: nothing to offer.
     function C.homeOffer(entity, context)
         if type(entity) ~= 'string' or type(context) ~= 'table' or type(context.profileKey) ~= 'string' then return nil end
@@ -796,6 +832,7 @@ function M.new(env)
         end
         offer.apartments = apartments
         if present and eligible then offer.here = present end
+        offer.fallback = eligible and moveInDefault(apartments) or nil
         if eligible and homes[key] then
             offer.lives = {id = homes[key], name = M.NAMES[homes[key]]}
             offer.moveOut = true
@@ -808,7 +845,8 @@ function M.new(env)
         for _, a in ipairs(apartments) do ids[#ids + 1] = a.id end
         local shown = {key = key, apartments = #ids > 0 and table.concat(ids, ',') or '-', here = offer.here or '-', lives = homes[key] or '-',
             members = #offer.members}
-        local signature = shown.apartments .. '|' .. shown.here .. '|' .. shown.lives .. '|' .. shown.members
+        local signature = shown.apartments .. '|' .. shown.here .. '|' .. shown.lives .. '|' .. shown.members .. '|' .. tostring(offer.fallback)
+        if offer.fallback then shown.default = offer.fallback end
         if offerShown[key] ~= signature then offerShown[key] = signature; stage('offer-shown', shown) end
         return offer
     end
@@ -818,7 +856,7 @@ function M.new(env)
         local offer = C.homeOffer(entity, context)
         if not offer then return nil end
         offer.apartments = {}
-        offer.here, offer.asked = nil, nil
+        offer.here, offer.asked, offer.fallback = nil, nil, nil
         if #offer.members == 0 and not offer.moveOut then return nil end
         return offer
     end
@@ -889,7 +927,7 @@ function M.new(env)
     function C.phoneOffer(profileKey)
         if type(profileKey) ~= 'string' or guard(env.eligible, profileKey) ~= true then return nil end
         local apartments = ownedList()
-        local offer = {version = 1, apartments = apartments}
+        local offer = {version = 1, apartments = apartments, fallback = moveInDefault(apartments)}
         local present = hereId()
         if present then offer.here = present end
         if homes[profileKey] then

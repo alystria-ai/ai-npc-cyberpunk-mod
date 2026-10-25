@@ -51,7 +51,7 @@ Mods screen (Esc > Mods)
 | Convai paid tier | Settings | Convai paid tier, Plans |
 | Custom endpoint | Settings | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
 | Immersive invitations | Settings | Immersive invitations (six rows: the switch, how she arrives, when, how long she waits, the waypoint, her texts; `docs/IMMERSIVE_INVITATIONS.md`) |
-| Housemates | Settings | Housemates (two rows: the switch, Off by default, and Housemates talk to each other; `docs/HOUSEMATES.md`) |
+| Housemates | Settings | Housemates (six rows and a button: the switch, Off by default, Housemates talk to each other, Move-in apartment, Pause between chats, Housemates in one chat, and Evict all housemates; `docs/HOUSEMATES.md`) |
 
 The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the others (Memory, Relationships, Dynamic info, Help, paid tier, Custom endpoint, Immersive invitations, Housemates). It is the first row of
 the first section, so it is always the first row of the page. Memory (Manage), Dynamic info (Open, since 2026-10-22) and Relationships (Open) are rows of Settings > Conversations, Help and support is
@@ -834,5 +834,7 @@ hole it leaves in its section list, and checks that the widgets on screen are wh
 Current party lists the characters who live at V's place under the party copies, one row each: "{name} · lives in {apartment} · at home / with you / out"
 with a **Move out** button (MCM and Native Settings UI share the page). Move out ends the housemate arrangement only; she stays as she is otherwise. A
 housemate's body is not a party copy: it is not listed as one and does not count in the party. The page reads the list when it is built. While
-Settings > Companion behavior > Housemates is Off (the default) there are no housemate rows. That setting has a page of its own with two rows, **Housemates**
-(Off, On) and **Housemates talk to each other** (On, Off), and is part of Restore defaults.
+Settings > Companion behavior > Housemates is Off (the default) there are no housemate rows. That setting has a page of its own with six rows and a button, **Housemates**
+(Off, On), **Move-in apartment** (Ask me, then the apartments V owns), **Housemates talk to each other** (On, Off), **Pause between chats** (1, 2, 5, 10
+minutes, 2), **Housemates in one chat** (2, 3, 4 people, 2) and **Evict all housemates** (a button, enabled while somebody lives there; one status line says how
+many moved out), and is part of Restore defaults.

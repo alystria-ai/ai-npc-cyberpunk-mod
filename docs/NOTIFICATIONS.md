@@ -37,7 +37,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `invite-board` | Player | {name} joined your group. / {names} joined your group. (merged with failures on one line) | The invitation board: the joined and failure lines (what a companion still waits for is a `load-progress` line, not part of this notice). A joined line waits up to 4 s for the other invitations of its burst; each notice stays up at least 3 s (5 s after a final outcome). Developers see the same notices | board |
 | `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared. Every joined notice shows to a player (quick or slow), and developers see it too. Several in a burst merge into one, shown 5 s | board |
 | `party-failed` | Player | {name} could not prepare: {reason} | Preparation failed (the invitation leaves the party list with this notice; the player invites again) | once |
-| `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn | once |
+| `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn (a housemate's body that is tried again says it once per character and reason) | once |
 | `party-failed` | Player | {count} more companions also failed. | More than two failures in one burst | once |
 | `party-dismiss-failed` | Player | {name}: {error} | The game refused a dismissal | once |
 | `phone-invite-reply` | Player | The queue's refusal reason (for example Load a save before inviting a companion.) | The phone's invite was refused | 20 |

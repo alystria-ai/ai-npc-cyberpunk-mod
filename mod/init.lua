@@ -4011,9 +4011,13 @@ do
                     log('Housemates ' .. kind .. ' ' .. (ok and text or ''))
                 end
             end,
+            -- speech.target is never cleared: it is V's talk only while a conversation is in flight, and never a housemate's own chat line or
+            -- greeting (that would keep its speaker "engaged", out of the settled people, and the chat would stop after its first line).
             talking = function()
                 local npc = speech.target
                 if not npc then return nil end
+                if automatic and automatic.reaction and automatic.reaction.kind == 'house' then return nil end
+                if not (active or pending or speech.requestId or subtitles.ownsUtterance()) then return nil end
                 local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
                 return ok and id or nil
             end,
@@ -4027,6 +4031,11 @@ do
                 return options == nil or options.chat ~= false
             end,
             mayChat = mayChat,
+            -- Settings > Housemates > Move-in apartment: 'ask' or an apartment id (used only when V owns it).
+            moveIn = function() local options = manager.housemates and manager.housemates(); return options and options.moveIn or 'ask' end,
+            -- Settings > Housemates: the pause after a chat (seconds) and how many housemates join one chat.
+            chatCooldown = function() local options = manager.housemates and manager.housemates(); return options and options.chatCooldown or 120 end,
+            chatSize = function() local options = manager.housemates and manager.housemates(); return options and options.chatSize or 2 end,
             -- The shared arbiter of unprompted lines (Johnny, companions speaking up) when that feature is installed; nil: only the cooldown.
             -- Plain global reads: CET gives this mod an environment without _G (rawget(_G, ...) throws there).
             limiter = convaiProactive,
@@ -4134,6 +4143,15 @@ do
         if not convaiHousemates or not on() then return {} end
         return convaiHousemates.rows()
     end
+    -- Settings > Housemates: the apartments V owns (the Move-in list) and Evict all housemates. Empty / 0 while Housemates is Off.
+    function convaiHousemateOwned()
+        if not convaiHousemates or not on() then return {} end
+        return convaiHousemates.ownedApartments()
+    end
+    function convaiHousemateEvictAll()
+        if not convaiHousemates or not on() then return 0 end
+        return convaiHousemates.evictAll()
+    end
     function convaiHousemateMoveOut(key)
         return convaiHousemates ~= nil and on() and convaiHousemates.moveOut(key) == true
     end
@@ -4238,7 +4256,7 @@ do
             reaction = {kind = 'house', event = 'welcome', place = request.place or placeName(), awayHours = request.awayHours or 0,
                 others = request.others or {}, expiresAt = math.floor((now + 25) * 1000)}
         else
-            reaction = {kind = 'house', event = 'chat', partner = request.partner.name, partnerKey = request.partner.key,
+            reaction = {kind = 'house', event = 'chat', partner = request.partner.name, partnerKey = request.partner.key, others = request.others or {},
                 place = placeName(), n = request.n, of = request.of, topic = request.topic, lines = request.lines or {},
                 expiresAt = math.floor((now + 30) * 1000)}
         end

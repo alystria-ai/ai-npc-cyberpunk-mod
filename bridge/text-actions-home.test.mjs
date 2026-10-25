@@ -262,3 +262,15 @@ test('Mistral: move out, join and a named group join are delivered as the offere
     } finally { await close(); }
   }
 });
+
+test('the flat V chose in the settings is where she moves in when V names none, after the answer to her question and the flat V is in', () => {
+  const stay = (home, argument = '') => actionMenu(offerOf(home)).message({code: 'STAY', argument});
+  assert.deepEqual(stay({fallback: 'glen'}), message({op: 'stay', apartment: 'glen'}));
+  assert.deepEqual(stay({fallback: 'glen'}, 'corpo'), message({op: 'stay', apartment: 'corpo'}), 'V naming one wins');
+  assert.deepEqual(stay({fallback: 'glen', here: 'corpo'}), message({op: 'stay', apartment: 'corpo'}));
+  assert.deepEqual(stay({fallback: 'glen', here: 'corpo', asked: {from: 'glen', here: 'corpo'}}), message({op: 'stay', apartment: 'corpo'}));
+  assert.equal(stay({fallback: 'h10'}), null, 'a flat the offer does not list');
+  const menu = actionMenu(offerOf({fallback: 'glen'}));
+  const rows = JSON.stringify(menu.rows ?? menu.classifier({text: 'you can stay at my place'}));
+  assert.match(rows, /If V names none: it is glen/);
+});

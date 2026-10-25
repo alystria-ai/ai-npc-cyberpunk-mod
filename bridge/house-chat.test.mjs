@@ -216,3 +216,19 @@ test('the main pipeline words a house line as its trigger and gives it no battle
 test('house lines are ordinary turns of the day on the shared key: not a remark, no allowance of their own', () => {
   assert.equal(isRemark({reaction: {kind: 'house'}}), false);
 });
+
+test('a chat of three or four: the rest of the company is named, an old game sends none, and a bad list is invalid', () => {
+  assert.equal(parseHouseReaction(chat()).others, undefined, 'a pair has no company');
+  assert.equal(parseHouseReaction(chat({others: {}})).others, undefined, 'an empty Lua list');
+  assert.deepEqual(parseHouseReaction(chat({others: ['Rogue Amendiares']})).others, ['Rogue Amendiares']);
+  assert.deepEqual(parseHouseReaction(chat({others: ['Rogue Amendiares', 'River Ward']})).others, ['Rogue Amendiares', 'River Ward']);
+  for (const others of [['A', 'B', 'C'], [''], [7], 'Rogue', [null], ['x'.repeat(81)]]) assert.equal(parseHouseReaction(chat({others})), null, JSON.stringify(others));
+  const pair = houseTrigger({reaction: parseHouseReaction(chat({n: 2, topic: undefined, lines: lines(1)}))});
+  assert.match(pair, /You are talking with "Panam Palmer", who lives there too\./);
+  assert.match(pair, /you and Panam Palmer speak in turn/);
+  const group = houseTrigger({reaction: parseHouseReaction(chat({n: 2, topic: undefined, lines: lines(1), others: ['Rogue Amendiares', 'River Ward']}))});
+  assert.match(group, /You are chatting with "Panam Palmer" and "Rogue Amendiares" and "River Ward", who live there too\./);
+  assert.match(group, /you, Panam Palmer and Rogue Amendiares and River Ward speak in turn, and any of them may be addressed/);
+  assert.match(group, /do not address V and do not ask V anything/);
+  assert.match(group, /Answer Panam Palmer's last line/);
+});

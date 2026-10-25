@@ -214,8 +214,8 @@ function homeRows(offer, base, standing) {
     const hits = wanted ? apartments.filter(item => item.id === wanted || word(item.name) === wanted || first(item.name) === first(wanted) || item.id === first(wanted)) : [];
     return hits.length === 1 ? hits[0] : null;
   };
-  // Where she moves in when V named no apartment: the answer to her question, the flat V is in, or the only one V has.
-  const fallback = () => aptOf(home.asked?.here) ?? aptOf(home.here) ?? (apartments.length === 1 ? apartments[0] : null);
+  // Where she moves in when V named no apartment: the answer to her question, the flat V is in, the one V chose in the settings, or the only one V has.
+  const fallback = () => aptOf(home.asked?.here) ?? aptOf(home.here) ?? aptOf(home.fallback) ?? (apartments.length === 1 ? apartments[0] : null);
   const mentioned = text => {
     const line = ` ${word(text)} `;
     return apartments.filter(item => line.includes(` ${item.id} `) || word(item.name).split(' ').some(part => part.length >= 4 && line.includes(` ${part} `)));

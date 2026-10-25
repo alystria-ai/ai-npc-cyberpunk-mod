@@ -351,6 +351,20 @@ function M.new(companions, readiness, options)
         notices[#notices + 1] = {id = id, message = message, failed = failed == true, invitationId = invitationId, info = info}
     end
 
+    -- "{name} could not join": a housemate's body that cannot be made is tried again by the housemates module every minute or so, and the same
+    -- failure said each time was a notice that never stopped (probe.log 2026-10-25: a housemate, scenery blocking her spot, every 77 s).
+    -- A resident's failure is shown once per character and reason; the menu line still says it.
+    local residentFailures = {}
+    local function joinFailed(job, reason, invitationId)
+        local message = ui.t('{name} could not join: {reason}', {name = job.name, reason = reason})
+        if job.resident then
+            local cause = tostring(job.key) .. '\n' .. tostring(reason)
+            if residentFailures[cause] then feedback = message; return end
+            residentFailures[cause] = true
+        end
+        report('party-failed', message, true, invitationId, {kind = 'failed', name = job.name})
+    end
+
     function Q.bind(identity)
         local changed = readiness and readiness.bind(identity) == true
         if identity ~= owner or changed then
@@ -542,6 +556,7 @@ function M.new(companions, readiness, options)
             adoption = type(extra) == 'table' and type(extra.adoption) == 'table' and extra.adoption or nil,
             gate = type(extra) == 'table' and type(extra.gate) == 'function' and extra.gate or nil,
             quiet = type(extra) == 'table' and extra.quiet == true or nil,
+            resident = type(extra) == 'table' and extra.resident == true or nil,
             -- An immersive-invitation visitor (mod/immersive-invitations.lua): where and when she is created.
             appointment = type(extra) == 'table' and type(extra.appointment) == 'table' and extra.appointment or nil}
         -- A generic person (no memory of its own to prepare) joins as a model
@@ -788,10 +803,8 @@ function M.new(companions, readiness, options)
                 attaching[serial] = nil
             elseif not member or member.state == 'failed' or member.state == 'missing' or member.state == 'dead' then
                 if readiness then readiness.cancel(job) end
-                report('party-failed', ui.t('{name} could not join: {reason}', {name = job.name,
-                    reason = member and ui.t(member.error) or ui.t(member and member.state == 'dead'
-                        and 'The character died before joining.' or 'The character was removed before joining.')}), true,
-                    nil, {kind = 'failed', name = job.name})
+                joinFailed(job, member and ui.t(member.error) or ui.t(member and member.state == 'dead'
+                    and 'The character died before joining.' or 'The character was removed before joining.'))
                 attaching[serial] = nil
             end
         end
@@ -824,8 +837,7 @@ function M.new(companions, readiness, options)
                 -- The adopted character can no longer join: release its reservation.
                 job.error = tostring(gateReason or ui.t('The character was removed before joining.'))
                 if readiness then readiness.cancel(job) end
-                report('party-failed', ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
-                    {kind = 'failed', name = job.name})
+                joinFailed(job, ui.t(job.error), job.id)
             elseif not job.error and gate == false then
                 remaining[#remaining + 1] = job
             elseif not job.error and (status.state == 'ready' or status.state == 'model-only') then
@@ -847,8 +859,7 @@ function M.new(companions, readiness, options)
                     job.error = tostring(called and err or serial)
                     if readiness then readiness.cancel(job) end
                     if preparationId == job.id then preparationId = nil end
-                    report('party-failed', ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
-                        {kind = 'failed', name = job.name})
+                    joinFailed(job, ui.t(job.error), job.id)
                 end
             elseif status.state == 'error' then
                 -- A failed preparation says why once, then leaves the list: it must not stay as an invitation that looks pending.

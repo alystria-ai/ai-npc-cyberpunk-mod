@@ -205,3 +205,75 @@ test('the pair is random but not the one that just spoke, when another pair exis
     assert(kinds >= 2, 'always the same pair')
   `);
 });
+
+test('the pause after a chat is the setting (1, 2, 5 or 10 minutes), 120 seconds without one or with a bad one', () => {
+  for (const [setting, expected] of [['60', 60], ['300', 300], ['600', 600], ['nil', 120], ["'soon'", 120], ['5', 120]]) {
+    lua(`${CHAT}
+      local value = ${setting}
+      env.cooldown = function() return value end
+      env.ended = function(reason) local s = chat.snapshot(); world.pause = s.nextAt - s.clock; world.ended[#world.ended + 1] = reason end
+      chat = Chat.new(env)
+      play(80)
+      assert(#world.ended >= 1 and world.ended[1] == 'done', 'the first chat ends')
+      assert(world.pause == ${expected}, 'pause ' .. tostring(world.pause))
+    `);
+  }
+});
+
+test('with a bigger chat size three or four take turns in order, each line answers the one before, and the rest are named', () => {
+  lua(`${CHAT}
+    world.people = {person('a', 2), person('b', 4), person('c', 6), person('d', 8)}
+    env.groupSize = function() return 3 end
+    chat = Chat.new(env)
+    play(60)
+    local n = #world.requests
+    assert(n == 7 or n == 8, 'lines ' .. n)
+    local order = {}
+    for i = 1, 3 do order[i] = world.requests[i].speaker.key end
+    assert(order[1] ~= order[2] and order[2] ~= order[3] and order[1] ~= order[3], 'three different people speak first')
+    for i, req in ipairs(world.requests) do
+      assert(req.speaker.key == order[(i - 1) % 3 + 1], 'turn ' .. i)
+      if i > 1 then assert(req.partner.key == world.requests[i - 1].speaker.key, 'answers the one before ' .. i) end
+      assert(#req.others == 1, 'one more person named')
+      assert(req.others[1] ~= req.speaker.name and req.others[1] ~= req.partner.name)
+    end
+    assert(world.requests[1].partner.key == order[2], 'the first line is aimed at the next speaker')
+  `);
+  lua(`${CHAT}
+    world.people = {person('a', 2), person('b', 4), person('c', 6), person('d', 8)}
+    env.groupSize = function() return 9 end
+    chat = Chat.new(env)
+    play(60)
+    assert(#world.requests[1].others == 2, 'never more than four people')
+    -- two people at home: a chat of four is a chat of two
+    world.people = {person('a', 2), person('b', 4)}
+    env.groupSize = function() return 4 end
+    chat = Chat.new(env)
+    world.requests = {}
+    play(60)
+    assert(#world.requests[1].others == 0)
+    -- nobody far away is pulled in
+    world.people = {person('a', 2), person('b', 4), person('c', 40)}
+    env.groupSize = function() return 4 end
+    chat = Chat.new(env)
+    world.requests = {}
+    play(60)
+    assert(#world.requests[1].others == 0 and world.requests[1].speaker.key ~= 'c')
+  `);
+});
+
+test('somebody leaving a chat of three leaves it going between the others; with fewer than two it ends', () => {
+  lua(`${CHAT}
+    world.people = {person('a', 2), person('b', 4), person('c', 6)}
+    env.groupSize = function() return 3 end
+    chat = Chat.new(env)
+    play(5)
+    world.people = {person('a', 2), person('b', 4)}
+    play(10)
+    local last = world.requests[#world.requests]
+    assert(chat.active() and #world.requests >= 3 and #last.others == 0, 'goes on between the two who are left')
+    world.people = {person('a', 2)}
+    play(12)
+    assert(chat.active() == false and world.ended[#world.ended] == 'dropped')
+  `);
+});

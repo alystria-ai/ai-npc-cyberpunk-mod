@@ -2,7 +2,7 @@
 // round trip through PhoneChat next to the meet offer.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseHomeOffer, screenHome, homeInstruction, splitHomeTags, homeAction} from './home-requests.mjs';
+import {parseHomeOffer, screenHome, homeInstruction, splitHomeTags, homeAction, HomePicks} from './home-requests.mjs';
 import {PhoneChat} from './phone-chat.mjs';
 
 const TOKEN = 'home-0123456789abcdef';
@@ -222,4 +222,29 @@ test('a malformed home offer never rejects the message, and an event turn carrie
   await finish(event.chat, state({text: '', event: {version: 1, kind: 'arrived', place: 'Lizzie\'s Bar', minutes: 3}, homeOffer: offer()}));
   assert.equal(event.calls[0].input.homeInstruction, undefined);
   assert.equal(replies(event.output).length, 1);
+});
+
+// ---- Move-in apartment (Settings > Housemates): the flat V chose for "move in" when V names none ------------------------------------------
+
+test('the chosen flat: parsed only when it is one of the offered, told to the character, used by a bare tag, and she does not ask', () => {
+  assert.deepEqual(parsed({fallback: 'glen'}), {version: 1, token: TOKEN, apartments: [corpo, glen], fallback: 'glen'});
+  assert.equal(parsed({fallback: 'h10'}).fallback, undefined, 'not one of the offered');
+  assert.equal(parsed({fallback: 'x'}).fallback, undefined);
+  const o = parsed({fallback: 'glen'});
+  const text = homeInstruction(o, screenHome('you can stay at my place', o));
+  assert.match(text, /If V names none, it is "Heywood Glen" \(the apartment V chose in the settings for this: \[stay:glen\]\); do not ask which one\./);
+  assert.doesNotMatch(text, /ask V in your own words/);
+  const stay = screenHome('move in with me', o);
+  assert.deepEqual(homeAction({kind: 'stay', argument: ''}, o, stay), {action: 'stay', apartment: 'glen', token: TOKEN}, 'a bare tag is the chosen flat');
+  assert.deepEqual(homeAction({kind: 'stay', argument: 'corpo'}, o, stay), {action: 'stay', apartment: 'corpo', token: TOKEN}, 'V naming one wins');
+  // Where V stands comes first; the answer to her own question before that.
+  const here = parsed({fallback: 'glen', here: 'corpo'});
+  assert.deepEqual(homeAction({kind: 'stay', argument: ''}, here, screenHome('move in', here)), {action: 'stay', apartment: 'corpo', token: TOKEN});
+  assert.match(homeInstruction(here, screenHome('move in', here)), /If V names none, it is "Corpo Plaza" \(where V is now/);
+  // No question was asked, so no answer is expected.
+  const picks = new HomePicks({now: () => 0});
+  assert.equal(picks.turn('a', 'you can stay at my place', [corpo, glen], undefined, 'glen'), false);
+  assert.equal(picks.turn('a', 'hmm', [corpo, glen], undefined, 'glen'), false);
+  assert.equal(picks.turn('b', 'you can stay at my place', [corpo, glen], undefined, undefined), false);
+  assert.equal(picks.turn('b', 'hmm', [corpo, glen], undefined, undefined), true);
 });
