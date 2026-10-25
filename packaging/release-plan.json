@@ -406,6 +406,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/npc-reactions.lua"
         },
         {
+          "source": "mod/eddies-payment.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/eddies-payment.lua"
+        },
+        {
           "source": "mod/johnny-head.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-head.lua"
         },
@@ -762,6 +766,7 @@
             "bridge/custom-voice-clip.mjs",
             "bridge/dialogue-level.mjs",
             "bridge/dynamic-info.mjs",
+            "bridge/eddies-payment.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
             "bridge/emotion-selector.mjs",

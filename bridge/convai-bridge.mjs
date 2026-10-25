@@ -102,6 +102,7 @@ import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
+import {PaymentActions} from './eddies-payment.mjs';
 import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
@@ -1012,6 +1013,10 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
     return `convai=allowed:${e.allowed} privateManual:${e.privateManual} verified:${e.verified} armed:${e.armed} published:${seen.published}`
       + ` accepted:${seen.accepted} skipped:${seen.skipped} skip:${seen.lastSkip ?? '-'} ack:${seen.contextAck ?? '-'}`;
   }});
+// Paying a character in eddies (docs/EDDIES_PAYMENT.md): one packet per typed line, decided from V's words, into the same mailbox the actions use.
+const payments = new PaymentActions({createToken: () => 'pay-' + randomUUID(),
+  publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options),
+  log: line => console.error('[Payment] ' + line)});
 // "Companions can see" (docs/COMPANION_VISION.md): always on, Convai only. Every conversation turn carries a recent picture of
 // V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking;
 // it is published on the page ahead of the line. companionVision.attachToNextTurn(images) lets other features show the companion
@@ -3154,10 +3159,13 @@ async function runInput(request, prepared, clock) {
     // Only the first speaker of a group round may admit an action (sending
     // companions away), so a look-ahead skips the admission that would also
     // clear the mailbox beside the speaker still heard.
-    if (!ahead) companionActions.admit(knowledgeTurn, {source: input.group ? 'group-text' : 'private-text', signal: controller.signal,
-      isCurrent: async () => !stopped && !controller.signal.aborted && await knowledgeRouter.current(knowledgeTurn)
+    const turnCurrent = {isCurrent: async () => !stopped && !controller.signal.aborted && await knowledgeRouter.current(knowledgeTurn)
         && await request.owner.current(),
-      isCurrentSync: () => !stopped && !controller.signal.aborted && knowledgeRouter.currentSync(knowledgeTurn)});
+      isCurrentSync: () => !stopped && !controller.signal.aborted && knowledgeRouter.currentSync(knowledgeTurn)};
+    if (!ahead) companionActions.admit(knowledgeTurn, {source: input.group ? 'group-text' : 'private-text', signal: controller.signal, ...turnCurrent});
+    // Paying the character in eddies (docs/EDDIES_PAYMENT.md): only a typed private line that carries the game's offer, decided from V's own words (never from the
+    // reply), handed to the game once, after the mailbox was cleared for this turn. Not awaited: the reply never waits for it.
+    if (!ahead && input.payOffer) void payments.admit(knowledgeTurn, {source: 'private-text', signal: controller.signal, after: companionActions.clearing, ...turnCurrent}).catch(() => {});
     rememberKnowledgeTurn(knowledgeTurn);
     note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,

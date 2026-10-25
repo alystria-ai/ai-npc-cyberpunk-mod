@@ -959,6 +959,16 @@ function M.partyMember(entity)
     return nil
 end
 
+-- One of our own copies V may pay (docs/EDDIES_PAYMENT.md): in the party, or an invited visitor or a housemate standing in the world. Never a character the game
+-- placed: those have no entry here.
+function M.payable(entity,profileKey)
+    if type(entity)~='string' or type(profileKey)~='string' then return false end
+    for _,entry in ipairs(entries) do
+        if (entry.state=='ready' or entry.state=='visiting') and entry.profileKey==profileKey and entry.entityID and tostring(entry.entityID.hash)==entity then return true end
+    end
+    return false
+end
+
 function M.identity(npc)
     if not npc then return nil end
     local ok, identity = pcall(function() return tostring(npc:GetEntityID().hash) end)

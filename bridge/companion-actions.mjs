@@ -337,7 +337,8 @@ export class CompanionActions {
     // its own cancellation policy and is not undone by this empty mailbox.
     // admit() can establish its replacement while this clear is writing; that
     // pending owner fences the final rename even within this same revision.
-    return Promise.resolve(this.publish({version: 1, action: 'none', updatedAt: this.now()},
+    // `clearing` is what a payment of the same turn waits for (bridge/eddies-payment.mjs), so the two writes of one file cannot cross.
+    return this.clearing = Promise.resolve(this.publish({version: 1, action: 'none', updatedAt: this.now()},
       {isCurrentSync: () => this.revision === revision && this.pending === null})).catch(() => false);
   }
   admit(prepared, {source, isCurrent, isCurrentSync, signal} = {}) {
