@@ -278,6 +278,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-seating.lua"
     },
     {
+      "source": "mod/companion-settle.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-settle.lua"
+    },
+    {
       "source": "mod/seated-look.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/seated-look.lua"
     },

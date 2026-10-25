@@ -414,6 +414,9 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     tacticOffer = function(entity) return tactics.offer(entity) end,
     queueTactic = function(kind, offer, entity) return tactics.start(kind, offer, entity) end,
     followOffer = function(entity, context)
+        -- A companion settled in V's flat can be asked to come along (mod/companion-settle.lua).
+        local settled = convaiSettleOffer and convaiSettleOffer(entity, context)
+        if settled then return settled end
         return adoption and adoption.offer(entity, conversationNpc(entity), context.profileKey, context.name) or nil
     end,
     leaveOffer = function(entity, context)
@@ -428,6 +431,7 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         return offer
     end,
     queueFollow = function(offer, entity, requestId)
+        if convaiSettleFollow and convaiSettleFollow(entity) then return true end
         if not adoption then return false, ui.t('That action is not available.') end
         return adoption.queueFollow(offer, entity, requestId)
     end,
@@ -2159,7 +2163,10 @@ do
         catalog = controller and type(controller.catalog) == 'table' and controller.catalog or nil,
         gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
         -- V settled on a seat: its root is learned so that no housemate is given it (mod/housemates.lua).
-        onSettled = function(anchor, forward, kind) if convaiHousemateLearn then convaiHousemateLearn(anchor, forward, kind) end end,
+        onSettled = function(anchor, forward, kind)
+            if convaiHousemateLearn then convaiHousemateLearn(anchor, forward, kind) end
+            if convaiSettleSat then convaiSettleSat(anchor) end
+        end,
         log = function(kind, fields)
             if manager.developerMode() then
                 local ok, text = pcall(json.encode, fields)
@@ -2188,6 +2195,9 @@ do
         tick = function(player, step, rows)
             local c, p, s = current(), currentProbe(), currentSeating()
             if s then pcall(s.tick, player, step, rows) end
+            -- Settling in V's flat (mod/companion-settle.lua): a nil global away from home.
+            local z = convaiSettle
+            if z then pcall(z.tick, player, step, rows) end
             if c then pcall(c.tick, player, step, rows) end
             if p then return p.tick(player, step, rows) end
         end,
@@ -3874,6 +3884,8 @@ do
                 return departure.queueLeave(entity, offer, entity, nil, nil)
             end,
             persist = persist,
+            -- Party companions settled in a flat (mod/companion-settle.lua) hold places the housemates leave alone.
+            reserved = function(apt) return convaiSettleTaken and convaiSettleTaken(apt) or nil end,
             hookDistrict = function()
                 if districtHooked then return end
                 districtHooked = true
@@ -4094,6 +4106,110 @@ do
             finish('failed')
         end
         return true
+    end
+end
+
+-- ---- Companions settle in V's flat (docs/COMPANION_SETTLE.md) -------------------------------------------------------------------------------
+-- While V stays in one of V's own apartments the party takes seats and standing places of the flat instead of trailing V. Nothing of it exists
+-- away from home: mod/companion-settle.lua is built when the game pushes a district change into one of the five flats (the hook in onInit) and is
+-- dropped on the next change out. It is driven by the companions' own body animation tick, so there is no timer of its own. No setting: away from
+-- home it is one global that is nil. Globals and one do-block (the main chunk is near Lua's limit of locals).
+convaiSettle, convaiSettlePending = nil, true
+do
+    local FLATS = {LittleChina_VApartment = 'h10', CorpoPlaza_Apartment = 'corpo', Glen_Apartment = 'glen',
+        JapanTown_Apartment = 'japan', Northside_Apartment = 'north'}
+    local failed = false
+    local function flatNow()
+        local where = currentDistrict()
+        local place = where and (where.area or where.district) or nil
+        return place and FLATS[place] or nil
+    end
+    -- V cannot settle now: a fight, a vehicle, or a scene or call that is not V's own sitting, sleeping or washing at home.
+    local function busy()
+        local sample = battleSample
+        if type(sample) ~= 'table' then return nil end
+        if sample.combat then return 'combat' end
+        if sample.vehicle then return 'car' end
+        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then
+            if not sample.dialogue and not sample.choices then
+                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(Game.GetPlayer()) == true end)
+                if ok and inside then return nil end
+            end
+            return 'scene'
+        end
+        return nil
+    end
+    local function build()
+        if failed or not convaiSeating or not convaiSeating.setHome then return nil end
+        local loaded, module = pcall(dofile, 'companion-settle.lua')
+        if not loaded or type(module) ~= 'table' then
+            failed = true
+            convaiLogOnce('settle-load', 'Settling in the flat is unavailable: ' .. tostring(module))
+            return nil
+        end
+        local built, value = pcall(module.new, {
+            load = dofile,
+            seating = function() return convaiSeating end,
+            vpos = function()
+                local player = Game.GetPlayer()
+                local at = player and player:GetWorldPosition()
+                return at and {x = at.x, y = at.y, z = at.z} or nil
+            end,
+            held = busy,
+            district = flatNow,
+            -- The housemates' places (only while that feature is On and has someone in this flat).
+            others = function(apt)
+                local glue = convaiHousemates
+                local controller = glue and glue.controller
+                return controller and controller.takenSpots and controller.takenSpots(apt) or nil
+            end,
+            member = function(entity) return companions.partyMember(entity) end,
+            log = function(kind, fields)
+                if manager.developerMode() then
+                    local ok, text = pcall(json.encode, fields)
+                    log('Settle ' .. kind .. ' ' .. (ok and text or ''))
+                end
+            end})
+        if not built then
+            failed = true
+            convaiLogOnce('settle-build', 'Settling in the flat is unavailable: ' .. tostring(value))
+            return nil
+        end
+        return value
+    end
+    -- The game pushed a district change (or the world just came up, or V sat down at home): is V in one of the flats now?
+    function convaiSettleWake()
+        convaiSettlePending = false
+        local ok, flat = pcall(flatNow)
+        flat = ok and flat or nil
+        if flat then
+            if not convaiSettle then convaiSettle = build() end
+            if convaiSettle then convaiSettle.enter(flat) end
+        elseif convaiSettle then
+            local settle = convaiSettle
+            convaiSettle = nil
+            pcall(settle.leave, 'left the flat')
+        end
+    end
+    -- V sat on a seat (once per sit): it is never given away, and a missed district event is made up for.
+    function convaiSettleSat(anchor)
+        if not convaiSettle then convaiSettleWake() end
+        if convaiSettle then convaiSettle.learnV(anchor) end
+    end
+    -- The world ended or V fast travelled: the seating controller has let go of its places already (no native calls here).
+    function convaiSettleReset(reason, preserve)
+        convaiSettle, convaiSettlePending = nil, true
+    end
+    -- "Come with me" to a settled companion: the follow offer of the conversation actions, and its execution.
+    function convaiSettleOffer(entity, context)
+        return convaiSettle and convaiSettle.followOffer(entity, context) or nil
+    end
+    function convaiSettleFollow(entity)
+        return convaiSettle ~= nil and convaiSettle.follow(entity) == true
+    end
+    -- The spots the settled party holds in a flat (the housemates leave them alone).
+    function convaiSettleTaken(apt)
+        return convaiSettle and convaiSettle.taken(apt) or nil
     end
 end
 
@@ -5580,6 +5696,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiImmersiveReset then convaiImmersiveReset(reason, preserveTransit == true) end
     -- Housemates: the registry is read again from the save that loads next; a fast travel keeps it (the bodies were deleted before it).
     if convaiHousemateReset then convaiHousemateReset(reason, preserveTransit == true) end
+    if convaiSettleReset then convaiSettleReset(reason, preserveTransit == true) end
     -- A new session forgets which look each copy wears and any home answers; fast travel keeps them (the copies are made again in the same clothes).
     if convaiOutfits and preserveTransit ~= true then pcall(convaiOutfits.reset) end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
@@ -5740,6 +5857,13 @@ registerForEvent('onInit', function()
     convaiGuarded('Phone chat style hooks', phoneChatStyle.install)
     local ok, err = pcall(managerUi.install)
     if not ok then log('Manager registration failed: ' .. tostring(err)) end
+    -- Companions settle in V's flat (mod/companion-settle.lua): the game pushes a district change when V crosses into or out of a flat, and that
+    -- is the one thing that wakes the module. Away from home the callback finds nothing to do.
+    convaiGuarded('Settle district hook', function()
+        ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', function()
+            if not worldSuspended and convaiSettleWake then convaiSettleWake() end
+        end)
+    end)
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
         if not worldSuspended and sessionHasState then companions.chauffeurAutodriveToggled(enabled) end
     end)
@@ -6155,6 +6279,8 @@ registerForEvent('onUpdate', function(delta)
         if not immersiveOk then convaiLogOnce('immersive-tick', 'Immersive invitations failed: ' .. tostring(immersiveError)) end
         local housemateOk, housemateError = pcall(convaiHousemateTick, elapsedPoll)
         if not housemateOk then convaiLogOnce('housemate-tick', 'Housemates failed: ' .. tostring(housemateError)) end
+        -- Companions settling in V's flat: one district read per world, then only the game's own district events.
+        if convaiSettlePending then convaiSettlePending = false; pcall(convaiSettleWake) end
         mark('init:tick')
     end
     -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).

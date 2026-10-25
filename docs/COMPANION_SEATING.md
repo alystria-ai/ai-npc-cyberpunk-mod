@@ -504,6 +504,15 @@ runs at 10 Hz).
 
 Free look while seated (see above): three Observe hooks that run only when V's player state machine enters or leaves Workspot, a few native calls per sit.
 
+## At home: places of the flat (October 25)
+
+While V stays in one of V's own flats the same controller seats companions at places of the flat, not only beside V: `setHome`, `clearHome`,
+`homeRelease`, `homeHeld`, `vSeat`, `sitting`, `canSit` and `placed`. A home (docs/COMPANION_SETTLE.md, mod/companion-settle.lua) hands out
+a place on request (`claim`): a seat is walked to, sat on and left exactly as a seat beside V (device entity with the vanilla workspot, fast exit,
+step out; the walk-up point comes ready-checked from the home), a standing place is a walk, a turn and a hold (phases `post-walk`, `post-turn`,
+`post`, `post-face`). V's own seats come first: a companion near V takes a seat beside V when V sits; a place held at home is never a seat beside V
+and the reverse. Probe lines: `home-set`, `home-cleared`, `home-seat`, `home-post`, `home-arrived`, `home-posted`. Away from home none of this runs.
+
 ## Probe lines
 
 With Developer mode on, `runtime/probe.log` gets `Seating <kind> {...}` lines:
