@@ -56,8 +56,9 @@ const ACTIVITIES = {
 const OUTFITS = {
   changed: 'You have changed clothes: you are not wearing the outfit your appearance notes describe. Your hair, face, tattoos and cyberware are the same.',
   home: 'You are in casual clothes for home, not the outfit your appearance notes describe. Your hair, face, tattoos and cyberware are the same.'};
-// What a companion has in her hand (mod/companions.lua activityInputs): the game reads only whether a real weapon is drawn.
-const HOLDING = {weapon: 'You have a weapon drawn in your hand.', empty: 'You have no weapon drawn right now, your hands are empty.'};
+// The weapon a companion carries (mod/companions.lua carriedWeapon): drawn, holstered, or none. The name is the game's display name.
+const HOLDING = {weapon: name => name ? `You are holding ${name}.` : 'You have a weapon drawn in your hand.',
+  holstered: name => name ? `You carry ${name} (holstered).` : 'You carry a weapon (holstered).', empty: () => 'You carry no weapon.'};
 // Said last in every form: the facts are scenery unless the talk needs them.
 const MENTION = ' Do not recite it, and mention a place or the time only if it matters to what V says.';
 // What a remote character is told to hold to: not with V, no view of V's surroundings, no invented place or doing of her own.
@@ -183,7 +184,7 @@ export function parseTurnContext(value) {
       const name = clean(row?.name, MAX_NAME);
       if (!plain(row) || typeof row.key !== 'string' || !/^[a-z0-9-]{1,80}$/.test(row.key) || !name || seen.has(row.key)) continue;
       seen.add(row.key); party.push({key: row.key, name, ...(Object.hasOwn(ACTIVITIES, row.activity) ? {activity: row.activity} : {}),
-        ...(Object.hasOwn(OUTFITS, row.outfit) ? {outfit: row.outfit} : {}), ...(Object.hasOwn(HOLDING, row.holding) ? {holding: row.holding} : {})});
+        ...(Object.hasOwn(OUTFITS, row.outfit) ? {outfit: row.outfit} : {}), ...(Object.hasOwn(HOLDING, row.holding) ? {holding: row.holding, ...(clean(row.weapon, MAX_NAME) ? {weapon: clean(row.weapon, MAX_NAME)} : {})} : {})});
       if (party.length >= MAX_PARTY) break;
     }
     if (party.length) result.party = party;
@@ -309,7 +310,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
     const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
     sentences.push(`You are with V in person${ACTIVITIES[mine?.activity] ?? ''}.`);
     pushWhere(YOU);
-    if (mine?.holding) sentences.push(HOLDING[mine.holding]);
+    if (mine?.holding) sentences.push(HOLDING[mine.holding](mine.weapon));
     if (mine?.outfit) sentences.push(OUTFITS[mine.outfit]);
   } else if (call) {
     const where = '. You are somewhere else; where you are and what you are doing are not given.';

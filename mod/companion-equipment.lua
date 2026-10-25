@@ -42,6 +42,24 @@ function D.weapon(npc)
     if WeaponObject.IsFists(id) then return false end
     return true, tostring(ItemID.GetTDBID(id))
 end
+-- The item record of the real weapon drawn in her hand, nil when the hand is empty or holds fists. Raises when the game will not say.
+function D.handItem(npc)
+    local item = ScriptedPuppet.GetWeaponRight(npc)
+    if item == nil then return nil end
+    local id = item:GetItemID()
+    if WeaponObject.IsFists(id) then return nil end
+    return ItemID.GetTDBID(id)
+end
+-- An item's display name as the inventory shows it (the record's DisplayName, localized), nil when it has none. Raises on a failed read.
+function D.nameOf(record)
+    local item = TweakDBInterface.GetItemRecord(record)
+    if not item then return nil end
+    local text = Game.GetLocalizedTextByKey(item:DisplayName())
+    if type(text) ~= 'string' then return nil end
+    text = text:gsub('<[^>]*>', ''):gsub('%c', ' '):gsub('%s+', ' '):match('^%s*(.-)%s*$')
+    if text == '' or text:match('^LocKey#') then return nil end
+    return text:sub(1, 60)
+end
 -- The item record of a weapon the copy carries, for the explicit equip. One inventory read, called only after
 -- the switch command failed to put a weapon in hand. nil when nothing can be named.
 function D.primaryItem(npc)

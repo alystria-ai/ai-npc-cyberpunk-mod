@@ -38,12 +38,17 @@ test('a companion in person is told what she is doing, who is with V and what is
   assert.match(text, /You are with V in person, standing near V\./);
   assert.match(text, /You have a weapon drawn in your hand\./);
   assert.match(text, /Also with V: Panam\./);
-  assert.match(turnContext(turn({turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding: 'empty'}]})})), /You have no weapon drawn right now, your hands are empty./);
-  assert.ok(!/in your hand|hands are empty/.test(turnContext(turn({turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding: 'sword'}]})}))));
+  const held = (holding, weapon) => turnContext(turn({turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding, weapon}]})}));
+  assert.match(held('empty'), /You carry no weapon\./);
+  assert.match(held('weapon', 'Satara'), /You are holding Satara\./);
+  assert.match(held('holstered', 'Satara'), /You carry Satara \(holstered\)\./);
+  assert.match(held('holstered'), /You carry a weapon \(holstered\)\./);
+  assert.ok(!/You are holding|You carry/.test(held('sword', 'Satara')));
+  assert.match(held('holstered', 'Sa<b>tara</b>'), /You carry Satara \(holstered\)\./);
 });
 
 test('the game side reads the hand once per turn and passes it on', () => {
   const lua = readFileSync(new URL('../mod/turn-context.lua', import.meta.url), 'utf8');
-  assert.match(lua, /inputs\.holding == 'weapon' or inputs\.holding == 'empty'/);
-  assert.match(readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8'), /equipment\.draw\.weapon\(entry\.npc\)/);
+  assert.match(lua, /inputs\.holding == 'weapon' or inputs\.holding == 'holstered' or inputs\.holding == 'empty'/);
+  assert.match(readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8'), /function M\.carriedWeapon[\s\S]*draw\.handItem[\s\S]*draw\.primaryItem[\s\S]*draw\.nameOf/);
 });

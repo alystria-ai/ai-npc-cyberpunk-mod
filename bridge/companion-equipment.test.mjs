@@ -533,3 +533,33 @@ test('rearm lets a copy that never reached the combat edge holster after a tacti
  local failed=m.new(npc);failed.cancelFailed=true;assert(m.rearm(failed)==false)
  local gone=m.new(npc);m.abandon(gone);assert(m.rearm(gone)==false and m.rearm(nil)==false)
 `));
+
+// The weapon a copy carries (companions.carriedWeapon, for her turn context): drawn, holstered or none, with its display name.
+test('the turn context names the weapon she carries: drawn, holstered, none, and an unreadable read says nothing', () => run(integration + `
+ local names={['Items.Chao']='Satara',['Items.Spare']='Malorian'}
+ local carried={{GetID=function()return {record='Items.Chao',hash='c'}end}}
+ local reads,clock=0,1000
+ os.clock=function()return clock end
+ RPGManager={IsItemWeapon=function()return true end}
+ Game.GetTransactionSystem=function()return {GetItemList=function()reads=reads+1;return true,carried end}end
+ TweakDBInterface={GetItemRecord=function(r)return {DisplayName=function()return names[r] end}end}
+ Game.GetLocalizedTextByKey=function(key)return key end
+ local function inputs(later)
+  clock=clock+(later or 10)
+  local row=companions.activityInputs({}).rows[companions.list()[1].profileKey]
+  return row.holding,row.weapon
+ end
+ npc.weapon=nil
+ local h,w=inputs();assert(h=='holstered' and w=='Satara',tostring(h)..tostring(w))
+ npc.weapon={GetItemID=function()return {hash='Spare',record='Items.Spare'}end}
+ local before=reads
+ h,w=inputs(1);assert(h=='weapon' and w=='Malorian' and reads==before,'a drawn weapon is named from her hand, no inventory read')
+ npc.weapon=nil;carried={}
+ h,w=inputs(1);assert(h=='holstered' and w=='Satara' and reads==before,'the inventory read is kept a few seconds')
+ h,w=inputs(10);assert(h=='empty' and w==nil,'nothing carried')
+ Game.GetTransactionSystem=function()error('unreadable')end
+ h,w=inputs(10);assert(h==nil and w==nil,'a failed read says nothing')
+ npc.weapon={GetItemID=function()return {hash='Spare',record='Items.Spare'}end}
+ Game.GetLocalizedTextByKey=function()return 'LocKey#1' end
+ h,w=inputs();assert(h=='weapon' and w==nil,'an unnamed item is carried without a name')
+`));
