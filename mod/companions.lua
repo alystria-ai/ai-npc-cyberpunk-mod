@@ -1677,7 +1677,7 @@ local setVisible
 -- rest are left for the next call (the cursor lives in `state`), so a search spreads over several module steps and never spends more than
 -- the shared per-update query budget. Returns spot, or nil + reason (no candidate fits, final), or nil,nil,true (ask again).
 --   request = {destination, mode = 'walk' | 'close' | 'standing' | 'exit', maxDistance, relax = 0..4, from (exit: her position)}
-local VISITOR_BATCH,VISITOR_ROUTE_SLACK,VISITOR_ROUTE_CAP,VISITOR_FLOOR=3,6,160,2.5
+local VISITOR_BATCH,VISITOR_EXAMINE,VISITOR_ROUTE_SLACK,VISITOR_ROUTE_CAP,VISITOR_FLOOR=3,12,6,160,2.5
 local atan2=math.atan2 or math.atan
 local function visitorBands(request)
     local mode,relax=request.mode,request.relax or 0
@@ -1685,7 +1685,7 @@ local function visitorBands(request)
     if mode=='close' then list={30,24,18,14}
     elseif mode=='standing' then list={6,4,8,3}
     elseif mode=='exit' then list={55,45,38,30}
-    else list={90,70,50,40,30,24,18} end
+    else list={90,70,50,40,30,24,18,14,11,8} end
     local maximum=request.maxDistance or 90
     local minimum=mode=='walk' and 35 or mode=='close' and 15 or mode=='exit' and 28 or 0
     if relax>=2 and mode=='walk' then minimum=14 end
@@ -1696,6 +1696,14 @@ local function visitorBands(request)
     end
     if #out==0 then out[1]=math.max(minimum,math.min(maximum,18)) end
     return out
+end
+-- Why candidates were turned away, as codes and counts for the probe log: of = candidates in the list, nav = no walkable ground near the
+-- ring point, dup = snapped to a point already judged, floor = other floor, near = too close to V, seen = V could see it, route = no route
+-- or a detour, body = no room for her, avoid = beside another visitor.
+local function visitorReason(state)
+    local s=state.stats or {}
+    return string.format('of=%d nav=%d dup=%d floor=%d near=%d seen=%d route=%d body=%d avoid=%d',#(state.list or {}),
+        s.nav or 0,s.dup or 0,s.floor or 0,s.near or 0,s.seen or 0,s.route or 0,s.body or 0,s.avoid or 0)
 end
 function M.findVisitorSpot(key,request,state)
     local player=Game.GetPlayer()
@@ -1717,7 +1725,11 @@ function M.findVisitorSpot(key,request,state)
             found=nav:FindPointInBoxForCharacter(Vector4.new(destination.x,destination.y,destination.z,1),Vector4.new(3,3,25,0),player)
         end
         if not found or found.status~=good or not clearance.isPoint(found.point) then
-            return nil,'Walkable ground could not be found at the meeting place.'
+            -- V may stand on a kerb, a median or a ledge: the nearest ground in a wider reach is still the street.
+            found=nav:FindPointInSphereForCharacter(Vector4.new(destination.x,destination.y,destination.z,1),8,player)
+        end
+        if not found or found.status~=good or not clearance.isPoint(found.point) then
+            return nil,'no ground at the meeting place'
         end
         state.goal=space.copy(found.point)
     end
@@ -1726,8 +1738,9 @@ function M.findVisitorSpot(key,request,state)
         local forward=cameraForward(player)
         local base=forward and atan2(-forward.y,-forward.x) or 0
         if mode=='exit' then base=atan2(origin.y-viewer.y,origin.x-viewer.x) end
+        -- Every 15 degrees, nearest to the straight-behind line first: a street is a narrow corridor and a ring point has to land near it.
         local bearings={0}
-        for step=1,6 do bearings[#bearings+1]=step*math.pi/6; bearings[#bearings+1]=-step*math.pi/6 end
+        for step=1,12 do bearings[#bearings+1]=step*math.pi/12; bearings[#bearings+1]=-step*math.pi/12 end
         if mode=='standing' then bearings={0,math.pi/2,-math.pi/2,math.pi,math.pi/4,-math.pi/4,3*math.pi/4,-3*math.pi/4} end
         state.list={}
         for _,distance in ipairs(visitorBands(request)) do
@@ -1737,26 +1750,44 @@ function M.findVisitorSpot(key,request,state)
                     z=origin.z,distance=distance}
             end
         end
-        state.index=0
+        state.index,state.stats,state.seen=0,{},{}
     end
+    local stats=state.stats
     local relax=request.relax or 0
-    local judged=0
-    while state.index<#state.list and judged<VISITOR_BATCH do
+    -- A later rung accepts a longer way round and a slope or ramp (a city street is rarely a straight, level line).
+    local slackFactor,slackAdd,floor=1.35,VISITOR_ROUTE_SLACK,VISITOR_FLOOR
+    if relax>=3 then slackFactor,slackAdd,floor=2,15,4 end
+    local judged,looked=0,0
+    while state.index<#state.list and judged<VISITOR_BATCH and looked<VISITOR_EXAMINE do
         state.index=state.index+1
         local c=state.list[state.index]
+        looked=looked+1
         local found=nav:FindPointInSphereForCharacter(Vector4.new(c.x,c.y,c.z,1),2.5,player)
-        if found and found.status==good and clearance.isPoint(found.point)
-            and math.abs(found.point.z-origin.z)<=VISITOR_FLOOR+1.5 then
+        if c.distance>=14 and (not found or found.status~=good or not clearance.isPoint(found.point)) then
+            -- The ring point is inside a building or across a kerb: the nearest walkable ground in a wider reach.
+            found=nav:FindPointInSphereForCharacter(Vector4.new(c.x,c.y,c.z,1),6,player)
+        end
+        local signature=found and found.point and string.format('%d:%d',math.floor((tonumber(found.point.x) or 0)/2),math.floor((tonumber(found.point.y) or 0)/2))
+        if not found or found.status~=good or not clearance.isPoint(found.point) then
+            stats.nav=(stats.nav or 0)+1
+        elseif math.abs(found.point.z-origin.z)>floor+1.5 then
+            stats.floor=(stats.floor or 0)+1
+        elseif state.seen[signature] then
+            stats.dup=(stats.dup or 0)+1
+        else
+            state.seen[signature]=true
             judged=judged+1
             local point=space.copy(found.point)
             local fromViewer=space.ground(point,viewer)
             local far=mode=='exit' or fromViewer>=(mode=='standing' and 3 or relax>=3 and 8 or relax>=2 and 14 or mode=='close' and 15 or 35)
+            if not far then stats.near=(stats.near or 0)+1 end
             -- A standing companion (V came back to a spot where she already waited) is hidden only on the first try.
             local needHidden=not (mode=='standing' and relax>=1)
             local hidden=nil
             if far and needHidden then hidden=hiddenFromPlayer(player,point) end
-            if far and needHidden and hidden==nil then state.index=state.index-1; return nil,nil,true end
+            if far and needHidden and hidden==nil then state.index=state.index-1; state.seen[signature]=nil; return nil,nil,true end
             local accepted=far and (not needHidden or hidden==true or (relax>=4 and fromViewer>=8))
+            if far and not accepted then stats.seen=(stats.seen or 0)+1 end
             local route
             if accepted then
                 local from,to=point,mode=='exit' and point or origin
@@ -1767,21 +1798,23 @@ function M.findVisitorSpot(key,request,state)
                 accepted=points and #points>0 and clearance.isPoint(points[#points])
                 if accepted then
                     local length=route:CalculateLength()
-                    accepted=length<=math.min(VISITOR_ROUTE_CAP,straight*1.35+VISITOR_ROUTE_SLACK)
+                    accepted=length<=math.min(VISITOR_ROUTE_CAP,straight*slackFactor+slackAdd)
                     for _,waypoint in ipairs(points) do
-                        if not clearance.isPoint(waypoint) or math.abs(waypoint.z-origin.z)>VISITOR_FLOOR then accepted=false; break end
+                        if not clearance.isPoint(waypoint) or math.abs(waypoint.z-origin.z)>floor then accepted=false; break end
                     end
                     c.pathLength=length
                 end
+                if not accepted then stats.route=(stats.route or 0)+1 end
             end
             if accepted then
                 local fits,why,pending=clearance.body(point,body)
-                if pending then state.index=state.index-1; return nil,nil,true end
+                if pending then state.index=state.index-1; state.seen[signature]=nil; return nil,nil,true end
                 accepted=fits==true
+                if not accepted then stats.body=(stats.body or 0)+1 end
             end
             if accepted and request.avoid then
                 for _,other in ipairs(request.avoid) do
-                    if clearance.isPoint(other) and space.ground(point,other)<4 then accepted=false; break end
+                    if clearance.isPoint(other) and space.ground(point,other)<4 then accepted=false; stats.avoid=(stats.avoid or 0)+1; break end
                 end
             end
             if accepted then
@@ -1793,7 +1826,7 @@ function M.findVisitorSpot(key,request,state)
             end
         end
     end
-    if state.index>=#state.list then return nil,'No hidden, reachable spot was found.' end
+    if state.index>=#state.list then return nil,'No hidden, reachable spot was found. '..visitorReason(state) end
     return nil,nil,true
 end
 -- A hidden spot on a road far from the meeting place for the car of a visitor who comes by car (mod/immersive-car.lua). The game has
