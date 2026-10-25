@@ -172,7 +172,7 @@ test('native: boarding and leaving go through the visitor mount, the drive is th
   local command = entity.commands[1]
   assert(command.kind == 'AIVehicleDriveToPointAutonomousCommand' and command.targetPosition.x == 8)
   assert(command.needDriver == true and command.useKinematic == false and command.clearTrafficOnPath == false and command.driveDownTheRoadIndefinitely == false)
-  assert(command.minimumDistanceToTarget == 6 and command.maxSpeed == 12 and command.minSpeed == -1)
+  assert(command.minimumDistanceToTarget == 3 and command.maxSpeed == 12 and command.minSpeed == -1)
   command.state = 'AICommandState : Executing (2)'; assert(native.driveState(operation) == 'running')
   command.state = 'AICommandState : Success (5)'; assert(native.driveState(operation) == 'success')
   command.state = 'AICommandState : Failure (6)'; assert(native.driveState(operation) == 'failed')
@@ -187,4 +187,28 @@ test('native: braking, position, and deletion report what the game said', () => 
   local done, why = native.delete(handle)
   assert(done == false and why:find('passenger') and calls.destroy == handle)
   fake.destroyed = true; assert(native.delete(handle) == true)
+`));
+
+test('the drive aims at the adjusted road point when the controller made one (never right on V)', () => run(`
+  make(); fake.mounted = true
+  a.roadEnd = {x = 20, y = 5, z = 0}
+  step(3)
+  assert(fake.drives[1].x == 20 and fake.drives[1].y == 5, 'roadEnd wins over the raw road point')
+  fake.status.position = {x = 28, y = 5, z = 0}; fake.status.speed = 0.3
+  assert(step() == true and a.car.stage == 'braking', 'the stop rule measures to the same point')
+`));
+
+test('halt: V reached the car on the way, it brakes and she gets out; only while it is driving', () => run(`
+  make()
+  assert(sequencer.halt(a.car) == false, 'not yet driving')
+  fake.mounted = true; step(3)
+  assert(a.car.stage == 'driving')
+  fake.status.speed = 8
+  assert(sequencer.halt(a.car) == true and a.car.stage == 'braking')
+  step(); assert(fake.brakes >= 1)
+  fake.status.speed = 0.1
+  step(); assert(a.car.stage == 'exiting')
+  fake.mounted = false
+  assert(step() == 'arrived')
+  assert(sequencer.halt(a.car) == false, 'a parked car is not halted again')
 `));

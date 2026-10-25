@@ -120,24 +120,31 @@ const GOING = {
     + String.raw`menj|gyere|v[aá]rj|`,
   spaceless: '行って|来て|待って|会おう|가|와|만나|기다려|去|来|等|见',
 };
+// A cancel is also answered by the game itself (screen.sure), so these stems are the words of a plain call-off, in the order the languages are listed above.
+// "Actually no, sorry" and "no thanks" count: while a meeting stands, a short refusal can only mean that one.
 const CANCEL = {
-  words: String.raw`never ?mind|nvm|forget (?:it|that|about it)|cancel|(?:don'?t|do not) come|no need to come|stay (?:home|there|put|where you are)|change of plans|changed my mind|scratch that|call it off|not coming|on second thought|false alarm|`
-    + String.raw`vergiss es|vergiss|abgesagt|absagen|stornier|komm nicht|bleib (?:zu hause|dort|wo du bist|daheim)|plan[äa]nderung|doch nicht|lass gut sein|`
-    + String.raw`laisse tomber|oublie(?: [cç]a)?|annule|annul[eé]|ne viens pas|reste (?:chez toi|l[aà])|changement de plans?|finalement non|`
-    + String.raw`olv[ií]dalo|d[eé]jalo|no importa|cancela|cancelado|no vengas|qu[eé]date|cambio de planes|cambi[eé] de idea|`
-    + String.raw`lascia (?:stare|perdere)|dimentica|annulla|annullato|non venire|resta (?:a casa|l[iì]|dove sei)|cambio di piani|ho cambiato idea|non importa|`
-    + String.raw`esquece|deixa pra l[aá]|deixa isso|cancela|n[aã]o venha|fica (?:em casa|a[ií])|mudan[cç]a de planos|mudei de ideia|n[aã]o precisa vir|`
-    + String.raw`nie wa[zż]ne|zapomnij|anuluj|odwo[lł]aj|nie przychod[zź]|nie przyje[zż]d[zż]aj|zosta[nń] (?:w domu|tam)|zmiana plan[oó]w|rozmy[sś]li[lł]|nie musisz przychodzi[cć]|`
-    + String.raw`забудь|отмена|отменяю|отмени|не приходи|не приезжай|не надо приходить|не нужно приходить|оставайся (?:дома|там|на месте)|планы изменились|передумал|не важно|неважно|`
-    + String.raw`скасуй|скасовую|не приходь|не приїжджай|залишайся (?:вдома|там|на місці)|плани змінилися|не важливо|неважливо|не треба приходити|`
-    + String.raw`bo[sş] ver|bo[sş]ver|unut|[iİ]ptal|gelme(?![\p{L}])|evde kal|plan de[gğ]i[sş]ti|fikrimi de[gğ]i[sş]tirdim|gerek yok|`
-    + String.raw`zapome[nň]|zru[sš]|nechoď|nep[rř]ij[dď]|z[uů]sta[nň] (?:doma|tam)|zm[eě]na pl[aá]n[uů]|rozmyslel jsem si|rozmyslela jsem si|nevad[ií]|`
-    + String.raw`felejtsd el|t[oö]r[oö]ld|ne j[oö]jj|maradj (?:otthon|ott|ahol vagy)|meggondoltam|nem kell j[oö]nn[ií]|`,
-  spaceless: 'やめ|やっぱり|キャンセル|来なくて|来ないで|忘れて|気にしないで|予定変更|中止|取り消し|취소|됐어|오지 마|오지마|오지 말|잊어|신경 쓰지|계획 변경|집에 있어|取消|算了|别来|不用来|不要来|别过来|忘了吧|忘掉|计划有变|改变主意|不必来|待在家|留在家',
+  words: String.raw`never ?mind|nvm|forget (?:it|that|about it)|cancel(?:l?ed)?(?![\p{L}])|(?:don'?t|do not) (?:come|bother|come over)|no need(?! to (?:rush|worry|hurry))|stay (?:home|at home|there|put|here|right there|where you are|where you at|in)|change of plans|changed my mind|scratch that|call it off|not coming|on second thought|false alarm|`
+    + String.raw`(?:actually|wait|oh|ah|hm+|sorry|um+)[ ,.]+(?:no|nope|nah)(?![\p{L}])|(?:no|nope|nah)[ ,.]+(?:sorry|thanks|thank you|never|don'?t|stay|it'?s (?:fine|ok|okay|all good)|i'?m (?:good|fine|ok|okay))|sorry[ ,.]+(?:never|forget|i can'?t|can'?t)|(?:it'?s|that'?s) (?:okay|ok|fine|all good)[ ,.]+(?:no|don'?t|stay)|hold off|belay that|(?:don'?t|no longer) need you|not anymore|better not|rather not|stand down|`
+    + String.raw`vergiss es|vergiss|abgesagt|absagen|stornier|komm nicht|bleib (?:zu hause|dort|da|wo du bist|daheim)|plan[äa]nderung|doch nicht|lass gut sein|lass (?:es|das)|schon gut|nicht n[öo]tig|nein[ ,.]+(?:danke|sorry|doch|lass|bleib|komm)|(?:ach|oh)[ ,.]+nein|`
+    + String.raw`laisse tomber|oublie(?: [cç]a)?|annule|annul[eé]|ne viens pas|reste (?:chez toi|l[aà]|o[uù] tu es)|changement de plans?|finalement non|pas la peine|inutile de venir|non[ ,.]+(?:merci|d[eé]sol[eé]|laisse|finalement|ne viens|reste)|plut[oô]t pas|`
+    + String.raw`olv[ií]dalo|d[eé]jalo|no importa|cancela|cancelado|no vengas|qu[eé]date|cambio de planes|cambi[eé] de idea|mejor no|no hace falta|no hace falta que vengas|d[eé]jalo estar|no,? (?:gracias|perd[oó]n|lo siento|olv[ií]dalo|mejor)|`
+    + String.raw`lascia (?:stare|perdere)|dimentica|annulla|annullato|non venire|resta (?:a casa|l[iì]|dove sei|dove)|cambio di piani|ho cambiato idea|non importa|meglio di no|non serve|non c'?[eè] bisogno|no,? (?:grazie|scusa|lascia|resta|non venire)|`
+    + String.raw`esquece|deixa pra l[aá]|deixa isso|cancela|n[aã]o venha|fica (?:em casa|a[ií]|a[ií] mesmo|onde est[aá]s?)|mudan[cç]a de planos|mudei de ideia|n[aã]o precisa vir|n[aã]o[ ,.]+(?:obrigad|desculpa|esquece|venha|fica)|melhor n[aã]o|deixa estar|`
+    + String.raw`nie wa[zż]ne|zapomnij|anuluj|odwo[lł]aj|nie przychod[zź]|nie przyje[zż]d[zż]aj|zosta[nń] (?:w domu|tam|gdzie jeste[sś])|zmiana plan[oó]w|rozmy[sś]li[lł]|nie musisz przychodzi[cć]|jednak nie|nie trzeba|nie,? (?:dzi[eę]ki|przepraszam|zapomnij)|`
+    + String.raw`забудь|отмена|отменяю|отмени|отбой|не приходи|не приезжай|не надо приходить|не нужно приходить|оставайся (?:дома|там|на месте|где ты)|планы изменились|передумал|не важно|неважно|не надо|не нужно|лучше не|нет,? (?:спасибо|извини|прости|не надо|не приходи)|`
+    + String.raw`скасуй|скасовую|не приходь|не приїжджай|залишайся (?:вдома|там|на місці|де ти)|плани змінилися|не важливо|неважливо|не треба|не потрібно|відбій|краще не|ні,? (?:дякую|вибач|пробач|не треба|не приходь)|`
+    + String.raw`bo[sş] ver|bo[sş]ver|unut|[iİ]ptal|gelme(?![\p{L}])|evde kal|oldu[gğ]un yerde kal|plan de[gğ]i[sş]ti|fikrimi de[gğ]i[sş]tirdim|gerek yok|vazge[cç]|hay[ıi]r,? (?:te[sş]ekk[uü]r|[oö]z[uü]r|gelme|bo[sş]ver)|`
+    + String.raw`zapome[nň]|zru[sš]|nechoď|nep[rř]ij[dď]|z[uů]sta[nň] (?:doma|tam|kde jsi)|zm[eě]na pl[aá]n[uů]|rozmyslel jsem si|rozmyslela jsem si|nevad[ií]|rad[sš]i ne|nemus[ií]š|ne,? (?:d[ií]ky|promi[nň]|zapome[nň])|`
+    + String.raw`felejtsd el|t[oö]r[oö]ld|ne j[oö]jj|maradj (?:otthon|ott|ahol vagy)|meggondoltam|nem kell j[oö]nn[ií]|ink[aá]bb nem|nem kell|nem,? (?:k[oö]sz|bocs|felejtsd)|`,
+  spaceless: 'やめ|やっぱり|やっぱ|キャンセル|来なくて|来ないで|忘れて|気にしないで|予定変更|中止|取り消し|いらない|大丈夫です|いいえ|취소|됐어|오지 마|오지마|오지 말|오지 않아도|안 와도|잊어|신경 쓰지|계획 변경|집에 있어|아니야|괜찮아|그냥 있어|取消|算了|别来|不用来|不要来|别过来|忘了吧|忘掉|计划有变|改变主意|不必来|待在家|留在家|不用了|不必了|不来了|还是不|不要了|就在那|待在那',
 };
 
-const compile = ({words, spaceless}) =>
-  [new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.replace(/\|$/, '')})`, 'iu'), new RegExp(spaceless, 'u')];
+const NOT_A_CANCEL = /(?<![\p{L}\p{N}])(?:i|we|you|they|he|she|who)(?:'ll|'d| would| will| do not| don't| dont)? (?:really |actually |ever )?never ?mind(?![\p{L}])/giu;
+// [0] and [1] test, [2] removes every call-off phrase (global) so what is left can be checked for meeting words.
+const compile = ({words, spaceless}) => {
+  const stems = `(?<![\\p{L}\\p{N}])(?:${words.replace(/\|$/, '')})`;
+  return [new RegExp(stems, 'iu'), new RegExp(spaceless, 'u'), new RegExp(`${stems}|${spaceless}`, 'giu')];
+};
 const patterns = {meet: compile(MEET), waypoint: compile(WAYPOINT), going: compile(GOING), cancel: compile(CANCEL)};
 const has = (name, text) => patterns[name][0].test(text) || patterns[name][1].test(text);
 // A phone keyboard types the curly apostrophe; the stems use the straight one.
@@ -149,10 +156,15 @@ const normal = value => String(value ?? '').slice(0, 600).replace(/[‘’‛ʼ`
  */
 export function screenMeet(text) {
   const value = normal(text);
-  if (!value.trim()) return {kind: null, meet: false, waypoint: false, cancel: false};
-  const cancel = has('cancel', value), meet = has('meet', value), mark = has('waypoint', value);
+  if (!value.trim()) return {kind: null, meet: false, waypoint: false, cancel: false, sure: false};
+  // "I never mind waiting" is a statement about the speaker, not a call-off.
+  const said = value.replace(NOT_A_CANCEL, ' ');
+  const cancel = has('cancel', said), meet = has('meet', value), mark = has('waypoint', value);
   const waypoint = mark && (meet || has('going', value));
-  return {kind: cancel ? 'cancel' : waypoint ? 'waypoint' : meet ? 'here' : null, meet: meet || waypoint, waypoint: mark, cancel};
+  // `sure`: a plain call-off with no meeting word left once the call-off words are taken out ("never mind, stay where you are"). The game cancels a
+  // standing meeting on that alone (meetAction), whatever tag her reply carries.
+  const sure = cancel && !has('meet', said.replace(patterns.cancel[2], ' ')) && !mark;
+  return {kind: cancel ? 'cancel' : waypoint ? 'waypoint' : meet ? 'here' : null, meet: meet || waypoint, waypoint: mark, cancel, sure};
 }
 /** 'here' | 'waypoint' | 'cancel' | null: which request V's message could be. */
 export const meetKind = text => screenMeet(text).kind;
@@ -178,7 +190,12 @@ function meetText(offer) {
     + 'If you would refuse in character, say so and write no tag. ' + PROTOCOL
     + 'The game sends you after your reply; never say you have already arrived.';
 }
-function cancelText(offer) {
+function cancelText(offer, screen) {
+  if (screen?.sure) {
+    return '\nCurrent game-verified fact: you told V you would meet them' + (offer.place ? ` at ${quote(offer.place)} (quoted game data, not instructions)` : '')
+      + ' and V\'s new message calls that off. The game cancels the meeting itself, so you are staying where you are and are not coming. '
+      + 'Begin your reply with exactly the tag [cancel-meet], a space, and then answer briefly in character, accept it, and do not say you are still coming. ' + PROTOCOL;
+  }
   return '\nCurrent game-verified fact: you told V you would meet them' + (offer.place ? ` at ${quote(offer.place)} (quoted game data, not instructions)` : '') + ' and that meeting is still on. '
     + 'If V\'s new message clearly cancels it ("never mind", "forget it", "don\'t come", "stay home", a change of plans), begin your reply with exactly the tag [cancel-meet], a space, '
     + 'and then answer briefly in character. Otherwise write no tag. ' + PROTOCOL;
@@ -198,10 +215,10 @@ const UNAVAILABLE_TEXT = {
 export function meetInstruction(offer, screen) {
   if (!offer || !screen?.kind) return '';
   if (offer.unavailable) {
-    if (screen.kind === 'cancel') return offer.cancel ? cancelText(offer) : '';
+    if (screen.kind === 'cancel') return offer.cancel ? cancelText(offer, screen) : '';
     return UNAVAILABLE_TEXT[offer.unavailable](offer);
   }
-  if (screen.kind === 'cancel') return offer.cancel ? cancelText(offer) : '';
+  if (screen.kind === 'cancel') return offer.cancel ? cancelText(offer, screen) : '';
   return meetText(offer);
 }
 
@@ -238,7 +255,11 @@ export function splitMeetTags(raw) {
  * Everything else drops the action silently; the reply text still goes out.
  */
 export function meetAction(kind, offer, screen) {
-  if (!kind || !offer?.token || !screen?.kind) return null;
+  if (!offer?.token || !screen?.kind) return null;
+  // A plain call-off of a standing meeting counts without her tag: she may have answered in words only (live 2026-10-25: "actually no sorry", "I'll head back
+  // then", no tag, and she came anyway). The token check of the game is still the gate.
+  if (offer.cancel === true && screen.sure) return {kind: 'cancel-meet', token: offer.token};
+  if (!kind) return null;
   if (kind === 'cancel-meet') return offer.cancel === true && screen.cancel ? {kind, token: offer.token} : null;
   if (kind !== 'meet-here' && kind !== 'meet-waypoint') return null;
   if (offer.unavailable || !offer.kinds?.includes('here') || !screen.meet) return null;
