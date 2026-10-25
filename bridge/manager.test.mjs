@@ -5994,8 +5994,9 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
       end
       local behavior
       for _, category in ipairs(loaded.categories) do if category.id == 'companion-behavior' then behavior = category end end
-      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 6, 'Companion behavior: two gaze rows, Companions change outfits, Pay characters in eddies, the Immersive invitations button and the Housemates button')
-      assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength' and behavior.settings[3].id == 'companionOutfits' and behavior.settings[4].id == 'payCharacters' and behavior.settings[5].id == 'immersive-invitations' and behavior.settings[6].id == 'housemates')
+      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 5, 'Companion behavior: two gaze rows, Companions change outfits, the Immersive invitations button and the Housemates button')
+      assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength' and behavior.settings[3].id == 'companionOutfits' and behavior.settings[4].id == 'immersive-invitations' and behavior.settings[5].id == 'housemates')
+      assert(not row('payCharacters'), 'Pay characters in eddies is on the Help page now (Misc)')
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.
     for key in pairs(GONE) do

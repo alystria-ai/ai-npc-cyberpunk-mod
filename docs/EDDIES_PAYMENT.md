@@ -1,6 +1,7 @@
 # Paying a character in eddies
 
-Added 2026-10-26 (branch `fix/eddies-payment`). **Settings > Companion behavior > Pay characters in eddies**, off by default.
+Added 2026-10-26 (branch `fix/eddies-payment`). **Settings > Help > Misc > Pay characters in eddies**, off by default (the first build had it on the Companion behavior
+page, it moved to Help, section Misc, the same day: experimental extras live there).
 
 A player asked to pay (or be paid by) characters when hiring them. Before this, "I gave you 500 eddies" was only words: the model was told V is the one paying
 (`MONEY_NOTE`, docs/DYNAMIC_INFO.md "Money talk") but no money moved and the game showed nothing. With the switch On, when V **types** a plain payment to one of V's
@@ -86,6 +87,48 @@ mismatch says `Eddies payment unconfirmed: asked=... moved=...`), that `RemoveIt
 that `companions.payable` is true for the three kinds of copy (party, invited visitor, housemate) and false for the game's own Judy, and that a payment sent while the same line leases a ride
 reaches the game before the ride's own packet (they share one mailbox; the pay packet is written first and read within a tick).
 
+## Probe lines (since the live test of 2026-10-26)
+
+A payment that "did nothing" left no trace, so every decision point now leaves one compact line. They only appear for a typed line that talks of money (the game
+side: a digit and a money word; the bridge side: an amount of money the screen can read), so an ordinary conversation adds nothing.
+
+Game, `runtime/probe.log` (`mod/eddies-payment.lua`, one line per such typed line, named for the person):
+
+* `Eddies payment: offer=no(switch-off) person=judy-alvarez`: the switch is Off (or was not saved yet). The first thing to read when nothing happened.
+* `offer=no(not-ours)`: the character is not one of our copies (a game-placed character, an ordinary NPC, a stale entity); `not-ours:error` when the check threw.
+* `offer=no(context)` (group round, holocall, automatic reaction, Johnny, add-on voice), `offer=no(no-player)`, `offer=no(no-eddies)` (balance under 1),
+  `offer=no(balance-unreadable:<type>)` (the transaction system's answer was not a whole number: its Lua type is named).
+* `offer=yes balance=1200436 max=100000`: the offer went to the bridge.
+* after the bridge's packet: `Eddies payment: person=... amount=500 paid=yes`, or `Eddies payment refused: <off|offer|amount|not-ours|no-player|unreadable|balance>`,
+  `Eddies payment failed: ...` (the removal threw), `Eddies payment unconfirmed: asked=... moved=...`, and `Eddies payment packet refused: <fault>` from the lease.
+
+Bridge, `bridge.stderr.log` (`[Payment]`, `bridge/eddies-payment.mjs`):
+
+* `Eddies payment: person=judy-alvarez paid=no(no-offer: the switch is off, the character is not one of our copies, or the line was spoken)`: the line talked of
+  money and no offer came with it, so the game side never made one (read its `offer=no(...)` line for the reason).
+* `paid=no(refused:<reason> amount=N)`: an amount the screen or the limits refused (`question`, `conditional-or-negated`, `not-a-payment`, `several-amounts`,
+  `fraction`, `negative`, `not-positive`, `balance`, `cap`).
+* `paid=no(<code>)` for the guards after a good decision (`source:...`, `channel`, `send-not-allowed`, `stale-world`, `already-paid-this-turn`, ...), and
+  `amount=500 handed-over=yes` when the packet was written.
+
+## What the live test of 2026-10-26 showed
+
+Owner, game 2.5, 0.3.2 build: "I pay you 500 eddies" typed to Judy (a party copy), switch On by the owner's account: no pop-up, no `Eddies payment` line anywhere.
+
+* The line did reach the game as a typed private turn to a ready party copy (`probe.log`: talk target `judy-alvarez/11149673ULL ... party`, `Native input captured:
+  generation=2 bytes=20` at 22:32:28Z, 20 bytes is exactly that line), with the balance readable (`money=rich(1200436)` on the same turn).
+* The installed Lua and bridge were the repository's files (same commit `4b1c89bf`), so nothing was stale.
+* The bridge writes a `[Payment]` line whenever it hands a payment over or refuses one after a good decision, and on every guard: the whole `bridge.stderr.log` has
+  none. So the bridge never held a pay offer with a payment decision for that turn: no offer arrived.
+* The offer is made by `mod/eddies-payment.lua offer()` inside the lease capture. The first build wrote nothing when it returned nothing, so the log cannot name
+  the reason. Every link was rebuilt in `bridge/eddies-payment-live.test.mjs` with the REAL modules (companions.lua party and housemate copies, eddies-payment.lua over a
+  strict fake wallet that only answers the `Items.money` id, gameplay-actions.lua in CET's no-`_G` environment with a JSON codec, the bridge's request parser,
+  knowledge preparation, the screen, the packet, and the lease taking it back to `RemoveItem`): the owner's three lines ("I pay you 500 eddies", lower case, "here, take
+  500 eddies") pay 500, a housemate pays, a game-placed character and a switch that is Off give no offer. So the code path is sound end to end with these inputs, and
+  no defect was found in it. What only the game can still say is one of: the switch was not yet On when that line was sent (the settings file was last written at
+  22:47Z, fifteen minutes after it), or a native answered unexpectedly (the balance's type, `Game.GetPlayer`). The probe lines above name which, the next time. The
+  balance is now also read through `tonumber`, so a boxed integer cannot silently refuse the offer.
+
 ## Not in this job
 
 Receiving eddies from a character (robbing V, paying V back, a reward) is **not built**: idea only. The same lease could carry a `give` offer in the other direction, with the same
@@ -99,6 +142,6 @@ the other follow-ups.
 `mod/companions.lua` (`payable`), `mod/init.lua` (wiring), `mod/manager.lua` and `mod/manager-ui.lua` (the setting), the 15 locales (four strings), `packaging/release-plan.json`,
 `scripts/development-files.json`, `packaging/runtime-layout.mjs`.
 
-Tests: `bridge/eddies-payment.test.mjs` (the screen in about 50 paying phrasings and over 100 refusals across all 15 languages, the offer parser, the decision, the packet, the prompt),
+Tests: `bridge/eddies-payment-live.test.mjs` (the owner's lines through the real game and bridge modules, end to end, and the probe lines), `bridge/eddies-payment.test.mjs` (the screen in about 50 paying phrasings and over 100 refusals across all 15 languages, the offer parser, the decision, the packet, the prompt),
 `bridge/eddies-payment-game.test.mjs` (the game half on a strict fake wallet and the real lease: off, offer, every re-check, a removal that throws or does nothing, a leftover lease,
-the other offers kept), plus `bridge/manager.test.mjs`, `bridge/settings-file-lua.test.mjs` and `npm run test:ui-languages`.
+the other offers kept), plus `bridge/manager.test.mjs`, `bridge/support-help-ui.test.mjs` (the Misc section on Help: Off by default, saved, Restore defaults), `bridge/settings-file-lua.test.mjs` and `npm run test:ui-languages`.
