@@ -5427,7 +5427,7 @@ function convaiTapOnce(action)
     return convaiKeyBinds == nil or convaiKeyBinds.once(action)
 end
 registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', function() if convaiTapOnce('manager') then openManager() end end)
--- Companions change outfits (Settings > Companion behavior, on by default; docs/COMPANION_OUTFITS.md): a party copy of a curated character changes into another
+-- Companions change outfits (Settings > Companion behavior, off by default; docs/COMPANION_OUTFITS.md): a party copy of a curated character changes into another
 -- look of its own template by the game's time of day, now and then for variety and into casual clothes at home, only while it is out of V's view. Our own
 -- copies only. The module is loaded on first use and not at all while the setting is off; its 10 Hz tick subtracts the elapsed time from one counter and looks
 -- at the party every 20 s. No per-frame work, no handle kept. Global functions, so onUpdate reaches them without a new upvalue.
@@ -6085,7 +6085,7 @@ registerForEvent('onUpdate', function(delta)
     -- The mod's own key bindings (Companion Manager > Key bindings): one table check per tick while none is saved; the module is not even loaded then.
     local keysOk, keysError = pcall(convaiKeyBindsTick, player, worldReady)
     if not keysOk then convaiLogOnce('Key bindings failed: ' .. tostring(keysError)) end
-    -- Companions change outfits (Settings > Companion behavior, on by default): one boolean per tick while it is off; the module is not even loaded then.
+    -- Companions change outfits (Settings > Companion behavior, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local outfitOk, outfitError = pcall(convaiOutfitTick, player, elapsedPoll, worldReady)
     if not outfitOk then convaiLogOnce('Companion outfits failed: ' .. tostring(outfitError)) end
     mark('init:tick')
