@@ -97,6 +97,10 @@ travel keeps them). Without a call, "home" means the game's district record for 
 `JapanTown_Apartment`, `Glen_Apartment`, `CorpoPlaza_Apartment` (the same five `bridge/place-names.mjs` `HOME_PLACES` lists), read at each check only when a party copy
 has a home look.
 
+## Residents of V's flat (merged with housemates)
+
+A visiting copy owned by the housemates module (`entry.owner == 'housemates'`, state `visiting`) is dressed like a party copy: `companions.outfitRows`, `outfitBusy` and `changeAppearance` accept it (`outfitEligible` in `mod/companions.lua`), so day and night looks and home clothes work for residents. An immersive visitor is not listed. `outfitCreated` already runs for every new copy, and `companions.outfitForget` (set by `mod/init.lua`, calls `convaiOutfits.forget`) runs when a resident is dismissed for good (not on a fast travel, which keeps her).
+
 ## Cost
 
 Nothing per frame. `init.lua` calls `convaiOutfitTick` from the 10 Hz branch of `onUpdate` (after the 0.1 s gate, with `padTalk` and `voiceActivation`): with the setting

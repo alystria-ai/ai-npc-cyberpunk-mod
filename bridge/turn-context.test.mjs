@@ -492,7 +492,7 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
 
 test('every manual send path captures the block (in person, microphone and phone); reactions never do', () => {
   const send = initSource.slice(initSource.indexOf('local function sendRequest(context)'), initSource.indexOf('-- A managed copy can be reassigned'));
-  assert.match(send, /if \(not context\.reaction or speakUp\) and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
+  assert.match(send, /if \(not context\.reaction or speakUp or houseWelcome\) and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
   // The wrapper takes the speaker's profile key so a pending appointment note (immersive invitations) can ride on a copy of the snapshot.
   assert.match(initSource, /microphone\.captureTurnContext = function\(profileKey\)\s+local snapshot = convaiTurnContext and convaiTurnContext:capture\(\) or nil/);
   assert.match(initSource, /pcall\(dofile, 'turn-context\.lua'\)/);

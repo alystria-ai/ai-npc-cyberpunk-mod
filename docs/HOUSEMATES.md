@@ -713,7 +713,8 @@ Everything below is for a **throwaway copy of a save** (never one of the owner's
 ## Owner's questions as they stood before the review (kept for the record)
 
 1. **Persistence**: use the game's own saved facts for the housemate registry (recommended; the only per-save store that works in the shipped mod), or the file keyed by save line which falls back to the session (it forgets after a restart)?
-2. **Merge order**: housemates builds on the visiting copies of `feat/immersive-invitations` and the outfit API of `feat/outfits`. Build after both merge, or carry the minimal visiting-copy part here?
+2. **Merged (integration/next, 2026-10-25)**: the two requests to the outfits branch are done (`companions.outfitRows` lists residents, `outfitForget` on a resident's end), the pair chat uses `convaiProactive.allow/note` with kind `house` and reads `manager.companionSpeakUp()` (off, rare, medium, normal), the welcome carries the game clock, and speak-up treats a chat or a greeting as the floor being held. The guard on `convaiOutfitApi` stays (it costs a table read).
+2b. **Merge order**: housemates builds on the visiting copies of `feat/immersive-invitations` and the outfit API of `feat/outfits`. Build after both merge, or carry the minimal visiting-copy part here?
 3. **Releasing in the wrong flat**: she lives in Glen, V says "rest" in H10. Default in this design: she leaves and is home virtually. Alternative: she moves to H10. Which?
 4. **A body cap per flat** (10, small flats 6) with the rest rotating "out": acceptable, or a different number?
 5. **Pair chat on the shared Convai key**: the day's share of 8 percent is about one chat a day at a 100 turn cap. Raise it, or let chat run only on Mistral, Local AI and a player's own key?

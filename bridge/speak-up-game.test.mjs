@@ -415,3 +415,20 @@ test('wiring: the hooks that feed the block exist in init.lua and speech.lua, an
   assert.doesNotMatch(block, /registerForEvent|Observe\(|Override\(/, 'no new hook');
   assert.doesNotMatch(read('../mod/speak-up.lua'), /Game\./, 'the scheduler is pure');
 });
+
+test('one unprompted speaker at a time: a housemate line or chat, or an arrival greeting (convaiUnpromptedBusy), keeps the speak-up clock and offer quiet', () => withWorld(`
+  local housesBusy = true
+  function convaiUnpromptedBusy() return housesBusy end
+  tick(3600 * 2)
+  assert(#sent == 0, 'nothing is offered while a housemate chat or a greeting holds the floor: ' .. #sent)
+  assert(convaiSpeakUpState.calmFor == 0, 'and the calm time does not build up meanwhile')
+  housesBusy = false
+  assert(untilSent(1500), 'it speaks up again once they are done')
+`));
+
+test('the init.lua tick hands the speak-up offer and the eligibility the housemate and greeting busy test, and housemates expose a pair-chat flag', () => {
+  assert.match(init, /function convaiUnpromptedBusy\(\)\s+if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end/);
+  assert.match(init, /if convaiUnpromptedBusy and convaiUnpromptedBusy\(\) then return false end/);
+  assert.match(init, /convaiSpeakUpOffer\(player, now, worldReady, outputs, manual, busy or \(convaiUnpromptedBusy ~= nil and convaiUnpromptedBusy\(\)\), mayFollow\)/);
+  assert.match(read('../mod/housemates.lua'), /function C\.chatActive\(\) return chat ~= nil and chat\.active ~= nil and chat\.active\(\) == true end/);
+});

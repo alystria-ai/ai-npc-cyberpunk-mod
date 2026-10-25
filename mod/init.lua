@@ -3174,11 +3174,14 @@ local function sendRequest(context)
     context.journal = context.journal or questContext.capture()
     -- Manual turns only: an automatic reaction has its own single subject.
     local speakUp = context.reaction ~= nil and context.reaction.kind == 'speakup'
+    -- A housemate's welcome when V comes home is a talk with V: it carries the game clock (and the right-now facts) so the bridge can word how long it
+    -- has been since V last talked to her (bridge/last-talk.mjs). A housemates' chat line between two of them is not.
+    local houseWelcome = context.reaction ~= nil and context.reaction.kind == 'house' and context.reaction.event == 'welcome'
     if (not context.reaction or (speakUp and context.reaction.event == 'scene')) and convaiGameDialogue then
         context.gameDialogue = context.gameDialogue or convaiGameDialogue:capture()
     end
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
-    if (not context.reaction or speakUp) and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
+    if (not context.reaction or speakUp or houseWelcome) and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
     if not context.reaction and context.turnContext and convaiAppointmentTurn then context.turnContext = convaiAppointmentTurn(context.turnContext, context.profileKey) end
     -- Housemates: where she lives, whether she is home, who else lives there (bridge/turn-context.mjs `housemate`).
     if not context.reaction and context.turnContext and convaiHousemateTurn then context.turnContext = convaiHousemateTurn(context.turnContext, context.profileKey) end
@@ -3557,28 +3560,6 @@ local function captureLootContext(player)
     return {available = observation.available, blocked = observation.blocked,
         worldReady = ready, enabled = manager.lootReactions(), now = os.time(),
         people = reactionPeople(player, observation)}
-end
-
--- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2), on the 0.1 s game tick inside updateBattles. A global, so updateBattles gains
--- no upvalue. With nothing queued it is one length check. `owned`: a head remark is the automatic turn now (keep it or release it);
--- otherwise it may start one when nothing else is going on (busy false) and mayFollow allows a new automatic turn.
-function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow)
-    local remarks = convaiJohnnyRemarks
-    if automatic and automatic.reaction.kind == 'head' then
-        -- Kept or released once per tick, by the first call (the offer call passes busy, and an owned turn means busy).
-        if busy ~= nil then return false end
-        local head = convaiJohnnyHeadService()
-        local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
-            or (convaiJohnnyRemarksService() == nil or head == nil) and 'off'
-            or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
-            or head:refusal(player)
-        if reason then cancelAutomatic('head-' .. reason)
-        elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
-        elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
-        return true
-    end
-    -- Starting one is the speak-up scheduler's job (convaiSpeakUpOffer below): it lets Johnny's queued remark and the companions compete.
-    return false
 end
 
 -- ---- Immersive invitations (docs/IMMERSIVE_INVITATIONS.md) ---------------------------------------------------------------------
@@ -3990,6 +3971,15 @@ do
         return convaiHouseSpeak({kind = 'welcome', speaker = {key = info.key, name = info.name, serial = info.serial, entity = info.entity},
             place = info.place, awayHours = info.awayHours, others = info.others})
     end
+    -- One unprompted speaker at a time (docs/COMPANION_SPEAK_UP.md): a housemate line or chat (also between two lines of it) and an arrival greeting
+    -- that is waiting for the channel or being said count as the floor being held, for the speak-up arbiter. Global reads and one call, only asked
+    -- while a speak-up list is on.
+    function convaiUnpromptedBusy()
+        if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end
+        local glue = convaiHousemates
+        local controller = glue and glue.controller
+        return controller ~= nil and controller.chatActive ~= nil and controller.chatActive() == true
+    end
     function convaiHouseReplyText(replyPending, text)
         if replyPending and replyPending.reaction and replyPending.reaction.kind == 'house' then convaiHouseText = text end
     end
@@ -4058,6 +4048,28 @@ do
         end
         return true
     end
+end
+
+-- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2), on the 0.1 s game tick inside updateBattles. A global, so updateBattles gains
+-- no upvalue. With nothing queued it is one length check. `owned`: a head remark is the automatic turn now (keep it or release it);
+-- otherwise it may start one when nothing else is going on (busy false) and mayFollow allows a new automatic turn.
+function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow)
+    local remarks = convaiJohnnyRemarks
+    if automatic and automatic.reaction.kind == 'head' then
+        -- Kept or released once per tick, by the first call (the offer call passes busy, and an owned turn means busy).
+        if busy ~= nil then return false end
+        local head = convaiJohnnyHeadService()
+        local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+            or (convaiJohnnyRemarksService() == nil or head == nil) and 'off'
+            or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+            or head:refusal(player)
+        if reason then cancelAutomatic('head-' .. reason)
+        elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
+        elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+        return true
+    end
+    -- Starting one is the speak-up scheduler's job (convaiSpeakUpOffer below): it lets Johnny's queued remark and the companions compete.
+    return false
 end
 
 -- Companions and Johnny speak up on their own (docs/COMPANION_SPEAK_UP.md). One scheduler (mod/speak-up.lua) paces both by target rates and
@@ -4153,6 +4165,7 @@ function convaiSpeakUpEligible(now, worldReady, manual, outputs)
     local sample = battleSample
     if not sample or sample.available ~= true or sample.blocked or sample.combat then return false end
     if automatic ~= nil or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+    if convaiUnpromptedBusy and convaiUnpromptedBusy() then return false end
     if battles.status().state == 'fighting' then return false end
     return now - convaiSpeakUpState.lastManualAt >= convaiSpeakUpConfig.QUIET
 end
@@ -4589,7 +4602,7 @@ local function updateBattles(player, elapsed, worldReady)
     end
     -- Battle and loot reactions first; then a waiting Johnny remark (one length check while nothing is queued).
     if not event then
-        if speakUpOn then convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy, mayFollow) end
+        if speakUpOn then convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy or (convaiUnpromptedBusy ~= nil and convaiUnpromptedBusy()), mayFollow) end
         return
     end
     generation = generation + 1
@@ -5439,6 +5452,7 @@ end
 companions.outfitCreated = function(serial, key, record, name)
     if convaiOutfits then convaiOutfits.created(serial, key, record, name) end
 end
+companions.outfitForget = function(serial) if convaiOutfits then convaiOutfits.forget(serial) end end
 companions.outfitStatus = function(serial) return convaiOutfits and convaiOutfits.status(serial) or nil end
 
 -- The home outfit API for other features (docs/COMPANION_OUTFITS.md "Home outfit API"): convaiOutfitApi.setHome('judy-alvarez', true) puts that companion

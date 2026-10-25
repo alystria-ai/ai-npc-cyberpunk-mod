@@ -417,6 +417,38 @@ test('companions: the rows are the ready copies the list knows, with a serial, a
   assert(#companions.outfitRows(function() return false end) == 0)
 `));
 
+test('companions: a resident of V\'s flat (a visiting copy owned by housemates) is dressed like a party copy; an immersive visitor and a stranger are not', () => runCompanions(`
+  local seen = {}
+  companions.outfitCreated = function(serial, key, record, name) seen[#seen + 1] = key end
+  local forgotten = {}
+  companions.outfitForget = function(serial) forgotten[#forgotten + 1] = serial end
+  local function visit(key, id, owner)
+    local serial = companions.spawn(key, {profileKey = key, profileName = key,
+      appointment = {id = id, owner = owner, home = owner and 'glen' or nil, position = Vector4.new(40, 40, 0), facing = {x = -1, y = 0}}})
+    tick()
+    return serial, entities[sequence]
+  end
+  local residentSerial, resident = visit('judy-alvarez', 'hm:judy-alvarez', 'housemates')
+  local visitorSerial, guest = visit('panam-palmer', 9, nil)
+  assert(#seen == 2 and seen[1] == 'judy-alvarez', 'the outfit module is told about a resident like any new copy')
+  local rows = companions.outfitRows(function() return true end)
+  assert(#rows == 1 and rows[1].serial == residentSerial and rows[1].key == 'judy-alvarez', 'only the resident is listed')
+  assert(companions.outfitBusy(residentSerial) == nil, 'she may change clothes at home')
+  assert(companions.outfitBusy(visitorSerial) == 'not ready', 'a visitor may not')
+  local asked = {}
+  function resident:PrefetchAppearanceChange(name) asked[#asked + 1] = 'prefetch:' .. name end
+  function resident:ScheduleAppearanceChange(name) asked[#asked + 1] = 'schedule:' .. name end
+  assert(companions.changeAppearance(residentSerial, 'judy__mq055__apartment_01', 'prefetch'))
+  assert(companions.changeAppearance(residentSerial, 'judy__mq055__apartment_01', 'apply'))
+  assert(#asked == 2 and asked[2] == 'schedule:judy__mq055__apartment_01')
+  assert(not pcall(companions.changeAppearance, visitorSerial, 'x', 'apply'), 'a visitor is refused')
+  -- Moving out: she is forgotten by the outfit module; a visitor's end tells it nothing.
+  companions.dismiss(visitorSerial)
+  assert(#forgotten == 0)
+  companions.dismiss(residentSerial)
+  assert(#forgotten == 1 and forgotten[1] == residentSerial, 'a resident who is gone for good is forgotten')
+`));
+
 test('companions: prefetch changes nothing; apply schedules the look and a recreated copy is made in it; forget restores the name', () => runCompanions(`
   local judy = spawn('judy-alvarez'); local serial = companions.list()[1].serial
   local asked = {}
@@ -484,6 +516,8 @@ test('init.lua: only our own copies are ever listed; the rows come from the mana
   const companions = read('../mod/companions.lua');
   const rows = companions.slice(companions.indexOf('function M.outfitRows'), companions.indexOf('function M.outfitBusy'));
   assert.match(rows, /for _,entry in ipairs\(entries\) do/);
-  assert.match(rows, /entry\.state=='ready'/);
+  assert.match(rows, /outfitEligible\(entry\)/);
+  const eligible = companions.slice(companions.indexOf('local function outfitEligible'), companions.indexOf('function M.outfitRows'));
+  assert.match(eligible, /entry\.state=='ready' or \(entry\.state=='visiting' and entry\.owner=='housemates'\)/, 'a resident of the flat counts, an immersive visitor does not');
   assert.doesNotMatch(rows, /GetTargetingSystem|GetLookAtObject|Game\./, 'nobody the game placed is reachable from here');
 });

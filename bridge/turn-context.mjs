@@ -243,7 +243,8 @@ function voiceTurnContext(input, snapshot) {
 }
 
 // A companion speaking up on her own (bridge/speakup-context.mjs) is the one automatic reaction that gets the right-now block: it is about what is going on around her and V.
-const speaksUp = input => input?.reaction?.kind === 'speakup';
+// The housemate's welcome when V comes home (bridge/house-chat.mjs) gets it too: it is a talk with V, and the block carries the "last talked" sentence.
+const speaksUp = input => input?.reaction?.kind === 'speakup' || (input?.reaction?.kind === 'house' && input.reaction.event === 'welcome');
 
 // Which of the weather and the part of the day this turn states ({weather, time}, booleans): each only when new to the conversation
 // (bridge/scenery-memory.mjs). Everything is stated for a turn with nothing to decide on (no snapshot, a reaction, no turn id).

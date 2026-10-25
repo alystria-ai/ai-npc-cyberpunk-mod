@@ -651,6 +651,8 @@ function M.dismiss(serialToDismiss)
                 entry.lostNotified=true
                 local callback=entry.owner=='housemates' and M.onResidentLost or M.onVisitorLost
                 if callback then pcall(callback,entry.serial,entry.lostReason or 'dismissed') end
+                -- A resident who is gone for good is forgotten by the outfit module (a fast travel keeps her: the copy is made again in the same clothes).
+                if entry.owner=='housemates' and M.outfitForget and (entry.lostReason or 'dismissed')~='fast-travel' then pcall(M.outfitForget,entry.serial) end
             end
             -- Removing a seated driver can make the native passenger state
             -- switch V into that seat. Retain the actor and role until the
@@ -2707,10 +2709,15 @@ end
 -- Companions change outfits (mod/companion-outfits.lua, docs/COMPANION_OUTFITS.md). Three calls, all on demand from that module's check (every 20 s at most,
 -- never per frame), all for a ready managed copy only.
 -- The ready copies whose model record the outfit list knows: {serial, key, record, npc}. known(record) -> boolean.
+-- A resident of V's flat (a visiting copy owned by the housemates module) is dressed like a party copy: day and night looks, home clothes. An immersive
+-- visitor is not.
+local function outfitEligible(entry)
+    return entry.state=='ready' or (entry.state=='visiting' and entry.owner=='housemates')
+end
 function M.outfitRows(known)
     local rows={}
     for _,entry in ipairs(entries) do
-        if entry.state=='ready' and entry.npc and not entry.removed and type(entry.record)=='string' and known(entry.record) then
+        if outfitEligible(entry) and entry.npc and not entry.removed and type(entry.record)=='string' and known(entry.record) then
             rows[#rows+1]={serial=entry.serial,key=entry.profileKey,record=entry.record,npc=entry.npc}
         end
     end
@@ -2721,7 +2728,7 @@ end
 function M.outfitBusy(serial)
     for _,entry in ipairs(entries) do
         if entry.serial==serial then
-            if entry.state~='ready' or entry.removed then return 'not ready' end
+            if not outfitEligible(entry) or entry.removed then return 'not ready' end
             local reason=stanceBlocker(entry)
             if reason then return reason end
             if entry.person and (entry.person.phase=='combat' or entry.person.phase=='recover') then return entry.person.phase end
@@ -2738,7 +2745,7 @@ function M.changeAppearance(serial,name,mode)
         if entry.serial==serial then
             if mode=='forget' then entry.appearance=name; return true end
             local npc=entry.npc
-            if entry.state~='ready' or entry.removed or not npc or not npc:IsAttached() or npc:IsDeadNoStatPool() then error('the copy is not ready') end
+            if not outfitEligible(entry) or entry.removed or not npc or not npc:IsAttached() or npc:IsDeadNoStatPool() then error('the copy is not ready') end
             if mode=='prefetch' then npc:PrefetchAppearanceChange(name); return true end
             npc:ScheduleAppearanceChange(name)
             entry.appearance=name

@@ -103,7 +103,10 @@ test('channels: in person and group get all of it, a phone contact or caller onl
   const stranger = turn({profileKey: 'npc-vendor-clothing', name: 'Vendor', turnContext: ctx});
   assert.doesNotMatch(describeTurnContext(stranger, {ambient: true}).text, /live at/);
   assert.doesNotMatch(describeTurnContext(turn({turnContext: ctx}), {voice: true}).text, /live at/);
-  // An automatic reaction carries no block at all.
-  const reaction = {...turn({turnContext: ctx}), reaction: {kind: 'house', event: 'welcome', place: 'x', awayHours: 1, others: [], expiresAt: 1, maxWords: 22}};
-  assert.equal(describeTurnContext(reaction).text, '');
+  // An automatic reaction carries no block at all, except the housemate's welcome (a talk with V: it carries the game clock and the "last talked" line, merged
+  // with the speak-up time awareness). A chat line between two housemates carries none.
+  const chat = {...turn({turnContext: ctx}), reaction: {kind: 'house', event: 'chat', partner: 'Panam', partnerKey: 'panam-palmer', place: 'x', n: 1, of: 6, lines: [], expiresAt: 1, maxWords: 22}};
+  assert.equal(describeTurnContext(chat).text, '');
+  const welcome = {...turn({turnContext: ctx}), reaction: {kind: 'house', event: 'welcome', place: 'x', awayHours: 1, others: [], expiresAt: 1, maxWords: 22}};
+  assert.match(describeTurnContext(welcome).text, /^Right now \(from the game, this turn only\): You are with V in person\./);
 });

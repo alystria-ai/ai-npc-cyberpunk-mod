@@ -190,7 +190,7 @@ test('loader: nothing is loaded unless both settings are on; events reach the qu
 test('automatic turn: battle and loot first, then a waiting remark on the 0.1 s tick; its own validity, delivery check and release', () => {
   const battles = between('local function updateBattles(player, elapsed, worldReady)', '-- The bridge adds errorCode');
   assert.match(battles, /if automatic and automatic\.reaction\.kind == 'head' then\s+convaiJohnnyRemarkTick\(player, now, worldReady, outputs, manual\)\s+elseif automatic and automatic\.reaction\.kind == 'speakup' then\s+convaiSpeakUpManage\(player, now, worldReady, outputs, manual\)\s+elseif automatic then/);
-  assert.match(battles, /if not event then\s+if speakUpOn then convaiSpeakUpOffer\(player, now, worldReady, outputs, manual, busy, mayFollow\) end\s+return\s+end/);
+  assert.match(battles, /if not event then\s+if speakUpOn then convaiSpeakUpOffer\(player, now, worldReady, outputs, manual, busy or \(convaiUnpromptedBusy ~= nil and convaiUnpromptedBusy\(\)\), mayFollow\) end\s+return\s+end/);
   // The scheduler (mod/speak-up.lua) decides who starts: Johnny's remark competes with the companions' candidate, one length check while nothing waits.
   const tick = between('function convaiJohnnyRemarkTick(', '-- Companions and Johnny speak up on their own');
   assert.match(tick, /cancelAutomatic\('head-' \.\. reason\)/);

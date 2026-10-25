@@ -395,3 +395,20 @@ test('the module ships through the runtime layout and keeps the signatures the t
   assert.equal(typeof parseGameTime, 'function'); assert.equal(typeof lastTalkSentence, 'function');
   assert.equal(REAL_DAY_MS, 20 * 3600_000);
 });
+
+test('the housemate welcome, parsed like the game sends it, carries the "last talked" Background line; a chat line between housemates carries none', () => {
+  lastTalk.configure({path: null, now: () => T0, keyFor: key => key});
+  lastTalk.entries.clear(); lastTalk.turns.clear();
+  try {
+    lastTalk.record('judy-alvarez', at(40, 21), T0 - 40 * MIN);
+    const turnContext = {version: 1, status: 'ready', hour: 9, minute: 0, district: 'Watson', gameTime: at(41, 9), vehicle: false};
+    const welcome = real({text: 'V has just come home. Give a brief in-character greeting.', turnContext,
+      reaction: {kind: 'house', event: 'welcome', place: 'Megabuilding H10', awayHours: 10, others: [], expiresAt: Date.now() + 25_000}});
+    assert.ok(welcome, 'the welcome with its turn context is a valid request');
+    assert.match(conversationContext(welcome), /You last talked with V last night/);
+    lastTalk.record('judy-alvarez', at(40, 21), T0 - 40 * MIN);
+    const chat = real({text: 'You are talking with Panam at V\'s place. Say your next line.', turnContext,
+      reaction: {kind: 'house', event: 'chat', partner: 'Panam', partnerKey: 'panam-palmer', place: 'Megabuilding H10', n: 1, of: 6, lines: [], expiresAt: Date.now() + 30_000}});
+    assert.equal(conversationContext(chat).includes(MARK), false);
+  } finally { lastTalk.entries.clear(); lastTalk.turns.clear(); }
+});
