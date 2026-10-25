@@ -39,6 +39,8 @@ local BOARDING = {releasing = true, ['waiting-to-board'] = true, boarding = true
 local TO_SEAT = {approach = true, placing = true, blending = true, settling = true}
 local SEATED = {entering = true, seated = true}
 local GETTING_UP = {leaving = true, standing = true, exiting = true}
+-- A companion settled at a standing place of V's flat (mod/companion-settle.lua): she stands where she is.
+local STANDING_AT_HOME = {post = true, ['post-turn'] = true, ['post-face'] = true}
 local STANDING = {settled = true, waiting = true, attend = true, attend_step = true, attend_settle = true, attend_turn = true}
 
 function M.classify(input)
@@ -63,6 +65,7 @@ function M.classify(input)
     if SEATED[seating] then return 'seated' end
     if GETTING_UP[seating] then return 'getting-up' end
     if TO_SEAT[seating] then return 'to-seat' end
+    if STANDING_AT_HOME[seating] then return 'standing' end
     local behavior = input.behavior
     if behavior == 'combat' then return 'combat' end
     if STANDING[behavior] then return 'standing' end

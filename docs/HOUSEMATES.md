@@ -7,6 +7,9 @@ answers and where they changed it. Every statement about a game API says whether
 The archive research behind the apartment tables was done with the WolvenKit CLI, read only, on the 2.31 install (WolvenKit 9.0.1 cannot parse
 the 2.5 streaming sectors, see "Uncertain"). Nothing in any game folder was touched.
 
+Related: party companions settle into the same flats while V stays there (seats and standing places, no setting, independent of this feature):
+[docs/COMPANION_SETTLE.md](COMPANION_SETTLE.md). It uses this page's spot data and helpers, and the two never take the same place (`takenSpots`, `reserved`).
+
 A housemate is a character V has told "you can stay at my place". She lives in the apartment V named, sits on the furniture, stands at the
 window, sleeps, wears casual clothes, talks with the other housemates now and then, and goes out with V when asked. There is no cap on how
 many live there.

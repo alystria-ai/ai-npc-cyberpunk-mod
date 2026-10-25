@@ -633,6 +633,7 @@ test('Lua: the activity of a companion comes from the states the companion modul
   is(c({behavior = 'combat'}), 'combat')
   is(c({seating = 'approach', behavior = 'alongside'}), 'to-seat'); is(c({seating = 'seated'}), 'seated'); is(c({seating = 'entering'}), 'seated')
   is(c({seating = 'standing'}), 'getting-up'); is(c({seating = 'closing', behavior = 'alongside'}), 'following')
+  is(c({seating = 'post'}), 'standing'); is(c({seating = 'post-turn'}), 'standing'); is(c({seating = 'post-face'}), 'standing')
   is(c({transport = {owned = true, phase = 'riding', mountedSeat = 'seat_back_left'}}), 'passenger')
   is(c({transport = {owned = true, phase = 'riding', seat = 'seat_front_left'}}), 'driving')
   is(c({transport = {owned = true, phase = 'riding', seat = 'seat_front_right', mountedSeat = 'seat_front_left'}}), 'driving')

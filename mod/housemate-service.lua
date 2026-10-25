@@ -10,7 +10,7 @@
 --       notify(text), t(text, vars), log(line), devLog(kind, fields), talking(), random(),
 --       speak(request) / speakStatus() / speakCancel() (the automatic spoken lines), greet(info), level(), mayChat(), limiter,
 --       outfits() -> {setHome}, leave(serial, entity, key, name) -> a departure, persist = {load, store} (the seats V sat on),
---       hookDistrict(fn), storeMode(), chatOn() -> boolean (nil: the pair chat is on; Settings > Housemates > Housemates talk to each other)
+--       reserved(apt) -> the places party companions hold in that flat, hookDistrict(fn), storeMode(), chatOn() -> boolean (nil: the pair chat is on; Settings > Housemates > Housemates talk to each other)
 local M = {}
 
 function M.new(d)
@@ -69,7 +69,7 @@ function M.new(d)
                 return false
             end,
             notify = d.notify, log = d.log, t = d.t,
-            bodies = world.bodies, seats = world.seats,
+            bodies = world.bodies, seats = world.seats, reserved = d.reserved,
             companions = {
                 join = function(serial) return d.companions.joinVisitor(serial) end,
                 releaseToHome = function(serial, apt) return d.companions.releaseToHome(serial, apt) end,

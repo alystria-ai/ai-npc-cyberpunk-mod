@@ -25,6 +25,7 @@
 --   greet(info)             a housemate greets V who has come home
 --   twin(r)                 true when the game's own copy of this character stands near V
 --   ours(entity)            true when this entity is one of our own copies (party member, visitor, housemate)
+--   reserved(apt)           the places party companions hold in this flat ({id, x, y, z} list, mod/companion-settle.lua): not given to a housemate
 local plan = dofile('housemate-plan.lua')
 local registry = dofile('housemate-registry.lua')
 local chatModule
@@ -182,7 +183,20 @@ function M.new(env)
         for key, r in pairs(rec) do
             if r.apt == apt and key ~= except and r.spot and (r.serial or r.state == 'planning' or r.state == 'spawning') then fixed[key] = r.spot end
         end
+        -- Party companions settled in this flat hold places too (they are never given to a housemate).
+        for index, spot in ipairs(guard(env.reserved, apt) or {}) do fixed['party:' .. index] = spot end
         return fixed
+    end
+
+    -- The places the housemates hold in a flat (their spot, or the one they are walking to): party companions settling in V's flat leave them alone.
+    function C.takenSpots(apt)
+        local list = {}
+        for _, r in pairs(rec) do
+            if (apt == nil or r.apt == apt) and r.spot and r.spot.x and (r.serial or r.state == 'planning' or r.state == 'spawning') then
+                list[#list + 1] = {id = r.spot.id, x = r.spot.x, y = r.spot.y, z = r.spot.z}
+            end
+        end
+        return list
     end
 
     local function usableSpots(apt)
