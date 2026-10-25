@@ -385,6 +385,7 @@ export class VoxtralVoice {
     this.gate = new RequestGate({limit: this.limits.maxConcurrent, aheadLimit: this.limits.maxAhead, tightLimit: this.limits.tightConcurrent,
       tightMs: this.limits.tightMs, now: clock, setTimer, clearTimer});
     this.references = new Map();      // voice key -> Promise<{base64, bytes, seconds}|null>
+    this.built = new Map();           // the same ids, once built: what is really sent {source, format, bytes} (referenceInfo; the routing line says it)
     // The API documents only MP3 and WAV references and also decodes Ogg (2026-10-13). If it ever refuses the Ogg one, the references are
     // prepared as MP3 from then on (`prepare(..., {safeFormat: true})`); the reply that met the refusal is written only.
     this.safeFormat = false;
@@ -400,7 +401,7 @@ export class VoxtralVoice {
   get model() { return this.clock() < this.fallbackUntil ? VOXTRAL_FALLBACK_MODEL : VOXTRAL_MODEL; }
   /** Does the voice speak `language` ('fr')? English always; the rest depends on the model in use (bridge/voxtral-languages.mjs). */
   speaks(language) { return voxtralSpeaks(language, this.model); }
-  setReferences(registry) { this.registries = [].concat(registry ?? []).filter(Boolean); this.references.clear(); }
+  setReferences(registry) { this.registries = [].concat(registry ?? []).filter(Boolean); this.references.clear(); this.built.clear(); }
   /**
    * The registries again after a player changed some voices (bridge/voice-selection.mjs setVoices): only the cached references of `keys` are
    * dropped (they are read and encoded again from the registries' new entries the next time that voice speaks), every other voice keeps its own.
@@ -408,7 +409,17 @@ export class VoxtralVoice {
    */
   replaceReferences(registry, keys = []) {
     this.registries = [].concat(registry ?? []).filter(Boolean);
+    for (const key of keys) this.built.delete(key);
     return keys.filter(key => this.references.delete(key));
+  }
+  /**
+   * What the voice `key` is really cloned from, once its reference has been built: {source: 'omni-long' | 'omni-short' | 'pocket' | 'player' | 'extracted' |
+   * 'language-pack:fr', format: 'ogg' | 'mp3' | 'wav', bytes}, else null. The routing line shows the registry's first choice; this is the clip that was sent, which differs when
+   * an earlier source could not be used (a missing file or a hash that no longer matched).
+   */
+  referenceInfo(key, language) {
+    const entry = this.languageEntry(key, language);
+    return this.built.get(entry ? `${entry.language}${LANGUAGE_SEPARATOR}${key}` : key) ?? null;
   }
   /** Has this voice's reference been read and encoded already (it was spoken, or warmed)? */
   hasCachedReference(key) { return this.references.has(key); }
@@ -457,7 +468,7 @@ export class VoxtralVoice {
   /** The set (multilingual/<lang>/picked/<voice>) the reference of this voice in this language comes from, or null: the English reference speaks. */
   languageSet(key, language) { return this.languageEntry(key, language)?.set ?? null; }
   /** The packs' references are read again (a pack was installed, changed or removed while the service ran). */
-  forgetLanguageReferences() { for (const id of [...this.references.keys()]) if (id.includes(LANGUAGE_SEPARATOR)) this.references.delete(id); }
+  forgetLanguageReferences() { for (const id of [...this.references.keys()]) if (id.includes(LANGUAGE_SEPARATOR)) { this.references.delete(id); this.built.delete(id); } }
 
   /**
    * The encoded reference of a voice, cached in memory (one read and one encoding per voice, per process). `language`: the reply's language code when it is
@@ -481,8 +492,12 @@ export class VoxtralVoice {
     const pending = (entry ? fromPack() : this.build(key)).catch(() => null);
     this.references.set(id, pending);
     // A reference that could not be built is tried again next time (the file may appear later).
-    pending.then(value => { if (!value && this.references.get(id) === pending) this.references.delete(id); });
-    while (this.references.size > this.limits.cachedReferences) this.references.delete(this.references.keys().next().value);
+    pending.then(value => {
+      if (!value) { if (this.references.get(id) === pending) this.references.delete(id); return; }
+      if (this.references.get(id) !== pending) return;
+      this.built.set(id, {source: value.source, format: value.format, bytes: value.bytes});
+    });
+    while (this.references.size > this.limits.cachedReferences) { const oldest = this.references.keys().next().value; this.references.delete(oldest); this.built.delete(oldest); }
     return pending;
   }
 
@@ -540,24 +555,31 @@ export class VoxtralVoice {
     const playerRoot = this.playerRoot ? resolve(this.playerRoot) : null;
     const within = (base, path) => path === base || path.startsWith(base + sep);
     const prefix = 'runtime/voice-references/';
+    // A source that lists this voice but could not be used is said once (a silent fall to the short set or the Pocket clip is another sound).
+    let skipped = 0;
+    const passed = (index, why) => skipped++ + this.log(`${key}: the ${REFERENCE_SOURCES[index] ?? 'registry'} reference was not used (${why}); the next source is tried`);
     for (const [index, registry] of this.registries.entries()) {
       const entry = registry?.profiles?.[key];
       if (!entry?.reference) continue;
       // The player's own clip: one plain <key>.wav inside the player folder, and only there (a descriptor never chooses another path).
       const player = isPlayerReference(entry.reference);
-      if (player ? !playerRoot || !playerReferenceValid(entry.reference) || !entry.sha256 : !root || !entry.reference.startsWith(prefix)) continue;
+      if (player ? !playerRoot || !playerReferenceValid(entry.reference) || !entry.sha256 : !root || !entry.reference.startsWith(prefix)) { passed(index, 'not a path it may read'); continue; }
       const base = player ? playerRoot : root;
       const path = resolve(base, entry.reference.slice((player ? PLAYER_REFERENCE_PREFIX : prefix).length));
-      if (!within(base, path)) continue;
+      if (!within(base, path)) { passed(index, 'outside its folder'); continue; }
       try {
         const bytes = await this.read(path);
-        if (bytes.length > this.limits.maxReferenceBytes * 4) continue;
+        if (bytes.length > this.limits.maxReferenceBytes * 4) { passed(index, 'too large'); continue; }
         // The registry carries the file's hash: a changed file is not the reference that was validated.
-        if (entry.sha256 && createHash('sha256').update(bytes).digest('hex') !== entry.sha256) continue;
+        if (entry.sha256 && createHash('sha256').update(bytes).digest('hex') !== entry.sha256) { passed(index, 'its hash no longer matches'); continue; }
         const found = await finish(bytes, player ? 'player' : REFERENCE_SOURCES[index] ?? 'registry', entry.sha256 || undefined, player,
           !player && entry.reference.startsWith(AMBIENT_REFERENCES));
-        if (found) return found;
-      } catch { /* this entry's file is unusable: try the next source */ }
+        if (found) {
+          if (skipped) this.log(`${key}: cloned from the ${found.source} reference instead (${found.format}, ${Math.round(found.bytes / 1024)} KB)`);
+          return found;
+        }
+        passed(index, 'the clip could not be prepared');
+      } catch (error) { passed(index, String(error?.code ?? error?.message ?? 'unreadable').slice(0, 40)); /* this entry's file is unusable: try the next source */ }
     }
     if (!root) return null;
     const inside = path => within(root, path);

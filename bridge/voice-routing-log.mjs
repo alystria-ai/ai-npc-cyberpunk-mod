@@ -136,8 +136,10 @@ const quote = value => `"${text(value)}"`;
  *   languageSet: the set of the multilingual pack clip that speaks this reply (multilingual/<lang>/picked/<voice>, docs/VOICE_LANGUAGE_PACKS.md), for
  *   OmniVoice and the Mistral voice (and the local Pocket voice when it speaks the language: pocketModel); the English reference's set when absent.
  *   pocketModel: the PocketTTS model that speaks this reply ({language: 'fr'}, bridge/pocket-language-models.mjs), or undefined for the English student.
+ *   sent: what the Mistral voice really clones this voice from ({source, format, bytes}, VoxtralVoice.referenceInfo), once its reference has been built:
+ *   `ref` is the registry's first choice, `sent` is the clip that went out (they differ when an earlier source could not be used).
  */
-export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, character, languageSet, pocketModel,
+export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, character, languageSet, pocketModel, sent,
   now = Date.now}) {
   const engine = reply?.engine ?? plan?.engine ?? 'convai';
   const key = input?.profileKey ?? profile?.key ?? '?';
@@ -161,6 +163,7 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
     fallback: reason ?? (cloudWhy ? `${CLOUD_NAMES[cloudKind]} ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
       ?? fallbackReason(voice, key, {plan, engine})};
   if (cloudLast) record.cloudLast = cloudLast;
+  if (cloud && engine === 'pocket' && !cloudWhy && sent?.source) record.sent = `${sent.source} ${sent.format} ${Math.round((sent.bytes || 0) / 1024)}KB`;
   if (engine === 'omni') record.used = `OmniVoice ${voice.omniSteps} ${voice.omniReference}`;
   else if (engine === 'pocket') record.used = cloud ? (cloudWhy ? 'none (written reply only)' : CLOUD_LABEL) : pocketModel ? 'Pocket (PocketTTS model)' : 'Pocket';
   else if (engine === 'none') record.used = 'none (written reply only)';
@@ -200,6 +203,7 @@ export function formatVoiceRoute(record) {
     ? `${record.reference.set}${record.reference.seconds === undefined ? '' : ` ${record.reference.seconds}s`}` : '-';
   const parts = [stamp(record.time), `profile=${record.profile}${voiceKey}`, `name=${quote(record.name)}`,
     `requested=${quote(record.requested)}`, `used=${quote(record.used)}`, `ref=${record.reference ? quote(reference) : '-'}`];
+  if (record.sent) parts.push(`sent=${quote(record.sent)}`);
   if (record.model) parts.push(`model=${text(record.model)}`);
   if (record.character) parts.push(`character=${text(record.character.key) || '-'}`, `characterId=${text(record.character.id)}`);
   if (record.language !== undefined) parts.push(`lang=${text(record.language) || '-'}`);

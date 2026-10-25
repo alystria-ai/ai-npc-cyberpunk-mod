@@ -15,7 +15,7 @@
 -- The result is a plain table the bridge validates (bridge/media-context.mjs):
 --   {radio = {source = 'car' | 'pocket', station = <text>, track = <text>}, tv = {channel = <text>, said = <the last line a TV said>}}
 local M = {}
-M.TV_RADIUS, M.QUERY_PARTS, M.TV_CANDIDATES = 12, 40, 6   -- metres, targeting parts looked at, TVs asked whether they are on
+M.TV_RADIUS, M.QUERY_PARTS, M.TV_CANDIDATES = 12, 400, 6   -- metres, targeting parts looked at, TVs asked whether they are on
 M.SAID_AGE, M.HEARD_AGE = 90, 20      -- seconds: a TV line this young is "just said"; a TV line alone (no TV located) counts this long
 M.MAX_TEXT, M.MAX_LOGS = 120, 200
 
@@ -101,28 +101,61 @@ local function nativeAdapter()
         local dx, dy, dz = a.x - b.x, a.y - b.y, a.z - b.z
         return math.sqrt(dx * dx + dy * dy + dz * dz)
     end
-    -- One targeting query, the pattern of mod/companion-passage.lua findDoor (it is unproven that a TV shows up as a target part, so an empty
-    -- answer is a normal outcome). Returns the TVs among the parts, each entity once.
+    -- One targeting query, the pattern of mod/companion-passage.lua findDoor (that query is proven to return devices: it finds doors). Secondary
+    -- targets are asked for too, because a device's targeting component may be one (the owned-car search needs them for the same reason).
+    -- The parts come in no order and an NPC brings many of them, so the old limit of 40 parts could fill up with Judy and Alex before a TV came
+    -- by (the apartment test of 2026-10-25: tv=none(query found 0 TVs) with a TV on and talking); now every part up to `limit` is looked at.
+    -- Returns the TVs among the parts (each entity once) and, for probe.log, what the query saw: {parts =, objects =, classes = 'Door:3,Light:2'}.
+    function N.isTv(entity)
+        if entity:IsA('TV') then return true end
+        -- A TV under another class name still has the TV's device controller.
+        local ok, ps = pcall(function() return entity:GetDevicePS() end)
+        if ok and ps ~= nil then
+            local isController = false
+            pcall(function() isController = ps:IsA('TVControllerPS') == true end)
+            return isController
+        end
+        return false
+    end
     function N.tvQuery(player, radius, limit)
         local query = TargetSearchQuery.new()
         query.testedSet = Enum.new('TargetingSet', 'Complete')
         query.maxDistance = radius
         query.filterObjectByDistance = true
         query.ignoreInstigator = true
+        query.includeSecondaryTargets = true
         local _, parts = Game.GetTargetingSystem():GetTargetParts(player, query)
-        local list, seen = {}, {}
+        local list, seen, counts, order = {}, {}, {}, {}
+        local stats = {parts = 0, objects = 0}
         for index, part in ipairs(parts or {}) do
-            if index > limit then break end
+            if index > limit then stats.cut = true; break end
+            stats.parts = index
             local ok, entity = pcall(function() return part:GetComponent():GetEntity() end)
             if not ok or entity == nil then
                 ok, entity = pcall(function() return TS_TargetPartInfo.GetComponent(part):GetEntity() end)
             end
-            if ok and entity ~= nil and entity:IsA('TV') then
+            if ok and entity ~= nil then
                 local id = tostring(entity:GetEntityID().hash)
-                if not seen[id] then seen[id] = true; list[#list + 1] = entity end
+                if not seen[id] then
+                    seen[id] = true
+                    stats.objects = stats.objects + 1
+                    local read, isTv = pcall(N.isTv, entity)
+                    if read and isTv == true then
+                        list[#list + 1] = entity
+                    else
+                        local named, class = pcall(function() return entity:GetClassName() end)
+                        class = named and nameText(class) or '?'
+                        if counts[class] == nil then counts[class] = 0; order[#order + 1] = class end
+                        counts[class] = counts[class] + 1
+                    end
+                end
             end
         end
-        return list
+        table.sort(order, function(a, b) if counts[a] ~= counts[b] then return counts[a] > counts[b] end return a < b end)
+        local rows = {}
+        for index = 1, math.min(#order, 6) do rows[index] = order[index] .. ':' .. counts[order[index]] end
+        stats.classes = table.concat(rows, ',')
+        return list, stats
     end
     -- Whether a TV is on and its channel. GetActiveStationIndex can initialise a TV that never was (it picks a channel), so it is read only for
     -- a TV that is already on, powered and enabled.
@@ -258,22 +291,43 @@ function Instance:findTv(player, detail)
     if looked ~= nil then
         local state, distance = consider(looked)
         if state then detail.tv = 'lookat'; return looked, state, distance end
+        detail.lookedOff = true
     end
-    local list = call(N.tvQuery, player, M.TV_RADIUS, M.QUERY_PARTS)
+    local list, stats = call(N.tvQuery, player, M.TV_RADIUS, M.QUERY_PARTS)
     detail.queried = type(list) == 'table' and #list or -1
+    if type(stats) == 'table' then detail.stats = stats end
     if type(list) ~= 'table' or #list == 0 then return nil end
-    -- Nearest first, and at most TV_CANDIDATES asked whether they are on.
+    -- Nearest first, and at most TV_CANDIDATES asked whether they are on. What rejected the others is counted for probe.log.
     local rows = {}
+    detail.far = 0
     for _, entity in ipairs(list) do
         local distance = call(N.distance, player, entity)
-        if type(distance) == 'number' and distance <= M.TV_RADIUS then rows[#rows + 1] = {entity = entity, distance = distance} end
+        if type(distance) == 'number' and distance <= M.TV_RADIUS then rows[#rows + 1] = {entity = entity, distance = distance}
+        else detail.far = detail.far + 1 end
     end
     table.sort(rows, function(a, b) return a.distance < b.distance end)
+    detail.off = 0
     for index = 1, math.min(#rows, M.TV_CANDIDATES) do
         local state = call(N.tvState, rows[index].entity)
         if type(state) == 'table' and state.on == true then detail.tv = 'query'; return rows[index].entity, state, rows[index].distance end
+        detail.off = detail.off + 1
     end
     return nil
+end
+
+-- Why no TV was found, for the end of the probe.log line (not part of the line's key): what the query looked at and which check turned TVs away.
+local function whyNone(detail)
+    local bits = {}
+    local stats = detail.stats
+    if type(stats) == 'table' then
+        bits[#bits + 1] = 'parts=' .. tostring(stats.parts) .. (stats.cut and '+' or '')
+        bits[#bits + 1] = 'objects=' .. tostring(stats.objects)
+        if stats.classes and stats.classes ~= '' then bits[#bits + 1] = 'seen=' .. stats.classes end
+    end
+    if detail.far and detail.far > 0 then bits[#bits + 1] = 'beyondRadius=' .. detail.far end
+    if detail.off and detail.off > 0 then bits[#bits + 1] = 'notOn=' .. detail.off end
+    if detail.lookedOff then bits[#bits + 1] = 'lookedAtTvNotOn' end
+    return #bits > 0 and table.concat(bits, ' ') or nil
 end
 
 -- A TV near V that is on: {channel =, said =} or nil.
@@ -285,11 +339,12 @@ function Instance:tv(player, detail)
         return type(text) == 'string' and clean(text, M.MAX_TEXT) or nil
     end
     if not entity then
-        -- No TV located (the targeting reads are unproven), but one just spoke and its subtitle only shows near V.
+        -- No TV located, but one just spoke and its subtitle only shows near V.
         local recent = heard(M.HEARD_AGE)
         if recent then detail.tv, detail.said = 'heard', true; return {said = recent} end
         local queried = detail.queried
         detail.tv = 'none(' .. (queried == nil and 'no query' or queried < 0 and 'query failed' or ('query found ' .. queried .. ' TVs')) .. ')'
+        detail.why = whyNone(detail)
         return nil
     end
     local said = heard(M.SAID_AGE)
@@ -330,6 +385,7 @@ function Instance:report(detail)
     local line = key
     if detail.distance then line = line .. string.format(' distance=%.1f', detail.distance) end
     if detail.tv then line = line .. ' said=' .. (detail.said and 'yes' or 'no') end
+    if detail.why then line = line .. ' why: ' .. detail.why end
     local log = self.options.log or self.native.log
     if type(log) == 'function' then pcall(log, safe(line)) end
 end
