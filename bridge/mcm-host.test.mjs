@@ -1747,10 +1747,10 @@ test('MCM: Key bindings lists the five actions with the key set here and the key
   press('Key bindings')
   assert(managerUi.inspect().view == 'key-bindings' and mcm.config().navigation.pageId == 'key-bindings|1|1')
   for _, action in ipairs({'voice', 'text', 'group_voice', 'group_text', 'manager'}) do
-    -- One look on the page (2026-10-25): the key's own button shows the key and sets it, the CET button shows that key; no text rows.
-    local mine, cet = mcm.row('kb:set:' .. action), mcm.row('kb:cet:' .. action)
+    -- One look on the page (2026-10-25): the key's own button shows the key and sets it; no text rows and no Cyber Engine Tweaks row (the owner's call).
+    local mine = mcm.row('kb:set:' .. action)
     assert(mine and mine.type == 'action' and mine.label == 'Key or button' and mine.value == 'Not set', action)
-    assert(cet.type == 'action' and cet.value == 'Not set' and not mcm.row('kb:key:' .. action) and not mcm.row('kb:clear:' .. action), action)
+    assert(not mcm.row('kb:cet:' .. action) and not mcm.row('kb:key:' .. action) and not mcm.row('kb:clear:' .. action), action)
   end
   assert(mcm.row('padTalk').type == 'bool' and mcm.row('padTalk').label == 'Controller talk button')
   -- Set waits for a key: the line under the way back says so, and the button turns into Cancel.
@@ -1765,9 +1765,6 @@ test('MCM: Key bindings lists the five actions with the key set here and the key
   -- A controller button for another action; the key set in CET shows beside it.
   press('kb:set:group_text'); clock = clock + 1; key('kIK_Pad_LeftShoulder'); frames(6)
   assert(mcm.row('kb:set:group_text').value == 'Controller LB' and mcm.status() == 'Group text chat is set to Controller LB.', mcm.status())
-  keyFile = '{"AiNpcCyberpunkMod": {"cyberpunk_convai_voice": 33495522228568064, "cyberpunk_convai_manager": 32369622321725440}}'
-  clock = clock + 6; frames(12)
-  assert(mcm.row('kb:cet:voice').value == 'F8' and mcm.row('kb:cet:manager').value == 'F4' and mcm.row('kb:cet:text').value == 'Not set', 'what CET has')
   -- The same key twice is refused with the name of the action that has it.
   press('kb:set:text'); clock = clock + 1; key('kIK_F7'); frames(6)
   assert(mcm.status() == 'F7 is already used for Talk by voice. Choose another.' and not manager.snapshot(player).settings.keyBindings.text, mcm.status())

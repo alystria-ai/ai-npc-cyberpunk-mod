@@ -135,7 +135,7 @@ Out of the box you get the Convai free tier for the replies and Pocket TTS for t
 | **V** (the game's call key) on a Chat contact or inside a chat | Starts a holocall. Tap the phone button to hang up |
 | **J** / **L** on a contact in the phone's Contacts tab | Invites or dismisses that companion |
 
-You can also set these five actions inside the game: **Companion Manager > Key bindings**. Press an action's **Key or button** row, then the keyboard key or controller button you want (Esc or B cancels). It works at once, **Clear** removes it, and the Cyber Engine Tweaks bindings above keep working next to it (the page shows what you set there; a key set in both runs the action once). Pick keys the game does not already use. The **Controller talk button** (hold the left stick click) is on that page too. Details: [docs/KEY_BINDINGS.md](docs/KEY_BINDINGS.md).
+You can also set these five actions inside the game: **Companion Manager > Key bindings**. Press an action's **Key or button** row, then the keyboard key or controller button you want (Esc or B cancels). It works at once, **Clear** removes it, and the Cyber Engine Tweaks bindings above keep working next to it (a key set in both runs the action once). Pick keys the game does not already use. The **Controller talk button** (hold the left stick click) is on that page too. Details: [docs/KEY_BINDINGS.md](docs/KEY_BINDINGS.md).
 
 The microphone only ever starts when you press the key. A recording stops by itself after 30 seconds, and opening a menu cancels it. If you see V keep walking after typing a message, tap that direction key (W, A, S or D) once.
 

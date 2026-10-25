@@ -1108,8 +1108,7 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
     local keySection = ns.sections()
     local target = name == 'Companion Manager' and keySection[6] or section(name)
     assert(target.options[1].label == 'Key or button' and target.options[1].buttonText == 'Not set', name)
-    assert(target.options[2].label == 'In Cyber Engine Tweaks', name)
-    assert(#target.options == 2, 'one look: the key, the Cyber Engine Tweaks key, and no Clear while nothing is set: ' .. name)
+    assert(#target.options == 1, 'one look: only the key (no Cyber Engine Tweaks row), and no Clear while nothing is set: ' .. name)
   end
   assert(ns.find('Controller talk button').state == false)
   ns.interact.press(option('Talk by voice', 'Key or button')); frames(4); ns.verify()
@@ -1119,10 +1118,6 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   assert(managerUi.inspect().shown == 'Talk by voice is set to F7.', tostring(managerUi.inspect().shown))
   assert(option('Talk by voice', 'Key or button').buttonText == 'F7' and option('Talk by voice', 'Clear'), 'the key shows, Clear appeared')
   assert(manager.keyBindings().voice == 'IK_F7' and keyList == 'IK_F7,-,-,-,-')
-  -- What Cyber Engine Tweaks has, read from its file.
-  keyFile = '{"x": {"cyberpunk_convai_voice": 33495522228568064}}'
-  clock = clock + 6; frames(12); ns.verify()
-  assert(option('Talk by voice', 'In Cyber Engine Tweaks').buttonText == 'F8')
   -- A controller button, Clear, and Restore defaults.
   ns.interact.press(option('Talk by text', 'Key or button')); frames(3)
   clock = clock + 1; key('kIK_Pad_RightTrigger')

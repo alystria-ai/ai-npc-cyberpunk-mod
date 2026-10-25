@@ -1174,13 +1174,9 @@ local function pageSignature(snapshot)
     if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' then add(settingsDigest(snapshot.settings)) end
     if view == 'key-bindings' then
         add(settingsDigest(snapshot.settings))
-        -- A Set waiting or ended, the saved keys and what Cyber Engine Tweaks has bound (its answer is a live call, a few of them once a second).
+        -- A capture waiting or ended, and the saved keys (the page shows no Cyber Engine Tweaks key, so CET is not asked).
         local module = keyBinds()
-        if module then
-            local cet = {}
-            for index, id in ipairs(module.ACTIONS) do cet[index] = tostring(module.cetBinding(id)) end
-            add('keys:' .. tostring(module.capturing()) .. '|' .. module.list(snapshot.settings.keyBindings) .. '|' .. table.concat(cet, ','))
-        end
+        if module then add('keys:' .. tostring(module.capturing()) .. '|' .. module.list(snapshot.settings.keyBindings)) end
     end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
@@ -1236,13 +1232,12 @@ local function keyText(module, name)
     if kind == 'pad' then return ui.t('Controller {button}', {button = ui.t(word)}) end
     return ui.t(word)
 end
--- One section of the page: an action with the key set for it here, the key set in Cyber Engine Tweaks (shown, never changed), Set and Clear.
+-- One section of the page: an action with the key set for it here (its button sets it) and Clear.
 local function bindingSection(snapshot, module, id, name, how)
     local mine = (snapshot.settings.keyBindings or {})[id]
     local waiting = module.capturing() == id
-    local cet = module.cetBinding(id)
     -- Every row is a button row, so the page has one look (the hosts draw a read-only text row bigger and indented, the owner's check
-    -- of 2026-10-25): the key's own button shows the key and starts the capture, the Cyber Engine Tweaks button shows that key and only explains.
+    -- of 2026-10-25): the key's own button shows the key and starts the capture. The Cyber Engine Tweaks key is not shown (the owner: no row for it).
     local rows = {
         action('kb:set:' .. id, 'Key or button', waiting and ui.t('Cancel') or keyText(module, mine),
             ui.t(how) .. '\n\n' .. ui.t('Press it, then the key or controller button you want. Esc or B cancels. It works at once.'),
@@ -1254,9 +1249,6 @@ local function bindingSection(snapshot, module, id, name, how)
                 if reason == 'codeware' then return false, ui.t('Key bindings need Codeware, and this game does not have it. Open Help for what is missing.') end
                 return false, ui.t('The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.')
             end, nil, {value = true, description = true}),
-        action('kb:cet:' .. id, 'In Cyber Engine Tweaks', cet or ui.t('Not set'),
-            'The key you set for this action in Cyber Engine Tweaks (its Bindings window). It keeps working next to the key or button above, and when both are the same key it runs once.',
-            function() return false, ui.t('The key you set for this action in Cyber Engine Tweaks (its Bindings window). It keeps working next to the key or button above, and when both are the same key it runs once.') end, nil, {value = true}),
     }
     if mine then
         rows[#rows + 1] = action('kb:clear:' .. id, 'Clear', 'Clear', 'Remove the key or button you set here.', function()
