@@ -4065,7 +4065,7 @@
         "mod/phone-chat-style.lua:193",
         "mod/phone-chat-style.lua:267",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:545",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:402"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:404"
       ]
     },
     "CLOSE PHONE TO CONTINUE": {
@@ -4289,7 +4289,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:250",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:355"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:357"
       ]
     },
     "Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.": {
@@ -4496,8 +4496,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1357",
-        "mod/companions.lua:1363"
+        "mod/companions.lua:1359",
+        "mod/companions.lua:1365"
       ]
     },
     "Choose a short or a long voice reference.": {
@@ -10701,8 +10701,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1354",
-        "mod/companions.lua:1362"
+        "mod/companions.lua:1356",
+        "mod/companions.lua:1364"
       ]
     },
     "Step out before starting a new companion trip.": {
@@ -11082,7 +11082,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1365"
+        "mod/companions.lua:1367"
       ]
     },
     "That companion is not available.": {
