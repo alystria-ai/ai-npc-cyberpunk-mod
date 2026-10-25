@@ -1816,6 +1816,9 @@ end
 -- decide who gets a face follow. Errors when the redscript half is missing.
 function M.graphReport()
     local service = Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+    -- No service: Codeware or the redscript half is missing (the setup check already says so). Level 0 keeps the file:line prefix off the log line, so the
+    -- report scanner does not file it as a Lua error of its own.
+    if service == nil then error('the face service is not loaded (Codeware or the scripts are missing)', 0) end
     local text = service:GraphReport()
     if type(text) ~= 'string' or text == '' then error('no graph report') end
     return text .. ' crowd=' .. tostring(M.crowdMode or 'gated') .. ' story=' .. tostring(M.storyTalk)

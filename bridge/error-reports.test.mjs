@@ -656,6 +656,9 @@ test('Lua errors in the mod\'s logs are found from where the last look stopped; 
     await reporter.look({flush: false});
     assert.equal((await readQueue(f.state, {now: clock.now})).every(record => record.count === 1), true, 'a line is read once');
     assert.deepEqual(luaErrorsIn(['Conversation result: generation=1 error=false']), []);
+    // The face-graph line of an install without Codeware has no file:line (error level 0): the setup row already says it, no Lua error of its own.
+    assert.deepEqual(luaErrorsIn(['Face graphs: not readable (the face service is not loaded (Codeware or the scripts are missing))']), []);
+    assert.equal(luaErrorsIn(["Face graphs: not readable (facial-playback.lua:1819: attempt to index local 'service' (a nil value))"]).length, 1);
   } finally { reporter.close(); await f.cleanup(); }
 });
 

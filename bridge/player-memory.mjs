@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
-import {dirname, resolve} from 'node:path';
+import {basename, dirname, resolve} from 'node:path';
+import {execFile} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 
 /**
@@ -195,7 +196,22 @@ async function atomicWrite(files, path, raw) {
 // that died without releasing it): the game under Wine/Proton restarts with the same low pids every session (report dee28c86: the bridge 656 found its own pid in the lock
 // of the 656 that died, saw "a live owner" and ended with REGISTRY_LOCKED). Such a lock is stale. A second open inside this process still finds its path in here: locked.
 const heldLocks = new Set();
-async function acquireLock(files, path) {
+// Windows hands a dead process's pid to the next new process, and `process.kill(pid, 0)` then says "alive" for any of them: a lock left by a bridge that was
+// ended from outside (the supervisor stops it when the game exits) stayed "held" by whatever program got its pid, and every later start ended with
+// REGISTRY_LOCKED until a reboot (report dee28c86 from a Windows PC: five bridge starts in a row, then "the conversation service cannot run"). The owner
+// counts as live only when a process of this program's own name has that pid. Looked up only when a lock is found (a rare start), never per turn; when the
+// lookup itself fails the owner stays live, as before.
+export function lockOwnerRunsThisProgram(pid, {platform = process.platform, run = execFile, execPath = process.execPath} = {}) {
+  if (platform !== 'win32') return Promise.resolve(true);
+  const image = basename(execPath).toLowerCase();
+  return new Promise(done => {
+    run('tasklist.exe', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], {windowsHide: true, timeout: 5000}, (error, out) => {
+      if (error) return done(true);
+      done(String(out).toLowerCase().includes(`"${image}"`));
+    });
+  });
+}
+async function acquireLock(files, path, ownerRunsProgram = lockOwnerRunsThisProgram) {
   const raw = JSON.stringify({version: VERSION, pid: process.pid, token: randomUUID()}) + '\n';
   for (let attempt = 0; attempt < 2; attempt++) {
     let handle;
@@ -213,8 +229,10 @@ async function acquireLock(files, path) {
       if (!exact(lock, ['version', 'pid', 'token']) || lock.version !== VERSION
           || !Number.isSafeInteger(lock.pid) || lock.pid < 1 || !UUID.test(lock.token)) fail('LOCK_UNCERTAIN');
       if (lock.pid !== process.pid || heldLocks.has(path)) {
-        try { process.kill(lock.pid, 0); fail('REGISTRY_LOCKED'); }
-        catch (probe) { if (probe?.code !== 'ESRCH') throw new PlayerMemoryError('REGISTRY_LOCKED'); }
+        let alive = true;
+        try { process.kill(lock.pid, 0); } catch (probe) { if (probe?.code === 'ESRCH') alive = false; }
+        if (alive && lock.pid !== process.pid && await ownerRunsProgram(lock.pid)) fail('REGISTRY_LOCKED');
+        if (alive && lock.pid === process.pid) fail('REGISTRY_LOCKED');
       }
       // Reclaimers need their own exclusive claim. A read-then-unlink alone can
       // otherwise delete a NEW owner's lock between two stale reclaim attempts.
@@ -305,7 +323,7 @@ export class PlayerMemory {
   // enableRetries: how many more times a send's first-contact enable is tried when it timed out or could not reach the provider (a slow
   // Convai answer: one report of 0.2.2 failed a turn on the 15 s limit); the enable is idempotent (a timed-out one is marked unknown and
   // re-verified), and a send still never goes out before it is verified.
-  static async open({path, characterIds, characterFamilies, provider, quiesce, retired, timeoutMs = 15000, enableRetries = 1, fsImpl = fs} = {}) {
+  static async open({path, characterIds, characterFamilies, provider, quiesce, retired, timeoutMs = 15000, enableRetries = 1, fsImpl = fs, lockOwnerRunsProgram} = {}) {
     if (typeof path !== 'string' || !path.trim() || !Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 60000
         || !Number.isInteger(enableRetries) || enableRetries < 0 || enableRetries > 3
         || (provider !== undefined && !object(provider)) || (quiesce !== undefined && typeof quiesce !== 'function')
@@ -316,7 +334,7 @@ export class PlayerMemory {
     let lockRaw;
     try {
       await fsImpl.mkdir(dirname(absolute), {recursive: true});
-      lockRaw = await acquireLock(fsImpl, lockPath);
+      lockRaw = await acquireLock(fsImpl, lockPath, lockOwnerRunsProgram);
       let [anchorRaw, diskRaw] = await Promise.all([readOptional(fsImpl, anchorPath, 1024), readOptional(fsImpl, absolute)]);
       let state;
       if (anchorRaw === null && diskRaw === null) {

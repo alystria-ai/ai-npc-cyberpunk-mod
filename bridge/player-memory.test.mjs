@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
-import {PlayerMemory, PlayerMemoryError} from './player-memory.mjs';
+import {PlayerMemory, PlayerMemoryError, lockOwnerRunsThisProgram} from './player-memory.mjs';
 import {IntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 
 const ids = Object.freeze({judy: 'owned-judy', panam: 'owned-panam', johnny: 'owned-johnny'});
@@ -684,6 +684,35 @@ test('a lock left by an earlier process with this same pid is stale, one this pr
   // A lock of another live process is still a live owner.
   await fs.writeFile(path + '.lock', JSON.stringify({...JSON.parse(left), pid: process.ppid}) + '\n');
   if (process.ppid > 0) await assert.rejects(open(), {code: 'REGISTRY_LOCKED'});
+});
+
+test('a lock whose pid a different program now has is stale on Windows (report dee28c86: a reused pid kept every bridge start at REGISTRY_LOCKED)', async t => {
+  const {memory, open, path} = await fixture(t);
+  const id = memory.route('judy').endUserId;
+  const left = JSON.parse(await fs.readFile(path + '.lock', 'utf8'));
+  await memory.close();
+  const other = process.ppid > 0 ? process.ppid : 1;
+  await fs.writeFile(path + '.lock', JSON.stringify({...left, pid: other}) + '\n');
+  // The pid is alive but belongs to something else: reclaimed. It belongs to a copy of this program: still a live owner.
+  await assert.rejects(open({lockOwnerRunsProgram: async () => true}), {code: 'REGISTRY_LOCKED'});
+  const seen = [];
+  const again = await open({lockOwnerRunsProgram: async pid => { seen.push(pid); return false; }});
+  assert.deepEqual(seen, [other]);
+  assert.equal(again.route('judy').endUserId, id);
+});
+
+test('the lock owner is looked up by process name on Windows only, and a failed lookup keeps the owner live', async () => {
+  const calls = [];
+  const run = (file, args, options, done) => { calls.push([file, args.join(' ')]); done(null, '"node.exe","4242","Console","1","50,000 K"\n'); };
+  assert.equal(await lockOwnerRunsThisProgram(4242, {platform: 'win32', run, execPath: 'C:\\r\\node.exe'}), true);
+  assert.deepEqual(calls, [['tasklist.exe', '/FI PID eq 4242 /FO CSV /NH']]);
+  const other = (file, args, options, done) => done(null, '"chrome.exe","4242","Console","1","50,000 K"\n');
+  assert.equal(await lockOwnerRunsThisProgram(4242, {platform: 'win32', run: other, execPath: 'C:\\r\\node.exe'}), false);
+  const none = (file, args, options, done) => done(null, 'INFO: No tasks are running which match the specified criteria.\n');
+  assert.equal(await lockOwnerRunsThisProgram(4242, {platform: 'win32', run: none, execPath: 'C:\\r\\node.exe'}), false);
+  const broken = (file, args, options, done) => done(new Error('spawn failed'));
+  assert.equal(await lockOwnerRunsThisProgram(4242, {platform: 'win32', run: broken, execPath: 'C:\\r\\node.exe'}), true);
+  assert.equal(await lockOwnerRunsThisProgram(4242, {platform: 'linux', run: () => { throw new Error('not called'); }}), true);
 });
 
 test('bounded clear timeout and provider errors never leak identities, text, paths or raw provider messages', async t => {

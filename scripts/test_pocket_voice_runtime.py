@@ -532,6 +532,10 @@ class Assets(unittest.TestCase):
         with patch.object(Path, 'is_symlink', lambda path: path == self.player or real(path)):
             with self.assertRaisesRegex(ValueError, 'linked'):
                 self.validate(config)
+        # The message says what kind of link and how far above the folder it is (an ancestor is named by its distance, never by its path).
+        with patch.object(Path, 'is_symlink', lambda path: path == self.player.parent or real(path)):
+            with self.assertRaisesRegex(ValueError, r'linked directories \(symlink, 1 folders above it\)'):
+                self.validate(config)
         self.validate(config)   # unchanged afterwards
 
     # ---- voices changed while the worker runs (a clip given to a character or taken away: no restart, no reload of the model) ----
