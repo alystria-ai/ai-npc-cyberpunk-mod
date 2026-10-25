@@ -127,6 +127,22 @@ end
 function M.clearAt(center,forward,rotation)
     return clearSpot(center,forward,rotation)
 end
+-- The ground under a point: its height and the physical material the engine names for it (lower case, such as "asphalt.physmat"; nil
+-- when the trace names none). Two rays, one query each. nil, true when the query budget is spent (ask again later); nil when there is no ground.
+function M.surfaceAt(x,y,z)
+    local spatial=Game.GetSpatialQueriesSystem()
+    local best
+    for _,group in ipairs({'Static','Terrain'}) do
+        if not clearance.take(1) then return nil,true end
+        local hit,trace=spatial:SyncRaycastByCollisionGroup(vector(x,y,z+1.8),vector(x,y,z-2.0),group,false,false)
+        if hit and trace and trace.position and (not best or trace.position.z>best.position.z) then best=trace end
+    end
+    if not best then return nil end
+    local ok,text=pcall(function() return best.material~=nil and name(best.material) or nil end)
+    local material=ok and type(text)=='string' and text~='' and text:lower() or nil
+    if material=='none' then material=nil end
+    return best.position.z,material
+end
 local function spawnPoint(primary,ordinal)
     local car=primary.entity
     if not car or not car:IsAttached() then

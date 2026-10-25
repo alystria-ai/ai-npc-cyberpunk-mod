@@ -120,17 +120,35 @@ Three layers: the text is in the phone history (and the next phone turns see the
 
 `mod/immersive-car.lua`. The method is the **How she arrives** setting, not V's words ("by car" in a message changes nothing; the bridge only passes a meet tag). A car arrival needs a
 **road end point**: for "here" the engine's `GetNearestRoadFromPlayerInfo` (within 60 m on foot), else the nearest point of V's recent drives within 150 m, else, when the engine's answer is
-empty or unreadable (`call-failed`, `no-system`, `no-info`, `no-point`, `zero-point`), V's own spot as a guess (the car's driving AI finds the road; a drive that cannot be made walks, see the codes);
-for the pin the AutoDrive road end point. With none, she walks (the request is turned into Walk at once).
+empty or unreadable (`call-failed`, `no-system`, `no-info`, `no-point`, `zero-point`): the lane of the nearest **traffic car** within 60 m (`road traffic`), else the intersection the prevention system names
+ahead of V within 150 m (`GetIntersectionInFrontOfPlayerPos`, `road intersection`), else V's own spot as a guess (a drive that cannot be made walks, see the codes); for the pin the AutoDrive road end point.
+With none, she walks (the request is turned into Walk at once).
+
+*Why the engine's lookup is empty* (live 2026-10-26, game 2.5, a street in Watson/Little China: `point=0,0,0 pathLength=-1 (zero-point)`, three times): the struct `NearestRoadFromPlayerInfo` is real and its
+fields are `point` and `pathLength` (both read fine), but it is the prevention system's own cache for its police-on-foot fallback (`TrySpawnOnFootFallbackBasedOnRoadInfo`) and, by the evidence, stays at its defaults while no heat
+asks for it, so on a calm walk it says nothing. The compiled scripts (`final.redscripts`) offer no other road query: no traffic lane query, no vehicle navmesh query, and `GetTrafficSystem` has no road methods the scripts
+use; the road and lane data stay in the engine. The lookups below are therefore the places a street is known by something the engine did.
+
+**Traffic census** (`trafficLanes` in `mod/immersive-world.lua`, one `GetTargetParts` query within 120 m, once per appointment, only when the engine's answer is unreadable and V has no trail near): vehicles that are
+not V's and report `IsInTrafficPhysicsState()` (the traffic system holds them on a lane), or are crowd cars (`IsCrowdVehicle()`) moving at 3 m/s or more. Up to six, nearest first, with their heading; they are the
+`traffic` road end point (within 60 m) and, always, candidates for her car's spot (below). The probe line says `traffic=<vehicles seen>/<on a lane> nearest <m> m` after the engine's fields, then `intersection=...`
+when that was asked (`none`, `zero`, `far:<m>`, `error:...`).
 
 **Why she walked is in `probe.log`**, one code word per fall back: `Immersive invitations: X will meet V (here, walk, ..., walks: <code>)` with `setting-walk` (no line suffix when the setting is Walk), `cars-busy`,
 `no-road:<code>` (the road lookup: `far:<m>`, `no-path`, `invalid`, `no-pin-road`, or the unreadable codes above, when no trail point helped); a car appointment says `road engine|trail|guess`; the next line
 `X: road lookup point=.. pathLength=.. (<code>)` shows the fields the engine's lookup returned. Later: `X: no car arrival, walking (no-road-spot: ...)` (two searches found no spot; the reasons follow),
-`(off-lane: ...)` (the new car never stood on a traffic lane, after `LANE_RETRIES` = 3 other spots), `(car-not-made: ...)`, `(not-attached|car-gone: ...)`, `(trip-failed: ...)`.
-A car that does not stand on a lane is replaced by the next candidate spot (`trying another spot (n)`) before she walks; the second search round also accepts spots in V's sight (130 m or more away). The car spot (`companions.findCarSpot`): points V drove through lately (a 40-point trail sampled every 2 s only while Car is
-the method and V is in a moving vehicle) and rings of 130 to 220 m around the road end point; each must be out of sight, 60 m from V, pass the party-car footprint test
-(`companion-vehicle-native.lua` `clearAt`) and have walkable ground beside it for the driver. The car (the character's catalog car or the fallback, tag
-`CyberpunkConvaiHerVehicle`, never the carpool's tag) must report `IsInTrafficLane()` within 2 s or it is deleted and she walks. The sequence: she appears beside the car, boards (animated
+`(off-lane: ...)` (rare now: the fourth car is taken as it is, see below), `(car-not-made: ...)`, `(not-attached|car-gone: ...)`, `(trip-failed: ...)`.
+The car spot (`companions.findCarSpot`), best first, each 60 m or more from V, out of sight, passing the party-car footprint test (`companion-vehicle-native.lua` `clearAt`) and with walkable ground beside it for the driver:
+(1) points V drove through lately (a 40-point trail sampled every 2 s only while Car is the method and V is in a moving vehicle), (2) points 12, 24 and 36 m either side of a census traffic car along its lane,
+(3) a ring of 36 bearings (10 degrees) at 220, 170 and 130 m around the road end point. A ring point is snapped to walkable ground within 8 m (once per 4 m square) and its **surface** is read
+(`surfaceAt`: two rays, `TraceResult.material`): the first round keeps only a street surface (a name containing `asphalt`, `road` or `tarmac`, or the very surface that a trail point or a traffic car stands on,
+read once before the ring is judged), the second round (which also accepts spots in V's sight) takes any ground; ground that names no surface is not filtered. No call looks at more than 12 candidates. The search
+failure line shows the counts (`of near nav dup ground surface seen room walk`), the surface under V (`under-V=`) and up to three surfaces met (`surfaces=`), so one run says what a street is named.
+The car (the character's catalog car or the fallback, tag `CyberpunkConvaiHerVehicle`, never the carpool's tag) is checked once it stands, and the log says what it answered: `car spot <trail|traffic|surface|ring> (<surface>) <m> m from V`, then
+`car check (lane=<IsInTrafficLane> traffic=<IsInTrafficPhysicsState>[ on a street (<how>)| driving anyway])`. A spot known to be a street (trail, traffic, surface) is ready at once, whatever the lane answer: a car the mod placed
+may never answer true for `IsInTrafficLane()` (the name belongs to the crowd and traffic code), and the drive that follows is the proof (a drive that fails walks). A **ring** spot (ground only) must answer `IsInTrafficLane() == true`
+within 2 s (an unreadable answer passes) or it is deleted and the next spot is tried (`trying another spot (n)`, `LANE_RETRIES` = 3); the fourth car is taken as it is (`driving anyway`): the drive then shows whether a
+car can leave that spot, and a failure ends in `trip-failed` and a walk. The sequence: she appears beside the car, boards (animated
 `AIMountCommand`), drives `AIVehicleDriveToPointAutonomousCommand` (the chauffeur's flags, 12 m/s, stop distance 6 m) to the road end point, the car brakes, she gets out (animated unmount, instant
 failsafe after 8 s), and walks the rest. Any failure deletes the car and she walks in from 14 to 30 m away (two tries, then a plain failure).
 
@@ -206,7 +224,7 @@ New: `mod/immersive-invitations.lua`, `mod/immersive-service.lua`, `mod/immersiv
 ## Tests
 
 `npm run test:immersive` runs them. Lua state machine against fake seams: `immersive-invitations.test.mjs` (43: every phase, the frozen clock, held, offers and answers, virtual arrival,
-fast travel, persistence, cars and their lifecycle), `immersive-car.test.mjs`, `immersive-service.test.mjs`, `immersive-companions.test.mjs` (visitors in the real `companions.lua`),
+fast travel, persistence, cars and their lifecycle), `immersive-car.test.mjs`, `immersive-world.test.mjs` (the road lookup: engine, traffic cars, intersection, guess), `immersive-service.test.mjs`, `immersive-companions.test.mjs` (visitors in the real `companions.lua`),
 `immersive-phone.test.mjs`, `immersive-settings.test.mjs`, `immersive-place-words.test.mjs`, `immersive-vehicle-spot.test.mjs`, her-car cases in `companion-chauffeur-native.test.mjs`; bridge:
 `meet-requests`, `appointment-events`, `phone-chat-meet`, `turn-context-appointment`, and `call-meet.test.mjs` (21: the offer parser, the note, the plan and the decision request, the lease in
 a Lua VM over the real service and controller, and the whole path for the text route and for Convai: a call that says "come meet me" makes an appointment, one that names the waypoint uses it,
@@ -217,7 +235,10 @@ a Lua VM over the real service and controller, and the whole path for the text r
 1. A copy **with no follower role** idles for minutes (no crowd behaviour) and takes `AIMoveToCommand` walks over 100 m; she stands still after arriving. (Fallback: give her the role from the start.)
 2. Hidden spawn at 35 m reads as natural, she walks in at about 1.5 m/s and arrives within a few seconds of the chosen delay; the out-of-sight rule agrees with what V sees at the edge of the view.
 3. `GetNearestRoadFromPlayerInfo` (via `Game.GetPreventionSpawnSystem()`; the out-parameter return form) gives a usable road point where V stands, and the AutoDrive end point does for a far pin.
-4. A spawned car answers `IsInTrafficLane()` true on a lane within 2 s; trail points are accepted; ring candidates mostly fail (then Walk); the drive stops on the road, not at the kerb, and about as close to V as the road end point (target aimed with a 3 m stop distance, moved 8 m back along the car's approach when it would lie on V's spot); the animated boarding and
+4. **Car, second round (live 2026-10-26, unsettled until a run)**: with the engine's lookup empty, `road lookup` shows `traffic=<seen>/<lane>` and `intersection=...`; the `car spot` line says what the chosen spot was and its
+   surface name; `car check` says what `IsInTrafficLane` and `IsInTrafficPhysicsState` answered for a car the mod placed (if `lane=false` on a street surface, the lane answer is not a usable test and only the drive counts);
+   the surface names under V (`under-V=`) and on the ring tell whether a street reads `asphalt`. If every ring spot fails, the numbers in the failure line say which check turned them away.
+   A spawned car answers `IsInTrafficLane()` true on a lane within 2 s (unknown); trail points are accepted; ring candidates mostly fail (then Walk); the drive stops on the road, not at the kerb, and about as close to V as the road end point (target aimed with a 3 m stop distance, moved 8 m back along the car's approach when it would lie on V's spot); the animated boarding and
    exit work in the dark, and the driver ends on the sidewalk side.
 5. Her car in drive-me: the offer is made (`IsPlayerVehicle()` may be false for it, handled by the hook), `GetInitCmd()` does not make the car look "busy", V can enter a passenger seat.
 6. Fast travel points list a position through their mappin; otherwise the geometric words.

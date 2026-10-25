@@ -209,3 +209,73 @@ test('the search never examines more than a dozen ring points in one call, so a 
   companions.findVisitorSpot('judy-alvarez',request,{})
   assert(queries-before<=2*12+1,'queries in one call: '..(queries-before))
 `));
+
+// Her car's spot (companions.findCarSpot): a world whose ground names its surface. `streetAt(x, y)` says which surface a point has.
+const carWorld = (streetAt) => `${visitor}
+  local function surfaceAt(x,y) return ${streetAt} end
+  Game.GetSpatialQueriesSystem=function() return {
+    Overlap=strictNative('Overlap',{1,2},function() return false end),
+    SyncRaycastByCollisionGroup=strictNative('SyncRaycastByCollisionGroup',{1,2},function(_,from,_,group)
+      if group~='Static' then return false end
+      return true,{position=Vector4.new(from.x,from.y,0),normal=Vector4.new(0,0,1),material=surfaceAt(from.x,from.y)}
+    end)} end
+  Game.GetAINavigationSystem=function() return {
+    FindPointInSphereForCharacter=strictNative('FindPointInSphereForCharacter',{1},function(_,position) return {status='OK',point=position} end),
+    FindPointInBoxForCharacter=strictNative('FindPointInBoxForCharacter',{1,2},function(_,position) return {status='OK',point=position} end)} end
+  companions.visibleFromCrosshair=function() return false end
+  local function find(request,state)
+    local spot,reason
+    for _=1,120 do
+      spot,reason=companions.findCarSpot('judy-alvarez',request,state)
+      if spot or reason then break end
+    end
+    return spot,reason
+  end
+`;
+
+test('her car: the first round keeps ring points on a street surface, the second takes any ground', () => run(`${carWorld(`x>100 and 'asphalt.physmat' or 'concrete.physmat'`)}
+  local request={destination=Vector4.new(0,0,0),goal=Vector4.new(0,0,0),relax=0}
+  local spot,reason=find(request,{})
+  assert(spot,tostring(reason))
+  assert(spot.car.road=='surface' and spot.car.material=='asphalt.physmat' and spot.car.position.x>100,'street ground: '..spot.car.position.x)
+  assert(math.sqrt(spot.car.position.x^2+spot.car.position.y^2)>=60 and spot.leg=='drive')
+  -- no street surface anywhere: the first round ends with the counts and what the ground was, the second round takes the ring
+  surfaceAt=function() return 'concrete.physmat' end
+  local none,why=find(request,{})
+  assert(none==nil and why:find('surface=%d+') and why:find('under%-V=concrete.physmat') and why:find('surfaces=concrete.physmat'),tostring(why))
+  local second=find({destination=Vector4.new(0,0,0),goal=Vector4.new(0,0,0),relax=1},{})
+  assert(second and second.car.road=='ring' and second.car.material=='concrete.physmat')
+`));
+
+test('her car: ground that names no surface cannot be filtered, so a ring point is taken as it is', () => run(`${carWorld('nil')}
+  local spot,reason=find({destination=Vector4.new(0,0,0),goal=Vector4.new(0,0,0),relax=0},{})
+  assert(spot and spot.car.road=='ring' and spot.car.material==nil,tostring(reason))
+`));
+
+test('her car: what V drove on teaches the street surface, and a trail point is the first candidate', () => run(`${carWorld(`(x>100 or (x==0 and y==20)) and 'strange_street.physmat' or 'concrete.physmat'`)}
+  local request={destination=Vector4.new(0,0,0),goal=Vector4.new(0,0,0),relax=0,trail={{x=0,y=20,z=0}}}
+  local spot,reason=find(request,{})
+  assert(spot and spot.car.road=='surface' and spot.car.material=='strange_street.physmat' and spot.car.position.x>100,tostring(reason))
+  request.trail={{x=0,y=-150,z=0}}
+  local drove=find(request,{})
+  assert(drove and drove.car.road=='trail' and drove.car.position.y==-150,'the trail point first: '..tostring(drove and drove.car.position.y))
+`));
+
+test('her car: points along the lane of a traffic car are candidates once they are 60 m or more from V', () => run(`${carWorld(`'concrete.physmat'`)}
+  local request={destination=Vector4.new(0,0,0),goal=Vector4.new(0,0,0),relax=0,lanes={{x=0,y=-100,z=0,hx=0,hy=1}}}
+  local spot,reason=find(request,{})
+  assert(spot and spot.car.road=='traffic',tostring(reason))
+  assert(math.abs(spot.car.position.x)<0.01 and math.abs(spot.car.position.y+136)<0.01,'36 m behind the car on its lane: '..spot.car.position.y)
+`));
+
+test('her car: a search that spends the query budget asks again, and no call looks at more than a dozen candidates', () => run(`${carWorld(`'concrete.physmat'`)}
+  local looked=0
+  local real=Game.GetAINavigationSystem()
+  Game.GetAINavigationSystem=function() return {
+    FindPointInSphereForCharacter=strictNative('FindPointInSphereForCharacter',{1},function(_,position) looked=looked+1; return {status='OK',point=position} end),
+    FindPointInBoxForCharacter=real.FindPointInBoxForCharacter} end
+  local request={destination=Vector4.new(0,0,0),goal=Vector4.new(0,0,0),relax=0}
+  local state={}
+  companions.findCarSpot('judy-alvarez',request,state)
+  assert(looked<=12+2,'one call: '..looked)
+`));

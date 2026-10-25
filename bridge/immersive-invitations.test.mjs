@@ -55,7 +55,7 @@ function world.findSpot(a, mode)
   local spot = {position = {x = a.dest.x + d, y = a.dest.y, z = 0}, goal = {x = a.dest.x, y = a.dest.y, z = 0},
     facing = {x = -1, y = 0}, distance = d, eta = mode == 'car' and 40 or d / 1.5}
   if mode == 'car' then
-    spot.car = {position = {x = a.dest.x + d + 3, y = a.dest.y, z = 0}, yaw = 90}
+    spot.car = {position = {x = a.dest.x + d + 3, y = a.dest.y, z = 0}, yaw = 90, road = 'surface', material = 'asphalt.physmat'}
     spot.roadEnd = {x = a.dest.x + 8, y = a.dest.y, z = 0}
   end
   return spot
@@ -72,8 +72,11 @@ function world.carCreate(a)
 end
 function world.carReady(a, dt)
   local state = fake.carReady or 'ready'
+  fake.forced = fake.forced or {}
+  fake.forced[#fake.forced + 1] = a.driveAnyway == true
+  if a.driveAnyway and state ~= 'ready' or a.driveAnyway and fake.laneMisses and fake.laneMisses > 0 then return 'ready', 'lane=false traffic=false driving anyway' end
   if fake.laneMisses and fake.laneMisses > 0 and state == 'ready' then fake.laneMisses = fake.laneMisses - 1; return 'bad', 'not on a road', 'off-lane' end
-  return state, 'not on a road', state == 'bad' and (fake.badCode or 'off-lane') or nil
+  return state, state == 'bad' and 'not on a road' or 'lane=true traffic=true', state == 'bad' and (fake.badCode or 'off-lane') or nil
 end
 function world.carStep(a, dt)
   fake.cars.steps = fake.cars.steps + 1
@@ -637,12 +640,23 @@ test('a car that does not stand on a traffic lane is replaced by the next spot, 
   assert(ctl.appointment('judy-alvarez').method == 'car', 'two misses: still a car')
   assert(#fake.cars.created == 3 and #fake.cars.deleted >= 2, 'two cars deleted, the third stands')
   assert(logged('trying another spot (2)'))
+  assert(logged('Judy: car spot surface (asphalt.physmat) 233 m from V'), 'the chosen spot and what it stands on')
   tick(60)
   assert(ctl.appointment('judy-alvarez').arrivedByCar == true)
+  assert(logged('Judy: car check (lane=true traffic=true)'), 'what the car answered')
+`));
+
+test('after the retries the last spot is taken as it is: the drive itself shows whether it works, and a failed drive walks', () => run(lines() + `
+  opts.arrival = 'car'
   fake.laneMisses = 100
-  ask('panam'); tick(40)
-  assert(ctl.appointment('panam-palmer').method == 'walk')
-  assert(logged('Panam: no car arrival, walking (off-lane:'))
+  ask('panam'); tick(60)
+  assert(#fake.cars.created == 4, 'three cars refused, the fourth goes: ' .. #fake.cars.created)
+  assert(fake.forced[#fake.forced] == true and fake.forced[1] == false, 'only the last try is forced')
+  assert(logged('car check (lane=false traffic=false driving anyway)'))
+  assert(ctl.appointment('panam-palmer').arrivedByCar == true)
+  fake.carFails = true
+  ask('judy'); tick(60)
+  assert(logged('Judy: no car arrival, walking (trip-failed:'), 'a forced car that cannot drive still ends in a walk')
 `));
 
 test('a car that cannot be made, or that does not stand on a road, is replaced by a walk and nothing is left behind', () => run(`
@@ -652,7 +666,7 @@ test('a car that cannot be made, or that does not stand on a road, is replaced b
   assert(a.method == 'walk' and #fake.cars.created == 0)
   fake.carCreateFails = false
   ctl.cancel('judy-alvarez', 'x'); tick(1)
-  opts.arrival = 'car'; fake.carReady = 'bad'
+  opts.arrival = 'car'; fake.carReady = 'bad'; fake.badCode = 'car-gone'
   ask('panam'); tick(20)
   assert(ctl.appointment('panam-palmer').method == 'walk')
   assert(#fake.cars.created >= 1 and #fake.cars.deleted == #fake.cars.created, 'the bad car was deleted')

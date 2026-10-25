@@ -1866,13 +1866,33 @@ function M.findVisitorSpot(key,request,state)
     return nil,nil,true
 end
 -- A hidden spot on a road far from the meeting place for the car of a visitor who comes by car (mod/immersive-car.lua). The game has
--- no road graph to ask, so the candidates are points V has driven through lately (request.trail) and a ring around the road end point,
--- each judged by the same footprint test the party's own cars use and by a walkable point beside it for the driver; the road itself is
--- confirmed by the car (it must report standing on a traffic lane), and a candidate that fails is replaced by the next call.
--- request = {destination = the road end point, goal, trail, relax (1: also spots in sight)}; returns {position = where the driver appears, car = {position, yaw},
--- roadEnd, goal, distance, eta} or nil + reason, or nil,nil,true (ask again).
-local CAR_BATCH,CAR_MIN_FROM_V=2,60
-local atan2=math.atan2 or math.atan
+-- no road graph to ask, so the candidates are, best first: points V has driven through lately (request.trail), points along the lane
+-- of traffic cars near V (request.lanes: position and heading, the traffic system keeps them on a lane), and a ring around the road end
+-- point. A ring point is snapped to walkable ground and its surface is read (companion-vehicle-native.lua surfaceAt): the first round
+-- keeps only a street surface (asphalt, or what the trail and the traffic cars stand on), the second takes any ground. Each candidate
+-- is then judged by the party cars' footprint test and by a walkable point beside it for the driver; the car itself reports what it
+-- knows once it stands there (mod/immersive-car.lua), and a candidate that fails is replaced by the next call.
+-- request = {destination = the road end point, goal, trail, lanes, relax (1: also spots in sight, any ground)}; returns {position = where the
+-- driver appears, car = {position, yaw, road = how the spot is known (trail | traffic | surface | ring), material}, roadEnd, goal, distance, eta}
+-- or nil + reason, or nil,nil,true (ask again).
+local CAR_BATCH,CAR_MIN_FROM_V,CAR_LOOK=2,60,12
+local CAR_LANE_STEPS={-36,-24,-12,12,24,36}
+-- Surface names that are a street: asphalt and the like, plus whatever a place known to be a street (trail, traffic car) reads.
+local function streetSurface(material,state)
+    if type(material)~='string' then return false end
+    if state.streets[material] then return true end
+    return material:find('asphalt',1,true)~=nil or material:find('road',1,true)~=nil or material:find('tarmac',1,true)~=nil
+end
+local function carReason(state)
+    local s=state.stats or {}
+    local seen={}
+    for material in pairs(state.surfaces or {}) do seen[#seen+1]=material end
+    table.sort(seen)
+    return string.format('of=%d near=%d nav=%d dup=%d ground=%d surface=%d seen=%d room=%d walk=%d under-V=%s surfaces=%s',#(state.list or {}),
+        s.near or 0,s.nav or 0,s.dup or 0,s.ground or 0,s.surface or 0,s.seen or 0,s.room or 0,s.walk or 0,tostring(state.under),
+        #seen>0 and table.concat(seen,',',1,math.min(#seen,3)) or 'none')
+end
+local function squareOf(point) return string.format('%d:%d',math.floor(point.x/4),math.floor(point.y/4)) end
 function M.findCarSpot(key,request,state)
     local player=Game.GetPlayer()
     if not player then return nil,'World is not ready' end
@@ -1894,39 +1914,101 @@ function M.findCarSpot(key,request,state)
         state.goal=space.copy(found.point)
     end
     if not state.list then
-        state.list,state.index={},0
+        state.list,state.index,state.stats,state.seen,state.streets,state.surfaces={},0,{},{},{},{}
+        -- Places known to be a street: what they stand on is a street surface too (read once, before the ring is judged).
+        state.teach={}
         for _,point in ipairs(request.trail or {}) do
             local gap=space.ground(point,destination)
             if clearance.isPoint(point) and gap>=100 and gap<=350 then
-                state.list[#state.list+1]={x=point.x,y=point.y,z=point.z,gap=gap,road=true}
+                state.list[#state.list+1]={x=point.x,y=point.y,z=point.z,gap=gap,how='trail'}
+            end
+            if clearance.isPoint(point) and #state.teach<2 then state.teach[#state.teach+1]=point end
+        end
+        for _,lane in ipairs(request.lanes or {}) do
+            if clearance.isPoint(lane) and #state.teach<4 then state.teach[#state.teach+1]=lane end
+            for _,step in ipairs(CAR_LANE_STEPS) do
+                local at={x=lane.x+(lane.hx or 0)*step,y=lane.y+(lane.hy or 0)*step,z=lane.z}
+                if clearance.isPoint(at) then state.list[#state.list+1]={x=at.x,y=at.y,z=at.z,gap=space.ground(at,destination),how='traffic'} end
             end
         end
         local base=cameraForward(player)
         local start=base and atan2(-base.y,-base.x) or 0
         for _,distance in ipairs({220,170,130}) do
-            for step=0,11 do
-                local angle=start+step*math.pi/6
+            for step=0,35 do
+                local angle=start+step*math.pi/18
                 state.list[#state.list+1]={x=destination.x+math.cos(angle)*distance,y=destination.y+math.sin(angle)*distance,
                     z=destination.z,gap=distance}
             end
         end
     end
-    local judged=0
-    while state.index<#state.list and judged<CAR_BATCH do
+    -- One reading under V (for the report) and one under each known street place; asked again when the query budget is spent.
+    if not state.under then
+        local _,material,deferred=vehicleNative.surfaceAt(viewer.x,viewer.y,viewer.z)
+        if deferred then return nil,nil,true end
+        state.under=material or 'unreadable'
+    end
+    while #state.teach>0 do
+        local point=state.teach[#state.teach]
+        local _,material,deferred=vehicleNative.surfaceAt(point.x,point.y,point.z)
+        if deferred then return nil,nil,true end
+        state.teach[#state.teach]=nil
+        if material then state.streets[material]=true end
+    end
+    local stats=state.stats
+    local relax=request.relax or 0
+    local judged,looked=0,0
+    while state.index<#state.list and judged<CAR_BATCH and looked<CAR_LOOK do
         state.index=state.index+1
         local c=state.list[state.index]
-        judged=judged+1
-        local center=Vector4.new(c.x,c.y,c.z,1)
-        local forward=space.bearing(c,destination)
-        local rotation=Quaternion.BuildFromDirectionVector(Vector4.new(forward.x,forward.y,0,0))
-        if space.ground(c,viewer)>=CAR_MIN_FROM_V then
+        looked=looked+1
+        local at,how,material,skip={x=c.x,y=c.y,z=c.z},c.how,nil,false
+        if space.ground(at,viewer)<CAR_MIN_FROM_V then stats.near=(stats.near or 0)+1; skip=true end
+        if not skip and not how then
+            -- A ring point: the nearest walkable ground (a street or a kerb beside it), once per 4 m square.
+            local found=nav:FindPointInSphereForCharacter(Vector4.new(c.x,c.y,c.z,1),8,player)
+            if not found or found.status~=good or not clearance.isPoint(found.point) then
+                stats.nav=(stats.nav or 0)+1; skip=true
+            elseif state.seen[squareOf(found.point)] then
+                stats.dup=(stats.dup or 0)+1; skip=true
+            else
+                state.seen[squareOf(found.point)]=true
+                at={x=found.point.x,y=found.point.y,z=found.point.z}
+            end
+        end
+        if not skip then
+            local ground,read,deferred=vehicleNative.surfaceAt(at.x,at.y,at.z)
+            if deferred then
+                state.index=state.index-1
+                if not how then state.seen[squareOf(at)]=nil end
+                return nil,nil,true
+            end
+            if not ground then
+                stats.ground=(stats.ground or 0)+1; skip=true
+            else
+                at.z,material=ground,read
+                if material then state.surfaces[material]=true end
+                if not how then
+                    if streetSurface(material,state) then how='surface'
+                    elseif relax>=1 or not next(state.surfaces) then how='ring'
+                    else stats.surface=(stats.surface or 0)+1; skip=true end
+                end
+            end
+        end
+        if not skip then
+            judged=judged+1
+            local forward=space.bearing(at,destination)
             -- The second round (request.relax) takes a spot in sight too: 130 m or more away she is not seen to appear.
-            local hidden=(request.relax or 0)>=1 or hiddenFromPlayer(player,c)
+            local hidden=relax>=1 or hiddenFromPlayer(player,at)
             if hidden==nil then state.index=state.index-1; return nil,nil,true end
-            if hidden then
-                local spot,deferred=vehicleNative.clearAt(center,forward,rotation)
+            if not hidden then
+                stats.seen=(stats.seen or 0)+1
+            else
+                local rotation=Quaternion.BuildFromDirectionVector(Vector4.new(forward.x,forward.y,0,0))
+                local spot,deferred=vehicleNative.clearAt(Vector4.new(at.x,at.y,at.z,1),forward,rotation)
                 if deferred then state.index=state.index-1; return nil,nil,true end
-                if spot then
+                if not spot then
+                    stats.room=(stats.room or 0)+1
+                else
                     -- The driver stands on walkable ground beside the car.
                     local side=Vector4.new(spot.x-forward.y*3.2,spot.y+forward.x*3.2,spot.z,1)
                     local walk=nav:FindPointInSphereForCharacter(side,3,player)
@@ -1936,15 +2018,16 @@ function M.findCarSpot(key,request,state)
                         local onFoot=space.ground(destination,state.goal)
                         return {position={x=walk.point.x,y=walk.point.y,z=walk.point.z+.1},
                             facing={x=forward.x,y=forward.y},
-                            car={position={x=spot.x,y=spot.y,z=spot.z},yaw=yaw},roadEnd=space.copy(destination),
+                            car={position={x=spot.x,y=spot.y,z=spot.z},yaw=yaw,road=how,material=material},roadEnd=space.copy(destination),
                             goal=space.copy(state.goal),distance=gap,leg='drive',
                             eta=8+gap/10+onFoot/1.5}
                     end
+                    stats.walk=(stats.walk or 0)+1
                 end
             end
         end
     end
-    if state.index>=#state.list then return nil,'No hidden road spot was found.' end
+    if state.index>=#state.list then return nil,'No hidden road spot was found. '..carReason(state) end
     return nil,nil,true
 end
 -- Out of V's sight now? true / false, or nil when the query budget is spent (asked again on a later step).

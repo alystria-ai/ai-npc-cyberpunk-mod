@@ -621,6 +621,10 @@ function M.new(env)
                     end
                 end
                 a.carSpot = spot.car
+                if spot.car then
+                    log(tostring(a.name) .. ': car spot ' .. tostring(spot.car.road) .. ' (' .. tostring(spot.car.material or 'no surface name') .. ') '
+                        .. string.format('%.0f', st.position and spot.car.position and ground(spot.car.position, st.position) or 0) .. ' m from V')
+                end
                 a.carChoice = env.world.carChoice and env.world.carChoice(a) or nil
                 a.hold = true
             end
@@ -633,19 +637,23 @@ function M.new(env)
         a.go = clock >= (a.tGo or clock)
         -- Her car is made just before she is: it must stand on a road before she appears beside it.
         if a.leg == 'drive' and a.go and not a.car then
+            -- The last try after the spots that failed is taken as it is: the drive itself then shows whether it works.
+            a.driveAnyway = (a.laneMisses or 0) >= M.LANE_RETRIES
             local car, why = env.world.carCreate(a)
             if not car then return C.walkInstead(a, why, 'car-not-made') end
             a.car = car
         end
         if a.car and a.hold then
             local state, why, code = env.world.carReady(a, M.STEP)
-            if state == 'ready' then a.hold = false
+            if state == 'ready' then
+                a.hold = false
+                log(tostring(a.name) .. ': car check (' .. tostring(why) .. ')')
             elseif state == 'bad' then
                 discardCar(a)
                 if code == 'off-lane' and (a.laneMisses or 0) < M.LANE_RETRIES then
                     -- A candidate spot is judged by room and sight, not by road: the next one is tried before she walks.
                     a.laneMisses = (a.laneMisses or 0) + 1
-                    log(tostring(a.name) .. ': the car did not stand on a traffic lane, trying another spot (' .. a.laneMisses .. ')')
+                    log(tostring(a.name) .. ': the car did not stand on a traffic lane (' .. tostring(why) .. '), trying another spot (' .. a.laneMisses .. ')')
                     a.spot, a.leg, a.hold, a.go, a.carSpot, a.roadEnd = nil, nil, false, false, nil, nil
                     a.spawnInfo.position = nil
                     return
