@@ -8,6 +8,7 @@
     "bridge-latency.json",
     "bridge-service.json",
     "bridge-status.json",
+    "call-off.json",
     "clipboard-request.json",
     "companion-actions.json",
     "companion-chauffeur-cleanup.json",

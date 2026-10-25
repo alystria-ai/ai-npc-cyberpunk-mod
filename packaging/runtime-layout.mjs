@@ -26,6 +26,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/battle-context.mjs',
   'bridge/bridge-diagnostics.mjs',
   'bridge/call-meet.mjs',
+  'bridge/call-off.mjs',
   'bridge/caption-cues.mjs',
   'bridge/character-editor-control.mjs',
   'bridge/character-editor-page.mjs',
