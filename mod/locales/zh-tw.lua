@@ -1453,6 +1453,8 @@ return {
     ["Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md in the mod’s repository (github.com/alystria-ai/ai-npc-cyberpunk-mod). Until it is set up, OmniVoice will not start here. Choose Pocket to hear voices."] = "你的 AMD Radeon 顯示卡可以用你自己的 Python 和 AMD 的 ROCm PyTorch 執行 OmniVoice。實驗性功能。步驟：見模組 GitHub 頁面（alystria-ai/ai-npc-cyberpunk-mod）上的 docs/OMNIVOICE_AMD.md。設定好之前，OmniVoice 不會在這裡啟動。要聽到語音，請選擇 Pocket。",
     ["Your AMD Radeon card ({card}) can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md in the mod’s repository (github.com/alystria-ai/ai-npc-cyberpunk-mod). The mod downloads nothing for it."] = "你的 AMD Radeon 顯示卡（{card}）可以用你自己的 Python 和 AMD 的 ROCm PyTorch 執行 OmniVoice。實驗性功能。步驟：見模組 GitHub 頁面（alystria-ai/ai-npc-cyberpunk-mod）上的 docs/OMNIVOICE_AMD.md。模組不會為此下載任何東西。",
     ["Pay characters in eddies"] = "用歐元付錢給角色",
+    ["Misc"] = "其他",
+    ["Experimental extras. Each one is off until you turn it on."] = "實驗性附加功能。每一項在你開啟之前都是關閉的。",
     ["You do not have enough eddies for that."] = "你的歐元不夠。",
     ["The payment could not be made."] = "無法完成支付。",
     ["Type that you pay eddies to one of your own characters (party, invited visitor, housemate) and they really leave your balance, with the game’s usual pop-up. The character knows.\n\nOnly a plain typed payment counts, like \"I pay you 500 eddies\" or \"Here, take 500 eddies\", never a promise, question or spoken line. At most 100000 at a time."] = "輸入你向自己的某個角色（隊伍成員、受邀訪客、室友）支付歐元，歐元會真的從你的餘額中扣除，並顯示遊戲慣用的提示。角色也會知道。\n\n只有明確輸入的支付才算數，例如「我付你500歐元」或「給你，拿著500歐元」，承諾、提問或語音說出的話不算。每次最多100000。",

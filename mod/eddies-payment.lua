@@ -17,6 +17,15 @@ local function whole(value)
     return type(value) == 'number' and value == value and value >= 0 and value < math.huge and value == math.floor(value)
 end
 
+-- Words that make a typed line worth one probe line when no offer is made (the line may be a payment the setting or the character ruled out). Never used to pay.
+local MONEYISH = {'eddie', 'euro', '€', 'cash', 'pay', 'paid', 'gave', 'give', 'эдди', 'едді', 'エディ', '에디', '欧', '艾迪', '埃迪', '尤罗'}
+local function moneyish(text)
+    if type(text) ~= 'string' or not text:find('%d') then return false end
+    text = text:lower()
+    for _, word in ipairs(MONEYISH) do if text:find(word, 1, true) then return true end end
+    return false
+end
+
 -- options: enabled() -> bool; payable(entity, profileKey) -> bool (one of our own copies: in the party, an invited visitor, a housemate); player() -> V's game object;
 -- log(line); balance(player) and remove(player, amount) replace the game calls (tests).
 function M.new(options)
@@ -30,9 +39,11 @@ function M.new(options)
         if moneyId == nil then moneyId = ItemID.FromTDBID(TweakDBID.new('Items.money')) end
         return moneyId
     end
+    -- The balance as a plain number: the game's quantity is read through tonumber, so a boxed integer (cdata) is as good as a number.
     local function balance(player)
         if type(options.balance) == 'function' then return options.balance(player) end
-        return Game.GetTransactionSystem():GetItemQuantity(player, money())
+        local have = Game.GetTransactionSystem():GetItemQuantity(player, money())
+        return tonumber(have) or have
     end
     local function remove(player, amount)
         if type(options.remove) == 'function' then return options.remove(player, amount) end
@@ -43,17 +54,29 @@ function M.new(options)
         return ok and value == true
     end
 
+    -- One probe line per typed line that talks of money (a digit and a money word), for the offer made or the reason none was: the reason is the whole point of it (docs/EDDIES_PAYMENT.md, "Probe lines").
+    local function note(context, text)
+        if type(context) == 'table' and moneyish(context.text) then
+            log('Eddies payment: ' .. text .. (type(context.profileKey) == 'string' and (' person=' .. context.profileKey) or ''))
+        end
+    end
+
     function P.offer(entity, context)
         if type(entity) ~= 'string' or type(context) ~= 'table' or type(context.profileKey) ~= 'string' then return nil end
-        if context.group ~= nil or context.holocall ~= nil or context.reaction ~= nil or context.head ~= nil or context.voiceOnly then return nil end
-        if not enabled() then return nil end
+        if context.group ~= nil or context.holocall ~= nil or context.reaction ~= nil or context.head ~= nil or context.voiceOnly then
+            note(context, 'offer=no(context)'); return nil
+        end
+        if not enabled() then note(context, 'offer=no(switch-off)'); return nil end
         local ok, ours = pcall(options.payable, entity, context.profileKey)
-        if not ok or ours ~= true then return nil end
+        if not ok or ours ~= true then note(context, 'offer=no(not-ours' .. (ok and '' or ':error') .. ')'); return nil end
         local okPlayer, player = pcall(options.player)
-        if not okPlayer or player == nil then return nil end
+        if not okPlayer or player == nil then note(context, 'offer=no(no-player)'); return nil end
         local okBalance, have = pcall(balance, player)
-        if not okBalance or not whole(have) or have < 1 then return nil end
-        return {available = true, actor = {id = entity, key = context.profileKey}, balance = have, max = math.min(have, M.CAP)}
+        if not okBalance or not whole(have) then note(context, 'offer=no(balance-unreadable:' .. (okBalance and type(have) or 'error') .. ')'); return nil end
+        if have < 1 then note(context, 'offer=no(no-eddies)'); return nil end
+        local offer = {available = true, actor = {id = entity, key = context.profileKey}, balance = have, max = math.min(have, M.CAP)}
+        note(context, 'offer=yes balance=' .. tostring(have) .. ' max=' .. tostring(offer.max))
+        return offer
     end
 
     -- Returns true, or false and a short code: off, offer, amount, not-ours, no-player, unreadable, balance, error, unconfirmed.
