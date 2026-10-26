@@ -24,7 +24,7 @@ see what V wears).
 
 ## What is read
 
-- Clothing, as the **visible** item per slot (`GetVisualItemInSlot`, which follows an active wardrobe outfit or transmog),
+- Clothing, as the **visible** item per slot (`GetVisualItemInSlot`; it did not follow the game's Wardrobe in the live run of 2026-10-26, so an active Wardrobe set is read first, see below),
   falling back to the equipped item: head, face, outer torso, inner torso, legs, feet, outfit.
 - Weapons: the weapon actually in V's hands (`ScriptedPuppet.GetActiveWeapon`, never bare fists) and the three weapon slots.
 - Cyberware, first slot of each: arms, eyes, operating system.
@@ -78,16 +78,37 @@ outfit by attaching preview items to extra slots while the game's own equipment 
 ## The game's own Wardrobe (patch 2.0+)
 
 Added 2026-10-26 after a live report: with a saved Wardrobe outfit applied, a companion described the equipped inventory items instead of the outfit V visibly wears.
+Reworked the same day after a second live run: the first version never wrote a `wardrobe outfit=` line.
 
 - **Order.** An active Equipment-EX outfit first (above), then the game's active clothing set, then the equipped inventory.
-- **What is read.** `Game.GetWardrobeSystem():GetActiveClothingSet()` (the scripted `WardrobeSystem`; the equipment system's `GetActiveWardrobeSet(V)` is the second route): a
-  `ClothingSet` with `setID` and `clothingList` (rows of `slotID` and `visualItem`). Each `visualItem` is named like every gear item and placed by the equipment area of its item
-  record (`record:EquipArea():Type()`), not by `slotID`. A slot the set does not cover keeps the visible or equipped item as before. A set with no placeable item counts as no set.
-  Both game versions (2.31 and 2.5) carry the class and these methods (checked in their compiled `final.redscripts`; the vanilla source is not on disk, so the signatures come from the
-  names and types in that file). Every call is guarded: a missing class or a failing call leaves the equipment read.
-- **Log.** `probe.log`, once per change: `wardrobe outfit=<set index> items=N` or `wardrobe outfit=off`.
-- **Not confirmed in the game:** the exact return type of `GetActiveClothingSet` (a `ClothingSet` handle, nil when none), that `setID.value` gives a readable index, that `clothingList`
-  and `visualItem` are readable from CET, and whether the engine's `GetVisualItemInSlot` already followed the set before this change. Check `probe.log` for the `wardrobe outfit=` line.
+- **Why the first version failed.** Two faults, both found by compiling probe scripts against the game's own `final.redscripts` (2.31 and 2.5 agree):
+  1. The second route was `EquipmentSystem:GetActiveWardrobeSet(player)` called on the system instance. In the scripts that method is `static` (`this method is static, it
+     cannot be used on an instance of an object`), so the call failed. The real instance route is on the player data the reader already holds:
+     `EquipmentSystemPlayerData.GetActiveWardrobeSet()` (no arguments).
+  2. The log line started as `wardrobe outfit=off`, so a read that found no set (or whose calls all failed) was "unchanged" and wrote nothing, and every failure was
+     swallowed by `pcall`. Nothing could tell "no set" from "the call is wrong". Whether `Game.GetWardrobeSystem()` is exposed to CET could not be settled from the scripts; the
+     reader now tries every route and reports which ones failed.
+- **Signatures** (compiler output, `scc` against a copy of `final.redscripts`):
+  `ClothingSet { setID: gameWardrobeClothingSetIndex, clothingList: array<SSlotVisualInfo> }`; `SSlotVisualInfo { areaType: gamedataEquipmentArea, visualItem: ItemID, isHidden: Bool }`;
+  `EquipmentSystemPlayerData.GetActiveWardrobeSet() -> ref<ClothingSet>`, `.IsWardrobeEnabled() -> Bool`, `.GetVisualItemInSlot(area) -> ItemID`;
+  `WardrobeSystem.GetActiveClothingSet() -> ref<ClothingSet>` (also `GetActiveClothingSetIndex()`, `GetClothingSets()`, `GetStoredItemIDs()`);
+  `GameInstance.GetWardrobeSystem(game) -> ref<WardrobeSystem>`; static `EquipmentSystem.GetActiveWardrobeSet(player)` and `EquipmentSystem.GetActiveWardrobeSetID(player)`.
+  `IsWardrobeSetActive` and `FindWardrobeClothingSetByID` (on those classes) do not exist. The function bodies are not on disk, so what `INVALID` / nil mean for "no set" is a guess:
+  both are treated as no set.
+- **What is read.** `IsWardrobeEnabled()` first (false: no outfit, a quest has disabled the Wardrobe). Then the routes in order until one returns a set:
+  `data:GetActiveWardrobeSet`, `Game.GetWardrobeSystem():GetActiveClothingSet()`, `GameInstance.GetWardrobeSystem(V:GetGame()):GetActiveClothingSet()`,
+  `EquipmentSystem.GetActiveWardrobeSet(V)` (static). Each entry of `clothingList` is placed by its own `areaType` (by the item record's equipment area when that is unreadable) and
+  named like every gear item. An entry with `isHidden` leaves its slot empty (the equipped item under it is not described). A slot the set does not list keeps the visible or
+  equipped item as before. A set with no placeable entry counts as no set.
+- **Log.** `probe.log`, on the first read and then once per change:
+  `wardrobe outfit=<set index name> items=N [hidden=K] via=<route>`, `wardrobe outfit=off`, `wardrobe outfit=off (disabled)`,
+  `wardrobe outfit=<set> items=0 unplaced=N via=<route>`, or, when every route failed, `wardrobe outfit=error(<call>: <message>; ...)`.
+  Failures of earlier routes are appended to a line as ` errors=<call>: <message>`.
+- **Next live run.** With an outfit applied, ask the companion what V wears: `probe.log` must show `wardrobe outfit=Slot1 items=N via=...` and the answer must follow the outfit.
+  `error(...)` shows which call to fix. `off` with an outfit visibly on means the routes answered "none" and the set must come from elsewhere (`m_clothingVisualsInfo`, the
+  player data's list of the visuals on V, has the same `SSlotVisualInfo` rows).
+- **Not confirmed in the game:** that the CET binding exposes `GameInstance.GetWardrobeSystem` / `Game.GetWardrobeSystem`, that `clothingList` and the struct fields read from CET as
+  tables, and that `enum.value` gives the name (`Slot1` to `Slot7` or `INVALID`, `OuterChest`).
 
 ## Install
 
@@ -98,7 +119,7 @@ CET reload for `mod/player-gear.lua` (new), `mod/init.lua`, `mod/group-chat.lua`
 
 `bridge/player-gear.test.mjs`: parsing and the cap, the wording and guidance line, `parseInput` and `conversationContext`
 integration, the Lua reader against a fake game (visible-over-equipped, skipped empty slots, one read per window, failures
-contained), and the wiring of each send path.
+contained), the game's Wardrobe against a strict fake of the real call shape (instance, static and GameInstance calls, the log line for each outcome), and the wiring of each send path.
 
 
 Only what V has on is ever listed; an empty slot is not mentioned. The guidance (and the stranger's line) also says never to remark on what V is not wearing (2026-10-25: a companion kept saying V wore no mask).

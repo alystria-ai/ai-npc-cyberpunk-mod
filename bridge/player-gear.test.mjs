@@ -225,6 +225,7 @@ test('the snapshot is read once per window, never per call, and refreshed after 
 test('each real read logs one line, with the reason when there is none; a cached turn logs nothing', () => lua$(`
   local lines = {}
   gear.options.log = function(line) lines[#lines + 1] = line end
+  gear.lastWardrobe = 'wardrobe outfit=off' -- this fake has no wardrobe routes; its one "off" line is covered by the wardrobe tests
   gear:capture(); gear:capture(); gear:capture()
   assert(#lines == 1 and lines[1] == 'Player gear: 10 items', lines[1])
   state.ready = false; gear:reset('test'); gear:capture()
@@ -302,22 +303,180 @@ test('every manual in-person send path captures the gear; reactions and the phon
   assert.equal((initSource.match(/convaiPlayerGear:capture\(\)/g) || []).length, 1, 'the send path');
 });
 
-test('an active Wardrobe set shows its items; uncovered slots keep the visible or equipped item; each change logs once', () => lua$(`
-  local lines = {}
-  gear.options.log = function(line) lines[#lines + 1] = line end
-  local areaOf = {Coat = 'OuterChest', Cap = 'Head'}
-  N.itemArea = function(id) return areaOf[id.name] end
-  state.set = {label = 'Set2', items = {{name = 'Coat'}, {name = 'Cap'}}}
-  N.wardrobeSet = function() if state.failures.wardrobe then error('no wardrobe') end return state.set end
+
+// ---------------------------------------------------------------- the game's own Wardrobe
+// Adapter level: the routes and the contents reader are faked, so this pins the logic (placing, hiding, logging).
+const wardrobeAdapter = `
+local lines = {}
+gear.options.log = function(line) lines[#lines + 1] = line end
+local function last() return lines[#lines - 1] end
+local set
+local routeErrors = {}
+N.wardrobeRoutes = {
+  {'routeA', function() if routeErrors.A then error(routeErrors.A) end return set end},
+  {'routeB', function() if routeErrors.B then error(routeErrors.B) end return nil end}}
+N.wardrobeContents = function(s) return s end
+N.itemArea = function(id) return id.area end
+local function entry(name, area, hidden) return {id = {name = name}, area = area, hidden = hidden} end
+local function fresh() now = now + api.MAX_AGE; return gear:capture() end
+`;
+const wardrobe$ = body => lua$(wardrobeAdapter + body);
+
+test('an active Wardrobe set replaces the clothing it covers; uncovered slots keep the visible or equipped item', () => wardrobe$(`
+  set = {label = 'SET_2', entries = {entry('Coat', 'OuterChest'), entry('Cap', 'Head')}}
   local snap = gear:capture()
   assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat,innerTorso=Tee,legs=Jeans,feet=Boots', names(snap.clothing))
-  assert(lines[#lines - 1] == 'wardrobe outfit=Set2 items=2', lines[#lines - 1])
+  assert(last() == 'wardrobe outfit=SET_2 items=2 via=routeA', last())
+  -- The set's own slot is trusted; an unreadable one is placed by the item's record.
+  visual.Head = {name = 'Visual Hat'}
+  set = {label = 'SET_3', entries = {entry('Vest', nil), entry('Boots2', 'Feet')}}
+  N.itemArea = function(id) if id.name == 'Vest' then return 'InnerChest' end end
+  assert(names(fresh().clothing) == 'head=Visual Hat,outerTorso=Jacket,innerTorso=Vest,legs=Jeans,feet=Boots2', names(gear.snapshot.clothing))
+  assert(last() == 'wardrobe outfit=SET_3 items=2 via=routeA', last())
+`));
+
+test('a slot the Wardrobe set hides is empty, not the equipped item', () => wardrobe$(`
+  set = {label = 'SET_1', entries = {entry('Coat', 'OuterChest'), entry('', 'Head', true), entry('Pants', 'Legs')}}
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'outerTorso=Coat,innerTorso=Tee,legs=Pants,feet=Boots', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=SET_1 items=2 hidden=1 via=routeA', last())
+  set = {label = 'SET_4', entries = {entry('', 'Head', true), entry('', 'OuterChest', true)}}
+  assert(names(fresh().clothing) == 'innerTorso=Tee,legs=Jeans,feet=Boots', names(gear.snapshot.clothing))
+`));
+
+test('the wardrobe line is logged on the first read and then only on a change, with the failure reason', () => wardrobe$(`
+  gear:capture()
+  assert(last() == 'wardrobe outfit=off', 'the first read logs even "off": ' .. tostring(last()))
   local count = #lines
-  now = now + api.MAX_AGE; gear:capture(); assert(#lines == count + 1 and lines[#lines] == 'Player gear: 10 items', 'an unchanged set logs nothing more')
-  state.set = nil; now = now + api.MAX_AGE; gear:capture()
-  assert(lines[#lines - 1] == 'wardrobe outfit=off', lines[#lines - 1])
-  state.set = {label = 'Set1', items = {{name = 'Coat'}}}; state.failures.wardrobe = true; now = now + api.MAX_AGE
-  assert(names(gear:capture().clothing):find('outerTorso=Jacket'), 'a failing wardrobe read falls back to the equipment')
-  state.failures.wardrobe = nil; state.set = {label = 'Set3', items = {{name = 'Unknown'}}}; now = now + api.MAX_AGE
-  assert(names(gear:capture().clothing):find('outerTorso=Jacket'), 'a set with no placeable item is not an outfit')
+  fresh(); assert(#lines == count + 1 and lines[#lines] == 'Player gear: 10 items', 'an unchanged answer logs nothing more')
+  set = {label = 'SET_2', entries = {entry('Coat', 'OuterChest')}}
+  fresh(); assert(last() == 'wardrobe outfit=SET_2 items=1 via=routeA', last())
+  -- One route failing is reported with the answer of the next one.
+  routeErrors.A = 'attempt to call a nil value (method GetActiveWardrobeSet)'
+  fresh(); assert(last() == 'wardrobe outfit=off errors=routeA: attempt to call a nil value (method GetActiveWardrobeSet)', last())
+  -- Every route failing is an error, not "off", and the equipment is read.
+  routeErrors.B = 'no system'
+  local snap = fresh()
+  assert(last() == 'wardrobe outfit=error(routeA: attempt to call a nil value (method GetActiveWardrobeSet); routeB: no system)', last())
+  assert(names(snap.clothing):find('outerTorso=Jacket'), 'a failing wardrobe read falls back to the equipment')
+  routeErrors = {}
+  set = {label = 'SET_2', entries = {entry('Coat', 'OuterChest')}}
+  fresh(); assert(last() == 'wardrobe outfit=SET_2 items=1 via=routeA', 'recovers: ' .. last())
+`));
+
+test('a disabled Wardrobe, an INVALID set and a set with nothing placeable are no outfit', () => wardrobe$(`
+  set = {label = 'SET_2', entries = {entry('Coat', 'OuterChest')}}
+  N.wardrobeEnabled = function() return false end
+  assert(names(gear:capture().clothing):find('outerTorso=Jacket'))
+  assert(last() == 'wardrobe outfit=off (disabled)', last())
+  N.wardrobeEnabled = function() error('no enabled flag') end
+  assert(names(fresh().clothing):find('outerTorso=Coat'), 'a failing enabled check does not hide the set')
+  assert(last() == 'wardrobe outfit=SET_2 items=1 via=routeA errors=IsWardrobeEnabled: no enabled flag', last())
+  N.wardrobeEnabled = nil
+  set = {label = 'INVALID', entries = {entry('Coat', 'OuterChest')}}
+  assert(names(fresh().clothing):find('outerTorso=Jacket')); assert(last() == 'wardrobe outfit=off', last())
+  set = {label = 'SET_5', entries = {entry('Ring', 'Fingers'), entry('Mystery', nil)}}
+  assert(names(fresh().clothing):find('outerTorso=Jacket'))
+  assert(last() == 'wardrobe outfit=SET_5 items=0 unplaced=2 via=routeA', last())
+`));
+
+// Default adapter against a strict fake of the real call shape (read from final.redscripts of 2.31 and 2.5): colon calls on instances, STATIC calls without self,
+// GameInstance functions with the game instance, enums as {value = name}, ClothingSet {setID, clothingList = {{areaType, visualItem, isHidden}}}.
+const realShape = `
+local function strict(name, t)
+  return setmetatable(t, {__index = function(_, key) error(name .. ' has no member ' .. tostring(key), 2) end})
+end
+local calls = {}
+local gameInstance = {game = true}
+local items = {Coat = 'OuterChest', Cap = 'Head', Hat = 'Head', Jacket = 'OuterChest', Tee = 'InnerChest', Kyubi = 'Weapon'}
+local function item(name) return {tdb = name} end
+local records = {}
+for name, area in pairs(items) do
+  local record
+  record = strict('record', {
+    DisplayName = function(self) assert(self == record); return 'key:' .. name end,
+    EquipArea = function(self) assert(self == record)
+      local areaRecord; areaRecord = strict('area record', {Type = function(s) assert(s == areaRecord); return {value = area} end})
+      return areaRecord end})
+  records[name] = record
+end
+local pdState = {wardrobeEnabled = true, set = nil, setFailure = nil, equipped = {['Head#0'] = item('Hat'), ['OuterChest#0'] = item('Jacket'), ['InnerChest#0'] = item('Tee')}, visual = {}}
+local player
+local pd
+pd = strict('EquipmentSystemPlayerData', {
+  GetVisualItemInSlot = function(self, area) assert(self == pd and area.type == 'gamedataEquipmentArea'); return pdState.visual[area.value] end,
+  GetItemInEquipSlot = function(self, area, index) assert(self == pd and area.type == 'gamedataEquipmentArea'); return pdState.equipped[area.value .. '#' .. index] end,
+  IsWardrobeEnabled = function(self) assert(self == pd); return pdState.wardrobeEnabled end,
+  GetActiveWardrobeSet = function(self) assert(self == pd and select('#', self) == 1)
+    if pdState.setFailure then error(pdState.setFailure) end
+    return pdState.set end})
+local equipmentSystem
+equipmentSystem = strict('EquipmentSystem', {GetPlayerData = function(self, p) assert(self == equipmentSystem and p == player); return pd end})
+local container
+container = strict('container', {Get = function(self, name) assert(self == container and name.name == 'EquipmentSystem'); return equipmentSystem end})
+local wardrobeSystem
+wardrobeSystem = strict('WardrobeSystem', {GetActiveClothingSet = function(self) assert(self == wardrobeSystem and select('#', self) == 1); return pdState.systemSet end})
+player = strict('player', {
+  IsAttached = function(self) return true end, IsDeadNoStatPool = function(self) return false end, IsReplacer = function(self) return false end,
+  GetGame = function(self) assert(self == player); return gameInstance end})
+Game = strict('Game', {
+  GetPlayer = function() return player end,
+  GetScriptableSystemsContainer = function() return container end,
+  GetWardrobeSystem = function(...) assert(select('#', ...) == 0, 'Game.GetWardrobeSystem takes no game instance'); if pdState.noGameSystem then error('Game.GetWardrobeSystem is not exposed') end return wardrobeSystem end,
+  GetLocalizedTextByKey = function(key) return (key:gsub('^key:', '')) end})
+GameInstance = strict('GameInstance', {GetWardrobeSystem = function(gi, ...) assert(gi == gameInstance and select('#', ...) == 0); return wardrobeSystem end})
+EquipmentSystem = strict('EquipmentSystem class', {GetActiveWardrobeSet = function(p, ...) assert(p == player and select('#', ...) == 0, 'static: the player, no self'); return pdState.set end})
+CName = strict('CName', {new = function(name) return {name = name} end})
+Enum = strict('Enum', {new = function(kind, name) return {type = kind, value = name} end})
+ItemID = strict('ItemID', {IsValid = function(id) return type(id) == 'table' and id.tdb ~= nil end, GetTDBID = function(id) return id.tdb end})
+TweakDBInterface = strict('TweakDBInterface', {GetItemRecord = function(tdb) return records[tdb] end})
+ScriptedPuppet = strict('ScriptedPuppet', {GetActiveWeapon = function() return nil end})
+local function slot(area, name, hidden) return {areaType = {value = area}, visualItem = name and item(name) or nil, isHidden = hidden == true} end
+local lines = {}
+local api = (function() ${source} end)()
+local now = 100
+local gear = api.new({now = function() return now end, log = function(line) lines[#lines + 1] = line end})
+local function last() return lines[#lines - 1] end
+local function fresh() now = now + api.MAX_AGE; return gear:capture() end
+local function names(list) local out = {}; for _, row in ipairs(list or {}) do out[#out + 1] = row.slot .. '=' .. row.name end; return table.concat(out, ',') end
+`;
+const real$ = body => runLua(realShape + '\n' + body);
+
+test('default adapter, real call shape: the active set is read from the player data and shown instead of the inventory clothes', () => real$(`
+  pdState.set = {setID = {value = 'SET_2'}, clothingList = {slot('OuterChest', 'Coat'), slot('Head', 'Cap')}}
+  local snap = gear:capture()
+  assert(snap, lines[#lines])
+  assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat,innerTorso=Tee', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=SET_2 items=2 via=data:GetActiveWardrobeSet', last())
+`));
+
+test('default adapter, real call shape: each route works alone, and a set the data route cannot give comes from the next one', () => real$(`
+  pdState.setFailure = 'attempt to call a nil value'
+  pdState.systemSet = {setID = {value = 'SET_1'}, clothingList = {slot('OuterChest', 'Coat')}}
+  assert(names(gear:capture().clothing) == 'head=Hat,outerTorso=Coat,innerTorso=Tee')
+  assert(last() == 'wardrobe outfit=SET_1 items=1 via=Game.GetWardrobeSystem errors=data:GetActiveWardrobeSet: attempt to call a nil value', last())
+  pdState.noGameSystem = true
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Coat,innerTorso=Tee')
+  assert(last():find('via=GameInstance.GetWardrobeSystem', 1, true), last())
+  pdState.systemSet = nil; pdState.set = {setID = {value = 'SET_3'}, clothingList = {slot('Head', 'Cap')}}
+  -- The static equipment-system route works with the player and no self.
+  GameInstance = strict('GameInstance', {GetWardrobeSystem = function() error('no instance system') end})
+  assert(names(fresh().clothing) == 'head=Cap,outerTorso=Jacket,innerTorso=Tee', names(gear.snapshot.clothing))
+`));
+
+test('default adapter, real call shape: no active set is "off", a hidden slot is empty, every route failing is logged as an error', () => real$(`
+  gear:capture()
+  assert(last() == 'wardrobe outfit=off', 'no set: ' .. tostring(last()))
+  pdState.set = {setID = {value = 'SET_2'}, clothingList = {slot('Head', nil, true), slot('OuterChest', 'Coat')}}
+  assert(names(fresh().clothing) == 'outerTorso=Coat,innerTorso=Tee', names(gear.snapshot.clothing))
+  assert(last() == 'wardrobe outfit=SET_2 items=1 hidden=1 via=data:GetActiveWardrobeSet', last())
+  pdState.wardrobeEnabled = false
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
+  assert(last() == 'wardrobe outfit=off (disabled)', last())
+  pdState.wardrobeEnabled = true
+  pdState.setFailure = 'boom'; pdState.noGameSystem = true
+  GameInstance = strict('GameInstance', {GetWardrobeSystem = function() error('gi boom') end})
+  EquipmentSystem = strict('EquipmentSystem class', {GetActiveWardrobeSet = function() error('static boom') end})
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
+  assert(last() == 'wardrobe outfit=error(data:GetActiveWardrobeSet: boom; Game.GetWardrobeSystem: Game.GetWardrobeSystem is not exposed; GameInstance.GetWardrobeSystem: gi boom; EquipmentSystem.GetActiveWardrobeSet: static boom)', last())
 `));

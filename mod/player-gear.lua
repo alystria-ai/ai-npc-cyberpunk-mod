@@ -11,6 +11,8 @@ M.CLOTHING = {{'head', 'Head'}, {'face', 'Face'}, {'outerTorso', 'OuterChest'}, 
 -- Cyberware is read from its first slot (the implant itself; a second eye slot holds a mod or faceplate).
 M.CYBERWARE = {{'arms', 'ArmsCW'}, {'eyes', 'EyesCW'}, {'os', 'SystemReplacementCW'}}
 M.WEAPON_SLOTS = 3
+M.AREAS = {}
+for _, row in ipairs(M.CLOTHING) do M.AREAS[row[2]] = true end
 
 local function clean(value, limit)
     if type(value) ~= 'string' then return nil end
@@ -24,6 +26,18 @@ local function clean(value, limit)
     end
     return text
 end
+
+-- The name of a CET enum value ('OuterChest'), whatever way the binding hands it over.
+local function enumName(value)
+    if value == nil then return nil end
+    if type(value) == 'string' then return value end
+    local ok, name = pcall(function() return value.value end)
+    if ok and type(name) == 'string' then return name end
+    return tostring(value)
+end
+
+-- A failure message for the log: without the script position, on one line, bounded.
+local function failure(err) return (tostring(err):gsub('^[^:]*:%d+: ', ''):gsub('%s+', ' '):sub(1, 90)) end
 
 -- Default native adapter. Every call is guarded by the caller; tests replace it.
 local function nativeAdapter()
@@ -46,38 +60,34 @@ local function nativeAdapter()
         if WeaponObject.IsFists(id) then return nil end
         return id
     end
-    -- The game's own Wardrobe (patch 2.0+, docs/PLAYER_GEAR_CONTEXT.md): the active saved clothing set, or nil. The scripted WardrobeSystem
-    -- (Game.GetWardrobeSystem()) answers GetActiveClothingSet() -> ClothingSet {setID, clothingList = array of {slotID, visualItem}}; the equipment
-    -- system's GetActiveWardrobeSet(V) is the second route. Returns {label = <set index text>, items = {ItemID, ...}}.
-    function N.wardrobeSet(player)
-        local set
-        local ok, system = pcall(function() return Game.GetWardrobeSystem() end)
-        if ok and system ~= nil then
-            local got, value = pcall(function() return system:GetActiveClothingSet() end)
-            if got then set = value end
-        end
-        if set == nil then
-            local got, value = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new('EquipmentSystem')):GetActiveWardrobeSet(player) end)
-            if got then set = value end
-        end
-        if set == nil then return nil end
-        local items = {}
+    -- The game's own Wardrobe (patch 2.0+, docs/PLAYER_GEAR_CONTEXT.md). Signatures read from the compiled final.redscripts of 2.31 and 2.5:
+    -- EquipmentSystemPlayerData.GetActiveWardrobeSet() and WardrobeSystem.GetActiveClothingSet() -> ref<ClothingSet> {setID: gameWardrobeClothingSetIndex,
+    -- clothingList: array<SSlotVisualInfo {areaType: gamedataEquipmentArea, visualItem: ItemID, isHidden: Bool}>}; GameInstance.GetWardrobeSystem(game) ->
+    -- ref<WardrobeSystem>; EquipmentSystemPlayerData.IsWardrobeEnabled() -> Bool; EquipmentSystem.GetActiveWardrobeSet(player) is STATIC.
+    -- Routes are tried in order until one returns a set; each failure is reported (its name and message), never swallowed.
+    N.wardrobeRoutes = {
+        {'data:GetActiveWardrobeSet', function(_, data) return data:GetActiveWardrobeSet() end},
+        {'Game.GetWardrobeSystem', function() return Game.GetWardrobeSystem():GetActiveClothingSet() end},
+        {'GameInstance.GetWardrobeSystem', function(player) return GameInstance.GetWardrobeSystem(player:GetGame()):GetActiveClothingSet() end},
+        {'EquipmentSystem.GetActiveWardrobeSet', function(player) return EquipmentSystem.GetActiveWardrobeSet(player) end}}
+    function N.wardrobeEnabled(data) return data:IsWardrobeEnabled() end
+    -- {label = <set index name>, entries = {{id = ItemID, area = <equipment area name or nil>, hidden = bool}, ...}}
+    function N.wardrobeContents(set)
+        local label = enumName(set.setID)
+        local entries = {}
         for _, entry in ipairs(set.clothingList or {}) do
-            if entry.visualItem ~= nil and ItemID.IsValid(entry.visualItem) then items[#items + 1] = entry.visualItem end
+            local row = {id = entry.visualItem}
+            pcall(function() row.area = enumName(entry.areaType) end)
+            pcall(function() row.hidden = entry.isHidden == true end)
+            entries[#entries + 1] = row
         end
-        local label
-        pcall(function() label = tostring(set.setID.value or set.setID) end)
-        return {label = label, items = items}
+        return {label = label, entries = entries}
     end
     -- The equipment area name ('Head', 'OuterChest', ...) an item belongs to, from its record.
     function N.itemArea(id)
         local record = TweakDBInterface.GetItemRecord(ItemID.GetTDBID(id))
         if not record then return nil end
-        local kind = record:EquipArea():Type()
-        for _, row in ipairs(M.CLOTHING) do
-            if kind == Enum.new('gamedataEquipmentArea', row[2]) then return row[2] end
-        end
-        return tostring(kind.value or kind)
+        return enumName(record:EquipArea():Type())
     end
     function N.valid(id) return id ~= nil and ItemID.IsValid(id) end
     function N.name(id, player)
@@ -98,7 +108,7 @@ Instance.__index = Instance
 -- outfit(player) (the visible outfit of a wardrobe mod or nil, set by init.lua).
 function M.new(options)
     options = options or {}
-    return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil, lastWardrobe = 'wardrobe outfit=off'}, Instance)
+    return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil, lastWardrobe = nil}, Instance)
 end
 
 local function call(fn, ...)
@@ -124,6 +134,75 @@ function Instance:itemName(id, player)
     return clean(call(N.name, id, player), M.MAX_NAME)
 end
 
+-- One diagnostic line per change of the wardrobe answer (probe.log), so a live run shows which path ran or why it failed.
+function Instance:logWardrobe(line)
+    if line == self.lastWardrobe then return end
+    self.lastWardrobe = line
+    if type(self.options.log) == 'function' then pcall(self.options.log, line) end
+end
+
+-- The game's active Wardrobe set as {areaName = item name, or false for a slot the set hides}; empty when no set is active or none could be read.
+-- Routes are tried in order (N.wardrobeRoutes) until one returns a set. Nothing is swallowed: the log line says off (a route answered, no set),
+-- the set (and the route that gave it), or error(<call>: <message>) when every route failed.
+function Instance:wardrobe(player, data)
+    local N, covered, errors, answered, set, via = self.native, {}, {}, false, nil, nil
+    local function try(label, fn, ...)
+        local ok, value = pcall(fn, ...)
+        if not ok then errors[#errors + 1] = label .. ': ' .. failure(value) end
+        return ok, value
+    end
+    -- A line that also names the calls that failed on the way (a later route may still have answered).
+    local function finish(line)
+        self:logWardrobe(#errors > 0 and (line .. ' errors=' .. table.concat(errors, '; '):sub(1, 200)) or line)
+        return covered
+    end
+    if type(N.wardrobeRoutes) ~= 'table' or type(N.wardrobeContents) ~= 'function' then return finish('wardrobe outfit=off') end
+    if type(N.wardrobeEnabled) == 'function' then
+        local ok, enabled = try('IsWardrobeEnabled', N.wardrobeEnabled, data)
+        if ok and enabled == false then return finish('wardrobe outfit=off (disabled)') end
+    end
+    for _, route in ipairs(N.wardrobeRoutes) do
+        local ok, value = try(route[1], route[2], player, data)
+        if ok then answered = true end
+        if ok and value ~= nil then set, via = value, route[1]; break end
+    end
+    if set == nil then
+        if answered then return finish('wardrobe outfit=off') end
+        self:logWardrobe('wardrobe outfit=error(' .. table.concat(errors, '; '):sub(1, 200) .. ')')
+        return covered
+    end
+    local ok, contents = try('wardrobeContents', N.wardrobeContents, set)
+    if not ok or type(contents) ~= 'table' then
+        self:logWardrobe('wardrobe outfit=error(' .. table.concat(errors, '; '):sub(1, 200) .. ')')
+        return covered
+    end
+    local label = tostring(contents.label or 'active')
+    if label == 'INVALID' then return finish('wardrobe outfit=off') end
+    local shown, hidden, unplaced = 0, 0, 0
+    for _, entry in ipairs(contents.entries or {}) do
+        local areaName = entry.area
+        if not areaName or not M.AREAS[areaName] then
+            -- The set's own area is unreadable or not clothing: place the item by its record instead.
+            areaName = entry.id ~= nil and call(N.itemArea, entry.id) or nil
+        end
+        if areaName and M.AREAS[areaName] and covered[areaName] == nil then
+            if entry.hidden then
+                covered[areaName] = false; hidden = hidden + 1
+            else
+                local name = self:itemName(entry.id, player)
+                if name then covered[areaName] = name; shown = shown + 1 else unplaced = unplaced + 1 end
+            end
+        else
+            unplaced = unplaced + 1
+        end
+    end
+    if shown + hidden == 0 then
+        covered = {}
+        return finish('wardrobe outfit=' .. label .. ' items=0 unplaced=' .. unplaced .. ' via=' .. via)
+    end
+    return finish('wardrobe outfit=' .. label .. ' items=' .. shown .. (hidden > 0 and (' hidden=' .. hidden) or '') .. ' via=' .. via)
+end
+
 function Instance:read()
     local N = self.native
     local player = call(N.player)
@@ -146,24 +225,10 @@ function Instance:read()
         for _, part in ipairs(outfit.parts) do add('clothing', part.slot, self:itemName(part.id, player)) end
     else
         -- The game's own Wardrobe: an active saved set shows its items on V; a slot the set does not cover keeps the visible/equipped item.
-        local set = call(N.wardrobeSet, player)
-        local covered, found = {}, nil
-        if type(set) == 'table' and type(set.items) == 'table' then
-            found = {}
-            for _, id in ipairs(set.items) do
-                local areaName = call(N.itemArea, id)
-                local name = self:itemName(id, player)
-                if name and areaName then
-                    for _, row in ipairs(M.CLOTHING) do
-                        if row[2] == areaName and not covered[areaName] then covered[areaName] = true; found[#found + 1] = {row[1], name} end
-                    end
-                end
-            end
-            if #found == 0 then found, covered = nil, {} end
-        end
+        local covered = self:wardrobe(player, data)
         for _, row in ipairs(M.CLOTHING) do
-            if covered[row[2]] then
-                for _, item in ipairs(found) do if item[1] == row[1] then add('clothing', row[1], item[2]) end end
+            if covered[row[2]] ~= nil then
+                add('clothing', row[1], covered[row[2]] or nil)
             else
                 local area = call(N.area, row[2])
                 if area ~= nil then
@@ -172,11 +237,6 @@ function Instance:read()
                     add('clothing', row[1], self:itemName(id, player))
                 end
             end
-        end
-        local line = found and ('wardrobe outfit=' .. tostring(set.label or 'active') .. ' items=' .. #found) or 'wardrobe outfit=off'
-        if line ~= self.lastWardrobe then
-            self.lastWardrobe = line
-            if type(self.options.log) == 'function' then pcall(self.options.log, line) end
         end
     end
     add('weapons', 'hand', self:itemName(call(N.hand, player), player))
