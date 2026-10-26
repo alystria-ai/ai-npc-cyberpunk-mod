@@ -146,6 +146,38 @@ test('a server that refuses one of the fields by name is sent the retry without 
   assert.deepEqual(asked(api.chats()[3].body), {reasoning_effort: 'none', chat_template_kwargs: {enable_thinking: false}});
 });
 
+test('an address added to the Local AI list that wants max_completion_tokens (OpenAI\'s newer models): the request is sent again at once with the new name, and later requests start with it', async t => {
+  const refusal = {status: 400, body: {error: {message: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.", type: 'invalid_request_error', param: 'max_tokens'}}};
+  const api = await scripted(t, body => ('max_tokens' in body ? refusal : {thinking: 0, text: 'Over here, V.'}));
+  const adapt = newAdaptation();
+  const retries = [];
+  const result = await ask(api, {adapt, maxTokens: 77, onRetry: info => retries.push(info)});
+  assert.equal(result.text, 'Over here, V.');
+  assert.deepEqual(api.chats().map(({body}) => [body.max_tokens, body.max_completion_tokens]), [[77, undefined], [undefined, 77]]);
+  assert.equal(retries.length, 1);
+  assert.equal(retries[0].waitMs, 0, 'right away');
+  assert.equal(adapt.swapped, true);
+  await ask(api, {adapt, maxTokens: 77});
+  assert.deepEqual(api.chats().map(({body}) => [body.max_tokens, body.max_completion_tokens]).at(-1), [undefined, 77], 'the next turn does not pay for the refusal again');
+  assert.equal(api.chats().length, 3);
+  // The packaged server (no adaptation) keeps its one request and the ordinary failure.
+  const bare = await ask(api, {maxTokens: 77}).catch(caught => caught);
+  assert(bare instanceof MistralError);
+  assert.equal(api.chats().length, 4);
+});
+
+test('an address added to the Local AI list that refuses a sampling field by name loses just that field, and \'stream\' is never given up on the local route', async t => {
+  const api = await scripted(t, body => ('temperature' in body ? {status: 400, body: {error: {message: "Unsupported parameter: 'temperature' is not supported with this model."}}} : {thinking: 0, text: 'Right here, V.'}));
+  const adapt = newAdaptation();
+  assert.equal((await ask(api, {adapt, temperature: 0.7})).text, 'Right here, V.');
+  assert.deepEqual(api.chats().map(({body}) => 'temperature' in body), [true, false]);
+  assert.deepEqual([...adapt.dropped], ['temperature']);
+  const strict = await scripted(t, () => ({status: 400, body: {error: {message: "Unsupported parameter: 'stream' is not supported with this model."}}}));
+  const error = await ask(strict, {adapt: newAdaptation()}).catch(caught => caught);
+  assert(error instanceof MistralError);
+  assert.equal(strict.chats().length, 1, 'the local route reads only streamed answers, so a refusal of stream is not answered by asking for one piece');
+});
+
 test('the retry keeps the turn\'s time: with less than an attempt left it is not made', async t => {
   const api = await scripted(t, () => ({thinking: 40}));
   let clock = 0;

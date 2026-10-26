@@ -269,13 +269,17 @@ test('missing character IDs are reported as a setup failure', async t => {
 test('no Edge or Chrome is a setup failure with one clear log line, and the bridge starts once a browser is installed', async t => {
   const f = await fixture(t);
   let installed = false;
-  const run = supervise(f, {browserAvailable: () => installed});
+  let reports = 0;
+  const run = supervise(f, {browserAvailable: () => installed, browserReport: () => `Browser lookup: test ${++reports}.`});
   const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a missing browser was not reported');
   assert.equal(failed.code, 'browser-missing'); assert.equal(run.spawned.length, 0);
   await sleep(300);
-  const lines = (await readFile(join(f.state, 'bridge-service.log'), 'utf8')).split('\n').filter(line => line.includes('No browser to run the conversation page'));
+  const logged = (await readFile(join(f.state, 'bridge-service.log'), 'utf8')).split('\n');
+  const lines = logged.filter(line => line.includes('No browser to run the conversation page'));
   assert.equal(lines.length, 1, 'the instruction is logged once, not on every retry');
   assert.match(lines[0], /Microsoft Edge.*Google Chrome/);
+  assert.equal(logged.filter(line => line.includes('Browser lookup: test 1.')).length, 1, 'what the lookup had to go on is logged once, after the instruction');
+  assert.equal(reports, 1, 'the registry is read once per supervisor, not on every retry');
   installed = true;
   await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the bridge did not start once a browser was available');
   run.endGame(); await run.done;

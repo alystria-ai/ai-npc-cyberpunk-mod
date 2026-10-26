@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {join} from 'node:path';
 import {BROWSER_OVERRIDE_FILE, NO_BROWSER_MESSAGE, OTHER_CHROMIUM_BROWSERS, SYSTEM_BROWSERS, browserNameFor, defaultBrowserPath, installedSystemBrowsers,
-  isChromiumProgram, launchSystemBrowser, parseAppPath, parseBrowserOverride, parseCommandProgram, readBrowserOverride, registeredPaths,
+  browserLookupSummary, isChromiumProgram, launchSystemBrowser, parseAppPath, parseBrowserOverride, parseCommandProgram, readBrowserOverride, registeredPaths,
   resetBrowserFailureLog, resolveBrowserOverride, startMenuBrowserPaths, systemBrowserAvailable, systemBrowserCandidates} from './system-browser.mjs';
 
 const env = {LOCALAPPDATA: 'C:\\Users\\p\\AppData\\Local', PROGRAMFILES: 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)'};
@@ -322,4 +322,24 @@ test('Opera and Opera GX are found per user and for all users, and a Firefox ins
   const firefox = join(env.PROGRAMFILES, 'Mozilla Firefox\\firefox.exe');
   assert.deepEqual(choices(machine([firefox], {'firefox.exe': [firefox]})), [], 'Playwright cannot drive an installed Firefox');
   assert.match(NO_BROWSER_MESSAGE, /Chromium browser such as Microsoft Edge[^]*Google Chrome[^]*Brave[^]*Opera/);
+});
+
+test('the lookup summary for the log names what was set, found and chosen, in program names and never a folder, and a registry that fails is just none', () => {
+  const answer = args => {
+    const key = args[1];
+    if (key.endsWith('\\https\\UserChoice')) return '    ProgId    REG_SZ    FirefoxURL-308046B0AF4A39CB\r\n';
+    if (key === 'HKCR\\FirefoxURL-308046B0AF4A39CB\\shell\\open\\command') return 'HKEY_CLASSES_ROOT\\FirefoxURL-308046B0AF4A39CB\\shell\\open\\command\r\n    (Default)    REG_SZ    "C:\\Program Files\\Mozilla Firefox\\firefox.exe" -osint -url "%1"\r\n';
+    if (key === 'HKLM\\SOFTWARE\\Clients\\StartMenuInternet') {
+      return 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\FIREFOX.EXE\\shell\\open\\command\r\n    (Default)    REG_SZ    "C:\\Program Files\\Mozilla Firefox\\firefox.exe"\r\n';
+    }
+    return null;
+  };
+  const run = (program, args) => { const stdout = answer(args); return stdout ? {status: 0, stdout} : {status: 1, stdout: ''}; };
+  const line = browserLookupSummary({env, exists: () => false, run});
+  assert.equal(line, 'Browser lookup: LOCALAPPDATA set, PROGRAMFILES set, PROGRAMFILES(X86) set. Browser folders found: none. Registered programs found: none. Default browser: firefox.exe. Start menu browsers: firefox.exe.');
+  assert.doesNotMatch(line, /[A-Za-z]:\\/, 'no folder in the line');
+  // Variables missing, a browser in a usual folder that the lookup did offer, the registry broken.
+  const edge = edgeIn(env.PROGRAMFILES);
+  const odd = browserLookupSummary({env: {PROGRAMFILES: env.PROGRAMFILES}, exists: at(edge), run: () => { throw Error('spawn failed'); }});
+  assert.equal(odd, 'Browser lookup: LOCALAPPDATA not set, PROGRAMFILES set, PROGRAMFILES(X86) not set. Browser folders found: Microsoft Edge. Registered programs found: none. Default browser: none. Start menu browsers: none.');
 });
