@@ -889,6 +889,8 @@ local function loadSettings()
     end
     -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
     if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
+    -- Off by default: ordinary NPCs react to threats and obey commands (docs/NPC_THREATS_COMMANDS.md).
+    if type(settings.npcThreats) ~= 'boolean' then settings.npcThreats, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
@@ -1095,6 +1097,13 @@ end
 function M.reputation()
     loadSettings()
     return settings.reputation == true
+end
+
+-- NPCs react to threats and commands (docs/NPC_THREATS_COMMANDS.md): ordinary NPCs may also cower, brawl, and obey get down, stop and get out
+-- of the vehicle. Off by default. Read once when an ordinary NPC's reaction offer is made, never per frame.
+function M.npcThreats()
+    loadSettings()
+    return settings.npcThreats == true
 end
 
 -- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
@@ -2079,6 +2088,7 @@ function M.snapshot(player)
             keyBindings = settings.keyBindings,
             companionOutfits = settings.companionOutfits == true,
             reputation = settings.reputation == true,
+            npcThreats = settings.npcThreats == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             companionSpeakUp = M.companionSpeakUp(),
@@ -2224,6 +2234,9 @@ function M.applySettings(player, values)
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value
+        elseif key == 'npcThreats' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.npcThreats = value
         elseif key == 'johnnyInHead' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value

@@ -1261,6 +1261,8 @@ return {
     ["Prompting"] = "Prompt",
     ["Street reputation"] = "Sokak itibarı",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Çeteler, NCPD, şirketler ve her bölgenin halkı V’nin yaptıklarını hatırlar: Street Cred, işlerdeki seçimler, kavgalar, polisin gördüğü suçlar ve insanlara nasıl davrandığın. Selam, güven ve yardım buna göre olur.\n\nYalnızca sıradan insanlar, asla isimli veya hikâye karakterleri. Sözlerini değiştirir, oyunda hiçbir şeyi değil.",
+    ["NPCs react to threats and commands"] = "NPC’ler tehditlere ve emirlere tepki verir",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "Tehdit ettiğin sıradan insanlar, kendi yapılarına göre kaçar, sinip korkar ya da karşılık verir: çete üyeleri ve korumalar hakarete yumrukla, ölüm tehdidine silahla karşılık verir.\n\nYapacaklarsa söylediğini de yapabilirler: yere yatmak, durmak ya da araçtan inmek.\n\nYalnızca sıradan insanlar, asla isimli ya da hikâye karakterleri değil, ve asla sahneler, görevler ya da çatışmalar sırasında değil.",
     ["Voice language"] = "Ses dili",
     ["English"] = "İngilizce",
     ["Automatic"] = "Otomatik",

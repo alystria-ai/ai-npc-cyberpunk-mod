@@ -365,7 +365,9 @@ test('Lua: the ring writes itself when 64 deeds wait unwritten', () => {
 test('npc-reactions tells Street reputation which reaction actually started', () => {
   const source = read('../mod/npc-reactions.lua');
   assert.match(source, /if walkAway\(p, player, 'leave'\) then started\('leave', p\) end/);
-  assert.match(source, /if hostile or combat then[\s\S]{0,140}started\('attack', p\)/);
+  // attack and brawl share one branch (docs/NPC_THREATS_COMMANDS.md); a brawl is recorded as an attack and a cower as a leave.
+  assert.match(source, /if hostile or combat then[\s\S]{0,180}started\(p\.kind, p\)/);
+  assert.match(source, /local DEED = \{brawl = 'attack', cower = 'leave'\}/);
   assert.match(source, /if called then .*started\('call-police', p\) end/);
   assert.match(source, /pcall\(options\.onReaction, kind, \{base = p\.base, category = p\.category, affiliation = p\.affiliation\}\)/);
 });

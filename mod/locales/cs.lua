@@ -1261,6 +1261,8 @@ return {
     ["Prompting"] = "Prompt",
     ["Street reputation"] = "Pouliční pověst",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Gangy, NCPD, korporace a místní z každé čtvrti si pamatují, co V udělal: Street Cred, rozhodnutí v zakázkách, boje, zločiny viděné policií a jak jednáš s lidmi. Podle toho zdraví, důvěřují a pomáhají.\n\nJen obyčejní lidé, nikdy pojmenované ani příběhové postavy. Mění jejich slova, nic ve hře.",
+    ["NPCs react to threats and commands"] = "NPC reagují na výhrůžky a rozkazy",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "Obyčejní lidé, kterým vyhrožuješ, utečou, schoulí se strachy nebo se brání, podle své povahy: členové gangů a strážní použijí na urážku pěsti a na výhrůžku smrtí zbraně.\n\nMohou také udělat, co jim řekneš, pokud by to udělali: lehnout si na zem, zastavit se nebo vystoupit z vozidla.\n\nJen obyčejní lidé, nikdy postavy se jménem ani z příběhu, a nikdy během scén, úkolů nebo bojů.",
     ["Voice language"] = "Jazyk hlasu",
     ["English"] = "angličtina",
     ["Automatic"] = "Automaticky",

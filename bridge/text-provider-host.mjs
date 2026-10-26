@@ -662,7 +662,8 @@ export class TextProviderHost {
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     // The reactions the game offers an ordinary NPC this turn (never a reaction line, never a companion: its offers come with the turn).
-    const reactions = !reaction && typeof this.deliverAction === 'function' ? reactionMenu(config.companionAction) : null;
+    // A threats offer (docs/NPC_THREATS_COMMANDS.md) is narrowed here by V's own words, the typed line or the transcript.
+    const reactions = !reaction && typeof this.deliverAction === 'function' ? reactionMenu(config.companionAction, {heard: text}) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
     // The guard is on (Mature content on with the local AI or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
     // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
@@ -716,7 +717,7 @@ export class TextProviderHost {
             deadlineAt = Math.max(deadlineAt, Math.min(readyAt + room, started + route.turnBudgetMs + LOCAL_TURN_STRETCH_MS));
           }
         }
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: !!reactions});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: reactions?.kinds.length ? reactions : null});
         if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
@@ -837,10 +838,11 @@ export class TextProviderHost {
   #traceReaction(config, reactions, picked) {
     try {
       if (typeof this.traceReaction === 'function') {
-        this.traceReaction(config.companionAction?.token, {route: 'text', tag: picked.kind ?? null, why: picked.kind ? null : picked.why});
+        this.traceReaction(config.companionAction?.token, {route: 'text', tag: picked.kind ?? null, why: picked.kind ? null : picked.why,
+          ...(reactions.screen ? {kinds: reactions.kinds, screen: reactions.screen} : {})});
         return;
       }
-      this.log(reactionTraceLine({person: config.local?.profileKey, kinds: reactions.kinds, route: 'text', tag: picked.kind ?? null, why: picked.why}));
+      this.log(reactionTraceLine({person: config.local?.profileKey, kinds: reactions.kinds, route: 'text', tag: picked.kind ?? null, why: picked.why, screen: reactions.screen}));
     } catch { /* a log line never breaks a turn */ }
   }
 
@@ -1014,7 +1016,7 @@ export class TextProviderHost {
     this.log(`[PromptProfile] turn uses ${id} (${profileSignature(profile)})`);
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = false}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = null}) {
     // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
     const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
     const guard = mature ? true : await this.#guardOn(route, signal);
@@ -1084,7 +1086,7 @@ export class TextProviderHost {
       const {text: spoken} = splitActions(response.text);
       // An ordinary NPC that answered with its reaction tag alone (the model decided and stopped; asking it again for "the tag and words" gets the tag
       // alone again about half the time): the choice stands, and a second request is asked only for the words that go with it, with no tag to write.
-      const only = tagged && !chosen.kind ? reactionOnlyTag(response.text) : null;
+      const only = tagged && !chosen.kind ? reactionOnlyTag(response.text, tagged.kinds) : null;
       if (only) {
         this.log('NPC reaction reply was only a tag; asking once more for the words');
         chosen.kind = only;

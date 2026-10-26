@@ -141,7 +141,11 @@ The game's own greeting, grunt and bump barks (`greeting`, `fear_foll`, `stlh_cu
 
 ## Setting
 
-None. The project prefers no toggles, the feature is rare and bounded, and it never touches a story character. A player who never wants police heat or a hostile pedestrian simply does not threaten pedestrians. If that proves wrong, one row next to "Talk to ordinary NPCs" (`manager.lua`, `manager-ui.lua`, every `mod/locales/*.lua`, then `node scripts/Extract-UiCatalog.mjs`) would turn the offer off at `reactionOffer` in `mod/init.lua`; nothing else would change.
+Since 2026-10-26 (branch `feat/npc-threats-commands`, next version): the switch "NPCs react to threats and commands", off by default, adds cower,
+brawl (fists) and three commands, and makes a fight need V's words as well as the model's choice; everything below is unchanged with it off.
+See docs/NPC_THREATS_COMMANDS.md.
+
+For the three reactions themselves: none. The project prefers no toggles, the feature is rare and bounded, and it never touches a story character. A player who never wants police heat or a hostile pedestrian simply does not threaten pedestrians. If that proves wrong, one row next to "Talk to ordinary NPCs" (`manager.lua`, `manager-ui.lua`, every `mod/locales/*.lua`, then `node scripts/Extract-UiCatalog.mjs`) would turn the offer off at `reactionOffer` in `mod/init.lua`; nothing else would change.
 
 ## Files
 
@@ -172,7 +176,9 @@ See the 2026-10-21 "NPC reactions" entry in `TODO.md` (NPC types, what to say, w
 ## Open risks
 
 - The prevention calls and the safe-zone reads are called from CET for the first time; every one is guarded, but if one is missing the feature silently loses that outcome (one `NPC reaction: ... failed` line says which).
-- A crowd NPC may ignore `AIMoveToCommand` (its crowd AI). The read-back line says the command state.
+- ~~A crowd NPC may ignore `AIMoveToCommand` (its crowd AI).~~ Worse, proven by a player report (2026-10-25): the game puts a crowd person at the
+  command's end point at once (`state=Success` after 1.2 s, exactly 30.0 m moved), so it "disappears". Fixed 2026-10-26 on `feat/npc-threats-commands`:
+  a crowd person runs with the crowd's own fear event instead (docs/NPC_THREATS_COMMANDS.md, "The disappears instead of running bug").
 - A walking-away NPC can be talked to again; its new hold command would stop it.
 - A model may never write the tag (a small local model) or write it too often. The instruction is the only lever; measure with the live list.
 - Braindances and quest scenes are excluded as far as the game reports them as V's scene tier or a dialogue; a quest that stages ordinary NPCs without raising either is not detectable here.

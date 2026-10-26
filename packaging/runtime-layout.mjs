@@ -195,6 +195,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/text-actions.mjs',
   'bridge/text-emotion.mjs',
   'bridge/text-provider-host.mjs',
+  'bridge/threat-screen.mjs',
   'bridge/transport-pool.mjs',
   'bridge/turn-clock.mjs',
   'bridge/turn-context.mjs',

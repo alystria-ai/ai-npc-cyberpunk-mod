@@ -1261,6 +1261,8 @@ return {
     ["Prompting"] = "프롬프트",
     ["Street reputation"] = "거리 평판",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "갱단, NCPD, 기업, 각 지구 주민들은 V가 한 일을 기억합니다: 스트리트 크레드, 일에서의 선택, 싸움, 경찰이 본 범죄, 사람을 대하는 방식. 인사, 신뢰, 도움이 그에 따라 달라집니다.\n\n평범한 사람들만 해당되며, 이름 있는 캐릭터나 스토리 캐릭터는 제외됩니다. 말만 바뀌고 게임에는 영향이 없습니다.",
+    ["NPCs react to threats and commands"] = "NPC가 위협과 명령에 반응",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "위협받은 일반인은 성향에 따라 도망치거나, 겁에 질려 웅크리거나, 맞섭니다. 갱단원과 경비원은 모욕에는 주먹으로, 죽이겠다는 위협에는 무기로 대응합니다.\n\n그럴 만한 사람이라면 시키는 대로도 합니다: 엎드리기, 멈추기, 차에서 내리기.\n\n일반인에게만 적용되며, 이름 있는 캐릭터나 스토리 캐릭터에게는 절대 적용되지 않고, 장면, 퀘스트, 전투 중에는 일어나지 않습니다.",
     ["Voice language"] = "음성 언어",
     ["English"] = "영어",
     ["Automatic"] = "자동",

@@ -1261,6 +1261,8 @@ return {
     ["Prompting"] = "Prompt",
     ["Street reputation"] = "Utcai hírnév",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "A bandák, az NCPD, a korporációk és minden kerület lakói emlékeznek V tetteire: Street Cred, döntések a megbízásokban, harcok, a rendőrség által látott bűnök és ahogy az emberekkel bánsz. Ez alakítja a köszönést, a bizalmat és a segítséget.\n\nCsak hétköznapi emberek, soha nem nevesített vagy történetbeli szereplők. A szavaikat változtatja, a játékot nem.",
+    ["NPCs react to threats and commands"] = "NPC-k: fenyegetés, parancsok",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "A megfenyegetett egyszerű emberek elfutnak, összekuporodnak vagy visszavágnak: a bandatagok és őrök sértésre ököllel, halálos fenyegetésre fegyverrel felelnek.\n\nAzt is megteszik, amit mondasz, ha megtennék: lefekszenek, megállnak, kiszállnak a járműből.\n\nCsak egyszerű emberek, soha nem nevesített vagy történetbeli szereplők, és soha nem jelenetben, küldetésben vagy harcban.",
     ["Voice language"] = "Hang nyelve",
     ["English"] = "angol",
     ["Automatic"] = "Automatikus",

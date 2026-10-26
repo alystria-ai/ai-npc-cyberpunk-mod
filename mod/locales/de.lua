@@ -1261,6 +1261,8 @@ return {
     ["Prompting"] = "Prompt",
     ["Street reputation"] = "Ruf auf der Straße",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Gangs, NCPD, Konzerne und die Leute jedes Bezirks merken sich, was V getan hat: Street Cred, Entscheidungen in Aufträgen, Kämpfe, von der Polizei gesehene Verbrechen und wie du mit Leuten umgehst. Das prägt Gruß, Vertrauen und Hilfe.\n\nNur gewöhnliche Leute, nie benannte oder Story-Charaktere. Es ändert ihre Worte, nichts im Spiel.",
+    ["NPCs react to threats and commands"] = "NPCs reagieren auf Drohungen und Befehle",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "Gewöhnliche Leute, die du bedrohst, fliehen, ducken sich oder wehren sich: Gangmitglieder und Wachen schlagen bei einer Beleidigung zu und ziehen bei einer Todesdrohung die Waffe.\n\nSie tun auch, was du sagst, wenn sie es täten: hinlegen, stehen bleiben, aus dem Fahrzeug steigen.\n\nNur gewöhnliche Leute, nie benannte oder Story-Charaktere, nie in Szenen, Quests oder Kämpfen.",
     ["Voice language"] = "Stimmsprache",
     ["English"] = "Englisch",
     ["Automatic"] = "Automatisch",
