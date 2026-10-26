@@ -728,6 +728,12 @@ function M.new(env)
             -- The car trip: board, drive to the road end point, brake, get out (mod/immersive-car.lua); then she walks the rest.
             local result, why = env.world.carStep(a, M.STEP)
             if result == 'arrived' then
+                -- Where her car stopped, against V and against the road end point it was sent to (for tuning the stop).
+                local parked = env.world.carPosition and a.car and env.world.carPosition(a.car.handle)
+                if parked then
+                    log(tostring(a.name) .. string.format(': car parked %.0f m from V, %.0f m from the road end point',
+                        st.position and ground(parked, st.position) or -1, a.roadEnd and ground(parked, a.roadEnd) or -1))
+                end
                 a.leg, a.commandSent, a.arrivedByCar = 'walk', false, true
                 a.tripStart, a.bestD, a.bestAt, a.stuck = clock, nil, clock, 0
                 -- V is the one she walks to now (V came to the car), not the place V once asked for.

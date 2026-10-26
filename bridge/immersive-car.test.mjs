@@ -194,7 +194,7 @@ test('the drive aims at the adjusted road point when the controller made one (ne
   a.roadEnd = {x = 20, y = 5, z = 0}
   step(3)
   assert(fake.drives[1].x == 20 and fake.drives[1].y == 5, 'roadEnd wins over the raw road point')
-  fake.status.position = {x = 28, y = 5, z = 0}; fake.status.speed = 0.3
+  fake.status.position = {x = 26, y = 5, z = 0}; fake.status.speed = 0.3
   assert(step() == true and a.car.stage == 'braking', 'the stop rule measures to the same point')
 `));
 
@@ -250,4 +250,23 @@ test('the native status reads both the lane answer and the traffic physics state
   assert(status.attached and status.lane == false and status.traffic == nil and status.speed == 2, 'an unreadable state is nil, not an error')
   entity.IsInTrafficPhysicsState = function() return true end
   assert(native.status({entityID = {}}).traffic == true)
+`));
+
+test('a car that stalls within 40 m of the road end point brakes and she gets out to walk the rest; farther, the trip fails; the stop radius is 7 m', () => run(`
+  assert(Car.STOP_DISTANCE == 7)
+  make(); fake.mounted = true; step(3)
+  fake.status.position = {x = 30, y = 0, z = 0}   -- 22 m from the road end point (8, 0), not moving on
+  local result = step(60)
+  assert(result == true and a.car.stage ~= 'driving', 'stalled near: stop here, no failure')
+  fake.status.speed = 0; fake.mounted = false
+  result = step(6)
+  assert(result == 'arrived', tostring(result))
+  make(); fake.mounted = true; step(3)
+  fake.status.position = {x = 9, y = 0, z = 0}; fake.status.speed = 0
+  step(2)
+  assert(a.car.stage ~= 'driving', 'within 7 m and slow ends the drive')
+  make(); fake.mounted = true; step(3)
+  fake.status.position = {x = 16, y = 0, z = 0}; fake.status.speed = 0
+  step(2)
+  assert(a.car.stage == 'driving', '8 m out is not yet there')
 `));
