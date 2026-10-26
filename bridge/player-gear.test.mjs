@@ -226,6 +226,7 @@ test('each real read logs one line, with the reason when there is none; a cached
   local lines = {}
   gear.options.log = function(line) lines[#lines + 1] = line end
   gear.lastWardrobe = 'wardrobe outfit=off' -- this fake has no wardrobe routes; its one "off" line is covered by the wardrobe tests
+  gear.lastFacts = 'wardrobe facts enabled=true active=? idx=? set=none rows=?'
   gear:capture(); gear:capture(); gear:capture()
   assert(#lines == 1 and lines[1] == 'Player gear: 10 items', lines[1])
   state.ready = false; gear:reset('test'); gear:capture()
@@ -537,4 +538,187 @@ test('default adapter, real call shape: the set wins over the visuals, and a dis
   pdState.wardrobeEnabled = false
   assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
   assert(last() == 'wardrobe outfit=off (disabled)', last())
+`));
+
+// ---------------------------------------------------------------- the game's Wardrobe state machine (2.5 scripts)
+// 2026-10-26, fourth attempt. The strict fake above answers per call; this model behaves like the game: WardrobeSystem keeps the active set index and the saved sets,
+// EquipWardrobeSet (equipmentSystem.script) writes every area of the set into m_clothingVisualsInfo (an area the set leaves empty is CLEARED: no item, isHidden),
+// GetVisualItemInSlot follows the rows only while a set is active, GetActiveWardrobeSet hands out an empty set while none is, IsSlotHidden reads the row (Outfit has none:
+// the game's own call fails there), GetSlotOverridenVisualItem returns the row's item.
+const gameModel = `
+local AREAS = {'Outfit', 'OuterChest', 'InnerChest', 'Legs', 'Feet', 'Head', 'Face', 'UnderwearTop', 'UnderwearBottom'}
+local world = {active = 'INVALID', sets = {}, rows = {}}
+for _, a in ipairs(AREAS) do world.rows[#world.rows + 1] = {areaType = {value = a}, visualItem = nil, isHidden = false} end
+local function rowOf(area) if area == 'Outfit' then return nil end for _, r in ipairs(world.rows) do if r.areaType.value == area then return r end end end
+-- A set as the Wardrobe editor saves it: one entry per area, an empty slot has no item and no hidden flag.
+local function saved(label, entries)
+  local list = {}
+  for _, area in ipairs({'Head', 'Face', 'OuterChest', 'InnerChest', 'Legs', 'Feet'}) do list[#list + 1] = slot(area, entries[area]) end
+  local set = {setID = {value = label}, clothingList = list}
+  world.sets[#world.sets + 1] = set
+  return set
+end
+local function findSet(label) for _, s in ipairs(world.sets) do if s.setID.value == label then return s end end end
+function world.equip(label)
+  local set = findSet(label); world.active = label
+  for _, e in ipairs(set.clothingList) do
+    local r = rowOf(e.areaType.value)
+    if e.visualItem then r.visualItem, r.isHidden = e.visualItem, false else r.visualItem, r.isHidden = nil, true end
+  end
+end
+function world.unequip()
+  local set = findSet(world.active)
+  for _, e in ipairs(set.clothingList) do local r = rowOf(e.areaType.value); r.visualItem, r.isHidden = nil, false end
+  world.active = 'INVALID'
+end
+local empty = function() return {setID = {value = 'INVALID'}, clothingList = {}} end
+pd.m_clothingVisualsInfo = world.rows
+pd.IsVisualSetActive = function(self) assert(self == pd); return world.active ~= 'INVALID' end
+pd.GetVisualItemInSlot = function(self, area) assert(self == pd and area.type == 'gamedataEquipmentArea')
+  local r = rowOf(area.value)
+  if world.active ~= 'INVALID' and r then return r.visualItem end
+  return pdState.equipped[area.value .. '#0']
+end
+pd.IsSlotHidden = function(self, area) assert(self == pd and area.type == 'gamedataEquipmentArea')
+  local r = rowOf(area.value); if not r then error('array index out of bounds (' .. area.value .. ' has no visual row)') end
+  return r.isHidden
+end
+pd.GetSlotOverridenVisualItem = function(self, area) assert(self == pd and area.type == 'gamedataEquipmentArea'); local r = rowOf(area.value); return r and r.visualItem or nil end
+pd.GetActiveWardrobeSet = function(self) assert(self == pd); return world.active ~= 'INVALID' and findSet(world.active) or empty() end
+wardrobeSystem.GetActiveClothingSetIndex = function(self) assert(self == wardrobeSystem); return {value = world.active} end
+wardrobeSystem.GetActiveClothingSet = function(self) assert(self == wardrobeSystem); return world.active ~= 'INVALID' and findSet(world.active) or nil end
+wardrobeSystem.GetClothingSets = function(self) assert(self == wardrobeSystem); return world.sets end
+EquipmentSystem.GetActiveWardrobeSetID = function(p, ...) assert(p == player and select('#', ...) == 0, 'static: the player, no self'); return {value = world.active} end
+EquipmentSystem.GetActiveWardrobeSet = function(p) assert(p == player); return world.active ~= 'INVALID' and findSet(world.active) or empty() end
+pdState.set = nil
+items.Tee2 = 'InnerChest'
+records.Tee2 = records.Tee
+for _, name in ipairs({'Visor', 'Pants', 'Heels'}) do
+  local area = ({Visor = 'Face', Pants = 'Legs', Heels = 'Feet'})[name]
+  items[name] = area
+  local record; record = strict('record', {DisplayName = function() return 'key:' .. name end,
+    EquipArea = function() local a; a = strict('area record', {Type = function() return {value = area} end}); return a end})
+  records[name] = record
+end
+`;
+const model$ = body => real$(gameModel + '\n' + body);
+
+test('the game model, an applied set: the outfit is what V wears, the slots the set leaves empty show nothing', () => model$(`
+  saved('Slot2', {Head = 'Cap', OuterChest = 'Coat'})
+  world.equip('Slot2')
+  local snap = gear:capture()
+  -- Equipped: Hat, Jacket, Tee. Wearing: Cap and Coat. The inner torso, legs, feet and face the set leaves empty are cleared by the game, so they are not described.
+  assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=Slot2 items=2 hidden=4 via=paperdoll', last())
+  assert(lines[#lines - 2] == 'wardrobe facts enabled=true active=true idx=Slot2 stored=Slot2 paper=2/4 rows=9/2/4 getter=2', lines[#lines - 2])
+  -- Taking the outfit off gives the equipment back.
+  world.unequip()
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee', names(gear.snapshot.clothing))
+  assert(last() == 'wardrobe outfit=off', last())
+`));
+
+test('the game model, an outfit with every slot filled and one with nothing but a hat', () => model$(`
+  saved('Slot1', {Head = 'Cap', Face = 'Visor', OuterChest = 'Coat', InnerChest = 'Tee2', Legs = 'Pants', Feet = 'Heels'})
+  saved('Slot3', {Head = 'Hat'})
+  world.equip('Slot1')
+  assert(names(gear:capture().clothing) == 'head=Cap,face=Visor,outerTorso=Coat,innerTorso=Tee,legs=Pants,feet=Heels', names(gear.snapshot.clothing))
+  assert(last() == 'wardrobe outfit=Slot1 items=6 via=paperdoll', last())
+  world.equip('Slot3')
+  assert(names(fresh().clothing) == 'head=Hat', names(gear.snapshot.clothing))
+  assert(last() == 'wardrobe outfit=Slot3 items=1 hidden=5 via=paperdoll', last())
+`));
+
+test('the game model, an outfit that shows no clothing at all: every slot hidden, nothing described, the weapons stay', () => model$(`
+  saved('Slot4', {})
+  pdState.equipped['Weapon#0'] = item('Kyubi')
+  world.equip('Slot4')
+  local snap = gear:capture()
+  assert(snap and snap.clothing == nil and snap.weapons, 'no clothing rows, the rest of the gear is still there')
+  assert(last() == 'wardrobe outfit=Slot4 items=0 hidden=6 via=paperdoll', last())
+`));
+
+test('the game model, no set active: the facts line says so, the equipment is described, and the stored sets are listed', () => model$(`
+  saved('Slot1', {Head = 'Cap'})
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee', names(snap.clothing))
+  assert(lines[#lines - 2] == 'wardrobe facts enabled=true active=false idx=INVALID stored=Slot1 set=INVALID:0/0 rows=9/0/0 getter=0', lines[#lines - 2])
+  assert(last() == 'wardrobe outfit=off', last())
+  -- Nothing saved at all: only the facts changed, so only they are logged (the answer is still off).
+  world.sets = {}
+  fresh(); assert(lines[#lines - 1] == 'wardrobe facts enabled=true active=false idx=INVALID stored=0 set=INVALID:0/0 rows=9/0/0 getter=0', lines[#lines - 1])
+  -- Unchanged facts and answer are not logged again.
+  local count = #lines; fresh(); assert(#lines == count + 1)
+`));
+
+test('the game model, the paperdoll reads fail: the set routes, then the saved set the index names, still give the outfit', () => model$(`
+  saved('Slot2', {Head = 'Cap', OuterChest = 'Coat'})
+  world.equip('Slot2')
+  pd.GetVisualItemInSlot = function() error('GetVisualItemInSlot is not callable') end
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat', names(snap.clothing))
+  -- The set's empty entries hide their slots, so the inner torso is not described either.
+  assert(last() == 'wardrobe outfit=Slot2 items=2 hidden=4 via=data:GetActiveWardrobeSet', last())
+  assert(lines[#lines - 2]:find('ferr=GetVisualItemInSlot: GetVisualItemInSlot is not callable', 1, true), lines[#lines - 2])
+  -- The player-data route and every direct route fail: the stored set found by the active index is used.
+  pd.IsVisualSetActive = function() error('no flag') end
+  pd.GetActiveWardrobeSet = function() error('no data route') end
+  wardrobeSystem.GetActiveClothingSet = function() error('no system route') end
+  EquipmentSystem.GetActiveWardrobeSet = function() error('no static route') end
+  GameInstance = strict('GameInstance', {GetWardrobeSystem = function() return wardrobeSystem end})
+  Game.GetWardrobeSystem = function() return wardrobeSystem end
+  assert(names(fresh().clothing) == 'head=Cap,outerTorso=Coat', names(gear.snapshot.clothing))
+  assert(last():find('^wardrobe outfit=Slot2 items=2 hidden=4 via=WardrobeSystem.GetClothingSets errors=data:GetActiveWardrobeSet: no data route'), last())
+`));
+
+test('the game model, the index says active but nothing can be read: the equipment is described and the line says unreadable', () => model$(`
+  world.active = 'Slot5'   -- the native index is set, the saved sets and the visual rows are not
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee', names(snap.clothing))
+  assert(last():find('^wardrobe outfit=Slot5 items=0'), last())
+  assert(lines[#lines - 2]:find('^wardrobe facts enabled=true active=true idx=Slot5 stored=0 paper=0/0 set=INVALID:0/0'), lines[#lines - 2])
+`));
+
+test('the game model, a per-item transmog (rows filled, no set active) is read from the overrides', () => model$(`
+  world.rows[2].visualItem = item('Coat')   -- OuterChest
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Hat,outerTorso=Coat,innerTorso=Tee', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=visuals items=1 via=m_clothingVisualsInfo', last())
+  assert(lines[#lines - 2] == 'wardrobe facts enabled=true active=false idx=INVALID stored=0 set=INVALID:0/0 rows=9/1/0 getter=1', lines[#lines - 2])
+`));
+
+test('the game model, the routes disagree: both indexes are shown, and a failing flag does not stop the outfit', () => model$(`
+  saved('Slot2', {Head = 'Cap', OuterChest = 'Coat'})
+  world.equip('Slot2')
+  pd.IsVisualSetActive = function() error('no flag') end
+  EquipmentSystem.GetActiveWardrobeSetID = function() return {value = 'INVALID'} end
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat', names(snap.clothing))
+  assert(lines[#lines - 2]:find('^wardrobe facts enabled=true active=%? idx=Slot2/INVALID '), lines[#lines - 2])
+`));
+
+test('the game model, the Outfit area is never probed as hidden (the game has no visual row for it)', () => model$(`
+  pdState.equipped['Outfit#0'] = item('Coat')
+  saved('Slot2', {Head = 'Cap'})
+  world.equip('Slot2')
+  local snap = gear:capture()
+  assert(names(snap.clothing):find('head=Cap'), names(snap.clothing))
+  assert(not lines[#lines - 2]:find('ferr=', 1, true), lines[#lines - 2])
+`));
+
+test('adapter level: an empty entry of a saved set hides its slot; the Outfit area is never hidden by one', () => wardrobe$(`
+  N.valid = function(id) return type(id) == 'table' and id.name ~= nil and id.name ~= '' end
+  set = {label = 'SET_9', entries = {entry('Coat', 'OuterChest'), {id = nil, area = 'Head'}, {id = {}, area = 'Legs'}}}
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'outerTorso=Coat,innerTorso=Tee,feet=Boots', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=SET_9 items=1 hidden=2 via=routeA', last())
+  set = {label = 'SET_9', entries = {entry('Coat', 'OuterChest'), {id = nil, area = 'Outfit'}}}
+  assert(names(fresh().clothing):find('outerTorso=Coat'))
+  assert(last() == 'wardrobe outfit=SET_9 items=1 unplaced=1 via=routeA' or last() == 'wardrobe outfit=SET_9 items=1 via=routeA', last())
+`));
+
+test('a fault inside the wardrobe reader costs only the wardrobe: it is logged and the equipment is described', () => wardrobe$(`
+  set = {label = 'SET_9', entries = 5}   -- not an array: the reader itself faults, outside every guarded call
+  local snap = gear:capture()
+  assert(snap and names(snap.clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee,legs=Jeans,feet=Boots', 'the gear is still described')
+  assert(last():find('^wardrobe outfit=error%(reader: '), last())
 `));
