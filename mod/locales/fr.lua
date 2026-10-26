@@ -708,6 +708,7 @@ return {
     ["Voxtral · not with Mature"] = "Voxtral · pas avec 18+",
     ["Voxtral is not used with Mature content."] = "Voxtral n’est pas utilisé avec le Contenu pour adultes.",
     ["Needs Local AI or Custom."] = "Nécessite Local AI ou Personnalisé.",
+    ["Mature content is turned off because you chose a model that is not a Mature model."] = "Le Contenu pour adultes est désactivé, car tu as choisi un modèle qui n’est pas pour adultes.",
     ["Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom."] = "Langage fort, violence graphique, drogues et, entre adultes consentants, flirt et sexe. Réservé aux adultes (18+). Nécessite Local AI ou Personnalisé.",
     ["From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices."] = "Depuis Convai ou Mistral, l’activer sélectionne Local AI, ou Personnalisé si Local AI n’est pas installée. Avec Local AI, il sélectionne aussi le plus grand modèle non censuré qui tient. La désactiver restaure vos choix.",
     ["Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off."] = "Choisir Convai ou Mistral désactive ceci. Voxtral n’est pas utilisé avec ceci : une voix Voxtral passe sur Pocket et revient quand ceci est désactivé.",

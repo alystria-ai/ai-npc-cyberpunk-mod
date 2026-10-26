@@ -5576,6 +5576,59 @@ test('Mature content refuses a Voxtral choice (companions and V), greys the entr
   `);
 });
 
+// The owner's rule (2026-10-26): the Local AI model row always lists every installed model, with Mature content on or off, and choosing a model of the
+// Local AI packs (not a Mature one) while Mature content is on and a Mature model is installed turns Mature content off in that Apply, with a sentence.
+test('The Local AI model row lists every installed model with Mature content on or off; choosing a standard model while it is on turns Mature content off (provider stays Local AI, sentence shown); a Mature model, a custom model, no Mature model installed and a Mature switch in the same batch behave as before', () => {
+  run(`${nsuiFixture}${matureStateFixture}
+    local SENTENCE = 'Mature content is turned off because you chose a model that is not a Mature model.'
+    local function names()
+      local list = {}
+      for _, choice in ipairs(manager.localModelChoices()) do list[#list + 1] = choice.id end
+      return table.concat(list, ',')
+    end
+    withLocalAi(true)
+    assert(invoke('tab:settings').ok); loaded = registered.loadMod('manager')
+    -- Off: both models are listed, and turning Mature content on does not hide the standard one.
+    assert(names() == 'standard,mature:unc' and #row('localModel').elements == 2, names())
+    assert(core.apply({{id = 'conversationProvider', value = 4}}).ok)
+    assert(core.apply({{id = 'matureContent', value = true}}).ok and saved.matureContent == true and saved.localModel == 'mature:unc')
+    loaded = registered.loadMod('manager')
+    assert(names() == 'standard,mature:unc' and #row('localModel').elements == 2 and row('localModel').value == 2, 'on: still both models, the Mature one selected')
+    -- Picking the Mature model again changes nothing.
+    local result = core.apply({{id = 'localModel', value = 2}})
+    assert(result.ok and saved.matureContent == true and saved.localModel == 'mature:unc' and shown() ~= SENTENCE, tostring(shown()))
+    -- Picking the standard model: Mature content goes off in the same Apply, the model stays, Local AI stays the provider, and the line says why.
+    result = core.apply({{id = 'localModel', value = 1}})
+    assert(result.ok and saved.matureContent == false and saved.localModel == 'standard' and saved.conversationProvider == 'local', tostring(result.error))
+    assert(shown() == SENTENCE, tostring(shown()))
+    assert(saved.matureRestore == nil, 'the way back goes with Mature content')
+    loaded = registered.loadMod('manager')
+    assert(names() == 'standard,mature:unc' and row('localModel').value == 1, 'off: both models are still listed')
+    -- The reverse: Mature content off while the Mature model is selected moves the row to the standard model, named in the line (the bridge never loads a Mature model with it off).
+    assert(core.apply({{id = 'matureContent', value = true}}).ok and saved.localModel == 'mature:unc')
+    result = core.apply({{id = 'matureContent', value = false}})
+    assert(result.ok and saved.matureContent == false and saved.localModel == 'standard' and shown():find('Local AI model', 1, true), tostring(shown()))
+    -- Turning it on and choosing the standard model in one batch: turning it on wins, as before (the uncensored model is selected and named, the way back remembers the standard one).
+    result = core.apply({{id = 'matureContent', value = true}, {id = 'localModel', value = 1}})
+    assert(result.ok and saved.matureContent == true and saved.localModel == 'mature:unc' and saved.matureRestore.localModel.before == 'standard', tostring(result.error))
+    -- Custom provider: the model row does not matter there, nothing is turned off.
+    assert(core.apply({{id = 'matureContent', value = false}}).ok)
+    -- A model the player added is not judged: Mature content stays on.
+    bridge({provider = 'local', effective = 'local', localAi = 'ready', saved = true, localModelDefault = 'standard', localModelMatureDefault = 'mature:unc',
+      localModels = {MODELS[1], MODELS[2], {id = 'custom:mine', name = 'Mine', sizeMiB = 6000, custom = true, needMiB = 7000}}})
+    assert(core.apply({{id = 'matureContent', value = true}, {id = 'localModel', value = 2}}).ok and saved.matureContent == true)
+    result = core.apply({{id = 'localModel', value = 3}})
+    assert(result.ok and saved.localModel == 'custom:mine' and saved.matureContent == true and shown() ~= SENTENCE, tostring(shown()))
+    -- No Mature model installed: Mature content works with any model, so choosing another one leaves it on.
+    matureOff()
+    bridge({provider = 'local', effective = 'local', localAi = 'ready', saved = true, localModelDefault = 'lite',
+      localModels = {{id = 'lite', name = 'Bonsai', sizeMiB = 1100}, {id = 'standard', name = 'Gemma', sizeMiB = 5000}}})
+    assert(core.apply({{id = 'matureContent', value = true}}).ok and saved.matureContent == true)
+    result = core.apply({{id = 'localModel', value = 2}})
+    assert(result.ok and saved.localModel == 'standard' and saved.matureContent == true and shown() ~= SENTENCE, tostring(shown()))
+  `);
+});
+
 test('Mature content and the way back: an old saved record keeps its voice parts, a Voxtral voice beside Mature content in a saved file is Pocket, Mature content off puts Voxtral back only while the key is saved and the voice is still Pocket, and Restore defaults wins', () => {
   run(`${nsuiFixture}${matureStateFixture}
     local function load(extra)

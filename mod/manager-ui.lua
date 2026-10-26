@@ -518,7 +518,8 @@ end
 
 -- `changes` is the batch, a list of {id, value} with the values as a page holds them (booleans, list positions, numbers). Returns the
 -- batch with what Mature content needs added or put back, the record of what turning it on changed (the caller saves it with the
--- settings), the names of what was changed besides the player's own choice, and a refusal text when the switch cannot be turned on.
+-- settings), the names of what was changed besides the player's own choice, a refusal text when the switch cannot be turned on, and a note (a
+-- sentence) when the batch turned Mature content off because the player chose a model that is not a Mature model.
 local function stageMature(changes, snapshot)
     local saved = snapshot.settings
     -- `explicit`: the rows the batch itself sets (the player's own choice in it, or Restore defaults). Turning Mature content off never puts one
@@ -539,7 +540,7 @@ local function stageMature(changes, snapshot)
         if by[id] then return by[id].value end
         return savedValue
     end
-    local record, names, refusal = nil, {}, nil
+    local record, names, refusal, note = nil, {}, nil, nil
     local savedMature = saved.matureContent == true
     local providerNow = now('conversationProvider', providerIndexOf(saved))
     local mature = by.matureContent
@@ -559,11 +560,12 @@ local function stageMature(changes, snapshot)
     local keySaved = (snapshot.mistral or {}).saved == true
     -- V's voice row as the batch leaves it: 1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice.
     local vNow = now('vVoice', savedVIndex(saved, keySaved, not manager.vOmniBlock(saved)))
-    local function turnedOff()
+    -- `keepProvider`: Mature content goes off because of a model the player chose on Local AI, so the provider stays on Local AI (it is not put back).
+    local function turnedOff(keepProvider)
         local restore = saved.matureRestore
-        if type(restore) ~= 'table' then leaveUncensoredModel(); return end
+        if type(restore) ~= 'table' then if not keepProvider then leaveUncensoredModel() end; return end
         local part = restore.conversationProvider
-        if part and not explicit.conversationProvider then
+        if part and not explicit.conversationProvider and not keepProvider then
             local was, back
             for index, id in ipairs(PROVIDER_IDS) do
                 if id == part.set then was = index end
@@ -597,7 +599,7 @@ local function stageMature(changes, snapshot)
             stage('vVoice', 3); vNow = 3
             names[#names + 1] = ui.t('V’s voice for typed lines')
         end
-        leaveUncensoredModel()
+        if not keepProvider then leaveUncensoredModel() end
     end
     if mature and mature.value == true and not savedMature then
         local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
@@ -655,8 +657,19 @@ local function stageMature(changes, snapshot)
         -- Convai or Mistral picked while Mature content is on turns it off, with the same way back.
         stage('matureContent', false)
         turnedOff()
+    elseif savedMature and not (mature and mature.value == false) and explicit.localModel and providerNow == LOCAL_PROVIDER and manager.localModelMatureId() then
+        -- The Local AI model list always shows every installed model, Mature ones included. Choosing one of the Local AI packs' own (censored) models
+        -- while Mature content is on, with a Mature model installed to choose instead, means the player does not want the uncensored one: Mature content
+        -- turns off with the same way back, and the chosen model stays. A model the player added is not judged (nothing says it is censored), and without
+        -- a Mature model installed Mature content works with any model, so the choice leaves it on.
+        local picked = manager.localModelChoices()[by.localModel.value]
+        if picked and not picked.custom and (picked.id == 'standard' or picked.id == 'lite') and by.localModel.value ~= modelIndexOf(saved.localModel) then
+            stage('matureContent', false)
+            turnedOff(true)
+            note = ui.t('Mature content is turned off because you chose a model that is not a Mature model.')
+        end
     end
-    return batch, record, names, refusal
+    return batch, record, names, refusal, note
 end
 
 local function samplePreparationFeedback()
@@ -2212,7 +2225,7 @@ end
 function M.apply(changes)
     local currentPlayer = player()
     local snapshot = manager.snapshot(currentPlayer)
-    local batch, record, names, refusal = stageMature(changes, snapshot)
+    local batch, record, names, refusal, matureNote = stageMature(changes, snapshot)
     local values, applied = {relationshipModes = {}, dynamicInfo = {}, immersive = {}, housemates = {}}, {}
     -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
     local addonChanges = 0
@@ -2389,6 +2402,7 @@ function M.apply(changes)
     elseif refusal then text = refusal
     elseif notice then text = notice
     elseif #names > 0 then text = ui.t('Also changed: {names}.', {names = table.concat(names, ', ')}) end
+    if ok and matureNote then text = matureNote .. (text and ' ' .. text or '') end
     if ok and omniLeft then text = (text and text .. ' ' or '') .. ui.t('V’s voice switches from OmniVoice to Pocket.') end
     actionFeedback = text
     refreshQueued = true

@@ -708,6 +708,7 @@ return {
     ["Voxtral · not with Mature"] = "Voxtral · 성인 콘텐츠 불가",
     ["Voxtral is not used with Mature content."] = "Voxtral은 성인 콘텐츠와 함께 사용되지 않습니다.",
     ["Needs Local AI or Custom."] = "Local AI 또는 사용자 지정이 필요합니다.",
+    ["Mature content is turned off because you chose a model that is not a Mature model."] = "성인용이 아닌 모델을 선택해서 성인 콘텐츠를 껐습니다.",
     ["Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom."] = "강한 욕설, 노골적인 폭력, 약물, 그리고 합의한 성인 사이의 추파와 성행위. 성인만(18+). Local AI 또는 사용자 지정이 필요합니다.",
     ["From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices."] = "Convai 또는 Mistral에서 켜면 Local AI가 선택되고, Local AI가 설치되어 있지 않으면 사용자 지정이 선택됩니다. Local AI를 쓸 때는 여유 그래픽 메모리에 맞는 가장 큰 무검열 모델도 함께 선택됩니다. 끄면 이전에 고른 설정이 복원됩니다.",
     ["Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off."] = "Convai 또는 Mistral을 선택하면 꺼집니다. Voxtral은 이 설정과 함께 사용되지 않습니다: Voxtral 음성은 Pocket으로 바뀌고, 끄면 다시 돌아옵니다.",

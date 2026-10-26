@@ -708,6 +708,7 @@ return {
     ["Voxtral · not with Mature"] = "Voxtral · 不支援成人內容",
     ["Voxtral is not used with Mature content."] = "Voxtral 不用於成人內容。",
     ["Needs Local AI or Custom."] = "需要 Local AI 或自訂。",
+    ["Mature content is turned off because you chose a model that is not a Mature model."] = "由於你選擇了非成人模型，成人內容已關閉。",
     ["Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom."] = "強烈的語言、血腥暴力、毒品，以及在成年人之間（雙方同意）的調情和性內容。僅限成年人（18 歲以上），需要 Local AI 或自訂。",
     ["From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices."] = "在 Convai 或 Mistral 中開啟時，會選擇 Local AI；若未安裝 Local AI，則選擇自訂。使用 Local AI 時，也會選擇能夠執行的最大無審查模型。關閉時會還原你原本的選擇。",
     ["Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off."] = "選擇 Convai 或 Mistral 會關閉此項。Voxtral 不與此項併用：使用 Voxtral 的語音會改用 Pocket，關閉此項後再還原。",

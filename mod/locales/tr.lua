@@ -708,6 +708,7 @@ return {
     ["Voxtral · not with Mature"] = "Voxtral · Yetişkin hariç",
     ["Voxtral is not used with Mature content."] = "Voxtral, ‘Yetişkin içerik’ ile birlikte kullanılmaz.",
     ["Needs Local AI or Custom."] = "Local AI veya Özel gerekir.",
+    ["Mature content is turned off because you chose a model that is not a Mature model."] = "Yetişkin içerik kapatıldı, çünkü yetişkin modeli olmayan bir model seçtin.",
     ["Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom."] = "Sert dil, grafik şiddet, uyuşturucu ve rıza gösteren yetişkinler arasında flört ve cinsellik. Yalnızca yetişkinler (18+). Local AI veya Özel gerekir.",
     ["From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices."] = "Convai’den veya Mistral’den açıldığında Local AI seçilir; Local AI kurulu değilse Özel seçilir. Local AI ile birlikte, sığan en büyük sansürsüz model de seçilir. Kapatılınca seçimlerin geri yüklenir.",
     ["Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off."] = "Convai’yi veya Mistral’i seçmek bunu kapatır. Bununla Voxtral kullanılmaz: Voxtral’daki bir ses Pocket’e geçer ve kapatıldığında geri döner.",
