@@ -249,7 +249,7 @@ export const freshSettings = {
   battleReactionsChosen: false, battleReactions: true, lootReactionsChosen: false, lootReactions: true, decisionLedger: true, witnessReceipts: true, defaultsRevision: 1,
   eyeContactHeight: 0, headFollowStrength: 1, voiceProvider: 'pocket', omniSteps: 16, omniReference: 'long', keepPreparedVoices: true,
   archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off', companionSpeakUp: 'rare',
-  reputation: false, voiceActivation: false, padTalk: false, keyBindings: [], companionOutfits: false,
+  reputation: false, npcThreats: false, voiceActivation: false, padTalk: false, keyBindings: [], companionOutfits: false,
   naturalSpeech: false, followUpInterest: true,
   matureContent: false, localModel: 'auto',
   vVoiceChosen: false, vVoice: true, vVoiceEngine: 'pocket', vVoiceMic: false,

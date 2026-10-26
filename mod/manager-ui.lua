@@ -1782,6 +1782,8 @@ local function schema()
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
             setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
                 'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
+            setting('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot.settings.npcThreats == true, false,
+                'Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.'),
             -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
@@ -2354,6 +2356,7 @@ function M.apply(changes)
         elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false, johnny_voice = false, johnny_text = false}
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value
+        elseif key == 'npcThreats' then values.npcThreats = change.value
         elseif key == 'johnnyInHead' then
             -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
             local pick = ({'off', 'off', 'rare', 'medium', 'normal'})[change.value]

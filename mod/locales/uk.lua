@@ -1262,6 +1262,8 @@ return {
     ["Prompting"] = "Промпт",
     ["Street reputation"] = "Вулична репутація",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Банди, NCPD, корпорації та мешканці кожного району пам’ятають, що зробив V: Street Cred, рішення в замовленнях, бійки, злочини на очах поліції та те, як ти поводишся з людьми. Від цього залежать привітання, довіра й допомога.\n\nЛише звичайні люди, не іменні й не сюжетні персонажі. Змінює їхні слова, нічого в грі.",
+    ["NPCs react to threats and commands"] = "NPC реагують на погрози та накази",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "Звичайні люди, яким ти погрожуєш, тікають, зіщулюються від страху або дають відсіч, як властиво їхньому типу: члени банд і охоронці відповідають на образу кулаками, а на погрозу смертю зброєю.\n\nВони також можуть зробити те, що ти їм скажеш, якщо зробили б: лягти на землю, зупинитися або вийти з машини.\n\nЛише звичайні люди, ніколи персонажі з іменем чи з сюжету, і ніколи під час сцен, завдань або боїв.",
     ["Voice language"] = "Мова голосу",
     ["English"] = "англійська",
     ["Automatic"] = "Авто",

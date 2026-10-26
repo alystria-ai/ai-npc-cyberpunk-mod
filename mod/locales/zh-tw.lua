@@ -1262,6 +1262,8 @@ return {
     ["Prompting"] = "提示詞",
     ["Street reputation"] = "街頭聲望",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "幫派、NCPD、企業和各區居民會記住 V 做過的事：街頭聲望、任務中的選擇、打過的架、警察看到的罪行，以及你如何待人。他們的招呼、信任和幫助都隨之而定。\n\n只影響普通人，從不影響有名字的角色或劇情角色。只改變他們的話語，不改變遊戲中的任何東西。",
+    ["NPCs react to threats and commands"] = "NPC 會對威脅和命令做出反應",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "被你威脅的一般人會依自己的性格逃跑、嚇得縮成一團或者還手：幫派成員和保全遇到侮辱會動拳頭，遇到死亡威脅會拔出武器。\n\n如果他們願意，也會照你說的做：趴下、站住或下車。\n\n只影響一般人，絕不影響有名字的角色或劇情角色，也絕不會在過場、任務或戰鬥中發生。",
     ["Voice language"] = "語音語言",
     ["English"] = "英文",
     ["Automatic"] = "自動",

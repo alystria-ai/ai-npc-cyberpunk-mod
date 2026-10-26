@@ -102,6 +102,9 @@ local natives = {
   engage = function() return 'x' end,
   awayPoints = function() return {{x = 50, y = 0, z = 0, gap = 40}} end,
   walkTo = function() count('walkTo'); return {id = 'cmd'} end, commandState = function() return 'Executing' end,
+  -- The threat reactions' natives (docs/NPC_THREATS_COMMANDS.md); the person is a crowd pedestrian.
+  crowd = function() return true end, crowdFear = function(_, _, phase) count('crowdFear' .. phase) end, temper = function() return 'neutral' end,
+  hold = function() count('hold'); return {id = 'hold'} end,
 }
 local npc = {id = '11147869ULL'}
 local Service = (function() ${reactionsSource} end)()
@@ -110,7 +113,8 @@ service = Service.new({natives = natives, clock = function() return now end,
   player = function() return {name = 'V'} end, npcFor = function(entity) return entity == npc.id and npc or nil end,
   policy = {ours = function() return false end, spawned = function() return false end, protected = function() return false end, story = function() return false end},
   storyFlag = function() return false end, refusal = function() return nil end, release = function() count('release') end,
-  awaiting = function() return state.awaiting end, speaking = function() return state.speaking end})
+  awaiting = function() return state.awaiting end, speaking = function() return state.speaking end,
+  threats = function() return state.threats == true end})
 local world = {ready = true, worldToken = 'world-fixture', generation = 2}
 local Actions = (function() ${actionsSource} end)()
 actions = Actions.new({world = function() return world end, clock = function() return ms end,
@@ -150,6 +154,7 @@ function luaSession() {
     // The packet text the bridge wrote reaches the game's poll; then the service's clock runs on until the reaction has begun.
     receive: packet => run(`raw = ${JSON.stringify(packet)}; actions.update(true); return ''`),
     advance: seconds => run(`now = now + ${seconds}; service.update(); return ''`),
+    threats: on => run(`state.threats = ${on ? 'true' : 'false'}; return ''`),
     logs: () => JSON.parse(run('return json.encode(logs)')),
     calls: () => JSON.parse(run('return json.encode(calls)')),
     lease: () => JSON.parse(run('local i = actions.inspect(); return json.encode({pending = i.pending, reaction = i.reaction, state = i.state})')),
@@ -346,5 +351,32 @@ test('the reaction arrives for a person who threatened later too, and a polite m
     await settle();
     assert.deepEqual(delivered, [], '[none] hands nothing over');
     assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=none(no-tag) delivered=-']);
+  } finally { game.close(); }
+});
+
+test('threats switch on: "get down" through every real piece, the lease takes the echo with its flag, and the crowd person cowers with the crowd\'s own fear', async () => {
+  const game = luaSession();
+  try {
+    game.threats(true);
+    const requestText = game.request(1, 'Get down on the ground, now!');
+    assert.deepEqual(JSON.parse(requestText).reactionOffer, {available: true, actor: {id: '11147869ULL', key: 'npc-corpo-resident-female'},
+      kinds: ['leave', 'call-police', 'cower', 'get-down', 'stop'], threats: true}, 'the game offers the threat kinds with the switch on');
+    const files = [], logs = [], trace = [];
+    const turn = await bridgeTurn(requestText, {files, logs: trace});
+    assert.deepEqual(turn.config.reaction, {kinds: ['leave', 'call-police', 'get-down'], threats: true}, 'the words left the one command');
+    const {host, delivered} = await textHost('[obey] Okay, okay, I am down, please do not hurt me!', message => turn.actions.deliver(message), logs, turn.actions);
+    await host.reply(turnConfig(turn.input, turn.config));
+    await settle();
+    assert.deepEqual(delivered, [{version: 1, token: turn.config.token, reaction: 'get-down'}]);
+    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police,get-down admitted=yes route=text tag=get-down delivered=yes screen=get-down']);
+    game.receive(JSON.stringify(files.find(item => item.action === 'npc-reaction')));
+    assert.ok(game.logs().some(line => /^NPC reaction accepted: get-down/.test(line)), 'the lease took the packet: ' + game.logs().join(' | '));
+    game.advance(0.1); game.advance(2);
+    assert.equal(game.calls().crowdFear2, 1, 'the crowd person cowers: ' + game.logs().join(' | '));
+    assert.equal(game.calls().walkTo, undefined);
+    // Switched off again: the next message is offered exactly as before the threat reactions.
+    game.threats(false);
+    assert.deepEqual(JSON.parse(game.request(2, 'Get down!')).reactionOffer, {available: true, actor: {id: '11147869ULL', key: 'npc-corpo-resident-female'},
+      kinds: ['leave', 'call-police']});
   } finally { game.close(); }
 });

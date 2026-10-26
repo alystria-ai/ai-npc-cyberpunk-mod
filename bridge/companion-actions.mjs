@@ -2,6 +2,7 @@ import {parseCallMeetOffer, offeredKinds} from './call-meet.mjs';
 import {HomePicks} from './home-requests.mjs';
 import {mentions} from './text-action-words.mjs';
 import {MIC_PLACEHOLDER} from './call-meet.mjs';
+import {screenMessage, screenedKinds, screenCode, COMMAND_KINDS} from './threat-screen.mjs';
 
 // One native offer authorizes one semantic proposal. Coordinates, actor IDs and
 // vehicle IDs always come from the game snapshot, never from model arguments.
@@ -217,22 +218,44 @@ export function parseHomeOffer(value) {
 // Reactions of an ordinary world NPC (docs/NPC_REACTIONS.md): what V's conversation made the person do. The game offers only the kinds that
 // fit the person (a civilian leaves or calls the police, a ganger leaves or attacks); the model chooses at most one, and only when V's words
 // clearly earned it. The order here is the order of every list that crosses the wire.
-export const REACTION_ACTIONS = Object.freeze({leave: 'Walk Away', 'call-police': 'Call Police', attack: 'Attack V'});
+// With the Companion Manager switch "NPCs react to threats and commands" on (docs/NPC_THREATS_COMMANDS.md) the offer carries `threats: true` and
+// may hold five more kinds: cower, brawl (a fight with fists) and three commands. Which of them a turn may use is narrowed by V's own words
+// (bridge/threat-screen.mjs); the model sees one fight action and one obey action, and the words decide which kind each one is.
+export const REACTION_ACTIONS = Object.freeze({leave: 'Walk Away', 'call-police': 'Call Police', attack: 'Attack V',
+  cower: 'Cower', brawl: 'Attack V', 'get-down': 'Obey V', stop: 'Obey V', 'exit-vehicle': 'Obey V'});
 export const REACTION_KINDS = Object.freeze(Object.keys(REACTION_ACTIONS));
+const BASE_REACTION_KINDS = Object.freeze(['leave', 'call-police', 'attack']);
 export const REACTION_MEANING = Object.freeze({
   leave: 'you end the talk and walk or run away',
   'call-police': 'you report V to the police',
   attack: 'you turn on V and attack',
+  cower: 'you freeze in fear, crouch and cover where you are',
+  brawl: 'you turn on V and fight with your fists',
 });
+// What V told the person to do, in the words both routes read.
+export const COMMAND_WORDS = Object.freeze({'get-down': 'get down', stop: 'stop where you are', 'exit-vehicle': 'get out of the vehicle'});
 export const reactionActionName = (offer, kind) => token(offer?.token) && Object.hasOwn(REACTION_ACTIONS, kind)
   ? `${REACTION_ACTIONS[kind]} ${offer.token}` : null;
 export function parseReactionOffer(value) {
+  const threats = object(value) && value.threats === true;
+  const allowed = threats ? REACTION_KINDS : BASE_REACTION_KINDS;
   if (!object(value) || value.available !== true || !object(value.actor) || !Array.isArray(value.kinds)
-      || !keys(value, ['available', 'actor', 'kinds']) || !keys(value.actor, ['id', 'key'])
+      || !keys(value, threats ? ['available', 'actor', 'kinds', 'threats'] : ['available', 'actor', 'kinds']) || !keys(value.actor, ['id', 'key'])
       || !entityId(value.actor.id) || !profile(value.actor.key)
-      || value.kinds.length < 1 || value.kinds.length > REACTION_KINDS.length || new Set(value.kinds).size !== value.kinds.length
-      || value.kinds.some(kind => !REACTION_KINDS.includes(kind))) return null;
-  return {available: true, actor: {id: value.actor.id, key: value.actor.key}, kinds: REACTION_KINDS.filter(kind => value.kinds.includes(kind))};
+      || value.kinds.length < 1 || value.kinds.length > allowed.length || new Set(value.kinds).size !== value.kinds.length
+      || value.kinds.some(kind => !allowed.includes(kind))) return null;
+  return {available: true, actor: {id: value.actor.id, key: value.actor.key}, kinds: REACTION_KINDS.filter(kind => value.kinds.includes(kind)),
+    ...(threats ? {threats: true} : {})};
+}
+// The kinds a threats offer leaves for this turn: narrowed by V's words when they are known here (typed, or any Convai turn: a Convai voice turn's
+// words are never seen before its reply, so it keeps only the kinds that need none). A text route's spoken turn is narrowed by the text host,
+// which has the transcript (reactionMenu). Returns {kinds, screen} or null when nothing is narrowed here.
+function narrowReaction(reaction, input) {
+  if (!reaction?.threats) return null;
+  const heard = typeof input?.text === 'string' && input.text.trim() ? input.text : '';
+  if (!heard && input?.provider !== undefined && input.provider !== 'convai') return null;
+  const screen = screenMessage(heard);
+  return {kinds: screenedKinds(reaction.kinds, screen), screen: screenCode(screen)};
 }
 
 export const parseFollowUnavailable = value => typeof value === 'string' && Object.hasOwn(FOLLOW_UNAVAILABLE, value) ? value : null;
@@ -281,11 +304,14 @@ export function parseTacticOffer(value) {
 //   NPC reaction: person=... offered=... admitted=yes route=convai tag=call-police delivered=yes
 // route: text (Mistral, Local AI, Custom: the reply's tag) or convai (the action list); tag: the kind the model chose or none(<why>);
 // delivered: yes, no(<why>) or - (nothing to hand over). `extra` is appended for the Convai route (what its page saw of the offer).
-export function reactionTraceLine({person, kinds, admitted = true, route, tag, why, delivered, extra} = {}) {
+// screen: a threats offer's reading of V's words (bridge/threat-screen.mjs screenCode: "kill", "insult+stop", "none(joke)"), codes only; `offered` is
+// then what the words left of the game's offer.
+export function reactionTraceLine({person, kinds, admitted = true, route, tag, why, delivered, extra, screen} = {}) {
   const list = Array.isArray(kinds) ? kinds.join(',') : String(kinds ?? '?');
   const outcome = tag ? String(tag) : why ? `none(${why})` : 'none';
-  return `NPC reaction: person=${person ?? '?'} offered=${list || '?'} admitted=${admitted === true ? 'yes' : `no(${admitted})`}`
-    + ` route=${route ?? '-'} tag=${admitted === true ? outcome : '-'} delivered=${delivered === true ? 'yes' : delivered ? `no(${delivered})` : '-'}${extra ? ' ' + extra : ''}`;
+  return `NPC reaction: person=${person ?? '?'} offered=${list || (Array.isArray(kinds) ? '-' : '?')} admitted=${admitted === true ? 'yes' : `no(${admitted})`}`
+    + ` route=${route ?? '-'} tag=${admitted === true ? outcome : '-'} delivered=${delivered === true ? 'yes' : delivered ? `no(${delivered})` : '-'}`
+    + `${screen ? ' screen=' + screen : ''}${extra ? ' ' + extra : ''}`;
 }
 const LATE_TRACE_MS = LATE_ACTION_MS + 1000;
 
@@ -314,10 +340,13 @@ export class CompanionActions {
     this.homePicks = new HomePicks({now: () => this.now()});
   }
   // The text host says what the reply's tag was ({tag: kind} before it hands the reaction over; {tag: null, why} when the reply asked for none).
-  traceReaction(token, {route = 'text', tag = null, why = null} = {}) {
+  // A text route that narrowed a threats offer by the transcript (reactionMenu) also says what the words left (kinds) and how it read them (screen).
+  traceReaction(token, {route = 'text', tag = null, why = null, kinds = null, screen = null} = {}) {
     const pending = this.pending, trace = pending?.trace;
     if (!trace || trace.logged || pending.packet.actionId !== token) return;
     trace.route = route; trace.tag = tag; trace.why = why;
+    if (Array.isArray(kinds)) trace.kinds = [...kinds];
+    if (screen) trace.screen = screen;
     if (!tag) this.#closeTrace(pending, null);
   }
   // The turn's reply has been published. A text turn that chose nothing is already closed; a Convai turn may still get a late action
@@ -338,7 +367,7 @@ export class CompanionActions {
     if (!trace || trace.logged) return;
     trace.logged = true;
     const parts = {person: trace.person, kinds: trace.kinds, route: trace.route, tag: trace.tag, why: trace.why ?? (trace.tag ? null : reason),
-      delivered: trace.tag ? (delivered === true ? true : delivered ?? 'turn-ended') : null};
+      delivered: trace.tag ? (delivered === true ? true : delivered ?? 'turn-ended') : null, screen: trace.screen};
     const emit = extra => { try { this.log(reactionTraceLine({...parts, extra})); } catch { /* a log line never breaks a turn */ } };
     if (!trace.route && typeof this.probe === 'function') {
       // The Convai route: what its page did with the offer is the part nobody could see.
@@ -411,13 +440,15 @@ export class CompanionActions {
       if (isCurrentSync() !== true) return 'stale-world';
       return null;
     };
-    const why = refused();
+    // A threats offer whose words leave it nothing (a calm line to a cop: no fight is ever offered on it) arms nothing.
+    const narrowed = narrowReaction(reaction, input);
+    const why = refused() ?? (narrowed && !narrowed.kinds.length ? 'screened' : null);
     if (why !== null) {
       // A turn that carried a reaction offer (or lost one on the way: the input says so) says where it stopped.
       if (input?.reactionOffer || input?.reactionOfferDropped) {
         try {
           this.log(reactionTraceLine({person: input.profileKey, kinds: input.reactionOffer?.kinds ?? '?',
-            admitted: why === 'no-offer' && input.reactionOfferDropped ? input.reactionOfferDropped : why}));
+            admitted: why === 'no-offer' && input.reactionOfferDropped ? input.reactionOfferDropped : why, screen: narrowed?.screen}));
         } catch { /* a log line never breaks a turn */ }
       }
       return null;
@@ -431,8 +462,10 @@ export class CompanionActions {
       worldToken: prepared.worldToken, worldGeneration: prepared.generation, source,
       createdAt: issuedAt, expiresAt: issuedAt + CHAUFFEUR_OFFER_TTL_MS, ...(offer ? {offer} : {})};
     const homePick = home && !group ? this.homePicks.turn(input.profileKey, input.text, home.apartments, home.here, home.fallback) : false;
-    this.pending = {input, packet, tactic, follow, leave, home, homePick, reaction, meet, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
-      ...(reaction ? {trace: {person: input.profileKey, kinds: [...reaction.kinds], logged: false}} : {}),
+    // reactionKinds: what this turn may choose (the offer narrowed by V's words); `reaction` stays the game's own offer, echoed back exactly.
+    const reactionKinds = reaction ? [...(narrowed?.kinds ?? reaction.kinds)] : null;
+    this.pending = {input, packet, tactic, follow, leave, home, homePick, reaction, reactionKinds, meet, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
+      ...(reaction ? {trace: {person: input.profileKey, kinds: [...reactionKinds], logged: false, ...(narrowed ? {screen: narrowed.screen} : {})}} : {}),
       ...(home ? {homeTrace: {person: input.profileKey, apartments: home.apartments.map(apartment => apartment.id), here: home.here, pick: homePick, logged: false}} : {})};
     return this.configFor(input);
   }
@@ -455,7 +488,7 @@ export class CompanionActions {
         ...(member.homeName !== undefined ? {homeName: member.homeName} : {}), ...(member.hereName !== undefined ? {hereName: member.hereName} : {}),
         ...(member.confirmed === true ? {confirmed: true} : {})}))}} : {}),
       ...(pending.home ? {home: homeConfig(pending.home, pending.homePick)} : {}),
-      ...(pending.reaction ? {reaction: {kinds: [...pending.reaction.kinds]}} : {}),
+      ...(pending.reaction ? {reaction: {kinds: [...pending.reactionKinds], ...(pending.reaction.threats ? {threats: true} : {})}} : {}),
       ...(pending.meet ? {meet: meetSummary(pending.meet.meet)} : {}),
       ...(pending.refusal ? {followUnavailable: pending.refusal} : {}),
       ...(pending.tacticRefusal ? {tacticUnavailable: pending.tacticRefusal} : {}),
@@ -517,7 +550,7 @@ export class CompanionActions {
     let leaveTarget, homeChoice;
     if (third === 'home') { homeChoice = this.#homeChoice(message.home, pending.home); if (!homeChoice) return no('not-offered'); }
     else if (third === 'follow') { if (message.follow !== true || !pending.follow) return no('not-offered'); }
-    else if (third === 'reaction') { if (!pending.reaction?.kinds.includes(message.reaction)) return no('not-offered'); }
+    else if (third === 'reaction') { if (!pending.reactionKinds?.includes(message.reaction)) return no('not-offered'); }
     else if (third === 'meet') { if (!offeredKinds(pending.meet).includes(message.meet)) return no('not-offered'); }
     else if (third === 'leave') {
       const members = pending.leave?.members ?? [];
@@ -556,8 +589,11 @@ function windowTactic(value) {
 }
 
 function windowReaction(value) {
-  return object(value) && keys(value, ['kinds']) && Array.isArray(value.kinds) && value.kinds.length >= 1
-    && new Set(value.kinds).size === value.kinds.length && value.kinds.every(kind => REACTION_KINDS.includes(kind));
+  const threats = object(value) && value.threats === true;
+  return object(value) && keys(value, threats ? ['kinds', 'threats'] : ['kinds']) && Array.isArray(value.kinds) && value.kinds.length >= 1
+    && new Set(value.kinds).size === value.kinds.length && value.kinds.every(kind => (threats ? REACTION_KINDS : BASE_REACTION_KINDS).includes(kind))
+    // One fight action and one obey action at most: the words chose which kind each one is.
+    && !(value.kinds.includes('attack') && value.kinds.includes('brawl')) && value.kinds.filter(kind => COMMAND_KINDS.includes(kind)).length <= 1;
 }
 
 // The summary of a call's meeting offer that the Convai page needs (no token of the game's, no coordinates): the kinds, the places in words, whether it may be called off.
@@ -748,11 +784,17 @@ function homeContextText(offered) {
 
 // The Convai route's words about an ordinary NPC's reaction. Short on purpose: it is read on every turn of such a person. The text routes
 // have their own sentence for the same rule (bridge/text-actions.mjs, reactionNotes).
+// A threats offer adds at most one command V gave (docs/NPC_THREATS_COMMANDS.md): the person obeys only if it would.
 function reactionContextText(offered) {
-  const list = offered.reaction.kinds.map(kind => JSON.stringify(reactionActionName(offered, kind)) + ' means ' + REACTION_MEANING[kind]).join('; ');
-  return '\nGame reactions (rare): only when V\'s new message clearly threatens you or seriously insults you and you truly would react, '
+  const threats = offered.reaction.kinds.filter(kind => !COMMAND_KINDS.includes(kind));
+  const command = offered.reaction.kinds.find(kind => COMMAND_KINDS.includes(kind));
+  const list = threats.map(kind => JSON.stringify(reactionActionName(offered, kind)) + ' means ' + REACTION_MEANING[kind]).join('; ');
+  return (list ? '\nGame reactions (rare): only when V\'s new message clearly threatens you or seriously insults you and you truly would react, '
     + 'request one exact action, optionally targeting ' + offered.token + ', in the same reply as your words: ' + list + '. '
-    + 'Request nothing for normal talk, rude but harmless talk or jokes, or when your own reply stays calm; almost every reply has no action. '
+    + 'Request nothing for normal talk, rude but harmless talk or jokes, or when your own reply stays calm; almost every reply has no action. ' : '')
+    + (command ? '\nV just told you to ' + COMMAND_WORDS[command] + '. If your character would do it (scared, sensible or outgunned), request '
+      + JSON.stringify(reactionActionName(offered, command)) + ', optionally targeting ' + offered.token + ', in the same reply as your words; '
+      + 'if you would refuse, say so and request nothing. ' : '')
     + PROTOCOL_NOTE
     + 'The game carries it out after your reply; never claim it has happened before it does.';
 }
@@ -985,7 +1027,7 @@ export async function publishCompanionActionContext(client, context, offer) {
     ...(offer.tactic?.kinds ?? []).map(kind => tacticActionName(offer, kind)).filter(Boolean),
     ...(offer.follow ? [followActionName(offer)] : []), ...leaveActions(offer).map(row => row.name), ...homeActions(offer).map(row => row.name),
     ...(offer.reaction?.kinds ?? []).map(kind => reactionActionName(offer, kind)).filter(Boolean),
-    ...windowMeetKinds(offer.meet).map(kind => meetActionName(offer, kind)).filter(Boolean)];
+    ...windowMeetKinds(offer.meet).map(kind => meetActionName(offer, kind)).filter(Boolean)].filter((name, index, all) => all.indexOf(name) === index);
   const subjects = [...(offer?.drive === false ? [] : [SEATED_MODES.includes(offer?.seated)
       ? "V's own car that V is sitting in, and selected map waypoint" : "V's currently summoned owned car and selected map waypoint"]),
     ...(offer?.tactic ? ['the person V marked as a target'] : []),

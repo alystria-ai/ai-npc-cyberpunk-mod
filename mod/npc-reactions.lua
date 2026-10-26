@@ -18,6 +18,11 @@
 --   * the hostile kinds never in a safe zone or where combat is disabled, and a police call only while V is not wanted and the game's own
 --     prevention system says it would react;
 --   * every native call is guarded, logged once per failure kind and switched off after repeated failures; an unreadable fact refuses.
+--
+-- Threats and commands (docs/NPC_THREATS_COMMANDS.md), only with the Companion Manager switch "NPCs react to threats and commands" on (off by
+-- default; `options.threats()`): a civilian may also cower, a fighter may brawl with fists (an insult or a threat to hurt) as well as attack with a
+-- weapon (a death threat), and people may obey three commands: get down, stop, get out of the vehicle. Which of them a turn may use is narrowed by
+-- the bridge from V's own words (bridge/threat-screen.mjs); this module still decides only what the game allows and carries out what comes back.
 local M = {version = 1}
 
 M.DEFAULTS = {
@@ -29,9 +34,19 @@ M.DEFAULTS = {
     limit = 64,          -- people remembered
     awayFar = 30, awayNear = 14, awaySnap = 3, awayMin = 10,   -- metres: where a leaving person goes, and the least it must gain on V
     verifyAfter = 1.2,   -- seconds after a reaction started that one read-back is logged
+    fleeVerify = 3,      -- seconds after a crowd person's flight started that its read-back (metres moved) is logged
+    jump = 12,           -- metres moved by the first read-back that mean the person was put there, not walked there
+    commandCooldown = 30,   -- seconds after a command before the same person is offered another
+    stopHold = 30, cowerHold = 20,   -- seconds a person who stopped, or who cowers without the crowd's own fear, holds still
+    exitVerify = 3,      -- seconds after a get-out command that its read-back (still in the vehicle or not) is logged
 }
 
-M.KINDS = {'leave', 'call-police', 'attack'}
+M.KINDS = {'leave', 'call-police', 'attack', 'cower', 'brawl', 'get-down', 'stop', 'exit-vehicle'}
+-- The three commands V may give (docs/NPC_THREATS_COMMANDS.md). A command is not the person's one reaction: it does not use up the once-only
+-- rail, and a threat may still follow it.
+M.COMMANDS = {['get-down'] = true, stop = true, ['exit-vehicle'] = true}
+-- The kinds that turn on V or report V: one of them sets the cooldown for all of them.
+M.HOSTILE = {attack = true, ['call-police'] = true, brawl = true}
 
 -- Who may do what. The kinds fit the person: a civilian leaves or reports, a ganger leaves or attacks, a clerk can only report (a shop
 -- the player needs is never abandoned), a cop can only attack (never leaves, never calmly: a threatened cop turns on V), a guard reports
@@ -54,15 +69,42 @@ M.STAYS = {vendor = true, police = true, ['corpo-security'] = true}
 -- Civilians run; everyone else walks off.
 M.RUNS = {resident = true}
 
+-- With the threats switch on, these join the kinds above. Civilians, clerks and staff flee (leave) or cower and may obey; gangers, soldiers,
+-- guards and cops fight, with fists for an insult or a threat to hurt (brawl) and with their weapon for a death threat (attack). A cop or a guard
+-- never takes orders from V. Nomads walk off rather than fight, as above. `base` overrides `category`, as above.
+M.THREAT_BY_CATEGORY = {
+    resident = {'cower', 'get-down', 'stop', 'exit-vehicle'},
+    vendor = {'cower', 'get-down'},                  -- a clerk ducks behind the counter; never walks off its post
+    police = {'brawl'},
+    ['corpo-security'] = {'brawl'},
+    gang = {'brawl', 'get-down', 'stop', 'exit-vehicle'},
+    faction = {'brawl', 'get-down', 'stop', 'exit-vehicle'},
+}
+M.THREAT_BY_BASE = {
+    aldecaldos = {'get-down', 'stop', 'exit-vehicle'},
+    biotechnica = {'cower', 'get-down', 'stop', 'exit-vehicle'},
+    ['trauma-team'] = {'cower', 'get-down', 'stop', 'exit-vehicle'},
+}
+-- The game's own temper of the person (its reaction preset, `natives.temper`): a passive ganger, soldier or guard may also cower.
+M.PASSIVE_COWER = {gang = true, faction = true, ['corpo-security'] = true}
+
 local function copy(list) local out = {}; for index, value in ipairs(list) do out[index] = value end; return out end
+local function has(list, kind) for _, value in ipairs(list or {}) do if value == kind then return true end end return false end
 
 -- The kinds that fit this person, in the order of M.KINDS, or nil (no kind, a named character, a companion). archetype: the table the
--- adapter sends (base, category). Pure.
-function M.kindsFor(archetype)
+-- adapter sends (base, category). threats: the threats switch is on; temper: 'aggressive', 'passive', 'neutral' or nil (not read). Pure.
+function M.kindsFor(archetype, threats, temper)
     if type(archetype) ~= 'table' then return nil end
     local list = M.BY_BASE[archetype.base] or M.BY_CATEGORY[archetype.category]
     if type(list) ~= 'table' or #list == 0 then return nil end
-    return copy(list)
+    if threats ~= true then return copy(list) end
+    local wanted = {}
+    for _, kind in ipairs(list) do wanted[kind] = true end
+    for _, kind in ipairs(M.THREAT_BY_BASE[archetype.base] or M.THREAT_BY_CATEGORY[archetype.category] or {}) do wanted[kind] = true end
+    if temper == 'passive' and M.PASSIVE_COWER[archetype.category] then wanted.cower = true end
+    local out = {}
+    for _, kind in ipairs(M.KINDS) do if wanted[kind] then out[#out + 1] = kind end end
+    return out
 end
 
 -- Which of `kinds` the game allows now, from plain facts. Returns the allowed kinds (possibly empty), and when none is allowed the reason
@@ -72,9 +114,12 @@ end
 --   child, hostile, safe     booleans (nil: could not be read, which refuses what depends on it)
 --   heat       V's wanted stage (number)           preventionReady   the game's prevention system would react to a crime now
 --   refused    the reason the game is in charge (world-talk.lua), or nil
---   reacted    this person already had its one reaction     cooldown   a recent attack or call
---   off        {attack = true, call = true, walk = true}: kinds of native call switched off after failures
--- Pure.
+--   reacted    this person already had its one reaction     cooldown   a recent attack, brawl or call
+--   commanded  this person obeyed a command a moment ago (commandCooldown)
+--   playerMounted   V sits in a vehicle (nil: unread)    (a person in a vehicle: refused == 'vehicle')
+--   off        {attack = true, call = true, walk = true, fear = true, hold = true, exit = true}: kinds of native call switched off after failures
+-- A person in a vehicle is refused everything (the game is in charge of a ride) except the one command to get out of it, and only while V
+-- herself is on foot. Pure.
 function M.allowed(kinds, facts)
     if type(kinds) ~= 'table' or #kinds == 0 then return {}, 'no-kind' end
     if type(facts) ~= 'table' then return {}, 'unreadable' end
@@ -82,14 +127,27 @@ function M.allowed(kinds, facts)
     if facts.quest ~= false then return {}, facts.quest == true and 'quest-flag' or 'unreadable-quest' end
     if facts.reacted == true then return {}, 'already-reacted' end
     if facts.child ~= false then return {}, facts.child == true and 'child' or 'unreadable-child' end
-    if facts.refused then return {}, 'game-in-charge:' .. tostring(facts.refused) end
+    local riding = facts.refused == 'vehicle'
+    if facts.refused and not (riding and has(kinds, 'exit-vehicle')) then return {}, 'game-in-charge:' .. tostring(facts.refused) end
     local off = type(facts.off) == 'table' and facts.off or {}
     local out, why = {}, {}
     for _, kind in ipairs(kinds) do
         local reason
-        if kind == 'leave' then
+        if riding and kind ~= 'exit-vehicle' then
+            reason = 'game-in-charge:vehicle'
+        elseif M.COMMANDS[kind] and facts.commanded == true then
+            reason = 'command-cooldown'
+        elseif kind == 'exit-vehicle' then
+            if not riding then reason = 'not-in-vehicle'
+            elseif facts.playerMounted ~= false then reason = facts.playerMounted == true and 'v-in-vehicle' or 'unreadable-v-vehicle'
+            elseif off.exit then reason = 'exit-switched-off' end
+        elseif kind == 'stop' then
+            if off.hold then reason = 'hold-switched-off' end
+        elseif kind == 'cower' or kind == 'get-down' then
+            if off.fear and off.hold then reason = 'fear-switched-off' end
+        elseif kind == 'leave' then
             if off.walk then reason = 'walk-switched-off' end
-        elseif kind == 'attack' then
+        elseif kind == 'attack' or kind == 'brawl' then
             if off.attack then reason = 'attack-switched-off'
             elseif facts.cooldown == true then reason = 'cooldown'
             elseif facts.safe ~= false then reason = facts.safe == true and 'safe-zone' or 'unreadable-zone'
@@ -261,6 +319,79 @@ function M.nativeAdapter()
         local label = tostring(npc:GetAIControllerComponent():GetCommandState(command))
         return label:match('^AICommandState%s*:%s*(%w+)%s*%(%d+%)$') or label
     end
+    -- Where the person stands, for the read-backs (metres moved).
+    function N.position(npc) local p = npc:GetWorldPosition(); return {x = p.x, y = p.y, z = p.z} end
+    -- A crowd person (the city's pedestrians and the people on its benches and corners). The game moves a crowd person given an
+    -- AIMoveToCommand to the end point at once instead of walking it there (a player report, 2026-10-25: `command state=Success` after 1.2 s
+    -- and exactly 30.0 m moved by 3 s, three times, all crowd and workspot people), so a crowd person never gets one: it gets the crowd's own fear.
+    function N.crowd(npc) return npc:IsCrowd() == true end
+    -- The game's own temper of the person: its reaction preset (Ganger_Aggressive, Ganger_Passive, Civilian_Neutral, ...). 'aggressive',
+    -- 'passive' or 'neutral'.
+    function N.temper(npc)
+        local text = tostring(npc:GetStimReactionComponent():GetReactionPreset():Type())
+        if text:find('Aggressive', 1, true) then return 'aggressive' end
+        if text:find('Passive', 1, true) or text:find('NoReaction', 1, true) then return 'passive' end
+        return 'neutral'
+    end
+    -- The crowd's own fear, the way the game frightens a crowd person (reactionComponent.script OnCrowdReaction): the same event the game
+    -- queues to the passengers of a car with a fixed fear phase (vehicles.script TriggerFearInsideVehicleBehavior, TriggerExitBehavior).
+    -- phase 2: the person cowers or surrenders where it is (in a seat, the workspot's own fear); 3: it runs away from V along the crowd's
+    -- own paths. The game then plays its fear voice, lets nearby people share the fright, and later removes the person out of sight, as it
+    -- does for every frightened passer-by. One event, nothing per frame.
+    function N.crowdFear(npc, player, phase)
+        local stimType = Enum.new('gamedataStimType', 'Terror')
+        local stim = NewObject('StimuliEvent')
+        stim.sourceObject = player
+        stim.sourcePosition = player:GetWorldPosition()
+        stim:SetStimType(stimType)
+        pcall(function()
+            local record = Game.GetStimuliSystem():GetStimRecord(stimType)
+            if record then stim.stimRecord = record end
+        end)
+        local event = NewObject('DelayedCrowdReactionEvent')
+        event.stimEvent = stim
+        event.vehicleFearPhase = phase
+        npc:QueueEvent(event)
+    end
+    -- Holds the person where it stands (the command the conversation hold and the companion actuator use). Returns the command.
+    function N.hold(npc, seconds)
+        local command = NewObject('AIHoldPositionCommand')
+        command.duration = seconds
+        if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the hold command') end
+        return command
+    end
+    -- Fists for a brawl: the right hand takes the bare-hands item (failIfItemNotFound off: a person without it keeps what it has, nothing
+    -- is added to its inventory). Unconfirmed on ordinary NPCs; the read-back says what the hand holds.
+    function N.fists(npc)
+        local command = NewObject('AIEquipCommand')
+        command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
+        command.itemId = TweakDBID.new('Items.w_melee_004__fists_a')
+        pcall(function() command.failIfItemNotFound = false end)
+        if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the fists command') end
+        return 'fists asked'
+    end
+    -- Puts the drawn weapon away (mod/companion-equipment.lua's holster command): the second ask of a brawl whose person drew a weapon.
+    function N.holster(npc)
+        local command = NewObject('AIUnequipCommand')
+        command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
+        if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the holster command') end
+    end
+    -- What the right hand holds: 'empty', 'fists' or the weapon's record.
+    function N.hand(npc)
+        local item = ScriptedPuppet.GetWeaponRight(npc)
+        if item == nil then return 'empty' end
+        local id = item:GetItemID()
+        if WeaponObject.IsFists(id) then return 'fists' end
+        return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'weapon')
+    end
+    -- Out of the vehicle: the game's own exit event for a passenger (vehicles.script TriggerExitBehavior, `ExitVehicle`), queued to the person.
+    function N.exitVehicle(npc)
+        local event = NewObject('AIEvent')
+        event.name = CName.new('ExitVehicle')
+        npc:QueueEvent(event)
+    end
+    function N.mounted(npc) return Game.GetMountingFacility():IsMountedToAnything(npc:GetEntityID()) == true end
+    function N.playerMounted(player) return Game.GetMountingFacility():IsMountedToAnything(player:GetEntityID()) == true end
     return N
 end
 
@@ -273,6 +404,7 @@ end
 --   refusal(npc, player, entity)   the reason the game is in charge (world-talk.lua) or nil
 --   release(player)     lets go of the conversation's hold and look-at (endFocus in mod/init.lua)
 --   awaiting(requestId) the reply for that request is still on its way         speaking(entity)   the person is speaking now
+--   threats()           the Companion Manager switch "NPCs react to threats and commands" is on (read once per offer; absent or false: off)
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local cfg = {}
@@ -284,6 +416,7 @@ function M.new(options)
     local failures, off = {}, {}
     local exchanges, exchangeCount = {}, 0
     local reacted, reactedCount = {}, 0
+    local commanded, commandedCount = {}, 0
     local lastHostile
     local pending
     local checks = {}   -- read-backs due later: {at, kind, ...}
@@ -332,7 +465,7 @@ function M.new(options)
     local function facts(npc, player, entity, mode)
         local fresh = mode ~= nil
         local now = clock()
-        local f = {off = {attack = off.attack, call = off.call, walk = off.walk}}
+        local f = {off = {attack = off.attack, call = off.call, walk = off.walk, fear = off.fear, hold = off.hold, exit = off.exit}}
         local policy = type(options.policy) == 'table' and options.policy or {}
         local okPolicy, ordinary = pcall(function()
             return policy.ours(npc) ~= true and policy.spawned(npc) ~= true and policy.protected(npc) ~= true and policy.story(npc) ~= true
@@ -351,16 +484,27 @@ function M.new(options)
         read('safe', 'read-zone', natives.safe, player)
         read('heat', 'read-heat', natives.heat)
         read('preventionReady', 'read-prevention', natives.preventionReady, player)
+        -- Read only for a person in a vehicle (the one command it may get), and only by an adapter that has it.
+        if f.refused == 'vehicle' and natives.playerMounted then read('playerMounted', 'read-mount', natives.playerMounted, player) end
         f.reacted = not fresh and reacted[entity] ~= nil
         f.cooldown = mode ~= 'run' and cooling(now)
+        f.commanded = mode ~= 'run' and commanded[entity] ~= nil and now - commanded[entity] < cfg.commandCooldown
         return f
+    end
+
+    -- The threats switch, read once per offer (a manager read, never per frame). Absent or failing: off.
+    local function threatsOn()
+        if type(options.threats) ~= 'function' then return false end
+        local ok, value = pcall(options.threats)
+        return ok and value == true
     end
 
     -- The offer for V's message that is being admitted (mod/gameplay-actions.lua capture): {available, actor, kinds}, or nil. context: the
     -- request (entity, profileKey, archetype).
     function S.offer(entity, context)
         if type(entity) ~= 'string' or type(context) ~= 'table' or type(context.profileKey) ~= 'string' then return nil end
-        local kinds = M.kindsFor(context.archetype)
+        local threats = threatsOn()
+        local kinds = M.kindsFor(context.archetype, threats)
         if not kinds then
             logOnce('npc-reaction-no-kind:' .. entity, 'NPC reaction not offered: no-kind (' .. tostring(type(context.archetype) == 'table' and (context.archetype.base or context.archetype.category) or 'no archetype') .. ')')
             return nil
@@ -381,38 +525,90 @@ function M.new(options)
         exchanges[entity].category = context.archetype.base or context.archetype.category
         exchanges[entity].group = context.archetype.category
         exchanges[entity].base, exchanges[entity].affiliation = context.archetype.base, context.archetype.affiliation
+        -- The person's own temper (a passive ganger may also cower), read only with the switch on.
+        local temper
+        if threats and natives.temper then
+            local okTemper, value = guard('read-temper', natives.temper, npc)
+            if okTemper then temper = value end
+            kinds = M.kindsFor(context.archetype, true, temper)
+        end
         local allowed, why = M.allowed(kinds, facts(npc, player, entity))
         if #allowed == 0 then
             logOnce('npc-reaction-no:' .. entity .. ':' .. tostring(why), 'NPC reaction not offered: ' .. tostring(why) .. ' (' .. tostring(context.archetype.base or context.archetype.category) .. ')')
             return nil
         end
         log('NPC reaction offered: kinds=' .. table.concat(allowed, ',') .. ' type=' .. tostring(context.archetype.base or context.archetype.category)
-            .. ' message=' .. tostring(count))
-        return {available = true, actor = {id = entity, key = context.profileKey}, kinds = allowed}
+            .. ' message=' .. tostring(count) .. (threats and (' threats=on temper=' .. tostring(temper or '?')) or ''))
+        -- `threats` tells the bridge to narrow the kinds by V's words (bridge/threat-screen.mjs); without it the offer is exactly as before.
+        return {available = true, actor = {id = entity, key = context.profileKey}, kinds = allowed, threats = threats or nil}
     end
 
     local function release(player)
         if type(options.release) == 'function' then pcall(options.release, player) end
     end
 
-    -- The walk away: V's hold on the person is let go, then one command to the first walkable point away from V.
+    -- Is this a crowd person? Only an adapter that can say (natives.crowd) is asked; a read that fails says no.
+    local function crowdOf(npc)
+        if not natives.crowd then return false end
+        local ok, value = guard('read-crowd', natives.crowd, npc)
+        return ok and value == true
+    end
+    local function where(npc)
+        if not natives.position then return nil end
+        local ok, value = pcall(natives.position, npc)
+        return ok and type(value) == 'table' and value or nil
+    end
+    -- The crowd's own fear for a crowd person (natives.crowdFear): phase 3 runs away, phase 2 cowers. One read-back of the metres moved.
+    local function crowdFear(p, player, phase, why)
+        if off.fear then return false end
+        local from = where(p.npc)
+        local ok = guard('fear', natives.crowdFear, p.npc, player, phase)
+        if not ok then return false end
+        log('NPC reaction: ' .. why .. ' started, the crowd\'s own ' .. (phase >= 3 and 'flight' or 'fear') .. ' (no move command)')
+        checks[#checks + 1] = {at = clock() + cfg.fleeVerify, kind = 'moved', npc = p.npc, from = from, why = why, seconds = cfg.fleeVerify}
+        return true
+    end
+
+    -- The walk away: V's hold on the person is let go, then one command to the first walkable point away from V. A crowd person runs with the
+    -- crowd's own flight instead: a move command puts a crowd person at its end point in an instant (the person "disappears").
     local function walkAway(p, player, why)
         release(player)
+        if crowdOf(p.npc) then
+            if crowdFear(p, player, 3, why) then return true end
+            logOnce('npc-reaction-nofear', 'NPC reaction: the crowd\'s own flight is not available for ' .. why .. '; the person stays')
+            return false
+        end
         local gait = M.RUNS[p.category] and 'Run' or 'Walk'
         local ok, points = guard('walk', natives.awayPoints, p.npc, player, cfg)
         if not ok or type(points) ~= 'table' or #points == 0 then
             logOnce('npc-reaction-nopoint', 'NPC reaction: no walkable point away from V for ' .. why .. '; the person stays')
             return false
         end
+        local from = where(p.npc)
         local started, command = guard('walk', natives.walkTo, p.npc, points[1], gait)
         if not started then return false end
         log('NPC reaction: ' .. why .. ' started, ' .. gait:lower() .. ' away (' .. string.format('%.0f', points[1].gap) .. ' m from V)')
-        checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'walk', npc = p.npc, command = command, points = points, tried = 1, gait = gait, why = why, entity = p.entity}
+        checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'walk', npc = p.npc, command = command, points = points, tried = 1, gait = gait, why = why, entity = p.entity,
+            from = from}
+        return true
+    end
+
+    -- Cower or get down: a crowd person with the crowd's own fear (it cowers or surrenders where it is); anyone else holds still.
+    local function cower(p, player, why)
+        release(player)
+        if crowdOf(p.npc) and crowdFear(p, player, 2, why) then return true end
+        local ok, command = guard('hold', natives.hold, p.npc, cfg.cowerHold)
+        if not ok then return false end
+        log('NPC reaction: ' .. why .. ' started, holds still for ' .. cfg.cowerHold .. ' s (not a crowd person, or its fear was not available)')
+        checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = p.npc, command = command, why = why}
         return true
     end
 
     -- A reaction that actually started, for Street reputation (mod/reputation.lua; options.onReaction is set only while that setting is on).
+    -- A brawl is the same deed as an attack and a cower the same as a person fleeing; a command V gave is no deed (reputation.lua ignores it).
+    local DEED = {brawl = 'attack', cower = 'leave'}
     local function started(kind, p)
+        kind = DEED[kind] or kind
         if type(options.onReaction) == 'function' then
             pcall(options.onReaction, kind, {base = p.base, category = p.category, affiliation = p.affiliation})
         end
@@ -438,14 +634,36 @@ function M.new(options)
         end
         if p.kind == 'leave' then
             if walkAway(p, player, 'leave') then started('leave', p) end
-        elseif p.kind == 'attack' then
+        elseif p.kind == 'attack' or p.kind == 'brawl' then
             release(player)
             local hostile = guard('attack', natives.makeHostile, p.npc, player)
             local combat, way = guard('attack', natives.startCombat, p.npc, player)
-            log('NPC reaction: attack ' .. (hostile and 'hostile ok' or 'hostile failed') .. ', combat start ' .. (combat and tostring(way) or 'failed'))
+            -- A brawl: the person's hand takes its fists (a weapon only for a death threat, the plain attack).
+            local fists, how = false, nil
+            if p.kind == 'brawl' and natives.fists then fists, how = guard('fists', natives.fists, p.npc) end
+            log('NPC reaction: ' .. p.kind .. ' ' .. (hostile and 'hostile ok' or 'hostile failed') .. ', combat start ' .. (combat and tostring(way) or 'failed')
+                .. (p.kind == 'brawl' and (', fists ' .. (fists and tostring(how) or 'not asked')) or ''))
             if hostile or combat then
-                checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = p.npc, entity = p.entity}
-                started('attack', p)
+                checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = p.npc, entity = p.entity, brawl = p.kind == 'brawl'}
+                started(p.kind, p)
+            end
+        elseif p.kind == 'cower' or p.kind == 'get-down' then
+            if cower(p, player, p.kind) then started(p.kind, p) end
+        elseif p.kind == 'stop' then
+            -- The conversation's own hold already keeps the person here while V talks; this one outlasts it. No release: the talk goes on.
+            local ok, command = guard('hold', natives.hold, p.npc, cfg.stopHold)
+            if ok then
+                log('NPC reaction: stop started, holds still for ' .. cfg.stopHold .. ' s')
+                checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = p.npc, command = command, why = 'stop'}
+                started('stop', p)
+            end
+        elseif p.kind == 'exit-vehicle' then
+            release(player)
+            local ok = guard('exit', natives.exitVehicle, p.npc)
+            if ok then
+                log('NPC reaction: exit-vehicle started, the game\'s own exit')
+                checks[#checks + 1] = {at = clock() + cfg.exitVerify, kind = 'exit', npc = p.npc}
+                started('exit-vehicle', p)
             end
         elseif p.kind == 'call-police' then
             local before = select(2, guard('read-heat', natives.heat))
@@ -456,11 +674,22 @@ function M.new(options)
         end
     end
 
+    -- Metres from `from` to where the person stands now, or nil.
+    local function moved(npc, from)
+        local now = from and where(npc)
+        if not now then return nil end
+        return math.sqrt((now.x - from.x) ^ 2 + (now.y - from.y) ^ 2 + (now.z - from.z) ^ 2)
+    end
+    local function metres(value) return value and string.format('%.1f', value) or '?' end
+
     -- One read-back per reaction, logged: what the game did with it. Never retried except a walk the game did not take.
     local function check(v)
         if v.kind == 'walk' then
             local ok, state = guard('read-command', natives.commandState, v.npc, v.command)
-            log('NPC reaction check: ' .. v.why .. ' command state=' .. (ok and tostring(state) or 'unreadable'))
+            local gone = moved(v.npc, v.from)
+            -- A walk cannot cover `jump` metres in the first read-back's 1.2 s: the person was put there (the crowd case, docs/NPC_THREATS_COMMANDS.md).
+            log('NPC reaction check: ' .. v.why .. ' command state=' .. (ok and tostring(state) or 'unreadable')
+                .. (v.from and (' moved=' .. metres(gone) .. ' m' .. ((gone or 0) >= cfg.jump and ' (jumped, not walked)' or '')) or ''))
             if ok and (state == 'Failure' or state == 'Cancelled' or state == 'Interrupted') and v.points[v.tried + 1] and not off.walk then
                 local started, command = guard('walk', natives.walkTo, v.npc, v.points[v.tried + 1], v.gait)
                 if started then
@@ -472,16 +701,36 @@ function M.new(options)
             local okCombat, combat = guard('read-combat', natives.inCombat, v.npc)
             local player = select(2, pcall(options.player))
             local okHostile, hostile = guard('read-attitude', natives.hostile, v.npc, player)
-            log('NPC reaction check: attack in_combat=' .. (okCombat and tostring(combat) or 'unreadable') .. ' hostile_to_v=' .. (okHostile and tostring(hostile) or 'unreadable'))
+            local hand
+            if v.brawl and natives.hand then local okHand, value = guard('read-hand', natives.hand, v.npc); hand = okHand and tostring(value) or 'unreadable' end
+            log('NPC reaction check: ' .. (v.brawl and 'brawl' or 'attack') .. ' in_combat=' .. (okCombat and tostring(combat) or 'unreadable') .. ' hostile_to_v=' .. (okHostile and tostring(hostile) or 'unreadable')
+                .. (hand and (' hand=' .. hand) or ''))
+            -- A brawl whose person drew a weapon: the weapon is put away once (its fists are what an insult earns).
+            if v.brawl and hand and hand ~= 'fists' and hand ~= 'empty' and hand ~= 'unreadable' and not v.holstered and natives.holster then
+                local put = guard('fists', natives.holster, v.npc)
+                log('NPC reaction: brawl drew ' .. hand .. ', asked to put it away (' .. (put and 'sent' or 'failed') .. ')')
+                v.holstered = true
+            end
             -- Hostile but not fighting a second later (a person who has not noticed V): one stronger ask, then one more read-back.
             if okCombat and combat == false and not v.engaged and okHostile then
                 local engaged, how = guard('attack', natives.engage, v.npc, player)
                 log('NPC reaction: not in combat yet, asked again (' .. (engaged and tostring(how) or 'failed') .. ')')
-                if engaged then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = v.npc, entity = v.entity, engaged = true} end
+                if engaged then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = v.npc, entity = v.entity, engaged = true, brawl = v.brawl, holstered = v.holstered} end
             end
         elseif v.kind == 'police' then
             local ok, heat = guard('read-heat', natives.heat)
             log('NPC reaction check: police stage ' .. tostring(v.before) .. ' -> ' .. (ok and tostring(heat) or 'unreadable'))
+        elseif v.kind == 'moved' then
+            local gone = moved(v.npc, v.from)
+            local attached = true
+            pcall(function() attached = v.npc:IsAttached() ~= false end)
+            log('NPC reaction check: ' .. v.why .. ' crowd moved=' .. metres(gone) .. ' m in ' .. tostring(v.seconds) .. ' s' .. (attached and '' or ' (streamed out)'))
+        elseif v.kind == 'hold' then
+            local ok, state = guard('read-command', natives.commandState, v.npc, v.command)
+            log('NPC reaction check: ' .. v.why .. ' hold state=' .. (ok and tostring(state) or 'unreadable'))
+        elseif v.kind == 'exit' then
+            local ok, mounted = guard('read-mount', natives.mounted, v.npc)
+            log('NPC reaction check: exit-vehicle ' .. (ok and (mounted and 'still in the vehicle' or 'out of the vehicle') or 'unreadable'))
         end
     end
 
@@ -502,10 +751,16 @@ function M.new(options)
         local row = exchanges[entity]
         local allowed, why = M.allowed({kind}, facts(npc, player, entity, 'start'))
         if #allowed == 0 then log('NPC reaction refused (' .. kind .. '): ' .. tostring(why)); return false, why end
-        if reactedCount >= cfg.limit then reacted, reactedCount = {}, 0 end
         local now = clock()
-        reacted[entity], reactedCount = now, reactedCount + 1
-        if kind ~= 'leave' then lastHostile = now end
+        if M.COMMANDS[kind] then
+            -- A command is not the person's one reaction: it only keeps the next command away for a moment.
+            if commandedCount >= cfg.limit then commanded, commandedCount = {}, 0 end
+            commanded[entity], commandedCount = now, commandedCount + 1
+        else
+            if reactedCount >= cfg.limit then reacted, reactedCount = {}, 0 end
+            reacted[entity], reactedCount = now, reactedCount + 1
+        end
+        if M.HOSTILE[kind] then lastHostile = now end
         pending = {kind = kind, entity = entity, requestId = requestId, npc = npc, at = now, category = row and row.group,
             base = row and row.base, affiliation = row and row.affiliation}
         log('NPC reaction accepted: ' .. kind .. ', starts when the reply has been heard')
@@ -539,10 +794,11 @@ function M.new(options)
     function S.reset()
         pending, checks = nil, {}
         exchanges, exchangeCount, reacted, reactedCount, lastHostile = {}, 0, {}, 0, nil
+        commanded, commandedCount = {}, 0
     end
 
     function S.inspect()
-        return {pending = pending ~= nil and pending.kind or nil, off = {attack = off.attack, call = off.call, walk = off.walk},
+        return {pending = pending ~= nil and pending.kind or nil, off = {attack = off.attack, call = off.call, walk = off.walk, fear = off.fear, hold = off.hold, exit = off.exit},
             failures = failures, cooling = cooling(clock()), reacted = reactedCount}
     end
     function S.cancel(entity)

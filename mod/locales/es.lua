@@ -1262,6 +1262,8 @@ return {
     ["Prompting"] = "Prompt",
     ["Street reputation"] = "Reputación callejera",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Las bandas, el NCPD, las corporaciones y la gente de cada distrito recuerdan lo que hizo V: Street Cred, decisiones en encargos, peleas, delitos que vio la policía y cómo tratas a la gente. Eso marca su saludo, confianza y ayuda.\n\nSolo gente corriente, nunca personajes con nombre o de la historia. Cambia sus palabras, nada del juego.",
+    ["NPCs react to threats and commands"] = "Los PNJ reaccionan a amenazas y órdenes",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "La gente común a la que amenazas huye, se encoge de miedo o se defiende, según su naturaleza: los pandilleros y los guardias usan los puños ante un insulto y sus armas ante una amenaza de muerte.\n\nTambién pueden hacer lo que les dices, si lo harían: tirarse al suelo, detenerse o bajar del vehículo.\n\nSolo gente común, nunca personajes con nombre ni de la historia, y nunca durante escenas, misiones o peleas.",
     ["Voice language"] = "Idioma de voz",
     ["English"] = "inglés",
     ["Automatic"] = "Automático",

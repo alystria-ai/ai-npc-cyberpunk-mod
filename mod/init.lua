@@ -980,6 +980,8 @@ do
             refusal = function(npc, player, entity) return convaiWorldTalk and convaiWorldTalk:refusal(npc, player, entity) or nil end,
             awaiting = function(requestId) return pending ~= nil and pending.requestId == requestId end,
             speaking = function(entity) return speech.requestId ~= nil and speech.context ~= nil and speech.context.entity == entity end,
+            -- "NPCs react to threats and commands" (docs/NPC_THREATS_COMMANDS.md), off by default: read once per offer.
+            threats = function() return type(manager.npcThreats) == 'function' and manager.npcThreats() == true end,
         })
         if built then convaiNpcReactions = service else print('[CyberpunkConvai] NPC reactions unavailable: ' .. tostring(service)) end
     elseif not loaded then print('[CyberpunkConvai] npc-reactions.lua unavailable: ' .. tostring(module)) end

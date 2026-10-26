@@ -1262,6 +1262,8 @@ return {
     ["Prompting"] = "プロンプト",
     ["Street reputation"] = "ストリートの評判",
     ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "ギャング、NCPD、企業、各地区の住人は V の行いを覚えている：ストリートクレド、仕事での選択、戦い、警察に見られた犯罪、人への接し方。挨拶、信頼、手助けはそれで決まる。\n\n対象は一般の人々だけで、名前のある人物やストーリーキャラクターは含まない。変わるのは言葉だけで、ゲームには影響しない。",
+    ["NPCs react to threats and commands"] = "NPCが脅しと命令に反応する",
+    ["Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights."] = "脅した一般人は、その人らしく逃げる、すくみ上がる、または反撃する：ギャングや警備員は侮辱には拳で、殺害の脅しには武器で応じる。\n\nその人がするなら、言われたことにも従う：伏せる、止まる、車から降りる。\n\n一般人のみで、名前のあるキャラクターやストーリーのキャラクターには働かず、シーン、クエスト、戦闘の最中には起こらない。",
     ["Voice language"] = "音声の言語",
     ["English"] = "英語",
     ["Automatic"] = "自動",
