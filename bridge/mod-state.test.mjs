@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {parseMods, modsSignature, modsSentences, MAX_PHRASES} from './mod-state.mjs';
 import {describeTurnContext, parseTurnContext, sceneryFor} from './turn-context.mjs';
-import {SceneryMemory} from './scenery-memory.mjs';
+import {SceneryMemory, asksAboutSelf} from './scenery-memory.mjs';
 
 const mods = (darkFuture, extra = {}) => parseMods({darkFuture, ...extra});
 
@@ -162,4 +162,54 @@ test('hostile text in the table cannot reach the model: only fixed words are eve
   const text = modsSentences(parsed, 'person').join(' ');
   assert.equal(text, 'V is exhausted. V is in withdrawal from alcohol.');
   assert.doesNotMatch(text, /ignore|<b>|instructions/);
+});
+
+// The owner's live test of 2026-10-26: V hungry (nutrition 1, then thirst 1 too), Alex asked "how do I look?" / "do I seem okay?" and never mentioned it.
+// The state had been told on the first turn, in the Background line; Convai replaces its context every turn, so on the question it was gone.
+test('V asking about themself always gets their state again, in the block, worded as the answer; unprompted turns keep the once-per-stage rule', () => {
+  const memory = new SceneryMemory({now: () => 1000});
+  let serial = 0;
+  const turn = (state, text) => ({requestId: `r-${++serial}`, profileKey: 'alex', name: 'Alex', entity: '11145749ULL', text,
+    turnContext: {version: 1, status: 'ready', hour: 8, minute: 32, district: 'Watson', party: [{name: 'Alex', key: 'alex', activity: 'standing'}], mods: {darkFuture: state}}});
+  const build = (state, text, options = {}) => { const input = turn(state, text); return describeTurnContext(input, {split: true, fresh: sceneryFor(input, memory), ...options}); };
+  const first = build({nutrition: 1}, 'hello');
+  assert.match(first.background, /V is a little hungry\./, 'told on the first turn');
+  // Same state, a plain question: not repeated (the rule for unprompted turns is unchanged).
+  const plain = build({nutrition: 1}, 'what weapon do you have');
+  assert.doesNotMatch(plain.background + plain.text, /hungry/);
+  // The owner's questions: the state is in the block, plainly, with the instruction to let it show.
+  for (const text of ['how do I look?', 'do I seem okay?', 'Am I okay?', 'do I look hungry?', 'do I look tired to you?']) {
+    const asked = build({hydration: 1, nutrition: 1}, text);
+    assert.match(asked.text, /V is a little thirsty and a little hungry\. V is asking how they look or how they are: let this show in your answer/, text);
+    assert.doesNotMatch(asked.background, /hungry/, 'not also in the Background line');
+    assert.match(asked.text, /^Right now \(from the game, this turn only\): You are with V in person/, 'it follows who she is, so a budget cut never reaches it');
+    assert.ok(asked.text.length <= 900 + 220, `${asked.text.length} chars`);
+  }
+  // The next plain turn is quiet again.
+  const after = build({hydration: 1, nutrition: 1}, 'ok, where to?');
+  assert.doesNotMatch(after.background + after.text, /hungry|thirsty/);
+  // Nothing to tell, nothing said, however V asks.
+  const fine = build({nutrition: 0, energy: 0, nerve: 1}, 'how do I look?');
+  assert.doesNotMatch(fine.text + fine.background, /V is asking|hungry/);
+  // A stranger sees what shows on a body, only the bad stages, and is still told V is asking.
+  const stranger = (state, text) => { const input = {...turn(state, text), profileKey: 'ambient-citizen', archetype: {district: 'Watson'}, entity: '5ULL'};
+    return describeTurnContext(input, {split: true, ambient: true, fresh: sceneryFor(input, memory)}); };
+  assert.match(stranger({energy: 4}, 'how do I look?').text, /V looks exhausted\. V is asking/);
+  assert.doesNotMatch(stranger({energy: 1}, 'how do I look?').text, /V looks|V is asking/, 'a stranger sees nothing at stage 1');
+  // A phone chat, a call and an add-on voice get nothing (a text cannot show it).
+  const phone = turn({nutrition: 1}, 'how do I look?'); phone.channel = 'phone';
+  assert.doesNotMatch(describeTurnContext(phone, {split: true, fresh: sceneryFor(phone, memory)}).text, /hungry/);
+  // Without `split` the block carries it once.
+  const whole = turn({nutrition: 1}, 'how do I look?');
+  assert.equal((describeTurnContext(whole, {fresh: sceneryFor(whole, memory)}).text.match(/hungry/g) ?? []).length, 1);
+});
+
+test('the self-question check reads the menu languages and ignores ordinary talk', () => {
+  const asks = ['how do I look?', 'do I seem okay?', 'Do I look alright to you', 'am I OK?', "how'm I doing, am I tired", 'I am so hungry', 'should we eat something', 'how am I holding up',
+    '¿Cómo me ves?', 'Tengo hambre', 'Eu pareço cansado?', 'estou com fome', "J'ai l'air fatigué ?", "j'ai faim", 'Wie sehe ich aus?', 'Ich bin müde', 'Come sembro?', 'ho fame',
+    'Jak wyglądam?', 'jestem głodny', 'Jak vypadám?', 'jsem unavený', 'Hogy nézek ki?', 'éhes vagyok', 'Как я выгляжу?', 'я голодный', 'Як я виглядаю?', 'я втомився',
+    'Nasıl görünüyorum?', 'açım', '私は大丈夫？', 'お腹が空いた', '我看起来怎么样？', '我饿了', '나 괜찮아 보여?', '배고파'];
+  for (const text of asks) assert.equal(asksAboutSelf(text), true, text);
+  for (const text of ['what weapon do you have', 'tell me about Night City', 'where are we going', 'can you fix my car', 'how do I get to the Afterlife', 'hello', '', undefined, null])
+    assert.equal(asksAboutSelf(text), false, String(text));
 });
