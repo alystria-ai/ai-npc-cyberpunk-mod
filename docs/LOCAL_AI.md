@@ -87,7 +87,10 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   pinned or not. The saved choice is kept (not rewritten) and ignored with no notice; the default rule runs, so the standard (or lite) model loads and the
   row shows it. A loaded Mature model is replaced (the server reloads) when Mature content goes off, and the pin is used again when it comes back on.
   Turning Mature content off in the settings page also moves a row still on a Mature model to the standard (else the lite) model in the same change
-  (after the earlier model is put back, if one was recorded). With Mature content on you may pin the standard model; it is kept. A model you added yourself
+  (after the earlier model is put back, if one was recorded). **The row always lists every installed model, Mature ones and ordinary ones, whether Mature content is on or off.** Choosing one of the Local AI packs' own
+  models (standard or lite) while Mature content is on, with a Mature model installed, turns Mature content off in that Apply, keeps the provider on Local AI and
+  says so on the settings line ("Mature content is turned off because you chose a model that is not a Mature model."); choosing a Mature model behaves as
+  before. With no Mature model installed nothing is turned off (Mature content works with any model), and a model you added yourself is not judged either. A model you added yourself
   is not covered by this: it runs when you pick it (the default rule still prefers ordinary models while Mature content is off).
 - **A Mature pack alone (no standard, lite or custom model installed).** The Mature packs include the memory model and use the Runtime's engine, so they work without a Local AI pack
   (see "Mature content"). Then every installed model is an uncensored one, and the rule is: they run only while Mature content is on. With it on, the

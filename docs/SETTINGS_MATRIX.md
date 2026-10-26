@@ -78,7 +78,7 @@ Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni 
 | 9 | provider × add-on route | the player's Mistral/Local AI, or Custom when it is chosen and its endpoint is ready; else the Mistral key, else Local AI (D6). |
 | 10 | provider × character editor | edits apply on Mistral, Local AI and Custom. Was F6 (texts). |
 | 11 | provider × connections | connections pre-open on the shared free tier only; the Auto-connect setting is gone (D7). |
-| 12 | Mature × localModel | on selects the uncensored model; off puts the old one back (record). |
+| 12 | Mature × localModel | on selects the uncensored model; off puts the old one back (record). The model list shows every installed model either way. Choosing a standard or lite model while Mature is on (a Mature model installed, provider Local AI) turns Mature off in the same Apply, with a sentence, and keeps the provider (`stageMature`, 2026-10-26). |
 | 13 | Mature × companion voice | none (D1, 2026-10-20): Mature changes no voice, with any provider. Was F1. |
 | 14 | Mature × V engine | none (D1). Was F4. |
 | 15 | Mature × Mistral key | key removed: Mature stays as it is (the voice rows are not touched any more); a Mature on from Convai picks Mistral only while a key is saved (D3). |
