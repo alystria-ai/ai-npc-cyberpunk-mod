@@ -717,6 +717,8 @@ do
                 for key in pairs(self.keys) do supportedProfiles[key] = true end
                 -- With no character made the catalogue is exactly as it was: resolve never calls into this module.
                 catalog.custom = self.count > 0 and self or nil
+                -- The copies from the Model browser take (or give back) the character they match.
+                if type(convaiSettleCopyProfiles) == 'function' then convaiSettleCopyProfiles() end
             end})
         if created and type(service) == 'table' then
             convaiCustomCharacters = service
@@ -843,10 +845,12 @@ end
 
 -- forceFacts: read the TweakDB facts even when "Talk to ordinary NPCs" is off (the scanner names, mod/npc-names.lua).
 local function profileIdentity(npc, forceFacts)
-    local managedKey, managedName, owned = companions.identity(npc)
+    local managedKey, managedName, owned, serial, copyRecord, copyName, ready, carried = companions.identity(npc)
     local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
     local body = tostring(npc:GetBodyType() or '')
-    if owned and not managedKey then return nil, name, body end
+    -- Our own copy with no conversation profile is still one of the player's characters when its model matches one (docs/CHARACTER_EDITOR.md
+    -- "Matching"); without any character made, or while it is still being created, it has no profile as before.
+    if owned and not managedKey and not (ready and catalog.custom) then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
     -- spawned: a character another mod or a spawner created (mod/spawned-characters.lua, docs/SPAWNED_CHARACTERS.md). It is
@@ -861,12 +865,29 @@ local function profileIdentity(npc, forceFacts)
         and type(manager.storyConversations) == 'function' and manager.storyConversations() or nil
     local actor = {managedKey = managedKey, name = name, world = managedKey == nil and not spawned, spawned = spawned,
         story = story, bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
-    if not managedKey and (forceFacts or (type(manager.archetypeConversations) == 'function' and manager.archetypeConversations())) then
+    if owned then
+        -- A copy of ours is found by the model it was made from (the original record, not the private clone the game spawned) and its name.
+        actor.copy, actor.copyRecord, actor.copyName = true, copyRecord, copyName
+    end
+    if not managedKey and not owned and (forceFacts or (type(manager.archetypeConversations) == 'function' and manager.archetypeConversations())) then
         local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
         actor.facts = archetypeFacts(npc, idOk and entity or nil, body)
     end
     local key, canonical, archetype = characterCatalog.resolve(catalog, actor)
+    -- The copy carries what it resolved to (party rows, connections, subtitles): only when that differs from what it carries now.
+    if owned and ready and serial and key ~= carried then pcall(companions.settleProfile, serial, key, canonical) end
     return key, canonical, body, archetype
+end
+
+-- Every copy of ours against the player's characters: when the list changed and at each talk key press (a few table lookups on the few copies, never
+-- per frame). A copy of a model that is not a roster character becomes the custom character it matches, and goes back to its own profile when that
+-- character is deleted or Convai answers. A global, so no function here gains an upvalue.
+function convaiSettleCopyProfiles()
+    if type(companions.settleProfiles) ~= 'function' then return end
+    pcall(companions.settleProfiles, function(baseKey, baseName, record, model)
+        local key, name = characterCatalog.resolve(catalog, {managedKey = baseKey, copy = true, name = baseName, copyRecord = record, copyName = model})
+        return key, name
+    end)
 end
 
 -- Why a talk target ended with no profile, as the tail of the one probe-log line the talk key writes (a key press only, never per frame).
@@ -2698,10 +2719,19 @@ function convaiFacingCharacter()
         return nil
     end
     local debugName = read(function() return TDBID.ToStringDEBUG(npc:GetRecordID()) end)
+    -- A copy of ours (the Model browser's, an invitation's) is spawned from a private clone of its model's record for a crowd or an unarmed
+    -- model ("CyberpunkConvai.NonCrowd_X", "CyberpunkConvai.Armed_X"): the record that finds it later is the model's own, which the copy remembers.
+    -- The model's name is what the catalogue matches a copy by, so it fills the name when the game gives none.
+    local identified, _, _, owned, _, copyRecord, copyName = pcall(companions.identity, npc)
+    if identified and owned == true then
+        if type(copyRecord) == 'string' and copyRecord:find('^[%w_][%w_%.%-]+$') then debugName = copyRecord end
+    else
+        copyName = nil
+    end
     -- The original of a record-cloning mod's copy ("NCA.Character.X" is "Character.X": the editor's rule finds both), else the readable name.
     local record = debugName and (characterCatalog.originalRecordName(debugName)
         or (debugName:find('^[%w_][%w_%.%-]+$') and debugName or nil)) or nil
-    local name = read(function() return tostring(npc:GetTweakDBFullDisplayName(true) or '') end)
+    local name = read(function() return tostring(npc:GetTweakDBFullDisplayName(true) or '') end) or read(function() return copyName end)
     local body = read(function() return tostring(npc:GetBodyType() or '') end)
     local gender = type(characterCatalog.gender) == 'function'
         and characterCatalog.gender({gender = read(function() return nameString(npc:GetResolvedGenderName()) end), bodyType = body}) or nil
@@ -2777,7 +2807,10 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
     if talkJohnny then return convaiTalkJohnny(player) end
     -- A character the player made may have been saved since the last look: the list is read if it is due (at most every 3 s, and only while
     -- there are characters or the editor was opened lately: mod/custom-characters.lua).
-    if convaiCustomCharacters then pcall(convaiCustomCharacters.refresh); pcall(convaiCustomCharacters.checkProvider) end
+    if convaiCustomCharacters then
+        pcall(convaiCustomCharacters.refresh); pcall(convaiCustomCharacters.checkProvider)
+        convaiSettleCopyProfiles()
+    end
     -- On a connected holocall the private talk keys address the caller wherever V is (mod/holocall.lua).
     local caller = convaiHolocall and convaiHolocall.partner(player, groupMode) or nil
     if caller then log('Holocall conversation: profile=' .. caller.profileKey .. ' mode=' .. caller.holocall.mode); return caller end

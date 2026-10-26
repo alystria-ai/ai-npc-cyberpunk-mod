@@ -560,7 +560,7 @@ local function spawnCopy(key, invitation, returning)
     if invitation then assignedKey, assignedName = invitation.profileKey, invitation.profileName or definition.name end
     local entry = {
         serial = returning and returning.serial or serial, key = key, name = definition.name, slot = freeSlot, lane = freeLane,
-        profileKey = assignedKey, profileName = assignedName,
+        profileKey = assignedKey, profileName = assignedName, customBase = returning and returning.customBase or nil,
         record = definition.id or tostring(recordID),
         modelRecordID = recordID,
         spawnRecord = spawnRecordName or definition.id or tostring(recordID),
@@ -592,6 +592,8 @@ function M.setProfile(serialToAssign, key, name)
     end
     for _, entry in ipairs(entries) do
         if entry.serial == serialToAssign then
+            -- An assignment from the Companion Manager replaces whatever a player-made character was applied over (settleProfile).
+            entry.customBase = nil
             local previous = entry.profileKey
             entry.profileKey = key
             entry.profileName = key and (name or key) or entry.name
@@ -605,6 +607,53 @@ function M.setProfile(serialToAssign, key, name)
         end
     end
     return false, 'That companion is no longer in your party.'
+end
+
+-- A copy of a model that is not a roster character (a generic model, an archetype, a model with no profile) can be one of the characters
+-- the player made (mod/custom-characters.lua, docs/CHARACTER_EDITOR.md "Matching"): the catalogue resolves it, and the copy then carries the
+-- custom key and name like any assigned profile (party rows, connections, subtitles, the talk turn). customBase remembers what it was before
+-- ({key, name}, key nil for a model with no profile), so deleting the character, or Convai answering, gives the copy its own profile back.
+-- A roster copy never gets here with another key: the catalogue keeps its roster profile. newKey is what the catalogue resolved for the copy
+-- from its base profile; the copy changes only when that differs from the base (or the base is to be restored).
+local function settleEntry(entry, newKey, newName)
+    local baseKey, baseName = entry.profileKey, entry.profileName
+    if entry.customBase then baseKey, baseName = entry.customBase.key, entry.customBase.name end
+    if newKey ~= nil and newKey ~= baseKey then
+        if entry.profileKey == newKey and entry.profileName == (newName or newKey) then return end
+        M.setProfile(entry.serial, newKey, newName)
+        entry.customBase = entry.customBase or {key = baseKey, name = baseName}
+        return true
+    elseif entry.customBase then
+        M.setProfile(entry.serial, baseKey, baseName)
+        return true
+    end
+end
+
+-- One copy, by its serial (profileIdentity: a talk target or a scanned person that is one of ours). No change, no cost beyond the walk.
+function M.settleProfile(serialToSettle, newKey, newName)
+    for _, entry in ipairs(entries) do
+        if entry.serial == serialToSettle then
+            if entry.state ~= 'ready' and entry.state ~= 'visiting' then return false end
+            return settleEntry(entry, newKey, newName) == true
+        end
+    end
+    return false
+end
+
+-- Every ready copy, when the player's characters changed or the talk key was pressed (a few table lookups, never per frame).
+-- resolve(baseKey, baseName, record, modelName) -> key, name is the catalogue's answer for a copy of that model.
+function M.settleProfiles(resolve)
+    if type(resolve) ~= 'function' then return false end
+    local changed = false
+    for _, entry in ipairs(entries) do
+        if entry.state == 'ready' or entry.state == 'visiting' then
+            local baseKey, baseName = entry.profileKey, entry.profileName
+            if entry.customBase then baseKey, baseName = entry.customBase.key, entry.customBase.name end
+            local ok, key, name = pcall(resolve, baseKey, baseKey and baseName or entry.name, entry.record, entry.name)
+            if ok and settleEntry(entry, key, name) then changed = true end
+        end
+    end
+    return changed
 end
 
 local function deleteOwnedCopy(entry)
@@ -975,8 +1024,13 @@ function M.identity(npc)
     if not ok then return nil end
     for _, entry in ipairs(entries) do
         if tostring(entry.entityID.hash) == identity then
-            return (entry.state == 'ready' or entry.state == 'visiting') and entry.profileKey or nil,
-                entry.profileKey and entry.profileName or entry.name, true
+            -- The profile the copy was made with: a player-made character applied over it (settleProfile) is not this copy's profile
+            -- but what the catalogue decides from it. Then, for profileIdentity and the facing query: serial, the model's record
+            -- name (the original, not the private clone the game spawned from), its name, ready, and the profile the copy carries now.
+            local ready = entry.state == 'ready' or entry.state == 'visiting'
+            local key, name = entry.profileKey, entry.profileName
+            if entry.customBase then key, name = entry.customBase.key, entry.customBase.name end
+            return ready and key or nil, key and name or entry.name, true, entry.serial, entry.record, entry.name, ready, entry.profileKey
         end
     end
     return nil
@@ -1489,7 +1543,7 @@ function M.beginFastTravel()
                 end
             end
             party[#party+1]={serial=entry.serial,key=entry.key,name=entry.name,slot=entry.slot,lane=entry.lane,
-                profileKey=entry.profileKey,profileName=entry.profileName,record=entry.record,
+                profileKey=entry.profileKey,profileName=entry.profileName,customBase=entry.customBase,record=entry.record,
                 modelRecordID=entry.modelRecordID,spawnRecord=entry.spawnRecord,entityID=entry.entityID,
                 state='transit',spawnPosition=space.copy(entry.spawnPosition),clearance=entry.clearance,
                 appearance=entry.appearance,
