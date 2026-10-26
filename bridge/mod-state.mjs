@@ -92,3 +92,13 @@ export function modsSentences(mods, form) {
   if (inner.length) sentences.push(`V is ${list(inner)}.`);
   return sentences;
 }
+
+/**
+ * The same sentences for a turn where V asks about themself ("how do I look?", "do I seem okay?", "am I hungry?"), worded as the answer to that: plain, in the
+ * right-now block (not the Background line, which says "mention only if it matters"), and not left out because the conversation heard it before. [] when none.
+ * Live 2026-10-26: "V is a little hungry" in the Background line, told on an earlier turn, and a companion asked "how do I look" never said it.
+ */
+export function modsAskedSentences(mods, form) {
+  const sentences = modsSentences(mods, form);
+  return sentences.length ? [...sentences, 'V is asking how they look or how they are: let this show in your answer, in your own words.'] : [];
+}

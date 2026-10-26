@@ -34,7 +34,7 @@ import {sceneryMemory} from './scenery-memory.mjs';
 import {stripSnapshot, NO_KINDS} from './dynamic-info.mjs';
 import {parseGameTime} from './last-talk.mjs';
 import {parseMedia, mediaSignature, mediaSentences} from './media-context.mjs';
-import {parseMods, modsSignature, modsSentences} from './mod-state.mjs';
+import {parseMods, modsSignature, modsSentences, modsAskedSentences} from './mod-state.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
@@ -322,7 +322,9 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // told with the scenery (a short Background line) only when new to the conversation, never as a fact to recite.
   const form = head ? 'head' : call ? 'call' : input.channel === 'phone' ? 'phone' : ambient ? 'ambient' : 'person';
   for (const sentence of mediaSentences(snapshot.media, form)) scene('media', sentence);
-  for (const sentence of modsSentences(snapshot.mods, form)) scene('mods', sentence);
+  // V asking about themself ("how do I look?") gets them in the block itself, worded as the answer, whatever the conversation heard before (bridge/scenery-memory.mjs modsAsked).
+  const selfState = fresh.modsAsked === true ? modsAskedSentences(snapshot.mods, form) : [];
+  if (!selfState.length) for (const sentence of modsSentences(snapshot.mods, form)) scene('mods', sentence);
   if (gap && form !== 'ambient') scene('gap', gap);
   // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
   if (ambient && spot && !input.archetype?.district) pushWhere(YOU);
@@ -354,7 +356,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // A stranger hears who V is to them on every turn, with or without other facts: a player report (2026-10-25) had every pedestrian and guard talk as if they knew V.
   // A housemate's note: a named character in person, on a phone or in a call; not a stranger, not Johnny in V's head. Room of its own, like the meeting.
   const housing = !ambient && !head && snapshot.housemate ? housemateSentences(snapshot.housemate, phone) : [];
-  if (!sentences.length && !meeting && !housing.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
+  if (!sentences.length && !meeting && !housing.length && !selfState.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
   const prefix = 'Right now (from the game, this turn only): ';
   let suffix = ambient
     ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
@@ -366,6 +368,8 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();
   if (meeting) sentences.splice(Math.min(lead, sentences.length), 0, meeting);
   if (housing.length) sentences.splice(Math.min(lead + (meeting ? 1 : 0), sentences.length), 0, ...housing);
+  // Room of its own, right after who she is and where (like the meeting): a budget cut never reaches it.
+  if (selfState.length) sentences.splice(Math.min(lead + (meeting ? 1 : 0) + housing.length, sentences.length), 0, ...selfState);
   if (remoteMeeting) suffix = suffix.slice(0, suffix.length - MENTION.length) + MEETING_EXCEPTION + MENTION;
   if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget'};
   return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: ''};

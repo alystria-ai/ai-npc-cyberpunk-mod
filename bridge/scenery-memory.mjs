@@ -34,6 +34,31 @@ const TIME_ASK = /\b(?:what time|the time|time is it|o'?clock|clock|hour|hours|l
 // V's words ask about what is playing or on (the radio, a song, the TV): the music and TV line then comes again even though the conversation heard it before.
 // Live 2026-10-25: told once on the first turn, it was gone on the next, so a companion asked "what song is this?" knew nothing. In doubt it says yes: one more short sentence.
 const MEDIA_ASK = /\b(?:songs?|music|musical|radio|tunes?|tracks?|playing|plays|listen\w*|stations?|channels?|tv|television|telly|screen|news|broadcast|dj|band|artist|singer|singing|sings|lyrics|album|beat|hear|hearing|sound|sounds|volume|what's on|whats on)\b|(?<![\p{L}\p{N}])(?:m[uú]sica|musique|musik|canci[oó]n|chanson|canzone|piosenk|muzyk|p[eě]sni|zene|м[ую]зык|песн|пісн|m[uü]zik|[sş]ark[iı]|r[aá]dio)|音楽|歌|曲|音乐|广播|テレビ|电视|노래|음악|라디오/iu;
+// V's words ask about themself: how they look or seem, whether they are all right, or a bodily need (hungry, thirsty, tired, eat, drink, sleep). A companion who has V's state
+// (Settings > Dynamic info > Other mods' state) then hears it again even though the conversation was told it before: live 2026-10-26, V hungry in Dark Future, a few turns of
+// "how do I look" and "do I seem okay", and Alex never said it. Convai's context is replaced on every turn (bridge/realtime-client.mjs updateContext), so a fact told on an earlier
+// turn is simply gone from the next one. In doubt it says yes: one more short sentence, and only when there is a state to tell. English whole words and phrases; the menu languages
+// (cs de es fr hu it ja ko pl pt ru tr uk zh) by stems, the CJK scripts by the character.
+const SELF_ASK_EN = /\b(?:how (?:do|does|did|would|will) (?:i|it|that|this) (?:look|seem|sound|appear|feel)|how am i|how'?s it look|do i (?:look|seem|sound|appear)|am i (?:ok|okay|alright|all right|fine|good|well|tired|hungry|thirsty|sick|hurt|exhausted|sleepy)|what do i look like|looking (?:ok|okay|alright|fine|rough|tired|pale|terrible|awful|bad|like hell)|hungry|thirsty|starving|starved|famished|tired|exhausted|sleepy|drowsy|eat|eating|food|drink|drinking|sleep|nap|holding up)\b/i;
+const SELF_ASK_STEMS = [
+  /c[oó]mo me (?:ves|veo)|me veo|parezco|estoy (?:bien|mal)|hambre|sed\b|cansad|agotad|sue[nñ]o\b|comer|beber|dormir|descans/,   // es
+  /como (?:eu )?pare[cç]o|como estou|estou (?:bem|mal)|fome|sede\b|exaust|sono\b|dormir|descans/,   // pt
+  /comment (?:je|tu me|vous me)|j'ai l'air|ai-je l|faim\b|soif|fatigu|[eé]puis|manger|boire|sommeil|dormir|reposer/,   // fr
+  /wie sehe ich|sehe ich|wie geht es mir|hunger|hungrig|durst|m[uü]de|ersch[oö]pft|essen\b|trinken|schlaf|ausruhen/,   // de
+  /come (?:sembro|mi vedi|sto\b|appaio)|sembro|ho (?:fame|sete|sonno)|fame\b|sete\b|stanc|esaust|mangiar|bere\b|dormire|riposar/,   // it
+  /jak wygl[aą]dam|wygl[aą]dam|g[lł]odn|spragnion|zm[eę]czon|wyczerpan|je[sś][cć]\b|pi[cć]\b|spa[cć]\b|odpoczy/,   // pl
+  /jak vypad[aá]m|vypad[aá]m|hladov|[zž][ií]zniv|unaven|vy[cč]erpan|j[ií]st\b|p[ií]t\b|sp[aá]t\b|odpo[cč]/,   // cs
+  /hogy n[eé]zek ki|n[eé]zek ki|[eé]hes|szomjas|f[aá]radt|kimer[uü]lt|enni\b|inni\b|aludni|pihen/,   // hu
+  /как я выгляжу|выгляж|я в порядке|голод|хочу (?:есть|пить|спать)|жажд|уста[лв]|измотан|поесть|выпить|отдох/,   // ru
+  /як я виглядаю|виглядаю|голод|спраг|втом|виснаж|їсти\b|пити\b|спати\b|відпоч/,   // uk
+  /nas[iı]l (?:g[oö]r[uü]n[uü]yorum|duruyorum)|g[oö]r[uü]n[uü]yorum|a[cç][iı]m|a[cç][iı]kt|susad|yorgun|bitkin|uyku|yemek|i[cç]mek|dinlen/,   // tr
+];
+const SELF_ASK_CJK = ['見える', '見えて', '大丈夫', 'お腹', '空腹', '喉が', '疲れ', '眠', '食べ', '飲み', '休',   // ja
+  '看起来', '看上去', '我怎么样', '还好吗', '饿', '渴', '累', '疲', '困', '吃', '喝', '睡', '休息', '看起來', '餓', '渴',   // zh
+  '어때 보', '보여', '괜찮', '배고', '목마', '피곤', '졸려', '먹', '마시', '자고', '쉬'];   // ko
+const SELF_ASK_OTHERS = new RegExp('(?<![\\p{L}\\p{N}])(?:' + SELF_ASK_STEMS.map(row => row.source).join('|') + ')|' + SELF_ASK_CJK.join('|'), 'iu');
+/** True when V's words ask about themself (how they look, whether they are all right, a bodily need). */
+export const asksAboutSelf = text => { const asked = String(text ?? ''); return SELF_ASK_EN.test(asked) || SELF_ASK_OTHERS.test(asked); };
 export const IDLE_MS = 20 * 60_000;      // a conversation silent for this long hears the scenery again
 export const MAX_CONVERSATIONS = 256;    // least recently used go first (every stranger V talks to is a conversation)
 const ALL = Object.freeze({weather: true, time: true});
@@ -71,7 +96,8 @@ export class SceneryMemory {
       time: part !== undefined && (!before || before.part !== part || TIME_ASK.test(asked)),
       // Present only when there is something to say about them.
       ...(signals.media !== undefined ? {media: !before || before.media !== signals.media || MEDIA_ASK.test(asked)} : {}),
-      ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods} : {})};
+      // V asking about themself (how they look, whether they are all right) always gets the state again: `modsAsked` makes the turn word it as the answer to that (bridge/turn-context.mjs).
+      ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods || asksAboutSelf(asked), ...(asksAboutSelf(asked) ? {modsAsked: true} : {})} : {})};
     this.conversations.delete(key);
     // A turn with nothing to say about media or mods keeps no earlier signature: when it comes back it is new again.
     this.conversations.set(key, {id, weather, part, text: asked, signalKey, at, decision,

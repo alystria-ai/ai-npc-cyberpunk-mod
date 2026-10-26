@@ -133,6 +133,18 @@ The sentences ride the **Background** line with the weather and the time, and ar
 stage that moves, a new state, a substance added), or after a long silence (`bridge/scenery-memory.mjs` with `modsSignature`). A steady state is not repeated on
 every turn, and a change below the bar (stage 1 for the body, 3 for the rest) changes nothing.
 
+**When V asks about themself** (added 2026-10-26). A live test (game 2.31, Dark Future, Convai): V hungry, the probe log read `nutrition=1` and `hydration=1`, the turn
+context reached the bridge with `mods: {darkFuture: {nutrition: 1, hydration: 1}}`, the first turn's Background line said "V is a little hungry." and the second's
+"V is a little thirsty and a little hungry.", and the third turn had no Background line at all (`background=none`, the steady-state rule). Convai's dynamic info is
+replaced on every turn (`updateContext`, mode `replace`), so a fact told once is simply gone from the next turn, and a companion asked "how do I look?" or "do I
+seem okay?" had nothing to say: she did not mention it. Now, when V's words ask about themself (how they look, seem or sound, "am I okay", a bodily need: hungry,
+thirsty, tired, eat, drink, sleep; the English phrases and the stems of the 14 other menu languages, `asksAboutSelf` in `bridge/scenery-memory.mjs`; in doubt it says
+yes, since it costs one sentence and only when there is a state to tell), the scenery memory returns `modsAsked`, and `bridge/turn-context.mjs` puts the state in the
+right-now block itself, right after who she is and where (the same spot as an appointment, so a budget cut never reaches it), not in the Background line that says
+"mention only if it matters": "V is a little thirsty and a little hungry. V is asking how they look or how they are: let this show in your answer, in your own
+words." (`modsAskedSentences` in `bridge/mod-state.mjs`). The same forms get it as before (a companion, Johnny in V's head, a stranger's visible half); a phone chat, a call
+and an add-on voice still get nothing; with nothing to tell, nothing is said however V asks. The next plain turn is quiet again.
+
 **Not verified** (the live check in the captain's log): that a build of Dark Future for game 2.5 exists and keeps these names (none was published on 2026-10-25:
 the GitHub releases end at 2.0 for game 2.31, 2026-01-06; the Nexus page answered 403 to a plain fetch, but its Files tab, read in a browser on 2026-10-25 without logging in, lists one main file, 2.0.3-for-2.31 (20 January 2026), and the older 2.0.2, 2.0.1, 2.0.0, 1.4.2 and earlier: no build for game 2.5); that CET returns nil for a class name that does
 not exist; that CET calls `:GetNeedStage()` on the handle `Get()` returns. The first reading writes one `probe.log` line per distinct reading:
@@ -140,7 +152,7 @@ not exist; that CET calls `:GetNeedStage()` on the handle `Get()` returns. The f
 `-` the system was not found; the addictions show the withdrawal level), and one line per name that answered or failure kind. The status effects Dark Future applies
 (a gameplay tag per need) were left out as a fallback: they go blank in cutscenes and menus, and no live read showed they are needed.
 
-Tests: `bridge/mod-state.test.mjs` (parsing, wording per form, caps, signature, scenery memory, hostile input), `bridge/mod-state-lua.test.mjs` (the reader with a
+Tests: `bridge/mod-state.test.mjs` (parsing, wording per form, caps, signature, scenery memory, the self-question case of 2026-10-26 and its 36 phrases in the menu languages, hostile input), `bridge/mod-state-lua.test.mjs` (the reader with a
 fake game: absent, partly present, -1, raising getters, moved class names, the lookup bound, the log lines, and the loader in `init.lua`: absent means never loaded).
 
 ## Time since last talk
