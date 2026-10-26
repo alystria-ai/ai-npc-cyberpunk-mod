@@ -18,7 +18,7 @@ export const WORLD = `
     place = function() call('place'); return world.place end,
     hours = function() call('hours'); return world.hours end,
     ready = function() return world.ready end,
-    held = function() call('held'); return world.held end,
+    held = function() call('held'); return world.held, world.heldDetail end,
     fact = function(n) world.facts_read = world.facts_read + 1; return world.facts[n] or 0 end,
     vpos = function() return world.vpos end,
     eligible = function(k) return names[k] ~= nil end,
@@ -43,7 +43,11 @@ export const WORLD = `
         local rows = {}
         for _, b in pairs(world.bodies) do
           b.age = b.age + 1
-          if b.state == 'spawning' and b.age >= 2 then b.state = 'visiting' end
+          if b.state == 'spawning' and b.age >= 2 then
+            -- world.refuse[key] = n: the game refuses the next n bodies of that character (it made the copy and failed it at once).
+            if world.refuse and (world.refuse[b.key] or 0) > 0 then world.refuse[b.key] = world.refuse[b.key] - 1; b.state = 'failed'; b.error = 'Scenery or a vehicle is blocking the companion position.'
+            else b.state = 'visiting' end
+          end
           rows[#rows + 1] = b
         end
         return rows

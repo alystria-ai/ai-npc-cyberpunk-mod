@@ -122,3 +122,15 @@ test('a resident job needs no preparation, takes her profile as she spawns, and 
     assert(seen.appointment.owner == 'housemates')
   `);
 });
+
+test('a flexible body (a housemate\'s) is made at her spot, or beside it when the spot is blocked, never at V\'s side (owner, 2026-10-26)', () => run(`
+  local function flexible(key, x)
+    local serial = companions.spawn(key, {profileKey = key, profileName = key, appointment = {id = 'hm:' .. key, flexible = true,
+      position = Vector4.new(x, 10, 0), facing = {x = 0, y = 1}, owner = 'housemates', home = 'corpo'}})
+    tick()
+    return serial, entities[sequence]
+  end
+  local _, npc = flexible('judy-alvarez', 10)
+  local at = npc:GetWorldPosition()
+  assert(math.abs(at.x - 10) < 4 and math.abs(at.y - 10) < 4, 'not near her spot: ' .. at.x .. ',' .. at.y)
+`));

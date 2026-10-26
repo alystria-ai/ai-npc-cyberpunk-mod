@@ -32,16 +32,16 @@ local function packet(input,body,source)
  raw=tostring(sequence);packets[raw]=p
  return p
 end
-local useGroup=false
+local useGroup,developer,accept=false,false,true
 local q=(function() ${source} end)().new({
  world=function()return world end,clock=function()return now end,
  normalizeOffer=function(value)return clone(value)end,
  homeOffer=function() return clone(home) end,
  groupHomeOffer=function() return clone(groupHome) end,
  leaveOffer=function() return clone(leave) end,
- queueHome=function(body,offer,entity,requestId,groupId) queued[#queued+1]={body=body,offer=offer,entity=entity,requestId=requestId,group=groupId};return true end,
+ queueHome=function(body,offer,entity,requestId,groupId) queued[#queued+1]={body=body,offer=offer,entity=entity,requestId=requestId,group=groupId};return accept end,
  read=function()return raw end,decode=function(value)return assert(packets[value])end,
- developerMode=function()return false end,
+ developerMode=function()return developer end,
  feedback=function(state,reason)feedback[#feedback+1]={state=state,reason=reason}end})
 `;
 function run(body) {
@@ -131,4 +131,16 @@ test('a refused housing packet writes one line with the rule it broke, and a thr
  q.options.queueHome=function() error('boom') end
  packet(input,{op='stay',apartment='corpo'});q.update(true)
  assert(logs[3]:find('Housemates failed:queue-error',1,true),tostring(logs[3]))
+`));
+
+test('a move-in that worked says nothing, in Developer mode too; one that was refused says "That action is not available." (2026-10-26)', () => run(`
+ developer=true
+ local input=context();q.capture(input,'private-text')
+ packet(input,{op='stay',apartment='corpo'});q.update(true)
+ assert(#queued==1 and q.inspect().state=='queued')
+ assert(#feedback==1 and feedback[1].state=='queued' and feedback[1].reason=='', 'queued with text: ' .. tostring(feedback[1] and feedback[1].reason))
+ feedback={};accept=false
+ local second={requestId='r2',generation=7,entity='22ULL',profileKey='judy'};q.capture(second,'private-text')
+ packet(second,{op='stay',apartment='corpo'});q.update(true)
+ assert(#feedback==1 and feedback[1].state=='rejected' and feedback[1].reason=='That action is not available.')
 `));

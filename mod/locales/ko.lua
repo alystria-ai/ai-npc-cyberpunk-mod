@@ -1413,6 +1413,7 @@ return {
     ["{name} is back at home."] = "{name}이(가) 다시 집에 돌아왔어요.",
     ["{name} joins you."] = "{name}이(가) 합류해요.",
     ["{name} moves into {apartment}."] = "{name}이(가) {apartment}(으)로 이사해요.",
+    ["{name} now lives in {apartment} and stays in your party until sent home."] = "{name}이(가) 이제 {apartment}에서 살아요. 집으로 보내기 전까지는 파티에 남아 있어요.",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name}은(는) 더 이상 당신의 집에 살지 않아요. 그 밖에는 그대로예요.",
     ["{name} · lives in {apartment} · {state}"] = "{name} · {apartment}에 살아요 · {state}",
     ["Companions change outfits"] = "동료 의상 변경",

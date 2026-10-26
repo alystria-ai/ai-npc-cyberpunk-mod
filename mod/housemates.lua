@@ -18,7 +18,7 @@
 --   seats *                 {prepare(spot, r) -> spot | nil, 'bad' | nil, nil, 'wait'; occupy(serial, spot, opts) -> handle;
 --                            status(handle) -> 'busy' | 'ready' | 'failed' | 'released'; release(handle, instant)}
 --   proc(apartment, r, used) a procedural standing place {x, y, z}, or nil, 'wait'
---   companions *            {join(serial); releaseToHome(serial, apartment); partyMember(key) -> {serial, entityID, name} | nil; leave(serial)}
+--   companions *            {join(serial); releaseToHome(serial, apartment); partyMember(key) -> {serial, entityID, name} | nil; leave(serial) (not used: moving in no longer sends her away)}
 --   outfits                 {setHome(key, on)}
 --   notify(text)  t(text, vars)  log(line)  random()  talking() -> the entity V is talking to, or nil
 --   chat                    the pair chat seams (mod/housemate-chat.lua); nil: no chat
@@ -38,8 +38,10 @@ M.STEP_AWAY = 5           -- ... while nobody has a body and V is not in a flat 
 M.LEAVE_GRACE = 20        -- seconds after V leaves the flat before the bodies are deleted
 M.HELD_DELETE = 60        -- seconds of a scene before the bodies are deleted (until then they are only hidden)
 M.CLEAR_FOR = 3           -- seconds a scene must be over before they are shown again
+M.HIDE_AFTER = 4          -- seconds a scene must last before the bodies are hidden (a flicker of the scene flag hid them for nothing)
 M.COMBAT_RETURN = 60      -- seconds after a fight before anybody comes back
-M.SPAWN_TIMEOUT = 45
+M.SPAWN_TIMEOUT = 25
+M.SPAWN_RETRY = 3         -- seconds before the next try after the game refused a body (a timeout waits longer)
 M.SPAWN_MISSES = 2        -- spawn timeouts at the same spot before it is given up for the session
 M.OCCUPY_TIMEOUT = 40
 M.JOIN_WAIT = 3
@@ -75,6 +77,8 @@ function M.new(env)
     local learned = {}        -- {x, y, z, apt}: seats V sat on (world constants)
     local zone, zoneSince, leftAt
     local heldSince, clearSince, combatUntil
+    local heldHidden          -- the bodies are hidden by the hold (shown again when it is over)
+    local sceneSince          -- when the flag that holds the flat last turned on (reset by every step that sees it off)
     local restAsk = {}        -- profileKey -> {from, here, at}
     local phoneTokens = {}    -- profileKey -> token of the last phone offer
     local lastHome = {}       -- flat id -> game hours when V last stood in it
@@ -252,7 +256,9 @@ function M.new(env)
         local pending = {}
         for key, r in pairs(rec) do
             if r.apt == apt and r.state == 'virtual' and not (r.retryAt and clock < r.retryAt) and not r.serial then
-                pending[#pending + 1] = {key = key, canBed = rigOk(r), canDoze = true}
+                -- A resident who is still in V's party (she moved in and was not sent home; a record made again after a load) has her body already.
+                if guard(env.companions.partyMember, key) then r.state = 'party'
+                else pending[#pending + 1] = {key = key, canBed = rigOk(r), canDoze = true} end
             end
         end
         if #pending == 0 then return end
@@ -291,6 +297,8 @@ function M.new(env)
     local function procedural(r)
         local used = {}
         for key, other in pairs(rec) do if key ~= r.key and other.apt == r.apt and other.spot and other.spot.procedural then used[#used + 1] = other.spot end end
+        -- Places where the game refused her body (stepResident, 'spawning'): not tried again, near or far.
+        for _, bad in ipairs(r.badPoints or {}) do used[#used + 1] = bad end
         local spot, why = nil, nil
         if env.proc then
             local ok, a, b = pcall(env.proc, r.apt, r, used)
@@ -358,12 +366,37 @@ function M.new(env)
                 r.state, r.retryAt = 'virtual', clock + 30
             end
         elseif state == 'spawning' then
+            local refused
             for _, b in ipairs(rowCache) do
-                if b.profileKey == r.key and b.appointmentId == 'hm:' .. r.key and b.state == 'visiting' and not b.lost then
-                    r.serial, r.entity = b.serial, b.entityID
-                    r.state = 'placing'
-                    stage('body-spawned', {key = r.key, serial = b.serial})
+                if b.profileKey == r.key and b.appointmentId == 'hm:' .. r.key then
+                    if b.state == 'visiting' and not b.lost then
+                        r.serial, r.entity = b.serial, b.entityID
+                        r.state = 'placing'
+                        stage('body-spawned', {key = r.key, serial = b.serial})
+                    elseif b.state == 'failed' or b.state == 'missing' or b.state == 'dead' then
+                        refused = refused or b
+                    end
                 end
+            end
+            -- The game made the body and refused it at once (probe.log 2026-10-26: "Scenery or a vehicle is blocking the companion position" within a
+            -- second, then 45 s of waiting for a body that was already gone, and the same place chosen again): the next try is a few seconds away, at
+            -- another place.
+            if r.state == 'spawning' and refused then
+                local id = r.spot and r.spot.id
+                stage('failed:spawn-refused', {key = r.key, id = id, why = tostring(refused.error or refused.state):sub(1, 80)})
+                if r.spot and r.spot.procedural then
+                    r.badPoints = r.badPoints or {}
+                    r.badPoints[#r.badPoints + 1] = {x = r.spot.x, y = r.spot.y, z = r.spot.z}
+                    if #r.badPoints > 6 then table.remove(r.badPoints, 1) end
+                elseif id then
+                    r.spawnMiss = (r.spawnMissId == id and r.spawnMiss or 0) + 1
+                    r.spawnMissId = id
+                    if r.spawnMiss >= M.SPAWN_MISSES then rejected[id] = true end
+                end
+                guard(env.bodies.delete, refused.serial)
+                r.spot = nil
+                r.state, r.retryAt = 'virtual', clock + M.SPAWN_RETRY
+                return
             end
             if r.state == 'spawning' and clock - (r.spawnedAt or clock) > M.SPAWN_TIMEOUT then
                 stage('failed:spawn-timeout', {key = r.key, after = M.SPAWN_TIMEOUT})
@@ -376,7 +409,7 @@ function M.new(env)
                     if r.spawnMiss >= M.SPAWN_MISSES then rejected[id] = true; stage('spot-rejected', {key = r.key, id = id, why = 'no body could be made there'}) end
                 end
                 r.spot = nil
-                r.state, r.retryAt = 'virtual', clock + 30
+                r.state, r.retryAt = 'virtual', clock + 10
                 for _, b in ipairs(rowCache) do if b.appointmentId == 'hm:' .. r.key then guard(env.bodies.delete, b.serial) end end
             end
         elseif state == 'placing' then
@@ -391,7 +424,13 @@ function M.new(env)
             local status = env.seats.status(r.handle)
             if status == 'ready' then
                 -- The first place this body takes (her later changes of place are not written).
-                if r.placed ~= r.serial then r.placed = r.serial; stage('placed', {key = r.key, id = r.spot and r.spot.id, kind = r.spot and r.spot.kind}) end
+                if r.placed ~= r.serial then
+                    r.placed = r.serial
+                    local row = rowsBySerial[r.serial]
+                    stage('placed', {key = r.key, id = r.spot and r.spot.id, kind = r.spot and r.spot.kind, look = row and row.appearance or '-'})
+                    -- Once: the body is told it is visible (a mesh that vanished after an AI teleport or a workspot has no other way back).
+                    guard(env.bodies.hide, r.serial, false)
+                end
                 r.state = 'at'; r.fails = 0
                 dwellFor(r)
             elseif status == 'failed' or clock - (r.placingAt or clock) > M.OCCUPY_TIMEOUT then
@@ -462,13 +501,17 @@ function M.new(env)
     end
 
     -- ---- held (scenes, quests, fights) --------------------------------------------------------------------------------------------
-    local function hideAll(hidden)
+    local function hideAll(hidden, why)
+        local count = 0
         for _, r in pairs(rec) do
-            if r.serial then guard(env.bodies.hide, r.serial, hidden) end
+            if r.serial then guard(env.bodies.hide, r.serial, hidden); count = count + 1 end
         end
+        heldHidden = hidden or nil
+        -- One line per change of the bodies' visibility (never per step): the proof the next run needs when a body "vanishes".
+        if count > 0 then stage('bodies-visible', {visible = not hidden, count = count, why = why or '-'}) end
     end
 
-    local function applyHeld(reason, apt)
+    local function applyHeld(reason, apt, detail)
         if reason == 'combat' then
             if anyBodies() then
                 for _, r in pairs(rec) do if r.serial then dropBody(r, 'combat') end end
@@ -480,9 +523,11 @@ function M.new(env)
         if chat and chat.interrupt then chat.interrupt(reason, true) end
         if not heldSince then
             heldSince = clock
-            stage('held', {apt = apt, reason = reason})
-            if anyBodies() then hideAll(true) end
+            stage('held', {apt = apt, reason = reason, detail = detail or '-'})
         end
+        -- Hidden only when the hold lasts: a flag that flickers for a second must not make the bodies vanish.
+        sceneSince = sceneSince or clock
+        if not heldHidden and clock - sceneSince >= M.HIDE_AFTER and anyBodies() then hideAll(true, reason) end
         clearSince = nil
         if clock - heldSince >= M.HELD_DELETE then
             for _, r in pairs(rec) do if r.serial then dropBody(r, 'held') end end
@@ -491,9 +536,10 @@ function M.new(env)
 
     local function clearHeld()
         if not heldSince then return end
+        sceneSince = nil
         clearSince = clearSince or clock
         if clock - clearSince >= M.CLEAR_FOR then
-            hideAll(false)
+            if heldHidden then hideAll(false, 'clear') end
             heldSince, clearSince = nil, nil
         end
     end
@@ -568,7 +614,7 @@ function M.new(env)
             local h = hours()
             if h then lastHome[here] = h end
             if combatUntil and clock < combatUntil then return end
-            local reason = guard(env.held)
+            local reason, detail = guard(env.held)
             local facts = loadData() and reservedFacts(here) or {}
             local signature = table.concat(facts, ',')
             if signature ~= factsShown then
@@ -576,7 +622,7 @@ function M.new(env)
                 stage('hold-facts', {apt = here, facts = signature ~= '' and signature or '-'})
             end
             if facts[1] then reason = reason or ('quest:' .. facts[1]) end
-            if reason then applyHeld(reason, here) return end
+            if reason then applyHeld(reason, here, detail) return end
             clearHeld()
             if heldSince then return end
             if not loadData() then
@@ -620,7 +666,7 @@ function M.new(env)
             end
         else
             -- Not in a flat of V's (or nobody lives anywhere).
-            if zone then stage('flat-left', {apt = zone}); zone = nil; leftAt = clock; heldSince, clearSince = nil, nil end
+            if zone then stage('flat-left', {apt = zone}); zone = nil; leftAt = clock; heldSince, clearSince, heldHidden, sceneSince = nil, nil, nil, nil end
             if chat and chat.interrupt and chat.active and chat.active() then chat.interrupt('left', true) end
             if leftAt and clock - leftAt >= M.LEAVE_GRACE then unload(); leftAt = nil end
             if not leftAt and anyBodies() then leftAt = clock end
@@ -692,19 +738,24 @@ function M.new(env)
         local r = rec[key] or newRecord(key, apt)
         r.apt = apt
         r.moved, r.movedAt = 'now', clock
+        -- Her answer to "stay here or go back?" (V had sent her away in another flat of hers): "stay here" is the end of that leave, so she rests here.
+        local answer = restAsk[key]
+        local resting = answer ~= nil and clock - answer.at <= M.REST_ASK_TTL and answer.here == apt and hereId() == apt
         restAsk[key] = nil
         if previous and previous ~= apt and r.serial then dropBody(r, 'moved') end
         if env.outfits then guard(env.outfits.setHome, key, true) end
+        -- Moving in only registers the flat (owner, 2026-10-26): a party member stays in the party, with V, until V sends her home (the leave flow:
+        -- splitLeave / the departure); only then is she a resident, and the step below turns her into one when the party no longer has her.
         local member = guard(env.companions.partyMember, key)
         if member then
             r.state = 'party'
-            if hereId() == apt then
-                C.restHere(member.serial, key)
-            else
-                guard(env.companions.leave, member.serial)
-            end
+            if resting then C.restHere(member.serial, key) end
         end
-        say(ui.t('{name} moves into {apartment}.', {name = r.name, apartment = aptName(apt)}))
+        if member and not resting then
+            say(ui.t('{name} now lives in {apartment} and stays in your party until sent home.', {name = r.name, apartment = aptName(apt)}))
+        else
+            say(ui.t('{name} moves into {apartment}.', {name = r.name, apartment = aptName(apt)}))
+        end
         stage('registered', {key = key, apt = apt, party = member ~= nil, here = hereId() or '-'})
         acc = 0
         return true
@@ -1010,7 +1061,7 @@ function M.new(env)
             r.state = 'virtual'
             r.retryAt = nil
         end
-        zone, leftAt, heldSince, clearSince, combatUntil = nil, nil, nil, nil, nil
+        zone, leftAt, heldSince, clearSince, combatUntil, heldHidden, sceneSince = nil, nil, nil, nil, nil, nil, nil
         rowCache, rowsBySerial = {}, {}
         welcome, noData = nil, nil
         restAsk = {}

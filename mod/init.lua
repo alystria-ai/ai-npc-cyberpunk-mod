@@ -3873,13 +3873,15 @@ do
         local sample = battleSample
         if type(sample) ~= 'table' then return nil end
         if sample.combat then return 'combat' end
-        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then
+        -- Tier 2 is staged gameplay (V still walks): it does not hold the flat, so the bodies are not hidden for it. The second value is written
+        -- on the probe line of the hold, to read which flag held (tier, dialogue, choices) when a body vanished.
+        if (tonumber(sample.tier) or 1) >= 3 or sample.dialogue or sample.choices then
             -- V sitting, sleeping or washing at home plays as a scene of tier 3 or 4: V's own interaction, not a quest scene.
             if not sample.dialogue and not sample.choices then
                 local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(Game.GetPlayer()) == true end)
                 if ok and inside then return nil end
             end
-            return 'scene'
+            return 'scene', 'tier=' .. tostring(sample.tier) .. ',dialogue=' .. tostring(sample.dialogue == true) .. ',choices=' .. tostring(sample.choices == true)
         end
         if sample.call or (convaiHolocall and convaiHolocall.call) then return 'call' end
         return nil

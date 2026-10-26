@@ -1413,6 +1413,7 @@ return {
     ["{name} is back at home."] = "{name} è di nuovo a casa.",
     ["{name} joins you."] = "{name} si unisce a te.",
     ["{name} moves into {apartment}."] = "{name} si trasferisce in {apartment}.",
+    ["{name} now lives in {apartment} and stays in your party until sent home."] = "{name} ora vive in {apartment} e resta nel tuo gruppo finché non torna a casa.",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name} non vive più da te. Il resto non cambia.",
     ["{name} · lives in {apartment} · {state}"] = "{name} · vive in {apartment} · {state}",
     ["Companions change outfits"] = "I compagni cambiano outfit",

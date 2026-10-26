@@ -492,7 +492,17 @@ local function spawnCopy(key, invitation, returning)
     local preferred=adoption and clearance.isPoint(adoption.position) and copyPosition(adoption.position)
         or formationPosition(player, freeLane)
     local spawnPosition, placementError, deferred
-    if appointment then spawnPosition=copyPosition(appointment.position)
+    if appointment then
+        spawnPosition=copyPosition(appointment.position)
+        -- A housemate's body (appointment.flexible, mod/housemate-world.lua): the exact spot can be blocked for a body (a seated neighbour, a table), and the
+        -- game's refusal came after the copy was made (probe.log 2026-10-26, three bodies in a row). The nearest place that passes the party's own checks takes
+        -- her instead, and she walks the rest; nothing near the spot that is clear keeps the spot as asked. She need not be out of V's sight.
+        -- The search is around the spot (origin), not around V: a flat's far corner must not bring her to V's side.
+        if appointment.flexible then
+            local near,_,wait=placement.find(player,spawnPosition,occupiedPositions(),body,nil,{origin=spawnPosition})
+            if wait then return nil,nil,true end
+            if near then spawnPosition=near end
+        end
     else
         spawnPosition, placementError, deferred = placement.find(player, preferred,occupiedPositions(),body)
         if deferred then return nil,nil,true end
@@ -733,7 +743,7 @@ function M.visitors()
         if entry.visitor then
             local row={serial=entry.serial,key=entry.key,profileKey=entry.profileKey,name=entry.name,state=entry.state,
                 appointmentId=entry.appointmentId,error=entry.error,owner=entry.owner,home=entry.home,
-                entityID=tostring(entry.entityID.hash)}
+                appearance=entry.appearance,entityID=tostring(entry.entityID.hash)}
             if entry.state=='visiting' and entry.npc then
                 local ok,at=pcall(function()
                     if not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then return nil end

@@ -686,7 +686,9 @@ function homeContextText(offered) {
           ? 'If V names none, it is ' + quoted(homeApartmentName(home, home.fallback)) + ' (the apartment V chose in the settings for this): do not ask which one. '
         : stays.length === 1 ? 'If V names none, it is ' + quoted(homeApartmentName(home, stays[0].apartment)) + ', the only one V has. '
           : 'If V names none, ask V in your own words which of them it is and request nothing yet: V\'s answer comes in the next message, and then you request it. ')
-      + 'Never request an apartment that is not listed and never invent one. ';
+      + 'Never request an apartment that is not listed and never invent one. '
+      + 'Moving in only decides where you live: if you are with V in the party you stay in it and keep coming along, and you go to live there when V sends you home or tells you to leave. '
+      + 'Do not say you are leaving the party or walking to the apartment because of it. ';
     if (home.pick) {
       text += 'V told you a moment ago that you can live at V\'s place, and you asked which apartment. V\'s new message is the answer, and it is V\'s go-ahead: '
         + 'when it names or points to one of the listed apartments (its name or part of it, its district, "that one", "the first one"), request that apartment\'s action now, in this reply, '

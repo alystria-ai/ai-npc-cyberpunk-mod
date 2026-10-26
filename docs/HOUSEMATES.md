@@ -20,7 +20,7 @@ many live there.
 | --- | --- | --- |
 | 1 | "You can stay at my place" moves her in. The apartment V names. No name: she asks which, V's answer picks it. Only apartments V has. Different housemates, different apartments. | Moving in, Apartments |
 | 2 | No cap on housemates | Many housemates (bodies are capped, housemates are not) |
-| 3 | Tag along: she joins the party from home. Back home, "rest / leave / stay": she leaves the party and returns to her routine. | Party transitions |
+| 3 | Tag along: she joins the party from home. Back home, "rest / leave / stay": she leaves the party and returns to her routine. Moving in does not take her out of the party (owner, 2026-10-26): only the leave does. | Party transitions, What happens when she moves in |
 | 4 | Group chat: release or recall applies to everyone addressed, even if not all reply | Group chat |
 | 5 | Routines: mostly sitting, window, shower if possible, other believable spots; several housemates spread out (most sit, some stand) | Spots, Assignment, Routine |
 | 6 | Real spots per apartment from the game's data, reusing COMPANION_SEATING | Apartments and spots, Tables |
@@ -131,10 +131,10 @@ So the channels are:
 ### What happens when she moves in
 
 * **Writes the registry** (below): `homes[profileKey] = apartment`. One home per character. A second `Stay At` elsewhere moves house.
-* **If she is a party member**: she leaves the party. If V stands in the apartment she was told to stay in, she is released into her routine there (the same path as "rest"). If V is elsewhere she leaves like a leaving companion (walks off, removed out of V's view, `companion-adoption`) and is virtual until V comes home. She does not teleport anywhere.
+* **If she is a party member** (owner, 2026-10-26): **she stays in the party.** Moving in only registers the flat (`rec[key].state = 'party'`, the registry fact, her home clothes switch). She keeps coming along with V, in any flat, until V sends her home: the ordinary leave flow below ("Party transitions": released into the routine in her own flat, a departure elsewhere, the question first in another of V's flats). From then on she is a resident, and the step turns a party member the party no longer has into a virtual resident (`retryAt` 5 s). A resident the party still has is never given a second body (`planResidents` marks her `party`), e.g. a record made again after a load. The one exception is her answer to "stay here or go back?" (V had already sent her away): "here" is the end of that leave, so she is released into the flat V stands in. Before 2026-10-26 the move-in itself took her out of the party at once, which the owner did not want. The model is told the same thing (`bridge/companion-actions.mjs` `homeContextText`, `bridge/text-actions.mjs` STAY): moving in only decides where she lives, she stays in the party and goes there when V sends her home.
 * **If she is only a phone contact**: nothing is spawned. She is a housemate, virtual, and shows up when V next comes to that apartment.
 * **If she is a visitor** (immersive): the appointment ends quietly and she is released into the routine (or virtual if V is away).
-* One notice (`ui.t`, 15 locales): "{name} moves into {apartment}." and the character has already said her answer. No ledger, no cost.
+* One notice (`ui.t`, 15 locales): "{name} moves into {apartment}." (or, for a party member who stays with V, "{name} now lives in {apartment} and stays in your party until sent home.") and the character has already said her answer. No ledger, no cost. A queued housing choice posts no other text (the fallback "That action is not available." of `mod/gameplay-actions.lua` belongs to a refusal only: it was posted on a move-in that had worked, in Developer mode, 2026-10-26).
 * **Memory**: the move is a turn the character answered, so Convai's provider memory sees it. For the text routes the same synthetic exchange the immersive branch uses ("[V said {name} could stay at {apartment}]") is recorded, and every channel's turn context carries a bounded note for her ("You live at V's place in {apartment}. You are home / V has taken you out.") so she talks like a housemate. Housemate presence also enters the "Also with V" list for turns in the apartment.
 
 ### Moving out
@@ -379,7 +379,7 @@ All through the one body: `companions.joinVisitor` (immersive branch) and its mi
 | --- | --- |
 | Home -> party (**tag along**) | `Join V's Party` action (offer kind `home`, `members` = residents in earshot, `all` or named). For each target: leave the workspot (native fast exit, wait for `inWorkspot` false up to 1.5 s, step out as the seating code does), release the actuator, `joinVisitor(serial)` (follower role, `state = 'ready'`, no respawn), `convaiOutfitApi.setHome(key, false)` (she changes out of home clothes when nobody is looking), notice "{name} joins you." Slot and lane come from the normal `groupFrame`. If the party is at its size limit: refused in character (`reason = 'full'`). |
 | Party -> home (**rest / leave / stay** while V is in **her** apartment) | The existing `Leave V's Party` action. The game, not the model, decides what it means from the offer: if `member.home == the apartment V is in`, she is **released to her routine** (below), otherwise she **departs** (walks away, removed out of V's view, `companion-adoption`) and is home virtually. The model's job is only to decide V meant it. |
-| Party -> home, in another of V's flats (**owner, 2026-10-25**) | **She asks**: the leave offer's member carries `away`, `homeName` and `hereName`, and the character is told not to leave yet but to ask "want me here, or back at my place in Glen?". The game remembers the question for 10 minutes. V's answer is the next turn: "back" is the ordinary `Leave V's Party` (now marked `confirmed`: she departs and is home virtually), "here" is `Stay At <this flat>` (she moves house to this flat and is released into its routine). A leave packet for an `away` member that is not `confirmed` is refused by the game. V on the street (not in any flat): no question, she just leaves. |
+| Party -> home, in another of V's flats (**owner, 2026-10-25**) | **She asks**: the leave offer's member carries `away`, `homeName` and `hereName`, and the character is told not to leave yet but to ask "want me here, or back at my place in Glen?". The game remembers the question for 10 minutes. V's answer is the next turn: "back" is the ordinary `Leave V's Party` (now marked `confirmed`: she departs and is home virtually), "here" is `Stay At <this flat>` (she moves house to this flat and is released into its routine: that answer ends the leave V started). A leave packet for an `away` member that is not `confirmed` is refused by the game. V on the street (not in any flat): no question, she just leaves. |
 | Party -> routine ("release") | Reverse of `attachFollower`: remove the follow behaviour (`ai:SetAIRole` back to `AINoRole`, the check `attachFollower` already makes on spawn), cancel formation/tactic/transport/gesture/seating ownership of her (`companions.bodyAnimation.release`, `stopPace`), `entry.state = 'visiting'` with `entry.home`, then the routine places her. `setHome(key, true)`. **Uncertain**: that a copy accepts `AINoRole` after `AIFollowerRole` and then answers `AIMoveTo` commands (live check 5). Fallback: delete the body when V is not looking at her and materialize a fresh resident at her spot. |
 | Dismiss (manager Current party) | Same as the leave action: routine if V is in her home flat, else departure. A housemate is never deleted from `homes` by a dismissal, only by `Move Out`. |
 | Fast travel while a resident is materialized | Residents are deleted before the capture, like visitors (`beginFastTravel`). They are virtual again; nothing to carry. |
@@ -444,6 +444,29 @@ When V is not in the flat nothing of this runs: the scheduler is not even called
   (`failed:spawn-timeout`), retried 30 s later at the same spot (corpo-bar-2 four times in probe.log 22:41-22:45) and each try posted the notice again.
   Now a resident's failure is posted once per character and reason (the menu line still says it), and a spot that times out twice for her is given up
   for the session (`spot-rejected ... why=no body could be made there`), so the next try is somewhere else.
+* **Residents slow to appear, popping in one by one (owner, 2026-10-26).** probe.log 06:24:20-06:28:13Z: Alex, Carol and Blue Moon had a spot and an accepted
+  invitation, no body for 45 s (`failed:spawn-timeout`), then 30 s of waiting, again and again; they appeared one at a time, minutes later, while Claire and
+  Panam stood at the bar within a second. mcm.log has the real cause: `Alex could not join: Scenery or a vehicle is blocking the companion position.` at
+  06:24:20, Carol 06:24:21, Blue Moon 06:24:23. The game made each body and `attachFollower` (`placement.verify`, `clearance.body`) refused it at once, at a
+  standing place and a bar stool beside two seated residents, and the controller never heard: the failed copy is in `visitors()` as `state = 'failed'` and the
+  step only looked for `visiting`. There is **no hidden-from-V rule on this path** (`hiddenFromPlayer` / `findVisitorSpot` belong to the immersive visitors; a
+  housemate's body is created at the place the controller chose, in view or not), so nothing needed relaxing there. Now: (1) the step reads a refused body at
+  once (`Housemates failed:spawn-refused key= id= why=`), deletes it and tries again `M.SPAWN_RETRY` (3 s) later at another place (a refused standing place is
+  remembered in `r.badPoints` and kept away from, a stool refused twice is given up); a timeout is 25 s (was 45) and waits 10 s (was 30); (2) the body is
+  created at the nearest clear place (`appointment.flexible`: `companions.lua` runs `placement.find`, the party's own checks, around the chosen place (`origin` = the spot, not V, so a far corner never brings her to V's side), and she
+  walks the rest), so an occupied neighbour no longer refuses her; V in sight does not matter.
+* **Bodies that vanish and come back while V moves (owner, 2026-10-26: "only the mesh disappears, the talk box still finds her").** The entity exists, so
+  something hid its visuals. What the mod can do: `hideAll(true)` (`companions.residentVisible`, the `PhantomEntitySystem` visibility event) when the flat is
+  held. The housemates' `held()` (`mod/init.lua`) counted **tier 2 (staged gameplay: V still walks)**, a dialogue or a choice hub as a scene, and hid the bodies
+  on the first step of it; five holds in two minutes are in probe.log (`Housemates held apt=corpo reason=scene` 06:27:47, :58, 06:28:07, :35, 06:29:29), and
+  no hold step spawns anybody, so Alex and Blue Moon appeared at 06:28:13, right after the last one ended. Companion outfits are **not** the cause here: no
+  `outfit-change-start` or `now wears` line exists between 06:22 and 06:38 (the only outfit line is `claire-russell wants clair_bartender, waiting until nobody is
+  looking` at 06:34). What is proven is the mechanism (a hold hides, the show comes 3 s after the flag clears); which flag held is not in the log, so the
+  hold line now says it (`detail=tier=,dialogue=,choices=`). Now: tier 2 no longer holds; bodies are hidden only after the scene flag has stayed on for
+  `M.HIDE_AFTER` (4 s, a flicker hides nobody) and every change of visibility is one probe line (`Housemates bodies-visible visible= count= why=`); a body is
+  told it is visible once when she is first placed (a mesh that vanished after an AI teleport or a workspot entry has no other way back), and the `placed`
+  line carries her look (`look=<appearance>`) so a change of look can be matched to a vanishing. If bodies still vanish with no `bodies-visible visible=false`
+  line, the game's own culling of an entity moved by an AI teleport or a workspot is the next suspect (the entity is alive, its render proxy is not).
 
 ### Rate and budget (owner, 2026-10-25)
 
@@ -495,7 +518,7 @@ Signals (all low rate, none new):
 
 The exact fact list is regenerated from the cooked quest phases by a small script in phase 0 (`scripts/Extract-ApartmentFacts.mjs`, reads with the WolvenKit CLI as the research did) and kept in `housemate-spots-data.lua`, so a game update changes data, not logic.
 
-**Held mode**: on a scene starting while she is materialized (tier 3 or more with V not in a workspot, dialogue, call, or a reserved fact turning on), within the next step: stop pair chat, hide her (the runtime visibility used by `companion-adoption` hiding, `setVisible`, plus an AI hold), no deletion. After 60 s of continuous held mode, or a quest that moves V out of the flat, delete her. When the condition has been clear for 3 s she is shown and resumes. If she was deleted she materializes again when V is home and the apartment is not reserved. The goal is that a scene's staging never meets a second body, and that nothing the scene counts on (doors, props, markers) is blocked by a standing NPC.
+**Held mode**: on a scene starting while she is materialized (tier 3 or more with V not in a workspot, dialogue, call, or a reserved fact turning on), within the next step: stop pair chat, hold the flat (no steps, no spawns); once the scene flag has stayed on for 4 s hide her (the runtime visibility used by `companion-adoption` hiding, `setVisible`, plus an AI hold), no deletion. After 60 s of continuous held mode, or a quest that moves V out of the flat, delete her. When the condition has been clear for 3 s she is shown and resumes. If she was deleted she materializes again when V is home and the apartment is not reserved. The goal is that a scene's staging never meets a second body, and that nothing the scene counts on (doors, props, markers) is blocked by a standing NPC.
 
 **Never in the way**: no spot within 1.5 m of the door, of a scene marker position listed in the quest data (the mq055 and Johnny spots above), or inside a corridor. Procedural spots obey the same exclusion list.
 
@@ -790,9 +813,9 @@ Changes:
   the game's offer, so the packet still matches the lease), on the phone the screen. Convai, the text routes and the phone are told that V's message is the
   answer and the go-ahead; a short answer ("that one") is screened as a stay. A stay or a move-out closes it.
 * **Probe lines for every stage** (probe.log, codes and names only, once per event): `Housemates offer-shown` (once per change of the offer, not per
-  turn), `action-received`, `registered`, `flat-entered`, `spot-chosen`, `spot-rejected`, `body-spawned`, `placed`, `held`, `flat-left`, and
+  turn), `action-received`, `registered`, `flat-entered`, `spot-chosen`, `spot-rejected`, `body-spawned`, `placed` (`look=`), `held` (`detail=`), `bodies-visible`, `flat-left`, and
   `Housemates failed:<code>` (`packet-<rule>` from the lease, `queue-error`, `no-service`, `no-controller`, `not-offered`, `not-owned`, `not-eligible`,
-  `store`, `phone-token`, `no-spot`, `spawn`, `spawn-timeout`, `occupy`, `place`, `body-lost`, `join`, `no-data`). The bridge writes one `[Housing]`
+  `store`, `phone-token`, `no-spot`, `spawn`, `spawn-refused`, `spawn-timeout`, `occupy`, `place`, `body-lost`, `join`, `no-data`). The bridge writes one `[Housing]`
   line per turn with a housing offer (bridge.stderr.log): the flats, `pick`, the action the reply asked for or `none(<why>)`, and whether it was
   delivered; on Convai a turn that asked for nothing adds what its page saw of the action list.
 * **Waking.** The district hook that is proven to fire (`Settle settle-enter`, installed in onInit) now also calls `convaiHousemateWake`; the glue's own hook
@@ -803,11 +826,12 @@ Live check for the next run (Housemates On, one of V's flats besides H10 owned):
 1. Outside the flats (or in the lobby), talk to a party member: "you can stay at my place". probe.log: `Housemates offer-shown ... here=-`; she asks which.
    bridge.stderr.log: `[Housing] ... pick=no action=none(no-action-requested)`.
 2. Answer with a flat's name. `[Housing] ... pick=yes action=stay:<id> delivered=yes`; probe.log: `Housemates action-received`, `Housemates registered
-   apt=<id>`; the notice "{name} moves into {apartment}."; she walks off. If instead `pick=yes action=none(...)`: the model still asked for nothing (the
+   apt=<id>`; the notice "{name} now lives in {apartment} and stays in your party until sent home."; she stays with V (the party member keeps following). If instead `pick=yes action=none(...)`: the model still asked for nothing (the
    Convai extra on that line says whether its page had the action list).
-3. Walk into that flat. probe.log: `Housemates flat-entered apt=<id> residents=1`, then `spot-chosen`, `body-spawned`, `placed`. A `failed:<code>` line
-   says where it stopped.
-4. Inside a flat, "you can stay here" to another party member: no question (`here=<id>`), `registered` at once, and she settles there.
+3. Tell her to rest or go home (the leave). In her own flat she is released into the routine; elsewhere she walks away (or asks first, see Party transitions).
+   Walk into that flat. probe.log: `Housemates flat-entered apt=<id> residents=1`, then `spot-chosen`, `body-spawned`, `placed`. A `failed:<code>` line
+   says where it stopped (`spawn-refused` is the game refusing a body: the next try is 3 s later at another place).
+4. Inside a flat, "you can stay here" to another party member: no question (`here=<id>`), `registered` at once, and she stays with V until V sends her home.
 
 ## Live test, step by step
 

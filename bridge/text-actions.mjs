@@ -232,7 +232,7 @@ function homeRows(offer, base, standing) {
         + (askedAt && back ? `V was just asked whether she stays in ${data(askedAt.name, 60)} or goes back to ${data(back, 60)}: V saying she stays here is STAY ${askedAt.id}, V saying she goes back is NONE. ` : '')
         + (home.pick ? 'V already said she may live at V\'s place and she asked which apartment: V naming or pointing to one now ("the Glen one", "Corpo Plaza", "that one") is STAY with its id. ' : '')
         + `If V names none: ${fallback() ? `it is ${fallback().id}` : 'answer NONE (the companion asks which one)'}`,
-      tell: `V is telling you that you may live at V's place (${apartments.map(item => data(item.name, 60)).join(', ')}${here ? `; V is in ${data(here.name, 60)} now` : ''}). You move in, and the game does it right after your reply: say so in your own words, briefly, like someone who was just offered a home`,
+      tell: `V is telling you that you may live at V's place (${apartments.map(item => data(item.name, 60)).join(', ')}${here ? `; V is in ${data(here.name, 60)} now` : ''}). The game registers it right after your reply. It only decides where you live: you stay with V in the party and go there when V sends you home. Say yes in your own words, briefly, like someone who was just offered a home, and do not say you are leaving V now`,
       resolve: argument => {
         const apartment = word(argument) ? apartmentIn(argument) : fallback();
         return apartment ? {...base, home: {op: 'stay', apartment: apartment.id}} : null;

@@ -1413,6 +1413,7 @@ return {
     ["{name} is back at home."] = "{name} yeniden evde.",
     ["{name} joins you."] = "{name} sana katılıyor.",
     ["{name} moves into {apartment}."] = "{name}, {apartment} dairesine taşınıyor.",
+    ["{name} now lives in {apartment} and stays in your party until sent home."] = "{name} artık {apartment} dairesinde yaşıyor ve eve gönderilene kadar grubunda kalıyor.",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name} artık senin yanında kalmıyor. Bunun dışında her şey aynı kalır.",
     ["{name} · lives in {apartment} · {state}"] = "{name} · {apartment} dairesinde yaşıyor · {state}",
     ["Companions change outfits"] = "Yoldaşlar kıyafet değiştirir",
