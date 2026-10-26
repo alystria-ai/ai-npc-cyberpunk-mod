@@ -1084,7 +1084,13 @@ function M.activityInputs(seats)
     end
     local okTactic,tactic=pcall(function() return M.tactics and M.tactics.snapshot and M.tactics.snapshot() end)
     for _,entry in ipairs(entries) do
-        if entry.state=='ready' and entry.profileKey then
+        if entry.state=='visiting' and entry.profileKey and entry.npc then
+            -- A housemate at home (or an invitation's visitor) is with V in the talk but is no party copy: nothing here knows what she is
+            -- doing ('visitor' keeps the context from calling her a follower), yet she carries a weapon like any copy (live 2026-10-26: asked
+            -- at home "what weapon do you have?", the answer was none, because only ready copies had a row).
+            local okHolding,holding,weapon=pcall(M.carriedWeapon,entry)
+            if okHolding and holding then rows[entry.profileKey]={visitor=true,holding=holding,weapon=weapon} end
+        elseif entry.state=='ready' and entry.profileKey then
             local okVehicle,snapshot=pcall(vehicles.snapshot,fleet,entry.serial)
             local transport=okVehicle and snapshot and snapshot.people and snapshot.people[1] or nil
             local owned=okTactic and tactic and tactic.active and tactic.serial==entry.serial

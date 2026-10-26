@@ -52,3 +52,34 @@ test('the game side reads the hand once per turn and passes it on', () => {
   assert.match(lua, /inputs\.holding == 'weapon' or inputs\.holding == 'holstered' or inputs\.holding == 'empty'/);
   assert.match(readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8'), /function M\.carriedWeapon[\s\S]*draw\.handItem[\s\S]*draw\.carriedItem[\s\S]*draw\.nameOf/);
 });
+
+// Live 2026-10-26: asked "what weapon do you have?" a companion said none, with the sentence in the block. V asking about weapons gets the sentence worded as the
+// answer, in the menu languages too; anything else gets the plain sentence.
+test('V asking what she carries gets the weapon worded as the answer, in every menu language', () => {
+  const party = [{key: 'judy-alvarez', name: 'Judy', holding: 'holstered', weapon: 'A-22B Chao'}];
+  const said = text => turnContext(turn({text, turnContext: scene({party})}));
+  for (const text of ['what weapon do you have?', 'Are you armed?', 'what are you packing', '¿Qué arma llevas?', 'Quelle arme tu portes ?', 'Welche Waffe hast du?', 'Che arma hai?',
+    'Jaką masz broń?', 'Jakou máš zbraň?', 'Milyen fegyvered van?', 'какое у тебя оружие?', 'яка в тебе зброя?', 'Hangi silahın var?', '你带着什么武器？', 'どんな武器を持ってる？', '무기가 뭐야?', 'Qual arma você carrega?']) {
+    assert.match(said(text), /V asks what you are armed with\. The true answer: You carry A-22B Chao \(holstered\)\. Answer from this/, text);
+  }
+  for (const text of ['How are you?', 'Nice weather today.', 'Let us go to the bar.']) {
+    const block = said(text);
+    assert.match(block, /You carry A-22B Chao \(holstered\)\./, text);
+    assert.ok(!block.includes('V asks what you are armed with'), text);
+  }
+  // an automatic speak-up has no words of V's to read
+  assert.ok(!turnContext(turn({text: 'what weapon do you have?', reaction: {kind: 'speakup'}, turnContext: scene({party})})).includes('V asks what you are armed with'));
+  // she carries none: the answer says so too
+  assert.match(turnContext(turn({text: 'got a gun?', turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding: 'empty'}]})})), /The true answer: You carry no weapon\./);
+  // the housemate at home sends a row of her own with only the weapon: no activity is claimed
+  const home = turnContext(turn({text: 'what weapon do you have?', turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding: 'holstered', weapon: 'A-22B Chao'}]})}));
+  assert.match(home, /You are with V in person\. /);
+  assert.ok(!/following V|standing near V/.test(home));
+});
+
+test('the game side words no activity for a housemate at home and logs what each companion carries', () => {
+  const lua = readFileSync(new URL('../mod/turn-context.lua', import.meta.url), 'utf8');
+  assert.match(lua, /if inputs\.visitor ~= true then row\.activity = M\.classify\(inputs\) end/);
+  assert.match(lua, /' carry=' \.\. table\.concat\(carrying, ','\)/);
+  assert.match(readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8'), /entry\.state=='visiting' and entry\.profileKey and entry\.npc then[\s\S]*pcall\(M\.carriedWeapon,entry\)/);
+});
