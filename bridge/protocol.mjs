@@ -15,7 +15,6 @@ import {parseMeetReaction} from './appointment-events.mjs';
 import {parseCallMeetOffer} from './call-meet.mjs';
 import {parseHouseReaction} from './house-chat.mjs';
 import {parseSpeakUpReaction} from './speakup-context.mjs';
-import {parsePayOffer} from './eddies-payment.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
@@ -88,8 +87,6 @@ function parseRequest(raw) {
   const followOffer = parseFollowOffer(value.followOffer), leaveOffer = parseLeaveOffer(value.leaveOffer);
   // Housemates (docs/HOUSEMATES.md): stay at V's place, move out, join V's party from home. A malformed offer is dropped, the message stands.
   const homeOffer = parseHomeOffer(value.homeOffer);
-  // Paying the character in eddies (docs/EDDIES_PAYMENT.md): the game's offer on a typed private line to one of V's own copies, only with the setting On.
-  const payOffer = group || value.reaction !== undefined ? null : parsePayOffer(value.payOffer);
   // An ordinary world NPC's reaction offer (docs/NPC_REACTIONS.md); a person with any of the offers above is a companion and has none.
   const reactionOffer = chauffeurOffer || tacticOffer || followOffer || leaveOffer || homeOffer ? null : parseReactionOffer(value.reactionOffer);
   // An offer the game sent that did not survive the parser is not silent: the turn's reaction line says so (bridge/companion-actions.mjs admit).
@@ -112,7 +109,7 @@ function parseRequest(raw) {
     ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
-    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(homeOffer ? {homeOffer} : {}), ...(payOffer ? {payOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
+    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(homeOffer ? {homeOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
     ...(reactionOfferDropped ? {reactionOfferDropped} : {}),
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),

@@ -34,7 +34,6 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]Housemates (new, off by default).[/b] Switch it on in Settings > Companion behavior > Housemates and a character you tell they can stay at your place moves into one of your apartments and lives there. They no longer vanish when the flat has a story fact on: they stay in your own apartment and step out of the way only during real scenes. In Settings > Companion behavior > Housemates you can also pick the Move-in apartment (Ask me, or one of the apartments you own), set the Pause between chats (1, 2, 5 or 10 minutes), let 2 to 4 housemates join one chat with Housemates in one chat, and move everyone out with the Evict all housemates button. Housemate chats no longer stop after the first line, and the repeating "could not join" notice now shows once. All of this is new and not yet tried in the game.
 [*][b]At home in your flat.[/b] While you stay in your own apartment, companions sit down on seats by themselves instead of trailing you, and on a bar stool they face the counter.
 [*][b]Companions change outfits (new, off by default).[/b] Switch it on in Settings > Companion behavior > Companions change outfits and companions change into other looks, only while you are not looking. One who stood up to change sits down again within seconds.
-[*][b]Pay characters in eddies (new, experimental, off by default).[/b] Switch it on in Settings > Companion behavior > Pay characters in eddies, then type a plain line like "I pay you 500 eddies" to one of your own characters and the eddies leave your balance with the game's own pop-up. Voice, phone chat and calls do not pay yet. It is new and not yet widely tested.
 [*][b]They speak up.[/b] Now and then a companion starts a remark by themselves at a calm moment. Settings > Conversations > Companions speak up (Speaks up rarely by default, Off turns it off).
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
@@ -230,13 +229,13 @@ Game 2.5 is the default and the main file, game 2.31 is an optional file ("Optio
 Scripts (the main file, game 2.5, zip Scripts.zip):
 
 ```text
-Game version 2.5. Get the Runtime from Hugging Face. New: content packs, key bindings, car invitations, housemates, outfits, pay in eddies (experimental), battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
+Game version 2.5. Get the Runtime from Hugging Face. New: content packs, key bindings, car invitations, housemates, outfits, battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
 ```
 
 Scripts - for game 2.31 (older game version) (optional file, zip Scripts-for-game-2.31.zip):
 
 ```text
-Older game version 2.31. Get its Runtime from Hugging Face. New: content packs, key bindings, car invitations, housemates, outfits, pay in eddies (experimental), battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
+Older game version 2.31. Get its Runtime from Hugging Face. New: content packs, key bindings, car invitations, housemates, outfits, battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
 ```
 
 ## 3. Short summary (brief overview field)
