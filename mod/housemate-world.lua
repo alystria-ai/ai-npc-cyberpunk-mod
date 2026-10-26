@@ -258,7 +258,7 @@ function M.new(o)
         local f = forwardOf(spot.yaw or 0)
         local ok, accepted, message = pcall(queue.invite, r.key, {quiet = true, resident = true,
             appointment = {id = 'hm:' .. r.key, position = {x = at.x, y = at.y, z = at.z}, facing = {x = f.x, y = f.y},
-                owner = 'housemates', home = r.apt}})
+                owner = 'housemates', home = r.apt, flexible = true}})
         if not ok then return false, tostring(accepted) end
         if not accepted then return false, tostring(message) end
         return true

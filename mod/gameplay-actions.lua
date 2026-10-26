@@ -371,7 +371,10 @@ function M.new(options)
                 admitted.requestId, admitted.group)
             -- The controller writes what it did with the choice (mod/housemates.lua); a throw on the way is written here.
             if not called then logReaction('Housemates failed:queue-error ' .. tostring(accepted):sub(1, 120)) end
-            report(called and accepted == true and 'queued' or 'rejected', called and reason or nil, 'That action is not available.')
+            -- The fallback text is the refusal's: a queued choice with no text of its own (a move-in) posts nothing, in Developer mode too (the notice
+            -- "That action is not available." appeared on a move-in that had worked, 2026-10-26).
+            local homeQueued = called and accepted == true
+            report(homeQueued and 'queued' or 'rejected', called and reason or nil, homeQueued and '' or 'That action is not available.')
             return
         end
         if follow or leave then
@@ -384,8 +387,8 @@ function M.new(options)
                 called, accepted, reason = pcall(queue, packet.leave, copy(admitted.leaveOffer), admitted.entity,
                     admitted.requestId, admitted.group)
             end
-            report(called and accepted == true and 'queued' or 'rejected', called and reason or nil,
-                'That action is not available.')
+            local queued = called and accepted == true
+            report(queued and 'queued' or 'rejected', called and reason or nil, queued and '' or 'That action is not available.')
             return
         end
         if type(options.queueTactic) ~= 'function' then
@@ -393,8 +396,8 @@ function M.new(options)
         end
         local called, accepted, reason = pcall(options.queueTactic, packet.tactic,
             copy(admitted.tacticOffer), admitted.entity)
-        report(called and accepted == true and 'queued' or 'rejected', called and reason or nil,
-            'Your companion could not start that.')
+        local tacticQueued = called and accepted == true
+        report(tacticQueued and 'queued' or 'rejected', called and reason or nil, tacticQueued and '' or 'Your companion could not start that.')
     end
 
     function Q.inspect()

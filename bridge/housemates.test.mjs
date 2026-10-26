@@ -128,7 +128,7 @@ test('quest facts reserve a flat: bodies are hidden, deleted after a minute, and
     run(c, 12)
     assert(count(world.bodies) == 2)
     world.facts['mq055_04_intimate_action_on'] = 1
-    run(c, 3)
+    run(c, 6)
     for _, b in pairs(world.bodies) do assert(b.hidden, 'not hidden') end
     run(c, 40)
     assert(count(world.bodies) == 2, 'deleted before the minute')
@@ -143,12 +143,12 @@ test('quest facts reserve a flat: bodies are hidden, deleted after a minute, and
   `);
 });
 
-test('a short scene hides them and shows them again 3 seconds after it is over', () => {
+test('a scene that lasts hides them and shows them again 3 seconds after it is over', () => {
   lua(`${WORLD}
     local c = control({['judy-alvarez'] = 'corpo'})
     run(c, 12)
-    world.held = 'scene'
-    run(c, 3)
+    world.held, world.heldDetail = 'scene', 'tier=3,dialogue=false,choices=false'
+    run(c, 6)
     for _, b in pairs(world.bodies) do assert(b.hidden) end
     world.held = nil
     run(c, 1.5)
@@ -156,6 +156,47 @@ test('a short scene hides them and shows them again 3 seconds after it is over',
     run(c, 3)
     for _, b in pairs(world.bodies) do assert(not b.hidden, 'still hidden') end
     assert(count(world.bodies) == 1)
+    local held, changes = {}, {}
+    for _, line in ipairs(world.logs) do
+      if line:find('Housemates held', 1, true) then held[#held + 1] = line end
+      if line:find('Housemates bodies-visible', 1, true) then changes[#changes + 1] = line end
+    end
+    assert(#held == 1 and held[1] == 'Housemates held apt=corpo detail=tier=3,dialogue=false,choices=false reason=scene', held[1])
+    assert(#changes == 2 and changes[1] == 'Housemates bodies-visible count=1 visible=false why=scene' and changes[2] == 'Housemates bodies-visible count=1 visible=true why=clear',
+      table.concat(changes, ' | '))
+  `);
+});
+
+test('a scene flag that flickers for a moment hides nobody (owner, 2026-10-26: bodies vanished while V moved around)', () => {
+  lua(`${WORLD}
+    local c = control({['judy-alvarez'] = 'corpo', ['rogue'] = 'corpo'})
+    run(c, 12)
+    for _ = 1, 4 do
+      world.held = 'scene'
+      run(c, 2.5)
+      for _, b in pairs(world.bodies) do assert(not b.hidden, 'hidden by a flicker') end
+      world.held = nil
+      run(c, 1)
+    end
+    for _, line in ipairs(world.logs) do assert(not line:find('bodies-visible', 1, true), line) end
+    assert(count(world.bodies) == 2)
+  `);
+});
+
+test('a body the game refuses at once is not waited for: the next try is seconds away, not 45 s plus 30 s (owner, 2026-10-26)', () => {
+  lua(`${WORLD}
+    world.refuse = {['judy-alvarez'] = 2}
+    local c = control({['judy-alvarez'] = 'corpo', ['rogue'] = 'corpo'})
+    run(c, 30)
+    local s = snapshot(c)
+    assert(s['judy-alvarez'].state == 'at' and s['rogue'].state == 'at', 'not both home after 30 s: ' .. s['judy-alvarez'].state .. ' ' .. s['rogue'].state)
+    local refused = 0
+    for _, line in ipairs(world.logs) do
+      if line:find('Housemates failed:spawn-refused', 1, true) then refused = refused + 1; assert(line:find('Scenery or a vehicle', 1, true), line) end
+      assert(not line:find('failed:spawn-timeout', 1, true), line)
+    end
+    assert(refused == 2, 'refused lines ' .. refused)
+    assert(count(world.bodies) == 2, 'a failed body was left behind: ' .. count(world.bodies))
   `);
 });
 

@@ -1413,6 +1413,7 @@ return {
     ["{name} is back at home."] = "{name}は自宅に戻っています。",
     ["{name} joins you."] = "{name}があなたに合流します。",
     ["{name} moves into {apartment}."] = "{name}は{apartment}に入居します。",
+    ["{name} now lives in {apartment} and stays in your party until sent home."] = "{name}は{apartment}に住むことになりました。帰宅させるまではパーティーに残ります。",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name}はあなたの家で暮らさなくなります。ほかは変わりません。",
     ["{name} · lives in {apartment} · {state}"] = "{name} · {apartment}に住んでいます · {state}",
     ["Companions change outfits"] = "コンパニオンの衣装替え",

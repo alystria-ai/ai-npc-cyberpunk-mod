@@ -1413,6 +1413,7 @@ return {
     ["{name} is back at home."] = "{name} újra otthon van.",
     ["{name} joins you."] = "{name} csatlakozik hozzád.",
     ["{name} moves into {apartment}."] = "{name} a(z) {apartment} lakásba költözik.",
+    ["{name} now lives in {apartment} and stays in your party until sent home."] = "{name} mostantól a(z) {apartment} lakásban lakik, és a csapatodban marad, amíg haza nem küldöd.",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name} már nem lakik nálad. Egyebekben nem változik semmi.",
     ["{name} · lives in {apartment} · {state}"] = "{name} · a(z) {apartment} lakásban lakik · {state}",
     ["Companions change outfits"] = "Társak ruhát váltanak",

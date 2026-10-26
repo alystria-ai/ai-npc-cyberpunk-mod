@@ -76,35 +76,64 @@ test('stay: a phone contact moves in, nothing is spawned, the registry fact is w
   `);
 });
 
-test('stay: a party member told to stay in the flat V stands in is released into its routine', () => {
+test('stay: a party member who moves in stays in the party, in the flat V stands in too, and is released only when V tells her to rest', () => {
   lua(`${WORLD}${PARTY}
     local c = control({})
     local serial, entity = inParty('judy-alvarez')
     local offer = c.homeOffer(entity, {profileKey = 'judy-alvarez'})
     assert(offer.here == 'corpo')
     assert(c.queueHome({op = 'stay', apartment = 'corpo'}, offer, entity, 'r1') == true)
-    assert(#world.released == 1 and world.released[1][1] == serial and world.released[1][2] == 'corpo')
-    assert(world.homeOutfit['judy-alvarez'] == true)
+    assert(c.homeOf('judy-alvarez') == 'corpo')
+    assert(#world.released == 0 and #world.left == 0, 'moving in took her out of the party')
+    assert(world.party[serial], 'she left the party')
+    assert(world.notes[1] == 'Judy now lives in Corpo Plaza and stays in your party until sent home.', world.notes[1])
     run(c, 15)
     local s = snapshot(c)['judy-alvarez']
+    assert(s.state == 'party' and s.serial == nil, tostring(s.state))
+    assert(world.spawned == nil, 'a body was made for a party member')
+    assert(c.rows()[1].state == 'party')
+    -- "rest" in her own flat: now she is released into the routine, on the same body
+    local leave = {available = true, actor = {id = entity, key = 'judy-alvarez'}, members = {{serial = serial, id = entity, key = 'judy-alvarez', name = 'Judy'}}}
+    local split = c.splitLeave('all', leave)
+    assert(#split.rest == 1 and #split.depart == 0)
+    assert(c.restHere(serial, 'judy-alvarez') == true)
+    assert(#world.released == 1 and world.released[1][1] == serial and world.released[1][2] == 'corpo')
+    run(c, 15)
+    s = snapshot(c)['judy-alvarez']
     assert(s.state == 'at' and s.serial == serial, tostring(s.state))
     assert(world.spawned == nil, 'a second body was made for a party member who already has one')
     assert(world.homeOutfit['judy-alvarez'] == true)
   `);
 });
 
-test('stay: a party member told to stay in a flat V is not in goes there on her own, and is virtual until V comes', () => {
+test('stay: a party member who moves into a flat V is not in stays in the party; when she is sent away she is virtual until V comes', () => {
   lua(`${WORLD}${PARTY}
     local c = control({})
     local serial, entity = inParty('judy-alvarez')
     local offer = c.homeOffer(entity, {profileKey = 'judy-alvarez'})
     assert(c.queueHome({op = 'stay', apartment = 'h10'}, offer, entity, 'r1') == true)
-    assert(#world.left == 1 and world.left[1] == serial, 'she was not sent away')
-    assert(#world.released == 0)
-    world.party[serial] = nil   -- she has gone
+    assert(#world.left == 0 and #world.released == 0 and world.party[serial], 'she was sent away')
+    run(c, 10)
+    assert(snapshot(c)['judy-alvarez'].state == 'party')
+    world.party[serial] = nil   -- V sent her home: the departure took her out of the party
     run(c, 10)
     assert(snapshot(c)['judy-alvarez'].state == 'virtual')
     assert(world.spawned == nil, 'a body was made in the wrong flat')
+  `);
+});
+
+test('stay as the answer to "stay here or go back?" ends the leave: she rests in the flat V stands in', () => {
+  lua(`${WORLD}${PARTY}
+    local c = control({['judy-alvarez'] = 'glen'})
+    local serial, entity = inParty('judy-alvarez')
+    local leave = {available = true, actor = {id = entity, key = 'judy-alvarez'}, members = {{serial = serial, id = entity, key = 'judy-alvarez', name = 'Judy'}}}
+    c.decorateLeave(leave)
+    local offer = c.homeOffer(entity, {profileKey = 'judy-alvarez'})
+    assert(offer.asked and offer.asked.here == 'corpo')
+    assert(c.queueHome({op = 'stay', apartment = 'corpo'}, offer, entity, 'r2') == true)
+    assert(c.homeOf('judy-alvarez') == 'corpo')
+    assert(#world.released == 1 and world.released[1][2] == 'corpo', 'she was not released')
+    assert(world.notes[1] == 'Judy moves into Corpo Plaza.', world.notes[1])
   `);
 });
 
@@ -356,5 +385,17 @@ test('the hold-facts probe line is written once per change', () => {
     run(c, 4)
     n, last = lines()
     assert(n == 2 and last == 'Housemates hold-facts apt=corpo facts=mq055_04_intimate_action_on', tostring(last))
+  `);
+});
+
+test('a resident who is still in the party when V walks into her flat (a record made again after a load) gets no second body', () => {
+  lua(`${WORLD}${PARTY}
+    local serial = inParty('judy-alvarez')
+    local c = control({['judy-alvarez'] = 'corpo', ['rogue'] = 'corpo'})
+    run(c, 15)
+    local s = snapshot(c)
+    assert(s['judy-alvarez'].state == 'party' and s['judy-alvarez'].serial == nil, tostring(s['judy-alvarez'].state))
+    assert(s['rogue'].state == 'at', 'the other resident was not placed')
+    for _, b in pairs(world.bodies) do assert(b.key ~= 'judy-alvarez', 'a body was made for a party member') end
   `);
 });

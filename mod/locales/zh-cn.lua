@@ -1413,6 +1413,7 @@ return {
     ["{name} is back at home."] = "{name} 已回到家中。",
     ["{name} joins you."] = "{name} 加入你的队伍。",
     ["{name} moves into {apartment}."] = "{name} 搬进了{apartment}。",
+    ["{name} now lives in {apartment} and stays in your party until sent home."] = "{name}现在住在{apartment}，在你让对方回家之前会留在队伍里。",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name} 不再住在你这里。其他方面不变。",
     ["{name} · lives in {apartment} · {state}"] = "{name} · 住在{apartment} · {state}",
     ["Companions change outfits"] = "伙伴更换服装",
