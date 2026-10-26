@@ -5,6 +5,11 @@
 -- the scheduler: it decides when a chat may start, who talks, how many lines, and when it must stop. Pure: the clock, the random numbers and
 -- every game question come in through `env`.
 --
+-- The next line is written while the one before it is still being said: as soon as a line's text is known (env.status gives it while the line is in the
+-- air) the request for the next speaker is prepared through env.prepare (the bridge runs it at once and holds it back), and when the line has been heard
+-- that very request is sent with env.speak, flagged `prepared`, after a short beat (`gap`). Where nothing can be prepared (env.prepare absent or refused, or
+-- a bridge that cannot run two lines at once) the next line is simply requested at the end of the one before, with no pause of our own.
+--
 -- Nothing runs unless the controller calls update() (only while V is in the flat with two or more housemates settled), so there is no cost
 -- elsewhere, and no request, no connection and no line is made when V is not at home.
 local M = {}
@@ -13,7 +18,7 @@ M.COOLDOWN = 120        -- seconds after a chat ends before the next may start u
 M.MAX_PEOPLE = 4        -- the most people in one chat (env.groupSize, 2 to 4; the lines still come one at a time: one voice at a time)
 M.MAX_LINES = 8         -- a hard stop, both speakers together
 M.PLAN_LINES = 7        -- the usual length the speakers are told to aim for: 7 or 8 lines (MAX_LINES), the closing remark is the last one
-M.GAP = {0.8, 1.6}      -- seconds between a finished line and the next request
+M.GAP = {0.25, 0.5}     -- the beat in seconds between a heard line and the next one when that one is already written (the game side waits it out; a line that has to be written first needs none)
 M.LINE_TIMEOUT = 90     -- a line that has not been heard this long after its request ends the chat
 M.FAIL_COOLDOWN = 60    -- extra pause after a chat that failed
 M.NEAR_EACH_OTHER = 12  -- metres between the two speakers
@@ -73,6 +78,7 @@ function M.new(env)
         if not chat then return end
         local spoken = chat.spoken
         if chat.pendingLine and env.cancelSpeak then pcall(env.cancelSpeak) end
+        if chat.prepared and env.unprepare then pcall(env.unprepare) end
         if spoken > 0 and env.limiter and env.limiter.note then pcall(env.limiter.note, 'house', spoken) end
         if spoken > 0 then
             state.recent[#state.recent + 1] = {keys = chat.people[1].key .. '|' .. chat.people[2].key, at = clock}
@@ -91,16 +97,15 @@ function M.new(env)
     end
 
     -- The people take turns in order; line n is said by person ((n - 1) mod count) + 1 and answers the person before (the first line is
-    -- aimed at the next one). Somebody who has gone from the flat is left out; with fewer than two left the chat is over.
-    local function request()
-        local index = chat.n + 1
+    -- aimed at the next one). Somebody who has gone from the flat is left out; with fewer than two left the chat is over. `now`: the line being said
+    -- right now, not yet among chat.lines (a line prepared ahead is written with it in view). Returns the request and the people present, or nil.
+    local function arrange(index, now)
         local present = {}
         for _, person in ipairs(chat.people) do
             local fresh = still(person)
             if fresh then present[#present + 1] = fresh end
         end
-        if #present < 2 then return finish('dropped') end
-        chat.people = present
+        if #present < 2 then return nil end
         local count = #present
         local at = (index - 1) % count + 1
         local speaker = present[at]
@@ -109,13 +114,45 @@ function M.new(env)
         for _, person in ipairs(present) do
             if person.key ~= speaker.key and person.key ~= partner.key then others[#others + 1] = person.name end
         end
-        local lines = {}
-        for i = math.max(1, #chat.lines - 5), #chat.lines do lines[#lines + 1] = chat.lines[i] end
-        local ok, accepted = pcall(env.speak, {speaker = speaker, partner = partner, others = others, n = index, of = chat.of, lines = lines,
-            topic = index == 1 and chat.topic or nil})
+        local all, lines = chat.lines, {}
+        local total = #all + (now and 1 or 0)
+        for i = math.max(1, total - 5), total do lines[#lines + 1] = i <= #all and all[i] or now end
+        return {speaker = speaker, partner = partner, others = others, n = index, of = chat.of, lines = lines,
+            topic = index == 1 and chat.topic or nil}, present
+    end
+    -- What makes a prepared request the request that would be sent now.
+    local function signature(args)
+        local parts = {args.speaker.key, args.partner.key, table.concat(args.others, ','), tostring(args.n)}
+        for _, line in ipairs(args.lines) do parts[#parts + 1] = line.speaker .. ':' .. line.text end
+        return table.concat(parts, '|')
+    end
+
+    local function request()
+        local args, present = arrange(chat.n + 1)
+        if not args then return finish('dropped') end
+        chat.people = present
+        -- Prepared ahead and still the same request: the game side sends the very table it prepared.
+        local prepared = chat.prepared
+        chat.prepared = nil
+        if prepared then
+            if prepared.signature == signature(args) then
+                args.prepared, args.gap = true, M.GAP[1] + (M.GAP[2] - M.GAP[1]) * random()
+            elseif env.unprepare then pcall(env.unprepare) end
+        end
+        local ok, accepted = pcall(env.speak, args)
         if not ok or not accepted then return finish('failed') end
-        chat.n, chat.pendingLine, chat.requestedAt, chat.speaker = index, true, clock, speaker
+        chat.n, chat.pendingLine, chat.requestedAt, chat.speaker = args.n, true, clock, args.speaker
         state.phase = 'line'
+    end
+
+    -- The text of the line in the air is known: write the next speaker's line now (once per line).
+    local function prepare(text)
+        local index = chat.n + 1
+        chat.preparedFor = chat.n
+        local args = arrange(index, {speaker = chat.speaker.name, text = text:sub(1, 300)})
+        if not args then return end
+        local ok, accepted = pcall(env.prepare, args)
+        if ok and accepted then chat.prepared = {signature = signature(args), n = index} end
     end
 
     -- Up to `size` people near each other and V: a pair first (the pair that spoke last is least likely), then the nearest of the others.
@@ -188,13 +225,6 @@ function M.new(env)
             return request()
         end
         if not chat then state.phase = 'idle'; return end
-        if state.phase == 'between' then
-            if chat.stopAfterLine then return finish(chat.stopReason or 'interrupted') end
-            local ok, may = pcall(env.mayStart)
-            if not ok or may ~= true then return finish('dropped') end
-            if clock >= chat.gapUntil then return request() end
-            return
-        end
         -- phase 'line': the speaker's line is requested, being written or heard.
         local ok, status, text = pcall(env.status)
         if not ok then return finish('failed') end
@@ -204,22 +234,36 @@ function M.new(env)
             chat.lines[#chat.lines + 1] = {speaker = chat.speaker.name, text = tostring(text or ''):sub(1, 300)}
             if chat.n >= M.MAX_LINES or chat.n >= chat.of then return finish('done') end
             if chat.stopAfterLine then return finish(chat.stopReason or 'interrupted') end
-            state.phase = 'between'
-            chat.gapUntil = clock + M.GAP[1] + (M.GAP[2] - M.GAP[1]) * random()
+            local may
+            ok, may = pcall(env.mayStart)
+            if not ok or may ~= true then return finish('dropped') end
+            -- The next line is requested at once, not at some later step: the pause between lines is the writing of it, or a beat when it is written.
+            return request()
         elseif status == 'failed' or status == 'cancelled' then
             chat.pendingLine = false
             return finish(status == 'cancelled' and 'interrupted' or 'failed')
         elseif clock - chat.requestedAt > M.LINE_TIMEOUT then
             return finish('failed')
+        elseif env.prepare and status == 'busy' and chat.preparedFor ~= chat.n and not chat.stopAfterLine and chat.n < chat.of and chat.n < M.MAX_LINES
+            and type(text) == 'string' and text ~= '' then
+            prepare(text)
         end
     end
 
     -- V talks to one of them, a scene starts, someone leaves. hard: stop now; otherwise the line in the air is finished first.
     function C.interrupt(reason, hard)
         if not chat then return end
-        if hard or state.phase == 'between' then return finish(reason or 'interrupted') end
+        -- A line that has not begun (it waits for its beat or for the channel) is not in the air: there is nothing to finish.
+        if not hard and chat.pendingLine then
+            local asked, status = pcall(env.status)
+            if asked and status == 'waiting' then hard = true end
+        end
+        if hard or not chat.pendingLine then return finish(reason or 'interrupted') end
         chat.stopAfterLine, chat.stopReason = true, reason or 'interrupted'
     end
+    -- The game side says a line has just ended (mod/init.lua convaiHouseTick): read it now instead of at the controller's next step, so the next line
+    -- is requested without waiting for the step.
+    function C.poke() if chat and state.phase == 'line' then C.update(0) end end
     -- Development: start the next chat at once (the cooldown and the hourly count cleared).
     function C.force() state.nextAt, state.started = 0, {}; return true end
     function C.active() return chat ~= nil end

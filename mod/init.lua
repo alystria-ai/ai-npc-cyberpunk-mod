@@ -3865,7 +3865,7 @@ end
 -- when somebody lives somewhere or a conversation offer asks. Nothing runs per frame. Globals and one do-block: the main chunk is near Lua's limit
 -- of locals.
 convaiHousemates = nil
-convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
+convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText, convaiHousePrepared = nil, nil, nil, nil, nil
 do
     local districtHooked = false
     local lastWelcomeLine
@@ -3997,6 +3997,7 @@ do
             end,
             random = math.random,
             speak = convaiHouseSpeak, speakStatus = convaiHouseSpeakStatus, speakCancel = convaiHouseSpeakCancel,
+            speakPrepare = convaiHouseSpeakPrepare, speakUnprepare = convaiHouseSpeakUnprepare,
             greet = convaiHouseGreeting,
             level = function() return manager.companionSpeakUp and manager.companionSpeakUp() or 'rare' end,
             -- "Housemates talk to each other" (Settings > Housemates): the pair chat is loaded only while it is On.
@@ -4062,6 +4063,7 @@ do
         local glue = convaiHousemates
         convaiHousemates, convaiHousematesFailed = nil, nil
         if convaiHouseWaiting or convaiHouseCurrent then pcall(convaiHouseSpeakCancel) end
+        pcall(convaiHouseSpeakUnprepare)
         convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
         if glue then pcall(glue.disable) end
     end
@@ -4075,6 +4077,7 @@ do
         if glue then glue.tick(delta) end
     end
     function convaiHousemateReset(reason, preserve)
+        pcall(convaiHouseSpeakUnprepare)
         convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
         if convaiHousemates then convaiHousemates.reset(reason, preserve) end
     end
@@ -4105,8 +4108,9 @@ do
         return convaiHousemates.turn(snapshot, profileKey)
     end
     function convaiHousemateTalk(entity)
-        -- A chat line that is only waiting for the channel gives way to V's talk at once.
+        -- A chat line that is only waiting for the channel gives way to V's talk at once, and so does the one written ahead behind the line in the air.
         if convaiHouseWaiting then convaiHouseSpeakCancel() end
+        pcall(convaiHouseSpeakUnprepare)
         if convaiHousemates and on() then convaiHousemates.talkStarted(entity) end
     end
     function convaiHousemateLearn(anchor, forward, kind)
@@ -4152,20 +4156,67 @@ do
     -- The spoken lines (a chat line, a greeting): one automatic reaction of kind 'house' at a time, spoken like any reply. It waits for the
     -- channel to be free (at most 45 s) and gives way to anything V does.
     local function finish(status, text)
+        -- A line written ahead that never went out: the bridge drops the held one.
+        if convaiHouseWaiting and convaiHouseWaiting.context then pcall(convaiSpeakUpPublish, nil) end
         convaiHouseWaiting, convaiHouseCurrent = nil, nil
         convaiHouseResult = {status = status, text = text}
     end
+    -- The context of a chat line as the bridge is given it. A line written ahead is this very table, made while the line before it was in the air.
+    local function houseChatContext(request, now, seconds)
+        generation = generation + 1
+        local reaction = {kind = 'house', event = 'chat', partner = request.partner.name, partnerKey = request.partner.key, others = request.others or {},
+            place = convaiHousePlaceName(), n = request.n, of = request.of, topic = request.topic, lines = request.lines or {},
+            expiresAt = math.floor((now + seconds) * 1000)}
+        local context = {generation = generation, entity = request.speaker.entity, name = request.speaker.name, bodyType = '',
+            profileKey = request.speaker.key, sentAt = now, reaction = reaction,
+            text = 'You are talking with ' .. tostring(request.partner.name) .. ' at V\'s place. Say your next line.'}
+        context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+        return context
+    end
     function convaiHouseSpeak(request)
         if convaiHouseWaiting or convaiHouseCurrent or type(request) ~= 'table' then return false end
-        convaiHouseWaiting = {request = request, at = os.time()}
+        local waiting = {request = request, at = os.time()}
+        -- Written ahead (convaiHouseSpeakPrepare) and still the line that was meant: it goes out as it is, after the beat the chat asked for.
+        local held = convaiHousePrepared
+        if held then
+            convaiHousePrepared = nil
+            if request.prepared == true and held.request.speaker.key == request.speaker.key and held.request.n == request.n then
+                waiting.context = held.context
+                waiting.notBefore = os.clock() + (tonumber(request.gap) or 0.3)
+            else
+                pcall(convaiSpeakUpPublish, nil)
+            end
+        end
+        convaiHouseWaiting = waiting
         convaiHouseText = nil
-        convaiHouseResult = {status = 'busy'}
+        convaiHouseResult = {status = 'waiting'}
         return true
     end
+    -- 'waiting' (queued, nothing sent), 'busy' (sent, being written or said; the text once it is known), 'done', 'failed' or 'cancelled'.
     function convaiHouseSpeakStatus()
         local result = convaiHouseResult
         if not result then return nil end
+        if result.status == 'busy' then return 'busy', convaiHouseText end
         return result.status, result.text
+    end
+    -- The next line of a chat is written while the one in the air is still being said (docs/HOUSEMATES.md, "Pair chat"): its request is published for the
+    -- bridge to run now and hold back (runtime/group-prefetch.json, kind 'ahead', the same hold-and-claim as a companion's after-scene line), and sent as
+    -- it is when the line has been heard. A bridge or plan that cannot run two lines at once simply takes it as an ordinary request at that moment.
+    function convaiHouseSpeakPrepare(request)
+        if convaiHousePrepared or type(request) ~= 'table' or not convaiHouseCurrent or convaiHouseCurrent.kind == 'welcome' then return false end
+        if not (automatic and automatic.reaction.kind == 'house') then return false end
+        local now = os.time()
+        local context = houseChatContext(request, now, 90)
+        context.journal = questContext.capture()
+        if not convaiSpeakUpPublish({kind = 'ahead', input = context}) then return false end
+        convaiHousePrepared = {request = request, context = context}
+        return true
+    end
+    -- Withdrawn: the chat stopped, V talks, or the line it was written for did not turn out as expected (the bridge drops the held line).
+    function convaiHouseSpeakUnprepare()
+        if not convaiHousePrepared then return end
+        convaiHousePrepared = nil
+        pcall(convaiSpeakUpPublish, nil)
     end
     function convaiHouseSpeakCancel()
         if automatic and automatic.reaction.kind == 'house' then cancelAutomatic('house-cancelled') end
@@ -4193,6 +4244,7 @@ do
         local controller = glue and glue.controller
         return controller and controller.placeName and controller.placeName() or ''
     end
+    convaiHousePlaceName = placeName
     function convaiHouseTick(player, now, worldReady, outputs, manual)
         if automatic and automatic.reaction.kind == 'house' then
             if automatic.playbackAt then convaiHouseWaiting = nil end
@@ -4205,6 +4257,9 @@ do
             elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
                 cancelAutomatic('completed')
                 finish(shown and 'done' or 'failed', convaiHouseText)
+                -- The chat reads the end of the line now, not at its next step, and asks for the next one at once.
+                local controller = convaiHousemates and convaiHousemates.controller
+                if controller and controller.chatPoke then pcall(controller.chatPoke) end
             elseif not reactionLease(true) then
                 cancelAutomatic('lease-write-failed')
                 finish('failed')
@@ -4219,26 +4274,28 @@ do
         if not waiting or automatic then return false end
         if os.time() - waiting.at > 45 then finish('failed'); return false end
         if not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+        -- A line written ahead waits out its short beat after the one before it (a fraction of a second, counted on the 0.1 s tick).
+        if waiting.notBefore and os.clock() < waiting.notBefore then return false end
         local request = waiting.request
         local npc = companions.residentNpc(request.speaker.serial)
         if not npc then finish('failed'); return false end
         local available = battleObserver.canSpeak(npc, 'start')
         if not available then return false end
-        generation = generation + 1
-        local reaction
-        if request.kind == 'welcome' then
+        local context, reaction = waiting.context, nil
+        if context then
+            reaction = context.reaction
+        elseif request.kind == 'welcome' then
+            generation = generation + 1
             reaction = {kind = 'house', event = 'welcome', place = request.place or placeName(), awayHours = request.awayHours or 0,
                 others = request.others or {}, expiresAt = math.floor((now + 25) * 1000)}
+            context = {generation = generation, entity = request.speaker.entity, name = request.speaker.name, bodyType = '',
+                profileKey = request.speaker.key, sentAt = now, reaction = reaction,
+                text = 'V has just come home. Give a brief in-character greeting.'}
+            context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
         else
-            reaction = {kind = 'house', event = 'chat', partner = request.partner.name, partnerKey = request.partner.key, others = request.others or {},
-                place = placeName(), n = request.n, of = request.of, topic = request.topic, lines = request.lines or {},
-                expiresAt = math.floor((now + 30) * 1000)}
+            context = houseChatContext(request, now, 30)
+            reaction = context.reaction
         end
-        local context = {generation = generation, entity = request.speaker.entity, name = request.speaker.name, bodyType = '',
-            profileKey = request.speaker.key, sentAt = now, reaction = reaction,
-            text = request.kind == 'welcome' and 'V has just come home. Give a brief in-character greeting.'
-                or 'You are talking with ' .. tostring(request.partner.name) .. ' at V\'s place. Say your next line.'}
-        context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
         automatic = context
         captureReactionGuard(worldReady, outputs, nil)
         convaiHouseWaiting = nil
@@ -4246,7 +4303,8 @@ do
             speech.target = npc
             lastAutomatic = {at = now, requestId = context.requestId, kind = 'house'}
             convaiHouseCurrent = request
-            log('Automatic house line: speaker=' .. tostring(request.speaker.key) .. ' event=' .. reaction.event)
+            convaiHouseResult = {status = 'busy'}
+            log('Automatic house line: speaker=' .. tostring(request.speaker.key) .. ' event=' .. reaction.event .. (waiting.context and ' (written ahead)' or ''))
         else
             cancelAutomatic('request-write-failed')
             finish('failed')

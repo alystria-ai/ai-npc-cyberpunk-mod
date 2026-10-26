@@ -90,6 +90,10 @@ const dayPart = hour => hour < 5 ? 'late at night' : hour < 7 ? 'early in the mo
 const LIMITS = 'No narration, stage directions or actions, no quotation marks around the line, and no emoji unless that is how you talk. '
   + 'Return only the spoken line.';
 
+// The end of a chat is only the end of the talk: they live here and nobody goes anywhere (owner, 2026-10-26: the last lines sounded like leaving).
+const STAY = 'This is only the end of the talk, not of the evening: everyone stays where they are and carries on at home, so nobody is leaving. '
+  + 'No goodbye, no good night, no see-you-later, no announcing that you are heading out or off, and no plan to leave the room or the flat. ';
+
 /** The trigger of a chat line: who you are talking to, where, what came before, and the limits of the line. */
 function chatTrigger(reaction) {
   const {partner, others = [], place, n, of, topic, lines, hour, maxWords} = reaction;
@@ -114,11 +118,11 @@ function chatTrigger(reaction) {
       ? `You speak first. Open a conversation with ${partner} naturally; the subject can be this seed (quoted, a starting point only): ${quote(topic)}. `
       : `You speak first. Open a conversation with ${partner} naturally, about something ordinary from your shared life there. `;
   } else if (n >= CHAT_LINES) {
-    job = `${reply}, and this is the final line: close the exchange with a short remark, such as a joke or a see-you-later. `
-      + 'Do not ask a question and do not start a new subject. ';
+    job = `${reply}, and this is the final line: let the topic come to a natural rest with a short remark on it, such as a joke or a dry last thought. `
+      + STAY + 'Do not ask a question and do not start a new subject. ';
   } else if (closing) {
-    job = `${reply}, and begin winding the exchange down: end on a closing remark, such as a joke or a see-you-later. `
-      + 'Do not ask a new question and do not start a new subject. ';
+    job = `${reply}, and let the topic settle: end on a short remark on it, such as a joke or a dry last thought. `
+      + STAY + 'Do not ask a new question and do not start a new subject. ';
   } else {
     job = `${reply} and keep the conversation going in a natural direction. `;
   }
