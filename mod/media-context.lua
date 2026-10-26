@@ -20,6 +20,10 @@ M.TV_RADIUS, M.QUERY_PARTS, M.TV_CANDIDATES = 12, 400, 6   -- metres, targeting 
 M.TV_MEMORY = 1800                    -- seconds: a TV that spoke this long ago is still looked up by its ID (it must still be near and on)
 M.SAID_AGE, M.HEARD_AGE = 90, 20      -- seconds: a TV line this young is "just said"; a TV line alone (no TV located) counts this long
 M.MAX_TEXT, M.MAX_LOGS = 120, 200
+-- A targeting query that found no TV that is on is not asked again for QUERY_REST seconds while V stays within QUERY_MOVE metres of where it
+-- was asked: in a street the query lists every part within 12 m (up to QUERY_PARTS, about ten native reads each), and every turn on foot would
+-- pay for it. A TV V looks at, or one that just spoke, is found before the query and never waits for it.
+M.QUERY_REST, M.QUERY_MOVE = 20, 3
 
 local function call(fn, ...)
     if type(fn) ~= 'function' then return nil end
@@ -107,6 +111,10 @@ local function nativeAdapter()
         local object = Game.GetTargetingSystem():GetLookAtObject(player, false, false)
         if object ~= nil and object:IsA('TV') then return object end
         return nil
+    end
+    function N.position(player)
+        local at = player:GetWorldPosition()
+        return {x = at.x, y = at.y, z = at.z}
     end
     function N.distance(player, entity)
         local a, b = player:GetWorldPosition(), entity:GetWorldPosition()
@@ -360,10 +368,27 @@ function Instance:findTv(player, detail)
             detail.heardTv = 'farOrOff'
         end
     end
+    -- The last query found nothing and V has not moved far: the same answer (the seam is optional; without it every read queries).
+    local origin = call(N.position, player)
+    local clock = self.options.clock or os.clock
+    local rest = self.tvRest
+    if rest and type(origin) == 'table' and clock() >= rest.at and clock() - rest.at < M.QUERY_REST then
+        local dx, dy, dz = origin.x - rest.x, origin.y - rest.y, origin.z - rest.z
+        if dx * dx + dy * dy + dz * dz <= M.QUERY_MOVE * M.QUERY_MOVE then
+            detail.queried, detail.stats, detail.rested = rest.queried, rest.stats, true
+            return nil
+        end
+    end
+    self.tvRest = nil
     local list, stats = call(N.tvQuery, player, M.TV_RADIUS, M.QUERY_PARTS)
     detail.queried = type(list) == 'table' and #list or -1
     if type(stats) == 'table' then detail.stats = stats end
-    if type(list) ~= 'table' or #list == 0 then return nil end
+    if type(list) ~= 'table' or #list == 0 then
+        if type(list) == 'table' and type(origin) == 'table' then
+            self.tvRest = {at = clock(), x = origin.x, y = origin.y, z = origin.z, queried = detail.queried, stats = detail.stats}
+        end
+        return nil
+    end
     -- Nearest first, and at most TV_CANDIDATES asked whether they are on. What rejected the others is counted for probe.log.
     local rows = {}
     detail.far = 0
@@ -378,6 +403,10 @@ function Instance:findTv(player, detail)
         local state = call(N.tvState, rows[index].entity)
         if type(state) == 'table' and state.on == true then detail.tv = 'query'; return rows[index].entity, state, rows[index].distance end
         detail.off = detail.off + 1
+    end
+    -- TVs near but none on: rests like an empty query (a TV switched on in the next seconds is one V looks at, or one that speaks).
+    if type(origin) == 'table' then
+        self.tvRest = {at = clock(), x = origin.x, y = origin.y, z = origin.z, queried = detail.queried, stats = detail.stats}
     end
     return nil
 end

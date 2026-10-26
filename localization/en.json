@@ -5662,7 +5662,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:108"
+        "mod/housemates.lua:112"
       ]
     },
     "Could not save. Try again.": {
@@ -6925,7 +6925,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:109"
+        "mod/housemates.lua:113"
       ]
     },
     "Hold it to talk to Johnny, the voice in your head, wherever you face, and let go to send. It needs Johnny in your head turned on in Settings.": {
@@ -7856,7 +7856,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:107"
+        "mod/housemates.lua:111"
       ]
     },
     "Memories": {
@@ -11199,13 +11199,13 @@
       ],
       "references": [
         "mod/companion-adoption.lua:381",
-        "mod/housemate-service.lua:152",
-        "mod/housemates.lua:950",
-        "mod/housemates.lua:956",
-        "mod/housemates.lua:958",
-        "mod/housemates.lua:961",
-        "mod/housemates.lua:963",
-        "mod/housemates.lua:976",
+        "mod/housemate-service.lua:158",
+        "mod/housemates.lua:962",
+        "mod/housemates.lua:968",
+        "mod/housemates.lua:970",
+        "mod/housemates.lua:973",
+        "mod/housemates.lua:975",
+        "mod/housemates.lua:988",
         "mod/init.lua:437",
         "mod/init.lua:441",
         "mod/init.lua:457"
@@ -11265,7 +11265,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:973"
+        "mod/housemates.lua:985"
       ]
     },
     "That confirmation is no longer active.": {
@@ -11623,7 +11623,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:807"
+        "mod/manager-party.lua:810"
       ]
     },
     "The character was removed before joining.": {
@@ -11632,8 +11632,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:807",
-        "mod/manager-party.lua:838"
+        "mod/manager-party.lua:810",
+        "mod/manager-party.lua:841"
       ]
     },
     "The clip is mostly silence. Use a clip where somebody is talking most of the time.": {
@@ -11955,7 +11955,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:819",
+        "mod/manager-party.lua:822",
         "mod/manager.lua:1973"
       ]
     },
@@ -13985,7 +13985,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:111"
+        "mod/housemates.lua:115"
       ]
     },
     "Westbrook Japantown": {
@@ -13993,7 +13993,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:110"
+        "mod/housemates.lua:114"
       ]
     },
     "What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.": {
@@ -14228,7 +14228,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:958"
+        "mod/housemates.lua:970"
       ]
     },
     "You have as many voice clips as the editor keeps ({max}). Remove one first.": {
@@ -15042,7 +15042,7 @@
       "references": [
         "mod/manager-party.lua:582",
         "mod/manager-party.lua:733",
-        "mod/manager-party.lua:869"
+        "mod/manager-party.lua:872"
       ]
     },
     "{name} dismissed.": {
@@ -15051,7 +15051,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:822"
+        "mod/manager-party.lua:825"
       ]
     },
     "{name} does not have a conversation profile configured yet.": {
@@ -15069,7 +15069,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:776"
+        "mod/housemates.lua:788"
       ]
     },
     "{name} is a child and cannot be talked to.": {
@@ -15109,7 +15109,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemate-service.lua:171"
+        "mod/housemate-service.lua:177"
       ]
     },
     "{name} is busy right now.": {
@@ -15231,7 +15231,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:800"
+        "mod/manager-party.lua:803"
       ]
     },
     "{name} joined your party.": {
@@ -15247,7 +15247,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:494"
+        "mod/housemates.lua:500"
       ]
     },
     "{name} moves into {apartment}.": {
@@ -15255,7 +15255,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:759"
+        "mod/housemates.lua:771"
       ]
     },
     "{name} now lives in {apartment} and stays in your party until sent home.": {
@@ -15263,7 +15263,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:757"
+        "mod/housemates.lua:769"
       ]
     },
     "{name} selected for memory controls.": {
@@ -16006,7 +16006,7 @@
       "references": [
         "mod/manager-party.lua:582",
         "mod/manager-party.lua:733",
-        "mod/manager-party.lua:869"
+        "mod/manager-party.lua:872"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -16018,7 +16018,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:822"
+        "mod/manager-party.lua:825"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -16067,7 +16067,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:800"
+        "mod/manager-party.lua:803"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

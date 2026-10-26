@@ -787,8 +787,11 @@ function M.new(companions, readiness, options)
         end
         -- CreateEntity only accepts the request. Keep the original reservation
         -- until attachment succeeds, fails or is explicitly dismissed.
+        -- companions.list() builds a row of about seventy fields for every copy: it is asked only when a copy is attaching (this runs four times a second).
         local live = {}
-        for _, member in ipairs(companions.list()) do live[member.serial] = member end
+        if next(attaching) ~= nil then
+            for _, member in ipairs(companions.list()) do live[member.serial] = member end
+        end
         for serial, job in pairs(attaching) do
             local member = live[serial]
             if leaves[serial] then
@@ -808,8 +811,8 @@ function M.new(companions, readiness, options)
                 attaching[serial] = nil
             end
         end
-        -- Deletions run first; a failed deletion still occupies its real slot.
-        for _, member in ipairs(companions.list()) do
+        -- Deletions run first; a failed deletion still occupies its real slot. Nobody leaving: the list is not built.
+        for _, member in ipairs(next(leaves) ~= nil and companions.list() or {}) do
             if leaves[member.serial] then
                 local called, ok, err = pcall(companions.dismiss, member.serial)
                 leaves[member.serial] = nil

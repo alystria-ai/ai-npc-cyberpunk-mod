@@ -95,7 +95,9 @@ ordinary NPC for a minute with `Measure-VisionCapture.mjs` reading `perf-probe.j
 
 - The bridge's eleven interval timers (50 ms request, 150 ms microphone, prefetch and phone, 60 ms look-ahead, 500 ms settings, knowledge,
   memory, support and editor) are single file reads that wake the features that are on by default. The look-ahead poll returns at once
-  unless Convai is the provider. They hold no model, no process and no memory, and a missed wake would delay a turn; they were left alone.
+  unless Convai is the provider or a text provider may prepare a Johnny follow-on or a companion's scene line (0.3.2); then it asks for the
+  prediction file with one stat and reads it only when the file changed (`createStatCachedReader`, bridge/group-lookahead.mjs). They hold no
+  model, no process and no memory, and a missed wake would delay a turn; they were left alone.
 - `TokenSource` (sign-in backend) renews a Convai token about every hour with one small request. It is unused while a text provider is
   chosen, but pausing it would make the first Convai turn after a switch wait for a token; left as is.
 - The file watcher on `runtime/` (`file-wake.mjs`) is a non-persistent OS watcher; the add-on watchers exist only with add-ons.

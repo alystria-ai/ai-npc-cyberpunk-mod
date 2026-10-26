@@ -41,6 +41,7 @@ function M.new(o)
     local handles = {}
     local windowAt, spent = 0, 0
     local twinAt = {}
+    local nearby              -- {at, records}: the last 25 m scan for a game-placed twin
     local clock = o.clock or os.clock
 
     local function log(kind, fields) if o.log then pcall(o.log, kind, fields) end end
@@ -424,6 +425,27 @@ function M.new(o)
 
     -- ---- the world --------------------------------------------------------------------------------------------------------------------
     -- A game-placed copy of this character within 25 m of V (the real Judy standing in the scene): asked at most every 10 s.
+    -- One query serves every resident asked in the same second (their 10 s clocks tend to run out in the same step, and the query is a
+    -- 25 m scan of the NPCs around V): the records of the game-placed (not managed) NPCs near V, as strings, read once per part.
+    local function nearbyRecords(now)
+        if nearby and now >= nearby.at and now - nearby.at < 1 then return nearby.records end
+        local records = {}
+        local query = TargetSearchQuery.new()
+        query.searchFilter = Game['TSF_NPC;']()
+        query.maxDistance = 25
+        query.includeSecondaryTargets = false
+        query.filterObjectByDistance = true
+        query.ignoreInstigator = true
+        local _, parts = Game.GetTargetingSystem():GetTargetParts(player(), query)
+        local system = Game.GetDynamicEntitySystem()
+        for _, part in ipairs(parts or {}) do
+            local component = TS_TargetPartInfo.GetComponent(part)
+            local entity = component and component:GetEntity()
+            if entity and not system:IsManaged(entity:GetEntityID()) then records[tostring(entity:GetRecordID())] = true end
+        end
+        nearby = {at = now, records = records}
+        return records
+    end
     function W.twin(r)
         local now = clock()
         if twinAt[r.key] and now - twinAt[r.key].at < 10 then return twinAt[r.key].value end
@@ -432,21 +454,7 @@ function M.new(o)
             local def = companions.definition(r.key)
             local record = def and def.id
             if not record then return end
-            local query = TargetSearchQuery.new()
-            query.searchFilter = Game['TSF_NPC;']()
-            query.maxDistance = 25
-            query.includeSecondaryTargets = false
-            query.filterObjectByDistance = true
-            query.ignoreInstigator = true
-            local _, parts = Game.GetTargetingSystem():GetTargetParts(player(), query)
-            local system = Game.GetDynamicEntitySystem()
-            for _, part in ipairs(parts or {}) do
-                local component = TS_TargetPartInfo.GetComponent(part)
-                local entity = component and component:GetEntity()
-                if entity and tostring(entity:GetRecordID()) == tostring(TweakDBID.new(record)) and not system:IsManaged(entity:GetEntityID()) then
-                    value = true; break
-                end
-            end
+            value = nearbyRecords(now)[tostring(TweakDBID.new(record))] == true
         end)
         if not ok then log('housemate-twin-error', {error = tostring(err):sub(1, 120)}) end
         twinAt[r.key] = {at = now, value = value}
@@ -465,7 +473,7 @@ function M.new(o)
     function W.abandon(sweep)
         for h in pairs(handles) do deleteDevice(h) end
         if sweep and nat.sweep then pcall(nat.sweep) end
-        handles, prep, procState, twinAt = {}, {}, {}, {}
+        handles, prep, procState, twinAt, nearby = {}, {}, {}, {}, nil
     end
 
     return W

@@ -479,6 +479,12 @@ Owner, game 2.5: the wait from one line to the next was a little high, and the l
   told it is visible once when she is first placed (a mesh that vanished after an AI teleport or a workspot entry has no other way back), and the `placed`
   line carries her look (`look=<appearance>`) so a change of look can be matched to a vanishing. If bodies still vanish with no `bodies-visible visible=false`
   line, the game's own culling of an entity moved by an AI teleport or a workspot is the next suspect (the entity is alive, its render proxy is not).
+* **A body that never comes was tried every 75 seconds for the whole session (performance audit 2026-10-26).** probe.log of the 26 Oct test: `failed:spawn-timeout
+  ... key=blue-moon` followed by `spot-chosen id=proc:blue-moon` 17 times, because a procedural standing place (`proc:`) has no id to give up and the 45 s wait and
+  30 s pause were the same every time: each cycle created and deleted a body, rewrote the party and readiness files three times, ran the spot search again and kept the
+  controller on its 0.25 s step for the 45 s. Now each timeout in a row doubles the pause (10, 20, 40 ... 640, then 600 s at most: `M.TIMEOUT_RETRY`,
+  `M.SPAWN_RETRY_MAX`, `r.spawnTimeouts`), V entering the flat again starts afresh, and while the only thing going on is a body being made the step is 0.5 s
+  (`M.STEP_SPAWN`), not 0.25 s. The twin scan (`W.twin`) is one 25 m query shared by every resident asked in the same second, with each part read once.
 
 ### Rate and budget (owner, 2026-10-25)
 

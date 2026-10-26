@@ -43,7 +43,7 @@ export const WORLD = `
         local rows = {}
         for _, b in pairs(world.bodies) do
           b.age = b.age + 1
-          if b.state == 'spawning' and b.age >= 2 then
+          if b.state == 'spawning' and b.age >= 2 and not world.stuck then
             -- world.refuse[key] = n: the game refuses the next n bodies of that character (it made the copy and failed it at once).
             if world.refuse and (world.refuse[b.key] or 0) > 0 then world.refuse[b.key] = world.refuse[b.key] - 1; b.state = 'failed'; b.error = 'Scenery or a vehicle is blocking the companion position.'
             else b.state = 'visiting' end

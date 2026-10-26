@@ -429,3 +429,28 @@ player.quantities[drink.hash]=nil
 intent(drink,1);assert(reads==1,'a Loot action reads once: '..reads)
 added(drink,0,1,false);local rows=m.drain();assert(#rows==1)
 `));
+
+// Performance: Loot reactions are on by default, and a crafting, disassembly or vendor burst fires hundreds of item events in one frame.
+test('a burst of item events in one frame asks the player puppet once; the next frame, a reset or a new update asks again', () => run(fixture + `
+update()
+local asked=0
+player.IsAttached=function() asked=asked+1;return true end
+local other=item('55ULL','Part')
+local function burst(n)for i=1,n do changed(other,i,1);before['PlayerPuppet.OnItemBeingRemovedFromInventory'](player,{itemID=other});added(other,i-1,i,true)end end
+-- no frame counter (a test, an old host): every event asks, as before
+burst(3);assert(asked==9,'without a frame counter: '..asked)
+convaiHeartbeat={frame=7}
+asked=0;burst(30)
+assert(asked==1,'the 90 events of one frame asked '..asked..' times')
+convaiHeartbeat.frame=8;burst(2);assert(asked==2,'a new frame did not ask again: '..asked)
+-- a reset (the puppet detaches) and a new update forget the answer inside the same frame
+local detach=before['PlayerPuppet.OnDetach'];detach()
+asked=0;update();assert(asked==1,'the new baseline asked '..asked)
+burst(2);assert(asked==1,'the baseline answer was not reused: '..asked)
+update();burst(2);assert(asked==2,'the update did not forget the answer: '..asked)
+-- the answer is the one a first question gave: a puppet that is not attached stays so for the frame and counts for nothing
+player.IsAttached=function() asked=asked+1;return false end
+convaiHeartbeat.frame=9;asked=0
+local ownedBefore=m.status().baseline.seen
+burst(5);assert(asked==1 and m.status().baseline.seen==ownedBefore,'a detached puppet recorded ownership')
+`));

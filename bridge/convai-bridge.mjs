@@ -35,7 +35,7 @@ import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from 
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
 import {eventExchange} from './appointment-events.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
-import {GroupLookahead, lookaheadAllowed, lookaheadKind, validateLookahead, validateFollow, validateAhead, PREPARED_HOLD_MS, waitUntil, BufferedPcm} from './group-lookahead.mjs';
+import {GroupLookahead, lookaheadAllowed, lookaheadKind, validateLookahead, validateFollow, validateAhead, PREPARED_HOLD_MS, waitUntil, BufferedPcm, createStatCachedReader} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections, spawnedWarmLimit} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
@@ -3309,6 +3309,8 @@ async function pollPrefetch() {
 // speaker in three ways: the text providers may prepare them (as background-priority work, see realtimeConfig and bridge/text-provider-host.mjs), they are never allowed to stand in
 // front of V (V opening the text box or the voice key, a recording, or any request of V's drops them at once), and they are held for 90 s at most.
 let lookaheadPolling = false, lookaheadWaiting = {raw: '', at: 0}, lookaheadHandled = '';
+// The prediction file is read when it changed (one stat tells), not on every 60 ms poll.
+const readPrefetch = createStatCachedReader({stat, read: path => readFile(path, 'utf8')});
 // V is about to talk, is typing or is recording: a line prepared ahead gives way. A recording that is only finishing the source's own turn does not count.
 // The composer hint (runtime/conversation-prewarm.json: the talk key was pressed, whom V is about to talk to) is read here itself: pollPrefetch applies it to the
 // connections only while no turn is active, and a companion's line is exactly such a turn. A hint it has already applied is old news (the game leaves the hint of
@@ -3338,7 +3340,7 @@ async function pollLookahead() {
         });
       }
     }
-    const raw = await readFile(prefetchPath, 'utf8').catch(() => '');
+    const raw = await readPrefetch(prefetchPath);
     if (raw === prefetchObserved || raw === lookaheadHandled) return;
     let command;
     try { command = JSON.parse(raw); } catch { prefetchObserved = raw; dropPrefetch(); return; }

@@ -275,3 +275,45 @@ test('the home path and the V-triggered path turn the same stool the same way (s
     assert(math.abs(home.x - viaV.x) < 1e-6 and math.abs(home.y - viaV.y) < 1e-6, 'home facing ' .. home.x .. ',' .. home.y .. ' vs V ' .. viaV.x .. ',' .. viaV.y)
   `, {extra: ['companion-seating.lua', 'gesture-workspot.lua']});
 });
+
+// Performance: the 25 m scan for the game's own copy of a character is one query for every resident asked in the same second, and each part is
+// turned into text once.
+test('the twin scan runs once for residents asked together, reads each part once, and still sees only unmanaged copies', () => {
+  lua(`${NATIVE}
+    local queries, partReads, tostrings, recordReads = 0, 0, 0, 0
+    local near = {}   -- record string -> managed?
+    TargetSearchQuery = {new = function() return {} end}
+    TS_TargetPartInfo = {GetComponent = function(part) return part end}
+    TweakDBID = {new = function(record) return setmetatable({record = record}, {__tostring = function(t) tostrings = tostrings + 1; return 'tdb:' .. t.record end}) end}
+    local entities = {}
+    local function entity(record, managed)
+      return {GetEntity = function(self) return self end, GetRecordID = function() recordReads = recordReads + 1; return 'tdb:' .. record end, GetEntityID = function() return {managed = managed} end}
+    end
+    Game['TSF_NPC;'] = function() return 'npc' end
+    Game.GetTargetingSystem = function() return {GetTargetParts = function(self, player, query)
+      queries = queries + 1
+      local parts = {}
+      for _, e in ipairs(entities) do partReads = partReads + 1; parts[#parts + 1] = e end
+      return true, parts
+    end} end
+    Game.GetDynamicEntitySystem = function() return {IsManaged = function(self, id) return id.managed == true end} end
+    entities = {entity('Character.judy', false), entity('Character.panam', true), entity('Character.rogue', false), entity('Character.other', false)}
+    assert(adapter.twin({key = 'judy'}) == true, 'the game-placed Judy was not found')
+    assert(adapter.twin({key = 'panam'}) == false, 'our own managed Panam counted as a twin')
+    assert(adapter.twin({key = 'rogue'}) == true)
+    assert(adapter.twin({key = 'misty'}) == false)
+    assert(queries == 1, 'queries: ' .. queries)
+    assert(partReads == 4, 'parts read: ' .. partReads)
+    -- each unmanaged part's record was read once (3 here, not 3 for each of the 4 residents) and each resident's own record turned into text once
+    assert(recordReads == 3, 'record reads: ' .. recordReads)
+    assert(tostrings == 4, 'tostring calls: ' .. tostrings)
+    -- inside the residents' 10 s the answer is remembered without a query; after it a new query runs
+    tick(5)
+    adapter.twin({key = 'judy'})
+    assert(queries == 1)
+    tick(6)
+    entities = {}
+    assert(adapter.twin({key = 'judy'}) == false)
+    assert(queries == 2)
+  `);
+});
