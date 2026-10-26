@@ -558,7 +558,8 @@ function Instance:read()
                 for _, row in ipairs(party) do
                     local inputs = type(info.rows) == 'table' and info.rows[row.key] or nil
                     if type(inputs) == 'table' then
-                        row.activity = M.classify(inputs)
+                        -- A housemate at home or a visitor (companions.activityInputs `visitor`) has no activity to word: only what she carries.
+                        if inputs.visitor ~= true then row.activity = M.classify(inputs) end
                         -- Clothes other than the ones her appearance text describes (mod/companion-outfits.lua): 'home' or 'changed'.
                         if inputs.outfit == 'home' or inputs.outfit == 'changed' then row.outfit = inputs.outfit end
                         -- The weapon she carries: 'weapon' (drawn), 'holstered' or 'empty', and its name (companions.carriedWeapon).
@@ -623,6 +624,12 @@ function Instance:capture()
                 if row.activity then doing[#doing + 1] = row.key .. '=' .. row.activity .. (row.outfit and ('+' .. row.outfit) or '') end
             end
             if #doing > 0 then line = line .. ' activity=' .. table.concat(doing, ',') end
+            -- What each companion carries (companions.carriedWeapon): drawn, holstered or none, with the name.
+            local carrying = {}
+            for _, row in ipairs(snapshot.party or {}) do
+                if row.holding then carrying[#carrying + 1] = row.key .. '=' .. row.holding .. (row.weapon and ('(' .. row.weapon .. ')') or '') end
+            end
+            if #carrying > 0 then line = line .. ' carry=' .. table.concat(carrying, ',') end
             if snapshot.driving ~= nil then line = line .. ' driving=' .. tostring(snapshot.driving) end
             if snapshot.motion then line = line .. ' v=' .. snapshot.motion end
             -- Weather, health, heat and money, each with the raw reading and the getter that answered.

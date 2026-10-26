@@ -134,3 +134,28 @@ test('a flexible body (a housemate\'s) is made at her spot, or beside it when th
   local at = npc:GetWorldPosition()
   assert(math.abs(at.x - 10) < 4 and math.abs(at.y - 10) < 4, 'not near her spot: ' .. at.x .. ',' .. at.y)
 `));
+
+// Live 2026-10-26: at home every housemate answered "what weapon do you have?" with none. activityInputs only had rows for ready party copies, so the turn
+// context never got the weapon of a visiting body (the housemate at home), although the game read it.
+test('a housemate at home still has a row with the weapon she carries, and no activity', () => run(`${resident}
+  local carried = {{GetID = function() return {record = 'Items.Chao', hash = 'c'} end}}
+  RPGManager = {IsItemWeapon = function() return true end}
+  Game.GetTransactionSystem = function() return {GetItemList = function() return true, carried end} end
+  TweakDBInterface = {GetItemRecord = function(r) return {DisplayName = function() return 'Satara' end} end,
+    GetCharacterRecord = function() return {PrimaryEquipment = function() return {GetEquipmentItemsCount = function() return 0 end} end} end}
+  ItemID = {IsValid = function(id) return id ~= nil end, GetCombinedHash = function(id) return id.hash end, GetTDBID = function(id) return id.record end}
+  ScriptedPuppet = {GetWeaponRight = function(n) return n.weapon end, GetWeaponLeft = function() return nil end}
+  WeaponObject = {IsFists = function() return false end}
+  Game.GetLocalizedTextByKey = function(key) return key end
+  local serial, npc = live('judy-alvarez', 'corpo')
+  function npc:GetRecordID() return 'Character.Judy' end
+  assert(companions.list()[1].state == 'visiting')
+  local row = companions.activityInputs({}).rows['judy-alvarez']
+  assert(row, 'a visiting copy has a row')
+  assert(row.visitor == true and row.holding == 'holstered' and row.weapon == 'Satara', tostring(row.holding) .. tostring(row.weapon))
+  assert(row.transport == nil and row.seating == nil and row.behavior == nil, 'nothing is claimed about what she is doing')
+  Game.GetTransactionSystem = function() error('unreadable') end
+  TweakDBInterface.GetCharacterRecord = function() error('unreadable') end
+  os.clock = function() return 1e6 end
+  assert(companions.activityInputs({}).rows['judy-alvarez'] == nil, 'a read that cannot say gives no row')
+`));

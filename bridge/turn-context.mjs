@@ -30,7 +30,7 @@
 // Settings > Dynamic info (bridge/dynamic-info.mjs): `off`, the kinds the player turned off, are taken out of the snapshot before it is worded.
 import {describePlace} from './place-names.mjs';
 import {headOf} from './johnny-head.mjs';
-import {sceneryMemory} from './scenery-memory.mjs';
+import {sceneryMemory, asksAboutWeapon} from './scenery-memory.mjs';
 import {stripSnapshot, NO_KINDS} from './dynamic-info.mjs';
 import {parseGameTime} from './last-talk.mjs';
 import {parseMedia, mediaSignature, mediaSentences} from './media-context.mjs';
@@ -301,7 +301,8 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
     const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
     sentences.push(`You are with V in person${ACTIVITIES[mine?.activity] ?? ''}.`);
     pushWhere(YOU);
-    if (mine?.holding) sentences.push(HOLDING[mine.holding](mine.weapon));
+    // V asking what she carries gets the answer worded as one, right where it cannot be cut or skimmed (live 2026-10-26: "what weapon do you have?" was answered none).
+    if (mine?.holding) sentences.push(!speaksUp(input) && asksAboutWeapon(input.text) ? `V asks what you are armed with. The true answer: ${HOLDING[mine.holding](mine.weapon)} Answer from this, in your own words.` : HOLDING[mine.holding](mine.weapon));
     if (mine?.outfit) sentences.push(OUTFITS[mine.outfit]);
   } else if (call) {
     const where = '. You are somewhere else; where you are and what you are doing are not given.';

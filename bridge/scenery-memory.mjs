@@ -59,6 +59,29 @@ const SELF_ASK_CJK = ['見える', '見えて', '大丈夫', 'お腹', '空腹',
 const SELF_ASK_OTHERS = new RegExp('(?<![\\p{L}\\p{N}])(?:' + SELF_ASK_STEMS.map(row => row.source).join('|') + ')|' + SELF_ASK_CJK.join('|'), 'iu');
 /** True when V's words ask about themself (how they look, whether they are all right, a bodily need). */
 export const asksAboutSelf = text => { const asked = String(text ?? ''); return SELF_ASK_EN.test(asked) || SELF_ASK_OTHERS.test(asked); };
+// V's words ask what a companion carries or is armed with (weapon, gun, "what are you packing?"). She then hears what she carries again, worded as the answer
+// (bridge/turn-context.mjs): the sentence is in every in-person block already, but a model told "do not recite it" answered "none" to "what weapon do you have?"
+// (live 2026-10-26). In doubt it says yes. English whole words; the menu languages (cs de es fr hu it ja ko pl pt ru tr uk zh) by stems, the CJK scripts by the character.
+const WEAPON_ASK_EN = /\b(?:weapons?|guns?|armed|unarmed|arms|armou?ry|pieces?|packing|packin|pistols?|revolvers?|handguns?|sidearms?|firearms?|rifles?|shotguns?|smgs?|sniper|blades?|katanas?|knife|knives|swords?|strapped|carry(?:ing)?|carried|holster(?:ed|ing)?|ammo)\b/i;
+const WEAPON_ASK_STEMS = [
+  /armas?\b|pistola|armad[ao]|desarmad|fusil|escopeta|rev[oó]lver|cuchillo|espada|llevas|cargas/,   // es
+  /armas?\b|pistola|armad[ao]|desarmad|espingarda|rev[oó]lver|faca\b|espada|carrega/,   // pt
+  /armes?\b|pistolet|arm[eé]e?\b|fusil|flingue|couteau|[eé]p[eé]e\b|tu portes|vous portez/,   // fr
+  /waffe|pistole|bewaffnet|gewehr|knarre|schusswaffe|revolver|messer|schwert/,   // de
+  /arm[ae]\b|armi\b|pistola|armat[ao]|disarmat|fucile|rivoltella|coltello|spada\b|porti\b/,   // it
+  /bro[nń]|pistolet|uzbrojon|karabin|spluw|gnat\b|n[oó][zż]\b|miecz|rewolwer|nosisz/,   // pl
+  /zbra[nň]|pistol|ozbrojen|pu[sš]k|bouch|n[uů][zž]\b|me[cč]\b|revolver|nos[ií]š/,   // cs
+  /fegyver|pisztoly|felfegyverz|puska|stukker|k[eé]s\b|kard\b|hordasz/,   // hu
+  /оруж|пистолет|ствол|вооруж|винтовк|пушк|нож\b|меч\b|револьвер|носишь/,   // ru
+  /зброя|зброї|зброю|пістолет|ствол|озброєн|гвинтівк|ніж\b|меч\b|револьвер|носиш/,   // uk
+  /silah|tabanca|t[uü]fek|b[iı]ça[gğ]|k[iı]l[iı][cç]|ta[sş][iı]yor/,   // tr
+];
+const WEAPON_ASK_CJK = ['武器', '銃', '拳銃', '刀', '剣', '持って', '携帯',   // ja
+  '枪', '槍', '手枪', '手槍', '剑', '劍', '带着', '帶著', '携带', '攜帶',   // zh
+  '무기', '총', '권총', '칼', '검을', '들고', '갖고', '가지고'];   // ko
+const WEAPON_ASK_OTHERS = new RegExp('(?<![\\p{L}\\p{N}])(?:' + WEAPON_ASK_STEMS.map(row => row.source).join('|') + ')|' + WEAPON_ASK_CJK.join('|'), 'iu');
+/** True when V's words ask what a companion carries or is armed with. */
+export const asksAboutWeapon = text => { const asked = String(text ?? ''); return WEAPON_ASK_EN.test(asked) || WEAPON_ASK_OTHERS.test(asked); };
 export const IDLE_MS = 20 * 60_000;      // a conversation silent for this long hears the scenery again
 export const MAX_CONVERSATIONS = 256;    // least recently used go first (every stranger V talks to is a conversation)
 const ALL = Object.freeze({weather: true, time: true});
