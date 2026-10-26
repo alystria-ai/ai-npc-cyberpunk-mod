@@ -152,7 +152,7 @@ An alternative that is better for players far from Washington: a Cloudflare Work
 | `POST /v1/memory/forget` | Only if the memory calls refuse tokens: allow-listed `/memory/delete-all` on behalf of the install. Not built unless needed. |
 | Admin | No HTTP admin. A local script reads and writes Redis (ban, kill switch, stats) with its own credentials. |
 
-Errors: `429 {error: "daily" | "rate", resetAt}`, `403 {error: "refused" | "outdated"}`, `503 {error: "unavailable"}`. The bridge maps `daily` to its existing `[convai-quota:daily]` notice, so the player sees the same message as today.
+Errors: `429 {error: "daily" | "rate", resetAt}` (a `rate` answer also says which limit fired, `limit: "address" | "install"`, and the bridge carries it into the report as `authCause` `RATE_ADDRESS` / `RATE_INSTALL`), `403 {error: "refused" | "outdated"}`, `503 {error: "unavailable"}`. The bridge maps `daily` to its existing `[convai-quota:daily]` notice, so the player sees the same message as today.
 
 **Token minting and cache.** One Convai token shared by all installs, kept in Redis with its expiry. The first request that finds under 15 minutes left takes a lock (`SET NX`, 10 s), mints with `/user/connect`, stores it and releases; others wait or use the still-valid one. Every response therefore carries at least 15 minutes of life, and Convai sees about one mint every 45 minutes, not one per player, which also keeps clear of the unpublished mint rate limit. The cost of sharing one token: it cannot be revoked per player (revoking it stops new connections for everyone until the next mint). Per-install tokens with `revoke-token` on abuse are a later option if abuse appears.
 

@@ -105,7 +105,7 @@ Settings (all optional; defaults shown):
 | `CONVAI_AUTH_PAUSED` | off | `1` stops all minting: "service paused". |
 | `CONVAI_AUTH_MIN_VERSION` | none | Mod versions below this get "outdated" (compared as numbers: `0.10` is above `0.9`; a `-rc` suffix is ignored). |
 | `CONVAI_AUTH_INSTALL_PER_HOUR` | 12 | Token requests per install per hour. |
-| `CONVAI_AUTH_IP_PER_HOUR` | 20 | Token requests per address per hour. |
+| `CONVAI_AUTH_IP_PER_HOUR` | 60 | Token requests per address per hour. A deployment that sets this variable keeps its own value. A refused request answers `429 {error: 'rate', limit: 'address' \| 'install', retryAfterSeconds}`; the bridge puts `RATE_ADDRESS` or `RATE_INSTALL` in the error report's `authCause`. |
 | `CONVAI_AUTH_NEW_INSTALLS_PER_IP_PER_DAY` | 5 | New install ids per address per UTC day. |
 | `CONVAI_AUTH_MINTS_PER_DAY` | 500 | Convai mints per UTC day, whole service. Then "busy". |
 | `CONVAI_AUTH_DAILY_TURN_CAP` | 100 | Reported turns per install per UTC day before new tokens are refused (1 to 10000). This is the **default**: a value stored with `POST /api/admin/config` (below) wins over it, so changing the limit needs no redeploy. |

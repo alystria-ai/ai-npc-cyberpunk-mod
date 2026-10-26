@@ -624,6 +624,21 @@ test('a turn that finds the token expired after a good answer starts one fetch i
   assert.equal(started, 0, 'no request from a turn once the last answer was a failure');
 });
 
+test('a rate limit that names its limit carries it into the report cause (RATE_ADDRESS, RATE_INSTALL); an unnamed one carries none', async () => {
+  for (const [body, cause] of [[{error: 'rate', limit: 'address', retryAfterSeconds: 120}, 'RATE_ADDRESS'], [{error: 'rate', limit: 'install', retryAfterSeconds: 120}, 'RATE_INSTALL'],
+    [{error: 'rate', limit: 'weird', retryAfterSeconds: 120}, undefined], [{error: 'rate', retryAfterSeconds: 120}, undefined]]) {
+    const timers = fakeTimers();
+    const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL,
+      fetchImpl: async () => Response.json(body, {status: 429}), now: () => 0, setTimer: timers.setTimer, clearTimer: timers.clearTimer});
+    const keys = await keysWith(tokens);
+    tokens.start(); await flush();
+    const error = await keys.credentialFor(config).then(() => null, failure => failure);
+    assert.ok(error);
+    assert.equal(error.authKind, 'rate');
+    assert.equal(error.authCause, cause);
+  }
+});
+
 test('a sign-in the backend rate-limits is a sign-in state, never "turns are coming too quickly"', async () => {
   for (const [status, body, kind] of [[429, {error: 'rate', retryAfterSeconds: 120}, 'signin'], [503, {error: 'busy'}, 'signin'], [503, {error: 'paused'}, 'signin']]) {
     const timers = fakeTimers();

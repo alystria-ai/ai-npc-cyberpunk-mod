@@ -176,6 +176,7 @@ test('per-install limit: a few tokens an hour, then 429 until the next hour', as
   const refused = await world.send();
   assert.equal(refused.statusCode, 429);
   assert.equal(refused.json.error, 'rate');
+  assert.equal(refused.json.limit, 'install', 'the answer names the limit that fired');
   assert.equal(refused.json.retryAfterSeconds, 3600 - 0, 'the hour started on the dot');
   assert.equal(refused.headers['Retry-After'], '3600');
   assert.equal((await world.send({ installId: randomUUID() })).statusCode, 200, 'another install is not affected');
@@ -186,7 +187,8 @@ test('per-install limit: a few tokens an hour, then 429 until the next hour', as
 test('per-IP limit: many installs behind one address share an hourly allowance', async () => {
   const world = createWorld({ CONVAI_AUTH_IP_PER_HOUR: '5' });
   for (let call = 0; call < 5; call++) assert.equal((await world.send({ installId: randomUUID() })).statusCode, 200);
-  assert.equal((await world.send({ installId: randomUUID() })).json.error, 'rate');
+  const refused = await world.send({ installId: randomUUID() });
+  assert.deepEqual([refused.json.error, refused.json.limit], ['rate', 'address']);
   assert.equal((await world.send({ installId: randomUUID(), ip: '198.51.100.77' })).statusCode, 200, 'another address is fine');
 });
 
@@ -355,7 +357,7 @@ test('the default limits are the documented ones', async () => {
   const config = readConfig({});
   assert.deepEqual(
     [config.installPerHour, config.ipPerHour, config.newInstallsPerIpPerDay, config.mintsPerDay, config.dailyTurnCap, config.remintMarginSeconds, config.mode],
-    [12, 20, 5, 500, 100, 300, 'shared'],
+    [12, 60, 5, 500, 100, 300, 'shared'],
   );
   assert.equal(DEFAULTS.dailyTurnCap, 100);
   assert.equal(readConfig({ CONVAI_AUTH_MODE: 'PER-INSTALL' }).mode, 'per-install');

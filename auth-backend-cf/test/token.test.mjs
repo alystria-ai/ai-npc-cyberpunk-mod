@@ -123,16 +123,25 @@ test('per-install hourly limit, with the retry time at the next hour; it opens a
   const limited = await world.send();
   assert.equal(limited.status, 429);
   assert.equal(limited.json.error, 'rate');
+  assert.equal(limited.json.limit, 'install', 'the answer names the limit that fired');
   assert.equal(limited.json.retryAfterSeconds, 3600);
   assert.equal(limited.headers['retry-after'], '3600');
   world.advance(HOUR);
   assert.equal((await world.send()).status, 200);
 });
 
+test('the default per-address limit is 60 an hour, the documented one, on both backends', async () => {
+  const {DEFAULTS} = await import('../src/config.js');
+  const vercel = await import('../../auth-backend/api/_lib/config.js');
+  assert.equal(DEFAULTS.ipPerHour, 60);
+  assert.equal(vercel.DEFAULTS.ipPerHour, 60);
+});
+
 test('per-address hourly limit counts every install behind the address, and an IPv6 caller as its /64', async () => {
   const world = createWorld({ CONVAI_AUTH_IP_PER_HOUR: '3' });
   for (let index = 0; index < 3; index++) assert.equal((await world.send({ installId: randomUUID(), ip: `2001:db8:1:2:${index}::${index}` })).status, 200);
-  assert.equal((await world.send({ installId: randomUUID(), ip: '2001:db8:1:2:ffff::1' })).status, 429);
+  const refused = await world.send({ installId: randomUUID(), ip: '2001:db8:1:2:ffff::1' });
+  assert.deepEqual([refused.status, refused.json.limit], [429, 'address']);
   assert.equal((await world.send({ installId: randomUUID(), ip: '2001:db8:1:3::1' })).status, 200);
   // an IPv4 address written as IPv6 is the IPv4 one
   const v4 = createWorld({ CONVAI_AUTH_IP_PER_HOUR: '1' });

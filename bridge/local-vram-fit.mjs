@@ -23,7 +23,7 @@ export const FIT_LIMITS = Object.freeze({
   offloadGameRoomMiB: 1792,   // the `-fitt` of an offloaded load: free memory the fit pass leaves on the card for the game (about 1.75 GiB; llama-server's own default is 1,024)
   offloadFixedMiB: 1100,      // the part of a projection that stays on the card with every layer on the CPU (compute buffers; measured 1,002 MiB Qwen3.5-4B and 1,057 MiB Gemma 4 E4B at 8,192 / q8_0)
   offloadEstimateExtraMiB: 700,   // no projection: the file plus this (Qwen3.5-4B Q4_K_M: 2,582 MiB file, 3,271 projected)
-  offloadRamHeadroomMiB: 1024,   // system memory kept beyond the CPU part of an offloaded model and its cache (the process itself, the prompt cache, the game and Windows)
+  offloadRamHeadroomMiB: 512,    // system memory kept beyond the CPU part of an offloaded model and its cache (the process itself, the prompt cache, the game and Windows)
   offloadMaxThreads: 6,       // CPU threads of an offloaded load: the CPU part is bound by memory bandwidth, more threads only take cores from the game
   probeMs: 15_000,
   // Largest first. 16,384 is the normal context; 8,192 is what the prompt budget still serves (the persona and rules are about 4.5k tokens); q8_0 saves another 75 to 135 MiB.

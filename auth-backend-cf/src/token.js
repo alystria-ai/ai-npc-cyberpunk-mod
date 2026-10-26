@@ -136,7 +136,7 @@ export function createTokenHandler(deps) {
 
     if (code === 'rate_ip' || code === 'rate_install') {
       const retry = Math.max(1, Math.ceil((nextHour(nowMs) - nowMs) / 1000));
-      return reply(request, 429, { error: 'rate', retryAfterSeconds: retry }, { 'Retry-After': String(retry) });
+      return reply(request, 429, { error: 'rate', limit: code === 'rate_ip' ? 'address' : 'install', retryAfterSeconds: retry }, { 'Retry-After': String(retry) });
     }
     if (code === 'new_install_limit') {
       const retry = Math.max(1, Math.ceil((nextUtcMidnight(nowMs) - nowMs) / 1000));

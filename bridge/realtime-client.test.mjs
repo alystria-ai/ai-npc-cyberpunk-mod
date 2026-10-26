@@ -1659,6 +1659,52 @@ test('a voice recording that produced no transcript and no reply fails as no spe
   await api.close();
 });
 
+// Error signature cbb775b3 (owner decision 2026-10-26): a 1 to 3 character final transcript and no reply ends as no speech after 15 s, not as a failure after 60 s.
+test('a microphone turn with a tiny final transcript and no reply ends as no speech 15 s after the transcript; a longer one, and a reply that arrives, keep the 60 s rule', async () => {
+  const transcribe = (client, content) => client.handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false}]);
+  for (const content of ['a', 'Hm.', '\u{1f600}\u{1f600}\u{1f600}']) {
+    let offset = 0;
+    const clock = {now: () => performance.now() + offset};
+    const {api, clients} = fixture({allowMic: true, clock});
+    const request = {...config, ttsEnabled: false};
+    await api.beginVoice(request);
+    const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+    transcribe(clients[0], content);
+    offset = 14000; await new Promise(done => setTimeout(done, 120));
+    assert.equal(api.diagnostics().activeTurn, true, 'still waiting inside the 15 s');
+    offset = 16000;
+    await assert.rejects(pending, error => /^No speech was heard$/.test(error.message), content);
+    await api.close();
+  }
+  // Four characters: the ordinary rule, no early end.
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const {api, clients} = fixture({allowMic: true, clock});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+  transcribe(clients[0], 'Hmmm');
+  offset = 30000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(api.diagnostics().activeTurn, true, 'four characters keep waiting');
+  offset = 61000;
+  await assert.rejects(pending, /did not finish the reply \(transcript=true text=false /);
+  await api.close();
+  // A tiny transcript whose reply arrives after 20 s of thinking is not cut.
+  let later = 0;
+  const slow = fixture({allowMic: true, clock: {now: () => performance.now() + later}});
+  await slow.api.beginVoice(request);
+  const waiting = slow.api.finishVoice(request); waiting.catch(() => {}); await flush();
+  transcribe(slow.clients[0], 'ok');
+  slow.clients[0].state.isThinking = true;
+  later = 20000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(slow.api.diagnostics().activeTurn, true, 'a thinking character is not cut');
+  slow.clients[0].state.isThinking = false;
+  slow.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'ok', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Okay then.', isStreaming: false}]);
+  assert.equal((await waiting).userText, 'ok');
+  await slow.api.close();
+});
+
 // Live 2026-10-24: Convai's recogniser heard the words (the interim transcript reached the game as the subtitle) but never finalised them, so no reply came and the turn
 // failed 15 s later as "No speech was heard" with the player's words on screen. Words that were heard are sent as the line after a short wait.
 test('words Convai heard but never finalised are sent as the line of V after 4 s, not failed as no speech after 15 s', async () => {

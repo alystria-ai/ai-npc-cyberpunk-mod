@@ -179,7 +179,7 @@ export function createTokenHandler(options = {}) {
 
     if (code === 'rate_ip' || code === 'rate_install') {
       const retry = Math.max(1, Math.ceil((nextHour(nowMs) - nowMs) / 1000));
-      sendJson(response, 429, { error: 'rate', retryAfterSeconds: retry }, { 'Retry-After': String(retry) });
+      sendJson(response, 429, { error: 'rate', limit: code === 'rate_ip' ? 'address' : 'install', retryAfterSeconds: retry }, { 'Retry-After': String(retry) });
       return;
     }
     if (code === 'new_install_limit') {

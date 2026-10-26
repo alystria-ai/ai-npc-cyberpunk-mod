@@ -40,6 +40,10 @@ const NO_SPEECH_AFTER_MS = 15000;
 // Convai's recogniser normally finalises what it heard within a moment of the finish. Words that were heard (the interim transcript) but still have no final transcript, and no
 // reply, this long after the finish are sent to the character as the player's line, once, instead of failing the turn (live 2026-10-24: the player's words were on screen and no reply came).
 const HEARD_WITHOUT_FINAL_MS = 4000;
+// A microphone turn whose final transcript is 1 to 3 characters (a cough or a click that Convai's recogniser wrote down) and that has had no reply 15 s after the transcript
+// ends as no speech, not after the 60 s ceiling as a failure with a report (error signature cbb775b3: 20 reports, all voice-key or voice-activation turns). Typed turns and
+// longer transcripts keep the 60 s rule.
+const TINY_TRANSCRIPT_CHARACTERS = 3;
 const NO_SPEECH_ERROR = 'No speech was heard';
 const COLLECT_TIMEOUT_ERROR = 'Convai did not finish the reply';
 const USER_TRANSCRIPT_LIMIT = 1200;
@@ -444,8 +448,11 @@ async function connect(config) {
   connection.on('messagesChange', messages => {
     if (!currentConnection() || !turn) return;
     const fresh = messages.filter(m => !turn.before.has(m.id));
-    if (turn.microphone && fresh.some(message => message.type === 'user-transcription'))
-      turn.userText = microphoneTranscript(fresh);
+    if (turn.microphone && fresh.some(message => message.type === 'user-transcription')) {
+      const heard = microphoneTranscript(fresh);
+      if (heard !== turn.userText) turn.userTextAtMs = performance.now(); // when the final words last changed: the tiny-transcript wait counts from here
+      turn.userText = heard;
+    }
     const llm = fresh.filter(m => ['bot-llm-text', 'convai'].includes(m.type) && m.content?.trim());
     const rows = llm.length ? llm : fresh.filter(m => m.type === 'bot-output' && m.content?.trim());
     turn.messageEvents = (turn.messageEvents || 0) + 1;
@@ -681,6 +688,8 @@ async function collect(current) {
         }
         if (waited > NO_SPEECH_AFTER_MS) throw Error(NO_SPEECH_ERROR);
       }
+      else if (current.microphone && current.userText && !current.text && !client.state.isThinking && [...current.userText].length <= TINY_TRANSCRIPT_CHARACTERS
+          && performance.now() - Math.max(started, current.userTextAtMs ?? started) > NO_SPEECH_AFTER_MS) throw Error(NO_SPEECH_ERROR);
       if (current.live) {
         const state = current.live.player.snapshot();
         if (state.error || state.state === 'stopped') throw Error(state.error || 'Continuous speech stopped before completion');
