@@ -74,7 +74,7 @@ ${rows}
 `;
 if (args.includes('--check')) {
   const current = await readFile(output, 'utf8').catch(() => '');
-  if (current !== text) { console.error('bridge/quest-briefing-data.mjs is out of date: run research/cyberpunk/scripts/build_quest_briefings.mjs'); process.exit(1); }
+  if (current.replace(/\r\n/g, '\n') !== text) { console.error('bridge/quest-briefing-data.mjs is out of date: run research/cyberpunk/scripts/build_quest_briefings.mjs'); process.exit(1); }
   console.log(`up to date: ${count} quests, ${stages} stages`);
 } else {
   await writeFile(output, text);
