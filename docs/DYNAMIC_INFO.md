@@ -74,9 +74,7 @@ wording), and the Dynamic info and Forget cases in `bridge/manager.test.mjs`, `b
 
 ## Money talk (2026-10-26)
 
-With **Pay characters in eddies** On (off by default, docs/EDDIES_PAYMENT.md) a plain typed payment to one of V's own characters really moves the eddies, and her prompt says so instead of the note below ("V just paid you N eddies", or that none moved when V's words spoke of money but no payment was made). Everything below is the behaviour without it, and still the behaviour for every character the setting does not cover (a game-placed character, a phone chat, a call, a spoken line).
-
-The mod then detects no payment: nothing moves eddies between V and a character, and the turn context carries only V's money band. A player report ("I gave you eddies to do a task"
+The mod detects no payment: nothing moves eddies between V and a character, and the turn context carries only V's money band. A player report ("I gave you eddies to do a task"
 answered "I'm not going to give you eddies") came from the model reading a bare "eddies" the wrong way round. So when V's own words speak of eddies, cash, paying or a tip
 (`MONEY_TALK` in bridge/turn-context.mjs), the volatile tail of every provider's context (Convai dynamic info, Mistral, Local AI, Custom) gets one `Money:` note: V is the one
 paying the character, and what V says they gave or paid is received. It is not live game info, so no Dynamic info switch turns it off, and it is absent from turns that are

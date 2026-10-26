@@ -8,8 +8,6 @@
 -- reaction offer instead (leave, call the police, attack; docs/NPC_REACTIONS.md, mod/npc-reactions.lua), private turns only.
 -- A holocall line (the caller is not here) leases only a meeting offer (immersive invitations, docs/IMMERSIVE_INVITATIONS.md): come and meet V,
 -- or call a standing meeting off. The bridge answers it after her reply is complete, with the offer's own one-use token.
--- A typed private line to one of V's own characters may also lease a PAY offer (docs/EDDIES_PAYMENT.md, mod/eddies-payment.lua): V's balance and the most V may pay.
--- Unlike the offers above it is used on its own: a payment spends only the pay offer and leaves the rest of the lease (a ride, a fight, a meeting) in place.
 local M = {}
 local MAX_PACKET, MAX_LEASE_MS = 16384, 125000
 -- Why a world character cannot follow V now. Only these codes reach the bridge,
@@ -93,13 +91,6 @@ local function offeredHome(offer, home)
     return false
 end
 
--- A payment names a whole number of eddies from 1 up to the offer's maximum.
-local function offeredPayment(offer, pay)
-    if type(offer) ~= 'table' or type(pay) ~= 'table' or type(offer.max) ~= 'number' then return false end
-    local amount = pay.amount
-    return type(amount) == 'number' and amount == amount and amount >= 1 and amount <= offer.max and amount == math.floor(amount)
-end
-
 local function offeredKind(offer, kind)
     if type(offer) ~= 'table' or type(offer.kinds) ~= 'table' or type(kind) ~= 'string' then return false end
     for _, value in ipairs(offer.kinds) do if value == kind then return true end end
@@ -155,7 +146,6 @@ function M.new(options)
         context.reactionOffer = copy(from.reactionOffer)
         context.meetOffer = copy(from.meetOffer)
         context.homeOffer = copy(from.homeOffer)
-        context.payOffer = copy(from.payOffer)
     end
 
     -- The one place a reaction offer's end is written when it ends for a reason that is not the ordinary one (the next message, or its own
@@ -186,7 +176,6 @@ function M.new(options)
         context.chauffeurOffer, context.tacticOffer, context.tacticUnavailable = nil, nil, nil
         context.followOffer, context.leaveOffer, context.followUnavailable = nil, nil, nil
         context.driveUnavailable, context.reactionOffer, context.meetOffer, context.homeOffer = nil, nil, nil, nil
-        context.payOffer = nil
         local private = source == 'private-text' or source == 'private-voice'
         local group = source == 'group-text' or source == 'group-voice'
         if not (private or group) or (private and context.group ~= nil) or context.reaction
@@ -265,17 +254,11 @@ function M.new(options)
                 context.meetOffer = copy(normalized)
             end
         end
-        -- A pay offer (docs/EDDIES_PAYMENT.md): a typed private line only, to one of V's own characters; the game side makes none while the setting is Off.
-        local pay
-        if source == 'private-text' and not call then
-            pay = capturedOffer(options.payOffer, context.entity, context)
-            if pay and (type(pay.balance) ~= 'number' or type(pay.max) ~= 'number' or pay.max < 1 or pay.max > pay.balance) then pay = nil end
-        end
-        if not drive and not tactic and not follow and not leave and not reaction and not meet and not home and not pay then return false end
+        if not drive and not tactic and not follow and not leave and not reaction and not meet and not home then return false end
         lease = {requestId = context.requestId, generation = context.generation, entity = context.entity,
             profileKey = context.profileKey, source = source, worldToken = world.worldToken,
             worldGeneration = world.generation, offer = copy(drive), tacticOffer = copy(tactic),
-            followOffer = copy(follow), leaveOffer = copy(leave), reactionOffer = copy(reaction), meetOffer = copy(meet), homeOffer = copy(home), payOffer = copy(pay),
+            followOffer = copy(follow), leaveOffer = copy(leave), reactionOffer = copy(reaction), meetOffer = copy(meet), homeOffer = copy(home),
             group = group and context.group.id or nil, expiresAt = clock() + MAX_LEASE_MS}
         assign(context, lease)
         result = {state = 'available'}
@@ -322,11 +305,10 @@ function M.new(options)
         -- A meeting names a kind of the offer and carries the offer's own token.
         local meet = packet.action == 'companion-meet' and lease.meetOffer ~= nil and offeredMeet(lease.meetOffer, packet.meet)
             and type(lease.meetOffer.meet) == 'table' and packet.meetToken == lease.meetOffer.meet.token
-        local payment = packet.action == 'companion-pay' and lease.payOffer ~= nil and offeredPayment(lease.payOffer, packet.pay)
         -- The first rule this packet breaks (nil: none). The reason is written for an ordinary NPC's reaction only, once per packet.
         local fault
         if packet.version ~= 1 then fault = 'version'
-        elseif not (drive or tactic or follow or leave or reaction or meet or homeAction or payment) then fault = 'not-offered'
+        elseif not (drive or tactic or follow or leave or reaction or meet or homeAction) then fault = 'not-offered'
         elseif type(packet.actionId) ~= 'string' or #packet.actionId < 1 or #packet.actionId > 240 then fault = 'action-id'
         elseif packet.requestId ~= lease.requestId or packet.generation ~= lease.generation then fault = 'other-request'
         elseif packet.entity ~= lease.entity or packet.profileKey ~= lease.profileKey then fault = 'other-person'
@@ -342,26 +324,11 @@ function M.new(options)
             or (leave and not equal(packet.leaveOffer, lease.leaveOffer))
             or (reaction and not equal(packet.reactionOffer, lease.reactionOffer))
             or (meet and not equal(packet.meetOffer, lease.meetOffer)) 
-            or (homeAction and not equal(packet.homeOffer, lease.homeOffer))
-            or (payment and not equal(packet.payOffer, lease.payOffer)) then fault = 'offer-differs' end
+            or (homeAction and not equal(packet.homeOffer, lease.homeOffer)) then fault = 'offer-differs' end
         if fault then
             if packet.action == 'npc-reaction' then logReaction('NPC reaction packet refused: ' .. fault) end
             if packet.action == 'companion-meet' then logReaction('Call meeting packet refused: ' .. fault) end
             if packet.action == 'companion-home' then logReaction('Housemates failed:packet-' .. fault) end
-            if packet.action == 'companion-pay' then logReaction('Eddies payment packet refused: ' .. fault) end
-            return
-        end
-        if payment then
-            -- Spent before the native call, so a throw after the eddies moved cannot pay twice. Only the pay offer goes: a ride, a fight or a meeting the same
-            -- line leased stays available, and an empty lease is dropped.
-            local offer = copy(lease.payOffer)
-            lease.payOffer = nil
-            local admittedPay = lease
-            if not (lease.offer or lease.tacticOffer or lease.followOffer or lease.leaveOffer or lease.reactionOffer or lease.meetOffer or lease.homeOffer) then lease = nil end
-            local called, accepted, why = pcall(options.queuePay or function() return false, 'The payment could not be made.' end, packet.pay.amount, offer, admittedPay.entity, admittedPay.requestId)
-            -- A payment says nothing on screen when it works: the game's own eddies pop-up is the answer. A refusal says why.
-            local queued = called and accepted == true
-            report(queued and 'queued' or 'rejected', called and why or nil, queued and '' or 'The payment could not be made.')
             return
         end
         -- Consume before the native callback: even a throw after a side effect
@@ -437,7 +404,6 @@ function M.new(options)
             leave = lease ~= nil and lease.leaveOffer ~= nil, reaction = lease ~= nil and lease.reactionOffer ~= nil,
             meet = lease ~= nil and lease.meetOffer ~= nil,
             home = lease ~= nil and lease.homeOffer ~= nil,
-            pay = lease ~= nil and lease.payOffer ~= nil,
             followUnavailable = lastAdvisory,
             tacticUnavailable = lastTacticAdvisory, driveUnavailable = lastDriveAdvisory}
     end

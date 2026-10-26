@@ -35,7 +35,6 @@ import {stripSnapshot, NO_KINDS} from './dynamic-info.mjs';
 import {parseGameTime} from './last-talk.mjs';
 import {parseMedia, mediaSignature, mediaSentences} from './media-context.mjs';
 import {parseMods, modsSignature, modsSentences} from './mod-state.mjs';
-import {paymentNote} from './eddies-payment.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
@@ -270,16 +269,8 @@ export function sceneryFor(input, memory = sceneryMemory, off = NO_KINDS) {
 const MONEY_TALK = /\b(eddies|eddie|eurodollars?|euro\s?dollars?|creds?|credits?|cash|money|pay|pays|paid|paying|payment|tip|tipped|bribe|bribed|owe|owes)\b|[€$]\s?\d/i;
 export const MONEY_NOTE = 'Money: when V talks of eddies, V is the one paying you, not the other way round. If V says V gave or paid you eddies, you have them now: take it as done and thank V in your own way, '
   + 'and never answer as if V were asking you for eddies or as if you were the one handing them over. If V tells you to take eddies for a job, V is paying you for it.';
-/**
- * The money note when V's words speak of money or paying, else ''. Not for an automatic reaction (a bark answers no remark of V's). A turn that carries the game's pay offer
- * (Pay characters in eddies is On, docs/EDDIES_PAYMENT.md) is told what really happened instead: the eddies V just paid, or that none moved.
- */
-export function moneyNote(input) {
-  if (input?.reaction || typeof input?.text !== 'string') return '';
-  const talks = MONEY_TALK.test(input.text);
-  const paid = input.payOffer ? paymentNote(input, talks) : '';
-  return paid || (talks && !input.payOffer ? MONEY_NOTE : '');
-}
+/** The money note when V's words speak of money or paying, else ''. Not for an automatic reaction (a bark answers no remark of V's). */
+export const moneyNote = input => !input?.reaction && typeof input?.text === 'string' && MONEY_TALK.test(input.text) ? MONEY_NOTE : '';
 const BACKGROUND = 'Background (mention only if it matters or V asks):';
 
 // The block, plus what a per-turn diagnostic needs: how many facts it states, its length, or why there is none.

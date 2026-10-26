@@ -140,7 +140,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     johnnyRemarks: 5, companionSpeakUp: 'often', naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
     uiLanguage: 'klingon', replyLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
-    errorReports: 'off', dynamicInfo: 'all', voiceActivation: 'yes', padTalk: 'yes', keyBindings: 'F7', companionOutfits: 'yes', payCharacters: 'yes',
+    errorReports: 'off', dynamicInfo: 'all', voiceActivation: 'yes', padTalk: 'yes', keyBindings: 'F7', companionOutfits: 'yes',
   };
   const out = run(`${managerLua}
     files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, ...wrong}))}
@@ -542,6 +542,12 @@ test('a settings.json that still has multilingualConversations: true loads clean
   const next = loadFile({...freshSettings, multilingualConversations: true, voiceProvider: 'pocket'});
   const again = loadFile(JSON.parse(next.text));
   assert.equal(again.writes, 0, 'a start from the written file writes nothing');
+});
+
+test('a settings.json that still has payCharacters (the removed eddies payment) loads cleanly: the key is ignored (unknown keys stay in the file)', () => {
+  const out = loadFile({...freshSettings, payCharacters: true});
+  assert.equal(out.settings.payCharacters, undefined, 'not in the snapshot');
+  assert.equal(out.writes, 0, 'nothing to rewrite');
 });
 
 test('the removed settings have no getter any more, and an Apply that still carries one is ignored without an error', () => {

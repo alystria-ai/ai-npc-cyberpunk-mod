@@ -870,8 +870,6 @@ local function loadSettings()
     if type(settings.voiceActivation) ~= 'boolean' then settings.voiceActivation, settingsNeedSave = false, true end
     -- On by default: Companions change outfits (docs/COMPANION_OUTFITS.md). Off, mod/companion-outfits.lua is not loaded, nothing ticks and nothing is changed.
     if type(settings.companionOutfits) ~= 'boolean' then settings.companionOutfits, settingsNeedSave = false, true end
-    -- Off by default: Pay characters in eddies (docs/EDDIES_PAYMENT.md). Off, the game makes no pay offer and nothing the player says moves any eddies.
-    if type(settings.payCharacters) ~= 'boolean' then settings.payCharacters, settingsNeedSave = false, true end
     -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
     -- and the redscript listener is not registered.
     if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
@@ -1071,13 +1069,6 @@ end
 function M.companionOutfits()
     loadSettings()
     return settings.companionOutfits == true
-end
-
--- Pay characters in eddies (Settings > Companion behavior, docs/EDDIES_PAYMENT.md): off by default. Read when a typed line to a character is admitted and when a payment arrives
--- (one boolean each), never per frame.
-function M.payCharacters()
-    loadSettings()
-    return settings.payCharacters == true
 end
 
 -- Controller talk button (Settings > Voices): hold the left stick click to talk by voice. Off by default. Read on the game's 10 Hz tick (one boolean),
@@ -2087,7 +2078,6 @@ function M.snapshot(player)
             padTalk = settings.padTalk == true,
             keyBindings = settings.keyBindings,
             companionOutfits = settings.companionOutfits == true,
-            payCharacters = settings.payCharacters == true,
             reputation = settings.reputation == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
@@ -2231,9 +2221,6 @@ function M.applySettings(player, values)
         elseif key == 'companionOutfits' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.companionOutfits = value
-        elseif key == 'payCharacters' then
-            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
-            nextSettings.payCharacters = value
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value
