@@ -14,6 +14,7 @@ import {headContext} from './johnny-head.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {snapshotKey} from './parsed-snapshot.mjs';
 import {dynamicInfo} from './dynamic-info.mjs';
+import {questBriefingContext} from './quest-briefing.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 
@@ -146,8 +147,11 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
     worldSeconds: snapshot.gameTimeSeconds, history: inventory, questPaths, questCatalog}) : '';
   const jobs = inventory ? availableQuestsContext({history: inventory, age: bound.age, now,
     profileKey: result.profileKey, questCatalog, trackedQuestId, shared: current ? sharedEvents : []}) : '';
+  // A job briefing (bridge/quest-briefing.mjs): only when V's words ask about a job and this speaker gave it or knows it; '' for every other turn.
+  const briefing = inventory && !result.reaction && !result.event ? questBriefingContext({text: result.text, profileKey: result.profileKey,
+    history: inventory, age: bound.age, now}) : '';
   result[TRUSTED_KNOWLEDGE] = Object.freeze({identity: contextIdentity(result), knowledgeContext: projected, historyContext: history,
-    recencyContext: recency, jobsContext: jobs});
+    recencyContext: recency, jobsContext: jobs, briefingContext: briefing});
   return result;
 }
 
@@ -189,7 +193,9 @@ export function conversationContextBlocks(input) {
   return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: background},
     {tier: 'world', key: 'knowledge', text: knowledge},
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: quest ? trusted?.jobsContext : ''},
-    {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''}, {tier: 'volatile', text: dialogue},
+    {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''},
+    // The job briefing is for this turn only (volatile), so it never moves the stable blocks a prefix cache keeps.
+    {tier: 'volatile', text: quest ? trusted?.briefingContext : ''}, {tier: 'volatile', text: dialogue},
     {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? gearContext(input) : ''},
     {tier: 'world', key: 'authority', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
     {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}];

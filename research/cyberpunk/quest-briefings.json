@@ -1,0 +1,2940 @@
+{
+ "version": 1,
+ "policy": "Per-quest briefings written in our own words for the mod (docs/QUEST_BRIEFINGS.md): what a quest giver can explain about a job, by stage. Facts were learned from the sources listed per quest; no sentence is copied from a website or from the game. A stage lists the cooked-journal objectives whose being active puts V in it; the text of a stage covers that stage and the next only. No twists, outcomes, choices or rewards.",
+ "sources": {
+  "powerpyx-ride": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-the-ride-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 The Ride Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "powerpyx-pickup": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-the-pickup-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 The Pickup Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "powerpyx-information": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-the-information-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 The Information Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "powerpyx-heist": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-the-heist-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 The Heist Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "pp-ripperdoc": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-the-ripperdoc-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 The Ripperdoc Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "pp-playing-for-time": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-playing-for-time-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 Playing for Time Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "pp-ghost-town": {
+   "url": "https://www.powerpyx.com/?p=100002",
+   "title": "PowerPyx: Cyberpunk 2077 Ghost Town Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "gg-ghost-town": {
+   "url": "https://www.gamerguides.com/cyberpunk-2077/guide/main-jobs/act-2/ghost-town",
+   "title": "GamerGuides: Cyberpunk 2077 Ghost Town",
+   "accessed": "2026-10-26"
+  },
+  "fextra-lightning-breaks": {
+   "url": "https://cyberpunk2077.wiki.fextralife.com/Lightning+Breaks",
+   "title": "Fextralife Cyberpunk 2077 Wiki: Lightning Breaks",
+   "accessed": "2026-10-26"
+  },
+  "pp-life-during-wartime": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-life-during-wartime-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 Life During Wartime Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "pp-down-on-the-street": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-down-on-the-street-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 Down on the Street Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "powerpyx-dirty-biz": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-dirty-biz-gig-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 Dirty Biz Gig Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "gamerguides-occupational-hazard": {
+   "url": "https://www.gamerguides.com/cyberpunk-2077/guide/gigs/watson/occupational-hazard",
+   "title": "Gamer Guides: Occupational Hazard",
+   "accessed": "2026-10-26"
+  },
+  "gamerguides-many-ways": {
+   "url": "https://www.gamerguides.com/cyberpunk-2077/guide/gigs/watson/many-ways-to-skin-a-cat",
+   "title": "Gamer Guides: Many Ways to Skin a Cat",
+   "accessed": "2026-10-26"
+  },
+  "powerpyx-lack-of-empathy": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-a-lack-of-empathy-gig-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 A Lack of Empathy Gig Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "gamerguides-serious-side-effects": {
+   "url": "https://www.gamerguides.com/cyberpunk-2077/guide/gigs/santo-domingo/serious-side-effects",
+   "title": "Gamer Guides: Serious Side Effects",
+   "accessed": "2026-10-26"
+  },
+  "sportskeeda-serious-side-effects": {
+   "url": "https://www.sportskeeda.com/esports/how-complete-serious-side-effects-gig-cyberpunk-2077",
+   "title": "Sportskeeda: How to complete the Serious Side Effects Gig in Cyberpunk 2077",
+   "accessed": "2026-10-26"
+  },
+  "powerpyx-occupational-hazard": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-occupational-hazard-gig-walkthrough/",
+   "title": "PowerPyx: Cyberpunk 2077 Occupational Hazard Gig Walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "ppyx-getting-warmer": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-getting-warmer-gig-walkthrough/",
+   "title": "PowerPyx: Getting Warmer gig walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "gg-getting-warmer": {
+   "url": "https://www.gamerguides.com/cyberpunk-2077/guide/gigs/westbrook/getting-warmer",
+   "title": "GamerGuides: Getting Warmer",
+   "accessed": "2026-10-26"
+  },
+  "ppyx-gustavo": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-bring-me-the-head-of-gustavo-orta-gig-walkthrough/",
+   "title": "PowerPyx: Bring Me the Head of Gustavo Orta gig walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "ppyx-tight-leash": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-on-a-tight-leash-gig-walkthrough/",
+   "title": "PowerPyx: On a Tight Leash gig walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "gg-tight-leash": {
+   "url": "https://www.gamerguides.com/cyberpunk-2077/guide/gigs/heywood/on-a-tight-leash",
+   "title": "GamerGuides: On a Tight Leash",
+   "accessed": "2026-10-26"
+  },
+  "ppyx-get-it-together": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-phantom-liberty-get-it-together-walkthrough/",
+   "title": "PowerPyx: Phantom Liberty Get It Together walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "ppyx-chippin-in": {
+   "url": "https://www.powerpyx.com/cyberpunk-2077-chippin-in-walkthrough/",
+   "title": "PowerPyx: Chippin In walkthrough",
+   "accessed": "2026-10-26"
+  },
+  "ngb-chippin-in": {
+   "url": "https://nightlygamingbinge.com/chippin-in-side-job-cyberpunk-2077/",
+   "title": "Nightly Gaming Binge: Chippin In side job",
+   "accessed": "2026-10-26"
+  }
+ },
+ "quests": {
+  "quests/main_quest/prologue/q001_02_dex": {
+   "title": "The Ride",
+   "givers": [
+    "dexter-deshawn"
+   ],
+   "knowers": [
+    "jackie-welles"
+   ],
+   "overview": "Jackie vouches for V to Dex, a well-connected fixer, who wants to talk about a big job in the back of his limo in Watson.",
+   "spoiler": "none",
+   "sources": [
+    "powerpyx-ride"
+   ],
+   "stages": [
+    {
+     "id": "go-to-dex",
+     "objectives": [
+      "dex/go_to_dex"
+     ],
+     "now": "V is heading to the spot where Dex's limo is parked in Watson.",
+     "ahead": "A man by the car lets V into the back seat. Dex lays out the jobs he has in mind and why he picked V, and V can ask about the Maelstrom gang and the client.",
+     "places": [
+      "Dex's limo, Watson"
+     ],
+     "people": [
+      "Dex"
+     ],
+     "tips": [
+      "Nothing you say in the car changes the jobs on offer, so ask whatever you are curious about."
+     ]
+    },
+    {
+     "id": "in-the-limo",
+     "objectives": [
+      "dex/enter_dex_car",
+      "dex/ride_with_dex"
+     ],
+     "now": "V is in Dex's limo, hearing him out about the work he wants done.",
+     "ahead": "When the talk is over, V steps out of the car and Jackie calls to ask which of the two jobs to start with.",
+     "places": [
+      "Dex's limo, Watson"
+     ],
+     "people": [
+      "Dex"
+     ],
+     "tips": []
+    },
+    {
+     "id": "call-jackie",
+     "objectives": [
+      "dex/leave_dex_car",
+      "dex/ask_jackie",
+      "dex/00_call_jackie",
+      "dex/00_talk_jackie"
+     ],
+     "now": "V is out of the limo and sorting out with Jackie which job to take first.",
+     "ahead": "Both jobs stay open either way: a pickup from the Maelstrom gang and a meeting with a client. V picks one first and does the other afterwards.",
+     "places": [],
+     "people": [
+      "Jackie"
+     ],
+     "tips": [
+      "The order does not matter, you get to both jobs."
+     ]
+    }
+   ]
+  },
+  "quests/main_quest/prologue/q003_maelstrom": {
+   "title": "The Pickup",
+   "givers": [
+    "dexter-deshawn"
+   ],
+   "knowers": [
+    "jackie-welles",
+    "meredith-stout"
+   ],
+   "overview": "Dex wants V and Jackie to collect a Flathead, a Militech spider-bot, from the Maelstrom gang at the All Foods plant in Watson.",
+   "spoiler": "none",
+   "sources": [
+    "powerpyx-pickup"
+   ],
+   "stages": [
+    {
+     "id": "militech-side-deal",
+     "objectives": [
+      "militech/01_call_militech",
+      "militech/02_meet_militech",
+      "militech/02_meet_militech1",
+      "militech/02_meet_militech2",
+      "militech/04_remove_malware"
+     ],
+     "now": "V is dealing with Meredith Stout, a Militech agent, on an optional side arrangement before the pickup.",
+     "ahead": "After that, V meets Jackie outside the All Foods plant and they go in together to get the Flathead.",
+     "places": [
+      "the meeting spot with Meredith, Watson"
+     ],
+     "people": [
+      "Meredith Stout"
+     ],
+     "tips": [
+      "Meeting her is optional, V can handle the pickup without her."
+     ]
+    },
+    {
+     "id": "meet-jackie",
+     "objectives": [
+      "militech/00_call_jackie",
+      "maelstrom_deal/01_meet_jackie",
+      "maelstrom_deal/01_meet_jackie1",
+      "maelstrom_deal/00_wait_jackie"
+     ],
+     "now": "V is linking up with Jackie outside the All Foods plant.",
+     "ahead": "They walk to the front gate, use the intercom, and get let in to meet the Maelstrom people who hold the Flathead.",
+     "places": [
+      "All Foods plant, Watson"
+     ],
+     "people": [
+      "Jackie"
+     ],
+     "tips": []
+    },
+    {
+     "id": "gate-and-intercom",
+     "objectives": [
+      "maelstrom_deal/03_go_to_intercom",
+      "maelstrom_deal/03_go_to_intercom1",
+      "maelstrom_deal/04a_talk_through_intercom",
+      "maelstrom_deal/01_meet_jackie2"
+     ],
+     "now": "V and Jackie are at the gate of the All Foods plant, talking to the Maelstrom guards over the intercom.",
+     "ahead": "Once inside, they follow the marked route through the plant and ride an elevator up toward the Maelstrom boss and his office.",
+     "places": [
+      "front gate, All Foods plant"
+     ],
+     "people": [
+      "Jackie"
+     ],
+     "tips": [
+      "Mention Dex when the intercom answers, he arranged the visit."
+     ]
+    },
+    {
+     "id": "up-to-royce",
+     "objectives": [
+      "maelstrom_deal/06_go_to_elevator",
+      "maelstrom_deal/06_go_to_elevator1",
+      "maelstrom_deal/06_go_to_elevator2",
+      "maelstrom_deal/06_go_to_elevator3",
+      "maelstrom_deal/07_get_to_meeting",
+      "maelstrom_deal/07_get_to_meeting1"
+     ],
+     "now": "V and Jackie are crossing the plant and riding up to Royce's office for the meeting.",
+     "ahead": "Up top the Maelstrom want to talk before anything else. V sits down with Royce, settles the terms for the Flathead and then takes it.",
+     "places": [
+      "production floor and Royce's office, All Foods"
+     ],
+     "people": [
+      "Royce",
+      "Dum Dum"
+     ],
+     "tips": [
+      "Keep weapons down until the talks are done, shooting early shuts the negotiation."
+     ]
+    },
+    {
+     "id": "talk-terms",
+     "objectives": [
+      "maelstrom_deal/08_make_deal",
+      "maelstrom_deal/08_make_deal1",
+      "maelstrom_deal/08_make_deal2",
+      "maelstrom_deal/09_attack_any_maelstrom",
+      "maelstrom_deal/10_kill_deal",
+      "maelstrom_deal/11_talk_to_jackie",
+      "maelstrom_deal/12_get_raven",
+      "03_escape/10_find_flathead",
+      "03_escape/finish",
+      "03_escape/finish1"
+     ],
+     "now": "V is sitting with Royce and the Maelstrom crew, working out the terms for the Flathead and getting hold of it.",
+     "ahead": "With the Flathead in the case, V and Jackie have to leave the plant, through the maintenance tunnel and the production floor, with Dum Dum showing the way out.",
+     "places": [
+      "Royce's office, All Foods"
+     ],
+     "people": [
+      "Royce",
+      "Dum Dum",
+      "Jackie"
+     ],
+     "tips": [
+      "Some of Royce's answers are timed, so stay ready.",
+      "Save before sitting down to talk, it is a tense meeting."
+     ]
+    },
+    {
+     "id": "leave-the-plant",
+     "objectives": [
+      "maelstrom_deal/15_talk_to_dumdum",
+      "maelstrom_deal/16_dumdum_elevator",
+      "maelstrom_deal/17_survive_main_hall",
+      "03_escape/01_leave_office",
+      "03_escape/02_turn_on_conveyor",
+      "03_escape/03_escape_allfoods",
+      "03_escape/04_kill_royce",
+      "03_escape/04b_sneak_past_royce",
+      "03_escape/05_leave_allfoods",
+      "03_escape/06_follow_dumdum",
+      "03_escape/06a_talk_to_dumdum",
+      "03_escape/06b_take_skiff_dumdum",
+      "03_escape/19_defeat_militech",
+      "03_escape/14_save_brick",
+      "03_escape/14_save_brick1",
+      "03_escape/15_talk_to_brick",
+      "03_escape/15_talk_to_brick1",
+      "03_escape/15_talk_to_brick2",
+      "03_escape/15_talk_to_brick5"
+     ],
+     "now": "V has the Flathead and is working out of the All Foods plant, past the maintenance tunnel and the production line, toward the exit.",
+     "ahead": "Once V is clear of the plant, the pickup is done and there is a call to Dex to report back.",
+     "places": [
+      "maintenance tunnel and production floor, All Foods"
+     ],
+     "people": [
+      "Dum Dum",
+      "Jackie"
+     ],
+     "tips": [
+      "Turning on the production line clears a way through.",
+      "Freeing the prisoner Brick on the way is optional."
+     ]
+    },
+    {
+     "id": "report-to-dex",
+     "objectives": [
+      "maelstrom_end/call_dex",
+      "maelstrom_end/call_dex1",
+      "maelstrom_end/finish",
+      "maelstrom_end/finish1",
+      "maelstrom_end/militech",
+      "maelstrom_end/01_talk_to_gilchrist"
+     ],
+     "now": "V is clear of the plant and wrapping up the pickup by talking to Jackie and Dex.",
+     "ahead": "After reporting to Dex there is nothing more in this job. The Flathead is ready for the next big job Dex has planned.",
+     "places": [],
+     "people": [
+      "Dex",
+      "Jackie"
+     ],
+     "tips": []
+    }
+   ]
+  },
+  "quests/main_quest/prologue/q004_braindance": {
+   "title": "The Information",
+   "givers": [
+    "dexter-deshawn",
+    "evelyn-parker"
+   ],
+   "knowers": [
+    "judy-alvarez",
+    "t-bug",
+    "jackie-welles"
+   ],
+   "overview": "A client named Evelyn Parker has inside knowledge for Dex's big job, and V has to meet her at Lizzie's Bar in Kabuki and go through a braindance with Judy.",
+   "spoiler": "none",
+   "sources": [
+    "powerpyx-information"
+   ],
+   "stages": [
+    {
+     "id": "get-into-lizzies",
+     "objectives": [
+      "evelyn/meet_employer",
+      "evelyn/go_to_nightclub",
+      "evelyn/talk_bouncers",
+      "evelyn/find_evelyn"
+     ],
+     "now": "V is going to Lizzie's Bar, open in the evening, getting past the bouncers and asking at the bar for Evelyn.",
+     "ahead": "Evelyn comes over, leads V to a private room and talks about the job before taking V to Judy, who runs the braindance editing.",
+     "places": [
+      "Lizzie's Bar, Kabuki, Watson"
+     ],
+     "people": [
+      "Evelyn Parker"
+     ],
+     "tips": [
+      "The bar only lets you in between 6 PM and 6 AM, you can skip time if you are early.",
+      "Asking about the braindance gets you past the bouncers."
+     ]
+    },
+    {
+     "id": "vip-room-talk",
+     "objectives": [
+      "evelyn/enter_vip_room",
+      "evelyn/find_evelyn_vip_room",
+      "evelyn/follow_evelyn",
+      "evelyn/sit_couch",
+      "evelyn/talk_with_evelyn",
+      "evelyn/follow_evelyn_to_judy"
+     ],
+     "now": "V is in the VIP room of Lizzie's Bar, talking to Evelyn about what she can offer for the job.",
+     "ahead": "Evelyn then takes V downstairs to meet Judy and her workshop, where V is shown how braindance editing works.",
+     "places": [
+      "the VIP room, Lizzie's Bar"
+     ],
+     "people": [
+      "Evelyn Parker"
+     ],
+     "tips": [
+      "Most of the conversation choices here do not change anything later."
+     ]
+    },
+    {
+     "id": "meet-judy",
+     "objectives": [
+      "evelyn/talk_with_judy",
+      "evelyn/look_at_judy",
+      "evelyn/use_editor",
+      "tutorial/talk_judy"
+     ],
+     "now": "V is meeting Judy in her workshop below the bar and settling into the braindance chair.",
+     "ahead": "Judy starts with a practice recording of a store robbery so V can learn the editor before the real recording.",
+     "places": [
+      "Judy's workshop, below Lizzie's Bar"
+     ],
+     "people": [
+      "Judy Alvarez"
+     ],
+     "tips": []
+    },
+    {
+     "id": "practice-braindance",
+     "objectives": [
+      "tutorial/bd_controls",
+      "tutorial/scan_gun",
+      "tutorial/eavesdrop",
+      "tutorial/scan_npc",
+      "tutorial/follow_instructions",
+      "tutorial/scan_cctv_screen",
+      "tutorial/scan_ganger",
+      "tutorial/eit_bd",
+      "tutorial/approach_bubble",
+      "tutorial/approach_robbers",
+      "tutorial/unpase_bd",
+      "tutorial/pause_bd",
+      "tutorial/speed_up",
+      "tutorial/slow_down",
+      "tutorial/reset",
+      "tutorial/change_layer",
+      "tutorial/change_layer_back",
+      "tutorial/rewind_until_client_ko",
+      "tutorial/rewind_until_thug_shot",
+      "tutorial/experience_tut_bd",
+      "tutorial/reset_to_proceed",
+      "tutorial/play_until_gun_visible",
+      "tutorial/rewind_until_cctv",
+      "tutorial/upause_and_let_play"
+     ],
+     "now": "V is running Judy's practice recording of a store robbery, learning to pause, rewind, switch between the sound and picture layers and scan clues.",
+     "ahead": "When V has found the clues Judy asked for, V leaves the recording and talks with Judy and Evelyn before the real braindance starts.",
+     "places": [
+      "the recorded store, practice braindance"
+     ],
+     "people": [
+      "Judy Alvarez"
+     ],
+     "tips": [
+      "Scan the gun, a sound source, the hurt customer and the security screen, and go back and forth in time to find each.",
+      "Switch layers to find sound-only clues."
+     ]
+    },
+    {
+     "id": "before-the-real-one",
+     "objectives": [
+      "tutorial/talk_judy_and_evelyn",
+      "tutorial/call_tbug"
+     ],
+     "now": "V is out of the practice recording and checking in with Judy, Evelyn and T-Bug before the real recording.",
+     "ahead": "Then V goes through Evelyn's memory of Yorinobu Arasaka's apartment to find where the Relic is kept.",
+     "places": [
+      "Judy's workshop, below Lizzie's Bar"
+     ],
+     "people": [
+      "Judy Alvarez",
+      "Evelyn Parker",
+      "T-Bug"
+     ],
+     "tips": []
+    },
+    {
+     "id": "relic-braindance",
+     "objectives": [
+      "braindance/01_analyze_braindance",
+      "braindance/02_find_documents",
+      "braindance/03_use_thermal_vision",
+      "braindance/04_leave_braindance",
+      "braindance/01b_eavesdrop",
+      "braindance/01c_listen_call",
+      "braindance/00b_watch_recording",
+      "braindance/00c_scan_security"
+     ],
+     "now": "V is going through Evelyn's recording of the apartment, looking for clues to where the Relic is hidden.",
+     "ahead": "After finding the clues, V leaves the recording and talks with Judy and Evelyn, then Dex calls to confirm the next step.",
+     "places": [
+      "Yorinobu's apartment, in the recording"
+     ],
+     "people": [
+      "Evelyn Parker",
+      "Judy Alvarez"
+     ],
+     "tips": [
+      "Use the sound layer for the phone call and the picture layer for the datapad, then the heat layer for a hidden trace.",
+      "Scanning security and watching it all through is optional."
+     ]
+    },
+    {
+     "id": "wrap-up-and-leave",
+     "objectives": [
+      "finale/follow_evelyn_again",
+      "finale/call_dex",
+      "finale/sum_up",
+      "finale/call_jackie",
+      "finale/exit_judy_workshop",
+      "finale/talk_evelyn",
+      "finale/talk_to_dex"
+     ],
+     "now": "V is done with the recording and wrapping up with Judy, Evelyn, Dex and Jackie before leaving the workshop.",
+     "ahead": "After V leaves the workshop, Dex calls and this job is finished. The big job he has been lining up is next.",
+     "places": [
+      "Judy's workshop, Lizzie's Bar"
+     ],
+     "people": [
+      "Judy Alvarez",
+      "Evelyn Parker",
+      "Dex"
+     ],
+     "tips": [
+      "Most choices in these last talks do not change what happens next."
+     ]
+    }
+   ]
+  },
+  "quests/main_quest/prologue/q005_heist": {
+   "title": "The Heist",
+   "givers": [
+    "dexter-deshawn"
+   ],
+   "knowers": [
+    "jackie-welles",
+    "t-bug"
+   ],
+   "overview": "Dex has a plan to steal the Relic from Yorinobu Arasaka's suite on the 42nd floor of Konpeki Plaza, with V and Jackie going in disguised as Militech staff.",
+   "spoiler": "none",
+   "sources": [
+    "powerpyx-heist"
+   ],
+   "stages": [
+    {
+     "id": "afterlife-briefing",
+     "objectives": [
+      "00_before/finish_q003",
+      "00_before/finish_q004",
+      "the_plan/goto_meeting_location",
+      "the_plan/talk_emmerick",
+      "the_plan/follow_jackie",
+      "the_plan/talk_jackie",
+      "the_plan/join_jackie",
+      "the_plan/wait_for_dex",
+      "the_plan/get_up_from_bar",
+      "the_plan/follow_bodyguard",
+      "the_plan/enter_meeting_capsule",
+      "the_plan/participate_briefing",
+      "the_plan/put_spiderbot"
+     ],
+     "now": "V has the Flathead and the groundwork done, and is meeting Jackie and Dex at the Afterlife for the briefing on the Konpeki Plaza job.",
+     "ahead": "After the briefing V puts the Flathead in a briefcase, then takes a Delamain cab to Konpeki Plaza and puts on the Militech disguise during the ride.",
+     "places": [
+      "the Afterlife, Watson"
+     ],
+     "people": [
+      "Dex",
+      "T-Bug",
+      "Jackie"
+     ],
+     "tips": [
+      "Tell the bouncer you are there for Dex and wait with Jackie at the bar.",
+      "If you need to do other things first, you can leave before agreeing to start."
+     ]
+    },
+    {
+     "id": "disguise-and-ride",
+     "objectives": [
+      "cab_ride/talk",
+      "cab_ride/get_in_delamain",
+      "cab_ride/hide_weapons",
+      "cab_ride/loot_disguise",
+      "cab_ride/put_on_blazer",
+      "cab_ride/put_on_pants",
+      "cab_ride/put_on_shoes",
+      "cab_ride/put_on_suit",
+      "cab_ride/wait_for_jackie"
+     ],
+     "now": "V is in the Delamain cab on the way to Konpeki Plaza, getting weapons stowed and the Militech disguise on.",
+     "ahead": "At the hotel V and Jackie walk in as Militech guests, pass the security checkpoint, check in at the front desk and head up to the 42nd floor.",
+     "places": [
+      "Delamain cab, Watson to Konpeki Plaza"
+     ],
+     "people": [
+      "Jackie"
+     ],
+     "tips": [
+      "Stash your weapons, they will not get through the hotel checkpoint."
+     ]
+    },
+    {
+     "id": "check-in",
+     "objectives": [
+      "arasaka_undercover/exit_delamain",
+      "arasaka_undercover/wait_for_jackie_trunk",
+      "arasaka_undercover/follow_jackie",
+      "arasaka_undercover/talk_with_concierge",
+      "arasaka_undercover/security_gate",
+      "arasaka_undercover/stand_inside_scanner",
+      "arasaka_undercover/check_in",
+      "arasaka_undercover/check_in_authentication",
+      "arasaka_undercover/visit_hotel_bar",
+      "arasaka_undercover/goto_lobby_elevator",
+      "arasaka_undercover/take_elevator_to_42_floor",
+      "arasaka_undercover/go_to_room"
+     ],
+     "now": "V is arriving at Konpeki Plaza, getting past the checkpoint and the front desk, and riding up to the room on the 42nd floor.",
+     "ahead": "In the room, T-Bug talks V through the next part: sending the Flathead through the hotel's vents toward Yorinobu's suite.",
+     "places": [
+      "Konpeki Plaza lobby",
+      "the room on the 42nd floor"
+     ],
+     "people": [
+      "Jackie",
+      "T-Bug"
+     ],
+     "tips": [
+      "The hotel bar is an optional detour.",
+      "Walk through the scanner once Jackie is through."
+     ]
+    },
+    {
+     "id": "link-up-with-tbug",
+     "objectives": [
+      "arasaka_undercover/talk_with_tbug",
+      "arasaka_undercover/take_control_chip",
+      "arasaka_undercover/sit_table",
+      "arasaka_undercover/talk_jackie",
+      "arasaka_undercover/wait_for_connection",
+      "arasaka_undercover/find_cctv_access_point",
+      "arasaka_undercover/connect_to_cctv",
+      "arasaka_undercover/switch_cam_view",
+      "arasaka_undercover/find_entry_point"
+     ],
+     "now": "V is settling into the room on the 42nd floor with Jackie, linking up with T-Bug and getting a view through the hotel cameras.",
+     "ahead": "T-Bug then has V steer the Flathead through the vents, opening grates and hacking what is in the way, toward Yorinobu's suite.",
+     "places": [
+      "the room on the 42nd floor"
+     ],
+     "people": [
+      "T-Bug",
+      "Jackie"
+     ],
+     "tips": [
+      "Scan for the camera access point to switch between camera views."
+     ]
+    },
+    {
+     "id": "flathead-vents",
+     "objectives": [
+      "arasaka_undercover/find_flathead_passage",
+      "arasaka_undercover/find_flathead_passage_net",
+      "arasaka_undercover/find_flathead_entry_sec",
+      "arasaka_undercover/open_grate_sec_room",
+      "arasaka_undercover/open_fake_door",
+      "arasaka_undercover/hack_netrunner",
+      "arasaka_undercover/flathead_wait",
+      "arasaka_undercover/wait_for_flathead",
+      "arasaka_undercover/wait_for_flathead_return",
+      "03a_spiderbot/cam_switch",
+      "03a_spiderbot/consult_with_tbug",
+      "03a_spiderbot/room_b_find_grate",
+      "03a_spiderbot/room_b_use_grate",
+      "03a_spiderbot/room_b_find_grate1",
+      "03a_spiderbot/room_b_use_grate1",
+      "03a_spiderbot/04_room_a_find_grate",
+      "03a_spiderbot/05_room_a_find_distraction",
+      "03a_spiderbot/06_room_a_use_distraction",
+      "03a_spiderbot/07_room_a_wait_for_maid_to_clear_out",
+      "03a_spiderbot/08_room_a_use_grate",
+      "03a_spiderbot/10_wait_for_flathead_action",
+      "03a_spiderbot/11_flathead_push_cart"
+     ],
+     "now": "V is guiding the Flathead through the hotel vents with T-Bug, opening grates, hacking devices and waiting out staff.",
+     "ahead": "Once the Flathead clears the way, V and Jackie head to Yorinobu's suite and wait for the occupant to leave.",
+     "places": [
+      "the vents of Konpeki Plaza"
+     ],
+     "people": [
+      "T-Bug",
+      "Jackie"
+     ],
+     "tips": [
+      "Scan to find vent entrances and grates, then use the Flathead on them.",
+      "Wait for staff to move off before the Flathead goes through."
+     ]
+    },
+    {
+     "id": "penthouse",
+     "objectives": [
+      "arasaka_undercover/go_to_suite",
+      "arasaka_undercover/wait_to_lure",
+      "03b_penthouse/open_cabinet",
+      "03b_penthouse/connect_to_safe",
+      "03b_penthouse/wait_for_hack",
+      "03b_penthouse/wait_for_jackie_take_suitcase",
+      "03b_penthouse/follow_jackie",
+      "03b_penthouse/leave_hideout",
+      "03b_penthouse/hide",
+      "03b_penthouse/find_safe_release_switch",
+      "03b_penthouse/return_to_safe",
+      "03b_penthouse/wait_in_hideout",
+      "03b_penthouse/observe_arasakas",
+      "03b_penthouse/talk_tbug_jackie",
+      "03b_penthouse/use_safe_switch"
+     ],
+     "now": "V is in Yorinobu's suite, at the safe with Jackie, opening it with T-Bug's help and staying out of sight when needed.",
+     "ahead": "With the Relic in hand, the plan is for V and Jackie to leave the hotel, ride the elevator to the garage and take the Delamain.",
+     "places": [
+      "Yorinobu's suite, 42nd floor"
+     ],
+     "people": [
+      "Jackie",
+      "T-Bug"
+     ],
+     "tips": [
+      "Scan the room for a hidden switch if the safe will not open.",
+      "Stay hidden until the way is clear."
+     ]
+    },
+    {
+     "id": "getting-out",
+     "objectives": [
+      "arasaka_escape/00a_escape_penthouse",
+      "arasaka_escape/00f_return_to_penthouse",
+      "arasaka_escape/00g_reach_ladder",
+      "arasaka_escape/00h_goto_window",
+      "arasaka_escape/01_follow_jackie",
+      "arasaka_escape/01b_use_ladder",
+      "arasaka_escape/01c_jump",
+      "arasaka_escape/02_kill_suitcase_squad",
+      "arasaka_escape/03_talk_to_jackie",
+      "arasaka_escape/03b_call_evelyn",
+      "arasaka_escape/03c_talk_to_evelyn",
+      "arasaka_escape/04_get_to_lobby",
+      "arasaka_escape/04_talk_to_delamain",
+      "arasaka_escape/06_get_to_elevator",
+      "arasaka_escape/06b_survive_until_delamain_arrives",
+      "arasaka_escape/06c_wait_for_delamain_to_arrive",
+      "arasaka_escape/07_get_to_delamain",
+      "arasaka_escape/12_arasaka_officer",
+      "arasaka_escape/13_kill_the_guards",
+      "arasaka_escape/14b_defeat_drones",
+      "arasaka_escape/15_enter_the_lobby",
+      "arasaka_escape/16_reach_garage_elevator",
+      "arasaka_escape/17_wait_jackie_in_elevator"
+     ],
+     "now": "V has the Relic and is making a way out of Konpeki Plaza toward the garage where the Delamain waits.",
+     "ahead": "From the garage V takes the Delamain away from the hotel and meets Dex afterwards.",
+     "places": [
+      "Konpeki Plaza lobby",
+      "the garage, Konpeki Plaza"
+     ],
+     "people": [
+      "Jackie"
+     ],
+     "tips": [
+      "Stay close to Jackie and head for the garage elevator."
+     ]
+    },
+    {
+     "id": "regroup-with-dex",
+     "objectives": [
+      "return/return_notell",
+      "return/room",
+      "return/01_talk_to_jackie",
+      "return/02_leave_delamain",
+      "return/exit_toilet",
+      "return/prepare",
+      "return/talk_dex",
+      "return/go_to_bathroom"
+     ],
+     "now": "V is back from the hotel and heading to the motel room where Dex waits.",
+     "ahead": "V talks to Dex in the room. There is nothing more to the job beyond that conversation.",
+     "places": [
+      "room 204, the motel"
+     ],
+     "people": [
+      "Dex",
+      "Jackie"
+     ],
+     "tips": []
+    }
+   ],
+   "persistent": [
+    "arasaka_undercover/vip_apartment"
+   ]
+  },
+  "quests/main_quest/prologue/q001_01_victor": {
+   "title": "The Ripperdoc",
+   "givers": [
+    "jackie-welles"
+   ],
+   "knowers": [
+    "viktor-vektor"
+   ],
+   "overview": "Jackie wants V to meet him downstairs and then drive to Viktor's clinic in Watson, where a ripperdoc will fit V with the cyberware V needs for the work ahead.",
+   "spoiler": "none",
+   "sources": [
+    "pp-ripperdoc"
+   ],
+   "stages": [
+    {
+     "id": "leave-the-apartment",
+     "objectives": [
+      "megabuilding/get_jacket",
+      "megabuilding/get_gun",
+      "megabuilding/05a_stash",
+      "megabuilding/read_email_muamar",
+      "megabuilding/go_to_jackie"
+     ],
+     "now": "V is still in the apartment block and is heading downstairs to meet Jackie.",
+     "ahead": "Jackie is waiting by the food stall below. V talks with him, gets the car key back, and then they drive to the ripperdoc.",
+     "places": [
+      "the megabuilding, Watson",
+      "the food stall downstairs"
+     ],
+     "people": [
+      "Jackie Welles"
+     ],
+     "tips": [
+      "Grabbing the jacket and the gun and checking the stash and email on the way out is optional but worth a minute."
+     ]
+    },
+    {
+     "id": "talk-to-jackie",
+     "objectives": [
+      "megabuilding/talk_jackie",
+      "megabuilding/talk_jackie_person"
+     ],
+     "now": "V has found Jackie and is talking with him about the next step.",
+     "ahead": "After the chat Jackie hands over the car key. V calls the car, gets in the driver's seat, and drives to the ripperdoc.",
+     "places": [
+      "the food stall, Watson"
+     ],
+     "people": [
+      "Jackie Welles"
+     ],
+     "tips": [
+      "Life path lines in the talk are always optional and do not close off any other answers."
+     ]
+    },
+    {
+     "id": "drive-to-clinic",
+     "objectives": [
+      "megabuilding/summon_car",
+      "megabuilding/get_inside_car",
+      "megabuilding/call_jackie",
+      "ripperdoc/go_to_rd_by_car"
+     ],
+     "now": "V has the car key and is calling the car, getting in and driving to the ripperdoc.",
+     "ahead": "At the clinic V goes inside and down the stairs to meet Viktor, who handles the install.",
+     "places": [
+      "Viktor's clinic, Watson"
+     ],
+     "people": [
+      "Jackie Welles",
+      "Viktor Vektor"
+     ],
+     "tips": [
+      "Follow the map marker and park in the marked spot outside the clinic."
+     ]
+    },
+    {
+     "id": "meet-viktor",
+     "objectives": [
+      "ripperdoc/go_to_ripperdoc",
+      "ripperdoc/talk_to_viktor"
+     ],
+     "now": "V is at the clinic and is meeting Viktor to talk about what V needs fitted.",
+     "ahead": "Viktor has V sit in the chair, V picks the cyberware to install, and then V gets a look at what the new gear can do.",
+     "places": [
+      "Viktor's clinic, Watson"
+     ],
+     "people": [
+      "Viktor Vektor"
+     ],
+     "tips": [
+      "Viktor asks to be paid after the work, so V does not need the money on hand yet."
+     ]
+    },
+    {
+     "id": "install-cyberware",
+     "objectives": [
+      "ripperdoc/sit_chair",
+      "ripperdoc/install_cyberware",
+      "ripperdoc/scan_viktor"
+     ],
+     "now": "V is in the ripperdoc's chair, choosing and getting the new cyberware installed.",
+     "ahead": "Once the install is done, V tries out the new optics by scanning Viktor and finishes talking with him. After that the job is done.",
+     "places": [
+      "Viktor's clinic, Watson"
+     ],
+     "people": [
+      "Viktor Vektor"
+     ],
+     "tips": [
+      "Some answers are timed, but they hardly change anything, so do not stress over them."
+     ]
+    }
+   ]
+  },
+  "quests/main_quest/act_01/q103_warhead": {
+   "title": "Ghost Town",
+   "givers": [
+    "panam-palmer"
+   ],
+   "knowers": [
+    "rogue-amendiares",
+    "mitch-anderson"
+   ],
+   "overview": "To find the man V is hunting, V needs a fixer's help at the Afterlife and then a nomad named Panam, who has her own score to settle outside the city.",
+   "spoiler": "light",
+   "sources": [
+    "pp-ghost-town",
+    "gg-ghost-town"
+   ],
+   "stages": [
+    {
+     "id": "pay-rogue",
+     "objectives": [
+      "afterlife/go_afterlife",
+      "afterlife/talk_rogue",
+      "afterlife/gather_money",
+      "afterlife/pay_rogue"
+     ],
+     "now": "V is going to the Afterlife to see Rogue, who wants fifteen thousand eddies before she helps.",
+     "ahead": "Once V has paid, Rogue asks V to wait a while, then points V to a nomad called Panam Palmer, who can help get V to the man V is after.",
+     "places": [
+      "the Afterlife, Watson"
+     ],
+     "people": [
+      "Rogue Amendiares"
+     ],
+     "tips": [
+      "Gigs, scanner events and selling loot are the quick ways to reach the money, and V can come back later."
+     ]
+    },
+    {
+     "id": "wait-for-rogue",
+     "objectives": [
+      "afterlife/wait_for_rogue",
+      "afterlife/wait_1_day",
+      "afterlife/sit_down"
+     ],
+     "now": "V has paid and is waiting for Rogue to be ready, which takes about a day.",
+     "ahead": "When Rogue is free she gives V what she has and suggests Panam. V then calls Panam and sets a meeting.",
+     "places": [
+      "the Afterlife, Watson"
+     ],
+     "people": [
+      "Rogue Amendiares"
+     ],
+     "tips": [
+      "Sleeping at the bar or doing other work passes the time."
+     ]
+    },
+    {
+     "id": "meet-panam",
+     "objectives": [
+      "panam/call_panam",
+      "panam/go_to_panam",
+      "panam/talk_panam",
+      "panam/get_in_car",
+      "panam/ride",
+      "ghost_town/ride_camp"
+     ],
+     "now": "V is calling Panam, meeting her and riding with her toward the Aldecaldo camp.",
+     "ahead": "At the camp V talks with the nomads there, collects a heavy crate for Panam's plan, loads it in the car, and drives with her to Rocky Ridge.",
+     "places": [
+      "Panam's meeting spot",
+      "the Aldecaldo camp"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": []
+    },
+    {
+     "id": "camp-supplies",
+     "objectives": [
+      "ghost_town/talk_scorp_mitch",
+      "ghost_town/carry_box",
+      "ghost_town/put_box_away",
+      "ghost_town/get_in_car",
+      "ghost_town/ride_to_ghost_town"
+     ],
+     "now": "V is at the camp, talking with Mitch and Scorpion, loading the crate into the car and heading to Rocky Ridge.",
+     "ahead": "At the old town V and Panam scout the place. Its power is dead, so they need to bring it back before the Raffen Shiv gang shows up.",
+     "places": [
+      "the Aldecaldo camp",
+      "Rocky Ridge"
+     ],
+     "people": [
+      "Panam Palmer",
+      "Mitch Anderson"
+     ],
+     "tips": []
+    },
+    {
+     "id": "restore-power",
+     "objectives": [
+      "ghost_town/leave_car",
+      "ghost_town/scout",
+      "ghost_town_recon/01_scan_cables",
+      "ghost_town_recon/02_scan_fusebox",
+      "ghost_town_recon/03_back_car",
+      "ghost_town_recon/01_02_scan_transformer",
+      "ghost_town/go_power_station",
+      "ghost_town/pickup_cables",
+      "ghost_town/connect_battery",
+      "ghost_town/break_window",
+      "ghost_town/restore_power"
+     ],
+     "now": "V is scanning the dead power setup at Rocky Ridge and getting the substation running with Panam's car battery.",
+     "ahead": "With power back, V climbs to a rooftop and waits with Panam for the Raffen Shiv to arrive. Then V switches the lights on to draw them in.",
+     "places": [
+      "the substation, Rocky Ridge"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "If the door will not budge, breaking a window gets V inside to the terminal.",
+      "Scan the transformer and the fusebox on the roof to find what is cut off."
+     ]
+    },
+    {
+     "id": "set-the-trap",
+     "objectives": [
+      "ghost_town/head_rooftop",
+      "ghost_town/hide_ledge",
+      "ghost_town/wait_raffen",
+      "ghost_town/tell_panam_ready",
+      "ghost_town/light_city"
+     ],
+     "now": "V is taking position on a roof with Panam and waiting for the Raffen Shiv to show up.",
+     "ahead": "Once the gang is in the open, V works through them, quietly or loudly, and gets hold of the key to Panam's car so they can take it back.",
+     "places": [
+      "the rooftops, Rocky Ridge"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "Panam covers V with her sniper rifle if V gets spotted."
+     ]
+    },
+    {
+     "id": "take-back-the-car",
+     "objectives": [
+      "ghost_town/kill_raffen_shiv",
+      "ghost_town/takedown_veh_guard",
+      "ghost_town/find_key",
+      "ghost_town/steal_car",
+      "ghost_town/escape"
+     ],
+     "now": "V is dealing with the Raffen Shiv and looking for the key to Panam's car.",
+     "ahead": "With the key V takes the car and leaves Rocky Ridge to meet Panam at the rendezvous.",
+     "places": [
+      "the bar and the gas pumps, Rocky Ridge"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "Whoever holds the key is inside the bar, so lure him away from his friends.",
+      "Killing every ganger is not required."
+     ]
+    },
+    {
+     "id": "regroup-with-panam",
+     "objectives": [
+      "ghost_town/rendezvous_gt_north1",
+      "ghost_town/check_area",
+      "ghost_town/switch_seats",
+      "ghost_town/follow_panam",
+      "ghost_town/drive_away",
+      "ghost_town/gt_talk_panam",
+      "ghost_town/wait_panam_in_car",
+      "ghost_town/passenger_seat",
+      "ghost_town/decide_aft_ghost"
+     ],
+     "now": "V has the car and is meeting Panam, who takes the wheel and talks over what comes next.",
+     "ahead": "Panam wants to hit the Raffen Shiv leader's hideout first, which is optional. Either way she then takes V to the deal that she has lined up at the Sunset Motel.",
+     "places": [
+      "north of Rocky Ridge"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": []
+    },
+    {
+     "id": "raffen-hideout",
+     "objectives": [
+      "tunnels/ride",
+      "tunnels/defeat_boss",
+      "tunnels/wait_panam",
+      "tunnels/get_back_to_car",
+      "tunnels/summarize_panam",
+      "tunnels/wait_panam_call"
+     ],
+     "now": "V and Panam are going after the Raffen Shiv leader, Nash, in the hideout.",
+     "ahead": "After the hideout Panam makes a call, then drives V to the Sunset Motel for the deal.",
+     "places": [
+      "the Raffen Shiv hideout in the old mines"
+     ],
+     "people": [
+      "Panam Palmer",
+      "Nash"
+     ],
+     "tips": [
+      "The fight starts the moment V steps out of the car, so be ready.",
+      "Watch for a sniper on a high walkway."
+     ]
+    },
+    {
+     "id": "sunset-motel",
+     "objectives": [
+      "roadhouse/ride",
+      "roadhouse/leave_car",
+      "roadhouse/wait_convo_maelstrom",
+      "roadhouse/follow_panam_bar",
+      "roadhouse/sit_stool",
+      "roadhouse/follow_panam_room",
+      "roadhouse/talk_panam",
+      "roadhouse/go_to_room",
+      "roadhouse/bed_upstairs",
+      "roadhouse/bed_downstairs"
+     ],
+     "now": "V is at the Sunset Motel, covering Panam while she closes her deal, and then spends the evening there.",
+     "ahead": "After the deal Panam and V share a drink at the bar, then V goes to the room to rest. There is nothing more to do beyond that.",
+     "places": [
+      "the Sunset Motel"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "Keep a weapon ready in the car in case the deal sours."
+     ]
+    }
+   ]
+  },
+  "quests/main_quest/act_01/q104_01_sabotage": {
+   "title": "Lightning Breaks",
+   "givers": [
+    "panam-palmer"
+   ],
+   "knowers": [],
+   "overview": "Panam has a plan to shut down a power plant and bring down a convoy aircraft, and she wants V in her car at midnight to help pull it off.",
+   "spoiler": "none",
+   "sources": [
+    "fextra-lightning-breaks"
+   ],
+   "stages": [
+    {
+     "id": "meet-panam-midnight",
+     "objectives": [
+      "preparations/meet_panam",
+      "preparations/talk_panam",
+      "preparations/plug_in",
+      "preparations/car1"
+     ],
+     "now": "V is meeting Panam at midnight and getting into her car to go over the plan.",
+     "ahead": "On the drive V uses the car's turret to test it on some targets, and then V and Panam reach the power plant.",
+     "places": [
+      "the garage by the Sunset Motel"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": []
+    },
+    {
+     "id": "drive-to-plant",
+     "objectives": [
+      "preparations/calibrate_turret",
+      "preparations/drive",
+      "preparations/drive_plant"
+     ],
+     "now": "V is riding with Panam to the power plant and testing the car's turret on the way.",
+     "ahead": "At the plant V clears the security with the turret, then goes inside to wreck the terminals.",
+     "places": [
+      "the satwave power plant"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "Plug into the car's turret and take your time with the shots, they are only for practice."
+     ]
+    },
+    {
+     "id": "hit-the-plant",
+     "objectives": [
+      "preparations/plant_security",
+      "preparations/go_bottom_bunker1",
+      "preparations/terminal_control",
+      "preparations/talk_panam1",
+      "preparations/wait_for_panam"
+     ],
+     "now": "V is clearing the plant's security and heading in to overheat its terminals.",
+     "ahead": "Afterward V runs back to Panam's car and she drives them up a hill, where they wait for the aircraft.",
+     "places": [
+      "the satwave power plant"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "The turret deals with the drones, and the Short Circuit quickhack also works well on them."
+     ]
+    },
+    {
+     "id": "ambush-on-the-hill",
+     "objectives": [
+      "preparations/drive_panam_hill",
+      "preparations/wait_for_av",
+      "preparations/shoot_av"
+     ],
+     "now": "V is on the hill with Panam, waiting for the aircraft and ready to shoot it down.",
+     "ahead": "When the aircraft comes into view V brings it down. This job leads straight into the next one with Panam.",
+     "places": [
+      "the hill above the plant"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": []
+    }
+   ]
+  },
+  "quests/main_quest/act_01/q104_02_av_chase": {
+   "title": "Life During Wartime",
+   "givers": [
+    "panam-palmer"
+   ],
+   "knowers": [
+    "mitch-anderson",
+    "takemura"
+   ],
+   "overview": "The aircraft is down, and V and Panam have to reach the wreck and the man on board before the Aldecaldos or the corporate security do.",
+   "spoiler": "light",
+   "sources": [
+    "pp-life-during-wartime"
+   ],
+   "stages": [
+    {
+     "id": "chase-the-av",
+     "objectives": [
+      "av_chase/follow_av",
+      "av_chase/back_car",
+      "av_chase/chase_av",
+      "av_chase/deal_with_drones",
+      "av_chase/drive_canyon",
+      "av_chase/panam_patch"
+     ],
+     "now": "V is racing Panam's car across the Badlands after the downed aircraft while drones attack.",
+     "ahead": "V shoots the drones with the roof turret, and the turret jams on the way, so Panam stops to fix it. Then they close in on the wreck.",
+     "places": [
+      "the canyon road in the Badlands"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "Stay on the turret and keep the drones off the car."
+     ]
+    },
+    {
+     "id": "scout-the-crash",
+     "objectives": [
+      "av_chase/track_av",
+      "finding_courier/disconnect_drone",
+      "finding_courier/recon_crashsite_w_panam",
+      "finding_courier/optional_scan_turret",
+      "finding_courier/optional_scan_zetatech",
+      "finding_courier/optional_scan_mitch",
+      "finding_courier/optional_scan_aldecados",
+      "finding_courier/optional_scan_drones"
+     ],
+     "now": "V is scouting the crash site, scanning for guards and signs of the Aldecaldos.",
+     "ahead": "Then V and Panam clear the guards and bots around the wreck, deal with the turret and get the hatch open.",
+     "places": [
+      "the crash site, Badlands"
+     ],
+     "people": [
+      "Panam Palmer",
+      "Mitch Anderson"
+     ],
+     "tips": [
+      "A recon drone lets V scan people and machines without being seen."
+     ]
+    },
+    {
+     "id": "clear-the-wreck",
+     "objectives": [
+      "finding_courier/kill_petrochem_av",
+      "finding_courier/deal_av_turret",
+      "finding_courier/get_inside_av",
+      "finding_courier/resolve_hostage_situation",
+      "finding_courier/kill_av_pilot",
+      "finding_courier/get_info_from_mitch"
+     ],
+     "now": "V is clearing the crash site, dealing with the turret and getting into the aircraft.",
+     "ahead": "Once the pilot is dealt with, V works out where the convoy went and follows its trail across the Badlands.",
+     "places": [
+      "the crash site, Badlands"
+     ],
+     "people": [
+      "Panam Palmer",
+      "Mitch Anderson"
+     ],
+     "tips": [
+      "Hacking the turret console or destroying the turret both work."
+     ]
+    },
+    {
+     "id": "follow-the-trail",
+     "objectives": [
+      "finding_courier/scan_tire_tracks",
+      "finding_courier/follow_tracks",
+      "finding_courier/get_on_bike",
+      "finding_courier/get_on_bike_tracking",
+      "finding_courier/optional_take_bike",
+      "finding_courier/follow_panam",
+      "finding_courier/wait_panam",
+      "finding_courier/airstrip_oil_tracks",
+      "finding_courier/optional_kill_airstrip_kangtao",
+      "finding_courier/follow_tracks_post_airstrip"
+     ],
+     "now": "V is following the convoy's tracks on a bike with Panam, past an airstrip, toward an old gas station.",
+     "ahead": "The trail ends at a gas station held by Kang Tao guards. V and Panam scout it before going in.",
+     "places": [
+      "the airstrip",
+      "the old gas station"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "The guards at the airstrip can be fought or skirted around."
+     ]
+    },
+    {
+     "id": "scout-the-gas-station",
+     "objectives": [
+      "finding_courier/gas_station_vantage_point",
+      "finding_courier/tracking_plan",
+      "finding_courier/follow_pan_gas",
+      "finding_courier/reach_gas_station"
+     ],
+     "now": "V is at a vantage point near the gas station, planning the approach with Panam.",
+     "ahead": "Panam covers V from a distance while V fights through the guards and the turrets, gets inside and looks for Hellman.",
+     "places": [
+      "the old gas station"
+     ],
+     "people": [
+      "Panam Palmer"
+     ],
+     "tips": [
+      "The front is barricaded, so use a side door.",
+      "Turning the turrets to V's side helps a lot."
+     ]
+    },
+    {
+     "id": "assault-the-gas-station",
+     "objectives": [
+      "finding_courier/defeat_gas_station",
+      "finding_courier/find_courier",
+      "finding_courier/find_courier_gas",
+      "finding_courier/find_courier_gas_precise",
+      "finding_courier/confront_anders",
+      "finding_courier/subdue_haru"
+     ],
+     "now": "V is fighting through the gas station and climbing to the upper floor to find Anders Hellman.",
+     "ahead": "V knocks Hellman out, calls Takemura, carries Hellman outside, and V and Panam get him onto a bike.",
+     "places": [
+      "the gas station office, upper floor"
+     ],
+     "people": [
+      "Anders Hellman",
+      "Panam Palmer"
+     ],
+     "tips": [
+      "The stairs at the back of the garage lead up to his office."
+     ]
+    },
+    {
+     "id": "extract-hellman",
+     "objectives": [
+      "finding_courier/call_takemura",
+      "finding_courier/carry_haru_outside",
+      "finding_courier/talk_panam_gas_station",
+      "finding_courier/pickup_haru",
+      "finding_courier/put_haru_on_bike"
+     ],
+     "now": "V has Hellman and is getting him out of the gas station and onto a bike.",
+     "ahead": "They ride to a motel room, where V and Takemura question Hellman. After that there is nothing more left in this job.",
+     "places": [
+      "outside the gas station"
+     ],
+     "people": [
+      "Panam Palmer",
+      "Takemura"
+     ],
+     "tips": []
+    },
+    {
+     "id": "question-hellman",
+     "objectives": [
+      "finding_courier/talk_with_courier",
+      "finding_courier/leave_roadhouse"
+     ],
+     "now": "V is in a motel room with Hellman and asking him the questions V came for.",
+     "ahead": "Takemura joins the conversation. When it is over V leaves the room and this job is done.",
+     "places": [
+      "a roadside motel room"
+     ],
+     "people": [
+      "Anders Hellman",
+      "Takemura"
+     ],
+     "tips": []
+    }
+   ]
+  },
+  "quests/main_quest/act_01/q112_01_old_friend": {
+   "title": "Down on the Street",
+   "givers": [
+    "takemura"
+   ],
+   "knowers": [
+    "wakako-okada",
+    "oda"
+   ],
+   "overview": "Takemura wants V to meet him in Japantown, hear out an old friend of his, and then call on the fixer Wakako Okada on Jig-Jig Street for help.",
+   "spoiler": "light",
+   "sources": [
+    "pp-down-on-the-street"
+   ],
+   "stages": [
+    {
+     "id": "meet-takemura",
+     "objectives": [
+      "00_secret_meeting/00a_meet_takemura",
+      "00_secret_meeting/00b2_sit_takemura",
+      "00_secret_meeting/00ab_talk_phone",
+      "00_secret_meeting/00b_talk_takemura"
+     ],
+     "now": "V is going to Japantown to meet Takemura and wait for him by the barrier.",
+     "ahead": "Takemura turns up with an old friend of his, Oda, and the three of them talk. Afterwards Takemura offers a ride to see a fixer.",
+     "places": [
+      "Japantown, Westbrook"
+     ],
+     "people": [
+      "Takemura"
+     ],
+     "tips": [
+      "Lean on the marked barrier to pass the time until he arrives."
+     ]
+    },
+    {
+     "id": "talk-to-oda",
+     "objectives": [
+      "00_secret_meeting/00c_talk_oda"
+     ],
+     "now": "V is talking with Takemura's old friend Oda.",
+     "ahead": "When the talk ends, Takemura suggests they go see Wakako Okada, a fixer on Jig-Jig Street, since he needs help.",
+     "places": [
+      "Japantown, Westbrook"
+     ],
+     "people": [
+      "Takemura",
+      "Oda"
+     ],
+     "tips": [
+      "The timed answers do not change how this goes, so answer as feels right."
+     ]
+    },
+    {
+     "id": "to-wakako",
+     "objectives": [
+      "00_secret_meeting/00d_wait_takemura",
+      "00_secret_meeting/00e_call_wakako_back",
+      "00c_wakako/00c_01b_join",
+      "00c_wakako/00c_01_meet_wakako",
+      "00c_wakako/00c_02_talk_takemura"
+     ],
+     "now": "V is heading to Wakako on Jig-Jig Street, in Takemura's van or on V's own.",
+     "ahead": "At Wakako's parlor V goes into the back room to speak with her about what Takemura and V need.",
+     "places": [
+      "Jig-Jig Street, Westbrook"
+     ],
+     "people": [
+      "Takemura",
+      "Wakako Okada"
+     ],
+     "tips": [
+      "Riding with Takemura gives V a chance to talk with him on the way."
+     ]
+    },
+    {
+     "id": "see-wakako",
+     "objectives": [
+      "00_secret_meeting/00f_send_takemura",
+      "00c_wakako/00c_03_talk_wakako"
+     ],
+     "now": "V is with Wakako, asking for her help and what V is owed from earlier work.",
+     "ahead": "Afterwards V steps outside to talk with Takemura again, and then waits for his call with the next meeting place.",
+     "places": [
+      "Wakako's pachinko parlor, Jig-Jig Street"
+     ],
+     "people": [
+      "Wakako Okada",
+      "Takemura"
+     ],
+     "tips": [
+      "Ask her about any payment still owed for the earlier job."
+     ]
+    },
+    {
+     "id": "wait-for-call",
+     "objectives": [
+      "00c_wakako/00c_04_wait"
+     ],
+     "now": "V is done with Wakako and is waiting for Takemura to call back.",
+     "ahead": "About a day later Takemura calls with a new place to meet. There is nothing else to do for him until then.",
+     "places": [],
+     "people": [
+      "Takemura"
+     ],
+     "tips": [
+      "Gigs or scanner jobs pass the time, or V can simply wait."
+     ]
+    }
+   ]
+  },
+  "quests/main_quest/act_01/q101_resurrection": {
+   "title": "Playing for Time",
+   "givers": [
+    "takemura"
+   ],
+   "knowers": [
+    "viktor-vektor"
+   ],
+   "overview": "V has to climb out of trouble with Takemura's help, get checked over by Viktor, recover at home, and then meet Takemura to talk about what comes next.",
+   "spoiler": "light",
+   "sources": [
+    "pp-playing-for-time"
+   ],
+   "stages": [
+    {
+     "id": "get-out",
+     "objectives": [
+      "landfill/dig",
+      "landfill/biker",
+      "landfill/ghost_roof",
+      "landfill/ghost_hood"
+     ],
+     "now": "V is dragging free of the landfill while attackers close in, and Takemura helps fight them off.",
+     "ahead": "Once the attackers are down V gets into Takemura's car, and they drive off with more pursuit on their tail.",
+     "places": [
+      "the landfill"
+     ],
+     "people": [
+      "Takemura"
+     ],
+     "tips": [
+      "The fight is mostly scripted, so keep shooting."
+     ]
+    },
+    {
+     "id": "car-chase",
+     "objectives": [
+      "chase/delamain",
+      "chase/talk",
+      "chase/get_out_from_car",
+      "chase/ride_w_takemura",
+      "chase/kill_troy3"
+     ],
+     "now": "V is in the car with Takemura, with attackers chasing them down the road.",
+     "ahead": "After the chase they reach safety, and V gets a chance to talk to Viktor.",
+     "places": [
+      "the road out of the landfill"
+     ],
+     "people": [
+      "Takemura"
+     ],
+     "tips": [
+      "V can ask for a taxi or for Viktor's help in the car."
+     ]
+    },
+    {
+     "id": "see-viktor",
+     "objectives": [
+      "base/talk",
+      "base/victor",
+      "base/follow"
+     ],
+     "now": "V is safe for now and is talking with Takemura and with Viktor, who looks V over.",
+     "ahead": "Afterwards V heads home to rest and to take the pills.",
+     "places": [
+      "Viktor's clinic, Watson"
+     ],
+     "people": [
+      "Viktor Vektor",
+      "Takemura"
+     ],
+     "tips": []
+    },
+    {
+     "id": "rest-and-recover",
+     "objectives": [
+      "base/sleep",
+      "base/johnny_talk",
+      "base/cyberspace_approach",
+      "base/cyberspace_way_out",
+      "base/get_up",
+      "base/take_pills",
+      "base/eat_pills"
+     ],
+     "now": "V is back at the apartment, sleeping off the night and getting to the pills.",
+     "ahead": "Once V has taken the pills V gets ready to leave the apartment, with a few small chores that can be done first.",
+     "places": [
+      "V's apartment"
+     ],
+     "people": [],
+     "tips": []
+    },
+    {
+     "id": "get-ready",
+     "objectives": [
+      "base/check_emails",
+      "base/eat_something",
+      "base/restock_ammo",
+      "base/put_on_clothes",
+      "base/prepare_before_leave"
+     ],
+     "now": "V is up, and is getting ready to leave the apartment.",
+     "ahead": "Takemura calls once V is ready or leaves. V then meets him in person to talk things over.",
+     "places": [
+      "V's apartment"
+     ],
+     "people": [
+      "Takemura"
+     ],
+     "tips": [
+      "Grab spare ammo from the stash room before heading out.",
+      "Checking email is optional."
+     ]
+    },
+    {
+     "id": "meet-takemura",
+     "objectives": [
+      "takemura/call_takemura",
+      "takemura/meet_with_takemura",
+      "takemura/talk_takemura",
+      "takemura/talk_with_johnny",
+      "takemura/read_message_adm"
+     ],
+     "now": "V is answering Takemura's call and going to meet him at a diner in Japantown.",
+     "ahead": "V and Takemura talk over what happened and what comes next. After the talk there is nothing more to do in this job.",
+     "places": [
+      "Tom's Diner, Japantown"
+     ],
+     "people": [
+      "Takemura"
+     ],
+     "tips": [
+      "V can do other jobs before heading to the diner."
+     ]
+    }
+   ]
+  },
+  "quests/street_stories/watson/northside_industrial_district/sts_wat_nid_01": {
+   "title": "Gig: Occupational Hazard",
+   "givers": [
+    "regina-jones"
+   ],
+   "knowers": [],
+   "overview": "A man named Hal Cantos is pinned down inside a Mox warehouse in Northside with a cyberpsycho loose in there; I want V to get in, deal with the psycho and get him out.",
+   "spoiler": "none",
+   "sources": [
+    "gamerguides-occupational-hazard",
+    "powerpyx-occupational-hazard"
+   ],
+   "stages": [
+    {
+     "id": "reach-warehouse",
+     "objectives": [
+      "sts_wat_nid_01/enter"
+     ],
+     "now": "V is heading for the Mox warehouse in Northside to start the rescue.",
+     "ahead": "Once inside, V locates Hal, deals with the cyberpsycho roaming the floor, then lets Hal out and walks away from the warehouse.",
+     "places": [
+      "the Mox warehouse, Northside"
+     ],
+     "people": [
+      "Hal Cantos"
+     ],
+     "tips": [
+      "The front door is the loud way in; going over the dumpster and across the roof is quieter.",
+      "Keep clear of the doors near the cyberpsycho until V is ready for a fight."
+     ]
+    },
+    {
+     "id": "find-hal",
+     "objectives": [
+      "sts_wat_nid_01/find",
+      "sts_wat_nid_01/hack"
+     ],
+     "now": "V is inside the warehouse looking for Hal while staying out of the cyberpsycho's sight.",
+     "ahead": "With Hal located, V has to put the cyberpsycho down before the way to him is safe. Weakening her first makes that fight much easier.",
+     "places": [
+      "the upper walkway of the warehouse"
+     ],
+     "people": [
+      "Hal Cantos",
+      "a wounded Mox"
+     ],
+     "tips": [
+      "A wounded Mox up top can point V to a way to weaken the psycho from a distance.",
+      "Walk the upper walkway in stealth to stay unseen."
+     ]
+    },
+    {
+     "id": "take-down-psycho",
+     "objectives": [
+      "sts_wat_nid_01/kill"
+     ],
+     "now": "V is facing the cyberpsycho on the warehouse floor.",
+     "ahead": "After she is down, V goes to Hal's hiding place on the floor and speaks to him, then leaves the warehouse.",
+     "places": [
+      "the warehouse floor"
+     ],
+     "people": [
+      "Hal Cantos"
+     ],
+     "tips": [
+      "She charges at close range, so keep moving and back away while shooting.",
+      "Explosive canisters and the car lift on the floor can be used against her."
+     ]
+    },
+    {
+     "id": "talk-to-hal",
+     "objectives": [
+      "sts_wat_nid_01/talk"
+     ],
+     "now": "The danger is over and V is going to Hal's hiding place in the warehouse.",
+     "ahead": "V tells Hal it is safe, then walks out of the warehouse and the job is finished.",
+     "places": [
+      "the cargo container on the warehouse floor"
+     ],
+     "people": [
+      "Hal Cantos"
+     ],
+     "tips": []
+    },
+    {
+     "id": "leave-warehouse",
+     "objectives": [
+      "sts_wat_nid_01/leave"
+     ],
+     "now": "Hal is safe and V only has to leave the Mox warehouse.",
+     "ahead": "Nothing more to do beyond this once V is outside; the fixer wraps up the job.",
+     "places": [
+      "the Mox warehouse, Northside"
+     ],
+     "people": [],
+     "tips": []
+    }
+   ],
+   "persistent": [
+    "sts_wat_nid_01/main"
+   ]
+  },
+  "quests/street_stories/watson/northside_industrial_district/sts_wat_nid_04": {
+   "title": "Gig: Dirty Biz",
+   "givers": [
+    "regina-jones"
+   ],
+   "knowers": [],
+   "overview": "A client wants the raw cut of a braindance, held by two XBD tuners in a Maelstrom-guarded compound near the Northside shipyard; I want V to steal it and drop it off.",
+   "spoiler": "none",
+   "sources": [
+    "powerpyx-dirty-biz"
+   ],
+   "stages": [
+    {
+     "id": "reach-studio",
+     "objectives": [
+      "sts_wat_nid_04/get_to_hideout"
+     ],
+     "now": "V is heading to the studio compound off Shipyard Way where the two tuners work.",
+     "ahead": "V gets past the gang guards, finds the room with the tuners, picks up the raw recording, and leaves.",
+     "places": [
+      "the compound off Shipyard Way, Northside"
+     ],
+     "people": [
+      "Gottfrid and Fredrik"
+     ],
+     "tips": [
+      "Besides the west gate, the east fence can be climbed with enough technical skill.",
+      "Hacking the cameras first makes a stealth approach much cleaner."
+     ]
+    },
+    {
+     "id": "find-recording",
+     "objectives": [
+      "sts_wat_nid_04/find_recording",
+      "sts_wat_nid_04/get_recording"
+     ],
+     "now": "V is inside the compound looking for the recording, which is kept near the two tuners.",
+     "ahead": "With the recording in hand, V leaves the compound and takes it to the drop point behind it.",
+     "places": [
+      "the studio upstairs in the compound"
+     ],
+     "people": [
+      "Gottfrid and Fredrik"
+     ],
+     "tips": [
+      "An automated turret covers the stairs area; coming through the upstairs window from outside avoids most of it.",
+      "The recording sits on a shelf behind the two tuners."
+     ]
+    },
+    {
+     "id": "leave-compound",
+     "objectives": [
+      "sts_wat_nid_04/leave_area"
+     ],
+     "now": "V has the recording and is getting out of the compound.",
+     "ahead": "V takes the recording to the drop point marked behind the compound to the north-east and the job is done.",
+     "places": [
+      "the compound exit, Northside"
+     ],
+     "people": [],
+     "tips": []
+    },
+    {
+     "id": "drop-recording",
+     "objectives": [
+      "sts_wat_nid_04/get_to_droppoint"
+     ],
+     "now": "V is carrying the recording to the drop point behind the compound.",
+     "ahead": "Once the recording is in the drop point, that is the end of the job and the payment follows.",
+     "places": [
+      "the drop point north-east of the compound"
+     ],
+     "people": [],
+     "tips": []
+    }
+   ]
+  },
+  "quests/street_stories/watson/northside_industrial_district/sts_wat_nid_02": {
+   "title": "Gig: Many Ways to Skin a Cat",
+   "givers": [
+    "regina-jones"
+   ],
+   "knowers": [],
+   "overview": "A delivery van loaded with syn-leather sits in the Revere Courier Services facility in Northside; I want V to steal it and drive it to a marked spot.",
+   "spoiler": "none",
+   "sources": [
+    "gamerguides-many-ways"
+   ],
+   "stages": [
+    {
+     "id": "reach-facility",
+     "objectives": [
+      "sts_wat_nid_02/info",
+      "sts_wat_nid_02/inside"
+     ],
+     "now": "V is going to the Revere Courier Services facility in Northside.",
+     "ahead": "V gets inside, uses the main computer to unlock the van, finds the van and drives it out to the marked spot.",
+     "places": [
+      "the Revere Courier Services facility, Northside"
+     ],
+     "people": [],
+     "tips": [
+      "The back fence has a broken section; boxes help to climb over.",
+      "Take care of the cameras before the guards, or reinforcements get called."
+     ]
+    },
+    {
+     "id": "unlock-van",
+     "objectives": [
+      "sts_wat_nid_02/get_authorization"
+     ],
+     "now": "V is inside and heading for the main computer to get access to the van.",
+     "ahead": "With the van unlocked, V finds it in the garage, climbs in and drives it out.",
+     "places": [
+      "the computer room above the garage floor"
+     ],
+     "people": [],
+     "tips": [
+      "The computer can also switch the cameras off.",
+      "From the roof, an open window leads to the walkway above the garage."
+     ]
+    },
+    {
+     "id": "get-the-van",
+     "objectives": [
+      "sts_wat_nid_02/find_the_van",
+      "sts_wat_nid_02/steal",
+      "sts_wat_nid_02/get_into"
+     ],
+     "now": "V has the access and is finding and getting into the syn-leather van.",
+     "ahead": "Once V is in the van, the shutter opens and V drives it out through the garage and gate to the marked spot.",
+     "places": [
+      "the garage floor of the facility"
+     ],
+     "people": [],
+     "tips": [
+      "Distract or quietly take out the guard near the van, or head straight to it."
+     ]
+    },
+    {
+     "id": "drive-out",
+     "objectives": [
+      "sts_wat_nid_02/convey",
+      "sts_wat_nid_02/get_out1"
+     ],
+     "now": "V is behind the wheel and driving the van away from the facility to the marked spot.",
+     "ahead": "At the marked spot V parks, gets out, and collects payment from the drop point.",
+     "places": [
+      "the marked spot for the van"
+     ],
+     "people": [],
+     "tips": [
+      "Do not stop to fight once the shutter is open; just drive."
+     ]
+    },
+    {
+     "id": "collect-pay",
+     "objectives": [
+      "sts_wat_nid_02/get_out",
+      "sts_wat_nid_02/get_reward"
+     ],
+     "now": "The van is delivered and V is collecting the payment from the drop point.",
+     "ahead": "Nothing more to do beyond picking up the payment.",
+     "places": [
+      "the drop point near the marked spot"
+     ],
+     "people": [],
+     "tips": []
+    }
+   ]
+  },
+  "quests/street_stories/city_center/downtown/sts_cct_dtn_03": {
+   "title": "Gig: A Lack of Empathy",
+   "givers": [
+    "dino-dinovic"
+   ],
+   "knowers": [],
+   "overview": "A client wants the Empathy club in Corpo Plaza shut down; I want V to get in and upload a virus to the club's main server.",
+   "spoiler": "none",
+   "sources": [
+    "powerpyx-lack-of-empathy"
+   ],
+   "stages": [
+    {
+     "id": "get-into-club",
+     "objectives": [
+      "sts_cct_dtn_03/sabotage_empathy_club",
+      "sts_cct_dtn_03/get_in_the_club",
+      "sts_cct_dtn_03/leave_weapons"
+     ],
+     "now": "V is heading to the Empathy club in Corpo Plaza to get inside.",
+     "ahead": "Inside, V finds the room with the club's main computer upstairs and uploads the virus, then slips out the back.",
+     "places": [
+      "the Empathy club, Corpo Plaza"
+     ],
+     "people": [],
+     "tips": [
+      "The front door makes visitors hand over their weapons.",
+      "Around the back, a walkway can be reached with a jump, and a shutter can be hacked open or a door forced."
+     ]
+    },
+    {
+     "id": "find-main-computer",
+     "objectives": [
+      "sts_cct_dtn_03/get_inside_server_room"
+     ],
+     "now": "V is inside the club looking for the room with the main computer.",
+     "ahead": "At the computer, V uploads the virus to the club's server and then leaves the club.",
+     "places": [
+      "the upper floor above the dance floor"
+     ],
+     "people": [],
+     "tips": [
+      "Head up the stairs; the computer room has a large window over the dance floor."
+     ]
+    },
+    {
+     "id": "upload-virus",
+     "objectives": [
+      "sts_cct_dtn_03/infect_main_server"
+     ],
+     "now": "V is at the main computer and is uploading the virus to the club's server.",
+     "ahead": "After the upload, V leaves the club by the back and gets any deposited weapons back.",
+     "places": [
+      "the server room of the club"
+     ],
+     "people": [],
+     "tips": [
+      "A guard is often on the phone by the window; take him out quietly or ignore him."
+     ]
+    },
+    {
+     "id": "leave-club",
+     "objectives": [
+      "sts_cct_dtn_03/leave_club",
+      "sts_cct_dtn_03/get_your_weapons_back"
+     ],
+     "now": "The virus is in and V is leaving the club, picking up the weapons if V left any at the door.",
+     "ahead": "If V stayed unseen, the payment waits at a drop point; otherwise the fixer pays after V is out.",
+     "places": [
+      "the exit of the Empathy club"
+     ],
+     "people": [],
+     "tips": []
+    },
+    {
+     "id": "collect-payment",
+     "objectives": [
+      "sts_cct_dtn_03/get_to_drop_point"
+     ],
+     "now": "V is out of the club and is picking up the payment at the drop point.",
+     "ahead": "Nothing more to do once the payment is collected.",
+     "places": [
+      "the drop point in Downtown"
+     ],
+     "people": [],
+     "tips": []
+    }
+   ]
+  },
+  "quests/street_stories/santo_domingo/arroyo/sts_std_arr_01": {
+   "title": "Gig: Serious Side Effects",
+   "givers": [
+    "muamar-reyes"
+   ],
+   "knowers": [],
+   "overview": "A shipment of beta acid was stolen and is hidden at the Dewdrop Inn motel in Arroyo; I want V to find it, take it back and drop it off.",
+   "spoiler": "light",
+   "sources": [
+    "gamerguides-serious-side-effects",
+    "sportskeeda-serious-side-effects"
+   ],
+   "stages": [
+    {
+     "id": "go-to-motel",
+     "objectives": [
+      "sts_std_arr_01/motel"
+     ],
+     "now": "V is heading to the Dewdrop Inn motel in Arroyo.",
+     "ahead": "V gets inside, may check on the man who took the acid, and then finds the stash upstairs.",
+     "places": [
+      "the Dewdrop Inn, Arroyo"
+     ],
+     "people": [
+      "Booker Updike"
+     ],
+     "tips": [
+      "Paying for a room is the easy way in; forcing doors needs Body or Technical skill instead."
+     ]
+    },
+    {
+     "id": "look-for-booker",
+     "objectives": [
+      "sts_std_arr_01/room",
+      "sts_std_arr_01/investigation",
+      "sts_std_arr_01/check_out_room"
+     ],
+     "now": "V is inside the motel checking on Booker Updike, who is in room 103.",
+     "ahead": "Whatever V learns there, the acid itself is kept on the upper floor, so V heads upstairs next.",
+     "places": [
+      "room 103 of the Dewdrop Inn"
+     ],
+     "people": [
+      "Booker Updike"
+     ],
+     "tips": [
+      "The front desk computer lists his room.",
+      "The door to 103 can be forced with Technical skill or opened by dealing with the maintenance worker."
+     ]
+    },
+    {
+     "id": "head-upstairs",
+     "objectives": [
+      "sts_std_arr_01/after_investigation",
+      "sts_std_arr_01/after_mail"
+     ],
+     "now": "V is going to the upper floor of the motel, to room 203.",
+     "ahead": "Past the room, V finds the lab where the acid is kept and has to deal with the people guarding it.",
+     "places": [
+      "room 203, upper floor"
+     ],
+     "people": [],
+     "tips": [
+      "Room 200 and the balconies are another way to reach 203 if the door is locked."
+     ]
+    },
+    {
+     "id": "find-the-lab",
+     "objectives": [
+      "sts_std_arr_01/lab",
+      "sts_std_arr_01/find_in_lab"
+     ],
+     "now": "V is in the lab area upstairs, looking for the container of beta acid.",
+     "ahead": "V takes the container from the lab, then leaves the motel and drops it off.",
+     "places": [
+      "the lab at the Dewdrop Inn"
+     ],
+     "people": [],
+     "tips": [
+      "The guards are best handled one at a time while they are not looking."
+     ]
+    },
+    {
+     "id": "grab-acid",
+     "objectives": [
+      "sts_std_arr_01/retrieve"
+     ],
+     "now": "V has found the container and is picking it up.",
+     "ahead": "With the acid in hand, V gets out of the motel and puts it in the drop point nearby.",
+     "places": [
+      "the lab at the Dewdrop Inn"
+     ],
+     "people": [],
+     "tips": []
+    },
+    {
+     "id": "escape-motel",
+     "objectives": [
+      "sts_std_arr_01/escape"
+     ],
+     "now": "V has the acid and is leaving the motel.",
+     "ahead": "V puts the acid in the drop point outside and the job is done.",
+     "places": [
+      "the Dewdrop Inn, Arroyo"
+     ],
+     "people": [],
+     "tips": []
+    },
+    {
+     "id": "drop-off",
+     "objectives": [
+      "sts_std_arr_01/drop"
+     ],
+     "now": "V is taking the acid to the drop point near the motel.",
+     "ahead": "Once the acid is in the drop point, there is nothing more to do beyond that.",
+     "places": [
+      "the drop point near the Dewdrop Inn"
+     ],
+     "people": [],
+     "tips": []
+    }
+   ]
+  },
+  "quests/street_stories/heywood/vista_del_rey/sts_hey_rey_09": {
+   "title": "Gig: Getting Warmer...",
+   "givers": [
+    "wakako-okada"
+   ],
+   "knowers": [
+    "8ug8ear"
+   ],
+   "overview": "Wakako needs a mercenary to pull her netrunner, 8ug8ear, out of an apartment building in Japantown where she is held and plugged in.",
+   "spoiler": "none",
+   "sources": [
+    "ppyx-getting-warmer",
+    "gg-getting-warmer"
+   ],
+   "stages": [
+    {
+     "id": "enter-building",
+     "objectives": [
+      "sts_hey_rey_09/get_in"
+     ],
+     "now": "V is heading for the marked apartment building and needs to get inside.",
+     "ahead": "Inside, guards watch the hallway. V finds 8ug8ear in a side room, then has to cool her down before she can be safely unplugged.",
+     "places": [
+      "the apartment building southwest of Skyline and Salinas"
+     ],
+     "people": [
+      "8ug8ear"
+     ],
+     "tips": [
+      "There is a stair on the left side of the building that a high Tech skill opens, if the main door is too busy.",
+      "A guard stands near each way in, so draw him off before moving up."
+     ]
+    },
+    {
+     "id": "find-8ug8ear",
+     "objectives": [
+      "sts_hey_rey_09/find_tobias"
+     ],
+     "now": "V is inside, working through the guards to reach 8ug8ear in her room.",
+     "ahead": "She cannot simply be pulled from her rig. V needs coolant to bring her body temperature down first, and there is some in the bathroom.",
+     "places": [
+      "the middle room of the apartment"
+     ],
+     "people": [
+      "8ug8ear"
+     ],
+     "tips": [
+      "Expect more hostiles to turn up around her room, so clear them before you start working on her."
+     ]
+    },
+    {
+     "id": "get-coolant",
+     "objectives": [
+      "sts_hey_rey_09/find_way_to_cool",
+      "sts_hey_rey_09/get_coolants"
+     ],
+     "now": "V has found 8ug8ear and is looking for a safe way to unplug her, which means finding coolant.",
+     "ahead": "With the coolant in hand, V goes back to her, lowers her temperature, and only then disconnects her from the wall panel.",
+     "places": [
+      "the bathroom, sink"
+     ],
+     "people": [
+      "8ug8ear"
+     ],
+     "tips": [
+      "The coolant is on the bathroom sink."
+     ]
+    },
+    {
+     "id": "cool-and-unplug",
+     "objectives": [
+      "sts_hey_rey_09/cool_down",
+      "sts_hey_rey_09/unplug_tobias"
+     ],
+     "now": "V has the coolant and is bringing 8ug8ear's temperature down before unplugging her.",
+     "ahead": "Once she is free, V picks her up, carries her out of the building and puts her in the fixer's car waiting outside.",
+     "places": [],
+     "people": [
+      "8ug8ear"
+     ],
+     "tips": [
+      "Cool her first, then use the wall panel beside her to disconnect."
+     ]
+    },
+    {
+     "id": "carry-out",
+     "objectives": [
+      "sts_hey_rey_09/bring_tobias",
+      "sts_hey_rey_09/leave_building"
+     ],
+     "now": "V is carrying 8ug8ear out of the building to the fixer's car.",
+     "ahead": "Put her in the car and the job is done. There is nothing more to do beyond that.",
+     "places": [
+      "the fixer's car outside"
+     ],
+     "people": [
+      "8ug8ear",
+      "Wakako Okada"
+     ],
+     "tips": [
+      "Dropping off the balcony is a quick way down, but the stairs are the gentler route with her on your shoulders."
+     ]
+    }
+   ],
+   "persistent": [
+    "sts_hey_rey_09/main"
+   ]
+  },
+  "quests/street_stories/heywood/vista_del_rey/sts_hey_rey_01": {
+   "title": "Gig: Bring Me the Head of Gustavo Orta",
+   "givers": [
+    "padre-ibarra"
+   ],
+   "knowers": [],
+   "overview": "Padre wants a man named Gustavo Orta dealt with, and he has pointed V to Gustavo's apartment in a tower block.",
+   "spoiler": "none",
+   "sources": [
+    "ppyx-gustavo"
+   ],
+   "stages": [
+    {
+     "id": "head-to-tower",
+     "objectives": [
+      "sts_hey_rey_01/gustavo_apartment"
+     ],
+     "now": "V is on the way to the apartment building where Gustavo lives.",
+     "ahead": "V finds a way into the building, rides up to the 32nd floor and gets into Gustavo's apartment.",
+     "places": [
+      "Gustavo's apartment building"
+     ],
+     "people": [
+      "Gustavo Orta"
+     ],
+     "tips": [
+      "There is more than one way in. The intercom, a forced door, or climbing to the balcony can all work, depending on V's skills."
+     ]
+    },
+    {
+     "id": "up-to-apartment",
+     "objectives": [
+      "sts_hey_rey_01/get_to_floor",
+      "sts_hey_rey_01/get_inside_flat"
+     ],
+     "now": "V is inside the building and heading up to Gustavo's apartment on the 32nd floor.",
+     "ahead": "In the apartment V looks for Gustavo, who is in an upper office, and then takes care of him as Padre wants.",
+     "places": [
+      "the elevator to the 32nd floor",
+      "Gustavo's apartment"
+     ],
+     "people": [
+      "Gustavo Orta"
+     ],
+     "tips": [
+      "The apartment door is right beside the elevator on that floor."
+     ]
+    },
+    {
+     "id": "deal-with-gustavo",
+     "objectives": [
+      "sts_hey_rey_01/find_gustavo",
+      "sts_hey_rey_01/kill_gustavo",
+      "sts_hey_rey_01/persuade"
+     ],
+     "now": "V is in the apartment looking for Gustavo and getting to him.",
+     "ahead": "After the business with Gustavo, V leaves the apartment complex. If he is carried out, his body goes into the trunk of Padre's car waiting below.",
+     "places": [
+      "the upper-floor office of the apartment"
+     ],
+     "people": [
+      "Gustavo Orta"
+     ],
+     "tips": [
+      "The upper office can be reached by the inside stairs or from the balcony outside."
+     ]
+    },
+    {
+     "id": "leave-the-complex",
+     "objectives": [
+      "sts_hey_rey_01/leave_building",
+      "sts_hey_rey_01/take_body_outside",
+      "sts_hey_rey_01/drop_body"
+     ],
+     "now": "V is leaving the apartment complex, and carrying Gustavo out if he is being taken to the car.",
+     "ahead": "Padre then sorts out the pay, either as V leaves or at a drop point he names.",
+     "places": [
+      "the car outside the complex"
+     ],
+     "people": [
+      "Padre"
+     ],
+     "tips": []
+    },
+    {
+     "id": "collect-pay",
+     "objectives": [
+      "sts_hey_rey_01/get_reward"
+     ],
+     "now": "V is heading to the drop point to collect the pay for the job.",
+     "ahead": "Pick up the pay at the drop point and the job is finished. There is nothing more to do.",
+     "places": [
+      "the drop point"
+     ],
+     "people": [
+      "Padre"
+     ],
+     "tips": []
+    }
+   ]
+  },
+  "quests/street_stories/heywood/wellsprings/sts_hey_spr_01": {
+   "title": "Gig: On a Tight Leash",
+   "givers": [
+    "padre-ibarra"
+   ],
+   "knowers": [],
+   "overview": "Padre wants V to find a man named Jose Luis, who is holed up in a Valentino-held bus depot in Wellsprings, and take him down.",
+   "spoiler": "none",
+   "sources": [
+    "ppyx-tight-leash",
+    "gg-tight-leash"
+   ],
+   "stages": [
+    {
+     "id": "go-to-depot",
+     "objectives": [
+      "sts_hey_spr_01/get_inside"
+     ],
+     "now": "V is heading to the bus depot where Jose Luis is hiding.",
+     "ahead": "The depot is full of Valentinos and cameras. V gets inside quietly or loudly, then looks for Jose Luis.",
+     "places": [
+      "the bus depot, Wellsprings"
+     ],
+     "people": [
+      "Jose Luis"
+     ],
+     "tips": [
+      "The side alley to the left of the front gate is lightly guarded.",
+      "Switch off the camera and take the roof guards first if you want a quiet approach."
+     ]
+    },
+    {
+     "id": "find-jose",
+     "objectives": [
+      "sts_hey_spr_01/find_jose_luise",
+      "sts_hey_spr_01/find_out"
+     ],
+     "now": "V is inside the depot working toward Jose Luis, who is in an upstairs room.",
+     "ahead": "When V reaches Jose Luis, V takes him down. He is alone up there, so the way in is the only difficult part.",
+     "places": [
+      "the upstairs office of the depot"
+     ],
+     "people": [
+      "Jose Luis"
+     ],
+     "tips": [
+      "A computer near Jose Luis holds information Padre would like to hear about, for extra pay."
+     ]
+    },
+    {
+     "id": "take-him-down",
+     "objectives": [
+      "sts_hey_spr_01/take_down"
+     ],
+     "now": "V is dealing with Jose Luis.",
+     "ahead": "Afterwards V leaves the depot, either alone or with Jose Luis carried to Padre's vehicle if he is to be brought in.",
+     "places": [
+      "the depot"
+     ],
+     "people": [
+      "Jose Luis"
+     ],
+     "tips": [
+      "Carrying him alive is a lot of trouble, so most people do not bother."
+     ]
+    },
+    {
+     "id": "leave-depot",
+     "objectives": [
+      "sts_hey_spr_01/take_body",
+      "sts_hey_spr_01/take_to_fixer",
+      "sts_hey_spr_01/get_out"
+     ],
+     "now": "V is getting out of the depot, carrying Jose Luis if he is being brought out.",
+     "ahead": "Once out, V calls Padre to say the job is done, then collects the pay at the drop point he names.",
+     "places": [
+      "the depot grounds",
+      "Padre's vehicle"
+     ],
+     "people": [
+      "Padre"
+     ],
+     "tips": []
+    },
+    {
+     "id": "call-padre",
+     "objectives": [
+      "sts_hey_spr_01/phone",
+      "sts_hey_spr_01/talk_padre"
+     ],
+     "now": "V is clear of the depot and needs to report to Padre.",
+     "ahead": "Padre then points V to a drop point where the pay is waiting.",
+     "places": [],
+     "people": [
+      "Padre"
+     ],
+     "tips": [
+      "Mention anything found on the depot computer, as Padre pays more for it."
+     ]
+    },
+    {
+     "id": "collect-pay",
+     "objectives": [
+      "sts_hey_spr_01/get_reward"
+     ],
+     "now": "V is picking up the pay for the job.",
+     "ahead": "Collect the pay and the job is finished. There is nothing more to do.",
+     "places": [
+      "the drop point"
+     ],
+     "people": [],
+     "tips": []
+    }
+   ]
+  },
+  "ep1/quests/main_quest/q303_hands": {
+   "title": "Get It Together",
+   "givers": [
+    "solomon-reed",
+    "mr-hands"
+   ],
+   "knowers": [
+    "alex"
+   ],
+   "overview": "Reed wants V to work for Mr. Hands, the Dogtown fixer: call him, do his gigs, then see him at the Heavy Hearts club.",
+   "spoiler": "light",
+   "sources": [
+    "ppyx-get-it-together"
+   ],
+   "stages": [
+    {
+     "id": "call-hands",
+     "objectives": [
+      "04_mr_hands/01a_call_hands",
+      "04_mr_hands/01b_talk_mr_hands_phone"
+     ],
+     "now": "V is calling Mr. Hands to see what work he has.",
+     "ahead": "He offers V gigs around Dogtown. V needs to finish at least three before he will be in touch again.",
+     "places": [],
+     "people": [
+      "Mr. Hands"
+     ],
+     "tips": [
+      "The call can be made from anywhere on V's phone."
+     ]
+    },
+    {
+     "id": "do-gigs",
+     "objectives": [
+      "04_mr_hands/01c_complete_gigs"
+     ],
+     "now": "V is doing gigs for Mr. Hands, at least three of them.",
+     "ahead": "After the third gig Mr. Hands contacts V again. A few hours later he sends a message, and V goes to the Heavy Hearts club.",
+     "places": [
+      "Dogtown"
+     ],
+     "people": [
+      "Mr. Hands"
+     ],
+     "tips": [
+      "Gigs are listed in the phone. The nearest ones in Dogtown are quick to finish.",
+      "Any gigs of Hands count, so pick whichever are closest."
+     ]
+    },
+    {
+     "id": "wait-for-message",
+     "objectives": [
+      "04_mr_hands/02a_wait",
+      "04_mr_hands/02b_read_message"
+     ],
+     "now": "V has finished the gigs and is waiting for Mr. Hands to get back, then reading his message.",
+     "ahead": "The message gives V what is needed to get into the private part of the Heavy Hearts club. V then heads to the club.",
+     "places": [
+      "the Heavy Hearts club"
+     ],
+     "people": [
+      "Mr. Hands"
+     ],
+     "tips": [
+      "Resting a few hours speeds the wait up."
+     ]
+    },
+    {
+     "id": "get-to-private-floor",
+     "objectives": [
+      "04_mr_hands/01d_go_to_pyramid",
+      "04_mr_hands/03_follow_reed",
+      "04_mr_hands/03b_enter_code",
+      "04_mr_hands/03a_press_the_floor"
+     ],
+     "now": "V is going to the Heavy Hearts club, to the elevator at the back and up to the private floor.",
+     "ahead": "On the private floor V finds Mr. Hands and talks to him.",
+     "places": [
+      "the Heavy Hearts club, Dogtown",
+      "the elevator at the back of the club"
+     ],
+     "people": [
+      "Mr. Hands"
+     ],
+     "tips": [
+      "The elevator keypad is beside the door and wants the code from the message, 2589.",
+      "Pick the private rooms floor once inside the elevator."
+     ]
+    },
+    {
+     "id": "meet-hands",
+     "objectives": [
+      "04_mr_hands/04_talk_mr_hands"
+     ],
+     "now": "V is on the private floor talking to Mr. Hands.",
+     "ahead": "After the talk V leaves the club and calls Reed to send him what V has.",
+     "places": [
+      "the private floor of the club"
+     ],
+     "people": [
+      "Mr. Hands"
+     ],
+     "tips": [
+      "If he is on a call, wait until he finishes before going in."
+     ]
+    },
+    {
+     "id": "report-to-reed",
+     "objectives": [
+      "04_mr_hands/04a_leave_pyramid",
+      "04_mr_hands/05_call_reed"
+     ],
+     "now": "V is leaving the club and calling Reed to send him the data.",
+     "ahead": "Reed wants to meet face to face at The Moth, where V follows him to a safehouse.",
+     "places": [
+      "The Moth, Dogtown"
+     ],
+     "people": [
+      "Reed"
+     ],
+     "tips": []
+    },
+    {
+     "id": "meet-reed-at-moth",
+     "objectives": [
+      "05_safehouse/00_wait_nighthawks",
+      "05_safehouse/01_go_nighthawks",
+      "05_safehouse/02a_talk_reed",
+      "05_safehouse/02_sit_down"
+     ],
+     "now": "V is meeting Reed at The Moth and talking with him there.",
+     "ahead": "Reed then leads V into the back and down by elevator to a safehouse where Alex is waiting.",
+     "places": [
+      "The Moth, Dogtown"
+     ],
+     "people": [
+      "Reed"
+     ],
+     "tips": []
+    },
+    {
+     "id": "safehouse",
+     "objectives": [
+      "05_safehouse/02b_follow_reed",
+      "05_safehouse/03_ride_down",
+      "05_safehouse/04b_follow_alex",
+      "05_safehouse/04a_sit_down",
+      "05_safehouse/04_talk_alex"
+     ],
+     "now": "V is following Reed down to the safehouse and sitting down to talk with him and Alex.",
+     "ahead": "Before leaving, V gets kitted out for the next step, including a diving suit from the table.",
+     "places": [
+      "the safehouse below The Moth"
+     ],
+     "people": [
+      "Reed",
+      "Alex"
+     ],
+     "tips": []
+    },
+    {
+     "id": "gear-up",
+     "objectives": [
+      "05_safehouse/05_gather_loot",
+      "05_safehouse/05b_majesty",
+      "05_safehouse/05c_suit"
+     ],
+     "now": "V is picking up the gear laid out on the table in the safehouse.",
+     "ahead": "Grab the diving suit from the box, since V will need to wear it for the next step. After a last word with Reed there is nothing more to do here.",
+     "places": [
+      "the safehouse table"
+     ],
+     "people": [
+      "Reed",
+      "Alex"
+     ],
+     "tips": [
+      "A weapon case on the table gives V a gun.",
+      "Take the diving suit, it is needed for what comes next."
+     ]
+    }
+   ]
+  },
+  "quests/side_quest/sq031_rogue": {
+   "title": "Chippin' In",
+   "givers": [
+    "rogue-amendiares"
+   ],
+   "knowers": [],
+   "overview": "Rogue wants to meet V in person at the Afterlife and then take V out to a site where she has a lead to follow up.",
+   "spoiler": "light",
+   "sources": [
+    "ppyx-chippin-in",
+    "ngb-chippin-in"
+   ],
+   "stages": [
+    {
+     "id": "afterlife-visit",
+     "objectives": [
+      "afterlife/01_go_to_afterlife",
+      "afterlife/02_talk_to_johnny"
+     ],
+     "now": "V is heading into the Afterlife to spend an evening there with Johnny.",
+     "ahead": "After that V waits about a day for Rogue to call, then meets her at the Afterlife.",
+     "places": [
+      "the Afterlife, Watson"
+     ],
+     "people": [
+      "Johnny"
+     ],
+     "tips": []
+    },
+    {
+     "id": "wait-for-rogue",
+     "objectives": [
+      "02_afterlife/00_wait_for_rogue_call",
+      "02_afterlife/00a_call_rogue_back"
+     ],
+     "now": "V is waiting for Rogue to call, or calling her back.",
+     "ahead": "When she calls, V goes to the Afterlife to meet her in person.",
+     "places": [
+      "the Afterlife, Watson"
+     ],
+     "people": [
+      "Rogue"
+     ],
+     "tips": [
+      "Letting a day pass with a long rest or a drive around town brings the call."
+     ]
+    },
+    {
+     "id": "meet-rogue",
+     "objectives": [
+      "02_afterlife/01_go_to_afterlife8",
+      "02_afterlife/01_go_to_afterlife",
+      "02_afterlife/01_go_to_afterlife1",
+      "02_afterlife/01_go_to_afterlife2",
+      "02_afterlife/01_go_to_afterlife3"
+     ],
+     "now": "V is at the Afterlife to meet Rogue, then following her out to her car.",
+     "ahead": "At her car Rogue gives V a gift from the trunk. Then they drive together to the site she has in mind.",
+     "places": [
+      "the Afterlife, Watson"
+     ],
+     "people": [
+      "Rogue"
+     ],
+     "tips": [
+      "Rogue is usually at her spot in the bar."
+     ]
+    },
+    {
+     "id": "gift-and-drive",
+     "objectives": [
+      "02_afterlife/05_pick_present",
+      "02_afterlife/01_go_to_afterlife4",
+      "02_afterlife/01_go_to_afterlife5",
+      "02_afterlife/07_leave_car",
+      "02_afterlife/01_go_to_afterlife6",
+      "02_afterlife/01_go_to_afterlife7"
+     ],
+     "now": "V is collecting the gift from Rogue's trunk, riding with her and stepping out at the site.",
+     "ahead": "On foot, V follows Rogue into a yard and quietly heads for a data terminal in a building.",
+     "places": [
+      "Rogue's car",
+      "the yard Rogue is taking V to"
+     ],
+     "people": [
+      "Rogue"
+     ],
+     "tips": [
+      "The gift is worth keeping in your inventory."
+     ]
+    },
+    {
+     "id": "into-the-yard",
+     "objectives": [
+      "malorian/00a_open_door",
+      "malorian/01_go_to_afterlife1",
+      "malorian/01_go_to_afterlife2",
+      "malorian/01_go_to_afterlife3"
+     ],
+     "now": "V is with Rogue at the edge of the yard, talking things over, following her in and opening the way.",
+     "ahead": "They move to a building with a data terminal to find what Rogue is after.",
+     "places": [
+      "the yard"
+     ],
+     "people": [
+      "Rogue"
+     ],
+     "tips": [
+      "Stay along the right side and keep to cover to avoid a fight.",
+      "There is a camera by the parked cars, so stay clear of it."
+     ]
+    },
+    {
+     "id": "find-the-dataterm",
+     "objectives": [
+      "malorian/01_search_ebunike_area",
+      "malorian/01_search_ebunike_area1"
+     ],
+     "now": "V is searching the buildings for the data terminal and reading what is on it.",
+     "ahead": "The terminal points V to a ship docked in the yard, the Ebunike, which has to be searched.",
+     "places": [
+      "the building with the data terminal"
+     ],
+     "people": [
+      "Rogue"
+     ],
+     "tips": [
+      "Deal with the guards on the left and inside the building one by one."
+     ]
+    },
+    {
+     "id": "search-the-ebunike",
+     "objectives": [
+      "malorian/02_seach_ebunike_deck",
+      "malorian/02a_listen_audio_database",
+      "malorian/03_defeat_grayson",
+      "malorian/03_defeat_grayson1",
+      "malorian/04a_pick_malorian"
+     ],
+     "now": "V is aboard the Ebunike, fighting forward to Grayson on the deck, then questioning him.",
+     "ahead": "After Grayson, V takes back Johnny's gun and goes after a car stored in a container, which means finding a crane to lower it.",
+     "places": [
+      "the Ebunike, the ship in the yard"
+     ],
+     "people": [
+      "Grayson",
+      "Rogue"
+     ],
+     "tips": [
+      "Fighters wait on both stairs near the front of the deck.",
+      "Keep Grayson alive long enough to question him."
+     ]
+    },
+    {
+     "id": "open-the-container",
+     "objectives": [
+      "malorian/06_find_car",
+      "malorian/06_find_car1",
+      "malorian/08_remove_cloth",
+      "malorian/09_get_into_porsche",
+      "malorian/09a_talk_to_johnny"
+     ],
+     "now": "V is working the crane, opening the container, uncovering the car inside and getting behind the wheel.",
+     "ahead": "With the car V drives out to the oil fields to a spot marked on the map.",
+     "places": [
+      "the crane platform",
+      "the container"
+     ],
+     "people": [
+      "Johnny"
+     ],
+     "tips": [
+      "Once found, the car can be called up like any vehicle."
+     ]
+    },
+    {
+     "id": "drive-to-oil-fields",
+     "objectives": [
+      "grave/01_travel_to_grave",
+      "grave/02_leave_car",
+      "grave/03_check_area"
+     ],
+     "now": "V is driving out to the oil fields and walking up to the marked spot.",
+     "ahead": "At the marked spot V sits down and talks with Johnny.",
+     "places": [
+      "the oil fields"
+     ],
+     "people": [
+      "Johnny"
+     ],
+     "tips": []
+    },
+    {
+     "id": "at-the-grave",
+     "objectives": [
+      "grave/04_sit_grave",
+      "grave/06_talk_to_johnny"
+     ],
+     "now": "V is sitting by the spot in the oil fields and talking with Johnny.",
+     "ahead": "This is the last step of the job. There is nothing more to do beyond this.",
+     "places": [
+      "the oil fields"
+     ],
+     "people": [
+      "Johnny"
+     ],
+     "tips": []
+    }
+   ]
+  }
+ }
+}

@@ -13,6 +13,8 @@ starts a conversation. Since October 9 they also get their most recent shared
 events with V and V's open jobs by journal category (see below). This is read-only: no journal entries are activated,
 tracked, visited or completed by this feature.
 
+A character who gave a job (or is part of it) also explains it, stage by stage, when V asks about it: [QUEST_BRIEFINGS.md](QUEST_BRIEFINGS.md).
+
 ## Ownership and scope
 
 - `mod/quest-context.lua` reads the live `JournalManager`. It follows the tracked
