@@ -542,7 +542,9 @@ test('the turn context names the weapon she carries: drawn, holstered, none, and
  os.clock=function()return clock end
  RPGManager={IsItemWeapon=function()return true end}
  Game.GetTransactionSystem=function()return {GetItemList=function()reads=reads+1;return true,carried end}end
- TweakDBInterface={GetItemRecord=function(r)return {DisplayName=function()return names[r] end}end}
+ TweakDBInterface={GetItemRecord=function(r)return {DisplayName=function()return names[r] end}end,
+  GetCharacterRecord=function()return {PrimaryEquipment=function()return {GetEquipmentItemsCount=function()return 0 end}end}end}
+ function npc:GetRecordID()return 'Character.Judy' end
  Game.GetLocalizedTextByKey=function(key)return key end
  local function inputs(later)
   clock=clock+(later or 10)
@@ -558,8 +560,81 @@ test('the turn context names the weapon she carries: drawn, holstered, none, and
  h,w=inputs(1);assert(h=='holstered' and w=='Satara' and reads==before,'the inventory read is kept a few seconds')
  h,w=inputs(10);assert(h=='empty' and w==nil,'nothing carried')
  Game.GetTransactionSystem=function()error('unreadable')end
+ TweakDBInterface.GetCharacterRecord=function()error('unreadable')end
  h,w=inputs(10);assert(h==nil and w==nil,'a failed read says nothing')
  npc.weapon={GetItemID=function()return {hash='Spare',record='Items.Spare'}end}
  Game.GetLocalizedTextByKey=function()return 'LocKey#1' end
  h,w=inputs();assert(h=='weapon' and w==nil,'an unnamed item is carried without a name')
+`));
+
+// The same read when her inventory holds no weapon yet (the game adds a copy's primary weapon to its inventory when it is first equipped,
+// scripts core/systems/transactionSystem.script GetEquipment): the character record's primary equipment group names it, with the game's own pool
+// choice when that call is available. Only a read that really succeeded and found none says "carries no weapon".
+test('a copy that has not drawn yet is still known to carry its primary weapon, from the character record', () => run(integration + `
+ local names={['Items.Chao']='Satara',['Items.Spare']='Malorian',['Items.Shard']='Shard'}
+ local weapons={['Items.Chao']=true,['Items.Spare']=true}
+ local clock,logged=1000,{}
+ os.clock=function()return clock end
+ local function id(record,fists)return {record=record,hash=record,fists=fists} end
+ local function data(record,fists)return {GetID=function()return id(record,fists)end} end
+ ItemID.CreateQuery=function(record)return id(record) end
+ RPGManager={IsItemWeapon=function(item)assert(type(item)=='table' and item.record,'IsItemWeapon takes an item id');return weapons[item.record]==true end}
+ -- strict inventory list: only the NPC, the out list comes back second
+ local listed={data('Items.Shard')}
+ Game.GetTransactionSystem=function()return {GetItemList=function(self,target)assert(target==npc);return true,listed end}end
+ local function item(record)return {Item=function()return {GetID=function()return record end}end} end
+ local function pool()return {GetPoolCount=function()return 2 end} end
+ local entries={item('Items.Chao')}
+ local group={GetEquipmentItemsCount=function()return #entries end,
+  GetEquipmentItemsItem=function(self,index)assert(index>=0 and index<#entries,'0-based index');return entries[index+1] end}
+ local recordOf={PrimaryEquipment=function()return group end}
+ TweakDBInterface={GetItemRecord=function(r)return {DisplayName=function()return names[r] end}end,
+  GetCharacterRecord=function(rid)assert(rid=='Character.Armed_alex');return recordOf end}
+ function npc:GetRecordID()return 'Character.Armed_alex' end
+ Game.GetLocalizedTextByKey=function(key)return key end
+ companions.recoveryLog=function(kind,fields)logged[#logged+1]={kind=kind,fields=fields} end
+ local function inputs()
+  clock=clock+10
+  local row=companions.activityInputs({}).rows[companions.list()[1].profileKey]
+  return row.holding,row.weapon
+ end
+ npc.weapon=nil
+ -- inventory without a weapon, the record has a plain item: holstered, named, and the probe line says where it came from
+ local h,w=inputs();assert(h=='holstered' and w=='Satara',tostring(h)..tostring(w))
+ assert(#logged==1 and logged[1].kind=='carried-weapon' and logged[1].fields.via=='record' and logged[1].fields.list==1
+  and logged[1].fields.weapons==0 and logged[1].fields.result=='holstered' and logged[1].fields.weapon=='Satara',tostring(#logged))
+ h,w=inputs();assert(h=='holstered' and #logged==1,'an unchanged read is logged once')
+ -- the inventory has it: the list wins and the record is not needed
+ listed={data('Items.Shard'),data('Items.Spare')}
+ TweakDBInterface.GetCharacterRecord=function()error('not asked when the list holds a weapon')end
+ h,w=inputs();assert(h=='holstered' and w=='Malorian' and logged[2].fields.via=='list' and logged[2].fields.weapons==1)
+ TweakDBInterface.GetCharacterRecord=function()return recordOf end
+ -- a pool: the game's own choice is used (power level -1) ...
+ listed={}
+ entries={pool()}
+ local asked
+ AIActionTransactionSystem={CalculateEquipmentItems=function(who,g,level)asked={who,g,level};return {item('Items.Shard'),item('Items.Spare')} end}
+ h,w=inputs();assert(h=='holstered' and w=='Malorian' and asked[1]==npc and asked[2]==group and asked[3]==-1,tostring(h)..tostring(w))
+ -- ... with the out list as the first return too
+ AIActionTransactionSystem={CalculateEquipmentItems=function()return {item('Items.Chao')} end}
+ h,w=inputs();assert(h=='holstered' and w=='Satara')
+ -- ... and when that call is not there, a pool cannot be chosen from: say nothing, not "no weapon"
+ AIActionTransactionSystem={CalculateEquipmentItems=function()error('no such overload')end}
+ h,w=inputs();assert(h==nil and w==nil,'an unresolved pool says nothing')
+ assert(logged[#logged].fields.result=='unknown' and logged[#logged].fields.record=='unresolved' and logged[#logged].fields.list==0)
+ -- plain items still read without the call
+ entries={item('Items.Shard'),item('Items.Chao')}
+ h,w=inputs();assert(h=='holstered' and w=='Satara')
+ -- a group with no weapon in it (and an empty list) is a read that succeeded and found none
+ entries={item('Items.Shard')}
+ h,w=inputs();assert(h=='empty' and w==nil)
+ assert(logged[#logged].fields.result=='none' and logged[#logged].fields.record=='none' and logged[#logged].fields.weapons==0)
+ recordOf={PrimaryEquipment=function()return nil end}
+ h,w=inputs();assert(h=='empty','a character without a primary group carries none')
+ -- reads that fail say nothing and log why
+ TweakDBInterface.GetCharacterRecord=function()return nil end
+ h,w=inputs();assert(h==nil and w==nil and logged[#logged].fields.record=='failed')
+ Game.GetTransactionSystem=function()error('unreadable')end
+ TweakDBInterface.GetCharacterRecord=function()error('unreadable')end
+ h,w=inputs();assert(h==nil and w==nil and logged[#logged].fields.result=='unknown' and logged[#logged].fields.list==nil)
 `));

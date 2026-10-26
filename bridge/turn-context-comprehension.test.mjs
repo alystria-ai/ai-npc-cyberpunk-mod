@@ -50,5 +50,5 @@ test('a companion in person is told what she is doing, who is with V and what is
 test('the game side reads the hand once per turn and passes it on', () => {
   const lua = readFileSync(new URL('../mod/turn-context.lua', import.meta.url), 'utf8');
   assert.match(lua, /inputs\.holding == 'weapon' or inputs\.holding == 'holstered' or inputs\.holding == 'empty'/);
-  assert.match(readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8'), /function M\.carriedWeapon[\s\S]*draw\.handItem[\s\S]*draw\.primaryItem[\s\S]*draw\.nameOf/);
+  assert.match(readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8'), /function M\.carriedWeapon[\s\S]*draw\.handItem[\s\S]*draw\.carriedItem[\s\S]*draw\.nameOf/);
 });
