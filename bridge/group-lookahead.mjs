@@ -50,6 +50,24 @@ export const PREPARED_KINDS = Object.freeze(['follow', 'ahead']);
 /** 'group', 'follow' or 'ahead' for a command from the game; null for any other `kind`. */
 export const lookaheadKind = command => command?.kind === undefined ? 'group' : PREPARED_KINDS.includes(command.kind) ? command.kind : null;
 
+/**
+ * A file read that asks the disk for the text only when the file changed. The poll that looks for a prediction runs every 60 ms for as long as the
+ * bridge lives (the text providers may prepare lines ahead too), and the file is `{}` almost all of that time: one stat tells it is the same file
+ * (modification time and size), so the last text is answered again. A missing file reads as '' and a failed read is not remembered.
+ */
+export function createStatCachedReader({stat, read}) {
+  let signature = null, text = '';
+  return async path => {
+    let info;
+    try { info = await stat(path); } catch { signature = null; text = ''; return ''; }
+    const next = `${info.mtimeMs}:${info.size}`;
+    if (next === signature) return text;
+    try { text = await read(path); } catch { signature = null; text = ''; return ''; }
+    signature = next;
+    return text;
+  };
+}
+
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const alive = (reaction, now) => Number.isSafeInteger(reaction?.expiresAt) && reaction.expiresAt > now;
 

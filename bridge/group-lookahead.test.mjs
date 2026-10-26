@@ -185,3 +185,36 @@ test('a prediction for a spawned character as the next speaker, or after one, is
   const claimed = f.lookahead.claim(parseInput(JSON.stringify(spawnedSecond)), {current: async () => true});
   assert.ok(claimed, 'the identical submission claims it'); assert.equal(f.lookahead.busy, false);
 });
+
+// Performance: the 60 ms look-ahead poll now runs for the text providers too; it must not read an unchanged file 17 times a second.
+test('the prediction file is read when it changed, not on every poll', async () => {
+  const {createStatCachedReader} = await import('./group-lookahead.mjs');
+  let stats = 0, reads = 0, info = {mtimeMs: 1000.5, size: 2}, body = '{}', missing = false, failRead = false;
+  const read = createStatCachedReader({
+    stat: async () => { stats += 1; if (missing) throw new Error('ENOENT'); return {...info}; },
+    read: async () => { reads += 1; if (failRead) throw new Error('EBUSY'); return body; },
+  });
+  for (let index = 0; index < 50; index += 1) assert.equal(await read('f'), '{}');
+  assert.equal(stats, 50); assert.equal(reads, 1, 'an unchanged file was read ' + reads + ' times');
+  // the game wrote a command: a new modification time and size
+  body = '{"kind":"ahead"}'; info = {mtimeMs: 1100.25, size: 16};
+  assert.equal(await read('f'), '{"kind":"ahead"}'); assert.equal(await read('f'), '{"kind":"ahead"}'); assert.equal(reads, 2);
+  // the same size written again later is a change too (the time moved)
+  body = '{"kind":"hehad"}'; info = {mtimeMs: 1200.75, size: 16};
+  assert.equal(await read('f'), '{"kind":"hehad"}'); assert.equal(reads, 3);
+  // a failed read says '' and is not remembered: the next poll reads again
+  body = 'ok'; info = {mtimeMs: 1300, size: 2}; failRead = true;
+  assert.equal(await read('f'), ''); failRead = false;
+  assert.equal(await read('f'), 'ok'); assert.equal(reads, 5);
+  // a missing file is '' and, when it comes back with the old time and size, is read again
+  missing = true; assert.equal(await read('f'), ''); missing = false;
+  assert.equal(await read('f'), 'ok'); assert.equal(reads, 6);
+});
+
+test('the bridge reads the prediction file through the stat-cached reader', async () => {
+  const {readFileSync} = await import('node:fs');
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /const readPrefetch = createStatCachedReader\(\{stat, read: path => readFile\(path, 'utf8'\)\}\)/);
+  assert.match(bridge, /const raw = await readPrefetch\(prefetchPath\);/);
+  assert.doesNotMatch(bridge, /readFile\(prefetchPath/);
+});

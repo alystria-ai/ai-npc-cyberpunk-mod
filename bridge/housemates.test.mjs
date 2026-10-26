@@ -250,3 +250,55 @@ test('she wakes at her own wake time, not at six: asleep before it, up after it'
     assert(snapshot(c)['judy-alvarez'].sleep == false, 'still asleep after her wake time')
   `);
 });
+
+// Performance: probe.log 2026-10-26 showed one character whose body never came spawned and deleted every 75 s for the whole session (17 times).
+test('a body that is never made is tried again after a growing wait, not every minute for ever', () => {
+  lua(`${WORLD}
+    world.stuck = true
+    local c = control({['judy-alvarez'] = 'corpo'})
+    run(c, 1500)
+    -- Attempts at about 0, 76, 182, 348, 635 and 1162 s (waits of 30, 60, 120, 240 and 480 s after each 45 s timeout); it was one every 76 s (20).
+    assert(world.spawned >= 5 and world.spawned <= 7, 'spawns in 1500 s: ' .. tostring(world.spawned))
+    assert(world.deleted == world.spawned - 1 or world.deleted == world.spawned, 'a timed-out body was left behind')
+  `);
+});
+
+test('the wait for a body that never came stops at ten minutes', () => {
+  lua(`${WORLD}
+    world.stuck = true
+    local c = control({['judy-alvarez'] = 'corpo'})
+    run(c, 6000)
+    -- After the 480 s wait the next ones are 600 s (one per 646 s with the 45 s timeout): 13 attempts in 6000 s, it was 78
+    assert(world.spawned <= 14, 'spawns in 6000 s: ' .. tostring(world.spawned))
+    assert(world.spawned >= 11, 'she is never tried again: ' .. tostring(world.spawned))
+  `);
+});
+
+test('going out of the flat and back starts the waits again', () => {
+  lua(`${WORLD}
+    world.stuck = true
+    local c = control({['judy-alvarez'] = 'corpo'})
+    run(c, 400)
+    local before = world.spawned
+    world.place = 'LittleChina_Lizzies'
+    run(c, 60)
+    world.place = 'CorpoPlaza_Apartment'
+    world.stuck = false
+    run(c, 150)
+    assert(snapshot(c)['judy-alvarez'].state == 'at', 'she was not made after V came back: ' .. tostring(snapshot(c)['judy-alvarez'].state))
+    assert(world.spawned > before)
+  `);
+});
+
+test('while the only thing going on is a body being made the step is half a second, not a quarter', () => {
+  lua(`${WORLD}
+    world.stuck = true
+    local c = control({['judy-alvarez'] = 'corpo'})
+    run(c, 4)
+    world.calls = {}
+    run(c, 40)
+    -- 40 s at a 0.5 s step is 80 polls of the party rows (160 at 0.25 s)
+    assert(world.calls.rows <= 90, 'the party rows were read ' .. tostring(world.calls.rows) .. ' times in 40 s of waiting')
+    assert(world.calls.rows >= 60)
+  `);
+});

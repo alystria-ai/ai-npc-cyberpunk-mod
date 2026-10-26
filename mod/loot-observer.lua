@@ -41,9 +41,11 @@ local function copy(value)
     local result = {}; for key, item in pairs(value) do result[key] = copy(item) end; return result
 end
 local function clearPending() intents, vetoes, receipts = {}, {}, {} end
+local checkedFrame, checkedValue   -- localPlayer's answer for one frame (below)
 local function suspend()
     clearPending()
     baselineNeeded = true
+    checkedFrame, checkedValue = nil, nil
 end
 local function plainContext(value)
     if type(value) ~= 'table' then return {available=false, blocked=true, enabled=false, worldReady=false, now=os.time()} end
@@ -105,12 +107,23 @@ local function remember(key, total)
     end
     if quantity(total) then owned[key] = total end
 end
+-- The answer of localPlayer for the frame it was asked in: a crafting, disassembly or vendor burst fires hundreds of item events in one
+-- frame, and each asked V's puppet the same seven native questions (attached, alive, two entity ids and the live player). The frame is
+-- init.lua's counter (convaiHeartbeat.frame, a global); without it (a test, an old host) nothing is remembered. Anything that can change
+-- the answer (a new context, a reset, a suspension) forgets it.
 local function localPlayer(player)
     if not context or context.available ~= true or not player then return false end
-    if player:IsAttached() ~= true or player:IsDeadNoStatPool() ~= false then return false end
-    local live = Game.GetPlayer()
-    local id = entity(player)
-    return id ~= nil and id == entity(live) and (not owner or id == owner)
+    local beat = convaiHeartbeat
+    local frame = type(beat) == 'table' and beat.frame or nil
+    if frame ~= nil and frame == checkedFrame then return checkedValue end
+    local value = false
+    if player:IsAttached() == true and player:IsDeadNoStatPool() == false then
+        local live = Game.GetPlayer()
+        local id = entity(player)
+        value = id ~= nil and id == entity(live) and (not owner or id == owner)
+    end
+    if frame ~= nil then checkedFrame, checkedValue = frame, value end
+    return value
 end
 local function cancelIdentity(key)
     for index = #intents, 1, -1 do if intents[index].identity == key then table.remove(intents, index) end end
@@ -346,9 +359,11 @@ function M.reset()
     context, owner, owned, seen, seenCount = nil, nil, {}, {}, 0
     baselineNeeded, baselineAttempted, ownershipComplete = true, false, true
     clearPending()
+    checkedFrame, checkedValue = nil, nil
 end
 function M.update(value)
     local prior = context
+    checkedFrame, checkedValue = nil, nil
     context = plainContext(value)
     if not allowed(context) then
         if not context.available and prior and prior.available then ownershipComplete = false end

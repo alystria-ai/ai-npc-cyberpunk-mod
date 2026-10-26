@@ -43,7 +43,7 @@ export const WORLD = `
         local rows = {}
         for _, b in pairs(world.bodies) do
           b.age = b.age + 1
-          if b.state == 'spawning' and b.age >= 2 then b.state = 'visiting' end
+          if b.state == 'spawning' and b.age >= 2 and not world.stuck then b.state = 'visiting' end
           rows[#rows + 1] = b
         end
         return rows

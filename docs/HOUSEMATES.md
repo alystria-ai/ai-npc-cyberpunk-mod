@@ -444,6 +444,12 @@ When V is not in the flat nothing of this runs: the scheduler is not even called
   (`failed:spawn-timeout`), retried 30 s later at the same spot (corpo-bar-2 four times in probe.log 22:41-22:45) and each try posted the notice again.
   Now a resident's failure is posted once per character and reason (the menu line still says it), and a spot that times out twice for her is given up
   for the session (`spot-rejected ... why=no body could be made there`), so the next try is somewhere else.
+* **A body that never comes was tried every 75 seconds for the whole session (performance audit 2026-10-26).** probe.log of the 26 Oct test: `failed:spawn-timeout
+  ... key=blue-moon` followed by `spot-chosen id=proc:blue-moon` 17 times, because a procedural standing place (`proc:`) has no id to give up and the 45 s wait and
+  30 s pause were the same every time: each cycle created and deleted a body, rewrote the party and readiness files three times, ran the spot search again and kept the
+  controller on its 0.25 s step for the 45 s. Now each timeout in a row doubles the pause (30, 60, 120, 240, 480, then 600 s at most: `M.SPAWN_RETRY`,
+  `M.SPAWN_RETRY_MAX`, `r.spawnTimeouts`), V entering the flat again starts afresh, and while the only thing going on is a body being made the step is 0.5 s
+  (`M.STEP_SPAWN`), not 0.25 s. The twin scan (`W.twin`) is one 25 m query shared by every resident asked in the same second, with each part read once.
 
 ### Rate and budget (owner, 2026-10-25)
 

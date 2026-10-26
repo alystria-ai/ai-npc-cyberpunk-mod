@@ -33,7 +33,8 @@ local chatModule
 local M = {}
 
 M.STEP = 1.0              -- seconds between steps while everything is settled
-M.STEP_BUSY = 0.25        -- ... while anybody is walking, spawning or changing place
+M.STEP_BUSY = 0.25        -- ... while anybody is walking or changing place
+M.STEP_SPAWN = 0.5        -- ... while the only thing going on is a body being made (a job in the party queue: nothing here moves it faster)
 M.STEP_AWAY = 5           -- ... while nobody has a body and V is not in a flat (only the district is looked at; a district event wakes it at once)
 M.LEAVE_GRACE = 20        -- seconds after V leaves the flat before the bodies are deleted
 M.HELD_DELETE = 60        -- seconds of a scene before the bodies are deleted (until then they are only hidden)
@@ -41,6 +42,8 @@ M.CLEAR_FOR = 3           -- seconds a scene must be over before they are shown 
 M.COMBAT_RETURN = 60      -- seconds after a fight before anybody comes back
 M.SPAWN_TIMEOUT = 45
 M.SPAWN_MISSES = 2        -- spawn timeouts at the same spot before it is given up for the session
+M.SPAWN_RETRY = 30        -- seconds before a body that was not made is tried again; doubled by each timeout in a row, up to SPAWN_RETRY_MAX
+M.SPAWN_RETRY_MAX = 600   -- (probe.log 2026-10-26: one character whose body never came was tried every 75 s for the whole session: 17 spawns and deletes)
 M.OCCUPY_TIMEOUT = 40
 M.JOIN_WAIT = 3
 M.REST_ASK_TTL = 600      -- seconds a "stay here or go home?" question stays open
@@ -82,6 +85,7 @@ function M.new(env)
     local rowCache, rowsBySerial = {}, {}
     local chat, noData
     local busy = false
+    local walking = false     -- somebody besides a body being made is not settled: the step is the short one
     local counter = 0
 
     local function log(line) if env.log then pcall(env.log, line) end end
@@ -361,7 +365,7 @@ function M.new(env)
             for _, b in ipairs(rowCache) do
                 if b.profileKey == r.key and b.appointmentId == 'hm:' .. r.key and b.state == 'visiting' and not b.lost then
                     r.serial, r.entity = b.serial, b.entityID
-                    r.state = 'placing'
+                    r.state, r.spawnTimeouts = 'placing', nil
                     stage('body-spawned', {key = r.key, serial = b.serial})
                 end
             end
@@ -375,8 +379,10 @@ function M.new(env)
                     r.spawnMissId = id
                     if r.spawnMiss >= M.SPAWN_MISSES then rejected[id] = true; stage('spot-rejected', {key = r.key, id = id, why = 'no body could be made there'}) end
                 end
+                -- Each timeout in a row doubles the wait (a body that cannot be made is not made again every minute, forever).
+                r.spawnTimeouts = (r.spawnTimeouts or 0) + 1
                 r.spot = nil
-                r.state, r.retryAt = 'virtual', clock + 30
+                r.state, r.retryAt = 'virtual', clock + math.min(M.SPAWN_RETRY_MAX, M.SPAWN_RETRY * 2 ^ (r.spawnTimeouts - 1))
                 for _, b in ipairs(rowCache) do if b.appointmentId == 'hm:' .. r.key then guard(env.bodies.delete, b.serial) end end
             end
         elseif state == 'placing' then
@@ -525,7 +531,7 @@ function M.new(env)
         if not C.hasWork() then return end
         acc = acc - (tonumber(dt) or 0)
         if acc > 0 then return end
-        acc = busy and M.STEP_BUSY or M.STEP
+        acc = busy and (walking and M.STEP_BUSY or M.STEP_SPAWN) or M.STEP
         if not guard(env.ready) then return end
         local here = hereId()
         if not here and not zone and not leftAt and not anyBodies() then busy = false; acc = M.STEP_AWAY; return end
@@ -558,7 +564,13 @@ function M.new(env)
                 zone, zoneSince = here, clock
                 factsShown = nil
                 local living = 0
-                for _, r in pairs(rec) do if r.apt == here then living = living + 1 end end
+                for _, r in pairs(rec) do
+                    if r.apt == here then
+                        living = living + 1
+                        -- V coming back is a new reason to try a body that never came (the wait is not carried over into the next visit).
+                        if r.spawnTimeouts then r.spawnTimeouts, r.retryAt = nil, nil end
+                    end
+                end
                 stage('flat-entered', {apt = here, residents = living})
                 local h = hours()
                 local last = lastHome[here]
@@ -584,14 +596,14 @@ function M.new(env)
                 return
             end
             planResidents(here)
-            busy = false
+            busy, walking = false, false
             for key, r in pairs(rec) do
                 if r.apt == here and r.state ~= 'virtual' and r.state ~= 'party' then
                     local twin = env.twin and guard(env.twin, r)
                     if twin then dropBody(r, 'twin'); r.retryAt = clock + 20
                     else
                         stepResident(r, here)
-                        if r.state ~= 'at' then busy = true end
+                        if r.state ~= 'at' then busy = true; if r.state ~= 'spawning' then walking = true end end
                     end
                 elseif r.apt ~= here and r.serial then
                     -- A body of another flat's resident (a stale one): gone.

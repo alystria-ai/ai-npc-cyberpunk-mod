@@ -192,3 +192,27 @@ test('the housemates add no per-frame work: nothing in them is called from a fra
   // the tick is called from the world-ready part of the 10 Hz poll, next to the immersive tick
   assert.ok(init.indexOf('pcall(convaiHousemateTick, elapsedPoll)') > init.indexOf('pcall(convaiImmersiveTick, elapsedPoll)'));
 });
+
+// Performance: the chat module is loaded from the 0.1 s tick; a file that cannot be loaded must not be read and compiled again on every tick.
+test('a pair chat module that cannot be loaded is tried once, then again only after the chat is switched Off and On', () => {
+  lua(`${SERVICE}
+    registry.write(fileStore, 'judy-alvarez', 'corpo')
+    local loads, chatOn = 0, true
+    local inner = deps.load
+    deps.load = function(name)
+      if name == 'housemate-chat.lua' then loads = loads + 1; error('syntax error near x') end
+      return inner(name)
+    end
+    deps.chatOn = function() return chatOn end
+    service = Service.new(deps)
+    for _ = 1, 60 do service.tick(0.1) end
+    assert(service.controller, 'no controller')
+    assert(loads == 1, 'the chat file was loaded ' .. loads .. ' times')
+    local says = 0
+    for _, line in ipairs(log_) do if line:find('Housemate chat is unavailable', 1, true) then says = says + 1 end end
+    assert(says == 1, 'the failure was logged ' .. says .. ' times')
+    chatOn = false; service.tick(0.1)
+    chatOn = true; for _ = 1, 5 do service.tick(0.1) end
+    assert(loads == 2, 'switching the chat Off and On did not try again: ' .. loads)
+  `);
+});

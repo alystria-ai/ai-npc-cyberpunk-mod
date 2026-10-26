@@ -221,7 +221,9 @@ switch on, through the `media` option in `mod/init.lua`; nothing is read or load
 - **TV**, only on foot and within 12 m: the object V is looking at (`GetLookAtObject`) if it is a `TV` that is on, else one `GetTargetParts` query (the pattern of the door
   search in `mod/companion-passage.lua`, with secondary targets too), the nearest `TV` that is on, with at most six asked. A TV is an entity of class `TV` (or any entity whose
   device controller is a `TVControllerPS`). Up to 400 target parts are looked at (the first version stopped at 40, in no order, and a companion's body brings many parts, so the
-  apartment test of 2026-10-25 with Judy and Alex beside V read `query found 0 TVs` beside a TV that was on and talking). "On" is `IsON()` and not unpowered or disabled; the channel (`GetActiveStationIndex`,
+  apartment test of 2026-10-25 with Judy and Alex beside V read `query found 0 TVs` beside a TV that was on and talking). A query that finds no TV that is on is not asked again for 20 s
+  while V stays within 3 m of where it was asked (`M.QUERY_REST`, `M.QUERY_MOVE`: in a street one query reads up to 400 parts, about ten native calls each, and every turn on foot paid it);
+  the look-at TV and the TV that just spoke are tried first and never wait for it. "On" is `IsON()` and not unpowered or disabled; the channel (`GetActiveStationIndex`,
   read only for a TV that is already on, because it can initialise one that never was, then `GetChannelName`) is resolved like a radio name, with the channel's TweakDB record as the second try.
   The game exposes the channel, not the programme. What is on is told with the TV's own recent speech: `mod/game-dialogue.lua` keeps the last three lines of type `GlobalTV` /
   `GlobalTVAlwaysVisible` (160 characters each, with when they were heard) from the subtitle callbacks it already has, only while this switch is on. They are kept apart from

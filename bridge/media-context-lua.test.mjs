@@ -570,3 +570,39 @@ test('a receiver whose own track name is empty falls back to the station\'s curr
   assert(result2.radio.station == 'Growl FM' and result2.radio.track == nil)
   assert(logs[#logs]:find('trackWhy=error:', 1, true), logs[#logs])
 `));
+
+// Performance: the targeting query lists every part within 12 m (up to 400, about ten native reads each); every turn on foot in a street paid for it.
+test('a query that found no TV on is not asked again while V stays put, for a while; moving, the wait running out or a TV V looks at ends the rest', () => lua$(`
+  local here, at = {x = 100, y = 200, z = 10}, 1000
+  N.position = function() return {x = here.x, y = here.y, z = here.z} end
+  reader = M.new({native = N, clock = function() return at end})
+  W.query = {}
+  assert(reader:read(PLAYER) == nil and calls.tvQuery == 1)
+  assert(logs[#logs]:find('tv=none(query found 0 TVs)', 1, true))
+  local lines = #logs
+  for _ = 1, 5 do at = at + 3; assert(reader:read(PLAYER) == nil) end
+  assert(calls.tvQuery == 1, 'asked again while V stood still: ' .. calls.tvQuery)
+  assert(#logs == lines, 'the rested reads wrote a new probe line')
+  -- a TV that was switched on meanwhile is found by the look, which never waits
+  W.lookAt = tv(3, on('ch_news')); W.keyText.ch_news = 'Channel 5 News'
+  assert(reader:read(PLAYER).tv.channel == 'Channel 5 News' and calls.tvQuery == 1)
+  W.lookAt = nil
+  -- a few steps are the same place; a walk of more than QUERY_MOVE metres is not
+  here.x = here.x + M.QUERY_MOVE - 0.5; assert(reader:read(PLAYER) == nil and calls.tvQuery == 1)
+  here.x = here.x + 1; assert(reader:read(PLAYER) == nil and calls.tvQuery == 2, 'a walk did not end the rest')
+  -- the wait runs out
+  at = at + M.QUERY_REST + 1; assert(reader:read(PLAYER) == nil and calls.tvQuery == 3, 'the rest never ended')
+  -- TVs in range but none on rests too; a failed query does not
+  W.query = {tv(5, {on = false})}; at = at + M.QUERY_REST + 1
+  assert(reader:read(PLAYER) == nil and calls.tvQuery == 4)
+  assert(reader:read(PLAYER) == nil and calls.tvQuery == 4)
+  W.failing.tvQuery = true; at = at + M.QUERY_REST + 1
+  assert(reader:read(PLAYER) == nil and calls.tvQuery == 5)
+  assert(reader:read(PLAYER) == nil and calls.tvQuery == 6, 'a failed query was remembered as an empty one')
+`));
+
+test('without a position seam every read still queries (the old behaviour)', () => lua$(`
+  W.query = {}
+  for _ = 1, 3 do assert(reader:read(PLAYER) == nil) end
+  assert(calls.tvQuery == 3)
+`));

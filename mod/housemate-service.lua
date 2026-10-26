@@ -33,11 +33,17 @@ function M.new(d)
         local wanted = not d.chatOn or d.chatOn() ~= false
         if not wanted then
             if S.chat then controller.setChat(nil); S.chat = nil end
+            S.chatFailed = nil
             return
         end
-        if S.chat then return end
+        if S.chat or S.chatFailed then return end
         local chatLoaded, Chat = pcall(d.load, 'housemate-chat.lua')
-        if not chatLoaded or type(Chat) ~= 'table' then return end
+        -- One try per switching On: this runs on every 0.1 s tick, and a file that cannot be loaded would be read and compiled again each time.
+        if not chatLoaded or type(Chat) ~= 'table' then
+            S.chatFailed = true
+            if d.log then d.log('Housemate chat is unavailable: ' .. tostring(Chat)) end
+            return
+        end
         S.chat = Chat.new({
             random = d.random, level = d.level, mayStart = d.mayChat, vPos = d.vpos, limiter = d.limiter,
             cooldown = d.chatCooldown, groupSize = d.chatSize,
@@ -122,7 +128,7 @@ function M.new(d)
     function S.disable()
         local controller = S.controller
         if controller and controller.shutdown then pcall(controller.shutdown) end
-        S.controller, S.chat = nil, nil
+        S.controller, S.chat, S.chatFailed = nil, nil, nil
         if S.world and S.world.abandon then pcall(S.world.abandon, false) end
         S.world = nil
         S.state = {acc = 0, read = false, homes = nil}

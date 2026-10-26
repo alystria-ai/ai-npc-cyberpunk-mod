@@ -63,3 +63,43 @@ test('death before attachment confirmation retires only that invitation and repo
   const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(status, lua.LUA_OK, error);
 });
+
+// Performance: flush runs four times a second; companions.list() builds a row of about seventy fields per copy, so it is asked only when a copy is
+// attaching or leaving.
+test('a flush with nobody attaching or leaving does not build the companion list', () => {
+  const code = `
+    local api=(function() ${source} end)()
+    local members,reads={},0
+    members[1]={serial=1,key='judy-alvarez',name='Judy',state='ready'}
+    local companions={definition=function() return {name='Judy',id='Character.Judy',profileKey='judy-alvarez'} end,
+      list=function() reads=reads+1;return members end,
+      spawn=function(key) members[#members+1]={serial=#members+1,key=key,name='Judy',state='spawning'};return #members end,
+      setProfile=function() return true end,dismiss=function() return true end}
+    local readiness={bind=function() return false end,status=function() return {state='ready'} end,
+      prepare=function() return true end,spawned=function() end,cancel=function() end,finish=function() end}
+    local queue=api.new(companions,readiness);queue.bind('world')
+    for _=1,40 do queue.flush() end
+    assert(reads==0,'the list was built '..reads..' times with nothing to do')
+    -- A copy that is attaching: the list is read (to see it arrive)
+    assert(queue.invite('judy-alvarez'));queue.flush();queue.flush()
+    local atAttach=reads
+    assert(atAttach>=1,'an attaching copy was not looked at')
+    members[#members].state='ready';queue.flush()
+    assert(queue.takeNotices()[1].message:find('joined',1,true))
+    local settled=reads
+    for _=1,10 do queue.flush() end
+    assert(reads==settled,'the list was built again with nothing attaching: '..(reads-settled))
+    -- A copy that leaves: the list is read to find it, and the copy is dismissed
+    local dismissed=0
+    companions.dismiss=function(serial) dismissed=dismissed+1;return true end
+    local row=queue.list()[1]
+    assert(queue.dismiss(row.id))
+    local before=reads
+    queue.flush()
+    assert(dismissed==1 and reads>before,'a leaving copy was not dismissed')
+  `;
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + code));
+  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(status, lua.LUA_OK, error);
+});
