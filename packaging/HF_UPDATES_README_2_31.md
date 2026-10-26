@@ -27,6 +27,6 @@ The steps up to 0.3.1 are named `Runtime-Update-<from version>-to-<to version>.z
 | `Runtime-Update-0.2.8-to-0.2.9.zip` | 20.1 MiB |
 | `Runtime-Update-0.2.9-to-0.3.0.zip` | 1.2 MiB |
 | `Runtime-Update-0.3.0-to-0.3.1.zip` | 1.7 MiB |
-| `Runtime-Update-0.3.1-to-0.3.2-for-2.31.zip` | 1.9 MiB |
+| `Runtime-Update-0.3.1-to-0.3.2-for-2.31.zip` | 2.1 MiB |
 
 Never mix the two games: an update zip of one game belongs to the Runtime of that game only.
