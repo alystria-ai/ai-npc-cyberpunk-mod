@@ -490,8 +490,8 @@ test('every page the manager can show is drawn in one style: buttons are buttons
       end
     end
     for _, button in ipairs(layout.footer) do assert(button.label ~= '', page .. ': a footer button without text') end
-    -- A page of buttons and lines has no setting in it: nothing is indented or marked as changed on it. Help is the one page with a switch, in its Misc section.
-    if page ~= 'settings' and page ~= 'relationships' and page ~= 'dynamic-info' and page ~= 'help' then assert(not kinds.setting, page .. ' has a switch or list in it') end
+    -- A page of buttons and lines has no setting in it: nothing is indented or marked as changed on it.
+    if page ~= 'settings' and page ~= 'relationships' and page ~= 'dynamic-info' then assert(not kinds.setting, page .. ' has a switch or list in it') end
     -- The page number is never a line of the list: it is in the heading, and the page buttons are in the footer.
     for _, row in ipairs(layout.rows) do assert(not tostring(row.label):find('^Page %d+ / %d+$'), page .. ': a page line ' .. row.label) end
     -- Pages of a list: both page buttons are in the footer, always together.

@@ -3168,9 +3168,8 @@ async function runInput(request, prepared, clock) {
       isCurrentSync: () => !stopped && !controller.signal.aborted && knowledgeRouter.currentSync(knowledgeTurn)};
     if (!ahead) companionActions.admit(knowledgeTurn, {source: input.group ? 'group-text' : 'private-text', signal: controller.signal, ...turnCurrent});
     // Paying the character in eddies (docs/EDDIES_PAYMENT.md): only a typed private line that carries the game's offer, decided from V's own words (never from the
-    // reply), handed to the game once, after the mailbox was cleared for this turn. Not awaited: the reply never waits for it. A line with no offer that talks of money
-    // leaves one [Payment] line saying so.
-    if (!ahead) void payments.admit(knowledgeTurn, {source: 'private-text', signal: controller.signal, after: companionActions.clearing, ...turnCurrent}).catch(() => {});
+    // reply), handed to the game once, after the mailbox was cleared for this turn. Not awaited: the reply never waits for it.
+    if (!ahead && input.payOffer) void payments.admit(knowledgeTurn, {source: 'private-text', signal: controller.signal, after: companionActions.clearing, ...turnCurrent}).catch(() => {});
     rememberKnowledgeTurn(knowledgeTurn);
     note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,

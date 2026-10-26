@@ -239,18 +239,13 @@ export class PaymentActions {
   }
   async admit(prepared, {source, isCurrent, isCurrentSync, signal, after} = {}) {
     const input = prepared?.input, offer = parsePayOffer(input?.payOffer);
-    const no = (why, detail = why) => {
-      try { this.log(`Eddies payment: person=${input?.profileKey} paid=no(${detail})`); } catch { /* a log line never breaks a turn */ }
+    if (!offer) return {paid: false, why: 'no-offer'};
+    const no = why => {
+      try { this.log(`Eddies payment: person=${input.profileKey} paid=no(${why})`); } catch { /* a log line never breaks a turn */ }
       return {paid: false, why};
     };
-    // A typed line that speaks of an amount of money leaves one line saying why nothing was paid; a line that is not about money leaves none.
-    const talksOfMoney = () => !input?.reaction && input?.group === undefined && typeof input?.text === 'string' && screenPayment(input.text, {name: input.name}).status !== 'none';
-    if (!offer) return talksOfMoney() ? no('no-offer', 'no-offer: the switch is off, the character is not one of our copies, or the line was spoken') : {paid: false, why: 'no-offer'};
     const decision = paymentDecision(input);
-    if (decision.status !== 'pay') {
-      if (decision.status === 'none') return {paid: false, why: 'no-payment'};
-      return no(decision.reason, `refused:${decision.reason}${decision.amount === undefined ? '' : ' amount=' + decision.amount}`);
-    }
+    if (decision.status !== 'pay') return {paid: false, why: decision.status === 'none' ? 'no-payment' : decision.reason};
     if (source !== 'private-text') return no('source:' + String(source));
     if (prepared?.route?.channel !== 'private' || prepared.route.transport === 'microphone') return no('channel');
     if (!prepared.sendAllowed) return no('send-not-allowed');

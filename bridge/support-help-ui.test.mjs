@@ -497,36 +497,3 @@ test('a player with none of the scripts’ methods: the menu update and the mana
   frames(60)
   assert(#written == 1, 'once')
 `));
-
-test('Help ends with a Misc section holding Pay characters in eddies: Off by default, saved when switched, put back by Restore defaults, gone from Companion behavior', () => run(`${helpFixture()}
-  assert(invoke('tab:settings').ok)
-  -- Not on the Companion behavior page any more.
-  assert(category('companion-behavior') and not row('payCharacters'), 'the switch left Companion behavior')
-  assert(invoke('help').ok and managerUi.inspect().view == 'help')
-  local misc = category('help-misc')
-  assert(misc and misc.name == 'Misc' and misc.description ~= '' and #misc.settings == 1, 'one Misc section')
-  assert(loaded.categories[#loaded.categories].id == 'help-misc', 'Misc is the last section of the page')
-  local pay = row('payCharacters')
-  assert(pay and pay.type == 'bool' and pay.value == false and pay.defaultValue == false and pay.label == 'Pay characters in eddies')
-  assert(manager.payCharacters() == false)
-  -- The row text stays inside the host's description limit (it is cut with an ellipsis beyond it, never refused; bridge/description-fit.test.mjs holds every language to 420).
-  assert(#pay.description <= 420, #pay.description)
-  -- Switched on from the Help page: saved, and the page shows it.
-  assert(registered.applyBatch('manager', {{id = 'payCharacters', value = true}}).ok)
-  assert(manager.payCharacters() == true)
-  pump(true, 4)
-  assert(row('payCharacters').value == true, 'the page was drawn again with the new value')
-  -- Restore defaults reaches it from the Help page too.
-  local back
-  for _, change in ipairs(core.defaults()) do if change.id == 'payCharacters' then back = change.value end end
-  assert(back == false, 'Restore defaults names the switch: ' .. tostring(back))
-  assert(registered.applyBatch('manager', core.defaults()).ok)
-  assert(manager.payCharacters() == false)
-  -- A wrong value is refused and the saved one stays.
-  assert(not registered.applyBatch('manager', {{id = 'payCharacters', value = 'yes'}}).ok and manager.payCharacters() == false)
-`));
-
-test('without the Help module the page is not offered, and the switch stays Off', () => run(`${helpFixture(false)}
-  assert(invoke('tab:settings').ok)
-  assert(not row('help') and not row('payCharacters') and manager.payCharacters() == false)
-`));

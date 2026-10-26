@@ -47,7 +47,7 @@ Mods screen (Esc > Mods)
 | Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
 | Memory | Settings | Memory, Whose memories |
 | Dynamic info | Settings | Dynamic info (twelve switches, `docs/DYNAMIC_INFO.md`) |
-| Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are, Misc (experimental extras: Pay characters in eddies) |
+| Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
 | Convai paid tier | Settings | Convai paid tier, Plans |
 | Custom endpoint | Settings | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
 | Immersive invitations | Settings | Immersive invitations (six rows: the switch, how she arrives, when, how long she waits, the waypoint, her texts; `docs/IMMERSIVE_INVITATIONS.md`) |
@@ -548,10 +548,6 @@ remain are resource guards that scale with the party instead of refusing it:
 - **Where the logs are**: absolute paths for the mod's `runtime\` logs (`probe.log`, `mcm.log`), the conversation service logs
   (`bridge.stderr.log`, `bridge.stdout.log`, `bridge-service.log`), `launcher.log` (`red4ext\plugins\AiNpcCyberpunkMod`), the CET logs
   (`cyber_engine_tweaks.log`, `scripting.log`), `r6\logs\redscript_rCURRENT.log`, `red4ext\logs` and the reports folder.
-- **Misc** (since 2026-10-26, the last section): experimental extras, each Off by default, each its own row. Today one: **Pay characters in eddies**
-  (`payCharacters`, `docs/EDDIES_PAYMENT.md`), moved here from Companion behavior. It is an ordinary switch (saved by the same batch as every other
-  setting, redrawn when its saved value changes, put back to Off by Restore defaults, which now reads this page as well). Without the Help module
-  (`mod/support-report.lua`) the page is not offered and the switch stays Off.
 
 Where each log is written (verified in code): `mod/init.lua`, `mod/phone-layout.lua` and the setup check append to
 `<mod>\runtime\probe.log`; `mod/nsui.lua`, `mod/manager-ui.lua` and `mod/init.lua` (notices) append to `<mod>\runtime\mcm.log` (the

@@ -1165,7 +1165,6 @@ local function pageSignature(snapshot)
     end
     if support and view == 'help' then
         add('help:' .. support.signature() .. '|' .. support.serviceState())
-        add(settingsDigest(snapshot.settings))   -- the Misc switches
         if convaiSetupCheck then add('setup:' .. convaiSetupCheck.signature()) end
     end
     if paidTier and view == 'paid-tier' then
@@ -1731,11 +1730,6 @@ local function schema()
             readonly('help-log-reports', 'Saved reports', files.reports,
                 ui.t('Generated reports are saved in {path}. The five newest are kept.', {path = where.reports}), rawRow),
         }, 'Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.')
-        -- Misc (since 2026-10-26): experimental extras, each Off by default. Pay characters in eddies moved here from Companion behavior (docs/EDDIES_PAYMENT.md).
-        categories[#categories + 1] = category('help-misc', 'Misc', {
-            setting('payCharacters', 'Pay characters in eddies', 'bool', snapshot.settings.payCharacters == true, false,
-                'Type that you pay eddies to one of your own characters (party, invited visitor, housemate) and they really leave your balance, with the game’s usual pop-up. The character knows.\n\nOnly a plain typed payment counts, like "I pay you 500 eddies" or "Here, take 500 eddies", never a promise, question or spoken line. At most 100000 at a time.'),
-        }, 'Experimental extras. Each one is off until you turn it on.')
     elseif view == 'paid-tier' and paidTier then
         for _, section in ipairs(paidTierRows(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'custom-endpoint' and customProvider.instance then
@@ -1817,6 +1811,9 @@ local function schema()
             -- Off by default (the owner's call, 2026-10-25): party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
             setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits == true, false,
                 'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
+            -- Off by default (docs/EDDIES_PAYMENT.md): V's typed "I pay you 500 eddies" really takes the eddies. Off: no offer is made and nothing moves.
+            setting('payCharacters', 'Pay characters in eddies', 'bool', snapshot.settings.payCharacters == true, false,
+                'Type that you pay eddies to one of your own characters (party, invited visitor, housemate) and they really leave your balance, with the game’s usual pop-up. The character knows.\n\nOnly a plain typed payment counts, like "I pay you 500 eddies" or "Here, take 500 eddies", never a promise, question or spoken line. At most 100000 at a time.'),
             action('immersive-invitations', 'Immersive invitations', 'Open',
                 'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
                 function() return navigate('immersive-invitations') end),
@@ -2173,8 +2170,8 @@ end
 function M.defaults()
     local previous = view
     local changes, atDefault, turningMatureOff, listed = {}, {}, false, {}
-    -- Settings, and the Relationships and Dynamic info pages that open from it, Key bindings and Help (Misc).
-    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates', 'help'}) do
+    -- Settings, and the Relationships and Dynamic info pages that open from it, and Key bindings.
+    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates'}) do
         view = name
         local ok, model = pcall(schema)
         if not ok then lastError = tostring(model); break end
