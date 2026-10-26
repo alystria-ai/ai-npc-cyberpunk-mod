@@ -4576,8 +4576,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1410",
-        "mod/companions.lua:1416"
+        "mod/companions.lua:1416",
+        "mod/companions.lua:1422"
       ]
     },
     "Choose a short or a long voice reference.": {
@@ -10876,8 +10876,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1407",
-        "mod/companions.lua:1415"
+        "mod/companions.lua:1413",
+        "mod/companions.lua:1421"
       ]
     },
     "Step out before starting a new companion trip.": {
@@ -11257,7 +11257,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:1418"
+        "mod/companions.lua:1424"
       ]
     },
     "That companion is not available.": {
