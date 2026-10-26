@@ -72,6 +72,74 @@ function D.primaryItem(npc)
     end
     return nil
 end
+-- The primary weapon the game itself would equip for a copy that holds nothing in hand: the weapon item of its character record's
+-- primary equipment group (the group the switch-to-primary command draws from; scripts: core/systems/transactionSystem.script
+-- GetEquipment, tweakAISubActions.script, which GiveItem the weapon when the copy does not have it yet). The game's own pool selection
+-- (AIActionTransactionSystem.CalculateEquipmentItems, power level -1 as GetEquipment passes it) is asked first; if that call is
+-- unavailable, plain items of the group are read directly. Returns the item's record id, false when the group holds no weapon, and
+-- nil when the group cannot be resolved (a pool the plain read cannot choose from, or a failed read). Raises on a failed read.
+local function weaponRecord(item)
+    local record = item:Item()
+    if not record then return nil end
+    local id = ItemID.CreateQuery(record:GetID())
+    if RPGManager.IsItemWeapon(id) and not WeaponObject.IsFists(id) then return record:GetID() end
+    return nil
+end
+local function recordWeapon(npc)
+    local character = TweakDBInterface.GetCharacterRecord(npc:GetRecordID())
+    if not character then error('no character record') end
+    local group = character:PrimaryEquipment()
+    if not group then return false end
+    local okCall, first, second = pcall(function() return AIActionTransactionSystem.CalculateEquipmentItems(npc, group, -1) end)
+    local chosen = okCall and (type(second) == 'table' and second or type(first) == 'table' and first) or nil
+    if chosen then
+        for _, item in ipairs(chosen) do
+            local found = weaponRecord(item)
+            if found ~= nil then return found end
+        end
+        return false
+    end
+    local unresolved = false
+    for index = 0, group:GetEquipmentItemsCount() - 1 do
+        local entry = group:GetEquipmentItemsItem(index)
+        local okItem, found = pcall(weaponRecord, entry)
+        if okItem then
+            if found ~= nil then return found end
+        else unresolved = true end -- not a plain item: a pool whose pick only the game's own call can make
+    end
+    if unresolved then return nil end
+    return false
+end
+-- The weapon a copy carries when none is drawn, for her turn context (companions.carriedWeapon): first her inventory list (the draw's
+-- primaryItem read), then the character record's primary group when the list holds no weapon (the game adds that weapon only when it
+-- is first equipped, so a copy that has not drawn yet can have none listed). Returns the item record id or nil, and a table for the probe
+-- line: list = items in the list (nil when unreadable), weapons = weapons among them, via = 'list' | 'record' | nil,
+-- record = 'weapon' | 'none' | 'unresolved' | 'failed' | nil (not asked), read = true when the answer, weapon or none, can be trusted.
+function D.carriedItem(npc)
+    local info = {}
+    local okList, first, second = pcall(function() return Game.GetTransactionSystem():GetItemList(npc) end)
+    local items = okList and (type(second) == 'table' and second or type(first) == 'table' and first) or nil
+    if items then
+        info.list, info.weapons = 0, 0
+        for _, data in ipairs(items) do
+            info.list = info.list + 1
+            local okData, id = pcall(function() return data:GetID() end)
+            if okData and RPGManager.IsItemWeapon(id) and not WeaponObject.IsFists(id) then
+                info.weapons = info.weapons + 1
+                if not info.found then info.found = ItemID.GetTDBID(id) end
+            end
+        end
+    end
+    if info.found then info.via, info.read = 'list', true; return info.found, info end
+    local okRecord, found = pcall(recordWeapon, npc)
+    if not okRecord then info.record, info.error = 'failed', tostring(found):sub(1, 80)
+    elseif found == nil then info.record = 'unresolved'
+    elseif found == false then info.record = 'none'
+    else info.record, info.via, info.read = 'weapon', 'record', true; return found, info end
+    -- Nothing found: 'none' only when the record was read and holds no weapon (the list alone cannot say, it may simply not be filled yet).
+    info.read = info.record == 'none'
+    return nil, info
+end
 -- mode 'switch' (default): AISwitchToPrimaryWeaponCommand, unEquip off. 'equip': AIEquipCommand for the right
 -- hand with the item and a 1 s duration. 'slot': AIEquipCommand for the right-hand slot alone. Returns a handle for
 -- D.cancel and raises when the class is missing or the AI refuses.

@@ -1038,8 +1038,10 @@ function M.partyInOrder(player, radius)
     return result
 end
 
--- The weapon a copy carries, for her turn context: 'weapon' (drawn in her hand), 'holstered' (in her inventory, hand empty) or 'empty'
--- (carries none), and its display name. The hand is one cheap read; the inventory read is kept CARRIED_AGE seconds per copy. A failed read says nothing.
+-- The weapon a copy carries, for her turn context: 'weapon' (drawn in her hand), 'holstered' (hand empty, one named by her inventory or her
+-- character record's primary equipment: equipment.draw.carriedItem) or 'empty' (read, and she carries none), and its display name. The
+-- hand is one cheap read; the second read is kept CARRIED_AGE seconds per copy. A read that cannot say (failed, or not resolved) says
+-- nothing. A probe.log line 'Carried weapon' names what the read found whenever it is not a drawn weapon, once per change per copy.
 local CARRIED_AGE=5
 function M.carriedWeapon(entry)
     local draw=equipment.draw
@@ -1052,11 +1054,18 @@ function M.carriedWeapon(entry)
     local now=os.clock()
     local read=entry.carriedRead
     if not read or now-read.at>=CARRIED_AGE then
-        local okList,item=pcall(draw.primaryItem,entry.npc)
+        local okItem,item,info=pcall(draw.carriedItem,entry.npc)
         local okName,name=false,nil
-        if okList and item then okName,name=pcall(draw.nameOf,item) end
-        read={at=now,ok=okList,has=item~=nil,name=okName and name or nil}
+        if okItem and item then okName,name=pcall(draw.nameOf,item) end
+        info=okItem and info or {record='failed',error=tostring(item):sub(1,80)}
+        read={at=now,ok=okItem and (item~=nil or info.read==true),has=okItem and item~=nil,name=okName and name or nil}
         entry.carriedRead=read
+        local seen=tostring(info.list)..'/'..tostring(info.weapons)..'/'..tostring(info.via)..'/'..tostring(info.record)..'/'..tostring(read.ok)
+        if seen~=entry.carriedSeen then
+            entry.carriedSeen=seen
+            if M.recoveryLog then pcall(M.recoveryLog,'carried-weapon',{serial=entry.serial,name=entry.name,result=read.has and 'holstered' or read.ok and 'none' or 'unknown',
+                via=info.via,list=info.list,weapons=info.weapons,record=info.record,weapon=read.name,error=info.error}) end
+        end
     end
     if not read.ok then return nil end
     if read.has then return 'holstered',read.name end
