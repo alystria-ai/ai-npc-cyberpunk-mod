@@ -680,6 +680,8 @@ function M.new(env)
     end
     -- Is a pair chat in progress (between lines too)? The speak-up arbiter reads it (init.lua convaiUnpromptedBusy).
     function C.chatActive() return chat ~= nil and chat.active ~= nil and chat.active() == true end
+    -- A line of the chat has just ended (init.lua convaiHouseTick): the chat reads it now instead of at the next step.
+    function C.chatPoke() if chat and chat.poke then chat.poke() end end
     -- Development (mod/housemate-survey.lua): the next chat and the welcome line now.
     function C.forceChat() return chat ~= nil and chat.force ~= nil and chat.force() == true end
     function C.forceGreeting()

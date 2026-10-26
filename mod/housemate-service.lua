@@ -8,7 +8,7 @@
 -- deps: load(name) -> module (dofile), companions, queue() -> the party queue, catalog() -> the gesture catalogue, seating() -> the seating
 --       module (for its native layer), fact(name), place(), hours(), held(), vpos(), knownKeys(), eligible(key), profileName(key),
 --       notify(text), t(text, vars), log(line), devLog(kind, fields), talking(), random(),
---       speak(request) / speakStatus() / speakCancel() (the automatic spoken lines), greet(info), level(), mayChat(), limiter,
+--       speak(request) / speakStatus() / speakCancel() / speakPrepare(request) / speakUnprepare() (the automatic spoken lines; the last two are optional: the next chat line written while one plays), greet(info), level(), mayChat(), limiter,
 --       outfits() -> {setHome}, leave(serial, entity, key, name) -> a departure, persist = {load, store} (the seats V sat on),
 --       reserved(apt) -> the places party companions hold in that flat, hookDistrict(fn), storeMode(), chatOn() -> boolean (nil: the pair chat is on; Settings > Housemates > Housemates talk to each other)
 local M = {}
@@ -42,7 +42,7 @@ function M.new(d)
             random = d.random, level = d.level, mayStart = d.mayChat, vPos = d.vpos, limiter = d.limiter,
             cooldown = d.chatCooldown, groupSize = d.chatSize,
             people = function() return controller.people() end,
-            speak = d.speak, status = d.speakStatus, cancelSpeak = d.speakCancel, log = d.log})
+            speak = d.speak, status = d.speakStatus, cancelSpeak = d.speakCancel, prepare = d.speakPrepare, unprepare = d.speakUnprepare, log = d.log})
         controller.setChat(S.chat)
     end
 

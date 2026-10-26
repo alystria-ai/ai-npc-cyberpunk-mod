@@ -41,7 +41,8 @@ export function validateLookahead(command, source) {
 //             already has (a companion's speak-up, or a reply in a conversation V is having). The remark is written and voiced while the source plays and is
 //             heard right after it, when the game submits the identical turn.
 //   'ahead'   A companion's after-scene line, `{kind: 'ahead', input}`: there is no source turn of ours (the scene is game audio), the line is prepared while the
-//             scene's last line plays and said once the scene is over.
+//             scene's last line plays and said once the scene is over. The next line of a housemates' chat is the same command (reaction kind `house`, event
+//             `chat`): prepared while the line before it plays and said the moment that line has been heard.
 // Both are lowest-priority work: they never delay a turn of V's (a prepared turn is dropped the moment V's own request arrives, a recording or the text box
 // opens), and they are held for at most PREPARED_HOLD_MS.
 export const PREPARED_HOLD_MS = 90_000;
@@ -71,11 +72,16 @@ export function validateFollow(command, source, now = Date.now()) {
   return input;
 }
 
-/** A companion's after-scene line prepared while the scene's last line plays: the input to hold, or null. No source turn of ours. */
+/**
+ * A line prepared while another plays, with no source turn of ours: the input to hold, or null. Two kinds of reaction: a companion's after-scene line (the scene's
+ * last line is game audio), and the next line of a housemates' chat (the line before it is ours, but its text is already in the prepared turn, so the game
+ * names no source: the housemates' chat module only prepares line n + 1 once line n's text is known, and withdraws it with `{}` when the chat stops).
+ */
 export function validateAhead(command, now = Date.now()) {
   if (!plain(command) || command.kind !== 'ahead' || command.sourceRequestId !== undefined) return null;
   const input = parseInput(JSON.stringify(command.input)), reaction = input?.reaction;
-  if (!input || reaction?.kind !== 'speakup' || reaction.event !== 'scene' || input.group || !alive(reaction, now)) return null;
+  const scene = reaction?.kind === 'speakup' && reaction.event === 'scene', chat = reaction?.kind === 'house' && reaction.event === 'chat';
+  if (!input || !(scene || chat) || input.group || !alive(reaction, now)) return null;
   return input;
 }
 
