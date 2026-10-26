@@ -21,7 +21,7 @@ import {capLogFile} from './log-cap.mjs';
 import {CHILDREN_FILE, reapChildren} from './child-registry.mjs';
 import {parseKeyFileText} from './convai-key.mjs';
 import {AUTH_CONFIG_FILE, PACKAGED_AUTH_FILE, readAuthSettings} from './convai-credential.mjs';
-import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
+import {NO_BROWSER_MESSAGE, browserLookupSummary, systemBrowserAvailable} from './system-browser.mjs';
 import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
 export {RUNTIME_DATA_FILES, RUNTIME_PACKAGE_FILES, RUNTIME_REQUIRED_FILES} from './runtime-files.mjs';
@@ -93,13 +93,13 @@ export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
     alive = processAlive, killTree = killProcessTree, now = Date.now, sleep = delay,
-    browserAvailable = systemBrowserAvailable, timings = {}, errorReports = false,
+    browserAvailable = systemBrowserAvailable, browserReport = browserLookupSummary, timings = {}, errorReports = false,
     // requiredFiles: files (relative to `project`) the bridge cannot start without: its data files and the files of the Node packages it
     // imports (bridge/runtime-files.mjs RUNTIME_REQUIRED_FILES); the entry points of a real install pass them. One that is missing is the
     // failure `install-incomplete`, not a bridge that crashes five times.
     requiredFiles = []} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
-      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, errorReports, requiredFiles});
+      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, browserReport, errorReports, requiredFiles});
     this.timings = {...DEFAULT_TIMINGS, ...timings};
     this.entry = resolve(project, 'bridge/convai-bridge.mjs');
     this.paths = {
@@ -250,7 +250,14 @@ export class BridgeSupervisor {
     const setup = await this.preflight();
     if (setup) {
       this.retrySetup = true;
-      if (setup === 'browser-missing') this.log(NO_BROWSER_MESSAGE);
+      if (setup === 'browser-missing') {
+        this.log(NO_BROWSER_MESSAGE);
+        // What the lookup had to go on, once per supervisor (it reads the registry), so a report of this failure says why no browser was found.
+        if (!this.browserReported) {
+          this.browserReported = true;
+          try { this.log(this.browserReport()); } catch { /* a diagnostic never changes the failure */ }
+        }
+      }
       // Said once, not on every retry: the names of the files (never a folder) that are not there.
       if (setup === 'install-incomplete' && this.status?.code !== setup) this.log(incompleteMessage(this.missingFiles ?? []));
       return this.fail(setup);

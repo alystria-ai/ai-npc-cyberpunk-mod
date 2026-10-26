@@ -861,6 +861,14 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
           if (live.length) failure.paramsRejected = {names: live, swap: false};
         }
       }
+      // A server the player runs on the local route (it has `adapt`; ours has none) that refuses a request field by name, or max_tokens in favour of max_completion_tokens (OpenAI's newer
+      // models behind an address added to the Local AI list; 2026-10-26 report: "Unsupported parameter: 'max_tokens'"): the field is renamed or left out, as the custom provider does it,
+      // and the request is sent again at once. A server that names nothing is handled by the no-thinking block below. The local route reads only streamed answers, so `stream` is never given up.
+      if (adapt && provider !== 'custom' && !failure.paramsRejected && (response.status === 400 || response.status === 422)) {
+        const refusal = rejectedParameters(response.status, textOf(refused));
+        const names = (refusal?.names ?? []).filter(name => name !== 'stream');
+        if (refusal && (refusal.swap || names.length)) failure.paramsRejected = {names, swap: refusal.swap === true};
+      }
       // A server of ours (the local route has no refused-field handling of its own) that refuses a field that asks for no thinking by name: sent again without it.
       if (noThinking && provider !== 'custom' && !failure.paramsRejected) {
         const refusal = rejectedParameters(response.status, textOf(refused));

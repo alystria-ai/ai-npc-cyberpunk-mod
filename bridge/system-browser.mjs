@@ -152,6 +152,38 @@ export function startMenuBrowserPaths({env = process.env, run = spawnSync} = {})
   return paths;
 }
 
+// One line for the service log when no browser was found: what the lookup had to go on, so a report of "No browser to run the conversation page" says why (11 reports from three
+// installs on 2026-10-26, each on a Windows that has Edge: the folders searched, the registry's answer and the player's default browser were not in them). Program names and
+// yes/no only, never a folder (the log is scrubbed for reports, but a path has no place in a diagnostic that is read without the machine). Runs once, only after a failed lookup. `run` and `exists` are for tests.
+export function browserLookupSummary({env = process.env, exists = existsSync, run = spawnSync} = {}) {
+  const names = [];
+  const listed = list => (list.length ? [...new Set(list)].join(', ') : 'none');
+  const variables = ['LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)'].map(name => `${name} ${env[name] ? 'set' : 'not set'}`).join(', ');
+  const roots = installRoots(env);
+  const all = [...SYSTEM_BROWSERS, ...OTHER_CHROMIUM_BROWSERS];
+  const folders = all.filter(browser => [browser.file].flat().some(file => roots.some(root => found(exists, join(root, file))))).map(browser => browser.name);
+  const registered = all.filter(browser => browser.appPath && registeredPaths(browser.appPath, {env, run}).length > 0).map(browser => browser.name);
+  let defaultProgram = null;
+  try {
+    const choice = regQuery(['HKCU\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice', '/v', 'ProgId'], {env, run});
+    const progId = /^\s*ProgId\s+REG_SZ\s+(\S+)\s*$/im.exec(choice)?.[1];
+    if (progId && /^[A-Za-z0-9._-]{1,120}$/.test(progId)) {
+      for (const {value} of defaultValues(regQuery([`HKCR\\${progId}\\shell\\open\\command`, '/ve'], {env, run}))) {
+        const path = parseCommandProgram(value, env);
+        if (path) { defaultProgram = programOf(path); break; }
+      }
+    }
+  } catch { /* the line says none */ }
+  for (const root of ['HKCU\\SOFTWARE\\Clients\\StartMenuInternet', 'HKLM\\SOFTWARE\\Clients\\StartMenuInternet', 'HKLM\\SOFTWARE\\WOW6432Node\\Clients\\StartMenuInternet']) {
+    for (const {key, value} of defaultValues(regQuery([root, '/s', '/ve'], {env, run}))) {
+      if (!/\\shell\\open\\command$/i.test(key)) continue;
+      const path = parseCommandProgram(value, env);
+      if (path) names.push(programOf(path));
+    }
+  }
+  return `Browser lookup: ${variables}. Browser folders found: ${listed(folders)}. Registered programs found: ${listed(registered)}. Default browser: ${defaultProgram ?? 'none'}. Start menu browsers: ${listed(names)}.`;
+}
+
 // The browsers that can be launched, best first, as launch options: {name, channel} for Edge and Chrome where Playwright finds them
 // itself (per-user, Program Files, Program Files (x86)), else {name, executablePath} from the registry's App Paths or from the other
 // Chromium browsers' folders. Lazy, so the registry is read only when the earlier choices were not found. Off Windows nothing is known
