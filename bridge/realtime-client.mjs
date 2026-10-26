@@ -698,8 +698,10 @@ async function collect(current) {
     if (current.error || turn !== current || current.epoch !== epoch) throw Error(current.error || 'Conversation cancelled');
     const collected = current.audioLost === undefined ? current.dataAudio?.finish({includeAudio: !current.live}) : undefined;
     const encodedAt = performance.now();
-    if (current.dataAudio?.owner) {
-      retiredAudioOwners.push(current.dataAudio.owner);
+    // The turn's own response and any empty response it left behind (convai-data-audio.mjs closeEmptyResponse): neither may be adopted by a later turn.
+    for (const owner of [...(current.dataAudio?.closedOwners ?? []), current.dataAudio?.owner]) {
+      if (!owner) continue;
+      retiredAudioOwners.push(owner);
       if (retiredAudioOwners.length > 32) retiredAudioOwners.shift();
     }
     if (current.live) {
