@@ -221,3 +221,34 @@ test('pinned SDK context adapter emits one reliable silent legacy update, and ca
   assert.deepEqual(sent[1].message.data.action_config, {actions: [], objects: [], characters: [], current_attention_object: ''});
   await assert.rejects(publishCompanionActionContext({isBotReady: false}, {}, offer), /unavailable/);
 });
+
+// ---- Why a ride is not possible, told to a Convai character ----------------------------------------------------------------------
+// Convai gets no action the game did not offer, so a character asked to take the wheel played along ("I'm already sitting down") while nothing happened.
+
+test('driveLimitNote: the reason is told when V may be asking for a ride, and ordinary talk pays nothing', async () => {
+  const {driveLimitNote, DRIVE_UNAVAILABLE_CODES, DRIVE_LIMIT} = await import('./companion-actions.mjs');
+  for (const code of DRIVE_UNAVAILABLE_CODES) {
+    const note = driveLimitNote(code, 'get behind the wheel');
+    assert.ok(DRIVE_LIMIT[code], code);
+    assert.ok(note.includes(DRIVE_LIMIT[code]), code);
+    assert.match(note, /already sitting in the car or driving/);
+    assert.ok(note.length < 600, 'a short note: Convai\'s dynamic info is long already');
+  }
+  assert.match(driveLimitNote('no-waypoint', 'drive me there'), /no destination is marked on the map/);
+  assert.match(driveLimitNote('no-car', 'give me a ride'), /own car is not standing close by/);
+  assert.match(driveLimitNote('car-moving', 'take the wheel'), /car has to stand still/);
+  // A spoken turn is not known yet (the placeholder): it always carries the note.
+  assert.match(driveLimitNote('no-waypoint', '[Microphone]'), /cannot drive V anywhere/);
+  assert.match(driveLimitNote('no-waypoint', ''), /cannot drive V anywhere/);
+  assert.match(driveLimitNote('no-waypoint', undefined), /cannot drive V anywhere/);
+  // Typed talk that cannot be about a ride, in a few of the 15 menu languages: no text, no cost.
+  for (const line of ['How are you today?', 'Tell me about your day', 'Wie geht es dir?', 'Comment vas-tu ?', 'Как дела?', 'お元気ですか', '你好吗']) {
+    assert.equal(driveLimitNote('no-waypoint', line), '', line);
+  }
+  // Rides asked for in other languages are screened in.
+  for (const line of ['Fahr mich zum Wegpunkt', 'Conduis-moi là-bas', 'Llévame en coche', 'Отвези меня', 'Zawieź mnie tam', '運転して', '운전해줘', '开车送我']) {
+    assert.match(driveLimitNote('no-waypoint', line), /cannot drive V anywhere/, line);
+  }
+  // Nothing known, nothing said.
+  for (const bad of [undefined, null, '', 'dance', 7, {}]) assert.equal(driveLimitNote(bad, 'take the wheel'), '');
+});

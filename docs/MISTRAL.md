@@ -158,7 +158,7 @@ How it works on Mistral and Local AI (`bridge/text-actions.mjs`, used by `TextPr
 3. After the reply succeeds, the host delivers the same message the Convai client would send (`runtime/companion-actions.json`). It
    is fire and forget; a failure is logged and never fails the reply. Stray codes (`[DRIVE]`, `[NONE]`) in a reply are stripped before the voice.
 4. The Lua side now also reports why a ride is not possible (`driveUnavailable`: `player-driving`, `player-seated`, `no-waypoint`, `no-car`,
-   `car-moving`, `combat`, `busy`), only to the text routes; Convai's text is unchanged.
+   `car-moving`, `combat`, `busy`), to every route. The text routes say it in their action notes. A Convai character gets the same reason as one short limit note in the dynamic info (`driveLimitNote` in `bridge/companion-actions.mjs`, carried to `bridge/realtime-client.mjs` as `config.driveLimit`), so it stops claiming to sit down or drive when the game offered no ride: a typed line carries it only when its words can be about a ride (the DRIVE screen of `bridge/text-action-words.mjs`, 15 languages), a spoken turn always carries it (the words are not known when the context is made), and every other turn gets no extra text.
 
 #### Which provider decides how (checked 2026-10-20)
 

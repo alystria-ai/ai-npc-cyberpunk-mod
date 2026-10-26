@@ -21,24 +21,14 @@
 // choices STAY (live at V's place, the apartment id follows), MOVEOUT and JOIN (come along from home; a name or ALL follows). Distract is gone.
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
-import {parseDriveUnavailable, SEATED_MODES, HOME_APARTMENT_NAMES} from './companion-actions.mjs';
+import {parseDriveUnavailable, DRIVE_LIMIT, SEATED_MODES, HOME_APARTMENT_NAMES} from './companion-actions.mjs';
 import {screenWords, explicitRequest, certainWords} from './text-action-words.mjs';
 
 export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE']);
 // Housemates (docs/HOUSEMATES.md): live at V's place (an apartment id follows), move out, join V's party from home (a member name or ALL follows).
 export const HOME_CODES = Object.freeze(['STAY', 'MOVEOUT', 'JOIN']);
 
-// Why the game cannot let this companion drive V right now (codes: bridge/companion-actions.mjs). Each becomes one short sentence of what
-// V has to do first.
-export const DRIVE_LIMIT = Object.freeze({
-  'player-driving': 'V is driving a vehicle that is not V\'s own car; V would have to get out of it first, then ask',
-  'player-seated': 'V is sitting in a vehicle that is not V\'s own car; V would have to get out first, then ask',
-  'no-waypoint': 'no destination is marked on the map; V has to mark one first',
-  'no-car': "V's own car is not standing close by; V has to stand next to it or call it first",
-  'car-moving': "V's car has to stand still first",
-  combat: 'there is fighting going on; it has to be over first',
-  busy: 'it is not possible right now',
-});
+export {DRIVE_LIMIT};
 
 const FOLLOW_LIMIT = {
   quest: 'you are needed where you are for something important', scene: 'you are in the middle of something', combat: 'there is fighting going on',

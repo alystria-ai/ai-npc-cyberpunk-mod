@@ -1,5 +1,7 @@
 import {parseCallMeetOffer, offeredKinds} from './call-meet.mjs';
 import {HomePicks} from './home-requests.mjs';
+import {mentions} from './text-action-words.mjs';
+import {MIC_PLACEHOLDER} from './call-meet.mjs';
 
 // One native offer authorizes one semantic proposal. Coordinates, actor IDs and
 // vehicle IDs always come from the game snapshot, never from model arguments.
@@ -73,10 +75,34 @@ export const TACTIC_UNAVAILABLE = Object.freeze({
   'no-target': "nobody that you could attack is tagged or in V's sights right now",
 });
 export const parseTacticUnavailable = value => typeof value === 'string' && Object.hasOwn(TACTIC_UNAVAILABLE, value) ? value : null;
-// Why the game offers no ride: the codes mod/gameplay-actions.lua sends (DRIVE_UNAVAILABLE). Only a text-route character (Mistral, the
-// local AI; bridge/text-actions.mjs) says it; Convai's prompt does not mention it.
+// Why the game offers no ride: the codes mod/gameplay-actions.lua sends (DRIVE_UNAVAILABLE). A text-route character (Mistral, the local AI;
+// bridge/text-actions.mjs) says it in its action notes; a Convai character gets driveLimitNote below, on the turns where V asks about a ride.
 export const DRIVE_UNAVAILABLE_CODES = Object.freeze(['player-driving', 'player-seated', 'no-waypoint', 'no-car', 'car-moving', 'combat', 'busy']);
 export const parseDriveUnavailable = value => typeof value === 'string' && DRIVE_UNAVAILABLE_CODES.includes(value) ? value : null;
+// Each becomes one short sentence of what V has to do first.
+export const DRIVE_LIMIT = Object.freeze({
+  'player-driving': "V is driving a vehicle that is not V's own car; V would have to get out of it first, then ask",
+  'player-seated': "V is sitting in a vehicle that is not V's own car; V would have to get out first, then ask",
+  'no-waypoint': 'no destination is marked on the map; V has to mark one first',
+  'no-car': "V's own car is not standing close by; V has to stand next to it or call it first",
+  'car-moving': "V's car has to stand still first",
+  combat: 'there is fighting going on; it has to be over first',
+  busy: 'it is not possible right now',
+});
+/**
+ * The note a Convai character reads when the game offers no ride (`reason`, a code of DRIVE_UNAVAILABLE_CODES) and V's words may be about one, else ''.
+ * Convai gets no action it cannot take, so without this note a character asked to take the wheel plays along ("I'm already sitting down") and nothing
+ * happens. A typed line carries it only when its words can be about driving or riding (the screen of bridge/text-action-words.mjs, the 15 menu
+ * languages), so ordinary talk pays nothing; a spoken turn is not known yet when its context is made (it is the recording), so it always carries it.
+ */
+export function driveLimitNote(reason, userText) {
+  if (!parseDriveUnavailable(reason)) return '';
+  const typed = typeof userText === 'string' && userText.trim() !== '' && userText.trim() !== MIC_PLACEHOLDER;
+  if (typed && !mentions('DRIVE', userText)) return '';
+  return '\nCurrent game-verified limit: you cannot drive V anywhere right now (' + DRIVE_LIMIT[reason] + '). '
+    + 'If V asks you to drive them, take the wheel, give them a ride or get in the car, say briefly in character what is needed first; '
+    + 'do not agree, and do not say or act as if you are already sitting in the car or driving. Do not bring this up unless V asks.';
+}
 export const followActionName = offer => token(offer?.token) ? `${FOLLOW_ACTION} ${offer.token}` : null;
 // One action per offered member (the speaker's own is plain "Leave V's Party"),
 // plus "everyone" when several are offered. Duplicate names get their number.
