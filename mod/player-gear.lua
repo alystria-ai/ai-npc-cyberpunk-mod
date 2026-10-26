@@ -71,6 +71,20 @@ local function nativeAdapter()
         {'GameInstance.GetWardrobeSystem', function(player) return GameInstance.GetWardrobeSystem(player:GetGame()):GetActiveClothingSet() end},
         {'EquipmentSystem.GetActiveWardrobeSet', function(player) return EquipmentSystem.GetActiveWardrobeSet(player) end}}
     function N.wardrobeEnabled(data) return data:IsWardrobeEnabled() end
+    -- The per-slot visual overrides the Wardrobe menu writes (an outfit applied there fills these; the set routes above can answer "none" while it is on):
+    -- EquipmentSystemPlayerData.m_clothingVisualsInfo: array<SSlotVisualInfo> (a field, read first: it also says which slots are hidden), and the getter
+    -- GetSlotOverridenVisualItem(area) -> ItemID (an empty ItemID: no override). Both compiler-checked against final.redscripts (docs/PLAYER_GEAR_CONTEXT.md).
+    function N.visualsInfo(data)
+        local entries = {}
+        for _, entry in ipairs(data.m_clothingVisualsInfo or {}) do
+            local row = {id = entry.visualItem}
+            pcall(function() row.area = enumName(entry.areaType) end)
+            pcall(function() row.hidden = entry.isHidden == true end)
+            entries[#entries + 1] = row
+        end
+        return entries
+    end
+    function N.overridden(data, areaName) return data:GetSlotOverridenVisualItem(Enum.new('gamedataEquipmentArea', areaName)) end
     -- {label = <set index name>, entries = {{id = ItemID, area = <equipment area name or nil>, hidden = bool}, ...}}
     function N.wardrobeContents(set)
         local label = enumName(set.setID)
@@ -156,51 +170,89 @@ function Instance:wardrobe(player, data)
         self:logWardrobe(#errors > 0 and (line .. ' errors=' .. table.concat(errors, '; '):sub(1, 200)) or line)
         return covered
     end
-    if type(N.wardrobeRoutes) ~= 'table' or type(N.wardrobeContents) ~= 'function' then return finish('wardrobe outfit=off') end
+    -- Place rows {id, area, hidden} into covered (a slot's first row wins); returns shown, hidden, unplaced.
+    local function place(entries)
+        local shown, hidden, unplaced = 0, 0, 0
+        for _, entry in ipairs(entries or {}) do
+            local areaName = entry.area
+            if not areaName or not M.AREAS[areaName] then
+                -- The row's own area is unreadable or not clothing: place the item by its record instead.
+                areaName = entry.id ~= nil and call(N.itemArea, entry.id) or nil
+            end
+            if areaName and M.AREAS[areaName] and covered[areaName] == nil then
+                if entry.hidden then
+                    covered[areaName] = false; hidden = hidden + 1
+                else
+                    local name = self:itemName(entry.id, player)
+                    if name then covered[areaName] = name; shown = shown + 1 else unplaced = unplaced + 1 end
+                end
+            else
+                unplaced = unplaced + 1
+            end
+        end
+        return shown, hidden, unplaced
+    end
+    -- The set routes: returns the line to log (and true when every route failed). Fills covered when the set places anything.
+    local function fromSet()
+        if type(N.wardrobeRoutes) ~= 'table' or type(N.wardrobeContents) ~= 'function' then return 'wardrobe outfit=off' end
+        for _, route in ipairs(N.wardrobeRoutes) do
+            local ok, value = try(route[1], route[2], player, data)
+            if ok then answered = true end
+            if ok and value ~= nil then set, via = value, route[1]; break end
+        end
+        if set == nil then
+            if answered then return 'wardrobe outfit=off' end
+            return 'wardrobe outfit=error(' .. table.concat(errors, '; '):sub(1, 200) .. ')', true
+        end
+        local ok, contents = try('wardrobeContents', N.wardrobeContents, set)
+        if not ok or type(contents) ~= 'table' then
+            return 'wardrobe outfit=error(' .. table.concat(errors, '; '):sub(1, 200) .. ')', true
+        end
+        local label = tostring(contents.label or 'active')
+        if label == 'INVALID' then return 'wardrobe outfit=off' end
+        local shown, hidden, unplaced = place(contents.entries)
+        if shown + hidden == 0 then
+            covered = {}
+            return 'wardrobe outfit=' .. label .. ' items=0 unplaced=' .. unplaced .. ' via=' .. via
+        end
+        return 'wardrobe outfit=' .. label .. ' items=' .. shown .. (hidden > 0 and (' hidden=' .. hidden) or '') .. ' via=' .. via
+    end
+    -- The per-slot visual overrides of the player data: the field first (it also carries hidden slots), then the getter per clothing area.
+    -- Returns the log line when it placed something, else nil (nothing overridden, or neither read worked: the failure is in errors).
+    local function fromVisuals()
+        if type(N.visualsInfo) == 'function' then
+            local ok, rows = try('m_clothingVisualsInfo', N.visualsInfo, data)
+            if ok and type(rows) == 'table' then
+                local shown, hidden = place(rows)
+                if shown + hidden > 0 then
+                    return 'wardrobe outfit=visuals items=' .. shown .. (hidden > 0 and (' hidden=' .. hidden) or '') .. ' via=m_clothingVisualsInfo'
+                end
+                covered = {}
+            end
+        end
+        if type(N.overridden) == 'function' then
+            local rows, failed = {}, nil
+            for _, row in ipairs(M.CLOTHING) do
+                local ok, id = pcall(N.overridden, data, row[2])
+                if ok then rows[#rows + 1] = {id = id, area = row[2]} elseif not failed then failed = failure(id) end
+            end
+            if failed then errors[#errors + 1] = 'GetSlotOverridenVisualItem: ' .. failed end
+            local shown = place(rows)
+            if shown > 0 then return 'wardrobe outfit=visuals items=' .. shown .. ' via=GetSlotOverridenVisualItem' end
+            covered = {}
+        end
+        return nil
+    end
     if type(N.wardrobeEnabled) == 'function' then
         local ok, enabled = try('IsWardrobeEnabled', N.wardrobeEnabled, data)
         if ok and enabled == false then return finish('wardrobe outfit=off (disabled)') end
     end
-    for _, route in ipairs(N.wardrobeRoutes) do
-        local ok, value = try(route[1], route[2], player, data)
-        if ok then answered = true end
-        if ok and value ~= nil then set, via = value, route[1]; break end
-    end
-    if set == nil then
-        if answered then return finish('wardrobe outfit=off') end
-        self:logWardrobe('wardrobe outfit=error(' .. table.concat(errors, '; '):sub(1, 200) .. ')')
-        return covered
-    end
-    local ok, contents = try('wardrobeContents', N.wardrobeContents, set)
-    if not ok or type(contents) ~= 'table' then
-        self:logWardrobe('wardrobe outfit=error(' .. table.concat(errors, '; '):sub(1, 200) .. ')')
-        return covered
-    end
-    local label = tostring(contents.label or 'active')
-    if label == 'INVALID' then return finish('wardrobe outfit=off') end
-    local shown, hidden, unplaced = 0, 0, 0
-    for _, entry in ipairs(contents.entries or {}) do
-        local areaName = entry.area
-        if not areaName or not M.AREAS[areaName] then
-            -- The set's own area is unreadable or not clothing: place the item by its record instead.
-            areaName = entry.id ~= nil and call(N.itemArea, entry.id) or nil
-        end
-        if areaName and M.AREAS[areaName] and covered[areaName] == nil then
-            if entry.hidden then
-                covered[areaName] = false; hidden = hidden + 1
-            else
-                local name = self:itemName(entry.id, player)
-                if name then covered[areaName] = name; shown = shown + 1 else unplaced = unplaced + 1 end
-            end
-        else
-            unplaced = unplaced + 1
-        end
-    end
-    if shown + hidden == 0 then
-        covered = {}
-        return finish('wardrobe outfit=' .. label .. ' items=0 unplaced=' .. unplaced .. ' via=' .. via)
-    end
-    return finish('wardrobe outfit=' .. label .. ' items=' .. shown .. (hidden > 0 and (' hidden=' .. hidden) or '') .. ' via=' .. via)
+    local line, failed = fromSet()
+    if next(covered) ~= nil then return finish(line) end
+    local visuals = fromVisuals()
+    if visuals then return finish(visuals) end
+    if failed then self:logWardrobe(line); return covered end
+    return finish(line)
 end
 
 function Instance:read()
