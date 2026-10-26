@@ -93,6 +93,9 @@ Reworked the same day after a second live run: the first version never wrote a `
   `EquipmentSystemPlayerData.GetActiveWardrobeSet() -> ref<ClothingSet>`, `.IsWardrobeEnabled() -> Bool`, `.GetVisualItemInSlot(area) -> ItemID`;
   `WardrobeSystem.GetActiveClothingSet() -> ref<ClothingSet>` (also `GetActiveClothingSetIndex()`, `GetClothingSets()`, `GetStoredItemIDs()`);
   `GameInstance.GetWardrobeSystem(game) -> ref<WardrobeSystem>`; static `EquipmentSystem.GetActiveWardrobeSet(player)` and `EquipmentSystem.GetActiveWardrobeSetID(player)`.
+  `EquipmentSystemPlayerData.m_clothingVisualsInfo: array<SSlotVisualInfo>`, `.GetSlotOverridenVisualItem(area) -> ItemID`, `.IsVisualSetActive() -> Bool`,
+  `.IsClothingVisualsInfoEmpty() -> Bool` (checked by compiling a probe against a copy of `final.redscripts`; `GetActiveVisualItem`, `GetActiveWardrobeSetID`, `IsVisualItemInSlot` and
+  `GetClothingSetChanged` do not exist on the player data).
   `IsWardrobeSetActive` and `FindWardrobeClothingSetByID` (on those classes) do not exist. The function bodies are not on disk, so what `INVALID` / nil mean for "no set" is a guess:
   both are treated as no set.
 - **What is read.** `IsWardrobeEnabled()` first (false: no outfit, a quest has disabled the Wardrobe). Then the routes in order until one returns a set:
@@ -100,15 +103,21 @@ Reworked the same day after a second live run: the first version never wrote a `
   `EquipmentSystem.GetActiveWardrobeSet(V)` (static). Each entry of `clothingList` is placed by its own `areaType` (by the item record's equipment area when that is unreadable) and
   named like every gear item. An entry with `isHidden` leaves its slot empty (the equipped item under it is not described). A slot the set does not list keeps the visible or
   equipped item as before. A set with no placeable entry counts as no set.
+- **Per-slot visual overrides (2026-10-26).** The first live run (outfit applied from the Wardrobe menu, V visibly wearing it) logged `wardrobe outfit=off` with no error: every set
+  route answered "no set" and the inventory clothes were described. When no set places anything, the reader now takes the player data's per-slot overrides: first the field
+  `data.m_clothingVisualsInfo` (rows `{areaType, visualItem, isHidden}`; it is the only source of hidden slots), and when the binding cannot read it or it yields nothing, the getter
+  `data:GetSlotOverridenVisualItem(area)` for each clothing area (an empty ItemID means no override). A row with a visual item replaces the slot's clothes; `isHidden` leaves the slot
+  empty; a row with neither (or an area with no override) keeps the visible or equipped item. A set that places items still wins. A disabled Wardrobe skips this too.
 - **Log.** `probe.log`, on the first read and then once per change:
   `wardrobe outfit=<set index name> items=N [hidden=K] via=<route>`, `wardrobe outfit=off`, `wardrobe outfit=off (disabled)`,
-  `wardrobe outfit=<set> items=0 unplaced=N via=<route>`, or, when every route failed, `wardrobe outfit=error(<call>: <message>; ...)`.
+  `wardrobe outfit=<set> items=0 unplaced=N via=<route>`, `wardrobe outfit=visuals items=N [hidden=K] via=m_clothingVisualsInfo` or `via=GetSlotOverridenVisualItem`, or, when every route failed, `wardrobe outfit=error(<call>: <message>; ...)`.
   Failures of earlier routes are appended to a line as ` errors=<call>: <message>`.
 - **Next live run.** With an outfit applied, ask the companion what V wears: `probe.log` must show `wardrobe outfit=Slot1 items=N via=...` and the answer must follow the outfit.
-  `error(...)` shows which call to fix. `off` with an outfit visibly on means the routes answered "none" and the set must come from elsewhere (`m_clothingVisualsInfo`, the
-  player data's list of the visuals on V, has the same `SSlotVisualInfo` rows).
+  `error(...)` shows which call to fix. `wardrobe outfit=visuals items=N ...` is the expected line now. `off` (with ` errors=m_clothingVisualsInfo: ...; GetSlotOverridenVisualItem: ...` when the reads
+  failed) with an outfit visibly on means the overrides are empty too: the outfit would then be a tag-driven visual change (`m_visualTagProcessingInfo`), not read yet.
 - **Not confirmed in the game:** that the CET binding exposes `GameInstance.GetWardrobeSystem` / `Game.GetWardrobeSystem`, that `clothingList` and the struct fields read from CET as
-  tables, and that `enum.value` gives the name (`Slot1` to `Slot7` or `INVALID`, `OuterChest`).
+  tables, and that `enum.value` gives the name (`Slot1` to `Slot7` or `INVALID`, `OuterChest`), that `data.m_clothingVisualsInfo` (a private field) is readable from CET and that the Wardrobe menu's
+  outfit lands in it (otherwise the getter is the fallback and says the same).
 
 ## Install
 
@@ -119,7 +128,7 @@ CET reload for `mod/player-gear.lua` (new), `mod/init.lua`, `mod/group-chat.lua`
 
 `bridge/player-gear.test.mjs`: parsing and the cap, the wording and guidance line, `parseInput` and `conversationContext`
 integration, the Lua reader against a fake game (visible-over-equipped, skipped empty slots, one read per window, failures
-contained), the game's Wardrobe against a strict fake of the real call shape (instance, static and GameInstance calls, the log line for each outcome), and the wiring of each send path.
+contained), the game's Wardrobe against a strict fake of the real call shape (instance, static and GameInstance calls, the log line for each outcome, the per-slot visual overrides by field and by getter, hidden and empty rows, set priority, failures), and the wiring of each send path.
 
 
 Only what V has on is ever listed; an empty slot is not mentioned. The guidance (and the stranger's line) also says never to remark on what V is not wearing (2026-10-25: a companion kept saying V wore no mask).

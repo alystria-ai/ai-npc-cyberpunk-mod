@@ -400,10 +400,16 @@ for name, area in pairs(items) do
       return areaRecord end})
   records[name] = record
 end
-local pdState = {wardrobeEnabled = true, set = nil, setFailure = nil, equipped = {['Head#0'] = item('Hat'), ['OuterChest#0'] = item('Jacket'), ['InnerChest#0'] = item('Tee')}, visual = {}}
+local pdState = {wardrobeEnabled = true, set = nil, setFailure = nil, equipped = {['Head#0'] = item('Hat'), ['OuterChest#0'] = item('Jacket'), ['InnerChest#0'] = item('Tee')}, visual = {},
+  overridden = {}, getterFailure = nil}
 local player
 local pd
 pd = strict('EquipmentSystemPlayerData', {
+  -- The field m_clothingVisualsInfo (array<SSlotVisualInfo>) and the getter GetSlotOverridenVisualItem(area) -> ItemID (the compiler-checked shapes).
+  m_clothingVisualsInfo = {}, -- a test sets it to rows, or to nil: then (strict) the read fails
+  GetSlotOverridenVisualItem = function(self, area) assert(self == pd and area.type == 'gamedataEquipmentArea', 'the getter takes self and the area enum')
+    if pdState.getterFailure then error(pdState.getterFailure) end
+    return pdState.overridden[area.value] end,
   GetVisualItemInSlot = function(self, area) assert(self == pd and area.type == 'gamedataEquipmentArea'); return pdState.visual[area.value] end,
   GetItemInEquipSlot = function(self, area, index) assert(self == pd and area.type == 'gamedataEquipmentArea'); return pdState.equipped[area.value .. '#' .. index] end,
   IsWardrobeEnabled = function(self) assert(self == pd); return pdState.wardrobeEnabled end,
@@ -479,4 +485,56 @@ test('default adapter, real call shape: no active set is "off", a hidden slot is
   EquipmentSystem = strict('EquipmentSystem class', {GetActiveWardrobeSet = function() error('static boom') end})
   assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
   assert(last() == 'wardrobe outfit=error(data:GetActiveWardrobeSet: boom; Game.GetWardrobeSystem: Game.GetWardrobeSystem is not exposed; GameInstance.GetWardrobeSystem: gi boom; EquipmentSystem.GetActiveWardrobeSet: static boom)', last())
+`));
+
+// 2026-10-26 live: an outfit applied from the Wardrobe menu was on V, every set route answered "no set" (probe.log `wardrobe outfit=off`) and the inventory clothes were described.
+// The outfit is in the player data's per-slot visual overrides.
+test('default adapter, real call shape: no set from any route, an outfit in m_clothingVisualsInfo is what V wears', () => real$(`
+  pd.m_clothingVisualsInfo = {slot('OuterChest', 'Coat'), slot('Head', 'Cap'), slot('InnerChest', nil, false)}
+  local snap = gear:capture()
+  -- An empty, not hidden override keeps the equipped item; the rest follows the overrides.
+  assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat,innerTorso=Tee', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=visuals items=2 via=m_clothingVisualsInfo', last())
+  -- A hidden slot shows nothing, whatever is equipped under it.
+  pd.m_clothingVisualsInfo = {slot('Head', nil, true), slot('OuterChest', 'Coat')}
+  assert(names(fresh().clothing) == 'outerTorso=Coat,innerTorso=Tee', names(gear.snapshot.clothing))
+  assert(last() == 'wardrobe outfit=visuals items=1 hidden=1 via=m_clothingVisualsInfo', last())
+  -- Nothing overridden: the equipment as before, logged as "off" without an error.
+  pd.m_clothingVisualsInfo = {}
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
+  assert(last() == 'wardrobe outfit=off', last())
+  -- A line is written once per change.
+  local count = #lines; fresh(); assert(#lines == count + 1, 'only the gear line is new')
+`));
+
+test('default adapter, real call shape: a field the binding cannot read falls back to GetSlotOverridenVisualItem(area)', () => real$(`
+  pd.m_clothingVisualsInfo = nil
+  pdState.overridden = {OuterChest = item('Coat'), Head = item('Cap')}
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat,innerTorso=Tee', names(snap.clothing))
+  assert(last():find('^wardrobe outfit=visuals items=2 via=GetSlotOverridenVisualItem errors=m_clothingVisualsInfo: '), last())
+  -- Neither read works: the equipment as before, both failures in the log.
+  pdState.getterFailure = 'getter boom'; pdState.overridden = {}
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
+  assert(last():find('^wardrobe outfit=off errors=m_clothingVisualsInfo: .*; GetSlotOverridenVisualItem: getter boom$'), last())
+  -- Every set route failing as well: the error line.
+  pdState.setFailure = 'boom'; pdState.noGameSystem = true
+  GameInstance = strict('GameInstance', {GetWardrobeSystem = function() error('gi boom') end})
+  EquipmentSystem = strict('EquipmentSystem class', {GetActiveWardrobeSet = function() error('static boom') end})
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
+  assert(last():find('^wardrobe outfit=error%(data:GetActiveWardrobeSet: boom;'), last())
+`));
+
+test('default adapter, real call shape: the set wins over the visuals, and a disabled Wardrobe ignores them', () => real$(`
+  pd.m_clothingVisualsInfo = {slot('Head', 'Cap')}
+  pdState.set = {setID = {value = 'SET_2'}, clothingList = {slot('OuterChest', 'Coat')}}
+  assert(names(gear:capture().clothing) == 'head=Hat,outerTorso=Coat,innerTorso=Tee')
+  assert(last() == 'wardrobe outfit=SET_2 items=1 via=data:GetActiveWardrobeSet', last())
+  -- A set with nothing placeable does not hide the visuals.
+  pdState.set = {setID = {value = 'SET_2'}, clothingList = {}}
+  assert(names(fresh().clothing) == 'head=Cap,outerTorso=Jacket,innerTorso=Tee')
+  assert(last() == 'wardrobe outfit=visuals items=1 via=m_clothingVisualsInfo', last())
+  pdState.wardrobeEnabled = false
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee')
+  assert(last() == 'wardrobe outfit=off (disabled)', last())
 `));
