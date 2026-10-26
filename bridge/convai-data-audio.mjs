@@ -30,7 +30,9 @@ export function validRateHint(hint) {
   return hint && Number.isInteger(hint.declared) && hint.declared >= 8000 && hint.declared <= 96000 && STANDARD_RATES.includes(hint.actual) && hint.actual !== hint.declared
     ? {declared: hint.declared, actual: hint.actual} : null;
 }
-const ownerFields = ['response_id', 'neurosync_turn_id', 'epoch'];
+// How many empty responses one turn may leave behind before the next owner change fails it (a stream of empty responses is not a reply on its way).
+const MAX_EMPTY_RESPONSES = 3;
+const ownerFields =['response_id', 'neurosync_turn_id', 'epoch'];
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 
@@ -135,6 +137,8 @@ export class ConvaiDataAudio {
       throw Error('Invalid Convai audio limits');
     this.maxSeconds = maxSeconds; this.maxBytes = maxBytes;
     this.retiredOwners = retiredOwners.map(getOwner);
+    // Responses of this turn that ended with no audio and were left behind (closeEmptyResponse). The caller retires them with the turn's own owner.
+    this.closedOwners = []; this.audioAtEnd = null;
     this.parts = []; this.byteCount = 0; this.packetCount = 0;
     this.pcmCursor = 0; this.drainedFrames = 0;
     this.frames = new Map(); this.facialDiagnostic = null;
@@ -189,6 +193,21 @@ export class ConvaiDataAudio {
       + `${this.stats ? 'its statistics' : 'no statistics'}, ${this.terminal ? 'its end' : 'no end'}`;
   }
 
+  // The active response has ended cleanly (an uninterrupted end message) and delivered no audio and no statistics: nothing of it can be played. Audio that arrived after its end
+  // (`audioAtEnd` is the packet count at that moment) is not its own, so it does not count against it.
+  endedWithoutAudio() {
+    return !!this._owner && !!this.terminal && !this.stats && this.audioAtEnd === 0;
+  }
+
+  // Close the empty active response: its owner is remembered (its late messages are ignored here and by the turns after this one, see closedOwners) and the state of its
+  // end and faces is dropped, so the next response starts from nothing. Audio held since the end stays: it carries no owner and belongs to the next response.
+  closeEmptyResponse() {
+    this.closedOwners.push({...this._owner});
+    this._owner = null; this.terminal = null; this.audioAtEnd = null;
+    this.frames.clear(); this.fps = null; this.facialDiagnostic = null;
+    delete this.timing.firstFaceMs; delete this.timing.completeFaceMs;
+  }
+
   accept(input, {kind, atMs} = {}) {
     if (this.error || this.sealed) return false;
     try {
@@ -204,8 +223,14 @@ export class ConvaiDataAudio {
         // ownership or completion proof. Only owned lifecycle messages matter.
         if (!hasOwner(owner) && ['bot-started-speaking', 'bot-stopped-speaking'].includes(data.type)) return false;
         if (!hasOwner(owner)) return this.fail('Convai speech metadata has no response owner');
-        if (this.retiredOwners.some(retired => sameOwner(retired, owner))) return false;
-        if (this._owner && !sameOwner(this._owner, owner)) return this.fail(`Convai replaced the active speech owner (${this.ownerChange(owner, data.type)})`);
+        if (this.retiredOwners.some(retired => sameOwner(retired, owner)) || this.closedOwners.some(closed => sameOwner(closed, owner))) return false;
+        if (this._owner && !sameOwner(this._owner, owner)) {
+          // The active response ended with no audio (2026-10-25: a microphone turn whose first response was empty, then a second one with the speech): it can never become ready, so it is
+          // closed and this owner is judged like the first one of a turn (not retired, not closed). Any other owner change, one before the active response ended included, still fails.
+          if (!this.endedWithoutAudio() || this.closedOwners.length >= MAX_EMPTY_RESPONSES)
+            return this.fail(`Convai replaced the active speech owner (${this.ownerChange(owner, data.type)})`);
+          this.closeEmptyResponse();
+        }
         this._owner = {...this._owner, ...owner};
       }
       switch (data.type) {
@@ -215,7 +240,7 @@ export class ConvaiDataAudio {
         case 'bot-turn-completed':
           if (data.was_interrupted !== false || data.was_aborted === true)
             return this.fail('Convai speech turn was interrupted or aborted');
-          this.terminal = {atMs}; break;
+          this.terminal = {atMs}; this.audioAtEnd ??= this.packetCount; break;
         case 'neurosync-blendshapes-cancel': return this.fail('Convai cancelled the active facial/audio response');
       }
       this.validateTotals();

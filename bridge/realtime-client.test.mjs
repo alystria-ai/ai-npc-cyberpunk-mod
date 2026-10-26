@@ -2161,3 +2161,77 @@ test('the relay starts playing only once the SDK has published its track, so the
   assert.ok(events.indexOf('relay-start') > events.indexOf('microphone'), 'after the microphone publication: ' + JSON.stringify(events));
   await api.close();
 });
+
+// 2026-10-25 reports (four installs, microphone turns on Convai voice): the first response of a turn ended with no audio, and the second one, with another id, was refused and failed the turn.
+// A response that ended empty is closed; the next one is judged like the first of a turn; what belongs to no turn is still refused.
+const emptyEnd = (id = 'empty-1') => wire({type: 'bot-turn-completed', response_id: id, sequence: 4, was_interrupted: false});
+
+test('a response that ends with no audio does not refuse the next one: the turn is answered by the second response', async () => {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const pending = api.reply(config); pending.catch(() => {});
+  await flush();
+  const client = clients[0], audio = audioFixture();
+  client.data(emptyEnd());
+  client.data(audio.faces); client.data(audio.pcm()); client.data(audio.stats); client.data(audio.terminal);
+  finalText(client, 'Hello V.');
+  const result = await pending;
+  assert.equal(result.text, 'Hello V.'); assert.deepEqual(Buffer.from(result.audio, 'base64').subarray(44), audio.samples);
+  await api.close();
+});
+
+test('two quick turns on one connection: the empty response of the first and the late tail of both are never adopted by the second', async () => {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const first = api.reply(config); first.catch(() => {});
+  await flush();
+  const client = clients[0], one = audioFixture({sequence: 1}), two = audioFixture({sequence: 2});
+  client.data(emptyEnd('empty-1'));
+  sendAudio(client, one); finalText(client, 'First.', 'reply-1');
+  assert.equal((await first).text, 'First.');
+  const second = api.reply({...config, text: 'Again'}); second.catch(() => {});
+  await flush();
+  // late messages of the first turn: its empty response and its own response. They are ignored, not taken as the second turn's owner.
+  client.data(emptyEnd('empty-1')); client.data(one.terminal); client.data(one.stats);
+  client.data(emptyEnd('empty-2'));
+  sendAudio(client, two); finalText(client, 'Second.', 'reply-2');
+  const result = await second;
+  assert.equal(result.text, 'Second.');
+  assert.deepEqual(Buffer.from(result.audio, 'base64').subarray(44), two.samples);
+  await api.close();
+});
+
+test('the empty response of a turn does not let a response of an earlier turn speak: a different owner after the next one took over still fails', async () => {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const pending = api.reply(config); pending.catch(() => {});
+  await flush();
+  const client = clients[0], audio = audioFixture({sequence: 1}), stray = audioFixture({sequence: 7});
+  client.data(emptyEnd());
+  client.data(audio.faces);
+  client.data(stray.terminal);
+  await assert.rejects(pending, /replaced the active speech owner/);
+  await api.close();
+});
+
+test('an empty response is not a reply: the turn fails only at the real timeout, and a cancel ends it at once', async () => {
+  let now = 0;
+  const {api, clients} = fixture({clock: {now: () => now}});
+  await api.warm(config);
+  const waiting = api.reply(config); waiting.catch(() => {});
+  await flush();
+  clients[0].data(emptyEnd()); finalText(clients[0], 'Hello V.');
+  await new Promise(done => setTimeout(done, 120));
+  now = 59000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(await Promise.race([waiting.then(() => 'done', () => 'failed'), flush().then(() => 'pending')]), 'pending', 'still waiting before the limit');
+  now = 61000;
+  await assert.rejects(waiting, /Convai did not finish the reply/);
+  await api.close();
+  const cancelled = fixture({clock: {now: () => 0}});
+  await cancelled.api.warm(config);
+  const turn = cancelled.api.reply(config); turn.catch(() => {});
+  await flush();
+  cancelled.clients[0].data(emptyEnd());
+  await cancelled.api.close();
+  await assert.rejects(turn, /cancelled/);
+});

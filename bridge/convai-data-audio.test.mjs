@@ -160,6 +160,87 @@ test('cross-epoch reused response ID does not pass owner matching', () => {
   assert.throws(() => feed(c, terminal({epoch: 2}), 1), /replaced the active speech owner/);
 });
 
+// 2026-10-25 reports (microphone turns on Convai voice, four installs): the first response of a turn ended with no audio, a second one with another id then carried the speech.
+const empty = {response_id: 'empty-response'};
+const emptyEnd = (own = empty, extra = {}) => wire({type: 'bot-turn-completed', ...own, sequence: 5, was_interrupted: false, ...extra});
+const spoken = c => { feed(c, face(), 10); feed(c, pcm(), 20); feed(c, stats(), 30); feed(c, terminal(), 40); return c; };
+
+test('a response that ended with no audio is closed: the next response is adopted like the first of a turn and the turn completes', () => {
+  const c = new ConvaiDataAudio(); feed(c, emptyEnd(), 1);
+  assert.equal(c.ready, false);
+  spoken(c);
+  assert.equal(c.ready, true);
+  assert.deepEqual(c.owner, owner); assert.deepEqual(c.closedOwners, [empty]);
+  assert.deepEqual(readPcmWav(Buffer.from(c.finish().audio, 'base64')).data, samples);
+  // the same through a response whose first message is a bare end with another id (response_id only, as in the reports)
+  const bare = new ConvaiDataAudio(); feed(bare, emptyEnd(), 1); feed(bare, terminal({sequence: 6}), 2);
+  assert.deepEqual(bare.owner, owner); assert.equal(bare.ready, false);
+});
+
+test('an empty response closed this way is never adopted again, and its late messages are ignored without failing the turn', () => {
+  const c = new ConvaiDataAudio(); feed(c, emptyEnd(), 1); feed(c, face(), 2);
+  assert.equal(feed(c, emptyEnd(empty, {sequence: 6}), 3), false, 'a late repeat of the closed response');
+  assert.equal(feed(c, wire({type: 'bot-stopped-speaking', ...empty}), 3), false);
+  assert.equal(c.error, null); assert.deepEqual(c.owner, owner);
+  feed(c, pcm(), 4); feed(c, stats(), 5); feed(c, terminal(), 6);
+  assert.equal(c.ready, true);
+  // a later turn told about the closed owner (the caller retires it) ignores it instead of adopting it
+  const next = new ConvaiDataAudio({retiredOwners: [owner, ...c.closedOwners]});
+  assert.equal(feed(next, emptyEnd(), 1), false); assert.equal(next.owner, null);
+});
+
+test('the empty response\'s faces and end are dropped; audio that came after its end belongs to the next response', () => {
+  const c = new ConvaiDataAudio(); feed(c, face(0, 6, {...empty, neurosync_turn_id: 9}), 1); feed(c, emptyEnd(), 2);
+  feed(c, pcm(), 3); // ownerless: it is not the empty response's, which had no packets when it ended
+  assert.equal(c.endedWithoutAudio(), true, 'audio after the end does not make the empty response audible');
+  feed(c, face(), 4);
+  assert.equal(c.frames.size, 24, 'only the next response\'s faces');
+  assert.equal(c.drainPcm().length, 1);
+  feed(c, stats(), 5); feed(c, terminal(), 6);
+  assert.equal(c.ready, true); assert.equal(c.finish().faces.length, 24);
+});
+
+test('an owner change is still fatal when the active response has not ended, has audio, or has its statistics', () => {
+  const noEnd = new ConvaiDataAudio(); feed(noEnd, face(0, 6, empty), 1);
+  assert.throws(() => feed(noEnd, face(), 2), /replaced the active speech owner/);
+  const audible = new ConvaiDataAudio(); feed(audible, face(), 1); feed(audible, pcm(), 2); feed(audible, terminal(), 3);
+  assert.throws(() => feed(audible, emptyEnd(), 4), /replaced the active speech owner.*1 audio packets, no statistics, its end/);
+  const counted = new ConvaiDataAudio(); feed(counted, face(), 1); feed(counted, stats(), 2); feed(counted, terminal(), 3);
+  assert.throws(() => feed(counted, emptyEnd(), 4), /replaced the active speech owner/);
+  // audio that arrived before the empty response ended is its own
+  const early = new ConvaiDataAudio(); feed(early, pcm(), 1); feed(early, emptyEnd(), 2);
+  assert.throws(() => feed(early, face(), 3), /replaced the active speech owner/);
+});
+
+test('a retired owner is still ignored and an unknown one still fails after an empty response: matching is unchanged', () => {
+  const c = new ConvaiDataAudio({retiredOwners: [other]}); feed(c, emptyEnd(), 1);
+  assert.equal(feed(c, stats({}, other), 2), false, 'late metadata of an earlier turn is ignored');
+  assert.equal(c.owner.response_id, empty.response_id, 'and does not become the owner');
+  spoken(c);
+  assert.equal(c.ready, true);
+  // after the next response took over, a third owner is fatal (this one is active and not empty)
+  const third = new ConvaiDataAudio(); feed(third, emptyEnd(), 1); feed(third, face(), 2);
+  assert.throws(() => feed(third, terminal({response_id: 'third-response', neurosync_turn_id: 3}), 3), /replaced the active speech owner/);
+});
+
+test('empty responses are bounded: a stream of them is not a reply on its way', () => {
+  const c = new ConvaiDataAudio();
+  for (let index = 0; index < 4; index++) feed(c, emptyEnd({response_id: 'empty-' + index}), index);
+  assert.equal(c.closedOwners.length, 3);
+  assert.throws(() => feed(c, emptyEnd({response_id: 'empty-4'}), 5), /replaced the active speech owner/);
+});
+
+test('an interrupted or cancelled response is a failure, not an empty one; an empty response never completes a turn alone', () => {
+  for (const end of [emptyEnd(empty, {was_interrupted: true}), wire({type: 'neurosync-blendshapes-cancel', ...empty})]) {
+    const c = new ConvaiDataAudio();
+    assert.throws(() => feed(c, end, 1), /interrupted|aborted|cancelled/);
+    assert.throws(() => feed(c, face(), 2) || c.finish(), /interrupted|aborted|cancelled/);
+  }
+  const alone = new ConvaiDataAudio(); feed(alone, emptyEnd(), 1);
+  assert.throws(() => alone.finish(), /not delivered/); assert.equal(alone.ready, false);
+  alone.abort('cancelled'); assert.throws(() => alone.finish(), /cancelled/);
+});
+
 test('ownerless terminal is rejected; source PCM itself need not carry an owner', () => {
   const c = new ConvaiDataAudio(); feed(c, pcm());
   assert.throws(() => feed(c, wire({type: 'bot-turn-completed', was_interrupted: false}), 1), /no response owner/);

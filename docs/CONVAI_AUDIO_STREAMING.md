@@ -165,6 +165,16 @@ native cursor. Valid quiet articulation is not gated to neutral by RMS.
   completion. Statistics or TTS-stop alone are not proof that all audio arrived.
 - Require the exact declared PCM byte total. Format changes, interruption,
   inconsistent ownership, oversized output and missing data fail the turn.
+- A response that ends cleanly with no audio and no statistics (a microphone turn
+  whose first response is empty, then a second one carries the speech: four
+  installs, 25 Oct 2026) is closed when another owner arrives. That owner is
+  judged like the first of a turn: adopted unless it is a retired or closed owner.
+  The closed owner joins the retired ones at the end of the turn, so a late
+  message of it is ignored in this turn and in the next, never adopted. Every
+  other owner change still fails the turn: before the active response ended, after
+  it had audio or statistics, after three empty responses. Interruption and
+  cancellation still fail. An empty response alone never completes a turn; only
+  the collection timeout ends it.
 - Cancellation or failed collection discards the page before another turn.
   This prevents untagged late audio entering a new conversation.
 - Bounds: 120 seconds, 24 MB PCM, reliable wire messages below 1 MB.
