@@ -44,6 +44,24 @@ test('the world rules reach Convai in the dynamic info the turn already sends: a
   await api.close(); await assert.rejects(pending, /cancelled/);
 });
 
+test('why the game offers no ride reaches Convai in the dynamic info, after the game facts, only when the bridge sent it', async () => {
+  const note = '\nCurrent game-verified limit: you cannot drive V anywhere right now (no destination is marked on the map; V has to mark one first). ';
+  const {api, events} = fixture();
+  await api.warm(config);
+  const pending = api.reply({...config, context: 'CURRENT PERSON\nQuest facts here.', driveLimit: note}); pending.catch(() => {});
+  await flush();
+  const row = events.find(event => event[0] === 'context')[1];
+  assert(row.text.indexOf('Quest facts here.') < row.text.indexOf('you cannot drive V anywhere'));
+  assert(row.text.endsWith(note), 'no ride is offered: the note is in the context update');
+  await api.close(); await assert.rejects(pending, /cancelled/);
+  const plain = fixture();
+  await plain.api.warm(config);
+  const second = plain.api.reply({...config, context: 'CURRENT PERSON\nQuest facts here.', driveLimit: ''}); second.catch(() => {});
+  await flush();
+  assert.doesNotMatch(plain.events.find(event => event[0] === 'context')[1].text, /cannot drive/, 'ordinary talk carries nothing');
+  await plain.api.close(); await assert.rejects(second, /cancelled/);
+});
+
 function manualTimers() {
   let now = 0, nextId = 0;
   const pending = new Map();

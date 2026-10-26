@@ -100,7 +100,7 @@ import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-
 import {RelationshipRouting, retireRelationshipConnections} from './relationship-routing.mjs';
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
-import {CompanionActions} from './companion-actions.mjs';
+import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
 import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
@@ -1560,6 +1560,8 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   ...textProviderContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input), local: localTurn(input),
+  // Convai offers no action the game did not offer, so it needs telling why a ride is not possible when V asks for one (the text routes' notes say it themselves).
+  ...(input.reaction ? {} : {driveLimit: driveLimitNote(input.driveUnavailable, input.text)}),
   // A line prepared beside another (startAhead): the text route sends it as the lowest-priority work and never starts it ahead of a turn of V's.
   ...(preparedRequests.has(input.requestId) ? {prepared: true} : {}),
   ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),

@@ -947,7 +947,9 @@ async function updateContext(config, allowActions = false, seen = false) {
     text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
       + 'Use only explicitly supplied current-save facts for quest progress and relationships. '
       + 'Any relationship state not explicitly supplied is unknown; do not infer it from character presence or past sessions. '
-      + (config.context || 'This is a private conversation with V.') + (seen ? VISION_NOTE : '')};
+      + (config.context || 'This is a private conversation with V.') + (seen ? VISION_NOTE : '')
+      // Why the game offers no ride, on a turn where V may be asking for one (bridge/companion-actions.mjs driveLimitNote).
+      + (typeof config.driveLimit === 'string' ? config.driveLimit : '')};
   const baseContext = context.text;
   const manual = allowActions && !config.reaction && !config.freshSession && typeof config.endUserId === 'string';
   const privateManual = manual && /^private(?::|$)/.test(config.scope || '');
