@@ -13,7 +13,8 @@ M.LANE_PATIENCE = 2       -- seconds a new car may take to report that it stands
 M.BOARD_TIMEOUT = 20
 M.DRIVE_CAP = 240
 M.STALL_WINDOW = 25       -- seconds without 2 m of progress on the road
-M.STOP_DISTANCE = 10      -- she has arrived when the car is this close to the road end point and slower than STOP_SPEED
+M.STALL_WALK = 40         -- a car that stalls this close to the road end point is not given up: it stops there and she walks the rest
+M.STOP_DISTANCE = 7       -- she has arrived when the car is this close to the road end point and slower than STOP_SPEED
 M.STOP_SPEED = 0.8
 M.BRAKE_TIMEOUT = 8
 M.EXIT_TIMEOUT = 16
@@ -115,6 +116,10 @@ function M.sequencer(api)
             if state == 'failed' then return 'failed', 'The car could not drive there.' end
             if not car.bestGap or gap < car.bestGap - 2 then car.bestGap, car.bestAt = gap, now end
             if now - car.bestAt > M.STALL_WINDOW or now - car.driveStart > M.DRIVE_CAP then
+                if gap <= M.STALL_WALK then
+                    enter(car, 'braking', now)
+                    return true
+                end
                 return 'failed', 'The car is stuck on the way.'
             end
             return true

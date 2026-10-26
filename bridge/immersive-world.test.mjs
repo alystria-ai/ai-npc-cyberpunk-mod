@@ -74,7 +74,7 @@ test('an empty engine struct (point 0,0,0, pathLength -1) falls to the traffic c
   fake.vehicles = {
     {id = 'far', x = 100, y = 380, lane = true},                    -- 180 m: outside the census
     {id = 'near', x = 130, y = 200, lane = true, hx = 0, hy = 3},   -- 30 m, heading north (not normalised)
-    {id = 'crowd', x = 100, y = 140, crowd = true, speed = 6, noState = true},  -- 60 m, moving crowd car, state unreadable
+    {id = 'crowd', x = 100, y = 140, crowd = true, speed = 6, noState = true, hx = 1, hy = 0},  -- 60 m, moving crowd car, state unreadable
     {id = 'parked', x = 105, y = 205, lane = false},                -- parked: not a lane
     {id = 'slow', x = 90, y = 210, crowd = true, speed = 0.5},      -- a crowd car that stands: not a lane
     {id = 'mine', x = 101, y = 201, lane = true, mine = true},      -- V's own car
@@ -91,8 +91,18 @@ test('an empty engine struct (point 0,0,0, pathLength -1) falls to the traffic c
   assert(fake.request.trail ~= nil and fake.request.destination.x == 130)
 `));
 
+test('the road end point is the point of the lane nearest to V, not the traffic car itself', () => run(`
+  fake.vehicles = {
+    {id = 'ahead', x = 130, y = 230, lane = true, hx = 1, hy = 0},   -- 42 m away, on a street running east-west 30 m north of V
+    {id = 'cross', x = 160, y = 200, lane = true, hx = 0, hy = 1},   -- the crossing street runs through x = 160: 60 m from V
+  }
+  local result = here()
+  assert(result.roadHow == 'traffic' and math.abs(result.road.x - 100) < 1e-6 and math.abs(result.road.y - 230) < 1e-6, result.road.x .. ',' .. result.road.y)
+  assert(result.roadNote:find('lane point 30 m'), result.roadNote)
+`));
+
 test('a lane too far to walk from is not the road end point, but still offers its lane for the car spot', () => run(`
-  fake.vehicles = {{id = 'a', x = 100, y = 290, lane = true}}   -- 90 m
+  fake.vehicles = {{id = 'a', x = 100, y = 290, lane = true, hx = 1, hy = 0}}   -- 90 m, on a street running east-west
   local result = here()
   assert(result.roadHow == 'guess' and result.road.x == 100 and result.road.y == 200, tostring(result.roadHow))
   assert(result.roadNote:find('traffic=1/1 nearest 90 m'), result.roadNote)

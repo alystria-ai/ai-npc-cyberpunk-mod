@@ -11,6 +11,7 @@ local TRAIL_LIMIT, TRAIL_STEP, TRAIL_SPEED = 40, 30, 6
 local TRAIL_NEAR = 150            -- a road V drove along this close to V is a road nearby
 local TRAFFIC_RADIUS, TRAFFIC_SPEED = 120, 3   -- traffic cars this near V are looked for; a crowd car this fast is on a lane even when it does not say so
 local TRAFFIC_KEEP = 6
+local LANE_REACH = 36             -- a lane is taken as straight this far along its car's heading (the reach of the car spot candidates)
 
 local WAYPOINT_LANDMARK_RADIUS = 250   -- the nearest fast travel point within this far names the place
 local WAYPOINT_NEAR_V = 150            -- a waypoint this close to V is worded with V's own district
@@ -265,8 +266,18 @@ function M.new(deps)
         note = (note or '') .. ' traffic=' .. tostring(count) .. '/' .. #found
             .. (found[1] and string.format(' nearest %.0f m', math.sqrt((found[1].x - from.x) ^ 2 + (found[1].y - from.y) ^ 2)) or '')
             .. (failed and (' (' .. failed .. ')') or '')
-        if found[1] and math.sqrt((found[1].x - from.x) ^ 2 + (found[1].y - from.y) ^ 2) <= ROAD_MAX_WALK then
-            return {x = found[1].x, y = found[1].y, z = found[1].z}, 'traffic', why, note
+        -- The road end point is the point of a lane nearest to V (a lane runs along its car's heading), not the car itself: the car is a snapshot
+        -- of somewhere along the road, and parking at it left her up to a street away from V (live 2026-10-26: 18 m, plus the stop radius).
+        local best, bestGap
+        for _, lane in ipairs(found) do
+            local t = math.max(-LANE_REACH, math.min(LANE_REACH, (from.x - lane.x) * lane.hx + (from.y - lane.y) * lane.hy))
+            local at = {x = lane.x + lane.hx * t, y = lane.y + lane.hy * t, z = lane.z}
+            local gap = math.sqrt((at.x - from.x) ^ 2 + (at.y - from.y) ^ 2)
+            if not bestGap or gap < bestGap then best, bestGap = at, gap end
+        end
+        if best and bestGap <= ROAD_MAX_WALK then
+            note = note .. string.format(' lane point %.0f m', bestGap)
+            return best, 'traffic', why, note
         end
         local cross, crossNote = intersectionRoad(from)
         note = note .. ' ' .. crossNote
