@@ -34,28 +34,28 @@ const TIME_ASK = /\b(?:what time|the time|time is it|o'?clock|clock|hour|hours|l
 // V's words ask about what is playing or on (the radio, a song, the TV): the music and TV line then comes again even though the conversation heard it before.
 // Live 2026-10-25: told once on the first turn, it was gone on the next, so a companion asked "what song is this?" knew nothing. In doubt it says yes: one more short sentence.
 const MEDIA_ASK = /\b(?:songs?|music|musical|radio|tunes?|tracks?|playing|plays|listen\w*|stations?|channels?|tv|television|telly|screen|news|broadcast|dj|band|artist|singer|singing|sings|lyrics|album|beat|hear|hearing|sound|sounds|volume|what's on|whats on)\b|(?<![\p{L}\p{N}])(?:m[uú]sica|musique|musik|canci[oó]n|chanson|canzone|piosenk|muzyk|p[eě]sni|zene|м[ую]зык|песн|пісн|m[uü]zik|[sş]ark[iı]|r[aá]dio)|音楽|歌|曲|音乐|广播|テレビ|电视|노래|음악|라디오/iu;
-// V's words ask about themself: how they look or seem, whether they are all right, or a bodily need (hungry, thirsty, tired, eat, drink, sleep). A companion who has V's state
+// V's words ask about themself: how they look or seem, whether they are all right, or a bodily need (hungry, thirsty, tired, eat, drink, sleep), or the state of their body ("can you see information on the state of my body", live 2026-10-26: not recognised, answered "I'm not a med-scanner"). A companion who has V's state
 // (Settings > Dynamic info > Other mods' state) then hears it again even though the conversation was told it before: live 2026-10-26, V hungry in Dark Future, a few turns of
 // "how do I look" and "do I seem okay", and Alex never said it. Convai's context is replaced on every turn (bridge/realtime-client.mjs updateContext), so a fact told on an earlier
 // turn is simply gone from the next one. In doubt it says yes: one more short sentence, and only when there is a state to tell. English whole words and phrases; the menu languages
 // (cs de es fr hu it ja ko pl pt ru tr uk zh) by stems, the CJK scripts by the character.
-const SELF_ASK_EN = /\b(?:how (?:do|does|did|would|will) (?:i|it|that|this) (?:look|seem|sound|appear|feel)|how am i|how'?s it look|do i (?:look|seem|sound|appear)|am i (?:ok|okay|alright|all right|fine|good|well|tired|hungry|thirsty|sick|hurt|exhausted|sleepy)|what do i look like|looking (?:ok|okay|alright|fine|rough|tired|pale|terrible|awful|bad|like hell)|hungry|thirsty|starving|starved|famished|tired|exhausted|sleepy|drowsy|eat|eating|food|drink|drinking|sleep|nap|holding up)\b/i;
+const SELF_ASK_EN = /\b(?:how (?:do|does|did|would|will) (?:i|it|that|this) (?:look|seem|sound|appear|feel)|how am i|how'?s it look|do i (?:look|seem|sound|appear)|am i (?:ok|okay|alright|all right|fine|good|well|tired|hungry|thirsty|sick|hurt|exhausted|sleepy)|what do i look like|looking (?:ok|okay|alright|fine|rough|tired|pale|terrible|awful|bad|like hell)|hungry|thirsty|starving|starved|famished|tired|exhausted|sleepy|drowsy|eat|eating|food|drink|drinking|sleep|nap|holding up|(?:state|condition|shape|status|health|vitals?|wellbeing|well-being) of (?:my|me)|my (?:state|condition|shape|status|health|vitals?|body|stats|stomach|energy|appearance)|(?:see|sees|seeing|notice|noticed|noticing|spot|sense|detect|scan|scanning|diagnose|examine|inspect|check)(?:\s+\w+){0,4}?\s+(?:me|myself)|wrong with me|what'?s up with me|(?:anything|something) (?:wrong|off|different) (?:with|about) me|how do you find me|how (?:are|is) (?:things|everything) with me|how i'?m (?:doing|looking|holding)|feel(?:ing)? (?:\w+ )?(?:rough|weak|dizzy|faint|off|sick|ill|awful|terrible|drained|wiped|sluggish|lightheaded|tired|hungry|thirsty|exhausted|empty|hollow|bad|strange|odd)|dizzy|faint|drained|wiped|sluggish|lightheaded|peckish|snack|meal|breakfast|lunch|dinner|bite to eat|something to (?:eat|drink)|need (?:a )?(?:rest|break|nap|meal|food|drink|water|coffee))\b/i;
 const SELF_ASK_STEMS = [
-  /c[oó]mo me (?:ves|veo)|me veo|parezco|estoy (?:bien|mal)|hambre|sed\b|cansad|agotad|sue[nñ]o\b|comer|beber|dormir|descans/,   // es
-  /como (?:eu )?pare[cç]o|como estou|estou (?:bem|mal)|fome|sede\b|exaust|sono\b|dormir|descans/,   // pt
-  /comment (?:je|tu me|vous me)|j'ai l'air|ai-je l|faim\b|soif|fatigu|[eé]puis|manger|boire|sommeil|dormir|reposer/,   // fr
-  /wie sehe ich|sehe ich|wie geht es mir|hunger|hungrig|durst|m[uü]de|ersch[oö]pft|essen\b|trinken|schlaf|ausruhen/,   // de
-  /come (?:sembro|mi vedi|sto\b|appaio)|sembro|ho (?:fame|sete|sonno)|fame\b|sete\b|stanc|esaust|mangiar|bere\b|dormire|riposar/,   // it
-  /jak wygl[aą]dam|wygl[aą]dam|g[lł]odn|spragnion|zm[eę]czon|wyczerpan|je[sś][cć]\b|pi[cć]\b|spa[cć]\b|odpoczy/,   // pl
-  /jak vypad[aá]m|vypad[aá]m|hladov|[zž][ií]zniv|unaven|vy[cč]erpan|j[ií]st\b|p[ií]t\b|sp[aá]t\b|odpo[cč]/,   // cs
-  /hogy n[eé]zek ki|n[eé]zek ki|[eé]hes|szomjas|f[aá]radt|kimer[uü]lt|enni\b|inni\b|aludni|pihen/,   // hu
-  /как я выгляжу|выгляж|я в порядке|голод|хочу (?:есть|пить|спать)|жажд|уста[лв]|измотан|поесть|выпить|отдох/,   // ru
-  /як я виглядаю|виглядаю|голод|спраг|втом|виснаж|їсти\b|пити\b|спати\b|відпоч/,   // uk
-  /nas[iı]l (?:g[oö]r[uü]n[uü]yorum|duruyorum)|g[oö]r[uü]n[uü]yorum|a[cç][iı]m|a[cç][iı]kt|susad|yorgun|bitkin|uyku|yemek|i[cç]mek|dinlen/,   // tr
+  /c[oó]mo me (?:ves|veo)|me veo|parezco|estoy (?:bien|mal)|hambre|sed\b|cansad|agotad|sue[nñ]o\b|comer|beber|dormir|descans|mi cuerpo|mi estado|estado de mi|c[oó]mo estoy|me (?:ves|ve|notas|nota)\b|mala cara|aspecto/,   // es
+  /como (?:eu )?pare[cç]o|como estou|estou (?:bem|mal)|fome|sede\b|exaust|sono\b|dormir|descans|meu corpo|meu estado|estado do meu|como estou|me v[eê]s?\b|minha apar[eê]ncia|cara de/,   // pt
+  /comment (?:je|tu me|vous me)|j'ai l'air|ai-je l|faim\b|soif|fatigu|[eé]puis|manger|boire|sommeil|dormir|reposer|mon corps|mon [eé]tat|[eé]tat de mon|tu me vois|vous me voyez|mauvaise mine|bonne mine|mon apparence/,   // fr
+  /wie sehe ich|sehe ich|wie geht es mir|hunger|hungrig|durst|m[uü]de|ersch[oö]pft|essen\b|trinken|schlaf|ausruhen|mein(?:en)? k[oö]rper|mein zustand|zustand meines|siehst du mich|sehen sie mich|sieht man mir|aussehen/,   // de
+  /come (?:sembro|mi vedi|sto\b|appaio)|sembro|ho (?:fame|sete|sonno)|fame\b|sete\b|stanc|esaust|mangiar|bere\b|dormire|riposar|il mio corpo|mio stato|stato del mio|come sto\b|mi (?:vedi|noti|vede|nota)\b|che faccia/,   // it
+  /jak wygl[aą]dam|wygl[aą]dam|g[lł]odn|spragnion|zm[eę]czon|wyczerpan|je[sś][cć]\b|pi[cć]\b|spa[cć]\b|odpoczy|moje cia[lł]o|m[oó]j stan|stan mojego|jak si[eę] czuj|widzisz mnie|wida[cć] po mnie|m[oó]j wygl[aą]d/,   // pl
+  /jak vypad[aá]m|vypad[aá]m|hladov|[zž][ií]zniv|unaven|vy[cč]erpan|j[ií]st\b|p[ií]t\b|sp[aá]t\b|odpo[cč]|m[eé] t[eě]lo|m[uů]j stav|stav m[eé]ho|vid[ií][sš] m[eě]|vid[ií]te m[eě]|na mn[eě] vid[eě]t|jak mi je/,   // cs
+  /hogy n[eé]zek ki|n[eé]zek ki|[eé]hes|szomjas|f[aá]radt|kimer[uü]lt|enni\b|inni\b|aludni|pihen|a testem|[aá]llapotom|l[aá]tsz engem|rajtam|hogy vagyok|hogy [eé]rzem/,   // hu
+  /как я выгляжу|выгляж|я в порядке|голод|хочу (?:есть|пить|спать)|жажд|уста[лв]|измотан|поесть|выпить|отдох|мо[её] (?:состояние|тело)|состояние моего|видишь меня|видно по мне|как я себя чувствую|самочувств/,   // ru
+  /як я виглядаю|виглядаю|голод|спраг|втом|виснаж|їсти\b|пити\b|спати\b|відпоч|мій стан|стан мого|моє тіло|бачиш мене|видно по мені|як я почуваюсь|самопочутт/,   // uk
+  /nas[iı]l (?:g[oö]r[uü]n[uü]yorum|duruyorum)|g[oö]r[uü]n[uü]yorum|a[cç][iı]m|a[cç][iı]kt|susad|yorgun|bitkin|uyku|yemek|i[cç]mek|dinlen|v[uü]cudum|durumum|halim|beni g[oö]r[uü]yor|nas[iı]l hissediyorum/,   // tr
 ];
-const SELF_ASK_CJK = ['見える', '見えて', '大丈夫', 'お腹', '空腹', '喉が', '疲れ', '眠', '食べ', '飲み', '休',   // ja
-  '看起来', '看上去', '我怎么样', '还好吗', '饿', '渴', '累', '疲', '困', '吃', '喝', '睡', '休息', '看起來', '餓', '渴',   // zh
-  '어때 보', '보여', '괜찮', '배고', '목마', '피곤', '졸려', '먹', '마시', '자고', '쉬'];   // ko
+const SELF_ASK_CJK = ['見える', '見えて', '大丈夫', 'お腹', '空腹', '喉が', '疲れ', '眠', '食べ', '飲み', '休', '体', '様子', '顔色', '具合', '調子',   // ja
+  '看起来', '看上去', '我怎么样', '还好吗', '饿', '渴', '累', '疲', '困', '吃', '喝', '睡', '休息', '看起來', '餓', '渴', '身体', '身體', '状态', '狀態', '气色', '氣色', '脸色', '臉色', '看得出',   // zh
+  '어때 보', '보여', '괜찮', '배고', '목마', '피곤', '졸려', '먹', '마시', '자고', '쉬', '몸', '상태', '컨디션', '안색'];   // ko
 const SELF_ASK_OTHERS = new RegExp('(?<![\\p{L}\\p{N}])(?:' + SELF_ASK_STEMS.map(row => row.source).join('|') + ')|' + SELF_ASK_CJK.join('|'), 'iu');
 /** True when V's words ask about themself (how they look, whether they are all right, a bodily need). */
 export const asksAboutSelf = text => { const asked = String(text ?? ''); return SELF_ASK_EN.test(asked) || SELF_ASK_OTHERS.test(asked); };

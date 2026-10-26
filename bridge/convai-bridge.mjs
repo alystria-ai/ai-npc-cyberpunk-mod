@@ -58,7 +58,7 @@ import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
-import {turnContextDiagnostic} from './turn-context.mjs';
+import {turnContextDiagnostic, modsProbeLine} from './turn-context.mjs';
 import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
@@ -2119,7 +2119,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       segments ? encodeSegmentedFace(value) : JSON.stringify(value), options),
     // The game's adapter says how it reads the timeline file: segments (decoded by changed segment), a plain document or not at all.
     faceFile: async () => { const state = await readSpeechStateCached(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
-    writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
+    writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice(), ...dfNote(value?.requestId)}), options),
     // The record is written in the background (still in order): the poll that reads the game's lease does not wait for a 25 KB file.
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
       note(input, {...timing, stream: {mode: engine === 'omni' ? 'omni-continuous' : local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
@@ -2329,7 +2329,7 @@ async function publishResult(input, profile, result, current = async () => true,
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current, signal});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
-    updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+    updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
   commitExchange(input);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
@@ -2852,6 +2852,21 @@ function startAhead(entry) {
 // Runs the turn under its own TurnClock, so every stage the turn reaches (here and in the text route, the voice, the PCM host
 // and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
 // turn is published.
+// Dark Future's state in a turn (docs/DYNAMIC_INFO.md, "Other mods' state"): one compact probe line per turn that carried the game side's note, so a missing remark
+// can be told from a failed read, a switch that is off, a question that was not recognised and a sentence that was not sent. It goes to this log and, in the turn's
+// reply (field `df`), to the game, whose probe.log gets the same line next to "Conversation result". Words only; the newest few turns are kept.
+const dfLines = new Map();
+const dfNote = requestId => dfLines.has(requestId) ? {df: dfLines.get(requestId)} : {};
+function logDarkFuture(input) {
+  try {
+    if (!input || input.reaction || typeof input.requestId !== 'string' || addonHost.usesVoiceContext(input.profileKey)) return;
+    const line = modsProbeLine(input, turnContextOptions(input, isAmbientProfile(input.profileKey)));
+    if (!line) return;
+    dfLines.set(input.requestId, line);
+    while (dfLines.size > 8) dfLines.delete(dfLines.keys().next().value);
+    console.error(`[DarkFuture] ${line}`);
+  } catch { /* a log line never affects a reply */ }
+}
 async function processInput(request, prepared) {
   // A submitted turn (not one prepared ahead) is the bridge's from here, and its status says so at once (the game's probe line a few seconds after a
   // typed turn reads it, mod/service-status.lua receipt): a request that never shows as received was never read. One log line, codes only. Not awaited.
@@ -2859,6 +2874,7 @@ async function processInput(request, prepared) {
   if (!request.lookahead && input) {
     void status('received', '', {requestId: input.requestId, provider: input.provider}).catch(() => {});
     console.error(`[Turn] received ${String(input.requestId).slice(0, 80)} generation=${input.generation}${input.reaction ? ' reaction' : ''}`);
+    logDarkFuture(input);
   }
   return withTurnClock(request, clock => runInput(request, prepared, clock));
 }

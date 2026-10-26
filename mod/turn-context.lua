@@ -364,7 +364,8 @@ Instance.__index = Instance
 --   money      V's money band                                                  about     V's gender and lifepath
 --   lastTalk   the game time in seconds (the bridge keeps when each character was last talked to and words the gap)
 --   media      options.media(player) -> the radio song and the TV near V (mod/media-context.lua)
---   mods       options.mods(player) -> V's state according to other mods (mod/mod-state.lua: Dark Future)
+--   mods       options.mods(player) -> V's state according to other mods (mod/mod-state.lua: Dark Future), and a second answer: the note of what the read found
+--              (snapshot.modsRead); options.modsOff() is called instead while the switch is off (one probe line a session, nothing read)
 -- (V's voice for typed lines still reads V's voice gender and the dialogue volume: they are no part of the words the bridge writes.)
 local KINDS = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
 
@@ -587,8 +588,14 @@ function Instance:read()
         if type(media) == 'table' and next(media) ~= nil then snapshot.media = media; count = count + 1 end
     end
     if wantMods and type(self.options.mods) == 'function' then
-        local mods = call(self.options.mods, player)
+        -- The reader answers the state worth sending (or nothing) and a compact note of what it found; the note is no fact for the model, only for the bridge's
+        -- probe line of the turn (df: ...), so it is not counted as something read.
+        local mods, note = call(self.options.mods, player)
         if type(mods) == 'table' and next(mods) ~= nil then snapshot.mods = mods; count = count + 1 end
+        if type(note) == 'string' and #note <= 160 and note:match('^[a-z0-9=,?%- ]+$') then snapshot.modsRead = note end
+    elseif not wantMods and type(self.options.modsOff) == 'function' then
+        -- Switched off: nothing is read; the reader may say once per session that Dark Future is there and why nothing is told.
+        call(self.options.modsOff)
     end
     local anyOff = not (wantTime and wantPlace and wantAbout and wantCompany and wantCondition and wantMoney and wantLastTalk and wantMedia and wantMods)
     if count == 0 and not (anyOff and (snapshot.voice ~= nil or snapshot.dialogueVolume ~= nil)) then return nil, 'nothing could be read' end

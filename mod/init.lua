@@ -1455,6 +1455,16 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     end}) or nil
 convaiGameDialogue = gameDialogue
 
+-- Whether the Dark Future mod is installed: one lookup of its main system, else of its hydration system (docs/DYNAMIC_INFO.md, "Other mods' state"). A global:
+-- the main chunk is near Lua's limit of locals.
+convaiDarkFuturePresent = function()
+    for _, name in ipairs({'DarkFuture.Main.DFMainSystem', 'DarkFuture.Needs.DFHydrationSystem'}) do
+        local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
+        if ok and system ~= nil then return true end
+    end
+    return false
+end
+
 -- Music and TV, the song (mod/media-song.lua): the game's own song-change events, cached for mod/media-context.lua. Loaded and hooked only
 -- while the switch is on: at start (onInit) when it is on then, else the first time a turn is built with it on. Once hooked, a callback with
 -- the switch off returns after one boolean read. A failed load is not retried. Globals: the main chunk is near Lua's limit of locals.
@@ -1549,23 +1559,40 @@ do
         -- class name or two, pcall'd. Absent: mod-state.lua is never read from disk, and the probe is repeated at most once a minute (it may
         -- not exist yet during a loading screen), so a player without the mod pays one failed lookup a minute while talking and nothing else.
         -- Present: the module is loaded once (a failed load is not retried) and read per turn window.
+        -- The second answer is the compact note of what the read found ("installed=yes read=ok stage=hydration0,nutrition1,..."): it rides the snapshot so the
+        -- bridge's probe line of the turn (df: ...) can say what the game side saw, also when nothing was worth sending.
         mods = function(player)
             if convaiModState == nil then
                 local now = os.time()
                 local probedAt = convaiModStateProbedAt
                 if probedAt ~= nil and now >= probedAt and now - probedAt < 60 then return nil end
                 convaiModStateProbedAt = now
-                local present = false
-                for _, name in ipairs({'DarkFuture.Main.DFMainSystem', 'DarkFuture.Needs.DFHydrationSystem'}) do
-                    local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
-                    if ok and system ~= nil then present = true; break end
-                end
-                if not present then return nil end
+                if not convaiDarkFuturePresent() then return nil end
                 local loaded, module = pcall(dofile, 'mod-state.lua')
                 convaiModState = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
                 if convaiLogLine then convaiLogLine('Mod state: Dark Future found, reader ' .. (convaiModState and 'loaded' or 'failed to load')) end
             end
-            return convaiModState and convaiModState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end) or nil
+            if not convaiModState then return nil, 'installed=yes read=load-failed stage=-' end
+            local state = convaiModState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end)
+            return state, type(convaiModState.note) == 'function' and convaiModState.note() or nil
+        end,
+        -- Other mods' state switched OFF (it is off by default): nothing of Dark Future is read, loaded or told, whatever V asks. When Dark Future is installed a turn of
+        -- the session says so in one probe line, so a missing remark is not mistaken for a failed read. A class lookup at most once a minute and three times a session
+        -- (none after the line is written); no state is read.
+        modsOff = function()
+            if convaiModOffNoted then return end
+            local now = os.time()
+            local at = convaiModOffProbedAt
+            if at ~= nil and now >= at and now - at < 60 then return end
+            convaiModOffProbedAt, convaiModOffProbes = now, (convaiModOffProbes or 0) + 1
+            if convaiDarkFuturePresent() then
+                convaiModOffNoted = true
+                if convaiLogLine then
+                    convaiLogLine("df: installed=yes read=skipped stage=- switch=off asked=? sent=none(Other mods' state is off in Settings > Dynamic info: nothing is read or told, whatever V asks)")
+                end
+            elseif convaiModOffProbes >= 3 then
+                convaiModOffNoted = true
+            end
         end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,
@@ -6804,6 +6831,9 @@ registerForEvent('onUpdate', function(delta)
                     end
                     -- A voice that could not start says why (speech.lua keeps the reason in speech.error), once, on the same line.
                     local why = speech.state == 'playback-failed' and speech.error and (' why=' .. tostring(speech.error):sub(1, 160)) or ''
+                    -- Dark Future's state in this turn (the bridge's probe line: what the game side found, the switch, whether V's words asked about themself, where the
+                    -- state went), next to the result so one grep shows the whole story. Absent unless the game side found Dark Future.
+                    if type(reply.df) == 'string' and reply.df:sub(1, 4) == 'df: ' and #reply.df <= 320 and not pending.reaction then log(reply.df) end
                     local resultLine = 'Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
                         .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why .. faceNote
                     -- A failed turn that fails the same way every time (Local AI not installed, no browser, a key refused) is one console line per

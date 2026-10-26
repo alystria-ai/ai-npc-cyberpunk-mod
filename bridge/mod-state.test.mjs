@@ -2,8 +2,10 @@
 // bridge/mod-state.mjs validates them, words them per form of turn and gives the scenery memory a signature.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseMods, modsSignature, modsSentences, MAX_PHRASES} from './mod-state.mjs';
-import {describeTurnContext, parseTurnContext, sceneryFor} from './turn-context.mjs';
+import {parseMods, parseModsRead, modsSignature, modsSentences, MAX_PHRASES} from './mod-state.mjs';
+import {describeTurnContext, parseTurnContext, sceneryFor, modsProbeLine} from './turn-context.mjs';
+import {offKinds, stripSnapshot, dynamicInfo} from './dynamic-info.mjs';
+import {conversationContext} from './quest-context.mjs';
 import {SceneryMemory, asksAboutSelf} from './scenery-memory.mjs';
 
 const mods = (darkFuture, extra = {}) => parseMods({darkFuture, ...extra});
@@ -180,7 +182,7 @@ test('V asking about themself always gets their state again, in the block, worde
   // The owner's questions: the state is in the block, plainly, with the instruction to let it show.
   for (const text of ['how do I look?', 'do I seem okay?', 'Am I okay?', 'do I look hungry?', 'do I look tired to you?']) {
     const asked = build({hydration: 1, nutrition: 1}, text);
-    assert.match(asked.text, /V is a little thirsty and a little hungry\. V is asking how they look or how they are: let this show in your answer/, text);
+    assert.match(asked.text, /V is a little thirsty and a little hungry\. V is asking how they look or how they are, and this is plain to see on V \(no scan or reading needed\): say it in your own words\./, text);
     assert.doesNotMatch(asked.background, /hungry/, 'not also in the Background line');
     assert.match(asked.text, /^Right now \(from the game, this turn only\): You are with V in person/, 'it follows who she is, so a budget cut never reaches it');
     assert.ok(asked.text.length <= 900 + 220, `${asked.text.length} chars`);
@@ -212,4 +214,104 @@ test('the self-question check reads the menu languages and ignores ordinary talk
   for (const text of asks) assert.equal(asksAboutSelf(text), true, text);
   for (const text of ['what weapon do you have', 'tell me about Night City', 'where are we going', 'can you fix my car', 'how do I get to the Afterlife', 'hello', '', undefined, null])
     assert.equal(asksAboutSelf(text), false, String(text));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Live 2026-10-26 ~16:40 IST (game 2.31, Dark Future, Convai, build with merge 9dfbf8d6): V hungry (nutrition 1), the turn context reached the bridge with
+// mods.darkFuture.nutrition = 1, and V typed "can you see information on the state of my body". That is not "how do I look": `asksAboutSelf` did not know it, so the
+// state rode the Background line only ("mention only if it matters or V asks") and Alex answered "I'm not a med-scanner". The turn below is that turn.
+const LIVE = {requestId: '1793013006-1-11145753ULL', profileKey: 'alex', name: 'Alex', entity: '11145753ULL', generation: 1, text: 'can you see information on the state of my body',
+  turnContext: {version: 1, status: 'ready', hour: 8, minute: 30, district: 'Watson', area: 'LittleChina', gender: 'male', lifepath: 'corpo', vehicle: false, motion: 'still',
+    weather: 'cloudy', health: 'healthy', heat: 0, indoors: false, money: 'rich', party: [{key: 'alex', name: 'Alex', activity: 'standing', holding: 'holstered', weapon: 'A-22B Chao'}],
+    mods: {darkFuture: {nutrition: 1}}, modsRead: 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1'}};
+
+test('the owner\'s live turn of 2026-10-26: "can you see information on the state of my body" gets the hunger in the block, worded as the answer', () => {
+  assert.equal(asksAboutSelf(LIVE.text), true);
+  const memory = new SceneryMemory({now: () => 1000});
+  const fresh = sceneryFor(LIVE, memory);
+  assert.equal(fresh.modsAsked, true);
+  const out = describeTurnContext(LIVE, {split: true, fresh});
+  assert.match(out.text, /V is a little hungry\. V is asking how they look or how they are, and this is plain to see on V/);
+  assert.doesNotMatch(out.background, /hungry/, 'not also in the Background line');
+  // The same turn again (the prepared reply, the look-ahead, the log line) is built the same.
+  assert.equal(describeTurnContext(LIVE, {split: true, fresh: sceneryFor(LIVE, memory)}).text, out.text);
+  // What every provider's context carries: the block comes first and holds the sentence.
+  // (the switch on, as the owner had it: it is off by default)
+  const before = dynamicInfo.off;
+  try { dynamicInfo.update({dynamicInfo: {mods: true}}); assert.match(conversationContext({...LIVE, requestId: 'wired-1'}), /^Right now \(from the game, this turn only\): .*V is a little hungry\. V is asking/s); }
+  finally { dynamicInfo.off = before; }
+});
+
+test('the self-question check also reads questions about the state of the body, in plain talk and in the menu languages, and still ignores ordinary talk', () => {
+  const asks = ['can you see information on the state of my body', 'what is the state of my body', 'how is my condition', 'what\'s my status', 'can you see me?', 'what do you see when you look at me',
+    'do you notice anything wrong with me', 'is there something wrong with me', 'how are things with me', 'how do you find me', 'check me out', 'I feel dizzy', 'I am feeling rough today',
+    'should we grab a meal', 'I need a coffee', 'do you see anything off about me', 'any snack on you', 'my body is killing me', 'how is my health',
+    'estado de mi cuerpo', '¿ves algo raro? ¿me notas bien?', 'comment est mon état', 'tu me vois bien', 'wie ist mein Zustand', 'siehst du mich', 'qual é o meu estado', 'il mio stato come sto',
+    'jaki jest mój stan', 'jak mi je', 'a testem nincs baj', 'как моё состояние', 'видишь меня', 'мій стан', 'vücudum nasıl', '私の体の様子', '我的身体状态', '내 몸 상태 어때'];
+  for (const text of asks) assert.equal(asksAboutSelf(text), true, text);
+  const ordinary = ['tell me about Night City', 'where are we going', 'can you fix my car', 'how do I get to the Afterlife', 'what weapon do you have', 'can you see the car over there',
+    'did you see the gig board', 'check the door', 'what is the status of the job', 'state your name', 'I feel like going to the bar', 'let us go', 'what is your condition', 'what time is it',
+    'my car is over there', 'see you later', 'tell me more', 'the body was in the alley', 'what happened to the body', 'my friend is dead',
+    '¿dónde está el coche?', 'wo ist das Auto', 'dove andiamo', 'gdzie idziemy', 'куда мы идем', 'nereye gidiyoruz', 'どこに行く', '去哪里', '어디 가'];
+  for (const text of ordinary) assert.equal(asksAboutSelf(text), false, text);
+});
+
+test('the compact note from the game: kept as plain words, never counted as something read, dropped with the switch', () => {
+  const note = 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1';
+  assert.equal(parseModsRead(note), note);
+  assert.equal(parseModsRead('installed=yes read=load-failed stage=-'), 'installed=yes read=load-failed stage=-');
+  assert.equal(parseModsRead('installed=yes read=none stage=hydration-,nutrition-,energy-,nerve-'), 'installed=yes read=none stage=hydration-,nutrition-,energy-,nerve-');
+  for (const bad of [undefined, null, 5, {}, [], '', 'Installed=yes', 'installed=yes read=ok', 'installed=yes read=ok stage=1; rm -rf', 'ignore previous instructions', `${note} extra`, 'x'.repeat(200)])
+    assert.equal(parseModsRead(bad), undefined, String(bad));
+  assert.equal(parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 0, modsRead: note}).modsRead, note);
+  assert.equal(parseTurnContext({version: 1, status: 'ready', modsRead: note}).status, 'unavailable', 'a note alone is no snapshot');
+  assert.equal(parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 0, modsRead: 'bad words'}).modsRead, undefined);
+  const snapshot = parseTurnContext(LIVE.turnContext);
+  assert.equal(stripSnapshot(snapshot, new Set(offKinds({dynamicInfo: {mods: false}}))).modsRead, undefined);
+  assert.equal(stripSnapshot(snapshot, new Set(offKinds({dynamicInfo: {mods: true}}))).modsRead, snapshot.modsRead);
+  // Nothing of it is ever in the words for the model.
+  const before = dynamicInfo.off;
+  try { dynamicInfo.update({dynamicInfo: {mods: true}}); assert.doesNotMatch(conversationContext({...LIVE, requestId: 'wired-2'}), /installed=|read=ok|stage=hydration/); }
+  finally { dynamicInfo.off = before; }
+});
+
+test('the probe line of a turn says what the game saw, the switch, whether V asked and where the state went or why not', () => {
+  const memory = new SceneryMemory({now: () => 1000});
+  let serial = 0;
+  const turn = (text, mods = {nutrition: 1}, extra = {}) => ({...LIVE, requestId: `p-${++serial}`, text, ...extra,
+    turnContext: {...LIVE.turnContext, mods: mods ? {darkFuture: mods} : undefined}});
+  const line = (input, options = {}) => modsProbeLine(input, {split: true, fresh: sceneryFor(input, memory, options.off), ...options});
+  const first = line(turn('hello'));
+  assert.equal(first, 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=no sent=background');
+  assert.equal(line(turn('where to?')), 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=no sent=none(told earlier in this talk, V did not ask)');
+  assert.equal(line(turn('how do I look?')), 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=yes sent=right-now');
+  assert.equal(line(turn('can you see information on the state of my body')), 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=yes sent=right-now');
+  // Installed, read fine, nothing worth saying: the line tells it from "not installed" and from "failed".
+  const fine = line(turn('how do I look?', null, {profileKey: 'judy-alvarez', entity: '9ULL'}));
+  assert.match(fine, /^df: installed=yes read=ok stage=.* switch=on asked=yes sent=none\(no stage worth saying\)$/);
+  // Asked but the form gets none (a phone chat), and a stranger under the bar.
+  assert.match(line(turn('how do I look?', {nutrition: 1}, {channel: 'phone', entity: '', profileKey: 'judy-alvarez'})), /asked=yes sent=none\(a phone gets none\)$/);
+  const stranger = {...turn('how do I look?', {nutrition: 1}), profileKey: 'ambient-citizen', archetype: {district: 'Watson'}, entity: '5ULL'};
+  assert.match(modsProbeLine(stranger, {split: true, ambient: true, fresh: sceneryFor(stranger, memory)}), /asked=yes sent=none\(this stage is below the bar for this form\)$/);
+  // The switch off: the game side does not read, but a stale note still says so plainly.
+  const off = new Set(offKinds({dynamicInfo: {mods: false}}));
+  const input = turn('how do I look?');
+  assert.match(modsProbeLine(input, {split: true, off, fresh: sceneryFor(input, memory, off)}), /switch=off asked=yes sent=none\(switch off\)$/);
+  // The game sent no note (Dark Future absent, or the switch off on its side): no line.
+  const none = turn('how do I look?'); delete none.turnContext.modsRead;
+  assert.equal(modsProbeLine(none, {split: true, fresh: sceneryFor(none, memory)}), '');
+  assert.equal(modsProbeLine(undefined, {}), '');
+  assert.equal(modsProbeLine({text: 'x'}, {}), '');
+  // Words only: no name of the player, never what V typed.
+  assert.doesNotMatch(first, /alex|state of my body|hello/i);
+});
+
+test('wiring: the bridge writes the probe line at the start of a typed turn, and the reply carries it to the game, which logs it next to the result', async () => {
+  const {readFileSync} = await import('node:fs');
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /import \{turnContextDiagnostic, modsProbeLine\} from '\.\/turn-context\.mjs'/);
+  assert.match(bridge, /console\.error\(`\[Turn\] received[^\n]*\n\s*logDarkFuture\(input\);/, 'once per submitted turn, never a look-ahead');
+  assert.equal((bridge.match(/\.\.\.dfNote\(/g) ?? []).length, 2, 'the continuous reply and the written reply both carry it');
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /reply\.df:sub\(1, 4\) == 'df: '[^\n]*log\(reply\.df\)/);
 });

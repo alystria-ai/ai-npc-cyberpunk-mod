@@ -35,6 +35,14 @@ const SUBSTANCE_WORDS = {alcohol: 'alcohol', nicotine: 'nicotine', narcotic: 'na
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const whole = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 
+/**
+ * The compact note of what the game side found (mod/mod-state.lua note(): "installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1"), kept only when it
+ * is plain words and digits. It is no fact for the model: it is the first half of the turn's probe line (bridge/turn-context.mjs modsProbeLine). undefined otherwise.
+ */
+export function parseModsRead(value) {
+  return typeof value === 'string' && value.length <= 160 && /^installed=(?:yes|no) read=[a-z-]+ stage=[a-z0-9,?-]+$/.test(value) ? value : undefined;
+}
+
 /** The snapshot's `mods` table from mod/mod-state.lua, validated; undefined when absent, malformed or empty. */
 export function parseMods(value) {
   if (!plain(value) || !plain(value.darkFuture)) return undefined;
@@ -100,5 +108,15 @@ export function modsSentences(mods, form) {
  */
 export function modsAskedSentences(mods, form) {
   const sentences = modsSentences(mods, form);
-  return sentences.length ? [...sentences, 'V is asking how they look or how they are: let this show in your answer, in your own words.'] : [];
+  // Live 2026-10-26 ("can you see information on the state of my body"): a companion answered "I'm not a med-scanner" with the state in the Background line. So the
+  // answer is said to be plain to see, nothing to scan or read, and to be given in the character's own words.
+  return sentences.length ? [...sentences, 'V is asking how they look or how they are, and this is plain to see on V (no scan or reading needed): say it in your own words.'] : [];
+}
+
+/** What became of V's state in this turn, for the probe line: where it went, or why it did not. `said`: the sentences for this form; `known`: the snapshot carried a state. */
+export function modsDisposition({asked, said, known, told, split, form}) {
+  if (asked && said) return 'right-now';
+  if (said) return told ? 'none(told earlier in this talk, V did not ask)' : split ? 'background' : 'right-now';
+  if (form !== 'person' && form !== 'head' && form !== 'ambient') return `none(a ${form} gets none)`;
+  return known ? 'none(this stage is below the bar for this form)' : 'none(no stage worth saying)';
 }
