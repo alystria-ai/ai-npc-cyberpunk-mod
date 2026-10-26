@@ -288,7 +288,7 @@ export class TokenSource {
     if (this.lastKind === 'daily') return new TurnLimitError('daily');
     // The backend's per-address token limit is a sign-in state, not "turns are coming too quickly" (that is the local guard's own
     // message, bridge/shared-key-guard.mjs): it carries the sign-in marker so the game says Convai sign-in is unavailable.
-    if (this.lastKind === 'rate') return Object.assign(Error('Convai sign-in is rate limited by the sign-in backend [convai-auth:rate]'), {authKind: 'rate'});
+    if (this.lastKind === 'rate') return Object.assign(Error('Convai sign-in is rate limited by the sign-in backend [convai-auth:rate]'), {authKind: 'rate', ...(this.#cause ? {authCause: this.#cause} : {})});
     // authCause (a code like ENOTFOUND, see networkCause) is not in the message: the message is what the error report's signature is made
     // of, so the cause rides in the report's detail (bridge/error-events.mjs turnFailed) and one signature keeps counting every case.
     return Object.assign(Error(`Convai sign-in is unavailable (${this.lastKind ?? 'not answered yet'}) [convai-auth:${this.lastKind ?? 'pending'}]`),
@@ -422,7 +422,9 @@ export class TokenSource {
     const {kind, data, cause, altCause, via} = outcome;
     const now = this.now();
     this.lastKind = kind;
-    this.#cause = kind === 'unreachable' && typeof cause === 'string' ? cause : '';
+    // 'unreachable': the network code. 'rate': which limit the backend named (RATE_ADDRESS or RATE_INSTALL), so a report says whose limit fired.
+    this.#cause = kind === 'unreachable' && typeof cause === 'string' ? cause
+      : kind === 'rate' && (data?.limit === 'address' || data?.limit === 'install') ? `RATE_${data.limit.toUpperCase()}` : '';
     this.#altCause = typeof altCause === 'string' && /^[A-Za-z][A-Za-z0-9_-]{1,39}$/.test(altCause) ? altCause : '';
     // The backend that really answered (anything but a failure to answer) is asked first from now on.
     if (via !== undefined && via !== this.#preferred && !TokenSource.#silent(outcome)) {

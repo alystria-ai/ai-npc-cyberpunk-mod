@@ -10,7 +10,7 @@ const text = raw => String(raw ?? '').trim();
 
 export const DEFAULTS = Object.freeze({
   installPerHour: 12,
-  ipPerHour: 20,
+  ipPerHour: 60,
   newInstallsPerIpPerDay: 5,
   mintsPerDay: 500,
   dailyTurnCap: 100,

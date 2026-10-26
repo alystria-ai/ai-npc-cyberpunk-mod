@@ -67,6 +67,9 @@ The player's words showed as a subtitle, no reply came, and the game said "Micro
    no final transcript or reply exists 4 s after the finish (`HEARD_WITHOUT_FINAL_MS`, `bridge/realtime-client.mjs`), the heard words are sent to the character once as the player's line, and the turn goes
    on. They are not recorded as `userText` (a partial transcript is still never taken for what V said). Nothing changes when the final transcript arrives in time, and a recording with no heard words
    still fails as no speech after 15 s.
+5. **A tiny final transcript and no reply (error signature `cbb775b3`, 20 reports, all voice-key or voice-activation turns).** Convai wrote down 1 to 3 characters (a cough, a click) and never
+   answered. Owner decision 2026-10-26: a microphone turn whose final transcript is 1 to 3 characters and that has no reply text and no thinking 15 s after the transcript last changed ends as
+   "No speech was heard" (`TINY_TRANSCRIPT_CHARACTERS`, `bridge/realtime-client.mjs`), so no 60 s wait and no report. Typed turns and longer transcripts keep the 60 s rule.
 
 ## Why the device takes so long to open (measured 2026-10-23, game closed, `scripts/Measure-ColdOpen.mjs`)
 

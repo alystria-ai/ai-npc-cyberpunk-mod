@@ -165,11 +165,11 @@ test('offloadThreads: about half the physical cores (a quarter of the logical pr
   assert.deepEqual([offloadThreads(1), offloadThreads(undefined), offloadThreads(NaN)], [2, 2, 2]);
 });
 
-test('offloadRamNeedMiB: the part of the model and its cache that stays on the processor plus 1 GiB; nothing when it is all on the card or the share or size is unknown', () => {
-  assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 2582}), Math.ceil(2582 + 310 + 1024), 'all on the processor: the file, 12% for the cache, the headroom');
-  assert.equal(offloadRamNeedMiB({share: 0.5, sizeMiB: 5400}), Math.ceil(0.5 * (5400 + 648) + 1024));
-  assert.equal(offloadRamNeedMiB({share: 0.9, sizeMiB: 1000}), Math.ceil(0.1 * (1000 + 300) + 1024), 'the cache is at least 300 MiB');
-  assert.equal(offloadRamNeedMiB({share: 0, projectedMiB: 3271}), Math.ceil(3271 + 393 + 1024), 'no file size: the projection stands in');
+test('offloadRamNeedMiB: the part of the model and its cache that stays on the processor plus the 512 MiB headroom; nothing when it is all on the card or the share or size is unknown', () => {
+  assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 2582}), Math.ceil(2582 + 310 + 512), 'all on the processor: the file, 12% for the cache, the headroom');
+  assert.equal(offloadRamNeedMiB({share: 0.5, sizeMiB: 5400}), Math.ceil(0.5 * (5400 + 648) + 512));
+  assert.equal(offloadRamNeedMiB({share: 0.9, sizeMiB: 1000}), Math.ceil(0.1 * (1000 + 300) + 512), 'the cache is at least 300 MiB');
+  assert.equal(offloadRamNeedMiB({share: 0, projectedMiB: 3271}), Math.ceil(3271 + 393 + 512), 'no file size: the projection stands in');
   for (const unknown of [offloadRamNeedMiB({share: 1, sizeMiB: 2582}), offloadRamNeedMiB({share: null, sizeMiB: 2582}), offloadRamNeedMiB({share: 0.4}), offloadRamNeedMiB({})]) assert.equal(unknown, null);
 });
 

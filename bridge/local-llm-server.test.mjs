@@ -1422,12 +1422,12 @@ test('a spilled model that was fitted once and spills again, with no smaller mod
   assert.deepEqual([h.calls.length, serverAlive(h.calls[1]), h.failures, h.server.status().state], [2, true, [], 'ready']);
 });
 
-test('the low-RAM gate of a load with part of the model on the CPU, at the numbers of the 014a3be6 / 316c6d2b installs: the CPU part of the 5,088 MiB Mature model needs 6,723 MiB at 0% on the card, nothing less starts', async t => {
-  // 5,088 MiB file, 0% of the layers on the card: 5,088 + 610 (the cache, 12% of the weights) + 1,024 MiB kept for the game and Windows = 6,723 MiB. Free system memory is "available" memory (it already
+test('the low-RAM gate of a load with part of the model on the CPU, at the numbers of the 014a3be6 / 316c6d2b installs: the CPU part of the 5,088 MiB Mature model needs 6,211 MiB at 0% on the card, nothing less starts', async t => {
+  // 5,088 MiB file, 0% of the layers on the card: 5,088 + 610 (the cache, 12% of the weights) + 512 MiB kept for the game and Windows = 6,211 MiB (the headroom was 1,024 MiB, 6,723 MiB, until 0.3.2). Free system memory is "available" memory (it already
   // counts the file cache), so the gate is not conservative on that account: the whole file has to be resident for a CPU-only read. The 072bc3 install (32 GB, 5,793 free) was 930 MiB short and the
   // 16 GB installs (870 to 5,439 free) 1,300 to 5,800 MiB short; none of them would have run, so the thresholds stand and the fix is to not unload the model that answered.
   const {offloadRamNeedMiB} = await import('./local-vram-fit.mjs');
-  assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 5088, projectedMiB: 3520}), 6723);
+  assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 5088, projectedMiB: 3520}), 6211);
   assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 2582, projectedMiB: 3271}) < 4200, true);
   const need = share => offloadRamNeedMiB({share, sizeMiB: 5088, projectedMiB: 3520});
   assert.deepEqual([need(0.3) < need(0), need(0.5) < need(0.3), need(1)], [true, true, null]);
@@ -1436,10 +1436,10 @@ test('the low-RAM gate of a load with part of the model on the CPU, at the numbe
     await h.server.ensure().catch(() => {});
     return h;
   };
-  const refused = await start(6722);
+  const refused = await start(6210);
   assert.deepEqual([refused.failures, refused.calls.length], [[{reason: 'start-failed', detail: 'low-ram'}], 0]);
-  assert.ok(refused.logs.some(line => /about 6723 MiB of system memory are needed for its CPU part and cache, 6722 MiB are free/.test(line)), refused.logs.join('\n'));
-  const allowed = await start(6723);
+  assert.ok(refused.logs.some(line => /about 6211 MiB of system memory are needed for its CPU part and cache, 6210 MiB are free/.test(line)), refused.logs.join('\n'));
+  const allowed = await start(6211);
   assert.deepEqual([allowed.failures, allowed.calls.length], [[], 1]);
 });
 
