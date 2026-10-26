@@ -141,9 +141,59 @@ seem okay?" had nothing to say: she did not mention it. Now, when V's words ask 
 thirsty, tired, eat, drink, sleep; the English phrases and the stems of the 14 other menu languages, `asksAboutSelf` in `bridge/scenery-memory.mjs`; in doubt it says
 yes, since it costs one sentence and only when there is a state to tell), the scenery memory returns `modsAsked`, and `bridge/turn-context.mjs` puts the state in the
 right-now block itself, right after who she is and where (the same spot as an appointment, so a budget cut never reaches it), not in the Background line that says
-"mention only if it matters": "V is a little thirsty and a little hungry. V is asking how they look or how they are: let this show in your answer, in your own
-words." (`modsAskedSentences` in `bridge/mod-state.mjs`). The same forms get it as before (a companion, Johnny in V's head, a stranger's visible half); a phone chat, a call
+"mention only if it matters": "V is a little thirsty and a little hungry. V is asking how they look or how they are, and this is plain to see on V (no scan or
+reading needed): say it in your own words." (`modsAskedSentences` in `bridge/mod-state.mjs`; the "plain to see" half was added on 2026-10-26 after a companion
+answered "I'm not a med-scanner"). The same forms get it as before (a companion, Johnny in V's head, a stranger's visible half); a phone chat, a call
 and an add-on voice still get nothing; with nothing to tell, nothing is said however V asks. The next plain turn is quiet again.
+
+**Why the second live test failed too** (fix/df-hunger-3, 2026-10-26 ~16:40 IST, build with merge 9dfbf8d6, game 2.31). The evidence, from the 2.31 copy's `probe.log`
+and `runtime/last-input.json`: Dark Future was found and read (`Mod state: Dark Future found, reader loaded`, nine `... system found as DarkFuture.Needs.DFNutritionSystem`
+and so on, `Mod state: dark-future hydration=0 nutrition=1 energy=0 nerve=1 ...` at 11:10:06Z), the switch was on (`[DynamicInfo] all on`; `dynamicInfo.mods` true in
+`settings.json`), and the state reached the bridge (`turnContext.mods.darkFuture.nutrition` = 1 in `last-input.json`). What V typed was **"can you see information on the
+state of my body"**, which is not "how do I look": `asksAboutSelf` had no word for the state or the body of V, so `modsAsked` was false, the state rode the Background line
+only ("mention only if it matters or V asks": "V is a little hungry.") on that first turn, and Alex answered "I can see you're standing there, but I'm not a med-scanner."
+So the read, the value and the switch were fine; the question was not recognised, and a state told only as background is not enough for a model that takes the question for
+a technical one. Nothing was wrong with the thresholds either: in Dark Future 2.0.3 (`Needs/DFNeedSystemBase.reds`, `GetNeedStageImpl`) the stages split a need that runs
+from 100 (fine) to 0 at the deficits 15, 25, 50 and 75 (settings `basicNeedThresholdValue1..4` = 85, 75, 50, 25), so stage 1 is a need between 75 and 85: the point where the mod
+itself shows its first status effect, and where the owner was already hungry.
+
+The fix: (1) `asksAboutSelf` now also knows "the state / condition / shape / status / health / vitals of my ...", "my body / state / condition / stomach / energy ...", a
+perception verb with V as its object ("can you see me", "do you notice anything wrong with me", "check me out"), "what's wrong with me", "how do you find me", "I feel
+dizzy / rough / drained", meals and "I need a coffee", and the matching stems for the 14 other menu languages and the CJK scripts (`bridge/mod-state.test.mjs`: 36 asking
+phrases and 29 ordinary ones that must not match: "can you see the car", "check the door", "what is the status of the job", "state your name"); (2) the answer sentence says the
+state is plain to see; (3) one probe line per turn explains what happened (below).
+
+**The probe line** (`df:`). Every typed turn whose snapshot carries the game side's note gets one line in `probe.log`, next to `Conversation result`, and in the bridge log
+as `[DarkFuture] df: ...`:
+
+```
+df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=yes sent=right-now
+```
+
+| Field | Meaning |
+| --- | --- |
+| `installed=` | the game side found Dark Future (`yes`); `read=` `ok` (some system answered), `none` (installed but none of the nine state systems could be found: names changed), `failed` (no scriptable-systems container), `load-failed` (`mod-state.lua` did not load) |
+| `stage=` | the raw stages the game side read: the four needs always (`?` unknown or not running, `-` system not found), an addiction (its withdrawal level) or a condition only while it is not 0 |
+| `switch=` | Settings > Conversations > Dynamic info > Other mods' state, as the bridge sees it |
+| `asked=` | V's words asked about themself (`asksAboutSelf`), whatever the state |
+| `sent=` | `right-now` (in the block, worded as the answer), `background` (the Background line), or `none(reason)`: `told earlier in this talk, V did not ask`, `no stage worth saying`, `this stage is below the bar for this form` (a stranger under stage 3, or nerve under 3), `a phone gets none` (a call, a voice), `switch off` |
+
+The bridge writes it when a submitted turn starts (`logDarkFuture` in `bridge/convai-bridge.mjs`, never for a look-ahead, a reaction or an add-on voice), keeps the newest eight in
+a map, and adds it to the turn's reply as the field `df` (both reply writers); the game's reply handler (`mod/init.lua`) writes it with `log()` before `Conversation result`. No new
+file, no new poll, and nothing per frame. Without the note (Dark Future absent, or the switch off on the game side) there is no line.
+
+**The switch is off by default, and a direct question does not override it.** The one thing the owner could not tell from the old log was whether the switch was on. With it off,
+the game side does not read Dark Future, `mod-state.lua` is never loaded and the snapshot has no `mods`, however V asks ("do I look hungry?" included): the switch is the
+player's own choice about what other mods may tell a character, and the page says the mod stops reading it. What changed is that the reason is visible: with the switch off and
+Dark Future installed, the first turn built says so once per session, in one line (`modsOff` in `mod/init.lua`, a class lookup at most once a minute and three times a session,
+none once the line is written, no state read):
+
+```
+df: installed=yes read=skipped stage=- switch=off asked=? sent=none(Other mods' state is off in Settings > Dynamic info: nothing is read or told, whatever V asks)
+```
+
+**Confirmed live on 2026-10-26 (game 2.31, Dark Future 2.0.3):** CET returns the system for `Get(CName.new('DarkFuture.Needs.DFNutritionSystem'))` and dispatches `:GetNeedStage()` on it
+(the nine `system found as` lines and the raw stages in `probe.log`); `GetNeedStage` is a `final` method of the need base class and works all the same.
 
 **Not verified** (the live check in the captain's log): that a build of Dark Future for game 2.5 exists and keeps these names (none was published on 2026-10-25:
 the GitHub releases end at 2.0 for game 2.31, 2026-01-06; the Nexus page answered 403 to a plain fetch, but its Files tab, read in a browser on 2026-10-25 without logging in, lists one main file, 2.0.3-for-2.31 (20 January 2026), and the older 2.0.2, 2.0.1, 2.0.0, 1.4.2 and earlier: no build for game 2.5); that CET returns nil for a class name that does
@@ -152,8 +202,10 @@ not exist; that CET calls `:GetNeedStage()` on the handle `Get()` returns. The f
 `-` the system was not found; the addictions show the withdrawal level), and one line per name that answered or failure kind. The status effects Dark Future applies
 (a gameplay tag per need) were left out as a fallback: they go blank in cutscenes and menus, and no live read showed they are needed.
 
-Tests: `bridge/mod-state.test.mjs` (parsing, wording per form, caps, signature, scenery memory, the self-question case of 2026-10-26 and its 36 phrases in the menu languages, hostile input), `bridge/mod-state-lua.test.mjs` (the reader with a
-fake game: absent, partly present, -1, raising getters, moved class names, the lookup bound, the log lines, and the loader in `init.lua`: absent means never loaded).
+Tests: `bridge/mod-state.test.mjs` (parsing, wording per form, caps, signature, scenery memory, the self-question case of 2026-10-26 and its phrases in the menu languages, the owner's
+live turn of 2026-10-26 rebuilt from `last-input.json`, the probe line in every case, hostile input), `bridge/mod-state-lua.test.mjs` (the reader with a
+fake game: absent, partly present, -1, raising getters, moved class names, the lookup bound, the log lines, a strict fake that mirrors CET and Dark Future's real call shapes
+(colon calls, CName arguments, nil for an unknown class, a missing getter is an error), the note, and the loader in `init.lua`: absent means never loaded, the switch-off line).
 
 ## Time since last talk
 

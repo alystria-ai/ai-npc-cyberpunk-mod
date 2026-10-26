@@ -30,11 +30,11 @@
 // Settings > Dynamic info (bridge/dynamic-info.mjs): `off`, the kinds the player turned off, are taken out of the snapshot before it is worded.
 import {describePlace} from './place-names.mjs';
 import {headOf} from './johnny-head.mjs';
-import {sceneryMemory, asksAboutWeapon} from './scenery-memory.mjs';
+import {sceneryMemory, asksAboutWeapon, asksAboutSelf} from './scenery-memory.mjs';
 import {stripSnapshot, NO_KINDS} from './dynamic-info.mjs';
 import {parseGameTime} from './last-talk.mjs';
 import {parseMedia, mediaSignature, mediaSentences} from './media-context.mjs';
-import {parseMods, modsSignature, modsSentences, modsAskedSentences} from './mod-state.mjs';
+import {parseMods, parseModsRead, modsSignature, modsSentences, modsAskedSentences, modsDisposition} from './mod-state.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
@@ -163,7 +163,7 @@ export function parseTurnContext(value) {
   if (Number.isInteger(value.heat) && value.heat >= 0 && value.heat <= 5) result.heat = value.heat;
   if (Object.hasOwn(MONEY, value.money)) result.money = value.money;
   // Time since the last talk (the game clock in seconds), music and TV, other mods' state: each validated by its own module.
-  const gameTime = parseGameTime(value.gameTime), media = parseMedia(value.media), mods = parseMods(value.mods);
+  const gameTime = parseGameTime(value.gameTime), media = parseMedia(value.media), mods = parseMods(value.mods), modsRead = parseModsRead(value.modsRead);
   if (gameTime !== undefined) result.gameTime = gameTime;
   if (media !== undefined) result.media = media;
   if (mods !== undefined) result.mods = mods;
@@ -193,8 +193,10 @@ export function parseTurnContext(value) {
   // switch off it is all there is, and it still reaches V's voice).
   const volume = typeof value.dialogueVolume === 'number' && Number.isFinite(value.dialogueVolume) && value.dialogueVolume >= 0 && value.dialogueVolume <= 1
     ? {dialogueVolume: value.dialogueVolume} : {};
+  // What the game side found of other mods (mod/mod-state.lua note): the probe line of the turn only, never words for the model and never a fact that counts.
+  const note = modsRead !== undefined ? {modsRead} : {};
   if (Object.keys(result).length <= 2) return {version: 1, status: 'unavailable', ...volume};
-  return {...result, ...volume};
+  return {...result, ...volume, ...note};
 }
 
 export const dayPart = hour => hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
@@ -325,7 +327,9 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   for (const sentence of mediaSentences(snapshot.media, form)) scene('media', sentence);
   // V asking about themself ("how do I look?") gets them in the block itself, worded as the answer, whatever the conversation heard before (bridge/scenery-memory.mjs modsAsked).
   const selfState = fresh.modsAsked === true ? modsAskedSentences(snapshot.mods, form) : [];
-  if (!selfState.length) for (const sentence of modsSentences(snapshot.mods, form)) scene('mods', sentence);
+  const modsSaid = modsSentences(snapshot.mods, form);
+  const modsSent = modsDisposition({asked: selfState.length > 0, said: modsSaid.length > 0, known: snapshot.mods !== undefined, told: fresh.mods === false, split, form});
+  if (!selfState.length) for (const sentence of modsSaid) scene('mods', sentence);
   if (gap && form !== 'ambient') scene('gap', gap);
   // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
   if (ambient && spot && !input.archetype?.district) pushWhere(YOU);
@@ -357,7 +361,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // A stranger hears who V is to them on every turn, with or without other facts: a player report (2026-10-25) had every pedestrian and guard talk as if they knew V.
   // A housemate's note: a named character in person, on a phone or in a call; not a stranger, not Johnny in V's head. Room of its own, like the meeting.
   const housing = !ambient && !head && snapshot.housemate ? housemateSentences(snapshot.housemate, phone) : [];
-  if (!sentences.length && !meeting && !housing.length && !selfState.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
+  if (!sentences.length && !meeting && !housing.length && !selfState.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: '', mods: modsSent} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty', mods: modsSent};
   const prefix = 'Right now (from the game, this turn only): ';
   let suffix = ambient
     ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
@@ -372,8 +376,8 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // Room of its own, right after who she is and where (like the meeting): a budget cut never reaches it.
   if (selfState.length) sentences.splice(Math.min(lead + (meeting ? 1 : 0) + housing.length, sentences.length), 0, ...selfState);
   if (remoteMeeting) suffix = suffix.slice(0, suffix.length - MENTION.length) + MEETING_EXCEPTION + MENTION;
-  if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget'};
-  return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: ''};
+  if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: '', mods: modsSent} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget', mods: modsSent};
+  return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: '', mods: modsSent};
 }
 
 // What a stranger knows of V: nothing, not even the name the prompt uses for the player.
@@ -381,6 +385,20 @@ export const STRANGER_NOTE = 'You have never met V and do not know who V is: "V"
   + 'Never call them V or by any name, and never talk as if you knew them, unless they tell you their name in this talk or the context says you know who they are. You know only what you can see and hear.';
 
 export const turnContext = (input, options) => describeTurnContext(input, options).text;   // options: {ambient, voice, split, fresh}
+
+/**
+ * The probe line of a turn whose snapshot carried the note of Dark Future's reader (mod/mod-state.lua note(): the game side found it installed): what the game side saw,
+ * the Dynamic info switch, whether V's words asked about themself (bridge/scenery-memory.mjs asksAboutSelf, through the `fresh` decision) and where V's state went or why it did
+ * not. "df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=yes sent=right-now". '' when the game sent no note (Dark Future absent or the
+ * switch off: then the game's own probe line says so, once a session). Words only, no names, never what V typed. `options` as describeTurnContext's.
+ */
+export function modsProbeLine(input, options) {
+  const raw = input?.turnContext === undefined ? undefined : parseTurnContext(input.turnContext);
+  if (!raw || raw.status !== 'ready' || raw.modsRead === undefined) return '';
+  const on = !(options?.off ?? NO_KINDS).has('mods');
+  const {mods} = describeTurnContext(input, options);
+  return `df: ${raw.modsRead} switch=${on ? 'on' : 'off'} asked=${asksAboutSelf(input.text) ? 'yes' : 'no'} sent=${on ? mods ?? 'none(no context)' : 'none(switch off)'}`;
+}
 
 // One line per reply for the bridge log (stderr): whether this turn's context carried the block, or why not. Counts only.
 export function turnContextDiagnostic(input, options) {

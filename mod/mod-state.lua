@@ -20,6 +20,9 @@
 -- (not an error) for an unknown class name (pcall covers both), and that it dispatches :GetNeedStage() on the handle Get() returns (the standard
 -- CET behaviour, the same call PreventionSystem:GetHeatStage() makes in turn-context.lua); the first reading logs the names that answered.
 --
+-- Beside the result, `M.note()` answers one compact text of what the last read found (the nine raw stages, or why there were none), which rides the turn
+-- context so the probe line of a turn can say what the game side saw: "installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1" (bridge/mod-state.mjs).
+--
 -- Result: nil, or {darkFuture = {hydration =, nutrition =, energy = (stages 1 to 4), nerve = (stages 3 or 4), injury =, humanity = (levels 3 or 4),
 -- alcohol = {stage =, withdrawal =}, nicotine = ..., narcotic = ... (only while the withdrawal level is 3 or more)}}: only what is known and
 -- worth saying. The bridge (bridge/mod-state.mjs) words it and decides what a character may know.
@@ -49,10 +52,14 @@ M.CONDITIONS = {
     {key = 'humanity', method = 'GetConditionLevel', names = {'DarkFuture.Conditions.DFHumanityLossConditionSystem', 'DFHumanityLossConditionSystem'}},
 }
 
-local state = {memo = {}, logged = {}, last = nil}
+local state = {memo = {}, logged = {}, last = nil, note = nil}
 
 -- Forget what was remembered (a test, or a new save).
-function M.reset() state = {memo = {}, logged = {}, last = nil} end
+function M.reset() state = {memo = {}, logged = {}, last = nil, note = nil} end
+
+-- What the last read found, as one short text for the turn's probe line: the needs always (their raw stage, "?" unknown or not running, "-" system not
+-- found), an addiction or a condition only while it is not 0. Letters, digits, "=", "," and "-" only.
+function M.note() return state.note end
 
 local function integer(value, low, high)
     value = tonumber(value)
@@ -121,7 +128,7 @@ local function shown(value) return value == nil and '?' or tostring(math.floor(v
 -- The state, or nil. `player` is unused (the systems keep V's state themselves); `log(line)` gets one line per distinct reading.
 function M.read(player, log)
     local okContainer, container = pcall(function() return Game.GetScriptableSystemsContainer() end)
-    if not okContainer or container == nil then return nil end
+    if not okContainer or container == nil then state.note = 'installed=yes read=failed stage=-'; return nil end
     local raw = {}          -- everything that was read, for the log line
     local out, any, found = {}, false, 0
     for _, entry in ipairs(M.NEEDS) do
@@ -163,6 +170,12 @@ function M.read(player, log)
     if found == 0 then
         once(log, 'none', 'Mod state: Dark Future was detected but none of its state systems could be found (names changed?)')
     end
+    local parts = {}
+    for _, key in ipairs({'hydration', 'nutrition', 'energy', 'nerve'}) do parts[#parts + 1] = key .. (raw[key] or '-') end
+    for _, key in ipairs({'alcohol', 'nicotine', 'narcotic', 'injury', 'humanity'}) do
+        if raw[key] ~= nil and raw[key] ~= '0' and raw[key] ~= '-' then parts[#parts + 1] = key .. raw[key] end
+    end
+    state.note = 'installed=yes read=' .. (found > 0 and 'ok' or 'none') .. ' stage=' .. table.concat(parts, ',')
     -- One line per distinct reading (raw stages: ? unknown or not running, - system not found; the addictions show the withdrawal level 0 to 5).
     local line = string.format('Mod state: dark-future hydration=%s nutrition=%s energy=%s nerve=%s alcohol=%s nicotine=%s narcotic=%s injury=%s humanity=%s',
         raw.hydration, raw.nutrition, raw.energy, raw.nerve, raw.alcohol, raw.nicotine, raw.narcotic, raw.injury, raw.humanity)
