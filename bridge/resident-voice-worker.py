@@ -304,6 +304,16 @@ def apply_own_priority(environ=None, apply=None):
         return f'[priority] could not be set to {name} ({str(error)[:80]})'
 
 
+def apply_requested_priority(request, apply=None):
+    """The bridge's one command to raise this worker after the title screen ({'op': 'priority', 'level': 'high'}; docs/PROCESS_PRIORITY.md "Start-up"): a worker started
+    while the game was still loading starts at normal, and takes HIGH here once the game has a world. Only 'high' is accepted (never 'below', never REALTIME). Returns the
+    log line in the style of the start-up `[priority]` note, or None for any other level. The bridge sends it once; a repeat is the caller's to ignore."""
+    if request.get('level') != 'high':
+        return None
+    note = apply_own_priority({PRIORITY_VARIABLE: 'high'}, apply)
+    return f'{note} (after the title screen)' if note else None
+
+
 def resolve_worker_paths(root=ROOT, environ=None):
     """Separate immutable package assets from the user's persistent voice data.
 
@@ -595,8 +605,10 @@ class ProfileSession:
     readiness stays bounded and is removed when that actual prompt is evicted;
     no unrequested alias is advertised merely because another key prepared it.
     """
-    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None, evict=None, warm_prompt=None):
+    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None, evict=None, warm_prompt=None, apply_priority=None):
         self.registry, self.render, self.encode, self.send = registry, render, encode, send
+        # apply_priority(class) -> done or (done, error): sets this process's priority class (a test injects one); `priority_raised` keeps the raise to one.
+        self.apply_priority, self.priority_raised = apply_priority, False
         # warm_prompt(file, words) -> milliseconds: builds a reference's conditioning prompt into the prompt cache without rendering anything.
         self.warm_prompt = warm_prompt
         self.model_info, self.memory_info = model_info, memory_info
@@ -721,6 +733,14 @@ class ProfileSession:
             raise ValueError('Invalid voice command')
         if request.get('op') == 'shutdown':
             return False
+        if request.get('op') == 'priority':
+            # Not a request: no id, no frame back (the bridge reads only answers to its requests), no state of the session touched. One line on stderr, once.
+            if not self.priority_raised:
+                note = apply_requested_priority(request, self.apply_priority)
+                if note:
+                    self.priority_raised = True
+                    print(note, file=sys.stderr, flush=True)
+            return True
         request_id, key = request.get('id'), request.get('profile')
         if request.get('op') == 'voices':
             try:

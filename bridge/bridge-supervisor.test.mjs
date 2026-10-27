@@ -118,16 +118,15 @@ test('starts one hidden bridge with the configured paths and stops it gracefully
   }
 });
 
-test('the bridge it starts is set to high priority (never realtime) unless the state folder priority.txt says normal; a refusal changes nothing', async t => {
-  const HIGH = osConstants.priority.PRIORITY_HIGH;
+test('the bridge it starts is left at normal priority (it takes high itself once the game has a world, never realtime) unless the state folder priority.txt says normal; a refusal changes nothing', async t => {
   const f = await fixture(t);
   const calls = [];
   const run = supervise(f, {setPriority: (pid, level) => calls.push([pid, level])});
   await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready');
-  const [pid] = await bridgePids(f.state);
-  assert.deepEqual(calls, [[pid, HIGH]]);
-  assert.notEqual(calls[0][1], osConstants.priority.PRIORITY_HIGHEST);
-  assert.match(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /The bridge runs at high priority/);
+  // The title screen is loading with every core busy: the supervisor sets nothing (27 Oct 2026); the log says what the bridge was given.
+  assert.deepEqual(calls, []);
+  assert.match(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /The bridge starts at normal priority and takes high priority itself once the game has a world/);
+  assert.doesNotMatch(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /The bridge runs at high priority/);
   run.endGame(); await run.done;
   // The player's way back.
   await writeFile(join(f.state, 'priority.txt'), ['# if the game stutters', 'priority = normal', ''].join(String.fromCharCode(10)));
@@ -135,6 +134,8 @@ test('the bridge it starts is set to high priority (never realtime) unless the s
   const second = supervise(f, {setPriority: (pid, level) => calmer.push([pid, level])});
   await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready again');
   assert.deepEqual(calmer, []);
+  const lastLines = (await readFile(join(f.state, 'bridge-service.log'), 'utf8')).split(/\r?\n/).slice(-6).join(' | ');
+  assert.doesNotMatch(lastLines, /takes high priority itself/, 'priority.txt = normal: the bridge is not told it will rise');
   second.endGame(); await second.done;
   await rm(join(f.state, 'priority.txt'), {force: true});
   const refused = supervise(f, {setPriority() { throw Error('access denied'); }});

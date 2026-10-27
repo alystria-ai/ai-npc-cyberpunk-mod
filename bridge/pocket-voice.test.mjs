@@ -5,6 +5,7 @@ import {PassThrough, Writable} from 'node:stream';
 import {resolve, join} from 'node:path';
 import {mkdtempSync, mkdirSync, symlinkSync, realpathSync, rmSync, rmdirSync} from 'node:fs';
 import {tmpdir, constants as osConstants} from 'node:os';
+import {PriorityGate} from './process-priority.mjs';
 import {PocketVoice, validatePocketConfig, POCKET_LIMITS,
   POCKET_SOURCE_REVISION, POCKET_SOURCE_SHA256} from './pocket-voice.mjs';
 
@@ -572,4 +573,73 @@ test('the worker is told the reply level (high by default) and the child is set 
   await refused.client.start();assert.equal(refused.client.loaded,true);
   assert.match(refusedLines.join(''),/priority could not be set to high/);
   await refused.close();
+});
+
+test('title screen: a worker started while the gate is closed starts at normal, is raised once when the game has a world (by pid and by telling it), and a dead or replaced one is never raised',async()=>{
+  const high=osConstants.priority.PRIORITY_HIGH;
+  const gateLog=[];
+  // Closed: no level in the environment, no raise by pid, the log says why.
+  const calls=[],lines=[];
+  const gate=new PriorityGate({open:false,log:line=>gateLog.push(line)});
+  const closed=harness({extra:{gate,onLog:line=>lines.push(line),setPriority:(pid,level)=>calls.push([pid,level])}});
+  await closed.client.start();
+  assert.equal(Object.hasOwn(closed.launches[0].options.env,'CYBERPUNK_CONVAI_WORKER_PRIORITY'),false,'a closed gate starts the worker without the high level');
+  assert.deepEqual(calls,[],'nothing is raised by pid while the gate is closed');
+  assert.match(lines.join(''),/worker started \(pid 987, priority normal until the game has a world\)/);
+  assert.equal(gate.waiting.length,1,'one raise waits for the gate');
+  assert.equal(closed.requests.some(request=>request.op==='priority'),false);
+  // Opens: one by-pid raise and exactly one priority command in the framing of the others (owner included, no request id).
+  gate.open('world');gate.open('again');await tick();
+  assert.deepEqual(calls,[[987,high]]);
+  const told=closed.requests.filter(request=>request.op==='priority');
+  assert.deepEqual(told,[{owner:closed.client.owner,op:'priority',level:'high'}]);
+  assert.equal(Object.hasOwn(told[0],'id'),false,'no request identity');
+  assert.match(lines.join(''),/priority high \(the game has a world\)/);
+  assert.match(gateLog.join(' '),/pocket worker/,'the gate names it');
+  assert.equal(closed.client.failure,undefined);
+  await closed.close();
+  // A worker that exits before the gate opens is not raised, and neither is a closed one.
+  for (const how of ['exit','close']) {
+    const seen=[],gateB=new PriorityGate({open:false});
+    const early=harness({extra:{gate:gateB,setPriority:(pid,level)=>seen.push([pid,level])}});
+    await early.client.start();assert.equal(gateB.waiting.length,1);
+    if (how==='exit') {early.finish(1);await tick();} else await early.close();
+    assert.equal(gateB.waiting.length,0,`${how}: its registration is cancelled`);
+    gateB.open('world');await tick();
+    assert.deepEqual(seen,[],`${how}: no raise of a dead pid`);
+    assert.equal(early.requests.some(request=>request.op==='priority'),false,`${how}: nothing is written to a dead worker`);
+    if (how==='exit') await early.client.close().catch(()=>{});
+  }
+  // priority = normal never raises, open or closed.
+  const normalCalls=[],gateC=new PriorityGate({open:false});
+  const normal=harness({extra:{gate:gateC,workerPriority:'normal',setPriority:(pid,level)=>normalCalls.push([pid,level])}});
+  await normal.client.start();
+  assert.equal(gateC.waiting.length,0,'nothing waits for the gate');
+  gateC.open('world');await tick();
+  assert.deepEqual(normalCalls,[]);assert.equal(normal.requests.some(request=>request.op==='priority'),false);
+  await normal.close();
+  // An open gate (the default) keeps today's behaviour exactly, and a start after the gate opened is high from the start.
+  const openCalls=[],openLines=[],gateD=new PriorityGate({open:false});
+  gateD.open('world');
+  const open=harness({extra:{gate:gateD,onLog:line=>openLines.push(line),setPriority:(pid,level)=>openCalls.push([pid,level])}});
+  await open.client.start();
+  assert.equal(open.launches[0].options.env.CYBERPUNK_CONVAI_WORKER_PRIORITY,'high');
+  assert.deepEqual(openCalls,[[987,high]]);
+  assert.match(openLines.join(''),/worker started \(pid 987, priority high\)/);
+  assert.equal(open.requests.some(request=>request.op==='priority'),false,'no command is needed');
+  await open.close();
+});
+
+test('python bytecode cache: with a cache folder the worker is started with -X pycache_prefix and without -B or PYTHONDONTWRITEBYTECODE, otherwise as before',async()=>{
+  const plain=harness();await plain.client.start();
+  assert.equal(plain.launches[0].args[0],'-B');
+  assert.equal(plain.launches[0].options.env.PYTHONDONTWRITEBYTECODE,'1');
+  const cache=resolve('state-fixture','python-cache');
+  const cached=harness({extra:{pythonCacheDirectory:cache}});await cached.client.start();
+  const args=cached.launches[0].args;
+  assert.deepEqual(args.slice(0,2),['-X',`pycache_prefix=${cache}`]);
+  assert.equal(args.includes('-B'),false,'-B would stop the cache being written');
+  assert.equal(Object.hasOwn(cached.launches[0].options.env,'PYTHONDONTWRITEBYTECODE'),false);
+  assert.equal(cached.launches[0].options.env.PYTHONUTF8,'1');
+  await plain.close();await cached.close();
 });

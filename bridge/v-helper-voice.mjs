@@ -19,6 +19,10 @@
 //     whole session.
 export const V_HELPER_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
 export const V_HELPER_HEALTHY_MS = 600_000;
+// A typed line that finds the helper in its last steps (the student model loading, 1 to 2 s) waits for it instead of being skipped, at most this long: the line is dropped
+// anyway when it is not audible by the time the companion's reply is (bridge/v-voice.mjs), so the wait never delays a reply.
+export const V_HELPER_WAIT_MS = 5000;
+const V_HELPER_LAST_STEPS = new Set(['loading-student', 'student-loaded']);
 
 export class VHelperVoice {
   /**
@@ -36,6 +40,8 @@ export class VHelperVoice {
     this.failed = false;
     this.failure = null;   // why it failed (a few words), while it has: the setup check and the error report name it
     this.exit = Promise.resolve();
+    this.waiters = new Set();   // typed lines waiting for the last steps of a load (whenReady)
+    this.startedAt = null;
   }
 
   get loaded() { return !!this.client && this.client.loaded === true && !this.client.failure && !this.client.closing; }
@@ -55,6 +61,7 @@ export class VHelperVoice {
     const generation = ++this.generation;
     // The wall-clock time, so a start-up report can line the load up with the game's title-screen frame gaps (probe.log "Start-up:" lines).
     this.log(`loading starts at ${new Date(this.clock()).toISOString()}`);
+    this.startedAt = this.clock();
     let client;
     try {
       client = this.client = this.create(value => {
@@ -68,7 +75,9 @@ export class VHelperVoice {
     }).then(() => {
       if (this.client !== client) return;
       this.readyAt = this.clock();
-      this.log('V\'s helper voice is ready (Pocket on the CPU, beside OmniVoice)');
+      // With the wall-clock time and the load's length, so a start-up report can say when V's voice became audible relative to the save load (the bridge's [Timeline] lines).
+      this.log(`V's helper voice is ready at ${new Date(this.readyAt).toISOString()}, ${((this.readyAt - (this.startedAt ?? this.readyAt)) / 1000).toFixed(1)} s after loading started (Pocket on the CPU, beside OmniVoice)`);
+      this.settleWaiters(true);
       try { this.onReady(); } catch { /* a warm-up never affects the worker */ }
     }, error => { if (!error?.released) this.broke(client, error?.message); });
   }
@@ -80,6 +89,7 @@ export class VHelperVoice {
     // A helper that ran well for ten minutes before it broke is a new fault, not another try at the same one: the count starts over.
     if (this.retry && this.readyAt && this.clock() - this.readyAt >= V_HELPER_HEALTHY_MS) this.retry = null;
     this.readyAt = null;
+    this.settleWaiters(false);
     const failures = (this.retry?.failures ?? 0) + 1, delay = this.retryDelays[failures - 1];
     let next = '';
     const permanent = this.noRetry(this.failure);
@@ -98,6 +108,7 @@ export class VHelperVoice {
     if (!client) return this.exit;
     this.client = null;
     this.generation++;
+    this.settleWaiters(false);
     // Any close error is swallowed except a worker whose exit stayed unconfirmed after the second look (closeConfirmed): that one keeps blocking the next Pocket worker
     // (the work folder's one lock), as an unconfirmed exit blocks every replacement in the voice service.
     const closing = Promise.resolve().then(() => this.closeWorker(client)).catch(error => { if (/exit could not be confirmed/i.test(String(error?.message))) throw error; });
@@ -108,6 +119,33 @@ export class VHelperVoice {
 
   /** Can the loaded worker speak this V voice? */
   ready(key) { return this.loaded && this.client.hasProfile(key) === true; }
+
+  /** Is the worker in the last steps of its load (the student model), so a line may wait for it? Quiet: nothing is started. */
+  nearlyReady(key) {
+    const client = this.client;
+    return !!client && !this.loaded && !client.failure && !client.closing && V_HELPER_LAST_STEPS.has(client.phase) && client.hasProfile?.(key) === true;
+  }
+
+  /** Resolves when the worker can speak this key; rejects at `timeoutMs`, when `signal` aborts, or when the load fails or is released. Never holds the process open. */
+  whenReady(key, {timeoutMs = V_HELPER_WAIT_MS, signal} = {}) {
+    if (this.ready(key)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const waiter = {key, timer: null, abort: null, end: null};
+      waiter.end = error => {
+        clearTimeout(waiter.timer); signal?.removeEventListener?.('abort', waiter.abort); this.waiters.delete(waiter);
+        if (error) reject(error); else resolve();
+      };
+      waiter.timer = setTimeout(() => waiter.end(Error('V\'s helper voice did not finish loading in time')), timeoutMs); waiter.timer.unref?.();
+      waiter.abort = () => waiter.end(Error('V\'s line was stopped while it waited for the voice'));
+      if (signal?.aborted) { waiter.abort(); return; }
+      signal?.addEventListener?.('abort', waiter.abort, {once: true});
+      this.waiters.add(waiter);
+    });
+  }
+  /** The load ended: the waiting lines go on (it is ready) or give up (it failed or was released). */
+  settleWaiters(ready) {
+    for (const waiter of [...this.waiters]) waiter.end(ready && this.ready(waiter.key) ? null : Error('V\'s helper voice is not loaded'));
+  }
 
   /** Prepares V's voice (a saved setup makes it nearly free). Resolves quietly when there is no loaded worker. */
   async prepare(key, {signal} = {}) {

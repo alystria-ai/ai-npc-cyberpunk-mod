@@ -12,6 +12,7 @@ stdin/stdout (one object per line) and never touches the network:
          {"op":"partial","id":"r1"}                       decode what has been heard so far (live words)
          {"op":"finish","id":"r1"}                        decode everything and end the recording
          {"op":"cancel","id":"r1"} / {"op":"quit"}
+         {"op":"priority","level":"high"}                 take high priority for good (a worker started at normal while the game's title screen was up)
     out  {"type":"ready","engine":"moonshine-tiny-en-int8","threads":1,"loadMs":1800}
          {"type":"partial","id":"r1","text":"hey judy","ms":90}
          {"type":"final","id":"r1","text":"Hey Judy, ...","ms":210,"seconds":4.6,"speech":true,"reused":false,"cpuMs":5400}
@@ -129,6 +130,16 @@ class PriorityGate:
         if self.raised and self.clock() - self.last >= self.hold:
             self.apply(self.base)
             self.raised = False
+
+    def rebase(self, level):
+        """The bridge raises a worker it started at normal (the game's title screen was up, docs/PROCESS_PRIORITY.md "Start-up") to high for good. Only normal -> high is
+        taken: a worker the player set to below normal or idle is not touched. Returns True when the base is now high."""
+        if level != "high" or self.base != "normal":
+            return self.base == "high"
+        if not self.apply("high"):
+            return False
+        self.base = "high"
+        return True
 
     def timeout(self):
         """How long the worker may wait for a message before settle() is due (None: forever)."""
@@ -578,6 +589,9 @@ def main() -> int:
                     worker.finish(request_id)
                 elif op == "cancel":
                     worker.cancel(request_id)
+                elif op == "priority":
+                    if gate.rebase(message.get("level")):
+                        log("priority high")
                 elif op == "quit":
                     return 0
             except Exception as error:  # noqa: BLE001

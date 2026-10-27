@@ -5,6 +5,7 @@ import {PassThrough} from 'node:stream';
 import {existsSync, readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {constants as osConstants} from 'node:os';
+import {PriorityGate} from './process-priority.mjs';
 import {fileURLToPath} from 'node:url';
 import {LocalStt, MODEL_FILES, LOCAL_STT_LIMITS, DEFAULT_FIXUPS, resolveLocalSttPaths} from './local-stt.mjs';
 
@@ -103,6 +104,74 @@ test('the worker is set to the level the bridge names: high for good, else below
   const refused = fakeWorker();
   const sttRefused = make(refused, {lowerPriority: true, priority: 'high', setPriorityImpl() { throw Error('access denied'); }});
   await sttRefused.start('r1');
+});
+
+test('title-screen gate: a high worker starts at normal while the gate is closed and is set high by pid and told to switch when it opens; a replaced, dead, below or normal worker is untouched', async () => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH, BELOW = osConstants.priority.PRIORITY_BELOW_NORMAL;
+  const calls = [];
+  const set = (pid, level) => calls.push([pid, level]);
+  const priorityLines = worker => worker.spawned.flatMap(record => record.lines.filter(line => line.op === 'priority'));
+  // Closed: --priority normal, no by-pid change, nothing sent until the gate opens.
+  const closed = new PriorityGate({open: false});
+  const held = fakeWorker();
+  const stt = make(held, {lowerPriority: true, setPriorityImpl: set, priority: 'high', gate: closed});
+  await stt.start('r1');
+  assert.deepEqual(held.spawned[0].args.slice(-2), ['--priority', 'normal']);
+  assert.deepEqual(calls, []);
+  assert.equal(closed.waiting.length, 1);
+  closed.close(); closed.open('world');
+  assert.deepEqual(calls, [[4242, HIGH]], 'set high by pid on open');
+  await tick(20);
+  assert.deepEqual(priorityLines(held), [{op: 'priority', level: 'high'}], 'and told once');
+  await stt.close();
+
+  // Open (the default and the shared gate): unchanged, high from the spawn, no command.
+  calls.length = 0;
+  const open = fakeWorker();
+  const sttOpen = make(open, {lowerPriority: true, setPriorityImpl: set, priority: 'high', gate: new PriorityGate()});
+  await sttOpen.start('r1'); await tick(20);
+  assert.deepEqual(open.spawned[0].args.slice(-2), ['--priority', 'high']);
+  assert.deepEqual(calls, [[4242, HIGH]]);
+  assert.deepEqual(priorityLines(open), []);
+  await sttOpen.close();
+
+  // The worker is closed (and a new one spawned) before the gate opens: the old one is not raised, the new one is, once.
+  calls.length = 0;
+  const gate2 = new PriorityGate({open: false});
+  const replaced = fakeWorker();
+  const sttReplaced = make(replaced, {lowerPriority: true, setPriorityImpl: set, priority: 'high', gate: gate2});
+  await sttReplaced.start('r1'); await sttReplaced.close();
+  assert.equal(gate2.waiting.length, 0, 'the first worker left, its raiser went with it');
+  await sttReplaced.start('r2');
+  assert.equal(replaced.spawned.length, 2);
+  assert.equal(gate2.waiting.length, 1);
+  gate2.close(); gate2.open('turn'); await tick(20);
+  assert.deepEqual(calls, [[4242, HIGH]], 'one raise, for the live worker');
+  assert.equal(replaced.spawned[0].lines.filter(line => line.op === 'priority').length, 0);
+  assert.equal(replaced.spawned[1].lines.filter(line => line.op === 'priority').length, 1);
+  await sttReplaced.close();
+
+  // 'below' (the default) and a player's normal never depend on the gate.
+  calls.length = 0;
+  const gate3 = new PriorityGate({open: false});
+  const below = fakeWorker();
+  const sttBelow = make(below, {lowerPriority: true, setPriorityImpl: set, gate: gate3});
+  await sttBelow.start('r1');
+  assert.deepEqual(below.spawned[0].args.slice(-2), ['--priority', 'below']);
+  assert.deepEqual(calls, [[4242, BELOW]]);
+  const normal = fakeWorker();
+  const sttNormal = make(normal, {lowerPriority: true, setPriorityImpl: set, priority: 'normal', gate: gate3});
+  await sttNormal.start('r1');
+  assert.deepEqual(normal.spawned[0].args.slice(-2), ['--priority', 'normal']);
+  assert.equal(gate3.waiting.length, 0);
+  gate3.close(); gate3.open('world'); await tick(20);
+  assert.equal(calls.some(([, level]) => level === HIGH), false, 'nothing is raised on open');
+  assert.deepEqual(priorityLines(below).concat(priorityLines(normal)), []);
+  await sttBelow.close(); await sttNormal.close();
+
+  // The protocol is documented where the worker is.
+  const worker = readFileSync(resolve(fileURLToPath(new URL('.', import.meta.url)), 'local-stt-worker.py'), 'utf8');
+  assert.match(worker, /\{"op":"priority","level":"high"\}/);
 });
 
 test('chunks pushed while the model loads are held, then flushed in order after begin; finish returns the polished text', async () => {

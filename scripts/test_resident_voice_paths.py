@@ -267,6 +267,44 @@ class PortableVoicePaths(unittest.TestCase):
             raise OSError('access denied')
         self.assertIn('could not be set to high (access denied)', worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, refuse))
 
+    def test_the_priority_command_raises_the_worker_once_after_the_title_screen_without_touching_the_session(self):
+        # docs/PROCESS_PRIORITY.md "Start-up": a worker started while the game was loading is at normal; the bridge sends {op: priority, level: high} when the game has a world.
+        import contextlib
+        import io
+        applied, frames = [], []
+        session = worker.ProfileSession({'refs': {}}, lambda *values: (b'', 1), lambda _: '', frames.append, {}, lambda: {},
+                                        apply_priority=lambda level: applied.append(level) or True)
+        session.prepared['judy-alvarez'] = 'kept'
+        def run(request):
+            captured = io.StringIO()
+            with contextlib.redirect_stderr(captured):
+                keep_going = session.handle(request)
+            return keep_going, captured.getvalue().strip()
+        self.assertEqual(run({'op': 'priority', 'level': 'high'}), (True, '[priority] high (after the title screen)'))
+        self.assertEqual(applied, [0x00000080], 'HIGH_PRIORITY_CLASS, never REALTIME')
+        self.assertEqual(run({'op': 'priority', 'level': 'high'}), (True, ''), 'a second command does nothing')
+        self.assertEqual(applied, [0x00000080])
+        self.assertEqual(frames, [], 'no frame goes back: the bridge reads only answers to its requests')
+        self.assertEqual(list(session.prepared), ['judy-alvarez'], 'no request or queue state is touched')
+        # Anything but high is ignored, and an ignored command does not use up the one raise.
+        other = worker.ProfileSession({'refs': {}}, lambda *values: (b'', 1), lambda _: '', frames.append, {}, lambda: {}, apply_priority=lambda level: applied.append(level) or True)
+        for level in ('below', 'normal', 'realtime', 'highest', None, ''):
+            captured = io.StringIO()
+            with contextlib.redirect_stderr(captured):
+                self.assertTrue(other.handle({'op': 'priority', 'level': level}))
+            self.assertEqual(captured.getvalue(), '', str(level))
+        self.assertEqual(applied, [0x00000080])
+        # A refusal is a log line, never a failure, and does not stop the command loop.
+        refused = worker.ProfileSession({'refs': {}}, lambda *values: (b'', 1), lambda _: '', frames.append, {}, lambda: {}, apply_priority=lambda level: (False, 5))
+        captured = io.StringIO()
+        with contextlib.redirect_stderr(captured):
+            self.assertTrue(refused.handle({'op': 'priority', 'level': 'high'}))
+        self.assertEqual(captured.getvalue().strip(), '[priority] could not be set to high (Windows error 5) (after the title screen)')
+        self.assertEqual(frames, [])
+        # The note's wording on its own, with the same rules as the start-up note.
+        self.assertIsNone(worker.apply_requested_priority({'level': 'below'}, lambda level: True))
+        self.assertEqual(worker.apply_requested_priority({'level': 'high'}, lambda level: True), '[priority] high (after the title screen)')
+
     @unittest.skipUnless(os.name == 'nt', 'the Windows system call')
     def test_the_real_system_call_accepts_the_pseudo_handle_of_the_current_process(self):
         # 27 Oct 2026 live log: "[priority] could not be set to high". ctypes' default int conversion of GetCurrentProcess()'s -1 became 0xFFFFFFFF (error 6).

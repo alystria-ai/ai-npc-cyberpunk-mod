@@ -38,7 +38,7 @@ import {createHash, randomBytes} from 'node:crypto';
 import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, cpus, constants as osConstants} from 'node:os';
-import {nodePriority} from './process-priority.mjs';
+import {nodePriority, priorityGate} from './process-priority.mjs';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
 import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
@@ -351,6 +351,8 @@ function startError(code, message) {
 //   await proc.stop();  proc.killSync();
 //   proc.raise()   -> back to `raiseLevel` while a turn waits on the child: 'normal' (the default) or 'high' (HIGH_PRIORITY_CLASS, never REALTIME; the chat model, docs/PROCESS_PRIORITY.md).
 //                     With 'high' and `lowerAfter: 'ready'` the child also loads at high priority (a cold start is a reply waiting).
+//                     While the title-screen gate is closed (`gate`, docs/PROCESS_PRIORITY.md "Start-up") 'high' reads as 'normal': the child loads and serves a turn at normal
+//                     priority, and when the gate opens a child still loading or raised for a turn goes to high at once (a lowered one waits for its next raise()).
 //   proc.lower()   -> sets the child's priority class below normal (true when it is, or was); with `lowerAfter: 'ready'` the child runs at normal priority until this is called
 // `lowerPriority` (default true) lowers the child below normal so the game keeps its CPU: at once (`lowerAfter: 'spawn'`, the default: the embedder and any
 // CPU process) or when the owner calls lower() (`lowerAfter: 'ready'`: the chat model, which loads at normal priority because a load under a game that keeps every
@@ -359,15 +361,15 @@ function startError(code, message) {
 export class LlamaProcess extends EventEmitter {
   #key = null; #keyDir = null; #child = null; #port = 0; #startPromise = null;
   #exited = false; #expected = false; #healthy = false; #tail = ''; #lowered = false;
-  #exitPromise; #resolveExit; #settleWait = null;
+  #exitPromise; #resolveExit; #settleWait = null; #cancelRaise = null;
 
   constructor({command, argsPrefix = [], buildArgs, spawnImpl = spawn, fetchImpl = fetch, startupMs = LOCAL_LLM_LIMITS.startupMs,
-      tmpDir = tmpdir(), platform = process.platform, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', raiseLevel = 'normal', setPriorityImpl = setPriority, pollMs = 200,
+      tmpDir = tmpdir(), platform = process.platform, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', raiseLevel = 'normal', setPriorityImpl = setPriority, gate = priorityGate, pollMs = 200,
       healthTimeoutMs = 2000, env = {}, tailChars = 6000, findPort = freePort, label = 'llama-server', registry = null} = {}) {
     super();
     if (!command || typeof buildArgs !== 'function') throw TypeError('command and buildArgs are required');
     Object.assign(this, {command, argsPrefix, buildArgs, spawnImpl, fetchImpl, startupMs, tmpDir, platform, setTimer, clearTimer, log,
-      lowerPriority, lowerAfter, raiseLevel: raiseLevel === 'high' ? 'high' : 'normal', setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label, registry});
+      lowerPriority, lowerAfter, raiseLevel: raiseLevel === 'high' ? 'high' : 'normal', setPriorityImpl, gate, pollMs, healthTimeoutMs, env, tailChars, findPort, label, registry});
     this.#exitPromise = new Promise(resolveExit => { this.#resolveExit = resolveExit; });
   }
 
@@ -395,7 +397,18 @@ export class LlamaProcess extends EventEmitter {
   raise() {
     const pid = this.#child?.pid;
     if (!this.#lowered || !pid || this.#exited) return false;
-    try { this.setPriorityImpl(pid, nodePriority(this.raiseLevel)); this.#lowered = false; return true; } catch { return false; }
+    try { this.setPriorityImpl(pid, nodePriority(this.gate.level(this.raiseLevel))); this.#lowered = false; return true; } catch { return false; }
+  }
+
+  // The title-screen gate opened (docs/PROCESS_PRIORITY.md "Start-up"): a child that is loading or raised for a turn (not lowered) runs at normal because the gate was
+  // closed, so it goes to high now; a lowered one is raised to high by its next raise(). False only when the system refused; a gone child is nothing to raise.
+  #raiseOnOpen() {
+    this.#cancelRaise = null;
+    const pid = this.#child?.pid;
+    if (!pid || this.#exited || this.#lowered) return true;
+    try { this.setPriorityImpl(pid, nodePriority('high')); } catch { return false; }
+    try { this.log('[local] ' + this.label + ' (pid ' + pid + ') process priority high now (the game has a world)'); } catch { /* a log never fails */ }
+    return true;
   }
 
   // The last few KB of the child's output, for diagnostics only. The key is redacted.
@@ -432,9 +445,15 @@ export class LlamaProcess extends EventEmitter {
     if (this.lowerAfter === 'spawn') this.lower();
     else if (this.raiseLevel === 'high' && child.pid) {
       // One line per start (docs/PROCESS_PRIORITY.md): the level it loads at. A refusal leaves it at normal and says so.
-      let done = false;
-      try { this.setPriorityImpl(child.pid, nodePriority('high')); done = true; } catch { /* best effort: it loads at normal */ }
-      try { this.log('[local] ' + this.label + ' (pid ' + child.pid + ') process priority ' + (done ? 'high while it loads and while a turn waits' : 'could not be set to high: it stays at normal')); } catch { /* a log never fails */ }
+      // While the title-screen gate is closed it loads at normal (the game is loading too) and is raised when the gate opens.
+      if (!this.gate.isOpen) {
+        this.#cancelRaise = this.gate.whenOpen(() => this.#raiseOnOpen(), this.label);
+        try { this.log('[local] ' + this.label + ' (pid ' + child.pid + ') process priority normal while the title screen is up, high once the game has a world'); } catch { /* a log never fails */ }
+      } else {
+        let done = false;
+        try { this.setPriorityImpl(child.pid, nodePriority('high')); done = true; } catch { /* best effort: it loads at normal */ }
+        try { this.log('[local] ' + this.label + ' (pid ' + child.pid + ') process priority ' + (done ? 'high while it loads and while a turn waits' : 'could not be set to high: it stays at normal')); } catch { /* a log never fails */ }
+      }
     }
     for (const stream of [child.stdout, child.stderr]) {
       stream?.setEncoding?.('utf8');
@@ -491,6 +510,7 @@ export class LlamaProcess extends EventEmitter {
   #markExited(code, signal, message) {
     if (this.#exited) return;
     this.#exited = true; this.#healthy = false;
+    if (this.#cancelRaise) { this.#cancelRaise(); this.#cancelRaise = null; }   // a gone pid is never raised
     this.#unregister();
     this.#removeKey();
     this.#resolveExit(true);
@@ -1147,7 +1167,7 @@ export class LocalLlmServer extends EventEmitter {
 
     this.#loaded = {id: tier.id, name: tier.loadedName ?? tier.name, file: basename(String(tier.file)), family: modelFamily({family: tier.family, name: tier.name, file: tier.file}),
       tier: tierKey, sizeMiB: Math.round(Number(choice.sizeMiB) || 0), device: {id: device.id, name: device.name, freeMiB: Number.isFinite(freeMiB) ? Math.round(freeMiB) : null},
-      contextSize, cacheRamMiB, priority: 'normal', loadPriority: this.processOptions?.raiseLevel === 'high' ? 'high' : 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
+      contextSize, cacheRamMiB, priority: 'normal', loadPriority: this.processOptions?.raiseLevel === 'high' ? (this.processOptions.gate ?? priorityGate).level('high') : 'normal', turnPriority: this.processOptions?.raiseLevel === 'high' ? 'high' : 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
       template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null,
       kvType, fit: fit ? {pick: fit.pick ? {contextSize: fit.pick.contextSize, kvType: fit.pick.kvType, projectedMiB: fit.pick.projectedMiB} : null, share: fit.share ?? null, marginMiB: fit.marginMiB ?? null} : null,
       gpuShare: choice.offload === true && Number.isFinite(placement?.share) ? placement.share : null,
@@ -1330,7 +1350,7 @@ export class LocalLlmServer extends EventEmitter {
       loaded.offload && Number.isFinite(loaded.gpuShare) ? `about ${Math.round(loaded.gpuShare * 100)}% of the layers on the card` : null,
       loaded.offloadPlan ? `fit target ${loaded.offloadPlan.fitTargetMiB} MiB free for the game, ${loaded.offloadPlan.threads} CPU threads` : null,
       loaded.device ? `device ${loaded.device.id}${loaded.device.freeMiB === null ? '' : ' (' + loaded.device.freeMiB + ' MiB free before)'}` : null,
-      loaded.priority === 'below-normal' ? `process priority ${loaded.loadPriority ?? 'normal'} while it loaded, below normal now${loaded.loadPriority === 'high' ? ', high while a turn waits' : ''} (the game keeps the CPU)` : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
+      loaded.priority === 'below-normal' ? `process priority ${loaded.loadPriority ?? 'normal'} while it loaded, below normal now${(loaded.turnPriority ?? loaded.loadPriority) === 'high' ? ', high while a turn waits' : ''} (the game keeps the CPU)` : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
       loaded.loadMs === null ? null : `loaded in ${(loaded.loadMs / 1000).toFixed(1)} s`, loaded.warmMs === null ? null : `warm-up ${(loaded.warmMs / 1000).toFixed(1)} s${loaded.firstTime ? ' (first time)' : ''}`]
       .filter(Boolean).join(', ');
   }

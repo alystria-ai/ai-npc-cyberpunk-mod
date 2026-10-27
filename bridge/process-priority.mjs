@@ -109,12 +109,17 @@ export async function setBrowserTreePriority(level, {rootPid = process.pid, plat
  * the browser is left as it started for 'normal' and 'below'.
  */
 export class BrowserPriority {
-  constructor({level = 'high', rootPid = process.pid, setTree = setBrowserTreePriority, gapMs = 4000, settleMs = 400, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}} = {}) {
-    Object.assign(this, {level, rootPid, setTree, gapMs, settleMs, now, setTimer, clearTimer, log});
-    this.timer = null; this.running = false; this.again = false; this.last = -Infinity; this.closed = false; this.reported = false;
+  constructor({level = 'high', rootPid = process.pid, setTree = setBrowserTreePriority, gapMs = 4000, settleMs = 400, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, gate = priorityGate} = {}) {
+    Object.assign(this, {level, rootPid, setTree, gapMs, settleMs, now, setTimer, clearTimer, log, gate});
+    this.timer = null; this.running = false; this.again = false; this.last = -Infinity; this.closed = false; this.reported = false; this.held = null;
   }
   request() {
     if (this.closed || this.level !== 'high') return;
+    // The title screen (PriorityGate): the browser is left at its own priority until the game has a world, then its tree is raised once (no PowerShell call at the title).
+    if (!this.gate.isOpen) {
+      if (!this.held) this.held = this.gate.whenOpen(() => { this.held = null; this.request(); return true; }, 'hidden browser');
+      return;
+    }
     if (this.running) { this.again = true; return; }
     if (this.timer) return;
     // Wait for the browser's new processes to exist, and keep the gap between two calls.
@@ -135,6 +140,59 @@ export class BrowserPriority {
     if (this.again) this.request();
   }
   // The browser went away (its host closed; it may start again, and asks again then): nothing more is scheduled for it.
-  cancel() { this.clearTimer(this.timer); this.timer = null; this.again = false; }
+  cancel() { this.clearTimer(this.timer); this.timer = null; this.again = false; this.held?.(); this.held = null; }
   close() { this.closed = true; this.cancel(); }
 }
+
+/**
+ * The title-screen gate (docs/PROCESS_PRIORITY.md, "Start-up"). High priority is for the turn path IN PLAY: a reply needs it, the title screen has no turns, and
+ * the game is loading (every core busy, its main thread waiting for the key press) while the service, a voice worker or the model server start. So the conversation
+ * service closes the gate at its start (`close()`): everything it starts then starts at NORMAL (`level()`), and registers what to raise (`whenOpen()`). The gate opens
+ * once, when the game has a world (the first world session the service sees), when a turn arrives (a player talking is a turn), or when the title hold ran out
+ * (`open(reason)`): the registered raisers run once, in order, each guarded, and everything from then on starts at its full level. An OPEN gate (the default of
+ * the shared one, so a test, a tool or a standalone worker is unchanged) changes nothing: `level(x)` is x.
+ * `log` receives one line when the gate closes and one when it opens (with the wall-clock time and the seconds since it closed, so a start-up probe can line it up with
+ * the game's frame gaps: probe.log "Start-up:" lines carry the same UTC clock).
+ */
+export class PriorityGate {
+  constructor({open = true, now = Date.now, log = () => {}} = {}) {
+    Object.assign(this, {now, log});
+    this.isOpen = open === true; this.closedAt = null; this.openedAt = null; this.reason = null; this.waiting = [];
+  }
+  /** Closes the gate (the service's start, before it spawns anything). Once; a gate that already opened stays open. */
+  close() {
+    if (this.closedAt !== null || this.openedAt !== null) return this;
+    this.isOpen = false; this.closedAt = this.now();
+    this.#say(`title screen: everything starts at normal priority until the game has a world (${new Date(this.closedAt).toISOString()})`);
+    return this;
+  }
+  /** Opens the gate and runs the raisers once. Idempotent. */
+  open(reason = 'world') {
+    if (this.isOpen && this.openedAt !== null) return false;
+    if (this.isOpen && this.closedAt === null) return false;   // never closed: nothing was held
+    this.isOpen = true; this.openedAt = this.now(); this.reason = String(reason).slice(0, 60);
+    const waiting = this.waiting; this.waiting = [];
+    const results = [];
+    for (const {fn, name} of waiting) {
+      let result = false;
+      try { result = fn() !== false; } catch { result = false; }
+      results.push(result ? name : `${name} (not raised)`);
+    }
+    const since = this.closedAt === null ? '' : `, ${((this.openedAt - this.closedAt) / 1000).toFixed(1)} s after the service started`;
+    this.#say(`raised at ${new Date(this.openedAt).toISOString()} (${this.reason}${since}): ${results.length ? results.join(', ') : 'nothing was waiting'}`);
+    return true;
+  }
+  /** Runs `fn` when the gate opens (at once when it is open). `fn` returns false when it could not raise. Returns a function that cancels it. */
+  whenOpen(fn, name = 'a process') {
+    if (this.isOpen) { try { fn(); } catch { /* best effort */ } return () => {}; }
+    const entry = {fn, name};
+    this.waiting.push(entry);
+    return () => { this.waiting = this.waiting.filter(item => item !== entry); };
+  }
+  /** The level to start a process at now: 'high' reads as 'normal' while the gate is closed; every other level is itself. */
+  level(wanted) { return wanted === 'high' && !this.isOpen ? 'normal' : wanted; }
+  #say(text) { try { this.log(`[Priority] ${text}`); } catch { /* a log never fails */ } }
+}
+
+/** The one gate of this process (open until the conversation service closes it). */
+export const priorityGate = new PriorityGate();

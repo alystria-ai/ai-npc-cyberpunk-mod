@@ -414,12 +414,15 @@ export class BridgeSupervisor {
     await this.setStatus(this.restarts ? 'restarting' : 'starting', this.restarts ? 'bridge-restarting' : 'bridge-starting');
   }
 
-  // The bridge's priority class (docs/PROCESS_PRIORITY.md): high unless the state folder's priority.txt says normal. Best effort, logged once per start; the bridge sets itself as well.
+  // The bridge's priority class (docs/PROCESS_PRIORITY.md): high in play, unless the state folder's priority.txt says normal. NOT at its start: the game is on its title screen then,
+  // loading with every core busy and its main thread waiting for the key press, and the service spends its first seconds importing modules; High there can starve the title
+  // (27 Oct 2026). So the child is left at normal here and takes High itself when the game has a world (bridge/convai-bridge.mjs, bridge/process-priority.mjs PriorityGate).
+  // Logged once per start so the supervisor log shows the level it was given. Best effort.
   prioritize(pid) {
     try {
       const level = this.priority ?? readTurnPriority({stateDirectory: this.stateDirectory}).level;
       if (level !== 'high' || !pid) return;
-      this.log(setProcessPriority(pid, 'high', this.setPriority) ? 'The bridge runs at high priority.' : 'The bridge priority could not be raised (it raises itself).');
+      this.log('The bridge starts at normal priority and takes high priority itself once the game has a world.');
     } catch { /* a priority is an optimisation, never a failure */ }
   }
 
