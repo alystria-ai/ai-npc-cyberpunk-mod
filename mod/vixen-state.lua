@@ -34,7 +34,8 @@
 --     Codeware's reflection (the way mod/combat-feats-probe.lua reads script fields), and the path that answered is logged. When neither answers, the mod's own PUBLIC getters
 --     FACSystem:GetTotalAlcohol(player) and :GetTotalCigarettes(player) (lifetime counts, the same call shape that already works for GetStaminaPercent) are watched from one read to the
 --     next: a count that went up since the last read is a drink or a cigarette just had, and the sober-up window (6 hours and one more per extra drink) or the 30 minute cigarette
---     penalty is counted from that read, on the game clock. It cannot know a drink had before this reader's first read of the session.
+--     penalty is counted from that read, on the game clock. The counts are the SAVE'S LIFETIME totals (FleshAndChrome.reds 1662/1675/1769/1781: only ever `+= 1`), never the drinks
+--     in the body, so a count alone maps to nothing: a baseline read is made when a save has loaded (mod/init.lua convaiVixenBaseline), and a count or clock that goes back is another save.
 --   * breath stays at the top stage for minutes: the reader follows the mod's pool (GetStaminaPercent is ps.m_facStamina / max), so a long stage 4 is the mod's own regeneration
 --     rule unless the probe says otherwise: the pool refills only after a cooldown of 10 game minutes times how empty it was, only while V is not moving at a jog or faster, and no higher
 --     than the daily energy pool allows. The probe line records the pool, the energy, the Exhausted status, IsStaminaRegenning(), the game's own stamina pool, the mod's cooldown left
@@ -177,13 +178,69 @@ local function pace(now)
     return (now - last.game) / (real - last.real)
 end
 
+local function className(object)
+    local ok, name = pcall(function() return NameToString(object:GetClassName()) end)
+    if ok and name ~= nil then return short(name) end
+    local okRaw, raw = pcall(function() return tostring(object:GetClassName()) end)
+    return okRaw and short(raw) or '?'
+end
+
+-- How many `m_fac` properties the game's PlayerPuppetPS class has, and one example (Codeware's reflection): whether the class carries Flesh and Chrome's fields at all.
+local function factProperties()
+    local ok, text = pcall(function()
+        local count, sample = 0, nil
+        for _, property in ipairs(Reflection.GetClass(CName.new('PlayerPuppetPS')):GetProperties()) do
+            local name = NameToString(property:GetName())
+            if name:find('^m_fac') then count = count + 1; sample = sample or name end
+        end
+        return count .. (sample and (' e.g. ' .. sample) or '')
+    end)
+    return ok and text or 'unreadable'
+end
+
+-- The ways to reach the persistent state of V, in the order tried: the object's own getter (what the mods' redscript uses), a getter named for the class, and the persistency system.
+local function stateVariants(player)
+    return {
+        {'GetPS', function() return player:GetPS() end},
+        {'GetPlayerPuppetPS', function() return player:GetPlayerPuppetPS() end},
+        {'persistency', function() return Game.GetPersistencySystem():GetConstAccessToPSObject(player:GetPersistentID(), CName.new('PlayerPuppetPS')) end}}
+end
+
+-- V's persistent state, or nil. The first time every way is tried and one probe line says what each gave (the class and the raw `m_facInitialized`); the way whose field reads is
+-- remembered and used from then on, else only the object's own getter is asked again.
 local function playerState(player, log)
-    local ok, ps = pcall(function() return player:GetPS() end)
-    if not ok or ps == nil then
-        once(log, 'ps:get', 'Mod state probe: player:GetPS() ' .. (ok and 'gave nothing' or 'failed (' .. short(ps) .. ')') .. ': drinks and cigarettes are read from the mod\'s lifetime counts instead')
-        return nil
+    local variants = stateVariants(player)
+    if state.psVia ~= nil then
+        for _, variant in ipairs(variants) do
+            if variant[1] == state.psVia then
+                local ok, ps = pcall(variant[2])
+                if ok and ps ~= nil then return ps end
+            end
+        end
     end
-    return ps
+    local okFirst, first = pcall(variants[1][2])
+    if not okFirst or first == nil then
+        once(log, 'ps:get', 'Mod state probe: player:GetPS() ' .. (okFirst and 'gave nothing' or 'failed (' .. short(first) .. ')') .. ': drinks and cigarettes are read from the mod\'s lifetime counts instead')
+    end
+    if state.psTried then return okFirst and first or nil end
+    state.psTried = true
+    local parts, found, any = {}, nil, nil
+    for index, variant in ipairs(variants) do
+        local ok, ps
+        if index == 1 then ok, ps = okFirst, first else ok, ps = pcall(variant[2]) end
+        if not ok then
+            parts[#parts + 1] = variant[1] .. '=failed(' .. short(ps):sub(1, 50) .. ')'
+        elseif ps == nil then
+            parts[#parts + 1] = variant[1] .. '=nil'
+        else
+            any = any or ps
+            local init = field(ps, 'm_facInitialized')
+            parts[#parts + 1] = variant[1] .. '=' .. className(ps) .. '/init=' .. describe(init)
+            if init ~= nil and found == nil then found, state.psVia = ps, variant[1] end
+        end
+    end
+    say(log, 'Mod state probe: ways to V\'s persistent state: ' .. table.concat(parts, ' ') .. ' (PlayerPuppetPS m_fac properties: ' .. factProperties() .. ')')
+    return found or any
 end
 
 -- The mod's config value (a number), or the default.
@@ -227,6 +284,16 @@ local function fromTotals(system, config, player, log)
     local okSmoke, cigarettes = ask(system, 'GetTotalCigarettes', 'flesh-and-chrome', log, player)
     alcohol, cigarettes = okAlcohol and integer(alcohol, 0, 100000000) or nil, okSmoke and integer(cigarettes, 0, 100000000) or nil
     local totals, events, out = state.totals, state.events, {}
+    -- The counts of one save only ever rise, and so does its clock: a count that fell or a clock that went back is another save (or a new game). Its drinks are not this one's:
+    -- forget what was watched and take the baseline again (the first live test: 9 in one session, 6 in the next).
+    local fell = (alcohol ~= nil and totals.alcohol ~= nil and alcohol < totals.alcohol) or (cigarettes ~= nil and totals.cigarettes ~= nil and cigarettes < totals.cigarettes)
+        or (now ~= nil and state.lastNow ~= nil and now < state.lastNow)
+    if fell then
+        say(log, 'Mod state probe: the counts or the game clock went back (alcohol ' .. describe(totals.alcohol) .. ' to ' .. describe(alcohol) .. ', cigarettes ' .. describe(totals.cigarettes) .. ' to ' .. describe(cigarettes) .. '): another save, the baseline is taken again')
+        for key in pairs(totals) do totals[key] = nil end
+        for key in pairs(events) do events[key] = nil end
+    end
+    if now ~= nil then state.lastNow = now end
     if now ~= nil then
         if alcohol ~= nil and totals.alcohol ~= nil and alcohol > totals.alcohol then
             local added = alcohol - totals.alcohol

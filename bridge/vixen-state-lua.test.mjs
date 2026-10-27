@@ -66,7 +66,8 @@ const world = `
   Enum = {new = function(enum, value) return {enum = enum, value = value} end}
   FromVariant = function(v) return v end
   ToVariant = function(v) return v end
-  local ps = {}
+  local ps = setmetatable({}, {__index = {GetClassName = function() return 'PlayerPuppetPS' end}})
+  NameToString = function(name) return tostring(name) end
   local player = {}
   -- GetPS answers the state table; psMode 'nothing' gives nil, 'raise' raises (the first live test could not read the persistent fields).
   local psMode = 'ps'
@@ -198,7 +199,7 @@ test('Flesh and Chrome: out-of-range answers are unknown, never a guess; a gette
   out, notes = M.read(player, log)
   assert(out == nil)
   local failures = 0
-  for _, line in ipairs(lines) do if line:find('failed', 1, true) then failures = failures + 1 end end
+  for _, line in ipairs(lines) do if line:find('^Mod state: ') and line:find('failed', 1, true) then failures = failures + 1 end end
   assert(failures == 2, 'each failing getter is logged once: ' .. failures)
 `));
 
@@ -267,7 +268,7 @@ test('log: one line per distinct reading per mod, none for an unchanged one', ()
   stages = {}
   for _, line in ipairs(lines) do if line:find('^Mod state: ') then stages[#stages + 1] = line end end
   assert(#stages == 3 and stages[3]:find('limp=3', 1, true), stages[3])
-  for _, line in ipairs(lines) do assert(#line < 260, line) end
+  for _, line in ipairs(lines) do if line:find('^Mod state: ') then assert(#line < 160, line) end end
 `));
 
 test('the result carries plain numbers and strings only, never a game object', () => withModule(`
@@ -288,8 +289,8 @@ test('the module is passive: no registered event, no timer, no observer, no writ
   assert.doesNotMatch(code, /:Set[A-Z]\w*\(|:Mod[A-Z]\w*\(|:Change\w*\(|:Apply\w*\(|:Cure\w*\(|:Add\w*\(|:Remove\w*\(|:Queue\w*\(|:Send\w*\(|:Register\w*\(|:Escalate\(|:Clear\w*\(/);
   // Only the documented getters are named, as strings handed to `ask`.
   const getters = new Set(code.match(/'(?:Get|Is)[A-Za-z]+'/g));
-  assert.deepEqual([...getters].sort(), ["'GetAppliedTier'", "'GetConfig'", "'GetEnergyPercent'", "'GetSeverity'", "'GetStaminaPercent'", "'GetTotalAlcohol'", "'GetTotalCigarettes'", "'IsEnabled'", "'IsLive'", "'IsStaminaRegenning'"]);
-  assert.deepEqual([...new Set(code.match(/Game\.[A-Za-z]+/g))].sort(), ['Game.GetScriptableSystemsContainer', 'Game.GetStatPoolsSystem', 'Game.GetStatusEffectSystem', 'Game.GetTimeSystem']);
+  assert.deepEqual([...getters].sort(), ["'GetAppliedTier'", "'GetConfig'", "'GetEnergyPercent'", "'GetPS'", "'GetPlayerPuppetPS'", "'GetSeverity'", "'GetStaminaPercent'", "'GetTotalAlcohol'", "'GetTotalCigarettes'", "'IsEnabled'", "'IsLive'", "'IsStaminaRegenning'"]);
+  assert.deepEqual([...new Set(code.match(/Game\.[A-Za-z]+/g))].sort(), ['Game.GetPersistencySystem', 'Game.GetScriptableSystemsContainer', 'Game.GetStatPoolsSystem', 'Game.GetStatusEffectSystem', 'Game.GetTimeSystem']);
   // The fields read from the player's state, nothing else.
   assert.deepEqual([...new Set(code.match(/'m_[A-Za-z]+'/g))].sort(), ["'m_facAlcoholDrinks'", "'m_facAlcoholSoberEnd'", "'m_facEnergy'", "'m_facInitialized'", "'m_facLastTimestamp'", "'m_facRegenCooldownEnd'", "'m_facSmokingPenaltyEnd'", "'m_facStamina'"]);
 });
@@ -330,7 +331,8 @@ test('drinks and cigarettes without the persistent fields: the mod\'s lifetime c
   for _, line in ipairs(lines) do if line:find('drinks and cigarettes via=', 1, true) then probes[#probes + 1] = line end end
   assert(#probes >= 2 and probes[1]:find('via=counts', 1, true) and probes[1]:find('alcohol=4 cigarettes=2', 1, true), probes[1])
   assert(probes[2]:find('alcohol=5 cigarettes=2', 1, true) and probes[2]:find('drinks=1', 1, true), probes[2])
-  local first = lines[1]
+  local first
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: PlayerPuppetPS fields') then first = line end end
   assert(first:find('^Mod state probe: PlayerPuppetPS fields init=nil%(none%)'), first)
 `));
 
@@ -370,7 +372,9 @@ test('drinks and cigarettes: GetPS gone, or fields only reachable through reflec
   end}
   local out = M.read(player, log)
   assert(out.fleshAndChrome.drinks == 2, 'three drinks, read through reflection')
-  assert(lines[1]:find('init=true%(reflection%)') and lines[1]:find('drinks=3%(reflection%)'), lines[1])
+  local fieldsLine
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: PlayerPuppetPS fields') then fieldsLine = line end end
+  assert(fieldsLine:find('init=true%(reflection%)') and fieldsLine:find('drinks=3%(reflection%)'), fieldsLine)
 `));
 
 test('breath probe: one line at the first read, at every change of stage and every two minutes while the stage is 3 or 4, with the raw numbers', () => withModule(`
@@ -469,6 +473,97 @@ test('a rested, sober V asks no status effect', () => withModule(`
   hasEffectCalls = 0
   M.read(player, log)
   assert(hasEffectCalls == 0)
+`));
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The second live test (2026-10-27): GetTotalAlcohol is a lifetime count of one save, not the drinks in the body. The baseline, and another save.
+
+test('the counts are the save\'s lifetime: the exact lines of the live test (0, then 9 drinks; another save at 6; a new game at 6)', () => withModule(`
+  os.time = function() return 5000 end
+  -- 07:53:36 the first read of the session, 07:59:12 after drinking: nine drinks at once.
+  installFac({fields = false, alcoholTotal = 0, cigaretteTotal = 0})
+  local out = M.read(player, log)
+  assert(out == nil)
+  installFac({fields = false, alcoholTotal = 9, cigaretteTotal = 0})
+  out = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 3, 'nine drinks since the baseline')
+  local probes = {}
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: drinks and cigarettes') then probes[#probes + 1] = line end end
+  assert(probes[1] == 'Mod state probe: drinks and cigarettes via=counts counts alcohol=0 cigarettes=0 stages drinks=0 smoke=0', probes[1])
+  assert(probes[2] == 'Mod state probe: drinks and cigarettes via=counts counts alcohol=9 cigarettes=0 stages drinks=3 smoke=0', probes[2])
+  -- A later session of another save: the count is 6, lower than 9. Not a window, not a drink: the baseline is taken again, and said.
+  gameStamp = gameStamp - 500000
+  installFac({fields = false, alcoholTotal = 6, cigaretteTotal = 0})
+  out = M.read(player, log)
+  assert(out == nil, 'six lifetime drinks of another save are no drinks in V now')
+  local wentBack = 0
+  for _, line in ipairs(lines) do if line:find('the counts or the game clock went back (alcohol 9 to 6', 1, true) then wentBack = wentBack + 1 end end
+  assert(wentBack == 1, wentBack)
+  -- A drink after that baseline is seen.
+  installFac({fields = false, alcoholTotal = 7, cigaretteTotal = 0})
+  assert(M.read(player, log).fleshAndChrome.drinks == 1)
+`));
+
+test('the baseline read at the start of a session (first read before any talk) catches a drink had before the first question', () => withModule(`
+  os.time = function() return 5000 end
+  -- A new game: the world loads with six lifetime drinks. The baseline read is the same read as a turn's; nothing is told from it.
+  installFac({fields = false, alcoholTotal = 6, cigaretteTotal = 0})
+  local out = M.read(player, log)
+  assert(out == nil, 'six on the baseline: not drinks in the body')
+  -- The owner drinks, then asks: the first TURN read sees the rise.
+  installFac({fields = false, alcoholTotal = 7, cigaretteTotal = 0})
+  out = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 1, 'the drink had after the baseline is told at the first question')
+  -- Without a baseline the first read of a session cannot know (documented): the same count alone says none.
+  M.reset()
+  installFac({fields = false, alcoholTotal = 7, cigaretteTotal = 0})
+  assert(M.read(player, log) == nil)
+`));
+
+test('a game clock that goes back, or a cigarette count that falls, is another save too', () => withModule(`
+  installFac({fields = false, alcoholTotal = 2, cigaretteTotal = 5})
+  M.read(player, log)
+  gameStamp = gameStamp + 100
+  installFac({fields = false, alcoholTotal = 2, cigaretteTotal = 6})
+  assert(M.read(player, log).fleshAndChrome.smoke == 1)
+  installFac({fields = false, alcoholTotal = 2, cigaretteTotal = 1})
+  assert(M.read(player, log) == nil, 'fewer cigarettes: another save, not a cigarette')
+  installFac({fields = false, alcoholTotal = 5, cigaretteTotal = 1})
+  gameStamp = gameStamp - 10
+  assert(M.read(player, log) == nil, 'the clock went back: the rise of three is not this save\\'s')
+`));
+
+test('the persistent state: every way is tried once and one line says what each gave; the way whose field reads is used from then on', () => withModule(`
+  -- GetPS gives an object whose fields are nil (the live test), the persistency system gives the real one.
+  local real = {m_facInitialized = true, m_facLastTimestamp = 100000.0, m_facAlcoholDrinks = 4, m_facAlcoholSoberEnd = 103600.0, m_facSmokingPenaltyEnd = 0.0}
+  setmetatable(real, {__index = {GetClassName = function() return 'PlayerPuppetPS' end}})
+  installFac({fields = false})
+  method(player, 'GetPersistentID', 0, 'V-persistent-id')
+  local asked = 0
+  function Game.GetPersistencySystem()
+    local sys = {}
+    method(sys, 'GetConstAccessToPSObject', 2, function(id, class)
+      assert(id == 'V-persistent-id' and class.text == 'PlayerPuppetPS', 'GetConstAccessToPSObject(PersistentID, CName)')
+      asked = asked + 1
+      return real
+    end)
+    return sys
+  end
+  Reflection = {GetClass = function(name)
+    return {GetProperties = function() return {{GetName = function() return 'm_facStamina' end}, {GetName = function() return 'm_facEnergy' end}, {GetName = function() return 'other' end}} end,
+      GetProperty = function() return {GetValue = function() return nil end} end}
+  end}
+  local out = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 2, 'four drinks in the window, through the persistency system')
+  local ways
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: ways to V') then ways = line end end
+  assert(ways:find('GetPS=PlayerPuppetPS/init=nil GetPlayerPuppetPS=failed(', 1, true), ways)
+  assert(ways:find('persistency=PlayerPuppetPS/init=true', 1, true) and ways:find('(PlayerPuppetPS m_fac properties: 2 e.g. m_facStamina)', 1, true), ways)
+  local count = asked
+  M.read(player, log); M.read(player, log)
+  local waysCount = 0
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: ways to V') then waysCount = waysCount + 1 end end
+  assert(waysCount == 1 and asked == count + 2, 'one line, and only the working way is asked afterwards')
 `));
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -576,4 +671,37 @@ test('init.lua: the turn context merges the Digital Vixen result into the mods t
   assert.match(turnContext, /\{fac = 'facRead', inj = 'injRead'\}/);
   assert.match(turnContext, /call\(self\.options\.vixenOff\)/);
   assert.match(init, /for _, key in ipairs\(\{'fac', 'inj'\}\) do/);
+});
+
+test('loader: the baseline read happens once after a save has loaded, three seconds after the world is ready, and only with the switch on', () => withLoader(`
+  installFac({fields = false, alcoholTotal = 6})
+  local switchOn = true
+  manager = {dynamicInfo = function(kind) assert(kind == 'mods'); return switchOn end}
+  convaiTurnContext = {options = options}
+  assert(convaiVixenBaselineDue == true, 'due at start')
+  convaiVixenBaseline(player, 100)
+  assert(loads == 0 and convaiVixenBaselineDue == true, 'the first call only starts the three seconds')
+  convaiVixenBaseline(player, 102)
+  assert(loads == 0)
+  convaiVixenBaseline(player, 103)
+  assert(loads == 1 and convaiVixenBaselineDue == nil, 'one read, the reader loaded')
+  -- A load of another save: due again, the reader forgets, the baseline is read again (the count of that save).
+  convaiVixenBaselineDue, convaiVixenBaselineAt = true, nil
+  realModule.reset()
+  installFac({fields = false, alcoholTotal = 3})
+  convaiVixenBaseline(player, 200); convaiVixenBaseline(player, 204)
+  installFac({fields = false, alcoholTotal = 4})
+  local out = options.vixen(player)
+  assert(out.fleshAndChrome.drinks == 1, 'a drink after the baseline is told at the first turn')
+  -- Switch off: the baseline reads nothing.
+  switchOn = false
+  convaiVixenBaselineDue, convaiVixenBaselineAt = true, nil
+  reset()
+  convaiVixenBaseline(player, 300); convaiVixenBaseline(player, 310)
+  assert(counts.calls == 0 and convaiVixenBaselineDue == nil)
+`));
+
+test('init.lua: the baseline is taken from the 0.5 second sample, and a load of another save resets the reader and asks for a new baseline', () => {
+  assert.match(init, /battleSampleAt = os\.time\(\) \* 1000\n\s*if convaiVixenBaselineDue and worldReady then pcall\(convaiVixenBaseline, player, os\.time\(\)\) end/);
+  assert.match(init, /if preserveTransit ~= true then\n\s*convaiVixenBaselineDue, convaiVixenBaselineAt = true, nil\n\s*if convaiVixenState and type\(convaiVixenState\.reset\) == 'function' then pcall\(convaiVixenState\.reset\) end/);
 });
