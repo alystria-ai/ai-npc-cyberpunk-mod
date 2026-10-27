@@ -200,18 +200,19 @@ async function bridgeTurn(requestText, {files = [], logs, probe, change} = {}) {
 }
 
 async function textHost(reply, deliverAction, logs, actions) {
-  const delivered = [];
+  const delivered = [], prompts = [];
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=' + 'test' + 'x'.repeat(28) + '\n', writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const route = mistralRoute({provider: {apiKey: 'test' + 'x'.repeat(28), noteSuccess() {}, noteLimit() {}, limit: null}, gapMs: 0});
   route.chat = async options => {
+    prompts.push(JSON.stringify(options.messages ?? options));
     options.onDelta?.(reply);
     return {text: reply, model: 'm', finishReason: 'stop', usage: {}, attempts: 1, failed: [], trace: {}};
   };
   const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {mistral: route},
     log: line => logs.push(line), deliverAction: async message => { delivered.push(message); return deliverAction ? deliverAction(message) : true; },
     ...(actions ? {traceReaction: (token, info) => actions.traceReaction(token, info)} : {})});
-  return {host, delivered};
+  return {host, delivered, prompts};
 }
 const turnConfig = (input, config) => ({text: input.text, context: 'CURRENT PERSON', sessionId: 's',
   contextParts: {now: 'Right now: you are with V in person.', notes: '', world: 'Night City.', volatile: 'Whether you ask V anything is your own call.'},
@@ -354,27 +355,36 @@ test('the reaction arrives for a person who threatened later too, and a polite m
   } finally { game.close(); }
 });
 
-test('threats switch on: "get down" through every real piece, the lease takes the echo with its flag, and the crowd person cowers with the crowd\'s own fear', async () => {
+test('threats switch on: "get down" through every real piece; the GAME decides from the words, hands it over at once, tells the model, and the crowd person cowers with the crowd\'s own fear', async () => {
   const game = luaSession();
   try {
     game.threats(true);
     const requestText = game.request(1, 'Get down on the ground, now!');
+    // The person's plan is the game's (mod/npc-reactions.lua M.plan): the same for this person every time, seeded by who it is.
     assert.deepEqual(JSON.parse(requestText).reactionOffer, {available: true, actor: {id: '11147869ULL', key: 'npc-corpo-resident-female'},
-      kinds: ['leave', 'call-police', 'cower', 'get-down', 'stop'], threats: true}, 'the game offers the threat kinds with the switch on');
+      kinds: ['leave', 'call-police', 'cower', 'get-down', 'stop'], threats: true,
+      plan: {kill: 'cower', hurt: 'cower', insult: 'leave', 'get-down': 'get-down', stop: 'stop'}}, 'the game offers the threat kinds and its plan with the switch on');
+    assert.ok(game.logs().some(line => line.includes('threats=on temper=') && line.includes(' plan=kill:cower,hurt:cower,insult:leave,get-down:get-down,stop:stop')), game.logs().join(' | '));
     const files = [], logs = [], trace = [];
     const turn = await bridgeTurn(requestText, {files, logs: trace});
-    assert.deepEqual(turn.config.reaction, {kinds: ['leave', 'call-police', 'get-down'], threats: true}, 'the words left the one command');
-    const {host, delivered} = await textHost('[obey] Okay, okay, I am down, please do not hurt me!', message => turn.actions.deliver(message), logs, turn.actions);
+    assert.deepEqual(turn.config.reaction, {kinds: [], threats: true, decided: 'get-down'}, 'the words decided: nothing is left for the model');
+    await settle();
+    const packet = files.find(item => item.action === 'npc-reaction');
+    assert.ok(packet && packet.reaction === 'get-down', 'handed over as soon as the words were known, before any reply');
+    const {host, delivered, prompts} = await textHost('Okay, okay, I am down, please do not hurt me!', message => turn.actions.deliver(message), logs, turn.actions);
     await host.reply(turnConfig(turn.input, turn.config));
     await settle();
-    assert.deepEqual(delivered, [{version: 1, token: turn.config.token, reaction: 'get-down'}]);
-    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police,get-down admitted=yes route=text tag=get-down delivered=yes screen=get-down']);
-    game.receive(JSON.stringify(files.find(item => item.action === 'npc-reaction')));
-    assert.ok(game.logs().some(line => /^NPC reaction accepted: get-down/.test(line)), 'the lease took the packet: ' + game.logs().join(' | '));
+    assert.deepEqual(delivered, [], 'the text host hands nothing over: the game already did');
+    assert.ok(prompts.some(text => text.includes('The game has decided what you do as you answer V\'s new message: you get down, as V told you.')), 'the model is told what the person does');
+    assert.ok(!prompts.some(text => text.includes('begin your reply with exactly one tag')), 'no tag is asked for');
+    assert.equal(trace.length, 1, trace.join(' | '));
+    assert.match(trace[0], /^NPC reaction: person=npc-corpo-resident-female offered=get-down admitted=yes route=\S+ tag=get-down delivered=yes screen=get-down by=game$/);
+    game.receive(JSON.stringify(packet));
+    assert.ok(game.logs().some(line => /^NPC reaction accepted: get-down/.test(line)), 'the lease took the packet with the plan in its echo: ' + game.logs().join(' | '));
     game.advance(0.1); game.advance(2);
     assert.equal(game.calls().crowdFear2, 1, 'the crowd person cowers: ' + game.logs().join(' | '));
     assert.equal(game.calls().walkTo, undefined);
-    // Switched off again: the next message is offered exactly as before the threat reactions.
+    // Switched off again: the next message is offered exactly as before the threat reactions (no plan, no threats flag).
     game.threats(false);
     assert.deepEqual(JSON.parse(game.request(2, 'Get down!')).reactionOffer, {available: true, actor: {id: '11147869ULL', key: 'npc-corpo-resident-female'},
       kinds: ['leave', 'call-police']});

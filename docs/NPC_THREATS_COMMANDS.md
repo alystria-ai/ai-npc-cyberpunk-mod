@@ -1,7 +1,17 @@
 # Ordinary NPCs react to threats and obey commands
 
-Written 2026-10-26 on branch `feat/npc-threats-commands` (from `main` 8006a09d) for the next version, not 0.3.2. Committed, NOT merged, NOT pushed,
-offline-tested only. Behind a Companion Manager switch that is **off by default**: Settings, Conversations, "NPCs react to threats and commands".
+Written 2026-10-26 on branch `feat/npc-threats-commands` (from `main` 8006a09d) for the next version, not 0.3.2, merged into `integration/0.3.3`.
+Reworked 2026-10-27 on `fix/threats-live` after the first live test (next section): the crowd flight's crash, **the game decides** (the owner's
+rule), and lethal phrasings. Committed, NOT merged, NOT pushed, offline-tested only. Behind a Companion Manager switch that is **off by default**:
+Settings, Conversations, "NPCs react to threats and commands".
+
+## Live test 1 (game 2.5, 2026-10-26) and what changed
+
+| Seen live | Cause | Fix (`fix/threats-live`) |
+|---|---|---|
+| `NPC reaction: fear failed: npc-reactions.lua:344: attempt to index local 'stim' (a nil value)`, then "the crowd's own flight is not available for leave; the person stays": a walking pedestrian kept walking | `StimuliEvent` is a **native** class (`stimuliEvents.script`: `import final class StimuliEvent`). CET's `NewObject` finds a native class only by its native name (`senseStimuliEvent`), never by its script alias, and returns nil for any other name. The rest of the mod already uses native names (`gameMountEventData`, `enteventsSetVisibility`); `DelayedCrowdReactionEvent` is a script class, so its name worked. The test fake accepted any listed name, so it never returned nil. | The stimulus is made with the type's own constructor `StimuliEvent.new()` (CET resolves script names there, as `EntityID.new()`), then `NewObject('senseStimuliEvent')`; neither: an error. A second way that needs no stimulus at all, **the crowd's fear stage** (below), runs when the event cannot be sent, and once more when a fleeing person has not moved 1.5 m by the 3 s read-back. Never a move command. The fake `NewObject` now returns nil for anything but a known native or script name, as CET does. |
+| `screen=insult` / `screen=hurt` with the fight kinds offered, but `tag=none(no-action-requested)` (Convai) and `tag=none(no-tag)` (text) every time | the model never chose a reaction | **The owner's decision: the game decides, not the model** ("Who decides" below). |
+| "I'll put a bullet in your head" read as `screen=hurt` | most likely the question tag: a sentence ending in "?" ("..., understand?", "..., you hear me?") was taken as a question, which refuses the kill and kept a lesser reading elsewhere in the message; the log has codes only, so the exact words are not known | question tags no longer make a question; many more lethal phrasings in English and the 15 languages count as death threats ("Lethal phrasings" below) |
 
 It extends the reactions of ordinary NPCs (docs/NPC_REACTIONS.md: leave, call the police, attack) and keeps every rail of that feature. Read that
 document first; this one only says what is new.
@@ -47,22 +57,89 @@ passer-by. Anyone who is not a crowd member still walks with the move command, a
 New read-backs: `NPC reaction check: leave crowd moved=<m> m in 3 s` (the crowd flight) and, for a walk, `... command state=<s> moved=<m> m`,
 with `(jumped, not walked)` when the first read-back finds more than 12 m.
 
-If the crowd event cannot be sent (missing class, three failures switch it off), the crowd person **stays**: a move command would make it vanish.
+The crowd event needs a stimulus object, which the first build could not make from CET (live test 1, above). So there are two ways, in order:
 
-## The two keys: no fight on a calm line
+1. **The crowd reaction event** (`natives.crowdFear`): `DelayedCrowdReactionEvent` with a `StimuliEvent` from `StimuliEvent.new()` (or
+   `NewObject('senseStimuliEvent')`), type `Terror`, V as the source.
+2. **The crowd's fear stage** (`natives.crowdPanic`), the public calls `OnCrowdReaction` itself makes, in its order: the crowd member's
+   `SetThreatLastKnownPosition(V)`, `AllowWorkspotsUsage(false)`, `NPCPuppet.ChangeHighLevelState(Fear)`, the `panic` (or `fear`) animation wrapper
+   and a fear-locomotion wrapper, the `CrowdRunningAway` animation feature (phase 3), a workspot's own `Fear` reaction or its fast exit, and
+   `CrowdMemberComponent.ChangeFearStage(Panic | Alarmed, true)`: the crowd system runs a panicked member along its own lanes.
 
-A reaction that hurts V or obeys V needs **both**:
+The second way runs when the first cannot be sent, and once more when a person who should flee has moved less than 1.5 m by the 3 s read-back
+(`... did not move; asked again with the fear stage`). Only when both are switched off after three failures each does the crowd person **stay**
+(`neither the crowd's reaction event nor its fear stage is available ...`): a move command would make it vanish.
+
+## Who decides: the game (the owner's rule of 2026-10-26)
+
+In live test 1 the model never chose a reaction on any provider. The rule since then: **when the screen reads V's words as a death threat, a threat
+to hurt, an insult or one of the three commands, and the person's kind allows a reaction for it, the GAME picks the reaction** from the person's
+kind and temper, and the model is only told what the person does so that its line fits ("you attack V with your fists"). The model's own choice (the
+tag, the Convai action) is left only for words the screen does not read.
+
+- **The plan** (`mod/npc-reactions.lua` `M.plan`): with the switch on, each offer carries the game's pick for every reading at once, `plan = {kill,
+  hurt, insult, get-down, stop, exit-vehicle}` -> one allowed kind. It is made at the offer because the words are often heard only later (a voice
+  turn). It is **seeded by the person** (`M.seed` of its entity id): the same person reacts the same way every time; two civilians may differ.
+  Each row of `M.TEMPERS` is `{kind, weight}`: the seed picks among the weighted kinds; when the pick is not allowed now (a safe zone, V already
+  wanted), the next allowed kind of the row stands in (weight 0 = only a stand-in). Logged in the offer line: `plan=kill:attack,hurt:brawl,...`.
+- **The pick** (`bridge/companion-actions.mjs` `planReaction`): the screen's reading names the row. A threat and a command at once ("get down or I'll
+  shoot"): a person whose plan answers the threat with a fight fights; anyone else does as told.
+- **As soon as the words are known**, on every provider:
+
+| Turn | Where the words are read and the pick handed over |
+|---|---|
+| typed, any provider | the bridge at admission (`CompanionActions.admit`): handed over at once (`by: 'game'`), before the reply is written |
+| spoken, Mistral / Local AI / Custom | the text host (`reactionMenu(offer, {heard})`), from the transcript, before the reply is written |
+| spoken, Convai | the realtime page, the moment Convai's recogniser finalises V's words (`CompanionActionWindow.decide`, on the final `user-transcription` row); the window then closes, so the model has no action of it left |
+
+- **What the model is told**: a decided turn: "The game has decided what you do as you answer V's new message: you attack V with your weapon. Say
+  what you say as you do it ... No action and no tag for it." A Convai voice turn (words not heard yet): the plan for each reading ("if it
+  threatens to kill you, you attack V with your weapon; if it insults you, you attack V with your fists; ..."), so the reply Convai writes as soon as
+  it hears V fits what the game does.
+- The game still starts the reaction **after the reply has been heard** (the lease and `S.start`/`S.update`, as before), and every rail still
+  applies at the hand-over and at the start: only ordinary people (never story or quest characters, scenes, rides, companions, children), safe
+  zones and the cooldown for fights and police calls, one reaction per person, the command cooldown.
+- The bridge accepts a `by: 'game'` pick only if it is the decided kind, or (words not heard yet) one of the plan's kinds; a model's own request
+  only among the kinds left to the model. The packet echoes the game's offer with its plan, byte for byte (the lease compares it).
+- The turn's line says who chose: `... tag=attack delivered=yes screen=kill by=game` (or `by=model`).
+
+### Decision table (`M.TEMPERS`; weights in brackets, a stand-in in italics)
+
+| Person (`M.temperOf`) | Death threat | Threat to hurt | Insult | Commands |
+|---|---|---|---|---|
+| ganger, soldier, merc (aggressive or neutral temper): `fighter` | attack with a weapon (*brawl*, *leave*) | brawl with fists (*attack*, *leave*) | brawl (*leave*) | obeys get down, stop, get out |
+| ganger, soldier (passive temper): `wary` | cower (1) or leave (1) | leave (*cower*) | leave | obeys |
+| NCPD, corporate security: `guard` | attack (*brawl*, *call-police*) | brawl (*attack*, *call-police*) | brawl (*call-police*) | never (not offered) |
+| residents, Biotechnica and Trauma Team staff: `civilian` | cower (4), run (4), call the police (2) | run (5), cower (3), police (2) | run (8), police (2) | obeys |
+| vendors: `shop` | duck (1) or call the police (1) | police (1) or duck (1) | police (*duck*) | get down only |
+| Aldecaldos: `nomad` | walk off | walk off | walk off | obeys |
+
+"Run" is `leave` (a crowd person flees with the crowd's own fear), "duck" and "cower" are `cower`.
+
+## The screen of V's words
 
 1. **V's words** (`bridge/threat-screen.mjs`, `screenMessage`): the line reads as a death threat (`kill`), a threat to hurt or a fight challenge
    (`hurt`), an insult at the person (`insult`), or one of the three commands. Refused, with the reason in the log: a joke marker (`lol`,
    "just kidding", `шучу`, `jaja`, `ㅋㅋ`, `开玩笑`...; a denied one like "I'm not joking" does not count as one), words inside quotation marks, a question
    ("would you kill for money?", "should I shoot you?"), a denial ("I won't hurt you", "я тебя не убью"). English needs the nearest subject before
    the verb to be "I" or "we" ("my boss will kill me", "they'll kill you" are not V's threats); the other languages are matched in their first-person
-   and imperative forms. All 16 languages (English and the 15 menu languages) are read at once.
-2. **The model's own judgement** in its reply: the tag the reply opens with (text routes) or the action it requests (Convai), exactly as for the
-   existing reactions.
+   and imperative forms. All 16 languages (English and the 15 menu languages) are read at once. A question tag at the end ("..., understand?",
+   "..., you hear me?", "verstanden?", "понял?") does not make a threat a question.
+2. With the plan (above) a clear reading decides. For words the screen does not read, or an offer without a plan, the model's own judgement in its
+   reply chooses as before: the tag the reply opens with (text routes) or the action it requests (Convai).
 
-The words only **narrow the offer** (`screenedKinds`); they never start anything:
+### Lethal phrasings (2026-10-27)
+
+Death threats, not threats to hurt, in English: a bullet (a round, one, two, a hole) in, through or between "your head / skull / eyes / chest";
+"shoot you in the head / face / heart"; "blow your brains out / head off"; "you're dead", "as good as dead", "consider yourself dead", "dead man
+walking"; "end you", "flatline you", "zero you", "geek you", "smoke you", "waste you", "ice you"; "put you in the ground / six feet under / in a
+grave", "you'll be six feet under"; "cut / slit your throat", "break / snap your neck"; "you won't leave here alive", "have you killed". In the 15
+languages the same set where the language has it (a bullet in the head, brains blown out, buried or put under the ground, "you're finished / it's
+over for you"), for example "ich jag dir eine Kugel in den Kopf", "je vais te faire sauter la cervelle", "te voy a volar los sesos", "я тебе мозги
+вышибу", "頭をぶち抜いてやる", "머리를 날려버릴 거야", "我要爆你的头". Still not threats: "I'll end you in chess", "I'll put you in the car", "you're dead to me",
+"я закопаю клад", "저세상 텐션", "heute ist dein letzter Tag im Büro".
+
+Without a plan the words only **narrow the offer** (`screenedKinds`); they never start anything:
 
 | Kind | Needs in V's words |
 |---|---|
@@ -81,13 +158,8 @@ fight is with fists or a weapon and which command was given, and the offer never
 
 ### Where the words are read
 
-| Turn | Narrowed by |
-|---|---|
-| typed, any provider | the bridge at admission (`CompanionActions.admit`), from the typed text |
-| spoken, Mistral / Local AI / Custom | the text host (`reactionMenu(offer, {heard})`), from the transcript |
-| spoken, Convai | **not available**: Convai hears the voice itself and its words arrive after its reply, so a Convai voice turn keeps only `leave` and `call-police` (fail closed) |
-
-Follow-up for Convai voice (not built): screen the final user transcription inside the realtime page before the action window accepts a proposal.
+The same places as the game's pick ("Who decides"). For the model's own fallback choice a Convai voice turn keeps only the kinds that need no
+words (`leave`, `call-police`); the plan covers the rest once the page has the final transcript.
 
 ## Who does what (personality)
 
@@ -105,7 +177,7 @@ Follow-up for Convai voice (not built): screen the final user transcription insi
 | Aldecaldos | leave | get-down, stop, exit-vehicle (they walk off rather than fight) |
 | Biotechnica, Trauma Team | leave, call-police | cower, get-down, stop, exit-vehicle |
 
-Run or cower for a civilian, comply or refuse for anyone, is then the model's choice in character, from what the game offered.
+Which of them a clear reading of V's words gets is the game's plan (the decision table above); the model chooses only for words the screen does not read.
 
 ## What the game does
 
@@ -114,8 +186,8 @@ against the game's compiled script cache (`r6/cache/final.redscripts`, read-only
 
 | Kind | Crowd person | Anyone else | Status |
 |---|---|---|---|
-| leave | `DelayedCrowdReactionEvent` (phase 3), `StimuliEvent` from V of type `Terror` with its record (`StimuliSystem.GetStimRecord`), `npc:QueueEvent` | `AIMoveToCommand`, as before | crowd: **script** (unconfirmed from CET); walk: live |
-| cower, get-down | the same event, phase 2 (cowers or surrenders; seated people use the seat's own fear) | `AIHoldPositionCommand` 20 s (holds still) | **script** / live |
+| leave | `DelayedCrowdReactionEvent` (phase 3), `StimuliEvent.new()` (or `NewObject('senseStimuliEvent')`) from V of type `Terror` with its record (`StimuliSystem.GetStimRecord`), `npc:QueueEvent`; else, or when it did not move the person, the crowd's fear stage (`ChangeFearStage(Panic)` and the calls above) | `AIMoveToCommand`, as before | crowd: **unconfirmed** (live test 1 crashed on `NewObject('StimuliEvent')`, fixed); walk: live |
+| cower, get-down | the same event, phase 2 (cowers or surrenders; seated people use the seat's own fear); else the fear stage `Alarmed` | `AIHoldPositionCommand` 20 s (holds still) | **unconfirmed** / live |
 | brawl | hostile + combat start as `attack`, then `AIEquipCommand` of `Items.w_melee_004__fists_a` to `AttachmentSlots.WeaponRight` (`failIfItemNotFound` off: nothing is added to the inventory); after 1.2 s, if the hand holds a weapon, one `AIUnequipCommand` | same | combat: live; fists: **unconfirmed** |
 | attack | unchanged (a weapon) | same | live |
 | stop | `AIHoldPositionCommand` 30 s, **without** letting go of the conversation (the talk goes on; the hold outlasts the conversation's own) | same | live (the conversation hold is the same command) |
@@ -158,29 +230,33 @@ temper, V's seat for a person in a vehicle), once at the start and once at the r
 ## The logs
 
 `probe.log`:
-- `NPC reaction offered: kinds=... type=<base> message=<n> threats=on temper=<aggressive|passive|neutral|?>` (the tail only with the switch on)
-- `NPC reaction: leave started, the crowd's own flight (no move command)`, `... cower started, the crowd's own fear (no move command)`,
-  `... get-down started, holds still for 20 s (...)`, `... stop started, holds still for 30 s`, `... brawl hostile ok, combat start ..., fists fists asked`,
-  `... exit-vehicle started, the game's own exit`
-- the read-backs above; `NPC reaction: the crowd's own flight is not available for leave; the person stays`
+- `NPC reaction offered: kinds=... type=<base> message=<n> threats=on temper=<aggressive|passive|neutral|?> plan=<reading:kind,...|->` (the tail only
+  with the switch on)
+- `NPC reaction: leave started, the crowd's own flight (the crowd reaction event, no move command)` or `(the fear stage, no move command)`,
+  `... cower started, the crowd's own fear (...)`, `... get-down started, holds still for 20 s (...)`, `... stop started, holds still for 30 s`,
+  `... brawl hostile ok, combat start ..., fists fists asked`, `... exit-vehicle started, the game's own exit`
+- the read-backs above; `NPC reaction: leave did not move; asked again with the fear stage (sent)`; `NPC reaction: fear failed: ...` /
+  `panic failed: ...` (once each); `neither the crowd's reaction event nor its fear stage is available for leave; the person stays`
 
 `bridge.stderr.log` (`[NPCReaction]`): the turn's one line gains ` screen=<code>` for a threats offer: `kill`, `hurt`, `insult`, `get-down`, `stop`,
-`exit-vehicle`, `insult+stop`, `none`, `none(joke|quote|question|negated)`. Codes only, never V's words. `offered=` is then what the words left;
-`admitted=no(screened)` means they left nothing.
+`exit-vehicle`, `insult+stop`, `none`, `none(joke|quote|question|negated)`, `unheard` (a voice turn: the words are read later). Codes only, never V's
+words. `offered=` is then what this turn may hand over; `admitted=no(screened)` means nothing. A chosen kind ends with ` by=game` (the plan) or
+` by=model` (a tag, a Convai action).
 
 ## Files
 
 | File | Role |
 |---|---|
-| `bridge/threat-screen.mjs` (new) | the screen of V's words, 16 languages; `screenedKinds` |
-| `mod/npc-reactions.lua` | kinds per person with the switch, the rails (vehicle, command cooldown, brawl), the natives (crowd fear, hold, fists, holster, hand, exit, mount reads), the crowd flight fix, the read-backs |
+| `bridge/threat-screen.mjs` (new) | the screen of V's words, 16 languages, lethal phrasings, question tags; `screenedKinds` |
+| `mod/npc-reactions.lua` | kinds per person with the switch, the game's plan (`M.plan`, `M.TEMPERS`, `M.seed`), the rails (vehicle, command cooldown, brawl), the natives (crowd fear event, crowd fear stage, hold, fists, holster, hand, exit, mount reads), the crowd flight fix, the read-backs |
+| `bridge/realtime-client.mjs` | the Convai page: the plan decides on the final transcript of a voice turn |
 | `mod/manager.lua`, `mod/manager-ui.lua`, `mod/init.lua` | the setting `npcThreats` (off by default), its row, the `threats` option |
 | `mod/gameplay-actions.lua` | the lease takes up to 8 kinds |
-| `bridge/companion-actions.mjs` | the offer's `threats` flag and five kinds, narrowing at admission, the Convai actions and words, the trace's `screen` |
-| `bridge/text-actions.mjs`, `bridge/text-provider-host.mjs` | `[cower]` and `[obey]`, `[attack]` as brawl or attack, the menu narrowed by the transcript, the notes |
+| `bridge/companion-actions.mjs` | the offer's `threats` flag, its plan and five kinds, the game's pick (`planReaction`, `decideReaction`) and its hand-over at admission, the `by: 'game'` message, narrowing for the model's fallback, the Convai actions, window (`decide`) and words, the trace's `screen` and `by` |
+| `bridge/text-actions.mjs`, `bridge/text-provider-host.mjs` | a decided menu (no tag, the note of what the person does, the pick from the transcript handed over before the reply), `[cower]` and `[obey]`, `[attack]` as brawl or attack, the menu narrowed by the transcript, the notes |
 | `mod/locales/*.lua`, `localization/en.json` | the setting's label and help in all 15 languages |
 | `packaging/runtime-layout.mjs`, `packaging/release-plan.json` | ship `bridge/threat-screen.mjs` |
-| `bridge/threat-screen.test.mjs`, `bridge/npc-threats.test.mjs`, `bridge/npc-threats-lua.test.mjs`, `bridge/npc-reaction-pipeline.test.mjs` | the tests |
+| `bridge/threat-screen.test.mjs`, `bridge/npc-threats.test.mjs`, `bridge/npc-threats-decide.test.mjs`, `bridge/npc-threats-lua.test.mjs`, `bridge/npc-reaction-pipeline.test.mjs`, `bridge/realtime-client.test.mjs` | the tests |
 
 ## Tests
 
@@ -198,48 +274,79 @@ temper, V's seat for a person in a vehicle), once at the start and once at the r
 - `bridge/npc-reaction-pipeline.test.mjs` (+1): "get down" through the real Lua lease, parser, knowledge router, admission, text host and back into
   the lease, with the switch on; then off again, the old offer.
 
+Added 2026-10-27 (`fix/threats-live`):
+- `bridge/threat-screen.test.mjs` (+4, 28): lethal phrasings in English (37 lines) and the 15 languages (four each), what only sounds lethal, and
+  question tags against real questions.
+- `bridge/npc-threats-lua.test.mjs` (+5, 20): the stimulus is never asked of `NewObject` by its script name (the fake returns nil for unknown
+  names, as CET does), the native name alone works, neither sends nothing; the crowd fear stage's exact calls (phase 3, phase 2 in a workspot,
+  phase 3 in a workspot, a refused stage); the event failing falls back to the fear stage, an event that did not move the person is followed once by
+  the fear stage, both switched off is the honest stay with no walk; the plan per kind and temper, its stand-ins, its seed (400 civilians: a mix,
+  the same for one person, never a fight), the offer's plan and log line.
+- `bridge/npc-threats-decide.test.mjs` (new, 8): the plan in the offer and its validation; the pick (a threat and a command at once); a typed turn
+  decided and handed over at admission, the model unable to change it, the text menu's note; the fallback for unread words; a Convai voice turn
+  (the window's plan text, `decide` on the words, once, the model's own fight refused); a spoken text-route turn decided from the transcript; game
+  picks outside the plan refused; the decided window publishes no action.
+- `bridge/realtime-client.test.mjs` (+1): a Convai voice turn on the real page: a streaming segment decides nothing, the final transcript hands over
+  `{reaction: 'attack', by: 'game'}` once, and the model's later action finds the window closed.
+- `bridge/npc-reaction-pipeline.test.mjs` (the threats test rewritten): the plan travels from the real Lua offer, the bridge decides "get down" at
+  admission and hands it over before the reply, the model is told, the trace says `by=game`, and the lease takes the echo with the plan.
+
 ## Live test (owner)
 
-Install: overlay the committed `mod/` and `bridge/` files of this branch (never `mod/diagnostics.lua`), CET reload, bridge restart (no redscript,
-no game restart). Use a throwaway copy of a save. Keep `probe.log` and `bridge.stderr.log` open. Provider: Mistral or Local AI, **typed** lines first
-(a Convai voice turn keeps only leave and call-police, see above).
+Live test 1 (2026-10-26, game 2.5) found the three problems at the top. Live test 2 is this one, for `fix/threats-live`.
+
+Install: overlay the committed `mod/` and `bridge/` files of the branch (never `mod/diagnostics.lua`), CET reload, bridge restart (no redscript, no
+game restart). Use a throwaway copy of a save. Keep `probe.log` and `bridge.stderr.log` open. Every offer line now ends with `plan=...`: that is
+what the person WILL do for each reading, so read it before typing and check that the person does exactly that. Typed lines first (any provider),
+then step 10 by voice.
 
 1. **Switch off (the default), the old reactions.** In Watson, type to a pedestrian on a bench: "get out of my sight or I'll kill you". Expect the
-   old offer line (no `threats=on`), and if it leaves: `leave started, the crowd's own flight (no move command)` then `leave crowd moved=<m> m in 3 s`.
-   **Does the person stand up and run, rather than vanish?** (This is the Shandor fix; it is not behind the switch.)
+   old offer line (no `threats=on`, no `plan=`). If the model makes it leave: `leave started, the crowd's own flight (the crowd reaction event, no
+   move command)` (or `(the fear stage, ...)`), then `leave crowd moved=<m> m in 3 s` with more than a couple of metres. **Does the person get up and
+   run, rather than vanish or stay?** No `fear failed: ... 'stim' (a nil value)` line any more.
 2. Turn the switch on: Settings, Conversations, "NPCs react to threats and commands".
-3. **A civilian, a death threat.** Type "I'm going to kill you" to a pedestrian. Expect `offered: kinds=leave,call-police,cower,get-down,stop ... threats=on`,
-   the bridge line `screen=kill` with `offered=leave,call-police,cower`. Does the person run (`leave`), cower in place (`cower`, crowd fear phase 2) or
-   call the police? Note which and whether it looks like the game's own fear.
-4. **A civilian, a command.** Type "Get down on the ground!" to another pedestrian. Expect `screen=get-down`. If the reply complies: `get-down started`
-   then for a crowd person the crowd's fear. **Does the person crouch or cower and stay?**
-5. **Stop.** Type "Freeze! Don't move." Expect `stop started, holds still for 30 s`. Walk away 10 m after the talk ends: **does the person stay put for
-   about half a minute?**
-6. **A ganger, an insult.** In Northside, type "you're a worthless piece of shit" to a Maelstrom or 6th Street ganger (not in a safe zone).
-   Expect `screen=insult`, `offered=leave,brawl` (and `cower` if passive). If he fights: `brawl hostile ok, combat start ..., fists fists asked`, then
-   `brawl in_combat=true hostile_to_v=true hand=<...>`. **Does he come at V with fists?** If `hand=` names a gun, the line after says it asked him to
-   put it away: **does he?**
-7. **A ganger, a death threat.** Another ganger: "I'll put a bullet in your head". Expect `screen=kill`, `offered=leave,attack`. **Does he draw his
-   weapon** (`attack`, never `brawl`)?
-8. **A calm line to a cop** (any NCPD officer): "Evening, officer, nice night." Expect the bridge line `admitted=no(screened) ... screen=none` and
-   nothing happens, whatever the reply says.
-9. **Get out of the vehicle.** Walk up to a parked or stopped car with an ordinary driver (traffic waiting at a light), on foot, and type
-   "Get out of the car!". Expect `kinds=exit-vehicle` (the person is in a vehicle) and, if the reply complies, `exit-vehicle started` then
-   `exit-vehicle out of the vehicle`. If instead the log says `not offered: game-in-charge:driven` the game drives that driver (traffic): note it.
-   **Can V even talk to a driver?** (Untested; the talk target may not pick people in cars.)
-10. **Refusals.** "I'll kill you lol" and 'He said "get down"' must give `screen=none(joke)` and `screen=none(quote)` and no fight or command.
-11. **Russian** (the player's language): "Ложись!" and "Я тебя убью" to pedestrians: `screen=get-down`, `screen=kill`.
-12. **Frame rate.** With the switch on, talk to a few people in a crowded street; FPS as before (nothing runs between turns).
+3. **A walking pedestrian, a death threat** (the live test 1 failure). Type "I'll put a bullet in your head" to someone walking past. Expect
+   `threats=on temper=... plan=kill:<cower|leave|call-police>,...`, the bridge line `... tag=<that kind> delivered=yes screen=kill by=game`, and the
+   reply in character with it (scared, begging or "I'm calling the cops"). If the plan says `leave`: `leave started, the crowd's own flight (...)` and
+   **does the person visibly run off** (not vanish, not keep walking)? If it says `did not move; asked again with the fear stage`, note whether the
+   second ask made it run. If `cower`: **does the person crouch and cover?**
+4. **The same person again, the same words** after reloading the save: **the same reaction** (seeded by the person, not random).
+5. **A civilian, a command.** "Get down on the ground!" to another pedestrian. Expect `screen=get-down ... by=game` and `get-down started`. **Does the
+   person crouch or cower and stay?**
+6. **Stop.** "Freeze! Don't move." Expect `stop started, holds still for 30 s ... by=game`. Walk away 10 m after the talk: **does the person stay put
+   for about half a minute?**
+7. **A ganger, an insult.** In Northside, "you're a worthless piece of shit" to a Maelstrom or 6th Street ganger (not in a safe zone). An aggressive
+   or ordinary ganger's plan says `insult:brawl`: expect `screen=insult ... tag=brawl ... by=game`, `brawl hostile ok, combat start ..., fists fists
+   asked`, `brawl in_combat=true hostile_to_v=true hand=<...>`. **Does he come at V with his fists, and say something that fits?** If `hand=` names a
+   gun, the next line says it asked him to put it away: **does he?**
+8. **A ganger, a death threat.** Another ganger: "I'll put a bullet in your head, understand?". Expect `screen=kill` (not `hurt`, not
+   `none(question)`), `tag=attack ... by=game`. **Does he draw his weapon?** Also try "I'll blow your brains out" and "you're dead" on others.
+9. **A cop, a calm line then an insult.** "Evening, officer, nice night.": `admitted=no(screened)`, nothing happens. Then (not in a safe zone, with
+   a save you can lose) "you corrupt piece of shit" to another officer: `plan=kill:attack,hurt:brawl,insult:brawl`, `tag=brawl by=game`: **fists**.
+10. **Convai voice** (provider Convai, talk key). Say "I'll put a bullet in your head" to a ganger whose plan says `kill:attack`. Expect the bridge
+    line `... route=convai tag=attack delivered=yes screen=unheard by=game`. **Does he draw as soon as his reply is spoken, and does the reply fit?**
+    Then the same on a pedestrian: does it flee or cower as its plan says?
+11. **Spoken, Local AI or Mistral** (the local microphone): "Get down!" to a pedestrian: `screen=unheard ... tag=get-down by=game`.
+12. **Get out of the vehicle.** On foot, to an ordinary driver stopped at a light: "Get out of the car!". Expect `kinds=exit-vehicle`,
+    `plan=exit-vehicle:exit-vehicle` and `exit-vehicle out of the vehicle`, or `not offered: game-in-charge:driven` (note it). **Can V talk to a
+    driver at all?**
+13. **Refusals and fallback.** "I'll kill you lol" and 'He said "get down"': `screen=none(joke)`, `screen=none(quote)`, no `by=game`, nothing
+    happens. "Nice jacket": the model's own choice as before (`by=model` if it chose anything).
+14. **Russian**: "Ложись!" and "Я тебе мозги вышибу" to pedestrians: `screen=get-down`, `screen=kill`, both `by=game`.
+15. **Frame rate.** With the switch on, talk to a few people in a crowded street; FPS as before (nothing runs between turns).
 
-What only this can confirm: the crowd fear event from CET (steps 1, 3, 4), the fists command on an ordinary NPC (step 6), the exit event and
-whether a driver can be talked to at all (step 9), and how far the shared fright spreads to bystanders.
+What only this can confirm: whether `StimuliEvent.new()` (or the native name) makes the stimulus in CET, whether the crowd's fear stage alone makes
+a pedestrian run, the fists command on an ordinary NPC, the exit event, and whether a Convai voice reply fits the planned reaction.
 
 ## Open risks
 
 - The crowd event, the fists command and the exit event are called from CET for the first time. Each is guarded and logged; a missing one loses
-  only that outcome (a crowd person then stays or holds still, a brawl is a plain fight, a get-out does nothing).
+  only that outcome (a crowd person then gets the fear stage instead, and stays only when that fails too; a brawl is a plain fight, a get-out does
+  nothing). Whether the fear stage alone makes a walking pedestrian run is unconfirmed (live test 2, step 3).
 - The game shares a crowd person's fright with bystanders within about 10 m (its own `SpreadFear` when the source is V). A "get down" in a busy
   street may scatter the people around; that is the game's own behaviour when V threatens someone.
-- The words screen is a gate, not a classifier: a rare phrasing it misses leaves the person with leave and call-police only; a false match only
-  widens what the model may choose, it never starts anything.
-- Convai voice turns get no fight, cower or command (see "Where the words are read").
+- The words screen now decides: a false match (a line it reads as a threat that is not one) makes the person react as its plan says. It is
+  tuned against the lines that only sound violent (tests); a rare lethal phrasing it misses leaves the model its old choice.
+- A Convai voice reply is written by Convai as soon as it hears V, from the plan in its context; if it ignores it, the game still does what the
+  plan says (the line may then not fit).
+- The game decides from the reading, not from the reply: a person whose reply refuses still reacts (the decided note tells the model not to refuse).

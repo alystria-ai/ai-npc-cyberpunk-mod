@@ -2299,3 +2299,36 @@ test('an empty response is not a reply: the turn fails only at the real timeout,
   await cancelled.api.close();
   await assert.rejects(turn, /cancelled/);
 });
+
+// The game decides (docs/NPC_THREATS_COMMANDS.md "Who decides"): on a Convai voice turn of an ordinary NPC whose offer carries the game's plan, the
+// final transcript is read by the plan on the page and the decided reaction is handed over at once; a streaming segment never decides.
+test('a voice turn with the game\'s plan: the final transcript decides the reaction on the page, once, and the model has no action of it left', async () => {
+  const accepted = [], {api, clients, events} = fixture({allowMic: true, onCompanionAction: value => accepted.push(value)});
+  const token = 'drive-' + '7'.padStart(20, '0');
+  const request = {...config, scope: 'private:world:fixture', endUserId: 'fixture-user', ttsEnabled: false,
+    companionAction: {version: 1, token, source: 'private-voice', expiresAt: Date.now() + 89000, drive: false,
+      reaction: {kinds: ['leave'], threats: true, plan: {kill: 'attack', hurt: 'brawl', insult: 'brawl', stop: 'stop'}}}};
+  await api.beginVoice(request); await flush();
+  const connection = clients[0], receive = connection.handlers.get('messagesChange');
+  const speech = {id: 'speech', type: 'user-transcription', content: 'I\'ll put a bullet', isStreaming: true};
+  receive([speech]); await flush();
+  // The stop arms the window with the turn's offer (the context the reply is written with).
+  const pending = api.finishVoice(request); await flush();
+  const context = events.find(row => row[0] === 'publish')?.[1].data;
+  assert.ok(context, 'the window was armed');
+  assert.match(context.text, /if it threatens to kill you, you attack V with your weapon/);
+  assert.deepEqual(context.action_config.actions, ['Walk Away ' + token], 'the model keeps only what needs no words');
+  receive([{...speech, content: 'I\'ll put a bullet in'}]); await flush();
+  assert.equal(accepted.length, 0, 'a streaming segment decides nothing');
+  receive([speech, {id: 'final', type: 'user-transcription', content: 'I\'ll put a bullet in your head, understand?', isStreaming: false}]); await flush();
+  assert.deepEqual(accepted, [{version: 1, token, reaction: 'attack', by: 'game'}]);
+  // The model asking for an action afterwards finds the window closed.
+  connection.data(wire({type: 'action-response', actions: [{name: 'Walk Away ' + token, target: token}]})); await flush();
+  assert.equal(accepted.length, 1);
+  receive([speech, {id: 'final', type: 'user-transcription', content: 'I\'ll put a bullet in your head, understand?', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'You want to die, choom?', isStreaming: false}]);
+  connection.state.isThinking = false;
+  await pending.catch(() => {});
+  assert.equal(accepted.length, 1, 'once');
+  await api.close();
+});

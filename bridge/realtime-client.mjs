@@ -452,6 +452,16 @@ async function connect(config) {
       const heard = microphoneTranscript(fresh);
       if (heard !== turn.userText) turn.userTextAtMs = performance.now(); // when the final words last changed: the tiny-transcript wait counts from here
       turn.userText = heard;
+      // An ordinary NPC's reaction the game decides (docs/NPC_THREATS_COMMANDS.md "Who decides"): the moment the recogniser has finalised V's words,
+      // the game's plan reads them; a reading it answers is handed over at once (the game still starts it after the reply), and the model, told the
+      // plan in the context, has no action of it left.
+      const final = fresh.some(message => message.type === 'user-transcription' && message.isStreaming === false);
+      const decided = final && heard && verifiedProvider?.connection === connection ? companionActions.decide(heard) : null;
+      if (decided && typeof window.__convaiCompanionAction === 'function') {
+        observed.reactionDecided = decided.reaction;
+        void Promise.resolve().then(() => currentConnection() && verifiedProvider?.connection === connection
+          ? window.__convaiCompanionAction(decided) : false).catch(() => {});
+      }
     }
     const llm = fresh.filter(m => ['bot-llm-text', 'convai'].includes(m.type) && m.content?.trim());
     const rows = llm.length ? llm : fresh.filter(m => m.type === 'bot-output' && m.content?.trim());

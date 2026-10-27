@@ -21,7 +21,7 @@
 // choices STAY (live at V's place, the apartment id follows), MOVEOUT and JOIN (come along from home; a name or ALL follows). Distract is gone.
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
-import {parseDriveUnavailable, DRIVE_LIMIT, SEATED_MODES, HOME_APARTMENT_NAMES, COMMAND_WORDS} from './companion-actions.mjs';
+import {parseDriveUnavailable, DRIVE_LIMIT, SEATED_MODES, HOME_APARTMENT_NAMES, COMMAND_WORDS, decideReaction, decidedReactionText} from './companion-actions.mjs';
 import {screenWords, explicitRequest, certainWords} from './text-action-words.mjs';
 import {screenMessage, screenedKinds, screenCode} from './threat-screen.mjs';
 
@@ -405,8 +405,18 @@ const REACTION_ACT = Object.freeze({leave: 'end the talk and walk away from V', 
  * need no words (fail closed).
  */
 export function reactionMenu(offer, {heard} = {}) {
-  const offered = Array.isArray(offer?.reaction?.kinds) ? REACTION_ORDER.filter(kind => offer.reaction.kinds.includes(kind)) : [];
-  if (!offered.length || typeof offer.token !== 'string' || !offer.token) return null;
+  if (typeof offer?.token !== 'string' || !offer.token || !offer.reaction) return null;
+  // The game decided (docs/NPC_THREATS_COMMANDS.md "Who decides"): by the bridge from the typed line (already handed over: `decided`), or here from
+  // the transcript by the game's plan (`deliver` is the message to hand over at once). No tag is asked for or read; the note says what the person does.
+  const game = offer.reaction.decided ? {kind: offer.reaction.decided, deliver: null, screen: undefined}
+    : offer.reaction.plan ? (() => { const read = decideReaction(offer.reaction, heard ?? ''); return read?.kind
+      ? {kind: read.kind, deliver: {version: 1, token: offer.token, reaction: read.kind, by: 'game'}, screen: read.screen} : null; })() : null;
+  if (game && REACTION_ORDER.includes(game.kind)) {
+    return {kinds: [], decided: game.kind, deliver: game.deliver, screen: game.screen, notes: 'GAME REACTION: ' + decidedReactionText(game.kind),
+      pick: () => ({kind: null, why: 'decided-by-game'}), resolve: () => null};
+  }
+  const offered = Array.isArray(offer.reaction.kinds) ? REACTION_ORDER.filter(kind => offer.reaction.kinds.includes(kind)) : [];
+  if (!offered.length) return null;
   const read = offer.reaction.threats === true ? screenMessage(heard ?? '') : null;
   const kinds = read ? screenedKinds(offered, read) : offered;
   const screen = read ? screenCode(read) : undefined;

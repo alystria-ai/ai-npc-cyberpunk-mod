@@ -49,7 +49,9 @@ local natives = {
   crowd = function() count('crowd'); return state.crowd end,
   temper = function() count('temper'); return state.temper end,
   crowdFear = function(npc, player, phase) count('crowdFear'); calls.phase = phase; if state.failFear then error('no crowd event') end
-    if phase >= 3 then state.at = {x = state.at.x + 9, y = 0, z = 0} end end,
+    if phase >= 3 and not state.fearStill then state.at = {x = state.at.x + 9, y = 0, z = 0} end end,
+  crowdPanic = function(npc, player, phase) count('crowdPanic'); calls.panicPhase = phase; if state.failPanic then error('no fear stage') end
+    if phase >= 3 then state.at = {x = state.at.x + 6, y = 0, z = 0} end end,
   hold = function(npc, seconds) count('hold'); calls.holdSeconds = seconds; return {id = 'hold'} end,
   fists = function() count('fists'); return 'fists asked' end,
   holster = function() count('holster') end,
@@ -213,7 +215,8 @@ test('leave: a crowd person gets the crowd\'s own flight, never a move command (
   assert(act(S, offer, 'leave'))
   assert(calls.crowdFear == 1 and calls.phase == 3 and calls.walkTo == nil, 'the flight, not the walk')
   assert(state.released == 1, 'the conversation hold is let go first')
-  assert(logged("NPC reaction: leave started, the crowd's own flight %(no move command%)"))
+  assert(logged("NPC reaction: leave started, the crowd's own flight %(the crowd reaction event, no move command%)"))
+  assert(calls.crowdPanic == nil, 'the event moved the person: no second ask')
   assert(logged('NPC reaction check: leave crowd moved=9.0 m in 3 s'), table.concat(logs, '\\n'))
   -- Not a crowd person: the walk, with the metres it covered in the first read-back (and a jump named as one).
   state.crowd, state.at = false, {x = 0, y = 0, z = 0}
@@ -224,11 +227,96 @@ test('leave: a crowd person gets the crowd\'s own flight, never a move command (
   assert(logged('NPC reaction check: leave command state=Executing moved=50.0 m %(jumped, not walked%)'), table.concat(logs, '\\n'))
 `));
 
-test('leave: when the crowd\'s flight cannot be sent the crowd person stays (a walk would put it 30 m off in an instant)', () => withService(`
+test('leave: when the crowd reaction event cannot be made (the live test of 2026-10-26) the person still flees, with the crowd\'s fear stage; never a move command', () => withService(`
   state.failFear = true
   local S = build()
   assert(act(S, offerFor(S, 'street-resident', 'resident'), 'leave'))
-  assert(calls.walkTo == nil and logged("flight is not available for leave; the person stays"))
+  assert(calls.crowdFear == 1 and calls.crowdPanic == 1 and calls.panicPhase == 3 and calls.walkTo == nil, 'the fear stage, not the walk')
+  assert(logged("NPC reaction: leave started, the crowd's own flight %(the fear stage, no move command%)"), table.concat(logs, '\\n'))
+  assert(logged('NPC reaction check: leave crowd moved=6.0 m in 3 s'), table.concat(logs, '\\n'))
+  assert(not logged('the person stays'))
+`));
+
+test('leave: an event that reached the person but did not move it is followed once by the fear stage; neither way available: the honest log, still no walk', () => withService(`
+  state.fearStill = true
+  local S = build()
+  assert(act(S, offerFor(S, 'street-resident', 'resident'), 'leave'))
+  now = now + 4; S.update()
+  assert(calls.crowdFear == 1 and calls.crowdPanic == 1, 'asked once more: ' .. table.concat(logs, ' | '))
+  assert(logged('NPC reaction check: leave crowd moved=0.0 m in 3 s'))
+  assert(logged('NPC reaction: leave did not move; asked again with the fear stage %(sent%)'))
+  assert(logged('NPC reaction check: leave crowd moved=6.0 m in 3 s'), table.concat(logs, '\\n'))
+  now = now + 10; S.update()
+  assert(calls.crowdPanic == 1, 'only once')
+  -- Both ways fail three times: both switched off; the next crowd person is not walked off (it would be put 30 m away at once).
+  state.fearStill, state.failFear, state.failPanic = false, true, true
+  local S2 = build()
+  for index = 1, 3 do
+    local entity = tostring(80 + index) .. 'ULL'
+    npcs[entity] = {id = entity}
+    act(S2, offerFor(S2, 'street-resident', 'resident', entity), 'leave', entity)
+  end
+  assert(S2.inspect().off.fear == true and S2.inspect().off.panic == true)
+  npcs['90ULL'] = {id = '90ULL'}
+  act(S2, offerFor(S2, 'street-resident', 'resident', '90ULL'), 'leave', '90ULL')
+  assert(calls.walkTo == nil and logged("neither the crowd's reaction event nor its fear stage is available for leave; the person stays"))
+`));
+
+test('the game decides: one plan per person for each reading of V\'s words, from its kind and temper, seeded by the person, only allowed kinds', () => withModule(`
+  local function plan(base, category, temper, kinds, entity)
+    local p = M.plan({base = base, category = category}, temper, kinds, M.seed(entity or '44ULL'))
+    if not p then return '-' end
+    local parts = {}
+    for _, key in ipairs(M.PLAN_KEYS) do if p[key] then parts[#parts + 1] = key .. ':' .. p[key] end end
+    return table.concat(parts, ',')
+  end
+  local gang = {'leave', 'attack', 'brawl', 'get-down', 'stop'}
+  -- An aggressive or ordinary ganger: fists for an insult or a threat to hurt, the weapon for a death threat; a command is obeyed.
+  assert(plan('maelstrom', 'gang', 'aggressive', gang) == 'kill:attack,hurt:brawl,insult:brawl,get-down:get-down,stop:stop', plan('maelstrom', 'gang', 'aggressive', gang))
+  assert(plan('maelstrom', 'gang', 'neutral', gang) == plan('maelstrom', 'gang', 'aggressive', gang))
+  -- In a safe zone the fights are not allowed: the ganger walks off instead.
+  assert(plan('maelstrom', 'gang', 'aggressive', {'leave', 'get-down', 'stop'}) == 'kill:leave,hurt:leave,insult:leave,get-down:get-down,stop:stop')
+  -- A passive ganger hides or backs off.
+  local passive = plan('maelstrom', 'gang', 'passive', {'leave', 'attack', 'cower', 'brawl', 'get-down', 'stop'})
+  assert(passive:find('kill:cower') or passive:find('kill:leave'), passive)
+  assert(passive:find('hurt:leave') and passive:find('insult:leave'), passive)
+  -- Cops and guards fight; a guard's police call stands in when the fight is not allowed.
+  assert(plan('ncpd', 'police', 'aggressive', {'attack', 'brawl'}) == 'kill:attack,hurt:brawl,insult:brawl')
+  assert(plan('corpo-security', 'corpo-security', 'passive', {'call-police'}) == 'kill:call-police,hurt:call-police,insult:call-police')
+  -- Nomads walk off.
+  assert(plan('aldecaldos', 'gang', 'aggressive', {'leave', 'get-down', 'stop'}) == 'kill:leave,hurt:leave,insult:leave,get-down:get-down,stop:stop')
+  -- A clerk calls the police or ducks, never leaves.
+  local clerk = plan('ripperdoc', 'vendor', 'neutral', {'call-police', 'cower', 'get-down'})
+  assert(not clerk:find('leave') and clerk:find('get%-down:get%-down'), clerk)
+  -- Civilians run or cower, sometimes call the police: never a fight, every pick among the allowed kinds, the same for one person every time.
+  local civil = {'leave', 'call-police', 'cower', 'get-down', 'stop'}
+  local seen = {}
+  for n = 1, 400 do
+    local entity = tostring(1000000 + n * 7) .. 'ULL'
+    local p = M.plan({base = 'street-resident', category = 'resident'}, 'neutral', civil, M.seed(entity))
+    assert(plan('street-resident', 'resident', 'neutral', civil, entity) == plan('street-resident', 'resident', 'neutral', civil, entity), 'seeded, not random')
+    for _, level in ipairs({'kill', 'hurt', 'insult'}) do
+      assert(p[level] == 'leave' or p[level] == 'cower' or p[level] == 'call-police', level .. ' ' .. tostring(p[level]))
+      seen[level .. ':' .. p[level]] = (seen[level .. ':' .. p[level]] or 0) + 1
+    end
+  end
+  assert(seen['kill:cower'] > 100 and seen['kill:leave'] > 100 and seen['kill:call-police'] > 40, 'a mix across people')
+  assert(seen['insult:cower'] == nil and seen['insult:leave'] > seen['insult:call-police'], 'an insult never makes a civilian cower; police only sometimes')
+  -- V wanted already (no police call allowed): the call is never planned.
+  for n = 1, 50 do assert(not plan('street-resident', 'resident', 'neutral', {'leave', 'cower'}, tostring(n) .. 'ULL'):find('police')) end
+  -- Nothing allowed that a reading could use: no plan.
+  assert(plan('street-resident', 'resident', 'neutral', {}) == '-')
+  assert(M.seed('44ULL') == M.seed('44ULL') and M.seed('44ULL') ~= M.seed('45ULL'))
+`));
+
+test('the game decides: a threats offer carries the person\'s plan and logs it; the switch off never sends one', () => withService(`
+  state.temper = 'aggressive'
+  local S = build()
+  local offer = offerFor(S, 'maelstrom', 'gang')
+  assert(offer.plan and offer.plan.kill == 'attack' and offer.plan.hurt == 'brawl' and offer.plan.insult == 'brawl' and offer.plan['get-down'] == 'get-down', 'the plan')
+  assert(logged('threats=on temper=aggressive plan=kill:attack,hurt:brawl,insult:brawl,get%-down:get%-down,stop:stop'), table.concat(logs, '\\n'))
+  state.threats = false
+  assert(offerFor(build(), 'maelstrom', 'gang', '55ULL').plan == nil)
 `));
 
 test('cower and get down: the crowd\'s own fear (phase 2) for a crowd person, a hold for anyone else', () => withService(`
@@ -241,8 +329,8 @@ test('cower and get down: the crowd\'s own fear (phase 2) for a crowd person, a 
   assert(act(S2, offer, 'get-down', '55ULL'))
   assert(calls.hold == 1 and calls.holdSeconds == 20, 'holds still for 20 s')
   assert(logged('NPC reaction check: get%-down hold state=Executing'))
-  -- The crowd fear switched off after failures: a crowd person cowers by holding still.
-  state.crowd, state.failFear = true, true
+  -- The crowd reaction event and the fear stage both switched off after failures: a crowd person cowers by holding still.
+  state.crowd, state.failFear, state.failPanic = true, true, true
   local S3 = build()
   for index = 1, 3 do
     local entity = tostring(60 + index) .. 'ULL'
@@ -251,6 +339,13 @@ test('cower and get down: the crowd\'s own fear (phase 2) for a crowd person, a 
   end
   assert(S3.inspect().off.fear == true, 'switched off after 3 failures')
   assert(calls.hold == 4, 'every failed fear fell back to the hold')
+  assert(S3.inspect().off.panic == true)
+  -- Only the event failing: the fear stage (phase 2), no hold.
+  state.failPanic = false
+  local S4 = build()
+  npcs['70ULL'] = {id = '70ULL'}
+  assert(act(S4, offerFor(S4, 'street-resident', 'resident', '70ULL'), 'cower', '70ULL'))
+  assert(calls.panicPhase == 2 and calls.hold == 4, 'the fear stage, no hold')
 `));
 
 test('brawl: hostile, combat and fists; a drawn weapon is put away once; it counts as a fight for the cooldown', () => withService(`
@@ -333,19 +428,42 @@ local queued, sent, notes = {}, {}, {}
 CName = {new = function(name) return 'cname:' .. name end}
 TweakDBID = {new = function(name) return 'tdb:' .. name end}
 Enum = {new = function(kind, name) return kind .. '.' .. name end}
-local CLASSES = {StimuliEvent = true, DelayedCrowdReactionEvent = true, AIHoldPositionCommand = true, AIEquipCommand = true, AIUnequipCommand = true, AIEvent = true}
-NewObject = function(name)
-  if not CLASSES[name] then error('unknown class ' .. name) end
-  local object = {class = name}
-  if name == 'StimuliEvent' then function object:SetStimType(value) self.stimType = value end end
+-- CET's NewObject knows a native class only by its native name and gives nil for any other name (the live test of 2026-10-26: nil for
+-- 'StimuliEvent', whose native name is 'senseStimuliEvent'). The script classes are known by their own names.
+local CLASSES = {DelayedCrowdReactionEvent = true, AIHoldPositionCommand = true, AIEquipCommand = true, AIUnequipCommand = true, AIEvent = true,
+  AnimFeature_CrowdRunningAway = true}
+local nativeStimulus = false   -- the test turns the native name on
+local function stimulus(class)
+  local object = {class = class}
+  function object:SetStimType(value) self.stimType = value end
   return object
 end
+NewObject = function(name)
+  if name == 'senseStimuliEvent' and nativeStimulus then return stimulus('StimuliEvent') end
+  if not CLASSES[name] then return nil end
+  return {class = name}
+end
+-- The type's own constructor (CET resolves a script name to its native class), present only when a test says so.
+local function constructor(on) StimuliEvent = on and {new = function() return stimulus('StimuliEvent') end} or nil end
+local wrappers, features, stages, workspot = {}, {}, {}, {inSpot = false, signals = {}}
+AnimationControllerComponent = {
+  SetAnimWrapperWeightOnOwnerAndItems = function(_, key, value) wrappers[#wrappers + 1] = tostring(key) .. '=' .. tostring(value) end,
+  ApplyFeatureToReplicate = function(_, name, feature) features[#features + 1] = {name = name, feature = feature} end}
+NPCPuppet = {ChangeHighLevelState = function(_, state) stages[#stages + 1] = 'high:' .. tostring(state) end}
 local stimRecord = {id = 'record:Terror'}
 local mounted = {}
 Game = {
   GetStimuliSystem = function() return {GetStimRecord = function(_, kind) notes[#notes + 1] = 'record ' .. kind; return stimRecord end} end,
   GetMountingFacility = function() return {IsMountedToAnything = function(_, id) return mounted[id] == true end} end,
+  GetWorkspotSystem = function() return {IsActorInWorkspot = function() return workspot.inSpot end,
+    IsReactionAvailable = function(_, _, name) return name == 'cname:Fear' end,
+    SendReactionSignal = function(_, _, name) workspot.signals[#workspot.signals + 1] = 'reaction:' .. name end,
+    SendFastExitSignal = function() workspot.signals[#workspot.signals + 1] = 'fast-exit' end} end,
 }
+local crowdMember = {refuse = false, calls = {}}
+function crowdMember:SetThreatLastKnownPosition(position) self.calls[#self.calls + 1] = 'threat'; self.threat = position end
+function crowdMember:AllowWorkspotsUsage(allow) self.calls[#self.calls + 1] = 'workspots=' .. tostring(allow) end
+function crowdMember:ChangeFearStage(stage, init) self.calls[#self.calls + 1] = 'stage=' .. tostring(stage) .. ' init=' .. tostring(init); return not self.refuse end
 ScriptedPuppet = {GetWeaponRight = function(npc) return npc.weapon end}
 WeaponObject = {IsFists = function(id) return id == 'fists-id' end}
 ItemID = {GetTDBID = function(id) return 'tdb-of:' .. id end}
@@ -355,12 +473,45 @@ local npc = {id = 'N', crowd = true, GetEntityID = function() return 'N-id' end,
   IsCrowd = function(self) return self.crowd end,
   GetWorldPosition = function() return Vector4.new(10, 0, 0, 1) end,
   QueueEvent = function(_, event) queued[#queued + 1] = event end,
-  GetStimReactionComponent = function() return {GetReactionPreset = function() return {Type = function() return 'gamedataReactionPresetType : Ganger_Passive (11)' end} end} end,
+  GetStimReactionComponent = function() return {GetReactionPreset = function() return {Type = function() return 'gamedataReactionPresetType : Ganger_Passive (11)' end} end,
+    GetRandomFearLocomotionAnimWrapper = function(_, phase) return 'cname:FearLocomotion' .. phase end} end,
+  GetCrowdMemberComponent = function() return crowdMember end,
   GetAIControllerComponent = function() return {SendCommand = function(_, command) sent[#sent + 1] = command; return true end} end}
 local N = M.nativeAdapter()
 `;
 
+test('natives: the stimulus is never asked of NewObject by its script name (nil in the game); without its constructor or native name the event is not sent', () => withModule(fakeGame + `
+  -- Neither the type's constructor nor the native name: an error before anything is queued (the service then uses the fear stage).
+  local ok, why = pcall(N.crowdFear, npc, player, 3)
+  assert(not ok and tostring(why):find('the stimulus event cannot be made from Lua') and #queued == 0, tostring(why))
+  -- The native name alone is enough.
+  nativeStimulus = true
+  N.crowdFear(npc, player, 3)
+  assert(queued[1].class == 'DelayedCrowdReactionEvent' and queued[1].stimEvent.class == 'StimuliEvent')
+`));
+
+test('natives: the crowd fear stage is the public calls of the game\'s own crowd reaction: V the threat, no workspot, fear, the fear animations, panic or alarmed', () => withModule(fakeGame + `
+  N.crowdPanic(npc, player, 3)
+  assert(table.concat(crowdMember.calls, ',') == 'threat,workspots=false,stage=gameFearStage.Panic init=true', table.concat(crowdMember.calls, ','))
+  assert(isVector4(crowdMember.threat) and crowdMember.threat.x == 1, 'V\\'s position, a real Vector4')
+  assert(stages[1] == 'high:gamedataNPCHighLevelState.Fear')
+  assert(table.concat(wrappers, ',') == 'cname:panic=1.0,cname:FearLocomotion3=1.0', table.concat(wrappers, ','))
+  assert(features[1].name == 'cname:CrowdRunningAway' and features[1].feature.class == 'AnimFeature_CrowdRunningAway' and features[1].feature.isRunningAwayFromPlayersCar == false)
+  assert(#sent == 0 and #queued == 0, 'no command, no event')
+  -- Phase 2 in a workspot with its own fear reaction: the reaction signal, the alarmed stage, no running-away feature.
+  crowdMember.calls, workspot.inSpot = {}, true
+  N.crowdPanic(npc, player, 2)
+  assert(workspot.signals[1] == 'reaction:cname:Fear' and crowdMember.calls[3] == 'stage=gameFearStage.Alarmed init=true' and #features == 1)
+  -- Phase 3 in a workspot: asked out of it first.
+  N.crowdPanic(npc, player, 3)
+  assert(workspot.signals[2] == 'fast-exit')
+  -- A refused stage raises (the service counts it as a failure).
+  crowdMember.refuse = true
+  assert(not pcall(N.crowdPanic, npc, player, 3))
+`));
+
 test('natives: the crowd fear is the game\'s own crowd reaction event with a fixed phase, from V, with the Terror stimulus and its record', () => withModule(fakeGame + `
+  constructor(true)
   N.crowdFear(npc, player, 3)
   local event = queued[1]
   assert(event.class == 'DelayedCrowdReactionEvent' and event.vehicleFearPhase == 3, 'the event the game queues to frightened passengers')
