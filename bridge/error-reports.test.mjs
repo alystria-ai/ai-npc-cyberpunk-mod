@@ -295,6 +295,8 @@ test('no planted secret, conversation text or account name gets out, and the pay
     assert.equal(payload.report.versions.game, '2.31');
     assert.equal(payload.report.versions.cet, 'v1.35.0');
     assert.equal(payload.report.versions.red4ext, '1.30.0');
+    assert.equal(payload.report.versions.scriptsGame, '2.31', 'the game each half was built for: no game field is the 2.31 build');
+    assert.equal(payload.report.versions.runtimeGame, '2.31');
     assert.deepEqual(payload.report.system.gpu.map(card => card.memoryMiB), [12288]);
     // Total RAM and the commit limit (RAM plus paging files) tell a "paging file is too small" failure from another one; two numbers and nothing else.
     assert.deepEqual([payload.report.system.totalRamMiB, payload.report.system.commitLimitMiB], [32768, 40960]);
@@ -991,5 +993,39 @@ test('a custom provider that does not know the typed model, and a Local AI serve
     assert.equal(deferred.length, 0, 'nothing is queued for either');
     events.setupChecked({checks: [{id: 'local-ai', state: 'problem', code: 'start-failed', selected: true, installed: true}]});
     assert.equal(deferred.length, 1);
+  } finally { await f.cleanup(); }
+});
+
+test('a Scripts of one game with the Runtime of the other is one setup-problem event that carries both games', async () => {
+  const f = await folders();
+  try {
+    const deferred = [];
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => deferred.push(fn)});
+    events.setupChecked({checks: [{id: 'versions', state: 'problem', code: 'game-mismatch', scripts: '0.3.2', runtime: '0.3.2', scriptsGame: '2.5', runtimeGame: '2.31'}]});
+    for (const run of deferred) run();
+    await untilQueued(f, 1);
+    const [record] = await readQueue(f.state, {now: START});
+    assert.equal(record.message, 'versions game-mismatch');
+    assert.deepEqual(record.detail, {scripts: '0.3.2', runtime: '0.3.2', scriptsGame: '2.5', runtimeGame: '2.31'});
+    // a game field that is not a version number is dropped
+    const junk = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    junk.setupChecked({checks: [{id: 'versions', state: 'problem', code: 'mismatch', scripts: '0.3.2', runtime: '0.3.1', scriptsGame: 'banana <script>', runtimeGame: '2.31'}]});
+    await untilQueued(f, 2);
+    const queue = await readQueue(f.state, {now: START});
+    const mismatch = queue.find(item => item.message === 'versions mismatch');
+    assert.deepEqual(mismatch.detail, {scripts: '0.3.2', runtime: '0.3.1', runtimeGame: '2.31'});
+  } finally { await f.cleanup(); }
+});
+
+test('a report names the game each half was built for, so a mixed install shows in the versions', async () => {
+  const f = await folders();
+  try {
+    await writeFile(join(f.modRoot, 'release.json'), JSON.stringify({package: 'scripts', version: '0.3.2', game: '2.5'}));
+    await writeFile(join(f.project, 'release.json'), JSON.stringify({package: 'runtime', version: '0.3.2'}));
+    const record = {kind: 'setup-problem', message: 'build runtime-wrong', count: 1, firstAt: START, lastAt: START, source: 'game', stack: []};
+    const {payload} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [], now: () => START, graphics: () => [], gameInfo: {game: '2.5'}});
+    assert.equal(payload.report.versions.scriptsGame, '2.5');
+    assert.equal(payload.report.versions.runtimeGame, '2.31', 'a Runtime release.json without a game field is the 2.31 build');
   } finally { await f.cleanup(); }
 });

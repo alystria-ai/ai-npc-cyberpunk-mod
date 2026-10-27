@@ -27,6 +27,8 @@ const TEMPORARY_MAX_AGE_MS = 60 * 60 * 1000;
 export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bridge-crash', 'service-failed', 'service-silent',
   'turn-failed', 'voice-failed', 'setup-problem', 'lua-error', 'slow-turn']);
 const KIND_PATTERN = /^[a-z][a-z0-9-]{1,39}$/;
+// A game version as release.json names the build ("2.5", "2.31"): the only shape a recorded game field may have.
+const GAME_SHAPE = /^\d{1,2}\.\d{1,2}$/;
 const SIGNATURE_PATTERN = /^[0-9a-f]{16}$/;
 
 export const SENT_FILE = 'sent.json';
@@ -522,7 +524,10 @@ export class ErrorEvents {
       // The player's own Python for OmniVoice that was refused (docs/OMNIVOICE_AMD.md): their experimental setup, told on the Help page, like a PC without CUDA.
       if (row.id === 'omni-python') continue;
       this.record({kind: 'setup-problem', message: `${clip(row.id, 40)} ${clip(row.code, 40)}`, frame: 'setup-check',
-        detail: {...(typeof row.scripts === 'string' ? {scripts: row.scripts} : {}), ...(typeof row.runtime === 'string' ? {runtime: row.runtime} : {})}});
+        detail: {...(typeof row.scripts === 'string' ? {scripts: row.scripts} : {}), ...(typeof row.runtime === 'string' ? {runtime: row.runtime} : {}),
+          // The game each half was built for (a Scripts of one game with the Runtime of the other: 6 installs on 27 Oct), a version number shape only.
+          ...(row.id === 'versions' && GAME_SHAPE.test(row.scriptsGame) ? {scriptsGame: row.scriptsGame} : {}),
+          ...(row.id === 'versions' && GAME_SHAPE.test(row.runtimeGame) ? {runtimeGame: row.runtimeGame} : {})}});
     }
   }
 }

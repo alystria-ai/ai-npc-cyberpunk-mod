@@ -361,6 +361,7 @@ export function setupLine(row) {
   if (!id || !code) return null;
   const detail = [];
   if (id === 'versions' && row.code === 'mismatch') detail.push(`Scripts ${clip(row.scripts, 40)}, Runtime ${clip(row.runtime, 40)}`);
+  else if (id === 'versions' && row.code === 'game-mismatch') detail.push(`Scripts ${clip(row.scripts, 40)} for game ${clip(row.scriptsGame, 10)}, Runtime ${clip(row.runtime, 40)} for game ${clip(row.runtimeGame, 10)}`);
   else if (id === 'versions' && row.code === 'chain-gap') detail.push(`update step ${clip(row.from, 40)} to ${clip(row.to, 40)} not applied (Runtime ${clip(row.runtime, 40)})`);
   else if (id === 'versions' && row.code === 'chain-order') detail.push(`an older update zip went on after a newer one (Runtime ${clip(row.runtime, 40)})`);
   else if (id === 'packs' && row.code === 'nested') {

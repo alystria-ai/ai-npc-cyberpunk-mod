@@ -76,11 +76,31 @@ What differs between the games is the requirement set, as in 0.3.1: 2.5 uses the
 
 ## Wrong build
 
-* Scripts and Runtime of one version but different games: `bridge/setup-check.mjs` answers `versions: game-mismatch`; the Help page line names both games and
-  the Runtime to get. `start-service.mjs` logs the same.
-* Scripts built for one game on the other game: the Help page `Game version` line is a Problem ("These files are the mod build for game X. Install the build
-  made for game Y …"). The first-load notice is not changed (a new notice text needs 15 translated, fit-measured versions); the redscript-did-not-load notice
-  already names the build's own game.
+* **The three games and the `build` check (2026-10-27).** Six installs on 27 Oct paired the 2.5 Scripts with the 2.31 Runtime and the game said nothing useful. Each half knows
+  its own game: the Scripts from `release.json` `game` (written by the build, none is the 2.31 build; `buildOf()` in `mod/setup-check.lua`), the Runtime from
+  `app/release.json` `game` (the bridge reads it and puts `scriptsGame` and `runtimeGame` in EVERY `versions` answer of `runtime/setup-check.json`, `bridge/setup-check.mjs`;
+  a service of 0.3.1 and older names its game only in `game-mismatch`, so for those the Lua reads the Runtime's `app/release.json` itself, through the game folder in
+  `runtime/bridge-service.json`) and the running game from `GetGameVersion` (2.50 is 2.5). `buildCheck()` compares the three once per run of the checks (12 s after
+  the first world is ready, and when the Help page opens: no per-frame work, at most one extra small file read) and gives the game-side check `build`:
+
+  | Scripts | Runtime | Game | code | the notice says |
+  | --- | --- | --- | --- | --- |
+  | S | R | S (R is the other game) | `runtime-wrong` | The Runtime is for game R, yours is S. Get the Runtime for S from Hugging Face. |
+  | S | R | R (S is the other game) | `scripts-wrong` | The Scripts are for game S, yours is R. Get the Scripts for R from Nexus Mods. |
+  | S | S, or not known | G, the other game | `both-wrong` (`scripts-wrong` when the Runtime is not known) | This mod is for game S, yours is G. Get the Scripts and Runtime for G. |
+  | S | R (differ) | neither (a game version no build is for, or unreadable) | `differ` | Scripts are for game S, Runtime for R. They must match. See Help in Settings. |
+  | S | S or not known | S, or a game no build is for, or unreadable | ok / unknown | nothing (a game no build is for is only the Game version note) |
+
+  `build` is a critical problem, second in the order of the first-load notice (after RED4ext, before redscript: Scripts of the wrong game are a likely reason for a
+  failed compile). The notice is the normal startup notice (one per session, the warning line, two lines at most in all 15 languages), so it shows where the missing
+  Runtime or Codeware notices show. The Help page row "Build for your game" has the long text (which Hugging Face folder, which Nexus file); the "Scripts and Runtime"
+  row steps aside when the Runtime is for another game, because update zips of the wrong game would mislead. The console and `probe.log` get one English line with
+  `(scripts=2.5 runtime=2.31 game=2.5)`.
+* **Error reports.** The setup line `build: problem runtime-wrong (scripts=2.5 runtime=2.31 game=2.5)` (or `build: ok match (...)`) is in every report of the session, the
+  game records a `setup-problem` event `build <code>` with the same detail, every report's `versions` holds `scriptsGame` and `runtimeGame`, and the bridge's own
+  `versions game-mismatch` event carries both games. Triage: look for `build: problem` in `setup`, or `scriptsGame` different from `runtimeGame` in `versions`.
+* Scripts built for one game on the other game: besides the `build` row, the Help page `Game version` line is a Problem ("These files are the mod build for game X.
+  Install the build made for game Y …"); the redscript-did-not-load notice already names the build's own game.
 * A native plugin of the wrong game is refused by RED4ext (next section), so the mod runs on its Lua path.
 
 ## RED4ext's behaviour with a plugin built for another game (read from wopss/RED4ext master 47ac01c and tag v1.30.0)

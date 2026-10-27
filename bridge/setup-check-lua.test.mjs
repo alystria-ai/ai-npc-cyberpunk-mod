@@ -333,10 +333,13 @@ test('the service answer is shown only from this game session and every check be
   assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   assert(table.concat(check.problems(), ',') == 'versions' and check.lines()[1].id == 'versions', 'the versions line sits first, next to the service')
-  -- the same version, built for different games: both games are named, and the page sends the player to the Runtime of the Scripts' game
+  -- the same version, built for different games: the 'Build for your game' row names both games and the Runtime to get (every combination: bridge/setup-check-build.test.mjs)
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.1', game = '2.5'}); env.gameVersion = '2.5'; applyEnv()
   answer({versions = {id = 'versions', state = 'problem', code = 'game-mismatch', scripts = '0.3.1', runtime = '0.3.1', scriptsGame = '2.5', runtimeGame = '2.31'}}); check.run()
-  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'The Scripts are the build for game 2.5 but the Runtime is the build for game 2.31. Install the Runtime made for game 2.5 from the mod’s Hugging Face page, then restart the game.', lineOf('versions').description)
-  assert(table.concat(check.problems(), ',') == 'versions')
+  assert(lineOf('versions') == nil, 'the build row replaces the versions row')
+  assert(lineOf('build').state == 'problem' and lineOf('build').label == 'Build for your game' and lineOf('build').description:find('the Runtime is the one for game 2.31', 1, true), tostring(lineOf('build') and lineOf('build').description))
+  assert(table.concat(check.problems(), ',') == 'build,versions')
+  installFiles(); env.gameVersion = '2.31'; applyEnv(); check.run()
   -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
   local gap = lineOf('versions').description
@@ -748,14 +751,14 @@ test('reports: one plain line per check for the short report, and at most eight 
   check.run()
   local lines = table.concat(check.reportLines(), '\n')
   for _, expected in ipairs({'service: ok running', 'files: ok found 0.2.1', 'game: ok tested 2.31', 'cet: ok found 1.37.1', 'red4ext: ok loaded',
-    'redscript: ok loaded', 'codeware: problem missing', 'scripts compiled with: no Codeware', 'nsui: ok found 1.96',
+    'redscript: ok loaded', 'build: ok match (scripts=2.31 runtime=? game=2.31)', 'codeware: problem missing', 'scripts compiled with: no Codeware', 'nsui: ok found 1.96',
     'service versions: ok match scripts=0.2.1 runtime=0.2.1', 'service packs: problem nested found=Local AI lite nested=wrapped',
     'service browser: ok found name=Microsoft Edge', 'service internet: problem blocked host=api.mistral.ai service=mistral',
     'service gpu: ok found name=NVIDIA GeForce RTX 4070 memoryMiB=12282', 'service mod-manager: note vortex managers=vortex'}) do
     assert(lines:find(expected, 1, true), 'missing: ' .. expected .. '\n' .. lines)
   end
   local summary = check.summary()
-  assert(#summary == 8 and summary[1].id == 'service' and summary[8].id == 'nsui')
+  assert(#summary == 9 and summary[1].id == 'service' and summary[9].id == 'nsui')
   for _, row in ipairs(summary) do
     assert(type(row.id) == 'string' and type(row.state) == 'string' and type(row.code) == 'string')
     for key in pairs(row) do assert(key == 'id' or key == 'state' or key == 'code' or key == 'version', 'only short tokens: ' .. key) end
