@@ -20,5 +20,6 @@ Game 2.5 builds start with version 0.3.1, so the first step here is special. It 
 |---|---|
 | `Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip` | 1.7 MiB |
 | `Runtime-Update-0.3.1-to-0.3.2.zip` | 2.1 MiB |
+| `Runtime-Update-0.3.2-to-0.3.3.zip` | 1.5 MiB |
 
 Never mix the two games: an update zip of one game belongs to the Runtime of that game only.
