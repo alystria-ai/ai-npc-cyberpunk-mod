@@ -46,11 +46,31 @@ const world = `
       return value
     end
   end
-  local effects, hasEffectCalls = {}, 0
   local entity = {id = 'V-entity'}
+  local effects, hasEffectCalls = {}, 0
+  -- The game clock (seconds), the game's own stamina pool, Codeware's reflection (fields only reachable that way).
+  local gameStamp, poolValue = 1000000.0, 0.0
+  function Game.GetTimeSystem()
+    local sys = {}
+    method(sys, 'GetGameTimeStamp', 0, function() return gameStamp end)
+    return sys
+  end
+  function Game.GetStatPoolsSystem()
+    local sys = {}
+    method(sys, 'GetStatPoolValue', 3, function(id, kind, perc)
+      assert(id == entity and type(kind) == 'table' and kind.enum == 'gamedataStatPoolType' and kind.value == 'Stamina' and perc == true, 'GetStatPoolValue(id, Stamina, true)')
+      return poolValue
+    end)
+    return sys
+  end
+  Enum = {new = function(enum, value) return {enum = enum, value = value} end}
+  FromVariant = function(v) return v end
+  ToVariant = function(v) return v end
   local ps = {}
   local player = {}
-  method(player, 'GetPS', 0, ps)
+  -- GetPS answers the state table; psMode 'nothing' gives nil, 'raise' raises (the first live test could not read the persistent fields).
+  local psMode = 'ps'
+  method(player, 'GetPS', 0, function() if psMode == 'raise' then error('no GetPS') end if psMode == 'nothing' then return nil end return ps end)
   method(player, 'GetEntityID', 0, entity)
   function Game.GetStatusEffectSystem()
     local sys = {}
@@ -69,13 +89,22 @@ const world = `
     method(fac, 'IsEnabled', 0, pick('enabled', true))
     method(fac, 'GetStaminaPercent', 1, function(p) assert(p == player, 'the player is passed'); return pick('stamina', 1.0) end)
     method(fac, 'GetEnergyPercent', 1, function(p) assert(p == player, 'the player is passed'); return pick('energy', 1.0) end)
+    method(fac, 'GetTotalAlcohol', 1, function(p) assert(p == player, 'the player is passed'); return pick('alcoholTotal', 0) end)
+    method(fac, 'GetTotalCigarettes', 1, function(p) assert(p == player, 'the player is passed'); return pick('cigaretteTotal', 0) end)
+    method(fac, 'IsStaminaRegenning', 0, pick('regenning', false))
+    method(fac, 'GetConfig', 0, pick('config', {alcoholSoberBaseHours = 6, alcoholSoberHoursPerExtraDrink = 1, smokingPenaltyDurationMinutes = 30}))
     systems['FleshAndChrome.FACSystem'] = fac
     for k in pairs(ps) do ps[k] = nil end
-    ps.m_facInitialized = pick('initialized', true)
-    ps.m_facLastTimestamp = pick('now', 100000.0)
-    ps.m_facAlcoholDrinks = pick('drinks', 0)
-    ps.m_facAlcoholSoberEnd = pick('soberEnd', 0.0)
-    ps.m_facSmokingPenaltyEnd = pick('smokeEnd', 0.0)
+    if o.fields ~= false then
+      ps.m_facInitialized = pick('initialized', true)
+      ps.m_facLastTimestamp = pick('now', 100000.0)
+      ps.m_facAlcoholDrinks = pick('drinks', 0)
+      ps.m_facAlcoholSoberEnd = pick('soberEnd', 0.0)
+      ps.m_facSmokingPenaltyEnd = pick('smokeEnd', 0.0)
+      ps.m_facRegenCooldownEnd = pick('cooldownEnd', 0.0)
+      ps.m_facStamina = pick('poolStamina', 5000.0)
+      ps.m_facEnergy = pick('poolEnergy', 5000.0)
+    end
     return fac
   end
   -- Injuries (Injuries_System.reds): IsLive(), GetAppliedTier(kind: Int32), GetSeverity(region: Int32).
@@ -228,13 +257,17 @@ test('both mods read in one pass; one missing or broken never disables the other
 test('log: one line per distinct reading per mod, none for an unchanged one', () => withModule(`
   installFac({stamina = 0.04}); installInjuries({applied = {[0] = 2}})
   M.read(player, log); M.read(player, log); M.read(player, log)
-  assert(#lines == 2, #lines)
-  assert(lines[1] == 'Mod state: flesh-and-chrome breath=3 energy=0 drinks=0 smoke=0', lines[1])
-  assert(lines[2] == 'Mod state: injuries limp=2 arm=0 head=0 bleed=0 treated=0', lines[2])
+  local stages = {}
+  for _, line in ipairs(lines) do if line:find('^Mod state: ') then stages[#stages + 1] = line end end
+  assert(#stages == 2, #stages)
+  assert(stages[1] == 'Mod state: flesh-and-chrome breath=3 energy=0 drinks=0 smoke=0', stages[1])
+  assert(stages[2] == 'Mod state: injuries limp=2 arm=0 head=0 bleed=0 treated=0', stages[2])
   installInjuries({applied = {[0] = 3}})
   M.read(player, log)
-  assert(#lines == 3 and lines[3]:find('limp=3', 1, true), lines[3])
-  for _, line in ipairs(lines) do assert(#line < 160) end
+  stages = {}
+  for _, line in ipairs(lines) do if line:find('^Mod state: ') then stages[#stages + 1] = line end end
+  assert(#stages == 3 and stages[3]:find('limp=3', 1, true), stages[3])
+  for _, line in ipairs(lines) do assert(#line < 260, line) end
 `));
 
 test('the result carries plain numbers and strings only, never a game object', () => withModule(`
@@ -255,11 +288,188 @@ test('the module is passive: no registered event, no timer, no observer, no writ
   assert.doesNotMatch(code, /:Set[A-Z]\w*\(|:Mod[A-Z]\w*\(|:Change\w*\(|:Apply\w*\(|:Cure\w*\(|:Add\w*\(|:Remove\w*\(|:Queue\w*\(|:Send\w*\(|:Register\w*\(|:Escalate\(|:Clear\w*\(/);
   // Only the documented getters are named, as strings handed to `ask`.
   const getters = new Set(code.match(/'(?:Get|Is)[A-Za-z]+'/g));
-  assert.deepEqual([...getters].sort(), ["'GetAppliedTier'", "'GetEnergyPercent'", "'GetSeverity'", "'GetStaminaPercent'", "'IsEnabled'", "'IsLive'"]);
-  assert.deepEqual([...new Set(code.match(/Game\.[A-Za-z]+/g))].sort(), ['Game.GetScriptableSystemsContainer', 'Game.GetStatusEffectSystem']);
+  assert.deepEqual([...getters].sort(), ["'GetAppliedTier'", "'GetConfig'", "'GetEnergyPercent'", "'GetSeverity'", "'GetStaminaPercent'", "'GetTotalAlcohol'", "'GetTotalCigarettes'", "'IsEnabled'", "'IsLive'", "'IsStaminaRegenning'"]);
+  assert.deepEqual([...new Set(code.match(/Game\.[A-Za-z]+/g))].sort(), ['Game.GetScriptableSystemsContainer', 'Game.GetStatPoolsSystem', 'Game.GetStatusEffectSystem', 'Game.GetTimeSystem']);
   // The fields read from the player's state, nothing else.
-  assert.deepEqual([...new Set(code.match(/'m_[A-Za-z]+'/g))].sort(), ["'m_facAlcoholDrinks'", "'m_facAlcoholSoberEnd'", "'m_facInitialized'", "'m_facLastTimestamp'", "'m_facSmokingPenaltyEnd'"]);
+  assert.deepEqual([...new Set(code.match(/'m_[A-Za-z]+'/g))].sort(), ["'m_facAlcoholDrinks'", "'m_facAlcoholSoberEnd'", "'m_facEnergy'", "'m_facInitialized'", "'m_facLastTimestamp'", "'m_facRegenCooldownEnd'", "'m_facSmokingPenaltyEnd'", "'m_facStamina'"]);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The first live test (2026-10-27): drinks and cigarettes read `?`, breath stayed at the top stage, injuries read zeros. The probes and the fallbacks.
+
+test('drinks and cigarettes without the persistent fields: the mod\'s lifetime counts are watched from read to read', () => withModule(`
+  os.time = function() return 5000 end
+  installFac({fields = false, alcoholTotal = 4, cigaretteTotal = 2})
+  local out, notes = M.read(player, log)
+  assert(out == nil and notes.fac == 'installed=yes read=ok state=breath0,energy0,drinks0,smoke0', 'the first read is the baseline: nothing is known to be new: ' .. notes.fac)
+  -- A drink: the count rose; the window is six hours from this read.
+  installFac({fields = false, alcoholTotal = 5, cigaretteTotal = 2})
+  out, notes = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 1 and notes.fac:find('drinks1', 1, true), notes.fac)
+  gameStamp = gameStamp + 3 * 3600
+  out = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 1, 'still inside the window')
+  -- Two more while it is live: three in all (stage 2), the window one hour longer each.
+  installFac({fields = false, alcoholTotal = 7, cigaretteTotal = 2})
+  out = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 2, 'three drinks in the window')
+  gameStamp = gameStamp + 4 * 3600
+  out = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 2, 'the window runs 6h + 2h from the first drink: 7 hours in is still inside')
+  gameStamp = gameStamp + 2 * 3600
+  assert(M.read(player, log) == nil, 'sober again')
+  -- A cigarette: thirty game minutes.
+  installFac({fields = false, alcoholTotal = 7, cigaretteTotal = 3})
+  out = M.read(player, log)
+  assert(out.fleshAndChrome.smoke == 1 and keys(out.fleshAndChrome) == 'smoke', keys(out.fleshAndChrome))
+  gameStamp = gameStamp + 29 * 60
+  assert(M.read(player, log).fleshAndChrome.smoke == 1)
+  gameStamp = gameStamp + 2 * 60
+  assert(M.read(player, log) == nil, 'the cigarette is over')
+  local probes = {}
+  for _, line in ipairs(lines) do if line:find('drinks and cigarettes via=', 1, true) then probes[#probes + 1] = line end end
+  assert(#probes >= 2 and probes[1]:find('via=counts', 1, true) and probes[1]:find('alcohol=4 cigarettes=2', 1, true), probes[1])
+  assert(probes[2]:find('alcohol=5 cigarettes=2', 1, true) and probes[2]:find('drinks=1', 1, true), probes[2])
+  local first = lines[1]
+  assert(first:find('^Mod state probe: PlayerPuppetPS fields init=nil%(none%)'), first)
+`));
+
+test('drinks: a rise by several at once, a config that cannot be read, no game clock, a count that raises', () => withModule(`
+  installFac({fields = false, alcoholTotal = 0, config = false})
+  M.read(player, log)
+  installFac({fields = false, alcoholTotal = 6, config = false})
+  assert(M.read(player, log).fleshAndChrome.drinks == 3, 'six drinks at once: stage 3, with the mod\\'s default window')
+  M.reset()
+  Game.GetTimeSystem = function() error('no time system') end
+  installFac({fields = false, alcoholTotal = 1})
+  local out, notes = M.read(player, log)
+  assert(out == nil and notes.fac:find('drinks?', 1, true) and notes.fac:find('smoke?', 1, true), 'no clock: unknown, not zero: ' .. notes.fac)
+  M.reset()
+  local fac = installFac({fields = false})
+  method(fac, 'GetTotalAlcohol', 1, 'raise')
+  method(fac, 'GetTotalCigarettes', 1, 'raise')
+  out, notes = M.read(player, log)
+  assert(out == nil, 'the counts raising is not an error')
+`));
+
+test('drinks and cigarettes: GetPS gone, or fields only reachable through reflection, are told apart in the probe line', () => withModule(`
+  psMode = 'raise'
+  installFac({stamina = 0.5})
+  M.read(player, log)
+  assert(lines[1]:find('^Mod state probe: player:GetPS%(%) failed %(.-no GetPS'), lines[1])
+  psMode = 'nothing'; M.reset(); lines = {}
+  M.read(player, log)
+  assert(lines[1]:find('gave nothing', 1, true), lines[1])
+  -- The fields exist only through Codeware's reflection.
+  psMode = 'ps'; M.reset(); lines = {}
+  installFac({fields = false})
+  local hidden = {m_facInitialized = true, m_facLastTimestamp = 100000.0, m_facAlcoholDrinks = 3, m_facAlcoholSoberEnd = 103600.0, m_facSmokingPenaltyEnd = 0.0}
+  Reflection = {GetClass = function(name)
+    assert(name.text == 'PlayerPuppetPS', 'the class of the fields')
+    return {GetProperty = function(self, prop) return {GetValue = function(self2, object) return hidden[prop.text] end} end}
+  end}
+  local out = M.read(player, log)
+  assert(out.fleshAndChrome.drinks == 2, 'three drinks, read through reflection')
+  assert(lines[1]:find('init=true%(reflection%)') and lines[1]:find('drinks=3%(reflection%)'), lines[1])
+`));
+
+test('breath probe: one line at the first read, at every change of stage and every two minutes while the stage is 3 or 4, with the raw numbers', () => withModule(`
+  local clock = 10000
+  os.time = function() return clock end
+  installFac({stamina = 0.0, energy = 0.62, regenning = false, now = 100000.0, cooldownEnd = 100400.0})
+  poolValue = 0.0
+  local function probes()
+    local found = {}
+    for _, line in ipairs(lines) do if line:find('^Mod state probe: breath ') then found[#found + 1] = line end end
+    return found
+  end
+  M.read(player, log)
+  assert(#probes() == 1)
+  assert(probes()[1] == 'Mod state probe: breath stage=4 stamina=0 energy=0.62 exhaustedStatus=nil regenning=false gamePool=0 cooldownLeft=400 clock=?', probes()[1])
+  clock = clock + 30; gameStamp = gameStamp + 240
+  M.read(player, log)
+  assert(#probes() == 1, 'the same stage a few seconds later: no new line')
+  clock = clock + 100; gameStamp = gameStamp + 800
+  M.read(player, log)
+  local lastLine = probes()[#probes()]
+  assert(#probes() == 2 and lastLine:find('clock=8.0x', 1, true), 'two minutes at stage 4: the line again, with the pace of the game clock: ' .. lastLine)
+  installFac({stamina = 0.5})
+  M.read(player, log)
+  assert(#probes() == 3 and probes()[3]:find('stage=0', 1, true), 'a change of stage')
+  clock = clock + 1000
+  M.read(player, log)
+  assert(#probes() == 3, 'a rested V is not probed again')
+  installFac({stamina = 0.03}); effects['FACStatusEffect.Exhausted'] = true
+  M.read(player, log)
+  assert(probes()[4]:find('exhaustedStatus=true', 1, true), probes()[4])
+`));
+
+test('breath probe: a status system, pool or regenning getter that is missing is a question mark, not an error', () => withModule(`
+  local fac = installFac({stamina = 0.0})
+  method(fac, 'IsStaminaRegenning', 0, 'raise')
+  Game.GetStatPoolsSystem = function() error('no pools') end
+  local out = M.read(player, log)
+  assert(out.fleshAndChrome.breath == 4)
+  local found
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: breath ') then found = line end end
+  assert(found:find('regenning=? gamePool=?', 1, true), found)
+`));
+
+test('Injuries: an Injuries status effect in force is believed over a system that answers zeros, asked at most once a minute', () => withModule(`
+  local clock = 1000
+  os.time = function() return clock end
+  installInjuries({applied = {}})
+  effects['Injuries.Limp_T2'] = true
+  hasEffectCalls = 0
+  local out, notes = M.read(player, log)
+  assert(out.injuries.limp == 2 and hasEffectCalls == 12, 'twelve questions, limp tier 2: ' .. hasEffectCalls)
+  assert(notes.inj == 'installed=yes read=ok state=limp2,arm0,head0,bleed0,treated0', notes.inj)
+  local said = 0
+  for _, line in ipairs(lines) do if line:find('status effect Injuries.Limp_T2 is in force', 1, true) then said = said + 1 end end
+  assert(said == 1)
+  hasEffectCalls = 0
+  clock = clock + 10
+  out = M.read(player, log)
+  assert(hasEffectCalls == 0 and out == nil, 'not asked again inside the minute')
+  clock = clock + 60
+  effects['Injuries.Limp_T2'] = false
+  out = M.read(player, log)
+  assert(hasEffectCalls == 12 and out == nil, 'asked again after a minute, and nothing is in force now')
+  -- Not asked when the system itself shows an injury, or a treated one.
+  installInjuries({applied = {[3] = 1}})
+  hasEffectCalls = 0; clock = clock + 100
+  M.read(player, log)
+  assert(hasEffectCalls == 0)
+  Game.GetStatusEffectSystem = function() error('no status system') end
+  installInjuries({applied = {}}); clock = clock + 100
+  assert(M.read(player, log) == nil, 'a missing status system is no error')
+`));
+
+test('Injuries: the probe line carries the raw tiers and every region\'s severity; it is written again only when they change', () => withModule(`
+  os.time = function() return 1000 end
+  installInjuries({applied = {[0] = 1}, severity = {[4] = 1, [1] = 2}})
+  M.read(player, log); M.read(player, log)
+  local found = {}
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: injuries ') then found[#found + 1] = line end end
+  assert(#found == 1 and found[1] == 'Mod state probe: injuries live=true applied=1,0,0,0 severity=0,2,0,0,1,0 effects=unchecked', found[1])
+  installInjuries({applied = {[0] = 2}, severity = {[4] = 2}})
+  M.read(player, log)
+  found = {}
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: injuries ') then found[#found + 1] = line end end
+  assert(#found == 2 and found[2]:find('applied=2,0,0,0 severity=0,0,0,0,2,0', 1, true), found[2])
+  installInjuries({live = false})
+  M.read(player, log)
+  local idle
+  for _, line in ipairs(lines) do if line:find('^Mod state probe: injuries live=false') then idle = line end end
+  assert(idle and idle:find('idle', 1, true), idle)
+`));
+
+test('a rested, sober V asks no status effect', () => withModule(`
+  installFac({stamina = 0.9})
+  hasEffectCalls = 0
+  M.read(player, log)
+  assert(hasEffectCalls == 0)
+`));
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The loader in init.lua: the module only when one of the mods is there; and the switch-off notes.

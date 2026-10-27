@@ -2883,6 +2883,7 @@ function startAhead(entry) {
 // can be told from a failed read, a switch that is off, a question that was not recognised and a sentence that was not sent. It goes to this log and, in the turn's
 // reply (fields `df`, `fac`, `inj`: Dark Future, Flesh and Chrome, Injuries), to the game, whose probe.log gets the same lines next to "Conversation result". Words only; the newest few turns are kept.
 const dfLines = new Map();
+const DF_LOG_TAGS = {df: 'DarkFuture', fac: 'FleshAndChrome', inj: 'Injuries'};
 const dfNote = requestId => dfLines.has(requestId) ? dfLines.get(requestId) : {};
 function logDarkFuture(input) {
   try {
@@ -2893,7 +2894,8 @@ function logDarkFuture(input) {
     if (!Object.keys(lines).length) return;
     dfLines.set(input.requestId, lines);
     while (dfLines.size > 8) dfLines.delete(dfLines.keys().next().value);
-    for (const line of Object.values(lines)) console.error(`[DarkFuture] ${line}`);
+    // Each line carries the tag of its own mod ([DarkFuture] df:, [FleshAndChrome] fac:, [Injuries] inj:), so a log search for one mod never finds another's.
+    for (const [tag, line] of Object.entries(lines)) console.error(`[${DF_LOG_TAGS[tag] ?? 'DarkFuture'}] ${line}`);
   } catch { /* a log line never affects a reply */ }
 }
 async function processInput(request, prepared) {
