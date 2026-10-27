@@ -405,7 +405,16 @@ const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted &
 // Remote OmniVoice (docs/REMOTE_OMNIVOICE.md, Settings > Voices > Custom voices): the saved address of an OmniVoice server on the player's network. A file read and nothing more:
 // no request is made to it unless the setting `remoteOmni` is on and OmniVoice is the chosen voice, or the player presses Test.
 const remoteOmniAddress = await new RemoteOmniAddress({path: resolve(stateDirectory, REMOTE_FILE), log: message => console.error('[RemoteOmni] ' + message)}).load();
-const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
+// The game's title screen holds V's helper voice (bridge/voice-selection.mjs startHold): it loads once the game has a world, or when the service has
+// run TITLE_HOLD_MAX_MS without one. A function declaration: it is read before worldSession exists, and the latch is the module's.
+const TITLE_HOLD_MAX_MS = 600_000;
+let titleHoldOver = false;
+function titleHolds() {
+  if (titleHoldOver) return false;
+  if (worldSession?.ready === true || process.uptime() * 1000 >= TITLE_HOLD_MAX_MS) titleHoldOver = true;
+  return !titleHoldOver;
+}
+const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath, startHold: titleHolds,
   omniRemoteAddress: () => remoteOmniAddress.endpoint, omniReferenceRoots: referenceRoots,
   gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
@@ -3461,6 +3470,8 @@ async function pollKnowledge() {
     if (!session) session = lateWorld(lapse.value, worldSession);
     worldSession = session;
     const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
+    // The first world ends the title screen's hold on V's helper voice: it loads now (nothing else asks it to between two V lines).
+    if (nextWorld && !titleHoldOver) { titleHoldOver = true; console.error("[VHelper] the game has a world: V's helper voice may load now"); localVoice.tickVHelper(); }
     if (priorWorld && priorWorld !== nextWorld) {
       memoryQuiescing++;
       try { await resetLiveRoutes(); }

@@ -454,3 +454,34 @@ test('a helper whose exit stays unconfirmed keeps blocking the next Pocket worke
   odd.start(); await new Promise(done => setImmediate(done));
   await odd.release();
 });
+
+test('the title screen holds the first load of the helper; the world (or the end of the hold) releases it; a running helper is never held again', async () => {
+  let title = true;
+  const h = fixture({options: {startHold: () => title}});
+  await omniReady(h);
+  assert.equal(h.voice.vHelperDue, false, 'the title screen is up: nothing is due');
+  assert.equal(h.workers.filter(worker => worker.backend === 'pocket').length, 0, 'no Pocket worker is spawned at the title screen');
+  assert.equal(h.voice.vHelperReady('v-male'), false, 'a V line then is skipped, not waited for');
+  assert.doesNotMatch(h.logs.join(''), /loading starts/);
+  title = false;
+  h.voice.tickVHelper();
+  await until(() => h.helperWorker()?.loaded, 'the helper to load once the title screen is gone');
+  assert.match(h.logs.join(''), /\[VHelper\] loading starts at \d{4}-\d\d-\d\dT/);
+  // back at the title screen (a hold that says true again): the loaded helper stays, it is only the first load that waits
+  title = true;
+  h.voice.tickVHelper(); await tick();
+  assert.equal(h.voice.vHelper.running, true);
+  assert.equal(h.voice.vHelperReady('v-male'), true);
+  await h.voice.close();
+});
+
+test('a startHold that throws or is missing holds nothing', async () => {
+  const thrown = fixture({options: {startHold: () => { throw Error('not ready'); }}});
+  await omniReady(thrown);
+  await until(() => thrown.helperWorker()?.loaded, 'the helper to load');
+  await thrown.voice.close();
+  const missing = fixture();
+  await omniReady(missing);
+  await until(() => missing.helperWorker()?.loaded, 'the helper to load');
+  await missing.voice.close();
+});

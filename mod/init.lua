@@ -1,5 +1,5 @@
 -- Start-up clock (probe.log "Start-up:" lines): when this file began, then the load, onInit and title-screen figures. A global, so no local slot.
-pcall(function() convaiBoot = {t0 = os.clock(), frames = 0, worst = 0, total = 0} end)
+pcall(function() convaiBoot = {t0 = os.clock(), frames = 0, worst = 0, total = 0, gapWorst = 0, slow = 0, slowSum = 0, big = {}, ownTotal = 0, ownWorst = 0} end)
 -- AI NPC Cyberpunk Mod game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
 -- probe.log and mcm.log are appended for ever (many thousands of lines over weeks of play): once per load, before the native core takes over io,
@@ -6419,6 +6419,8 @@ end
 registerForEvent('onUpdate', function(delta)
     -- Last chance for the native core plugin to bind (a global, so this closure gains no upvalue).
     if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onUpdate') end
+    -- Start-up probe: when this frame began (until the first world frame; a global, so this closure gains no local or upvalue).
+    if convaiBoot and not convaiBoot.reported then convaiBoot.top = os.clock() end
     convaiHeartbeat.frame = convaiHeartbeat.frame + 1
     -- Waiting probe.log lines go out within a second of the first (see log()); an empty buffer costs one field read.
     if convaiLog.n > 0 then convaiLogTick() end
@@ -6452,9 +6454,16 @@ registerForEvent('onUpdate', function(delta)
         -- What the mod spent in the title and loading frames (reported with the first world frame, below): the count, the worst, the sum.
         local boot = convaiBoot
         if boot and not boot.reported then
-            local spent = os.clock() - titleStart
+            local finished = os.clock()
+            local spent = finished - titleStart
             boot.frames, boot.total = boot.frames + 1, boot.total + spent
-            if spent > boot.worst then boot.worst, boot.worstAt = spent, os.clock() - boot.t0 end
+            if spent > boot.worst then boot.worst, boot.worstAt = spent, finished - boot.t0 end
+            convaiBootFrame(boot, finished)
+            -- Once, 45 s after onInit (the time the title screen waits for a key press): the same figures, so a player who quits there leaves them too.
+            if not boot.interim and boot.init and finished - boot.init >= 45 then
+                boot.interim = true
+                log(string.format('Start-up: title screen 45 s after onInit, %d frames; %s', boot.frames, convaiBootGaps(boot)))
+            end
         end
         if not titleOk and convaiHeartbeat.titleManagerError ~= tostring(titleError) then
             convaiHeartbeat.titleManagerError = tostring(titleError)
@@ -6466,8 +6475,8 @@ registerForEvent('onUpdate', function(delta)
     local boot = convaiBoot
     if boot and not boot.reported then
         boot.reported = true
-        log(string.format('Start-up: first world frame %.1f s after init.lua began (onInit at %.1f s); %d title frames, the mod used %.1f ms in them, worst %.2f ms at %.1f s',
-            os.clock() - boot.t0, (boot.init or boot.t0) - boot.t0, boot.frames, boot.total * 1000, boot.worst * 1000, boot.worstAt or 0))
+        log(string.format('Start-up: first world frame %.1f s after init.lua began (onInit at %.1f s); %d title frames, the mod used %.1f ms in them, worst %.2f ms at %.1f s; %s',
+            os.clock() - boot.t0, (boot.init or boot.t0) - boot.t0, boot.frames, boot.total * 1000, boot.worst * 1000, boot.worstAt or 0, convaiBootGaps(boot)))
     end
     sessionHasState = true
     knowledgeAllowed, knowledgeInvalidated = true, false
@@ -7059,6 +7068,39 @@ registerForEvent('onShutdown', function()
     if type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.uninstall) == 'function' then pcall(convaiPerfProbe.uninstall) end
 end)
 
+pcall(function()
+    -- Title-frame stall probe. Per title frame (no world yet): the wait between the end of the previous onUpdate and the start of this one is time the
+    -- game, CET, other mods or the machine spent (a frame that did not come: a Space press in it is late); the mod's own part is the onUpdate
+    -- itself, start to end of the title branch. A stall with a small own part is not this mod's Lua. Two os.clock reads a frame, no allocation but the
+    -- rare (at most six) entry of a stall of 250 ms or more.
+    convaiBootFrame = function(boot, finished)
+        local top = boot.top
+        if not top then return end
+        local last = boot.last
+        boot.last = finished
+        if boot.cut then return end
+        if last then
+            local gap = top - last
+            -- A freeze of 3 s or more is a save loading (or a real stall): the figures stop there, and it is named once with the mod's part of that frame.
+            if gap >= 3 then boot.cut = string.format('first freeze of 3 s or more: %.0f ms at %.1f s, own part of that frame %.1f ms', gap * 1000, top - boot.t0, (finished - top) * 1000); return end
+            if gap > boot.gapWorst then boot.gapWorst, boot.gapWorstAt = gap, top - boot.t0 end
+            if gap >= 0.1 then
+                boot.slow, boot.slowSum = boot.slow + 1, boot.slowSum + gap
+                if gap >= 0.25 and #boot.big < 6 then boot.big[#boot.big + 1] = string.format('%.1f+%.0f', top - boot.t0, gap * 1000) end
+            end
+        end
+        local own = finished - top
+        boot.ownTotal = boot.ownTotal + own
+        if own > boot.ownWorst then boot.ownWorst = own end
+    end
+    -- The stall figures as one tail for a Start-up line: gaps of 100 ms or more (count, their total, the worst and when), the stalls of 250 ms or
+    -- more as seconds-since-init.lua-began + milliseconds, and the mod's whole onUpdate in those frames (total, worst).
+    convaiBootGaps = function(boot)
+        return string.format('frame gaps over 100 ms: %d (%.0f ms in all), worst %.0f ms at %.1f s, over 250 ms at [%s]; own whole title onUpdate %.1f ms, worst %.2f ms; %s',
+            boot.slow, boot.slowSum * 1000, boot.gapWorst * 1000, boot.gapWorstAt or 0, table.concat(boot.big, ' '), boot.ownTotal * 1000, boot.ownWorst * 1000,
+            boot.cut or 'no freeze of 3 s or more yet')
+    end
+end)
 convaiBoot.loaded = os.clock()
 log(string.format('Start-up: init.lua loaded in %.0f ms', (convaiBoot.loaded - convaiBoot.t0) * 1000))
 

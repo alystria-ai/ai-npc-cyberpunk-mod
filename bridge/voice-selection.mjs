@@ -162,6 +162,10 @@ export class VoiceSelection {
     // V's typed line, while OmniVoice is the committed voice: a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs). It is
     // never the route of any character; `vHelperWanted` is the V setting (on, with clips), set by the bridge's settings poll.
     this.vHelperWanted=false;
+    // The game's title screen: V's helper (a Python process importing torch, about 25 s of CPU and thousands of files at normal priority, on the drive the game
+    // loads from) does not load while it is up, because the screen that waits for a key press is the one place a stalled game frame loses the press. The bridge
+    // says true until the game has a world (or a long wait has passed); nothing is held without it (a test, a standalone service).
+    this.startHold=typeof options.startHold==='function'?()=>{try{return options.startHold()===true;}catch{return false;}}:()=>false;
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
       onFailure:reason=>this.noteFailure('v-helper',reason),
       clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:permanentVoiceFailure,busy:()=>this.busy,
@@ -1032,6 +1036,8 @@ export class VoiceSelection {
     if(!(this.vHelperWanted&&!this.closed&&!!this.configuredByBackend.pocket))return false;
     // The Pocket route speaks V itself, and a Pocket worker that exists (a settings preview warms one) holds the work folder's lock.
     if(this.pocketRoute||this.clientBackend==='pocket')return false;
+    // Not at the title screen (see startHold). A helper that already runs is never held: only its first load waits.
+    if(!this.vHelper.running&&this.startHold())return false;
     if(this.provider!=='omni')return true;
     // OmniVoice: the helper waits for it to be loaded (it is never started during OmniVoice's own load); with playback Off there is none.
     if(!(this.provider===this.requestedProvider))return false;
