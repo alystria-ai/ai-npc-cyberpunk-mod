@@ -100,6 +100,13 @@ public final func ConvaiKeyBindCaptureTake() -> String {
     return value;
 }
 
+// How many key events the capture's listener was handed since the last Set began: Lua logs it when a Set ends unanswered, and the page says "no key press
+// reached the mod" when it is 0 (a menu that keeps the keys from the game's input callbacks).
+@addMethod(PlayerPuppet)
+public final func ConvaiKeyBindCaptureHeard() -> Int32 {
+    return this.m_convaiKeyCaptureEvents;
+}
+
 @addMethod(PlayerPuppet)
 private final func ConvaiKeyBindPush(value: String) -> Void {
     if ArraySize(this.m_convaiKeyEvents) >= 16 { ArrayErase(this.m_convaiKeyEvents, 0); };

@@ -421,8 +421,7 @@ end
 
 -- The conversation service line, for the Help page's existing Conversation service row: nil when its own label and help say it
 -- (running, starting, stopped, no browser, no key); otherwise {value, description} for a service that never started or failed.
-function M.serviceLine()
-    local check = game and game.checks.service
+local function lineFor(check)
     if not check then return nil end
     if check.code == 'never' then
         return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.')}
@@ -437,6 +436,50 @@ function M.serviceLine()
     end
     if check.code == 'failed' then
         return {value = ui.t('Not running'), description = ui.t('The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.', {code = check.detail or '?'})}
+    end
+    return nil
+end
+function M.serviceLine() return lineFor(game and game.checks.service) end
+
+-- Why there is no conversation service, in words, for the places that can only say "Service not running" (the Local AI model row lists the installed
+-- models, which only the service knows: 2026-10-27, two Discord players had that one line and no way to tell a Runtime that did not load from a
+-- blocked Node). Returns {key, label, description} for a service that is down, with the label a short line for a row and the description the
+-- sentence for its help; nil when the service is up, starting or has nothing to add (the caller keeps its own words). It reads the same cached status
+-- files as the check (service-status.lua), so it is cheap, and it is called from the page, never per frame.
+function M.serviceWhy(now)
+    now = now or os.time()
+    local check = serviceCheck(now)
+    if check.state ~= 'problem' then return nil end
+    local function row(reason, description)
+        return {key = check.code .. ':' .. tostring(check.detail), label = ui.t('Service not running ({reason})', {reason = reason}), description = description}
+    end
+    if check.code == 'browser-missing' then
+        return {key = 'browser-missing', label = ui.t('Needs a browser'),
+            description = ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')}
+    end
+    if check.code == 'never' then
+        if check.detail == 'no-launcher-trace' then
+            return row(ui.t('Did not start'), ui.t('The Runtime’s plugin is loaded, but the conversation service left no trace in this session. launcher.log in red4ext/plugins/AiNpcCyberpunkMod says why: launcher.ini switched off, Node missing, or Node blocked by a security program. Fix that, then restart the game.'))
+        end
+        local line = lineFor(check)
+        return row(ui.t('Runtime not loaded'), (line and line.description or '') .. ' ' .. ui.t('If the folder is there, the newest log in red4ext/logs says why RED4ext did not load it: an antivirus that removed a file, or a missing Visual C++ runtime.'))
+    end
+    if check.code == 'incomplete' then
+        local line = lineFor(check)
+        return row(ui.t('Runtime incomplete'), line and line.description or '')
+    end
+    if check.code == 'failed' then
+        local code = check.detail
+        if code == 'launcher-failed' then
+            local number = try(function() return statusModule().failureError(now) end)
+            return row(ui.t('Could not start'), ui.t('Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.', {error = number or '?'}))
+        elseif code == 'service-silent' then
+            return row(ui.t('Did not start'), ui.t('The conversation service was started and never reported back. A security program probably stopped it at once, or Node cannot run on this PC. Allow red4ext/plugins/AiNpcCyberpunkMod/app/node/node.exe in your security program, then restart the game.'))
+        elseif code == 'game-folder-not-visible' then
+            return row(ui.t('Could not start'), ui.t('The conversation service cannot see this mod’s folder in the game: a mod manager’s virtual folders, or a folder it may not read. Extract the Runtime straight into the Cyberpunk 2077 folder, or start the game from the mod manager that holds the Runtime.'))
+        end
+        local line = lineFor(check)
+        return row(ui.t('Could not start'), line and line.description or '')
     end
     return nil
 end

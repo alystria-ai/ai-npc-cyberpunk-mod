@@ -27,7 +27,7 @@ The **Local AI model** row shows how Local AI is doing. While the model is not r
 | Local AI model (Not enough memory) | "Not enough free graphics memory to start Local AI. Try a smaller model in Settings." (Local AI stays your provider: each turn says so, and the next turn tries again.) |
 | Local AI model (Unavailable) | "Local AI could not start. Check Local AI in Settings > Conversation provider." or, when only Mature models are installed and Mature content is off, "Only Mature models found. Turn on Mature content to use them." |
 
-When the model is ready the row needs no words. With no model installed the row lists "No model installed". While the conversation service is not running, the row cannot know what is installed: it lists "Service not running" (or "Service starting" while it starts) instead, and the help says what is wrong with the service.
+When the model is ready the row needs no words. With no model installed the row lists "No model installed". While the conversation service is not running, the row cannot know what is installed: it lists "Service not running" (or "Service starting" while it starts) instead, with the reason in brackets ("Runtime not loaded", "Runtime incomplete", "Did not start", "Could not start", or "Needs a browser" alone), and the help says what is wrong with the service and what to do.
 
 The first start after installing takes about a minute while the graphics card prepares the model (the row name says "(Warming up)"). After that the model loads in a few seconds when you start talking, and it is unloaded again after ten minutes without a conversation so the game gets its video memory back.
 

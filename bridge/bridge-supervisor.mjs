@@ -89,6 +89,10 @@ export function parseSupervisorArguments(argv, {defaultProject, env = process.en
   return result;
 }
 
+// Wine's own stand-in for a default browser is what the lookup reports on a Windows game run on Linux or the Steam Deck (Proton): its prefix has no browser,
+// and the hidden one plays every voice and hears the microphone, so the service stops there (26 Oct: every browser-missing report of 0.3.2 was such a prefix).
+const WINE_BROWSER_MESSAGE = 'This looks like Wine or Proton (Linux, Steam Deck): there is no Windows browser in the game prefix, and the mod needs one for sound and the microphone. Install Chrome or Edge into the prefix and write its path in browser.txt next to launcher.ini.';
+
 export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
@@ -255,7 +259,11 @@ export class BridgeSupervisor {
         // What the lookup had to go on, once per supervisor (it reads the registry), so a report of this failure says why no browser was found.
         if (!this.browserReported) {
           this.browserReported = true;
-          try { this.log(this.browserReport()); } catch { /* a diagnostic never changes the failure */ }
+          try {
+            const summary = this.browserReport();
+            this.log(summary);
+            if (/winebrowser\.exe/i.test(String(summary))) this.log(WINE_BROWSER_MESSAGE);
+          } catch { /* a diagnostic never changes the failure */ }
         }
       }
       // Said once, not on every retry: the names of the files (never a folder) that are not there.

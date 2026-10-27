@@ -941,7 +941,13 @@ local function ownKeyRows(snapshot)
         local serviceNote
         if #choices == 0 then
             local serviceState = support and support.serviceState() or 'unknown'
-            if serviceState == 'stopped' then labels[1], serviceNote = ui.t('Service not running'), support.serviceMessage()
+            if serviceState == 'stopped' then
+                labels[1], serviceNote = ui.t('Service not running'), support.serviceMessage()
+                -- The reason in plain words (mod/setup-check.lua serviceWhy): a Runtime that did not load, an incomplete one, a start Windows refused,
+                -- a missing browser. Without it the row could only say "Service not running" (2026-10-27: two players had nothing else to go on).
+                local whyOk, why = false, nil
+                if convaiSetupCheck and convaiSetupCheck.serviceWhy then whyOk, why = pcall(convaiSetupCheck.serviceWhy) end
+                if whyOk and type(why) == 'table' and why.label then labels[1], serviceNote = why.label, why.description or serviceNote end
             elseif serviceState == 'starting' then labels[1], serviceNote = ui.t('Service starting'), support.serviceMessage()
             else labels[1] = ui.t('No model installed') end
         end
@@ -1215,7 +1221,12 @@ local function pageSignature(snapshot)
         end
         for _, problem in ipairs(mistral.localModelProblems or {}) do modelKey[#modelKey + 1] = 'x:' .. problem.name .. ':' .. problem.reason end
         -- With no model listed the row names the service state (not running, starting, or its fault), which changes without the player.
-        if support and #(mistral.localModels or {}) == 0 then modelKey[#modelKey + 1] = 's:' .. support.serviceState() .. ':' .. tostring(support.serviceFault()) end
+        if support and #(mistral.localModels or {}) == 0 then
+            modelKey[#modelKey + 1] = 's:' .. support.serviceState() .. ':' .. tostring(support.serviceFault())
+            local whyOk, why = false, nil
+            if convaiSetupCheck and convaiSetupCheck.serviceWhy then whyOk, why = pcall(convaiSetupCheck.serviceWhy) end
+            if whyOk and type(why) == 'table' then modelKey[#modelKey + 1] = 'w:' .. tostring(why.key) end
+        end
         add(table.concat(modelKey, '|'))
         -- The Custom provider's rows (state file read at most every 1.5 s, like the Mistral state above).
         if customProvider.instance then
@@ -1261,10 +1272,12 @@ local function bindingSection(snapshot, module, id, name, how)
         action('kb:set:' .. id, 'Key or button', waiting and ui.t('Cancel') or keyText(module, mine),
             ui.t(how) .. '\n\n' .. ui.t('Press it, then the key or controller button you want. Esc or B cancels. It works at once.'),
             function()
-                local currentPlayer = player()
+                -- At the main menu Game.GetPlayer() can still hand back an object, but V is not there to hear a key (noWorld).
+                local currentPlayer = not noWorld and player() or nil
                 if waiting then module.abandonCapture(currentPlayer); return true end
                 local ok, reason = module.beginCapture(currentPlayer, id)
                 if ok then return true, ui.t('Press the key or controller button for {action}. Esc or B cancels.', {action = keyActionName(id)}) end
+                if reason == 'world' then return false, ui.t('Load a save first. A key can be set only while a game is loaded.') end
                 if reason == 'codeware' then return false, ui.t('Key bindings need Codeware, and this game does not have it. Open Help for what is missing.') end
                 return false, ui.t('The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.')
             end, nil, {value = true, description = true}),
@@ -1314,7 +1327,9 @@ function M.keyBindResult(result)
         named.key, named.other = keyText(module, result.name), keyActionName(result.other)
         actionFeedback = ui.t('{key} is already used for {other}. Choose another.', named)
     elseif result.kind == 'timeout' then
-        actionFeedback = ui.t('No key was pressed, so nothing changed.')
+        -- Not one key event reached the mod (the game keeps them from it in this menu): say so and name the way that always works.
+        if result.heard == 0 then actionFeedback = ui.t('No key press reached the mod, so nothing changed. If keys do not arrive from this menu, set the key in Cyber Engine Tweaks’ Bindings: it works the same.')
+        else actionFeedback = ui.t('No key was pressed, so nothing changed.') end
     elseif result.kind == 'failed' then
         actionFeedback = ui.t(result.reason or 'The settings could not be saved. Nothing was changed.')
     else
@@ -2430,6 +2445,10 @@ local function paidTierOutcome(event, currentPlayer)
 end
 
 function M.slowUpdate(currentPlayer, worldReady)
+    -- A key being set (Key bindings page): read here, because the page is a menu and the game's 10 Hz tick (paced by the frame delta, zero in a menu) does
+    -- not run while it is open. One global and one table read when no Set waits (docs/KEY_BINDINGS.md).
+    local keys = convaiKeyBinds
+    if keys and keys.capturing() then pcall(keys.captureTick, currentPlayer) end
     local currentOwner = identity(currentPlayer)
     local messages = {}
     if currentOwner ~= owner then

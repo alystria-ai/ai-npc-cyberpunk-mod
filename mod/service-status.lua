@@ -78,6 +78,9 @@ local function detailOf(value)
     local text = code or 'no-code'
     if stage and stage ~= 'starting' then text = text .. ' at ' .. stage end
     if reason then text = text .. ': ' .. reason end
+    -- The launcher's CreateProcess refusal (27 Oct: launcher-failed reached the reports with no way to tell a blocked node.exe from a missing one).
+    local windows = value.source == 'launcher' and tonumber(value.error)
+    if windows and windows >= 1 and windows <= 99999 and windows == math.floor(windows) then text = text .. ' (Windows error ' .. math.floor(windows) .. ')' end
     return text
 end
 
@@ -152,6 +155,17 @@ function M.failureCode(now)
     local service = supervisor(now)
     local code = service and service.code
     return type(code) == 'string' and code:match('^[%w%-_]+$') and code:sub(1, 60) or nil
+end
+
+-- The Windows error number the launcher wrote with a failed start (CreateProcess refused: 5 access denied, 1260 blocked by a policy, 225 a security
+-- program, 740 needs administrator rights ...), or nil. Only a whole number from the status of this session's launcher; nothing else is read from it.
+function M.failureError(now)
+    now = now or os.time()
+    local service = supervisor(now)
+    if type(service) ~= 'table' or service.state ~= 'failed' or service.source ~= 'launcher' then return nil end
+    local number = tonumber(service.error)
+    if not number or number < 1 or number > 99999 or number ~= math.floor(number) then return nil end
+    return number
 end
 
 -- The sentence for a kind of fault. `detail` (a failed kind's own words from detailOf) follows the failed sentence in brackets: it is the

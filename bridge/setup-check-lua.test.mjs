@@ -256,6 +256,47 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   assert(check.summary()[1].state == 'problem' and check.summary()[1].code == 'stopped' and #check.problems() == 0 and check.serviceLine() == nil)
 `));
 
+// 27 Oct triage: two Discord players on Local AI had "Service not running" on the model row and nothing else. serviceWhy gives that row the reason.
+test('serviceWhy: a service that is down says why on the Local AI model row, and a service that is up, starting or stopped on purpose says nothing', () => run(String.raw`
+  installFiles()
+  -- no trace of this session: the Runtime's plugin did not load, then the plugin is there and still nothing reported
+  local why = check.serviceWhy()
+  assert(why and why.label == 'Service not running (Runtime not loaded)', why and why.label)
+  assert(why.description:find('Extract the Runtime zip straight into the Cyberpunk 2077 folder', 1, true) and why.description:find('newest log in red4ext/logs', 1, true))
+  env.native = true; applyEnv()
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Did not start)' and why.description:find('launcher.log in red4ext/plugins/AiNpcCyberpunkMod', 1, true), why.label)
+  assert(why.key ~= check.serviceWhy().label, 'a key the page compares')
+  env.native = false; applyEnv()
+  -- the Runtime incomplete: its own sentence (the same as the Help page's)
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'install-incomplete', updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Runtime incomplete)' and why.description:find('The Runtime is incomplete (install-incomplete)', 1, true), why.description)
+  -- Windows refused the start: the number the launcher wrote is in the sentence
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 1260, updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Could not start)' and why.description:find('(error 1260)', 1, true) and why.description:find('node.exe', 1, true), why.description)
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 'x; drop', updated = ms()})
+  assert(check.serviceWhy().description:find('(error ?)', 1, true), 'an error that is not a number is not echoed')
+  -- the service started and never reported / cannot see the mod folder / crashed
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'service-silent', updated = ms()})
+  assert(check.serviceWhy().label == 'Service not running (Did not start)' and check.serviceWhy().description:find('security program', 1, true))
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'game-folder-not-visible', updated = ms()})
+  assert(check.serviceWhy().description:find('virtual folders', 1, true))
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'bridge-crashed', updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Could not start)' and why.description:find('(bridge-crashed)', 1, true))
+  -- no browser: the existing words
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'browser-missing', updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Needs a browser' and why.description:find('Chromium browser', 1, true))
+  -- starting, running: nothing to add
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'starting', updated = ms()})
+  assert(check.serviceWhy() == nil)
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'ready', updated = ms()})
+  assert(check.serviceWhy() == nil)
+`));
+
 test('the service answer is shown only from this game session and every check becomes one line with its fix', () => run(String.raw`
   installFiles(); serviceRunning()
   check.run()

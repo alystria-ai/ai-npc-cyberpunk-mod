@@ -8,6 +8,9 @@
 -- key is handled at the moment it happens. The game's 10 Hz tick drains the same queue (a call returning "" when empty) only when the observer was not
 -- installed, registers the saved keys again for a new player after a load, and ends a Set that nobody answered. With no binding saved and no Set in progress
 -- the tick costs one table check and the redscript listener is not registered.
+-- The page itself is a menu, and a menu stops the game's clock: the 10 Hz tick is paced by the frame delta, which is zero there, so it does not run while
+-- the page is open (26 Oct, three installs: "waiting for a key", then nothing, no timeout either). A Set is therefore also read by captureTick, which the
+-- Companion Manager's own slow update calls (it runs in menus; mod/manager-ui.lua M.slowUpdate); the tick keeps the same work for a Set started in the world.
 -- A Set is read by the tick only, never from inside the game's key event: the key chosen is saved, its binding registered and the capture's listener
 -- unregistered at most 0.1 s later, outside the event (game 2.31 froze while a key was being set, 25 Oct). The capture listens to the keys a player may
 -- choose (captureKeys), not to every key, and closes itself in the redscript past a number of events or a time.
@@ -285,8 +288,15 @@ local function endCapture(player, result)
     state.capture = nil
     state.ignoreUntil = M.clock() + AFTER_S
     player = player or (M.deps.player and M.deps.player())
+    -- How many key events the listener was handed, read before it is switched off: none at all means the game passed no key to the mod (a menu that
+    -- keeps them), which the page says. nil with scripts that cannot answer.
+    if player and result.kind == 'timeout' then
+        local asked, heard = pcall(function() return player:ConvaiKeyBindCaptureHeard() end)
+        if asked and type(heard) == 'number' then result.heard = heard end
+    end
     if player then pcall(function() return player:ConvaiKeyBindsCapture('') end) end
-    say('Key binding ' .. capture.action .. ': ' .. result.kind .. (result.name and (' ' .. result.name) or '') .. (result.why and (' (' .. result.why .. ')') or ''))
+    say('Key binding ' .. capture.action .. ': ' .. result.kind .. (result.name and (' ' .. result.name) or '') .. (result.why and (' (' .. result.why .. ')') or '')
+        .. (result.heard and (' (' .. result.heard .. ' key events heard)') or ''))
     if M.deps.changed then pcall(M.deps.changed, result) end
 end
 
@@ -366,14 +376,14 @@ end
 
 -- ---- Set -----------------------------------------------------------------------------------------------------------------------------------------------
 
--- Starts waiting for the key of `action`. Returns true, or false and why: 'codeware' (the game has no Codeware, so keys cannot be heard), 'scripts' (this
--- mod's redscript did not load) or 'unknown'.
+-- Starts waiting for the key of `action`. Returns true, or false and why: 'world' (no game is loaded: the keys are heard by V, who is not there at the
+-- main menu), 'codeware' (the game has no Codeware, so keys cannot be heard), 'scripts' (this mod's redscript did not load) or 'unknown'.
 function M.beginCapture(player, action)
     if not M.deps or not SLOT[action] then return false, 'unknown' end
-    if not player then return false, 'scripts' end
+    if not player then say('Key binding ' .. action .. ': refused (no game is loaded)'); return false, 'world' end
     local ok, ready = pcall(function() return player:ConvaiKeyBindsReady() end)
-    if not ok then return false, 'scripts' end
-    if ready ~= true then return false, 'codeware' end
+    if not ok then say('Key binding ' .. action .. ': refused (the redscript half is not loaded)'); return false, 'scripts' end
+    if ready ~= true then say('Key binding ' .. action .. ': refused (Codeware is missing)'); return false, 'codeware' end
     if state.capture then endCapture(player, {kind = 'cancelled', action = state.capture.action}) end
     local keys = M.captureKeys()
     local started, listening = pcall(function() return player:ConvaiKeyBindsCapture(keys) end)
@@ -427,27 +437,42 @@ function configure(player, wanted, now)
     return true
 end
 
--- Called from the game's 10 Hz tick. `ready`: the world is playable.
+-- A Set that waits: its time and what the redscript heard. The caller is the Companion Manager's slow update (a menu, where the game's clock stands still and
+-- the tick below does not run) or the tick itself; both may call it, it keeps no state of its own. `player` is nil when no game is loaded: then nothing can
+-- answer the Set and it ends. Cheap when no Set waits (one table read).
+function M.captureTick(player)
+    local capture = state.capture
+    if not capture or not M.deps then return end
+    if not player then
+        endCapture(nil, {kind = 'cancelled', action = capture.action, why = 'no game is loaded'})
+        return
+    end
+    local now = M.clock()
+    if now < capture.at or now - capture.at >= CAPTURE_S then
+        endCapture(player, {kind = 'timeout', action = capture.action})
+        return
+    end
+    takeCaptured(player)
+end
+
+-- Called from the game's 10 Hz tick. `ready`: the world is playable (no menu open, game not paused).
 function M.tick(player, ready)
     local deps = M.deps
     if not deps then return end
     local wanted = M.list(deps.bindings())
     if wanted == '' and not state.capture and (state.configured == nil or state.configured == '') and next(state.down) == nil then return end
-    if not ready or not player then
-        endHolds('world not ready')
-        state.configured = nil
-        state.capture = nil
-        return
-    end
-    local now = M.clock()
-    if state.capture and (now < state.capture.at or now - state.capture.at >= CAPTURE_S) then
-        endCapture(player, {kind = 'timeout', action = state.capture.action})
-    end
+    -- A Set outlives a menu (it is made in one); only losing the player ends it.
     if state.capture then
-        takeCaptured(player)
+        M.captureTick(player)
         -- A key chosen just now is saved and registered: the list to keep is the new one.
         wanted = M.list(deps.bindings())
     end
+    if not ready or not player then
+        endHolds('world not ready')
+        state.configured = nil
+        return
+    end
+    local now = M.clock()
     if state.missingAt and now >= state.missingAt and now - state.missingAt < MISSING_RETRY_S then return end
     if not configure(player, wanted, now) then return end
     if wanted ~= '' or state.capture then
