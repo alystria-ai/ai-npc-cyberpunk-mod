@@ -23,6 +23,7 @@ import {survivingLoss} from './local-server-recovery.mjs';
 import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
+import {LearnedLimits, learnedLimitChat, promptFitLine} from './prompt-fit.mjs';
 import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
@@ -110,7 +111,9 @@ export const LOCAL_RETRY_MS = 10_000;
  * token budget; docs/FREE_CLOUD_OPTION_RESEARCH.md).
  */
 export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionModel, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
-  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS} = {}) {
+  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS, limits, log = () => {}} = {}) {
+  // A prompt Mistral refuses as too long, with the limit it names, is cut to it once and sent again; the limit is remembered (bridge/prompt-fit.mjs).
+  chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
   return {name: 'mistral', provider: 'mistral', chat, endpoint, gapMs, now, blocked: new Map(), nextSlot: 0, scheduler, priorities,
     chatDefaults,
     noteHeaders: scheduler ? headers => { try { scheduler.noteHeaders(headers); } catch { /* spacing is best effort */ } } : undefined,
@@ -141,7 +144,9 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  * not retried and says so. The Mature layer follows MATURE_PROVIDERS (the Custom provider has it, #matureLevel).
  *   custom      the CustomEndpoint (address, key, model id)
  */
-export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess} = {}) {
+export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}} = {}) {
+  // A prompt the endpoint refuses as too long (a Groq plan of 8,000 tokens a minute, an 8k context) is cut to the limit it names, sent again once, and the limit is remembered for this model.
+  chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
   const adaptations = new Map();
   const adaptation = () => {
     const key = `${custom.origin}|${custom.model}`;
@@ -227,6 +232,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // Every request is fitted to the context the server really has (bridge/prompt-budget.mjs): n_ctx is read from the server, the prompt is
   // cut in a fixed order of priority when it does not fit, and a refusal that still comes (an estimate that was low) is learned from.
   const meters = new Map();
+  let lastModel = null;
   let lastMeter = null;   // the meter of the model that answered last: the compact character text (and its warm-up) counts its target with the same ratio the soft target does
   const mismatches = new Map();   // a gap between the budget's count and the server's is written to the log a few times per meter, not every turn
   // How fast this machine reads a prompt, per load of the model (a reload may have less graphics memory to work with): a slow one is given a
@@ -268,6 +274,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       if (!(handle?.contextSize > 0)) return null;
       if (!meters.has(handle.model)) meters.set(handle.model, new TokenMeter({charsPerToken: seedRatio(handle.model)}));
       lastMeter = meters.get(handle.model);
+      lastModel = handle.model;
       lastSpeed = speedOf(handle);
       const count = typeof server.tokenize !== 'function' ? undefined : async messages => {
         const tokens = await server.tokenize(messages.map(message => message.content).join('\n'), {signal: options?.signal});
@@ -277,6 +284,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count, server: handle.external === true};
     },
     learn: tokens => { try { server.learnContext?.(tokens); } catch { /* a note of the context never fails a request */ } },
+    // A refusal for length that was learned (a server the player runs that has a smaller context than it said): one line with what was cut and whether the second try went through.
+    onLearned: (info, options) => log(promptFitLine({provider: 'local', model: lastModel}, info)),
     // The compact character text of a machine measured to read slowly (bridge/compact-persona.mjs); a fast machine is given the very arguments it was built from.
     shape: (args, options, base) => {
       let persona = args.persona;

@@ -157,6 +157,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/pocket-voice.mjs',
   'bridge/process-priority.mjs',
   'bridge/prompt-budget.mjs',
+  'bridge/prompt-fit.mjs',
   'bridge/prompt-profile-store.mjs',
   'bridge/prompt-profiles.mjs',
   'bridge/prompting-editor.mjs',

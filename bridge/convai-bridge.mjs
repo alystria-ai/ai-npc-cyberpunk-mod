@@ -141,6 +141,7 @@ import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MO
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {SlowTurnWatch} from './slow-turns.mjs';
 import {VoiceSilenceWatch} from './voice-silence.mjs';
+import {LearnedLimits} from './prompt-fit.mjs';
 import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 import {AddonContent} from './addon-content.mjs';
@@ -1076,10 +1077,12 @@ const realtime = new RealtimeHost({browserPriority: turnPriority, onCompanionAct
 // never sees it.
 // One host serves Mistral and the local AI (bridge/text-provider-host.mjs); `mistral.route` says which answers a turn. The cache
 // scope is a hash of the state folder, so the Mistral cache key never carries a secret or a name.
+// The prompt limits a cloud provider named when it refused a prompt as too long (bridge/prompt-fit.mjs), per provider and model, kept for three days so the next session starts from them.
+const promptLimits = new LearnedLimits({file: resolve(stateDirectory, 'prompt-limits.json')});
 const textRoutes = {
-  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
-  local: localRoute({server: localServer, provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
-  custom: customRoute({provider: mistral, custom: customEndpoint}),
+  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12), limits: promptLimits, log: line => console.error(line)}),
+  local: localRoute({server: localServer, provider: mistral, log: message => console.error(message.startsWith('[PromptFit]') ? message : '[TextProvider] ' + message)}),
+  custom: customRoute({provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console.error(line)}),
 };
 const providerOfCharacter = new Map();
 const profileOfCharacter = config => {

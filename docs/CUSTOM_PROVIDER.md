@@ -109,6 +109,10 @@ OpenRouter's free models (ids ending in `:free`) allow 20 requests a minute and 
 
 A per-minute limit (a few seconds' wait) and "temporarily rate-limited upstream" are not daily: they are waited out and retried as before. **Test connection** reports the daily limit and its reset the same way.
 
+### A prompt longer than the endpoint takes (2026-10-27)
+
+A free plan can take less than one prompt: Groq's free tier took 8,000 tokens a minute and the prompt of a companion's turn was 8,626 (reports of 27 Oct). When an endpoint (or the Mistral route) refuses a prompt as too long and names the limit, the mod reads it (`contextRefusal`, `bridge/mistral-client.mjs`: Groq and OpenAI-style "Request too large ... Limit 8000, Requested 8626", "maximum context length is N tokens", llama.cpp "exceeds the available context size", Mistral's "too large for model with N maximum context length", "prompt is too long: N tokens > M maximum"), cuts the prompt to it with the fit the Local AI uses (`bridge/prompt-budget.mjs`: the lowest-priority knowledge first, then the retrieved memories, the older exchanges and the older-talk summary; never the persona and output rules, the world rules, the "right now" block or the player's words), and sends the request again **once**. The limit is remembered per provider, address and model for the session and in `prompt-limits.json` in the state folder for three days (`bridge/prompt-fit.mjs`), so later turns are built to fit from the start. Nothing changes on a normal turn: with no limit known the request goes out as it was. One log line per learned refusal: `[PromptFit] provider=custom model=openai/gpt-oss-120b limit=8000 sent=7400 trimmed=jobs:1,older-exchanges:4 retried=ok`. A persona that alone is longer than the limit fails with the plain "does not fit" error. A 429 (a rate limit with a wait) is not a size refusal and is waited out as before.
+
 ### Errors the player sees
 
 | The endpoint answers | Notice | What the player should do |
