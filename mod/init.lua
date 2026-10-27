@@ -2600,6 +2600,20 @@ convaiBarkEnd = function(quiet)
 end
 -- An ordinary NPC that reacts (walks off, attacks) first lets go of the conversation's hold and look-at, the same release.
 if convaiNpcReactions then convaiNpcReactions.options.release = function(player) endFocus(player) end end
+-- The conversation's own focus on a walking crowd person, for a get down or a cower that keeps it (live test 6, 2026-10-27: a hold of our own
+-- never ran on a crowd person, the conversation's does): {age = seconds since it began, hold = its AIHoldPositionCommand when readable}, or nil
+-- when the conversation is not focused on this person.
+if convaiNpcReactions then
+    convaiNpcReactions.options.focusOf = function(npc)
+        local current = focusedCrowd
+        if not current or not npc then return nil end
+        local same = tostring(current.npc:GetEntityID().hash) == tostring(npc:GetEntityID().hash)
+        if not same then return nil end
+        local hold
+        pcall(function() hold = Game.GetPlayer().m_convaiFocusHold end)
+        return {age = os.time() - (current.at or os.time()), hold = hold}
+    end
+end
 
 local function beginFocus(player, npc)
     endFocus(player)
