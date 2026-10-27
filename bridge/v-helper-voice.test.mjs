@@ -257,7 +257,8 @@ test('a failed helper stays off with one log line and no retry loop; V stays sil
   await omniReady(h); await until(() => h.voice.vHelper.failed, 'the failure');
   await tick(); await tick();
   // The failure is told once, with its reason, and the setup check can see it while it lasts (the Help page's Pocket voice row).
-  assert.deepEqual(failures, [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.deepEqual(failures.map(({engine, reason}) => ({engine, reason})), [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.equal(failures[0].fellBackTo, 'silent', 'the line of V is silent, not text');
   assert.deepEqual(h.voice.voiceProblem(), {engine: 'v-helper', reason: 'helper failed'});
   const attempts = h.workers.filter(worker => worker.backend === 'pocket').length;
   assert.equal(attempts, 1);
@@ -281,7 +282,7 @@ test('a failed helper is loaded again after the wait, never while a reply is in 
   let now = 1_000_000; const failures = [];
   const h = fixture({failHelper: 1, options: {clock: () => now, onFailure: info => failures.push(info)}});
   await omniReady(h); await until(() => h.voice.vHelper.failed, 'the failure');
-  assert.deepEqual(failures, [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.deepEqual(failures.map(({engine, reason}) => ({engine, reason})), [{engine: 'v-helper', reason: 'helper failed'}]);
   assert.match(h.logs.join(''), /helper voice failed \(helper failed\); trying again in 45 s/);
   assert.deepEqual(h.voice.voiceProblem(), {engine: 'v-helper', reason: 'helper failed'}, 'the Help row still names it while it waits');
   const pockets = () => h.workers.filter(worker => worker.backend === 'pocket').length;

@@ -13,7 +13,7 @@ import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
 import {closeConfirmed} from './worker-process.mjs';
-import {accessViolationFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed} from './voice-failures.mjs';
+import {accessViolationFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed, tailLines} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -42,7 +42,15 @@ export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ?
 // A Python library the voice needs that Windows refused to load: Smart App Control, or a company's or a school's Application Control (WDAC) policy, blocks a
 // file that is not signed by a publisher it trusts ("DLL load failed ... An Application Control policy has blocked this file", 2026-10-20 live record).
 // Asking again cannot change that, and nothing in the mod can: the voice is not retried, and the Help row says what blocked it.
-export const blockedByWindows = reason => /application control|policy has blocked|blocked this file|smart app control|code integrity|blocked by (?:the )?(?:group )?policy/i.test(String(reason ?? ''));
+// Windows words the reason of a failed DLL load in the language of the PC, and Python prints it as it is: a Spanish PC says "Una directiva de Control de aplicaciones bloqueo este archivo" (27 Oct 2026
+// report: OmniVoice and Pocket both refused by Smart App Control, retried every 45 s to 10 min because only the English words were known). A "DLL load failed" whose reason says that something BLOCKED
+// the file, in any of the languages of the mod, is the same refusal: the other DLL failures say the module was not found, access was denied or the file is not a valid program.
+const BLOCK_WORDS = /bloque|blockier|gesperrt|bloqu[eé]|bloccat|bloquead|заблокир|zablokow|blokov|tiltott|ブロック|차단|阻止|封鎖|封锁|engelle/i;
+export const blockedByWindows = reason => {
+  const text = String(reason ?? '');
+  return /application control|policy has blocked|blocked this file|smart app control|code integrity|blocked by (?:the )?(?:group )?policy/i.test(text)
+    || (/DLL load failed/i.test(text) && BLOCK_WORDS.test(text));
+};
 // A failure that will repeat on every try, in words for the log, or null: Windows blocked a file (above), a Pocket file is not the pinned one or is not
 // there (a version mismatch, an incomplete or changed Runtime), a file or Python module the worker needs is missing. None of these is retried: each try is a
 // rehash of hundreds of megabytes or a model load beside the game, and fails the same way. The Runtime update (or a repair) is what changes it.
@@ -51,6 +59,9 @@ export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windo
   : pagingFileFailed(reason) ? 'Windows ran out of memory for the voice (the paging file is too small)'
   : pocketIntegrityFailed(reason) ? 'a Pocket file is not the one this version pins (the Runtime needs its update)'
   : missingFilesFailed(reason) ? 'a file of the voice is missing from the install' : null;
+// The cause of a voice failure as one word for the error report (bridge/error-events.mjs cleanVoice), so a triage can group them without reading the lines.
+export const voiceFailureCause = reason => blockedByWindows(reason) ? 'windows-blocked' : pagingFileFailed(reason) ? 'virtual-memory' : noCudaFailed(reason) ? 'no-cuda'
+  : outOfMemoryFailed(reason) ? 'out-of-memory' : timedOutFailed(reason) ? 'timeout' : pocketIntegrityFailed(reason) ? 'integrity' : missingFilesFailed(reason) ? 'missing-files' : 'unknown';
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 // The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.
 export const TEXT_ROUTE = 'text';
@@ -168,7 +179,7 @@ export class VoiceSelection {
     // says true until the game has a world (or a long wait has passed); nothing is held without it (a test, a standalone service).
     this.startHold=typeof options.startHold==='function'?()=>{try{return options.startHold()===true;}catch{return false;}}:()=>false;
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
-      onFailure:reason=>this.noteFailure('v-helper',reason),
+      onFailure:reason=>this.noteFailure('v-helper',reason,undefined,this.vHelper?.client?.stderrTail),
       clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:permanentVoiceFailure,busy:()=>this.busy,
       closeWorker:client=>this.closeWorker(client),
       create:onState=>this.primed(this.factory(this.baseConfigs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState}),'pocket')});
@@ -728,7 +739,7 @@ export class VoiceSelection {
     if(this.closed||this.client!==client||this.failedBackends.has(backend))return;
     this.failedBackends.add(backend);
     this.failureReasons[backend]=String(client.failure?.message??'unknown').slice(0,200);
-    this.noteFailure(backend,client.failure?.message,client.failure?.gpu);
+    this.noteFailure(backend,client.failure?.message,client.failure?.gpu,client.stderrTail);
     if(backend==='omni')this.scheduleOmniRetry(client.failure?.message,client.failure?.gpu);
     if(backend==='pocket')this.schedulePocketRetry(client.failure?.message);
     this.reconcile();
@@ -736,8 +747,14 @@ export class VoiceSelection {
   }
   // A voice that could not start, told to whoever listens (the bridge records it for an error report, bridge/error-events.mjs). Never throws.
   // `gpu` ({dedicatedMiB, sharedMiB}): the worker's graphics memory when a render ran out of time, when it was read.
-  // A worker with no CUDA is this PC's setup (no NVIDIA card), not a bug: no report is filed for it.
-  noteFailure(engine,reason,gpu){if(noCudaFailed(reason)||(engine==='omni'&&this.remoteWanted))return;try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{})});}catch{}}
+  // `tail`: the worker's last stderr (its client keeps 6,000 characters of it). Everything else a triage asks first is gathered here, where the state is: which voice the player chose
+  // (`requested`), which one speaks now (`active`), where the replies go now that this one failed (`fellBackTo`: another voice, 'text', or for V's own Pocket worker 'silent'), and the cause as one word.
+  // A worker with no CUDA (an AMD or Intel card with OmniVoice chosen) is reported too since 0.3.3: those players had no voice and no report told us (a 9070 XT player, 27 Oct 2026).
+  noteFailure(engine,reason,gpu,tail){
+    if(engine==='omni'&&this.remoteWanted)return;
+    try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{}),cause:voiceFailureCause(reason),
+      requested:this.requestedProvider,active:this.provider,fellBackTo:engine==='v-helper'?'silent':this.resolvedProvider,silent:this.silent,tail:tailLines(tail)});}catch{}
+  }
   /**
    * What keeps the Pocket voice from speaking right now, for the Help page's setup check: null, or {engine: 'pocket'|'v-helper', reason}. The companions'
    * Pocket worker counts only while it is the voice they need (Pocket chosen, or OmniVoice that cannot run); V's own worker only while V's voice wants it.
@@ -964,7 +981,7 @@ export class VoiceSelection {
     this.candidate=null;
     // Also when it dies after finishing but before the idle commit: Omni leaves routing again, the fallback stays.
     this.failedBackends.add('omni');
-    this.noteFailure('omni',entry.client.failure?.message,entry.client.failure?.gpu);
+    this.noteFailure('omni',entry.client.failure?.message,entry.client.failure?.gpu,entry.client.stderrTail);
     void this.retireCandidate(entry).catch(()=>{this.omniRetry=null;});
     this.scheduleOmniRetry(entry.client.failure?.message,entry.client.failure?.gpu);
     this.publish();

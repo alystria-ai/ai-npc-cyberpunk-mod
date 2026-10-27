@@ -877,7 +877,7 @@ test('an Omni worker that could not confirm its paths is not tried again: every 
   await h.voice.close(); assert.equal(h.live(), 0);
 });
 
-test('an Omni worker with no CUDA is never tried again, says so once, is not reported as a bug, and names the card vendors', async () => {
+test('an Omni worker with no CUDA is never tried again, says so once, is reported once with its cause (the player had no voice and nothing told us), and names the card vendors', async () => {
   let vendors = null;
   const h = retryFixture({omni: ['nocuda', 'ok'], options: {gpuVendors: () => vendors}});
   vendors = ['amd'];
@@ -890,7 +890,8 @@ test('an Omni worker with no CUDA is never tried again, says so once, is not rep
   assert.equal(h.logs.filter(line => /\[OmniRetry\]/.test(line)).length, 1);
   assert.ok(h.logs.some(line => /\[OmniRetry\] not trying again: OmniVoice needs an NVIDIA graphics card .*\(graphics: amd\)/.test(line)));
   assert.ok(!h.logs.some(line => /trying again in/.test(line)));
-  assert.equal(h.failures.length, 0, 'a PC without an NVIDIA card is not filed as an error report');
+  assert.equal(h.failures.length, 1, 'a PC without an NVIDIA card is reported too: a player with OmniVoice chosen and no voice is worth knowing');
+  assert.deepEqual([h.failures[0].engine, h.failures[0].cause, h.failures[0].requested, h.failures[0].fellBackTo], ['omni', 'no-cuda', 'omni', 'text']);
   assert.equal(h.states.at(-1).omniNoNvidia, true); assert.deepEqual(h.states.at(-1).gpuVendors, ['amd']);
   assert.equal(h.pocketWorkers().length, 0, 'no other voice is loaded in its place');
   for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
@@ -1308,7 +1309,8 @@ test('a Pocket that loads on a retry takes the route back at the next idle poll,
   h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
   assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.profileReady('johnny-silverhand'), false);
   // The failure is told once with its reason and is a problem for the setup check while it lasts; a Pocket that loaded again is none.
-  assert.deepEqual(h.failures, [{engine: 'pocket', reason: 'pocket worker failed'}]);
+  assert.deepEqual(h.failures.map(({engine, reason}) => ({engine, reason})), [{engine: 'pocket', reason: 'pocket worker failed'}]);
+  assert.deepEqual([h.failures[0].requested, h.failures[0].fellBackTo, h.failures[0].silent], ['pocket', 'text', false], 'the report knows the replies are text now');
   assert.deepEqual(h.voice.voiceProblem(), {engine: 'pocket', reason: 'pocket worker failed'});
   h.advance(45_000); h.voice.update({}, null, false); await h.settle();
   assert.equal(h.pocketWorkers().length, 2); assert.equal(h.pocketWorkers()[1].loaded, true);
@@ -1447,8 +1449,9 @@ test('a failure that carries the worker graphics memory passes it on to the obse
   const h = retryFixture({omni: ['hold']});
   h.voice.noteFailure('omni', 'Local voice generation timed out', {dedicatedMiB: 2100, sharedMiB: 1650});
   h.voice.noteFailure('pocket', 'Pocket student runtime is unavailable');
-  assert.deepEqual(h.failures, [{engine: 'omni', reason: 'Local voice generation timed out', gpu: {dedicatedMiB: 2100, sharedMiB: 1650}},
+  assert.deepEqual(h.failures.map(({engine, reason, gpu}) => ({engine, reason, ...(gpu ? {gpu} : {})})), [{engine: 'omni', reason: 'Local voice generation timed out', gpu: {dedicatedMiB: 2100, sharedMiB: 1650}},
     {engine: 'pocket', reason: 'Pocket student runtime is unavailable'}]);
+  assert.deepEqual(h.failures.map(info => info.cause), ['timeout', 'unknown']);
 });
 
 test('the player\'s own Python (omni-python.txt) runs the Omni worker only after its self-test passed, with the pack\'s OmniVoice code', async () => {

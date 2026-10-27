@@ -17,7 +17,7 @@
 //
 // Carries: numbers and the fixed names of stages, providers, voices and models only. Never a word anyone said.
 
-export const SLOW_TURNS = Object.freeze({windowTurns: 5, slowInWindow: 3, slowMs: 15_000, extremeMs: 45_000,
+export const SLOW_TURNS = Object.freeze({windowTurns: 5, slowInWindow: 3, slowMs: 10_000, extremeMs: 30_000,
   headTurns: 3, keepTurns: 8, slowListed: 5, maxMarks: 40});
 
 const WORD = /^[A-Za-z0-9._:-]{1,80}$/;

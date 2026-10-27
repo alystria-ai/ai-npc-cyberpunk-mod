@@ -10,10 +10,10 @@
 // When: a supervisor event (the service failed, the bridge exited unexpectedly) is sent 15 s after it happens; everything else is
 // looked at once a minute after start-up and then every five minutes (one directory listing, two file sizes). Nothing runs per frame.
 //
-// Throttles: one report per error signature per installation per UTC day; twenty reports per installation per UTC day (the backend allows more,
-// auth-backend/api/_lib/config.js errorInstallPerDay, so the day's edges never refuse one); every request
-// has a 10 s timeout; a failed send waits 15 minutes and three failures stop it for the session; a 404 (a backend without this
-// endpoint), a 401 or a 429 stops it for the session. Nothing is retried in a loop. With a second backend (the Cloudflare Worker, for
+// Throttles: one report per error signature per installation per UTC day (the backend keeps the same rule); there is no cap on the number of distinct
+// reports a day in this client, the backend's own per-installation ceiling (auth-backend/api/_lib/config.js errorInstallPerDay) is the only one; every request
+// has a 10 s timeout; a failed send waits 15 minutes and five failures stop it for the session; a 404 (a backend without this
+// endpoint) or a 401 stops it for the session; a 429 waits as long as the backend says (five minutes to six hours). Nothing is retried in a loop. With a second backend (the Cloudflare Worker, for
 // players who cannot reach the first) a send that the first does not answer goes to the second in the same flush (a failure counts only
 // when both fail), and the one that answered is tried first for the rest of the session.
 //
@@ -40,11 +40,10 @@ import {GAME_EVENTS_FILE, QUEUE_FOLDER, attachLogs, cleanSlow, clearQueue, error
   removeQueued, sentPath} from './error-events.mjs';
 
 export const REPORT_PATH = '/api/errors/report';
-export const DAILY_LIMIT = 20;
 export const MAX_BODY_BYTES = 60 * 1024;
 export const MAX_LOG_LINES = 150;
 export const TIMINGS = Object.freeze({timeoutMs: 10_000, firstFlushMs: 60_000, debounceMs: 15_000, retryMs: 15 * 60_000,
-  tickMs: 5 * 60_000, maxFailures: 3, crashPairMs: 30_000});
+  tickMs: 5 * 60_000, maxFailures: 5, crashPairMs: 30_000, rateMinMs: 5 * 60_000, rateMaxMs: 6 * 3600_000});
 const LINE_LIMIT = 300;
 // `engine` and the graphics-memory numbers are what ErrorEvents.voiceFailed records (they never reached a report before: the voice reports of 2026-10-22 all had an empty detail), the `empty*` ones
 // how a server the player runs ended an answer with no text (emptyAnswerDetail in bridge/error-events.mjs): a short word and counts, never text.
@@ -144,7 +143,8 @@ export function reportCleaner({secrets = [], ids = [], names = accountNames()} =
   const redact = createRedactor({secrets, ids, accounts: names});
   const patterns = names.filter(name => name.length >= 3).map(name => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9])`, 'gi'));
   const clean = text => {
-    let value = withoutConversation(redact.text(String(text ?? '')));
+    // A provider's organisation id (a custom provider's "Request too large ... in organization `org_...`" answer) names the player's account with that provider.
+    let value = withoutConversation(redact.text(String(text ?? ''))).replace(/\borg_[0-9A-Za-z]{8,}\b/g, 'org_[id]');
     for (const pattern of patterns) value = value.replace(pattern, '<user>');
     return value;
   };
@@ -376,6 +376,8 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
       versions,
       // A crash's facts (the exit code decoded, the bridge's last stage, Node's own report): rebuilt field by field when the event was recorded.
       ...(record.kind === 'bridge-crash' && record.crash ? {crash: cleanStrings(record.crash, clean)} : {}),
+      // A voice failure's facts (bridge/error-events.mjs cleanVoice): the voice chosen and the one speaking, whether the player fell back to text, the card and its memory, the worker's last lines.
+      ...(record.kind === 'voice-failed' && record.voice ? {voice: cleanStrings(record.voice, clean)} : {}),
       runtimeFiles: cleanStrings(await Promise.resolve().then(() => integrity()).catch(() => ({state: 'unavailable'})), clean),
       choices: await collectChoices({runtime, gameInfo}),
       system: {gpu, totalRamMiB: wholeMiB(facts?.totalRamMiB), commitLimitMiB: wholeMiB(facts?.commitLimitMiB)},
@@ -583,7 +585,7 @@ export class ErrorReporter {
       // A file that got smaller was cut back or replaced (the game cuts probe.log back at each load): only its lines stamped since this service started count.
       const since = size < known ? this.startedAt - 60_000 : 0;
       for (const found of luaErrorsIn(text.split(/\r?\n/), {strict: source.strict, since})) {
-        if (recorded >= 5) break;
+        if (recorded >= 20) break;
         if (await recordErrorEvent(this.stateDirectory, {kind: 'lua-error', message: found.message, frame: found.frame, source: 'game',
           detail: {log: source.id, ...(found.context ? {context: found.context} : {})}}, {now: this.now()})) recorded++;
       }
@@ -649,7 +651,7 @@ export class ErrorReporter {
     if (status === 404) return {kind: 'not-found', foreign};
     if (status === 401 && data?.error === 'stale' && Number.isFinite(data.serverTime)) return {kind: 'stale', serverTime: data.serverTime};
     if (status === 401 || status === 403) return {kind: 'unauthorized', foreign};
-    if (status === 429) return {kind: 'rate', foreign};
+    if (status === 429) return {kind: 'rate', foreign, retryAfterSeconds: Number.isFinite(data?.retryAfterSeconds) ? data.retryAfterSeconds : 0};
     if (status === 400 || status === 413 || status === 422) return {kind: 'rejected', foreign};
     return {kind: 'failed'};
   }
@@ -682,7 +684,6 @@ export class ErrorReporter {
     try {
       for (const record of queue) {
         if (state.signatures[record.signature]) { await removeQueued(record); continue; }
-        if (state.count >= DAILY_LIMIT) { this.#note(`limit-${state.day}`, `the daily limit of ${DAILY_LIMIT} reports is reached; the rest wait`); break; }
         installId ??= await loadInstallId({path: join(this.stateDirectory, INSTALL_FILE)});
         secrets ??= await reportSecrets({stateDirectory: this.stateDirectory, project: this.project, environment: this.env});
         const {body} = await buildErrorPayload({record, game: this.game, modRoot: this.modRoot, runtime: this.runtime,
@@ -705,13 +706,18 @@ export class ErrorReporter {
         if (result.kind === 'failed') {
           this.failures += 1;
           this.retryAt = this.now() + this.timings.retryMs;
-          if (this.failures >= this.timings.maxFailures) this.#stop(state, 'unreachable', 'the backend could not be reached three times; none sent this session');
+          if (this.failures >= this.timings.maxFailures) this.#stop(state, 'unreachable', 'the backend could not be reached five times; none sent this session');
           else this.#note(`failed-${this.failures}`, 'the backend could not be reached; trying again in 15 minutes');
           break;
         }
+        // A 429 is the backend's own ceiling (per address or per installation): what it says to wait is obeyed (at least five minutes, at most six hours), and the queue goes on after that.
+        if (result.kind === 'rate') {
+          this.retryAt = this.now() + Math.min(this.timings.rateMaxMs, Math.max(this.timings.rateMinMs, result.retryAfterSeconds * 1000));
+          this.#note(`rate-${state.day}`, 'the backend is limiting reports (429); the rest wait');
+          break;
+        }
         this.#stop(state, result.kind, result.kind === 'not-found' ? 'the backend has no error endpoint (404); none sent this session'
-          : result.kind === 'rate' ? 'the backend is limiting reports (429); none sent this session'
-            : 'the backend refused the request signature (401); none sent this session');
+          : 'the backend refused the request signature (401); none sent this session');
         break;
       }
     } finally { await this.#save(state); }

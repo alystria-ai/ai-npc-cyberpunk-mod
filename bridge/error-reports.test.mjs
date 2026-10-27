@@ -12,7 +12,7 @@ import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs
 import {MistralError, newTrace} from './mistral-client.mjs';
 import {ErrorEvents, authCauseDetail, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, sentPath, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
-import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
+import {ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
 import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
@@ -367,7 +367,7 @@ test('a large log is cut to fit: the body never passes 60 KB', async () => {
 
 // ------------------------------------------------------------------ sending and throttles
 
-test('one report per signature per day and twenty a day: the rest wait, signed like the token endpoint', async () => {
+test('one report per signature per day, and no cap on how many different ones: all go out, signed like the token endpoint', async () => {
   const f = await folders();
   const clock = {now: START};
   const backend = fakeBackend({clock});
@@ -380,16 +380,18 @@ test('one report per signature per day and twenty a day: the rest wait, signed l
     assert.equal(backend.calls.length, 1, 'one per signature per day');
     assert.equal(backend.calls[0].verdict, 'ok', 'signed with the backend secret');
     assert.equal(backend.calls[0].url, 'https://backend.invalid/api/errors/report');
-    assert.equal(DAILY_LIMIT, 20);
-    for (let index = 0; index < DAILY_LIMIT + 2; index++) await recordErrorEvent(f.state, event(`fault ${faultLabel(index)}`), {now: clock.now});
+    for (let index = 0; index < 60; index++) await recordErrorEvent(f.state, event(`fault ${faultLabel(index)}`), {now: clock.now});
     await reporter.flush();
-    assert.equal(backend.calls.length, DAILY_LIMIT, 'twenty a day in all (the first went out above)');
-    assert.equal((await readQueue(f.state, {now: clock.now})).length, 3, 'the rest wait');
-    assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state, now: clock.now})).sentToday, DAILY_LIMIT);
+    assert.equal(backend.calls.length, 61, 'sixty more different faults, all sent the same day (the first went out above)');
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 0, 'nothing waits');
+    assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state, now: clock.now})).sentToday, 61);
+    await recordErrorEvent(f.state, event('fault aa'), {now: clock.now});
+    await reporter.flush();
+    assert.equal(backend.calls.length, 61, 'a repeat of one of them the same day is still turned away');
     clock.now += DAY;
     await recordErrorEvent(f.state, event('the same fault'), {now: clock.now});
     await reporter.flush();
-    assert.equal(backend.calls.length, DAILY_LIMIT + 4, 'a new UTC day: the waiting three and the repeat go out');
+    assert.equal(backend.calls.length, 62, 'a new UTC day: the repeat goes out');
   } finally { reporter.close(); await f.cleanup(); }
 });
 
@@ -413,11 +415,11 @@ test('a backend without the endpoint (404) stops reports for the session and kee
   } finally { reporter.close(); await f.cleanup(); }
 });
 
-test('a failed send waits 15 minutes, a timeout counts as one, three stop it; refused and rate-limited answers never loop', async () => {
+test('a failed send waits 15 minutes, a timeout counts as one, five stop it; a refused answer is dropped and a rate limit waits as long as the backend says', async () => {
   const f = await folders();
   const clock = {now: START};
   const hang = init => new Promise((done, fail) => init.signal.addEventListener('abort', () => fail(init.signal.reason)));
-  const backend = fakeBackend({statuses: [503, hang, 503], clock});
+  const backend = fakeBackend({statuses: [503, hang, 503, 503, 503], clock});
   const reporter = reporterFor(f, backend, clock, {timings: {timeoutMs: 50}});
   // AbortSignal.timeout's timer does not keep a process alive (the supervisor has its own timers); this test's interval does.
   const keepAlive = setInterval(() => {}, 1000);
@@ -429,12 +431,16 @@ test('a failed send waits 15 minutes, a timeout counts as one, three stop it; re
     clock.now += 15 * 60_000;
     await reporter.flush();
     assert.equal(backend.calls.length, 2, 'the timeout');
-    clock.now += 15 * 60_000;
-    await reporter.flush();
-    assert.equal(reporter.stopped, 'unreachable');
+    for (let attempt = 3; attempt <= 5; attempt++) {
+      assert.equal(reporter.stopped, null, 'not yet stopped');
+      clock.now += 15 * 60_000;
+      await reporter.flush();
+      assert.equal(backend.calls.length, attempt);
+    }
+    assert.equal(reporter.stopped, 'unreachable', 'the fifth failure stops it');
     clock.now += 60 * 60_000;
     await reporter.flush();
-    assert.equal(backend.calls.length, 3);
+    assert.equal(backend.calls.length, 5);
   } finally { reporter.close(); clearInterval(keepAlive); }
   const clock2 = {now: START};
   const refused = fakeBackend({statuses: [400, 429], clock: clock2});
@@ -445,8 +451,15 @@ test('a failed send waits 15 minutes, a timeout counts as one, three stop it; re
     await recordErrorEvent(f.state, event('rate limited'), {now: clock2.now + 1});
     await second.flush();
     assert.equal(refused.calls.length, 2);
-    assert.equal(second.stopped, 'rate');
+    assert.equal(second.stopped, null, 'a rate limit does not end the session any more');
     assert.deepEqual((await readQueue(f.state, {now: clock2.now})).map(record => record.message), ['rate limited'], 'the refused report was dropped');
+    clock2.now += 4 * 60_000;
+    await second.flush();
+    assert.equal(refused.calls.length, 2, 'the backend asked for a minute; five minutes is the least the mod waits');
+    clock2.now += 61_000;
+    await second.flush();
+    assert.equal(refused.calls.length, 3, 'then the waiting report goes out');
+    assert.equal((await readQueue(f.state, {now: clock2.now})).length, 0);
   } finally { second.close(); await f.cleanup(); }
 });
 
@@ -896,24 +909,20 @@ test('every report says whether the Runtime\'s code files match the release: cou
 
 // ---------------------------------------------- a report that waits keeps the log lines of the moment
 
-test('a report over the daily limit keeps its scrubbed log excerpt from when the event was seen, not the later session\'s lines', async () => {
+test('a report that has to wait (the backend gave no answer) keeps its scrubbed log excerpt from when the event was seen, not the later session\'s lines', async () => {
   const f = await folders();
   const clock = {now: START};
-  const backend = fakeBackend({clock});
+  const backend = fakeBackend({clock, statuses: [503]});
   const reporter = reporterFor(f, backend, clock);
   const logPath = join(f.state, 'bridge.stderr.log');
   const secret = 'PlantedSecretValue0123456789abcdef';
   try {
-    // today's limit is used up by other faults
-    for (let index = 0; index < DAILY_LIMIT; index++) await recordErrorEvent(f.state, event(`early fault ${faultLabel(index)}`), {now: clock.now});
-    await reporter.flush();
-    assert.equal(backend.calls.length, DAILY_LIMIT);
     await writeFile(join(f.state, 'player-mistral-key.txt'), secret);
     // the fault that has to wait, with the lines around it in the log (a planted key and the player's account name among them)
     await writeFile(logPath, ['before the fault', `the key is ${secret}`, 'Error: the waiting fault happened here', `at C:/Users/PlantedPlayerName/x.mjs:3:1`, 'after the fault'].join('\n'));
     await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'the waiting fault happened here', frame: 'realtime-client.mjs:120 connect'}, {now: clock.now});
     await reporter.look({flush: true});
-    assert.equal(backend.calls.length, DAILY_LIMIT, 'it waits: the limit is reached');
+    assert.equal(backend.calls.length, 1, 'it waits: the backend did not answer, and the mod tries again in 15 minutes');
     const [waiting] = await readQueue(f.state, {now: clock.now});
     assert.ok(Array.isArray(waiting.logs), 'the excerpt was taken at the look, while the event was fresh');
     const kept = JSON.stringify(waiting.logs);
@@ -921,9 +930,9 @@ test('a report over the daily limit keeps its scrubbed log excerpt from when the
     assert.ok(!kept.includes(secret) && !kept.includes('PlantedPlayerName'), 'scrubbed before it is stored, with the same redactor as a sent report');
     // the next session: the log is another one entirely
     await writeFile(logPath, 'a completely different session\nnothing about the fault\n');
-    clock.now += DAY;
+    clock.now += 15 * 60_000;
     await reporter.flush();
-    assert.equal(backend.calls.length, DAILY_LIMIT + 1);
+    assert.equal(backend.calls.length, 2);
     const sent = backend.calls.at(-1).body.report;
     const lines = sent.logs.flatMap(item => item.lines).join('\n');
     assert.ok(lines.includes('the waiting fault happened here') && lines.includes('before the fault'), 'the excerpt of the moment is what is sent');
@@ -998,10 +1007,19 @@ test('an e-mail address in a log line never reaches a report or the queue file; 
   } finally { reporter.close(); await f.cleanup(); }
 });
 
-test('the client\'s daily limit stays below what the backend allows per install, in the code defaults (the figure is in no doc)', async () => {
+test('the client keeps no daily cap, the backends keep a generous per-install ceiling in their code defaults, and no doc says how many reports a day', async () => {
+  const reports = await import('./error-reports.mjs');
+  assert.equal('DAILY_LIMIT' in reports, false, 'no daily cap is exported');
   const {DEFAULTS} = await import('../auth-backend/api/_lib/config.js');
-  assert.ok(DEFAULTS.errorInstallPerDay > DAILY_LIMIT, `backend ${DEFAULTS.errorInstallPerDay} must be above the client's ${DAILY_LIMIT}`);
-  assert.ok(QUEUE_MAX > DAILY_LIMIT, 'the queue holds more than a day\'s reports');
+  const worker = await import('../auth-backend-cf/src/config.js');
+  assert.equal(DEFAULTS.errorInstallPerDay, 1000);
+  assert.equal(worker.DEFAULTS.errorInstallPerDay, DEFAULTS.errorInstallPerDay, 'both backends agree');
+  assert.ok(QUEUE_MAX >= 200, 'the queue is a bound against a runaway, not a cap on a day');
+  for (const doc of ['docs/ERROR_REPORTS.md', 'auth-backend/README.md', 'auth-backend-cf/README.md', 'packaging/PLAYER_README.md']) {
+    const text = (await readFile(new URL(`../${doc}`, import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
+    assert.ok(!/DAILY_LIMIT/.test(text), `${doc} does not name a client daily cap`);
+    assert.ok(!/error reports?[^\n]{0,80}(?:unlimited|no (?:daily )?(?:cap|limit))/i.test(text), `${doc} does not say the reports are unlimited`);
+  }
 });
 
 // 2026-10-22 reports c8281dee, 1a895674 and ee4689b6: the player's own setup is already told in the game, so it is no error report.

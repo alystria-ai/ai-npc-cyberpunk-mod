@@ -20,8 +20,8 @@ import {basename, join} from 'node:path';
 
 export const QUEUE_FOLDER = 'error-reports';
 export const GAME_EVENTS_FILE = 'error-events.json';
-// More than the daily limit of reports (bridge/error-reports.mjs DAILY_LIMIT), so errors over the limit can wait for the next day.
-export const QUEUE_MAX = 40;
+// The most distinct errors waiting in the queue (and recorded by one bridge run): a bound against a runaway, far above what a session produces.
+export const QUEUE_MAX = 200;
 export const EVENT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const TEMPORARY_MAX_AGE_MS = 60 * 60 * 1000;
 export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bridge-crash', 'service-failed', 'service-silent',
@@ -48,6 +48,7 @@ export function normaliseMessage(text) {
   return clip(String(text ?? ''), 2000)
     .replace(/(?:file:\/\/\/?)?(?:[A-Za-z]:)?(?:[\\/][^\\/\s'"():<>|*?]+)+[\\/]([^\\/\s'"():<>|*?]+)/g, '$1')
     .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '<id>')
+    .replace(/\borg_[0-9a-z]{8,}\b/gi, 'org_<id>')
     .replace(/\b(?:0x)?[0-9a-f]{8,}\b/gi, '<hex>')
     .replace(/(["'“”])[^"'“”]{41,}\1/g, '"…"')
     .replace(/\d+/g, 'N')
@@ -195,6 +196,30 @@ export function cleanSlow(value) {
   return Object.keys(clean).length ? clean : null;
 }
 
+// ------------------------------------------------------------- a voice failure's facts
+
+const VOICE_VENDORS = new Set(['nvidia', 'amd', 'intel', 'other']);
+/**
+ * The `voice` section of a voice-failed record (ErrorEvents.voiceFailed, ErrorEvents.voiceSilent), rebuilt field by field: fixed words, numbers, and the worker's last
+ * few stderr lines (bounded; the report puts them through the redactor). `requested` is the voice the player chose, `active` the one speaking when it failed, `fellBackTo` where
+ * replies go now ('text' means the player sees subtitles only, 'silent' V's own line), `cause` one word for why, `gpuVendors` and the card's memory (`vramTotalMiB`, and
+ * `vramFreeMiB` read when it failed, NVIDIA cards only). For the "voice never played" summary: the turns judged, how many were silent and how many sounded, the furthest
+ * stage the last silent turn reached, and the reasons the voice planner gave for turns it kept written.
+ */
+export function cleanVoice(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const list = (items, keep, size) => Array.isArray(items) ? items.map(keep).filter(item => item !== undefined).slice(0, size) : undefined;
+  const fellBackTo = slowWord(value.fellBackTo);
+  const clean = without({requested: slowWord(value.requested), active: slowWord(value.active), fellBackTo,
+    fellBackToText: fellBackTo ? fellBackTo === 'text' : undefined, playbackOff: value.silent === true ? true : undefined, cause: slowWord(value.cause),
+    gpuVendors: list(value.gpuVendors, item => VOICE_VENDORS.has(item) ? item : undefined, 4),
+    vramTotalMiB: slowNumber(value.vramTotalMiB, 1e6), vramFreeMiB: slowNumber(value.vramFreeMiB, 1e6),
+    turns: slowNumber(value.turns, 1e6), silentTurns: slowNumber(value.silentTurns, 1e6), playedTurns: slowNumber(value.playedTurns, 1e6),
+    lastStage: SLOW_NAME.test(value.lastStage) ? value.lastStage : undefined, reasons: list(value.reasons, item => slowWord(item), 8),
+    tail: list(value.tail, item => typeof item === 'string' ? clip(item, 200).trim() || undefined : undefined, 8)});
+  return Object.keys(clean).length ? clean : null;
+}
+
 // ------------------------------------------------------------- a crash's facts
 
 const crashNumber = (value, max = 1e9) => Number.isFinite(value) ? Math.max(0, Math.min(max, Math.round(value))) : undefined;
@@ -248,7 +273,8 @@ export function queueRecord(event, now = Date.now()) {
   const at = Number.isFinite(event.at) ? event.at : now;
   const slow = event.kind === 'slow-turn' ? cleanSlow(event.slow) : null;
   const crash = event.kind === 'bridge-crash' ? cleanCrash(event.crash) : null;
-  return {version: 1, signature, kind: event.kind, message, frame, stack, ...(detail ? {detail} : {}), ...(slow ? {slow} : {}), ...(crash ? {crash} : {}),
+  const voice = event.kind === 'voice-failed' ? cleanVoice(event.voice) : null;
+  return {version: 1, signature, kind: event.kind, message, frame, stack, ...(detail ? {detail} : {}), ...(slow ? {slow} : {}), ...(crash ? {crash} : {}), ...(voice ? {voice} : {}),
     source: clip(String(event.source ?? 'bridge'), 20), count: 1, firstAt: at, lastAt: at};
 }
 
@@ -384,7 +410,7 @@ export function parseGameEvents(text) {
     if (Array.isArray(value.game.setup)) game.setup = value.game.setup.slice(0, 16).map(line => clip(String(line), 120)).filter(Boolean);
   }
   const events = [];
-  for (const row of Array.isArray(value.events) ? value.events.slice(-20) : []) {
+  for (const row of Array.isArray(value.events) ? value.events.slice(-40) : []) {
     if (!row || typeof row !== 'object' || !KIND_PATTERN.test(String(row.kind ?? '')) || !Number.isFinite(row.at)) continue;
     const code = clip(String(row.code ?? ''), 120).trim();
     if (!code) continue;
@@ -474,8 +500,9 @@ export function authCauseDetail(error) {
 }
 
 export class ErrorEvents {
-  constructor({stateDirectory, runtime, now = Date.now, defer = setImmediate} = {}) {
-    Object.assign(this, {stateDirectory, runtime, now, defer});
+  /** voiceHardware: an async function giving {gpuVendors, vramTotalMiB, vramFreeMiB} for a voice failure (the bridge reads the card list it already has and one nvidia-smi query, only when a voice fails). */
+  constructor({stateDirectory, runtime, now = Date.now, defer = setImmediate, voiceHardware} = {}) {
+    Object.assign(this, {stateDirectory, runtime, now, defer, voiceHardware});
     this.seen = new Set();
   }
   record(event) {
@@ -499,13 +526,29 @@ export class ErrorEvents {
    * no other way to tell us (a 2026-10-19 report held the Pocket failure only as log lines of an unrelated setup problem). At most once per
    * distinct reason per bridge run, like every record; a retry that fails the same way adds nothing.
    */
-  voiceFailed({engine, reason, gpu} = {}) {
+  voiceFailed({engine, reason, gpu, cause, requested, active, fellBackTo, silent, tail} = {}) {
     const name = typeof engine === 'string' && /^[a-z0-9-]{1,20}$/.test(engine) ? engine : 'voice';
     const why = clip(String(reason ?? '').split(/\r?\n/)[0], 200).trim() || 'unknown';
     // A render that ran out of time carries its worker's graphics memory (numbers only), so the report says whether the card was over-committed.
     const memory = Number.isFinite(gpu?.dedicatedMiB) && Number.isFinite(gpu?.sharedMiB)
       ? {gpuDedicatedMiB: Math.max(0, Math.round(gpu.dedicatedMiB)), gpuSharedMiB: Math.max(0, Math.round(gpu.sharedMiB))} : {};
-    this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name, ...memory}});
+    const send = hardware => this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name, ...memory},
+      voice: {requested, active, fellBackTo, silent, cause, tail, ...hardware}});
+    this.#withHardware(send);
+  }
+  // The card and its free memory are read when the failure is noted, not on a turn's path (one short query, only for a failed voice); a failed read sends the rest.
+  #withHardware(send) {
+    if (typeof this.voiceHardware !== 'function') { send({}); return; }
+    Promise.resolve().then(() => this.voiceHardware()).then(hardware => hardware ?? {}, () => ({})).then(send).catch(() => {});
+  }
+  /**
+   * The player has voice playback on and the replies of this session never made a sound (bridge/voice-silence.mjs decides; `data` is its summary). One signature, so one report
+   * a day. Numbers, fixed names and the furthest stage the last silent reply reached; no turn's text is ever passed here.
+   */
+  voiceSilent(data) {
+    this.#withHardware(hardware => this.record({kind: 'voice-failed', message: 'voice never played this session', frame: 'voice-silence', detail: {engine: slowWord(data?.engine) ?? 'voice'},
+      voice: {requested: data?.requested, active: data?.active, fellBackTo: data?.fellBackTo, silent: false, cause: 'never-played', turns: data?.turns, silentTurns: data?.silentTurns,
+        playedTurns: data?.playedTurns, lastStage: data?.lastStage, reasons: data?.reasons, tail: data?.tail, ...hardware}}));
   }
   /**
    * Replies are slow and stay slow (bridge/slow-turns.mjs decides; `data` is its report section). The message is the same every time, so
