@@ -51,7 +51,6 @@ import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs'
 import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs';
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
-import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -396,9 +395,8 @@ async function main() {
     // A clean install has no folder under the mod's first name, and the first start finds no old installation to move.
     check('no old-name folders on a clean install', summary.legacy === null
       && !existsSync(join(plugins, 'CyberpunkConvai')) && !existsSync(join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai')), JSON.stringify(summary.legacy));
-    // Mod Organizer 2: the files the game and the service exchange exist from the start, and so does launcher.log, so nothing creates them new.
-    const placeholders = (await loadRuntimeExchange(project)).exchange.filter(name => !existsSync(join(mod, 'runtime', name)));
-    check('runtime/ exchange placeholders and launcher.log are installed', placeholders.length === 0 && existsSync(join(plugin, 'launcher.log')), placeholders.slice(0, 8).join(', '));
+    // No package ships a file the game or the service rewrites (Vortex would report it as changed), so runtime/ exists only through its static note.
+    check('runtime/ is in place through its static note', existsSync(join(mod, 'runtime', 'README.txt')));
     // What the Runtime must carry for its features (packaging/lib/runtime-required.mjs): V's voice clips and its OmniVoice lists.
     // A Runtime without them (0.2 and 0.2.1 had no V clips) fails here, and so does one whose clips the bridge's own loader rejects.
     // The Runtime ships no Convai key: a build with the token backend carries its settings (app/defaults/convai-auth.json, enabled, no fallback) and no

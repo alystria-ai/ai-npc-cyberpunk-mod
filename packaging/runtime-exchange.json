@@ -1,5 +1,5 @@
 {
-  "notes": "See packaging/lib/runtime-exchange.mjs. exchange: shipped as empty placeholders in the Scripts package. state: never shipped. optional: created by hand or by a developer tool, or by code the shipped bridge and Lua never run. elsewhere: written as runtime/<name> in the sources but not in the mod folder.",
+  "notes": "See packaging/lib/runtime-exchange.mjs. exchange: written by the game and the service while playing, created at the first write and never shipped (Vortex reports an installed file that changes). state: never shipped. optional: created by hand or by a developer tool, or by code the shipped bridge and Lua never run. elsewhere: written as runtime/<name> in the sources but not in the mod folder.",
   "exchange": [
     "addon-state.json",
     "addons-status.json",

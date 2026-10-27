@@ -1,13 +1,14 @@
-// The runtime/ exchange files under Mod Organizer 2 (packaging/lib/runtime-exchange.mjs, docs/PACKAGING.md "Mod Organizer 2").
+// The runtime/ exchange files (packaging/lib/runtime-exchange.mjs, docs/PACKAGING.md "Files the game rewrites").
 // Every runtime/ file the shipped Lua or the bridge names must be classified in packaging/runtime-exchange.json, so a new one cannot
-// appear without a decision (ship it as a placeholder, or say why not). The shipped Lua must not delete or rename-over the exchange
-// files, and the bridge must not delete them: under USVFS a deleted file that is written again is a new file in Overwrite.
+// appear without a decision (a file that is rewritten while playing must never be shipped: Vortex reports it as changed at every deploy).
+// The shipped Lua must not delete or rename-over the exchange files, and the bridge must not delete them: they are rewritten in place,
+// as before, which is also what an install that still has them as empty files (and a Mod Organizer 2 one) needs.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkRuntimeExchange, loadRuntimeExchange} from './lib/runtime-exchange.mjs';
+import {checkRuntimeExchange, loadRuntimeExchange, runtimeWrittenShipped} from './lib/runtime-exchange.mjs';
 import {importClosure} from './lib/closure.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -51,7 +52,19 @@ test('every runtime/ file the shipped Lua or the bridge names is classified', ()
       if (!classified.has(name) && !classified.has(bare)) unknown.push(`${file}: runtime/${name}`);
     }
   }
-  assert.deepEqual(unknown, [], 'classify these in packaging/runtime-exchange.json (exchange: ship an empty placeholder; state; optional; elsewhere)');
+  assert.deepEqual(unknown, [], 'classify these in packaging/runtime-exchange.json (exchange: written while playing, never shipped; state; optional; elsewhere)');
+});
+
+test('a package may carry no runtime/ file but the folder note and the native kill switch, and no launcher.log', () => {
+  const layout = config.layout, mod = layout.modDirectory, plugin = layout.pluginDirectory;
+  const fine = [`${mod}/runtime/README.txt`, `${mod}/runtime/native-off.txt`, `${mod}/init.lua`, `${plugin}/launcher.ini`, `${plugin}/README.txt`, `${plugin}/app/release.json`];
+  assert.deepEqual(runtimeWrittenShipped(fine, layout), []);
+  // Every file of every class (the Scripts package used to ship the exchange class as empty files), a temp file, and the launcher's log.
+  const rewritten = [...classified.keys()].filter(name => name !== 'native-off.txt').map(name => `${mod}/runtime/${name}`);
+  assert.deepEqual(runtimeWrittenShipped(rewritten, layout), rewritten);
+  const others = [`${mod}/runtime/reply.json`, `${mod}/runtime/Reply.JSON`, `${mod}/runtime/settings.json.tmp`, `${mod}/runtime/anything-new.json`, `${plugin}/launcher.log`];
+  assert.deepEqual(runtimeWrittenShipped([...fine, ...others], layout), others);
+  assert.ok(manifest.exchange.includes('reply.json') && manifest.exchange.includes('bridge-status.json'));
 });
 
 test('the shipped Lua never deletes or renames an exchange file, and never names a .tmp of one', () => {

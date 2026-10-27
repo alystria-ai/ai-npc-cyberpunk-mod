@@ -1,9 +1,10 @@
-// A bridge that starts in a freshly installed Mod Organizer 2 profile, and the control file that stops it, on a real bridge process
+// A bridge that starts in a freshly installed game folder, and the control file that stops it, on a real bridge process
 // (bridge/bridge-run-fixture.mjs).
 //
-// After the MO2 install every file of runtime/ that the game and the bridge exchange ships as an EMPTY placeholder
-// (packaging/runtime-exchange.json, "exchange"), and the game's Lua rewrites its own files in place, so a read can find any of them empty.
-// An empty file must read as "nothing yet" everywhere: no error, no turn, no command, and nothing written into the game's files.
+// No package ships the runtime/ files that the game and the bridge exchange (packaging/runtime-exchange.json, "exchange"): a fresh install
+// has none of them, and an install made before that still has them as EMPTY files. The game's Lua also rewrites its own files in place,
+// so a read can find any of them missing or empty. Both must read as "nothing yet" everywhere: no error, no turn, no command, and
+// nothing written into the game's files.
 import {test, describe, before, after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -11,7 +12,7 @@ import {launchBridge} from './bridge-run-fixture.mjs';
 
 const exchange = JSON.parse(readFileSync(new URL('../packaging/runtime-exchange.json', import.meta.url), 'utf8')).exchange;
 // The files the game writes and the bridge only reads: requests, commands, leases and the world heartbeat. The bridge never writes them
-// (it answers in its own files), so an empty one is still exactly the placeholder after the whole run.
+// (it answers in its own files), so a missing file stays missing and an empty one stays empty through the whole run.
 const GAME_OWNED = ['last-input.json', 'microphone-command.json', 'phone-chat-input.json', 'own-key-command.json', 'mistral-key-command.json',
   'custom-provider-command.json', 'paid-tier-command.json', 'memory-command.json', 'editor-command.json', 'voice-preview.json', 'group-prefetch.json',
   'conversation-prewarm.json', 'party-connections.json', 'nearby-connections.json', 'world-session.json', 'relationship-state.json',
@@ -20,32 +21,36 @@ const GAME_OWNED = ['last-input.json', 'microphone-command.json', 'phone-chat-in
 const PUBLISHED_BEFORE_READY = ['bridge-status.json', 'knowledge-status.json', 'memory-status.json', 'mistral-state.json', 'custom-provider-state.json', 'own-key-state.json', 'paid-tier-state.json'];
 const POLL_FAILURES = /Settings poll|Microphone poll|Phone poll|Preparation poll|Look-ahead poll|Knowledge poll|Memory control|Support report|Paid tier|Character editor|Releasing unused|TypeError|ReferenceError|SyntaxError|Unhandled|uncaught|Unexpected (?:end|token)|JSON at position|is not valid JSON/i;
 
-test('the shipped placeholder list names every game-owned file this test relies on', () => {
+test('the exchange list names every game-owned file this test relies on', () => {
   for (const name of [...GAME_OWNED, ...PUBLISHED_BEFORE_READY]) assert.ok(exchange.includes(name), `${name} is not an exchange file`);
 });
 
-test('a bridge started over empty placeholders, an empty settings file and an empty control file starts quietly, publishes its status, leaves the game\'s files alone and stops cleanly', {timeout: 90000}, async () => {
-  const bridge = await launchBridge({settings: '', stateFiles: {'bridge-control.json': ''},
-    runtimeFiles: Object.fromEntries(exchange.map(name => [name, '']))});
-  try {
-    await bridge.ready();
-    // Ready means the first poll is done and the status files the settings page reads are in place over their placeholders.
-    for (const name of PUBLISHED_BEFORE_READY) {
-      const value = await bridge.read(name);
-      assert.ok(value && typeof value === 'object', `${name} was still the placeholder when the bridge said it was ready`);
-    }
-    assert.equal((await bridge.read('bridge-status.json')).state, 'waiting');
-    await bridge.idle(2000);   // four more settings polls, and every other poll, over the empty files
-    assert.doesNotMatch(bridge.errors(), POLL_FAILURES);
-    assert.deepEqual(await bridge.forbidden(), []);
+// The same start twice: over the placeholders an older install still has (every exchange file empty), and over a fresh install, which ships
+// none of them (packaging/runtime-exchange.json; only runtime/ itself exists). A missing file means exactly what an empty one means.
+for (const [label, shipped, untouched] of [['empty placeholders', '', ''], ['no exchange files at all', null, null]]) {
+  test(`a bridge started over ${label}, an empty settings file and an empty control file starts quietly, publishes its status, leaves the game's files alone and stops cleanly`, {timeout: 90000}, async () => {
+    const bridge = await launchBridge({settings: '', stateFiles: {'bridge-control.json': ''},
+      runtimeFiles: shipped === null ? {} : Object.fromEntries(exchange.map(name => [name, shipped]))});
+    try {
+      await bridge.ready();
+      // Ready means the first poll is done and the status files the settings page reads are written (over their placeholders, or new).
+      for (const name of PUBLISHED_BEFORE_READY) {
+        const value = await bridge.read(name);
+        assert.ok(value && typeof value === 'object', `${name} was still missing or empty when the bridge said it was ready`);
+      }
+      assert.equal((await bridge.read('bridge-status.json')).state, 'waiting');
+      await bridge.idle(2000);   // four more settings polls, and every other poll, over the empty or missing files
+      assert.doesNotMatch(bridge.errors(), POLL_FAILURES);
+      assert.deepEqual(await bridge.forbidden(), []);
 
-    assert.equal((await bridge.shutdown()).code, 0);
-    assert.equal((await bridge.read('bridge-status.json')).state, 'stopped');
-    for (const name of GAME_OWNED) assert.equal(await bridge.readText(name), '', `${name} was written by the bridge`);
-    assert.equal(await bridge.readText('reply.json'), '', 'an empty request is not a turn: no reply was written');
-    assert.doesNotMatch(bridge.errors(), POLL_FAILURES);
-  } finally { await bridge.cleanup(); }
-});
+      assert.equal((await bridge.shutdown()).code, 0);
+      assert.equal((await bridge.read('bridge-status.json')).state, 'stopped');
+      for (const name of GAME_OWNED) assert.equal(await bridge.readText(name), untouched, `${name} was written by the bridge`);
+      assert.equal(await bridge.readText('reply.json'), untouched, 'a missing or empty request is not a turn: no reply was written');
+      assert.doesNotMatch(bridge.errors(), POLL_FAILURES);
+    } finally { await bridge.cleanup(); }
+  });
+}
 
 describe('bridge-control.json and the heartbeat in local-voice-state.json', {timeout: 120000}, () => {
   let bridge;

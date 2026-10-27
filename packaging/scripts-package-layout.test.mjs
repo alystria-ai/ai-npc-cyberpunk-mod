@@ -1,6 +1,6 @@
 // The Scripts package (the Nexus Mods download), built for real by packaging/build-release.mjs and checked against what
 // docs/PACKAGING.md promises: text only, the CET mod folder with every shipped Lua file and locale, the redscript, the four catalogs,
-// the empty runtime/ placeholders (Mod Organizer 2), README, licence, release.json and the install note. The Scripts build needs no
+// the one static note in runtime/ (no file the game rewrites ships: Vortex), README, licence, release.json and the install note. The Scripts build needs no
 // download, model or secret and takes about two seconds, so the test runs the real builder (a dry run of only this package).
 import {test, before, after} from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,7 +12,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {listZip} from './lib/zip.mjs';
 import {sha256File, walk} from './lib/files.mjs';
-import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
+import {RUNTIME_FOLDER_NOTE, loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const config = JSON.parse(await readFile(resolve(project, 'packaging/release.config.json'), 'utf8'));
@@ -137,21 +137,21 @@ test('the four JSON catalogs sit at the mod root under the names the Lua reads, 
   assert.equal(config.catalogs.length, 4);
 });
 
-test('runtime/ holds exactly the exchange placeholders, all empty, and nothing of the player-state, optional or other classes', () => {
+test('runtime/ holds one static note and no file that the game or the service rewrites (Vortex reports every installed file that changes)', async () => {
   const runtime = under(`${MOD}/runtime/`).map(name => name.slice(`${MOD}/runtime/`.length));
-  assert.deepEqual(runtime.sort(), [...exchange.exchange].sort());
-  const sizes = entries.filter(entry => entry.name.startsWith(`${MOD}/runtime/`)).filter(entry => entry.uncompressed !== 0);
-  assert.deepEqual(sizes.map(entry => entry.name), [], 'a placeholder is a 0-byte file: a non-empty one would be stale data on every install');
-  const forbidden = new Set([...exchange.state, ...exchange.optional, ...exchange.elsewhere]);
-  assert.deepEqual(runtime.filter(name => forbidden.has(name)), []);
-  // Never a temp, backup or lock file: the Lua and the bridge never write those under runtime/ in the game folder.
-  assert.deepEqual(runtime.filter(name => /\.(?:tmp|bak|previous|lock|pid|corrupt)$/i.test(name)), []);
-  assert.deepEqual(runtime.filter(name => name.includes('/')), [], 'no subfolders: each placeholder sits directly in runtime/');
+  assert.deepEqual(runtime, ['README.txt'], 'the folder exists for the first write of the Lua, and nothing else in it is shipped');
+  assert.equal(await text(`${MOD}/runtime/README.txt`), RUNTIME_FOLDER_NOTE);
+  const classified = new Set([...exchange.exchange, ...exchange.state, ...exchange.optional, ...exchange.elsewhere]);
+  assert.ok(!classified.has('README.txt'), 'the folder note is static: it must not be a name the mod writes');
+  // No file of any class, no temp, backup or lock file, and no empty file anywhere (an empty file in a package is a placeholder for a rewritten one).
+  assert.deepEqual(runtime.filter(name => classified.has(name) || /\.(?:tmp|bak|previous|lock|pid|corrupt)$/i.test(name)), []);
+  assert.deepEqual(entries.filter(entry => entry.uncompressed === 0).map(entry => entry.name), [], 'an empty file is a placeholder for a file that is rewritten while playing');
+  assert.deepEqual(entries.filter(entry => /launcher\.log$/i.test(entry.name)).map(entry => entry.name), []);
 });
 
 test("the player's own state and secrets never ship: no settings, key, memory, chat history or session file anywhere in the zip", () => {
   // The data and secret files by their real names (bridge/convai-key.mjs, mistral-key.mjs, player-memory.mjs, ...):
-  // the "*-key-command.json" and "*-state.json" files are exchange placeholders and are rightly shipped, empty.
+  // the "*-key-command.json" and "*-state.json" files are exchange files and ship in no package.
   const FORBIDDEN = /(?:^|\/)(?:settings\.json|convai-key\.txt|player-(?:convai|mistral|inworld|voxtral)-key\.txt|[a-z-]*-key\.txt|service\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|(?:player|vendor)-memory[^/]*\.(?:json|bak|tmp|corrupt)|phone-sessions\.json|phone-history\.json|characters-verified\.json|addon-settings\.json|witness-receipts\.json|decision-ledger\.json)$/i;
   assert.deepEqual(names().filter(name => FORBIDDEN.test(name)), []);
   assert.deepEqual(names().filter(name => /^misc\//.test(name) || /CyberpunkConvaiLauncher/i.test(name)), []);

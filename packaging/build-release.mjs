@@ -60,7 +60,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
-import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
+import {RUNTIME_FOLDER_NOTE, runtimeWrittenShipped} from './lib/runtime-exchange.mjs';
 import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
@@ -354,10 +354,13 @@ async function scriptsPackage(source, config) {
   pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, game, commit: source.commit});
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
-  // The runtime/ files the Lua and the bridge exchange, as empty placeholders: under Mod Organizer 2 a file created in the game
-  // folder lands in Overwrite and is gone at the next launch, while an existing one is only ever modified or replaced
-  // (packaging/lib/runtime-exchange.mjs). An update that extracts over a running install only empties transient files.
-  for (const name of (await loadRuntimeExchange(source.root)).exchange) pkg.text(`${mod}/runtime/${name}`, '');
+  // No runtime/ file the Lua or the bridge rewrites ships (packaging/lib/runtime-exchange.mjs): a mod manager that tracks what it installed
+  // (Vortex) would report each of them as changed outside the manager at every deploy. They are created at their first write, and a missing
+  // file reads as an empty one. CET lets the Lua open files only inside its mod folder, so runtime/ itself has to exist: it holds one static
+  // note that nothing ever writes.
+  pkg.text(`${mod}/runtime/README.txt`, RUNTIME_FOLDER_NOTE);
+  const written = runtimeWrittenShipped([...pkg.entries.keys()], config.layout);
+  if (written.length) throw Error(`The Scripts package ships files the game or the service rewrites: ${written.join(', ')}`);
   for (const name of pkg.entries.keys()) {
     if (!/\.(?:lua|reds|json|txt|log|ndjson)$/.test(name)) throw Error(`Scripts package must stay text-only: ${name}`);
   }
@@ -376,9 +379,7 @@ async function runtimePackage(source, config, models, auth) {
   const dll = await buildLauncher(source);
   pkg.file(`${plugin}/${config.layout.pluginDll}`, dll);
   pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
-  // The launcher opens launcher.log in the game process with CREATE_ALWAYS. Under Mod Organizer 2 that is a new file in Overwrite
-  // unless one exists; an existing real file opened for writing stays in place, so it ships empty.
-  pkg.text(`${plugin}/launcher.log`, '');
+  // launcher.log is written by the launcher in the game process (CREATE_ALWAYS), so it does not ship: a mod manager would report it as changed.
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
@@ -558,6 +559,8 @@ async function runtimePackage(source, config, models, auth) {
     node: tool.node.version, python: tool.python.version,
     pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: 'none', convaiSignIn: auth ? 'backend' : 'none',
     nativePlugin: nativeDll ? await sha256File(nativeDll) : 'none'});
+  const written = runtimeWrittenShipped([...pkg.entries.keys()], config.layout);
+  if (written.length) throw Error(`The Runtime package ships files the game or the service rewrites: ${written.join(', ')}`);
   return pkg;
 }
 

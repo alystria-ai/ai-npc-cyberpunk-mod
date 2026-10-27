@@ -302,18 +302,19 @@ test('the port of the switch-file parser used here still matches the C++ it mirr
 });
 
 test('native-off.txt is never an empty placeholder: an empty file means every system, proven or not, is ON', () => {
-  // docs/PACKAGING.md "Mod Organizer 2": every runtime/ file the game and the service share ships as an empty placeholder in the Scripts
-  // package so MO2 never has to create it. native-off.txt is not one of them. A placeholder would arrive empty, and an empty
+  // The files the game and the service rewrite are listed in the "exchange" class and ship in no package. native-off.txt is not one of
+  // them: only a person edits it, and the Runtime package ships it. An empty placeholder would arrive empty, and an empty
   // file switches nothing off, so it would silently turn on the systems that are not yet proven in the game.
   for (const file of ['native-off.txt']) {
     assert.ok(!exchange.exchange.includes(file), `${file} must not be an exchange placeholder`);
     assert.ok(exchange.optional.includes(file), `${file} is classified "optional" (made by the Runtime package or by hand)`);
   }
   for (const file of ['native-verify.txt', 'native-handshake.txt']) assert.ok(!exchange.exchange.includes(file), file);
-  // The Scripts package ships exactly the exchange list as placeholders and nothing else under runtime/.
+  // The Scripts package ships no exchange file at all (only the static runtime/README.txt, packaging/lib/runtime-exchange.mjs).
   const builder = read('packaging/build-release.mjs');
   const scripts = builder.slice(builder.indexOf('async function scriptsPackage'), builder.indexOf('async function runtimePackage'));
-  assert.match(scripts, /for \(const name of \(await loadRuntimeExchange\(source\.root\)\)\.exchange\) pkg\.text\(`\$\{mod\}\/runtime\/\$\{name\}`, ''\)/);
+  assert.match(scripts, /pkg\.text\(`\$\{mod\}\/runtime\/README\.txt`, RUNTIME_FOLDER_NOTE\)/);
+  assert.ok(!/\.exchange\)/.test(scripts), 'the Scripts package builder does not walk the exchange list');
   assert.ok(!/native-off/.test(scripts), 'the Scripts package builder does not name native-off.txt');
   // Only the Runtime package (the one that carries the DLL) writes it, and only when the DLL is built into the package.
   const runtime = builder.slice(builder.indexOf('async function runtimePackage'));
