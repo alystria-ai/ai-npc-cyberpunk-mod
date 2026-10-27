@@ -400,7 +400,9 @@ const REACTION_ACT = Object.freeze({leave: 'end the talk and walk away from V', 
  *   pick(raw)    {kind} for a reply that ends with an offered tag, else {kind: null, why}: 'no-tag', 'not-offered', 'not-at-end',
  *                'several-tags' or 'no-words' (codes only, never the words of the reply)
  *   resolve(kind)  the message for CompanionActions.deliver
- *   screen       for a threats offer (docs/NPC_THREATS_COMMANDS.md): how V's words read (screenCode), the kinds above being what they left
+ *   screen       for a threats offer (docs/NPC_THREATS_COMMANDS.md): how V's words read (screenCode), the kinds above being what they left;
+ *                for a plan without the switch: how they read, for the log only
+ *   game         with a plan: the kind the game chose, or none(<why>) (companion-actions verdictWhy), for the turn's line
  * heard: V's words this turn (the typed line or the transcript). A threats offer is narrowed by them; without them it keeps only the kinds that
  * need no words (fail closed).
  */
@@ -408,23 +410,26 @@ export function reactionMenu(offer, {heard} = {}) {
   if (typeof offer?.token !== 'string' || !offer.token || !offer.reaction) return null;
   // The game decided (docs/NPC_THREATS_COMMANDS.md "Who decides"): by the bridge from the typed line (already handed over: `decided`), or here from
   // the transcript by the game's plan (`deliver` is the message to hand over at once). No tag is asked for or read; the note says what the person does.
+  // A plan rides on every offer (both sides of the threats switch); its verdict is logged (game=) whether or not it chose.
+  const verdict = !offer.reaction.decided && offer.reaction.plan ? decideReaction(offer.reaction, heard ?? '') : null;
   const game = offer.reaction.decided ? {kind: offer.reaction.decided, deliver: null, screen: undefined}
-    : offer.reaction.plan ? (() => { const read = decideReaction(offer.reaction, heard ?? ''); return read?.kind
-      ? {kind: read.kind, deliver: {version: 1, token: offer.token, reaction: read.kind, by: 'game'}, screen: read.screen} : null; })() : null;
+    : verdict?.kind ? {kind: verdict.kind, deliver: {version: 1, token: offer.token, reaction: verdict.kind, by: 'game'}, screen: verdict.screen} : null;
   if (game && REACTION_ORDER.includes(game.kind)) {
-    return {kinds: [], decided: game.kind, deliver: game.deliver, screen: game.screen, notes: 'GAME REACTION: ' + decidedReactionText(game.kind),
+    return {kinds: [], decided: game.kind, deliver: game.deliver, screen: game.screen, game: game.kind, notes: 'GAME REACTION: ' + decidedReactionText(game.kind),
       pick: () => ({kind: null, why: 'decided-by-game'}), resolve: () => null};
   }
   const offered = Array.isArray(offer.reaction.kinds) ? REACTION_ORDER.filter(kind => offer.reaction.kinds.includes(kind)) : [];
   if (!offered.length) return null;
   const read = offer.reaction.threats === true ? screenMessage(heard ?? '') : null;
   const kinds = read ? screenedKinds(offered, read) : offered;
-  const screen = read ? screenCode(read) : undefined;
+  const screen = read ? screenCode(read) : verdict?.screen;
+  const undecided = verdict ? {game: verdict.game} : {};
   // Nothing left for these words (a calm line to a cop): no note, and the turn's line says so.
-  if (!kinds.length) return {kinds, notes: '', screen, pick: () => ({kind: null, why: 'screened'}), resolve: () => null};
+  if (!kinds.length) return {kinds, notes: '', screen, ...undecided, pick: () => ({kind: null, why: 'screened'}), resolve: () => null};
   return {
     kinds,
     screen,
+    ...undecided,
     notes: reactionNotes(kinds),
     pick(raw) {
       const text = String(raw ?? '');

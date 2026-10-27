@@ -200,13 +200,16 @@ test('allowed: a person in a vehicle may only be told to get out, and only while
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The switch
 
-test('switch off: the offer is the old one (no threats flag, no new kind), a new kind is never started, nothing new is read', () => withService(`
+test('switch off: the offer has the old kinds (no threats flag, no new kind) and the game\'s plan of them; a new kind is never started', () => withService(`
   state.threats = false
   local S = build()
   local offer = offerFor(S, 'street-resident', 'resident')
   assert(offer and offer.threats == nil and table.concat(offer.kinds, ',') == 'leave,call-police', table.concat(offer.kinds, ','))
-  assert(not logged('threats=on'), 'the offer line is the old one')
-  assert(calls.temper == nil, 'the temper is not read with the switch off')
+  assert(not logged('threats=on'), 'no threats flag on the line')
+  -- The game decides on both sides of the switch (live test 3, 2026-10-27: the switch was off and nothing fired): a plan of the old kinds.
+  assert(offer.plan and (offer.plan.kill == 'leave' or offer.plan.kill == 'call-police') and offer.plan.insult and offer.plan.stop == nil, 'a plan of the old kinds')
+  assert(logged('NPC reaction offered: kinds=leave,call%-police type=street%-resident message=1 temper=neutral plan=kill:'), table.concat(logs, '\\n'))
+  assert(calls.temper == 1, 'the temper is read once for the plan')
   for _, kind in ipairs({'cower', 'brawl', 'get-down', 'stop', 'exit-vehicle'}) do
     local ok, why = S.start(kind, offer, '44ULL', 'r1'); assert(not ok and why == 'not-offered', kind)
   end
@@ -378,14 +381,25 @@ test('the game decides: one plan per person for each reading of V\'s words, from
   assert(M.seed('44ULL') == M.seed('44ULL') and M.seed('44ULL') ~= M.seed('45ULL'))
 `));
 
-test('the game decides: a threats offer carries the person\'s plan and logs it; the switch off never sends one', () => withService(`
+test('the game decides: a threats offer carries the person\'s plan and logs it; the switch off sends a plan of the old kinds', () => withService(`
   state.temper = 'aggressive'
   local S = build()
   local offer = offerFor(S, 'maelstrom', 'gang')
   assert(offer.plan and offer.plan.kill == 'attack' and offer.plan.hurt == 'brawl' and offer.plan.insult == 'brawl' and offer.plan['get-down'] == 'get-down', 'the plan')
   assert(logged('threats=on temper=aggressive plan=kill:attack,hurt:brawl,insult:brawl,get%-down:get%-down,stop:stop'), table.concat(logs, '\\n'))
+  -- The live test 3 people (2026-10-27, the switch off): a Tyger Claw, a joytoy, the homeless, a nightlife resident; each gets a plan.
   state.threats = false
-  assert(offerFor(build(), 'maelstrom', 'gang', '55ULL').plan == nil)
+  local off = offerFor(build(), 'tyger-claws', 'gang', '55ULL')
+  assert(table.concat(off.kinds, ',') == 'leave,attack' and off.threats == nil, table.concat(off.kinds, ','))
+  assert(off.plan.kill == 'attack' and off.plan.hurt == 'attack' and off.plan.insult == 'leave' and off.plan.stop == nil, 'fists stand in as the weapon; an insult: walks off')
+  assert(logged('NPC reaction offered: kinds=leave,attack type=tyger%-claws message=1 temper=aggressive plan=kill:attack,hurt:attack,insult:leave$'), table.concat(logs, '\\n'))
+  for index, base in ipairs({'joytoy', 'homeless', 'nightlife-resident'}) do
+    local category = base == 'joytoy' and 'faction' or 'resident'
+    local entity = tostring(60 + index) .. 'ULL'
+    npcs[entity] = {id = entity}
+    local person = offerFor(build(), base, category, entity)
+    assert(person and person.plan and person.plan.kill, base .. ' has a plan')
+  end
 `));
 
 test('cower and get down: a walking crowd person is held before the conversation lets go, frightened in place, and back to the crowd after the hold', () => withService(`

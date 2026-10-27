@@ -3,8 +3,21 @@
 Written 2026-10-26 on branch `feat/npc-threats-commands` (from `main` 8006a09d) for the next version, not 0.3.2, merged into `integration/0.3.3`.
 Reworked 2026-10-27 on `fix/threats-live` after the first live test (next section): the crowd flight's crash, **the game decides** (the owner's
 rule), and lethal phrasings. Reworked again 2026-10-27 on `fix/threats-crowd` after live test 2: walking crowd people taken from the crowd's
-traffic before they react, and a brawl that escalates when V does. Committed, NOT merged, NOT pushed, offline-tested only. Behind a Companion
-Manager switch that is **off by default**: Settings, Conversations, "NPCs react to threats and commands" (the crowd run is not behind it).
+traffic before they react, and a brawl that escalates when V does. Reworked again 2026-10-27 on `fix/threats-decide` after live test 3 (switch
+off, nothing fired): the game's plan and pick on both sides of the switch, more insults and dares read, and the game's verdict on the turn's line.
+Committed, NOT merged, NOT pushed, offline-tested only. The new kinds (cower, fists, the commands) are behind a Companion Manager switch that is
+**off by default**: Settings, Conversations, "NPCs react to threats and commands"; the crowd run and the game's pick among the old kinds are not.
+
+## Live test 3 (game 2.31, 2026-10-27, switch OFF) and what changed
+
+| Seen live | Cause | Fix (`fix/threats-decide`) |
+|---|---|---|
+| No reaction fired at all (Local AI text + Pocket voice): `probe.log` `NPC reaction offered: kinds=leave,call-police type=street-resident message=1`, then `NPC reaction offer ended before it was used: menu`; `bridge.stderr.log` `[NPCReaction] NPC reaction: person=npc-street-resident-male offered=leave,call-police admitted=yes route=text tag=none(no-tag) delivered=-`, the same for the homeless, a joytoy (`offered=leave,attack`), a nightlife resident and three Tyger Claws (`offered=leave,attack`), for "get lost or I'll kill you" and insults and dares to the gangers | the switch was **off** in the 2.31 install (`runtime/settings.json` `"npcThreats":false`): the offer line has no `threats=on ... plan=`. Only a threats offer carried the game's plan, so the old path ran, where only the model's tag starts a reaction, and the model never tags. The screen did read "get lost or I'll kill you" as `kill`; it missed most of the insults and dares ("you're weak", "your gang is trash", "Tyger Claws are scum", "pussy", "you don't scare me", "try me", "bring it on") and "move or I'll shoot" | **the game decides on both sides of the switch**: every offer carries the person's plan (switch off: of the old kinds only, leave, call the police, attack), and the screen's reading picks the reaction on every provider with no tag. The screen reads the insults, gang insults, dares, robbery and "or I'll shoot" (below). The turn's line now says what the game made of the words: ` game=<kind>` or ` game=none(<why>)` |
+
+With the switch **off** the plan uses only the old kinds: a civilian answers a death threat, a threat or an insult by leaving or calling the police
+(its row's first allowed kind: cower is not one); a ganger or soldier answers a death threat and a threat to hurt (and a dare) with **attack** (the
+weapon: fists are a switch-on kind) and an insult by **leaving**; a clerk calls the police; nomads leave. Commands do nothing with the switch off.
+With the switch **on**, as before: fists for an insult or a dare, the weapon for a death threat, cower, the commands.
 
 ## Live test 2 (game 2.5, 2026-10-27, switch on) and what changed
 
@@ -121,8 +134,9 @@ to hurt, an insult or one of the three commands, and the person's kind allows a 
 kind and temper, and the model is only told what the person does so that its line fits ("you attack V with your fists"). The model's own choice (the
 tag, the Convai action) is left only for words the screen does not read.
 
-- **The plan** (`mod/npc-reactions.lua` `M.plan`): with the switch on, each offer carries the game's pick for every reading at once, `plan = {kill,
-  hurt, insult, get-down, stop, exit-vehicle}` -> one allowed kind. It is made at the offer because the words are often heard only later (a voice
+- **The plan** (`mod/npc-reactions.lua` `M.plan`): each offer carries the game's pick for every reading at once, `plan = {kill,
+  hurt, insult, get-down, stop, exit-vehicle}` -> one allowed kind. Since live test 3 on both sides of the switch: with the switch off the plan
+  has only the old kinds (leave, call the police, attack) and no commands, and the person's temper is read for it too. It is made at the offer because the words are often heard only later (a voice
   turn). It is **seeded by the person** (`M.seed` of its entity id): the same person reacts the same way every time; two civilians may differ.
   Each row of `M.TEMPERS` is `{kind, weight}`: the seed picks among the weighted kinds; when the pick is not allowed now (a safe zone, V already
   wanted), the next allowed kind of the row stands in (weight 0 = only a stand-in). Logged in the offer line: `plan=kill:attack,hurt:brawl,...`.
@@ -145,7 +159,9 @@ tag, the Convai action) is left only for words the screen does not read.
   zones and the cooldown for fights and police calls, one reaction per person, the command cooldown.
 - The bridge accepts a `by: 'game'` pick only if it is the decided kind, or (words not heard yet) one of the plan's kinds; a model's own request
   only among the kinds left to the model. The packet echoes the game's offer with its plan, byte for byte (the lease compares it).
-- The turn's line says who chose: `... tag=attack delivered=yes screen=kill by=game` (or `by=model`).
+- The turn's line says who chose: `... tag=attack delivered=yes screen=kill game=attack by=game` (or `by=model`), and, when the game chose
+  nothing, why: `game=none(unread)` (no threat, insult or command read), `none(joke|quote|question|negated)`, `none(no-row)` (a reading this
+  person's plan has nothing for: a command with the switch off), `none(unheard)` (a voice turn whose words were never read).
 
 ### Decision table (`M.TEMPERS`; weights in brackets, a stand-in in italics)
 
@@ -183,6 +199,18 @@ over for you"), for example "ich jag dir eine Kugel in den Kopf", "je vais te fa
 вышибу", "頭をぶち抜いてやる", "머리를 날려버릴 거야", "我要爆你的头". Still not threats: "I'll end you in chess", "I'll put you in the car", "you're dead to me",
 "я закопаю клад", "저세상 텐션", "heute ist dein letzter Tag im Büro".
 
+### Insults, dares and conditions (live test 3, 2026-10-27; English)
+
+- **Death threat with no object**, after "or / before / else / otherwise": "move or I'll shoot", "back off before I blast", "or else I'm gonna waste
+  you" (not "or I'll shoot it / the target").
+- **Insult**: "you're weak / nothing / soft / spineless / gutless / trash / garbage / a nobody / a disgrace / chicken" (not "you're nothing like
+  him", "soft spoken", "nothing special"); "you're a bunch of losers / pussies", "you little wimp"; a gang as a whole: "your gang / crew / boys is /
+  are trash, nothing but cowards", "Tyger Claws / Maelstrom / Valentinos / ... are scum / trash / pussies", "fuck the Tyger Claws"; one word as a
+  whole sentence: "Pussy!", "Coward.", "Wimp".
+- **Threat to hurt (a dare or a robbery)**: "you don't scare me", "I'm not scared of you", "bring it on", "bring it!" and "try me" / "make me" as a
+  whole sentence (not "bring it here", "make me a sandwich"), "I dare you", "come and get it", "what are you gonna do about it" (without a
+  question mark), "hand over / give me / gimme your eddies / money / cash / wallet".
+
 Without a plan the words only **narrow the offer** (`screenedKinds`); they never start anything:
 
 | Kind | Needs in V's words |
@@ -194,8 +222,8 @@ Without a plan the words only **narrow the offer** (`screenedKinds`); they never
 | `get-down`, `stop`, `exit-vehicle` | that command |
 
 So a cop on a calm line is offered nothing at all (the turn's line says `admitted=no(screened)`), and a model that writes `[attack]` anyway hands
-nothing over. With the switch on, `attack` also needs the death threat: the model alone never starts a fight. With the switch off, nothing here runs and
-the reactions are exactly as before (the screen is not even called).
+nothing over. With the switch on, `attack` also needs the death threat: the model alone never starts a fight. With the switch off the offer is
+never narrowed (the model keeps the old kinds for words the game does not decide), but the game's plan reads the words as above.
 
 The model sees **one fight tag** (`[attack]`, Convai `Attack V`) and **one obey tag** (`[obey]`, Convai `Obey V`): the words already decided whether the
 fight is with fists or a weapon and which command was given, and the offer never holds both fights or two commands. `[cower]` (Convai `Cower`) is its own.
@@ -277,8 +305,8 @@ temper, V's seat for a person in a vehicle), once at the start and once at the r
 ## The logs
 
 `probe.log`:
-- `NPC reaction offered: kinds=... type=<base> message=<n> threats=on temper=<aggressive|passive|neutral|?> plan=<reading:kind,...|->` (the tail only
-  with the switch on)
+- `NPC reaction offered: kinds=... type=<base> message=<n> threats=on temper=<aggressive|passive|neutral|?> plan=<reading:kind,...|->` (` threats=on`
+  only with the switch on; `temper=` and `plan=` always since live test 3)
 - `NPC reaction: leave started, the crowd's own flight (the crowd reaction event, no move command)` or `(the fear stage, no move command)`,
   `... cower started, the crowd's own fear (...)`, `... get-down started, holds still for 20 s (...)`, `... stop started, holds still for 30 s`,
   `... brawl hostile ok, combat start ..., fists fists asked`, `... exit-vehicle started, the game's own exit`
@@ -291,10 +319,12 @@ temper, V's seat for a person in a vehicle), once at the start and once at the r
 - the read-backs above; `NPC reaction: leave did not move; asked again with the fear stage (sent)`; `NPC reaction: fear failed: ...` /
   `panic failed: ...` (once each); `neither the crowd's reaction event nor its fear stage is available for leave; the person stays`
 
-`bridge.stderr.log` (`[NPCReaction]`): the turn's one line gains ` screen=<code>` for a threats offer: `kill`, `hurt`, `insult`, `get-down`, `stop`,
-`exit-vehicle`, `insult+stop`, `none`, `none(joke|quote|question|negated)`, `unheard` (a voice turn: the words are read later). Codes only, never V's
-words. `offered=` is then what this turn may hand over; `admitted=no(screened)` means nothing. A chosen kind ends with ` by=game` (the plan) or
-` by=model` (a tag, a Convai action).
+`bridge.stderr.log` (`[NPCReaction]`): the turn's one line gains ` screen=<code>` (every offer with a plan): `kill`, `hurt`, `insult`, `get-down`, `stop`,
+`exit-vehicle`, `insult+stop`, `none`, `none(joke|quote|question|negated)`, `unheard` (a voice turn: the words are read later; a text route's
+spoken turn gets the transcript's reading once the text host has it). Then ` game=<kind>` or ` game=none(<why>)`, the game's verdict ("Who
+decides"). Codes only, never V's words. `offered=` is then what this turn may hand over; `admitted=no(screened)` means nothing. A chosen kind ends
+with ` by=game` (the plan) or ` by=model` (a tag, a Convai action). A Convai voice turn the page decided keeps `screen=unheard` (the page sends the
+pick, not the reading) and shows the pick in `game=`.
 
 ## Files
 
@@ -356,36 +386,57 @@ test clock (or puts it there at once, as the game does to a crowd person) and re
 - the natives: the workspot read, V's gun (a blade is no gun), the weapon switch command, the friends' search (only fighting and hostile, never the
   brawler, no doubles), the snapped leg point, a continuing leg without `useStart`.
 
+Added 2026-10-27 (`fix/threats-decide`), from the live test 3 log lines and phrases:
+- `bridge/threat-screen.test.mjs` (+1, 29): "get lost or I'll kill you" and the object-less conditions as death threats; the insults, gang insults,
+  one-word insults, dares and robbery; what only looks like them ("you're nothing like him", "bring it here", "make me a sandwich", "or I'll shoot it").
+- `bridge/npc-threats-lua.test.mjs` (25, two rewritten): the switch-off offer carries a plan of the old kinds and reads the temper once; the offer
+  line `kinds=leave,call-police type=street-resident ... temper=neutral plan=kill:...`; a Tyger Claw's `plan=kill:attack,hurt:attack,insult:leave`;
+  the joytoy, the homeless and a nightlife resident each get a plan.
+- `bridge/npc-threats-decide.test.mjs` (+3, 11): a plan without the threats flag is kept for the old kinds only; a Tyger Claw on a typed Local AI
+  turn with the switch off (death threat, two dares, two insults: decided, handed over, one line with `screen=` `game=` `by=game`, no tag); the same
+  with the switch on (fists for an insult or a dare, the weapon for a death threat or "move or I'll shoot"); the text menu's `game=` verdict for
+  unread words, a joke, a command with no row; the Convai window opening and deciding on a switch-off plan.
+- `bridge/npc-reaction-pipeline.test.mjs` (8, six rewritten, one new): through the real Lua offer and lease with the switch off: typed Local AI
+  "get lost or I'll kill you" decided at admission with no tag (`route=text tag=leave delivered=yes screen=kill game=leave by=game`); the spoken
+  turn decided by the text host from the transcript; a Convai typed turn decided at admission, the model's own Call Police not taken; unread words
+  leaving the model its kinds (`game=none(unread)`); the refusal lines with `screen=`.
+
 ## Live test (owner)
 
-Live test 1 (2026-10-26) and live test 2 (2026-10-27, both game 2.5) found the problems at the top. Live test 3 is this one, for
-`fix/threats-crowd` (the gangers' attack and fists passed in live test 2 and are only rechecked in passing).
+Live test 1 (2026-10-26) and live test 2 (2026-10-27, both game 2.5) found the problems at the top; live test 3 (2026-10-27, game 2.31) ran with
+the switch off and nothing fired. Live test 4 is this one, for `fix/threats-decide` with the crowd and brawl work of `fix/threats-crowd`.
 
-Install: overlay the committed `mod/` files of the branch (only `mod/npc-reactions.lua` changed; never `mod/diagnostics.lua`), CET reload (no
-bridge restart, no redscript, no game restart). Use a throwaway copy of a save. Keep `probe.log` open. Read `plan=` in each offer line first.
+Install: overlay the committed files of the branch: `mod/npc-reactions.lua` (never `mod/diagnostics.lua`) and the bridge files
+(`bridge/companion-actions.mjs`, `bridge/text-actions.mjs`, `bridge/text-provider-host.mjs`, `bridge/threat-screen.mjs`), then CET reload and a
+bridge restart (no redscript, no game restart). Use a throwaway copy of a save. Keep `probe.log` and `bridge.stderr.log` open. Read `plan=` in each
+offer line first; the turn's `[NPCReaction]` line says `screen=`, `game=` and `by=`.
 
-1. **Switch off, a walking pedestrian, a threat.** Turn the switch off. Type "get out of my sight or I'll kill you" to someone walking past (not on
-   a bench). If the model makes it leave: `leave started, taken from the crowd and run away in legs (...)`, then `first leg moved=<m> m in 0.4 s
-   (running)` and `ran <m> m in <n> leg(s); back to the crowd`. **Does the person turn and run away, all the way, without vanishing or popping
-   forward?** Note any `(jumped, not run)` line (then: did it pop 4 m?) or `did not run`.
-2. **The same on a bench** (a seated person): `leave started, the crowd's own flight (...)`, never `taken from the crowd`. Does it get up and run?
-3. Switch on.
-4. **A walking pedestrian, "Get down on the ground!"** Expect `get-down started, holds still for 20 s, taken from the crowd before the
-   conversation let go, in the crowd's own fear`, then `get-down hold state=Executing moved=<under 1> m`, and 20 s later `hold over, back to the
-   crowd`. **Does the person stop, crouch or cower and stay about 20 s, then walk on?** Do the people around still start running?
-5. **A walking pedestrian, a death threat** whose plan says `kill:cower`: the same hold (step 4). One whose plan says `kill:leave`: the run of
-   step 1. **Does each do what its plan says?**
-6. **"Freeze! Don't move."** to a walking pedestrian: `stop started, holds still for 30 s`. Does it stay about half a minute?
-7. **A ganger, an insult, with friends around** (Northside, not in a safe zone): `brawl ... fists fists asked`, then `brawl joined by <n> more,
-   asked for fists (<k> had a weapon out, asked to put it away)`. **Do his friends come with fists, and does one with a gun put it away?**
-8. **Escalation.** In that brawl, draw a pistol: `V drew <record>; the brawl escalates: <n> of <m> draw their own weapons`. **Do they all draw
-   their guns?** Holster yours: **they keep their guns** (no new line).
-9. **A brawl started with V's gun already out:** insult a ganger with a pistol drawn: `the brawl escalates: 1 of 1 ...` within about a second,
-   and no `asked to put it away`.
-10. **Frame rate.** Talk to a few people in a crowded street and start one brawl; FPS as before (one read a second during a brawl, nothing else).
+**Switch OFF first** (as live test 3; Local AI, typed and spoken):
 
-What only this can confirm: that a crowd person under its own command walks and runs for real rather than being put at the end point, that the
-crowd's fear (phase 2) plays its cower pose while a hold runs, the friends' search, and the weapon switch command.
+1. **A walking street resident, typed "get lost or I'll kill you".** `probe.log`: `NPC reaction offered: kinds=leave,call-police
+   type=street-resident message=1 temper=<...> plan=kill:<leave|call-police>,hurt:...,insult:...`. `bridge.stderr.log`: `[NPCReaction] NPC
+   reaction: person=npc-street-resident-male offered=<kind> admitted=yes route=text tag=<kind> delivered=yes screen=kill game=<kind> by=game`, then
+   `NPC reaction accepted: <kind>`. **Does the person run away (or make the call) right after its line, with no tag from the model?** For leave:
+   `taken from the crowd and run away in legs`, `first leg moved=<m> m in 0.4 s (running)`.
+2. **The same spoken** (Pocket voice): the same `[NPCReaction]` line (`screen=kill game=<kind> by=game`). Does it react the same?
+3. **A Tyger Claw, "get lost or I'll kill you".** `plan=kill:attack,hurt:attack,insult:leave` (an aggressive one), `screen=kill game=attack
+   by=game`. **Does he draw and attack?**
+4. **Another Tyger Claw, "you don't scare me" / "try me".** `screen=hurt game=attack by=game` (with the switch off a dare is answered with the
+   weapon: fists need the switch). **Does he attack?**
+5. **A Tyger Claw, "you Tyger Claws are a bunch of pussies".** `screen=insult game=leave by=game`. Does he walk off?
+6. **A calm line** ("nice jacket"): `screen=none game=none(unread)`, the model's tag as before.
+
+**Switch ON** (the crowd and brawl steps of live test 3, still unconfirmed):
+
+7. **A walking pedestrian, "Get down on the ground!"**: `get-down started, holds still for 20 s, taken from the crowd ...`; does it stop and
+   cower about 20 s, then walk on?
+8. **A ganger, an insult, with friends around**: `screen=insult game=brawl by=game`, `brawl ... fists fists asked`, `brawl joined by <n> more`. Draw
+   a pistol: `V drew <record>; the brawl escalates`. **Fists first, then their guns when yours is out?**
+9. **"Move or I'll shoot" to a ganger**: `screen=kill game=attack`. **Does he draw?**
+10. **Frame rate.** Talk to a few people and start one brawl; FPS as before.
+
+What only this can confirm: that the game's pick reaches the person on 2.31 with the switch off, the crowd person's own command walking and
+running for real, the crowd's fear pose while a hold runs, the friends' search and the weapon switch command.
 
 ## Open risks
 

@@ -52,6 +52,8 @@ const LANGUAGES = [
       '(?:you|ya)\\s+(?:won\'t|will not|ain\'t gonna|are not gonna|aren\'t gonna)\\s+(?:live|be living|leave here alive|walk out of here alive|make it out(?: of here)? alive|see (?:tomorrow|the morning|another day))',
       'not\\s+(?:leaving|getting out of|walking out of)\\s+(?:here|this place|this room)\\s+alive',
       'your money or your life', 'say your prayers', 'any last words', 'say goodbye to your (?:life|ass|head|family)',
+      // "Get lost or I'll shoot", "move before I blast": the threat is the condition, no object needed (live test 3, 2026-10-27).
+      '(?:or|before|else|otherwise)\\s+(?:i\'ll|i will|i\'m gonna|im gonna|i\'m going to|im going to|imma|ima|we\'ll|we will|i|we)\\s+(?:shoot|blast|waste|kill|ice|flatline|smoke|zero|geek|end|cap|stab|gut)(?!\\s+(?:it|this|that|the|a|an|him|her|them|myself)\\b)',
     ],
     hurt: [
       '(?:hurt|beat|punch|smack|slap|kick|bash|wreck|deck|clock|sock|pound|thrash|batter|pummel|cripple|maim|whoop|whup|kneecap|headbutt|slice|cut)\\s+(?:you|ya|u)(?!\\s+(?:up on|at|in|to|with|off|a deal|some slack|a break|in on|back|loose|free)\\b)(?:\\s+up)?',
@@ -60,10 +62,20 @@ const LANGUAGES = [
       'beat\\s+the\\s+(?:shit|crap|hell|living daylights|piss)\\s+out\\s+of\\s+you', 'kick\\s+the\\s+(?:shit|crap)\\s+out\\s+of\\s+you',
       'knock\\s+your\\s+(?:\\p{L}+\\s+)?(?:teeth|lights|block|head)', 'teach\\s+you\\s+a\\s+lesson', 'make\\s+you\\s+(?:pay|bleed|suffer|regret)',
     ],
-    hurtFree: ['fight me', 'let\'s fight', 'come at me', 'square up', 'step outside', 'let\'s take this outside', 'put (?:your|\'em) (?:hands|dukes|fists) up', 'you want a beating', 'you\'re asking for a beating'],
+    hurtFree: ['fight me', 'let\'s fight', 'come at me', 'square up', 'step outside', 'let\'s take this outside', 'put (?:your|\'em) (?:hands|dukes|fists) up', 'you want a beating', 'you\'re asking for a beating',
+      // Provocations (a dare to fight) and a robbery (2026-10-27): a fighter takes them as a challenge, everyone else as a threat.
+      'you (?:don\'t|dont|do not) scare me', '(?:i\'m|im|i am) not (?:scared|afraid) of (?:you|ya|u)', 'bring it on', '^(?:come on[\\s,]+)?bring it\\s*[!.]*$', '^(?:come on[\\s,]+)?try me\\s*[!.]*$', '^make me\\s*[!.]*$',
+      'what (?:are )?(?:you|ya) (?:gonna|going to) do about it(?=\\s*[!.]*$)', 'i dare (?:you|ya)', 'come and get (?:it|some|me)',
+      '(?:hand over|give me|gimme|give us|hand me|empty|cough up)\\s+(?:all\\s+)?(?:your|ya|ur)\\s+(?:\\p{L}+\\s+)?(?:eddies|eurodollars|eurodollar|money|cash|wallet|creds|chips|valuables|shit|stuff)'],
     insult: [
-      '(?:you\'re|youre|you|ya|u|ur)(?:\\s+(?:are|re|r|such|a|an|so|fucking|fuckin|stupid|dumb|little|filthy|worthless|pathetic|ugly|fat|lying|piece of|sack of|big|cheap|old|damn|goddamn|bloody|sorry|motherfucking|dirty|lousy)){0,4}\\s+(?:idiot|moron|imbecile|cretin|retard|bitch|bastard|asshole|arsehole|dickhead|dick|prick|cunt|twat|wanker|loser|scum|scumbag|pig|rat|worm|clown|freak|whore|slut|skank|dumbass|jackass|motherfucker|fucker|shithead|coward|punk|gonk|maggot|swine|filth|jerk|piece of shit|sack of shit)s?',
-      '(?:you\'re|youre|you are|ur|u r)\\s+(?:so\\s+|such\\s+an?\\s+|really\\s+|fucking\\s+)?(?:stupid|dumb|pathetic|worthless|disgusting|ugly|useless|a joke)',
+      '(?:you\'re|youre|you|ya|u|ur)(?:\\s+(?:are|re|r|such|a|an|so|fucking|fuckin|stupid|dumb|little|filthy|worthless|pathetic|ugly|fat|lying|piece of|sack of|big|cheap|old|damn|goddamn|bloody|sorry|motherfucking|dirty|lousy|weak|bunch of|bunch a)){0,4}\\s+(?:pussies|nobodies|pussy|wimp|nobody|chump|weakling|idiot|moron|imbecile|cretin|retard|bitch|bastard|asshole|arsehole|dickhead|dick|prick|cunt|twat|wanker|loser|scum|scumbag|pig|rat|worm|clown|freak|whore|slut|skank|dumbass|jackass|motherfucker|fucker|shithead|coward|punk|gonk|maggot|swine|filth|jerk|piece of shit|sack of shit)s?',
+      '(?:you\'re|youre|you are|ur|u r)\\s+(?:so\\s+|such\\s+an?\\s+|really\\s+|fucking\\s+|just\\s+|all\\s+)?(?:stupid|dumb|pathetic|worthless|disgusting|ugly|useless|a joke|weak|soft|nothing|spineless|gutless|trash|garbage|a disgrace|chicken|a nobody|nobodies)(?!\\s+(?:like|but|without|compared|spoken|hearted|on|to me|special|new)\\b)',
+      // A gang or crew insulted as a whole (V talking to a ganger, 2026-10-27): "your gang is trash", "Tyger Claws are a bunch of pussies".
+      '(?:your|ya|ur)\\s+(?:whole\\s+)?(?:gang|crew|boss|boys|people|choombas?|family)\\s+(?:is|are|\'s|\'re)\\s+(?:(?:a bunch of|all|just|nothing but|such|so|fucking)\\s+){0,2}(?:trash|garbage|scum|shit|weak|pathetic|a joke|nothing|pussies|cowards|bitches|losers|worthless|gonks|rats|pigs|clowns|wimps|idiots|morons)',
+      '(?:tyger claws|tygers|maelstrom|maelstromers|valentinos|6th street|sixth street|animals|voodoo boys|mox|moxes|scavs|scavengers|wraiths|barghest|ncpd|cops|you guys|you people|y\'all|all of you)\\s+(?:are|r|\'re)\\s+(?:(?:a bunch of|all|just|nothing but|such|so|fucking)\\s+){0,2}(?:trash|garbage|scum|shit|weak|pathetic|a joke|nothing|pussies|cowards|bitches|losers|worthless|gonks|rats|pigs|clowns|wimps|idiots|morons)',
+      'fuck (?:the |your |all )?(?:tyger claws|tygers|maelstrom|valentinos|6th street|sixth street|animals|voodoo boys|mox|scavs|wraiths|barghest|gang|crew|boss)',
+      // A whole sentence of one name: "Pussy!", "coward."
+      '^(?:(?:you|ya|what a|such a|fucking|little|a|you little|you fucking)\\s+){0,2}(?:pussy|pussies|coward|cowards|wimp|wimps|chump|weakling)\\s*[!.]*$',
     ],
     insultFree: ['fuck (?:you|off|yourself)', 'screw you', 'go (?:fuck|screw) yourself', 'go to hell', 'son of a bitch', 'eat shit', 'piece of (?:shit|crap|garbage|trash)', 'motherfucker', 'cocksucker', 'your (?:mother|mom|mama)(?:\\s+\\p{L}+){0,3}\\s+(?:whore|slut|bitch)'],
     // Commands begin a clause (after "hey, you," and the like): "I told you to get down" is not one.

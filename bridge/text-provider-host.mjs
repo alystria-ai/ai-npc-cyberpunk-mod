@@ -666,7 +666,11 @@ export class TextProviderHost {
     const reactions = !reaction && typeof this.deliverAction === 'function' ? reactionMenu(config.companionAction, {heard: text}) : null;
     // The game decided from the transcript (a spoken turn; a typed line was decided by the bridge already): handed over now, before the reply is
     // written, so the game acts on V's words and not on what the model makes of them. Its line is written by the CompanionActions that takes it.
-    if (reactions?.deliver) this.#act({code: `REACTION ${reactions.decided}`, message: reactions.deliver});
+    // How the words read goes on the line first (the offer's own line said unheard for a spoken turn); the hand-over closes it, by=game.
+    if (reactions?.deliver) {
+      try { if (typeof this.traceReaction === 'function') this.traceReaction(config.companionAction?.token, {route: 'text', tag: reactions.decided, screen: reactions.screen, game: reactions.game}); } catch { /* a log line never breaks a turn */ }
+      this.#act({code: `REACTION ${reactions.decided}`, message: reactions.deliver});
+    }
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
     // The guard is on (Mature content on with the local AI or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
     // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
@@ -842,10 +846,10 @@ export class TextProviderHost {
     try {
       if (typeof this.traceReaction === 'function') {
         this.traceReaction(config.companionAction?.token, {route: 'text', tag: picked.kind ?? null, why: picked.kind ? null : picked.why,
-          ...(reactions.screen ? {kinds: reactions.kinds, screen: reactions.screen} : {})});
+          ...(reactions.screen ? {kinds: reactions.kinds, screen: reactions.screen} : {}), ...(reactions.game ? {game: reactions.game} : {})});
         return;
       }
-      this.log(reactionTraceLine({person: config.local?.profileKey, kinds: reactions.kinds, route: 'text', tag: picked.kind ?? null, why: picked.why, screen: reactions.screen}));
+      this.log(reactionTraceLine({person: config.local?.profileKey, kinds: reactions.kinds, route: 'text', tag: picked.kind ?? null, why: picked.why, screen: reactions.screen, game: reactions.game}));
     } catch { /* a log line never breaks a turn */ }
   }
 
