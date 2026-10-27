@@ -873,6 +873,9 @@ local function loadSettings()
     -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
     -- and the redscript listener is not registered.
     if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
+    -- Off by default: Remote OmniVoice (Voices > Custom voices, docs/REMOTE_OMNIVOICE.md), the OmniVoice choices are rendered by an OmniVoice server on another PC. Off, nothing
+    -- is asked of any server; on, no OmniVoice model loads on this PC and the pack is not needed.
+    if type(settings.remoteOmni) ~= 'boolean' then settings.remoteOmni, settingsNeedSave = false, true end
     -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): none by default, so nothing changes for an existing player. Only an
     -- action of the mod with a game key name is kept, and two actions never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
     if type(settings.keyBindings) ~= 'table' then settings.keyBindings, settingsNeedSave = {}, true end
@@ -1217,6 +1220,15 @@ end
 -- `noNvidia`: the bridge knows this PC has no NVIDIA graphics card (its card list, or a worker that found no CUDA): the entries stay choosable,
 -- the menu only says OmniVoice needs one. Unknown (no fresh report, or no card list yet) is false.
 -- `smallCard`: the NVIDIA card is known to have under 12 GB (the card list), or OmniVoice already failed for want of graphics memory: the menu says it needs 12 GB.
+-- Remote OmniVoice as the bridge reports it: {wanted (the setting), set (an address is saved), connected (the server's voice is loaded and answering)}.
+function M.remoteOmniVoice()
+    local state = type(localVoiceState) == 'table' and localVoiceState or {}
+    local fresh = type(state.updated) == 'number' and math.abs(os.time() - state.updated / 1000) < 15
+    local remote = fresh and type(state.omniRemote) == 'table' and state.omniRemote or {}
+    return {wanted = settings.remoteOmni == true, set = remote.set == true, connected = remote.connected == true, fresh = fresh,
+        provider = fresh and state.provider or nil, requested = fresh and state.requestedProvider or nil}
+end
+
 function M.omniPack()
     local pack = type(localVoiceState) == 'table' and localVoiceState.omniPack or nil
     local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
@@ -1247,6 +1259,9 @@ function M.takeVoiceFallbackNotice()
     end
     if pending.reason == 'omni-memory' and pending.to == 'pocket' then
         return ui.t('OmniVoice needs more graphics memory than is free next to the game. Pocket is used.')
+    end
+    if pending.reason == 'omni-remote' then
+        return ui.t('The OmniVoice server cannot be reached. Replies show as text until it answers. The mod asks it again every few seconds.')
     end
     if pending.reason == 'omni-no-nvidia' then
         if pending.to == 'text' then
@@ -1569,7 +1584,7 @@ local function updateLocalVoice()
         -- 'omni-memory' (not enough graphics memory next to the game) is its own notice when Pocket takes over.
         -- 'virtual-memory' (Windows ran out of memory: the paging file is too small) is its own notice for OmniVoice or Pocket, whatever the lower voice is.
         local reason = fallback.reason == 'virtual-memory' and (fallback.from == 'omni' or fallback.from == 'pocket') and fallback.reason
-            or fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
+            or fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or fallback.reason == 'omni-remote' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '') .. (reason and (':' .. reason) or '')
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true
@@ -2085,6 +2100,7 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
             padTalk = settings.padTalk == true,
+            remoteOmni = settings.remoteOmni == true,
             keyBindings = settings.keyBindings,
             companionOutfits = settings.companionOutfits == true,
             reputation = settings.reputation == true,
@@ -2216,6 +2232,9 @@ function M.applySettings(player, values)
         elseif key == 'padTalk' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.padTalk = value
+        elseif key == 'remoteOmni' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.remoteOmni = value
         elseif key == 'keyBindings' then
             -- {action = 'IK_F7'} binds, {action = false} clears. A key another action already has is refused (the page says which).
             if type(value) ~= 'table' then return false, 'Choose a key or a controller button.' end
@@ -2275,7 +2294,10 @@ function M.applySettings(player, values)
             -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies use).
             if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
-            if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
+            -- With Remote OmniVoice on (saved, or in this batch) the voice is rendered on a server and no pack is needed on this PC.
+            if value == 'omni' and not M.omniPack().installed and not (values.remoteOmni == true or (values.remoteOmni == nil and settings.remoteOmni == true)) then
+                return false, OMNI_PACK_MISSING
+            end
             nextSettings.voiceProvider = value
         elseif key == 'vVoiceEngine' then
             if not isChoice(value, V_VOICE_ENGINES) then return false, 'Choose one of the listed voices for V.' end

@@ -534,6 +534,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-provider.lua"
         },
         {
+          "source": "mod/remote-omni.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/remote-omni.lua"
+        },
+        {
           "source": "mod/movement-log.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/movement-log.lua"
         },
@@ -837,6 +841,7 @@
             "bridge/omni-own-python.mjs",
             "bridge/omni-pack.mjs",
             "bridge/omni-pcm.mjs",
+            "bridge/omni-remote.mjs",
             "bridge/parsed-snapshot.mjs",
             "bridge/party-connections.mjs",
             "bridge/pcm-edges.mjs",
@@ -872,6 +877,8 @@
             "bridge/realtime-host.mjs",
             "bridge/reasoning.mjs",
             "bridge/relationship-routing.mjs",
+            "bridge/remote-omni-control.mjs",
+            "bridge/remote-voice.mjs",
             "bridge/repeat-log.mjs",
             "bridge/reply-language.mjs",
             "bridge/reply-stream.mjs",
@@ -940,6 +947,8 @@
             "bridge/jali-face-text.mjs",
             "bridge/face-visemes.mjs",
             "bridge/resident-voice-worker.py",
+            "bridge/omni-server.mjs",
+            "bridge/omni-server-main.mjs",
             "bridge/voice-cuda-graph.py",
             "bridge/pocket-voice-worker.py",
             "bridge/pocket_voice_runtime.py",

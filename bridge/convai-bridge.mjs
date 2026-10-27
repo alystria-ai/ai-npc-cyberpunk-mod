@@ -65,6 +65,7 @@ import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
 import {ownPythonLine, ownPythonSummary, readOwnPythonSetting, resolveOwnPython} from './omni-own-python.mjs';
+import {REMOTE_FILE, RemoteOmniAddress, RemoteOmniControl} from './remote-omni-control.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext, rosterContacts} from './phone-chat.mjs';
@@ -401,7 +402,11 @@ const graphicsVendorsSource = wanted => { lookUpGraphics(wanted); return graphic
 // undefined while the list is being read, so OmniVoice is not started on a card that turns out to be 8 GB or less (VoiceSelection.omniCardPending); null once read and unknown.
 const graphicsAmdRouteSource = wanted => { lookUpGraphics(wanted); return graphicsKnown && amdRoute(graphicsCards); };
 const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted && !graphicsKnown ? undefined : graphicsCardMiB; };
+// Remote OmniVoice (docs/REMOTE_OMNIVOICE.md, Settings > Voices > Custom voices): the saved address of an OmniVoice server on the player's network. A file read and nothing more:
+// no request is made to it unless the setting `remoteOmni` is on and OmniVoice is the chosen voice, or the player presses Test.
+const remoteOmniAddress = await new RemoteOmniAddress({path: resolve(stateDirectory, REMOTE_FILE), log: message => console.error('[RemoteOmni] ' + message)}).load();
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
+  omniRemoteAddress: () => remoteOmniAddress.endpoint, omniReferenceRoots: referenceRoots,
   gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
@@ -497,10 +502,10 @@ let voiceSettingsRead = false;
 const omniSettled = () => voiceSettingsRead && (localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false || localVoice.fallback != null);
 // The graphics memory of OmniVoice (MiB) while it is wanted, playing is on and it is not loaded (still loading, or waiting to be loaded again in the background): the model is not placed in
 // memory that Omni is about to take. Pocket runs on the CPU and counts nothing; V's OmniVoice engine is a job on the same worker and adds nothing.
-const omniStillToLoadMiB = () => localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && localVoice.playbackEnabled !== false && localVoice.provider !== 'omni'
+const omniStillToLoadMiB = () => !localVoice.remoteWanted && localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && localVoice.playbackEnabled !== false && localVoice.provider !== 'omni'
   && (localVoice.fallback == null || localVoice.omniRetry != null) ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
 // The graphics memory OmniVoice holds while it is loaded: part of the card's used memory that is not the game's (the small-card room measures the game's footprint without it).
-const omniResidentMiB = () => localVoice.clientBackend === 'omni' && localVoice.client?.loaded === true && localVoice.playbackEnabled !== false ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
+const omniResidentMiB = () => !localVoice.remoteWanted && localVoice.clientBackend === 'omni' && localVoice.client?.loaded === true && localVoice.playbackEnabled !== false ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
@@ -3756,6 +3761,7 @@ async function pollSettings(checkShutdown = true) {
       await adoptProviderSetting(settings);
       await mistralControl.poll().catch(() => {});
       await customControl.poll().catch(() => {});
+      await remoteOmniControl.poll().catch(() => {});
       if (Date.now() - speechCheckedAt > 10000) {
         speechCheckedAt = Date.now();
         const stt = mistralSpeech?.available() === true;
@@ -3867,6 +3873,10 @@ const customControl = await new CustomControl({custom: customEndpoint, provider:
   test: () => testCustomConnection(customEndpoint, {adapt: textRoutes.custom.adaptation()}),
   log: message => console.error('[Custom] ' + message)}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); void customControl.publishStatus().catch(() => {}); });
+// Remote OmniVoice's settings page: Paste address, Remove address and Test (bridge/remote-omni-control.mjs). Idle until the page writes a command.
+const remoteOmniControl = await new RemoteOmniControl({address: remoteOmniAddress, commandPath: resolve(runtime, 'remote-omni-command.json'),
+  publish: value => atomic(resolve(runtime, 'remote-omni-state.json'), JSON.stringify(value)),
+  log: message => console.error('[RemoteOmni] ' + message)}).open();
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
