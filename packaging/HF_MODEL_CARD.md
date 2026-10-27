@@ -44,6 +44,7 @@ The mod comes in two builds, one for game version 2.5 (the current game, and the
 | `local-ai/LocalAI-Standard.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `local-ai/LocalAI-Lite.zip` | 1.3 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `voice/OmniPack.zip` | 5.3 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
+| `server/OmniVoice-Server.zip` | 4.8 GB | New in 0.3.3: the OmniVoice server for Remote OmniVoice. It renders the OmniVoice voices on another PC or a second graphics card (Windows and an NVIDIA card, no game needed there), so the game PC loads no OmniVoice. Set it up in Settings > Voices > Custom voices; the steps are in the zip's README. | Optional |
 | `mature/Mature-Lite.zip` | 2.8 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `mature/Mature-Standard.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `mic/MicPack-European.zip` | about 0.67 GB | Microphone in Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian and Portuguese, for Local AI and Custom endpoints (NVIDIA Parakeet TDT 0.6B v3, int8). Runs on the processor. | Optional |
