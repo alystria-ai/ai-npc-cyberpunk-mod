@@ -11,7 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs';
 import {MistralError, newTrace} from './mistral-client.mjs';
 import {ErrorEvents, authCauseDetail, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
-  readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
+  readQueue, recordErrorEvent, recordErrorEventSync, sentPath, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
 import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
@@ -521,7 +521,7 @@ installCrashCapture({stateDirectory: ${JSON.stringify(f.state)}, runtime: ${JSON
 throw new Error('not recorded');`;
     await writeFile(join(f.runtime, 'settings.json'), '{broken');
     spawnSync(process.execPath, ['--input-type=module', '-e', script], {encoding: 'utf8', timeout: 20000});
-    assert.equal((await readQueue(f.state)).length, 1);
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 1);
     // The previous copy stands in for a file being replaced: it still decides (here: an opt-out stays an opt-out).
     await writeFile(join(f.runtime, 'settings.json.previous'), JSON.stringify({errorReports: false, errorReportsNoticed: true}));
     assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'off', noticed: true});
@@ -669,6 +669,40 @@ test('Lua errors in the mod\'s logs are found from where the last look stopped; 
     assert.deepEqual(luaErrorsIn(['Face graphs: not readable (the face service is not loaded (Codeware or the scripts are missing))']), []);
     assert.equal(luaErrorsIn(["Face graphs: not readable (facial-playback.lua:1819: attempt to index local 'service' (a nil value))"]).length, 1);
   } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('a second game folder (another log file) starts from its own end: the first one\'s size is not used as an offset into it', async () => {
+  // Found in the reports of 27 Oct 2026: one install with a 2.5 and a 2.31 copy, one state folder. The 2.31 copy's small probe.log left its size behind; the 2.5
+  // copy's larger probe.log was then read from that offset and a 12-hour-old error in it was sent again.
+  const f = await folders();
+  const clock = {now: START};
+  const old = '2026-10-18T10:00:00Z Crowd movement policy hold failed: init.lua:150: attempt to index local \'policy\' (a nil value)\n';
+  const second = {runtime: join(f.base, 'game2', 'runtime'), modRoot: join(f.base, 'game2', 'mod')};
+  await mkdir(second.runtime, {recursive: true});
+  await mkdir(second.modRoot, {recursive: true});
+  const first = reporterFor(f, fakeBackend({clock}), clock, {target: null});
+  const other = reporterFor(f, fakeBackend({clock}), clock, {target: null, ...second});
+  try {
+    await writeFile(join(f.runtime, 'probe.log'), 'a few lines\n');
+    await first.look({flush: false});
+    await writeFile(join(second.runtime, 'probe.log'), `${'x'.repeat(40)}\n${old}`);
+    await other.look({flush: false});
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 0, 'the other file is seen for the first time: its old lines are not this session\'s');
+    // From then on that file is followed as usual, and going back to the first folder starts from its end again.
+    await appendFile(join(second.runtime, 'probe.log'), '2026-10-19T10:00:01Z Crowd movement policy hold failed: init.lua:150: attempt to index local \'policy\' (a nil value)\n');
+    await other.look({flush: false});
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'a line written after that is found');
+    await appendFile(join(f.runtime, 'probe.log'), 'more\n');
+    await first.look({flush: false});
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'nothing new from the first folder');
+    // A state written before the path was kept (size only) is taken for the file it is read with, as before.
+    const state = JSON.parse(await readFile(sentPath(f.state), 'utf8'));
+    for (const entry of Object.values(state.logs)) delete entry.path;
+    await writeFile(sentPath(f.state), JSON.stringify(state));
+    await appendFile(join(f.runtime, 'probe.log'), '2026-10-19T10:00:02Z Composer failed: manager.lua:55: attempt to call method \'frobnicate\' (a nil value)\n');
+    await first.look({flush: false});
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 2, 'no path: the size is trusted for this file, so the line written after it is read');
+  } finally { first.close(); other.close(); await f.cleanup(); }
 });
 
 // ------------------------------------------------------------------ the address and the support report

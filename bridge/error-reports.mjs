@@ -562,8 +562,12 @@ export class ErrorReporter {
       if (!source.path) continue;
       let size;
       try { size = (await stat(source.path)).size; } catch { continue; }
-      const known = state.logs[source.id]?.size;
-      state.logs[source.id] = {size};
+      // The size is kept with the file it belongs to. The state folder is the player's, shared by every game folder (a 2.5 and a 2.31 copy, a moved or
+      // reinstalled game): another file's size says nothing about this one, and reading it from that offset reported the old errors of the other folder's log again.
+      // A state written before the path was kept (no path) is taken for this file.
+      const previous = state.logs[source.id];
+      const known = previous && (previous.path === undefined || previous.path === source.path) ? previous.size : undefined;
+      state.logs[source.id] = {size, path: source.path};
       // First sight: only what is written from now on counts (an older session's errors are not this one's).
       if (!Number.isFinite(known) || size === known || !enabled) continue;
       const from = size < known ? 0 : known;
