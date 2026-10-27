@@ -45,9 +45,46 @@ has not yet been tested in game; an open chat no longer shows a Call hint (2026-
   During the mod's call that hold is consumed in `OnAction` and only hangs up. The game's own call end
   (`SetPhoneFunction(Inactive)`, the window's disconnect) never opens or closes the phone, so nothing else is needed.
 
-Only mod characters in `characters/phone-contacts.json` with a conversation profile can take a
-holocall (the Chat tab lists only them). Johnny Silverhand never can; his ids are excluded in `mod/holocall.lua` (`NEVER`). Game
+Only mod characters can take a holocall, the ones the Chat tab lists: the shipped phone contacts in `characters/phone-contacts.json`
+and, since 2026-10-27 (branch `feat/custom-calls`), every Chat row the game's journal has **no contact** for (see "A Chat row with
+no journal contact" below). Johnny Silverhand never can; his ids are excluded in `mod/holocall.lua` (`NEVER`). Game
 and story characters are not touched.
+
+## A Chat row with no journal contact (branch `feat/custom-calls`, 2026-10-27)
+
+The call window needs only an avatar id and a name (`HoloAudioCallLogicController.ShowIncomingContact / StartAudiocall /
+ShowEndCallContact(avatarID, name)`), never a journal entry: the journal contact was only where `Holocall.reds` read those two
+values from. A Chat row without a journal contact (a character the player made in the character editor, Rita Wheeler and every
+other roster profile with no phone contact) carries her **profile key as contact id** and her name (`phoneChat.callRow`,
+`mod/phone-chat.lua`). The call key already reached `ConvaiHolocallRequest` for such a row (it only needs a Chat contact); what
+refused it was `mod/holocall.lua` (no catalogue entry) and then `ConvaiCallFindContact` (no journal contact).
+
+- **Lua.** `M.start` takes the catalogue entry for a shipped contact, and otherwise `M.chatEntry(contact)`: the Chat row asked from
+  `env.chatRow` (init.lua: `convaiPhoneChat.callRow`), valid only when its key is a profile key (`^[a-z0-9-]+$`, up to 80),
+  never Johnny/Silverhand. It then runs the same checks as any call (`env.supported`, `env.profileEnabled`, combat/scene, game
+  call) and one more: `env.blocked(key)` (init.lua: `phoneChat.contactBlocked`, true only for a character the player made while
+  Convai answers) refuses the call with the existing line **"This character needs Mistral, Local AI or Custom to answer."** (reason
+  `needs-provider`, the same line her Chat shows), before anything rings or warms. Mistral, Local AI and Custom answer.
+- **Redscript.** `ConvaiHolocallBegin(contact, name)` / `ConvaiCallBegin(id, fallbackName)`: a journal contact is looked up as
+  before (an empty `name`; a contact the journal does not know is still `unknown-contact`); with a name and no journal contact the
+  call uses that **name and the empty avatar id `t""`, the game's unknown-caller picture** (`InkImageUtils.RequestAvatarOrUnknown`,
+  the same picture her open Chat conversation already shows). The avatar and name are read once when the call starts
+  (`m_convaiCallAvatar`, `m_convaiCallName`) and `ConvaiCallShow` / `ConvaiCallEnd` use those, so the window code no longer needs
+  `m_convaiCallContact`, which is null for such a call (the game's own `SetPhoneFunction` is only reached from its own call
+  handlers, which set `m_CurrentPhoneCallContact` themselves, and `SetTalkingTrigger` is guarded by a null check). Needs a game
+  restart (redscript).
+- **Conversation.** The call is a voice call (`cast=voice`: no game holocall setup, no live picture, nothing spawned). The talk
+  keys address `profileKey = <her key>`; the bridge answers a character the player made through `runCustomTurn` (the player's text
+  provider, with the call wording of `turn-context.mjs`), in her chosen voice, the same path as her face-to-face talk. The bridge's
+  call contact check (`protocol.mjs` `parseHolocall`) now accepts a profile key (letters, digits, underscore and hyphen, up to 80):
+  before, a hyphen dropped the call information and the line would have been worded as an ordinary talk.
+- **Portrait.** Characters made in the editor have no picture, so the window shows the unknown-caller picture. A later step could
+  give them one (an atlas or a texture path set on the window's avatar image); not built.
+- **Rita Wheeler and the other roster rows** fall out of the same path (voice call, unknown-caller picture, Convai conversation).
+- **Probe line, one per call from such a row** (CET log, `[Holocall]`):
+  `no-journal call contact=<key> profile=<key> name=<name> picture=unknown-caller begin=<ok|no-hud|unknown-contact|quest-call|calling-disabled|error ...>`.
+  `begin=no-hud` with an older `Holocall.reds` (one-argument `ConvaiHolocallBegin`) is the stale-scripts signature. Whether the window
+  really shows the name and the unknown picture is read off the screen, not from a log line.
 
 ## What the game allows (research evidence)
 
@@ -116,7 +153,7 @@ and story characters are not touched.
   - `quest-call`: the game's call phase is Incoming or StartCall, the incoming-call widget exists, or
     `PhoneManager.IsPhoneCallActive()` is true
   - `calling-disabled`: `PhoneSystem.IsCallingEnabled()` is false
-  - `unknown-contact`: not an active, known journal contact
+  - `unknown-contact`: not an active, known journal contact, and no fallback name was given (see "A Chat row with no journal contact")
 - `ConvaiHolocallConnect(live)` switches the window to the audio call (or `StartHolocall` when the live
   picture is ready). It returns `audiocall`, `holocall`, `pending` (the window is still spawning) or
   `ended`.
@@ -473,6 +510,7 @@ Needs a full game restart (redscript).
 
 ```
 requested contact=<id>
+no-journal call contact=<key> profile=<key> name=<name> picture=unknown-caller begin=<result>    (a Chat row with no journal contact only)
 state=dialing contact=<id> profile=<key> mode=audio|holo cast=video|voice hud=ok
 holo spawn contact=<id> record=<record> floor=+<m>m away=<m>m yaw=<deg> lens=<m>m        (live picture only)
 holo ready contact=<id> held=yes camera=on animated=true|false look=true|false drift=<m> lights=<n>/3 (live picture only)
@@ -515,6 +553,10 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
   night, a spot inside a building), how often a near floor exists there, other characters and heights in the framing,
   and a call placed by the player from the Chat tab rather than by the probe.
 - What happens when a real quest call arrives during a mod call: the preempt path.
+- **(feat/custom-calls, never run in the game)** A call to a character the player made, and to Rita Wheeler, from the Chat tab: that the
+  window shows her name (not an empty or wrong one) and the unknown-caller picture, that the voice call connects and she answers in her
+  voice, that hanging up (phone button) shows the end animation and leaves nothing behind, that Convai answering gives the refusal
+  line, and that a null `m_CurrentPhoneCallContact` raises no script error in `redscript.log` during the call (checklist in TODO.md).
 
 ## Files
 
@@ -523,6 +565,6 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 - `mod/holocall.lua` (new)
 - `mod/init.lua`, `speech.lua`, `continuous-speech.lua`, `subtitles.lua`, `manager.lua`, `manager-ui.lua`,
   `notices.lua`
-- `bridge/protocol.mjs`, `turn-context.mjs`, `mistral-prompt.mjs`
+- `bridge/protocol.mjs` (`parseHolocall` accepts a profile key as contact since 2026-10-27), `turn-context.mjs`, `mistral-prompt.mjs`
 - Tests: `bridge/holocall.test.mjs` covers the protocol, the turn context, static checks on the reds,
   and the Lua state machine in fengari.

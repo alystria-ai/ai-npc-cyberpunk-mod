@@ -74,11 +74,13 @@ public final func ConvaiHolocallTakeRequest() -> String {
 }
 
 // "ok", or why the call cannot start: "no-hud", "quest-call", "calling-disabled", "unknown-contact".
+// `name` is for a Chat row the journal has no contact for (a character the player made, Rita Wheeler and the rest of the roster): the
+// call window then shows that name and the game's unknown-caller picture. Empty for a journal contact, which must be found in the journal.
 @addMethod(PlayerPuppet)
-public final func ConvaiHolocallBegin(contact: String) -> String {
+public final func ConvaiHolocallBegin(contact: String, name: String) -> String {
     let hud = this.m_convaiHolocallHud;
     if !IsDefined(hud) { return "no-hud"; };
-    return hud.ConvaiCallBegin(contact);
+    return hud.ConvaiCallBegin(contact, name);
 }
 
 // "audiocall" / "holocall" once the window shows the connected call, "pending" while the window is still being
@@ -119,8 +121,13 @@ public final func ConvaiHolocallActive() -> Bool {
 
 @addField(NewHudPhoneGameController)
 private let m_convaiCallActive: Bool;
+// The journal contact of the call, empty for a Chat row with none. What the window shows is kept below, read once when the call starts.
 @addField(NewHudPhoneGameController)
 private let m_convaiCallContact: wref<JournalContact>;
+@addField(NewHudPhoneGameController)
+private let m_convaiCallAvatar: TweakDBID;
+@addField(NewHudPhoneGameController)
+private let m_convaiCallName: String;
 @addField(NewHudPhoneGameController)
 private let m_convaiCallWanted: EHudPhoneFunction;
 @addField(NewHudPhoneGameController)
@@ -177,12 +184,21 @@ private final func ConvaiCallGameBusy() -> Bool {
 }
 
 @addMethod(NewHudPhoneGameController)
-public final func ConvaiCallBegin(id: String) -> String {
+public final func ConvaiCallBegin(id: String, fallbackName: String) -> String {
     if this.ConvaiCallGameBusy() { return "quest-call"; };
     // A quest that blocks calls (or the phone being disabled) blocks this call too.
     if !IsDefined(this.m_PhoneSystem) || !this.m_PhoneSystem.IsCallingEnabled() { return "calling-disabled"; };
     let contact = this.ConvaiCallFindContact(id);
-    if !IsDefined(contact) { return "unknown-contact"; };
+    if !IsDefined(contact) && StrLen(fallbackName) == 0 { return "unknown-contact"; };
+    if IsDefined(contact) {
+        this.m_convaiCallAvatar = contact.GetAvatarID(this.m_journalMgr);
+        this.m_convaiCallName = contact.GetLocalizedName(this.m_journalMgr);
+    } else {
+        // No journal contact: her own name and the game's unknown-caller picture (an empty id, as the Chat tab's open conversation shows
+        // for her). The call window takes an avatar id and a name, never a journal entry.
+        this.m_convaiCallAvatar = t"";
+        this.m_convaiCallName = fallbackName;
+    };
     this.m_convaiCallActive = true;
     this.m_convaiCallPreempted = false;
     this.m_convaiCallPressed = false;
@@ -222,21 +238,21 @@ public final func ConvaiCallEnd() -> Void {
         // The game's call owns the window now; it closes it itself when that call ends.
         this.m_convaiCallPreempted = false;
         this.m_convaiCallContact = null;
+        this.m_convaiCallName = "";
         return;
     };
     this.m_audioSystem.Play(ringing ? n"ui_phone_initiation_call_stop" : n"ui_phone_incoming_call_stop");
     if IsDefined(this.holoAudioCallElement.request) && !IsDefined(this.holoAudioCallElement.widget) {
         this.holoAudioCallElement.request.Cancel();
     };
-    if IsDefined(this.m_holoAudioCallLogicController) && IsDefined(this.m_convaiCallContact) {
-        let avatar = this.m_convaiCallContact.GetAvatarID(this.m_journalMgr);
-        let name = this.m_convaiCallContact.GetLocalizedName(this.m_journalMgr);
+    if IsDefined(this.m_holoAudioCallLogicController) {
         this.m_CurrentFunction = EHudPhoneFunction.Inactive;
         this.m_holoAudioCallLogicController.ConvaiHolocallBacking(false);
         // Disconnecting, then the window hides and OnHoloAudioCallFinished removes it, as after a game call.
-        this.m_holoAudioCallLogicController.ShowEndCallContact(avatar, name);
+        this.m_holoAudioCallLogicController.ShowEndCallContact(this.m_convaiCallAvatar, this.m_convaiCallName);
     };
     this.m_convaiCallContact = null;
+    this.m_convaiCallName = "";
 }
 
 // Bring the call window to the wanted state: spawn it when it does not exist (OnHoloAudioCallSpawned below finishes),
@@ -246,7 +262,7 @@ public final func ConvaiCallEnd() -> Void {
 // whatever the game's holocall camera films (mod/holocall.lua places and switches it on before asking for this).
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiCallShow() -> Void {
-    if !this.m_convaiCallActive || this.m_convaiCallPreempted || !IsDefined(this.m_convaiCallContact) { return; };
+    if !this.m_convaiCallActive || this.m_convaiCallPreempted { return; };
     if !IsDefined(this.m_holoAudioCallLogicController) {
         if !IsDefined(this.holoAudioCallElement.request) && !IsDefined(this.holoAudioCallElement.widget) {
             this.holoAudioCallElement.request = this.AsyncSpawnFromLocal(inkWidgetRef.Get(this.holoAudioCallElement.slot),
@@ -256,8 +272,8 @@ private final func ConvaiCallShow() -> Void {
     };
     this.m_CurrentPhoneCallContact = this.m_convaiCallContact;
     if Equals(this.m_CurrentFunction, this.m_convaiCallWanted) { return; };
-    let avatar = this.m_convaiCallContact.GetAvatarID(this.m_journalMgr);
-    let name = this.m_convaiCallContact.GetLocalizedName(this.m_journalMgr);
+    let avatar = this.m_convaiCallAvatar;
+    let name = this.m_convaiCallName;
     switch this.m_convaiCallWanted {
         case EHudPhoneFunction.IncomingCall:
             // As the game's UpdateHoloAudioCall does for a ringing call.

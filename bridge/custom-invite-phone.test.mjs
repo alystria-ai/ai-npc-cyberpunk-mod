@@ -261,3 +261,102 @@ test('the bridge: the phone reply hook sends a custom key through the text provi
   assert.match(bridge, /async function customPhoneReply\(options\) \{[\s\S]*?!mistral\.active\)[\s\S]*?code: 'custom-provider'[\s\S]*?intrinsicConversationContext\.blocks\(input\)[\s\S]*?mistralHost\.reply\(\{text: input\.text, context: joinedContext\(blocks\), contextParts: contextPartsOf\(blocks\),\s*local: \{profileKey: input\.profileKey, name: profile\.name, channel: 'phone'\}\}, \{signal: options\.signal\}\)/);
   assert.match(bridge, /profileFor: contact => \{ const profile = phone\.profileFor\(contact\); return customCharacters\.has\(profile\) \? undefined : profile; \}/, 'no Convai warm-up for them');
 });
+
+// ---- a call to one of them (docs/HOLOCALL.md, "A Chat row with no journal contact") -----------------------------------------------------------------------------------------
+
+const callWiring = (() => {
+  const start = initSource.indexOf("-- Holocalls (mod/holocall.lua, docs/HOLOCALL.md). These run on the call's own 0.25 s tick");
+  const match = /\r?\nend\r?\n/.exec(initSource.slice(start));
+  assert(start >= 0 && match, 'init.lua no longer has the holocall wiring block');
+  return initSource.slice(start, start + match.index + match[0].length);
+})();
+
+test('init.lua: the call key on a Chat row with no journal contact rings her by name, under Mistral, Local AI or Custom, and is refused under Convai', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const program = `
+    local files = {['phone-contacts.json'] = 'x'}
+    json = {decode = function(raw) if raw == 'x' then return {{contact = 'judy', key = 'judy-alvarez', name = 'Judy Alvarez', record = 'Character.Judy'}} end return raw end, encode = function(v) return v end}
+    local written = {}
+    io.open = function(path, mode)
+      if mode == 'rb' then
+        if files[path] then return {read = function() return files[path] end, close = function() return true end} end
+        return nil
+      end
+      return {write = function(_, value) written[path] = value; return true end, close = function() return true end}
+    end
+    os.rename, os.remove = function() return true end, function() return true end
+    NewObject = function() return {} end
+    os.time = function() return 100 end
+    local notices = {}
+    convaiNotices = {send = function(_, id, text) notices[#notices + 1] = {id = id, text = text}; return true end}
+    convaiUiLocale = {revision = function() return 1 end, t = function(text) return text end}
+    function dofile(path) if path == 'ui-locale.lua' then return convaiUiLocale end error('no ' .. path) end
+    local holocallModule = (function() ${read('holocall.lua')} end)()
+    convaiHolocall = holocallModule
+    local chat = (function() ${read('phone-chat.lua')} end)()
+    convaiPhoneChat = chat
+    chat.configure({{key = 'judy-alvarez', name = 'Judy Alvarez', kind = 'named'}, {key = 'rita-wheeler', name = 'Rita Wheeler', kind = 'named'},
+      {key = 'johnny-silverhand', name = 'Johnny', kind = 'named'}}, {profileEnabled = function() return true end},
+      {captureBinding = function() return {version = 1, status = 'unavailable', generation = 1} end})
+    chat.setContacts('custom', {{key = 'custom-ana-aaaa', name = 'Ana'}, {key = 'custom-byname-bbbb', name = 'Byname'}})
+    -- The wiring of init.lua's custom block (tested above) and the strict fakes the holocall block uses.
+    local provider = true
+    chat.contactBlocked = function(key) return key:find('^custom%-') ~= nil and not provider end
+    local supportedProfiles = {['judy-alvarez'] = true, ['rita-wheeler'] = true, ['johnny-silverhand'] = true, ['custom-ana-aaaa'] = true, ['custom-byname-bbbb'] = true}
+    local manager = {profileEnabled = function(key) return key ~= 'custom-byname-bbbb' end}
+    local logs, warmed, generation = {}, {}, 0
+    local function log(line) logs[#logs + 1] = line end
+    local function warmConversation(_, key) warmed[#warmed + 1] = key end
+    local autoConnect = {ready = function() return true end}
+    local active, pending, microphone, speech, requestFileId = nil, nil, {}, {}, nil
+    local function cancelVoice() end
+    local subtitles = {clear = function() end}
+    ${callWiring}
+    -- The game: one player with the native methods Holocall.reds adds.
+    local began = {}
+    local player = {}
+    function player:GetEntityID() return {hash = '7ULL'} end
+    function player:ConvaiHolocallTakeEvent() return '' end
+    function player:ConvaiHolocallBegin(contact, name) began[#began + 1] = {contact, name}; return 'ok' end
+    function player:ConvaiHolocallConnect() return 'audiocall' end
+    function player:ConvaiHolocallEnd() end
+    function player:ConvaiHolocallHasBacking() return true end
+    local requests = {}
+    function player:ConvaiHolocallTakeRequest() return table.remove(requests, 1) or '' end
+    local open = {available = true, combat = false, tier = 1, dialogue = false, choices = false, call = false, replacer = false}
+    local function ask(contact) requests[1] = contact; holocallModule.drain(player); holocallModule.update(player, 0.1, true, open) end
+    local function tick(seconds) for _ = 1, math.floor(seconds * 10) do holocallModule.update(player, 0.1, true, open) end end
+
+    -- A character the player made: rung by her name, the profile is her key, the voice call is on after the ring.
+    ask('custom-ana-aaaa')
+    assert(#began == 1 and began[1][1] == 'custom-ana-aaaa' and began[1][2] == 'Ana', 'the window gets her name')
+    assert(holocallModule.call.key == 'custom-ana-aaaa' and holocallModule.call.cast == 'voice' and warmed[1] == 'custom-ana-aaaa')
+    tick(2)
+    assert(holocallModule.connected() and holocallModule.partner(player, false).profileKey == 'custom-ana-aaaa')
+    local found = false
+    for _, line in ipairs(logs) do if line:find('[Holocall] no-journal call contact=custom-ana-aaaa profile=custom-ana-aaaa name=Ana picture=unknown-caller begin=ok', 1, true) then found = true end end
+    assert(found, 'the one probe line is in the log')
+    holocallModule.finish(player, 'hangup')
+    -- Rita Wheeler (a roster character with no journal contact) rings too, by her name.
+    ask('rita-wheeler'); assert(began[2][1] == 'rita-wheeler' and began[2][2] == 'Rita Wheeler' and holocallModule.call.key == 'rita-wheeler')
+    holocallModule.finish(player, 'hangup')
+    -- Convai answers: a character the player made is refused with the Chat's line, and nothing rings; Rita is not held back.
+    provider = false
+    ask('custom-ana-aaaa')
+    assert(holocallModule.call == nil and #began == 2 and notices[#notices].text == 'This character needs Mistral, Local AI or Custom to answer.')
+    ask('rita-wheeler'); assert(holocallModule.call ~= nil and #began == 3)
+    holocallModule.finish(player, 'hangup')
+    provider = true
+    -- Disabled in the manager, Johnny, a shipped phone contact with no journal row of its own, and an id nobody has: refused.
+    ask('custom-byname-bbbb'); assert(holocallModule.call == nil and #began == 3)
+    ask('johnny-silverhand'); assert(holocallModule.call == nil and #began == 3)
+    ask('custom-gone-zzzz'); assert(holocallModule.call == nil and #began == 3)
+    -- A journal contact is still found in the journal: no fallback name goes with it.
+    ask('judy'); assert(#began == 4 and began[4][1] == 'judy' and began[4][2] == '')
+  `;
+  const status = lauxlib.luaL_dostring(state, to_luastring(program));
+  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  const line = Number(/\]:(\d+):/.exec(error)?.[1]);
+  lua.lua_close(state);
+  assert.equal(status, lua.LUA_OK, error + (line ? '\n' + program.split('\n')[line - 1] : ''));
+});

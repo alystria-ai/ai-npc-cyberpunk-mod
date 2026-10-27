@@ -179,12 +179,14 @@ local game = {begin = 'ok', window = 'audiocall', events = {}, requests = {}, en
 local player = {}
 function player:GetEntityID() return {hash = '7ULL'} end
 function player:ConvaiHolocallTakeRequest() return table.remove(game.requests, 1) or '' end
-function player:ConvaiHolocallBegin(contact) game.began = contact; return game.begin end
+function player:ConvaiHolocallBegin(contact, name) game.began = contact; game.beganName = name; game.beganCalls = (game.beganCalls or 0) + 1; return game.begin end
 function player:ConvaiHolocallConnect(live) game.connects[#game.connects + 1] = live; return game.window end
 function player:ConvaiHolocallEnd() game.ends = game.ends + 1 end
 function player:ConvaiHolocallTakeEvent() return table.remove(game.events, 1) or '' end
 function player:ConvaiHolocallHasBacking() if game.noBacking then error('no such method') end return game.backing ~= false end
-local enabled, busy, live = {['judy-alvarez'] = true, ['johnny-silverhand'] = true}, false, false
+local enabled, busy, live = {['judy-alvarez'] = true, ['johnny-silverhand'] = true, ['custom-ana-aaaa'] = true, ['rita-wheeler'] = true}, false, false
+-- Chat rows the journal has no contact for (contact id = profile key), and the keys whose answers need a provider that is off.
+local chatRows, needsProvider = {}, {}
 -- The bridge's readiness of each character's conversation (nil: every one is ready).
 local readyKeys = nil
 local open = {available = true, combat = false, tier = 1, dialogue = false, choices = false, call = false, replacer = false}
@@ -199,7 +201,9 @@ holocall.configure({
     {contact = 'johnny', key = 'johnny-silverhand', name = 'Johnny', record = 'Character.Johnny'},
     {contact = 'silver', key = 'judy-alvarez', name = 'Copy', record = 'Character.Silverhand_Default'},
     {contact = 'bad', key = 'Bad Key', name = 'Bad'}} end,
-  supported = function(key) return key == 'judy-alvarez' or key == 'johnny-silverhand' end,
+  supported = function(key) return key == 'judy-alvarez' or key == 'johnny-silverhand' or key == 'custom-ana-aaaa' or key == 'rita-wheeler' end,
+  chatRow = function(contact) return chatRows[contact] end,
+  blocked = function(key) return needsProvider[key] == true end,
   profileEnabled = function(key) return enabled[key] == true end,
   warm = function(key, entity) warmed[#warmed + 1] = key .. '@' .. tostring(entity) end,
   liveImage = function() return live end,
@@ -693,4 +697,99 @@ test("the staged list names only the mod's own phone contacts with a character r
   // Nothing per frame: the module is driven from the 0.1 s tick only while something is due, and the camera delete waits.
   const init = read('../mod/init.lua');
   assert.match(init, /if holocall and \(holocall\.call or holocall\.request or holocall\.lenses\) then/);
+});
+
+// ---------------------------------------------------------------- a Chat row with no journal contact (a character the player made, Rita and the roster)
+test('a Chat row with no journal contact rings, connects and routes the talk keys to her profile, shown by her own name', () => run(`
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana'}
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); holocall.update(player, 0.1, true, open)
+  assert(game.began == 'custom-ana-aaaa' and game.beganName == 'Ana', 'the window is told her name: ' .. tostring(game.beganName))
+  assert(logged('no%-journal call contact=custom%-ana%-aaaa profile=custom%-ana%-aaaa name=Ana picture=unknown%-caller begin=ok'), tostring(logs[#logs]))
+  assert(logged('state=dialing contact=custom%-ana%-aaaa profile=custom%-ana%-aaaa mode=audio cast=voice hud=ok'), 'a voice call: no game holocall setup')
+  assert(warmed[1] == 'custom-ana-aaaa@7ULL')
+  tick(1.6)
+  assert(holocall.connected() and game.connects[1] == false and #notices == 0 and #game.connects == 1)
+  local caller = holocall.partner(player, false)
+  assert(caller.npc == player and caller.profileKey == 'custom-ana-aaaa' and caller.name == 'Ana' and caller.voiceOnly == true)
+  assert(caller.holocall.version == 1 and caller.holocall.contact == 'custom-ana-aaaa' and caller.holocall.mode == 'audio')
+  assert(holocall.partnerValid({entity = '7ULL', holocall = {contact = 'custom-ana-aaaa', mode = 'audio'}}))
+  game.events = {'hangup'}; tick(0.3)
+  assert(holocall.call == nil and ended[1] == 'custom-ana-aaaa:hangup' and game.ends == 1)
+  -- Calling her again hangs up, as for any contact.
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); tick(2); assert(holocall.connected())
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); tick(0.1)
+  assert(holocall.call == nil and ended[2] == 'custom-ana-aaaa:replaced')
+`));
+
+test('a catalogue contact is never given a fallback name: the journal must know her; Rita Wheeler and the roster call by name', () => run(`
+  game.requests = {'judy'}; holocall.drain(player); holocall.update(player, 0.1, true, open)
+  assert(game.began == 'judy' and game.beganName == '', 'a journal contact is looked up in the journal, with no fallback name')
+  assert(not logged('no%-journal call'), 'no probe line for a journal contact')
+  holocall.finish(player, 'hangup')
+  chatRows['rita-wheeler'] = {key = 'rita-wheeler', name = 'Rita Wheeler'}
+  game.requests = {'rita-wheeler'}; holocall.drain(player); tick(2)
+  assert(game.beganName == 'Rita Wheeler' and holocall.connected() and holocall.call.cast == 'voice')
+  assert(holocall.partner(player, false).profileKey == 'rita-wheeler')
+`));
+
+test('a Chat row is refused for Johnny, an unsupported or disabled profile, a bad key, a missing row, and a provider that is off', () => run(`
+  local function ask(contact) game.requests = {contact}; holocall.drain(player); holocall.update(player, 0.1, true, open) end
+  ask('nobody'); assert(holocall.call == nil and logged('refused contact=nobody reason=not%-a%-mod%-character') and game.beganCalls == nil)
+  chatRows['johnny-silverhand'] = {key = 'johnny-silverhand', name = 'Johnny'}
+  ask('johnny-silverhand'); assert(holocall.call == nil and game.beganCalls == nil, 'Johnny is never called, whatever the row says')
+  chatRows['Bad Key'] = {key = 'Bad Key', name = 'x'}; ask('Bad Key'); assert(holocall.call == nil and game.beganCalls == nil)
+  chatRows['custom-gone-zzzz'] = {key = 'custom-gone-zzzz', name = 'Gone'}
+  ask('custom-gone-zzzz'); assert(holocall.call == nil and logged('refused contact=custom%-gone%-zzzz reason=no%-profile') and game.beganCalls == nil)
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana'}
+  enabled['custom-ana-aaaa'] = false; ask('custom-ana-aaaa')
+  assert(holocall.call == nil and lastNotice().text == 'Conversations are disabled for this contact.' and game.beganCalls == nil)
+  enabled['custom-ana-aaaa'] = true
+  -- Convai is answering: the call is refused with the Chat's own line, before anything rings or warms.
+  needsProvider['custom-ana-aaaa'] = true; ask('custom-ana-aaaa')
+  assert(holocall.call == nil and logged('refused contact=custom%-ana%-aaaa reason=needs%-provider'), tostring(logs[#logs]))
+  assert(lastNotice().id == 'holocall-refused' and lastNotice().text == 'This character needs Mistral, Local AI or Custom to answer.')
+  assert(game.beganCalls == nil and #warmed == 0 and game.ends == 0)
+  needsProvider['custom-ana-aaaa'] = nil; ask('custom-ana-aaaa'); assert(holocall.call ~= nil and game.beganCalls == 1, 'then it rings')
+`));
+
+test('a row the scripts cannot show (an older Holocall.reds without the two-argument call, or a window that says no) is refused with a probe line, not a crash', () => run(`
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana'}
+  function player:ConvaiHolocallBegin() error('wrong number of arguments') end
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); holocall.update(player, 0.1, true, open)
+  assert(holocall.call == nil and logged('no%-journal call contact=custom%-ana%-aaaa .*begin=error') and logged('refused contact=custom%-ana%-aaaa reason=no%-hud'), tostring(logs[#logs]))
+  assert(lastNotice().text == 'Calls are not available right now.' and #warmed == 0)
+  function player:ConvaiHolocallBegin() return 'unknown-contact' end
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); holocall.update(player, 0.1, true, open)
+  assert(holocall.call == nil and logged('no%-journal call .*begin=unknown%-contact') and lastNotice().text == 'This contact cannot take a holocall.')
+`));
+
+test('Holocall.reds: a Chat row with no journal contact is shown by her name and the unknown-caller picture; the window never needs a journal entry', () => {
+  const code = reds.split('\n').filter(line => !line.trim().startsWith('//')).join('\n');
+  assert.match(code, /public final func ConvaiHolocallBegin\(contact: String, name: String\) -> String \{[^]*?return hud\.ConvaiCallBegin\(contact, name\);/);
+  const begin = /public final func ConvaiCallBegin\(id: String, fallbackName: String\) -> String \{([^]*?)\n\}/.exec(code)[1];
+  // A journal contact must still be found when no name is given; with a name, the row has no journal entry and gets the empty avatar id (the unknown caller).
+  assert.match(begin, /if !IsDefined\(contact\) && StrLen\(fallbackName\) == 0 \{ return "unknown-contact"; \};/);
+  assert.match(begin, /this\.m_convaiCallAvatar = contact\.GetAvatarID\(this\.m_journalMgr\);\s*this\.m_convaiCallName = contact\.GetLocalizedName\(this\.m_journalMgr\);/);
+  assert.match(begin, /this\.m_convaiCallAvatar = t"";\s*this\.m_convaiCallName = fallbackName;/);
+  // Show and End use what was kept, not the (possibly empty) contact.
+  const show = /private final func ConvaiCallShow\(\) -> Void \{([^]*?)\n\}/.exec(code)[1];
+  assert.doesNotMatch(show, /m_convaiCallContact\.Get|IsDefined\(this\.m_convaiCallContact\)/);
+  assert.match(show, /let avatar = this\.m_convaiCallAvatar;\s*let name = this\.m_convaiCallName;/);
+  const end = /public final func ConvaiCallEnd\(\) -> Void \{([^]*?)\n\}/.exec(code)[1];
+  assert.match(end, /ShowEndCallContact\(this\.m_convaiCallAvatar, this\.m_convaiCallName\)/);
+  assert.doesNotMatch(end, /m_convaiCallContact\.Get/);
+  // The empty-id picture is the one the Chat tab's own open conversation uses for her.
+  assert.match(read('../r6/scripts/CyberpunkConvai/PhoneChat.reds'), /RequestAvatarOrUnknown\(this, this\.m_avatarImage, t""\)/);
+});
+
+test('the bridge accepts a profile key as the call contact (a Chat row with no journal contact has no other id)', () => {
+  assert.deepEqual(parseHolocall({version: 1, contact: 'custom-ana-aaaa', mode: 'audio'}), {contact: 'custom-ana-aaaa', mode: 'audio'});
+  assert.deepEqual(parseHolocall({version: 1, contact: 'rita-wheeler', mode: 'holo'}), {contact: 'rita-wheeler', mode: 'holo'});
+  for (const bad of ['', 'a'.repeat(81), 'custom ana', 'custom;ana', 'custom/../x', 'ana\n']) {
+    assert.equal(parseHolocall({version: 1, contact: bad, mode: 'audio'}), null, JSON.stringify(bad));
+  }
+  const input = parseInput(JSON.stringify(turn({profileKey: 'custom-ana-aaaa', holocall: {version: 1, contact: 'custom-ana-aaaa', mode: 'audio'}})));
+  assert.deepEqual(input.holocall, {contact: 'custom-ana-aaaa', mode: 'audio'}, 'the call line reaches the custom turn with its call wording');
+  const text = turnContext(turn({profileKey: 'custom-ana-aaaa', holocall: {contact: 'custom-ana-aaaa', mode: 'audio'}, turnContext: scene()}));
+  assert.match(text, /You are on a voice call with V on the phone/);
 });

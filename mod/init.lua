@@ -3556,6 +3556,13 @@ if convaiHolocall then
         warm = function(key, entity) generation = generation + 1; warmConversation(nil, key, entity) end,
         -- The caller's conversation is ready: the same check as the "Preparing connection" notice (mod/auto-connect.lua).
         ready = function(key) return autoConnect == nil or autoConnect.ready(key) end,
+        -- A Chat row the journal has no contact for (a character the player made, Rita Wheeler and the roster) can be called too: the window shows
+        -- her name and the unknown-caller picture. A character the player made needs Mistral, Local AI or Custom, as her Chat does.
+        chatRow = function(contact) return convaiPhoneChat and convaiPhoneChat.callRow(contact) or nil end,
+        blocked = function(key)
+            local chat = convaiPhoneChat
+            return chat ~= nil and type(chat.contactBlocked) == 'function' and chat.contactBlocked(key) == true
+        end,
         liveImage = function() return true end,   -- always on (the setting was removed 2026-10-20); the call still goes on with the portrait when the picture cannot be shown
         -- A turn with the caller is being typed, recorded, answered or spoken: the call is not idle.
         busy = function()

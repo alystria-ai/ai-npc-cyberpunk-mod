@@ -437,6 +437,13 @@ local function customNeedsProvider(key)
     local ok, blocked = pcall(M.contactBlocked, key)
     return ok and blocked == true
 end
+-- A Chat row the journal has no contact for, as {key, name} (its contact id is its profile key, and only such rows carry a name), or nil. Asked when
+-- a holocall is started from the row (mod/holocall.lua), never per frame.
+function M.callRow(contact)
+    local key, name = M.catalog[contact], M.names[contact]
+    if type(key) ~= 'string' or type(name) ~= 'string' or name == '' then return nil end
+    return {key = key, name = name}
+end
 function M.setContacts(group, rows)
     M.groups[group] = type(rows) == 'table' and rows or nil
     rebuildContacts()
