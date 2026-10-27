@@ -107,41 +107,66 @@ unless a file is named.
 
 ### What the reader does (`mod/player-gear.lua`, `Instance:wardrobe`)
 
-On demand behind the 5 s snapshot, about 35 native calls, nothing per frame. Order of the clothing: an active Equipment-EX outfit, then this, then the equipped inventory.
+On demand behind the 5 s snapshot, about 50 native calls, nothing per frame. Order of the clothing: an active Equipment-EX outfit, then this, then the equipped inventory.
+
+**CET call shapes** (fifth version, after the live run of 26 Oct 18:40 IST failed with `Function 'GetWardrobeSystem' requires 0 parameter(s)`): a function that takes the game instance in
+the scripts (`GameInstance.GetXSystem(game)`) is called WITHOUT it, as `Game.GetXSystem()` (the form the rest of the mod uses) or `GameInstance.GetXSystem()`; instance methods use a colon;
+static functions of a class pass exactly their declared parameters (`EquipmentSystem.GetActiveWardrobeSetID(player)`, `ScriptedPuppet.GetActiveWeapon(player)`). The test fakes now refuse
+a wrong parameter count and a colon/dot mix-up the way CET does. Proven live (they answered on 26 Oct): `Game.GetWardrobeSystem()`, `:GetActiveClothingSetIndex()`, `:GetClothingSets()`,
+`data:IsVisualSetActive()`, `data:GetActiveWardrobeSet()`, `data:GetSlotOverridenVisualItem(area)`, static `EquipmentSystem.GetActiveWardrobeSetID(player)`. Not yet proven (each is named in the
+facts line if it fails): `data:GetVisualItemInSlot(area)` with one argument although the script declares two optional ones, `data:IsSlotHidden(area)`, `data:IsClothingVisualsInfoEmpty()`,
+`Game.GetTransactionSystem():GetItemInSlot(player, TweakDBID)`, the `data.m_clothingVisualsInfo` field. Before this version a failure of `N.visual`, the area enums, `ItemID.IsValid`, a
+name lookup and the row fields was swallowed without a trace; they are all recorded now, and a field that reads as nil is a failure, not an empty list (`rows=0/0/0` on 26 Oct could not
+tell "no rows" from "the binding gives nothing").
 
 1. `IsWardrobeEnabled()` false: no outfit (a quest has disabled the Wardrobe; the set is unequipped then).
 2. **Is a set active**: `data:IsVisualSetActive()` and the active index through every route (`Game.GetWardrobeSystem():GetActiveClothingSetIndex()`,
-   `GameInstance.GetWardrobeSystem(V:GetGame())`, static `EquipmentSystem.GetActiveWardrobeSetID(V)`). Active when the flag is true or any index is not `INVALID`.
-3. **Source `paperdoll`** (only while active): per area except Outfit, `GetVisualItemInSlot(area)` and `IsSlotHidden(area)`. An item replaces the equipped item, a hidden flag leaves
-   the slot empty, neither keeps the equipped item. Taken when it found an item or a hidden flag.
-4. **Source `set`**: the set's own contents through the route list (`data:GetActiveWardrobeSet`, `Game.GetWardrobeSystem`, `GameInstance.GetWardrobeSystem`, static
+   `GameInstance.GetWardrobeSystem():GetActiveClothingSetIndex()`, static `EquipmentSystem.GetActiveWardrobeSetID(V)`). Active when the flag is true or any index is not `INVALID`.
+3. **Probes that always run** (for the facts line): the saved set labels, `IsClothingVisualsInfoEmpty()`, the rows of `m_clothingVisualsInfo`, `GetSlotOverridenVisualItem` per area,
+   `GetVisualItemInSlot` and `IsSlotHidden` per area (even with no set active they show whether the calls work), and the attachments: for each clothing slot the item really attached to V
+   (`TransactionSystem.GetItemInSlot` of the game's own attachment slot: Torso, Chest, Legs, Feet, Head, Eyes, Outfit) against the equipped item.
+4. **Source `paperdoll`** (only while active): an item replaces the equipped item, a hidden flag leaves the slot empty, neither keeps the equipped item. Taken when it found an item or a hidden flag.
+5. **Source `set`**: the set's own contents through the route list (`data:GetActiveWardrobeSet`, `Game.GetWardrobeSystem`, `GameInstance.GetWardrobeSystem`, static
    `EquipmentSystem.GetActiveWardrobeSet`, then the saved set the index names from `GetClothingSets()`, the game's `FindWardrobeClothingSetByID`). Here an entry without an item
    hides its slot (not the Outfit area). A set without entries, or labelled `INVALID`, is "no set".
-5. **Source `visuals`**: `data.m_clothingVisualsInfo`, then `GetSlotOverridenVisualItem(area)` per clothing area. A row with an item replaces the slot's clothes, `isHidden`
-   leaves it empty, a row with neither changes nothing.
-6. Nothing placed: the equipment as before. A fault inside the reader itself is contained and logged (`wardrobe outfit=error(reader: ...)`), the gear line still goes out.
+6. **Source `visuals`**: the rows, then the getter. A row with an item replaces the slot's clothes, `isHidden` leaves it empty, a row with neither changes nothing.
+7. **Source `attached`**: a slot whose attached item is not the equipped one (a preview item shown in an empty slot) and whose record belongs to that area is named by its own record. Equal items,
+   an empty slot, or an item of another area (underwear in the chest slot) change nothing.
+8. Nothing placed: the equipment as before. A fault inside the reader itself is contained and logged (`wardrobe outfit=error(reader: ...)`), the gear line still goes out.
+
+### Refresh
+
+The snapshot is read again on the first turn at least 5 s after the last read (`MAX_AGE`); a turn inside the window gets the cached one. `Player gear: N items` is written on every real read,
+so it proves the read ran (on 26 Oct it did run after the outfit change: 11 items before, 12 after). The facts line only appears when something in it changed, which is why it did not repeat
+(the game read the same every time). To see the effect of an outfit change without relying on the facts, every real read that changes what V is described as wearing also writes
+`Player gear clothing: head=..., outerTorso=...` (the names the character is given).
 
 ### Log lines (`runtime/probe.log`, once per change)
 
-- Facts, written BEFORE the answer line: `wardrobe facts enabled=<bool> active=<bool|?> idx=<Slot2|INVALID|a/b|?> stored=<Slot1,Slot2|0|?> [paper=<items>/<flagged>] [set=<label>:<entries>/<with item>]
-  rows=<rows>/<with item>/<hidden> getter=<areas with an override> [ferr=<call>: <message>; ...]`. `?` means that read failed (the message is in `ferr`). `idx=a/b` means the routes disagree.
-  `stored=0` means the player has no saved set at all. `paper` and `set` appear only when that source ran (the first source that places something ends the read).
+- Facts, written BEFORE the answer line: `wardrobe facts enabled=<bool> active=<bool|?> idx=<Slot2|INVALID|a/b|?> stored=<Slot1,Slot2|0|?> empty=<bool|?> paper=<items>/<flagged>
+  [set=<label>:<entries>/<with item>] rows=<rows>/<with item>/<hidden>|? getter=<areas with an override>|? att=hdS,fcN,otS,itS,lgN,ftN,ofN [ferr=<call>: <message>; ...]`.
+  `?` means that read failed (the message is in `ferr`, one entry per failing call name). `idx=a/b` means the routes disagree. `stored=0` means no saved set at all. `empty` is the game's own
+  `IsClothingVisualsInfoEmpty()`: `rows=0/0/0` with `empty=false` means the field read gives nothing. `paper` counts the items the game's own per-area read returns and the slots flagged hidden
+  (with no set active that is simply the equipped items). `att` per slot (head, face, outer torso, inner torso, legs, feet, outfit): S the attached item is the equipped one, N nothing attached,
+  D a different item attached (a preview), E the read failed. `set` appears only when a set read happened.
 - Answer: `wardrobe outfit=<Slot2> items=N [hidden=K] via=paperdoll|data:GetActiveWardrobeSet|Game.GetWardrobeSystem|GameInstance.GetWardrobeSystem|EquipmentSystem.GetActiveWardrobeSet|WardrobeSystem.GetClothingSets`,
-  `wardrobe outfit=visuals items=N [hidden=K] via=m_clothingVisualsInfo|GetSlotOverridenVisualItem`, `wardrobe outfit=off`, `wardrobe outfit=off (disabled)`,
-  `wardrobe outfit=<set> items=0 unplaced=N via=<route>`, `wardrobe outfit=<set|active> items=0 unreadable` (the game says an outfit is on, nothing could be read),
+  `wardrobe outfit=visuals items=N [hidden=K] via=m_clothingVisualsInfo|GetSlotOverridenVisualItem`, `wardrobe outfit=attached items=N via=GetItemInSlot`, `wardrobe outfit=off`,
+  `wardrobe outfit=off (disabled)`, `wardrobe outfit=<set> items=0 unplaced=N via=<route>`, `wardrobe outfit=<set|active> items=0 unreadable` (the game says an outfit is on, nothing could be read),
   `wardrobe outfit=error(<call>: <message>; ...)` (every set route failed). Failures of earlier sources are appended as ` errors=<call>: <message>`.
+- `Player gear clothing: ...`: what V was described as wearing, once per change, after the answer line and before `Player gear: N items`.
 
 ### What the next live run must show
 
-Apply a saved outfit from the Wardrobe, talk to a companion, ask what V wears. `probe.log` then has two new lines before `Player gear: N items`:
+Apply a saved outfit from the Wardrobe (inventory outfit slot, or the Wardrobe device and close it), talk to a companion, ask what V wears. `probe.log` gets the facts line, the answer line,
+the clothing line and `Player gear: N items`:
 
-- Expected: `wardrobe facts enabled=true active=true idx=Slot2 stored=... paper=A/B ...` then `wardrobe outfit=Slot2 items=A hidden=B via=paperdoll`, and the answer follows the outfit (slots
-  the outfit leaves empty are not mentioned).
-- `active=false idx=INVALID stored=0` (or `stored=` without the set): the GAME reports no active set and no saved sets, so the outfit V visibly wears is not a Wardrobe set at all. Then
-  `rows=9/0/0 getter=0` confirms the overrides are empty too, and the next step is not in this reader (what produced the look: a mod, a quest, an appearance variant of an item).
-- `active=true` but `paper=0/0`, `set=INVALID:0/0` and `rows=9/0/0`: the flag and the index work but the per-area reads return nothing (answer line `items=0 unreadable`): the CET bindings for the row
-  reads are wrong, `ferr` has the message.
-- `active=?` / `idx=?` with `ferr=`: those calls do not exist from CET under that name; the `ferr` text names which.
+- Expected: `active=true idx=Slot1 ... paper=A/B`, `wardrobe outfit=Slot1 items=A hidden=B via=paperdoll`, the clothing line equal to what the screen shows.
+- `active=false idx=INVALID` again, with no `ferr`: the GAME says no set is active while the outfit is on. Then `stored=` tells whether the saved set exists, `empty=` and `rows=` whether the data
+  has its rows, and `att` / the clothing line say what is really on V: `att` with a D (a preview item attached) is picked up by the `attached` source; all S means every attached item is an equipped
+  item, so the look is an appearance change of equipped items (or the outfit is a Clo_Outfit item: the clothing line shows an `outfit=` entry). The `Player gear clothing` line is then the evidence to
+  compare with the screen, and the cause is outside this reader.
+- `rows=0/0/0` with `empty=false`, or `rows=?` with `m_clothingVisualsInfo reads as nil`: the CET binding does not give the private array; `paper`, `getter` and `att` are then the usable reads.
+- `active=?`, `idx=?` or any `?` with `ferr=`: the named call has the wrong shape or does not exist from CET (`requires N parameter(s)` gives the right count).
 - `idx=Slot2/INVALID` (disagreement) shows which route is wrong.
 
 ### Not confirmed in the game (only a live run can)
@@ -152,6 +177,7 @@ as the set's empty entry when only the `set` source answers (the `paperdoll` sou
 
 ### Earlier versions (kept for the record)
 
+- Fourth (merged in integration/0.3.3, live 26 Oct 18:40 IST): the facts line existed, but the second GameInstance route was called with the game instance (CET: requires 0 parameter(s)), the paperdoll and visual reads only ran while a set was active (so on that run `paper` never ran), `rows=0/0/0` hid a nil field, and the row-field, name and `ItemID.IsValid` faults were swallowed. The game itself answered `active=false idx=INVALID stored=Slot1` with the outfit on.
 - First: the route was `EquipmentSystem:GetActiveWardrobeSet(player)` on the system instance; that method is `static`, the call failed, and `pcall` swallowed it. The log line started as
   `wardrobe outfit=off`, so a read that found no set and a read whose calls all failed looked the same.
 - Second: every route tried and every failure reported; plus the per-slot overrides when no set placed anything (`m_clothingVisualsInfo`, `GetSlotOverridenVisualItem`). The live run of
@@ -167,7 +193,7 @@ CET reload for `mod/player-gear.lua` (new), `mod/init.lua`, `mod/group-chat.lua`
 
 `bridge/player-gear.test.mjs`: parsing and the cap, the wording and guidance line, `parseInput` and `conversationContext`
 integration, the Lua reader against a fake game (visible-over-equipped, skipped empty slots, one read per window, failures
-contained), the game's Wardrobe against a strict fake of the real call shape (instance, static and GameInstance calls, the log line for each outcome, the per-slot visual overrides by field and by getter, hidden and empty rows, set priority, failures), and a model of the game's Wardrobe state machine (WardrobeSystem index and sets, EquipWardrobeSet writing m_clothingVisualsInfo with cleared areas, GetVisualItemInSlot and IsSlotHidden as the scripts define them) for the paperdoll source, the facts line, empty entries as hidden slots, per-item transmog and the contained reader fault, and the wiring of each send path.
+contained), the game's Wardrobe against a strict fake of the real call shape (instance, static and GameInstance calls, the log line for each outcome, the per-slot visual overrides by field and by getter, hidden and empty rows, set priority, failures), and a model of the game's Wardrobe state machine (WardrobeSystem index and sets, EquipWardrobeSet writing m_clothingVisualsInfo with cleared areas, GetVisualItemInSlot and IsSlotHidden as the scripts define them) for the paperdoll source, the facts line, empty entries as hidden slots, per-item transmog and the contained reader fault. Every fake native refuses a wrong parameter count and a colon/dot mix-up like CET (the live failure was an argument CET does not take); further tests cover the facts line for every failing call, a nil field, the attachments source, and the clothing line written once per change, and the wiring of each send path.
 
 
 Only what V has on is ever listed; an empty slot is not mentioned. The guidance (and the stranger's line) also says never to remark on what V is not wearing (2026-10-25: a companion kept saying V wore no mask).

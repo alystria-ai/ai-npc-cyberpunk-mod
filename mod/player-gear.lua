@@ -63,13 +63,16 @@ local function nativeAdapter()
     -- The game's own Wardrobe (patch 2.0+, docs/PLAYER_GEAR_CONTEXT.md). Signatures and bodies read from the REDmod scripts of 2.5 (tools/redmod/scripts) and checked
     -- against the compiled final.redscripts of 2.31 and 2.5:
     -- EquipmentSystemPlayerData.GetActiveWardrobeSet() and WardrobeSystem.GetActiveClothingSet() -> ref<ClothingSet> {setID: gameWardrobeClothingSetIndex,
-    -- clothingList: array<SSlotVisualInfo {areaType: gamedataEquipmentArea, visualItem: ItemID, isHidden: Bool}>}; GameInstance.GetWardrobeSystem(game) ->
-    -- ref<WardrobeSystem>; EquipmentSystemPlayerData.IsWardrobeEnabled() -> Bool; EquipmentSystem.GetActiveWardrobeSet(player) is STATIC.
+    -- clothingList: array<SSlotVisualInfo {areaType: gamedataEquipmentArea, visualItem: ItemID, isHidden: Bool}>}; EquipmentSystemPlayerData.IsWardrobeEnabled() -> Bool;
+    -- EquipmentSystem.GetActiveWardrobeSet(player) is STATIC.
+    -- CET call shapes (live 2026-10-26: "Function 'GetWardrobeSystem' requires 0 parameter(s)"): a GameInstance function takes the game instance IMPLICITLY, so it is
+    -- Game.GetWardrobeSystem() or GameInstance.GetWardrobeSystem() with no argument, never GameInstance.GetWardrobeSystem(game); instance methods use a colon, static
+    -- functions of a class (EquipmentSystem.GetActiveWardrobeSet(player), ScriptedPuppet.GetActiveWeapon(player)) pass exactly the declared parameters.
     -- Routes are tried in order until one returns a set; each failure is reported (its name and message), never swallowed.
     N.wardrobeRoutes = {
         {'data:GetActiveWardrobeSet', function(_, data) return data:GetActiveWardrobeSet() end},
         {'Game.GetWardrobeSystem', function() return Game.GetWardrobeSystem():GetActiveClothingSet() end},
-        {'GameInstance.GetWardrobeSystem', function(player) return GameInstance.GetWardrobeSystem(player:GetGame()):GetActiveClothingSet() end},
+        {'GameInstance.GetWardrobeSystem', function() return GameInstance.GetWardrobeSystem():GetActiveClothingSet() end},
         {'EquipmentSystem.GetActiveWardrobeSet', function(player) return EquipmentSystem.GetActiveWardrobeSet(player) end},
         -- The saved set the active index names (the game's own FindWardrobeClothingSetByID), when the routes above hand back nothing for it.
         {'WardrobeSystem.GetClothingSets', function(player, _, label) return N.storedSet(player, label) end, true}}
@@ -81,23 +84,23 @@ local function nativeAdapter()
     function N.slotHidden(data, areaName) return data:IsSlotHidden(Enum.new('gamedataEquipmentArea', areaName)) end
     -- The native WardrobeSystem holds the active set index and the saved sets (GameInstance.GetWardrobeSystem; GetActiveClothingSetIndex() -> gameWardrobeClothingSetIndex,
     -- Slot1..Slot7 or INVALID). Read by every route that exists, so a facts line shows which ones answer and whether they agree.
-    local function wardrobeSystem(player)
+    local function wardrobeSystem()
         local ok, system = pcall(function() return Game.GetWardrobeSystem() end)
         if ok and system ~= nil then return system end
-        return GameInstance.GetWardrobeSystem(player:GetGame())
+        return GameInstance.GetWardrobeSystem()
     end
     N.activeIndexRoutes = {
         {'Game.GetWardrobeSystem', function() return Game.GetWardrobeSystem():GetActiveClothingSetIndex() end},
-        {'GameInstance.GetWardrobeSystem', function(player) return GameInstance.GetWardrobeSystem(player:GetGame()):GetActiveClothingSetIndex() end},
+        {'GameInstance.GetWardrobeSystem', function() return GameInstance.GetWardrobeSystem():GetActiveClothingSetIndex() end},
         {'EquipmentSystem.GetActiveWardrobeSetID', function(player) return EquipmentSystem.GetActiveWardrobeSetID(player) end}}
     -- The labels of the saved sets ('Slot1', ...), and the one with a given label: the game's own lookup (FindWardrobeClothingSetByID) over GetClothingSets().
     function N.storedSetLabels(player)
         local labels = {}
-        for _, stored in ipairs(wardrobeSystem(player):GetClothingSets() or {}) do labels[#labels + 1] = enumName(stored.setID) end
+        for _, stored in ipairs(wardrobeSystem():GetClothingSets() or {}) do labels[#labels + 1] = enumName(stored.setID) end
         return labels
     end
     function N.storedSet(player, label)
-        for _, stored in ipairs(wardrobeSystem(player):GetClothingSets() or {}) do
+        for _, stored in ipairs(wardrobeSystem():GetClothingSets() or {}) do
             if enumName(stored.setID) == label then return stored end
         end
         return nil
@@ -105,28 +108,30 @@ local function nativeAdapter()
     -- The per-slot visual overrides the Wardrobe menu writes (an outfit applied there fills these; the set routes above can answer "none" while it is on):
     -- EquipmentSystemPlayerData.m_clothingVisualsInfo: array<SSlotVisualInfo> (a field, read first: it also says which slots are hidden), and the getter
     -- GetSlotOverridenVisualItem(area) -> ItemID (an empty ItemID: no override). Both compiler-checked against final.redscripts (docs/PLAYER_GEAR_CONTEXT.md).
-    function N.visualsInfo(data)
+    -- A field that reads as nil is a failure, not an empty list (live 2026-10-26: `rows=0/0/0` could not tell "no rows" from "the binding gives nothing"); a row
+    -- field that cannot be read leaves the row without it and the first message is kept in entries.fault.
+    local function structRows(list, what)
+        if list == nil then error(what .. ' reads as nil') end
+        if type(list) ~= 'table' then error(what .. ' reads as ' .. type(list)) end
         local entries = {}
-        for _, entry in ipairs(data.m_clothingVisualsInfo or {}) do
+        for _, entry in ipairs(list) do
             local row = {id = entry.visualItem}
-            pcall(function() row.area = enumName(entry.areaType) end)
-            pcall(function() row.hidden = entry.isHidden == true end)
+            local okArea, area = pcall(function() return enumName(entry.areaType) end)
+            if okArea then row.area = area elseif not entries.fault then entries.fault = 'areaType: ' .. failure(area) end
+            local okHidden, hidden = pcall(function() return entry.isHidden == true end)
+            if okHidden then row.hidden = hidden elseif not entries.fault then entries.fault = 'isHidden: ' .. failure(hidden) end
             entries[#entries + 1] = row
         end
         return entries
     end
+    function N.visualsInfo(data) return structRows(data.m_clothingVisualsInfo, 'm_clothingVisualsInfo') end
+    function N.visualsEmpty(data) return data:IsClothingVisualsInfoEmpty() end
     function N.overridden(data, areaName) return data:GetSlotOverridenVisualItem(Enum.new('gamedataEquipmentArea', areaName)) end
     -- {label = <set index name>, entries = {{id = ItemID, area = <equipment area name or nil>, hidden = bool}, ...}}
     function N.wardrobeContents(set)
         local label = enumName(set.setID)
-        local entries = {}
-        for _, entry in ipairs(set.clothingList or {}) do
-            local row = {id = entry.visualItem}
-            pcall(function() row.area = enumName(entry.areaType) end)
-            pcall(function() row.hidden = entry.isHidden == true end)
-            entries[#entries + 1] = row
-        end
-        return {label = label, entries = entries}
+        local entries = structRows(set.clothingList, 'clothingList')
+        return {label = label, entries = entries, fault = entries.fault}
     end
     -- The equipment area name ('Head', 'OuterChest', ...) an item belongs to, from its record.
     function N.itemArea(id)
@@ -134,6 +139,16 @@ local function nativeAdapter()
         if not record then return nil end
         return enumName(record:EquipArea():Type())
     end
+    -- The item really attached to V's body in a clothing area's slot (EquipmentSystemPlayerData.InitializeClothingSlotsInfo names them), or nil when the slot is empty:
+    -- TransactionSystem.GetItemInSlot(object, slotID) -> ItemObject. For the same item as equipped, ItemID.GetTDBID(a) == ItemID.GetTDBID(b) compares the records.
+    local ATTACHMENT_SLOTS = {Head = 'AttachmentSlots.Head', Face = 'AttachmentSlots.Eyes', OuterChest = 'AttachmentSlots.Torso', InnerChest = 'AttachmentSlots.Chest',
+        Legs = 'AttachmentSlots.Legs', Feet = 'AttachmentSlots.Feet', Outfit = 'AttachmentSlots.Outfit'}
+    function N.attached(player, areaName)
+        local object = Game.GetTransactionSystem():GetItemInSlot(player, TweakDBID.new(ATTACHMENT_SLOTS[areaName]))
+        if object == nil then return nil end
+        return object:GetItemID()
+    end
+    function N.sameItem(a, b) return ItemID.GetTDBID(a) == ItemID.GetTDBID(b) end
     function N.valid(id) return id ~= nil and ItemID.IsValid(id) end
     function N.name(id, player)
         local record = TweakDBInterface.GetItemRecord(ItemID.GetTDBID(id))
@@ -153,7 +168,7 @@ Instance.__index = Instance
 -- outfit(player) (the visible outfit of a wardrobe mod or nil, set by init.lua).
 function M.new(options)
     options = options or {}
-    return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil, lastWardrobe = nil, lastFacts = nil}, Instance)
+    return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil, lastWardrobe = nil, lastFacts = nil, lastClothing = nil}, Instance)
 end
 
 local function call(fn, ...)
@@ -175,8 +190,23 @@ end
 -- One item's display name, or nil for an empty slot or an unnamed (internal) item.
 function Instance:itemName(id, player)
     local N = self.native
-    if not call(N.valid, id) then return nil end
-    return clean(call(N.name, id, player), M.MAX_NAME)
+    local ok, valid = self:check('ItemID.IsValid', N.valid, id)
+    if not ok or not valid then return nil end
+    local okName, text = self:check('item name', N.name, id, player)
+    if not okName then return nil end
+    return clean(text, M.MAX_NAME)
+end
+
+-- One generic guarded native call: a failure is remembered (once per call name, in order) for the facts line, never swallowed. Outside a wardrobe read nothing is kept.
+function Instance:check(label, fn, ...)
+    if type(fn) ~= 'function' then return false end
+    local ok, value = pcall(fn, ...)
+    if not ok and self.faults then
+        local seen = false
+        for _, fault in ipairs(self.faults) do if fault.label == label then seen = true end end
+        if not seen then self.faults[#self.faults + 1] = {label = label, text = label .. ': ' .. failure(value)} end
+    end
+    return ok, value
 end
 
 -- One diagnostic line per change of the wardrobe answer (probe.log), so a live run shows which path ran or why it failed.
@@ -194,36 +224,51 @@ function Instance:logFacts(line)
     if type(self.options.log) == 'function' then pcall(self.options.log, line) end
 end
 
+-- What V is described as wearing, once per change (probe.log): the names the character is given, to compare with what the player sees.
+function Instance:logClothing(rows)
+    local parts = {}
+    for _, row in ipairs(rows) do parts[#parts + 1] = row.slot .. '=' .. row.name end
+    local line = ('Player gear clothing: ' .. table.concat(parts, ', ')):sub(1, 320)
+    if line == self.lastClothing then return end
+    self.lastClothing = line
+    if type(self.options.log) == 'function' then pcall(self.options.log, line) end
+end
+
+-- The attachment slot of each clothing area on V's body, in the order of the facts line: {fact code, area}.
+M.ATTACH = {{'hd', 'Head'}, {'fc', 'Face'}, {'ot', 'OuterChest'}, {'it', 'InnerChest'}, {'lg', 'Legs'}, {'ft', 'Feet'}, {'of', 'Outfit'}}
+
 -- The game's active Wardrobe outfit as {areaName = item name, or false for a slot that shows nothing}; empty when no outfit is active or none could be read.
 -- How the game keeps it (REDmod scripts of 2.5, docs/PLAYER_GEAR_CONTEXT.md): the native WardrobeSystem holds the active set index, EquipWardrobeSet writes every area of
 -- the set into EquipmentSystemPlayerData.m_clothingVisualsInfo (an area the set leaves empty is CLEARED: hidden, even when an item is equipped there), and the game's own
 -- paperdoll then shows GetVisualItemInSlot(area) per area unless IsSlotHidden(area). Sources, in order, the first that places anything wins:
 --   paperdoll   the applied visuals through IsVisualSetActive / the index routes, GetVisualItemInSlot and IsSlotHidden per area;
 --   set         the set's own contents through the route list (an empty entry means a hidden slot);
---   visuals     m_clothingVisualsInfo, then GetSlotOverridenVisualItem per area (a per-item transmog, or a set the other sources could not see).
--- Nothing is swallowed: every read that fails is named in the facts or the answer line.
+--   visuals     m_clothingVisualsInfo, then GetSlotOverridenVisualItem per area (a per-item transmog, or a set the other sources could not see);
+--   attached    the item that is really attached to V's body in a clothing slot when it is not the equipped one (a preview item), named by its own record.
+-- Nothing is swallowed: every native call that fails is named in the facts line (ferr=) or the answer line (errors=).
 function Instance:wardrobe(player, data)
-    local N, covered, errors, factErrors = self.native, {}, {}, {}
+    local N, covered, errors = self.native, {}, {}
     local facts = {}
+    self.faults = {}
+    local function probe(label, fn, ...) return self:check(label, fn, ...) end
     local function try(label, fn, ...)
         local ok, value = pcall(fn, ...)
         if not ok then errors[#errors + 1] = label .. ': ' .. failure(value) end
         return ok, value
     end
-    -- A read that only feeds the facts line (and the active decision): its failure never shows in the answer line.
-    local function probe(label, fn, ...)
-        if type(fn) ~= 'function' then return false end
-        local ok, value = pcall(fn, ...)
-        if not ok then factErrors[#factErrors + 1] = label .. ': ' .. failure(value) end
-        return ok, value
+    local function isValid(id)
+        local ok, value = probe('ItemID.IsValid', N.valid, id)
+        return ok and value == true
     end
     local function factsLine()
         local parts = {}
-        for _, key in ipairs({'enabled', 'active', 'idx', 'stored', 'paper', 'set', 'rows', 'getter'}) do
+        for _, key in ipairs({'enabled', 'active', 'idx', 'stored', 'empty', 'paper', 'set', 'rows', 'getter', 'att'}) do
             if facts[key] ~= nil then parts[#parts + 1] = key .. '=' .. facts[key] end
         end
         local text = 'wardrobe facts ' .. table.concat(parts, ' ')
-        if #factErrors > 0 then text = text .. ' ferr=' .. table.concat(factErrors, '; '):sub(1, 150) end
+        local faults = {}
+        for _, fault in ipairs(self.faults) do faults[#faults + 1] = fault.text end
+        if #faults > 0 then text = text .. ' ferr=' .. table.concat(faults, '; '):sub(1, 220) end
         return text
     end
     -- The answer line, with the failures of the reads on the way (a later source may still have answered).
@@ -232,19 +277,24 @@ function Instance:wardrobe(player, data)
         self:logWardrobe(#errors > 0 and (line .. ' errors=' .. table.concat(errors, '; '):sub(1, 200)) or line)
     end
     -- Place rows {id, area, hidden} into covered (a slot's first row wins); returns shown, hidden, unplaced.
-    -- emptyIsHidden: a row without an item hides its slot (a saved set and the applied visuals say it that way); a plain override row without one changes nothing.
+    -- emptyIsHidden: a row without an item hides its slot (a saved set says it that way); a plain override row without one changes nothing.
     local function place(entries, emptyIsHidden)
         local shown, hidden, unplaced = 0, 0, 0
         for _, entry in ipairs(entries or {}) do
             local areaName = entry.area
             if not areaName or not M.AREAS[areaName] then
                 -- The row's own area is unreadable or not clothing: place the item by its record instead.
-                areaName = entry.id ~= nil and call(N.itemArea, entry.id) or nil
+                if entry.id ~= nil then
+                    local ok, value = probe('itemArea', N.itemArea, entry.id)
+                    areaName = ok and value or nil
+                else
+                    areaName = nil
+                end
             end
             if areaName and M.AREAS[areaName] and covered[areaName] == nil then
                 if entry.hidden then
                     covered[areaName] = false; hidden = hidden + 1
-                elseif emptyIsHidden and areaName ~= 'Outfit' and not call(N.valid, entry.id) then
+                elseif emptyIsHidden and areaName ~= 'Outfit' and not isValid(entry.id) then
                     covered[areaName] = false; hidden = hidden + 1
                 else
                     local name = self:itemName(entry.id, player)
@@ -286,23 +336,33 @@ function Instance:wardrobe(player, data)
     facts.idx = (#indexes > 0 and table.concat(indexes, '/') or '?')
     local active = (flagOk and flag == true) or (idx ~= nil and idx ~= 'INVALID')
     if type(N.storedSetLabels) == 'function' then
-        local ok, labels = probe('GetClothingSets', N.storedSetLabels, player)
+        local ok, labels = probe('GetClothingSets', N.storedSetLabels)
         facts.stored = (ok and type(labels) == 'table' and (#labels > 0 and table.concat(labels, ',') or '0') or '?')
     end
 
     -- The applied visuals and overrides, read once: the rows of m_clothingVisualsInfo (it also says which slots are hidden), and the getter per clothing area.
-    -- Their failures join the answer line's errors only if that source is needed (after the set routes', which come first there).
+    -- \`empty\` is the game's own answer to "are there no rows" (IsClothingVisualsInfoEmpty): rows=0/0/0 with empty=false means the field read gives nothing.
+    if type(N.visualsEmpty) == 'function' then
+        local ok, value = probe('IsClothingVisualsInfoEmpty', N.visualsEmpty, data)
+        facts.empty = ok and tostring(value) or '?'
+    end
+    -- Their failures also join the answer line's errors if that source is needed (after the set routes', which come first there).
     local rows, rowsFailure = nil, nil
     if type(N.visualsInfo) == 'function' then
         local ok, value = pcall(N.visualsInfo, data)
-        if ok and type(value) == 'table' then rows = value
-        elseif not ok then rowsFailure = 'm_clothingVisualsInfo: ' .. failure(value) end
+        if ok and type(value) == 'table' then
+            rows = value
+            if value.fault then probe('m_clothingVisualsInfo row', error, value.fault) end
+        elseif not ok then
+            rowsFailure = 'm_clothingVisualsInfo: ' .. failure(value)
+            probe('m_clothingVisualsInfo', error, failure(value))
+        end
     end
     do
         local total, valid, hiddenRows = 0, 0, 0
         for _, row in ipairs(rows or {}) do
             total = total + 1
-            if call(N.valid, row.id) then valid = valid + 1 end
+            if isValid(row.id) then valid = valid + 1 end
             if row.hidden then hiddenRows = hiddenRows + 1 end
         end
         facts.rows = (rows and (total .. '/' .. valid .. '/' .. hiddenRows) or '?')
@@ -314,35 +374,65 @@ function Instance:wardrobe(player, data)
             local ok, id = pcall(N.overridden, data, row[2])
             if ok then getterRows[#getterRows + 1] = {id = id, area = row[2]} elseif not getterFailed then getterFailed = failure(id) end
         end
+        if getterFailed then probe('GetSlotOverridenVisualItem', error, getterFailed) end
         local valid = 0
-        for _, row in ipairs(getterRows) do if call(N.valid, row.id) then valid = valid + 1 end end
+        for _, row in ipairs(getterRows) do if isValid(row.id) then valid = valid + 1 end end
         facts.getter = (getterFailed and '?' or valid)
+    end
+
+    -- The paperdoll reads, always probed (even with no set active they show whether the calls work): per area except Outfit, GetVisualItemInSlot and IsSlotHidden.
+    local paperRows, paperItems, paperFlagged = {}, 0, 0
+    if type(N.visual) == 'function' then
+        for _, row in ipairs(M.CLOTHING) do
+            if row[2] ~= 'Outfit' then
+                local okArea, area = probe('Enum.new', N.area, row[2])
+                local okId, id = false, nil
+                if okArea and area ~= nil then okId, id = probe('GetVisualItemInSlot', N.visual, data, area) end
+                local okHidden, hidden = probe('IsSlotHidden', N.slotHidden, data, row[2])
+                if okId then
+                    local isHidden = okHidden and hidden == true
+                    if isHidden then paperFlagged = paperFlagged + 1 elseif isValid(id) then paperItems = paperItems + 1 end
+                    paperRows[#paperRows + 1] = {id = id, area = row[2], hidden = isHidden}
+                end
+            end
+        end
+        facts.paper = paperItems .. '/' .. paperFlagged
+    end
+
+    -- What is really attached to V's body in each clothing slot, against what is equipped: S the same item, N nothing, D a different one (a preview item shown in an
+    -- empty slot), E the read failed. A D whose record belongs to that area is the last source.
+    local attachedRows = {}
+    if type(N.attached) == 'function' then
+        local codes = {}
+        for _, row in ipairs(M.ATTACH) do
+            local okAttached, attachedId = probe('GetItemInSlot', N.attached, player, row[2])
+            local symbol = 'E'
+            if okAttached then
+                if attachedId == nil then
+                    symbol = 'N'
+                else
+                    local okArea, area = probe('Enum.new', N.area, row[2])
+                    local okEq, equippedId = false, nil
+                    if okArea and area ~= nil then okEq, equippedId = probe('GetItemInEquipSlot', N.equipped, data, area, 0) end
+                    if okEq and isValid(equippedId) then
+                        local okSame, same = probe('ItemID.GetTDBID', N.sameItem, attachedId, equippedId)
+                        symbol = okSame and (same and 'S' or 'D') or 'E'
+                    else
+                        symbol = okEq and 'D' or 'E'
+                    end
+                    if symbol == 'D' then attachedRows[#attachedRows + 1] = {id = attachedId, area = row[2]} end
+                end
+            end
+            codes[#codes + 1] = row[1] .. symbol
+        end
+        facts.att = table.concat(codes, ',')
     end
 
     -- Source 1, the paperdoll: while a set is active, each area shows what GetVisualItemInSlot says, and nothing where IsSlotHidden (EquipWardrobeSet flags every area the
     -- set leaves empty). An area with neither keeps the equipped item (the set does not cover it, or its item blocks transmog).
     -- Taken only when it found an item or a hidden flag (a set that is active by index but whose rows are empty is not trusted: the next sources look).
-    local paper = nil
-    if active and type(N.visual) == 'function' then
-        local paperRows, items, flagged = {}, 0, 0
-        for _, row in ipairs(M.CLOTHING) do
-            if row[2] ~= 'Outfit' then
-                local area = call(N.area, row[2])
-                local okId, id = false, nil
-                if area ~= nil then okId, id = probe('GetVisualItemInSlot', N.visual, data, area) end
-                local okHidden, hidden = probe('IsSlotHidden', N.slotHidden, data, row[2])
-                if okId then
-                    local isHidden = okHidden and hidden == true
-                    if isHidden then flagged = flagged + 1 elseif call(N.valid, id) then items = items + 1 end
-                    paperRows[#paperRows + 1] = {id = id, area = row[2], hidden = isHidden}
-                end
-            end
-        end
-        facts.paper = items .. '/' .. flagged
-        if items + flagged > 0 then paper = paperRows end
-    end
-    if paper then
-        local shown, hidden = place(paper, false)
+    if active and paperItems + paperFlagged > 0 then
+        local shown, hidden = place(paperRows, false)
         if shown + hidden > 0 then
             flush('wardrobe outfit=' .. (idx or 'active') .. ' items=' .. shown .. (hidden > 0 and (' hidden=' .. hidden) or '') .. ' via=paperdoll')
             return covered
@@ -369,11 +459,12 @@ function Instance:wardrobe(player, data)
         if not ok or type(contents) ~= 'table' then
             failed = true
         else
+            if contents.fault then probe('clothingList row', error, contents.fault) end
             local label = tostring(contents.label or 'active')
             local count, valid = 0, 0
             for _, entry in ipairs(contents.entries or {}) do
                 count = count + 1
-                if call(N.valid, entry.id) then valid = valid + 1 end
+                if isValid(entry.id) then valid = valid + 1 end
             end
             facts.set = label .. ':' .. count .. '/' .. valid
             -- A set without entries is the empty set the game hands out when nothing is active (the INVALID one too).
@@ -411,6 +502,23 @@ function Instance:wardrobe(player, data)
             return covered
         end
         clear()
+    end
+
+    -- Source 4, the attachments: an item attached to V that is not the equipped one and belongs to that area is what is visible there.
+    do
+        local candidates = {}
+        for _, row in ipairs(attachedRows) do
+            local ok, area = probe('itemArea', N.itemArea, row.id)
+            if ok and area == row.area then candidates[#candidates + 1] = row end
+        end
+        if #candidates > 0 then
+            local shown = place(candidates, false)
+            if shown > 0 then
+                flush('wardrobe outfit=attached items=' .. shown .. ' via=GetItemInSlot')
+                return covered
+            end
+            clear()
+        end
     end
 
     -- Nothing placed. Every set route failing with nothing else to show is an error; an index that says a set is active but nothing readable is said so.
@@ -465,6 +573,7 @@ function Instance:read()
             end
         end
     end
+    if snapshot.clothing then self:logClothing(snapshot.clothing) end
     add('weapons', 'hand', self:itemName(call(N.hand, player), player))
     local weaponArea = call(N.area, 'Weapon')
     if weaponArea ~= nil then

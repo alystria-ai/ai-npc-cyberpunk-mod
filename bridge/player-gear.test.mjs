@@ -226,7 +226,8 @@ test('each real read logs one line, with the reason when there is none; a cached
   local lines = {}
   gear.options.log = function(line) lines[#lines + 1] = line end
   gear.lastWardrobe = 'wardrobe outfit=off' -- this fake has no wardrobe routes; its one "off" line is covered by the wardrobe tests
-  gear.lastFacts = 'wardrobe facts enabled=true active=? idx=? set=none rows=?'
+  gear.lastFacts = 'wardrobe facts enabled=true active=? idx=? paper=0/0 set=none rows=?'
+  gear.lastClothing = 'Player gear clothing: head=Hat, outerTorso=Jacket, innerTorso=Tee, legs=Jeans, feet=Boots'
   gear:capture(); gear:capture(); gear:capture()
   assert(#lines == 1 and lines[1] == 'Player gear: 10 items', lines[1])
   state.ready = false; gear:reset('test'); gear:capture()
@@ -310,7 +311,9 @@ test('every manual in-person send path captures the gear; reactions and the phon
 const wardrobeAdapter = `
 local lines = {}
 gear.options.log = function(line) lines[#lines + 1] = line end
-local function last() return lines[#lines - 1] end
+local function lineBeforeGear() local i = #lines; while i > 0 and not lines[i]:find('^Player gear: ') do i = i - 1 end; i = i - 1; while i > 0 and lines[i]:find('^Player gear clothing') do i = i - 1 end; return i end
+local function last() return lines[lineBeforeGear()] end
+local function lastFacts() for i = #lines, 1, -1 do if lines[i]:find('^wardrobe facts') then return lines[i] end end end
 local set
 local routeErrors = {}
 N.wardrobeRoutes = {
@@ -381,8 +384,9 @@ test('a disabled Wardrobe, an INVALID set and a set with nothing placeable are n
   assert(last() == 'wardrobe outfit=SET_5 items=0 unplaced=2 via=routeA', last())
 `));
 
-// Default adapter against a strict fake of the real call shape (read from final.redscripts of 2.31 and 2.5): colon calls on instances, STATIC calls without self,
-// GameInstance functions with the game instance, enums as {value = name}, ClothingSet {setID, clothingList = {{areaType, visualItem, isHidden}}}.
+// Default adapter against a strict fake of the real call shape (read from the 2.5 scripts): colon calls on instances, STATIC calls without self, GameInstance functions
+// WITHOUT the game instance (CET supplies it: live 2026-10-26 "Function 'GetWardrobeSystem' requires 0 parameter(s)"), enums as {value = name},
+// ClothingSet {setID, clothingList = {{areaType, visualItem, isHidden}}}. Every fake native refuses a wrong parameter count the way CET does (see guard below).
 const realShape = `
 local function strict(name, t)
   return setmetatable(t, {__index = function(_, key) error(name .. ' has no member ' .. tostring(key), 2) end})
@@ -431,19 +435,69 @@ Game = strict('Game', {
   GetScriptableSystemsContainer = function() return container end,
   GetWardrobeSystem = function(...) assert(select('#', ...) == 0, 'Game.GetWardrobeSystem takes no game instance'); if pdState.noGameSystem then error('Game.GetWardrobeSystem is not exposed') end return wardrobeSystem end,
   GetLocalizedTextByKey = function(key) return (key:gsub('^key:', '')) end})
-GameInstance = strict('GameInstance', {GetWardrobeSystem = function(gi, ...) assert(gi == gameInstance and select('#', ...) == 0); return wardrobeSystem end})
-EquipmentSystem = strict('EquipmentSystem class', {GetActiveWardrobeSet = function(p, ...) assert(p == player and select('#', ...) == 0, 'static: the player, no self'); return pdState.set end})
+GameInstance = strict('GameInstance', {GetWardrobeSystem = function() return wardrobeSystem end})
+EquipmentSystem = strict('EquipmentSystem class', {GetActiveWardrobeSet = function(p) assert(p == player, 'static: the player, no self'); return pdState.set end,
+  GetActiveWardrobeSetID = function(p) assert(p == player); return {value = 'INVALID'} end})
+TweakDBID = strict('TweakDBID', {new = function(name) return {slot = name} end})
+-- The attachment slots of V's body (TransactionSystem.GetItemInSlot): pdState.attached[slot name] = an item, or nothing.
+pdState.attached = {}
+local transactionSystem
+transactionSystem = strict('TransactionSystem', {GetItemInSlot = function(self, obj, slotId) assert(self == transactionSystem and obj == player and type(slotId) == 'table' and slotId.slot, 'object and TweakDBID')
+  local held = pdState.attached[slotId.slot]
+  if pdState.attachFailure then error(pdState.attachFailure) end
+  if not held then return nil end
+  local object; object = strict('ItemObject', {GetItemID = function(self2) assert(self2 == object); return held end})
+  return object end})
+Game.GetTransactionSystem = function() return transactionSystem end
+pd.IsClothingVisualsInfoEmpty = function(self) assert(self == pd); local rows = rawget(pd, 'm_clothingVisualsInfo'); return rows == nil or #rows == 0 end
 CName = strict('CName', {new = function(name) return {name = name} end})
 Enum = strict('Enum', {new = function(kind, name) return {type = kind, value = name} end})
 ItemID = strict('ItemID', {IsValid = function(id) return type(id) == 'table' and id.tdb ~= nil end, GetTDBID = function(id) return id.tdb end})
 TweakDBInterface = strict('TweakDBInterface', {GetItemRecord = function(tdb) return records[tdb] end})
 ScriptedPuppet = strict('ScriptedPuppet', {GetActiveWeapon = function() return nil end})
+-- CET refuses a wrong parameter count ("Function 'X' requires N parameter(s)."): wrap every fake native the same way. Instance methods (colon calls) are counted
+-- without self, so a dot call or a missing self fails too; static functions and Game functions are counted as they are, so a colon call (an extra self) fails.
+local function guard(obj, rules, isMethod)
+  for key, range in pairs(rules) do
+    local fn = rawget(obj, key)
+    if type(fn) == 'function' then
+      rawset(obj, key, function(...)
+        local count = select('#', ...) - (isMethod and 1 or 0)
+        if count < range[1] or count > range[2] then
+          error("Function '" .. key .. "' requires " .. (range[1] == range[2] and range[1] or (range[1] .. ' to ' .. range[2])) .. ' parameter(s).', 2)
+        end
+        return fn(...)
+      end)
+    end
+  end
+end
+local function guardAll()
+  guard(pd, {GetSlotOverridenVisualItem = {1, 1}, GetVisualItemInSlot = {1, 3}, GetItemInEquipSlot = {2, 2}, IsWardrobeEnabled = {0, 0}, GetActiveWardrobeSet = {0, 0},
+    IsVisualSetActive = {0, 0}, IsSlotHidden = {1, 1}, IsClothingVisualsInfoEmpty = {0, 0}}, true)
+  guard(wardrobeSystem, {GetActiveClothingSet = {0, 0}, GetActiveClothingSetIndex = {0, 0}, GetClothingSets = {0, 0}}, true)
+  guard(equipmentSystem, {GetPlayerData = {1, 1}}, true)
+  guard(container, {Get = {1, 1}}, true)
+  guard(transactionSystem, {GetItemInSlot = {2, 2}}, true)
+  guard(Game, {GetPlayer = {0, 0}, GetScriptableSystemsContainer = {0, 0}, GetWardrobeSystem = {0, 0}, GetLocalizedTextByKey = {1, 1}, GetTransactionSystem = {0, 0}})
+  guard(GameInstance, {GetWardrobeSystem = {0, 0}})
+  guard(EquipmentSystem, {GetActiveWardrobeSet = {1, 1}, GetActiveWardrobeSetID = {1, 1}})
+  guard(ItemID, {IsValid = {1, 1}, GetTDBID = {1, 1}})
+  guard(TweakDBInterface, {GetItemRecord = {1, 1}})
+  guard(TweakDBID, {new = {1, 1}})
+  guard(Enum, {new = {2, 2}})
+  guard(CName, {new = {1, 1}})
+  guard(ScriptedPuppet, {GetActiveWeapon = {1, 1}})
+  for _, record in pairs(records) do guard(record, {DisplayName = {0, 0}, EquipArea = {0, 0}}, true) end
+end
+guardAll()
 local function slot(area, name, hidden) return {areaType = {value = area}, visualItem = name and item(name) or nil, isHidden = hidden == true} end
 local lines = {}
 local api = (function() ${source} end)()
 local now = 100
 local gear = api.new({now = function() return now end, log = function(line) lines[#lines + 1] = line end})
-local function last() return lines[#lines - 1] end
+local function lineBeforeGear() local i = #lines; while i > 0 and not lines[i]:find('^Player gear: ') do i = i - 1 end; i = i - 1; while i > 0 and lines[i]:find('^Player gear clothing') do i = i - 1 end; return i end
+local function last() return lines[lineBeforeGear()] end
+local function lastFacts() for i = #lines, 1, -1 do if lines[i]:find('^wardrobe facts') then return lines[i] end end end
 local function fresh() now = now + api.MAX_AGE; return gear:capture() end
 local function names(list) local out = {}; for _, row in ipairs(list or {}) do out[#out + 1] = row.slot .. '=' .. row.name end; return table.concat(out, ',') end
 `;
@@ -559,17 +613,31 @@ local function saved(label, entries)
   return set
 end
 local function findSet(label) for _, s in ipairs(world.sets) do if s.setID.value == label then return s end end end
+-- What is attached to V's body: an equipped item stays attached whatever the Wardrobe shows (its appearance is changed or blanked), an empty slot gets a preview item of the visual.
+local SLOTS = {Head = 'AttachmentSlots.Head', Face = 'AttachmentSlots.Eyes', OuterChest = 'AttachmentSlots.Torso', InnerChest = 'AttachmentSlots.Chest',
+  Legs = 'AttachmentSlots.Legs', Feet = 'AttachmentSlots.Feet', Outfit = 'AttachmentSlots.Outfit'}
+function world.sync()
+  pdState.attached = {}
+  for area, slotName in pairs(SLOTS) do
+    local equipped = pdState.equipped[area .. '#0']
+    local r = rowOf(area)
+    if equipped then pdState.attached[slotName] = equipped
+    elseif r and r.visualItem and world.active ~= 'INVALID' then pdState.attached[slotName] = r.visualItem end
+  end
+end
 function world.equip(label)
   local set = findSet(label); world.active = label
   for _, e in ipairs(set.clothingList) do
     local r = rowOf(e.areaType.value)
     if e.visualItem then r.visualItem, r.isHidden = e.visualItem, false else r.visualItem, r.isHidden = nil, true end
   end
+  world.sync()
 end
 function world.unequip()
   local set = findSet(world.active)
   for _, e in ipairs(set.clothingList) do local r = rowOf(e.areaType.value); r.visualItem, r.isHidden = nil, false end
   world.active = 'INVALID'
+  world.sync()
 end
 local empty = function() return {setID = {value = 'INVALID'}, clothingList = {}} end
 pd.m_clothingVisualsInfo = world.rows
@@ -591,7 +659,9 @@ wardrobeSystem.GetClothingSets = function(self) assert(self == wardrobeSystem); 
 EquipmentSystem.GetActiveWardrobeSetID = function(p, ...) assert(p == player and select('#', ...) == 0, 'static: the player, no self'); return {value = world.active} end
 EquipmentSystem.GetActiveWardrobeSet = function(p) assert(p == player); return world.active ~= 'INVALID' and findSet(world.active) or empty() end
 pdState.set = nil
+world.sync()
 items.Tee2 = 'InnerChest'
+guardAll()
 records.Tee2 = records.Tee
 for _, name in ipairs({'Visor', 'Pants', 'Heels'}) do
   local area = ({Visor = 'Face', Pants = 'Legs', Heels = 'Feet'})[name]
@@ -610,7 +680,7 @@ test('the game model, an applied set: the outfit is what V wears, the slots the 
   -- Equipped: Hat, Jacket, Tee. Wearing: Cap and Coat. The inner torso, legs, feet and face the set leaves empty are cleared by the game, so they are not described.
   assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat', names(snap.clothing))
   assert(last() == 'wardrobe outfit=Slot2 items=2 hidden=4 via=paperdoll', last())
-  assert(lines[#lines - 2] == 'wardrobe facts enabled=true active=true idx=Slot2 stored=Slot2 paper=2/4 rows=9/2/4 getter=2', lines[#lines - 2])
+  assert(lastFacts() == 'wardrobe facts enabled=true active=true idx=Slot2 stored=Slot2 empty=false paper=2/4 rows=9/2/4 getter=2 att=hdS,fcN,otS,itS,lgN,ftN,ofN', lastFacts())
   -- Taking the outfit off gives the equipment back.
   world.unequip()
   assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee', names(gear.snapshot.clothing))
@@ -641,11 +711,11 @@ test('the game model, no set active: the facts line says so, the equipment is de
   saved('Slot1', {Head = 'Cap'})
   local snap = gear:capture()
   assert(names(snap.clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee', names(snap.clothing))
-  assert(lines[#lines - 2] == 'wardrobe facts enabled=true active=false idx=INVALID stored=Slot1 set=INVALID:0/0 rows=9/0/0 getter=0', lines[#lines - 2])
+  assert(lastFacts() == 'wardrobe facts enabled=true active=false idx=INVALID stored=Slot1 empty=false paper=3/0 set=INVALID:0/0 rows=9/0/0 getter=0 att=hdS,fcN,otS,itS,lgN,ftN,ofN', lastFacts())
   assert(last() == 'wardrobe outfit=off', last())
   -- Nothing saved at all: only the facts changed, so only they are logged (the answer is still off).
   world.sets = {}
-  fresh(); assert(lines[#lines - 1] == 'wardrobe facts enabled=true active=false idx=INVALID stored=0 set=INVALID:0/0 rows=9/0/0 getter=0', lines[#lines - 1])
+  fresh(); assert(lastFacts() == 'wardrobe facts enabled=true active=false idx=INVALID stored=0 empty=false paper=3/0 set=INVALID:0/0 rows=9/0/0 getter=0 att=hdS,fcN,otS,itS,lgN,ftN,ofN', lastFacts())
   -- Unchanged facts and answer are not logged again.
   local count = #lines; fresh(); assert(#lines == count + 1)
 `));
@@ -658,7 +728,7 @@ test('the game model, the paperdoll reads fail: the set routes, then the saved s
   assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat', names(snap.clothing))
   -- The set's empty entries hide their slots, so the inner torso is not described either.
   assert(last() == 'wardrobe outfit=Slot2 items=2 hidden=4 via=data:GetActiveWardrobeSet', last())
-  assert(lines[#lines - 2]:find('ferr=GetVisualItemInSlot: GetVisualItemInSlot is not callable', 1, true), lines[#lines - 2])
+  assert(lastFacts():find('ferr=GetVisualItemInSlot: GetVisualItemInSlot is not callable', 1, true), lastFacts())
   -- The player-data route and every direct route fail: the stored set found by the active index is used.
   pd.IsVisualSetActive = function() error('no flag') end
   pd.GetActiveWardrobeSet = function() error('no data route') end
@@ -675,7 +745,7 @@ test('the game model, the index says active but nothing can be read: the equipme
   local snap = gear:capture()
   assert(names(snap.clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee', names(snap.clothing))
   assert(last():find('^wardrobe outfit=Slot5 items=0'), last())
-  assert(lines[#lines - 2]:find('^wardrobe facts enabled=true active=true idx=Slot5 stored=0 paper=0/0 set=INVALID:0/0'), lines[#lines - 2])
+  assert(lastFacts():find('^wardrobe facts enabled=true active=true idx=Slot5 stored=0 empty=false paper=0/0 set=INVALID:0/0'), lastFacts())
 `));
 
 test('the game model, a per-item transmog (rows filled, no set active) is read from the overrides', () => model$(`
@@ -683,7 +753,7 @@ test('the game model, a per-item transmog (rows filled, no set active) is read f
   local snap = gear:capture()
   assert(names(snap.clothing) == 'head=Hat,outerTorso=Coat,innerTorso=Tee', names(snap.clothing))
   assert(last() == 'wardrobe outfit=visuals items=1 via=m_clothingVisualsInfo', last())
-  assert(lines[#lines - 2] == 'wardrobe facts enabled=true active=false idx=INVALID stored=0 set=INVALID:0/0 rows=9/1/0 getter=1', lines[#lines - 2])
+  assert(lastFacts() == 'wardrobe facts enabled=true active=false idx=INVALID stored=0 empty=false paper=3/0 set=INVALID:0/0 rows=9/1/0 getter=1 att=hdS,fcN,otS,itS,lgN,ftN,ofN', lastFacts())
 `));
 
 test('the game model, the routes disagree: both indexes are shown, and a failing flag does not stop the outfit', () => model$(`
@@ -693,16 +763,17 @@ test('the game model, the routes disagree: both indexes are shown, and a failing
   EquipmentSystem.GetActiveWardrobeSetID = function() return {value = 'INVALID'} end
   local snap = gear:capture()
   assert(names(snap.clothing) == 'head=Cap,outerTorso=Coat', names(snap.clothing))
-  assert(lines[#lines - 2]:find('^wardrobe facts enabled=true active=%? idx=Slot2/INVALID '), lines[#lines - 2])
+  assert(lastFacts():find('^wardrobe facts enabled=true active=%? idx=Slot2/INVALID '), lastFacts())
 `));
 
 test('the game model, the Outfit area is never probed as hidden (the game has no visual row for it)', () => model$(`
   pdState.equipped['Outfit#0'] = item('Coat')
+  world.sync()
   saved('Slot2', {Head = 'Cap'})
   world.equip('Slot2')
   local snap = gear:capture()
   assert(names(snap.clothing):find('head=Cap'), names(snap.clothing))
-  assert(not lines[#lines - 2]:find('ferr=', 1, true), lines[#lines - 2])
+  assert(not lastFacts():find('ferr=', 1, true), lastFacts())
 `));
 
 test('adapter level: an empty entry of a saved set hides its slot; the Outfit area is never hidden by one', () => wardrobe$(`
@@ -721,4 +792,110 @@ test('a fault inside the wardrobe reader costs only the wardrobe: it is logged a
   local snap = gear:capture()
   assert(snap and names(snap.clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee,legs=Jeans,feet=Boots', 'the gear is still described')
   assert(last():find('^wardrobe outfit=error%(reader: '), last())
+`));
+
+// ---------------------------------------------------------------- 26 Oct live run: wrong call shape, silent empty reads, no new facts
+test('the strict fakes refuse a wrong parameter count the way CET does (the live failure was GameInstance.GetWardrobeSystem(game))', () => real$(`
+  local function refused(fn) local ok, err = pcall(fn); return not ok and tostring(err):find('requires', 1, true) ~= nil end
+  assert(refused(function() return GameInstance.GetWardrobeSystem(gameInstance) end), 'a game instance argument is refused')
+  assert(refused(function() return Game.GetWardrobeSystem(gameInstance) end))
+  assert(refused(function() return Game:GetWardrobeSystem() end), 'a colon call on a Game function adds self')
+  assert(refused(function() return pd.IsWardrobeEnabled() end), 'a dot call on an instance method has no self')
+  assert(refused(function() return pd:GetItemInEquipSlot('Head') end), 'a missing parameter')
+  assert(refused(function() return EquipmentSystem:GetActiveWardrobeSet(player) end))
+  assert(not refused(function() return GameInstance.GetWardrobeSystem() end))
+`));
+
+test('every wardrobe route is called with the right shape: no failure appears when the game answers, and each form works alone', () => model$(`
+  saved('Slot2', {Head = 'Cap'})
+  world.equip('Slot2')
+  gear:capture()
+  assert(not lastFacts():find('ferr=', 1, true), lastFacts())
+  -- With Game.GetWardrobeSystem broken the GameInstance form (no argument) still answers every wardrobe read.
+  Game.GetWardrobeSystem = function() error('not exposed') end
+  pd.GetActiveWardrobeSet = function() error('no data route') end
+  pd.IsVisualSetActive = function() error('no flag') end
+  assert(names(fresh().clothing) == 'head=Cap', names(gear.snapshot.clothing))
+  assert(gear.lastWardrobe:find('via=paperdoll', 1, true), gear.lastWardrobe)
+  assert(lastFacts():find('idx=Slot2', 1, true) and lastFacts():find('stored=Slot2', 1, true), lastFacts())
+`));
+
+test('the live case: the game reports no active set and the field reads empty; the facts say which, every failing read is named', () => model$(`
+  saved('Slot1', {Head = 'Cap'})
+  -- 26 Oct: active=false idx=INVALID stored=Slot1 rows=0/0/0 getter=0. The field gives an empty list although the game says there are rows:
+  pd.m_clothingVisualsInfo = {}
+  pd.IsClothingVisualsInfoEmpty = function() return false end
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Hat,outerTorso=Jacket,innerTorso=Tee', names(snap.clothing))
+  assert(lastFacts():find('active=false idx=INVALID stored=Slot1 empty=false', 1, true) and lastFacts():find('rows=0/0/0', 1, true), lastFacts())
+  assert(last() == 'wardrobe outfit=off', last())
+  -- A field that reads as nil is a failure, not an empty list.
+  getmetatable(pd).__index = function(_, key) if key == 'm_clothingVisualsInfo' then return nil end error('EquipmentSystemPlayerData has no member ' .. tostring(key), 2) end
+  pd.m_clothingVisualsInfo = nil
+  fresh()
+  assert(lastFacts():find('rows=? ', 1, true) and lastFacts():find('m_clothingVisualsInfo: m_clothingVisualsInfo reads as nil', 1, true), lastFacts())
+  assert(last():find('^wardrobe outfit=off errors=m_clothingVisualsInfo: m_clothingVisualsInfo reads as nil'), last())
+`));
+
+test('every native call that fails is named in the facts line', () => model$(`
+  saved('Slot2', {Head = 'Cap', OuterChest = 'Coat'})
+  world.equip('Slot2')
+  pd.IsVisualSetActive = function() error('flag boom') end
+  pd.IsSlotHidden = function() error('hidden boom') end
+  pd.IsClothingVisualsInfoEmpty = function() error('empty boom') end
+  pd.GetSlotOverridenVisualItem = function() error('getter boom') end
+  wardrobeSystem.GetClothingSets = function() error('sets boom') end
+  transactionSystem.GetItemInSlot = function() error('slot boom') end
+  ItemID.IsValid = function() error('valid boom') end
+  gear:capture()
+  local facts = lastFacts()
+  for _, message in ipairs({'IsVisualSetActive: flag boom', 'IsClothingVisualsInfoEmpty: empty boom', 'GetClothingSets: sets boom', 'GetItemInSlot: slot boom',
+    'GetSlotOverridenVisualItem: getter boom', 'ItemID.IsValid: valid boom', 'IsSlotHidden: hidden boom'}) do
+    assert(facts:find(message, 1, true), message .. ' missing in ' .. facts)
+  end
+  assert(facts:find('active=? ', 1, true) and facts:find('stored=? ', 1, true) and facts:find('empty=? ', 1, true) and facts:find('getter=? ', 1, true), facts)
+  assert(facts:find('att=hdE,fcE,otE,itE,lgE,ftE,ofE', 1, true), facts)
+`));
+
+test('a name that cannot be resolved is named in the facts line, not silently dropped', () => model$(`
+  saved('Slot2', {Head = 'Cap'})
+  world.equip('Slot2')
+  local texts = Game.GetLocalizedTextByKey
+  Game.GetLocalizedTextByKey = function() error('text boom') end
+  UIItemsHelper = strict('UIItemsHelper', {GetItemName = function() error('name boom') end})
+  gear:capture()
+  Game.GetLocalizedTextByKey = texts
+  assert(lastFacts():find('item name: ', 1, true), lastFacts())
+`));
+
+test('the attachments: an item attached to V that is not the equipped one is what is visible; equal items change nothing', () => model$(`
+  -- No set, no override, but a visual item is attached to an empty face slot (a preview item) while the equipped items are attached as they are.
+  items.Visor = 'Face'
+  pdState.attached['AttachmentSlots.Eyes'] = item('Visor')
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'head=Hat,face=Visor,outerTorso=Jacket,innerTorso=Tee', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=attached items=1 via=GetItemInSlot', last())
+  assert(lastFacts():find('att=hdS,fcD,otS,itS,lgN,ftN,ofN', 1, true), lastFacts())
+  -- An attached item of another area (a legs item in the chest slot) is not described.
+  pdState.attached['AttachmentSlots.Eyes'] = nil
+  pdState.attached['AttachmentSlots.Chest'] = item('Pants')
+  pdState.equipped['InnerChest#0'] = nil
+  assert(names(fresh().clothing) == 'head=Hat,outerTorso=Jacket', names(gear.snapshot.clothing))
+  assert(last() == 'wardrobe outfit=off', last())
+  assert(lastFacts():find('itD', 1, true), lastFacts())
+`));
+
+test('each turn that reads again leaves the clothing it described, once per change', () => model$(`
+  saved('Slot2', {Head = 'Cap', OuterChest = 'Coat'})
+  local function clothingLines() local out = {}; for _, l in ipairs(lines) do if l:find('^Player gear clothing') then out[#out + 1] = l end end; return out end
+  gear:capture()
+  assert(#clothingLines() == 1 and clothingLines()[1] == 'Player gear clothing: head=Hat, outerTorso=Jacket, innerTorso=Tee', clothingLines()[1])
+  fresh(); assert(#clothingLines() == 1, 'unchanged: no new line')
+  world.equip('Slot2')
+  fresh()
+  assert(#clothingLines() == 2 and clothingLines()[2] == 'Player gear clothing: head=Cap, outerTorso=Coat', clothingLines()[2])
+  -- Inside the 5 second window the cached snapshot is returned, after it the game is read again.
+  world.unequip()
+  now = now + 1; gear:capture(); assert(#clothingLines() == 2, 'cached inside the window')
+  fresh(); assert(#clothingLines() == 3 and clothingLines()[3]:find('head=Hat', 1, true), clothingLines()[3])
 `));
