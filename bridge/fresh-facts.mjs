@@ -8,12 +8,14 @@
 // The text is facts only: no instruction on how to react, in particular none about nudity (owner decision 2026-10-27). Pure string work on data that already arrived.
 
 /** The block of a turn's context ({tier: 'fresh'}): `text` is the labelled form (what Convai's joined context carries), `facts` the plain sentences, `drop` a pattern source for stale replies. */
-export function freshBlock(parts) {
+export function freshBlock(parts, {asked = false} = {}) {
   const used = (parts ?? []).filter(part => part?.text);
-  if (!used.length) return {tier: 'fresh', text: '', facts: '', drop: ''};
+  // `codes`: which facts, by name only ("clothes:changed", "drinks:3"), and `asked`: V's words asked about clothes or themself. For the bridge log (docs/FRESH_FACTS.md), never text.
+  const codes = used.flatMap(part => part.codes ?? []).join(',');
+  if (!used.length) return {tier: 'fresh', text: '', facts: '', drop: '', codes: '', asked};
   const facts = used.map(part => part.text).join(' ');
   const drops = used.map(part => part.drop).filter(Boolean);
-  return {tier: 'fresh', text: headLine(facts), facts, drop: drops.length ? drops.join('|') : ''};
+  return {tier: 'fresh', text: headLine(facts), facts, drop: drops.length ? drops.join('|') : '', codes, asked};
 }
 
 // The two wordings, as measured. The last user message gets the bracketed line before V's words (after the notes, before the closing, in a profile that puts the notes after V's line).

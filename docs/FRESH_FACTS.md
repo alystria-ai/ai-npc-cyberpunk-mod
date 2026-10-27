@@ -99,3 +99,36 @@ Tests: `bridge/fresh-facts.test.mjs` (the exact live sequences, both ends of the
 3. Drink (Flesh and Chrome, drinks 3): "am i drunk" and "do i seem drunk" must be answered as drunk; ask something else (no question about oneself): no fresh line.
 4. Draw or holster a weapon and ask what V holds.
 5. Latency: the turn where a fact appears and the one after may take about 0.3 s more on a card with room to spare, nothing else.
+
+## Round 2: the character's own earlier answers (2026-10-27, live test 5)
+
+The fix above was live and the clothes were right on every turn. The drink was not: Flesh and Chrome `drinks=3`, every Dark Future stage 0, V typed "am i drunk?" and Claire Russell said "No, you're not drunk. You're just exhausted. You smell like a bar, but that's not the same as being drunk." The booze smell got through, the denial and the "exhausted" did not come from the game.
+
+**Cause, read from Claire's real memory file** (`%LOCALAPPDATA%/AiNpcCyberpunkMod/data/local-memory/player/claire-russell.json`): her last exchanges held two earlier answers of the first failed test ("Not drunk, just wired", "Not drunk, just wired ... running on fumes"), and the memory store had made two notes from her own wrong answers ("V's energy levels fluctuate unpredictably, leaving them visibly drained", "V asked me to help them sit down before collapsing, revealing deeper exhaustion"), which came back as "things you remember about V". No stage said exhausted: `energy0` everywhere. The wording fix of round 1 could not beat three copies of the opposite in the same prompt: the clothes fix worked because the old claim was named (the removed item); a denial has no name.
+
+**Measured** (the exact live prompt rebuilt by `scripts/fresh-facts-eval` `drinksLiveCase`: her real persona, the three real exchanges, the notes, V in Johnny's jacket with Mantis Blades, drinks 3, Dark Future 0; three questions "am i drunk", "do i seem drunk", "am i sober?", n = 30 each, every reply read by a judge):
+
+| Prompt | Lite denies it | Lite says V is tired | Qwen 4B denies it | Qwen 4B says tired |
+| --- | --- | --- | --- | --- |
+| What ran live (plain sentence at both ends, her denials and notes still sent) | **21/30 = 70%** | **29/30 = 97%** | 1/30 | 8/30 = 27% |
+| Answer wording ("If V asks whether they are drunk, the answer is yes"), denials and notes still sent | 21/30 = 70% | 30/30 | 0/30 | 2/30 |
+| Plain sentence, denials and notes left out | 0/30 | 4/30 = 13% | 0/30 | 1/30 |
+| "V IS drunk. If V asks, V is drunk: ..." and denials left out | 0/30 | 1/30 | 0/30 | 1/30 |
+| **Shipped: answer wording + denials and notes left out** (60 samples each, by the real code path) | **0/60** | **5/60 = 8%** | **1/60 = 2%** | **2/60 = 3%** |
+
+The wording alone does nothing against a prompt full of the opposite (70% either way); leaving the poisoned lines out is the fix. The answer wording only adds a margin (30 of 30 against 25 of 30 clear "yes, drunk" answers on lite, the rest neutral).
+
+**What changed**
+
+1. **Stale lines left out for the state V asks about** (`modsStale` in `bridge/mod-state.mjs`, passed as the fresh block's `drop`): when V asks about themself and the game read a state, the history exchanges and the remembered facts that say the opposite are not sent (`bridge/mistral-prompt.mjs`; they stay in the character's memory). The opposite of a drink at stage 2 or 3 is "not drunk", "sober", "stone cold"; of a need that was read as fine (energy, thirst, hunger, breath, nerve), the words for it (exhausted, tired, wired, worn out, drained, parched, hungry, ...). Only what the game side read as a number is judged; a state that is notable (a true "exhausted" at stage 4) is never stale; a drink read as 0 makes "drunk" the stale word.
+2. **The fact as the answer**, when V asks (stage 3: "V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze."; stage 2: "V is tipsy: ... If V asks whether they have been drinking, the answer is yes."). Unasked (the Background line) the sentences are the plain ones of round 1.
+3. **The log line** (item 1 of the brief), for each text-provider prompt that has anything to do with fresh facts (it carries some, V asked about clothes or themself, or lines were left out; an ordinary turn writes nothing), codes and counts only, written when the prompt is built:
+
+   `[FreshFacts] profile=claire-russell facts=drinks:3 placed=system-end,before-v asked=yes dropped=history:3,memory:2`
+
+   `facts=` names what was told (`clothes:changed`, `clothes:asked`, `hand:changed`, `carried:changed`, `cyberware:changed`, `drinks:3`, `energy:2`, ... or `none`), `placed=` where (`system-end`, `before-v`, or `before-closing` in a profile that puts the notes after V's line; `none`), `asked=` whether V's words asked about clothes or themself (`asksAboutClothes`, `asksAboutSelf`), `dropped=` how many history exchanges and remembered facts were left out as stale. A line with `facts=none asked=yes` on a turn that should have had a fact means the fact never reached the prompt (state not read, switch off). Convai has no line (its context is one string; the existing `[PlayerGear]` and `[TurnContext]` lines cover it).
+4. **"am i drunk"** was not recognised as asking about oneself in round 1 (`am i drunk?` in lower case, no "seem"); it is since round 1, so the live `asked=yes` is real.
+
+**Not fixed here:** the memory store still writes notes from a character's wrong answers ("V's energy levels fluctuate ..."). They are now filtered out of the prompt on the asked turns, but they stay stored; a note made from a model's own sentence is not a fact about V.
+
+**Live check:** repeat the drink test on the lite model after the bridge restart. The log line must read `facts=drinks:3 placed=system-end,before-v asked=yes` and, with the old answers still in the talk, `dropped=history:N,memory:M` with N or M above 0; the answer must say drunk and must not say exhausted. A fresh conversation (nothing to drop) should be answered correctly too.

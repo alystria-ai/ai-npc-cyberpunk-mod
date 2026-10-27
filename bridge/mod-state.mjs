@@ -51,6 +51,9 @@ const AMBIENT_HURT = {bleed: {1: 'to be bleeding', 2: 'to be bleeding', 3: 'to b
 // V asked "am i drunk" and was told "Not drunk, just wired"), so stage 2 and 3 are said as how V is, in plain vivid words (docs/FRESH_FACTS.md).
 const TRACE_WORDS = {drinks: {1: 'had a drink or two'}, smoke: {1: 'just had a cigarette'}};
 const DRUNK_SENTENCES = {2: 'V is tipsy: loose, a little loud, smelling of booze.', 3: 'V is drunk: slurring, unsteady on their feet, reeking of booze.'};
+// When V asks about themself the same fact is said as the answer (measured, docs/FRESH_FACTS.md: 30 of 30 answers said drunk, against 25 of 30 with the plain sentence).
+const DRUNK_ANSWERS = {2: 'V is tipsy: loose, a little loud, smelling of booze. If V asks whether they have been drinking, the answer is yes.',
+  3: 'V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.'};
 const SUBSTANCE_WORDS = {alcohol: 'alcohol', nicotine: 'nicotine', narcotic: 'narcotics'};
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -134,7 +137,7 @@ const worstFirst = rows => rows.map((row, order) => ({...row, order})).sort((a, 
 const phrase = row => row.key === 'withdrawal' ? `in withdrawal from ${list(row.substances.map(name => SUBSTANCE_WORDS[name]))}` : WORDS[row.key][row.stage];
 
 /** The sentences for this form of turn ('person', 'head', 'ambient', 'phone', 'call', 'voice'), [] when none. */
-export function modsSentences(mods, form) {
+export function modsSentences(mods, form, {asked = false} = {}) {
   if (form !== 'person' && form !== 'head' && form !== 'ambient') return [];
   const found = notable(mods, form === 'ambient');
   if (!found) return [];
@@ -153,7 +156,7 @@ export function modsSentences(mods, form) {
   const hurt = worstFirst(found.hurt).map(phrase);
   if (hurt.length) sentences.push(`V is ${list(hurt)}.`);
   const trace = worstFirst(found.trace);
-  for (const row of trace) if (row.key === 'drinks' && DRUNK_SENTENCES[row.stage]) sentences.push(DRUNK_SENTENCES[row.stage]);
+  for (const row of trace) if (row.key === 'drinks' && DRUNK_SENTENCES[row.stage]) sentences.push((asked ? DRUNK_ANSWERS : DRUNK_SENTENCES)[row.stage]);
   const has = trace.filter(row => !(row.key === 'drinks' && DRUNK_SENTENCES[row.stage])).map(row => TRACE_WORDS[row.key][row.stage]);
   if (has.length) sentences.push(`V has ${list(has)}.`);
   const inner = worstFirst(found.inner).map(phrase);
@@ -200,12 +203,51 @@ function fineWords(mods, form, reads) {
  */
 export function modsAskedSentences(mods, form, reads) {
   if (form !== 'person' && form !== 'head' && form !== 'ambient') return [];
-  const sentences = modsSentences(mods, form), fine = fineWords(mods, form, reads);
+  const sentences = modsSentences(mods, form, {asked: true}), fine = fineWords(mods, form, reads);
   if (form === 'ambient') { if (!sentences.length && fine.length) sentences.push('V looks well.'); }
   else if (fine.length) sentences.push(sentences.length ? `Otherwise V is ${list(fine)}.` : `V looks well: ${fine.join(', ')}.`);
   // Live 2026-10-26 ("can you see information on the state of my body"): a companion answered "I'm not a med-scanner" with the state in the Background line. So the
   // answer is said to be plain to see, nothing to scan or read, and to be given in the character's own words.
   return sentences.length ? [...sentences, 'V is asking how they look or how they are, and this is plain to see on V (no scan or reading needed): say it in your own words.'] : [];
+}
+
+// ---- What an earlier reply would say that is no longer true (docs/FRESH_FACTS.md) -------------------------------------------------------------------------
+// Live 2026-10-27, second test: V asked "am i drunk" with drinks at stage 3 and the character said "No, you're not drunk. You're just exhausted." Her last exchanges held the two earlier
+// denials ("Not drunk, just wired"), and what she remembered of V held "V's energy levels fluctuate ... visibly drained": both the character's own earlier wrong answers. A small model repeats
+// its own past, so the history lines and remembered facts that say the opposite of what the game read are not sent. Only states the game side actually read are judged: a need that was not
+// read is never called stale, and a state that IS notable is never called stale (a true "exhausted" stays).
+const STALE_WORDS = {
+  energy: String.raw`exhaust\w*|tired|worn out|drained|fumes|wired|sleepy|weary|fatigue\w*`,
+  hydration: String.raw`thirst\w*|parched|dehydrat\w*`,
+  nutrition: String.raw`hungry|starv\w*|famished`,
+  breath: 'winded|out of breath|gasping',
+  nerve: 'on edge|jumpy',
+};
+const DRINK_DENIAL = String.raw`(?:not|\w+n['’]t|never|no longer)\s+(?:\w+\s+)?(?:drunk|tipsy|drinking)|sober|stone cold`;
+const DRINK_SAYS = String.raw`drunk|tipsy|booze|plastered|hammered|slurr\w*|wasted`;
+
+/** A pattern source for the earlier replies and remembered facts that say the opposite of what was read, '' when none. `reads`: the game side's compact notes, as for modsAskedSentences. */
+export function modsStale(mods, form, reads) {
+  if (form !== 'person' && form !== 'head' && form !== 'ambient') return '';
+  const ambient = form === 'ambient', found = notable(mods, ambient);
+  const shown = new Set(found ? [...found.body, ...found.hurt, ...found.trace, ...found.inner].map(row => row.key) : []);
+  const bar = key => ambient ? AMBIENT_FLOOR[key] ?? AMBIENT_MIN : key === 'nerve' ? MIN_STAGE : MIN_BODY_STAGE;
+  const df = readStages(reads?.darkFuture), fac = readStages(reads?.fleshAndChrome);
+  const stages = {energy: [df.energy, fac.energy], hydration: [df.hydration], nutrition: [df.nutrition], breath: [fac.breath], nerve: ambient ? [] : [df.nerve]};
+  const parts = [];
+  for (const [key, words] of Object.entries(STALE_WORDS)) {
+    const seen = stages[key].filter(stage => stage !== undefined);
+    if (seen.length && !shown.has(key) && seen.every(stage => stage < bar(key))) parts.push(words);
+  }
+  if (found?.trace.some(row => row.key === 'drinks' && row.stage >= 2)) parts.push(DRINK_DENIAL);
+  else if (fac.drinks === 0 && !shown.has('drinks')) parts.push(DRINK_SAYS);
+  return parts.length ? String.raw`\b(?:` + parts.join('|') + ')' : '';
+}
+
+/** The codes of what V's state says this turn, for the bridge log: ["drinks:3", "energy:2"] (the keys and stages only, never text). */
+export function modsCodes(mods, form) {
+  const signature = form === 'person' || form === 'head' || form === 'ambient' ? modsSignature(mods) : undefined;
+  return signature ? signature.split(',').map(code => code.replace(/^([a-z]+)(\d)/, '$1:$2')) : [];
 }
 
 /** What became of V's state in this turn, for the probe line: where it went, or why it did not. `said`: the sentences for this form; `known`: the snapshot carried a state. */

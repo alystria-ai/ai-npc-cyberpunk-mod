@@ -143,12 +143,12 @@ const drinking = (text, drinks = 3, extra = {}) => turn(undefined, {profileKey: 
 test('drinks: "am i drunk" is a question about themself; stage 3 is told as drunk, in plain words, at both ends', () => {
   const input = drinking('am i drunk?');
   const block = freshOf(input);
-  assert.equal(block.facts, 'V is drunk: slurring, unsteady on their feet, reeking of booze.');
+  assert.equal(block.facts, 'V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.');
   const messages = messagesOf(input, {history: [{v: 'Another round', r: 'Coming up.'}]});
-  assert.ok(messages[0].content.trimEnd().endsWith('TRUE RIGHT NOW: V is drunk: slurring, unsteady on their feet, reeking of booze.'));
-  assert.ok(messages.at(-1).content.includes('[RIGHT NOW, TRUE: V is drunk: slurring, unsteady on their feet, reeking of booze.]\n\nV says: am i drunk?'));
+  assert.ok(messages[0].content.trimEnd().endsWith('TRUE RIGHT NOW: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.'));
+  assert.ok(messages.at(-1).content.includes('[RIGHT NOW, TRUE: V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.]\n\nV says: am i drunk?'));
   assert.equal(messages.length, 4, 'the history is sent as it is');
-  assert.equal(freshOf(drinking('do i seem drunk?', 2)).facts, 'V is tipsy: loose, a little loud, smelling of booze.');
+  assert.equal(freshOf(drinking('do i seem drunk?', 2)).facts, 'V is tipsy: loose, a little loud, smelling of booze. If V asks whether they have been drinking, the answer is yes.');
   assert.equal(freshOf(drinking('am i sober?')).facts, block.facts);
   assert.doesNotMatch(block.facts, /\b(?:don't|do not|never|must|should)\b/i);
 });
@@ -173,16 +173,17 @@ test('a profile that puts the turn\'s notes after V\'s line gets the fresh line 
 test('no fresh facts: the prompt has none of it, byte for byte what it was', () => {
   const input = turn(suited());
   const blocks = conversationContextBlocks(input);
-  assert.deepEqual(freshParts(blocks), {});
+  assert.deepEqual(freshParts(blocks), {freshCodes: '', freshAsked: true}, 'the codes for the log (V asked about clothes), and no fresh text');
   const plain = buildMessages({persona, history: HISTORY, context: 'x', contextParts: partsOf(blocks), text: 'hi'});
   assert.doesNotMatch(JSON.stringify(plain), /TRUE RIGHT NOW|RIGHT NOW, TRUE/);
   assert.equal(plain.length, 2 + HISTORY.length * 2 - 0, 'every exchange is sent');
 });
 
 test('fresh-facts helpers', () => {
-  assert.deepEqual(freshBlock([]), {tier: 'fresh', text: '', facts: '', drop: ''});
-  assert.deepEqual(freshBlock([null, {text: ''}]), {tier: 'fresh', text: '', facts: '', drop: ''});
-  const joined = freshBlock([{text: 'A.', drop: '\\bfoo'}, null, {text: 'B.', drop: '\\bbar'}]);
+  assert.deepEqual(freshBlock([]), {tier: 'fresh', text: '', facts: '', drop: '', codes: '', asked: false});
+  assert.deepEqual(freshBlock([null, {text: ''}], {asked: true}), {tier: 'fresh', text: '', facts: '', drop: '', codes: '', asked: true});
+  const joined = freshBlock([{text: 'A.', drop: '\\bfoo', codes: ['a:1']}, null, {text: 'B.', drop: '\\bbar', codes: ['b']}]);
+  assert.equal(joined.codes, 'a:1,b');
   assert.equal(joined.facts, 'A. B.');
   assert.equal(joined.drop, '\\bfoo|\\bbar');
   assert.equal(headLine('A.'), 'TRUE RIGHT NOW: A.');
@@ -193,7 +194,8 @@ test('fresh-facts helpers', () => {
   assert.deepEqual(nameWords(["Aguilar's suit", 'Replica of Johnny\'s Samurai jacket'], ['Samurai jacket']), ['aguilar', 'suit', 'johnny']);
   assert.equal(wordPattern([]), '');
   assert.equal(wordPattern(['a.b']), '\\b(?:a\\.b)');
-  assert.deepEqual(freshParts([{tier: 'fresh', text: '', facts: ''}]), {});
+  assert.deepEqual(freshParts([{tier: 'fresh', text: '', facts: ''}]), {freshCodes: '', freshAsked: false});
+  assert.deepEqual(freshParts([]), {});
 });
 
 test('the memory class is the one the bridge uses: a fresh line is never told twice for one change', () => {

@@ -181,7 +181,7 @@ export function conversationContextBlocks(input) {
   const {text: now, background, fresh: modsFresh} = describeTurnContext(input, turnContextOptions(input, ambient));
   // What changed or what V asks about, as plain facts for the two places a small model reads last (bridge/fresh-facts.mjs): the end of the system message and right before V's words.
   const asked = asksAboutClothes(input?.text) || asksAboutSelf(input?.text);
-  const fresh = freshBlock([on('gear') ? gearFresh(input, gearMemory, {visible: ambient, asked}) : null, {text: modsFresh}]);
+  const fresh = freshBlock([on('gear') ? gearFresh(input, gearMemory, {visible: ambient, asked}) : null, modsFresh], {asked});
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {

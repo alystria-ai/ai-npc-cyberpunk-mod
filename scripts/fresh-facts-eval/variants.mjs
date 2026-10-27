@@ -71,3 +71,18 @@ export function judge(kind, reply) {
   const b = bad.test(text.replace(/birthday suit/gi, 'birthday')), o = ok.test(text);
   return b && !o ? 'bad' : o && !b ? 'ok' : 'review';
 }
+
+// ---- The second drinks test (Claire's real history and memory: scenarios.mjs drinksLiveCase) -------------------------------------------------------
+// A variant with `options` builds the case with them (noDrop: the prompt as it was, with her own earlier denials in the history and her notes in the memory). The built prompt carries
+// the shipped wording (the answer form); the variants that measure the old sentence put it back.
+const SHIPPED = 'V is drunk. If V asks whether they are drunk, the answer is yes: slurring, unsteady on their feet, reeking of booze.';
+const reword = text => messages => copy(messages).map(row => ({...row, content: row.content.split(SHIPPED).join(text)}));
+const withOptions = (make, options) => Object.assign(make, {options});
+export const DRINKS_LIVE_VARIANTS = {
+  live: withOptions(c => reword(DRUNK_VIVID)(c.messages), {noDrop: true}),       // what ran live: the plain sentence, the denials and the notes still sent
+  drop: c => reword(DRUNK_VIVID)(c.messages),                                    // the plain sentence, the stale lines left out
+  'answer-nodrop': withOptions(c => c.messages, {noDrop: true}),                 // the answer wording, the stale lines still sent
+  answer: c => c.messages,                                                       // what ships: the answer wording and the stale lines left out
+  'yes-first': c => reword('V IS drunk. If V asks, V is drunk: slurring, unsteady on their feet, reeking of booze.')(c.messages),
+};
+export const DRINKS_LIVE_TEXTS = [{text: 'am i drunk'}, {text: 'do i seem drunk'}, {text: 'am i sober?'}];
