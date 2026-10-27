@@ -702,6 +702,6 @@ test('loader: the baseline read happens once after a save has loaded, three seco
 `));
 
 test('init.lua: the baseline is taken from the 0.5 second sample, and a load of another save resets the reader and asks for a new baseline', () => {
-  assert.match(init, /battleSampleAt = os\.time\(\) \* 1000\n\s*if convaiVixenBaselineDue and worldReady then pcall\(convaiVixenBaseline, player, os\.time\(\)\) end/);
+  assert.match(init, /battleSampleAt = os\.time\(\) \* 1000\r?\n\s*if convaiVixenBaselineDue and worldReady then pcall\(convaiVixenBaseline, player, os\.time\(\)\) end/);
   assert.match(init, /if preserveTransit ~= true then\n\s*convaiVixenBaselineDue, convaiVixenBaselineAt = true, nil\n\s*if convaiVixenState and type\(convaiVixenState\.reset\) == 'function' then pcall\(convaiVixenState\.reset\) end/);
 });
