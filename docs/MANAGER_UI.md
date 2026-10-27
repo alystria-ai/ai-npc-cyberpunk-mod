@@ -600,7 +600,7 @@ only); a request is **full** (browser, graphics card and mod managers looked up 
 time). Only an answer written this game session is shown (a 180 s window, as `service-status.lua`).
 
 **The first-load notice.** When something critical is wrong the player gets one notice, once per game session, in gameplay: the first
-problem in a fixed order (this mod's scripts, RED4ext, Codeware, Native Settings UI, mod files, a service that never
+problem in a fixed order (RED4ext, the build for the game (the Scripts, the Runtime and the running game are not for the same game version, docs/GAME_VERSIONS.md "Wrong build"), this mod's scripts, Codeware, Native Settings UI, mod files, a service that never
 started, Scripts and Runtime, packs, Internet), one short text of at most two lines (`bridge/setup-notice-fit.test.mjs` holds all 15
 languages to that), shown for 9 s. The order puts everything that keeps the mod from starting, and Native Settings UI, before the texts that say "See
 Help in Settings", so a notice never sends the player to a page they cannot open. A service that failed has its own notice

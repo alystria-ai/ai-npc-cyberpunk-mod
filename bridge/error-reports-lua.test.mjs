@@ -137,3 +137,20 @@ test('the one-time notice waits for gameplay and 40 s, shows once, is remembered
   assert.equal(run(`noticed = true; M.tick(true); now = now + 60; return tostring(M.tick(true))`), 'nil', 'already shown at an earlier load');
   assert.equal(run(`setting = false; M.tick(true); now = now + 60; return tostring(M.tick(true)) .. marks`), 'nil0');
 });
+
+test('a mixed install (Scripts of one game, Runtime of the other) is an event with the three games and a setup line in every report of the session', () => {
+  const parsed = parseGameEvents(run(`
+    local checks = {build = {state = 'problem', code = 'runtime-wrong', detail = 'scripts=2.5 runtime=2.31 game=2.5'},
+      files = {state = 'ok', code = 'found', version = '0.3.2'}, game = {state = 'ok', code = 'tested', version = '2.5'}}
+    assert(M.noteSetup({'build'}, checks) == true)
+    return file()`));
+  assert.deepEqual(parsed.events.map(row => row.message), ['build runtime-wrong']);
+  assert.deepEqual(parsed.events[0].detail, {detail: 'scripts=2.5 runtime=2.31 game=2.5'});
+  assert.ok(parsed.game.setup.includes('build: problem runtime-wrong (scripts=2.5 runtime=2.31 game=2.5)'), parsed.game.setup.join('|'));
+  // when the three agree the line still carries them, so every report shows which build it came from
+  const fine = parseGameEvents(run(`
+    assert(M.noteSetup({}, {build = {state = 'ok', code = 'match', detail = 'scripts=2.5 runtime=2.5 game=2.5'}}) == true)
+    return file()`));
+  assert.ok(fine.game.setup.includes('build: ok match (scripts=2.5 runtime=2.5 game=2.5)'), fine.game.setup.join('|'));
+  assert.deepEqual(fine.events, []);
+});

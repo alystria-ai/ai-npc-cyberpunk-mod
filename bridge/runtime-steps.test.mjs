@@ -87,9 +87,9 @@ test('the setup check turns a skipped step into a problem on the versions row, w
     const options = {game: join(root, 'game'), modRoot, project, stateDirectory, light: true, settings: {}, localAi: () => ({}), omniPack: () => ({}),
       modManagers: () => ({managers: []}), nestedPacks: async () => [], placement: async () => null, graphics: async () => [], browser: () => null, reach: async () => 'reachable'};
     const row = (await collectSetupCheck(options)).checks.find(item => item.id === 'versions');
-    assert.deepEqual(row, {id: 'versions', state: 'problem', code: 'chain-gap', scripts: '0.2.8', runtime: '0.2.8', from: '0.2.6', to: '0.2.7'});
+    assert.deepEqual(row, {id: 'versions', state: 'problem', code: 'chain-gap', scripts: '0.2.8', runtime: '0.2.8', scriptsGame: '2.31', runtimeGame: '2.31', from: '0.2.6', to: '0.2.7'});
     await writeFile(join(project, STEPS_DIR, stepFileName('0.2.6', '0.2.7')), stepText('0.2.6', '0.2.7'));
     const fixed = (await collectSetupCheck(options)).checks.find(item => item.id === 'versions');
-    assert.deepEqual(fixed, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.8', runtime: '0.2.8'});
+    assert.deepEqual(fixed, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.8', runtime: '0.2.8', scriptsGame: '2.31', runtimeGame: '2.31'});
   } finally { await rm(root, {recursive: true, force: true}); }
 });
