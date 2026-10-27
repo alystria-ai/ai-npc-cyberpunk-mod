@@ -38,6 +38,16 @@ M.DEFAULTS = {
     verifyAfter = 1.2,   -- seconds after a reaction started that one read-back is logged
     fleeVerify = 3,      -- seconds after a crowd person's flight started that its read-back (metres moved) is logged
     fleeMin = 1.5,       -- metres a fleeing crowd person must have moved by that read-back, or it is asked once more with the fear stage
+    -- A walking crowd person's run (crowdRun): legs of a few metres, each read back, so a move the game turns into a jump jumps one leg at most.
+    legProbe = 4, legLength = 8,   -- metres: the first leg, every later one
+    probeAfter = 0.4, legCheck = 1.0,   -- seconds: the first leg's read-back, every later one's (the next leg is sent then)
+    runSpeedMax = 7,     -- metres a second nobody runs faster than: a leg covered faster was a jump
+    legJumpMin = 3,      -- metres a leg must cover before its speed counts as a jump
+    legStall = 0.3,      -- metres: less in a read-back (twice) is a person that does not run
+    legArrive = 2, legsMax = 10,
+    -- A brawl: its friends joining (once) and V's escalation (V holds a gun: everyone draws, for good).
+    buddyRadius = 20, buddyMax = 4,
+    escalateEvery = 1, escalateWatch = 120,
     jump = 12,           -- metres moved by the first read-back that mean the person was put there, not walked there
     commandCooldown = 30,   -- seconds after a command before the same person is offered another
     stopHold = 30, cowerHold = 20,   -- seconds a person who stopped, or who cowers without the crowd's own fear, holds still
@@ -376,7 +386,8 @@ function M.nativeAdapter()
     end
     -- One walking command to a point (the command the companion code sends, mod/companion-actuator.lua walk): the person moves on the
     -- navmesh and the game's own AI takes it back when it arrives. Returns the command, to read its state later.
-    function N.walkTo(npc, point, gait)
+    -- continuing: a later leg of one run (no start animation: the person is already running).
+    function N.walkTo(npc, point, gait, continuing)
         local world = WorldPosition.new()
         world:SetVector4(Vector4.new(point.x, point.y, point.z, 1))
         local spec = AIPositionSpec.new()
@@ -388,10 +399,17 @@ function M.nativeAdapter()
         command.desiredDistanceFromTarget = 1.0
         command.finishWhenDestinationReached = true
         command.ignoreNavigation = false
-        command.useStart = true
+        command.useStart = continuing ~= true
         command.useStop = false
         if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the walk command') end
         return command
+    end
+    -- The walkable point near the point (within radius metres), or nil.
+    function N.snap(npc, point, radius)
+        local found = Game.GetAINavigationSystem():FindPointInSphereForCharacter(Vector4.new(point.x, point.y, point.z, 1), radius, npc)
+        local p = found and found.status == Enum.new('worldNavigationRequestStatus', 'OK') and found.point or nil
+        if p and finite(p.x) and finite(p.y) and finite(p.z) then return {x = p.x, y = p.y, z = p.z} end
+        return nil
     end
     function N.commandState(npc, command)
         local label = tostring(npc:GetAIControllerComponent():GetCommandState(command))
@@ -517,6 +535,49 @@ function M.nativeAdapter()
         local event = NewObject('AIEvent')
         event.name = CName.new('ExitVehicle')
         npc:QueueEvent(event)
+    end
+    -- A person in a workspot (a bench, a counter, a wall to lean on). The conversation's focus does not hold such a person
+    -- (Engagement.reds ConvaiBeginFocus), and a move command puts it at the end point at once (Shandor's report, 2026-10-25).
+    function N.workspot(npc) return Game.GetWorkspotSystem():IsActorInWorkspot(npc) == true end
+    -- The gun in V's hand: its record, or false (empty hands, fists, a blade). For the brawl's escalation (V draws, the brawlers draw).
+    function N.vArmed(player)
+        local item = ScriptedPuppet.GetWeaponRight(player)
+        if item == nil then return false end
+        local id = item:GetItemID()
+        if not WeaponObject.IsRanged(id) then return false end
+        return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'gun')
+    end
+    -- A brawler draws its own weapon (the game's command; unEquip off: the fists are simply replaced).
+    function N.weapons(npc)
+        local command = NewObject('AISwitchToPrimaryWeaponCommand')
+        if command == nil then error('the weapon switch command cannot be made from Lua') end
+        command.unEquip = false
+        if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the weapon switch') end
+    end
+    -- The people who joined the person's fight: NPCs within `radius` of V that are in combat and hostile to V (the brawler's friends who
+    -- come along). One search of the game's targeting system, once per brawl.
+    function N.joined(player, npc, radius)
+        local query = TargetSearchQuery.new()
+        query.searchFilter = Game['TSF_NPC;']()
+        query.maxDistance = radius
+        query.includeSecondaryTargets = false
+        query.filterObjectByDistance = true
+        query.ignoreInstigator = true
+        query.testedSet = Enum.new('TargetingSet', 'Complete')
+        local _, parts = Game.GetTargetingSystem():GetTargetParts(player, query)
+        local own, result, seen = tostring(npc:GetEntityID().hash), {}, {}
+        for _, part in ipairs(parts or {}) do
+            local component = TS_TargetPartInfo.GetComponent(part)
+            local entity = component and component:GetEntity()
+            if entity and entity:IsNPC() then
+                local key = tostring(entity:GetEntityID().hash)
+                if key ~= own and not seen[key] then
+                    seen[key] = true
+                    if NPCPuppet.IsInCombat(entity) == true and attitudeName(entity, player) == 'AIA_Hostile' then result[#result + 1] = entity end
+                end
+            end
+        end
+        return result
     end
     function N.mounted(npc) return Game.GetMountingFacility():IsMountedToAnything(npc:GetEntityID()) == true end
     function N.playerMounted(player) return Game.GetMountingFacility():IsMountedToAnything(player:GetEntityID()) == true end
@@ -706,17 +767,63 @@ function M.new(options)
         return true
     end
 
-    -- The walk away: V's hold on the person is let go, then one command to the first walkable point away from V. A crowd person runs with the
-    -- crowd's own flight instead: a move command puts a crowd person at its end point in an instant (the person "disappears").
-    local function walkAway(p, player, why)
+    local function seatedOf(npc)
+        if not natives.workspot then return false end
+        local ok, value = guard('read-workspot', natives.workspot, npc)
+        return not ok or value == true   -- unreadable: treated as seated (never a move command that could put it somewhere at once)
+    end
+    local function distance(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2 + (a.z - b.z) ^ 2) end
+    -- The next leg of a crowd person's run: at most `length` metres from `at` toward `goal`, on the navmesh when it can be snapped.
+    local function legTo(npc, at, goal, length)
+        local gap = distance(at, goal)
+        local share = gap > length and length / gap or 1
+        local point = {x = at.x + (goal.x - at.x) * share, y = at.y + (goal.y - at.y) * share, z = at.z + (goal.z - at.z) * share}
+        if share < 1 and natives.snap then
+            local ok, snapped = guard('walk', natives.snap, npc, point, cfg.awaySnap)
+            if ok and type(snapped) == 'table' then point = snapped end
+        end
+        return point
+    end
+
+    -- A crowd person who walks (not seated) is run away by us, with the mechanism that already stops a crowd person when V talks to it: the
+    -- conversation's focus holds it with an AIHoldPositionCommand (r6/scripts/CyberpunkConvai/Engagement.reds ConvaiBeginFocus), which takes it
+    -- out of the crowd's traffic while the command runs. Let go first (the first build did: release, then the crowd event) and the crowd's
+    -- traffic has it back at once: the person walks on (live test 2, 2026-10-27). So the person gets its own command while the conversation's
+    -- hold still runs, and only then is the hold let go. The run is short legs (`legLength` m, the next one sent each `legCheck` s before the
+    -- last one ends), each read back: a person that covers a leg faster than anyone runs (`runSpeedMax`) was put there, not run there, and gets
+    -- no further move (the crowd's fear instead), so the worst jump is one leg. The crowd reaction event goes first: the game's own fright for
+    -- the people around (they run, the owner's wish), its fear face and voice for the person.
+    local function crowdRun(p, player, why)
+        if not natives.walkTo then return false end
+        local ok, points = guard('walk', natives.awayPoints, p.npc, player, cfg)
+        local from = where(p.npc)
+        if not ok or type(points) ~= 'table' or #points == 0 or not from then return false end
+        if not off.fear then guard('fear', natives.crowdFear, p.npc, player, 3) end
+        local leg = legTo(p.npc, from, points[1], cfg.legProbe)
+        local started, command = guard('walk', natives.walkTo, p.npc, leg, 'Run')
+        if not started then return false end
         release(player)
+        log('NPC reaction: ' .. why .. ' started, taken from the crowd and run away in legs (' .. string.format('%.0f', points[1].gap)
+            .. ' m from V; the conversation\'s hold let go after the first leg was sent)')
+        checks[#checks + 1] = {at = clock() + cfg.probeAfter, kind = 'leg', npc = p.npc, command = command, goal = points[1], from = from, legFrom = from,
+            sentAt = clock(), legs = 1, why = why, player = player, entity = p.entity}
+        return true
+    end
+
+    -- The walk away: V's hold on the person is let go, then one command to the first walkable point away from V. A crowd person who walks is
+    -- run away in legs (crowdRun); a seated one, or one that cannot be run, gets the crowd's own flight: a single move command puts a crowd
+    -- person at its end point in an instant (the person "disappears").
+    local function walkAway(p, player, why)
         if crowdOf(p.npc) then
+            if not seatedOf(p.npc) and crowdRun(p, player, why) then return true end
+            release(player)
             if crowdFear(p, player, 3, why) then return true end
             -- Neither the event nor the fear stage could be sent (both switched off after failures): no move command either (it would put the
             -- person 30 m off in an instant), so the honest outcome is written.
             logOnce('npc-reaction-nofear', 'NPC reaction: neither the crowd\'s reaction event nor its fear stage is available for ' .. why .. '; the person stays')
             return false
         end
+        release(player)
         local gait = M.RUNS[p.category] and 'Run' or 'Walk'
         local ok, points = guard('walk', natives.awayPoints, p.npc, player, cfg)
         if not ok or type(points) ~= 'table' or #points == 0 then
@@ -732,14 +839,27 @@ function M.new(options)
         return true
     end
 
-    -- Cower or get down: a crowd person with the crowd's own fear (it cowers or surrenders where it is); anyone else holds still.
+    -- Cower or get down. A crowd person who walks is held FIRST, while the conversation's hold still runs (the same command that stops it when
+    -- V talks to it, see crowdRun), then frightened in place with the crowd's own fear (phase 2: its fear face, voice and pose), and only then is
+    -- the conversation let go; it goes back to the crowd when the hold ends (`cowerHold`). A seated crowd person gets the seat's own fear
+    -- (the event, phase 2); anyone else holds still.
     local function cower(p, player, why)
-        release(player)
-        if crowdOf(p.npc) and crowdFear(p, player, 2, why) then return true end
+        local crowd = crowdOf(p.npc)
+        if crowd and seatedOf(p.npc) then
+            release(player)
+            if crowdFear(p, player, 2, why) then return true end
+        end
+        local from = where(p.npc)
         local ok, command = guard('hold', natives.hold, p.npc, cfg.cowerHold)
-        if not ok then return false end
-        log('NPC reaction: ' .. why .. ' started, holds still for ' .. cfg.cowerHold .. ' s (not a crowd person, or its fear was not available)')
-        checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = p.npc, command = command, why = why}
+        if not ok then release(player); return false end
+        local feared = false
+        if crowd and not off.fear then feared = guard('fear', natives.crowdFear, p.npc, player, 2) end
+        if crowd and not feared and natives.crowdPanic and not off.panic then feared = guard('panic', natives.crowdPanic, p.npc, player, 2) end
+        release(player)
+        log('NPC reaction: ' .. why .. ' started, holds still for ' .. cfg.cowerHold .. ' s'
+            .. (crowd and (', taken from the crowd before the conversation let go' .. (feared and ', in the crowd\'s own fear' or '')) or ' (not a crowd person)'))
+        checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = p.npc, command = command, why = why, from = crowd and from or nil}
+        if crowd then checks[#checks + 1] = {at = clock() + cfg.cowerHold, kind = 'back', npc = p.npc, why = why, from = from} end
         return true
     end
 
@@ -783,8 +903,16 @@ function M.new(options)
             log('NPC reaction: ' .. p.kind .. ' ' .. (hostile and 'hostile ok' or 'hostile failed') .. ', combat start ' .. (combat and tostring(way) or 'failed')
                 .. (p.kind == 'brawl' and (', fists ' .. (fists and tostring(how) or 'not asked')) or ''))
             if hostile or combat then
-                checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = p.npc, entity = p.entity, brawl = p.kind == 'brawl'}
                 started(p.kind, p)
+                -- A brawl is one fight of the person and the friends who join it (the first read-back finds them). It escalates when V does:
+                -- the moment V holds a gun, every one of them draws its own weapon, and never goes back to fists (the owner's rule, 2026-10-27).
+                -- Watched once a second while the brawl lasts (`escalateWatch`), never per frame.
+                local fight = p.kind == 'brawl' and {npcs = {p.npc}, escalated = false, player = player} or nil
+                -- The watch first: when both come due together, V's gun is read before anything is put away.
+                if fight and natives.vArmed and natives.weapons then
+                    checks[#checks + 1] = {at = clock() + cfg.escalateEvery, kind = 'escalate', fight = fight, untilAt = clock() + cfg.escalateWatch}
+                end
+                checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = p.npc, entity = p.entity, brawl = p.kind == 'brawl', fight = fight}
             end
         elseif p.kind == 'cower' or p.kind == 'get-down' then
             if cower(p, player, p.kind) then started(p.kind, p) end
@@ -844,17 +972,47 @@ function M.new(options)
             if v.brawl and natives.hand then local okHand, value = guard('read-hand', natives.hand, v.npc); hand = okHand and tostring(value) or 'unreadable' end
             log('NPC reaction check: ' .. (v.brawl and 'brawl' or 'attack') .. ' in_combat=' .. (okCombat and tostring(combat) or 'unreadable') .. ' hostile_to_v=' .. (okHostile and tostring(hostile) or 'unreadable')
                 .. (hand and (' hand=' .. hand) or ''))
-            -- A brawl whose person drew a weapon: the weapon is put away once (its fists are what an insult earns).
-            if v.brawl and hand and hand ~= 'fists' and hand ~= 'empty' and hand ~= 'unreadable' and not v.holstered and natives.holster then
+            local escalated = v.fight ~= nil and v.fight.escalated
+            -- A brawl whose person drew a weapon: the weapon is put away once (its fists are what an insult earns), unless V already escalated.
+            if v.brawl and hand and hand ~= 'fists' and hand ~= 'empty' and hand ~= 'unreadable' and not v.holstered and natives.holster and not escalated then
                 local put = guard('fists', natives.holster, v.npc)
                 log('NPC reaction: brawl drew ' .. hand .. ', asked to put it away (' .. (put and 'sent' or 'failed') .. ')')
                 v.holstered = true
+            end
+            -- The friends who joined the brawl (live test 2: one came with a gun): once, the same fists and the same put-away, each one an
+            -- ordinary person by the same rails as the brawler (never a companion, another mod's character, a story or quest character, a child).
+            if v.brawl and v.fight and not v.fight.joined and natives.joined and not escalated then
+                v.fight.joined = true
+                local found, list = guard('read-joined', natives.joined, player, v.npc, cfg.buddyRadius)
+                local asked, drew = 0, 0
+                for _, buddy in ipairs(found and type(list) == 'table' and list or {}) do
+                    if asked >= cfg.buddyMax then break end
+                    local facts = {}
+                    local policy = type(options.policy) == 'table' and options.policy or {}
+                    local okPolicy, ordinary = pcall(function()
+                        return policy.ours(buddy) ~= true and policy.spawned(buddy) ~= true and policy.protected(buddy) ~= true and policy.story(buddy) ~= true
+                    end)
+                    local okFlag, flagged = pcall(function() return options.storyFlag(buddy, nil) end)
+                    local okChild, child = guard('read-child', natives.child, buddy)
+                    facts.ok = okPolicy and ordinary == true and okFlag and flagged == false and okChild and child == false
+                    if facts.ok then
+                        asked = asked + 1
+                        local okHand, held = guard('read-hand', natives.hand, buddy)
+                        if okHand and held ~= 'fists' and held ~= 'empty' and natives.holster then
+                            drew = drew + 1
+                            guard('fists', natives.holster, buddy)
+                        end
+                        if natives.fists then guard('fists', natives.fists, buddy) end
+                        v.fight.npcs[#v.fight.npcs + 1] = buddy
+                    end
+                end
+                log('NPC reaction: brawl joined by ' .. asked .. ' more' .. (asked > 0 and (', asked for fists (' .. drew .. ' had a weapon out, asked to put it away)') or ''))
             end
             -- Hostile but not fighting a second later (a person who has not noticed V): one stronger ask, then one more read-back.
             if okCombat and combat == false and not v.engaged and okHostile then
                 local engaged, how = guard('attack', natives.engage, v.npc, player)
                 log('NPC reaction: not in combat yet, asked again (' .. (engaged and tostring(how) or 'failed') .. ')')
-                if engaged then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = v.npc, entity = v.entity, engaged = true, brawl = v.brawl, holstered = v.holstered} end
+                if engaged then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = v.npc, entity = v.entity, engaged = true, brawl = v.brawl, holstered = v.holstered, fight = v.fight} end
             end
         elseif v.kind == 'police' then
             local ok, heat = guard('read-heat', natives.heat)
@@ -876,7 +1034,72 @@ function M.new(options)
             end
         elseif v.kind == 'hold' then
             local ok, state = guard('read-command', natives.commandState, v.npc, v.command)
-            log('NPC reaction check: ' .. v.why .. ' hold state=' .. (ok and tostring(state) or 'unreadable'))
+            log('NPC reaction check: ' .. v.why .. ' hold state=' .. (ok and tostring(state) or 'unreadable') .. (v.from and (' moved=' .. metres(moved(v.npc, v.from)) .. ' m') or ''))
+        elseif v.kind == 'back' then
+            -- A crowd person's hold is over: the crowd has it back (one line, so a person that never stayed shows up).
+            log('NPC reaction check: ' .. v.why .. ' hold over, back to the crowd (moved=' .. metres(moved(v.npc, v.from)) .. ' m in the hold)')
+        elseif v.kind == 'leg' then
+            local now, here = clock(), where(v.npc)
+            local attached = true
+            pcall(function() attached = v.npc:IsAttached() ~= false end)
+            if not here or not attached then
+                log('NPC reaction check: ' .. v.why .. ' run over after ' .. v.legs .. ' leg(s): the person streamed out (out of sight)')
+            else
+                local covered, elapsed = distance(here, v.legFrom), math.max(0.05, now - v.sentAt)
+                local total = distance(here, v.from)
+                if covered >= cfg.legJumpMin and covered / elapsed > cfg.runSpeedMax then
+                    -- Put there, not run there: no further move. The crowd's own fear from here (the worst jump was this one leg).
+                    log('NPC reaction check: ' .. v.why .. ' leg ' .. v.legs .. ' moved=' .. metres(covered) .. ' m in ' .. string.format('%.1f', elapsed)
+                        .. ' s (jumped, not run); no more moves, the crowd\'s fear instead')
+                    if natives.crowdPanic and not off.panic then guard('panic', natives.crowdPanic, v.npc, v.player, 3) end
+                elseif distance(here, v.goal) <= cfg.legArrive or v.legs >= cfg.legsMax then
+                    log('NPC reaction check: ' .. v.why .. ' ran ' .. metres(total) .. ' m in ' .. v.legs .. ' leg(s); back to the crowd')
+                elseif covered < cfg.legStall then
+                    if not v.stalled then
+                        v.stalled, v.at = true, now + cfg.legCheck
+                        checks[#checks + 1] = v
+                    else
+                        local ok, state = guard('read-command', natives.commandState, v.npc, v.command)
+                        log('NPC reaction check: ' .. v.why .. ' did not run (leg ' .. v.legs .. ' moved=' .. metres(covered) .. ' m, command state='
+                            .. (ok and tostring(state) or 'unreadable') .. '); the crowd\'s fear instead')
+                        if natives.crowdPanic and not off.panic then guard('panic', natives.crowdPanic, v.npc, v.player, 3) end
+                    end
+                else
+                    if v.legs == 1 then
+                        log('NPC reaction check: ' .. v.why .. ' first leg moved=' .. metres(covered) .. ' m in ' .. string.format('%.1f', elapsed) .. ' s (running)')
+                    end
+                    -- The next leg from where the person is, sent before this one ends: one run, no stop and no start animation between legs.
+                    local leg = legTo(v.npc, here, v.goal, cfg.legLength)
+                    local started, command = guard('walk', natives.walkTo, v.npc, leg, 'Run', true)
+                    if started then
+                        checks[#checks + 1] = {at = now + cfg.legCheck, kind = 'leg', npc = v.npc, command = command, goal = v.goal, from = v.from,
+                            legFrom = here, sentAt = now, legs = v.legs + 1, why = v.why, player = v.player, entity = v.entity}
+                    else
+                        log('NPC reaction check: ' .. v.why .. ' the next leg was refused after ' .. metres(total) .. ' m')
+                    end
+                end
+            end
+        elseif v.kind == 'escalate' then
+            -- Once a second while the brawl lasts: V holding a gun makes every brawler draw its own weapon, once, for good.
+            local fight = v.fight
+            local now = clock()
+            local alive = 0
+            for _, npc in ipairs(fight.npcs) do
+                local ok, up = guard('read-alive', natives.alive, npc)
+                if ok and up then alive = alive + 1 end
+            end
+            if not fight.escalated and alive > 0 then
+                local ok, gun = guard('read-v-weapon', natives.vArmed, fight.player)
+                if ok and gun then
+                    fight.escalated = true
+                    local drew = 0
+                    for _, npc in ipairs(fight.npcs) do if guard('weapons', natives.weapons, npc) then drew = drew + 1 end end
+                    log('NPC reaction: V drew ' .. tostring(gun) .. '; the brawl escalates: ' .. drew .. ' of ' .. #fight.npcs .. ' draw their own weapons')
+                elseif ok and now + cfg.escalateEvery <= v.untilAt then
+                    v.at = now + cfg.escalateEvery
+                    checks[#checks + 1] = v
+                end
+            end
         elseif v.kind == 'exit' then
             local ok, mounted = guard('read-mount', natives.mounted, v.npc)
             log('NPC reaction check: exit-vehicle ' .. (ok and (mounted and 'still in the vehicle' or 'out of the vehicle') or 'unreadable'))

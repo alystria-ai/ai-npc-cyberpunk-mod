@@ -2,8 +2,17 @@
 
 Written 2026-10-26 on branch `feat/npc-threats-commands` (from `main` 8006a09d) for the next version, not 0.3.2, merged into `integration/0.3.3`.
 Reworked 2026-10-27 on `fix/threats-live` after the first live test (next section): the crowd flight's crash, **the game decides** (the owner's
-rule), and lethal phrasings. Committed, NOT merged, NOT pushed, offline-tested only. Behind a Companion Manager switch that is **off by default**:
-Settings, Conversations, "NPCs react to threats and commands".
+rule), and lethal phrasings. Reworked again 2026-10-27 on `fix/threats-crowd` after live test 2: walking crowd people taken from the crowd's
+traffic before they react, and a brawl that escalates when V does. Committed, NOT merged, NOT pushed, offline-tested only. Behind a Companion
+Manager switch that is **off by default**: Settings, Conversations, "NPCs react to threats and commands" (the crowd run is not behind it).
+
+## Live test 2 (game 2.5, 2026-10-27, switch on) and what changed
+
+| Seen live | Cause | Fix (`fix/threats-crowd`) |
+|---|---|---|
+| Gangers: a death threat draws and attacks (05:49:43Z `attack ok`); an insult brings fists and his friends join with fists (05:53 `brawl hand=fists`) | works | kept |
+| One friend fought with a gun from the start; the owner's new rule: when V draws or uses a gun the brawlers switch to their guns (escalate when V escalates, never de-escalate on their own) | the friends were never asked for fists; nothing watched V's weapon | "A brawl and its friends" below |
+| Walking pedestrians: a threat or "Get down on the ground!" and the person walks on (and says it won't), while the people around start running (the owner likes that): `get-down started, the crowd's own fear (the crowd reaction event, no move command)`, then `get-down crowd moved=1.5 m in 3 s` / `2.8 m in 3 s` (05:51:34Z, 05:52:13Z). With the switch off a threatened walking pedestrian also walked on | the reaction let go of the conversation first (`release`), and only then sent the crowd's fear. The conversation's focus is what had stopped the person: `ConvaiBeginFocus` sends it an `AIHoldPositionCommand` (`r6/scripts/CyberpunkConvai/Engagement.reds:91-96`, logged by `mod/init.lua:2634-2638` "Crowd focus begin: crowd focus started"), which takes a walking crowd person out of the crowd's traffic while the command runs. Let go of it and the traffic has the person back at once; the fear event reached it (its fright spread to the people around) but its walk was the traffic's | the same mechanism, kept without a gap: the person gets **its own command while the conversation's hold still runs**, and only then is the conversation let go ("Walking crowd people" below) |
 
 ## Live test 1 (game 2.5, 2026-10-26) and what changed
 
@@ -69,6 +78,41 @@ The crowd event needs a stimulus object, which the first build could not make fr
 The second way runs when the first cannot be sent, and once more when a person who should flee has moved less than 1.5 m by the 3 s read-back
 (`... did not move; asked again with the fear stage`). Only when both are switched off after three failures each does the crowd person **stay**
 (`neither the crowd's reaction event nor its fear stage is available ...`): a move command would make it vanish.
+
+Since `fix/threats-crowd` the fear-only path above is for **seated** crowd people (a workspot: a bench, a counter, a wall; also a workspot that
+cannot be read). Shandor's three were all seated (`workspot=true`), and the conversation's focus never holds a seated person.
+
+### Walking crowd people (live test 2, `fix/threats-crowd`)
+
+The mechanism reused is the one that already stops a walking crowd person when V talks to it: `PlayerPuppet.ConvaiBeginFocus`
+(`r6/scripts/CyberpunkConvai/Engagement.reds:82-125`) sends a crowd or civilian person who is not in a workspot an `AIHoldPositionCommand`
+(40 s, lines 91-96) through its AI component. While an AI command runs, the crowd's traffic does not move the person; `ConvaiEndFocus`
+(lines 53-77, called by `endFocus` in `mod/init.lua`, which is the reaction's `release`) stops that command, and the traffic has the person back.
+The first two builds let go first and acted after, so the person walked on. Now, for a walking crowd person (`npc:IsCrowd()` and not in a
+workspot), the reaction sends **its own command first**, while the conversation's hold still runs, and lets go only after that:
+
+| Kind | Order | The person | Back to the crowd |
+|---|---|---|---|
+| leave (and the run after a police call, and the switch-off leave) | the crowd reaction event (phase 3: the game's own fright for the people around, its fear face and voice), the first run leg, then the conversation lets go | runs away in **legs**: a first leg of 4 m, read back after 0.4 s; then legs of 8 m, each sent from where the person is a second later, before the last one ends (no stop, no start animation between legs: `useStart` off), up to the walkable point 30 m away or ten legs | when it arrives (`ran <m> m in <n> leg(s); back to the crowd`), or once it streams out of sight |
+| cower, get-down | an `AIHoldPositionCommand` (20 s), the crowd reaction event in phase 2 (or the fear stage), then the conversation lets go | holds still where it is, frightened | when the hold ends (`hold over, back to the crowd`) |
+| stop | an `AIHoldPositionCommand` (30 s) without letting go (as before: the talk goes on) | holds still | when the hold ends |
+
+**Never a teleport, at worst one leg.** The game puts a crowd person given a move command at its end point at once in the cases seen so far
+(Shandor's seated people). Every leg is read back: a leg covered faster than anyone runs (7 m a second, at least 3 m) was a jump, and the person gets
+no further move, only the crowd's fear stage (`leg <n> moved=<m> m in <s> s (jumped, not run); no more moves, the crowd's fear instead`). The first
+leg is 4 m, so the worst a jump can do is 4 m. A person that does not move in two read-backs gets the fear stage too (`did not run`).
+
+## A brawl and its friends (live test 2, `fix/threats-crowd`)
+
+- **Friends.** At the brawl's first read-back (1.2 s) one search of the game's targeting system finds the NPCs within 20 m that are in combat and
+  hostile to V (`natives.joined`). Up to four of them, each an ordinary person by the same rails as the brawler (never a companion, another mod's
+  character, a story or quest character, a child), get the same fists (and a drawn weapon put away once): `brawl joined by <n> more, asked for
+  fists (<k> had a weapon out, asked to put it away)`.
+- **Escalation, the owner's rule.** While a brawl lasts (up to 120 s) V's right hand is read once a second (`natives.vArmed`: a ranged weapon's
+  record, else false). The moment V holds a gun, every brawler (the person and its friends) gets the game's own `AISwitchToPrimaryWeaponCommand`
+  and draws its weapon: `V drew <record>; the brawl escalates: <n> of <m> draw their own weapons`. Once, for good: nothing is put away after it,
+  V putting the gun away does not take them back to fists, and the watch stops. A brawl that starts with V already holding a gun escalates at the
+  first watch, before anything is put away. A death threat is still the plain `attack` with weapons from the start.
 
 ## Who decides: the game (the owner's rule of 2026-10-26)
 
@@ -186,7 +230,10 @@ against the game's compiled script cache (`r6/cache/final.redscripts`, read-only
 
 | Kind | Crowd person | Anyone else | Status |
 |---|---|---|---|
-| leave | `DelayedCrowdReactionEvent` (phase 3), `StimuliEvent.new()` (or `NewObject('senseStimuliEvent')`) from V of type `Terror` with its record (`StimuliSystem.GetStimRecord`), `npc:QueueEvent`; else, or when it did not move the person, the crowd's fear stage (`ChangeFearStage(Panic)` and the calls above) | `AIMoveToCommand`, as before | crowd: **unconfirmed** (live test 1 crashed on `NewObject('StimuliEvent')`, fixed); walk: live |
+| leave, walking crowd person | the crowd event (phase 3), then `AIMoveToCommand` legs (`Run`, 4 m then 8 m, later legs `useStart` off), sent before the conversation lets go; a jump or a stall: the fear stage | (not crowd) | **unconfirmed** (live test 3) |
+| cower, get-down, walking crowd person | `AIHoldPositionCommand` 20 s first, then the crowd event phase 2 (or the fear stage), then the conversation lets go | (not crowd) | **unconfirmed** (live test 3) |
+| brawl friends, escalation | the targeting search (`GetTargetParts`, NPCs within 20 m in combat and hostile to V), the same fists and put-away; V's gun (`ScriptedPuppet.GetWeaponRight(V)`, `WeaponObject.IsRanged`) read once a second, then `AISwitchToPrimaryWeaponCommand` (`unEquip` off) for every brawler | same | **unconfirmed** (live test 3) |
+| leave, seated crowd person | `DelayedCrowdReactionEvent` (phase 3), `StimuliEvent.new()` (or `NewObject('senseStimuliEvent')`) from V of type `Terror` with its record (`StimuliSystem.GetStimRecord`), `npc:QueueEvent`; else, or when it did not move the person, the crowd's fear stage (`ChangeFearStage(Panic)` and the calls above) | `AIMoveToCommand`, as before | crowd: **unconfirmed** (live test 1 crashed on `NewObject('StimuliEvent')`, fixed); walk: live |
 | cower, get-down | the same event, phase 2 (cowers or surrenders; seated people use the seat's own fear); else the fear stage `Alarmed` | `AIHoldPositionCommand` 20 s (holds still) | **unconfirmed** / live |
 | brawl | hostile + combat start as `attack`, then `AIEquipCommand` of `Items.w_melee_004__fists_a` to `AttachmentSlots.WeaponRight` (`failIfItemNotFound` off: nothing is added to the inventory); after 1.2 s, if the hand holds a weapon, one `AIUnequipCommand` | same | combat: live; fists: **unconfirmed** |
 | attack | unchanged (a weapon) | same | live |
@@ -235,6 +282,12 @@ temper, V's seat for a person in a vehicle), once at the start and once at the r
 - `NPC reaction: leave started, the crowd's own flight (the crowd reaction event, no move command)` or `(the fear stage, no move command)`,
   `... cower started, the crowd's own fear (...)`, `... get-down started, holds still for 20 s (...)`, `... stop started, holds still for 30 s`,
   `... brawl hostile ok, combat start ..., fists fists asked`, `... exit-vehicle started, the game's own exit`
+- a walking crowd person: `leave started, taken from the crowd and run away in legs (<m> m from V; ...)`, `first leg moved=<m> m in <s> s
+  (running)`, `ran <m> m in <n> leg(s); back to the crowd`, or `leg <n> moved=<m> m in <s> s (jumped, not run); no more moves, ...`, `did not
+  run (...)`, `run over after <n> leg(s): the person streamed out`; `get-down started, holds still for 20 s, taken from the crowd before the
+  conversation let go, in the crowd's own fear`, `get-down hold state=<s> moved=<m> m`, `get-down hold over, back to the crowd (moved=<m> m ...)`
+- a brawl: `brawl joined by <n> more, asked for fists (<k> had a weapon out, asked to put it away)`, `V drew <record>; the brawl escalates: <n>
+  of <m> draw their own weapons`
 - the read-backs above; `NPC reaction: leave did not move; asked again with the fear stage (sent)`; `NPC reaction: fear failed: ...` /
   `panic failed: ...` (once each); `neither the crowd's reaction event nor its fear stage is available for leave; the person stays`
 
@@ -248,7 +301,7 @@ words. `offered=` is then what this turn may hand over; `admitted=no(screened)` 
 | File | Role |
 |---|---|
 | `bridge/threat-screen.mjs` (new) | the screen of V's words, 16 languages, lethal phrasings, question tags; `screenedKinds` |
-| `mod/npc-reactions.lua` | kinds per person with the switch, the game's plan (`M.plan`, `M.TEMPERS`, `M.seed`), the rails (vehicle, command cooldown, brawl), the natives (crowd fear event, crowd fear stage, hold, fists, holster, hand, exit, mount reads), the crowd flight fix, the read-backs |
+| `mod/npc-reactions.lua` | kinds per person with the switch, the game's plan (`M.plan`, `M.TEMPERS`, `M.seed`), the rails (vehicle, command cooldown, brawl), the natives (crowd fear event, crowd fear stage, hold, fists, holster, hand, exit, mount reads, workspot, V's gun, weapon switch, the brawl's friends, the snapped leg), the crowd flight fix, the walking crowd person taken from the crowd first and run in legs, the brawl's friends and escalation, the read-backs |
 | `bridge/realtime-client.mjs` | the Convai page: the plan decides on the final transcript of a voice turn |
 | `mod/manager.lua`, `mod/manager-ui.lua`, `mod/init.lua` | the setting `npcThreats` (off by default), its row, the `threats` option |
 | `mod/gameplay-actions.lua` | the lease takes up to 8 kinds |
@@ -291,58 +344,57 @@ Added 2026-10-27 (`fix/threats-live`):
 - `bridge/npc-reaction-pipeline.test.mjs` (the threats test rewritten): the plan travels from the real Lua offer, the bridge decides "get down" at
   admission and hands it over before the reply, the model is told, the trace says `by=game`, and the lease takes the echo with the plan.
 
+Added 2026-10-27 (`fix/threats-crowd`), `bridge/npc-threats-lua.test.mjs` (25): the fake now moves a person along a walk at a given speed on the
+test clock (or puts it there at once, as the game does to a crowd person) and records the order of what the person was sent:
+- a walking crowd person's leave: the event, the first leg, THEN the conversation lets go; legs read back one by one, later legs without a start
+  animation, back to the crowd on arrival, nothing more after it; a jump stops after that one leg with the fear stage; a person standing still
+  twice gets the fear stage; a seated person (or an unreadable workspot) never gets a move command; anyone not in the crowd walks as before;
+- cower and get down for a walking crowd person: the hold, the fear (phase 2, or the fear stage), THEN the release; held in place; back to the crowd
+  when the hold ends; seated: the seat's own fear, no hold; not crowd: a hold; both fears switched off: a hold;
+- a brawl's friends get fists and their guns put away (a story character among them is left alone); V's gun makes every brawler draw once and for
+  good, V holstering does not undo it, the watch ends by itself; a brawl started with V's gun out escalates before anything is put away;
+- the natives: the workspot read, V's gun (a blade is no gun), the weapon switch command, the friends' search (only fighting and hostile, never the
+  brawler, no doubles), the snapped leg point, a continuing leg without `useStart`.
+
 ## Live test (owner)
 
-Live test 1 (2026-10-26, game 2.5) found the three problems at the top. Live test 2 is this one, for `fix/threats-live`.
+Live test 1 (2026-10-26) and live test 2 (2026-10-27, both game 2.5) found the problems at the top. Live test 3 is this one, for
+`fix/threats-crowd` (the gangers' attack and fists passed in live test 2 and are only rechecked in passing).
 
-Install: overlay the committed `mod/` and `bridge/` files of the branch (never `mod/diagnostics.lua`), CET reload, bridge restart (no redscript, no
-game restart). Use a throwaway copy of a save. Keep `probe.log` and `bridge.stderr.log` open. Every offer line now ends with `plan=...`: that is
-what the person WILL do for each reading, so read it before typing and check that the person does exactly that. Typed lines first (any provider),
-then step 10 by voice.
+Install: overlay the committed `mod/` files of the branch (only `mod/npc-reactions.lua` changed; never `mod/diagnostics.lua`), CET reload (no
+bridge restart, no redscript, no game restart). Use a throwaway copy of a save. Keep `probe.log` open. Read `plan=` in each offer line first.
 
-1. **Switch off (the default), the old reactions.** In Watson, type to a pedestrian on a bench: "get out of my sight or I'll kill you". Expect the
-   old offer line (no `threats=on`, no `plan=`). If the model makes it leave: `leave started, the crowd's own flight (the crowd reaction event, no
-   move command)` (or `(the fear stage, ...)`), then `leave crowd moved=<m> m in 3 s` with more than a couple of metres. **Does the person get up and
-   run, rather than vanish or stay?** No `fear failed: ... 'stim' (a nil value)` line any more.
-2. Turn the switch on: Settings, Conversations, "NPCs react to threats and commands".
-3. **A walking pedestrian, a death threat** (the live test 1 failure). Type "I'll put a bullet in your head" to someone walking past. Expect
-   `threats=on temper=... plan=kill:<cower|leave|call-police>,...`, the bridge line `... tag=<that kind> delivered=yes screen=kill by=game`, and the
-   reply in character with it (scared, begging or "I'm calling the cops"). If the plan says `leave`: `leave started, the crowd's own flight (...)` and
-   **does the person visibly run off** (not vanish, not keep walking)? If it says `did not move; asked again with the fear stage`, note whether the
-   second ask made it run. If `cower`: **does the person crouch and cover?**
-4. **The same person again, the same words** after reloading the save: **the same reaction** (seeded by the person, not random).
-5. **A civilian, a command.** "Get down on the ground!" to another pedestrian. Expect `screen=get-down ... by=game` and `get-down started`. **Does the
-   person crouch or cower and stay?**
-6. **Stop.** "Freeze! Don't move." Expect `stop started, holds still for 30 s ... by=game`. Walk away 10 m after the talk: **does the person stay put
-   for about half a minute?**
-7. **A ganger, an insult.** In Northside, "you're a worthless piece of shit" to a Maelstrom or 6th Street ganger (not in a safe zone). An aggressive
-   or ordinary ganger's plan says `insult:brawl`: expect `screen=insult ... tag=brawl ... by=game`, `brawl hostile ok, combat start ..., fists fists
-   asked`, `brawl in_combat=true hostile_to_v=true hand=<...>`. **Does he come at V with his fists, and say something that fits?** If `hand=` names a
-   gun, the next line says it asked him to put it away: **does he?**
-8. **A ganger, a death threat.** Another ganger: "I'll put a bullet in your head, understand?". Expect `screen=kill` (not `hurt`, not
-   `none(question)`), `tag=attack ... by=game`. **Does he draw his weapon?** Also try "I'll blow your brains out" and "you're dead" on others.
-9. **A cop, a calm line then an insult.** "Evening, officer, nice night.": `admitted=no(screened)`, nothing happens. Then (not in a safe zone, with
-   a save you can lose) "you corrupt piece of shit" to another officer: `plan=kill:attack,hurt:brawl,insult:brawl`, `tag=brawl by=game`: **fists**.
-10. **Convai voice** (provider Convai, talk key). Say "I'll put a bullet in your head" to a ganger whose plan says `kill:attack`. Expect the bridge
-    line `... route=convai tag=attack delivered=yes screen=unheard by=game`. **Does he draw as soon as his reply is spoken, and does the reply fit?**
-    Then the same on a pedestrian: does it flee or cower as its plan says?
-11. **Spoken, Local AI or Mistral** (the local microphone): "Get down!" to a pedestrian: `screen=unheard ... tag=get-down by=game`.
-12. **Get out of the vehicle.** On foot, to an ordinary driver stopped at a light: "Get out of the car!". Expect `kinds=exit-vehicle`,
-    `plan=exit-vehicle:exit-vehicle` and `exit-vehicle out of the vehicle`, or `not offered: game-in-charge:driven` (note it). **Can V talk to a
-    driver at all?**
-13. **Refusals and fallback.** "I'll kill you lol" and 'He said "get down"': `screen=none(joke)`, `screen=none(quote)`, no `by=game`, nothing
-    happens. "Nice jacket": the model's own choice as before (`by=model` if it chose anything).
-14. **Russian**: "Ложись!" and "Я тебе мозги вышибу" to pedestrians: `screen=get-down`, `screen=kill`, both `by=game`.
-15. **Frame rate.** With the switch on, talk to a few people in a crowded street; FPS as before (nothing runs between turns).
+1. **Switch off, a walking pedestrian, a threat.** Turn the switch off. Type "get out of my sight or I'll kill you" to someone walking past (not on
+   a bench). If the model makes it leave: `leave started, taken from the crowd and run away in legs (...)`, then `first leg moved=<m> m in 0.4 s
+   (running)` and `ran <m> m in <n> leg(s); back to the crowd`. **Does the person turn and run away, all the way, without vanishing or popping
+   forward?** Note any `(jumped, not run)` line (then: did it pop 4 m?) or `did not run`.
+2. **The same on a bench** (a seated person): `leave started, the crowd's own flight (...)`, never `taken from the crowd`. Does it get up and run?
+3. Switch on.
+4. **A walking pedestrian, "Get down on the ground!"** Expect `get-down started, holds still for 20 s, taken from the crowd before the
+   conversation let go, in the crowd's own fear`, then `get-down hold state=Executing moved=<under 1> m`, and 20 s later `hold over, back to the
+   crowd`. **Does the person stop, crouch or cower and stay about 20 s, then walk on?** Do the people around still start running?
+5. **A walking pedestrian, a death threat** whose plan says `kill:cower`: the same hold (step 4). One whose plan says `kill:leave`: the run of
+   step 1. **Does each do what its plan says?**
+6. **"Freeze! Don't move."** to a walking pedestrian: `stop started, holds still for 30 s`. Does it stay about half a minute?
+7. **A ganger, an insult, with friends around** (Northside, not in a safe zone): `brawl ... fists fists asked`, then `brawl joined by <n> more,
+   asked for fists (<k> had a weapon out, asked to put it away)`. **Do his friends come with fists, and does one with a gun put it away?**
+8. **Escalation.** In that brawl, draw a pistol: `V drew <record>; the brawl escalates: <n> of <m> draw their own weapons`. **Do they all draw
+   their guns?** Holster yours: **they keep their guns** (no new line).
+9. **A brawl started with V's gun already out:** insult a ganger with a pistol drawn: `the brawl escalates: 1 of 1 ...` within about a second,
+   and no `asked to put it away`.
+10. **Frame rate.** Talk to a few people in a crowded street and start one brawl; FPS as before (one read a second during a brawl, nothing else).
 
-What only this can confirm: whether `StimuliEvent.new()` (or the native name) makes the stimulus in CET, whether the crowd's fear stage alone makes
-a pedestrian run, the fists command on an ordinary NPC, the exit event, and whether a Convai voice reply fits the planned reaction.
+What only this can confirm: that a crowd person under its own command walks and runs for real rather than being put at the end point, that the
+crowd's fear (phase 2) plays its cower pose while a hold runs, the friends' search, and the weapon switch command.
 
 ## Open risks
 
 - The crowd event, the fists command and the exit event are called from CET for the first time. Each is guarded and logged; a missing one loses
   only that outcome (a crowd person then gets the fear stage instead, and stays only when that fails too; a brawl is a plain fight, a get-out does
-  nothing). Whether the fear stage alone makes a walking pedestrian run is unconfirmed (live test 2, step 3).
+  nothing). Live test 2 showed the crowd event and the fear stage alone do not move a WALKING crowd person (its traffic has it): such a person
+  now gets its own command first. Whether that command walks it for real or puts it at the end point is what live test 3 shows; a jump is caught
+  after one leg (at most 4 m for the first).
+- A brawl's escalation reads V's hand once a second for at most two minutes; the weapon switch command and the friends' search are new from CET.
 - The game shares a crowd person's fright with bystanders within about 10 m (its own `SpreadFear` when the source is V). A "get down" in a busy
   street may scatter the people around; that is the game's own behaviour when V threatens someone.
 - The words screen now decides: a false match (a line it reads as a threat that is not one) makes the person react as its plan says. It is
