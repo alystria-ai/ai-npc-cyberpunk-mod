@@ -352,7 +352,9 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const form = head ? 'head' : call ? 'call' : input.channel === 'phone' ? 'phone' : ambient ? 'ambient' : 'person';
   for (const sentence of mediaSentences(snapshot.media, form)) scene('media', sentence);
   // V asking about themself ("how do I look?") gets them in the block itself, worded as the answer, whatever the conversation heard before (bridge/scenery-memory.mjs modsAsked).
-  const selfState = fresh.modsAsked === true ? modsAskedSentences(snapshot.mods, form) : [];
+  // The game side's compact notes (what each mod's reader found) let it answer "everything is fine" when V asks and nothing is wrong (a live test of 2026-10-27).
+  const reads = {darkFuture: snapshot.modsRead, fleshAndChrome: snapshot.facRead, injuries: snapshot.injRead};
+  const selfState = fresh.modsAsked === true ? modsAskedSentences(snapshot.mods, form, reads) : [];
   // V visibly topless or naked: told when new to the conversation (bridge/scenery-memory.mjs), in the block itself with room of its own.
   const nudity = nuditySentences(input.gear, form, off, fresh.nudity !== false);
   const modsSaid = modsSentences(snapshot.mods, form);
@@ -361,7 +363,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const modsBy = {};
   for (const key of ['fleshAndChrome', 'injuries']) {
     const only = snapshot.mods?.[key] ? {[key]: snapshot.mods[key]} : undefined;
-    modsBy[key] = modsDisposition({asked: fresh.modsAsked === true && modsAskedSentences(only, form).length > 0, said: modsSentences(only, form).length > 0, known: only !== undefined,
+    modsBy[key] = modsDisposition({asked: fresh.modsAsked === true && modsAskedSentences(only, form, {[key]: reads[key]}).length > 0, said: modsSentences(only, form).length > 0, known: only !== undefined,
       told: fresh.mods === false, split, form});
   }
   if (!selfState.length) for (const sentence of modsSaid) scene('mods', sentence);

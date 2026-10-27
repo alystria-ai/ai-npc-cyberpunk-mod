@@ -1522,4 +1522,7 @@ return {
     ["Use the address the server window shows, such as 192.168.1.20:8765, without https://."] = "서버 창에 표시된 주소(예: 192.168.1.20:8765)를 https:// 없이 입력하세요.",
     ["Waiting for the server to answer…"] = "서버 응답을 기다리는 중…",
     ["Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play."] = "서버가 지금 사용 중인지 여부입니다. 음성이 필요할 때 확인하고, 실패 후에는 몇 초마다 다시 확인합니다. 게임 중에는 확인하지 않습니다.",
+    ["Your own character, made in the character editor."] = "캐릭터 편집기에서 만든 내 캐릭터입니다.",
+    ["They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person."] = "만들 때 기준이 된 모델의 복사본으로 합류합니다. Mistral, Local AI 또는 사용자 지정으로 대화하며, Convai에서는 일반 사람처럼 대화합니다.",
+    ["This character needs Mistral, Local AI or Custom to answer."] = "이 캐릭터가 답하려면 Mistral, Local AI 또는 사용자 지정이 필요합니다.",
 }

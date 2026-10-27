@@ -1522,4 +1522,7 @@ return {
     ["Use the address the server window shows, such as 192.168.1.20:8765, without https://."] = "Sunucu penceresinin gösterdiği adresi girin, örneğin 192.168.1.20:8765, https:// olmadan.",
     ["Waiting for the server to answer…"] = "Sunucunun yanıtı bekleniyor…",
     ["Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play."] = "Sunucunun şu anda kullanımda olup olmadığı. Bir ses gerektiğinde kontrol edilir, hatadan sonra her birkaç saniyede bir tekrar kontrol edilir, oynarken asla kontrol edilmez.",
+    ["Your own character, made in the character editor."] = "Karakter düzenleyicide yaptığın kendi karakterin.",
+    ["They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person."] = "Yapıldığı modelin bir kopyası olarak katılır. Mistral, Local AI veya Özel ile konuşur; Convai ile sıradan bir insan gibi konuşur.",
+    ["This character needs Mistral, Local AI or Custom to answer."] = "Bu karakterin yanıt verebilmesi için Mistral, Local AI veya Özel gerekir.",
 }

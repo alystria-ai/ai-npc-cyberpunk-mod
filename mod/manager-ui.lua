@@ -243,6 +243,8 @@ local function navigate(nextView)
     -- A Set that is waiting belongs to its page (mod/key-bindings.lua, loaded only once the page was opened).
     if view == 'key-bindings' and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     view, listPage, listGroup = nextView, 1, 1
+    -- Characters to invite lists the player's own characters: one look at the file they are kept in (rate-limited by the service, and only while some exist or the editor was opened), so a character made a moment ago is there.
+    if nextView == 'characters' and convaiCustomCharacters then pcall(convaiCustomCharacters.refresh) end
     modelFind.text, modelFind.words = '', {}
     actionFeedback, preparationActionFeedback = nil, false
     refreshQueued = true
@@ -392,6 +394,13 @@ end
 -- number of copies in the party and `shared` comes from sharedCharacterLines.
 local function profileDescription(profile, snapshot, shared, count)
     local settings = snapshot.settings
+    -- A character the player made (mod/custom-characters.lua, docs/CHARACTER_EDITOR.md): no roster voice, memory or relationship lines, just what it is and how it talks.
+    if profile.custom then
+        local lines = {ui.t('Your own character, made in the character editor.') .. '\n',
+            ui.t('They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person.')}
+        if count > 0 then lines[#lines + 1] = ui.t('In your party: {count}', {count = count}) end
+        return table.concat(lines, '\n')
+    end
     -- The voice that really speaks this character's replies, or text when none does (manager.characterVoiceLabel). It names the Convai
     -- voice only when that voice speaks, not when a local voice or the Mistral voice could not run.
     local voice = manager.characterVoiceLabel(profile,
@@ -1202,6 +1211,8 @@ local function pageSignature(snapshot)
     end
     if view == 'characters' or view == 'memory' then memorySignature() end
     if view == 'characters' then
+        -- The list changes when the player makes, renames or deletes a character of their own.
+        add('custom:' .. tostring(snapshot.customSignature))
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
             table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard),
@@ -1561,7 +1572,7 @@ local function schema()
         -- Nothing more: the destinations are the page.
     elseif view == 'characters' then
         local shared = sharedCharacterLines(snapshot)
-        local profiles = snapshot.profiles
+        local profiles = snapshot.invitable or snapshot.profiles
         local first, last, pages = pageRange(#profiles)
         -- Without a loaded save the page can be read but nobody can be invited: say so, in a row, not only in greyed buttons.
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',

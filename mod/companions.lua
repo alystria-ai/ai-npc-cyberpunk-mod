@@ -131,9 +131,18 @@ function M.registerDefinition(key, definition)
     if definition.profileKey ~= nil and (type(definition.profileKey) ~= 'string' or definition.profileKey == '') then
         return false, 'Invalid conversation profile.'
     end
+    -- custom: a character the player made (mod/manager.lua setCustomCharacters). Its copy is a model-only invitation, like a Model browser entry of that record; the
+    -- conversation profile comes afterwards, from the record (settleProfiles). The flag only lets a Chat row carrying the character's key invite it (phoneContactKey).
     records[key] = {id = id, recordID = definition.recordID,
         name = tostring(definition.name or id or key),
-        profileKey = definition.profileKey, profileName = definition.profileName}
+        profileKey = definition.profileKey, profileName = definition.profileName, custom = definition.custom == true or nil}
+    return true
+end
+
+-- Takes the definition of a character the player made away (it was deleted; no other definition can be removed). Copies already spawned keep what they were made with.
+function M.unregisterDefinition(key)
+    if type(key) ~= 'string' or records[key] == nil or records[key].custom ~= true then return false end
+    records[key] = nil
     return true
 end
 
@@ -141,7 +150,7 @@ function M.definition(key)
     local value = records[key]
     if not value then return nil end
     return {id = value.id, recordID = value.recordID, name = value.name,
-        profileKey = value.profileKey, profileName = value.profileName}
+        profileKey = value.profileKey, profileName = value.profileName, custom = value.custom}
 end
 
 function M.phoneContactKey(contactId)
@@ -149,7 +158,7 @@ function M.phoneContactKey(contactId)
     if not contact then
         -- A Chat row with no journal contact carries its profile key as id (phone-chat.lua): invited as that profile's copy.
         local definition = records[contactId]
-        if definition and definition.profileKey == contactId and definition.id then
+        if definition and (definition.profileKey == contactId or definition.custom == true) and definition.id then
             if not TweakDB:GetRecord(definition.id) then return nil, 'Character unavailable in this game installation.' end
             return contactId, nil, definition.name
         end

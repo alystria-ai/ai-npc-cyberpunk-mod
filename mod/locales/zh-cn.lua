@@ -1522,4 +1522,7 @@ return {
     ["Use the address the server window shows, such as 192.168.1.20:8765, without https://."] = "请填写服务器窗口显示的地址，例如 192.168.1.20:8765，不要加 https://。",
     ["Waiting for the server to answer…"] = "正在等待服务器响应…",
     ["Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play."] = "服务器当前是否正在使用。需要语音时检查，失败后每隔几秒再检查一次，游戏过程中从不检查。",
+    ["Your own character, made in the character editor."] = "你在角色编辑器中创建的专属角色。",
+    ["They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person."] = "他会作为所用模型的副本加入。使用 Mistral、Local AI 或自定义时可以对话；使用 Convai 时则像普通人一样说话。",
+    ["This character needs Mistral, Local AI or Custom to answer."] = "该角色需要 Mistral、Local AI 或自定义才能回复。",
 }

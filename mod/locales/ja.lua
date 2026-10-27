@@ -1522,4 +1522,7 @@ return {
     ["Use the address the server window shows, such as 192.168.1.20:8765, without https://."] = "サーバーのウィンドウに表示されたアドレス（例: 192.168.1.20:8765）を、https:// を付けずに入力してください。",
     ["Waiting for the server to answer…"] = "サーバーの応答を待っています…",
     ["Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play."] = "サーバーが現在使用中かどうかを示します。音声が必要になったときに確認し、失敗後は数秒ごとに再確認します。プレイ中は確認しません。",
+    ["Your own character, made in the character editor."] = "キャラクターエディターで作った、あなた自身のキャラクターです。",
+    ["They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person."] = "元になったモデルのコピーとして仲間になります。Mistral、Local AI、カスタムで会話でき、Convai では普通の人として話します。",
+    ["This character needs Mistral, Local AI or Custom to answer."] = "このキャラクターが返信するには、Mistral、Local AI、またはカスタムが必要です。",
 }

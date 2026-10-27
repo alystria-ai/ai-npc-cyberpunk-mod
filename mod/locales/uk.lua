@@ -1522,4 +1522,7 @@ return {
     ["Use the address the server window shows, such as 192.168.1.20:8765, without https://."] = "Вкажіть адресу, яку показує вікно сервера, наприклад 192.168.1.20:8765, без https://.",
     ["Waiting for the server to answer…"] = "Очікування відповіді сервера…",
     ["Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play."] = "Чи використовується сервер зараз. Перевіряється, коли потрібен голос, а після збою кожні кілька секунд, але ніколи під час гри.",
+    ["Your own character, made in the character editor."] = "Ваш власний персонаж, створений у редакторі персонажів.",
+    ["They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person."] = "Він приєднується як копія моделі, на основі якої створений. Розмовляє через Mistral, Local AI або Власний; з Convai розмовляє як звичайна людина.",
+    ["This character needs Mistral, Local AI or Custom to answer."] = "Щоб відповідати, цьому персонажу потрібен Mistral, Local AI або Власний.",
 }
