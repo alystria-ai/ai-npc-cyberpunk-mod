@@ -347,7 +347,7 @@ export class VLine {
   summary() {
     const snapshot = this.clock.snapshot();
     return {result: this.state === 'done' ? 'played' : this.state === 'dropped' ? 'dropped' : this.state,
-      ...(this.reason ? {reason: this.reason} : {}), ...(this.spoken ? {spoken: true} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, ...(this.reference ? {reference: this.reference} : {}), chars: this.text.length,
+      ...(this.reason ? {reason: this.reason} : {}), ...(this.failure ? {failure: this.failure} : {}), ...(this.spoken ? {spoken: true} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, ...(this.reference ? {reference: this.reference} : {}), chars: this.text.length,
       marks: snapshot.marks, totalMs: snapshot.totalMs};
   }
 
@@ -395,7 +395,8 @@ export class VLine {
         else if (this.state === 'synth') this.drop('no-audio');
       } catch (error) {
         if (this.state !== 'dropped' && this.state !== 'done') {
-          this.log(`V's line was not spoken (${String(error?.message ?? error).slice(0, 120)})`);
+          this.failure = String(error?.message ?? error).split(/\r?\n/)[0].slice(0, 120);
+          this.log(`V's line was not spoken (${this.failure})`);
           this.drop('failed');
         }
       }

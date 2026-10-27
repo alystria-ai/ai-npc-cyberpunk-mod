@@ -87,6 +87,10 @@ local function once(log, key, line)
 end
 
 local function short(problem) return (tostring(problem):gsub('%s+', ' '):sub(1, 140)) end
+-- The same for the probe's lines, with the "file.lua:123:" the game puts in front of a Lua error taken out: a probe line says that a way to V's state does not exist on this game (the
+-- getter of one build is not on another), which is expected and settled by the next way tried. The error reports read "file.lua:123: attempt to ..." in this log as a Lua error of the
+-- mod (bridge/error-reports.mjs luaErrorsIn), and the first 2.31 run sent this probe as one (27 Oct 2026, 'attempt to call method GetPlayerPuppetPS').
+local function probeText(problem) return (short(problem):gsub('[%w_.%-]+%.lua:%d+:%s*', '')) end
 
 local function integer(value, low, high)
     value = tonumber(value)

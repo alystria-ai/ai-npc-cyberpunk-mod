@@ -6,15 +6,15 @@
 -- Nothing is recorded while Settings > Privacy > "Send error reports automatically" is off.
 -- It also shows the one notice that says error reports are sent: once, at the first load after updating, in gameplay.
 --
--- Cost: nothing per frame. A record is one small file read and write, at most ten per game session; tick() is one boolean test
+-- Cost: nothing per frame. A record is one small file read and write; tick() is one boolean test
 -- once the notice was decided.
 if type(convaiErrorReports) == 'table' and convaiErrorReports.version == 1 then return convaiErrorReports end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {version = 1}
 
 local FILE = 'runtime/error-events.json'
-local MAX_EVENTS = 10                 -- kept in the file, newest last
-local MAX_PER_SESSION = 10            -- recorded in one game session
+local MAX_EVENTS = 40                 -- kept in the file, newest last
+local MAX_PER_SESSION = 200           -- recorded in one game session: a bound against a runaway, far above what a session produces
 local KEEP_S = 7 * 24 * 3600          -- an event older than a week is dropped from the file
 local NOTICE_DELAY_S = 40             -- after the world is ready: after the setup check's own first-load notice
 -- 'nsui' is the check of the Companion Manager's host (Mod Configuration Menu or Native Settings UI, setup-check.lua): its code says which one answered.

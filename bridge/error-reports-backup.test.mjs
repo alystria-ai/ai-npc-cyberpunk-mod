@@ -92,7 +92,8 @@ test('a server error, a block page or an empty answer from the first server also
 });
 
 test('an answer from the first server is obeyed: a refusal, a rate limit or a missing endpoint is not taken to the Worker', async () => {
-  for (const [main, stopped] of [[answer(429, {error: 'rate', retryAfterSeconds: 60}), 'rate'], [answer(404, {error: 'not_found'}), 'not-found'],
+  // A rate limit does not end the session: the report waits (the backend's own ceiling), and the other server is not asked.
+  for (const [main, stopped] of [[answer(429, {error: 'rate', retryAfterSeconds: 60}), null], [answer(404, {error: 'not_found'}), 'not-found'],
     [answer(401, {error: 'unauthorized'}), 'unauthorized']]) {
     const f = await folders();
     try {
@@ -115,7 +116,7 @@ test('an answer from the first server is obeyed: a refusal, a rate limit or a mi
   } finally { await f.cleanup(); }
 });
 
-test('both servers failing is one failure: the report stays queued, a retry waits 15 minutes, and three such flushes stop the session', async () => {
+test('both servers failing is one failure: the report stays queued, a retry waits 15 minutes, and five such flushes stop the session', async () => {
   const f = await folders();
   try {
     const world = setup(f);
@@ -127,8 +128,8 @@ test('both servers failing is one failure: the report stays queued, a retry wait
     assert.equal((await readQueue(f.state, {now: START})).length, 1);
     await world.reporter.flush();
     assert.equal(world.reporter.failures, 1, 'not before the 15 minutes are over');
-    for (let round = 0; round < 2; round++) { world.clock.now += 16 * 60_000; await world.reporter.flush(); }
-    assert.equal(world.reporter.failures, 3);
+    for (let round = 0; round < 4; round++) { assert.equal(world.reporter.stopped, null); world.clock.now += 16 * 60_000; await world.reporter.flush(); }
+    assert.equal(world.reporter.failures, 5);
     assert.equal(world.reporter.stopped, 'unreachable');
   } finally { await f.cleanup(); }
 });

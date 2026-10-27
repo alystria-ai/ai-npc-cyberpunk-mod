@@ -223,6 +223,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voice-profile-registry.mjs',
   'bridge/voice-routing-log.mjs',
   'bridge/voice-selection.mjs',
+  'bridge/voice-silence.mjs',
   'bridge/voice-utterance.mjs',
   'bridge/voice-variants.mjs',
   'bridge/voxtral-languages.mjs',

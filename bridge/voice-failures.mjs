@@ -69,6 +69,14 @@ export function stderrReason(tail, limit = 160) {
   return (named ?? lines.at(-1)).slice(0, limit);
 }
 
+/**
+ * The last lines of a worker's stderr for an error report: at most `count` non-empty lines of `limit` characters, no control characters. The report puts every line
+ * through the redactor (folders, the account name, keys) when it is built; this only bounds what is kept.
+ */
+export function tailLines(tail, count = 8, limit = 200) {
+  return String(tail ?? '').split(/\r?\n/).map(line => line.replace(/[\u0000-\u001f\u007f]/g, ' ').trim()).filter(Boolean).slice(-count).map(line => line.slice(0, limit));
+}
+
 /** A worker that stopped on a memory fault (exit 3221225477, 0xC0000005): the CUDA graph is the first suspect, tried off once. */
 export const accessViolationFailed = reason => /\b3221225477\b|0xC0000005|access violation/i.test(String(reason ?? ''));
 

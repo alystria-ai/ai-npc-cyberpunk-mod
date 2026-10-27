@@ -40,7 +40,7 @@ import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections, spawnedWarmLimit} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
-import {VoiceSelection} from './voice-selection.mjs';
+import {VoiceSelection, voiceFailureCause} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
@@ -119,7 +119,7 @@ import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
-import {LocalLlmServer, isPlayerServerDetail, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
+import {LocalLlmServer, isPlayerServerDetail, nvidiaFreeMiB, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
 import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
@@ -140,6 +140,7 @@ import {describeThresholds} from './voice-activity.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {SlowTurnWatch} from './slow-turns.mjs';
+import {VoiceSilenceWatch} from './voice-silence.mjs';
 import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 import {AddonContent} from './addon-content.mjs';
@@ -166,7 +167,17 @@ installStageMarker({stateDirectory});
 // different: without one it cannot work, so `requiredJson` ends it at once with one plain line (the supervisor shows "Runtime incomplete").
 installFileErrorGuard({record: error => { try { errorEvents.record({...eventFromError(error, 'bridge-rejection'), detail: {handled: true}}); } catch {} }});
 const requiredJson = name => readRequiredJson(project, name).catch(endIfIncomplete);
-const errorEvents = new ErrorEvents({stateDirectory, runtime});
+// What a voice failure's report adds about the PC when it is made (not on a turn's path, only for a failed voice): the vendor of each card, the biggest card's size and, on an
+// NVIDIA card, its free memory right now (the voice workers, the game and Local AI share it). A card list that cannot be read gives the rest.
+const voiceHardware = async () => {
+  const cards = await cachedGraphicsCards().catch(() => []);
+  const vendors = gpuVendors(cards);
+  const sizes = (Array.isArray(cards) ? cards : []).filter(card => gpuVendors([card]).length && Number.isFinite(card?.memoryMiB) && card.memoryMiB > 0).map(card => card.memoryMiB);
+  const total = nvidiaCardMiB(cards) ?? (sizes.length ? Math.max(...sizes) : null);
+  const free = vendors.includes('nvidia') ? await nvidiaFreeMiB().catch(() => null) : null;
+  return {gpuVendors: vendors, ...(total ? {vramTotalMiB: total} : {}), ...(Number.isFinite(free) ? {vramFreeMiB: free} : {})};
+};
+const errorEvents = new ErrorEvents({stateDirectory, runtime, voiceHardware});
 // The bridge polls the game's files every 50 to 500 ms. A poll that fails for a lasting reason logs once per cause, then at most once a minute
 // with how many were left out, never one line per tick (bridge/repeat-log.mjs).
 const pollLog = repeatLimiter({write: line => console.error(line)});
@@ -1257,6 +1268,9 @@ const slowTurns = new SlowTurnWatch({onSlow: data => errorEvents.slowTurns(data)
     return {freeVideoMemoryMiB: localServer.lastFreeMiB,
       background: {warmConnections: warm.ready, connectingConnections: warm.connecting, turnsInFlight: [...turnClocks.values()].filter(clock => !clock.has('published')).length}};
   }});
+// Voice playback is on and the replies of this run never made a sound: one `voice-failed` report (bridge/voice-silence.mjs). Judged from the stage clock after each turn.
+const voiceSilence = new VoiceSilenceWatch({onSilent: data => errorEvents.voiceSilent(data), wanted: () => !localVoice.closed && !localVoice.silent,
+  context: () => ({engine: localVoice.provider, requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: localVoice.resolvedProvider})});
 let metricsWriting = Promise.resolve(), metricsNext = null;
 let connectionMetricsWriting = Promise.resolve();
 
@@ -1280,7 +1294,7 @@ const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !local
   pocket: {speaks: language => pocketLanguages.speaks(language), packMissing: language => pocketLanguages.packMissing(language)}});
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
-  if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
+  if (cacheKey && turnVoices.has(cacheKey)) { const known = turnVoices.get(cacheKey); noteVoicePlan(input, known); return known; }
   const profile = input.profileKey;
   const plan = planTurnVoice({textProvider: true, fixed: multilingual.fixed !== null, language: multilingual.expected(input.reaction ? '' : input.text),
     local: localChoice(profile)});
@@ -1292,7 +1306,12 @@ function turnVoice(input) {
     if (plan.reason === 'omni' && plan.language && plan.language !== 'en' && plan.engine === 'omni' && !input.reaction) void localVoice.warmOmniLanguage(voiceKeyFor(input), plan.language);
     while (turnVoices.size > 64) turnVoices.delete(turnVoices.keys().next().value);
   }
+  noteVoicePlan(input, plan);
   return plan;
+}
+// The clock of the turn learns what the voice planner decided, for the "voice never played" report (bridge/voice-silence.mjs): two words, nothing of the turn's text.
+function noteVoicePlan(input, plan) {
+  try { turnClocks.get(input?.requestId)?.annotate({voicePlan: plan.engine, voiceReason: plan.reason}); } catch { /* a report never affects a reply */ }
 }
 // True when the Convai cloud voice is NOT the one speaking this turn: a local voice, or nothing at all ('none': written). Either way Convai sends no audio.
 const turnUsesLocal = input => turnVoice(input).engine !== 'convai';
@@ -1503,6 +1522,11 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
         + `${summary.reason ? ' reason=' + summary.reason : ''}${summary.spoken ? ' source=microphone' : ''} marks=${JSON.stringify(summary.marks)}`);
       routingLog.record(describeVLine({input, summary}));
       void measure(input, {vVoice: summary}).catch(() => {});
+      // A line that was started and then failed, or whose renderer finished without any sound, is a voice failure to look at (one report per distinct reason, the voice report's rules).
+      if (summary.result === 'dropped' && (summary.reason === 'failed' || summary.reason === 'no-audio')) {
+        errorEvents.voiceFailed({engine: 'v-line', reason: summary.failure ?? 'the renderer finished without any sound', cause: summary.reason === 'no-audio' ? 'no-audio' : voiceFailureCause(summary.failure),
+          requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: 'silent', silent: localVoice.silent});
+      }
     } catch { /* a log line never affects a reply */ }
   }});
 // V's voice for what the player said (setting vVoiceMic, off by default): the line of each voice turn, handled like a typed line (bridge/mic-v-line.mjs, docs/V_VOICE.md).
@@ -2927,8 +2951,8 @@ async function withTurnClock(request, run) {
   if (request.input?.requestId) turnClocks.set(request.input.requestId, clock);
   clock.watch({maxMs: 20_000});
   // Judged for the slow-turn report once the turn has reached its first sound and its run has ended (bridge/slow-turns.mjs).
-  const ended = slowTurns.track(clock);
-  try { return await withClock(clock, () => run(clock)); } finally { ended(); }
+  const ended = slowTurns.track(clock), silenceEnded = voiceSilence.track(clock);
+  try { return await withClock(clock, () => run(clock)); } finally { ended(); silenceEnded(); }
 }
 
 // An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from the player's Custom

@@ -324,7 +324,8 @@ async function nvidiaMemoryMiB(field) {
     return Number.isFinite(value) ? value : null;
   } catch { return null; }
 }
-const nvidiaFreeMiB = () => nvidiaMemoryMiB('memory.free');
+/** The graphics card's free memory (MiB) now from nvidia-smi, or null. One short process; asked only when a voice fails. */
+export const nvidiaFreeMiB = () => nvidiaMemoryMiB('memory.free');
 /** The graphics card's total memory (MiB) from nvidia-smi, or null (no NVIDIA card, no tool). One short process; the caller asks rarely. */
 export const nvidiaTotalMiB = () => nvidiaMemoryMiB('memory.total');
 

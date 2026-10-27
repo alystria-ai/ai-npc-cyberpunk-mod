@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pseudonym, signBody } from '../src/crypto.js';
 import { packReport, unpackReport } from '../src/errors.js';
+import { DEFAULTS, readConfig } from '../src/config.js';
 import { ADMIN_SECRET, PSEUDONYM_SECRET, REPORT_SECRET, SIGNING_SECRET, asAdmin, captureErrors, createWorld, installHash, signatureOf } from '../testkit/world.mjs';
 
 const DAY = 86_400_000;
@@ -236,4 +237,10 @@ test('expired counters of the report store are swept', async () => {
   world.advance(3 * DAY);
   await world.report({ install: installHash(2), signature: signatureOf(2) });
   assert.equal(counters().length, 3); // only the new day's, hour's and install's
+});
+
+test('the per-installation ceiling is generous (the client keeps no daily cap of its own) and the environment variable still overrides it', () => {
+  assert.equal(DEFAULTS.errorInstallPerDay, 1000);
+  assert.equal(readConfig({}).errorInstallPerDay, 1000);
+  assert.equal(readConfig({ ERROR_REPORTS_INSTALL_PER_DAY: '50' }).errorInstallPerDay, 50);
 });
