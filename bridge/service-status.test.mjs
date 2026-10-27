@@ -367,6 +367,18 @@ test('failureError(): the Windows error the launcher wrote with a failed start, 
     assert(status.failureError() == nil, 'only a failed status')
 `));
 
+test('a failed launcher start carries the Windows error number in its detail, and nothing else does', () => run(`
+    put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 5, updated = ms()})
+    local down = status.unavailable()
+    assert(down.kind == 'failed' and down.detail == 'launcher-failed (Windows error 5)', down.detail)
+    advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 0, updated = ms()})
+    assert(status.unavailable().detail == 'launcher-failed')
+    advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 'x; <b>', updated = ms()})
+    assert(status.unavailable().detail == 'launcher-failed')
+    advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'service-error', source = 'supervisor', error = 5, updated = ms()})
+    assert(status.unavailable().detail == 'service-error')
+`));
+
 test('reach(): live only with a fresh heartbeat or a fresh ready, starting or restarting supervisor; no evidence is a definite "never"', () => run(`
   -- No evidence at all (unlike unavailable(), which stays silent): nothing started in this session.
   assert(status.reach() == 'never' and status.unavailable() == nil)

@@ -78,6 +78,9 @@ local function detailOf(value)
     local text = code or 'no-code'
     if stage and stage ~= 'starting' then text = text .. ' at ' .. stage end
     if reason then text = text .. ': ' .. reason end
+    -- The launcher's CreateProcess refusal (27 Oct: launcher-failed reached the reports with no way to tell a blocked node.exe from a missing one).
+    local windows = value.source == 'launcher' and tonumber(value.error)
+    if windows and windows >= 1 and windows <= 99999 and windows == math.floor(windows) then text = text .. ' (Windows error ' .. math.floor(windows) .. ')' end
     return text
 end
 
