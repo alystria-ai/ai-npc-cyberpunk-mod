@@ -507,7 +507,8 @@ export function legacyPlan(text, options) { return analyseReply(text, options); 
 // ---- the bridge's selection state ---------------------------------------------------------------------------
 // `emotionSelector` in runtime/settings.json (no menu entry; the game keeps unknown keys): "legacy" returns to the
 // previous reply-only planner, anything else (or nothing) is this selector. The previous turn's mood is kept per
-// character for three minutes, in memory only.
+// person for three minutes, in memory only. The key is the person (bridge/protocol.mjs personKey): a named character's profile key, and for a generic
+// resident or archetype `<profile>|<entity>`, so one stranger's mood is never carried into the next stranger of the same template.
 export const PREVIOUS_MS = 180000;
 export class EmotionSelection {
   constructor({now = Date.now} = {}) { this.mode = 'context'; this.recent = new Map(); this.now = now; }
@@ -535,17 +536,17 @@ export class EmotionSelection {
     if (this.recent.size > 64) this.recent.delete(this.recent.keys().next().value);
   }
   /** One reply's plan. `convai` is Convai's own signal for this turn when known. Never throws. */
-  plan({player, reply, profile, convai, marks, breaks} = {}) {
+  plan({player, reply, profile, who = profile, convai, marks, breaks} = {}) {
     try {
       if (this.mode === 'legacy') return analyseReply(reply, {profile, baseline: baselineFromSignal(convai), breaks, marks});
-      return selectEmotion({player, reply, profile, previous: this.previous(profile), convai, marks, breaks});
+      return selectEmotion({player, reply, profile, previous: this.previous(who), convai, marks, breaks});
     } catch { return undefined; }
   }
   /** A cached planner for growing stream text (continuous Convai and Pocket speech). `late.signal`, when it is set
    * later, is Convai's late emotion for a text-only turn and replaces the stream's own (absent) signal. */
-  planner({player, profile, marks, breaks, late} = {}) {
+  planner({player, profile, who = profile, marks, breaks, late} = {}) {
     let key, plan;
-    const previous = this.previous(profile), mode = this.mode;
+    const previous = this.previous(who), mode = this.mode;
     return (text, signal) => {
       const convai = signal ?? late?.signal, baseline = baselineFromSignal(convai), given = providerPrior(convai);
       const id = text + '\u0000' + (mode === 'legacy' ? (baseline ? baseline.family + baseline.weight : '') : (given ? given.label + given.weight : ''));

@@ -238,7 +238,7 @@ test('Mistral / Local AI: V\'s first message threatens, the model opens with the
     assert.deepEqual(delivered, [{version: 1, token: turn.config.token, reaction: 'call-police'}]);
     assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=call-police delivered=yes'],
       'exactly one line for the turn');
-    assert.deepEqual(bridgeLogs, [], 'no second line from the host');
+    assert.deepEqual(bridgeLogs.filter(line => !line.startsWith('Crowd person:')), [], 'no second line from the host (the crowd person line says whose history, not what happened to the offer)');
     const packet = files.find(item => item.action === 'npc-reaction');
     assert.ok(packet, 'a packet for the game was written: ' + JSON.stringify(files.map(item => item.action)));
     // The packet text reaches the game's poll; the reaction is accepted at once and starts when the reply has been heard.

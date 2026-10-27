@@ -15,6 +15,7 @@ import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-sp
 import {textExpressionSignal} from './text-emotion.mjs';
 import {analyseReply, planSignal, createPlanner, baselineFromSignal} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
+import {personKey} from './protocol.mjs';
 import {MultilingualConversations, planTurnVoice, replyVoice} from './multilingual.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
@@ -41,7 +42,7 @@ function fixture({local = false, available = true, continuous = false, voiceSele
     localVoice: selectedVoice, multilingual, speechLanguage: {evidence: null}, planTurnVoice, replyVoice, variantSeed, paceOf: () => null, omniPace: null,
     ownedPocketFace:()=>{},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,baselineFromSignal,
-    emotionSelection:new EmotionSelection(),waitLateEmotion,
+    emotionSelection:new EmotionSelection(),waitLateEmotion,personKey,
     splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,omniTagsFor,speechPhrases,logNaturalSpeech:()=>{},logFollowUp:()=>{},streaming:0,waitUntil,BufferedPcm,delivered,
     // The delivery function is the one both local voices share. OmniVoice's voice is driven the way deliverPocketSpeech drives it (the whole
     // reply text, or the held look-ahead's buffer), so the phrases reach the fake worker; Pocket's fake worker is not called here.

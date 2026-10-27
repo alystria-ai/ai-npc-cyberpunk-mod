@@ -132,6 +132,18 @@ export function isAmbientProfile(key) {
   return key === 'resident-male' || key === 'resident-female' || (typeof key === 'string' && /^npc-[a-z0-9-]+$/.test(key));
 }
 
+/**
+ * Who a turn is with, for anything the bridge remembers between turns: the profile key for a named character, `<profile>|<entity>` for a generic person.
+ * A crowd profile is a template shared by every stranger who uses it, so state kept under the profile alone would pass from one stranger to the next
+ * (live 2026-10-27: two female pedestrians, one `resident-female`). The conversation history, the Convai session and the "already told" flags are already
+ * keyed by the person (bridge/conversation-knowledge.mjs sessionKey); this is the same rule for the smaller per-profile states (the carried mood).
+ * Without a usable entity the profile key is returned, as before.
+ */
+export function personKey(input) {
+  const profile = input?.profileKey;
+  return isAmbientProfile(profile) && typeof input.entity === 'string' && /^\d+ULL$/.test(input.entity) ? `${profile}|${input.entity}` : profile;
+}
+
 // The archetype facts the adapter sends: fixed vocabulary only (TweakDB enum names, the catalog base and title).
 // memoryKey: the record of a one-shop vendor ("wat_kab_ripperdoc_01"), the identity its conversations are remembered under.
 const ARCHETYPE_FIELDS = ['base', 'category', 'title', 'affiliation', 'vendorType', 'district', 'area', 'memoryKey'];

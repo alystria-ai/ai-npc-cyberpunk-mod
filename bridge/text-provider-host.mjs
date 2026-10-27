@@ -668,6 +668,8 @@ export class TextProviderHost {
     // written, so the game acts on V's words and not on what the model makes of them. Its line is written by the CompanionActions that takes it.
     if (reactions?.deliver) this.#act({code: `REACTION ${reactions.decided}`, message: reactions.deliver});
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
+    // A generic person (a resident, an archetype) has a history of its own: one line says whose, and how many exchanges it had with V before this one (docs/NPC_ARCHETYPES.md, "Identity and memory").
+    if (memoryKey.ambientKey && !reaction) this.log(`Crowd person: profile=${local.profileKey} entity=${local.entity ?? '-'} key=${String(memoryKey.ambientKey).slice(0, 8)} earlier-turns=${recalled.turns.length}`);
     // The guard is on (Mature content on with the local AI or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
     // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
     const firstRoute = this.routes[this.provider.route];
