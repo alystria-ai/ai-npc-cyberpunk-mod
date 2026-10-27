@@ -19,6 +19,24 @@ typing, after which the normal back action returns to the Chat contact list.
 Typed case, clipboard operations and caret movement are preserved. Quest replies
 remain in the game's Messages and Contacts flows.
 
+**Focus on open (2026-10-27, branch `fix/chat-focus`; `PhoneChat.reds`, GAME RESTART; not yet seen in the game).** Owner: "when someone goes
+inside a chat page for a character it should auto go inside the textbox so that he doesnt have to press enter". Opening a character's
+chat page now puts the keyboard focus in the message box by itself, the same focus the Enter key gives (`ConvaiChatAutoFocus`). It runs
+from the first paint Lua asks for after the page has the focus (`ConvaiChatPresent`), so nothing runs per frame and no timer is added.
+Conditions: the page itself has the focus (`m_isFocused`: never on the Chat list, which is the game's phone and has no box, so J, L and
+V on the rows are not touched), the chat can be written to (not disabled, not a character the player made while Convai answers), the
+game allows texting, and the player last used keyboard and mouse (on a pad nothing can leave a box that swallows every action, so a pad
+keeps the Enter-to-write behaviour). One attempt per opening. The Enter that opened the chat may still be down or repeating, so no Enter
+counts as a send for 0.5 s after the automatic focus (an engine-time stamp read on a key press). Keys on the chat page:
+
+| State | Enter | Esc | C, V (call), F, J, L, other keys |
+|---|---|---|---|
+| Typing (the state on opening) | sends the text | stops typing, back to the idle page | typed as letters; the game's actions are swallowed, as before |
+| Idle page (after Esc, or when the box could not be focused) | starts typing | closes the chat, back to the list | C closes, V calls, as before |
+
+So a chat now takes two Escapes to close from a fresh opening (the first stops typing), and V (call) inside an open chat needs the first
+Esc. The call key on the Chat list rows is unchanged.
+
 The character does not have to be spawned or nearby. Chat lists every character
 the mod has a profile for. The shipped phone contacts (`characters/phone-contacts.json`)
 appear once the journal has them as active, known contacts, including contacts with no
