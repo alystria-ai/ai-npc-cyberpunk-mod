@@ -55,6 +55,16 @@ opens at the first audio as before. Cancellation, a failed send or finish, and t
 60 s no-audio timeout stop it. Measured first packet to first rendered samples:
 about 300 to 140 ms on a warm page and about 270 to 135 ms on a page's first turn.
 
+**A voice that never starts (owner decision 2026-10-27, error signature `915fca1c3ded7234`).** The turn waits for the reply's whole text and the voice's end (60 s ceiling,
+`COLLECT_TIMEOUT_ERROR`). If the text is complete (the SDK's end of the LLM message, not thinking) and not one audio packet has arrived 5 s later
+(`TEXT_WITHOUT_AUDIO_MS` in `bridge/realtime-client.mjs`, counted from the moment the text became complete), the reply is returned as a written reply:
+`audioError` "Convai's voice did not arrive; showing the written reply.", `timing.convaiVoiceTimedOut`, no `continuous` flag, so the bridge publishes it through the same path as a
+text-only reply. The standby device is released and the connection is retired, so a late packet of that response cannot play over the next turn (the next turn opens a fresh
+connection). The bridge writes one line `[Convai] voice did not arrive in N s; the reply is shown as text (profile=...)`. It is a success: no failed turn, no error report. Audio that
+has started (any packet) keeps the 60 s rule, and so does text that is still streaming. Only Convai's own voice is affected; a local voice never reaches this code and no cloud voice
+stands in. The clock is the existing 50 ms poll of the wait (no new timer). Ordinary turns record `timing.textToFirstAudioMs` (text end to the first audio packet, 0 when the audio
+started first) so the 5 s can be checked against real turns.
+
 Device-correlated output timestamps map through the reader's actual consumed
 samples. Native subtitles and growing NeuroSync timelines follow that clock;
 they do not advance through buffering gaps. Final provider text and exact PCM

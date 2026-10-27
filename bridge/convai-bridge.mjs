@@ -2360,6 +2360,8 @@ async function publishResult(input, profile, result, current = async () => true,
   // Every voice that speaks has been played through the renderer by now (the continuous branch above): what reaches this point is a
   // written reply, with the reason when the voice could not be had.
   const audioError = result.audioError;
+  // Convai's voice did not start within 5 s of the finished text (bridge/realtime-client.mjs TEXT_WITHOUT_AUDIO_MS): the reply is written, no failure and no error report.
+  if (result.timing?.convaiVoiceTimedOut === true) console.error(`[Convai] voice did not arrive in ${Math.round((result.timing.textWithoutAudioMs ?? 5000) / 1000)} s; the reply is shown as text (profile=${input.profileKey})`);
   // The next group speaker may be prepared from this reply's text from now on.
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current, signal});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
