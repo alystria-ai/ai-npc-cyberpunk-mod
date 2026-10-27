@@ -35,7 +35,7 @@ import {gearNudity} from './player-gear.mjs';
 import {stripSnapshot, NO_KINDS} from './dynamic-info.mjs';
 import {parseGameTime} from './last-talk.mjs';
 import {parseMedia, mediaSignature, mediaSentences} from './media-context.mjs';
-import {parseMods, parseModsRead, parseVixenRead, modsSignature, modsSentences, modsAskedSentences, modsDisposition} from './mod-state.mjs';
+import {parseMods, parseModsRead, parseVixenRead, modsSignature, modsSentences, modsAskedSentences, modsDisposition, modsStale, modsCodes} from './mod-state.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
@@ -359,7 +359,8 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const nudity = nuditySentences(input.gear, form, off, fresh.nudity !== false);
   const modsSaid = modsSentences(snapshot.mods, form);
   // V asking about themself also gets the state as a plain fact for the two places a small model reads last (bridge/fresh-facts.mjs, docs/FRESH_FACTS.md): the same sentences, without the instruction.
-  const freshMods = selfState.length ? modsSaid.join(' ') : '';
+  // And the replies and remembered facts that say the opposite of what was read are not sent (modsStale).
+  const freshMods = selfState.length && modsSaid.length ? {text: modsSentences(snapshot.mods, form, {asked: true}).join(' '), drop: modsStale(snapshot.mods, form, reads), codes: modsCodes(snapshot.mods, form)} : null;
   const modsSent = modsDisposition({asked: selfState.length > 0, said: modsSaid.length > 0, known: snapshot.mods !== undefined, told: fresh.mods === false, split, form});
   // The same disposition for each of the Digital Vixen mods alone (their own probe lines, vixenProbeLines).
   const modsBy = {};

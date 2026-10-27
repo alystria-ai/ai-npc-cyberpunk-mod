@@ -11,7 +11,7 @@
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
-  summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+  summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS, freshNote} from './mistral-prompt.mjs';
 import {reactionTraceLine} from './companion-actions.mjs';
 import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
@@ -1084,6 +1084,9 @@ export class TextProviderHost {
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
+      // One line per prompt that has anything to do with fresh facts: it carries some, V asked about clothes or themself, or lines were left out as stale (names and counts only,
+      // bridge/fresh-facts.mjs). An ordinary turn with none of these writes nothing.
+      if (!reaction) { try { const note = freshNote(messages, {quiet: true}); if (note) this.log(`[FreshFacts] profile=${profileKey ?? persona.name} ${note}`); } catch { /* a log line never affects a reply */ } }
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
       const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(config?.prepared === true ? {prepared: true, priority: 'background'} : {}), ...(sampling ? {sampling} : {}), ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
         const shown = visible(soFar);

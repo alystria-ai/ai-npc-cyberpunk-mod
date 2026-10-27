@@ -9,8 +9,8 @@ import {buildServerArgs} from '../../bridge/local-llm-server.mjs';
 import {LOCAL_STOP_STRINGS} from '../../bridge/text-provider-host.mjs';
 import {defaultProfile} from '../../bridge/prompt-profiles.mjs';
 import {cleanReply} from '../../bridge/mistral-prompt.mjs';
-import {clothesCase, drinksCase} from './scenarios.mjs';
-import {CLOTHES_VARIANTS, DRINKS_VARIANTS, CLOTHES_TEXTS, DRINKS_TEXTS, judge} from './variants.mjs';
+import {clothesCase, drinksCase, drinksLiveCase} from './scenarios.mjs';
+import {CLOTHES_VARIANTS, DRINKS_VARIANTS, CLOTHES_TEXTS, DRINKS_TEXTS, DRINKS_LIVE_VARIANTS, DRINKS_LIVE_TEXTS, judge} from './variants.mjs';
 
 const arg = (name, fallback) => { const at = process.argv.indexOf(`--${name}`); return at < 0 ? fallback : process.argv[at + 1]; };
 const model = arg('model'), server = arg('server'), profileId = arg('profile', 'local-lite'), out = arg('out'), samples = Number(arg('samples', 8)), port = Number(arg('port', 18093));
@@ -53,14 +53,15 @@ try {
   await waitReady();
   await ask([{role: 'user', content: 'hi'}]);   // warm
   const plan = [];
-  if (only !== 'drinks') plan.push(['clothes', clothesCase, CLOTHES_VARIANTS, CLOTHES_TEXTS]);
-  if (only !== 'clothes') plan.push(['drinks', drinksCase, DRINKS_VARIANTS, DRINKS_TEXTS]);
+  if (only === 'live') plan.push(['drinks', drinksLiveCase, DRINKS_LIVE_VARIANTS, DRINKS_LIVE_TEXTS]);
+  if (only === 'both' || only === 'clothes') plan.push(['clothes', clothesCase, CLOTHES_VARIANTS, CLOTHES_TEXTS]);
+  if (only === 'both' || only === 'drinks') plan.push(['drinks', drinksCase, DRINKS_VARIANTS, DRINKS_TEXTS]);
   for (const [kind, build, variants, texts] of plan) {
     for (const [name, make] of Object.entries(variants)) {
       if (wanted.length && !wanted.includes(name)) continue;
       for (const spec of texts) {
         const {text, later} = spec, label = later ? text + " (later)" : text;
-        const c = build(text, {profile: profileId, later});
+        const c = build(text, {profile: profileId, later, ...make.options});
         const messages = make(c);
         for (let i = 0; i < samples; i++) {
           const answer = await ask(messages);
