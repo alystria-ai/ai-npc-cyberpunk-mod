@@ -72,6 +72,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/game-dialogue.mjs',
   'bridge/game-launch.mjs',
   'bridge/game-state.mjs',
+  'bridge/gear-memory.mjs',
   'bridge/gpu-memory.mjs',
   'bridge/gpu-vendors.mjs',
   'bridge/group-context.mjs',

@@ -57,7 +57,8 @@ import {installVVoiceReference, loadVVoiceReferencesWithMods, vGenderOfKey} from
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
-import {gearDiagnostic} from './player-gear.mjs';
+import {gearDiagnostic, gearSeen} from './player-gear.mjs';
+import {gearMemory} from './gear-memory.mjs';
 import {turnContextDiagnostic, modsProbeLine, vixenProbeLines} from './turn-context.mjs';
 import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
@@ -800,7 +801,7 @@ const twinForTurn = turn => !!turn && !keys.singleSession && !mistral.active && 
 const memoryPolicy = config => keys.memoryBlocked && config ? withoutIdentity(config) : keys.identify(config);
 // Sessions opened under another identity belong to it; the transcript the phone shows is not touched.
 function retireIdentifiedSessions() {
-  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
+  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear(); gearMemory.clear();
   void phone.forgetSessions().catch(() => {});
 }
 function memoryAdopted() {
@@ -2330,10 +2331,13 @@ async function publishResult(input, profile, result, current = async () => true,
   if (!input.reaction) multilingual.observeTurn(input.text, result.text, speechLanguage.evidence?.language ?? null);
   logNaturalSpeech(input, result);
   logFollowUp(input, result);
+  // The reply is published, so this character has been told V's gear as of this turn: the next turn is compared against it and says what changed (bridge/gear-memory.mjs).
+  // Not for an automatic reaction (it carries no gear), a voice with no body, or while Settings > Dynamic info has V's gear off (none of it was told).
+  const gearTold = () => { try { if (!input.reaction && !voice && dynamicInfo.on('gear')) gearSeen(input, gearMemory, {visible: isAmbientProfile(input.profileKey)}); } catch { /* a memory never affects a reply */ } };
   // One line per reply: whether this turn's context carried V's gear (bridge/player-gear.mjs), or why not. Counts only, no names.
   // A voice with no body (persona.voiceContext) gets neither V's gear nor the person form of the block below.
   const voice = addonHost.usesVoiceContext(input.profileKey);
-  try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${voice ? 'Player gear: none (voice speaker)' : gearDiagnostic(input)}`); } catch { /* a log line never affects a reply */ }
+  try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${voice ? 'Player gear: none (voice speaker)' : gearDiagnostic(input, {memory: gearMemory, visible: isAmbientProfile(input.profileKey)})}`); } catch { /* a log line never affects a reply */ }
   // And whether it carried the "right now" block (clock, place, company; bridge/turn-context.mjs). Counts only.
   try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice, off: dynamicInfo.off} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
   if (result.continuous) {
@@ -2341,7 +2345,7 @@ async function publishResult(input, profile, result, current = async () => true,
     // The game already received admission, live text and the consumed-sample
     // clock. Publishing a second ordinary reply would replay or replace it.
     realtimeSessions.set(sessionKey(input), result.sessionID);
-    commitExchange(input);
+    commitExchange(input); gearTold();
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
       stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : result.timing?.voiceProvider === 'omni' ? 'omni-continuous' : 'convai-continuous', complete: true},
@@ -2358,7 +2362,7 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
-  commitExchange(input);
+  commitExchange(input); gearTold();
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face: undefined, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
@@ -2536,7 +2540,7 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
   await invitations.clear('world-or-memory-reset');
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await connections.clear();
-  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear(); knowledgeTurns.clear();
+  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear(); gearMemory.clear(); knowledgeTurns.clear();
   partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
   rewarmLocalVoice();
 }
@@ -3544,7 +3548,7 @@ async function applyKeyChoice() {
     quota.clear();
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
-    sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
+    sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear(); gearMemory.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation key: ${own ? "the player's own" : "the installation's"}`);
     rewarmLocalVoice();
@@ -3577,7 +3581,7 @@ function lightApplyProvider() {
 async function finishProviderSwitch() {
   providerTeardownDue = false;
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
-  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
+  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear(); gearMemory.clear();
   await phone.forgetSessions().catch(() => {});
   rewarmLocalVoice();
   // Back to Convai: the memory search's embedding process (CPU) is not needed either, and goes now instead of after its five idle minutes.

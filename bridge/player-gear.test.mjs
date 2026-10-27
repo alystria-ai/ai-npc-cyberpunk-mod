@@ -130,8 +130,8 @@ test('the per-turn diagnostic says whether the gear line was in the context, or 
 
 test('the bridge logs the diagnostic once per reply, never for a reaction', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /import \{gearDiagnostic\} from '\.\/player-gear\.mjs'/);
-  assert.match(bridge, /logFollowUp\(input, result\);[^]*?const voice = addonHost\.usesVoiceContext\(input\.profileKey\);\s+try \{ if \(!input\.reaction\) console\.error\(`\[PlayerGear\] profile=\$\{input\.profileKey\} \$\{voice \? 'Player gear: none \(voice speaker\)' : gearDiagnostic\(input\)\}`\)/);
+  assert.match(bridge, /import \{gearDiagnostic, gearSeen\} from '\.\/player-gear\.mjs'/);
+  assert.match(bridge, /logFollowUp\(input, result\);[^]*?const voice = addonHost\.usesVoiceContext\(input\.profileKey\);\s+try \{ if \(!input\.reaction\) console\.error\(`\[PlayerGear\] profile=\$\{input\.profileKey\} \$\{voice \? 'Player gear: none \(voice speaker\)' : gearDiagnostic\(input, \{memory: gearMemory, visible: isAmbientProfile\(input\.profileKey\)\}\)\}`\)/);
 });
 
 test('a recaptured snapshot never changes which group turn is which', () => {
@@ -894,7 +894,7 @@ test('each turn that reads again leaves the clothing it described, once per chan
   world.equip('Slot2')
   fresh()
   assert(#clothingLines() == 2 and clothingLines()[2] == 'Player gear clothing: head=Cap, outerTorso=Coat', clothingLines()[2])
-  -- Inside the 5 second window the cached snapshot is returned, after it the game is read again.
+  -- Inside the short window (MAX_AGE) the cached snapshot is returned, after it the game is read again.
   world.unequip()
   now = now + 1; gear:capture(); assert(#clothingLines() == 2, 'cached inside the window')
   fresh(); assert(#clothingLines() == 3 and clothingLines()[3]:find('head=Hat', 1, true), clothingLines()[3])
