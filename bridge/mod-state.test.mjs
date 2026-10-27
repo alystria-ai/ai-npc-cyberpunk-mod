@@ -320,6 +320,10 @@ test('wiring: the bridge writes the probe line at the start of a typed turn, and
   assert.match(bridge, /import \{turnContextDiagnostic, modsProbeLine, vixenProbeLines\} from '\.\/turn-context\.mjs'/);
   assert.match(bridge, /console\.error\(`\[Turn\] received[^\n]*\n\s*logDarkFuture\(input\);/, 'once per submitted turn, never a look-ahead');
   assert.equal((bridge.match(/\.\.\.dfNote\(/g) ?? []).length, 2, 'the continuous reply and the written reply both carry it');
+  // Live 2026-10-27: the fac: and inj: lines were logged as [DarkFuture]. Each line carries its own mod's tag.
+  assert.match(bridge, /const DF_LOG_TAGS = \{df: 'DarkFuture', fac: 'FleshAndChrome', inj: 'Injuries'\};/);
+  assert.match(bridge, /for \(const \[tag, line\] of Object\.entries\(lines\)\) console\.error\(`\[\$\{DF_LOG_TAGS\[tag\] \?\? 'DarkFuture'\}\] \$\{line\}`\);/);
+  assert.doesNotMatch(bridge, /console\.error\(`\[DarkFuture\] \$\{line\}`\)/);
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(init, /reply\.df:sub\(1, 4\) == 'df: '[^\n]*log\(reply\.df\)/);
 });
