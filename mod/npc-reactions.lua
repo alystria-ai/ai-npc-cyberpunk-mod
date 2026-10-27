@@ -508,6 +508,11 @@ function M.nativeAdapter()
         if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the hold command') end
         return command
     end
+    -- Takes back a command that never started (live test 5: a hold stuck `Enqueued`), so the next one is not queued behind it.
+    function N.cancel(npc, command)
+        if command == nil then return false end
+        return npc:GetAIControllerComponent():CancelCommand(command) ~= false
+    end
     -- Fists for a brawl: the right hand takes the bare-hands item (failIfItemNotFound off: a person without it keeps what it has, nothing
     -- is added to its inventory). Unconfirmed on ordinary NPCs; the read-back says what the hand holds.
     function N.fists(npc)
@@ -525,12 +530,14 @@ function M.nativeAdapter()
         if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the holster command') end
     end
     -- What the right hand holds: 'empty', 'fists' or the weapon's record.
+    -- Second result: its kind ('fists', 'cyberware', 'ranged', 'melee', 'other'; N.weaponKind below), for the escalation's read-back.
     function N.hand(npc)
         local item = ScriptedPuppet.GetWeaponRight(npc)
-        if item == nil then return 'empty' end
+        if item == nil then return 'empty', 'empty' end
         local id = item:GetItemID()
-        if WeaponObject.IsFists(id) then return 'fists' end
-        return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'weapon')
+        if WeaponObject.IsFists(id) then return 'fists', 'fists' end
+        local okKind, kind = pcall(N.weaponKind, id)
+        return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'weapon'), okKind and kind or 'other'
     end
     -- Out of the vehicle: the game's own exit event for a passenger (vehicles.script TriggerExitBehavior, `ExitVehicle`), queued to the person.
     function N.exitVehicle(npc)
@@ -549,10 +556,23 @@ function M.nativeAdapter()
         if not WeaponObject.IsRanged(id) then return false end
         return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'gun')
     end
-    -- A brawler draws its own weapon. Live test 4 (2026-10-27): the game's weapon switch command (AISwitchToPrimaryWeaponCommand) was taken
-    -- ("1 of 1 draw") and nothing changed: the fists we equipped stayed. So the gun is equipped the same way the fists were, with the equip
-    -- command into the right hand: the weapon the person was seen holding (`record`, read before it was put away), else the first ranged
-    -- weapon it carries, else the switch command as the last way. Returns how it was asked.
+    -- A brawler draws its gun. Live test 4: the game's weapon switch command (AISwitchToPrimaryWeaponCommand) changed nothing. Live test 5:
+    -- the gun equipped into the right hand (AIEquipCommand) was taken, and a second later they held a knife or their gorilla arms again: the
+    -- combat AI picks its own weapon from the person's equipment, and it may pick only an item the person has (transactionSystem.script
+    -- GetEquipmentWithCondition: `transactionSystem.HasItem(puppet, itemID)`), so a melee weapon in the inventory wins at brawl range.
+    -- So, for V's gun: the melee weapons (knives, clubs, fists items) are taken from the person's inventory and its gun is equipped; the combat
+    -- AI then has only the gun. Cyberware arms (gorilla arms, mantis blades: the game's `Meleeware` tag) are the person's own body and are kept:
+    -- such a person counts as armed. A person with no gun keeps what it has. Returns what was done.
+    local function itemName(id) return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'item') end
+    -- 'fists', 'cyberware', 'ranged', 'melee' or 'other', by the weapon record's tags (weapon.script IsFists, IsCyberwareWeapon, IsRanged, IsMelee).
+    local function weaponKind(id)
+        if WeaponObject.IsFists(id) then return 'fists' end
+        if WeaponObject.IsCyberwareWeapon(id) then return 'cyberware' end
+        if WeaponObject.IsRanged(id) then return 'ranged' end
+        if WeaponObject.IsMelee(id) then return 'melee' end
+        return 'other'
+    end
+    N.weaponKind = weaponKind
     local function equipRight(npc, record)
         local command = NewObject('AIEquipCommand')
         command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
@@ -560,35 +580,54 @@ function M.nativeAdapter()
         pcall(function() command.failIfItemNotFound = false end)
         if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the equip command') end
     end
-    local function carriedGun(npc)
+    -- The person's items (CET returns the out list after the result).
+    local function carried(npc)
         local results = {pcall(function() return Game.GetTransactionSystem():GetItemList(npc) end)}
-        if not results[1] then return nil end
+        local ids = {}
+        if not results[1] then return ids end
         for index = 2, #results do
             if type(results[index]) == 'table' then
                 for _, data in ipairs(results[index]) do
                     local okId, id = pcall(function() return data:GetID() end)
-                    if okId and id ~= nil and WeaponObject.IsRanged(id) then return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id))) end
+                    if okId and id ~= nil then ids[#ids + 1] = id end
                 end
             end
         end
-        return nil
+        return ids
     end
     function N.weapons(npc, record)
-        if type(record) == 'string' and record ~= '' then equipRight(npc, record); return 'equip ' .. record end
-        local carried = carriedGun(npc)
-        if carried then equipRight(npc, carried); return 'equip ' .. carried .. ' (carried)' end
-        local command = NewObject('AISwitchToPrimaryWeaponCommand')
-        if command == nil then error('the weapon switch command cannot be made from Lua') end
-        command.unEquip = false
-        if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the weapon switch') end
-        return 'switch command'
+        local held = ScriptedPuppet.GetWeaponRight(npc)
+        if held ~= nil then
+            local id = held:GetItemID()
+            local kind = weaponKind(id)
+            if kind == 'ranged' then return 'already ' .. itemName(id) end
+            if kind == 'cyberware' then return 'cyberware arms ' .. itemName(id) .. ' kept (its own weapon)' end
+        end
+        local items, gun, melee = carried(npc), nil, {}
+        for _, id in ipairs(items) do
+            local kind = weaponKind(id)
+            if kind == 'ranged' and (gun == nil or itemName(id) == record) then gun = id end
+            if kind == 'melee' or kind == 'fists' then melee[#melee + 1] = id end
+        end
+        if gun == nil then return 'no gun carried, keeps ' .. (held and itemName(held:GetItemID()) or 'empty hands') end
+        local system, taken = Game.GetTransactionSystem(), {}
+        for _, id in ipairs(melee) do
+            local okTake, removed = pcall(function() return system:RemoveItem(npc, id, 1) end)
+            if okTake and removed ~= false then taken[#taken + 1] = itemName(id) end
+        end
+        equipRight(npc, itemName(gun))
+        return 'equip ' .. itemName(gun) .. (#taken > 0 and (', took ' .. table.concat(taken, '+')) or '')
     end
     -- The scared pose while a person is held (cower, get down): the fear animation set the game's crowd reaction turns on for its phase 2
     -- (reactionComponent.script GetFearAnimWrapper(2) = 'fear'), on, and off again when the hold ends. No crowd fear: on a walking crowd
     -- person that is the crowd's Surrender reaction, a second's cower before the crowd's alarmed stage walks it off (live test 4: 39 m in the
     -- 20 s hold, the hold never ran).
+    -- Live test 5: the `fear` set alone showed nothing on a standing corpo. The NPC crouch stance's own animation set (npcStateComponent.script
+    -- GetAnimWrapperNameBasedOnStanceState: Crouch = 'inCrouch') goes on with it, and both go off again when the hold ends. Unconfirmed on
+    -- crowd people: the hold keeps the person in place either way.
     function N.scared(npc, on)
         AnimationControllerComponent.SetAnimWrapperWeightOnOwnerAndItems(npc, CName.new('fear'), on and 1.0 or 0.0)
+        AnimationControllerComponent.SetAnimWrapperWeightOnOwnerAndItems(npc, CName.new('inCrouch'), on and 1.0 or 0.0)
     end
     -- The people who joined the person's fight, within `radius` of V, from two places: the person's own squad (AISquadHelper.GetSquadmatesID,
     -- the gang it stands with; live test 4 found 0 with the targeting search alone while the gang joined), in combat or hostile to V, and one
@@ -896,11 +935,13 @@ function M.new(options)
         return true
     end
 
-    -- Cower or get down. A crowd person who walks is held FIRST, while the conversation's hold still runs (the same command that stops it when
-    -- V talks to it, see crowdRun), put in the scared pose, and only then is the conversation let go; it goes back to the crowd when the hold
-    -- ends (`cowerHold`). No crowd fear for it (live test 4, 2026-10-27: the crowd's phase 2 is its Surrender reaction, a second's cower, then
-    -- the crowd's alarmed stage walked the man off 39 m while our hold stayed `Enqueued`). A hold that is not running at the first read-back is
-    -- sent once more for the rest of the time. A seated crowd person gets the seat's own fear (the event, phase 2); anyone else holds still.
+    -- Cower or get down: the person holds still where it stands for `cowerHold` seconds, in the scared pose, then goes back to what it did.
+    -- Live tests 4 and 5 (2026-10-27): our hold was sent while the conversation's own hold (Engagement.reds ConvaiBeginFocus, an
+    -- AIHoldPositionCommand of 40 s) still ran, so it waited behind it, and it stayed `Enqueued` after the conversation let go: the person
+    -- walked 20 m in the hold (a second hold sent then queued too). So the order is now the conversation's own: ConvaiBeginFocus first stops
+    -- its old hold (ConvaiEndFocus) and then sends the new one, and that stops a walking crowd person every time V talks to one. The
+    -- conversation lets go (release), and in the same frame our hold is sent to an empty queue. A hold not Executing at the first read-back is
+    -- cancelled and sent once more; a second read-back half way through shows it still runs. A seated crowd person gets the seat's own fear.
     local function cower(p, player, why)
         local crowd = crowdOf(p.npc)
         if crowd and seatedOf(p.npc) then
@@ -908,16 +949,19 @@ function M.new(options)
             if crowdFear(p, player, 2, why) then return true end
         end
         local from = where(p.npc)
-        local ok, command = guard('hold', natives.hold, p.npc, cfg.cowerHold)
-        if not ok then release(player); return false end
-        local posed = natives.scared ~= nil and (guard('pose', natives.scared, p.npc, true))
         release(player)
+        local ok, command = guard('hold', natives.hold, p.npc, cfg.cowerHold)
+        if not ok then return false end
+        local holder = {command = command}
+        local posed = natives.scared ~= nil and (guard('pose', natives.scared, p.npc, true))
         log('NPC reaction: ' .. why .. ' started, holds still for ' .. cfg.cowerHold .. ' s'
-            .. (crowd and ', taken from the crowd before the conversation let go' or ' (not a crowd person)')
+            .. (crowd and ', the conversation let go first and the hold sent to an empty queue' or ' (not a crowd person)')
             .. (posed and ', in the scared pose (no crowd fear)' or ''))
         local endsAt = clock() + cfg.cowerHold
-        checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = p.npc, command = command, why = why, from = from,
+        checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = p.npc, holder = holder, why = why, from = from,
             showFrom = crowd, again = true, endsAt = endsAt}
+        checks[#checks + 1] = {at = clock() + cfg.cowerHold / 2, kind = 'hold', npc = p.npc, holder = holder, why = why, from = from,
+            showFrom = crowd, half = true, endsAt = endsAt}
         checks[#checks + 1] = {at = endsAt, kind = 'back', npc = p.npc, why = why, from = from, crowd = crowd, posed = posed}
         return true
     end
@@ -1058,6 +1102,8 @@ function M.new(options)
         log('NPC reaction: brawl joined by ' .. asked .. ' more (search ' .. search .. ' of ' .. (1 + #cfg.joinAgain) .. ': squad ' .. tostring(counts.squad or '?')
             .. ', nearby ' .. tostring(counts.nearby or '?') .. ')'
             .. (asked > 0 and (fight.escalated and ', asked to draw (V has a gun out)' or (', asked for fists (' .. drew .. ' had a weapon out, asked to put it away)')) or ''))
+        -- Friends who drew after the escalation: every hand read back once more (no further ask).
+        if asked > 0 and fight.escalated and natives.hand then checks[#checks + 1] = {at = clock() + cfg.armVerify, kind = 'armed', fight = fight, again = true} end
     end
 
     -- One read-back per reaction, logged: what the game did with it. Never retried except a walk the game did not take.
@@ -1122,14 +1168,21 @@ function M.new(options)
                 end
             end
         elseif v.kind == 'hold' then
-            local ok, state = guard('read-command', natives.commandState, v.npc, v.command)
-            log('NPC reaction check: ' .. v.why .. ' hold state=' .. (ok and tostring(state) or 'unreadable') .. (v.showFrom and (' moved=' .. metres(moved(v.npc, v.from)) .. ' m') or ''))
-            -- Not running (live test 4: `Enqueued`, behind something else the person was doing): sent once more for the rest of the hold.
+            local ok, state = guard('read-command', natives.commandState, v.npc, v.holder and v.holder.command or v.command)
+            log('NPC reaction check: ' .. v.why .. ' hold state=' .. (ok and tostring(state) or 'unreadable') .. (v.showFrom and (' moved=' .. metres(moved(v.npc, v.from)) .. ' m') or '')
+                .. (v.half and ' (half way)' or ''))
+            -- Not running (live tests 4 and 5: `Enqueued`): the stuck one cancelled, then sent once more for the rest of the hold. The half-way
+            -- read-back reads the command that runs then.
             local left = v.endsAt and v.endsAt - clock() or 0
             if v.again and ok and state ~= 'Executing' and left > 1 and not off.hold then
+                local cancelled = natives.cancel ~= nil and (guard('hold', natives.cancel, v.npc, v.holder and v.holder.command or v.command))
                 local sent, command = guard('hold', natives.hold, v.npc, left)
-                log('NPC reaction: ' .. v.why .. ' hold was ' .. tostring(state) .. ', sent again for ' .. string.format('%.0f', left) .. ' s (' .. (sent and 'sent' or 'failed') .. ')')
-                if sent then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = v.npc, command = command, why = v.why, from = v.from, showFrom = v.showFrom} end
+                log('NPC reaction: ' .. v.why .. ' hold was ' .. tostring(state) .. ', ' .. (cancelled and 'cancelled and ' or '') .. 'sent again for '
+                    .. string.format('%.0f', left) .. ' s (' .. (sent and 'sent' or 'failed') .. ')')
+                if sent then
+                    if v.holder then v.holder.command = command end
+                    checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'hold', npc = v.npc, command = command, why = v.why, from = v.from, showFrom = v.showFrom}
+                end
             end
         elseif v.kind == 'back' then
             -- The hold is over: the scared pose off, a crowd person back to the crowd (one line, so a person that never stayed shows up).
@@ -1195,7 +1248,7 @@ function M.new(options)
                         if arm(fight, index) then drew = drew + 1 end
                         ways[#ways + 1] = fight.how[index]
                     end
-                    log('NPC reaction: V drew ' .. tostring(gun) .. '; the brawl escalates: ' .. drew .. ' of ' .. #fight.npcs .. ' draw their own weapons ('
+                    log('NPC reaction: V drew ' .. tostring(gun) .. '; the brawl escalates: ' .. drew .. ' of ' .. #fight.npcs .. ' asked for their guns ('
                         .. table.concat(ways, '; ') .. ')')
                     -- Every brawler's hand read back once: who holds a gun now, and one more ask for anyone who does not.
                     if natives.hand then checks[#checks + 1] = {at = now + cfg.armVerify, kind = 'armed', fight = fight} end
@@ -1207,21 +1260,24 @@ function M.new(options)
         elseif v.kind == 'join' then
             joinFight(v.fight, v.search)
         elseif v.kind == 'armed' then
-            -- After the escalation: each brawler's hand, by person; a hand still on fists or empty is asked once more without the remembered
-            -- weapon (the first ranged weapon it carries, else the game's switch command), then read back one last time.
+            -- After the escalation: each brawler's hand, by person and kind (live test 5 counted a knife and gorilla arms as "a weapon"). A gun
+            -- counts; cyberware arms count too (the person's own body, kept); a knife, a club, fists or empty hands do not, and are asked once
+            -- more (the melee weapons taken again, the gun equipped again), then read back one last time.
             local fight, hands, armed = v.fight, {}, 0
             for index, npc in ipairs(fight.npcs) do
-                local okHand, held = guard('read-hand', natives.hand, npc)
+                local okHand, held, kind = guard('read-hand', natives.hand, npc)
                 held = okHand and tostring(held) or 'unreadable'
-                local bare = held == 'fists' or held == 'empty'
-                if not bare and held ~= 'unreadable' then armed = armed + 1 end
-                if bare and not v.again then
-                    local okAgain, how = guard('weapons', natives.weapons, npc, nil)
-                    held = held .. ' -> asked again (' .. (okAgain and tostring(how) or 'failed') .. ')'
+                kind = okHand and kind or 'unreadable'
+                local good = kind == 'ranged' or kind == 'cyberware'
+                if good then armed = armed + 1 end
+                local text = held .. (kind == 'ranged' and ' (gun)' or kind == 'cyberware' and ' (cyberware arms)' or (kind ~= held and kind ~= 'unreadable' and (' (' .. kind .. ')') or ''))
+                if not good and kind ~= 'unreadable' and not v.again then
+                    local okAgain, how = guard('weapons', natives.weapons, npc, fight.weapons[index])
+                    text = text .. ' -> asked again (' .. (okAgain and tostring(how) or 'failed') .. ')'
                 end
-                hands[#hands + 1] = held
+                hands[#hands + 1] = text
             end
-            log('NPC reaction check: brawl escalated, ' .. armed .. ' of ' .. #fight.npcs .. ' hold a weapon (' .. table.concat(hands, ', ') .. ')')
+            log('NPC reaction check: brawl escalated, ' .. armed .. ' of ' .. #fight.npcs .. ' hold a gun or their cyberware arms (' .. table.concat(hands, ', ') .. ')')
             if not v.again and armed < #fight.npcs then checks[#checks + 1] = {at = clock() + cfg.armVerify, kind = 'armed', fight = fight, again = true} end
         elseif v.kind == 'exit' then
             local ok, mounted = guard('read-mount', natives.mounted, v.npc)
