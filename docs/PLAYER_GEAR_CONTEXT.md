@@ -175,6 +175,20 @@ That the CET binding exposes `Game.GetWardrobeSystem` and the private field `dat
 `enum.value` gives the name (`Slot1` to `Slot7`, `INVALID`, `OuterChest`). Each of these has its own failure in the facts line. A slot whose equipped item blocks transmog is described
 as the set's empty entry when only the `set` source answers (the `paperdoll` source keeps it).
 
+## The Outfit slot (the game's Outfit area), live 2026-10-27
+
+The owner's "outfit" was the game's own **Outfit** equipment area (a suit, a dress, a jumpsuit), not a Wardrobe set and not Equipment-EX. `probe.log` 05:48:02: `Player gear clothing: face=Johnny's aviators, outerTorso=Replica of Johnny's Samurai
+jacket, innerTorso=Johnny's tank top, legs=Johnny's pants, feet=Johnny's shoes, outfit=Aguilar's suit` and the facts `active=false idx=INVALID ... paper=1/4 ... att=hdN,fcS,otS,itS,lgS,ftS,ofS`: V visibly wore the suit and the aviators, and the companion described the Johnny items under it.
+
+**What the game does** (read-only, `tools/redmod/scripts/cyberpunk/systems/equipmentSystem.script`, 2.5): an Outfit-area item does not unequip the items of the other areas (the live log lists all of them still equipped under the suit); it hides them by **visual tags**: each clothing area has a tag (`InitializeClothingSlotsInfo`, l.696 to 702: OuterChest `hide_T2`, InnerChest `hide_T1`, Legs `hide_L1`, Feet `hide_S1`, Head `hide_H1`, Face `hide_F1`, UnderwearBottom `hide_Genitals`),
+`IsVisualTagActive(tag)` (l.1802 to 1830) is true when the active Outfit item, or any visible item of another area, carries that tag in its item record (`MatchVisualTagByItemID`), and `ClearItemAppearance` (l.1441 to 1453) then blanks that area's appearance and sets its `isHidden`
+(`HideItem`). Which areas a given outfit hides is item data (TweakDB), not script, so it differs per item: head and face are hidden only if the item carries `hide_H1` / `hide_F1`. The same mechanism makes a long coat hide the shirt under it. `IsSlotHidden(area)` answers that flag, and it is what the game's own paperdoll and inventory honour.
+
+**What the reader does** (`mod/player-gear.lua`, "Source 0" of `Instance:wardrobe`): with no Wardrobe set active and at least one area flagged hidden, the hidden areas are not described (the slot reads as empty, `covered = false`), the Outfit item itself and the areas the outfit does not hide are described from the equipment as before. Result for the live case: `face=Johnny's aviators, outfit=Aguilar's suit`. Log: `wardrobe outfit=worn items=1 hidden=4 via=IsSlotHidden`, once per change. A failing `IsSlotHidden` read counts as "not hidden" (the equipment is described, as before, and no nudity is invented). A set that is active is read by the sources below as before; the Wardrobe reader is unchanged.
+**Nudity** already treats an Outfit item as covering torso and legs (the rule above), so a V in a suit over hidden clothes is not topless.
+
+Tests: `bridge/player-gear.test.mjs` ("the Outfit slot": the live case rebuilt with the game's flags, a suit that hides only the legs, nothing hidden, a coat hiding the shirt, a failing flag read).
+
 ### Earlier versions (kept for the record)
 
 - Fourth (merged in integration/0.3.3, live 26 Oct 18:40 IST): the facts line existed, but the second GameInstance route was called with the game instance (CET: requires 0 parameter(s)), the paperdoll and visual reads only ran while a set was active (so on that run `paper` never ran), `rows=0/0/0` hid a nil field, and the row-field, name and `ItemID.IsValid` faults were swallowed. The game itself answered `active=false idx=INVALID stored=Slot1` with the outfit on.
@@ -202,24 +216,24 @@ Only what V has on is ever listed; an empty slot is not mentioned. The guidance 
 
 Added 2026-10-27 after a player request (Nexus, 26 Oct: "with Equipment-EX or the game's own clothes, companions and strangers notice when V is visibly nude or topless and can react"). The one exception to "never remark
 on what V is not wearing": when V's torso is visibly empty a companion, Johnny in V's head and a stranger are told so, as a short factual note in the right-now block, and react in character. It is not sexual
-content and needs no Mature setting; under Mature the reaction can be as crude as the rest of the Mature talk (the Mature layer already says so, this note adds nothing to it). The note never describes a body: only that V is bare and that the character sees it.
+content and needs no Mature setting; under Mature the reaction can be as crude as the rest of the Mature talk (the Mature layer already says so, this note adds nothing to it). **No restriction of its own (owner decision 2026-10-27):** the note says that V is bare, that the character sees it, and that it is the current fact; it tells the character nothing about how to react or what not to say, on any provider. Only the mod's fixed hard limits apply, as in every talk.
 
 **The rule** (`M.nudity` in `mod/player-gear.lua`, from the same snapshot, nothing extra per frame or per turn): per clothing slot the reader keeps `worn`, `empty` or `unknown` (a read that failed is never "empty").
 The torso is covered by outer torso, inner torso or the outfit slot, the legs by legs or the outfit slot.
 - torso empty and legs worn: **topless**; torso and legs empty: **nude**; anything else (a covered torso, bottomless, an unreadable slot): no claim.
 - Hats, glasses and shoes do not count as clothes here: "nude" with a hat is still nude, and the note says "naked, with only accessories or footwear on" when some are listed ("wearing nothing" when nothing at all is).
 - Visible clothes are what the reader already uses: an active Equipment-EX outfit (its parts; an outfit that shows nothing means nothing is worn), else the game's Wardrobe set (a slot the set leaves empty is hidden: empty),
-  else the visual or equipped item. "Underwear" slots are not read: V in underwear but with empty torso and legs slots is called nude.
+  else what the worn items hide ("The Outfit slot" below), else the visual or equipped item. "Underwear" slots are not read: V in underwear but with empty torso and legs slots is called nude.
 - Guard against a bad read: "nude" needs at least one other item to have been read (a weapon, an implant, a hat, shoes); a read that found nothing at all is a failed read, not a naked V.
 - Guard against a hidden outfit: with **Other mods' state** OFF the Equipment-EX outfit is not read. If Equipment-EX is installed (one class lookup a minute, `convaiEquipmentExPresent` in `mod/init.lua`) the real clothes may be hidden by an
   outfit, so nothing is claimed (`outfitUnread`). To have an Equipment-EX outfit noticed, turn Other mods' state on. Without Equipment-EX the nudity note works whatever that switch says.
 
 **The switch.** The Dynamic info switch **V's gear and clothes** governs it (off: `playerGear:capture()` is not read at all, and the bridge drops the note too). It does not need Other mods' state (apart from the Equipment-EX case above).
 
-**Who and when** (`nuditySentences` in `bridge/turn-context.mjs`, in the right-now block, with room of its own like the "V is asking how they look" answer): a companion in person ("V is topless, and you can see it. React the way you naturally would in character ... Do not describe V's body."),
-Johnny in V's head ("you see it through V's eyes"), a stranger ("in plain view of you ... worth a reaction in your own way, as a stranger would"). Not a phone chat, a holocall or an add-on voice. Told when new to the conversation, when it changes, after a long silence, and whenever V's words
-ask about themself or their clothes (`asksAboutSelf`, `asksAboutClothes` in `bridge/scenery-memory.mjs`, English and the menu languages); not recited on every turn.
-The gear line (V asks "what am I wearing?") keeps its rule and adds the exception.
+**Who and when** (`nuditySentences` in `bridge/turn-context.mjs`, in the right-now block, with room of its own like the "V is asking how they look" answer): a companion in person ("V is topless right now, and you can see it: this is the current truth and replaces anything said or described earlier in this talk about V's clothes (a shirt, a jacket). React the way you naturally would in character (...)."),
+Johnny in V's head ("you see it through V's eyes: the current truth"), a stranger ("in plain view of you: the current truth. React as a stranger naturally would (...)"). Not a phone chat, a holocall or an add-on voice. The full note (with the cue to react) comes when new to the conversation, when it changes (topless to nude included), after a long silence, and whenever V's words
+ask about themself or their clothes (`asksAboutSelf`, `asksAboutClothes` in `bridge/scenery-memory.mjs`, English and the menu languages). On the turns in between, while V stays bare, one short standing line without the cue ("V is still wearing nothing: the current truth, whatever was said about V's clothes earlier.") keeps an earlier wrong description from coming back; each speaker has its own memory, so a stranger or a second companion is told on its own first turn.
+The gear line says it plainly too (`wearing: nothing at all`, or `wearing: legs: Jeans, upper body: nothing on`), so "what am I wearing?" has an answer to give; it keeps its rule about what V lacks and adds the exception.
 
 **Log.** `probe.log`, once per change: `Player gear: nudity=topless (torso=empty legs=worn)`, `nudity=nude (torso=empty legs=empty)`, `nudity=none (none)` when it ends, and when it could not tell:
 `nudity=none (unknown(a slot could not be read))`, `(unknown(outfit mod not read))`, `(unknown(nothing else was read))`. A clothed V writes nothing. The bridge diagnostic `[PlayerGear]` ends with ` nudity=topless` while it holds.

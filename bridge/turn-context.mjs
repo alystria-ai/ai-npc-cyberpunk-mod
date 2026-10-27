@@ -282,18 +282,23 @@ const BACKGROUND = 'Background (mention only if it matters or V asks):';
 
 // V visibly topless or naked (mod/player-gear.lua nudity, from the equipment the game reads, or the Equipment-EX / Wardrobe outfit): a short factual note and a cue to react in
 // character. It is not sexual content and needs no Mature setting; under Mature the character's reaction can be as crude as the rest of the talk (the Mature layer already says so).
-// Never anatomy, never V's body: only that V is bare and that you see it. The Dynamic info switch "V's gear and clothes" governs it (`off` has 'gear').
+// No restriction of its own is added (owner decision 2026-10-27): the character reacts however it would, on any provider; only the mod's fixed hard limits apply, as everywhere.
+// It is stated as the CURRENT fact that replaces anything said earlier in the talk (live 2026-10-27: a companion called V's shirt dark twice, a turn after V took it off). The first
+// time (`full`) it carries the cue to react; on the following turns, while V stays bare, a short standing line without the cue keeps an earlier wrong description from coming back.
+// The Dynamic info switch "V's gear and clothes" governs it (`off` has 'gear').
 const NUDITY_WORDS = {topless: 'topless', nude: 'naked', bare: 'wearing nothing'};
-export function nuditySentences(gear, form, off = NO_KINDS) {
+export function nuditySentences(gear, form, off = NO_KINDS, full = true) {
   if ((form !== 'person' && form !== 'head' && form !== 'ambient') || off.has('gear')) return [];
   const found = gearNudity(gear);
   if (!found) return [];
   const what = found.state === 'topless' ? NUDITY_WORDS.topless : found.bare ? NUDITY_WORDS.bare : `${NUDITY_WORDS.nude}, with only accessories or footwear on`;
+  if (!full) return [`V is still ${what}: the current truth, whatever was said about V's clothes earlier.`];
   if (form === 'ambient') {
-    return [`V is ${what}, in plain view of you. That is worth a reaction in your own way, as a stranger would (a stare, a remark, a double take, shock, disapproval, or not caring), kept short. Do not describe V's body.`];
+    return [`V is ${what} right now, in plain view of you: the current truth. React as a stranger naturally would (a stare, a remark, a double take, shock, disapproval, or not caring).`];
   }
-  if (form === 'head') return [`V is ${what}; you see it through V's eyes. React as you naturally would, briefly, in your own voice. Do not describe V's body.`];
-  return [`V is ${what}, and you can see it. React the way you naturally would in character (surprise, a joke, a look away, concern, disapproval, interest), briefly. Do not describe V's body.`];
+  if (form === 'head') return [`V is ${what} right now; you see it through V's eyes: the current truth. React as you naturally would, in your own voice.`];
+  return [`V is ${what} right now, and you can see it: this is the current truth and replaces anything said or described earlier in this talk about V's clothes (a shirt, a jacket). `
+    + 'React the way you naturally would in character (surprise, a joke, a look away, concern, disapproval, interest).'];
 }
 
 // The block, plus what a per-turn diagnostic needs: how many facts it states, its length, or why there is none.
@@ -349,7 +354,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // V asking about themself ("how do I look?") gets them in the block itself, worded as the answer, whatever the conversation heard before (bridge/scenery-memory.mjs modsAsked).
   const selfState = fresh.modsAsked === true ? modsAskedSentences(snapshot.mods, form) : [];
   // V visibly topless or naked: told when new to the conversation (bridge/scenery-memory.mjs), in the block itself with room of its own.
-  const nudity = fresh.nudity === false ? [] : nuditySentences(input.gear, form, off);
+  const nudity = nuditySentences(input.gear, form, off, fresh.nudity !== false);
   const modsSaid = modsSentences(snapshot.mods, form);
   const modsSent = modsDisposition({asked: selfState.length > 0, said: modsSaid.length > 0, known: snapshot.mods !== undefined, told: fresh.mods === false, split, form});
   // The same disposition for each of the Digital Vixen mods alone (their own probe lines, vixenProbeLines).

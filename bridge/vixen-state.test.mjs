@@ -172,12 +172,12 @@ test('parseGear keeps topless and nude, drops anything else, and a snapshot of n
 test('companions in person, Johnny and strangers get a short factual note; nobody else', () => {
   const topless = nuditySentences(gearOf('topless', [{slot: 'legs', name: 'Jeans'}]), 'person');
   assert.equal(topless.length, 1);
-  assert.match(topless[0], /^V is topless, and you can see it\. React the way you naturally would in character/);
-  assert.match(topless[0], /Do not describe V's body\.$/);
-  assert.match(nuditySentences(gearOf('nude'), 'person')[0], /^V is wearing nothing, and you can see it\./);
-  assert.match(nuditySentences(gearOf('nude', [{slot: 'feet', name: 'Boots'}]), 'person')[0], /^V is naked, with only accessories or footwear on, and you can see it\./);
-  assert.match(nuditySentences(gearOf('topless', [{slot: 'legs', name: 'Jeans'}]), 'head')[0], /^V is topless; you see it through V's eyes\./);
-  assert.match(nuditySentences(gearOf('nude'), 'ambient')[0], /^V is wearing nothing, in plain view of you\. That is worth a reaction in your own way, as a stranger would/);
+  assert.match(topless[0], /^V is topless right now, and you can see it: this is the current truth and replaces anything said or described earlier/);
+  assert.match(topless[0], /React the way you naturally would in character/);
+  assert.match(nuditySentences(gearOf('nude'), 'person')[0], /^V is wearing nothing right now, and you can see it/);
+  assert.match(nuditySentences(gearOf('nude', [{slot: 'feet', name: 'Boots'}]), 'person')[0], /^V is naked, with only accessories or footwear on right now, and you can see it/);
+  assert.match(nuditySentences(gearOf('topless', [{slot: 'legs', name: 'Jeans'}]), 'head')[0], /^V is topless right now; you see it through V's eyes: the current truth\./);
+  assert.match(nuditySentences(gearOf('nude'), 'ambient')[0], /^V is wearing nothing right now, in plain view of you: the current truth\. React as a stranger naturally would/);
   for (const form of ['phone', 'call', 'voice']) assert.deepEqual(nuditySentences(gearOf('nude'), form), [], form);
   assert.deepEqual(nuditySentences(gearOf(null, [{slot: 'legs', name: 'Jeans'}]), 'person'), []);
   assert.deepEqual(nuditySentences(gearOf('nude'), 'person', new Set(['gear'])), [], 'the gear switch governs it');
@@ -190,14 +190,14 @@ test('the note is in the right-now block of a companion and of a stranger, whate
   const memory = new SceneryMemory({now: () => 1000});
   const jeans = [{slot: 'legs', name: 'Jeans'}];
   const topless = nudeTurn('topless', jeans);
-  assert.match(describeTurnContext(topless, {split: true, fresh: sceneryFor(topless, memory)}).text, /V is topless, and you can see it\./);
+  assert.match(describeTurnContext(topless, {split: true, fresh: sceneryFor(topless, memory)}).text, /V is topless right now, and you can see it/);
   const stranger = {...nudeTurn('nude'), profileKey: 'ambient-citizen', archetype: {district: 'Watson'}, entity: '5ULL'};
   const out = describeTurnContext(stranger, {split: true, ambient: true, fresh: sceneryFor(stranger, memory)});
-  assert.match(out.text, /V is wearing nothing, in plain view of you\./);
+  assert.match(out.text, /V is wearing nothing right now, in plain view of you/);
   assert.match(out.text, /You have never met V/, 'the stranger is still a stranger');
   // The mods switch is off by default and does not matter here.
   assert.ok(dynamicInfo.off.has('mods'));
-  assert.match(conversationContext({...nudeTurn('topless', jeans), requestId: 'n-ctx'}), /V is topless, and you can see it\./);
+  assert.match(conversationContext({...nudeTurn('topless', jeans), requestId: 'n-ctx'}), /V is topless right now, and you can see it/);
   // The gear switch off: nothing.
   const off = new Set(offKinds({dynamicInfo: {gear: false}}));
   assert.doesNotMatch(describeTurnContext(nudeTurn('topless', jeans), {split: true, off}).text, /topless/);
@@ -246,6 +246,61 @@ test('the gear line keeps its rule about what V lacks, with the one exception, a
   assert.doesNotMatch(describeGear({...BASE, gear: gearOf(null, [{slot: 'legs', name: 'Jeans'}])}).text, /one exception/);
   assert.match(gearDiagnostic(input), /nudity=topless$/);
   assert.doesNotMatch(gearDiagnostic({...BASE, gear: gearOf(null, [{slot: 'legs', name: 'Jeans'}])}), /nudity/);
-  // Nudity alone: no gear line (nothing to list), but the note stays.
-  assert.equal(describeGear({...BASE, gear: {version: 1, status: 'ready', nudity: 'nude'}}).text, '');
+  // Nudity alone: the gear line says plainly that nothing is worn, so a question about clothes has an answer to give.
+  assert.match(describeGear({...BASE, gear: {version: 1, status: 'ready', nudity: 'nude'}}).text, /- wearing: nothing at all\./);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Live 2026-10-27 (probe.log 06:05 to 06:07, Convai): Alex said "You're topless" at once, then, with V nude, "You've got a shirt on" and a turn later "a dark shirt".
+
+test('no restriction cue on nudity, on any form, first time or after: the character reacts however it would', () => {
+  const forbidden = /do not describe|don't describe|never describe|do not mention|avoid|keep it (?:clean|short)|kept short|briefly|inappropriate|family|tasteful|polite|censor/i;
+  for (const gear of [gearOf('topless', [{slot: 'legs', name: 'Jeans'}]), gearOf('nude'), gearOf('nude', [{slot: 'feet', name: 'Boots'}])])
+    for (const form of ['person', 'head', 'ambient'])
+      for (const full of [true, false]) {
+        const [sentence, ...more] = nuditySentences(gear, form, undefined, full);
+        assert.equal(more.length, 0);
+        assert.doesNotMatch(sentence, forbidden, `${form} ${full}: ${sentence}`);
+      }
+  // The block of a turn and the gear line carry none either.
+  const turn = nudeTurn('nude');
+  const memory = new SceneryMemory({now: () => 1000});
+  const block = describeTurnContext(turn, {split: true, fresh: sceneryFor(turn, memory)}).text;
+  assert.doesNotMatch(block.replace(/Never claim to be anywhere else[^.]*\./, ''), /do not describe|body\b/i);
+  assert.doesNotMatch(describeGear(turn).text, /do not describe/i);
+});
+
+test('the Alex turns of the live test: topless then nude, a stranger in between; each speaker is told on the first turn after a change, as the current fact', () => {
+  let serial = 0, clock = 1000;
+  const memory = new SceneryMemory({now: () => clock});
+  const jeans = [{slot: 'legs', name: 'Jeans'}];
+  const alex = (gear, text) => ({...BASE, requestId: `a-${++serial}`, text, gear, entity: '11148147ULL', turnContext: {...BASE.turnContext, mods: undefined, facRead: undefined, injRead: undefined}});
+  const stranger = (gear, text) => ({...alex(gear, text), profileKey: 'resident-male', entity: '10009890ULL', archetype: {district: 'Watson'}});
+  const block = (input, ambient = false) => describeTurnContext(input, {split: true, ambient, fresh: sceneryFor(input, memory)}).text;
+  // Generation 8: Alex, V topless.
+  assert.match(block(alex(gearOf('topless', jeans), 'am I dressed for this?')), /V is topless right now, and you can see it: this is the current truth/);
+  // Generation 9: a stranger, V topless: told, in its own words, on its own first turn.
+  assert.match(block(stranger(gearOf('topless', jeans), 'hey'), true), /V is topless right now, in plain view of you/);
+  // Generation 10: Alex again, V now nude: a change, so the full note comes again and says it replaces what was said.
+  const nude = block(alex(gearOf('nude'), 'ok'));
+  assert.match(nude, /V is wearing nothing right now, and you can see it: this is the current truth and replaces anything said or described earlier in this talk about V's clothes \(a shirt, a jacket\)/);
+  // Generation 11: nothing changed: not recited with the cue, but the standing line stays so an earlier "shirt" cannot come back.
+  const next = block(alex(gearOf('nude'), 'so?'));
+  assert.match(next, /V is still wearing nothing: the current truth, whatever was said about V's clothes earlier\./);
+  assert.doesNotMatch(next, /React the way you naturally would/);
+  // Generation 13: "what am i wearing": the full note again, and the gear line answers it.
+  const asked = alex(gearOf('nude'), 'what am i wearing');
+  assert.match(block(asked), /V is wearing nothing right now, and you can see it/);
+  assert.match(describeGear(asked).text, /wearing: nothing at all[;.]/);
+  // Dressed again: neither the note nor the standing line.
+  assert.doesNotMatch(block(alex(gearOf(null, jeans), 'ok')), /current truth/);
+});
+
+test('through every provider path the right-now block carries it first and the gear line says what is worn', () => {
+  const input = {...nudeTurn('nude'), requestId: 'prov-1'};
+  const context = conversationContext(input);
+  assert.match(context, /^Right now \(from the game, this turn only\): .*V is wearing nothing right now/s);
+  assert.match(context, /V's current gear .* wearing: nothing at all[;.]/s);
+  const topless = {...nudeTurn('topless', [{slot: 'legs', name: 'Jeans'}]), requestId: 'prov-2'};
+  assert.match(conversationContext(topless), /wearing: legs: Jeans, upper body: nothing on[;.]/);
 });

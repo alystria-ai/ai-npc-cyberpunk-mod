@@ -429,6 +429,21 @@ function Instance:wardrobe(player, data)
         facts.att = table.concat(codes, ',')
     end
 
+    -- Source 0, what the worn items hide (no Wardrobe set needed). An equipped Outfit-area item (a suit, a dress, a jumpsuit) and any long coat carry visual tags (hide_T1 inner
+    -- torso, hide_T2 outer torso, hide_L1 legs, hide_S1 feet, hide_H1 head, hide_F1 face; EquipmentSystemPlayerData.InitializeClothingSlotsInfo, equipmentSystem.script l.696 to
+    -- 702), and the game clears the appearance of every area whose tag one of them carries and sets that area's isHidden (ClearItemAppearance l.1441 to 1453). IsSlotHidden(area)
+    -- is what the game's own paperdoll honours, so a hidden area is not visible on V even though its item is still equipped. Live 2026-10-27 (the owner wore Aguilar's suit over
+    -- a jacket, tank top, pants and shoes): paper=1/4 (the aviators shown, outer torso, inner torso, legs and feet hidden), while the equipment listed all of them.
+    -- Used when no set is active and at least one area is hidden; a set that is active is read by the sources below as before.
+    if not active and paperFlagged > 0 then
+        local shown, hidden = place(paperRows, false)
+        if hidden > 0 then
+            flush('wardrobe outfit=worn items=' .. shown .. ' hidden=' .. hidden .. ' via=IsSlotHidden')
+            return covered
+        end
+        clear()
+    end
+
     -- Source 1, the paperdoll: while a set is active, each area shows what GetVisualItemInSlot says, and nothing where IsSlotHidden (EquipWardrobeSet flags every area the
     -- set leaves empty). An area with neither keeps the equipped item (the set does not cover it, or its item blocks transmog).
     -- Taken only when it found an item or a hidden flag (a set that is active by index but whose rows are empty is not trusted: the next sources look).

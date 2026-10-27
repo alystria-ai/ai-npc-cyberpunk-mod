@@ -997,3 +997,51 @@ test('nudity: M.nudity is pure and conservative', () => lua$(`
   assert(n(w{}, 5) == nil)
   assert(n(w{outerTorso = 'empty', innerTorso = 'empty', legs = 'worn', outfit = 'empty'}, 5, true) == nil)
 `));
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The game's Outfit slot (live 2026-10-27, probe.log 05:48:02): Aguilar's suit equipped over a jacket, tank top, pants and shoes; no Wardrobe set. The suit carries hide tags, the game flags
+// the areas it hides (isHidden, what IsSlotHidden answers), and V visibly wears the suit and the aviators only.
+
+const outfitSlot = `
+  items.Suit = 'Outfit'
+  records.Suit = strict('record', {DisplayName = function() return 'key:Suit' end,
+    EquipArea = function() local a; a = strict('area record', {Type = function() return {value = 'Outfit'} end}); return a end})
+  items.Aviators, items.Pants, items.Shoes = 'Face', 'Legs', 'Feet'
+  for name, area in pairs({Aviators = 'Face', Pants = 'Legs', Shoes = 'Feet'}) do
+    records[name] = strict('record', {DisplayName = function() return 'key:' .. name end,
+      EquipArea = function() local a; a = strict('area record', {Type = function() return {value = area} end}); return a end})
+  end
+  pdState.equipped['Face#0'], pdState.equipped['Legs#0'], pdState.equipped['Feet#0'] = item('Aviators'), item('Pants'), item('Shoes')
+  pdState.equipped['Outfit#0'] = item('Suit')
+  pdState.equipped['Weapon#0'] = item('Kyubi')
+  local function hide(...) for _, a in ipairs({...}) do rowOf(a).isHidden = true end end
+`;
+
+test('the Outfit slot: the suit and the slots it does not hide are what V wears; the jacket, tank top, pants and shoes under it are not', () => model$(outfitSlot + `
+  hide('OuterChest', 'InnerChest', 'Legs', 'Feet')
+  pdState.equipped['Head#0'] = nil   -- the owner wore no hat
+  local snap = gear:capture()
+  assert(names(snap.clothing) == 'face=Aviators,outfit=Suit', names(snap.clothing))
+  assert(last() == 'wardrobe outfit=worn items=1 hidden=4 via=IsSlotHidden', last())
+  assert(lastFacts():find('active=false idx=INVALID', 1, true) and lastFacts():find('paper=1/4', 1, true), lastFacts())
+  assert(snap.nudity == nil, 'the suit covers torso and legs')
+`));
+
+test('the Outfit slot: a suit that hides nothing but the legs leaves the jacket and the tank top visible', () => model$(outfitSlot + `
+  hide('Legs')
+  assert(names(gear:capture().clothing) == 'head=Hat,face=Aviators,outerTorso=Jacket,innerTorso=Tee,feet=Shoes,outfit=Suit', names(gear.snapshot.clothing))
+`));
+
+test('the Outfit slot: nothing hidden and no set is the equipment as before; a long coat hiding the shirt under it is honoured too', () => model$(outfitSlot + `
+  pdState.equipped['Outfit#0'] = nil
+  assert(names(gear:capture().clothing) == 'head=Hat,face=Aviators,outerTorso=Jacket,innerTorso=Tee,legs=Pants,feet=Shoes', names(gear.snapshot.clothing))
+  hide('InnerChest')
+  assert(names(fresh().clothing) == 'head=Hat,face=Aviators,outerTorso=Jacket,legs=Pants,feet=Shoes', names(gear.snapshot.clothing))
+`));
+
+test('the Outfit slot: the hidden flags failing to read leave the equipment described, never an invented nudity', () => model$(outfitSlot + `
+  hide('OuterChest', 'InnerChest', 'Legs', 'Feet')
+  pd.IsSlotHidden = function() error('IsSlotHidden is not exposed') end
+  local snap = gear:capture()
+  assert(names(snap.clothing):find('outfit=Suit', 1, true) and snap.nudity == nil, names(snap.clothing))
+`));
