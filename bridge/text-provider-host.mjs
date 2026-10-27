@@ -664,6 +664,9 @@ export class TextProviderHost {
     // The reactions the game offers an ordinary NPC this turn (never a reaction line, never a companion: its offers come with the turn).
     // A threats offer (docs/NPC_THREATS_COMMANDS.md) is narrowed here by V's own words, the typed line or the transcript.
     const reactions = !reaction && typeof this.deliverAction === 'function' ? reactionMenu(config.companionAction, {heard: text}) : null;
+    // The game decided from the transcript (a spoken turn; a typed line was decided by the bridge already): handed over now, before the reply is
+    // written, so the game acts on V's words and not on what the model makes of them. Its line is written by the CompanionActions that takes it.
+    if (reactions?.deliver) this.#act({code: `REACTION ${reactions.decided}`, message: reactions.deliver});
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
     // The guard is on (Mature content on with the local AI or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
     // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
@@ -737,7 +740,7 @@ export class TextProviderHost {
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
         // Exactly one line says what became of the offer (reactionTraceLine): the tag, or why there was none.
-        if (reactions) {
+        if (reactions && !reactions.decided) {
           let picked = {kind: null, why: outcome.guarded ? 'guarded-reply' : 'reply-cut-back'};
           if (!outcome.guarded && reply === outcome.reply) {
             picked = reactions.pick(response.text);

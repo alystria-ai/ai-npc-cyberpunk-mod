@@ -1,9 +1,10 @@
 // What V's words are, for an ordinary NPC's threat and command reactions (docs/NPC_THREATS_COMMANDS.md). Pure, no I/O, a few dozen regular
 // expressions over one message: it runs once per turn of a person the game offered the threat reactions to, never otherwise.
 //
-// The screen is one of two keys. It never starts anything: it only decides which of the game's offered reactions the reply may choose from
-// (`screenedKinds`). The other key is the model's own judgement in its reply (the tag, or Convai's action). A fight therefore needs BOTH a line
-// that reads as an insult or a threat here AND a reply that chooses to fight; a calm line never offers one, whatever the model writes.
+// The screen never starts anything by itself. With the game's plan in the offer (mod/npc-reactions.lua M.plan, the owner's rule of 2026-10-26)
+// a clear reading here IS the decision: the game's pick for that reading is the reaction, and the model is only told what the person does
+// (bridge/companion-actions.mjs planReaction). Without a plan, or for words it does not read, it only decides which of the game's offered reactions
+// the reply may choose from (`screenedKinds`): a calm line never offers a fight, whatever the model writes.
 //
 //   threat   'kill'    a death threat: "I'll kill you", "you're dead", a gun to the head, "your money or your life"   -> a fighter may draw a weapon
 //            'hurt'    a threat to hurt or a challenge: "I'll break your legs", "fight me"                             -> a fighter uses fists
@@ -30,14 +31,26 @@ const LANGUAGES = [
     name: 'en',
     kill: [
       // A first-person threat is found with the subject check below (the nearest subject before the verb is "I" or "we").
-      '(?:kill|murder|shoot|stab|gut|waste|ice|flatline|execute|whack|bury|strangle|slaughter|butcher|end|cap|gun down|finish)\\s+(?:you|ya|u|y\'all|yourself)(?!\\s+(?:a|an|some|over|up|out|a line|a text|a message|in)\\b)',
+      // "in" is no threat ("I'll end you in chess") unless a body part follows it ("I'll shoot you in the head", the live test of 2026-10-26).
+      // zero and geek are the city's own words for killing someone.
+      '(?:kill|murder|shoot|stab|gut|waste|ice|flatline|zero|geek|smoke|plug|execute|whack|bury|strangle|slaughter|butcher|end|cap|gun down|finish)\\s+(?:you|ya|u|y\'all|yourself)(?!\\s+(?:a|an|some|over|up|out|a line|a text|a message|in(?!\\s+(?:the|your|ya|ur)\\s+(?:\\p{L}+\\s+)?(?:head|skull|brains?|face|heart|chest|gut|stomach|belly|back|neck|throat|eyes?|temple|mouth|dome|spine)))\\b)',
       '(?:kill|murder|shoot|stab)\\s+your\\s+(?:\\p{L}+\\s+)?(?:family|kids|wife|husband|mother|mom|dad|ass|face|head)',
-      'slit\\s+your\\s+throat', 'blow\\s+your\\s+(?:\\p{L}+\\s+)?(?:head|brains|face)\\s+(?:off|out)',
+      '(?:slit|cut|slash)\\s+your\\s+(?:\\p{L}+\\s+)?throat', '(?:break|snap|wring)\\s+your\\s+(?:\\p{L}+\\s+)?neck',
+      'blow\\s+your\\s+(?:\\p{L}+\\s+)?(?:head|brains|face|skull)\\s+(?:off|out|in)', '(?:blow|blast)\\s+(?:you|ya)\\s+away',
+      // "I'll put you in the ground", "I'll put you six feet under", "I'll have you killed".
+      '(?:put|send|lay)\\s+(?:you|ya)\\s+(?:(?:in|into|under)\\s+the\\s+(?:ground|dirt)|six\\s+feet\\s+under|(?:in|into|to)\\s+(?:a|the|an early|your)\\s+(?:grave|coffin|box|body bag|morgue|dumpster))',
+      'have\\s+(?:you|ya)\\s+(?:killed|whacked|iced|flatlined|zeroed|shot|offed|taken out)',
     ],
     killFree: [
       'you(?:\'re| are)\\s+(?:so\\s+|fucking\\s+|already\\s+)?(?:dead|a dead (?:man|woman|person)|dead meat|done for|finished)(?!\\s+(?:to me|tired|serious|wrong|right|on|inside))',
       'you(?:\'re| are)\\s+(?:gonna|going to)\\s+die', 'you(?:\'ll| will)\\s+die', '(?:^|[,!]\\s*)(?:now\\s+|just\\s+|go\\s+)?(?:die|drop dead)(?:\\s+already)?\\s*[!.]*$',
-      '(?:put|pump|stick)\\s+(?:a|one|some|two|three)?\\s*(?:bullet|round|slug|lead|knife|blade)s?\\s+in(?:to|side)?\\s+(?:you|your)',
+      // "I'll put a bullet in your head", "put a round through your skull", "a hole in you", "one between your eyes".
+      '(?:put|pump|stick|lodge|plant|shove)\\s+(?:a|one|some|two|three|a couple of|a few|\\d+)?\\s*(?:bullets?|rounds?|slugs?|lead|knife|knives|blades?|holes?|caps?)\\s+(?:in|into|inside|through|between)\\s+(?:you|your|ya|ur)',
+      '(?:put|pump)\\s+(?:one|two|three|a couple|a few|\\d+)\\s+(?:in|into|through|between)\\s+(?:your|ya|ur)\\s+(?:\\p{L}+\\s+)?(?:head|skull|brains?|face|chest|heart|gut|back|neck|eyes|temple|mouth|dome)',
+      '(?:you|ya)(?:\'ll|\\s+will|\'re\\s+gonna|\\s+are\\s+gonna|\'re\\s+going\\s+to|\\s+are\\s+going\\s+to)\\s+(?:be\\s+|end\\s+up\\s+)?six\\s+feet\\s+under',
+      'consider\\s+yourself\\s+(?:dead|a dead (?:man|woman))', '(?:you\'re|youre|you are)\\s+as\\s+good\\s+as\\s+dead', 'dead\\s+(?:man|woman)\\s+walking',
+      '(?:you|ya)\\s+(?:won\'t|will not|ain\'t gonna|are not gonna|aren\'t gonna)\\s+(?:live|be living|leave here alive|walk out of here alive|make it out(?: of here)? alive|see (?:tomorrow|the morning|another day))',
+      'not\\s+(?:leaving|getting out of|walking out of)\\s+(?:here|this place|this room)\\s+alive',
       'your money or your life', 'say your prayers', 'any last words', 'say goodbye to your (?:life|ass|head|family)',
     ],
     hurt: [
@@ -81,6 +94,10 @@ const LANGUAGES = [
       `(?:ich\\s+)?(?:knall|knalle|steche|leg|lege|mach|mache)\\s+(?:dich|euch)\\s+(?:${DE_WORD}\\s+)?(?:ab|um|kalt|nieder|tot)`, '(?:ich\\s+)?(?:töte|erschieße|erschiesse) (?:dich|euch)',
       'du bist (?:so\\s+)?(?:tot|ein toter mann|eine tote frau|erledigt|geliefert)(?!\\s+(?:müde|für mich))',
       'stirb', 'verrecke', 'geld oder leben', 'kugel (?:in|durch) (?:den|deinen) (?:kopf|schädel)',
+      // Lethal phrasings (2026-10-26): a bullet in the head, brains blown out, "as good as dead", under the ground, finished off.
+      'kugel zwischen (?:die|deine) augen', '(?:puste|blas|blase|knall|knalle|schieß|schiess|schieße) dir (?:das|dein) (?:hirn|gehirn) (?:weg|raus)', '(?:jag|jage) dir eine kugel',
+      'du bist so gut wie tot', '(?:ich|wir)\\s+(?:\\p{L}+\\s+){0,2}?(?:bring|bringe|bringen) (?:dich|euch) unter die erde', 'sechs fuß unter (?:der|die) erde',
+      '(?:ich\\s+)?(?:mach|mache) (?:dich|euch) (?:alle|platt)', 'dein letzter tag auf (?:erden|dieser welt)',
     ],
     hurtFree: [
       `(?:ich|wir)\\s+(?:${DE_WORD}\\s+){0,3}?(?:dich|euch)\\s+(?:${DE_WORD}\\s+){0,2}?(?:verprügeln|verhauen|zusammenschlagen|schlagen)`, '(?:ich|wir)\\s+(?:verprügel\\p{L}*|verhau\\p{L}*|schlag\\p{L}*|box\\p{L}*|tret\\p{L}*)\\s+(?:dich|euch)',
@@ -102,6 +119,9 @@ const LANGUAGES = [
     killFree: [
       'je (?:vais|veux|devrais|pourrais) te (?:tuer|buter|descendre|crever|flinguer|massacrer|égorger|refroidir|planter|trouer|fumer)', 'je te (?:tue|bute|descends|crève|flingue|massacre|égorge|plante|troue)',
       'je vais t\'(?:abattre|égorger|exécuter|éliminer)', 'je t\'(?:abats|égorge|exécute|élimine)', 't\'es (?:un homme )?mort', 'tu es (?:un homme )?mort', 'crève', 'la bourse ou la vie', 'une balle dans (?:la|ta) (?:tête|gueule)',
+      'une balle (?:dans le crâne|entre (?:les|tes) yeux)', '(?:je vais )?te (?:faire )?(?:sauter|exploser) (?:la cervelle|le crâne|la tête|le caisson)', '(?:t\'es|tu es) (?:déjà|deja) mort',
+      'six pieds sous terre', 'je (?:vais )?t\'enterrer', 'je t\'enterre', 'je (?:vais )?te (?:mettre|foutre) (?:sous terre|en terre|dans le trou)', 'je (?:vais )?te faire la peau', 'je te fais la peau',
+      'je (?:vais )?en finir avec toi',
     ],
     hurtFree: [
       'je (?:vais |veux )?te (?:frapper|cogner|défoncer|tabasser|démolir|péter|casser|exploser|frappe|cogne|défonce|tabasse|démolis|pète|casse|explose|massacrer|éclater)', 'je vais t\'(?:éclater|allonger|exploser)',
@@ -121,6 +141,8 @@ const LANGUAGES = [
     killFree: [
       'te (?:voy|vamos) a (?:matar|reventar|liquidar|despachar|dar un tiro|pegar un tiro|volar la cabeza|disparar|cargar)', 'voy a matarte', 'te (?:mato|mataré|matare|liquido|pego un tiro|vuelo la cabeza)',
       '(?:estás|estas|eres) (?:muerto|muerta|hombre muerto|mujer muerta|fiambre)(?!\\s+de)', 'muérete', 'muerete', 'la bolsa o la vida', 'una bala en (?:la|tu) (?:cabeza|frente)',
+      'una bala entre (?:los|tus) ojos', '(?:te (?:voy|vamos) a |voy a )?(?:volar|reventar)(?:te)? los sesos', 'te vuelo los sesos', 'volarte (?:los sesos|la cabeza)',
+      'te (?:meto|voy a meter) (?:un tiro|una bala|plomo)', '(?:a )?(?:tres|siete) metros bajo tierra', 'te (?:voy a enterrar|entierro|enterraré|enterrare)', '(?:voy a acabar|acabaré|acabare) contigo',
     ],
     hurtFree: [
       'te (?:voy|vamos) a (?:pegar|golpear|partir|romper|dar una paliza|dar una golpiza|madrear|reventar la cara|partir la cara|partir la madre|romper la cara|dar de hostias|dar una hostia)',
@@ -142,6 +164,8 @@ const LANGUAGES = [
     killFree: [
       'vou te (?:matar|apagar|furar|meter bala|encher de bala|dar um tiro|estourar os miolos)', 'vou matar (?:você|voce|vc|tu)', 'te (?:mato|apago)', '(?:você|voce|vc|tu) (?:está|esta|tá|ta) mort[oa]',
       '(?:você|voce|vc) é um homem morto', 'morre', 'morra', 'a bolsa ou a vida', 'uma bala na (?:sua|tua) (?:cabeça|cara)',
+      'uma bala (?:na cabeça|na testa|entre (?:os|seus|teus) olhos)', 'estourar (?:seus|teus|os) miolos', 'vou te enterrar', '(?:a )?sete palmos (?:debaixo|abaixo) da terra', 'vou te (?:colocar|botar|pôr|por) debaixo da terra',
+      'vou acabar (?:com (?:você|voce|vc)|contigo)', '(?:você|voce|vc) (?:já|ja) (?:era|está morto|esta morto)',
     ],
     hurtFree: ['vou te (?:bater|socar|espancar|quebrar|encher de porrada|dar uma surra|dar porrada|arrebentar|dar um soco)', 'te (?:quebro|arrebento)', 'vou quebrar (?:sua|tua) cara', 'vamos resolver lá fora', 'vem pro pau'],
     insultFree: [
@@ -160,6 +184,8 @@ const LANGUAGES = [
     killFree: [
       'ti (?:ammazzo|uccido|sparo|faccio fuori|sgozzo|ammazzerò|ammazzero|ucciderò|uccidero|farò fuori|faro fuori|stendo|faccio secco)', '(?:voglio|vado ad?) (?:ammazzarti|ucciderti)',
       'sei (?:un uomo )?mort[oa]', 'sei finit[oa]', 'muori', 'crepa', 'o la borsa o la vita', 'una pallottola in (?:testa|fronte)',
+      '(?:una pallottola|un proiettile) (?:nella testa|in testa|in fronte|tra gli occhi)', 'ti (?:faccio )?saltare (?:il cervello|le cervella|la testa)', 'ti sparo in (?:testa|faccia|fronte)',
+      'ti (?:seppellisco|sotterro|metto sottoterra)', 'sei (?:già|gia) mort[oa]', 'ti faccio la pelle', '(?:voglio|vado a) farti la pelle',
     ],
     hurtFree: [
       'ti (?:spacco|meno|picchio|gonfio|rompo|massacro|riempio di botte|prendo a (?:calci|pugni|botte|schiaffi)|do un pugno|faccio (?:male|nero|a pezzi)|spaccherò|spacchero|menerò|menero)', 'vieni fuori se hai coraggio', 'risolviamola fuori',
@@ -177,6 +203,8 @@ const LANGUAGES = [
     killFree: [
       '(?:zabiję|zabije|zastrzelę|zastrzele|rozwalę|rozwale|zajebię|zajebie|załatwię|zalatwie|wykończę|wykoncze|uduszę|uduszę|poderżnę|odstrzelę) (?:cię|cie|was|ciebie)', '(?:jesteś|jestes) (?:trupem|martwy|martwa|już martwy)',
       'już nie żyjesz', 'juz nie zyjesz', 'zdychaj', 'zdechnij', 'kulka w (?:łeb|leb)', 'pieniądze albo życie',
+      'kulk[aęe] (?:w|między) (?:łeb|leb|głowę|glowe|czoło|czolo|oczy)', '(?:wpakuję|wpakuje|wsadzę|wsadze) ci kulkę', '(?:rozwalę|rozwale|odstrzelę|odstrzele) ci (?:łeb|leb|głowę|glowe)',
+      '(?:zakopię|zakopie) (?:cię|cie)', '(?:wsadzę|wsadze|położę|poloze|wpakuję|wpakuje) (?:cię|cie) (?:pod ziemię|pod ziemie|do grobu)', '(?:skończę|skoncze) z tobą', '(?:skończę|skoncze) z toba', 'już po tobie', 'juz po tobie',
     ],
     hurtFree: [
       '(?:pobiję|pobije|zbiję|zbije|walnę|walne|uderzę|uderze|stłukę|stluke|obiję|obije|skopię|skopie|spiorę|spiore|połamię|polamie|rozkwaszę) (?:cię|cie|ci|was)', '(?:dostaniesz|zarobisz) (?:w|po) (?:mordę|morde|ryj|łeb|leb|pysk|zęby|zeby)', 'chodź na solo', 'na solo',
@@ -194,6 +222,8 @@ const LANGUAGES = [
     killFree: [
       '(?:zabiju|zastřelím|zastrelim|oddělám|oddelam|sejmu|podříznu|podriznu|odprásknu|odprasknu|zapíchnu|zapichnu|uškrtím|uskrtim) (?:tě|te|vás|vas)', '(?:jsi|seš|ses) (?:mrtvej|mrtvý|mrtvy|mrtvá|mrtva|mrtvola|tuhej)',
       'chcípni', 'chcipni', 'zdechni', 'kulku do hlavy', 'peníze nebo život', 'penize nebo zivot',
+      'kulku (?:do lebky|mezi oči|mezi oci)', '(?:ustřelím|ustrelim|prostřelím|prostrelim) ti (?:hlavu|lebku|palici)', '(?:zakopu|pohřbím|pohrbim) (?:tě|te)', '(?:dostanu|pošlu|poslu|uložím|ulozim) (?:tě|te) pod (?:drn|zem)',
+      '(?:je s tebou|s tebou je) konec', '(?:skoncuju|skoncuji) s tebou',
     ],
     hurtFree: ['(?:zmlátím|zmlatim|seřežu|serezu|nakopu|praštím|prastim|zbiju|natluču|natlucu|zlámu|zlamu|vrazím|vrazim|nařežu|narezu) (?:tě|te|ti|vás|vas)', 'rozbiju ti (?:hubu|držku|drzku|ksicht|tlamu)', 'dostaneš přes (?:hubu|držku)', 'dostanes pres (?:hubu|drzku)', 'pojď ven', 'pojd ven'],
     insultFree: ['ty (?:idiote|debile|kreténe|kretene|zmrde|hajzle|kurvo|čuráku|curaku|sráči|sraci|blbče|blbce|kokote|píčo|pico|svině|svine|šmejde|smejde|parchante|zmetku|hovado|krávo|kravo)', 'zmrde', 'hajzle', 'jdi do prdele', 'jdi do háje', 'táhni do prdele', 'polib si', 'seru na tebe'],
@@ -209,6 +239,8 @@ const LANGUAGES = [
     killFree: [
       'megöllek', 'megollek', 'megölünk', 'lelőlek', 'lelolek', 'kinyírlak', 'kinyirlak', 'kicsinállak', 'kicsinallak', 'agyonlőlek', 'agyonlolek', 'megfojtalak', 'leszúrlak', 'leszurlak',
       'halott (?:ember )?vagy', 'véged', 'halj meg', 'dögölj meg', 'dogolj meg', 'pénzt vagy életet', 'penzt vagy eletet', 'golyót a fejedbe', 'golyot a fejedbe',
+      'golyót \\p{L}+ a fejedbe', 'golyot \\p{L}+ a fejedbe', '(?:szétlövöm|szetlovom|szétlőlöm) a fejed', '(?:kiloccsantom|kilövöm|kilovom) az agyad', '(?:elföldellek|elfoldellek|eltemetlek)',
+      'föld alá (?:kerülsz|teszlek|juttatlak)', 'fold ala (?:kerulsz|teszlek|juttatlak)', '(?:végzek|vegzek) veled', 'neked annyi',
     ],
     hurtFree: ['megverlek', 'szétverlek', 'szetverlek', 'összeverlek', 'osszeverlek', 'behúzok (?:neked|egyet)', 'behuzok (?:neked|egyet)', 'pofán váglak', 'pofan vaglak', 'szétrúglak', 'szetruglak', 'kiverem a fogad', 'menjünk ki', 'menjunk ki'],
     insultFree: ['te (?:idióta|idiota|hülye|hulye|barom|szemét|szemet|rohadék|rohadek|kurva|geci|faszfej|seggfej|köcsög|kocsog|szarházi|szarhazi|patkány|patkany|féreg|fereg|nyomorult|gyökér|gyoker)', 'baszd meg', 'kapd be', 'kurva anyád', 'kurva anyad', 'menj a picsába', 'rohadék', 'szarházi'],
@@ -224,6 +256,8 @@ const LANGUAGES = [
     killFree: [
       '(?:seni )?(?:öldüreceğim|oldurecegim|öldürürüm|oldururum|öldürcem|oldurcem|gebertirim|geberteceğim|gebertecegim|vururum|vuracağım|vuracagim)', 'seni (?:öldür|oldur|gebert|vur)(?!m[ea][ymzdsln])\\p{L}*',
       'öldün (?:sen|artık|artik)', 'sen bir ölüsün', 'ölüsün', 'ya paran ya canın', 'ya paran ya canin', 'kafana sıkarım', 'kafana sikarim',
+      'kafana (?:bir )?(?:kurşun|kursun)', '(?:beynini|kafanı|kafani) (?:dağıtırım|dagitirim|patlatırım|patlatirim)', 'seni (?:toprağa |topraga )?(?:gömerim|gomerim|gömeceğim|gomecegim)',
+      '(?:işini|isini) (?:bitiririm|bitireceğim|bitirecegim)', 'sonun geldi',
     ],
     hurtFree: ['(?:seni )?(?:döveceğim|dovecegim|döverim|doverim|pataklarım|pataklarim|benzetirim)', 'ağzını burnunu kırarım', 'agzini burnunu kirarim', 'kafanı kırarım', 'kafani kirarim', 'bir tane çakarım', 'bir tane cakarim'],
     insultFree: ['aptal', 'salak', 'gerizekalı', 'gerizekali', 'şerefsiz', 'serefsiz', 'orospu', 'pezevenk', 'yavşak', 'yavsak', 'ahmak', 'amına koyayım', 'amina koyayim', 'siktir(?: git)?', 'orospu çocuğu', 'it oğlu it'],
@@ -240,6 +274,8 @@ const LANGUAGES = [
     killFree: [
       '(?:убью|убьём|убьем|пристрелю|прикончу|зарежу|грохну|замочу|застрелю|урою|порешу|задушу|прибью)', 'тебе (?:конец|хана|крышка|не жить)', 'ты (?:труп|покойник|не жилец)', 'сдохни', 'подохни',
       'пулю в (?:лоб|башку|голову)', 'на тот свет', 'кошел[её]к или жизнь',
+      'пулю (?:между глаз|в висок|в череп)', 'пущу (?:тебе )?пулю', '(?:вышибу|вынесу) (?:тебе )?мозги', 'мозги (?:тебе )?(?:вышибу|вынесу)', '(?:закопаю|похороню) тебя', 'тебя (?:закопаю|похороню)', 'в землю (?:закопаю|положу)',
+      'ты (?:уже )?(?:мертв|мёртв|мертвец)', 'конец тебе', 'хана тебе',
     ],
     hurtFree: [
       '(?:изобью|побью|отмудохаю|отделаю|покалечу|врежу|ударю|вмажу|въебу|отпизжу)', '(?:набью|разобью|сломаю|начищу) (?:тебе )?(?:морду|рожу|ебало|лицо|нос|челюсть|ноги|руки|кости|рыло|харю|табло)', '(?:морду|рожу|ебало|лицо|рыло|харю|табло) (?:тебе )?(?:набью|разобью|начищу)',
@@ -257,6 +293,8 @@ const LANGUAGES = [
     name: 'uk',
     killFree: [
       '(?:вб\'ю|уб\'ю|пристрелю|приб\'ю|заріжу|приріжу|застрелю|порішу|задушу)', 'тобі (?:кінець|гаплик|капець)', 'ти (?:труп|покійник|не жилець)', 'здохни', 'здихай', 'кулю в (?:лоб|голову)',
+      'кулю (?:між очі|в скроню|в череп)', 'пущу (?:тобі )?кулю', '(?:виб\'ю|винесу) (?:тобі )?мізки', 'мізки (?:тобі )?(?:виб\'ю|винесу)', '(?:закопаю|поховаю) тебе', 'тебе (?:закопаю|поховаю)', '(?:покладу|закопаю) (?:тебе )?під землю',
+      'ти (?:вже )?(?:мертвий|мертва|мрець)', 'кінець тобі', 'тобі гаплик',
     ],
     hurtFree: ['(?:поб\'ю|відлуплю|вдарю|вріжу|покалічу|відгамселю)', '(?:наб\'ю|зламаю|розіб\'ю) (?:тобі )?(?:пику|морду|писок|носа|ніс|щелепу|ноги|руки)', '(?:пику|морду|писок) (?:тобі )?(?:наб\'ю|розіб\'ю)', 'отримаєш по (?:пиці|морді|зубах)'],
     insultFree: ['покидьок', 'виродок', 'мразь', 'ідіот', 'дебіл', 'придурок', 'тварюка', 'паскуда', 'падлюка', 'повія', 'йди (?:на хуй|нахуй|в сраку)', 'пішов (?:на хуй|нахуй)', 'сучий син'],
@@ -270,7 +308,8 @@ const LANGUAGES = [
   // CJK: no spaces between words, so no word boundaries; the negation is looked for in the few characters around a match.
   {
     name: 'ja', cjk: true,
-    killFree: ['殺す', '殺してやる', 'ぶっ殺', 'ぶち殺', '撃ち殺', '撃つぞ', '消してやる', '始末してやる', '死ね', 'くたばれ', '命はない', 'お前は死', 'てめえは死', '殺されたい'],
+    killFree: ['殺す', '殺してやる', 'ぶっ殺', 'ぶち殺', '撃ち殺', '撃つぞ', '消してやる', '始末してやる', '死ね', 'くたばれ', '命はない', 'お前は死', 'てめえは死', '殺されたい',
+      '頭をぶち抜', '頭を撃ち抜', '脳天をぶち抜', '脳みそをぶちまけ', '眉間に(?:一発|弾)', '風穴を開け', '(?:お前|てめえ|貴様)はもう死', '埋めてやる', 'あの世に送', '地獄に送', '(?:お前|てめえ|貴様)は(?:もう)?終わりだ'],
     hurtFree: ['ぶん殴', '殴ってやる', '殴るぞ', 'ボコボコ', 'ぼこぼこ', 'ボコる', '痛い目', '叩きのめ', 'ぶっ飛ばす', 'ぶっとばす', '蹴り飛ば'],
     insultFree: ['バカ', '馬鹿', 'アホ', 'クズ', 'ゴミ野郎', 'カス', 'クソ野郎', 'くそやろう', 'てめえ', 'テメエ', '貴様', 'ブス', '間抜け', 'まぬけ', 'ボケ'],
     'get-down': ['伏せろ', '伏せて', 'ふせろ', 'しゃがめ', 'しゃがんで', '手を上げろ', '手をあげろ', '両手を上げ', '地面に伏せ', '跪け', 'ひざまずけ'],
@@ -284,7 +323,8 @@ const LANGUAGES = [
   {
     name: 'ko', cjk: true,
     // Hangul syllables fold the next ending into the stem's last syllable (버리 / 버린다 / 버릴), so the stems stop one syllable early.
-    killFree: ['죽여버', '죽여 버', '죽일 거', '죽일거', '죽인다', '쏴버', '쏴 버', '쏴 죽', '넌 죽었', '너 죽었', '죽어라', '뒈져', '뒤져라', '목숨 내놔'],
+    killFree: ['죽여버', '죽여 버', '죽일 거', '죽일거', '죽인다', '쏴버', '쏴 버', '쏴 죽', '넌 죽었', '너 죽었', '죽어라', '뒈져', '뒤져라', '목숨 내놔',
+      '머리에 총알', '(?:머리|머리통|대가리|골통)(?:을|를)? ?날려', '묻어버', '묻어 버', '끝장내', '넌 끝났', '너 끝났', '저세상(?:으로|에) 보내', '황천(?:길|으로) 보내'],
     hurtFree: ['때려\\s?줄', '패버', '패 버', '패줄', '두들겨', '박살', '한 대 맞', '밟아버', '조져'],
     insultFree: ['개새끼', '병신', '멍청이', '미친놈', '미친년', '쓰레기', '등신', '엿 ?먹어', '꺼져'],
     'get-down': ['엎드려', '고개 숙여', '손 ?들어', '바닥에 엎드', '무릎 ?꿇'],
@@ -298,7 +338,9 @@ const LANGUAGES = [
   {
     // Simplified and traditional together.
     name: 'zh', cjk: true,
-    killFree: ['杀了你', '殺了你', '杀死你', '殺死你', '宰了你', '弄死你', '干掉你', '幹掉你', '毙了你', '斃了你', '崩了你', '做掉你', '你死定了', '去死', '要你的命', '要你命', '打死你', '一枪打死', '一槍打死'],
+    killFree: ['杀了你', '殺了你', '杀死你', '殺死你', '宰了你', '弄死你', '干掉你', '幹掉你', '毙了你', '斃了你', '崩了你', '做掉你', '你死定了', '去死', '要你的命', '要你命', '打死你', '一枪打死', '一槍打死',
+      '一枪崩了你', '一槍崩了你', '爆你的头', '爆你的頭', '爆你头', '爆你頭', '子弹打进你的', '子彈打進你的', '把你埋了', '埋了你', '送你上西天', '送你见阎王', '送你見閻王',
+      '你(?:就)?完(?:蛋)?了(?!吗|嗎|没|沒)', '你已经死了', '你已經死了', '结果了你', '結果了你'],
     hurtFree: ['揍你', '扁你', '打你(?!电话|電話|的电话|的電話)', '打断你的', '打斷你的', '让你好看', '讓你好看', '教训你', '教訓你', '收拾你', '削你', '抽你'],
     insultFree: ['混蛋', '王八蛋', '傻逼', '傻b', '煞笔', '笨蛋', '废物', '廢物', '去你妈的', '去你媽的', '操你妈', '操你媽', '贱人', '賤人', '婊子', '狗娘养的', '狗娘養的', '白痴', '蠢货', '蠢貨', '人渣', '滚蛋', '滾蛋'],
     'get-down': ['趴下', '蹲下', '卧倒', '臥倒', '举起手', '舉起手', '手举起来', '手舉起來', '双手抱头', '雙手抱頭', '跪下'],
@@ -352,6 +394,9 @@ const JOKE_SIGNS = /[\u{1F602}\u{1F923}\u{1F61C}\u{1F609}\u{1F606}\u{1F61D}\u{1F
 const QUOTED = /"[^"\n]{2,}"|“[^”\n]{2,}”|«[^»\n]{2,}»|„[^“”\n]{2,}[“”]|「[^」\n]{1,}」|『[^』\n]{1,}』|‘[^’\n]{3,}’/gu;
 const CJK = /[぀-ヿ㐀-鿿가-힯ｦ-ﾟ]/u;
 const QUESTION_END = /(?:[?？]|(?:吗|嗎|呢|か|니|냐|까)\s*[?？]?)\s*$/u;
+// A question tag after a threat or a command leaves it no question ("I'll put a bullet in your head, understand?"): only after a comma or a dash, at
+// the very end of the sentence, in the words of the languages above.
+const TAG_QUESTION = /(?:,|\s-)\s*(?:(?:do\s+)?you\s+(?:hear|understand|get)(?:\s+me)?|understand|understood|got\s+(?:it|that|me)|you\s+got\s+(?:it|that|me)|capisce|capiche|yeah|ok(?:ay)?|right|is\s+that\s+clear|clear|comprende|feel\s+me|savvy|verstanden|kapiert|klar|compris|t'as\s+compris|c'est\s+clair|entendido|me\s+oyes|entiendes|entendeu|capito|chiaro|rozumiesz|jasne|rozumíš|rozumis|jasný|jasny|érted|világos|anladın\s+mı|anladin\s+mi|понял[аи]?|ясно|слышишь|зрозумів|зрозуміла|чуєш)\s*[?？]+\s*$/u;
 
 /** One message, ready to read: one case, one kind of apostrophe and dash, no doubled spaces. */
 export function normalize(text) {
@@ -415,7 +460,7 @@ export function screenMessage(raw) {
     const target = result ?? {};
     target.threat = target.threat ?? null; target.command = target.command ?? null;
     for (const sentence of sentences(text)) {
-      const question = QUESTION_END.test(sentence);
+      const question = QUESTION_END.test(sentence) && !TAG_QUESTION.test(sentence);
       for (const language of compiled) {
         if (language.cjk && !CJK.test(sentence)) continue;
         for (const kind of KINDS) {

@@ -22,7 +22,9 @@
 -- Threats and commands (docs/NPC_THREATS_COMMANDS.md), only with the Companion Manager switch "NPCs react to threats and commands" on (off by
 -- default; `options.threats()`): a civilian may also cower, a fighter may brawl with fists (an insult or a threat to hurt) as well as attack with a
 -- weapon (a death threat), and people may obey three commands: get down, stop, get out of the vehicle. Which of them a turn may use is narrowed by
--- the bridge from V's own words (bridge/threat-screen.mjs); this module still decides only what the game allows and carries out what comes back.
+-- the bridge from V's own words (bridge/threat-screen.mjs). For a clear threat, insult or command the GAME picks the reaction (`M.plan`, sent with
+-- the offer; the bridge applies it the moment V's words are known and tells the model what the person does); the model's own choice is left only
+-- for words the screen does not read.
 local M = {version = 1}
 
 M.DEFAULTS = {
@@ -35,6 +37,7 @@ M.DEFAULTS = {
     awayFar = 30, awayNear = 14, awaySnap = 3, awayMin = 10,   -- metres: where a leaving person goes, and the least it must gain on V
     verifyAfter = 1.2,   -- seconds after a reaction started that one read-back is logged
     fleeVerify = 3,      -- seconds after a crowd person's flight started that its read-back (metres moved) is logged
+    fleeMin = 1.5,       -- metres a fleeing crowd person must have moved by that read-back, or it is asked once more with the fear stage
     jump = 12,           -- metres moved by the first read-back that mean the person was put there, not walked there
     commandCooldown = 30,   -- seconds after a command before the same person is offered another
     stopHold = 30, cowerHold = 20,   -- seconds a person who stopped, or who cowers without the crowd's own fear, holds still
@@ -87,6 +90,81 @@ M.THREAT_BY_BASE = {
 }
 -- The game's own temper of the person (its reaction preset, `natives.temper`): a passive ganger, soldier or guard may also cower.
 M.PASSIVE_COWER = {gang = true, faction = true, ['corpo-security'] = true}
+
+-- The game decides (the owner's rule of 2026-10-26, docs/NPC_THREATS_COMMANDS.md "Who decides"): when V's words are a clear death threat, a threat
+-- to hurt, an insult or one of the three commands (bridge/threat-screen.mjs), the reaction is the game's pick from who the person is, never the
+-- model's: the model is told what the person does so its line fits. The plan is made once per offer, for every reading of V's words at once
+-- (the words are often heard only after the offer: a voice turn), and it is the same for one person every time (seeded by the person, never
+-- random per turn). Each row: {kind, weight}. The person's seed picks among the weighted kinds; when the pick is not allowed now (a safe zone, V
+-- already wanted), the next kind of the row that is allowed stands in (weight 0: only ever a stand-in).
+M.PLAN_KEYS = {'kill', 'hurt', 'insult', 'get-down', 'stop', 'exit-vehicle'}
+local function listed(list, kind) for _, value in ipairs(list or {}) do if value == kind then return true end end return false end
+M.TEMPERS = {
+    -- An aggressive or ordinary ganger, soldier: fists for an insult or a threat to hurt, the weapon for a death threat.
+    fighter = {kill = {{'attack', 1}, {'brawl', 0}, {'leave', 0}}, hurt = {{'brawl', 1}, {'attack', 0}, {'leave', 0}}, insult = {{'brawl', 1}, {'leave', 0}}},
+    -- A passive ganger or soldier: hides from a death threat or backs off, walks off from the rest.
+    wary = {kill = {{'cower', 1}, {'leave', 1}}, hurt = {{'leave', 1}, {'cower', 0}}, insult = {{'leave', 1}}},
+    -- A cop or a guard: fights (a guard's police call only stands in for a fight the game does not allow).
+    guard = {kill = {{'attack', 1}, {'brawl', 0}, {'call-police', 0}}, hurt = {{'brawl', 1}, {'attack', 0}, {'call-police', 0}}, insult = {{'brawl', 1}, {'call-police', 0}}},
+    -- A civilian: runs or cowers, sometimes calls the police.
+    civilian = {kill = {{'cower', 4}, {'leave', 4}, {'call-police', 2}}, hurt = {{'leave', 5}, {'cower', 3}, {'call-police', 2}},
+        insult = {{'leave', 8}, {'call-police', 2}}},
+    -- A clerk: calls the police or ducks behind the counter; never leaves its post.
+    shop = {kill = {{'cower', 1}, {'call-police', 1}}, hurt = {{'call-police', 1}, {'cower', 1}}, insult = {{'call-police', 1}, {'cower', 0}}},
+    -- Nomads walk off.
+    nomad = {kill = {{'leave', 1}}, hurt = {{'leave', 1}}, insult = {{'leave', 1}}},
+}
+-- Which row of M.TEMPERS a person is: `base` first (nomads, the staff of a clinic or a lab), then the category, then the game's temper.
+function M.temperOf(archetype, temper)
+    if type(archetype) ~= 'table' then return nil end
+    if archetype.base == 'aldecaldos' then return 'nomad' end
+    if archetype.base == 'biotechnica' or archetype.base == 'trauma-team' then return 'civilian' end
+    local category = archetype.category
+    if category == 'resident' then return 'civilian' end
+    if category == 'vendor' then return 'shop' end
+    if category == 'police' or category == 'corpo-security' then return 'guard' end
+    if category == 'gang' or category == 'faction' then return temper == 'passive' and 'wary' or 'fighter' end
+    return nil
+end
+-- The person's own number: the same for one person every time (its entity id), different between people.
+function M.seed(entity)
+    local value = 0
+    for index = 1, #tostring(entity or '') do value = (value * 31 + tostring(entity):byte(index)) % 2147483647 end
+    return value
+end
+-- The plan for one person: {kill = kind, hurt = kind, insult = kind, ['get-down'] = 'get-down', ...}, only readings with an allowed kind, or nil
+-- when none has one. kinds: what the game allows this person now (M.allowed). Pure.
+function M.plan(archetype, temper, kinds, seed)
+    local row = M.TEMPERS[M.temperOf(archetype, temper) or '']
+    if type(kinds) ~= 'table' then return nil end
+    local plan, any = {}, false
+    for index, level in ipairs({'kill', 'hurt', 'insult'}) do
+        local choices = row and row[level] or {}
+        local total = 0
+        for _, choice in ipairs(choices) do total = total + choice[2] end
+        local pick
+        if total > 0 then
+            -- One roll per reading, mixed so a person's three rolls are not alike.
+            local roll = (((seed or 0) % 1000003) * (index * 2 + 1) + index * 104729) % 9973 % total
+            for _, choice in ipairs(choices) do
+                if roll < choice[2] then pick = choice[1]; break end
+                roll = roll - choice[2]
+            end
+        end
+        if not listed(kinds, pick) then
+            pick = nil
+            for _, choice in ipairs(choices) do if listed(kinds, choice[1]) then pick = choice[1]; break end end
+        end
+        if pick then plan[level], any = pick, true end
+    end
+    for command in pairs(M.COMMANDS) do if listed(kinds, command) then plan[command], any = command, true end end
+    return any and plan or nil
+end
+local function planText(plan)
+    local parts = {}
+    for _, key in ipairs(M.PLAN_KEYS) do if plan[key] then parts[#parts + 1] = key .. ':' .. plan[key] end end
+    return table.concat(parts, ',')
+end
 
 local function copy(list) local out = {}; for index, value in ipairs(list) do out[index] = value end; return out end
 local function has(list, kind) for _, value in ipairs(list or {}) do if value == kind then return true end end return false end
@@ -338,9 +416,22 @@ function M.nativeAdapter()
     -- phase 2: the person cowers or surrenders where it is (in a seat, the workspot's own fear); 3: it runs away from V along the crowd's
     -- own paths. The game then plays its fear voice, lets nearby people share the fright, and later removes the person out of sight, as it
     -- does for every frightened passer-by. One event, nothing per frame.
+    -- The stimulus is a native class (stimuliEvents.script `import final class StimuliEvent`): CET's NewObject knows a native class only by its
+    -- native name, so NewObject('StimuliEvent') gave nil in the game (the live test of 2026-10-26: "attempt to index local 'stim' (a nil value)").
+    -- The type's own constructor (StimuliEvent.new(), which CET resolves by the script name, as EntityID.new() is) comes first, the native
+    -- name second; neither one: an error, and the service falls back to the crowd's fear stage (N.crowdPanic).
+    local function stimulus()
+        local ok, made = pcall(function() return StimuliEvent.new() end)
+        if ok and made ~= nil then return made end
+        for _, name in ipairs({'senseStimuliEvent', 'StimuliEvent'}) do
+            local okNew, value = pcall(NewObject, name)
+            if okNew and value ~= nil then return value end
+        end
+        error('the stimulus event cannot be made from Lua')
+    end
     function N.crowdFear(npc, player, phase)
         local stimType = Enum.new('gamedataStimType', 'Terror')
-        local stim = NewObject('StimuliEvent')
+        local stim = stimulus()
         stim.sourceObject = player
         stim.sourcePosition = player:GetWorldPosition()
         stim:SetStimType(stimType)
@@ -349,9 +440,46 @@ function M.nativeAdapter()
             if record then stim.stimRecord = record end
         end)
         local event = NewObject('DelayedCrowdReactionEvent')
+        if event == nil then error('the crowd reaction event cannot be made from Lua') end
         event.stimEvent = stim
         event.vehicleFearPhase = phase
         npc:QueueEvent(event)
+    end
+    -- The crowd's fear without the event: the public calls the game's own crowd reaction makes (reactionComponent.script OnCrowdReaction), in
+    -- its order. V is the threat, the person may not use a workspot, its high-level state is fear, the fear and fear-locomotion animations are on,
+    -- and the crowd member's fear stage is panic (phase 3: the crowd's own flight along its paths) or alarmed (phase 2). A person in a workspot
+    -- (a bench, a counter) gets the workspot's own fear reaction, or is asked out of it first. No move command: a crowd person given one is put
+    -- at its end point at once. Raises when the crowd member is missing or refuses the stage.
+    function N.crowdPanic(npc, player, phase)
+        local crowd = npc:GetCrowdMemberComponent()
+        if crowd == nil then error('no crowd member component') end
+        crowd:SetThreatLastKnownPosition(player:GetWorldPosition())
+        crowd:AllowWorkspotsUsage(false)
+        pcall(function() NPCPuppet.ChangeHighLevelState(npc, Enum.new('gamedataNPCHighLevelState', 'Fear')) end)
+        pcall(function()
+            local spots = Game.GetWorkspotSystem()
+            if spots:IsActorInWorkspot(npc) then
+                if phase < 3 and spots:IsReactionAvailable(npc, CName.new('Fear')) then spots:SendReactionSignal(npc, CName.new('Fear'))
+                else spots:SendFastExitSignal(npc) end
+            end
+        end)
+        pcall(function()
+            AnimationControllerComponent.SetAnimWrapperWeightOnOwnerAndItems(npc, CName.new(phase >= 3 and 'panic' or 'fear'), 1.0)
+            local walk = npc:GetStimReactionComponent():GetRandomFearLocomotionAnimWrapper(phase)
+            if walk then AnimationControllerComponent.SetAnimWrapperWeightOnOwnerAndItems(npc, walk, 1.0) end
+        end)
+        -- The running-away animation input (a script class: NewObject knows it by this name).
+        if phase >= 3 then
+            pcall(function()
+                local feature = NewObject('AnimFeature_CrowdRunningAway')
+                if feature ~= nil then
+                    feature.isRunningAwayFromPlayersCar = false
+                    AnimationControllerComponent.ApplyFeatureToReplicate(npc, CName.new('CrowdRunningAway'), feature)
+                end
+            end)
+        end
+        local stage = Enum.new('gameFearStage', phase >= 3 and 'Panic' or 'Alarmed')
+        if crowd:ChangeFearStage(stage, true) == false then error('the crowd member refused the fear stage') end
     end
     -- Holds the person where it stands (the command the conversation hold and the companion actuator use). Returns the command.
     function N.hold(npc, seconds)
@@ -465,7 +593,8 @@ function M.new(options)
     local function facts(npc, player, entity, mode)
         local fresh = mode ~= nil
         local now = clock()
-        local f = {off = {attack = off.attack, call = off.call, walk = off.walk, fear = off.fear, hold = off.hold, exit = off.exit}}
+        -- The crowd fear counts as off only when both of its ways are (the event and the fear stage).
+        local f = {off = {attack = off.attack, call = off.call, walk = off.walk, fear = off.fear and (off.panic or not natives.crowdPanic), hold = off.hold, exit = off.exit}}
         local policy = type(options.policy) == 'table' and options.policy or {}
         local okPolicy, ordinary = pcall(function()
             return policy.ours(npc) ~= true and policy.spawned(npc) ~= true and policy.protected(npc) ~= true and policy.story(npc) ~= true
@@ -537,10 +666,13 @@ function M.new(options)
             logOnce('npc-reaction-no:' .. entity .. ':' .. tostring(why), 'NPC reaction not offered: ' .. tostring(why) .. ' (' .. tostring(context.archetype.base or context.archetype.category) .. ')')
             return nil
         end
+        -- With the switch on the game also decides (M.plan): what this person does for each clear reading of V's words.
+        local plan = threats and M.plan(context.archetype, temper, allowed, M.seed(entity)) or nil
         log('NPC reaction offered: kinds=' .. table.concat(allowed, ',') .. ' type=' .. tostring(context.archetype.base or context.archetype.category)
-            .. ' message=' .. tostring(count) .. (threats and (' threats=on temper=' .. tostring(temper or '?')) or ''))
-        -- `threats` tells the bridge to narrow the kinds by V's words (bridge/threat-screen.mjs); without it the offer is exactly as before.
-        return {available = true, actor = {id = entity, key = context.profileKey}, kinds = allowed, threats = threats or nil}
+            .. ' message=' .. tostring(count) .. (threats and (' threats=on temper=' .. tostring(temper or '?') .. ' plan=' .. (plan and planText(plan) or '-')) or ''))
+        -- `threats` tells the bridge to narrow the kinds by V's words (bridge/threat-screen.mjs) and `plan` what the game picked for each reading;
+        -- without the switch the offer is exactly as before.
+        return {available = true, actor = {id = entity, key = context.profileKey}, kinds = allowed, threats = threats or nil, plan = plan}
     end
 
     local function release(player)
@@ -558,14 +690,19 @@ function M.new(options)
         local ok, value = pcall(natives.position, npc)
         return ok and type(value) == 'table' and value or nil
     end
-    -- The crowd's own fear for a crowd person (natives.crowdFear): phase 3 runs away, phase 2 cowers. One read-back of the metres moved.
+    -- The crowd's own fear for a crowd person: phase 3 runs away, phase 2 cowers. First the game's crowd reaction event (natives.crowdFear);
+    -- when it cannot be sent, the same fear through the crowd member's own calls (natives.crowdPanic, the fear stage). Never a move command.
+    -- One read-back of the metres moved; a person who should flee and has not moved by then is asked once more with the fear stage.
     local function crowdFear(p, player, phase, why)
-        if off.fear then return false end
         local from = where(p.npc)
-        local ok = guard('fear', natives.crowdFear, p.npc, player, phase)
-        if not ok then return false end
-        log('NPC reaction: ' .. why .. ' started, the crowd\'s own ' .. (phase >= 3 and 'flight' or 'fear') .. ' (no move command)')
-        checks[#checks + 1] = {at = clock() + cfg.fleeVerify, kind = 'moved', npc = p.npc, from = from, why = why, seconds = cfg.fleeVerify}
+        local how
+        if not off.fear and guard('fear', natives.crowdFear, p.npc, player, phase) then how = 'event'
+        elseif natives.crowdPanic and not off.panic and guard('panic', natives.crowdPanic, p.npc, player, phase) then how = 'stage' end
+        if not how then return false end
+        log('NPC reaction: ' .. why .. ' started, the crowd\'s own ' .. (phase >= 3 and 'flight' or 'fear') .. ' ('
+            .. (how == 'event' and 'the crowd reaction event' or 'the fear stage') .. ', no move command)')
+        checks[#checks + 1] = {at = clock() + cfg.fleeVerify, kind = 'moved', npc = p.npc, from = from, why = why, seconds = cfg.fleeVerify,
+            phase = phase, how = how, player = player}
         return true
     end
 
@@ -575,7 +712,9 @@ function M.new(options)
         release(player)
         if crowdOf(p.npc) then
             if crowdFear(p, player, 3, why) then return true end
-            logOnce('npc-reaction-nofear', 'NPC reaction: the crowd\'s own flight is not available for ' .. why .. '; the person stays')
+            -- Neither the event nor the fear stage could be sent (both switched off after failures): no move command either (it would put the
+            -- person 30 m off in an instant), so the honest outcome is written.
+            logOnce('npc-reaction-nofear', 'NPC reaction: neither the crowd\'s reaction event nor its fear stage is available for ' .. why .. '; the person stays')
             return false
         end
         local gait = M.RUNS[p.category] and 'Run' or 'Walk'
@@ -725,6 +864,16 @@ function M.new(options)
             local attached = true
             pcall(function() attached = v.npc:IsAttached() ~= false end)
             log('NPC reaction check: ' .. v.why .. ' crowd moved=' .. metres(gone) .. ' m in ' .. tostring(v.seconds) .. ' s' .. (attached and '' or ' (streamed out)'))
+            -- Fled but still where it stood (the event reached a handler that did nothing): once more with the fear stage, then one more read-back.
+            if v.phase and v.phase >= 3 and attached and gone ~= nil and gone < cfg.fleeMin and not v.again and natives.crowdPanic and not off.panic then
+                local here = where(v.npc)
+                local asked = guard('panic', natives.crowdPanic, v.npc, v.player, v.phase)
+                log('NPC reaction: ' .. v.why .. ' did not move; asked again with the fear stage (' .. (asked and 'sent' or 'failed') .. ')')
+                if asked then
+                    checks[#checks + 1] = {at = clock() + cfg.fleeVerify, kind = 'moved', npc = v.npc, from = here, why = v.why, seconds = cfg.fleeVerify,
+                        phase = v.phase, how = 'stage', player = v.player, again = true}
+                end
+            end
         elseif v.kind == 'hold' then
             local ok, state = guard('read-command', natives.commandState, v.npc, v.command)
             log('NPC reaction check: ' .. v.why .. ' hold state=' .. (ok and tostring(state) or 'unreadable'))
@@ -798,7 +947,7 @@ function M.new(options)
     end
 
     function S.inspect()
-        return {pending = pending ~= nil and pending.kind or nil, off = {attack = off.attack, call = off.call, walk = off.walk, fear = off.fear, hold = off.hold, exit = off.exit},
+        return {pending = pending ~= nil and pending.kind or nil, off = {attack = off.attack, call = off.call, walk = off.walk, fear = off.fear, panic = off.panic, hold = off.hold, exit = off.exit},
             failures = failures, cooling = cooling(clock()), reacted = reactedCount}
     end
     function S.cancel(entity)

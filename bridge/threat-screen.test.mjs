@@ -104,6 +104,52 @@ test('a question is no threat in any language', () => {
     assert.match(code(line), /^none/, line);
 });
 
+// The live test of 2026-10-26: a lethal phrasing read as a threat to hurt is a fist fight instead of a gun. Every lethal phrasing is a death threat.
+test('lethal phrasings are death threats in English: a bullet in the head, brains blown out, dead, ended, in the ground, flatlined', () => expect([
+  'I\'ll put a bullet in your head', 'I\'ll put a bullet in your head, understand?', 'I\'ll put a bullet in your head, you hear me?', 'Shut up or I\'ll put a bullet in your head, idiot',
+  'i\'ll put a bullet in ur head', 'I\'ll put a bullet in ya head', 'I\'ll put a bullet through your head', 'I\'ll put a bullet between your eyes', 'I\'ll put one in your head',
+  'I\'ll put two in your chest', 'I\'ll put a hole in you', 'I\'ll put a round through your skull', 'I\'ll shoot you in the head', 'I\'ll shoot you in the face',
+  'I\'ll blow your brains out', 'I\'ll blow your fucking brains out', 'I\'ll blow your head off', 'You\'re dead', 'You are so dead', 'you\'re dead meat', 'Consider yourself dead',
+  'You\'re as good as dead', 'I\'ll end you', 'I\'m going to end you', 'I\'ll put you in the ground', 'I\'ll put you six feet under', 'You\'ll be six feet under by tonight',
+  'I\'ll flatline you', 'I\'m gonna flatline you, choom', 'I\'ll zero you', 'I\'ll cut your throat', 'I\'ll snap your neck', 'I\'ll break your neck',
+  'You won\'t leave here alive', 'You\'re not leaving here alive', 'I\'ll have you killed', 'Dead man walking',
+], 'kill'));
+
+test('lethal phrasings are death threats in the 15 menu languages', () => expect([
+  'Ich jag dir eine Kugel in den Kopf', 'Ich puste dir das Hirn weg', 'Du bist so gut wie tot', 'Ich bring dich unter die Erde',
+  'Je vais te faire sauter la cervelle', 'Une balle entre les yeux', 'Je vais te faire la peau', 'Six pieds sous terre, toi',
+  'Te voy a volar los sesos', 'Te meto un tiro', 'Te voy a enterrar', 'Voy a acabar contigo',
+  'Vou estourar seus miolos', 'Uma bala na cabeça', 'Vou te enterrar', 'Vou acabar com você',
+  'Ti faccio saltare il cervello', 'Ti sparo in testa', 'Ti metto sottoterra', 'Ti faccio la pelle',
+  'Wpakuję ci kulkę w łeb', 'Rozwalę ci łeb', 'Zakopię cię', 'Już po tobie',
+  'Ustřelím ti hlavu', 'Kulku mezi oči', 'Zakopu tě', 'Je s tebou konec',
+  'Golyót eresztek a fejedbe', 'Kiloccsantom az agyad', 'Elföldellek', 'Végzek veled',
+  'Kafana kurşun sıkarım', 'Beynini dağıtırım', 'Seni toprağa gömerim', 'İşini bitiririm',
+  'Я тебе мозги вышибу', 'Пущу тебе пулю в лоб', 'Я тебя закопаю', 'Конец тебе',
+  'Я тобі мізки виб\'ю', 'Пущу тобі кулю', 'Я тебе закопаю', 'Кінець тобі',
+  '頭をぶち抜いてやる', '脳天をぶち抜くぞ', '埋めてやる', 'お前はもう死んでいる',
+  '머리를 날려버릴 거야', '머리에 총알 박아줄 거야', '묻어버릴 거야', '넌 끝났어',
+  '我要爆你的头', '我把你埋了', '送你上西天', '你完了',
+], 'kill'));
+
+test('lethal words that are no threat: games, a bed, a car, treasure, slang, a day at work, a denial', () => {
+  for (const line of ['I\'ll end you in chess', 'I\'ll beat you in a race', 'I\'ll put you in the car', 'I\'ll put you down for a nap', 'I\'ll put one in your hand',
+    'I\'ll have you picked up at six', 'you\'re dead to me', 'I\'m dead tired', 'Would you put a bullet in my head?', 'Я закопаю клад', '저세상 텐션이네',
+    'Heute ist dein letzter Tag im Büro', 'Ich werde dich nicht unter die Erde bringen', '你完了吗？'])
+    assert.match(code(line), /^none/, line);
+  assert.equal(code('I won\'t put a bullet in your head'), 'none(negated)');
+  assert.equal(code('I\'ll put a bullet in your head lol'), 'none(joke)');
+});
+
+test('a question tag after a threat or a command is no question; a real question still is', () => {
+  assert.equal(code('Do that again and I\'ll put a bullet in your head, understand?'), 'kill');
+  assert.equal(code('I\'ll break your legs, got it?'), 'hurt');
+  assert.equal(code('Ich bring dich um, verstanden?'), 'kill');
+  assert.equal(code('Я тебя убью, понял?'), 'kill');
+  assert.equal(code('Should I kill you?'), 'none(question)');
+  assert.equal(code('Will you put a bullet in my head, right?'), 'none');
+});
+
 test('normalize: one case, one apostrophe, no inverted marks', () => {
   assert.equal(normalize('  I’LL  KILL  you  '), 'i\'ll kill you');
   assert.equal(normalize('¡Al suelo!'), 'al suelo!');
