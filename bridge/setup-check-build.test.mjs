@@ -157,3 +157,59 @@ test('when the three agree nothing is said, and the check adds no file read per 
   for _ = 1, 20 do advance(1); check.tick(true, true) end
   assert(opens() == files_ and gameCalls == calls, 'nothing per tick')
 `));
+
+// 2026-10-27 live test: CET reloaded in the world, the owner opened the pause menu and loaded a save. The 12 s ran out in the menu, the notice was released one frame
+// after the save was restored, written to the warning line before the HUD that draws it existed, and nobody saw it. It must wait for gameplay that has settled.
+test('a notice that falls due in a menu or on a loading screen waits until gameplay has been on screen for eight seconds, then shows once', () => run(String.raw`
+  installFiles(); serviceRunning()
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.2', game = '2.5'})
+  env.gameVersion = '2.31'; applyEnv()
+  local expected = 'The Scripts are for game 2.5, yours is 2.31. Get the Scripts for 2.31 from Nexus Mods.'
+  -- the reload happens with the pause menu open: in the session, the world never ready
+  env.paused = true
+  check.tick(false, true); advance(12); check.tick(false, true)
+  local request = json.decode(files['runtime/setup-check-request.json'])
+  answer({versions = {id = 'versions', state = 'problem', code = 'game-mismatch', scripts = '0.3.2', runtime = '0.3.2', scriptsGame = '2.5', runtimeGame = '2.31'}}, request.id)
+  advance(1)
+  assert(check.tick(false, true) == nil and check.inspect().held == expected, 'decided, and held while the menu is up')
+  assert(files['runtime/probe.log']:find('Setup check: problems: build\n', 1, true), 'the game mismatch is one problem, not also a versions problem')
+  for _ = 1, 20 do advance(1); assert(check.tick(false, true) == nil) end
+  -- the save is loaded: gameplay is on screen. Nothing at once, nothing for seven seconds
+  env.paused = false
+  assert(check.tick(true, true) == nil)
+  for _ = 1, 7 do advance(1); assert(check.tick(true, true) == nil, 'too early') end
+  -- a menu opened in between starts the wait again
+  env.paused = true; advance(1); assert(check.tick(false, true) == nil)
+  env.paused = false; assert(check.tick(true, true) == nil)
+  for _ = 1, 7 do advance(1); assert(check.tick(true, true) == nil, 'too early after the menu') end
+  advance(1)
+  assert(check.tick(true, true) == expected)
+  -- once: not again after another save load
+  env.paused = true; advance(1); check.tick(false, true); env.paused = false
+  for _ = 1, 30 do advance(1); assert(check.tick(true, true) == nil) end
+  assert(check.inspect().held == nil)
+`));
+
+test('on a first load in gameplay the notice still shows 12 seconds after the world is ready, with a CET reload being a new session', () => run(String.raw`
+  installFiles(); serviceRunning()
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.2', game = '2.5'})
+  env.gameVersion = '2.31'; applyEnv()
+  check.tick(true, true)
+  for _ = 1, 11 do advance(1); assert(check.tick(true, true) == nil) end
+  advance(1); check.tick(true, true)
+  answer({versions = {id = 'versions', state = 'problem', code = 'game-mismatch', scripts = '0.3.2', runtime = '0.3.2', scriptsGame = '2.5', runtimeGame = '2.31'}},
+    json.decode(files['runtime/setup-check-request.json']).id)
+  advance(1)
+  assert(check.tick(true, true) == 'The Scripts are for game 2.5, yours is 2.31. Get the Scripts for 2.31 from Nexus Mods.')
+`));
+
+test('versions that differ while the Runtime is also for the other game are one problem (the full Runtime of the right game fixes both)', () => run(String.raw`
+  installFiles(); serviceRunning()
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.2', game = '2.5'})
+  env.gameVersion = '2.5'; applyEnv()
+  answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.3.2', runtime = '0.3.1', scriptsGame = '2.5', runtimeGame = '2.31'}}); check.run()
+  assert(table.concat(check.problems(), ',') == 'build')
+  -- but versions that differ with the Runtime of the right game are still the versions problem alone
+  answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.3.2', runtime = '0.3.1', scriptsGame = '2.5', runtimeGame = '2.5'}}); check.run()
+  assert(table.concat(check.problems(), ',') == 'versions')
+`));

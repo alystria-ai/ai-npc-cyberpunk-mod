@@ -96,6 +96,12 @@ What differs between the games is the requirement set, as in 0.3.1: 2.5 uses the
   Runtime or Codeware notices show. The Help page row "Build for your game" has the long text (which Hugging Face folder, which Nexus file); the "Scripts and Runtime"
   row steps aside when the Runtime is for another game, because update zips of the wrong game would mislead. The console and `probe.log` get one English line with
   `(scripts=2.5 runtime=2.31 game=2.5)`.
+* **When the notice shows (fixed 2026-10-27).** The first live test of the notice (Scripts 2.5 over a 2.31 game and Runtime, CET reloaded, then a save loaded from the pause menu) showed
+  nothing: the 12 s had run out in the menu, the notice was released one frame after the save was restored and written to the warning line before the HUD that draws it
+  existed (`mcm.log` had the line, nothing was on screen). Now every first-load notice waits until gameplay has been on screen for 8 s in a row (`SETTLE_S`, `readySince`
+  in `M.tick`; a pause, a menu or a loading screen in between starts the 8 s again), so in a running world it shows about 12 s after the world is ready, and after a load
+  about 8 s after the world is back. A CET reload is a new session for the Lua: the notice is due again each time. A pure game mismatch is also one problem, not two: the
+  `versions` problem is dropped from `problems()` when `build` already names it (the probe line reads `Setup check: problems: build`).
 * **Error reports.** The setup line `build: problem runtime-wrong (scripts=2.5 runtime=2.31 game=2.5)` (or `build: ok match (...)`) is in every report of the session, the
   game records a `setup-problem` event `build <code>` with the same detail, every report's `versions` holds `scriptsGame` and `runtimeGame`, and the bridge's own
   `versions game-mismatch` event carries both games. Triage: look for `build: problem` in `setup`, or `scriptsGame` different from `runtimeGame` in `versions`.
