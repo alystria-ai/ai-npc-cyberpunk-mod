@@ -257,6 +257,14 @@ function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
     }
     return make('limit', 'is rate limiting requests');
   }
+  // A prompt longer than what the provider takes (a context, or a limit of tokens per minute that one request exceeds): the limit it names is learned and the prompt is cut to it once
+  // (bridge/prompt-fit.mjs). The error itself reads as before.
+  const tooLong = contextRefusal(status, matching, first);
+  if (tooLong) {
+    const error = make('request', `refused the request: ${text || `HTTP ${status}`}`);
+    error.overflow = tooLong;
+    return error;
+  }
   const rejected = rejectedParameters(status, matching);
   if (rejected) {
     const error = make('request', `refused the request: ${text || `HTTP ${status}`}`);
@@ -275,7 +283,7 @@ function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
 // A server saying the prompt is longer than the context it has loaded: llama.cpp ("request (N tokens) exceeds the available context size (M tokens)", type
 // `exceed_context_size_error` with n_prompt_tokens and n_ctx), OpenAI-style servers ("maximum context length is M tokens ... you requested N") and LM Studio's
 // own ("Trying to keep the first N tokens when context the overflows ... context length of only M tokens"). LM Studio wraps llama.cpp's refusal in a 500 or 502.
-const CONTEXT_FULL = /exceeds?[_ ](?:the )?(?:available |model'?s? )?(?:max(?:imum)? )?context[_ ](?:size|length|window)|(?:maximum|max) context (?:length|size)|context (?:size|length|window) (?:has been |was |is )?exceeded|context length of only|when context the overflows|prompt is too long for the context|input is too long for the context/i;
+const CONTEXT_FULL = /exceeds?[_ ](?:the )?(?:available |model'?s? )?(?:max(?:imum)? )?context[_ ](?:size|length|window)|(?:maximum|max) context (?:length|size)|context (?:size|length|window) (?:has been |was |is )?exceeded|context length of only|when context the overflows|request too large for model|prompt is too long: \d+ tokens|prompt contains \d+ tokens|prompt is too long for the context|input is too long for the context/i;
 
 /**
  * {promptTokens, contextTokens} (either may be undefined: the server did not say) when a failed request was a prompt longer than the server's context, else null.
@@ -287,10 +295,15 @@ export function contextRefusal(status, text, body) {
   if (!(body?.error?.type === 'exceed_context_size_error' || CONTEXT_FULL.test(words))) return null;
   const number = (...values) => { for (const value of values) { const count = Math.floor(Number(value)); if (Number.isFinite(count) && count > 0) return count; } return undefined; };
   const counted = /request \((\d+) tokens\).*?\((\d+) tokens\)/.exec(words);
-  const asked = /maximum context length is (\d+) tokens.*?(?:requested|resulted in|contain(?:s|ed)?) (\d+) tokens/i.exec(words);
+  const asked = /maximum context length is (\d+) tokens.*?(?:requested|resulted in|contain(?:s|ed)?) (?:about )?(\d+) tokens/i.exec(words);
+  // Groq and OpenAI-style limits per minute ("Request too large for model `x` ... on tokens per minute (TPM): Limit 8000, Requested 8626"): the limit counts the reply's room too.
+  const rate = /request too large for model.*?\blimit (\d+).*?\brequested (\d+)/is.exec(words);
+  // Anthropic-style ("prompt is too long: 210000 tokens > 200000 maximum") and Mistral's own ("Prompt contains 40050 tokens ... too large for model with 32768 maximum context length").
+  const longer = /prompt is too long: (\d+) tokens > (\d+) maximum/i.exec(words);
+  const mistral = /prompt contains (\d+) tokens.*?too large for model with (\d+) maximum context length/is.exec(words);
   return {
-    promptTokens: number(body?.error?.n_prompt_tokens, /"n_prompt_tokens"\s*:\s*(\d+)/.exec(words)?.[1], counted?.[1], asked?.[2], /keep the first (\d+) tokens/i.exec(words)?.[1]),
-    contextTokens: number(body?.error?.n_ctx, /"n_ctx"\s*:\s*(\d+)/.exec(words)?.[1], counted?.[2], asked?.[1], /context length of only (\d+) tokens/i.exec(words)?.[1])};
+    promptTokens: number(body?.error?.n_prompt_tokens, /"n_prompt_tokens"\s*:\s*(\d+)/.exec(words)?.[1], counted?.[1], asked?.[2], rate?.[2], longer?.[1], mistral?.[1], /keep the first (\d+) tokens/i.exec(words)?.[1]),
+    contextTokens: number(body?.error?.n_ctx, /"n_ctx"\s*:\s*(\d+)/.exec(words)?.[1], counted?.[2], asked?.[1], rate?.[1], longer?.[2], mistral?.[2], /context length of only (\d+) tokens/i.exec(words)?.[1])};
 }
 
 /** Maps an HTTP status (or the `code` of an error object inside a stream) and its body to a MistralError. */

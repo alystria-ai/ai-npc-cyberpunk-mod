@@ -55,7 +55,7 @@
     ]
   },
   "counts": {
-    "strings": 1531,
+    "strings": 1532,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -1414,7 +1414,8 @@
     "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
     "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
     "Whose memories": "Whose memories",
-    "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.": "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.",
+    "Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Turn Smart App Control off, or choose a cloud conversation provider in Settings.": "Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Turn Smart App Control off, or choose a cloud conversation provider in Settings.",
+    "Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Turn Smart App Control off, or choose a cloud voice (Voxtral) in Settings.": "Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Turn Smart App Control off, or choose a cloud voice (Voxtral) in Settings.",
     "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.": "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.",
     "Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.": "Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.",
     "Word bank": "Word bank",
@@ -3220,7 +3221,8 @@
       "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
       "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
       "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
-      "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.",
+      "Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Turn Smart App Control off, or choose a cloud conversation provider in Settings.",
+      "Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Turn Smart App Control off, or choose a cloud voice (Voxtral) in Settings.",
       "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.",
       "Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.",
       "Word bank",
@@ -3528,7 +3530,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:874"
+        "mod/setup-check.lua:875"
       ]
     },
     "A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.": {
@@ -3624,7 +3626,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:876"
+        "mod/setup-check.lua:877"
       ]
     },
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": {
@@ -5183,7 +5185,7 @@
       ],
       "references": [
         "mod/setup-check.lua:602",
-        "mod/setup-check.lua:868"
+        "mod/setup-check.lua:869"
       ]
     },
     "Companion Manager": {
@@ -6761,7 +6763,7 @@
       "references": [
         "mod/setup-check.lua:675",
         "mod/setup-check.lua:684",
-        "mod/setup-check.lua:765"
+        "mod/setup-check.lua:766"
       ]
     },
     "Free": {
@@ -6974,7 +6976,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:764"
+        "mod/setup-check.lua:765"
       ]
     },
     "Group chat needs two characters nearby. Use private chat for one person.": {
@@ -7433,7 +7435,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:865"
+        "mod/setup-check.lua:866"
       ]
     },
     "Installed character models": {
@@ -7467,7 +7469,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:755"
+        "mod/setup-check.lua:756"
       ]
     },
     "Invalid Mature content settings.": {
@@ -7871,7 +7873,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:751"
+        "mod/setup-check.lua:752"
       ]
     },
     "Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.": {
@@ -8262,7 +8264,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:866"
+        "mod/setup-check.lua:867"
       ]
     },
     "Mistral": {
@@ -8404,7 +8406,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:770"
+        "mod/setup-check.lua:771"
       ]
     },
     "Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.": {
@@ -8445,7 +8447,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:769"
+        "mod/setup-check.lua:770"
       ]
     },
     "Model ID: {model}": {
@@ -8843,7 +8845,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:772"
+        "mod/setup-check.lua:773"
       ]
     },
     "None installed. They are optional.": {
@@ -8937,7 +8939,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:756"
+        "mod/setup-check.lua:757"
       ]
     },
     "Not running": {
@@ -9329,7 +9331,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:863"
+        "mod/setup-check.lua:864"
       ]
     },
     "Opened in your browser.": {
@@ -10054,7 +10056,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:757"
+        "mod/setup-check.lua:758"
       ]
     },
     "React to battles": {
@@ -10699,7 +10701,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:862"
+        "mod/setup-check.lua:863"
       ]
     },
     "Scripts {scripts} and Runtime {runtime} do not match. Update whichever is older: the Scripts from Nexus Mods, or the Runtime from the mod’s Hugging Face page (its update zips one by one, or the full Runtime). Extract into the Cyberpunk 2077 folder, then restart the game.": {
@@ -11075,7 +11077,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:871"
+        "mod/setup-check.lua:872"
       ]
     },
     "Some model records could not be read.": {
@@ -11816,7 +11818,7 @@
       ],
       "references": [
         "mod/nsui.lua:787",
-        "mod/setup-check.lua:869"
+        "mod/setup-check.lua:870"
       ]
     },
     "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI {nsui} or newer. Either one is enough. Install one from Nexus Mods, then restart the game.": {
@@ -11907,7 +11909,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:859"
+        "mod/setup-check.lua:860"
       ]
     },
     "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.": {
@@ -11923,7 +11925,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:873"
+        "mod/setup-check.lua:874"
       ]
     },
     "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.": {
@@ -11947,7 +11949,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:875"
+        "mod/setup-check.lua:876"
       ]
     },
     "The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods.": {
@@ -11955,7 +11957,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:860"
+        "mod/setup-check.lua:861"
       ]
     },
     "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Install the Scripts and the Runtime made for the same game as yours (the Scripts from Nexus Mods, the Runtime from Hugging Face), then restart the game.": {
@@ -12277,7 +12279,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:877"
+        "mod/setup-check.lua:878"
       ]
     },
     "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.": {
@@ -12285,7 +12287,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:759"
+        "mod/setup-check.lua:760"
       ]
     },
     "The conversation service cannot see this mod’s folder in the game: a mod manager’s virtual folders, or a folder it may not read. Extract the Runtime straight into the Cyberpunk 2077 folder, or start the game from the mod manager that holds the Runtime.": {
@@ -12350,7 +12352,7 @@
       ],
       "references": [
         "mod/service-status.lua:194",
-        "mod/setup-check.lua:872"
+        "mod/setup-check.lua:873"
       ]
     },
     "The conversation service is not running, so nothing can be tested. Restart the game.": {
@@ -13345,7 +13347,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:758"
+        "mod/setup-check.lua:759"
       ]
     },
     "This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.": {
@@ -13497,7 +13499,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:861"
+        "mod/setup-check.lua:862"
       ]
     },
     "This model spends its reply on thinking. Choose a non-reasoning model in Settings.": {
@@ -13905,7 +13907,7 @@
       ],
       "references": [
         "mod/nsui.lua:786",
-        "mod/setup-check.lua:870"
+        "mod/setup-check.lua:871"
       ]
     },
     "Updating selection": {
@@ -14235,7 +14237,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:771"
+        "mod/setup-check.lua:772"
       ]
     },
     "Voxtral (recommended)": {
@@ -14765,7 +14767,15 @@
         "mod/manager-ui.lua:1734"
       ]
     },
-    "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.": {
+    "Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Turn Smart App Control off, or choose a cloud conversation provider in Settings.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/setup-check.lua:751"
+      ]
+    },
+    "Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Turn Smart App Control off, or choose a cloud voice (Voxtral) in Settings.": {
       "contexts": [
         "ui.localized"
       ],
@@ -15811,7 +15821,7 @@
       "references": [
         "mod/setup-check.lua:590",
         "mod/setup-check.lua:603",
-        "mod/setup-check.lua:878"
+        "mod/setup-check.lua:879"
       ]
     },
     "{name} is no longer attached to the world. Dismiss this copy to free its place.": {
@@ -16015,7 +16025,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:764"
+        "mod/setup-check.lua:765"
       ]
     },
     "{name}: Good to see you. Let us go.": {

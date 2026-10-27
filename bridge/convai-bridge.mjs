@@ -119,7 +119,7 @@ import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
-import {LocalLlmServer, isPlayerServerDetail, nvidiaFreeMiB, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
+import {BLOCKED as LOCAL_AI_BLOCKED, LocalLlmServer, isPlayerServerDetail, nvidiaFreeMiB, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
 import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
@@ -141,6 +141,7 @@ import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MO
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {SlowTurnWatch} from './slow-turns.mjs';
 import {VoiceSilenceWatch} from './voice-silence.mjs';
+import {LearnedLimits} from './prompt-fit.mjs';
 import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 import {AddonContent} from './addon-content.mjs';
@@ -1076,10 +1077,12 @@ const realtime = new RealtimeHost({browserPriority: turnPriority, onCompanionAct
 // never sees it.
 // One host serves Mistral and the local AI (bridge/text-provider-host.mjs); `mistral.route` says which answers a turn. The cache
 // scope is a hash of the state folder, so the Mistral cache key never carries a secret or a name.
+// The prompt limits a cloud provider named when it refused a prompt as too long (bridge/prompt-fit.mjs), per provider and model, kept for three days so the next session starts from them.
+const promptLimits = new LearnedLimits({file: resolve(stateDirectory, 'prompt-limits.json')});
 const textRoutes = {
-  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
-  local: localRoute({server: localServer, provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
-  custom: customRoute({provider: mistral, custom: customEndpoint}),
+  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12), limits: promptLimits, log: line => console.error(line)}),
+  local: localRoute({server: localServer, provider: mistral, log: message => console.error(message.startsWith('[PromptFit]') ? message : '[TextProvider] ' + message)}),
+  custom: customRoute({provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console.error(line)}),
 };
 const providerOfCharacter = new Map();
 const profileOfCharacter = config => {
@@ -3966,7 +3969,9 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
       return {status: localAiStatus(), reason: state === 'failed' ? reason ?? null : null, packInstalled: pack.installed, tiers: pack.tiers,
         matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), models: maturePackModels,
         // The start failed because the server the player runs does not answer, is blocked, refuses the key or is no OpenAI-style address: their setup, so no error report (error-events.mjs setupChecked).
-        playerServer: state === 'failed' && reason === 'start-failed' && isPlayerServerDetail(detail)};
+        playerServer: state === 'failed' && reason === 'start-failed' && isPlayerServerDetail(detail),
+        // Windows blocked a file of the model server (Smart App Control / Application Control): the Help row names it.
+        blocked: state === 'failed' && reason === 'start-failed' && detail === LOCAL_AI_BLOCKED};
     },
     omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
     // The player's own Python for OmniVoice (only with omni-python.txt): a light run reports what is known, the Help page's run tests it (again after a refusal).
