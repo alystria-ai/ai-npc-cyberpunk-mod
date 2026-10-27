@@ -18,9 +18,9 @@
 --       :GetTotalAlcohol(player), :GetTotalCigarettes(player) -> Int32   lifetime counts (not a state; watched for a rise, see below)
 --       :IsStaminaRegenning() -> Bool           true while the pool is refilling (false in the cooldown, while moving at a jog or faster, or when the pool is at its ceiling)
 --       :GetConfig() -> FACConfig               alcoholSoberBaseHours (6), alcoholSoberHoursPerExtraDrink (1), smokingPenaltyDurationMinutes (30), regenDelayCooldownMinutes (10)
---       Alcohol and cigarettes have no getter that says "now": the persistent fields it adds to PlayerPuppetPS do (m_facInitialized, m_facLastTimestamp = the mod's own
---       game clock as of its last tick, m_facAlcoholDrinks and m_facAlcoholSoberEnd = drinks in the sober-up window and when it ends, m_facSmokingPenaltyEnd = the end of the
---       30 minute regen penalty after a cigarette). The clock is the mod's own, so the comparison needs no guess about what DVClock.Now is.
+--       Alcohol and cigarettes have no getter that says "now". The mod keeps them in persistent fields it adds to PlayerPuppetPS (m_facAlcoholDrinks, m_facAlcoholSoberEnd,
+--       m_facSmokingPenaltyEnd), and those never read from CET (live, 27 Oct, three sessions: GetPS, GetPlayerPuppetPS and the persistency system all gave a PlayerPuppetPS whose
+--       m_fac fields were nil, and its class has 0 m_fac properties for reflection), so that path was removed. Only the lifetime counts above are used.
 --   Injuries.InjuriesSystem (Injuries_System.reds, Injuries_Effects.reds)
 --       :IsLive() -> Bool                       the session is armed (false before it, after a death or a session end)
 --       :GetAppliedTier(kind) -> Int32          0 to 3 per injury kind (0 limp, 1 broken arm, 2 concussion, 3 bleeding): what is in effect on V now, after healing items
@@ -30,21 +30,19 @@
 -- What the first live test (2026-10-27, game 2.31, probe.log) settled: CET returns both systems, dispatches IsEnabled, GetStaminaPercent, GetEnergyPercent, IsLive, GetAppliedTier and
 -- GetSeverity on them with these arguments (every one answered, no "failed" line), and the stamina and energy stages follow the mod. What it did NOT settle, and what this version
 -- therefore probes (every probe is one `Mod state probe:` line in probe.log with the raw values, never per frame, only while a turn is built):
---   * drinks and cigarettes read `?`: the persistent PlayerPuppetPS fields were not readable through `player:GetPS()`. The fields are now read directly and, when that gives nothing, through
---     Codeware's reflection (the way mod/combat-feats-probe.lua reads script fields), and the path that answered is logged. When neither answers, the mod's own PUBLIC getters
---     FACSystem:GetTotalAlcohol(player) and :GetTotalCigarettes(player) (lifetime counts, the same call shape that already works for GetStaminaPercent) are watched from one read to the
---     next: a count that went up since the last read is a drink or a cigarette just had, and the sober-up window (6 hours and one more per extra drink) or the 30 minute cigarette
---     penalty is counted from that read, on the game clock. The counts are the SAVE'S LIFETIME totals (FleshAndChrome.reds 1662/1675/1769/1781: only ever `+= 1`), never the drinks
---     in the body, so a count alone maps to nothing: a baseline read is made when a save has loaded (mod/init.lua convaiVixenBaseline), and a count or clock that goes back is another save.
+--   * drinks and cigarettes: the mod's own PUBLIC getters FACSystem:GetTotalAlcohol(player) and :GetTotalCigarettes(player) (the same call shape that works for GetStaminaPercent)
+--     are watched from one read to the next: a count that went up since the last read is a drink or a cigarette just had, and the sober-up window (6 hours and one more per extra
+--     drink) or the 30 minute cigarette penalty is counted from that read, on the game clock. The counts are the SAVE'S LIFETIME totals (FleshAndChrome.reds 1662/1675/1769/1781:
+--     only ever `+= 1`), never the drinks in the body, so a count alone maps to nothing: a baseline read is made when a save has loaded (mod/init.lua convaiVixenBaseline), and a
+--     count or clock that goes back is another save. (Confirmed live 27 Oct: drink before talking, "am i drunk?" is answered.)
 --   * breath stays at the top stage for minutes: the reader follows the mod's pool (GetStaminaPercent is ps.m_facStamina / max), so a long stage 4 is the mod's own regeneration
 --     rule unless the probe says otherwise: the pool refills only after a cooldown of 10 game minutes times how empty it was, only while V is not moving at a jog or faster, and no higher
---     than the daily energy pool allows. The probe line records the pool, the energy, the Exhausted status, IsStaminaRegenning(), the game's own stamina pool, the mod's cooldown left
+--     than the daily energy pool allows. The probe line records the pool, the energy, the Exhausted status, IsStaminaRegenning(), the game's own stamina pool
 --     and the game clock's pace, once at the first read, at every change of stage, and every two minutes while the stage is 3 or 4.
 --   * injuries all zero: Injuries only injures after 50 percent of V's health in damage within 10 seconds (then a 75 percent roll) or one hit of 80 percent, so a fall or a few shots
 --     may honestly give nothing. The probe line records IsLive, every kind's applied tier and every region's severity, and when the system says "none" the twelve Injuries status effects are
 --     asked once a minute as a second opinion (a status effect in force is believed over a silent system, and the disagreement is logged).
--- Not confirmed (guesses about CET): that `player:GetPS()` hands CET the PlayerPuppetPS, that a field added by redscript reads as `ps.m_facLastTimestamp`, and that
--- `Game.GetStatusEffectSystem():HasStatusEffect(entityId, TweakDBID)` exists; the probe lines say which.
+-- Not confirmed (guess about CET): that `Game.GetStatusEffectSystem():HasStatusEffect(entityId, TweakDBID)` exists; the probe lines say which.
 --
 -- Result: nil, or {fleshAndChrome = {breath =, energy = (1 to 4), drinks = (1 to 3), smoke = 1}, injuries = {limp =, arm =, head =, bleed = (1 to 3), treated = 1}}: only what
 -- is known and worth saying. And a second answer {fac = <note>, inj = <note>} of what each read found ("installed=yes read=ok state=breath0,energy1,drinks0,smoke0"),
@@ -142,18 +140,6 @@ local function field(object, name)
     return nil
 end
 
--- A field of a script class: read directly (how CET reads script fields), else through Codeware's reflection (mod/combat-feats-probe.lua does the same). Second answer: the path.
-local function scriptField(object, class, name)
-    local value = field(object, name)
-    if value ~= nil then return value, 'direct' end
-    local ok, reflected = pcall(function()
-        local property = Reflection.GetClass(CName.new(class)):GetProperty(CName.new(name))
-        return FromVariant(property:GetValue(ToVariant(object)))
-    end)
-    if ok and reflected ~= nil then return reflected, 'reflection' end
-    return nil, 'none'
-end
-
 local function below(value, bars)
     local stage = 0
     for index, bar in ipairs(bars) do if value < bar then stage = index end end
@@ -178,102 +164,11 @@ local function pace(now)
     return (now - last.game) / (real - last.real)
 end
 
-local function className(object)
-    local ok, name = pcall(function() return NameToString(object:GetClassName()) end)
-    if ok and name ~= nil then return short(name) end
-    local okRaw, raw = pcall(function() return tostring(object:GetClassName()) end)
-    return okRaw and short(raw) or '?'
-end
-
--- How many `m_fac` properties the game's PlayerPuppetPS class has, and one example (Codeware's reflection): whether the class carries Flesh and Chrome's fields at all.
-local function factProperties()
-    local ok, text = pcall(function()
-        local count, sample = 0, nil
-        for _, property in ipairs(Reflection.GetClass(CName.new('PlayerPuppetPS')):GetProperties()) do
-            local name = NameToString(property:GetName())
-            if name:find('^m_fac') then count = count + 1; sample = sample or name end
-        end
-        return count .. (sample and (' e.g. ' .. sample) or '')
-    end)
-    return ok and text or 'unreadable'
-end
-
--- The ways to reach the persistent state of V, in the order tried: the object's own getter (what the mods' redscript uses), a getter named for the class, and the persistency system.
-local function stateVariants(player)
-    return {
-        {'GetPS', function() return player:GetPS() end},
-        {'GetPlayerPuppetPS', function() return player:GetPlayerPuppetPS() end},
-        {'persistency', function() return Game.GetPersistencySystem():GetConstAccessToPSObject(player:GetPersistentID(), CName.new('PlayerPuppetPS')) end}}
-end
-
--- V's persistent state, or nil. The first time every way is tried and one probe line says what each gave (the class and the raw `m_facInitialized`); the way whose field reads is
--- remembered and used from then on, else only the object's own getter is asked again.
-local function playerState(player, log)
-    local variants = stateVariants(player)
-    if state.psVia ~= nil then
-        for _, variant in ipairs(variants) do
-            if variant[1] == state.psVia then
-                local ok, ps = pcall(variant[2])
-                if ok and ps ~= nil then return ps end
-            end
-        end
-    end
-    local okFirst, first = pcall(variants[1][2])
-    if not okFirst or first == nil then
-        once(log, 'ps:get', 'Mod state probe: player:GetPS() ' .. (okFirst and 'gave nothing' or 'failed (' .. short(first) .. ')') .. ': drinks and cigarettes are read from the mod\'s lifetime counts instead')
-    end
-    if state.psTried then return okFirst and first or nil end
-    state.psTried = true
-    local parts, found, any = {}, nil, nil
-    for index, variant in ipairs(variants) do
-        local ok, ps
-        if index == 1 then ok, ps = okFirst, first else ok, ps = pcall(variant[2]) end
-        if not ok then
-            parts[#parts + 1] = variant[1] .. '=failed(' .. short(ps):sub(1, 50) .. ')'
-        elseif ps == nil then
-            parts[#parts + 1] = variant[1] .. '=nil'
-        else
-            any = any or ps
-            local init = field(ps, 'm_facInitialized')
-            parts[#parts + 1] = variant[1] .. '=' .. className(ps) .. '/init=' .. describe(init)
-            if init ~= nil and found == nil then found, state.psVia = ps, variant[1] end
-        end
-    end
-    say(log, 'Mod state probe: ways to V\'s persistent state: ' .. table.concat(parts, ' ') .. ' (PlayerPuppetPS m_fac properties: ' .. factProperties() .. ')')
-    return found or any
-end
-
 -- The mod's config value (a number), or the default.
 local function setting(config, name, default)
     local value = config ~= nil and tonumber(field(config, name)) or nil
     if value and value == value and value > 0 and value < 1000 then return value end
     return default
-end
-
--- Drink and cigarettes from the persistent fields, against the mod's own clock: {drinks =, smoke =} stages (nil = unknown) and the raw answers for the probe.
-local function fromFields(ps, log)
-    local out, seen = {}, {}
-    if ps == nil then return out, seen end
-    local paths = {}
-    for _, name in ipairs({'m_facInitialized', 'm_facLastTimestamp', 'm_facAlcoholDrinks', 'm_facAlcoholSoberEnd', 'm_facSmokingPenaltyEnd', 'm_facRegenCooldownEnd', 'm_facStamina', 'm_facEnergy'}) do
-        seen[name], paths[name] = scriptField(ps, 'PlayerPuppetPS', name)
-    end
-    once(log, 'ps:fields', string.format('Mod state probe: PlayerPuppetPS fields init=%s(%s) now=%s(%s) drinks=%s(%s) soberEnd=%s(%s) smokeEnd=%s(%s) cooldownEnd=%s stamina=%s energy=%s',
-        describe(seen.m_facInitialized), paths.m_facInitialized, describe(seen.m_facLastTimestamp), paths.m_facLastTimestamp, describe(seen.m_facAlcoholDrinks), paths.m_facAlcoholDrinks,
-        describe(seen.m_facAlcoholSoberEnd), paths.m_facAlcoholSoberEnd, describe(seen.m_facSmokingPenaltyEnd), paths.m_facSmokingPenaltyEnd, describe(seen.m_facRegenCooldownEnd),
-        describe(seen.m_facStamina), describe(seen.m_facEnergy)))
-    if seen.m_facInitialized ~= true then return out, seen end
-    local now = tonumber(seen.m_facLastTimestamp)
-    if not (now and now > 0) then return out, seen end
-    local drinks, soberEnd = integer(seen.m_facAlcoholDrinks, 0, M.MAX_DRINKS), tonumber(seen.m_facAlcoholSoberEnd)
-    if drinks ~= nil and soberEnd ~= nil and soberEnd - now <= M.MAX_WINDOW_SECONDS then
-        local effective = (drinks > 0 and now < soberEnd) and drinks or 0
-        out.drinks = 0
-        for stage, bar in ipairs(M.DRINK_BARS) do if effective >= bar then out.drinks = stage end end
-    end
-    local smokeEnd = tonumber(seen.m_facSmokingPenaltyEnd)
-    if smokeEnd ~= nil and smokeEnd - now <= M.MAX_WINDOW_SECONDS then out.smoke = now < smokeEnd and 1 or 0 end
-    return out, seen
 end
 
 -- Drink and cigarettes from the mod's lifetime counts (public getters that take the player, the shape that works for GetStaminaPercent): a count that rose since the last read is a
@@ -354,15 +249,13 @@ local function readFleshAndChrome(container, player, log)
     local okEnergy, energyRaw = ask(system, 'GetEnergyPercent', 'flesh-and-chrome', log, player)
     local energy = okEnergy and fraction(energyRaw) or nil
     if energy ~= nil then raw.energy = energy >= M.ENERGY_BARS[1] and 0 or below(energy, M.ENERGY_BARS) end
-    -- Drink and cigarettes: the persistent fields when they read (exact, against the mod's own clock), else the lifetime counts watched from read to read.
-    local fields, seen = fromFields(playerState(player, log), log)
+    -- Drink and cigarettes: the mod's lifetime counts watched from read to read (the persistent fields behind them never read in CET: live, three sessions, 27 Oct).
     local okConfig, config = ask(system, 'GetConfig', 'flesh-and-chrome', log)
     local counted, alcoholTotal, cigaretteTotal = fromTotals(system, okConfig and config or nil, player, log)
-    local source = (fields.drinks ~= nil or fields.smoke ~= nil) and 'fields' or ((counted.drinks ~= nil or counted.smoke ~= nil) and 'counts' or 'none')
-    raw.drinks = fields.drinks ~= nil and fields.drinks or counted.drinks
-    raw.smoke = fields.smoke ~= nil and fields.smoke or counted.smoke
+    local source = (counted.drinks ~= nil or counted.smoke ~= nil) and 'counts' or 'none'
+    raw.drinks, raw.smoke = counted.drinks, counted.smoke
     -- The breath probe: first read, a change of stage, and every two minutes while the stage is 3 or 4. What the mod says about its own pool, so a long "out of breath" can be
-    -- told from a wrong read: the pool, the Exhausted status, whether it is refilling, the game's own stamina pool, the mod's cooldown left and the pace of the game clock.
+    -- told from a wrong read: the pool, the Exhausted status, whether it is refilling, the game's own stamina pool and the pace of the game clock.
     local rate = pace(gameClock())
     local due = state.probed.breathStage ~= raw.breath
     if raw.breath ~= nil and raw.breath >= 3 and not due then
@@ -375,10 +268,9 @@ local function readFleshAndChrome(container, player, log)
         local okPool, pool = pcall(function()
             return Game.GetStatPoolsSystem():GetStatPoolValue(player:GetEntityID(), Enum.new('gamedataStatPoolType', 'Stamina'), true)
         end)
-        local cooldownEnd, stamp = tonumber(seen.m_facRegenCooldownEnd), tonumber(seen.m_facLastTimestamp)
-        say(log, string.format('Mod state probe: breath stage=%s stamina=%s energy=%s exhaustedStatus=%s regenning=%s gamePool=%s cooldownLeft=%s clock=%s',
+        say(log, string.format('Mod state probe: breath stage=%s stamina=%s energy=%s exhaustedStatus=%s regenning=%s gamePool=%s clock=%s',
             shown(raw.breath), describe(staminaRaw), describe(energyRaw), describe(exhausted), okRegen and describe(regenning) or '?', okPool and describe(pool) or '?',
-            describe(cooldownEnd and stamp and cooldownEnd - stamp or nil), rate and string.format('%.1fx', rate) or '?'))
+            rate and string.format('%.1fx', rate) or '?'))
     end
     probe(log, 'drinks', string.format('drinks and cigarettes via=%s counts alcohol=%s cigarettes=%s stages drinks=%s smoke=%s', source, describe(alcoholTotal), describe(cigaretteTotal), shown(raw.drinks), shown(raw.smoke)))
     local out, any = {}, false
