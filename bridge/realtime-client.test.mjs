@@ -1649,13 +1649,13 @@ test('cancelling a turn that is still waiting for its first audio closes the sta
   assert.equal(api.continuousControl('cancelled-early', {allow: true}), false);
 });
 
-test('a turn that never receives audio closes the standby device when the reply times out', async () => {
+test('a turn that never receives audio closes the standby device: with its text still unfinished when the reply times out, and with its text done after 5 s as a written reply', async () => {
   let offset = 0;
   const clock = {now: () => performance.now() + offset};
   const {Player, instances, standbys} = playerFixture();
   const {api, clients} = fixture({player: Player, clock}); await api.warm(config);
   const pending = api.reply({...config, liveSpeechToken: 'silent-turn'}); pending.catch(() => {}); await flush();
-  finalText(clients[0]);
+  streamingText(clients[0]);
   offset = 61000; // past the 60 s reply ceiling
   await assert.rejects(pending, /did not finish the reply/);
   assert.equal(standbys[0].stopped, 'Convai did not finish the reply'); assert.equal(instances.length, 0);
@@ -1674,6 +1674,103 @@ test('a voice recording that produced no transcript and no reply fails as no spe
   offset = 16000;
   await assert.rejects(pending, error => /No speech was heard/.test(error.message) && !/did not finish/.test(error.message));
   assert.equal(clients[0].isBotReady, false);
+  await api.close();
+});
+
+// Error signature 915fca1c3ded7234 (owner decision 2026-10-27): the reply's whole text arrived and no voice audio did; 5 s after the text is complete it is shown as text and the turn ends.
+function streamingText(client, text = 'Hello V.', id = 'reply') {
+  client.chatMessages = [{id, type: 'bot-llm-text', content: text, isStreaming: true}]; client.state.isThinking = true;
+  client.handlers.get('messagesChange')(client.chatMessages);
+}
+const settle = () => new Promise(done => setTimeout(done, 120));
+function clockFixture(options = {}) {
+  const time = {offset: 0};
+  return {time, ...fixture({...options, clock: {now: () => performance.now() + time.offset}})};
+}
+
+test('Convai voice that starts within 5 s of the finished text plays as before, and the turn records how long the voice took', async () => {
+  const {api, clients, time} = clockFixture();
+  await api.warm(config);
+  const pending = api.reply(config); pending.catch(() => {}); await flush();
+  const client = clients[0];
+  finalText(client, 'Hello V.');
+  time.offset = 3000; await settle();
+  assert.equal(api.diagnostics().activeTurn, true, 'inside the 5 s the turn waits');
+  sendAudio(client);
+  const result = await pending;
+  assert.equal(result.text, 'Hello V.'); assert.ok(result.audio); assert.equal(result.audioError, undefined);
+  assert.equal(result.timing.convaiVoiceTimedOut, undefined);
+  assert.ok(result.timing.textToFirstAudioMs >= 2900, 'the wait from the text end to the first audio is reported');
+  await api.close();
+});
+
+test('a Convai reply with its whole text and no audio packet 5 s after the text ends is shown as text, the turn ends and a late packet is ignored', async () => {
+  const {api, clients, time} = clockFixture();
+  await api.warm(config);
+  const pending = api.reply(config); pending.catch(() => {}); await flush();
+  const client = clients[0], audio = audioFixture();
+  // The clock starts when the text is complete, not when the turn began.
+  time.offset = 20000; await settle();
+  finalText(client, 'Hello V.');
+  time.offset = 24000; await settle();
+  assert.equal(api.diagnostics().activeTurn, true, '4 s after the text: still waiting');
+  time.offset = 26000;
+  const result = await pending;
+  assert.equal(result.text, 'Hello V.'); assert.equal(result.audio, undefined); assert.equal(result.faces.length, 0);
+  assert.match(result.audioError, /voice did not arrive; showing the written reply/);
+  assert.equal(result.timing.convaiVoiceTimedOut, true); assert.ok(result.timing.textWithoutAudioMs >= 5000);
+  assert.equal(client.isBotReady, false, 'the connection was retired');
+  assert.equal(api.diagnostics().activeTurn, false);
+  client.data(audio.faces); client.data(audio.pcm()); client.data(audio.stats); client.data(audio.terminal);
+  await flush();
+  assert.equal(api.diagnostics().activeTurn, false, 'a late packet does not start anything');
+  // The next turn is clean: it opens its own connection and gets its own audio.
+  await api.warm(config);
+  const next = api.reply(config); next.catch(() => {}); await flush();
+  const second = clients.at(-1); assert.notEqual(second, client);
+  finalText(second, 'Again.', 'reply-2'); sendAudio(second, audioFixture({sequence: 2}));
+  const again = await next;
+  assert.equal(again.text, 'Again.'); assert.ok(again.audio); assert.equal(again.audioError, undefined);
+  await api.close();
+});
+
+test('a Convai reply whose text is still streaming keeps waiting for the 60 s ceiling, and so does audio that has started but not ended', async () => {
+  const text = clockFixture();
+  await text.api.warm(config);
+  const pending = text.api.reply(config); pending.catch(() => {}); await flush();
+  streamingText(text.clients[0]);
+  text.time.offset = 30000; await settle();
+  assert.equal(text.api.diagnostics().activeTurn, true, 'incomplete text: no fallback');
+  text.time.offset = 61000;
+  await assert.rejects(pending, /did not finish the reply \(transcript=false text=true complete=false /);
+  await text.api.close();
+  const started = clockFixture();
+  await started.api.warm(config);
+  const turn = started.api.reply(config); turn.catch(() => {}); await flush();
+  const audio = audioFixture();
+  finalText(started.clients[0], 'Hello V.');
+  started.clients[0].data(audio.faces); started.clients[0].data(audio.pcm());
+  started.time.offset = 20000; await settle();
+  assert.equal(started.api.diagnostics().activeTurn, true, 'audio has begun: the old rule');
+  started.time.offset = 61000;
+  await assert.rejects(turn, /did not finish the reply \(transcript=false text=true complete=true thinking=false audio=false\)/);
+  await started.api.close();
+});
+
+test('a turn played live whose voice never starts is shown as text after 5 s: no speech state is handed over, nothing is left playing', async () => {
+  const {Player, instances, standbys} = playerFixture();
+  const {api, clients, time} = clockFixture({player: Player});
+  await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'silent-turn'}); pending.catch(() => {}); await flush();
+  const client = clients[0];
+  finalText(client, 'Hello V.');
+  time.offset = 6000;
+  const result = await pending;
+  assert.equal(result.continuous, undefined); assert.equal(result.text, 'Hello V.');
+  assert.match(result.audioError, /voice did not arrive/); assert.equal(result.timing.convaiVoiceTimedOut, true);
+  assert.equal(instances.length, 0, 'no player ever served the turn');
+  assert.ok(standbys.every(player => player.stopped), 'the standby device was released');
+  assert.equal(api.continuousSnapshot('silent-turn'), null, 'the host\'s last look reads no renderer failure');
   await api.close();
 });
 
@@ -2278,7 +2375,7 @@ test('the empty response of a turn does not let a response of an earlier turn sp
   await api.close();
 });
 
-test('an empty response is not a reply: the turn fails only at the real timeout, and a cancel ends it at once', async () => {
+test('an empty response is not a reply: the turn waits for a voice 5 s after its text, then shows the text (no 60 s failure), and a cancel ends it at once', async () => {
   let now = 0;
   const {api, clients} = fixture({clock: {now: () => now}});
   await api.warm(config);
@@ -2286,10 +2383,11 @@ test('an empty response is not a reply: the turn fails only at the real timeout,
   await flush();
   clients[0].data(emptyEnd()); finalText(clients[0], 'Hello V.');
   await new Promise(done => setTimeout(done, 120));
-  now = 59000; await new Promise(done => setTimeout(done, 120));
-  assert.equal(await Promise.race([waiting.then(() => 'done', () => 'failed'), flush().then(() => 'pending')]), 'pending', 'still waiting before the limit');
-  now = 61000;
-  await assert.rejects(waiting, /Convai did not finish the reply/);
+  now = 4000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(await Promise.race([waiting.then(() => 'done', () => 'failed'), flush().then(() => 'pending')]), 'pending', 'still waiting inside the 5 s');
+  now = 6000;
+  const written = await waiting;
+  assert.equal(written.text, 'Hello V.'); assert.equal(written.audio, undefined); assert.equal(written.timing.convaiVoiceTimedOut, true);
   await api.close();
   const cancelled = fixture({clock: {now: () => 0}});
   await cancelled.api.warm(config);
