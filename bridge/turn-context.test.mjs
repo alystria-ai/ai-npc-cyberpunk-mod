@@ -163,7 +163,7 @@ test('the per-turn diagnostic says whether the block was in the context, or why 
   assert.equal(turnContextDiagnostic(undefined), 'Turn context: none (no input)');
   assert.doesNotMatch(turnContextDiagnostic(input), /Judy|Watson/, 'counts only');
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /import \{turnContextDiagnostic(?:, modsProbeLine)?\} from '\.\/turn-context\.mjs'/);
+  assert.match(bridge, /import \{turnContextDiagnostic(?:, modsProbeLine)?(?:, vixenProbeLines)?\} from '\.\/turn-context\.mjs'/);
   assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, voice \? \{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicInfo\.off\} : turnContextOptions\(input, isAmbientProfile\(input\.profileKey\)\)\)\}`\)/);
 });
 

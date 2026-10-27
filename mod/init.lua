@@ -1488,6 +1488,28 @@ convaiDarkFuturePresent = function()
     return false
 end
 
+-- Whether the Flesh and Chrome and Injuries mods (Digital Vixen) are installed: one lookup of each main system (docs/DYNAMIC_INFO.md, "Other mods' state"). Answers two
+-- booleans. Globals, like the Dark Future probe above.
+convaiVixenPresent = function()
+    local found = {}
+    for key, name in pairs({fac = 'FleshAndChrome.FACSystem', inj = 'Injuries.InjuriesSystem'}) do
+        local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
+        found[key] = ok and system ~= nil
+    end
+    return found.fac, found.inj
+end
+-- Whether Equipment-EX is installed (one lookup of its outfit system): its outfit can hide V's real clothes, so with Other mods' state off, where the outfit is not read,
+-- what V visibly wears is not known (mod/player-gear.lua nudity). Cached for a minute.
+convaiEquipmentExPresent = function()
+    local now = os.time()
+    local at = convaiEquipmentExProbedAt
+    if at ~= nil and now >= at and now - at < 60 then return convaiEquipmentExFound == true end
+    convaiEquipmentExProbedAt = now
+    local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new('EquipmentEx.OutfitSystem')) end)
+    convaiEquipmentExFound = ok and system ~= nil
+    return convaiEquipmentExFound
+end
+
 -- Music and TV, the song (mod/media-song.lua): the game's own song-change events, cached for mod/media-context.lua. Loaded and hooked only
 -- while the switch is on: at start (onInit) when it is on then, else the first time a turn is built with it on. Once hooked, a callback with
 -- the switch off returns after one boolean read. A failed load is not retried. Globals: the main chunk is near Lua's limit of locals.
@@ -1616,6 +1638,39 @@ do
             elseif convaiModOffProbes >= 3 then
                 convaiModOffNoted = true
             end
+        end,
+        -- Other mods' state, the Digital Vixen mods Flesh and Chrome and Injuries (mod/vixen-state.lua): the same gate as above. Their class names are looked up before
+        -- anything is loaded; absent: the module is never read from disk and the probe is repeated at most once a minute. Present: loaded once, read per turn window.
+        -- The second answer is {fac =, inj =}, the compact notes of what each read found, for the probe lines of the turn (fac: ..., inj: ...).
+        vixen = function(player)
+            if convaiVixenState == nil then
+                local now = os.time()
+                local probedAt = convaiVixenProbedAt
+                if probedAt ~= nil and now >= probedAt and now - probedAt < 60 then return nil end
+                convaiVixenProbedAt = now
+                local fac, inj = convaiVixenPresent()
+                if not (fac or inj) then return nil end
+                local loaded, module = pcall(dofile, 'vixen-state.lua')
+                convaiVixenState = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+                if convaiLogLine then convaiLogLine('Mod state: ' .. (fac and 'Flesh and Chrome ' or '') .. (inj and 'Injuries ' or '') .. 'found, reader ' .. (convaiVixenState and 'loaded' or 'failed to load')) end
+            end
+            if not convaiVixenState then return nil end
+            return convaiVixenState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end)
+        end,
+        -- The same mods with the switch OFF: one probe line each, once a session, when the mod is there (nothing is read, loaded or told). At most three class lookups.
+        vixenOff = function()
+            if convaiVixenOffNoted then return end
+            local now = os.time()
+            local at = convaiVixenOffProbedAt
+            if at ~= nil and now >= at and now - at < 60 then return end
+            convaiVixenOffProbedAt, convaiVixenOffProbes = now, (convaiVixenOffProbes or 0) + 1
+            local fac, inj = convaiVixenPresent()
+            for key, present in pairs({fac = fac, inj = inj}) do
+                if present and convaiLogLine then
+                    convaiLogLine(key .. ": installed=yes read=skipped state=- switch=off asked=? sent=none(Other mods' state is off in Settings > Dynamic info: nothing is read or told, whatever V asks)")
+                end
+            end
+            if fac or inj or convaiVixenOffProbes >= 3 then convaiVixenOffNoted = true end
         end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,
@@ -1920,10 +1975,17 @@ phoneChat.typingOpened = function(player, contact)
 end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
+if playerGear then playerGear.options.nudityLog = log end
 -- A wardrobe outfit of Equipment-EX shows instead of V's equipped clothes in that gear (docs/PLAYER_GEAR_CONTEXT.md). Only while Settings > Dynamic info >
 -- Other mods' state is on: off, the module is never loaded and nothing is read from that mod. Called inside the gear's cached read, once per window.
 if playerGear then
     local equipmentEx
+    -- With Other mods' state off the outfit is not read; when Equipment-EX is installed its outfit may be hiding V's real clothes, so the reader is told what V visibly
+    -- wears is not known (it then never says V is topless or naked: mod/player-gear.lua).
+    playerGear.options.outfitUnread = function()
+        if manager.dynamicInfo and manager.dynamicInfo('mods') then return false end
+        return convaiEquipmentExPresent()
+    end
     playerGear.options.outfit = function(player)
         if not (manager.dynamicInfo and manager.dynamicInfo('mods')) then return nil end
         if equipmentEx == nil then
@@ -6869,6 +6931,10 @@ registerForEvent('onUpdate', function(delta)
                     -- Dark Future's state in this turn (the bridge's probe line: what the game side found, the switch, whether V's words asked about themself, where the
                     -- state went), next to the result so one grep shows the whole story. Absent unless the game side found Dark Future.
                     if type(reply.df) == 'string' and reply.df:sub(1, 4) == 'df: ' and #reply.df <= 320 and not pending.reaction then log(reply.df) end
+                    for _, key in ipairs({'fac', 'inj'}) do
+                        local line = reply[key]
+                        if type(line) == 'string' and line:sub(1, #key + 2) == key .. ': ' and #line <= 320 and not pending.reaction then log(line) end
+                    end
                     local resultLine = 'Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
                         .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why .. faceNote
                     -- A failed turn that fails the same way every time (Local AI not installed, no browser, a key refused) is one console line per

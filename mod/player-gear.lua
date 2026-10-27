@@ -150,7 +150,8 @@ local Instance = {}
 Instance.__index = Instance
 
 -- options: now() (seconds), enabled(), log(line) (one line per real read, never per frame), native (adapter override),
--- outfit(player) (the visible outfit of a wardrobe mod or nil, set by init.lua).
+-- outfit(player) (the visible outfit of a wardrobe mod or nil, set by init.lua), outfitUnread() (true when such an outfit may hide V's clothes and was not read),
+-- nudityLog(line) (one line per change of the nudity decision).
 function M.new(options)
     options = options or {}
     return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil, lastWardrobe = nil, lastFacts = nil}, Instance)
@@ -441,9 +442,15 @@ function Instance:read()
     -- A wardrobe mod's active outfit (options.outfit, mod/equipment-ex.lua; only while Settings > Dynamic info > Other mods' state is on) hides the
     -- equipped clothes: what it shows replaces them, and an outfit that shows nothing means V visibly wears nothing. No answer: the equipment as ever.
     local outfit = self.options.outfit and call(self.options.outfit, player) or nil
+    -- Whether each clothing slot visibly holds something, for the nudity note: 'worn', 'empty' or 'unknown' (a read that failed is never "empty").
+    local worn = {}
     if type(outfit) == 'table' and type(outfit.parts) == 'table' then
         snapshot.layered = true
-        for _, part in ipairs(outfit.parts) do add('clothing', part.slot, self:itemName(part.id, player)) end
+        for _, row in ipairs(M.CLOTHING) do worn[row[1]] = 'empty' end
+        for _, part in ipairs(outfit.parts) do
+            add('clothing', part.slot, self:itemName(part.id, player))
+            if worn[part.slot] ~= nil and call(N.valid, part.id) then worn[part.slot] = 'worn' end
+        end
     else
         -- The game's own Wardrobe: an active saved set shows its items on V; a slot the set does not cover keeps the visible/equipped item.
         -- A fault in the wardrobe reader costs only the wardrobe: it is named in the log and the equipment is described.
@@ -453,13 +460,25 @@ function Instance:read()
             covered = {}
         end
         for _, row in ipairs(M.CLOTHING) do
+            worn[row[1]] = 'unknown'
             if covered[row[2]] ~= nil then
                 add('clothing', row[1], covered[row[2]] or nil)
+                worn[row[1]] = covered[row[2]] and 'worn' or 'empty'
             else
                 local area = call(N.area, row[2])
                 if area ~= nil then
-                    local id = call(N.visual, data, area)
-                    if not call(N.valid, id) then id = call(N.equipped, data, area, 0) end
+                    local okVisual, id = pcall(N.visual, data, area)
+                    if okVisual and call(N.valid, id) then
+                        worn[row[1]] = 'worn'
+                    else
+                        local okEquipped, equipped = pcall(N.equipped, data, area, 0)
+                        if okEquipped then
+                            id = equipped
+                            worn[row[1]] = call(N.valid, id) and 'worn' or 'empty'
+                        else
+                            id = nil
+                        end
+                    end
                     add('clothing', row[1], self:itemName(id, player))
                 end
             end
@@ -476,8 +495,53 @@ function Instance:read()
         local area = call(N.area, row[2])
         if area ~= nil then add('cyberware', row[1], self:itemName(call(N.equipped, data, area, 0), player)) end
     end
-    if count == 0 then return nil, 'no named items found' end
+    -- Nudity (docs/PLAYER_GEAR_CONTEXT.md): V's torso and legs visibly empty. Only from reads that succeeded, and never when a wardrobe mod's outfit may be hiding the clothes
+    -- and was not read.
+    local others = 0
+    for _, list in ipairs({'weapons', 'cyberware'}) do others = others + #(snapshot[list] or {}) end
+    for _, slot in ipairs({'head', 'face', 'feet'}) do
+        for _, row in ipairs(snapshot.clothing or {}) do if row.slot == slot then others = others + 1 end end
+    end
+    local nudity, why = M.nudity(worn, others, self.options.outfitUnread and call(self.options.outfitUnread) == true)
+    snapshot.nudity = nudity
+    self:logNudity(nudity, why)
+    if count == 0 and not nudity then return nil, 'no named items found' end
     return snapshot, count
+end
+
+-- 'topless' (the torso is empty, the legs are covered), 'nude' (both empty), else nil, and the reason in a few words for the log. `worn` maps a clothing slot to
+-- 'worn', 'empty' or 'unknown'; `others` counts the items read outside the torso and legs (a read that found nothing at all is a failed read, not a naked V);
+-- `hidden` is true when a wardrobe mod's outfit may be covering the real clothes and was not read.
+function M.nudity(worn, others, hidden)
+    if hidden then return nil, 'unknown(outfit mod not read)' end
+    local function state(...)
+        local result = 'empty'
+        for _, slot in ipairs({...}) do
+            local value = worn[slot]
+            if value == 'worn' then return 'worn' end
+            if value ~= 'empty' then result = 'unknown' end
+        end
+        return result
+    end
+    local torso, legs = state('outerTorso', 'innerTorso', 'outfit'), state('legs', 'outfit')
+    if torso == 'unknown' or legs == 'unknown' then
+        if torso == 'worn' and legs == 'unknown' then return nil, 'none' end
+        return nil, 'unknown(a slot could not be read)'
+    end
+    if torso == 'worn' then return nil, 'none' end
+    if legs == 'worn' then return 'topless', 'torso=empty legs=worn' end
+    if others <= 0 then return nil, 'unknown(nothing else was read)' end
+    return 'nude', 'torso=empty legs=empty'
+end
+
+-- One line per change (probe.log): what the nudity read decided, so a live test shows why V was or was not called topless.
+function Instance:logNudity(nudity, why)
+    -- A clothed V is silent (the usual case); a claim, its end, and a read that could not tell are logged.
+    local line = 'Player gear: nudity=' .. tostring(nudity or 'none') .. (why and (' (' .. why .. ')') or '')
+    local quiet = nudity == nil and not (self.lastNudity and self.lastNudity:find('nudity=none', 1, true) == nil) and not (why and why:find('^unknown'))
+    if line == self.lastNudity or quiet then return end
+    self.lastNudity = line
+    if type(self.options.nudityLog) == 'function' then pcall(self.options.nudityLog, line) end
 end
 
 -- The snapshot for this turn, or nil. Reused for MAX_AGE seconds so a burst of turns (a group round, a prefetch,

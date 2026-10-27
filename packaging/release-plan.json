@@ -422,6 +422,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mod-state.lua"
         },
         {
+          "source": "mod/vixen-state.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/vixen-state.lua"
+        },
+        {
           "source": "mod/equipment-ex.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/equipment-ex.lua"
         },
