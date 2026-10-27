@@ -2316,7 +2316,7 @@ test('a voice turn with the game\'s plan: the final transcript decides the react
   const pending = api.finishVoice(request); await flush();
   const context = events.find(row => row[0] === 'publish')?.[1].data;
   assert.ok(context, 'the window was armed');
-  assert.match(context.text, /if it threatens to kill you, you attack V with your weapon/);
+  assert.match(context.text, /if it threatens to kill you, you are deadly serious: you pull your weapon and attack V/);
   assert.deepEqual(context.action_config.actions, ['Walk Away ' + token], 'the model keeps only what needs no words');
   receive([{...speech, content: 'I\'ll put a bullet in'}]); await flush();
   assert.equal(accepted.length, 0, 'a streaming segment decides nothing');

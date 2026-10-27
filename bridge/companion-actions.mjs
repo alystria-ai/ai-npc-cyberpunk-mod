@@ -277,7 +277,7 @@ export function decideReaction(reaction, heard) {
   if (!object(reaction?.plan)) return null;
   const screen = screenMessage(typeof heard === 'string' ? heard : '');
   const kind = planReaction(reaction.plan, screen);
-  return {kind, screen: screenCode(screen), game: kind ?? `none(${verdictWhy(reaction.plan, screen)})`};
+  return {kind, screen: screenCode(screen), game: kind ?? `none(${verdictWhy(reaction.plan, screen)})`, reading: decidedReading(reaction.plan, screen, kind)};
 }
 /** Why the game's plan decided nothing for these words: `unread` (no threat, insult or command in them), the screen's refusal (`joke`, `quote`,
  * `question`, `negated`), or `no-row` (a reading the person's plan has no reaction for, e.g. a command to a cop). Codes only. */
@@ -285,28 +285,61 @@ export function verdictWhy(plan, screen) {
   if (!screen?.threat && !screen?.command) return screen?.why ?? 'unread';
   return object(plan) && ((screen.threat && Object.hasOwn(plan, screen.threat)) || (screen.command && Object.hasOwn(plan, screen.command))) ? 'unread' : 'no-row';
 }
-/** What the person does, in the words the model reads with a decided reaction ("you attack V with your fists"). */
-export const REACTION_DEEDS = Object.freeze({
-  leave: 'you have had enough of V and get away from V now (you run if you are scared, you walk off if you are not)',
-  'call-police': 'you call the police on V',
-  attack: 'you attack V with your weapon',
-  brawl: 'you attack V with your fists',
-  cower: 'you are frightened: you freeze, crouch and cover where you are',
-  'get-down': 'you get down, as V told you',
-  stop: 'you stop where you are, as V told you',
-  'exit-vehicle': 'you get out of the vehicle, as V told you',
+/** The reading of V's words that picked a decided reaction (the threat or the command whose plan row it is), for the feeling that goes with it. */
+export function decidedReading(plan, screen, kind) {
+  if (!object(plan) || !kind) return null;
+  if (screen?.threat && plan[screen.threat] === kind) return screen.threat;
+  if (screen?.command && plan[screen.command] === kind) return screen.command;
+  return null;
+}
+// What the person does and feels with a decided reaction, in short plain sentences a small local model follows (live test 4, 2026-10-27: a
+// corpo told "get lost or I'll kill you" ran off, but its line was "you're not scaring me": the old note left the feeling to the model).
+// Per kind: {feel, act, sound}; `calm` lists the readings after which the person is not afraid (an insult: offended, not scared).
+const FEELINGS = Object.freeze({
+  leave: {feel: 'You are scared of V.', act: 'You back away from V and get out of here fast.', sound: 'frightened: shaky, pleading or panicked',
+    calm: {feel: 'You are offended and fed up with V.', act: 'You turn your back on V and walk away.', sound: 'cold and offended, done with V'}},
+  'call-police': {feel: 'You are scared of V.', act: 'You call the police on V right now.', sound: 'frightened and urgent, calling for help',
+    calm: {feel: 'You are angry at V.', act: 'You call the police on V right now.', sound: 'angry and fed up'}},
+  cower: {feel: 'You are terrified of V.', act: 'You freeze, crouch down and cover your head where you are.', sound: 'terrified: begging and stammering, in short broken words'},
+  'get-down': {feel: 'You are scared of V.', act: 'You get down on the ground as V told you, and stay down.', sound: 'frightened and obedient'},
+  stop: {feel: 'You are scared of V.', act: 'You stop and stand still as V told you.', sound: 'nervous and careful'},
+  'exit-vehicle': {feel: 'You are scared of V.', act: 'You get out of the vehicle as V told you.', sound: 'nervous and careful'},
+  brawl: {feel: 'You are angry at V.', act: 'You put your fists up and fight V.', sound: 'furious and ready to fight', bold: true},
+  attack: {feel: 'You are deadly serious.', act: 'You pull your weapon and attack V.', sound: 'cold and dangerous', bold: true},
 });
-/** The sentence for a reply whose reaction the game has decided: what the person does, so that the line fits it. */
-export function decidedReactionText(kind) {
-  return 'The game has decided what you do as you answer V\'s new message: ' + (REACTION_DEEDS[kind] ?? 'you react') + '. Say what you say as you do it, '
-    + 'in one or two short sentences in your own voice; never refuse it or say you will not. No action and no tag for it: the game does it.';
+const READING_FACTS = Object.freeze({kill: 'V has just threatened to kill you.', hurt: 'V has just threatened to hurt you or dared you to fight.',
+  insult: 'V has just insulted you.', 'get-down': 'V has just told you to get down on the ground.', stop: 'V has just told you to stop and not move.',
+  'exit-vehicle': 'V has just told you to get out of the vehicle.'});
+function feelingOf(kind, reading) {
+  const row = FEELINGS[kind];
+  if (!row) return null;
+  return reading === 'insult' && row.calm ? {...row.calm, bold: false} : row;
+}
+/** What the person does, in the words the model reads with a decided reaction ("you put your fists up and fight V"). */
+export const REACTION_DEEDS = Object.freeze(Object.fromEntries(Object.entries(FEELINGS).map(([kind, row]) => [kind, row.act.replace(/^You /, 'you ').replace(/\.$/, '')])));
+/**
+ * The sentences for a reply whose reaction the game has decided: the fact (what V just did), the feeling, what the person does, and how the
+ * line sounds, so that it fits. reading: the part of V's words that picked it (decidedReading), or null when not known.
+ */
+export function decidedReactionText(kind, reading = null) {
+  const row = feelingOf(kind, reading);
+  if (!row) return 'The game has decided what you do now. Say what you say as you do it, in one or two short sentences. No action and no tag: the game does it.';
+  const fact = READING_FACTS[reading] ? READING_FACTS[reading] + ' ' : '';
+  const scared = /scared|terrified/.test(row.feel);
+  return 'The game has decided what you do now. ' + fact + row.feel + ' ' + row.act + ' Your reply is one or two short sentences you say while you do it, '
+    + 'and it sounds ' + row.sound + '.' + (scared ? ' Do not sound calm or brave, and never say V does not scare you.' : row.bold ? ' Do not back down or apologise.' : '')
+    + ' Never say you will not do it. No action and no tag: the game does it.';
 }
 const PLAN_READINGS = Object.freeze({kill: 'threatens to kill you', hurt: 'threatens to hurt you', insult: 'insults you',
   'get-down': 'tells you to get down', stop: 'tells you to stop', 'exit-vehicle': 'tells you to get out of the vehicle'});
-/** The sentence for a turn whose words are heard only after it starts (a voice turn): the game's plan for each reading, so the line fits. */
+/** The sentence for a turn whose words are heard only after it starts (a voice turn): the game's plan for each reading, with its feeling, so the line fits. */
 export function plannedReactionText(plan) {
-  const rows = PLAN_KEYS.filter(key => object(plan) && Object.hasOwn(plan, key)).map(key => 'if it ' + PLAN_READINGS[key] + ', ' + REACTION_DEEDS[plan[key]]);
-  return rows.length ? 'What the game makes you do if V\'s new message clearly ' + rows.join('; ') + '. When one of these happens, say what you say as '
+  const rows = PLAN_KEYS.filter(key => object(plan) && Object.hasOwn(plan, key) && FEELINGS[plan[key]]).map(key => {
+    const row = feelingOf(plan[key], key);
+    return 'if it ' + PLAN_READINGS[key] + ', ' + row.feel.replace(/^You /, 'you ').replace(/\.$/, '') + ': ' + row.act.replace(/^You /, 'you ').replace(/\.$/, '')
+      + ' (you sound ' + row.sound + ')';
+  });
+  return rows.length ? 'What the game makes you do, from V\'s new message (only when it clearly does this): ' + rows.join('; ') + '. When one of these happens, say what you say as '
     + 'you do it, and request no action for it: the game does it.' : '';
 }
 // The kinds a threats offer leaves for this turn: narrowed by V's words when they are known here (typed, or any Convai turn: a Convai voice turn's
@@ -324,7 +357,7 @@ function narrowReaction(reaction, input) {
   const screen = screenMessage(heard);
   const decided = heard && planned ? planReaction(reaction.plan, screen) : null;
   const game = !planned ? undefined : !heard ? 'none(unheard)' : decided ?? `none(${verdictWhy(reaction.plan, screen)})`;
-  if (decided) return {kinds: [decided], decided, screen: screenCode(screen), game};
+  if (decided) return {kinds: [decided], decided, screen: screenCode(screen), game, reading: decidedReading(reaction.plan, screen, decided)};
   const kinds = reaction.threats ? screenedKinds(reaction.kinds, screen) : [...reaction.kinds];
   return !heard && planned ? {kinds, plan: true, screen: 'unheard', game} : {kinds, screen: screenCode(screen), game};
 }
@@ -550,7 +583,7 @@ export class CompanionActions {
     // reactionKinds: what this turn may choose (the offer narrowed by V's words); `reaction` stays the game's own offer, echoed back exactly.
     const decided = narrowed?.decided ?? null;
     const route = input?.provider === undefined || input.provider === 'convai' ? 'convai' : 'text';
-    this.pending = {input, packet, tactic, follow, leave, home, homePick, reaction, reactionKinds, reactionModel, decided, planned: !!narrowed?.plan,
+    this.pending = {input, packet, tactic, follow, leave, home, homePick, reaction, reactionKinds, reactionModel, decided, reading: narrowed?.reading ?? null, planned: !!narrowed?.plan,
       meet, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
       ...(reaction ? {trace: {person: input.profileKey, kinds: [...reactionKinds], logged: false, ...(narrowed ? {screen: narrowed.screen} : {}),
         ...(narrowed?.game ? {game: narrowed.game} : {}), ...(decided ? {route, tag: decided, by: 'game'} : {})}} : {}),
@@ -584,7 +617,8 @@ export class CompanionActions {
         ...(member.confirmed === true ? {confirmed: true} : {})}))}} : {}),
       ...(pending.home ? {home: homeConfig(pending.home, pending.homePick)} : {}),
       // A decided reaction: no kind left for the model, only what the person does. Words not heard yet: the model's kinds and the game's plan.
-      ...(pending.reaction ? {reaction: pending.decided ? {kinds: [], ...(pending.reaction.threats ? {threats: true} : {}), decided: pending.decided}
+      ...(pending.reaction ? {reaction: pending.decided ? {kinds: [], ...(pending.reaction.threats ? {threats: true} : {}), decided: pending.decided,
+        ...(pending.reading ? {reading: pending.reading} : {})}
         : {kinds: [...pending.reactionModel], ...(pending.reaction.threats ? {threats: true} : {}), ...(pending.planned ? {plan: {...pending.reaction.plan}} : {})}} : {}),
       ...(pending.meet ? {meet: meetSummary(pending.meet.meet)} : {}),
       ...(pending.refusal ? {followUnavailable: pending.refusal} : {}),
@@ -707,7 +741,9 @@ function windowTactic(value) {
 function windowReaction(value) {
   const threats = object(value) && value.threats === true;
   const allowed = threats ? REACTION_KINDS : BASE_REACTION_KINDS;
-  if (object(value) && Object.hasOwn(value, 'decided')) return keys(value, ['kinds', ...(threats ? ['threats'] : []), 'decided']) && Array.isArray(value.kinds)
+  // `reading`: the part of V's words that picked it (the feeling of the line follows it).
+  if (object(value) && Object.hasOwn(value, 'decided')) return keys(value, ['kinds', ...(threats ? ['threats'] : []), 'decided', ...(Object.hasOwn(value, 'reading') ? ['reading'] : [])])
+    && (!Object.hasOwn(value, 'reading') || PLAN_KEYS.includes(value.reading)) && Array.isArray(value.kinds)
     && value.kinds.length === 0 && allowed.includes(value.decided);
   const planned = object(value) && Object.hasOwn(value, 'plan');
   // A plan (V's words not heard yet) may leave the model no kind of its own; it rides on both sides of the switch.
@@ -909,7 +945,7 @@ function homeContextText(offered) {
 // A threats offer adds at most one command V gave (docs/NPC_THREATS_COMMANDS.md): the person obeys only if it would.
 function reactionContextText(offered) {
   // The game decided from V's words: only what the person does. Words not heard yet: the game's plan, then the model's own kinds (if any).
-  if (offered.reaction.decided) return '\n' + decidedReactionText(offered.reaction.decided);
+  if (offered.reaction.decided) return '\n' + decidedReactionText(offered.reaction.decided, offered.reaction.reading ?? null);
   const planned = offered.reaction.plan ? '\n' + plannedReactionText(offered.reaction.plan) : '';
   if (!offered.reaction.kinds.length) return planned;
   return planned + modelReactionText(offered);
