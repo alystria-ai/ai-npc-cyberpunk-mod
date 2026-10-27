@@ -191,6 +191,7 @@ function bridge(options = {}) {
   let configs = 0;
   const context = {
     PhoneWarm: class { constructor(value) { context.config = value; } },
+    customCharacters: {has: key => options.custom === key},
     stopped: false, memoryQuiescing: 0, active: null, mic: {}, micPolling: false, voiceRouteReservation: false,
     relationshipRouteReservation: false, phone: {active: null, profileFor: contact => (contact === 'judy' ? 'judy-alvarez' : undefined)},
     singleSession: () => options.single === true,

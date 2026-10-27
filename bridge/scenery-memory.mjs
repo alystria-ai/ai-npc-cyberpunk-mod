@@ -142,7 +142,9 @@ export class SceneryMemory {
       // Present only when there is something to say about them.
       ...(signals.media !== undefined ? {media: !before || before.media !== signals.media || MEDIA_ASK.test(asked)} : {}),
       // V asking about themself (how they look, whether they are all right) always gets the state again: `modsAsked` makes the turn word it as the answer to that (bridge/turn-context.mjs).
-      ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods || asksAboutSelf(asked), ...(asksAboutSelf(asked) ? {modsAsked: true} : {})} : {}),
+      ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods || asksAboutSelf(asked)} : {}),
+      // Also when there is no state worth saying: the turn then answers from what the game side read as fine (bridge/mod-state.mjs modsAskedSentences), and says nothing if it read nothing.
+      ...(asksAboutSelf(asked) ? {modsAsked: true} : {}),
       // V visibly topless or naked: told when new to the conversation, when it changes, after a long silence, and when V's words ask about themself or their clothes.
       ...(signals.nudity !== undefined ? {nudity: !before || before.nudity !== signals.nudity || asksAboutSelf(asked) || asksAboutClothes(asked)} : {})};
     this.conversations.delete(key);

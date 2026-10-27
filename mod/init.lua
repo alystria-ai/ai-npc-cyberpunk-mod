@@ -719,9 +719,15 @@ do
                 catalog.custom = self.count > 0 and self or nil
                 -- The copies from the Model browser take (or give back) the character they match.
                 if type(convaiSettleCopyProfiles) == 'function' then convaiSettleCopyProfiles() end
+                -- Each is also a character to invite (the Companion Manager) and a contact to text (the phone's Chat tab), under its own name: made, renamed or deleted, the lists follow.
+                local rows = self.list()
+                if type(manager.setCustomCharacters) == 'function' then pcall(manager.setCustomCharacters, rows) end
+                if type(phoneChat.setContacts) == 'function' then pcall(phoneChat.setContacts, 'custom', #rows > 0 and rows or nil) end
             end})
         if created and type(service) == 'table' then
             convaiCustomCharacters = service
+            -- A Chat with one of them is open only while Mistral, Local AI or Custom answers (asked when the chat is painted, never per frame).
+            phoneChat.contactBlocked = function(key) return service.has(key) and not service.providerReady() end
             if type(manager.configureCustom) == 'function' then manager.configureCustom(function(key) return service.has(key) end) end
             pcall(service.refresh, true)
         else print('[CyberpunkConvai] custom-characters.lua failed: ' .. tostring(service)) end
@@ -6547,6 +6553,11 @@ registerForEvent('onUpdate', function(delta)
     if convaiHeartbeat.flagsFrame == convaiHeartbeat.frame then phoneRead, phoneOpen = true, convaiHeartbeat.flags % 128 >= 64
     else phoneRead, phoneOpen = pcall(convaiInvoke, menuPlayer, 'ConvaiPhoneIsOpen') end
     phoneOpen = phoneRead and phoneOpen == true
+    -- The phone was just opened: the player's own characters are read again (rate-limited by the service; a character made a moment ago is in the Chat tab). Once per opening, on the edge.
+    if phoneOpen ~= convaiPhoneWasOpen then
+        convaiPhoneWasOpen = phoneOpen
+        if phoneOpen and convaiCustomCharacters then pcall(convaiCustomCharacters.refresh) end
+    end
     local phoneActionOk, phoneActionError = true, nil
     if phoneDrainDue(phoneOpen) then
         phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer)

@@ -156,13 +156,48 @@ export function modsSentences(mods, form) {
   return sentences;
 }
 
+// What the game side read, from its compact notes (mod/mod-state.lua, mod/vixen-state.lua): {key: stage} for the keys it read as a number, {} when none. A '?' (not running or no answer)
+// and a '-' (system not found) are no reading. Only a note that says read=ok counts: "installed=yes read=ok stage=hydration0,nutrition1" -> {hydration: 0, nutrition: 1}.
+export function readStages(note) {
+  const found = typeof note === 'string' ? /^installed=yes read=ok (?:stage|state)=([a-z0-9,?-]+)$/.exec(note) : null;
+  const stages = {};
+  if (found) for (const part of found[1].split(',')) { const row = /^([a-z]+)(\d)$/.exec(part); if (row) stages[row[1]] = Number(row[2]); }
+  return stages;
+}
+
+// What is fine, said only for what the game side actually read as fine (a stage below the bar for this form, and not one of the notable rows): the words after "V looks well:" or "Otherwise V is".
+// A need that was not read (a '?' or '-' in the note, a mod not installed or switched off) is never claimed. A stranger sees a body only: he gets "V looks well." from the same bars.
+const FINE_ORDER = [['nutrition', 'fed'], ['energy', 'rested'], ['hydration', 'not thirsty'], ['breath', 'not winded'], ['nerve', 'steady']];
+const VISIBLE_HURT = ['limp', 'arm', 'head', 'bleed'];
+function fineWords(mods, form, reads) {
+  const ambient = form === 'ambient', found = notable(mods, ambient);
+  const shown = new Set(found ? [...found.body, ...found.hurt, ...found.inner].map(row => row.key) : []);
+  const bar = key => ambient ? AMBIENT_FLOOR[key] ?? AMBIENT_MIN : key === 'nerve' ? MIN_STAGE : MIN_BODY_STAGE;
+  const df = readStages(reads?.darkFuture), fac = readStages(reads?.fleshAndChrome), inj = readStages(reads?.injuries);
+  // Both mods have a daily energy: fine only when every reading of it is fine.
+  const stages = {nutrition: [df.nutrition], energy: [df.energy, fac.energy], hydration: [df.hydration], breath: [fac.breath], nerve: ambient ? [] : [df.nerve]};
+  const words = [];
+  for (const [key, word] of FINE_ORDER) {
+    const seen = stages[key].filter(stage => stage !== undefined);
+    if (seen.length && !shown.has(key) && seen.every(stage => stage < bar(key))) words.push(word);
+  }
+  if (VISIBLE_HURT.every(key => inj[key] !== undefined && inj[key] < (ambient ? AMBIENT_FLOOR[key] ?? AMBIENT_MIN : MIN_BODY_STAGE)) && !(found?.hurt.length)) words.push('free of visible injuries');
+  return words;
+}
+
 /**
  * The same sentences for a turn where V asks about themself ("how do I look?", "do I seem okay?", "am I hungry?"), worded as the answer to that: plain, in the
  * right-now block (not the Background line, which says "mention only if it matters"), and not left out because the conversation heard it before. [] when none.
  * Live 2026-10-26: "V is a little hungry" in the Background line, told on an earlier turn, and a companion asked "how do I look" never said it.
+ * Live 2026-10-27 (Dark Future, nothing wrong, `sent=none(no stage worth saying)`): V asked "can you see my body state?" and the companion said no. With `reads` (the game side's compact notes
+ * {darkFuture, fleshAndChrome, injuries}, kept by parseModsRead and parseVixenRead) the answer is also given when everything read is fine: "V looks well: fed, rested, not thirsty, steady."
+ * Only what the notes say was read as a number; a need that was not read is not claimed.
  */
-export function modsAskedSentences(mods, form) {
-  const sentences = modsSentences(mods, form);
+export function modsAskedSentences(mods, form, reads) {
+  if (form !== 'person' && form !== 'head' && form !== 'ambient') return [];
+  const sentences = modsSentences(mods, form), fine = fineWords(mods, form, reads);
+  if (form === 'ambient') { if (!sentences.length && fine.length) sentences.push('V looks well.'); }
+  else if (fine.length) sentences.push(sentences.length ? `Otherwise V is ${list(fine)}.` : `V looks well: ${fine.join(', ')}.`);
   // Live 2026-10-26 ("can you see information on the state of my body"): a companion answered "I'm not a med-scanner" with the state in the Background line. So the
   // answer is said to be plain to see, nothing to scan or read, and to be given in the character's own words.
   return sentences.length ? [...sentences, 'V is asking how they look or how they are, and this is plain to see on V (no scan or reading needed): say it in your own words.'] : [];
@@ -171,6 +206,7 @@ export function modsAskedSentences(mods, form) {
 /** What became of V's state in this turn, for the probe line: where it went, or why it did not. `said`: the sentences for this form; `known`: the snapshot carried a state. */
 export function modsDisposition({asked, said, known, told, split, form}) {
   if (asked && said) return 'right-now';
+  if (asked) return 'right-now(fine)';   // V asked and everything read was fine: told as such (modsAskedSentences)
   if (said) return told ? 'none(told earlier in this talk, V did not ask)' : split ? 'background' : 'right-now';
   if (form !== 'person' && form !== 'head' && form !== 'ambient') return `none(a ${form} gets none)`;
   return known ? 'none(this stage is below the bar for this form)' : 'none(no stage worth saying)';

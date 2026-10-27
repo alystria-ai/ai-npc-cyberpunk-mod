@@ -1146,6 +1146,49 @@ function M.configureCustom(isCustom)
     customKeyOf = type(isCustom) == 'function' and isCustom or function() return false end
 end
 
+-- The characters the player made that can be invited (docs/CHARACTER_EDITOR.md, "Invite and phone"): {key, name, record} from mod/custom-characters.lua list(), called when that
+-- list changed (a character made, renamed or deleted), never per frame. Each is listed under Characters to invite with a definition of the record it was made from and no
+-- conversation profile, so its invitation is the Model browser's: the copy of that model, which then carries the custom key and name (companions.settleProfiles).
+-- A character found only by display name has no record, so it cannot be spawned and is not listed. The Companion Manager's memory and relationship lists are the shipped profiles only.
+local customInvite, customRegistered, customSignature = {}, {}, ''
+function M.setCustomCharacters(rows)
+    for key in pairs(customRegistered) do
+        if companions and type(companions.unregisterDefinition) == 'function' then companions.unregisterDefinition(key) end
+    end
+    customRegistered, customInvite = {}, {}
+    local parts = {}
+    for _, row in ipairs(type(rows) == 'table' and rows or {}) do
+        if type(row) == 'table' and type(row.key) == 'string' and type(row.name) == 'string' and row.name ~= ''
+            and type(row.record) == 'string' and row.record ~= '' and byKey[row.key] == nil and companions then
+            local registered = companions.registerDefinition(row.key, {id = row.record, name = row.name, custom = true})
+            if registered then
+                customRegistered[row.key] = true
+                customInvite[#customInvite + 1] = {key = row.key, name = row.name, custom = true}
+                parts[#parts + 1] = row.key .. '=' .. row.name
+            end
+        end
+    end
+    table.sort(customInvite, sortNames)
+    customSignature = table.concat(parts, '|')
+    dirty = true
+end
+
+-- Characters to invite: the shipped profiles and the player's own characters, sorted by name together (rebuilt only when either list changed).
+local invitableCache, invitableFor
+local function invitableProfiles()
+    if invitableCache and invitableFor == customSignature then return invitableCache end
+    if #customInvite == 0 then invitableCache = profiles
+    else
+        local all = {}
+        for _, profile in ipairs(profiles) do all[#all + 1] = profile end
+        for _, profile in ipairs(customInvite) do all[#all + 1] = profile end
+        table.sort(all, sortNames)
+        invitableCache = all
+    end
+    invitableFor = customSignature
+    return invitableCache
+end
+
 function M.profileEnabled(key)
     loadSettings()
     if key ~= nil and customKeyOf(key) == true then return true end
@@ -1503,6 +1546,7 @@ end
 
 function M.configure(companionApi, profileList)
     companions, profiles, byKey, byRecord = companionApi, {}, {}, {}
+    invitableCache = nil
     companions.gazeSettings = M.gazeSettings
     for _, value in ipairs(profileList or {}) do
         if type(value.key) == 'string' and type(value.name) == 'string' and not byKey[value.key] then
@@ -2064,7 +2108,7 @@ function M.snapshot(player)
     local dynamicInfo = {}
     for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = M.dynamicInfo(kind) end
     return {
-        profiles = profiles, models = models, party = party, feedback = feedback,
+        profiles = profiles, invitable = invitableProfiles(), customSignature = customSignature, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             developerMode = settings.developerMode,
             useOwnConvaiKey = settings.useOwnConvaiKey,

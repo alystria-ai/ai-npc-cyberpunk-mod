@@ -1522,4 +1522,7 @@ return {
     ["Use the address the server window shows, such as 192.168.1.20:8765, without https://."] = "A szerver ablaka által mutatott címet adja meg, például 192.168.1.20:8765 formában, https:// nélkül.",
     ["Waiting for the server to answer…"] = "Várakozás a szerver válaszára…",
     ["Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play."] = "Azt mutatja, hogy a szerver éppen használatban van-e. Hang szükségénél ellenőrzi, hibát követően pedig néhány másodpercenként újra, de játék közben soha.",
+    ["Your own character, made in the character editor."] = "A saját karaktered, amelyet a karakterszerkesztőben készítettél.",
+    ["They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person."] = "Annak a modellnek a másolataként csatlakozik, amelyből készült. Mistral, Local AI vagy Egyéni segítségével beszél; Convai mellett hétköznapi emberként beszél.",
+    ["This character needs Mistral, Local AI or Custom to answer."] = "Ennek a karakternek Mistral, Local AI vagy Egyéni szolgáltatóra van szüksége a válaszhoz.",
 }

@@ -193,10 +193,13 @@ export function rosterContacts(contacts, roster) {
 }
 
 export class PhoneChat {
-  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode, onFailure}) {
+  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode, onFailure, custom}) {
     if (resetFor!==undefined && typeof resetFor!=='function') throw Error('Invalid phone reset ownership hook');
     this.contacts = new Map(contacts.filter(c => c.key && ids[c.key]).map(c => [c.contact, {profile: c.key, id: ids[c.key]}]));
     Object.assign(this, {reply, publish, now, saveSessions, contextFor, contextCurrent, contextCurrentSync, resetFor});
+    // custom(key): true for a character the player made (bridge/custom-characters.mjs). It has no Convai character and no knowledge route, and its Chat contact id is
+    // its key (mod/phone-chat.lua setContacts, the group the game registers them in), so it needs no entry in `contacts`; the reply goes through the text provider.
+    this.custom = typeof custom === 'function' ? custom : () => false;
     // failureCode(error): the game's code for a failure it words itself (the shared key's daily limit), or undefined.
     this.failureCode = typeof failureCode === 'function' ? failureCode : () => undefined;
     // onFailure({error, stage, reason, detail, contact, profileKey, errorCode}): told once for each message that ended in the generic failure
@@ -257,7 +260,7 @@ export class PhoneChat {
       try { return this.contextCurrentSync(active.capture) === true && current(); }
       catch { return false; }
     };
-    const contact = this.contacts.get(input.contact);
+    const contact = this.contactOf(input.contact);
     active.profileKey=contact?.profile;
     if (!contact) {
       this.onFailure && this.noteFailure(Object.assign(Error('Phone contact is not supported'), {code: 'CONTACT_UNSUPPORTED'}), 'route', {contact: input.contact, profileKey: undefined});
@@ -299,7 +302,8 @@ export class PhoneChat {
             requestInput.worldKnowledge = {version: 1, status: 'unavailable', reason: 'phone-binding-mismatch'};
           }
         }
-        const capture = this.contextFor ? await this.contextFor({characterKey: contact.profile, profileKey: contact.profile,
+        // A character the player made has no knowledge route of the Convai kind: its turn carries the game's own blocks (the reply hook builds them).
+        const capture = this.contextFor && !contact.custom ? await this.contextFor({characterKey: contact.profile, profileKey: contact.profile,
           channel: 'phone', input: clone(requestInput), saveIdentity: clone(input.saveIdentity), signal: active.controller.signal}) : null;
         if (!current()) return;
         let endUserId, remoteGeneration = 'anonymous';
@@ -392,7 +396,13 @@ export class PhoneChat {
   }
   close() { this.active?.controller.abort(); this.active = null; }
   // The profile a phone contact speaks as, or undefined for an unknown contact.
-  profileFor(contact) { return this.contacts.get(contact)?.profile; }
+  profileFor(contact) { return this.contactOf(contact)?.profile; }
+  // {profile, id, custom?}: a roster contact, or a character the player made (its contact id is its profile key, id undefined).
+  contactOf(contact) {
+    const known = this.contacts.get(contact);
+    if (known) return known;
+    return typeof contact === 'string' && /^custom-[a-z0-9-]{1,80}$/.test(contact) && this.custom(contact) ? {profile: contact, id: undefined, custom: true} : undefined;
+  }
   // Saved conversation sessions belong to the Convai account that made them. A new key starts every thread afresh;
   // the transcript the phone shows is not touched.
   async forgetSessions() {

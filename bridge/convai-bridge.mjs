@@ -898,12 +898,14 @@ const phoneFailures = new PhoneFailureLog({
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
-  contacts: phoneContacts, ids,
+  contacts: phoneContacts, ids, custom: key => customCharacters.has(key),
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
   contextCurrent: context => phoneKnowledge.current(context),
   contextCurrentSync: context => phoneKnowledge.currentSync(context),
   reply: async options => {
+    // A character the player made has no Convai character and no knowledge route: its text goes through the player's text provider, like its talk turns (runCustomTurn).
+    if (customCharacters.has(options.profileKey)) return customPhoneReply(options);
     const prepared = await phoneKnowledge.preparedFor(options);
     preparedInputs.set(prepared.input, prepared);
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
@@ -941,7 +943,8 @@ const phone = new PhoneChat({
 const phoneWarm = new PhoneWarm({
   enabled: () => !stopped && !memoryQuiescing && !singleSession() && !active && !mic.current && !micPolling
     && !voiceRouteReservation && !relationshipRouteReservation && !phone.active,
-  profileFor: contact => phone.profileFor(contact),
+  // A character the player made has no Convai memory or connection to open ahead (its text provider is warmed by its talk composer, warmCustom).
+  profileFor: contact => { const profile = phone.profileFor(contact); return customCharacters.has(profile) ? undefined : profile; },
   prepare: async (profileKey, {signal}) => {
     const boundary = currentBoundary();
     const route = boundary && knowledgeRouter.configFor(profileKey, 'phone', boundary);
@@ -3076,6 +3079,17 @@ function warmCustom(profileKey) {
   else void warmConnection({provider: 'mistral'}).catch(() => {});
   if (localVoice.playbackEnabled === false || !localVoice.usesProfile(profileKey)) return;
   void localVoice.prepareProfile(localVoice.voiceKeyFor(profileKey, profileKey)).catch(() => {});
+}
+// A text to a character the player made (docs/CHARACTER_EDITOR.md, "Invite and phone"): the same text host and the same context blocks as its talk turns, on the phone channel. With Convai
+// answering there is no route for it: the game closes the Chat with its own line, and a message that still arrives is refused with the code the talk path uses.
+async function customPhoneReply(options) {
+  const profile = profileFor({profileKey: options.profileKey}, roster);
+  if (!profile || !mistral.active) throw Object.assign(Error('This character needs Mistral, Local AI or Custom to answer.'), {code: 'custom-provider'});
+  const input = {...options.input, profileKey: options.profileKey, channel: 'phone'};
+  noteTurn(input);
+  const blocks = intrinsicConversationContext.blocks(input);
+  return await mistralHost.reply({text: input.text, context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
+    local: {profileKey: input.profileKey, name: profile.name, channel: 'phone'}}, {signal: options.signal});
 }
 async function runCustomTurn(request, input, profile, current, clock, {userText = ''} = {}) {
   const {controller} = request, ahead = request.lookahead, signal = controller.signal;

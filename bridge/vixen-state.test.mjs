@@ -116,7 +116,7 @@ test('the fac: and inj: probe lines say what the game saw, the switch, whether V
   assert.match(asked.fac, /asked=yes sent=right-now$/);
   assert.match(asked.inj, /asked=yes sent=right-now$/);
   // A state that is not there: the line says "no stage worth saying".
-  const onlyInj = turn('how do I look?', {entity: '12ULL', turnContext: {...BASE.turnContext, mods: {injuries: {bleed: 2}}}});
+  const onlyInj = turn('how do I look?', {entity: '12ULL', turnContext: {...BASE.turnContext, mods: {injuries: {bleed: 2}}, facRead: 'installed=yes read=none state=breath?,energy?,drinks?,smoke?'}});
   assert.match(lines(onlyInj).fac, /asked=yes sent=none\(no stage worth saying\)$/);
   assert.match(lines(onlyInj).inj, /sent=right-now$/);
   // The switch off, and the game sent no note.
@@ -130,7 +130,7 @@ test('the fac: and inj: probe lines say what the game saw, the switch, whether V
   assert.equal(modsProbeLine(turn('hi'), {split: true}), '');
   // A stranger under the bar and a phone.
   const stranger = {...turn('how do I look?'), profileKey: 'ambient-citizen', archetype: {district: 'Watson'}, entity: '5ULL', turnContext: {...BASE.turnContext, mods: {fleshAndChrome: {breath: 1}}}};
-  assert.match(vixenProbeLines(stranger, {split: true, ambient: true, fresh: sceneryFor(stranger, memory)}).fac, /sent=none\(this stage is below the bar for this form\)$/);
+  assert.match(vixenProbeLines(stranger, {split: true, ambient: true, fresh: sceneryFor(stranger, memory)}).fac, /sent=right-now\(fine\)$/, 'a stranger sees nothing wrong and is told so');
   assert.match(vixenProbeLines(turn('how do I look?', {channel: 'phone', entity: ''}), {split: true}).fac, /sent=none\(a phone gets none\)$/);
   // Words only: no name of the player, never what V typed.
   assert.doesNotMatch(JSON.stringify(asked), /alex|how do i look/i);
@@ -140,7 +140,7 @@ test('end to end: the sentences reach the block, with the switch on only', () =>
   const before = dynamicInfo.off;
   try {
     dynamicInfo.update({dynamicInfo: {mods: true}});
-    assert.match(conversationContext({...BASE, requestId: 'e2e-1', text: 'how do I look?'}), /V is out of breath\. V is bleeding\. V is asking how they look/s);
+    assert.match(conversationContext({...BASE, requestId: 'e2e-1', text: 'how do I look?'}), /V is out of breath\. V is bleeding\. Otherwise V is rested\. V is asking how they look/s);
     dynamicInfo.update({dynamicInfo: {mods: false}});
     assert.doesNotMatch(conversationContext({...BASE, requestId: 'e2e-2', text: 'how do I look?'}), /out of breath|bleeding|facRead|state=breath/);
   } finally { dynamicInfo.off = before; }

@@ -26,8 +26,7 @@ quest SMS. Every other named profile (Rita Wheeler and the rest) is listed alway
 the game's unknown-caller picture, because the game's journal has no contact for them;
 their contact id is their profile key and the list is sorted by name with the others
 (about 125 rows, in the phone's own scrolling list). The two ambient residents are not
-listed, and characters the player made are not yet (they have no Convai character for
-this route). Such a contact can be texted but cannot take a holocall (the call is refused
+listed. The characters the player made in the character editor are (2026-10-27, docs/CHARACTER_EDITOR.md "Invite and phone"): each is a contact under its own name, answered through the text provider (Mistral, Local AI or Custom); with Convai answering its Chat is listed but closed, with "This character needs Mistral, Local AI or Custom to answer.". Such a contact can be texted but cannot take a holocall (the call is refused
 with the usual notice). Content packs that rename a character show the new name. Newly unlocked contacts are picked up when opening the tab, because each open
 reads the journal's active contacts again. The Contacts J/L mapping needs no such
 refresh: `companions.registerPhoneContacts` registers every contact in

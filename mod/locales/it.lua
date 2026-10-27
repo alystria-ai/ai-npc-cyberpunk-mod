@@ -1522,4 +1522,7 @@ return {
     ["Use the address the server window shows, such as 192.168.1.20:8765, without https://."] = "Usa l’indirizzo mostrato dalla finestra del server, come 192.168.1.20:8765, senza https://.",
     ["Waiting for the server to answer…"] = "In attesa che il server risponda…",
     ["Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play."] = "Indica se il server è in uso in questo momento. Viene controllato quando serve una voce e di nuovo ogni pochi secondi dopo un errore, mai mentre giochi.",
+    ["Your own character, made in the character editor."] = "Il tuo personaggio, creato nell’editor dei personaggi.",
+    ["They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person."] = "Si unisce come una copia del modello da cui è stato creato. Parla con Mistral, Local AI o Personalizzato; con Convai parla come una persona normale.",
+    ["This character needs Mistral, Local AI or Custom to answer."] = "Questo personaggio ha bisogno di Mistral, Local AI o Personalizzato per rispondere.",
 }
