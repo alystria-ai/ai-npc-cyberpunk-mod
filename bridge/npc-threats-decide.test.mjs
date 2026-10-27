@@ -62,7 +62,7 @@ test('the pick: the reading names the kind; a threat and a command at once: a fi
 test('a typed turn: the words decide at admission, the reaction is handed over at once by the game, the model gets only what the person does', async () => {
   const {broker, options, files, logs} = fixture();
   const config = broker.admit(prepared("I'll put a bullet in your head, understand?"), options);
-  assert.deepEqual(config.reaction, {kinds: [], threats: true, decided: 'attack'});
+  assert.deepEqual(config.reaction, {kinds: [], threats: true, decided: 'attack', reading: 'kill'});
   await settle();
   const handed = files.filter(packet => packet.action === 'npc-reaction');
   assert.equal(handed.length, 1);
@@ -71,14 +71,14 @@ test('a typed turn: the words decide at admission, the reaction is handed over a
   assert.deepEqual(logs, ['NPC reaction: person=npc-maelstrom-male offered=attack admitted=yes route=text tag=attack delivered=yes screen=kill game=attack by=game']);
   // The turn still has its words about it after the hand-over; the model can request nothing more.
   assert.deepEqual(broker.configFor(prepared('x').input), undefined, 'another input gets nothing');
-  assert.deepEqual(broker.configFor(broker.pending.input).reaction, {kinds: [], threats: true, decided: 'attack'});
+  assert.deepEqual(broker.configFor(broker.pending.input).reaction, {kinds: [], threats: true, decided: 'attack', reading: 'kill'});
   assert.equal(await broker.deliver({version: 1, token: config.token, reaction: 'brawl'}), false, 'the model cannot change the game\'s pick');
   // The text route's menu: no tag asked for or read, the note says what the person does, nothing more to hand over.
   const menu = reactionMenu(config, {heard: "I'll put a bullet in your head, understand?"});
   assert.equal(menu.decided, 'attack');
   assert.equal(menu.deliver, null, 'the bridge handed it over already');
-  assert.equal(menu.notes, 'GAME REACTION: ' + decidedReactionText('attack'));
-  assert.match(menu.notes, /you attack V with your weapon/);
+  assert.equal(menu.notes, 'GAME REACTION: ' + decidedReactionText('attack', 'kill'));
+  assert.match(menu.notes, /V has just threatened to kill you\. You are deadly serious\. You pull your weapon and attack V\..*sounds cold and dangerous\. Do not back down/);
   assert.equal(menu.kinds.length, 0);
 });
 
@@ -99,7 +99,7 @@ test('a Convai voice turn: the plan rides in the window and its words; the final
   assert.equal(window.open(config), true);
   const context = CompanionActionWindow.contextText(config);
   assert.ok(context.includes(plannedReactionText(GANGER)));
-  assert.match(context, /if it threatens to kill you, you attack V with your weapon; if it threatens to hurt you, you attack V with your fists/);
+  assert.match(context, /if it threatens to kill you, you are deadly serious: you pull your weapon and attack V \(you sound cold and dangerous\); if it threatens to hurt you, you are angry at V: you put your fists up and fight V/);
   // The model asking for the fight itself (not its kind): not offered to it.
   assert.equal(await broker.deliver({version: 1, token: config.token, reaction: 'brawl'}), false);
   // The words arrive: the window decides once and closes.
@@ -122,7 +122,7 @@ test('a spoken turn on a text route: the text host decides from the transcript a
   const menu = reactionMenu(config, {heard: 'Get on the ground!'});
   assert.equal(menu.decided, 'get-down');
   assert.deepEqual(menu.deliver, {version: 1, token: config.token, reaction: 'get-down', by: 'game'});
-  assert.match(menu.notes, /you get down, as V told you/);
+  assert.match(menu.notes, /V has just told you to get down on the ground\. You are scared of V\. You get down on the ground as V told you, and stay down\./);
   assert.equal(await broker.deliver(menu.deliver), true);
   assert.equal(files.at(-1).reaction, 'get-down');
   assert.match(logs.at(-1), /tag=get-down delivered=yes screen=unheard game=get-down by=game$/);
@@ -179,7 +179,7 @@ test('live test 3, switch off: a Tyger Claw on a typed Local AI turn; the game d
   for (const [text, kind, screen] of [['get lost or I\'ll kill you', 'attack', 'kill'], ['you don\'t scare me', 'attack', 'hurt'], ['try me', 'attack', 'hurt'],
     ['you Tyger Claws are a bunch of pussies', 'leave', 'insult'], ['your gang is trash', 'leave', 'insult']]) {
     const {config, files, logs} = await turn(text);
-    assert.deepEqual(config.reaction, {kinds: [], decided: kind}, text);
+    assert.deepEqual(config.reaction, {kinds: [], decided: kind, reading: screen}, text);
     assert.equal(files.filter(packet => packet.action === 'npc-reaction').at(-1)?.reaction, kind, text);
     assert.deepEqual(logs, [`NPC reaction: person=npc-tyger-claws-male offered=${kind} admitted=yes route=text tag=${kind} delivered=yes screen=${screen} game=${kind} by=game`], text);
   }
@@ -194,7 +194,7 @@ test('live test 3, switch off: a Tyger Claw on a typed Local AI turn; the game d
 test('live test 3, switch on: the same Tyger Claw (aggressive) brawls for an insult or a dare and draws for a death threat', async () => {
   for (const [text, kind] of [['you Tyger Claws are a bunch of pussies', 'brawl'], ['bring it on', 'brawl'], ['get lost or I\'ll kill you', 'attack'], ['move or I\'ll shoot', 'attack']]) {
     const {broker, options, logs} = fixture();
-    assert.deepEqual(broker.admit(prepared(text), options).reaction, {kinds: [], threats: true, decided: kind}, text);
+    assert.equal(broker.admit(prepared(text), options).reaction.decided, kind, text);
     await settle();
     assert.match(logs[0], new RegExp(` tag=${kind} delivered=yes screen=[a-z+-]+ game=${kind} by=game$`), text);
   }
@@ -222,4 +222,42 @@ test('the text menu logs the game\'s verdict for a transcript it does not decide
   assert.equal(window.open({...config, reaction: {...config.reaction, plan: {kill: 'brawl'}}}), false, 'no new kind without the flag');
   assert.equal(reactionTraceLine({person: 'p', kinds: ['leave', 'attack'], route: 'text', why: 'no-tag', screen: 'none', game: 'none(unread)'}),
     'NPC reaction: person=p offered=leave,attack admitted=yes route=text tag=none(no-tag) delivered=- screen=none game=none(unread)');
+});
+
+// Live test 4 (2026-10-27, Local AI "lite" model): a corpo resident told "get lost or I'll kill you" ran off (`screen=kill game=leave
+// by=game`) but said "you're not scaring me". The note now gives the fact, the feeling, the deed and how the line sounds, in short sentences.
+test('live test 4: the decided note carries the feeling of the reaction, from the reading that picked it, in short plain sentences', async () => {
+  const note = (kind, reading) => decidedReactionText(kind, reading);
+  assert.equal(note('leave', 'kill'), 'The game has decided what you do now. V has just threatened to kill you. You are scared of V. You back away from V and get out '
+    + 'of here fast. Your reply is one or two short sentences you say while you do it, and it sounds frightened: shaky, pleading or panicked. Do not sound '
+    + 'calm or brave, and never say V does not scare you. Never say you will not do it. No action and no tag: the game does it.');
+  assert.match(note('leave', 'insult'), /V has just insulted you\. You are offended and fed up with V\. You turn your back on V and walk away\..*cold and offended/);
+  assert.doesNotMatch(note('leave', 'insult'), /scared|brave/);
+  assert.match(note('call-police', 'hurt'), /You are scared of V\. You call the police on V right now\..*frightened and urgent/);
+  assert.match(note('call-police', 'insult'), /You are angry at V\. You call the police on V right now\..*angry and fed up/);
+  assert.match(note('cower', 'kill'), /You are terrified of V\. You freeze, crouch down and cover your head where you are\..*terrified: begging and stammering/);
+  assert.match(note('brawl', 'insult'), /V has just insulted you\. You are angry at V\. You put your fists up and fight V\..*furious and ready to fight\. Do not back down or apologise\./);
+  assert.match(note('attack', 'kill'), /You are deadly serious\. You pull your weapon and attack V\..*cold and dangerous/);
+  assert.match(note('get-down', 'get-down'), /V has just told you to get down on the ground\. You are scared of V\. You get down on the ground as V told you, and stay down\./);
+  assert.match(note('stop', 'stop'), /You stop and stand still as V told you\..*nervous and careful/);
+  // No reading known (an older config): the feeling of the kind without the fact.
+  assert.match(note('leave'), /^The game has decided what you do now\. You are scared of V\./);
+  // The live case end to end: a typed Local AI turn to a corpo resident, the switch off; the text menu's note is the frightened one.
+  const {broker, options} = fixture();
+  const civilian = {...prepared('get lost or I\'ll kill you').input, reactionOffer: {available: true, actor: {id: '44ULL', key: KEY_NPC},
+    kinds: ['leave', 'call-police'], plan: {kill: 'leave', hurt: 'leave', insult: 'leave'}}};
+  const config = broker.admit({...prepared('get lost or I\'ll kill you'), input: civilian}, options);
+  assert.deepEqual(config.reaction, {kinds: [], decided: 'leave', reading: 'kill'});
+  assert.equal(reactionMenu(config, {heard: 'get lost or I\'ll kill you'}).notes, 'GAME REACTION: ' + note('leave', 'kill'));
+  // A spoken turn: the transcript's reading picks the feeling.
+  const spoken = fixture();
+  const voice = spoken.broker.admit({...prepared('', {provider: 'local'}), input: {...prepared('', {provider: 'local'}).input, reactionOffer: civilian.reactionOffer}},
+    {...spoken.options, source: 'private-voice'});
+  assert.equal(reactionMenu(voice, {heard: 'you stupid bitch'}).notes, 'GAME REACTION: ' + note('leave', 'insult'));
+  // The Convai window takes a decided config with its reading (and refuses an unknown one).
+  const window = new CompanionActionWindow({now: () => 10000});
+  const decided = {version: 1, token: 'drive-00000000000000000001', source: 'private-text', expiresAt: 20000, drive: false, reaction: {kinds: [], decided: 'leave', reading: 'kill'}};
+  assert.equal(window.open(decided), true);
+  assert.equal(CompanionActionWindow.contextText(decided), '\n' + note('leave', 'kill'));
+  assert.equal(window.open({...decided, reaction: {...decided.reaction, reading: 'mumble'}}), false);
 });

@@ -412,10 +412,10 @@ export function reactionMenu(offer, {heard} = {}) {
   // the transcript by the game's plan (`deliver` is the message to hand over at once). No tag is asked for or read; the note says what the person does.
   // A plan rides on every offer (both sides of the threats switch); its verdict is logged (game=) whether or not it chose.
   const verdict = !offer.reaction.decided && offer.reaction.plan ? decideReaction(offer.reaction, heard ?? '') : null;
-  const game = offer.reaction.decided ? {kind: offer.reaction.decided, deliver: null, screen: undefined}
-    : verdict?.kind ? {kind: verdict.kind, deliver: {version: 1, token: offer.token, reaction: verdict.kind, by: 'game'}, screen: verdict.screen} : null;
+  const game = offer.reaction.decided ? {kind: offer.reaction.decided, deliver: null, screen: undefined, reading: offer.reaction.reading ?? null}
+    : verdict?.kind ? {kind: verdict.kind, deliver: {version: 1, token: offer.token, reaction: verdict.kind, by: 'game'}, screen: verdict.screen, reading: verdict.reading} : null;
   if (game && REACTION_ORDER.includes(game.kind)) {
-    return {kinds: [], decided: game.kind, deliver: game.deliver, screen: game.screen, game: game.kind, notes: 'GAME REACTION: ' + decidedReactionText(game.kind),
+    return {kinds: [], decided: game.kind, deliver: game.deliver, screen: game.screen, game: game.kind, notes: 'GAME REACTION: ' + decidedReactionText(game.kind, game.reading),
       pick: () => ({kind: null, why: 'decided-by-game'}), resolve: () => null};
   }
   const offered = Array.isArray(offer.reaction.kinds) ? REACTION_ORDER.filter(kind => offer.reaction.kinds.includes(kind)) : [];

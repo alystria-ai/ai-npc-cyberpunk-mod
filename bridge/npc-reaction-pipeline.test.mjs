@@ -104,7 +104,7 @@ local natives = {
   walkTo = function() count('walkTo'); return {id = 'cmd'} end, commandState = function() return 'Executing' end,
   -- The threat reactions' natives (docs/NPC_THREATS_COMMANDS.md); the person is a crowd pedestrian.
   crowd = function() return true end, crowdFear = function(_, _, phase) count('crowdFear' .. phase) end, temper = function() return 'neutral' end,
-  hold = function() count('hold'); return {id = 'hold'} end,
+  hold = function() count('hold'); return {id = 'hold'} end, scared = function(_, on) count(on and 'scared' or 'calm') end,
 }
 local npc = {id = '11147869ULL'}
 local Service = (function() ${reactionsSource} end)()
@@ -238,7 +238,7 @@ test('Local AI, typed, the switch off (live test 3): "get lost or I\'ll kill you
       game.logs().join(' | '));
     const files = [], bridgeLogs = [], trace = [];
     const turn = await bridgeTurn(withProvider(requestText, 'local'), {files, logs: trace});
-    assert.deepEqual(turn.config.reaction, {kinds: [], decided: 'leave'}, 'the words decided at admission: nothing left for the model');
+    assert.deepEqual(turn.config.reaction, {kinds: [], decided: 'leave', reading: 'kill'}, 'the words decided at admission: nothing left for the model');
     await settle();
     const packet = files.find(item => item.action === 'npc-reaction');
     assert.ok(packet && packet.reaction === 'leave', 'handed over before any reply: ' + JSON.stringify(files.map(item => item.action)));
@@ -247,7 +247,9 @@ test('Local AI, typed, the switch off (live test 3): "get lost or I\'ll kill you
     await settle();
     assert.equal(result.text, 'Fine, fine, I am going!');
     assert.deepEqual(delivered, [], 'the text host hands nothing over: the game already did');
-    assert.ok(prompts.some(text => text.includes('The game has decided what you do as you answer V\'s new message')), 'the model is told what the person does');
+    // Live test 4: the line has the feeling of the reaction (a corpo who ran off said "you're not scaring me").
+    assert.ok(prompts.some(text => text.includes('The game has decided what you do now. V has just threatened to kill you. You are scared of V. You back away from V and get out of here fast.')
+      && text.includes('never say V does not scare you')), 'the model is told what the person does and feels');
     assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave admitted=yes route=text tag=leave delivered=yes screen=kill game=leave by=game'],
       'exactly one line for the turn');
     assert.deepEqual(bridgeLogs.filter(line => !line.startsWith('Crowd person:')), [], 'no second line from the host (the crowd person line says whose history, not what happened to the offer)');
@@ -282,7 +284,7 @@ test('Convai, typed, the switch off: the game decides at admission; the model\'s
   try {
     const files = [], trace = [];
     const turn = await bridgeTurn(game.request(1, THREAT), {files, logs: trace});
-    assert.deepEqual(turn.config.reaction, {kinds: [], decided: 'leave'});
+    assert.deepEqual(turn.config.reaction, {kinds: [], decided: 'leave', reading: 'hurt'});
     const window = new CompanionActionWindow({now: () => 1792531182000});
     assert.equal(window.open(turn.config), true, 'the window opens for the decided offer exactly as configFor made it');
     assert.doesNotMatch(CompanionActionWindow.contextText(turn.config), /Call Police drive-/);
@@ -377,7 +379,7 @@ test('the offer comes on a later message too; a polite message is read as nothin
   } finally { game.close(); }
 });
 
-test('threats switch on: "get down" through every real piece; the GAME decides from the words, hands it over at once, tells the model, and the crowd person cowers with the crowd\'s own fear', async () => {
+test('threats switch on: "get down" through every real piece; the GAME decides from the words, hands it over at once, tells the model, and the crowd person is held in the scared pose', async () => {
   const game = luaSession();
   try {
     game.threats(true);
@@ -389,7 +391,7 @@ test('threats switch on: "get down" through every real piece; the GAME decides f
     assert.ok(game.logs().some(line => line.includes('threats=on temper=') && line.includes(' plan=kill:cower,hurt:cower,insult:leave,get-down:get-down,stop:stop')), game.logs().join(' | '));
     const files = [], logs = [], trace = [];
     const turn = await bridgeTurn(requestText, {files, logs: trace});
-    assert.deepEqual(turn.config.reaction, {kinds: [], threats: true, decided: 'get-down'}, 'the words decided: nothing is left for the model');
+    assert.deepEqual(turn.config.reaction, {kinds: [], threats: true, decided: 'get-down', reading: 'get-down'}, 'the words decided: nothing is left for the model');
     await settle();
     const packet = files.find(item => item.action === 'npc-reaction');
     assert.ok(packet && packet.reaction === 'get-down', 'handed over as soon as the words were known, before any reply');
@@ -397,14 +399,16 @@ test('threats switch on: "get down" through every real piece; the GAME decides f
     await host.reply(turnConfig(turn.input, turn.config));
     await settle();
     assert.deepEqual(delivered, [], 'the text host hands nothing over: the game already did');
-    assert.ok(prompts.some(text => text.includes('The game has decided what you do as you answer V\'s new message: you get down, as V told you.')), 'the model is told what the person does');
+    assert.ok(prompts.some(text => text.includes('V has just told you to get down on the ground. You are scared of V. You get down on the ground as V told you, and stay down.')), 'the model is told what the person does');
     assert.ok(!prompts.some(text => text.includes('begin your reply with exactly one tag')), 'no tag is asked for');
     assert.equal(trace.length, 1, trace.join(' | '));
     assert.match(trace[0], /^NPC reaction: person=npc-corpo-resident-female offered=get-down admitted=yes route=\S+ tag=get-down delivered=yes screen=get-down game=get-down by=game$/);
     game.receive(JSON.stringify(packet));
     assert.ok(game.logs().some(line => /^NPC reaction accepted: get-down/.test(line)), 'the lease took the packet with the plan in its echo: ' + game.logs().join(' | '));
     game.advance(0.1); game.advance(2);
-    assert.equal(game.calls().crowdFear2, 1, 'the crowd person cowers: ' + game.logs().join(' | '));
+    assert.equal(game.calls().hold, 1, 'the crowd person is held: ' + game.logs().join(' | '));
+    assert.equal(game.calls().scared, 1, 'in the scared pose');
+    assert.equal(game.calls().crowdFear2, undefined, 'no crowd fear (live test 4: it walked the person off)');
     assert.equal(game.calls().walkTo, undefined);
     // Switched off again: the old kinds (no threats flag, no command) and the game's plan of them.
     game.threats(false);
