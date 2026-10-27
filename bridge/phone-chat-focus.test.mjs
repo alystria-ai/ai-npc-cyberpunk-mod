@@ -15,7 +15,7 @@ test('the box is focused by the chat page\'s own paint, once per opening, and ne
   assert.match(focus, /^\s*if !this\.m_convaiChatAutoFocus \{ return; \};/);
   assert.match(focus, /!this\.m_data\.convaiChat \|\| !this\.m_isFocused \|\| !this\.m_convaiChatEnabled \|\| !IsDefined\(this\.m_convaiChatInput\) \{ return; \};/);
   // One attempt per opening, spent before anything can fail.
-  assert.match(focus, /this\.m_convaiChatAutoFocus = false;\s*if /);
+  assert.match(focus, /this\.m_convaiChatAutoFocus = false;\s*let player = /);
   // Texting must be allowed, and the player must be on keyboard and mouse: a pad has no Esc to leave a box that swallows every action.
   assert.match(focus, /!this\.m_phoneSystem\.IsTextingEnabled\(\) \|\| !this\.m_player\.PlayerLastUsedKBM\(\)/);
   assert.match(focus, /this\.m_convaiChatInput\.GuardEnter\(0\.5\);\s*this\.RequestSetFocus\(this\.m_convaiChatInput\.GetRootWidget\(\)\);/);

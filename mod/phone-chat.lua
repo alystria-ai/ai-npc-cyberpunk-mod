@@ -632,6 +632,16 @@ function M.update(player, delta)
     local supported, contact = pcall(function() return player:ConvaiPhoneChatContact() end)
     if not supported then return end -- staged Lua remains safe before native install
     player:ConvaiPhoneChatTick()
+    -- The redscript's account of opening a chat (a few lines per opening, none otherwise): handed to the probe log by init.lua. A missing method
+    -- (older scripts) is asked about once.
+    if type(M.trace) == 'function' and M.traceMissing ~= true then
+        for _ = 1, 8 do
+            local asked, line = pcall(function() return player:ConvaiPhoneChatTakeTrace() end)
+            if not asked then M.traceMissing = true; break end
+            if type(line) ~= 'string' or line == '' then break end
+            pcall(M.trace, line)
+        end
+    end
     if not M.registered then
         player:ConvaiPhoneChatClearContacts()
         -- Without the text input no chat is offered (the tab lists nothing) instead of one that opens and cannot be typed in.

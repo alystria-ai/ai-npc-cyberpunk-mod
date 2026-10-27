@@ -162,6 +162,21 @@ public final func ConvaiPhoneChatContact() -> String {
 public final func ConvaiPhoneChatTyping() -> Bool {
     return IsDefined(this.m_convaiChatView) && this.m_convaiChatView.ConvaiChatTyping();
 }
+// One line per step of opening a chat (the press, the page, the focus), for the probe log: mod/phone-chat.lua takes them on its 10 Hz tick and
+// logs them. Bounded, written only when a chat is opened or closed, never per frame.
+@addField(PlayerPuppet)
+private let m_convaiChatTrace: array<String>;
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatTrace(line: String) -> Void {
+    if ArraySize(this.m_convaiChatTrace) < 16 { ArrayPush(this.m_convaiChatTrace, line); };
+}
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatTakeTrace() -> String {
+    if ArraySize(this.m_convaiChatTrace) == 0 { return ""; };
+    let line = this.m_convaiChatTrace[0];
+    ArrayErase(this.m_convaiChatTrace, 0);
+    return line;
+}
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatTick() -> Void {
     if IsDefined(this.m_convaiChatView) { this.m_convaiChatView.ConvaiChatAdvanceGuard(); };
@@ -283,6 +298,7 @@ private func SetFocus(isFocused: Bool) -> Void {
         else { if player.m_convaiChatView == this { player.m_convaiChatView = null; }; };
         if isFocused {
             this.ConvaiChatCreate();
+            player.ConvaiPhoneChatTrace("page focused contact=" + this.m_convaiChatId);
         };
     };
     if IsDefined(this.m_convaiChatPanel) { this.m_convaiChatPanel.SetVisible(isFocused && this.m_data.convaiChat); };
@@ -379,10 +395,15 @@ private final func ConvaiChatAutoFocus() -> Void {
     if !this.m_convaiChatAutoFocus { return; };
     if !this.m_data.convaiChat || !this.m_isFocused || !this.m_convaiChatEnabled || !IsDefined(this.m_convaiChatInput) { return; };
     this.m_convaiChatAutoFocus = false;
-    if this.m_convaiChatInput.IsFocused() || !this.m_phoneSystem.IsTextingEnabled() || !this.m_player.PlayerLastUsedKBM() { return; };
+    let player = this.m_player as PlayerPuppet;
+    if this.m_convaiChatInput.IsFocused() || !this.m_phoneSystem.IsTextingEnabled() || !this.m_player.PlayerLastUsedKBM() {
+        if IsDefined(player) { player.ConvaiPhoneChatTrace("autofocus skipped contact=" + this.m_convaiChatId + (this.m_convaiChatInput.IsFocused() ? " (already typing)" : this.m_phoneSystem.IsTextingEnabled() ? " (pad)" : " (texting off)")); };
+        return;
+    };
     this.m_convaiChatInput.GuardEnter(0.5);
     this.RequestSetFocus(this.m_convaiChatInput.GetRootWidget());
     this.m_dialogViewController.ConvaiChatScroll();
+    if IsDefined(player) { player.ConvaiPhoneChatTrace("autofocus asked contact=" + this.m_convaiChatId); };
 }
 
 @if(!ModuleExists("Codeware.UI.TextInput"))

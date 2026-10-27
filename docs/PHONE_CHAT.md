@@ -37,6 +37,24 @@ counts as a send for 0.5 s after the automatic focus (an engine-time stamp read 
 So a chat now takes two Escapes to close from a fresh opening (the first stops typing), and V (call) inside an open chat needs the first
 Esc. The call key on the Chat list rows is unchanged.
 
+**Opening a chat: F twice (2026-10-27, branch `fix/chat-focus-2`; `PhoneChat.reds` and `PhoneChatTabs.reds`, GAME RESTART; cause not proven offline).**
+Live (game 2.5, after focus-on-open): "if it is a new character i have to press F twice to get inside chat for it"; a chat with a history opens
+on the first press. The probe log of that session shows each chat reaching the typing state once (alex, adam-smasher, anders-hellman, ...), so the
+box focus itself works; what is lost is the first press, or the page's arrival, for a row with no journal contact (no history, no journal entry,
+`hash` 0). Reading the game's scripts and ours found no difference in the code path that depends on history, so two defences and a trace went in:
+- A press (F or R) on a Chat row when the tab's state says Off puts the state back to the list and opens (the state is reset by anything that
+  sets the game's screen type; only a Chat row under the cursor proves the Chat list is up, since only it shows one). Before, that press fell to the
+  game's own Contacts action (for F: a call attempt) and was lost.
+- A key press a full second after an opening whose page never reported ready starts the opening again (a new generation; the older attempt's
+  events are dropped). Before, the second press of a lost first one was ignored for as long as the state said "opening". A click's release and a
+  quick second press are not retries (a double popup would follow).
+- **Probe lines** (`Phone chat: ...` in the CET log, 120 a session at most, a few per opening): `open: contact=<id> journal=yes|no path=spawn|refresh`,
+  `open: state was off with a Chat row selected, put back to the list ...`, `open: pressed again, the page never reported ready, started again ...`,
+  `open ignored: the page is already open ...`, `open ignored: not a registered contact ...`, `page ready but not wanted: generation=<n> current=<m>
+  state=<s>` (the page arrived for an opening that is no longer wanted: states 0 off, 1 list, 2 opening, 3 conversation), `page focused contact=<id>`,
+  `autofocus asked ...` / `autofocus skipped ... (already typing | pad | texting off)`, `page closed, back on the list`. A chat that needed two
+  presses shows which of them it was.
+
 The character does not have to be spawned or nearby. Chat lists every character
 the mod has a profile for. The shipped phone contacts (`characters/phone-contacts.json`)
 appear once the journal has them as active, known contacts, including contacts with no
