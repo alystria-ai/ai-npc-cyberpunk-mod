@@ -2,6 +2,21 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.3.3
+
+- **NPCs react to threats and commands (new, off by default)**: Settings > Conversations > NPCs react to threats and commands. With it on, ordinary people you threaten or order around react in their own way: they cower, run, throw a punch or obey a plain order like "get down". The game picks the reaction from the person's temper and tells the character, on every provider. A frightened person in a crowd now runs away instead of vanishing.
+- **Remote OmniVoice (new, off by default)**: Settings > Voices > Custom voices. The OmniVoice voices can be rendered by a small server on another PC, or on a second graphics card, so your gaming card is left alone. Type the server address, press Test, and nothing of OmniVoice loads on the game PC. The server folder is a separate download. If the server cannot be reached the reply is shown as text.
+- **Characters know what V has on right now**: the clothes, the weapon in hand and the cyberware are checked every turn, and what changed replaces what was said earlier in the talk. Characters also notice when V is topless or naked. V asking about themself gets the true state from Dark Future, Flesh and Chrome and Injuries, also when it is fine.
+- **Characters you made** with Use the character I'm facing are in Characters to invite and in the phone's Chat tab, and you can call them with a live video holocall, with their own body in the picture. A copy invited from the Model browser takes the character you made from that model.
+- **Phone Chat**: opening a character's chat page puts the cursor in the message box, so you type at once. A press on a Chat row is no longer lost when the tab was reset.
+- **Steadier replies**: the conversation service, the voice workers and the Local AI model server now run at High priority while a world is loaded, and nothing of ours runs at High on the title screen. If the game stutters, a line `priority = normal` in priority.txt is the way back. V's helper voice now starts when your save loads.
+- **Long prompts**: when a model server says the prompt is too large, the mod reads the limit, cuts the prompt to fit, sends it once more and remembers the limit.
+- **Convai**: a companion asked to drive with no ride on offer says what is missing instead of claiming to sit down. A reply that arrives as text with no voice is shown as text instead of failing after a minute.
+- **Crowd people keep their own memory**: what a stranger heard and the mood carried over are kept per person, not per profile.
+- **Setup check**: it says which half is for the wrong game, the Runtime or the Scripts, and names the one to download. The notice waits until the game has settled. A binding can be set from a menu too.
+- **OmniVoice on AMD Radeon cards (experimental)**: faster settings for the ROCm route and one retry for a phrase that failed to render. The rows that name Windows blocking something no longer suggest OmniVoice.
+- **Error reports**: they cover more problems, including every way a voice stays silent, and the Local AI model row says why the service is not running.
+
 ## What's new in 0.3.2
 
 - **Content packs**: a content pack is a small add-on that changes how the characters talk and brings no code of its own. It can add world rules, change the wording of the prompts, rewrite a character's backstory, style and example lines, give characters new names, add name pools for passers-by, point characters at their own Convai twins and keep a separate memory. Switch each pack on or off in Settings > Content packs. New names show after the game restarts and everything else from the next reply. Your own edits in the character editor still win over a pack. Medieval AI NPCs is the first pack and is a separate download on Nexus Mods.
