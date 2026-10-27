@@ -429,7 +429,8 @@ public final func ConvaiChatHolocall() -> Void {
         this.ShowActionBlockedNotification();
         return;
     };
-    player.ConvaiHolocallRequest(this.m_convaiChatId);
+    // A request the Chat tab does not know (no such contact) used to vanish without a word: the game's own blocked notice says it was refused.
+    if !player.ConvaiHolocallRequest(this.m_convaiChatId) { this.ShowActionBlockedNotification(); };
 }
 
 // On the Chat list the Call key (the game's `call` action: V on a keyboard, Triangle on a pad; PhoneChatTabs.reds
@@ -442,5 +443,5 @@ public final func ConvaiChatListHolocall(contact: wref<ContactData>) -> Void {
         this.ShowActionBlockedNotification();
         return;
     };
-    this.m_player.ConvaiHolocallRequest(contact.id);
+    if !this.m_player.ConvaiHolocallRequest(contact.id) { this.ShowActionBlockedNotification(); };
 }

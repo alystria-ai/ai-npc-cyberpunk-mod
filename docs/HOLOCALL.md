@@ -81,6 +81,23 @@ refused it was `mod/holocall.lua` (no catalogue entry) and then `ConvaiCallFindC
 - **Portrait.** Characters made in the editor have no picture, so the window shows the unknown-caller picture. A later step could
   give them one (an atlas or a texture path set on the window's avatar image); not built.
 - **Rita Wheeler and the other roster rows** fall out of the same path (voice call, unknown-caller picture, Convai conversation).
+- **A scene reading is not trusted at once (branch `fix/custom-calls-2`, 2026-10-27).** Live, game 2.31: a call to a character the player made
+  was refused with `reason=scene` in plain gameplay (`requested` and `refused` in the same second), and Alex rang from the same spot 13 s
+  later. The refusal is `M.blocked(sample)`: `sample.tier ~= 1`, a dialogue or a choice hub, from the battle observer's sample, which is
+  taken every half second of **play time** (`updateBattles`). A call is asked for from the open phone, which slows the game and holds the
+  scene tier above gameplay's, and `worldReady` does not exclude the phone, so the request was judged on a reading the phone itself made
+  (or the first one after it closed). Not a journal or phone-system call: the no-journal path adds no check that reads a contact. Now
+  `M.update` holds a request whose reading says `scene` for up to `M.SCENE_WAIT` (4 s of play) and judges it again on each fresh reading: gameplay
+  again starts the call, a real scene or dialogue is still there after 4 s and refuses as before. Combat and a game call (not stale
+  readings) still refuse on the spot. A pause adds no play time, so a paused request just waits.
+  Probe lines: `held contact=<id> reason=scene tier=<n> dialogue=<b> choices=<b> call=<b> replacer=<b> (waiting for a fresh reading, up to 4s)`,
+  then either `released contact=<id> after <s>s: gameplay again` followed by the usual `state=dialing`, or
+  `refused contact=<id> reason=scene tier=.. dialogue=.. choices=.. call=.. replacer=.. waited=4.xs` (the refusal line now carries the
+  reading for the scene reason, so a refusal can be read without a guess).
+- **A refusal always tells the player.** Every refusal in `mod/holocall.lua` carries a notice text ("Calls are not available right now.",
+  during combat, already on a call, cannot take a holocall, disabled, needs Mistral/Local AI/Custom); a request the Chat tab does not know
+  (`ConvaiHolocallRequest` false) now shows the game's own blocked notice instead of vanishing. The notice id repeats at most every 10 s
+  (`holocall-refused`, `mod/notices.lua`), so pressing V again within 10 s of a refusal with the same text shows nothing new.
 - **Probe line, one per call from such a row** (CET log, `[Holocall]`):
   `no-journal call contact=<key> profile=<key> name=<name> picture=unknown-caller begin=<ok|no-hud|unknown-contact|quest-call|calling-disabled|error ...>`.
   `begin=no-hud` with an older `Holocall.reds` (one-argument `ConvaiHolocallBegin`) is the stale-scripts signature. Whether the window
