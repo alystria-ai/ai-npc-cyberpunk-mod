@@ -2,7 +2,7 @@ import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {ResidentVoice, pathAttestationFailed, noCudaFailed, timedOutFailed, outOfMemoryFailed} from './resident-voice.mjs';
 import {lacksNvidia, isSmallCard, underNeeded} from './gpu-vendors.mjs';
 import {spillVerdict} from './gpu-memory.mjs';
-import {OMNI_SOURCE_VARIABLE, OWN_PYTHON_VARIABLE, ownPythonSummary} from './omni-own-python.mjs';
+import {OMNI_SOURCE_VARIABLE, OWN_PYTHON_VARIABLE, ownPythonSummary, rocmWorkerEnvironment} from './omni-own-python.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
@@ -799,10 +799,14 @@ export class VoiceSelection {
   get omniOwnPython(){try{const found=this.options.omniOwnPython?.();return found?.configured?found:null;}catch{return null;}}
   // The python.exe and environment of an OmniVoice worker: the player's own Python only when its self-test passed (with OmniVoice's code from the pack,
   // and no CUDA graph on ROCm unless the worker is told otherwise), else the Runtime's, as before. The CUDA graph is off for the retry after a memory fault.
+  // On ROCm (the self-test found torch.version.hip) the worker also gets MIOPEN_FIND_MODE=FAST, PyTorch's own convolutions instead of MIOpen's and below-normal priority,
+  // each with an override (omni-python.txt, docs/OMNIVOICE_AMD.md); nothing of that for NVIDIA or the Runtime's Python (rocmWorkerEnvironment).
   omniWorkerHooks(){
     const own=this.omniOwnPython,used=own?.used===true&&!!own.path&&!!own.source;
-    const extra={...(used?{[OWN_PYTHON_VARIABLE]:'1',[OMNI_SOURCE_VARIABLE]:own.source}:{}),...(this.omniGraphOff?{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}:{})};
-    return {pythonExecutable:used?own.path:this.options.omniPythonExecutable,...(Object.keys(extra).length?{extraEnvironment:extra}:{})};
+    const rocm=used?rocmWorkerEnvironment(own,this.options.processEnv??process.env):{};
+    const extra={...(used?{[OWN_PYTHON_VARIABLE]:'1',[OMNI_SOURCE_VARIABLE]:own.source}:{}),...rocm,...(this.omniGraphOff?{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}:{})};
+    return {pythonExecutable:used?own.path:this.options.omniPythonExecutable,...(Object.keys(extra).length?{extraEnvironment:extra}:{}),
+      ...(rocm.CYBERPUNK_CONVAI_WORKER_PRIORITY==='below'?{keepLowPriority:true}:{})};
   }
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
   // Would routing speak with Pocket if it could run? Only when the player chose Pocket: an Omni that cannot run does not load Pocket in its

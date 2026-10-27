@@ -387,6 +387,25 @@ test('a background start loads below normal priority and returns to normal once 
   assert.equal(calls.includes('unexpected'), false, 'a normal start leaves the priority alone');
 });
 
+test('the AMD route keeps the worker below normal priority from its start for good; priority errors never fail a start', async () => {
+  const calls = [];
+  const amd = harness({autoReady: false, workerOptions: {keepLowPriority: true, setPriority: (pid, level) => calls.push([pid, level])}});
+  const started = amd.client.start(); await tick();
+  assert.deepEqual(calls, [[1234, osConstants.priority.PRIORITY_BELOW_NORMAL]]);
+  amd.ready(); await started;
+  assert.deepEqual(calls, [[1234, osConstants.priority.PRIORITY_BELOW_NORMAL]], 'ready does not raise it to normal');
+  let closed = amd.client.close(); amd.finish(); await closed;
+  // A background start on the AMD route is also kept low once ready.
+  const levels = [];
+  const both = harness({autoReady: false, workerOptions: {lowPriority: true, keepLowPriority: true, setPriority: (pid, level) => levels.push(level)}});
+  const bothStarted = both.client.start(); await tick(); both.ready(); await bothStarted;
+  assert.deepEqual(levels, [osConstants.priority.PRIORITY_BELOW_NORMAL]);
+  closed = both.client.close(); both.finish(); await closed;
+  const refused = harness({workerOptions: {keepLowPriority: true, setPriority() { throw Error('access denied'); }}});
+  await refused.client.start(); assert.equal(refused.client.loaded, true);
+  closed = refused.client.close(); refused.finish(); await closed;
+});
+
 test('render timeout rejects queued work and discards a late WAV while waiting for physical exit', async () => {
   const timers = clock(), h = harness({timers});
   const first = h.client.synthesize('judy-alvarez', 'First'); await tick();
