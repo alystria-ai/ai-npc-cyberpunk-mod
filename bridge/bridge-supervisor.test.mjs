@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {mkdtemp, mkdir, readFile, writeFile, rm, realpath} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {tmpdir, constants as osConstants} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {PassThrough} from 'node:stream';
 import {pathToFileURL} from 'node:url';
@@ -116,6 +116,31 @@ test('starts one hidden bridge with the configured paths and stops it gracefully
   for (const file of [f.statusPath, join(f.state, 'bridge-service.log')]) {
     assert.doesNotMatch(await readFile(file, 'utf8'), /fixture-key-not-a-credential/, 'the credential is never published');
   }
+});
+
+test('the bridge it starts is set to high priority (never realtime) unless the state folder priority.txt says normal; a refusal changes nothing', async t => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH;
+  const f = await fixture(t);
+  const calls = [];
+  const run = supervise(f, {setPriority: (pid, level) => calls.push([pid, level])});
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready');
+  const [pid] = await bridgePids(f.state);
+  assert.deepEqual(calls, [[pid, HIGH]]);
+  assert.notEqual(calls[0][1], osConstants.priority.PRIORITY_HIGHEST);
+  assert.match(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /The bridge runs at high priority/);
+  run.endGame(); await run.done;
+  // The player's way back.
+  await writeFile(join(f.state, 'priority.txt'), ['# if the game stutters', 'priority = normal', ''].join(String.fromCharCode(10)));
+  const calmer = [];
+  const second = supervise(f, {setPriority: (pid, level) => calmer.push([pid, level])});
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready again');
+  assert.deepEqual(calmer, []);
+  second.endGame(); await second.done;
+  await rm(join(f.state, 'priority.txt'), {force: true});
+  const refused = supervise(f, {setPriority() { throw Error('access denied'); }});
+  const ready = await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'a refused priority must not stop the start');
+  assert.equal(ready.code, 'bridge-ready');
+  refused.endGame(); await refused.done;
 });
 
 test('under Mod Organizer 2 the bridge gets the start script\'s stat fallbacks and nothing else from NODE_OPTIONS', async t => {

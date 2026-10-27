@@ -465,6 +465,15 @@ def heartbeat_frame(step=None, cpu_ms=None, io_bytes=process_io_bytes, modules=l
 
 NORMAL_PRIORITY_CLASS = 0x00000020
 BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
+HIGH_PRIORITY_CLASS = 0x00000080   # never REALTIME
+# The level a reply being voiced runs at (docs/PROCESS_PRIORITY.md): the bridge says 'high' (its default) or nothing (normal, as before 0.3.3) here.
+PRIORITY_VARIABLE = "CYBERPUNK_CONVAI_WORKER_PRIORITY"
+
+
+def reply_priority_class(environ=None):
+    """HIGH_PRIORITY_CLASS when the bridge asked for 'high', else NORMAL_PRIORITY_CLASS."""
+    environ = os.environ if environ is None else environ
+    return HIGH_PRIORITY_CLASS if environ.get(PRIORITY_VARIABLE) == "high" else NORMAL_PRIORITY_CLASS
 
 
 def set_priority_class(priority_class):
@@ -494,14 +503,14 @@ def lower_priority():
 
 
 def raise_priority():
-    """Normal priority class, for the time a reply is being voiced. Only Windows can go back up (a raised nice
-    value needs privileges elsewhere), so nothing changes there."""
-    return os.name == "nt" and set_priority_class(NORMAL_PRIORITY_CLASS)
+    """The reply priority class (high by default, normal when the player chose that), for the time a reply is being voiced and while starting up.
+    Only Windows can go back up (a raised nice value needs privileges elsewhere), so nothing changes there."""
+    return os.name == "nt" and set_priority_class(reply_priority_class())
 
 
 class PriorityGate:
     """A reply being voiced is a person waiting: the whole request (preparing the voice, the text, every chunk of audio) runs at
-    normal priority. A game that keeps every core busy otherwise starves a below-normal worker for seconds (Windows gives the
+    the reply priority (high; normal on request). A game that keeps every core busy otherwise starves a below-normal worker for seconds (Windows gives the
     foreground game longer time slices on top), which showed as 5 to 7 s before the first sound until the player switched
     windows. The worker goes back to below normal `hold` seconds after the last request, so it does not flap between the
     sentences of one reply, and never raises for a request that only prepares a voice ahead of time. Nothing here runs per
@@ -538,7 +547,7 @@ def main():
     args = parser.parse_args()
     if re.fullmatch(r"[a-f0-9]{32}", args.owner) is None:
         raise ValueError("Invalid Pocket worker owner")
-    # Starting up (the heavy imports, loading the student, warming voices) runs at NORMAL priority and the worker goes below normal only
+    # Starting up (the heavy imports, loading the student, warming voices) runs at the reply priority (high; normal on request) and the worker goes below normal only
     # when it is ready (below). Lowered from the first instruction it was starved by a game that was loading and every core busy: three
     # installs (0.2.7, 2026-10-21) saw `import pocket_tts` take under 3 s of CPU in 240 s (the worker got about 1% of a core) and the start
     # timed out, while the retry a minute later (the game in the world) imported in seconds. A start is a few seconds of one or two threads

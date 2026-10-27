@@ -10,6 +10,7 @@ import {pocketSpokenText} from './pocket-language-models.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {killProcessTree, pidAlive, recoverExit} from './worker-process.mjs';
 import {describeExitCode, stderrReason} from './voice-failures.mjs';
+import {DEFAULT_PRIORITY, priorityEnvironment, priorityLevel, setProcessPriority} from './process-priority.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
 export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666';
@@ -90,7 +91,7 @@ export function validatePocketConfig(config) {
 export class PocketVoice {
   constructor(config, {project, configPath, pythonExecutable, spawnImpl = spawn,
     onState = () => {}, onLog = () => {}, now = () => performance.now(),
-    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs, isAlive} = {}) {
+    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs, isAlive, workerPriority = DEFAULT_PRIORITY, setPriority} = {}) {
     this.config = validatePocketConfig(config); this.registry = this.config.registry;
     // The voices the worker holds. It starts with the configuration's (`baseRegistry`, which its start is checked against); a voice the
     // player changed while it runs is sent to it (setVoices) and `registry` follows what it confirms. A worker that starts again holds the
@@ -101,6 +102,11 @@ export class PocketVoice {
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'Pocket Python executable');
     if (!this.project || !this.configPath || !this.pythonExecutable) throw Error('Pocket runtime paths cannot fall back to a development environment');
     Object.assign(this, {spawnImpl, onState, onLog, now, setTimer, clearTimer});
+    // The level a reply being voiced runs at (bridge/process-priority.mjs, docs/PROCESS_PRIORITY.md): 'high' by default, the player's priority.txt can say 'normal'. The worker
+    // starts at it (the child is set here, the worker sets itself) and keeps it while a reply is voiced; a voice prepared ahead of time stays below normal (pocket-voice-worker.py).
+    this.priorityLevel = priorityLevel(workerPriority) ?? DEFAULT_PRIORITY;
+    // A test's stand-in child has no process: its pid must never reach the real system call.
+    this.setPriority = setPriority ?? (spawnImpl === spawn ? undefined : () => { /* a stand-in child: nothing to set */ });
     // Is a process still running (exit recovery)? A test's stand-in child has no process: it is alive until it says it closed.
     this.isAlive = typeof isAlive === 'function' ? isAlive : spawnImpl === spawn ? pidAlive : () => true;
     // One number replaces the per-phase stall limits (tests, tuning).
@@ -275,12 +281,13 @@ export class PocketVoice {
       const env = {...process.env, PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1', CUDA_VISIBLE_DEVICES: '-1',
         HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1', HF_HUB_DISABLE_TELEMETRY: '1',
         TOKENIZERS_PARALLELISM: 'false', OMP_NUM_THREADS: String(this.config.cpu.threads),
-        MKL_NUM_THREADS: String(this.config.cpu.threads), OPENBLAS_NUM_THREADS: String(this.config.cpu.threads)};
+        MKL_NUM_THREADS: String(this.config.cpu.threads), OPENBLAS_NUM_THREADS: String(this.config.cpu.threads), ...priorityEnvironment(this.priorityLevel)};
       for (const key of ['HF_TOKEN', 'HUGGING_FACE_HUB_TOKEN', 'KAGGLE_API_TOKEN']) delete env[key];
       child = this.child = this.spawnImpl(this.pythonExecutable,
         ['-B', resolve(this.project, 'bridge/pocket-voice-worker.py'), '--config', this.configPath, '--owner', this.owner],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env});
     } catch (error) { this.fail(error); return; }
+    if (this.priorityLevel === 'high') setProcessPriority(child.pid, 'high', this.setPriority);
     this.startLog(`worker started (pid ${child.pid ?? '?'})`);
     let buffer = '';
     child.stdout.setEncoding('utf8');
@@ -499,7 +506,7 @@ export class PocketVoice {
       request.timer = this.timer(() => this.cancelRequest(request, Error('Pocket speech timed out')),
         kind === 'prepare' ? POCKET_LIMITS.prepareMs : POCKET_LIMITS.renderMs);
       this.publish(kind === 'prepare' ? 'warming' : 'speaking', {profile});
-      // `urgent`: a reply is waiting on this preparation, so the worker runs it at normal priority (warming a voice ahead of time stays below normal).
+      // `urgent`: a reply is waiting on this preparation, so the worker runs it at the reply level (high; warming a voice ahead of time stays below normal).
       try { this.send({op: kind, id, profile, ...(text !== undefined ? {text} : {}), ...(this.keepPrepared ? {keep: true} : {}), ...(urgent ? {urgent: true} : {})}); }
       catch (error) { this.fail(error); }
       if (signal?.aborted) request.cancel();

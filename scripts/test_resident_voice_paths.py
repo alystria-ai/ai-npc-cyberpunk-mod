@@ -251,17 +251,21 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertIsNone(worker.keep_rocm_convolutions(cuda, {}))
         self.assertTrue(cuda.backends.cudnn.enabled)
 
-    def test_the_worker_lowers_its_own_priority_only_when_the_bridge_asks(self):
+    def test_the_worker_sets_its_own_priority_only_when_the_bridge_asks_and_never_to_realtime(self):
         applied = []
-        self.assertIsNone(worker.lower_own_priority({}, applied.append))
-        self.assertIsNone(worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'normal'}, applied.append))
+        self.assertIsNone(worker.apply_own_priority({}, applied.append))
+        for other in ('normal', 'realtime', 'highest', 'HIGH', ''):
+            self.assertIsNone(worker.apply_own_priority({worker.PRIORITY_VARIABLE: other}, applied.append), other)
         self.assertEqual(applied, [])
-        self.assertEqual(worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: applied.append(level) or True), '[priority] below normal')
-        self.assertEqual(applied, [0x00004000])
-        self.assertEqual(worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: False), '[priority] could not be lowered')
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, lambda level: applied.append(level) or True), '[priority] high')
+        self.assertEqual(applied, [0x00000080], 'HIGH_PRIORITY_CLASS')
+        self.assertNotIn(0x00000100, worker.PRIORITY_CLASSES.values(), 'REALTIME_PRIORITY_CLASS is never used')
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: applied.append(level) or True), '[priority] below normal')
+        self.assertEqual(applied[-1], 0x00004000)
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, lambda level: False), '[priority] could not be set to high')
         def refuse(level):
             raise OSError('access denied')
-        self.assertIn('could not be lowered (access denied)', worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'below'}, refuse))
+        self.assertIn('could not be set to high (access denied)', worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, refuse))
 
     def test_the_backend_line_names_rocm_or_cuda_and_the_card_from_pytorch(self):
         def fake(hip, cuda, available=True):

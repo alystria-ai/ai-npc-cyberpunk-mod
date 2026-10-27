@@ -124,6 +124,7 @@ import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, m
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {ChildRegistry, CHILDREN_FILE, reapChildren} from './child-registry.mjs';
+import {readTurnPriority, setProcessPriority} from './process-priority.mjs';
 import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
 import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
@@ -147,6 +148,11 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
 const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime');
+// One priority rule for everything on the path from V's words to the first sound of the reply (docs/PROCESS_PRIORITY.md): HIGH (never realtime) by default, `priority = normal`
+// in <state>/priority.txt is the player's way back. This process takes it first (the supervisor also sets it from outside), then the workers and the hidden browser it starts.
+const {level: turnPriority, source: turnPrioritySource} = readTurnPriority({stateDirectory});
+if (turnPriority === 'high') process.stderr.write(`[Priority] conversation service: ${setProcessPriority(process.pid, 'high') ? 'high' : 'could not be raised'}\n`);
+else process.stderr.write(`[Priority] ${turnPriority} (${turnPrioritySource}): nothing is raised above normal\n`);
 // Automatic error reports (docs/ERROR_REPORTS.md): this process only records (bridge/error-events.mjs); the service's supervisor sends.
 // An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
 // not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
@@ -414,7 +420,7 @@ function titleHolds() {
   if (worldSession?.ready === true || process.uptime() * 1000 >= TITLE_HOLD_MAX_MS) titleHoldOver = true;
   return !titleHoldOver;
 }
-const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath, startHold: titleHolds,
+const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath, startHold: titleHolds, workerPriority: turnPriority,
   omniRemoteAddress: () => remoteOmniAddress.endpoint, omniReferenceRoots: referenceRoots,
   gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
@@ -529,7 +535,7 @@ const localModelSelection = () => { maturePackInstalled(true); return {pin: loca
 const childrenFile = resolve(stateDirectory, CHILDREN_FILE);
 await reapChildren({file: childrenFile, log: message => console.error(message)});
 const childRegistry = new ChildRegistry({file: childrenFile, log: message => console.error('[Resource] ' + message)});
-const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection, processOptions: {registry: childRegistry},
+const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection, processOptions: {registry: childRegistry, raiseLevel: turnPriority},
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   gameRoom: {voiceMiB: omniStillToLoadMiB, residentVoiceMiB: omniResidentMiB},
   log: message => console.error('[LocalAI] ' + message)});
@@ -822,7 +828,7 @@ const keyHostOptions = peers => ({exclusive: {enabled: singleSession, limit: con
   },
   onSuccess: () => { quota.succeeded(); keys.settled(); },
   recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()})});
-const phoneRealtime = new RealtimeHost({transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [realtime])});
+const phoneRealtime = new RealtimeHost({browserPriority: turnPriority, transformReply: cleanReply, guard: hostGuard, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
   const requestId = prepared.input.requestId || prepared.input.id;
@@ -1045,7 +1051,7 @@ const companionVision = new CompanionVision({capture: new VisionCapture({log: vi
   stageVoice: images => realtime.stageVoiceVision(images),
   stagePage: (config, images) => realtime.prestageVision(config, images), unstagePage: config => realtime.unstageVision(config),
   log: visionLog});
-const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
+const realtime = new RealtimeHost({browserPriority: turnPriority, onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime]),
   audioRates: savedAudioRates, audioRateSeed: {ids: Object.values(multilingualProfiles.twins), hint: {declared: 24000, actual: 44100}}, log: line => console.error('[Convai audio] ' + line),
   onAudioRate: rates => { audioRatesWriting = audioRatesWriting.catch(() => {}).then(() => mkdir(stateDirectory, {recursive: true}).then(() => atomic(audioRatesPath, JSON.stringify(rates)))).catch(() => {}); }});
@@ -1123,13 +1129,15 @@ const playerLanguageFile = resolve(stateDirectory, PLAYER_LANGUAGE_FILE);
 const speechLanguage = new SpeechLanguage({readUiFile: () => readFile(resolve(runtime, 'ui-language.txt'), 'utf8'),
   remembered: parsePlayerLanguage(await readFile(playerLanguageFile, 'utf8').catch(() => '')),
   remember: language => { void atomic(playerLanguageFile, playerLanguageText(language)).catch(() => {}); }});
+// The local speech recognition worker is high for good with the rule's default (an idle one costs nothing); otherwise below normal and raised to normal for a recording, as before.
+const sttPriority = turnPriority === 'high' ? 'high' : 'below';
 const voxtralStt = new VoxtralStt({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } }, onLog: message => process.stderr.write(message)});
-const englishStt = new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable});
+const englishStt = new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable, priority: sttPriority});
 // A pack decodes once per recording (no live words) and is a big model: it leaves memory 60 s after its last recording. The first load after
 // the files were written reads a 650 MB model that Windows is still scanning: measured 68 s (4.9 s from the second load on), so a load may
 // take 150 s before it counts as failed.
 const packStts = new Map(LOCAL_PACKS.map(pack => [pack.id, new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable, engine: pack,
-  partials: false, pausePartials: false, idleMs: 60_000, startupMs: 150_000, finishMs: 30_000})]));
+  partials: false, pausePartials: false, idleMs: 60_000, startupMs: 150_000, finishMs: 30_000, priority: sttPriority})]));
 const installedPackIds = () => LOCAL_PACKS.filter(pack => packStts.get(pack.id).available()).map(pack => pack.id);
 async function routeRecording() {
   const {language, source} = await speechLanguage.current();

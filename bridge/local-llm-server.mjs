@@ -38,6 +38,7 @@ import {createHash, randomBytes} from 'node:crypto';
 import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, cpus, constants as osConstants} from 'node:os';
+import {nodePriority} from './process-priority.mjs';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
 import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
@@ -347,6 +348,8 @@ function startError(code, message) {
 //   proc.apiKey / proc.baseUrl / proc.running / proc.pid / proc.tail()
 //   proc.on('exit', ({code, signal, expected}) => ...)
 //   await proc.stop();  proc.killSync();
+//   proc.raise()   -> back to `raiseLevel` while a turn waits on the child: 'normal' (the default) or 'high' (HIGH_PRIORITY_CLASS, never REALTIME; the chat model, docs/PROCESS_PRIORITY.md).
+//                     With 'high' and `lowerAfter: 'ready'` the child also loads at high priority (a cold start is a reply waiting).
 //   proc.lower()   -> sets the child's priority class below normal (true when it is, or was); with `lowerAfter: 'ready'` the child runs at normal priority until this is called
 // `lowerPriority` (default true) lowers the child below normal so the game keeps its CPU: at once (`lowerAfter: 'spawn'`, the default: the embedder and any
 // CPU process) or when the owner calls lower() (`lowerAfter: 'ready'`: the chat model, which loads at normal priority because a load under a game that keeps every
@@ -358,12 +361,12 @@ export class LlamaProcess extends EventEmitter {
   #exitPromise; #resolveExit; #settleWait = null;
 
   constructor({command, argsPrefix = [], buildArgs, spawnImpl = spawn, fetchImpl = fetch, startupMs = LOCAL_LLM_LIMITS.startupMs,
-      tmpDir = tmpdir(), platform = process.platform, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', setPriorityImpl = setPriority, pollMs = 200,
+      tmpDir = tmpdir(), platform = process.platform, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', raiseLevel = 'normal', setPriorityImpl = setPriority, pollMs = 200,
       healthTimeoutMs = 2000, env = {}, tailChars = 6000, findPort = freePort, label = 'llama-server', registry = null} = {}) {
     super();
     if (!command || typeof buildArgs !== 'function') throw TypeError('command and buildArgs are required');
     Object.assign(this, {command, argsPrefix, buildArgs, spawnImpl, fetchImpl, startupMs, tmpDir, platform, setTimer, clearTimer, log,
-      lowerPriority, lowerAfter, setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label, registry});
+      lowerPriority, lowerAfter, raiseLevel: raiseLevel === 'high' ? 'high' : 'normal', setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label, registry});
     this.#exitPromise = new Promise(resolveExit => { this.#resolveExit = resolveExit; });
   }
 
@@ -386,12 +389,12 @@ export class LlamaProcess extends EventEmitter {
     try { this.setPriorityImpl(pid, osConstants.priority.PRIORITY_BELOW_NORMAL); this.#lowered = true; return true; } catch { return false; }
   }
 
-  // Back to normal priority while a turn waits on the child (a below-normal process starves for seconds when the game keeps every core busy, and
+  // Back to normal (or high, `raiseLevel`) priority while a turn waits on the child (a below-normal process starves for seconds when the game keeps every core busy, and
   // the game's foreground time slices are longer still). True when it was lowered and is now at normal; a refusal leaves it as it was.
   raise() {
     const pid = this.#child?.pid;
     if (!this.#lowered || !pid || this.#exited) return false;
-    try { this.setPriorityImpl(pid, osConstants.priority.PRIORITY_NORMAL); this.#lowered = false; return true; } catch { return false; }
+    try { this.setPriorityImpl(pid, nodePriority(this.raiseLevel)); this.#lowered = false; return true; } catch { return false; }
   }
 
   // The last few KB of the child's output, for diagnostics only. The key is redacted.
@@ -426,6 +429,7 @@ export class LlamaProcess extends EventEmitter {
     // Written down for the bridge that finds this child running after this process died without cleaning up (bridge/child-registry.mjs). Never throws.
     if (this.registry && child.pid !== undefined) { try { this.registry.add({pid: child.pid, exe: this.command, label: this.label}); } catch { /* the orphan guard is optional */ } }
     if (this.lowerAfter === 'spawn') this.lower();
+    else if (this.raiseLevel === 'high' && child.pid) { try { this.setPriorityImpl(child.pid, nodePriority('high')); } catch { /* best effort: it loads at normal */ } }
     for (const stream of [child.stdout, child.stderr]) {
       stream?.setEncoding?.('utf8');
       stream?.on('data', text => this.#append(text));   // always drained, or a chatty child blocks
@@ -1137,7 +1141,7 @@ export class LocalLlmServer extends EventEmitter {
 
     this.#loaded = {id: tier.id, name: tier.loadedName ?? tier.name, file: basename(String(tier.file)), family: modelFamily({family: tier.family, name: tier.name, file: tier.file}),
       tier: tierKey, sizeMiB: Math.round(Number(choice.sizeMiB) || 0), device: {id: device.id, name: device.name, freeMiB: Number.isFinite(freeMiB) ? Math.round(freeMiB) : null},
-      contextSize, cacheRamMiB, priority: 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
+      contextSize, cacheRamMiB, priority: 'normal', loadPriority: this.processOptions?.raiseLevel === 'high' ? 'high' : 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
       template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null,
       kvType, fit: fit ? {pick: fit.pick ? {contextSize: fit.pick.contextSize, kvType: fit.pick.kvType, projectedMiB: fit.pick.projectedMiB} : null, share: fit.share ?? null, marginMiB: fit.marginMiB ?? null} : null,
       gpuShare: choice.offload === true && Number.isFinite(placement?.share) ? placement.share : null,
@@ -1320,7 +1324,7 @@ export class LocalLlmServer extends EventEmitter {
       loaded.offload && Number.isFinite(loaded.gpuShare) ? `about ${Math.round(loaded.gpuShare * 100)}% of the layers on the card` : null,
       loaded.offloadPlan ? `fit target ${loaded.offloadPlan.fitTargetMiB} MiB free for the game, ${loaded.offloadPlan.threads} CPU threads` : null,
       loaded.device ? `device ${loaded.device.id}${loaded.device.freeMiB === null ? '' : ' (' + loaded.device.freeMiB + ' MiB free before)'}` : null,
-      loaded.priority === 'below-normal' ? 'process priority normal while it loaded, below normal now (the game keeps the CPU)' : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
+      loaded.priority === 'below-normal' ? `process priority ${loaded.loadPriority ?? 'normal'} while it loaded, below normal now${loaded.loadPriority === 'high' ? ', high while a turn waits' : ''} (the game keeps the CPU)` : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
       loaded.loadMs === null ? null : `loaded in ${(loaded.loadMs / 1000).toFixed(1)} s`, loaded.warmMs === null ? null : `warm-up ${(loaded.warmMs / 1000).toFixed(1)} s${loaded.firstTime ? ' (first time)' : ''}`]
       .filter(Boolean).join(', ');
   }

@@ -12,14 +12,16 @@
 import {spawn} from 'node:child_process';
 import {readFile as fsReadFile, stat} from 'node:fs/promises';
 import {basename, dirname, isAbsolute, resolve} from 'node:path';
+import {DEFAULT_PRIORITY, PRIORITY_LEVELS, PRIORITY_VARIABLE, priorityLevel} from './process-priority.mjs';
 
 export const OWN_PYTHON_FILE = 'omni-python.txt';
 // Told to the worker (bridge/resident-voice-worker.py): it runs in the player's Python and loads OmniVoice's code from this folder of the pack.
 export const OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON';
 export const OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE';
-// ROCm tuning (bridge/resident-voice-worker.py tune_rocm, docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions; the priority variable is 'below' for the AMD route.
+// ROCm tuning (bridge/resident-voice-worker.py tune_rocm, docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions.
 export const ROCM_MIOPEN_VARIABLE = 'CYBERPUNK_CONVAI_ROCM_MIOPEN';
-export const PRIORITY_VARIABLE = 'CYBERPUNK_CONVAI_WORKER_PRIORITY';
+// The worker's priority level is the same rule on both routes (bridge/process-priority.mjs, docs/PROCESS_PRIORITY.md); re-exported for the callers that had it here.
+export {PRIORITY_VARIABLE};
 // Importing a ROCm PyTorch and OmniVoice's libraries the first time can take a while on a cold disk; a test that says nothing for this long is refused.
 export const SELF_TEST_TIMEOUT_MS = 120_000;
 const MARK = '@@OMNI-SELFTEST@@';
@@ -75,8 +77,8 @@ done()
 
 /**
  * The optional ROCm settings in the lines after the python.exe line (`name = value`; # comments and anything else are ignored): `miopen-find-mode = NORMAL` (MIOpen's
- * own MIOPEN_FIND_MODE instead of the mod's FAST), `miopen = on` (keep MIOpen's convolutions; the mod turns them off on ROCm), `priority = normal` (the voice worker
- * keeps normal process priority; the mod lowers it to below normal on ROCm). Only these three names, only these values. Pure.
+ * own MIOPEN_FIND_MODE instead of the mod's FAST), `miopen = on` (keep MIOpen's convolutions; the mod turns them off on ROCm), `priority = high | normal | below` (the voice worker's process
+ * priority; the mod's default is high on both routes, `normal` is the way back if the game stutters). Only these three names, only these values. Pure.
  */
 export function parseRocmOptions(rows) {
   const options = {};
@@ -86,15 +88,15 @@ export function parseRocmOptions(rows) {
     const [, name, value] = found, lower = value.toLowerCase();
     if (name === 'miopen-find-mode') options.miopenFindMode = value.toUpperCase();
     else if (name === 'miopen' && ['on', 'off'].includes(lower)) options.miopen = lower;
-    else if (name === 'priority' && ['normal', 'below'].includes(lower)) options.priority = lower;
+    else if (name === 'priority' && PRIORITY_LEVELS.includes(lower)) options.priority = lower;
   }
   return options;
 }
 
 /**
  * The worker's environment for the ROCm route (a Python whose self-test found torch.version.hip): MIOPEN_FIND_MODE=FAST unless the file names another mode or the
- * variable is already set where the game started (`processEnv`), MIOpen's convolutions off unless `miopen = on`, below-normal priority unless `priority = normal`.
- * {} for any other backend: NVIDIA and the Runtime's Python are never touched. Pure.
+ * variable is already set where the game started (`processEnv`), MIOpen's convolutions off unless `miopen = on`. The priority is not here: it is one rule for both
+ * routes (omniPriority). {} for any other backend: NVIDIA and the Runtime's Python are never touched. Pure.
  */
 export function rocmWorkerEnvironment(own, processEnv = process.env) {
   if (!own?.used || own.backend !== 'rocm') return {};
@@ -103,8 +105,16 @@ export function rocmWorkerEnvironment(own, processEnv = process.env) {
   if (options.miopenFindMode) environment.MIOPEN_FIND_MODE = options.miopenFindMode;
   else if (!processEnv?.MIOPEN_FIND_MODE) environment.MIOPEN_FIND_MODE = 'FAST';
   if (options.miopen === 'on') environment[ROCM_MIOPEN_VARIABLE] = '1';
-  if (options.priority !== 'normal') environment[PRIORITY_VARIABLE] = 'below';
   return environment;
+}
+
+/**
+ * The OmniVoice worker's priority level: the `priority =` line of omni-python.txt when the own Python names one, else the level for this PC (bridge/process-priority.mjs:
+ * priority.txt, else high). 'high' on both routes by default. Pure.
+ */
+export function omniPriority(own, turnLevel = DEFAULT_PRIORITY) {
+  const named = own?.used === true ? priorityLevel(own.options?.priority) : null;
+  return named ?? priorityLevel(turnLevel) ?? DEFAULT_PRIORITY;
 }
 
 /** The python.exe named by the file's text: the first line that is not empty or a # comment, quotes and spaces trimmed. {path} or {problem}, plus `options` (parseRocmOptions) when the lines after it name some. Pure. */

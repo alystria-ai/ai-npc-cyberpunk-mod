@@ -1210,7 +1210,7 @@ class Producer(unittest.TestCase):
 
 
 class Priority(unittest.TestCase):
-    """A reply being voiced runs at normal priority; the worker is below normal while it waits."""
+    """A reply being voiced runs at the reply priority (high by default, normal on request); the worker is below normal while it waits."""
 
     def gate(self, hold=3.0, raises=True):
         self.now = 100.0
@@ -1233,6 +1233,12 @@ class Priority(unittest.TestCase):
         self.assertEqual(self.calls, ['normal', 'below'])
         gate.settle(); self.assertEqual(self.calls, ['normal', 'below'], 'lowered once')
         gate.request(); self.assertEqual(self.calls, ['normal', 'below', 'normal'], 'the next reply raises again')
+
+    def test_the_reply_level_is_high_when_the_bridge_says_so_and_never_realtime(self):
+        self.assertEqual(worker.reply_priority_class({worker.PRIORITY_VARIABLE: 'high'}), 0x00000080)
+        for other in ({}, {worker.PRIORITY_VARIABLE: 'normal'}, {worker.PRIORITY_VARIABLE: 'below'}, {worker.PRIORITY_VARIABLE: 'realtime'}, {worker.PRIORITY_VARIABLE: 'HIGH'}):
+            self.assertEqual(worker.reply_priority_class(other), worker.NORMAL_PRIORITY_CLASS, str(other))
+        self.assertNotEqual(worker.HIGH_PRIORITY_CLASS, 0x00000100, 'REALTIME_PRIORITY_CLASS is never used')
 
     def test_waiting_with_nothing_raised_changes_nothing(self):
         gate = self.gate()

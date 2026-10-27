@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events';
 import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
-import {OWN_PYTHON_FILE, SELF_TEST_SOURCE, backendOf, ownPythonLine, ownPythonSummary, ownPythonVerdict, packagedOmniSource, parseOwnPythonText, parseRocmOptions,
+import {OWN_PYTHON_FILE, SELF_TEST_SOURCE, backendOf, ownPythonLine, ownPythonSummary, ownPythonVerdict, omniPriority, packagedOmniSource, parseOwnPythonText, parseRocmOptions,
   readOwnPythonSetting, resolveOwnPython, rocmWorkerEnvironment, runOwnPythonSelfTest} from './omni-own-python.mjs';
 
 // What the self-test prints for each kind of PC (no real GPU: these are the reports, as a ROCm, a CUDA and a CPU-only PyTorch answer).
@@ -158,14 +158,27 @@ test('the lines after the python.exe name the ROCm options; only three names and
   } finally { await rm(folder, {recursive: true, force: true}); }
 });
 
-test('the ROCm worker environment: FAST find mode, below-normal priority, only for a ROCm Python that passed, with the player\'s own settings winning', () => {
+test('the ROCm worker environment: FAST find mode, only for a ROCm Python that passed, with the player own settings winning; the priority is not part of it', () => {
   const rocm = {used: true, backend: 'rocm'};
-  assert.deepEqual(rocmWorkerEnvironment(rocm, {}), {MIOPEN_FIND_MODE: 'FAST', CYBERPUNK_CONVAI_WORKER_PRIORITY: 'below'});
-  assert.deepEqual(rocmWorkerEnvironment(rocm, {MIOPEN_FIND_MODE: 'NORMAL'}), {CYBERPUNK_CONVAI_WORKER_PRIORITY: 'below'}, 'a variable the player set is theirs');
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {}), {MIOPEN_FIND_MODE: 'FAST'});
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {MIOPEN_FIND_MODE: 'NORMAL'}), {}, 'a variable the player set is theirs');
   assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopenFindMode: 'HYBRID', miopen: 'on', priority: 'normal'}}, {MIOPEN_FIND_MODE: 'FAST'}),
     {MIOPEN_FIND_MODE: 'HYBRID', CYBERPUNK_CONVAI_ROCM_MIOPEN: '1'}, 'the file wins over the environment');
-  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopen: 'off'}}, {}), {MIOPEN_FIND_MODE: 'FAST', CYBERPUNK_CONVAI_WORKER_PRIORITY: 'below'});
+  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopen: 'off'}}, {}), {MIOPEN_FIND_MODE: 'FAST'});
   for (const other of [null, {}, {used: false, backend: 'rocm'}, {used: true, backend: 'cuda'}, {used: true, backend: 'none'}]) assert.deepEqual(rocmWorkerEnvironment(other, {}), {}, JSON.stringify(other));
+});
+
+test('the OmniVoice worker priority: the omni-python.txt line (high, normal or below) wins, else the level for the PC, else high; the same on every backend', () => {
+  assert.deepEqual(parseRocmOptions(['priority = high']), {priority: 'high'});
+  assert.deepEqual(parseRocmOptions(['priority = normal']), {priority: 'normal'});
+  assert.deepEqual(parseRocmOptions(['priority = realtime', 'priority = highest', 'priority = above']), {}, 'only high, normal and below; never realtime');
+  assert.equal(omniPriority(null), 'high'); assert.equal(omniPriority(undefined, undefined), 'high');
+  assert.equal(omniPriority({used: true, backend: 'rocm'}), 'high', 'the AMD route is no longer lowered');
+  assert.equal(omniPriority({used: true, backend: 'cuda'}), 'high');
+  assert.equal(omniPriority(null, 'normal'), 'normal'); assert.equal(omniPriority(null, 'below'), 'below'); assert.equal(omniPriority(null, 'realtime'), 'high');
+  assert.equal(omniPriority({used: true, backend: 'rocm', options: {priority: 'normal'}}, 'high'), 'normal', 'the file line wins');
+  assert.equal(omniPriority({used: true, backend: 'rocm', options: {priority: 'below'}}, 'high'), 'below');
+  assert.equal(omniPriority({used: false, options: {priority: 'normal'}}, 'high'), 'high', 'a refused own Python file is ignored');
 });
 
 test('the log line names the backend and the refusal; the summary carries no folder', () => {

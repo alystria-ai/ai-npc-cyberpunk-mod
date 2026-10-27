@@ -86,13 +86,17 @@ def send(payload: dict) -> None:
     sys.stdout.flush()
 
 
-PRIORITY_CLASSES = {"normal": 0x00000020, "below": 0x00004000, "idle": 0x00000040}
+# "high" is HIGH_PRIORITY_CLASS (never REALTIME): the bridge asks for it unless the player chose otherwise (docs/PROCESS_PRIORITY.md).
+PRIORITY_CLASSES = {"normal": 0x00000020, "below": 0x00004000, "idle": 0x00000040, "high": 0x00000080}
 
 
 def lower_priority(level: str = "below") -> None:
-    """Below-normal priority on Windows (best effort), so a decode never competes with the game's threads."""
+    """The worker's own priority: below normal on Windows (best effort) so a decode never competes with the game's threads, or high when the bridge asks for it
+    (the speech of V is on the path to the reply). "normal" changes nothing."""
     try:
         if level == "normal":
+            return
+        if level == "high" and os.name != "nt":
             return
         if os.name == "nt":
             import ctypes
@@ -108,7 +112,8 @@ class PriorityGate:
     """The recording being decoded is a player waiting: from `begin` until `hold` seconds after the last message the worker runs at
     normal priority (Windows only: a raised nice value needs privileges elsewhere), and goes back to `base` while it waits for
     the next recording. A game that keeps every core busy starves a below-normal decode for seconds, which is the wait after the
-    key is let go. Two system calls per recording, nothing per frame. With --priority normal it never changes anything."""
+    key is let go. Two system calls per recording, nothing per frame. With --priority normal or high it never changes anything
+    (high is the bridge's default: the worker is high from its start and for good, an idle one costs nothing)."""
 
     def __init__(self, base="below", hold=3.0, clock=time.monotonic, apply=None):
         self.base, self.hold, self.clock = base, hold, clock
@@ -118,7 +123,7 @@ class PriorityGate:
 
     def active(self):
         self.last = self.clock()
-        if self.base != "normal" and not self.raised and self.apply("normal"):
+        if self.base not in ("normal", "high") and not self.raised and self.apply("normal"):
             self.raised = True
 
     def settle(self):
