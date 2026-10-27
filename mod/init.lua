@@ -1504,6 +1504,19 @@ convaiVixenPresent = function()
     end
     return found.fac, found.inj
 end
+-- The baseline read of Flesh and Chrome's counts (mod/vixen-state.lua): its drink and cigarette counts are the save's lifetime totals, not what is in V's body, so a drink is
+-- only known as a rise since an earlier read. Without one the first question of a session would take the count as the baseline and miss a drink had just before it (live
+-- 2026-10-27, a new game). So one ordinary read of the reader is made once each time a save has loaded (convaiVixenBaselineDue, set here and by abandonSession), three seconds
+-- after the world is ready, from the 0.5 second sample of updateBattles: a nil check while nothing is due, one read per load, nothing between. Only with Other mods' state on.
+convaiVixenBaselineDue = true
+convaiVixenBaseline = function(player, now)
+    if convaiVixenBaselineAt == nil then convaiVixenBaselineAt = now + 3 end
+    if now < convaiVixenBaselineAt then return end
+    convaiVixenBaselineDue, convaiVixenBaselineAt = nil, nil
+    if manager.dynamicInfo == nil or not manager.dynamicInfo('mods') then return end
+    local options = convaiTurnContext and convaiTurnContext.options
+    if options and type(options.vixen) == 'function' then pcall(options.vixen, player) end
+end
 -- Whether Equipment-EX is installed (one lookup of its outfit system): its outfit can hide V's real clothes, so with Other mods' state off, where the outfit is not read,
 -- what V visibly wears is not known (mod/player-gear.lua nudity). Cached for a minute.
 convaiEquipmentExPresent = function()
@@ -5003,6 +5016,7 @@ local function updateBattles(player, elapsed, worldReady)
         battlePoll = 0
         battleSample = battleObserver.sample(player)
         battleSampleAt = os.time() * 1000
+        if convaiVixenBaselineDue and worldReady then pcall(convaiVixenBaseline, player, os.time()) end
         if convaiSpawnedPeople then
             convaiSpawnedPeople.sample(player, battleSample, manager.battleReactions() or manager.lootReactions())
         end
@@ -6084,6 +6098,11 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiSettleReset then convaiSettleReset(reason, preserveTransit == true) end
     -- A new session forgets which look each copy wears and any home answers; fast travel keeps them (the copies are made again in the same clothes).
     if convaiOutfits and preserveTransit ~= true then pcall(convaiOutfits.reset) end
+    -- Another save: what the Flesh and Chrome reader watched belongs to the old one; a new baseline read follows once the world is ready (mod/vixen-state.lua).
+    if preserveTransit ~= true then
+        convaiVixenBaselineDue, convaiVixenBaselineAt = true, nil
+        if convaiVixenState and type(convaiVixenState.reset) == 'function' then pcall(convaiVixenState.reset) end
+    end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
     managerUi.resetSession()
     speech.abandon()
