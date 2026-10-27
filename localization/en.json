@@ -4297,7 +4297,7 @@
       "references": [
         "mod/phone-chat-style.lua:194",
         "mod/phone-chat-style.lua:268",
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:545",
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:586",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:404"
       ]
     },
@@ -6359,7 +6359,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:411"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:451"
       ]
     },
     "ENTER  Write message   /   ESC  Close": {
@@ -6367,7 +6367,7 @@
         "phone.native"
       ],
       "references": [
-        "r6/scripts/CyberpunkConvai/PhoneChat.reds:315"
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:327"
       ]
     },
     "Earlier turns kept": {
