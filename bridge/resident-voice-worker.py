@@ -67,11 +67,12 @@ PACK_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_PACK'
 # The player's own Python (bridge/omni-own-python.mjs): set to '1' by the bridge, with the pack's OmniVoice source folder beside it.
 OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON'
 OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE'
-# On a ROCm PyTorch only (docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions (the default turns them off, PyTorch's own path is faster and steadier there),
-# and the bridge sets the priority variable to 'below' for the AMD route so the worker lowers itself (a venv's python.exe is a launcher, its pid is not the worker's).
+# On a ROCm PyTorch only (docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions (the default turns them off, PyTorch's own path is faster and steadier there).
 ROCM_MIOPEN_VARIABLE = 'CYBERPUNK_CONVAI_ROCM_MIOPEN'
+# The worker's process priority (docs/PROCESS_PRIORITY.md): the bridge names the level here ('high' by default on both routes, 'below' or nothing otherwise) and sets the
+# child it spawned too; the worker sets itself because a venv's python.exe is a launcher, so the child's pid is not the worker's. Never REALTIME.
 PRIORITY_VARIABLE = 'CYBERPUNK_CONVAI_WORKER_PRIORITY'
-BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
+PRIORITY_CLASSES = {'high': 0x00000080, 'below': 0x00004000}
 
 
 def usvfs_active(environ=None):
@@ -267,24 +268,26 @@ def keep_rocm_convolutions(torch, environ=None):
     return '[rocm] MIOpen convolutions were switched on while the model loaded: off again'
 
 
-def lower_own_priority(environ=None, apply=None):
-    """Below-normal process priority when the bridge asks (PRIORITY_VARIABLE = 'below'): the voice worker must not take CPU time from the game. Best
-    effort on Windows; returns a log line, or None when nothing was asked or this is not Windows."""
+def apply_own_priority(environ=None, apply=None):
+    """The process priority class the bridge asks for (PRIORITY_VARIABLE = 'high' or 'below'; HIGH_PRIORITY_CLASS, never REALTIME). Best effort on Windows;
+    returns a log line, or None when nothing was asked, the value is anything else or this is not Windows."""
     environ = os.environ if environ is None else environ
-    if environ.get(PRIORITY_VARIABLE) != 'below':
+    level = environ.get(PRIORITY_VARIABLE)
+    if level not in PRIORITY_CLASSES:
         return None
+    name = 'high' if level == 'high' else 'below normal'
     try:
         if apply is None:
             if os.name != 'nt':
                 return None
             import ctypes
             kernel32 = ctypes.windll.kernel32
-            done = bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS))
+            done = bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), PRIORITY_CLASSES[level]))
         else:
-            done = bool(apply(BELOW_NORMAL_PRIORITY_CLASS))
-        return '[priority] below normal' if done else '[priority] could not be lowered'
+            done = bool(apply(PRIORITY_CLASSES[level]))
+        return f'[priority] {name}' if done else f'[priority] could not be set to {name}'
     except Exception as error:  # noqa: BLE001 - a priority is an optimisation, never a failure.
-        return f'[priority] could not be lowered ({str(error)[:80]})'
+        return f'[priority] could not be set to {name} ({str(error)[:80]})'
 
 
 def resolve_worker_paths(root=ROOT, environ=None):
@@ -959,7 +962,7 @@ def run_worker(registry):
     if paths['portable']:
         sys.dont_write_bytecode = True
     os.environ.update(voice_environment(registry))
-    note = lower_own_priority()
+    note = apply_own_priority()
     if note:
         print(note, file=sys.stderr, flush=True)
     send({'op': 'state', 'state': 'loading'})

@@ -21,6 +21,7 @@ import {capLogFile} from './log-cap.mjs';
 import {CHILDREN_FILE, reapChildren} from './child-registry.mjs';
 import {parseKeyFileText} from './convai-key.mjs';
 import {AUTH_CONFIG_FILE, PACKAGED_AUTH_FILE, readAuthSettings} from './convai-credential.mjs';
+import {readTurnPriority, setProcessPriority} from './process-priority.mjs';
 import {NO_BROWSER_MESSAGE, browserLookupSummary, systemBrowserAvailable} from './system-browser.mjs';
 import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
@@ -101,9 +102,12 @@ export class BridgeSupervisor {
     // requiredFiles: files (relative to `project`) the bridge cannot start without: its data files and the files of the Node packages it
     // imports (bridge/runtime-files.mjs RUNTIME_REQUIRED_FILES); the entry points of a real install pass them. One that is missing is the
     // failure `install-incomplete`, not a bridge that crashes five times.
-    requiredFiles = []} = {}) {
+    requiredFiles = [],
+    // The bridge runs at HIGH priority (docs/PROCESS_PRIORITY.md): it is the conversation service every reply passes through. `priority` is the level (normally read from the
+    // state folder's priority.txt at each start); the child is set here and the bridge sets itself too. A test's stand-in child is never handed to the system call.
+    priority = null, setPriority = spawn === spawnProcess ? undefined : () => { /* a stand-in child has no process */ }} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
-      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, browserReport, errorReports, requiredFiles});
+      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, browserReport, errorReports, requiredFiles, priority, setPriority});
     this.timings = {...DEFAULT_TIMINGS, ...timings};
     this.entry = resolve(project, 'bridge/convai-bridge.mjs');
     this.paths = {
@@ -400,6 +404,7 @@ export class BridgeSupervisor {
       if (err !== undefined) closeSync(err);
     }
     this.child = child; this.childPid = child.pid ?? null; this.childExit = null;
+    this.prioritize(child.pid);
     child.once('error', error => { this.childExit ||= {code: null, error: error.message}; });
     child.once('exit', (code, signal) => { this.childExit ||= {code, signal}; });
     this.ready = false; this.stopRequested = false; this.launchedAt = this.now(); this.mode = 'running';
@@ -407,6 +412,15 @@ export class BridgeSupervisor {
     await writeFile(this.paths.pid, `${this.childPid}\n`).catch(() => {});
     this.log(`Started the bridge (PID ${this.childPid}).`);
     await this.setStatus(this.restarts ? 'restarting' : 'starting', this.restarts ? 'bridge-restarting' : 'bridge-starting');
+  }
+
+  // The bridge's priority class (docs/PROCESS_PRIORITY.md): high unless the state folder's priority.txt says normal. Best effort, logged once per start; the bridge sets itself as well.
+  prioritize(pid) {
+    try {
+      const level = this.priority ?? readTurnPriority({stateDirectory: this.stateDirectory}).level;
+      if (level !== 'high' || !pid) return;
+      this.log(setProcessPriority(pid, 'high', this.setPriority) ? 'The bridge runs at high priority.' : 'The bridge priority could not be raised (it raises itself).');
+    } catch { /* a priority is an optimisation, never a failure */ }
   }
 
   // What the bridge wrote to its stderr since its last start (at most 24 KB, from the supervisor's own start line on), or ''.

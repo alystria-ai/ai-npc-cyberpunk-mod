@@ -785,6 +785,53 @@ test('LlamaProcess.raise: only a process that was lowered goes back to normal, a
   assert.equal(refused.raise(), false, 'a priority is an optimisation, never a failure');
 });
 
+test('raiseLevel high (the chat model, docs/PROCESS_PRIORITY.md): it loads at HIGH, is lowered when ready and goes back to HIGH, never REALTIME, for a turn; a refusal is not an error', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'llama-high-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const HIGH = osConstants.priority.PRIORITY_HIGH;
+  const calls = [];
+  const proc = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, lowerAfter: 'ready', raiseLevel: 'high',
+    setPriorityImpl: (pid, level) => calls.push(level),
+    buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
+  t.after(() => proc.stop());
+  await proc.start();
+  assert.deepEqual(calls, [HIGH], 'loaded at high priority');
+  assert.equal(proc.lower(), true); assert.equal(proc.raise(), true);
+  assert.deepEqual(calls, [HIGH, BELOW_NORMAL, HIGH]);
+  assert.ok(!calls.includes(osConstants.priority.PRIORITY_HIGHEST), 'PRIORITY_HIGHEST is the realtime class and is never used');
+  const refused = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, lowerAfter: 'ready', raiseLevel: 'high',
+    setPriorityImpl() { throw Error('access denied'); },
+    buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
+  t.after(() => refused.stop());
+  await refused.start();
+  assert.equal(refused.running, true, 'a refused change never fails the start');
+  // A CPU process that is lowered at spawn (the embedder) is not loaded at high even when asked.
+  const embedder = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, raiseLevel: 'high',
+    setPriorityImpl: (pid, level) => calls.push(['embedder', level]),
+    buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
+  t.after(() => embedder.stop());
+  await embedder.start();
+  assert.deepEqual(calls.slice(3), [['embedder', BELOW_NORMAL]]);
+});
+
+test('the ready chat model at raiseLevel high: high while a turn waits on it and below normal otherwise, the engine line says so', async t => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH;
+  const timeline = [];
+  const clock = heldClock();
+  const made = rig(t, {setTimer: clock.setTimer, clearTimer: clock.clearTimer, processExtra: {raiseLevel: 'high', setPriorityImpl: (pid, level) => timeline.push(level)}});
+  const server = made.server;
+  server.priorityHoldMs = HOLD;
+  await server.ensure();
+  assert.deepEqual(timeline, [HIGH, BELOW_NORMAL], 'loaded at high, lowered once ready');
+  assert.match(made.logs.find(line => line.startsWith('[local] model ready:')), /process priority high while it loaded, below normal now, high while a turn waits/);
+  server.begin({background: true})();
+  assert.deepEqual(timeline, [HIGH, BELOW_NORMAL], 'background work never raises it');
+  const turn = server.begin(); turn();
+  assert.deepEqual(timeline, [HIGH, BELOW_NORMAL, HIGH]);
+  clock.fire();
+  assert.deepEqual(timeline, [HIGH, BELOW_NORMAL, HIGH, BELOW_NORMAL]);
+});
+
 // The hold on the priority (a delay of exactly HOLD ms) runs on a clock the test advances; every other timer is the real one.
 const HOLD = 777;
 function heldClock() {

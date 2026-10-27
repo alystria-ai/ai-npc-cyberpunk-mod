@@ -1798,3 +1798,37 @@ test('a 12 GB card with OmniVoice already loaded and a quick Continue: the resid
   // The resident engine is not charged to the game (counted once): without that the game would look 2.5 GB larger and the model would get 3,559 MiB it cannot have.
   assert.ok(!plan.includes('so 192 MiB') && !plan.includes('so 3559 MiB'));
 });
+
+// ---- 2026-10-27: the chat model (and a Mature model: the same server) is HIGH on every start path -----------------------------------------------------------------------------
+
+test('with raiseLevel high every start of the model server loads at high priority and goes below normal when ready: the first start, a model switch, a restart after the device was lost, a step-down to a lighter model', async t => {
+  const {constants} = await import('node:os');
+  const HIGH = constants.priority.PRIORITY_HIGH, BELOW = constants.priority.PRIORITY_BELOW_NORMAL;
+  const levels = new Map();
+  const h = stepHarness(t, {mature: true, selected: {pin: 'standard'}, deviceLostPauseMs: 10,
+    processOptions: {env: {}, pollMs: 20, raiseLevel: 'high', setPriorityImpl: (pid, level) => { if (!levels.has(pid)) levels.set(pid, []); levels.get(pid).push(level); }}});
+  const everyStartWasHigh = (count, label) => {
+    assert.equal(h.calls.length, count, label + ': the number of servers');
+    for (const {child} of h.calls) assert.equal(levels.get(child.pid)?.[0], HIGH, `${label}: pid ${child.pid} loads at high`);
+    for (const {child} of h.calls.slice(0, -1)) assert.deepEqual(levels.get(child.pid)?.slice(0, 2), [HIGH, BELOW], `${label}: a server that was ready went below normal`);
+  };
+  await h.server.ensure();
+  everyStartWasHigh(1, 'first start');
+  // A restart after the graphics device was lost.
+  assert.equal(await h.server.noteDeviceLost('turn'), 'restart');
+  await h.server.ensure();
+  everyStartWasHigh(2, 'restart');
+  // A step-down to the lighter model after two stalls.
+  stall(h.server, 'no-response'); stall(h.server, 'no-response');
+  assert.equal(await until(() => h.steps.length > 0), true);
+  await h.server.ensure();
+  assert.deepEqual(h.loaded().at(-1), 'q2.gguf');
+  everyStartWasHigh(3, 'step-down');
+  // A model switch (the player picks another model, a Mature one included): the same server class, the same options.
+  h.state.matureOn = true; h.state.pin = 'auto';
+  await h.server.stop();
+  await h.server.ensure();
+  assert.ok(h.calls.length >= 4);
+  for (const {child} of h.calls) assert.equal(levels.get(child.pid)?.[0], HIGH, 'every server ever started loaded at high');
+  assert.ok(![...levels.values()].flat().includes(constants.priority.PRIORITY_HIGHEST), 'never the realtime class');
+});

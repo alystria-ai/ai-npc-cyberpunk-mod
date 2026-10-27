@@ -4,6 +4,7 @@ import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import {existsSync, readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {constants as osConstants} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {LocalStt, MODEL_FILES, LOCAL_STT_LIMITS, DEFAULT_FIXUPS, resolveLocalSttPaths} from './local-stt.mjs';
 
@@ -82,6 +83,26 @@ test('path resolution: packaged models/stt, development runtime/stt-model, envir
     pythonExecutable: '/ignored.exe'});
   assert.equal(env.python, '/own.exe'); assert.equal(env.modelDirectory, '/m');
   assert.equal(have.size, 1);
+});
+
+test('the worker is set to the level the bridge names: high for good, else below normal; a refusal changes nothing', async () => {
+  const calls = [];
+  const set = (pid, level) => calls.push([pid, level]);
+  const high = fakeWorker();
+  const sttHigh = make(high, {lowerPriority: true, setPriorityImpl: set, priority: 'high'});
+  await sttHigh.start('r1');
+  assert.deepEqual(high.spawned[0].args.slice(-2), ['--priority', 'high']);
+  assert.deepEqual(calls, [[4242, osConstants.priority.PRIORITY_HIGH]], 'HIGH (-14), never HIGHEST (-20, the realtime class)');
+  assert.notEqual(calls[0][1], osConstants.priority.PRIORITY_HIGHEST);
+  await sttHigh.close?.();
+  calls.length = 0;
+  const low = fakeWorker();
+  const sttLow = make(low, {lowerPriority: true, setPriorityImpl: set});
+  await sttLow.start('r1');
+  assert.deepEqual(calls, [[4242, osConstants.priority.PRIORITY_BELOW_NORMAL]], 'the default level (normal / below chosen by the player) is the old behaviour');
+  const refused = fakeWorker();
+  const sttRefused = make(refused, {lowerPriority: true, priority: 'high', setPriorityImpl() { throw Error('access denied'); }});
+  await sttRefused.start('r1');
 });
 
 test('chunks pushed while the model loads are held, then flushed in order after begin; finish returns the polished text', async () => {

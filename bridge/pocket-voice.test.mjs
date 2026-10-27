@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events';
 import {PassThrough, Writable} from 'node:stream';
 import {resolve, join} from 'node:path';
 import {mkdtempSync, mkdirSync, symlinkSync, realpathSync, rmSync, rmdirSync} from 'node:fs';
-import {tmpdir} from 'node:os';
+import {tmpdir, constants as osConstants} from 'node:os';
 import {PocketVoice, validatePocketConfig, POCKET_LIMITS,
   POCKET_SOURCE_REVISION, POCKET_SOURCE_SHA256} from './pocket-voice.mjs';
 
@@ -27,7 +27,7 @@ function clock() {
         if (!next) break; jobs.delete(next[0]); time=next[1].at; next[1].callback(); } time=target; }};
 }
 
-function harness({autoReady=true, settings=config(), timers, isAlive}={}) {
+function harness({autoReady=true, settings=config(), timers, isAlive, extra={}}={}) {
   const requests=[], states=[], launches=[];
   const child=new EventEmitter(); child.pid=987; child.kills=0; child.kill=()=>{child.kills++;return true;};
   child.stdout=new PassThrough(); child.stderr=new PassThrough();
@@ -35,7 +35,7 @@ function harness({autoReady=true, settings=config(), timers, isAlive}={}) {
   const client=new PocketVoice(settings,{project:process.cwd(),configPath:resolve('pocket-fixtures/config.json'),
     pythonExecutable:resolve('pocket-fixtures/python.exe'),spawnImpl:(exe,args,options)=>{
       launches.push({exe,args,options});if(autoReady)queueMicrotask(()=>ready());return child;},
-    onState:state=>states.push(state),...(timers?{setTimer:timers.set,clearTimer:timers.clear}:{}),...(isAlive?{isAlive}:{})});
+    onState:state=>states.push(state),...(timers?{setTimer:timers.set,clearTimer:timers.clear}:{}),...(isAlive?{isAlive}:{}),...extra});
   const send=frame=>child.stdout.write(JSON.stringify({owner:client.owner,...frame})+'\n');
   const profiles=()=>({profiles:[profile],preparedProfiles:[profile],unavailableProfiles:{}});
   const ready=(extra={})=>send({op:'ready',protocolVersion:1,engine:'pocket-tts',device:'cpu',dtype:'torch.float32',
@@ -546,4 +546,26 @@ test('a reply is cut for standing still, not for its length: every chunk starts 
   timers.advance(1); await tick(); assert.equal(h.requests.at(-1).op, 'cancel', 'the worker is told to stop it');
   h.send({op: 'cancelled', id: next.id, profile, ...h.profiles()}); await tick(); await rejected;
   await h.close();
+});
+
+test('the worker is told the reply level (high by default) and the child is set high at the spawn; normal tells it nothing; a stand-in child never reaches the system call',async()=>{
+  const calls=[];
+  const high=harness({extra:{setPriority:(pid,level)=>calls.push([pid,level])}});
+  const started=high.client.start();await started;
+  assert.equal(high.launches[0].options.env.CYBERPUNK_CONVAI_WORKER_PRIORITY,'high');
+  assert.deepEqual(calls,[[987,osConstants.priority.PRIORITY_HIGH]]);
+  assert.notEqual(calls[0][1],osConstants.priority.PRIORITY_HIGHEST,'HIGHEST is the realtime class');
+  await high.close();
+  const normal=harness({extra:{workerPriority:'normal',setPriority:(pid,level)=>calls.push(['normal',pid,level])}});
+  await normal.client.start();
+  assert.equal(Object.hasOwn(normal.launches[0].options.env,'CYBERPUNK_CONVAI_WORKER_PRIORITY'),false);
+  assert.equal(calls.length,1,'priority = normal: the child is left alone');
+  await normal.close();
+  const standIn=harness();
+  await standIn.client.start();
+  assert.equal(standIn.launches[0].options.env.CYBERPUNK_CONVAI_WORKER_PRIORITY,'high','the default level is high');
+  await standIn.close();
+  const refused=harness({extra:{setPriority(){throw Error('access denied');}}});
+  await refused.client.start();assert.equal(refused.client.loaded,true);
+  await refused.close();
 });

@@ -1,7 +1,7 @@
 // Local speech-to-text for providers that have none of their own (the Mistral text provider).
 //
 // Engine: Moonshine Tiny (English, MIT, 27 M parameters, int8) run by sherpa-onnx in a small Python worker
-// (bridge/local-stt-worker.py) on the CPU, one thread at below-normal priority. A 3-8 s utterance decodes in about
+// (bridge/local-stt-worker.py) on the CPU, one thread at high priority (docs/PROCESS_PRIORITY.md; below normal when the player chose normal). A 3-8 s utterance decodes in about
 // 0.3-0.5 s, and in about 0 s when a live-words decode already covered it. The worker exists only from the moment a recording starts until `idleMs` after the last one.
 // Nothing here runs while no recording is open. API and integration notes: docs/LOCAL_STT.md.
 //
@@ -20,6 +20,7 @@ import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {setPriority, constants as osConstants} from 'node:os';
+import {nodePriority} from './process-priority.mjs';
 import {SpeechActivity} from './stt-activity.mjs';
 import {USVFS_FLAG, realPathFor} from './local-ai-pack.mjs';
 
@@ -116,11 +117,11 @@ export class LocalStt extends EventEmitter {
       startupMs = LOCAL_STT_LIMITS.startupMs, finishMs = LOCAL_STT_LIMITS.finishMs, fixups = DEFAULT_FIXUPS,
       engine = MOONSHINE_ENGINE, spawnImpl = spawn, exists = existsSync, setTimer = setTimeout, clearTimer = clearTimeout,
       paths = resolveLocalSttPaths({project, environment, pythonExecutable, engine}), lowerPriority = true,
-      priority = 'below', pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs, exitMs = 2000} = {}) {
+      priority = 'below', setPriorityImpl = setPriority, pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs, exitMs = 2000} = {}) {
     super();
     Object.assign(this, {engine, paths, threads: Math.max(1, Math.min(LOCAL_STT_LIMITS.maxThreads, threads | 0 || 1)), partials,
-      partialIntervalMs, idleMs, startupMs, finishMs, fixups, spawnImpl, exists, setTimer, clearTimer, lowerPriority,
-      pausePartials, pauseMs, exitMs, priority: ['normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
+      partialIntervalMs, idleMs, startupMs, finishMs, fixups, spawnImpl, exists, setTimer, clearTimer, lowerPriority, setPriorityImpl,
+      pausePartials, pauseMs, exitMs, priority: ['high', 'normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
     this.worker = null;       // {child, ready, readyPromise, buffer}
     this.session = null;      // {id, held[], bytes, sentBytes, partialBytes, partialBusy, text, waiter}
     this.idleTimer = null; this.partialTimer = null;
@@ -164,7 +165,8 @@ export class LocalStt extends EventEmitter {
     this.worker = state;
     const timer = this.setTimer(() => this.fail(state, Error('Local speech recognition took too long to start')), this.startupMs);
     state.startTimer = timer;
-    try { if (this.lowerPriority && child.pid) setPriority(child.pid, osConstants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
+    // High (the default of the bridge, docs/PROCESS_PRIORITY.md) from the spawn and for good: the child is set here and the worker sets itself (--priority high). Otherwise below normal.
+    try { if (this.lowerPriority && child.pid) this.setPriorityImpl(child.pid, this.priority === 'high' ? nodePriority('high') : osConstants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', text => {
       state.buffer += text;

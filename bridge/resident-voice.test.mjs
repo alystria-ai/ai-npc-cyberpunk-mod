@@ -387,21 +387,35 @@ test('a background start loads below normal priority and returns to normal once 
   assert.equal(calls.includes('unexpected'), false, 'a normal start leaves the priority alone');
 });
 
-test('the AMD route keeps the worker below normal priority from its start for good; priority errors never fail a start', async () => {
+test('a worker with a priority level (high by default on both routes, below on request) is set at spawn and kept for good; priority errors never fail a start', async () => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH, BELOW = osConstants.priority.PRIORITY_BELOW_NORMAL;
   const calls = [];
-  const amd = harness({autoReady: false, workerOptions: {keepLowPriority: true, setPriority: (pid, level) => calls.push([pid, level])}});
-  const started = amd.client.start(); await tick();
-  assert.deepEqual(calls, [[1234, osConstants.priority.PRIORITY_BELOW_NORMAL]]);
-  amd.ready(); await started;
-  assert.deepEqual(calls, [[1234, osConstants.priority.PRIORITY_BELOW_NORMAL]], 'ready does not raise it to normal');
-  let closed = amd.client.close(); amd.finish(); await closed;
-  // A background start on the AMD route is also kept low once ready.
+  const high = harness({autoReady: false, workerOptions: {priority: 'high', setPriority: (pid, level) => calls.push([pid, level])}});
+  const started = high.client.start(); await tick();
+  assert.deepEqual(calls, [[1234, HIGH]]);
+  assert.notEqual(calls[0][1], osConstants.priority.PRIORITY_HIGHEST, 'HIGHEST is the realtime class and is never used');
+  high.ready(); await started;
+  assert.deepEqual(calls, [[1234, HIGH]], 'ready does not change it');
+  let closed = high.client.close(); high.finish(); await closed;
+  // A background start (lowPriority) with a level is also kept there once ready: the low-then-normal dance is for a worker without one.
   const levels = [];
-  const both = harness({autoReady: false, workerOptions: {lowPriority: true, keepLowPriority: true, setPriority: (pid, level) => levels.push(level)}});
+  const both = harness({autoReady: false, workerOptions: {lowPriority: true, priority: 'high', setPriority: (pid, level) => levels.push(level)}});
   const bothStarted = both.client.start(); await tick(); both.ready(); await bothStarted;
-  assert.deepEqual(levels, [osConstants.priority.PRIORITY_BELOW_NORMAL]);
+  assert.deepEqual(levels, [HIGH]);
   closed = both.client.close(); both.finish(); await closed;
-  const refused = harness({workerOptions: {keepLowPriority: true, setPriority() { throw Error('access denied'); }}});
+  const below = [];
+  const lowered = harness({autoReady: false, workerOptions: {priority: 'below', setPriority: (pid, level) => below.push(level)}});
+  const lowStarted = lowered.client.start(); await tick(); lowered.ready(); await lowStarted;
+  assert.deepEqual(below, [BELOW], 'priority = below (the player choice) is kept for good');
+  closed = lowered.client.close(); lowered.finish(); await closed;
+  // normal or no level: untouched, as before the rule.
+  for (const priority of ['normal', null, undefined]) {
+    const none = [];
+    const same = harness({workerOptions: {priority, setPriority: (pid, level) => none.push(level)}});
+    await same.client.start(); assert.deepEqual(none, [], String(priority));
+    closed = same.client.close(); same.finish(); await closed;
+  }
+  const refused = harness({workerOptions: {priority: 'high', setPriority() { throw Error('access denied'); }}});
   await refused.client.start(); assert.equal(refused.client.loaded, true);
   closed = refused.client.close(); refused.finish(); await closed;
 });
