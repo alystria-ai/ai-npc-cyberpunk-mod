@@ -110,7 +110,7 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   // popup is a mod chat, and otherwise reach the game's function.
   const tabs = read('../r6/scripts/CyberpunkConvai/PhoneChatTabs.reds');
   // R (the secondary action) opens the chat on the list, as it always did; it never calls.
-  assert.match(tabs, /public func AlternativeAcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \{\s*this\.ConvaiOpenChat[^]*?wrappedMethod\(\);\s*\}/);
+  assert.match(tabs, /public func AlternativeAcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \|\| this\.ConvaiSelectedIsChatRow\(\) \{\s*this\.ConvaiOpenChat[^]*?wrappedMethod\(\);\s*\}/);
   // The call has its own key on the list: the game's `call` action (V, Triangle), listened for with the list's inputs
   // and acted on only on the Chat list; Triangle's showAll means nothing there and is swallowed.
   assert.match(tabs, /public func EnableContactsInput\(\) -> Void \{\s*wrappedMethod\(\);\s*if IsDefined\(this\.m_player\) \{ this\.m_player\.RegisterInputListener\(this, n"call"\); \};/);
@@ -127,7 +127,7 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_chatInputHint\), n"proceed"\)/);
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_chatInputHint\), this\.m_convaiChatHintAction\)/);
   // F opens the chat on the list: its `click` reaches AcceptAction, which opens the chat while the Chat tab shows.
-  assert.match(tabs, /public func AcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \{\s*this\.ConvaiOpenChat/);
+  assert.match(tabs, /public func AcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \|\| this\.ConvaiSelectedIsChatRow\(\) \{\s*this\.ConvaiOpenChat/);
   // The row shows both icons: call and chat (the envelope), with the separator.
   assert.match(tabs, /SetVisible\(this\.m_callInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_chatInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_separtor, true\);/);
   // The conversation shows no Call hint (the user's live test: it spoiled the composer layout); the game's own hint

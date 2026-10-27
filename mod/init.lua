@@ -1989,6 +1989,13 @@ local function playerSpeedText(player)
     return string.format('%.2f', speed)
 end
 -- Phone chat typing opened (mod/phone-chat.lua, 10 Hz tick, one line per typing session).
+-- The redscript's account of opening a chat (PhoneChat.reds, PhoneChatTabs.reds): the press, the page, the focus. A few lines per opening; at most 120 a session.
+phoneChat.traced = 0
+phoneChat.trace = function(line)
+    if phoneChat.traced >= 120 then return end
+    phoneChat.traced = phoneChat.traced + 1
+    log('Phone chat: ' .. tostring(line))
+end
 phoneChat.typingOpened = function(player, contact)
     log('Phone chat typing opened: contact=' .. tostring(contact) .. ' speed=' .. playerSpeedText(player))
 end

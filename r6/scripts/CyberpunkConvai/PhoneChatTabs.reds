@@ -87,6 +87,9 @@ public class ConvaiHintBinding {
 private let m_convaiChatState: ConvaiPhoneChatState;
 @addField(NewHudPhoneGameController)
 private let m_convaiChatGeneration: Uint32;
+// The engine time (seconds) the last opening was started: a second press counts as "the first one was lost" only after a second has passed.
+@addField(NewHudPhoneGameController)
+private let m_convaiChatOpenedAt: Float;
 
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiPhoneTabIndex() -> Int32 {
@@ -227,10 +230,18 @@ public func SetScreenType(type: PhoneScreenType) -> Void {
     wrappedMethod(type);
 }
 
+// A Chat row is selected: only the Chat tab shows one (a row is ours when it carries the flag), so the list is the Chat list whatever the state says.
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiSelectedIsChatRow() -> Bool {
+    if !IsDefined(this.m_contactListLogicController) { return false; };
+    let selected = this.m_contactListLogicController.GetSelectedContactData();
+    return IsDefined(selected) && selected.convaiChat;
+}
+
 @wrapMethod(NewHudPhoneGameController)
 public func AcceptAction() -> Void {
-    if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) {
-        this.ConvaiOpenChat(this.m_contactListLogicController.GetSelectedContactData());
+    if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) || this.ConvaiSelectedIsChatRow() {
+        this.ConvaiOpenChat(this.m_contactListLogicController.GetSelectedContactData(), true);
         return;
     };
     wrappedMethod();
@@ -239,8 +250,8 @@ public func AcceptAction() -> Void {
 // action (the game's Messages key, R) open the text chat. The call has its own key, `call` (V, Triangle), handled in OnContactListAction.
 @wrapMethod(NewHudPhoneGameController)
 public func AlternativeAcceptAction() -> Void {
-    if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) {
-        this.ConvaiOpenChat(this.m_contactListLogicController.GetSelectedContactData());
+    if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.Off) || this.ConvaiSelectedIsChatRow() {
+        this.ConvaiOpenChat(this.m_contactListLogicController.GetSelectedContactData(), true);
         return;
     };
     wrappedMethod();
@@ -253,10 +264,34 @@ private cb func OnConvaiPhoneChatOpen(evt: ref<ConvaiPhoneChatOpenEvent>) -> Boo
 }
 
 @addMethod(NewHudPhoneGameController)
-private final func ConvaiOpenChat(contact: wref<ContactData>) -> Void {
-    if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) || !IsDefined(contact)
-        || !contact.convaiChat || !this.m_player.ConvaiPhoneChatHasContact(contact.id) { return; };
+private final func ConvaiOpenChat(contact: wref<ContactData>, opt fromKey: Bool) -> Void {
+    if !IsDefined(contact) || !contact.convaiChat { return; };
+    // The Chat tab is the only place a Chat row is shown, so a Chat row under the cursor means the list is up, whatever the state says: it is
+    // put right instead of the press being lost (the state is reset by anything that sets the screen type, and only the tab's own code sets it back).
+    if Equals(this.m_convaiChatState, ConvaiPhoneChatState.Off) {
+        this.m_player.ConvaiPhoneChatTrace("open: state was off with a Chat row selected, put back to the list contact=" + contact.id);
+        this.m_convaiChatState = ConvaiPhoneChatState.List;
+    };
+    // A key press a full second after the previous one, with the page still not ready, starts the opening again: the older attempt's events carry
+    // the old generation and are dropped, so only this one counts. Without this the second press of a lost first one was ignored. A click's release
+    // (which follows the press by milliseconds) and a quick double press are not a retry.
+    let now = EngineTime.ToFloat(GameInstance.GetEngineTime(this.m_player.GetGame()));
+    if Equals(this.m_convaiChatState, ConvaiPhoneChatState.Opening) && fromKey && now - this.m_convaiChatOpenedAt >= 1.0 {
+        this.m_player.ConvaiPhoneChatTrace("open: pressed again, the page never reported ready, started again contact=" + contact.id);
+        this.m_convaiChatState = ConvaiPhoneChatState.List;
+    };
+    if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
+        this.m_player.ConvaiPhoneChatTrace("open ignored: the page is already open contact=" + contact.id);
+        return;
+    };
+    if !this.m_player.ConvaiPhoneChatHasContact(contact.id) {
+        this.m_player.ConvaiPhoneChatTrace("open ignored: not a registered contact contact=" + contact.id);
+        return;
+    };
+    this.m_player.ConvaiPhoneChatTrace("open: contact=" + contact.id + " journal=" + (contact.hash != 0 ? "yes" : "no")
+        + " path=" + (this.m_messagesPanelSpawned ? "refresh" : "spawn"));
     this.m_convaiChatState = ConvaiPhoneChatState.Opening;
+    this.m_convaiChatOpenedAt = now;
     this.m_convaiChatGeneration += 1u;
     this.m_messageToOpenHash = 0;
     let data = new JournalNotificationData();
@@ -283,6 +318,11 @@ private final func ConvaiOpenChat(contact: wref<ContactData>) -> Void {
 
 @addMethod(NewHudPhoneGameController)
 private cb func OnConvaiPhoneChatReady(evt: ref<ConvaiPhoneChatReadyEvent>) -> Bool {
+    if !(IsDefined(this.m_contactListLogicController) && Equals(this.m_convaiChatState, ConvaiPhoneChatState.Opening)
+        && evt.generation == this.m_convaiChatGeneration) {
+        this.m_player.ConvaiPhoneChatTrace("page ready but not wanted: generation=" + IntToString(Cast<Int32>(evt.generation)) + " current="
+            + IntToString(Cast<Int32>(this.m_convaiChatGeneration)) + " state=" + IntToString(EnumInt(this.m_convaiChatState)));
+    };
     if IsDefined(this.m_contactListLogicController)
         && Equals(this.m_convaiChatState, ConvaiPhoneChatState.Opening)
         && evt.generation == this.m_convaiChatGeneration {
@@ -318,6 +358,7 @@ protected cb func OnContactSelectionChanged(evt: ref<ContactSelectionChangedEven
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnSmsMessageLostFocus(evt: ref<UnfocusSmsMessagerEvent>) -> Bool {
     if Equals(this.m_convaiChatState, ConvaiPhoneChatState.Conversation) && IsDefined(this.m_contactListLogicController) {
+        this.m_player.ConvaiPhoneChatTrace("page closed, back on the list");
         this.m_convaiChatState = ConvaiPhoneChatState.List;
         this.contactsElement.widget.SetOpacity(1.0);
         this.EnableContactsInput();
