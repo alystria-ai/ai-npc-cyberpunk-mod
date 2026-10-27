@@ -58,7 +58,7 @@ import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
-import {turnContextDiagnostic, modsProbeLine} from './turn-context.mjs';
+import {turnContextDiagnostic, modsProbeLine, vixenProbeLines} from './turn-context.mjs';
 import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
@@ -2856,17 +2856,19 @@ function startAhead(entry) {
 // turn is published.
 // Dark Future's state in a turn (docs/DYNAMIC_INFO.md, "Other mods' state"): one compact probe line per turn that carried the game side's note, so a missing remark
 // can be told from a failed read, a switch that is off, a question that was not recognised and a sentence that was not sent. It goes to this log and, in the turn's
-// reply (field `df`), to the game, whose probe.log gets the same line next to "Conversation result". Words only; the newest few turns are kept.
+// reply (fields `df`, `fac`, `inj`: Dark Future, Flesh and Chrome, Injuries), to the game, whose probe.log gets the same lines next to "Conversation result". Words only; the newest few turns are kept.
 const dfLines = new Map();
-const dfNote = requestId => dfLines.has(requestId) ? {df: dfLines.get(requestId)} : {};
+const dfNote = requestId => dfLines.has(requestId) ? dfLines.get(requestId) : {};
 function logDarkFuture(input) {
   try {
     if (!input || input.reaction || typeof input.requestId !== 'string' || addonHost.usesVoiceContext(input.profileKey)) return;
-    const line = modsProbeLine(input, turnContextOptions(input, isAmbientProfile(input.profileKey)));
-    if (!line) return;
-    dfLines.set(input.requestId, line);
+    const options = turnContextOptions(input, isAmbientProfile(input.profileKey));
+    // df: (Dark Future), fac: (Flesh and Chrome) and inj: (Injuries): one line each, only when the game side sent that mod's note.
+    const lines = {...(modsProbeLine(input, options) ? {df: modsProbeLine(input, options)} : {}), ...vixenProbeLines(input, options)};
+    if (!Object.keys(lines).length) return;
+    dfLines.set(input.requestId, lines);
     while (dfLines.size > 8) dfLines.delete(dfLines.keys().next().value);
-    console.error(`[DarkFuture] ${line}`);
+    for (const line of Object.values(lines)) console.error(`[DarkFuture] ${line}`);
   } catch { /* a log line never affects a reply */ }
 }
 async function processInput(request, prepared) {

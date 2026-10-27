@@ -196,7 +196,37 @@ integration, the Lua reader against a fake game (visible-over-equipped, skipped 
 contained), the game's Wardrobe against a strict fake of the real call shape (instance, static and GameInstance calls, the log line for each outcome, the per-slot visual overrides by field and by getter, hidden and empty rows, set priority, failures), and a model of the game's Wardrobe state machine (WardrobeSystem index and sets, EquipWardrobeSet writing m_clothingVisualsInfo with cleared areas, GetVisualItemInSlot and IsSlotHidden as the scripts define them) for the paperdoll source, the facts line, empty entries as hidden slots, per-item transmog and the contained reader fault. Every fake native refuses a wrong parameter count and a colon/dot mix-up like CET (the live failure was an argument CET does not take); further tests cover the facts line for every failing call, a nil field, the attachments source, and the clothing line written once per change, and the wiring of each send path.
 
 
-Only what V has on is ever listed; an empty slot is not mentioned. The guidance (and the stranger's line) also says never to remark on what V is not wearing (2026-10-25: a companion kept saying V wore no mask).
+Only what V has on is ever listed; an empty slot is not mentioned. The guidance (and the stranger's line) also says never to remark on what V is not wearing (2026-10-25: a companion kept saying V wore no mask). The one exception is V visibly topless or naked, see "Nudity" below.
+
+## Nudity: V visibly topless or naked
+
+Added 2026-10-27 after a player request (Nexus, 26 Oct: "with Equipment-EX or the game's own clothes, companions and strangers notice when V is visibly nude or topless and can react"). The one exception to "never remark
+on what V is not wearing": when V's torso is visibly empty a companion, Johnny in V's head and a stranger are told so, as a short factual note in the right-now block, and react in character. It is not sexual
+content and needs no Mature setting; under Mature the reaction can be as crude as the rest of the Mature talk (the Mature layer already says so, this note adds nothing to it). The note never describes a body: only that V is bare and that the character sees it.
+
+**The rule** (`M.nudity` in `mod/player-gear.lua`, from the same snapshot, nothing extra per frame or per turn): per clothing slot the reader keeps `worn`, `empty` or `unknown` (a read that failed is never "empty").
+The torso is covered by outer torso, inner torso or the outfit slot, the legs by legs or the outfit slot.
+- torso empty and legs worn: **topless**; torso and legs empty: **nude**; anything else (a covered torso, bottomless, an unreadable slot): no claim.
+- Hats, glasses and shoes do not count as clothes here: "nude" with a hat is still nude, and the note says "naked, with only accessories or footwear on" when some are listed ("wearing nothing" when nothing at all is).
+- Visible clothes are what the reader already uses: an active Equipment-EX outfit (its parts; an outfit that shows nothing means nothing is worn), else the game's Wardrobe set (a slot the set leaves empty is hidden: empty),
+  else the visual or equipped item. "Underwear" slots are not read: V in underwear but with empty torso and legs slots is called nude.
+- Guard against a bad read: "nude" needs at least one other item to have been read (a weapon, an implant, a hat, shoes); a read that found nothing at all is a failed read, not a naked V.
+- Guard against a hidden outfit: with **Other mods' state** OFF the Equipment-EX outfit is not read. If Equipment-EX is installed (one class lookup a minute, `convaiEquipmentExPresent` in `mod/init.lua`) the real clothes may be hidden by an
+  outfit, so nothing is claimed (`outfitUnread`). To have an Equipment-EX outfit noticed, turn Other mods' state on. Without Equipment-EX the nudity note works whatever that switch says.
+
+**The switch.** The Dynamic info switch **V's gear and clothes** governs it (off: `playerGear:capture()` is not read at all, and the bridge drops the note too). It does not need Other mods' state (apart from the Equipment-EX case above).
+
+**Who and when** (`nuditySentences` in `bridge/turn-context.mjs`, in the right-now block, with room of its own like the "V is asking how they look" answer): a companion in person ("V is topless, and you can see it. React the way you naturally would in character ... Do not describe V's body."),
+Johnny in V's head ("you see it through V's eyes"), a stranger ("in plain view of you ... worth a reaction in your own way, as a stranger would"). Not a phone chat, a holocall or an add-on voice. Told when new to the conversation, when it changes, after a long silence, and whenever V's words
+ask about themself or their clothes (`asksAboutSelf`, `asksAboutClothes` in `bridge/scenery-memory.mjs`, English and the menu languages); not recited on every turn.
+The gear line (V asks "what am I wearing?") keeps its rule and adds the exception.
+
+**Log.** `probe.log`, once per change: `Player gear: nudity=topless (torso=empty legs=worn)`, `nudity=nude (torso=empty legs=empty)`, `nudity=none (none)` when it ends, and when it could not tell:
+`nudity=none (unknown(a slot could not be read))`, `(unknown(outfit mod not read))`, `(unknown(nothing else was read))`. A clothed V writes nothing. The bridge diagnostic `[PlayerGear]` ends with ` nudity=topless` while it holds.
+
+**Not confirmed in the game:** that a V with an empty torso slot looks bare in the game (the game may draw underwear or a default body, which this does not read), and that Equipment-EX's preview items fill the slots as read. Live check below in the captain's log.
+
+Tests: `bridge/player-gear.test.mjs` (the rule, full-body outfit, unreadable slots, the failed-read guard, the Equipment-EX guard and outfit cases), `bridge/vixen-state.test.mjs` (parsing, the note per form, the switch, told-when-new and asked, the clothes question in the menu languages, the gear line exception).
 
 **Live check of 2026-10-26.** The owner's game copies (2.31 and 2.5) had no Equipment-EX installed (no `EquipmentEx` redscript, no archive), so the reader answered
 nil each time (an absent mod is silent in `probe.log`: no `equipment-ex outfit=` line was written) and the equipped inventory was listed, as designed. The reader has

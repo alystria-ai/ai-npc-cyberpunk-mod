@@ -59,6 +59,28 @@ const SELF_ASK_CJK = ['見える', '見えて', '大丈夫', 'お腹', '空腹',
 const SELF_ASK_OTHERS = new RegExp('(?<![\\p{L}\\p{N}])(?:' + SELF_ASK_STEMS.map(row => row.source).join('|') + ')|' + SELF_ASK_CJK.join('|'), 'iu');
 /** True when V's words ask about themself (how they look, whether they are all right, a bodily need). */
 export const asksAboutSelf = text => { const asked = String(text ?? ''); return SELF_ASK_EN.test(asked) || SELF_ASK_OTHERS.test(asked); };
+// V's words ask about what they wear or how much of it: clothes, an outfit, being dressed, naked, topless. A character who was told V is topless or naked hears it again then
+// (the note is told when new, not on every turn). In doubt it says yes. English whole words; the menu languages (cs de es fr hu it ja ko pl pt ru tr uk zh) by stems, the CJK scripts by the character.
+const CLOTHES_ASK_EN = /\b(?:wear|wears|wearing|wore|worn|dress|dressed|dressing|undress|undressed|clothes|clothing|clothed|outfit|outfits|naked|nude|nudity|topless|shirtless|bare|barely|exposed|stripped|strip|shirt|jacket|pants|trousers|skirt|shoes|boots|top|covered|cover up|put something on|get dressed|got dressed)\b/i;
+const CLOTHES_ASK_STEMS = [
+  /ropa|vest[ií]|desnud|sin camisa|semidesnud|cambi[aá]r|camiseta|chaqueta/,   // es
+  /roupa|vest[ie]|nu\b|nua\b|pelad|sem camisa|camiseta|jaqueta/,   // pt
+  /v[eê]tement|habill|torse nu|\bnue?\b|d[eé]shabill|tenue|chemise|veste/,   // fr
+  /kleid|angezogen|nackt|oberk[oö]rper|ausgezogen|anzieh|bekleid|hemd|jacke|oben ohne/,   // de
+  /vestit|vestiti|abbigliament|nud[oa]\b|svestit|senza maglia|maglietta|giacca/,   // it
+  /ubra[nń]|ubior|nag[aoi]\b|rozebran|bez koszul|koszul|kurtk|ubierz/,   // pl
+  /oble[cč]|oble[cč]en|\bnah[aáyý]|svl[eé]k|bez tri[cč]ka|tri[cč]ko|bunda|ode[sš]el/,   // cs
+  /ruh[aá]|felvett|meztelen|[oö]lt[oö]z|f[eé]lmeztelen|p[oó]l[oó]|kab[aá]t/,   // hu
+  /одежд|одет|одева|голый|голая|голы[хе]|разде|без рубашк|без футболк|куртк|футболк/,   // ru
+  /одяг|одяг|одягн|голий|гола\b|голі|роздя|без сорочк|без футболк|куртк|футболк/,   // uk
+  /giy[iı]n|giyin|k[iı]yafet|[cç][iı]plak|[cç][iı]plağ|[uü]st[uü]n[uü]z|soyun|g[oö]mlek|ceket|[uü]zerim/,   // tr
+];
+const CLOTHES_ASK_CJK = ['服', '着て', '着る', '裸', '脱', 'ヌード', '半裸', 'シャツ',   // ja
+  '衣', '穿', '赤裸', '光着', '上身', '外套',   // zh
+  '옷', '입고', '입었', '벗', '알몸', '반라', '셔츠'];   // ko
+const CLOTHES_ASK_OTHERS = new RegExp('(?<![\\p{L}\\p{N}])(?:' + CLOTHES_ASK_STEMS.map(row => row.source).join('|') + ')|' + CLOTHES_ASK_CJK.join('|'), 'iu');
+/** True when V's words ask about what they wear (clothes, an outfit, being dressed or naked). */
+export const asksAboutClothes = text => { const asked = String(text ?? ''); return CLOTHES_ASK_EN.test(asked) || CLOTHES_ASK_OTHERS.test(asked); };
 // V's words ask what a companion carries or is armed with (weapon, gun, "what are you packing?"). She then hears what she carries again, worded as the answer
 // (bridge/turn-context.mjs): the sentence is in every in-person block already, but a model told "do not recite it" answered "none" to "what weapon do you have?"
 // (live 2026-10-26). In doubt it says yes. English whole words; the menu languages (cs de es fr hu it ja ko pl pt ru tr uk zh) by stems, the CJK scripts by the character.
@@ -98,14 +120,14 @@ export class SceneryMemory {
    *   weather  the weather kind the game sent, or undefined
    *   part     the part of the day, or undefined
    *   text     what V said (a keyword check: asking about the weather or the hour always gets it)
-   *   signals  {media, mods}: a short text per fact that changes when the fact does (bridge/media-context.mjs, bridge/mod-state.mjs), or undefined
+   *   signals  {media, mods, nudity}: a short text per fact that changes when the fact does (bridge/media-context.mjs, bridge/mod-state.mjs, bridge/player-gear.mjs), or undefined
    *            when there is nothing to say; such a fact is told on the first turn, on a change and after a long silence, never on every turn
    */
   decide({key, id, weather, part, text = '', signals = NO_SIGNALS}) {
     if (typeof key !== 'string' || typeof id !== 'string' || !id) return ALL;
     const asked = String(text ?? ''), at = this.now(), entry = this.conversations.get(key);
     // The same turn again: the same answer, whatever was recorded since.
-    const signalKey = JSON.stringify([signals.media ?? null, signals.mods ?? null]);
+    const signalKey = JSON.stringify([signals.media ?? null, signals.mods ?? null, signals.nudity ?? null]);
     if (entry && entry.id === id && entry.weather === weather && entry.part === part && entry.text === asked && entry.signalKey === signalKey) {
       this.conversations.delete(key); this.conversations.set(key, entry);
       return entry.decision;
@@ -120,11 +142,13 @@ export class SceneryMemory {
       // Present only when there is something to say about them.
       ...(signals.media !== undefined ? {media: !before || before.media !== signals.media || MEDIA_ASK.test(asked)} : {}),
       // V asking about themself (how they look, whether they are all right) always gets the state again: `modsAsked` makes the turn word it as the answer to that (bridge/turn-context.mjs).
-      ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods || asksAboutSelf(asked), ...(asksAboutSelf(asked) ? {modsAsked: true} : {})} : {})};
+      ...(signals.mods !== undefined ? {mods: !before || before.mods !== signals.mods || asksAboutSelf(asked), ...(asksAboutSelf(asked) ? {modsAsked: true} : {})} : {}),
+      // V visibly topless or naked: told when new to the conversation, when it changes, after a long silence, and when V's words ask about themself or their clothes.
+      ...(signals.nudity !== undefined ? {nudity: !before || before.nudity !== signals.nudity || asksAboutSelf(asked) || asksAboutClothes(asked)} : {})};
     this.conversations.delete(key);
     // A turn with nothing to say about media or mods keeps no earlier signature: when it comes back it is new again.
     this.conversations.set(key, {id, weather, part, text: asked, signalKey, at, decision,
-      known: {weather: weather ?? before?.weather, part: part ?? before?.part, media: signals.media, mods: signals.mods}});
+      known: {weather: weather ?? before?.weather, part: part ?? before?.part, media: signals.media, mods: signals.mods, nudity: signals.nudity}});
     while (this.conversations.size > this.limit) this.conversations.delete(this.conversations.keys().next().value);
     return decision;
   }

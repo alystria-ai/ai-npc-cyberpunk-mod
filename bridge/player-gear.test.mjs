@@ -899,3 +899,101 @@ test('each turn that reads again leaves the clothing it described, once per chan
   now = now + 1; gear:capture(); assert(#clothingLines() == 2, 'cached inside the window')
   fresh(); assert(#clothingLines() == 3 and clothingLines()[3]:find('head=Hat', 1, true), clothingLines()[3])
 `));
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Nudity (docs/PLAYER_GEAR_CONTEXT.md, "Nudity"): V visibly topless or naked, from reads that succeeded.
+
+test('nudity: a dressed V has none; the torso empty with the legs covered is topless; both empty is nude', () => lua$(`
+  local lines = {}
+  gear.options.nudityLog = function(line) lines[#lines + 1] = line end
+  assert(gear:capture().nudity == nil)
+  assert(#lines == 0, 'a clothed V is silent in the log')
+  equipped['OuterChest#0'] = nil; gear:reset('t')
+  assert(gear:capture().nudity == nil, 'an inner torso item still covers the torso')
+  equipped['InnerChest#0'] = nil; gear:reset('t')
+  local snap = gear:capture()
+  assert(snap.nudity == 'topless' and names(snap.clothing) == 'head=Hat,legs=Jeans,feet=Boots', tostring(snap.nudity))
+  assert(#lines == 1 and lines[1] == 'Player gear: nudity=topless (torso=empty legs=worn)', lines[1])
+  equipped['Legs#0'] = nil; gear:reset('t')
+  snap = gear:capture()
+  assert(snap.nudity == 'nude' and names(snap.clothing) == 'head=Hat,feet=Boots')
+  assert(lines[2] == 'Player gear: nudity=nude (torso=empty legs=empty)', lines[2])
+  gear:reset('t'); gear:capture()
+  assert(#lines == 2, 'logged once per change')
+  equipped['OuterChest#0'] = {name = 'Jacket'}; equipped['Legs#0'] = {name = 'Jeans'}; gear:reset('t')
+  assert(gear:capture().nudity == nil)
+  assert(#lines == 3 and lines[3] == 'Player gear: nudity=none (none)', 'the end of it is logged: ' .. tostring(lines[3]))
+`));
+
+test('nudity: a full-body outfit item covers torso and legs', () => lua$(`
+  for _, key in ipairs({'OuterChest#0', 'InnerChest#0', 'Legs#0'}) do equipped[key] = nil end
+  equipped['Outfit#0'] = {name = 'Jumpsuit'}
+  local snap = gear:capture()
+  assert(snap.nudity == nil and names(snap.clothing):find('outfit=Jumpsuit', 1, true))
+  equipped['Outfit#0'] = nil; gear:reset('t')
+  assert(gear:capture().nudity == 'nude')
+`));
+
+test('nudity: a slot that could not be read is never "empty": no claim', () => lua$(`
+  local lines = {}
+  gear.options.nudityLog = function(line) lines[#lines + 1] = line end
+  equipped['InnerChest#0'] = nil; state.failures.OuterChest = true
+  assert(gear:capture().nudity == nil, 'the outer torso read failed: unknown')
+  assert(lines[1] == 'Player gear: nudity=none (unknown(a slot could not be read))', lines[1])
+  state.failures = {}; equipped['OuterChest#0'] = nil; state.failures.Legs = true; gear:reset('t')
+  assert(gear:capture().nudity == nil, 'the legs read failed: unknown')
+  state.failures = {}; equipped['OuterChest#0'] = nil; state.failures.visual = true; gear:reset('t')
+  assert(gear:capture().nudity == 'topless', 'a failed visual read falls back to the equipped item, which answered')
+`));
+
+test('nudity: a read that found nothing else at all is a failed read, not a naked V', () => lua$(`
+  for key in pairs(equipped) do equipped[key] = nil end
+  equipped['Legs#0'] = nil
+  gear:reset('t')
+  assert(gear:capture() == nil, 'no snapshot at all')
+  equipped['Legs#0'] = {name = 'Jeans'}; gear:reset('t')
+  local snap = gear:capture()
+  assert(snap.nudity == 'topless', 'legs worn is itself evidence')
+  equipped['Legs#0'] = nil; equipped['Weapon#0'] = {name = 'Kyubi'}; gear:reset('t')
+  assert(gear:capture().nudity == 'nude', 'a weapon is evidence')
+`));
+
+test('nudity: with a wardrobe mod installed and its outfit not read, nothing is claimed', () => lua$(`
+  local lines = {}
+  gear.options.nudityLog = function(line) lines[#lines + 1] = line end
+  equipped['OuterChest#0'] = nil; equipped['InnerChest#0'] = nil
+  local unread = true
+  gear.options.outfitUnread = function() return unread end
+  assert(gear:capture().nudity == nil)
+  assert(lines[1] == 'Player gear: nudity=none (unknown(outfit mod not read))', lines[1])
+  unread = false; gear:reset('t')
+  assert(gear:capture().nudity == 'topless')
+  gear.options.outfitUnread = function() error('a failing probe') end; gear:reset('t')
+  assert(gear:capture().nudity == 'topless', 'a probe that fails is "not hidden"')
+`));
+
+test('nudity: an Equipment-EX outfit decides it: only shoes is nude, a top is not, and an outfit that shows nothing is nude', () => lua$(`
+  local part = function(slot, name) return {slot = slot, id = {name = name}} end
+  gear.options.outfit = function() return {name = 'x', parts = {part('feet', 'Sneakers')}} end
+  assert(gear:capture().nudity == 'nude', 'a real jacket is equipped but hidden by the outfit')
+  gear.options.outfit = function() return {name = 'x', parts = {part('feet', 'Sneakers'), part('legs', 'Shorts')}} end; gear:reset('t')
+  assert(gear:capture().nudity == 'topless')
+  gear.options.outfit = function() return {name = 'x', parts = {part('innerTorso', 'Bra'), part('legs', 'Shorts')}} end; gear:reset('t')
+  assert(gear:capture().nudity == nil)
+  gear.options.outfit = function() return {name = '', parts = {}} end; gear:reset('t')
+  assert(gear:capture().nudity == 'nude', 'every real slot is hidden and nothing is shown')
+  gear.options.outfit = function() return {name = '', parts = {part('outfit', 'Dress')}} end; gear:reset('t')
+  assert(gear:capture().nudity == nil, 'a one-piece covers both')
+`));
+
+test('nudity: M.nudity is pure and conservative', () => lua$(`
+  local n = api.nudity
+  local function w(t) return t end
+  assert(n(w{outerTorso = 'empty', innerTorso = 'empty', legs = 'worn', outfit = 'empty'}, 0) == 'topless')
+  assert(n(w{outerTorso = 'empty', innerTorso = 'empty', legs = 'empty', outfit = 'empty'}, 1) == 'nude')
+  assert(n(w{outerTorso = 'empty', innerTorso = 'empty', legs = 'empty', outfit = 'empty'}, 0) == nil)
+  assert(n(w{outerTorso = 'empty', innerTorso = 'unknown', legs = 'empty', outfit = 'empty'}, 5) == nil)
+  assert(n(w{outerTorso = 'worn', innerTorso = 'empty', legs = 'empty', outfit = 'empty'}, 5) == nil, 'bottomless is not claimed')
+  assert(n(w{}, 5) == nil)
+  assert(n(w{outerTorso = 'empty', innerTorso = 'empty', legs = 'worn', outfit = 'empty'}, 5, true) == nil)
+`));
