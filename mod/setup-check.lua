@@ -30,7 +30,8 @@ local DEFAULT_BUILD = '2.31'
 local RESULT, REQUEST, PROBE_LOG = 'runtime/setup-check.json', 'runtime/setup-check-request.json', 'runtime/probe.log'
 local SESSION_WINDOW_S = 180   -- a service answer written this long before the mod loaded still counts as this session's (service-status.lua)
 local FIRST_DELAY_S = 12       -- the first-load check waits this long after the first world is ready: the service has said something by then
-local FOLLOW_S = 15            -- how long the Help page follows the request it wrote
+local SETTLE_S = 8             -- the first-load notice is shown only after gameplay has been on screen this long without a menu or a load in between (the HUD that draws it exists by then)
+local FOLLOW_S = 15           -- how long the Help page follows the request it wrote
 local CATALOGS = {'world-knowledge.json', 'manager-characters.json', 'conversation-characters.json', 'phone-contacts.json'}
 local LOCALE_COUNT = 15
 -- bridge-service.json codes that mean the Runtime's files are missing or incomplete (bridge/bridge-supervisor.mjs, the launcher's
@@ -887,7 +888,14 @@ function M.problems()
         if check and check.state == 'problem' and (id ~= 'service' or check.code == 'never') then list[#list + 1] = id end
         if not check then
             local answer = bridgeCheck(id)
-            if answer and answer.state == 'problem' then list[#list + 1] = id
+            -- Scripts and Runtime of one version built for different games are one problem, the 'build' check's (it names what to download):
+            -- the versions answer then adds nothing, and its update-zip advice would be wrong.
+            -- (The same for versions that differ while the Runtime is also for the other game: the full Runtime of the right game fixes both.)
+            local build = game.checks.build
+            local together = build and build.state == 'problem' and (answer and answer.code == 'game-mismatch'
+                or (answer and answer.code == 'mismatch' and (build.code == 'runtime-wrong' or build.code == 'differ')))
+            if id == 'versions' and answer and answer.state == 'problem' and together then -- counted once, as build
+            elseif answer and answer.state == 'problem' then list[#list + 1] = id
             elseif id == 'versions' and not answer and silent then list[#list + 1] = id end
         end
     end
@@ -995,6 +1003,7 @@ local function playable()
 end
 
 local held   -- the first-load notice, computed when due and kept until gameplay can show it
+local readySince   -- when gameplay last became visible (os.time), nil while a menu, a pause or a loading screen is up
 
 -- Call from manager-ui.lua's slow update (every quarter second, with or without Native Settings UI). inSession: V is in a loaded game
 -- (the caller's player). Returns the first-load notice once, in gameplay, else nil.
@@ -1025,7 +1034,13 @@ function M.tick(worldReady, inSession)
             end
         end
     end
-    if held and (worldReady or (game and game.checks.redscript.state == 'problem' and playable())) then
+    -- The notice waits for gameplay that has been on screen for SETTLE_S in a row. The 12 s above can run out in the pause menu or on a loading
+    -- screen (a CET reload, then a save loaded from the menu: the notice was due one frame after the save was restored, written to the warning
+    -- line before the HUD that draws it existed, and nobody ever saw it, 2026-10-27). A menu or a load in between starts the wait again.
+    local ready = worldReady == true
+    if not ready and held and game and game.checks.redscript.state == 'problem' then ready = playable() end
+    if ready then readySince = readySince or now else readySince = nil end
+    if held and readySince and now - readySince >= SETTLE_S then
         notice, held = held, nil
     end
     return notice

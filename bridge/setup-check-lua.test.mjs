@@ -338,7 +338,7 @@ test('the service answer is shown only from this game session and every check be
   answer({versions = {id = 'versions', state = 'problem', code = 'game-mismatch', scripts = '0.3.1', runtime = '0.3.1', scriptsGame = '2.5', runtimeGame = '2.31'}}); check.run()
   assert(lineOf('versions') == nil, 'the build row replaces the versions row')
   assert(lineOf('build').state == 'problem' and lineOf('build').label == 'Build for your game' and lineOf('build').description:find('the Runtime is the one for game 2.31', 1, true), tostring(lineOf('build') and lineOf('build').description))
-  assert(table.concat(check.problems(), ',') == 'build,versions')
+  assert(table.concat(check.problems(), ',') == 'build', 'a pure game mismatch is one problem, not also a versions problem')
   installFiles(); env.gameVersion = '2.31'; applyEnv(); check.run()
   -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
@@ -711,6 +711,9 @@ test('without this mod’s scripts the notice waits for gameplay on its own chec
   advance(1); env.menu = true
   assert(check.tick(false, true) == nil, 'held while a menu is open')
   advance(1); env.paused, env.menu = false, false
+  assert(check.tick(false, true) == nil, 'gameplay is back: the notice waits until it has been on screen for a few seconds')
+  advance(7); assert(check.tick(false, true) == nil)
+  advance(1)
   assert(check.tick(false, true) == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.')
   -- the console and probe.log say it once, in English, with the same advice and the other causes
   assert(#console == 1 and console[1]:find("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem.", 1, true), console[1])

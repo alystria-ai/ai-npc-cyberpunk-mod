@@ -602,7 +602,7 @@ time). Only an answer written this game session is shown (a 180 s window, as `se
 **The first-load notice.** When something critical is wrong the player gets one notice, once per game session, in gameplay: the first
 problem in a fixed order (RED4ext, the build for the game (the Scripts, the Runtime and the running game are not for the same game version, docs/GAME_VERSIONS.md "Wrong build"), this mod's scripts, Codeware, Native Settings UI, mod files, a service that never
 started, Scripts and Runtime, packs, Internet), one short text of at most two lines (`bridge/setup-notice-fit.test.mjs` holds all 15
-languages to that), shown for 9 s. The order puts everything that keeps the mod from starting, and Native Settings UI, before the texts that say "See
+languages to that), shown for 9 s once gameplay has been on screen for 8 s without a menu or a load (`SETTLE_S` in `mod/setup-check.lua`: the notice was lost when it fell due on the frame a save was restored, before the HUD existed). The order puts everything that keeps the mod from starting, and Native Settings UI, before the texts that say "See
 Help in Settings", so a notice never sends the player to a page they cannot open. A service that failed has its own notice
 (`service-down`), Local AI its own fallback notices, and a mod manager, the game version and the browser none; those are lines on the
 page only. At the first load the Lua also asks the running service for its full answer and waits for it (at most 15 s), so a

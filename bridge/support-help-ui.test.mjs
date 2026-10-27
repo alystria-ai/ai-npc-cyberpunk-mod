@@ -455,7 +455,9 @@ test('without this mod’s scripts the notice is written to the warning line its
   pump(false, 30)
   assert(#written == 0 and #popups == 0, 'a menu is open: nothing is shown yet')
   menu = false
-  pump(false, 2)
+  pump(false, 6)
+  assert(#written == 0, 'gameplay is back: the HUD may not exist yet, the notice waits for it to settle')
+  pump(false, 14)
   assert(#written == 1 and #popups == 0, 'written to the warning line, not through this mod’s scripts')
   assert(written[1].message == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.' and written[1].isShown == true and written[1].duration == 9, written[1].message)
   pump(false, 60)
@@ -491,7 +493,9 @@ test('a player with none of the scripts’ methods: the menu update and the mana
   assert(setupRow('redscript').description:find('If the error names another mod, that mod is the problem.', 1, true))
   assert(setupRow('codeware').value == 'OK' or setupRow('codeware').value == 'Unknown')
   menu = false
-  frames(4)
+  frames(6)
+  assert(#written == 0, 'gameplay is back: the notice waits for it to settle')
+  frames(14)
   assert(#written == 1 and written[1].message == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.', written[1] and written[1].message or 'no notice')
   assert(consoleHas("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log."), table.concat(consoleLines, ' | '))
   frames(60)
