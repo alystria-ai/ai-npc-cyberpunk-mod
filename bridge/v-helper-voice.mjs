@@ -53,6 +53,8 @@ export class VHelperVoice {
       this.failed = false; this.failure = null;
     }
     const generation = ++this.generation;
+    // The wall-clock time, so a start-up report can line the load up with the game's title-screen frame gaps (probe.log "Start-up:" lines).
+    this.log(`loading starts at ${new Date(this.clock()).toISOString()}`);
     let client;
     try {
       client = this.client = this.create(value => {

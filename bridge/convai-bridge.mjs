@@ -401,7 +401,16 @@ const graphicsVendorsSource = wanted => { lookUpGraphics(wanted); return graphic
 // undefined while the list is being read, so OmniVoice is not started on a card that turns out to be 8 GB or less (VoiceSelection.omniCardPending); null once read and unknown.
 const graphicsAmdRouteSource = wanted => { lookUpGraphics(wanted); return graphicsKnown && amdRoute(graphicsCards); };
 const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted && !graphicsKnown ? undefined : graphicsCardMiB; };
-const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
+// The game's title screen holds V's helper voice (bridge/voice-selection.mjs startHold): it loads once the game has a world, or when the service has
+// run TITLE_HOLD_MAX_MS without one. A function declaration: it is read before worldSession exists, and the latch is the module's.
+const TITLE_HOLD_MAX_MS = 600_000;
+let titleHoldOver = false;
+function titleHolds() {
+  if (titleHoldOver) return false;
+  if (worldSession?.ready === true || process.uptime() * 1000 >= TITLE_HOLD_MAX_MS) titleHoldOver = true;
+  return !titleHoldOver;
+}
+const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath, startHold: titleHolds,
   gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
@@ -3456,6 +3465,8 @@ async function pollKnowledge() {
     if (!session) session = lateWorld(lapse.value, worldSession);
     worldSession = session;
     const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
+    // The first world ends the title screen's hold on V's helper voice: it loads now (nothing else asks it to between two V lines).
+    if (nextWorld && !titleHoldOver) { titleHoldOver = true; console.error("[VHelper] the game has a world: V's helper voice may load now"); localVoice.tickVHelper(); }
     if (priorWorld && priorWorld !== nextWorld) {
       memoryQuiescing++;
       try { await resetLiveRoutes(); }
