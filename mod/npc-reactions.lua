@@ -49,15 +49,17 @@ M.DEFAULTS = {
     -- read-back and again `joinAgain` seconds after the start (live test 4: the gang came in later than the one search at 1.2 s found).
     buddyRadius = 20, buddyMax = 4, joinAgain = {3, 6},
     escalateEvery = 1, escalateWatch = 120,
-    -- After the escalation: every brawler's hand read back at armVerify and armLate seconds (by person, a hand without a gun asked again), and
-    -- in between every armKeep seconds while the watch lasts, a brawler back on fists or a knife is given its gun again (live test 6: the
-    -- combat AI took the gun back within seconds). At most armKeepLines lines of the keeping are logged per brawl.
-    armVerify = 1.5, armLate = 5, armKeep = 2, armKeepLines = 10,
+    -- After the escalation (the brawl ended, an ordinary fight): every brawler's hand read back by person at armVerify and armLate seconds.
+    armVerify = 1.5, armLate = 5,
     jump = 12,           -- metres moved by the first read-back that mean the person was put there, not walked there
     commandCooldown = 30,   -- seconds after a command before the same person is offered another
     stopHold = 30, cowerHold = 20,   -- seconds a person who stopped, cowers or got down (not seated) holds still
-    -- A walking crowd person kept by the conversation's hold (cower, get down): read back every keepEvery s; it counts as drifting past keepDrift m.
-    keepEvery = 2, keepDrift = 1.5,
+    -- A walking crowd person held by the conversation's focus (cower, get down): read back every keepEvery s. Past keepDrift m from where the
+    -- focus last began, or a hold not running, or the focus gone: it is begun again (at most refocusMax times), refocusGap s after letting go
+    -- of a focus still on it. focusHold is the conversation hold's length (Engagement.reds ConvaiBeginFocus, 40 s): a focus older than
+    -- focusHold - cowerHold when the reaction starts would run out inside it, so it is begun again then too.
+    keepEvery = 2, keepDrift = 1.5, refocusMax = 2, refocusGap = 0.5, focusHold = 40,
+    acceptKeep = 30,     -- seconds the focus on such a person is kept from the reaction's acceptance (its reply plays meanwhile)
     exitVerify = 3,      -- seconds after a get-out command that its read-back (still in the vehicle or not) is logged
 }
 
@@ -526,13 +528,23 @@ function M.nativeAdapter()
         command.itemId = TweakDBID.new('Items.w_melee_004__fists_a')
         pcall(function() command.failIfItemNotFound = false end)
         if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the fists command') end
-        return 'fists asked'
+        return 'fists asked', command
     end
     -- Puts the drawn weapon away (mod/companion-equipment.lua's holster command): the second ask of a brawl whose person drew a weapon.
     function N.holster(npc)
         local command = NewObject('AIUnequipCommand')
         command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
         if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the holster command') end
+        return command
+    end
+    -- Stops one of our own commands (a brawl's fists or put-away) while it runs or waits, the way the conversation stops its hold
+    -- (Engagement.reds ConvaiEndFocus): Executing -> StopExecutingCommand, Enqueued -> CancelCommand. Returns the state it was in.
+    function N.stop(npc, command)
+        local controller = npc:GetAIControllerComponent()
+        local state = N.commandState(npc, command)
+        if state == 'Executing' then controller:StopExecutingCommand(command, true)
+        elseif state == 'Enqueued' then controller:CancelCommand(command) end
+        return state
     end
     -- What the right hand holds: 'empty', 'fists' or the weapon's record.
     -- Second result: its kind ('fists', 'cyberware', 'ranged', 'melee', 'other'; N.weaponKind below), for the escalation's read-back.
@@ -561,14 +573,15 @@ function M.nativeAdapter()
         if not WeaponObject.IsRanged(id) then return false end
         return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'gun')
     end
-    -- A brawler draws its gun. Live test 4: the game's weapon switch command (AISwitchToPrimaryWeaponCommand) changed nothing. Live test 5:
-    -- the gun equipped into the right hand (AIEquipCommand) was taken, and a second later they held a knife or their gorilla arms again: the
-    -- combat AI picks its own weapon from the person's equipment, and it may pick only an item the person has (transactionSystem.script
-    -- GetEquipmentWithCondition: `transactionSystem.HasItem(puppet, itemID)`), so a melee weapon in the inventory wins at brawl range.
-    -- So, for V's gun: the melee weapons (knives, clubs, fists items) are taken from the person's inventory and its gun is equipped; the combat
-    -- AI then has only the gun. Cyberware arms (gorilla arms, mantis blades: the game's `Meleeware` tag) are the person's own body and are kept:
-    -- such a person counts as armed. A person with no gun keeps what it has. Returns what was done.
-    local function itemName(id) return tostring(TDBID.ToStringDEBUG(ItemID.GetTDBID(id)) or 'item') end
+    -- A brawler's weapons. Live tests 4 to 7 (2026-10-27): every way of putting a gun in a brawler's hand by command was undone by the combat
+    -- AI within seconds (the switch command, the equip, the equip with the knives taken from the inventory, the equip again every 2 s). The
+    -- combat AI picks the weapon from the person's character record, by conditions in the game's tweaks: a gang record's PRIMARY weapon is
+    -- the one it fights with, and a melee record (a knife, the fists, gorilla arms first; its gun in the secondary group) keeps its melee
+    -- weapon whenever V can be reached (WeaponConditions.BaseMeleePrimaryWeaponEquipCondition / ...UnequipCondition: the gun only when there
+    -- is no path to V, V is in a vehicle, a safe zone or outside its area), whatever V holds. A crowd melee record does switch when V holds a
+    -- gun (CrowdMeleePrimaryWeaponUnequipCondition: TargetHasRangedWeapon); a gang one does not. So nothing more is equipped: the escalation
+    -- ends the brawl (our fists and put-away commands stopped) and starts an ordinary fight, and the read-backs name each person's record
+    -- weapon so a melee fighter is seen for what the game makes it.
     -- 'fists', 'cyberware', 'ranged', 'melee' or 'other', by the weapon record's tags (weapon.script IsFists, IsCyberwareWeapon, IsRanged, IsMelee).
     local function weaponKind(id)
         if WeaponObject.IsFists(id) then return 'fists' end
@@ -578,83 +591,21 @@ function M.nativeAdapter()
         return 'other'
     end
     N.weaponKind = weaponKind
-    local function equipRight(npc, record)
-        local command = NewObject('AIEquipCommand')
-        command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
-        command.itemId = TweakDBID.new(record)
-        pcall(function() command.failIfItemNotFound = false end)
-        if npc:GetAIControllerComponent():SendCommand(command) == false then error('the game refused the equip command') end
-    end
-    -- The person's items (CET returns the out list after the result).
-    local function carried(npc)
-        local results = {pcall(function() return Game.GetTransactionSystem():GetItemList(npc) end)}
-        local ids = {}
-        if not results[1] then return ids end
-        for index = 2, #results do
-            if type(results[index]) == 'table' then
-                for _, data in ipairs(results[index]) do
-                    local okId, id = pcall(function() return data:GetID() end)
-                    if okId and id ~= nil then ids[#ids + 1] = id end
+    -- The weapon the person's own character record fights with first: the first item of its PrimaryEquipment group, the pool chosen as the
+    -- game chooses it (AIActionTransactionSystem.CalculateEquipmentItems, power level -1; CET returns the out list after the result).
+    -- Returns its record and kind, or nil when the record says none.
+    function N.primary(npc)
+        local character = TweakDBInterface.GetCharacterRecord(npc:GetRecordID())
+        local outs = {AIActionTransactionSystem.CalculateEquipmentItems(npc, character:PrimaryEquipment(), -1)}
+        for index = 1, #outs do
+            if type(outs[index]) == 'table' then
+                for _, entry in ipairs(outs[index]) do
+                    local id = entry:Item():GetID()
+                    return tostring(TDBID.ToStringDEBUG(id)), weaponKind(ItemID.FromTDBID(id))
                 end
             end
         end
-        return ids
-    end
-    -- The weapons the person's own character record equips (its PrimaryEquipment and SecondaryEquipment groups): the combat AI unequips any
-    -- other weapon it finds in the hand (aiItemHandlingConditions.script CheckUnregisteredWeapon), so a gun of the record is the one that stays.
-    -- A set of record names, empty when unreadable.
-    local function registered(npc)
-        local names = {}
-        pcall(function()
-            local character = TweakDBInterface.GetCharacterRecord(npc:GetRecordID())
-            for _, group in ipairs({character:PrimaryEquipment(), character:SecondaryEquipment()}) do
-                local outs = {AIActionTransactionSystem.CalculateEquipmentItems(npc, group, -1)}
-                for index = 1, #outs do
-                    if type(outs[index]) == 'table' then
-                        for _, entry in ipairs(outs[index]) do
-                            local okName, name = pcall(function() return TDBID.ToStringDEBUG(entry:Item():GetID()) end)
-                            if okName and name then names[tostring(name)] = true end
-                        end
-                    end
-                end
-            end
-        end)
-        return names
-    end
-    function N.weapons(npc, record)
-        local held = ScriptedPuppet.GetWeaponRight(npc)
-        local heldKind, heldName
-        if held ~= nil then
-            local id = held:GetItemID()
-            heldKind, heldName = weaponKind(id), itemName(id)
-            if heldKind == 'ranged' then return 'already ' .. heldName end
-        end
-        -- The gun: one of the person's own record (it stays in the hand), else the one it was seen with, else the first it carries.
-        local items, own, gun, seen, melee = carried(npc), registered(npc), nil, nil, {}
-        local mine
-        for _, id in ipairs(items) do
-            local kind = weaponKind(id)
-            if kind == 'ranged' then
-                gun = gun or id
-                if itemName(id) == record then seen = id end
-                if own[itemName(id)] and not mine then mine = id end
-            end
-            if kind == 'melee' or kind == 'fists' then melee[#melee + 1] = id end
-        end
-        local pick = mine or seen or gun
-        -- Live test 6: the gorilla-arms gangers look bare-handed to the player; they get their gun too when they carry one (their arms are
-        -- cyberware, never taken).
-        if pick == nil then
-            return 'no gun carried, keeps ' .. (heldKind == 'cyberware' and ('cyberware arms ' .. heldName) or heldName or 'empty hands')
-        end
-        local system, taken = Game.GetTransactionSystem(), {}
-        for _, id in ipairs(melee) do
-            local okTake, removed = pcall(function() return system:RemoveItem(npc, id, 1) end)
-            if okTake and removed ~= false then taken[#taken + 1] = itemName(id) end
-        end
-        equipRight(npc, itemName(pick))
-        return 'equip ' .. itemName(pick) .. (pick == mine and ' (its own)' or pick == seen and ' (seen)' or ' (carried)')
-            .. (heldKind == 'cyberware' and (' over its cyberware arms ' .. heldName) or '') .. (#taken > 0 and (', took ' .. table.concat(taken, '+')) or '')
+        return nil
     end
     -- The scared pose while a person is held (cower, get down): the fear animation set the game's crowd reaction turns on for its phase 2
     -- (reactionComponent.script GetFearAnimWrapper(2) = 'fear'), on, and off again when the hold ends. No crowd fear: on a walking crowd
@@ -973,14 +924,38 @@ function M.new(options)
         return true
     end
 
+    -- The conversation's focus on a person (mod/init.lua options): focusOf(npc) -> {age, hold} or nil; pin(npc, seconds): the focus on it outlasts
+    -- the end of the talk; refocus(k): the focus begun again for the person of a hold (`k`), kept to the hold's end.
+    local function focusOf(npc)
+        if type(options.focusOf) ~= 'function' then return nil end
+        local ok, value = pcall(options.focusOf, npc)
+        return ok and type(value) == 'table' and value or nil
+    end
+    local function pin(npc, seconds)
+        if type(options.keepFocus) ~= 'function' then return false end
+        local ok, value = pcall(options.keepFocus, npc, seconds)
+        return ok and value == true
+    end
+    local function refocus(k)
+        k.refocused = k.refocused + 1
+        k.base = where(k.npc) or k.base
+        local ok, began, why = pcall(options.refocus, k.player, k.npc, math.max(1, k.endsAt - clock()) + 1)
+        if ok and began then return true, 'begun' end
+        return false, tostring(ok and why or began)
+    end
+
     -- Cower or get down: the person holds still where it stands for `cowerHold` seconds, in the scared pose, then goes back to what it did.
-    -- Live tests 4, 5 and 6 (2026-10-27): a hold of our own (AIHoldPositionCommand) never ran on a walking crowd person, sent before the
-    -- conversation let go (it queued behind the conversation's hold) or after it (to an empty queue): `Enqueued` every read-back, and the man
-    -- walked, then ran, off (20.8 m, 103.3 m). What does work is the conversation's own hold (Engagement.reds ConvaiBeginFocus): it is
-    -- running when the reaction starts. So a walking crowd person is not let go: the conversation's hold keeps it, and the conversation lets
-    -- go only when the 20 s are over. Read back every `keepEvery` seconds (where it stands, and the hold's state when the adapter can read it):
-    -- a person that drifts (`keepDrift` m) or a hold that is not running is held by the way the leave legs prove works, a short move command
-    -- back to its own spot every `legCheck` s, until the 20 s are over. A person the conversation is not focused on starts with the moves.
+    -- Live tests 4 to 7 (2026-10-27): on a walking crowd person neither a hold of our own (AIHoldPositionCommand, queued behind the
+    -- conversation's hold or sent after it: `Enqueued` every time) nor move commands to its own spot (live test 7: 114 m in the 20 s) did
+    -- anything. What stops one is the conversation's focus (Engagement.reds ConvaiBeginFocus: an AIHoldPositionCommand of 40 s through
+    -- AIComponent.SendCommand and the turn to V; `Crowd focus after one second: metres_moved` about 1). Live test 7 also showed that by the
+    -- time the reaction starts (the reply heard, 10 s after the reaction was accepted) the conversation has let go. So:
+    -- - accepted: the focus on the person is pinned (options.keepFocus) so the end of the talk does not let go of it (S.start);
+    -- - started: a focus still on the person with time left in its 40 s hold is kept to the end; one that would run out is let go and begun
+    --   again `refocusGap` s later (a fresh hold to an empty queue, as when V starts to talk to a walking person); none: begun again at once;
+    -- - read back every `keepEvery` s (where it stands, the focus hold's state): drifting `keepDrift` m, a hold not running or the focus gone
+    --   begins it again (at most `refocusMax` times); after that, or when the focus cannot begin, moves back to its spot (as before);
+    -- - the 20 s over: the pose off, the focus let go if it is still on that person.
     -- A seated crowd person gets the seat's own fear; anyone else (not crowd) holds still with its own hold, as before.
     local function cower(p, player, why)
         local crowd = crowdOf(p.npc)
@@ -990,23 +965,33 @@ function M.new(options)
         end
         local from = where(p.npc)
         local endsAt = clock() + cfg.cowerHold
-        if crowd and from and natives.walkTo then
-            local focus
-            if type(options.focusOf) == 'function' then
-                local okFocus, value = pcall(options.focusOf, p.npc)
-                if okFocus and type(value) == 'table' then focus = value end
-            end
+        if crowd and from and type(options.refocus) == 'function' then
+            local focus = focusOf(p.npc)
             local posed = natives.scared ~= nil and (guard('pose', natives.scared, p.npc, true))
-            local keep = {npc = p.npc, from = from, why = why, endsAt = endsAt, hold = focus and focus.hold or nil, player = player}
-            log('NPC reaction: ' .. why .. ' started, holds still for ' .. cfg.cowerHold .. ' s, '
-                .. (focus and ('kept by the conversation\'s own hold (focused ' .. tostring(focus.age) .. ' s ago, not let go)') or 'the conversation is not on it: moves back to its spot')
-                .. (posed and ', in the scared pose (no crowd fear)' or ''))
-            if focus then
+            local keep = {npc = p.npc, from = from, base = from, why = why, endsAt = endsAt, player = player, refocused = 0}
+            local age = focus and (tonumber(focus.age) or cfg.focusHold) or nil
+            local way
+            if focus and age + cfg.cowerHold <= cfg.focusHold then
+                pin(p.npc, cfg.cowerHold + 1)
+                way = 'kept by the conversation\'s own focus (begun ' .. tostring(focus.age) .. ' s ago, its hold runs to the end)'
                 checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'keep', keep = keep, first = true}
+            elseif focus then
+                release(player)
+                way = 'the conversation\'s focus (begun ' .. tostring(focus.age) .. ' s ago, its hold would run out) let go, begun again in '
+                    .. string.format('%g', cfg.refocusGap) .. ' s'
+                checks[#checks + 1] = {at = clock() + cfg.refocusGap, kind = 'refocus', keep = keep}
             else
-                keep.spot = true
-                checks[#checks + 1] = {at = clock(), kind = 'spot', keep = keep}
+                local began, how = refocus(keep)
+                if began then
+                    way = 'the conversation had let go: its focus begun again for it'
+                    checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'keep', keep = keep, first = true}
+                else
+                    keep.spot = true
+                    way = 'the conversation had let go and its focus could not begin (' .. how .. '): moves back to its spot'
+                    checks[#checks + 1] = {at = clock(), kind = 'spot', keep = keep}
+                end
             end
+            log('NPC reaction: ' .. why .. ' started, holds still for ' .. cfg.cowerHold .. ' s, ' .. way .. (posed and ', in the scared pose (no crowd fear)' or ''))
             checks[#checks + 1] = {at = endsAt, kind = 'back', npc = p.npc, why = why, from = from, crowd = true, posed = posed, release = true, player = player}
             return true
         end
@@ -1061,19 +1046,21 @@ function M.new(options)
             local hostile = guard('attack', natives.makeHostile, p.npc, player)
             local combat, way = guard('attack', natives.startCombat, p.npc, player)
             -- A brawl: the person's hand takes its fists (a weapon only for a death threat, the plain attack).
-            local fists, how = false, nil
-            if p.kind == 'brawl' and natives.fists then fists, how = guard('fists', natives.fists, p.npc) end
+            local fists, how, asked = false, nil, nil
+            if p.kind == 'brawl' and natives.fists then fists, how, asked = guard('fists', natives.fists, p.npc) end
             log('NPC reaction: ' .. p.kind .. ' ' .. (hostile and 'hostile ok' or 'hostile failed') .. ', combat start ' .. (combat and tostring(way) or 'failed')
                 .. (p.kind == 'brawl' and (', fists ' .. (fists and tostring(how) or 'not asked')) or ''))
             if hostile or combat then
                 started(p.kind, p)
                 -- A brawl is one fight of the person and the friends who join it (the first read-back finds them). It escalates when V does:
-                -- the moment V holds a gun, every one of them draws its own weapon, and never goes back to fists (the owner's rule, 2026-10-27).
+                -- the moment V holds a gun the brawl ends and every one of them is in an ordinary fight, for good (the owner's rule, 2026-10-27).
                 -- Watched once a second while the brawl lasts (`escalateWatch`), never per frame.
-                -- weapons[i]: the weapon person i was seen holding (equipped again when the brawl escalates); how[i]: how its draw was asked.
-                local fight = p.kind == 'brawl' and {npcs = {p.npc}, weapons = {}, how = {}, noGun = {}, keys = {[p.entity] = true}, escalated = false, player = player} or nil
+                -- weapons[i]: the weapon person i was seen holding; commands[i]: our own commands that made it a fistfight (the fists asked, a
+                -- weapon put away), stopped when the brawl escalates; record[i]: what its character record fights with (read at the escalation).
+                local fight = p.kind == 'brawl' and {npcs = {p.npc}, weapons = {}, commands = {{asked}}, record = {}, keys = {[p.entity] = true},
+                    escalated = false, player = player} or nil
                 -- The watch first: when both come due together, V's gun is read before anything is put away.
-                if fight and natives.vArmed and natives.weapons then
+                if fight and natives.vArmed then
                     checks[#checks + 1] = {at = clock() + cfg.escalateEvery, kind = 'escalate', fight = fight, untilAt = clock() + cfg.escalateWatch}
                 end
                 checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = p.npc, entity = p.entity, brawl = p.kind == 'brawl', fight = fight}
@@ -1117,12 +1104,30 @@ function M.new(options)
     end
     local function metres(value) return value and string.format('%.1f', value) or '?' end
 
-    -- A brawler draws its weapon (the escalation): the one it was seen holding, else what it carries. Returns true when the ask was sent.
-    local function arm(fight, index)
-        local okArm, how = guard('weapons', natives.weapons, fight.npcs[index], fight.weapons[index])
-        fight.how[index] = okArm and tostring(how) or 'failed'
-        if okArm and tostring(how):find('^no gun carried') then fight.noGun[index] = true end
-        return okArm
+    -- The escalation for one brawler (live test 7): its brawl ends and an ordinary fight begins, the plain attack's way. Our own commands
+    -- that made it a fistfight (the fists asked, a drawn weapon put away) are stopped if they still run or wait, then the attack's two asks
+    -- (hostile, the combat start); the combat AI then arms it as the game arms anyone V fights. What its character record fights with is
+    -- read once, for the log (a gang melee record keeps its melee weapon while V can be reached: N.primary above). Returns the line and
+    -- whether the fight was taken.
+    local function fightOn(fight, index)
+        local npc, player = fight.npcs[index], fight.player
+        local stopped = 0
+        for _, command in ipairs(fight.commands[index] or {}) do
+            local okStop, state = guard('stop', natives.stop, npc, command)
+            if okStop and (state == 'Executing' or state == 'Enqueued') then stopped = stopped + 1 end
+        end
+        fight.commands[index] = {}
+        local hostile = guard('attack', natives.makeHostile, npc, player)
+        local combat, way = guard('attack', natives.startCombat, npc, player)
+        local okRecord, record, kind = false, nil, nil
+        if natives.primary then okRecord, record, kind = guard('read-record', natives.primary, npc) end
+        if okRecord and record then
+            fight.record[index] = tostring(record) .. ' (' .. (kind == 'ranged' and 'gun' or kind == 'cyberware' and 'cyberware arms' or tostring(kind)) .. ')'
+        end
+        local line = (stopped > 0 and (stopped .. ' brawl command' .. (stopped == 1 and '' or 's') .. ' stopped, ') or '')
+            .. (hostile and 'hostile ok' or 'hostile failed') .. ', combat start ' .. (combat and tostring(way) or 'failed')
+            .. ', its record fights with ' .. (fight.record[index] or (okRecord and 'nothing' or 'unreadable'))
+        return line, hostile or combat
     end
     -- The friends who joined a brawl, searched at its first read-back and again `joinAgain` seconds after it began (live test 4: the gang
     -- joined, the one search at 1.2 s found none). Each new one is an ordinary person by the same rails as the brawler (never a companion,
@@ -1151,18 +1156,26 @@ function M.new(options)
                     local index = #fight.npcs + 1
                     fight.npcs[index] = buddy
                     if okHand and held ~= 'fists' and held ~= 'empty' then fight.weapons[index] = held end
+                    fight.commands[index] = {}
                     if fight.escalated then
-                        arm(fight, index)
+                        fightOn(fight, index)
                     else
-                        if fight.weapons[index] and natives.holster then drew = drew + 1; guard('fists', natives.holster, buddy) end
-                        if natives.fists then guard('fists', natives.fists, buddy) end
+                        if fight.weapons[index] and natives.holster then
+                            drew = drew + 1
+                            local okPut, put = guard('fists', natives.holster, buddy)
+                            if okPut and put ~= nil then table.insert(fight.commands[index], put) end
+                        end
+                        if natives.fists then
+                            local okFists, _, asked = guard('fists', natives.fists, buddy)
+                            if okFists and asked ~= nil then table.insert(fight.commands[index], asked) end
+                        end
                     end
                 end
             end
         end
         log('NPC reaction: brawl joined by ' .. asked .. ' more (search ' .. search .. ' of ' .. (1 + #cfg.joinAgain) .. ': squad ' .. tostring(counts.squad or '?')
             .. ', nearby ' .. tostring(counts.nearby or '?') .. ')'
-            .. (asked > 0 and (fight.escalated and ', asked to draw (V has a gun out)' or (', asked for fists (' .. drew .. ' had a weapon out, asked to put it away)')) or ''))
+            .. (asked > 0 and (fight.escalated and ', in an ordinary fight (V has a gun out)' or (', asked for fists (' .. drew .. ' had a weapon out, asked to put it away)')) or ''))
         -- Friends who drew after the escalation: every hand read back once more (no further ask).
         if asked > 0 and fight.escalated and natives.hand then checks[#checks + 1] = {at = clock() + cfg.armVerify, kind = 'armed', fight = fight, label = 'joined'} end
     end
@@ -1191,11 +1204,12 @@ function M.new(options)
             log('NPC reaction check: ' .. (v.brawl and 'brawl' or 'attack') .. ' in_combat=' .. (okCombat and tostring(combat) or 'unreadable') .. ' hostile_to_v=' .. (okHostile and tostring(hostile) or 'unreadable')
                 .. (hand and (' hand=' .. hand) or ''))
             local escalated = v.fight ~= nil and v.fight.escalated
-            -- The weapon the brawler holds is remembered: the escalation equips that same one again (live test 4).
+            -- The weapon the brawler holds is remembered (it was seen with it; the log of a joined friend counts it as a weapon out).
             if v.fight and hand and hand ~= 'fists' and hand ~= 'empty' and hand ~= 'unreadable' then v.fight.weapons[1] = v.fight.weapons[1] or hand end
             -- A brawl whose person drew a weapon: the weapon is put away once (its fists are what an insult earns), unless V already escalated.
             if v.brawl and hand and hand ~= 'fists' and hand ~= 'empty' and hand ~= 'unreadable' and not v.holstered and natives.holster and not escalated then
-                local put = guard('fists', natives.holster, v.npc)
+                local put, command = guard('fists', natives.holster, v.npc)
+                if put and command ~= nil and v.fight then table.insert(v.fight.commands[1], command) end
                 log('NPC reaction: brawl drew ' .. hand .. ', asked to put it away (' .. (put and 'sent' or 'failed') .. ')')
                 v.holstered = true
             end
@@ -1246,26 +1260,50 @@ function M.new(options)
                 end
             end
         elseif v.kind == 'keep' then
-            -- A walking crowd person held by the conversation's own hold: where it stands, and the hold's state (when readable). Drifting, or
-            -- a hold that is not running: the spot moves from now on. Logged at the first read-back, half way, and when the way changes.
+            -- A walking crowd person held by the conversation's focus: where it stands, and the focus hold's state (when readable). Drifting, a
+            -- hold not running or the focus gone: the focus begun again (refocusMax times), then the moves to its spot. Logged at the first
+            -- read-back, half way, and when the way changes.
             local k = v.keep
-            if k.spot then return end
-            local gone = moved(k.npc, k.from)
+            if k.spot or clock() >= k.endsAt then return end
+            local gone, drift = moved(k.npc, k.from), moved(k.npc, k.base)
+            local focus = focusOf(k.npc)
             local ok, state = false, nil
-            if k.hold ~= nil then ok, state = guard('read-command', natives.commandState, k.npc, k.hold) end
+            if focus and focus.hold ~= nil then ok, state = guard('read-command', natives.commandState, k.npc, focus.hold) end
+            local stateText = not focus and 'let go' or (ok and tostring(state) or 'unreadable')
             local half = not k.halfLogged and clock() >= k.endsAt - cfg.cowerHold / 2
             if half then k.halfLogged = true end
             if v.first or half then
-                log('NPC reaction check: ' .. k.why .. ' hold state=' .. (ok and tostring(state) or 'unreadable') .. ' moved=' .. metres(gone) .. ' m'
-                    .. (half and ' (half way)' or '') .. ' (the conversation\'s hold)')
+                log('NPC reaction check: ' .. k.why .. ' hold state=' .. stateText .. ' moved=' .. metres(gone) .. ' m'
+                    .. (half and ' (half way)' or '') .. ' (the conversation\'s focus)')
             end
-            if (gone or 0) > cfg.keepDrift or (ok and state ~= 'Executing') then
-                k.spot = true
-                log('NPC reaction: ' .. k.why .. ' the conversation\'s hold did not keep it (state=' .. (ok and tostring(state) or 'unreadable') .. ', moved='
-                    .. metres(gone) .. ' m): back to its spot every ' .. string.format('%g', cfg.legCheck) .. ' s')
-                checks[#checks + 1] = {at = clock(), kind = 'spot', keep = k}
+            if (drift or 0) > cfg.keepDrift or not focus or (ok and state ~= 'Executing') then
+                if k.refocused < cfg.refocusMax then
+                    log('NPC reaction: ' .. k.why .. ' the focus did not keep it (state=' .. stateText .. ', moved=' .. metres(drift) .. ' m): begun again in '
+                        .. string.format('%g', cfg.refocusGap) .. ' s (' .. (k.refocused + 1) .. ' of ' .. cfg.refocusMax .. ')')
+                    if focus then release(k.player) end
+                    checks[#checks + 1] = {at = clock() + cfg.refocusGap, kind = 'refocus', keep = k}
+                else
+                    k.spot = true
+                    log('NPC reaction: ' .. k.why .. ' the focus did not keep it (state=' .. stateText .. ', moved=' .. metres(drift) .. ' m, begun again '
+                        .. k.refocused .. ' times): back to its spot every ' .. string.format('%g', cfg.legCheck) .. ' s')
+                    checks[#checks + 1] = {at = clock(), kind = 'spot', keep = k}
+                end
             elseif clock() + cfg.keepEvery < k.endsAt then
                 checks[#checks + 1] = {at = clock() + cfg.keepEvery, kind = 'keep', keep = k}
+            end
+        elseif v.kind == 'refocus' then
+            -- The focus begun again for a held person (refocusGap s after letting go of a focus still on it), read back verifyAfter s later,
+            -- as at the start.
+            local k = v.keep
+            if clock() >= k.endsAt then return end
+            local began, how = refocus(k)
+            log('NPC reaction: ' .. k.why .. ' focus begun again ' .. (began and 'for it' or ('failed (' .. how .. ')')) .. ' (' .. k.refocused .. ' of ' .. cfg.refocusMax
+                .. ', moved=' .. metres(moved(k.npc, k.from)) .. ' m)')
+            if began then
+                checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'keep', keep = k, first = true}
+            else
+                k.spot = true
+                checks[#checks + 1] = {at = clock(), kind = 'spot', keep = k}
             end
         elseif v.kind == 'spot' then
             -- The fallback: a short move back to the person's own spot (the leave legs prove a move command runs on a crowd person), every
@@ -1338,7 +1376,7 @@ function M.new(options)
                 end
             end
         elseif v.kind == 'escalate' then
-            -- Once a second while the brawl lasts: V holding a gun makes every brawler draw its own weapon, once, for good.
+            -- Once a second while the brawl lasts: V holding a gun ends the brawl, every brawler in an ordinary fight, once, for good.
             local fight = v.fight
             local now = clock()
             local alive = 0
@@ -1350,19 +1388,18 @@ function M.new(options)
                 local ok, gun = guard('read-v-weapon', natives.vArmed, fight.player)
                 if ok and gun then
                     fight.escalated = true
-                    local drew, ways = 0, {}
+                    local fought, ways = 0, {}
                     for index = 1, #fight.npcs do
-                        if arm(fight, index) then drew = drew + 1 end
-                        ways[#ways + 1] = fight.how[index]
+                        local line, taken = fightOn(fight, index)
+                        if taken then fought = fought + 1 end
+                        ways[#ways + 1] = index .. ': ' .. line
                     end
-                    log('NPC reaction: V drew ' .. tostring(gun) .. '; the brawl escalates: ' .. drew .. ' of ' .. #fight.npcs .. ' asked for their guns ('
-                        .. table.concat(ways, '; ') .. ')')
-                    -- Every brawler's hand read back once: who holds a gun now, and one more ask for anyone who does not.
-                    fight.watchUntil = v.untilAt
+                    log('NPC reaction: V drew ' .. tostring(gun) .. '; the brawl escalates: the brawl ended, an ordinary fight for ' .. fought .. ' of ' .. #fight.npcs
+                        .. ' (' .. table.concat(ways, '; ') .. ')')
+                    -- Every brawler's hand read back by person, twice; nothing more is asked.
                     if natives.hand then
                         checks[#checks + 1] = {at = now + cfg.armVerify, kind = 'armed', fight = fight, label = '+' .. cfg.armVerify .. ' s'}
                         checks[#checks + 1] = {at = now + cfg.armLate, kind = 'armed', fight = fight, label = '+' .. cfg.armLate .. ' s'}
-                        checks[#checks + 1] = {at = now + cfg.armVerify + cfg.armKeep, kind = 'armKeep', fight = fight}
                     end
                 elseif ok and now + cfg.escalateEvery <= v.untilAt then
                     v.at = now + cfg.escalateEvery
@@ -1372,48 +1409,19 @@ function M.new(options)
         elseif v.kind == 'join' then
             joinFight(v.fight, v.search)
         elseif v.kind == 'armed' then
-            -- After the escalation, at +armVerify and +armLate: each brawler's hand by person and kind. Only a gun counts (live test 6: the
-            -- gorilla-arms gangers look bare-handed to the player). A hand without a gun is asked again, unless the person carries none.
-            local fight, hands, armed = v.fight, {}, 0
+            -- After the escalation, at +armVerify and +armLate: each brawler's hand by person and kind, and for one not on a gun what its record
+            -- fights with (a gang melee record keeps its melee weapon while V can be reached). Nothing is asked again.
+            local fight, hands, guns = v.fight, {}, 0
             for index, npc in ipairs(fight.npcs) do
                 local okHand, held, kind = guard('read-hand', natives.hand, npc)
                 held = okHand and tostring(held) or 'unreadable'
                 kind = okHand and kind or 'unreadable'
-                if kind == 'ranged' then armed = armed + 1 end
-                local text = held .. (kind == 'ranged' and ' (gun)' or kind == 'cyberware' and ' (cyberware arms)' or (kind ~= held and kind ~= 'unreadable' and (' (' .. kind .. ')') or ''))
-                if kind ~= 'ranged' and kind ~= 'unreadable' and not fight.noGun[index] then
-                    local okAgain, how = guard('weapons', natives.weapons, npc, fight.weapons[index])
-                    if okAgain and tostring(how):find('^no gun carried') then fight.noGun[index] = true end
-                    text = text .. ' -> asked again (' .. (okAgain and tostring(how) or 'failed') .. ')'
-                end
+                if kind == 'ranged' then guns = guns + 1 end
+                local text = index .. ': ' .. held .. (kind == 'ranged' and ' (gun)' or kind == 'cyberware' and ' (cyberware arms)' or (kind ~= held and kind ~= 'unreadable' and (' (' .. kind .. ')') or ''))
+                if kind ~= 'ranged' and fight.record[index] then text = text .. ', its record: ' .. fight.record[index] .. ' first' end
                 hands[#hands + 1] = text
             end
-            log('NPC reaction check: brawl escalated ' .. tostring(v.label) .. ', ' .. armed .. ' of ' .. #fight.npcs .. ' hold a gun (' .. table.concat(hands, ', ') .. ')')
-        elseif v.kind == 'armKeep' then
-            -- While the watch lasts: a brawler the combat AI took back to fists, a knife or its arms gets its gun again (one equip, read from its
-            -- hand once every armKeep seconds; nothing for a person that carries no gun).
-            local fight = v.fight
-            local again = {}
-            for index, npc in ipairs(fight.npcs) do
-                local okUp, up = guard('read-alive', natives.alive, npc)
-                if okUp and up and not fight.noGun[index] then
-                    local okHand, held, kind = guard('read-hand', natives.hand, npc)
-                    if okHand and kind ~= 'ranged' then
-                        local okAgain, how = guard('weapons', natives.weapons, npc, fight.weapons[index])
-                        if okAgain and tostring(how):find('^no gun carried') then fight.noGun[index] = true end
-                        again[#again + 1] = tostring(held) .. ' -> ' .. (okAgain and tostring(how) or 'failed')
-                    end
-                end
-            end
-            if #again > 0 then
-                fight.keepLines = (fight.keepLines or 0) + 1
-                if fight.keepLines <= cfg.armKeepLines then
-                    log('NPC reaction: brawl kept on guns, ' .. #again .. ' given their gun again (' .. table.concat(again, '; ') .. ')')
-                end
-            end
-            if fight.watchUntil and clock() + cfg.armKeep <= fight.watchUntil then
-                checks[#checks + 1] = {at = clock() + cfg.armKeep, kind = 'armKeep', fight = fight}
-            end
+            log('NPC reaction check: brawl escalated ' .. tostring(v.label) .. ', ' .. guns .. ' of ' .. #fight.npcs .. ' hold a gun (' .. table.concat(hands, '; ') .. ')')
         elseif v.kind == 'exit' then
             local ok, mounted = guard('read-mount', natives.mounted, v.npc)
             log('NPC reaction check: exit-vehicle ' .. (ok and (mounted and 'still in the vehicle' or 'out of the vehicle') or 'unreadable'))
@@ -1449,7 +1457,13 @@ function M.new(options)
         if M.HOSTILE[kind] then lastHostile = now end
         pending = {kind = kind, entity = entity, requestId = requestId, npc = npc, at = now, category = row and row.group,
             base = row and row.base, affiliation = row and row.affiliation}
-        log('NPC reaction accepted: ' .. kind .. ', starts when the reply has been heard')
+        -- Live test 7: a walking crowd person told to get down (or cowering) walked off while its reply played and before the reaction began;
+        -- the conversation's focus on it is pinned until the reaction can have ended (it is let go then, or by the reaction).
+        local kept = false
+        if (kind == 'cower' or kind == 'get-down') and crowdOf(npc) and not seatedOf(npc) then
+            kept = pin(npc, cfg.acceptKeep)
+        end
+        log('NPC reaction accepted: ' .. kind .. ', starts when the reply has been heard' .. (kept and ' (the conversation\'s focus kept on it)' or ''))
         return true
     end
 

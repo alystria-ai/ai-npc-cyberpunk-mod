@@ -12,8 +12,18 @@ order), and the escalation takes the melee weapons from the inventory so the com
 Reworked again 2026-10-27 on `fix/threats-live6` after live test 6: a "get down" kept by the conversation's own hold (not let go for the 20 s),
 with moves back to the person's own spot as the automatic fallback, and an escalation that gives gorilla-arms people their gun and keeps every
 brawler on it (read back by person at +1.5 s and +5 s, a gun given again every 2 s while the watch lasts).
+Reworked again 2026-10-27 on `fix/threats-live7` after live test 7: a "get down" held by the conversation's own focus, kept from the moment the
+reaction is accepted and begun again (`ConvaiBeginFocus`) when it has let go or its hold would run out; and an escalation that stops equipping
+anything: the brawl ends (our fists and put-away commands stopped) and an ordinary fight begins, the plain attack's way.
 Committed, NOT merged, NOT pushed, offline-tested only. The new kinds (cower, fists, the commands) are behind a Companion Manager switch that is
 **off by default**: Settings, Conversations, "NPCs react to threats and commands"; the crowd run and the game's pick among the old kinds are not.
+
+## Live test 7 (game 2.31, 2026-10-27) and what changed
+
+| Seen live | Cause | Fix (`fix/threats-live7`) |
+|---|---|---|
+| "Get down" to a walking resident: `accepted` at 10:28:44, `started ... the conversation is not on it: moves back to its spot` at 10:28:54, `first move back to its spot sent (moved=0.1 m)`, `held by moves to its spot, 11 sent, moved=9.0 m (half way)`, `hold over ... (moved=114.3 m in the hold ... the conversation had already let go)` | (a) the reaction waits for the reply to be heard (10 s), and the end of the talk had let go of the focus before that (`mod/init.lua`: the end-of-talk timeout `focusUntil`, set for example to a second after the composer closes or the reply is retired, then `endFocus`), so the person was walking again when the reaction began. (b) Move commands to its spot do nothing on a walking crowd person either: the crowd's traffic has it (the leave legs "working" was probably the crowd fleeing). What does work is the conversation's focus: `ConvaiBeginFocus` (`Engagement.reds`) sends an `AIHoldPositionCommand` of 40 s through `AIComponent.SendCommand` and turns the person to V (`ConvaiTurnCivilian`), and the person stops (`Crowd focus after one second: metres_moved` about 1) | (a) **the focus is kept from the acceptance**: `options.keepFocus(npc, 30)` (`mod/init.lua`) pins the focus on that crowd person so the end-of-talk timeout waits (`convaiFocusKept`, compared by the focus record: nothing read per frame). (b) At the start: a focus on the person with time left in its 40 s hold is kept to the end of the 20 s; one that would run out is let go and **begun again half a second later** (`options.refocus`: `beginFocus`, the same `ConvaiBeginFocus` path as when V starts to talk, a fresh hold to an empty queue); no focus: begun again at once. Read back every 2 s; a drift over 1.5 m, a hold not `Executing` or the focus gone: begun again (at most twice), then the moves to its spot as the last resort. At 20 s the focus is let go (if still on the person) |
+| V drew a gun: `4 of 4 asked for their guns (equip Items.Preset_Liberty_Neon (its own), took Items.Preset_Tanto_Default+...; equip Items.Preset_Overture_Default (its own) over its cyberware arms Items.NPC_Strong_Arms ...)`, then at +1.5 s the Tanto back, at +5 s two empty hands and the arms; `brawl kept on guns` every 2 s changed nothing | the combat AI arms a person from its **character record**, by the conditions in the game's tweaks (`tweaks/base/gameplay/static_data/database/ai/item_conditions/weaponconditions.tweak`). A gang record's PRIMARY weapon is what it fights with; a gang melee record (`tyger_claws_*_melee1_*`: the knife, the fists or gorilla arms in `primaryEquipment` with `BaseMeleePrimaryWeaponEquipCondition`, a handgun pool in `secondaryEquipment`) unequips its melee weapon only when V cannot be reached (`BaseMeleePrimaryWeaponUnequipCondition`: no path, V in a vehicle, a safe zone, outside its area), whatever V holds. Only a crowd melee record switches when V holds a gun (`CrowdMeleePrimaryWeaponUnequipCondition`: `TargetHasRangedWeapon`). There is no brawl mode: what made our brawl a fistfight is our own `AIEquipCommand` of `Items.w_melee_004__fists_a` and `AIUnequipCommand` of a drawn weapon. A ranged gang record (a gun first) draws its gun by itself in any fight | **no more equipping**: the escalation ends the brawl for each brawler (its fists and put-away commands stopped if they still run or wait: `StopExecutingCommand` / `CancelCommand`, as the conversation stops its hold) and starts an **ordinary fight** the plain `attack`'s way (hostile, the combat start), so the combat AI arms it as the game arms anyone V fights; nothing is taken from the inventory any more. The log names what each record fights with first (`N.primary`: the first item of its primary equipment group), and the read-backs at +1.5 s and +5 s say each hand and, for one not on a gun, that record weapon. So a gang melee fighter (knife, fists, gorilla arms) keeps fighting melee while V can reach it, as in the game itself; a ranged one shoots |
 
 ## Live test 6 (game 2.31, 2026-10-27) and what changed
 
@@ -139,7 +149,7 @@ workspot), the reaction sends **its own command first**, while the conversation'
 | Kind | Order | The person | Back to the crowd |
 |---|---|---|---|
 | leave (and the run after a police call, and the switch-off leave) | the crowd reaction event (phase 3: the game's own fright for the people around, its fear face and voice), the first run leg, then the conversation lets go | runs away in **legs**: a first leg of 4 m, read back after 0.4 s; then legs of 8 m, each sent from where the person is a second later, before the last one ends (no stop, no start animation between legs: `useStart` off), up to the walkable point 30 m away or ten legs | when it arrives (`ran <m> m in <n> leg(s); back to the crowd`), or once it streams out of sight |
-| cower, get-down | the conversation is **not** let go: its own hold (`ConvaiBeginFocus`'s `AIHoldPositionCommand`) keeps the person (live test 6: an own hold never ran on a crowd person after the release), then the scared pose; no crowd fear (live test 4); read back every 2 s (moved, and the conversation's hold state), logged at the first read-back and half way; a drift over 1.5 m or a hold not `Executing`: a walk back to its own spot every second for the rest (`AIMoveToCommand`); a person the conversation is not on gets those moves from the start | holds still where it is, in the scared pose | when the 20 s end (`hold over, back to the crowd`, the pose off, then the conversation let go if it is still on that person) |
+| cower, get-down | the conversation's **focus** holds the person (live tests 4 to 7: neither a hold of our own nor move commands did): kept from the acceptance (the end of the talk waits), kept to the end when its 40 s hold has time left, else let go and begun again half a second later (`ConvaiBeginFocus`), or begun again at once when the talk had let go; then the scared pose; no crowd fear (live test 4); read back every 2 s (moved, the focus hold's state), logged at the first read-back and half way; a drift over 1.5 m, a hold not `Executing` or the focus gone: begun again (at most twice), then a walk back to its own spot every second as the last resort | holds still where it is, turned to V, in the scared pose | when the 20 s end (`hold over, back to the crowd`, the pose off, then the focus let go if it is still on that person) |
 | stop | an `AIHoldPositionCommand` (30 s) without letting go (as before: the talk goes on) | holds still | when the hold ends |
 
 **Never a teleport, at worst one leg.** The game puts a crowd person given a move command at its end point at once in the cases seen so far
@@ -156,18 +166,15 @@ leg is 4 m, so the worst a jump can do is 4 m. A person that does not move in tw
   put away): `brawl joined by <n> more (search <i> of 3: squad <a>, nearby <b>), asked for fists (<k> had a weapon out, asked to put it away)`.
   One who joins after the escalation draws instead: `..., asked to draw (V has a gun out)`.
 - **Escalation, the owner's rule.** While a brawl lasts (up to 120 s) V's right hand is read once a second (`natives.vArmed`: a ranged weapon's
-  record, else false). The moment V holds a gun, every brawler (the person and its friends) gets its gun: its melee weapons and fists items are
-  taken from its inventory (`TransactionSystem.RemoveItem`; the combat AI picks only items the person has, live test 5), then its gun is equipped
-  (`AIEquipCommand` into `AttachmentSlots.WeaponRight`: the gun of its own character record first, live test 6, because the combat AI swaps
-  out a hand weapon that is not in the record (`CheckUnregisteredWeapon`); else the one it was seen with if it carries it; else the first it
-  carries). Cyberware arms (gorilla arms, mantis blades: the `Meleeware` tag) are never taken, but a person with arms who carries a gun gets the
-  gun too (live test 6: the arms look like fists to the player); only a gun counts as armed. A person with no gun keeps what it has.
-  `V drew <record>; the brawl escalates: <n> of <m> asked for their guns (equip <record> (its own), took <record>; equip <record> (carried) over its
-  cyberware arms <record>; no gun carried, keeps <hand>; ...)`, then by person at +1.5 s and +5 s `brawl escalated +1.5 s, <k> of <m> hold a gun
-  (<record> (gun), <record> (cyberware arms) -> asked again (...), <record> (melee) -> asked again (...), ...)`; a hand without a gun is asked
-  again unless the person carries none. Every 2 s while the watch lasts, a brawler whose hand is not a gun is given its gun again:
-  `brawl kept on guns, <n> given their gun again (<hand> -> equip <record> (its own); ...)` (at most 10 lines per brawl).
-  Friends who join after the escalation are asked for their guns and read back once (`brawl escalated joined, ...`). Once, for good: nothing is put away after it, V putting the gun away does not take them back to fists, and the watch stops. A brawl that
+  record, else false). The moment V holds a gun, the brawl ends for every brawler (the person and its friends): our own commands that made it a
+  fistfight (the fists asked, a drawn weapon put away) are stopped if they still run or wait, and the plain attack's two asks follow (hostile, the
+  combat start). The combat AI then arms each one from its character record, as the game arms anyone V fights (live test 7, the tweaks'
+  `WeaponConditions`): a ranged gang record draws its gun; a gang melee record (a knife, the fists, gorilla arms first) keeps its melee weapon
+  while V can be reached, whatever V holds. Nothing is equipped and nothing is taken from the inventory (live tests 4 to 7: no gun put in a hand by
+  command stayed). `V drew <record>; the brawl escalates: the brawl ended, an ordinary fight for <n> of <m> (1: <k> brawl commands stopped, hostile
+  ok, combat start <way>, its record fights with <record> (gun|melee|fists|cyberware arms); 2: ...)`, then by person at +1.5 s and +5 s `brawl
+  escalated +1.5 s, <k> of <m> hold a gun (1: <hand> (melee), its record: <record> (melee) first; 2: <record> (gun); ...)`; nothing is asked again.
+  Friends who join after the escalation get the ordinary fight at once (no fists) and are read back once (`brawl escalated joined, ...`). Once, for good: nothing is put away after it, V putting the gun away does not take them back to fists, and the watch stops. A brawl that
   starts with V already holding a gun escalates at the first watch, before anything is put away. A death threat is still the plain `attack` with
   weapons from the start.
 
@@ -322,8 +329,8 @@ against the game's compiled script cache (`r6/cache/final.redscripts`, read-only
 | Kind | Crowd person | Anyone else | Status |
 |---|---|---|---|
 | leave, walking crowd person | the crowd event (phase 3), then `AIMoveToCommand` legs (`Run`, 4 m then 8 m, later legs `useStart` off), sent before the conversation lets go; a jump or a stall: the fear stage | (not crowd) | **unconfirmed** (live test 3) |
-| cower, get-down, walking crowd person | the conversation's own hold kept for the 20 s (`m_convaiFocusHold` read from CET through `options.focusOf`, its state by `GetCommandState`), the scared pose (`fear` and `inCrouch` animation sets, off when the hold ends); no crowd fear (live test 4); a drift or a hold not running: `AIMoveToCommand` (`Walk`) back to its own spot every second | (not crowd: its own hold, cancelled and sent again when stuck, and the pose) | own hold on a crowd person: **fails** (live tests 4 to 6); the conversation's hold: live; the moves: live (leave legs); this path: **unconfirmed** (live test 7) |
-| brawl friends, escalation | the squad (`AISquadHelper.GetSquadmatesID`, `Game.FindEntityByID`) and the targeting search (`GetTargetParts`), three times: live (live test 5); the same fists and put-away; V's gun (`ScriptedPuppet.GetWeaponRight(V)`, `WeaponObject.IsRanged`) read once a second, then the melee weapons removed (`TransactionSystem.RemoveItem`) and `AIEquipCommand` of the person's gun (its record's `TweakDBInterface.GetCharacterRecord` equipment groups through `AIActionTransactionSystem.CalculateEquipmentItems`, else `GetItemList`, `WeaponObject.IsRanged/IsMelee/IsFists/IsCyberwareWeapon`); cyberware arms never taken, the gun given over them; hands read back by kind at +1.5 s and +5 s, the gun given again every 2 s | same | friends: live; escalation: the equip live (live test 6), keeping it **unconfirmed** (live test 7) |
+| cower, get-down, walking crowd person | the conversation's focus: pinned from the acceptance (`options.keepFocus`, `convaiFocusKept` in `mod/init.lua`), begun again by `options.refocus` (`beginFocus` -> `PlayerPuppet.ConvaiBeginFocus`: `AIHoldPositionCommand` 40 s by `AIComponent.SendCommand`, the turn to V), its hold read as `m_convaiFocusHold` through `options.focusOf` and `GetCommandState`; the scared pose (`fear` and `inCrouch` animation sets, off when the hold ends); no crowd fear (live test 4); the last resort `AIMoveToCommand` (`Walk`) back to its own spot | (not crowd: its own hold, cancelled and sent again when stuck, and the pose) | own hold and moves on a crowd person: **fail** (live tests 4 to 7); the focus at the start of a talk: live; kept and begun again for a reaction: **unconfirmed** (live test 8) |
+| brawl friends, escalation | the squad (`AISquadHelper.GetSquadmatesID`, `Game.FindEntityByID`) and the targeting search (`GetTargetParts`), three times: live (live test 5); the same fists and put-away; V's gun (`ScriptedPuppet.GetWeaponRight(V)`, `WeaponObject.IsRanged`) read once a second, then our fists and put-away commands stopped (`AIControllerComponent.GetCommandState`, `StopExecutingCommand`, `CancelCommand`) and the attack's hostile and combat start; the record's first weapon read (`TweakDBInterface.GetCharacterRecord`, `PrimaryEquipment`, `AIActionTransactionSystem.CalculateEquipmentItems`, `ItemID.FromTDBID`, `WeaponObject.IsRanged/IsMelee/IsFists/IsCyberwareWeapon`); hands read back by kind at +1.5 s and +5 s | same | friends: live; the equip of guns: **fails** (live tests 4 to 7, removed); the ordinary fight: **unconfirmed** (live test 8) |
 | leave, seated crowd person | `DelayedCrowdReactionEvent` (phase 3), `StimuliEvent.new()` (or `NewObject('senseStimuliEvent')`) from V of type `Terror` with its record (`StimuliSystem.GetStimRecord`), `npc:QueueEvent`; else, or when it did not move the person, the crowd's fear stage (`ChangeFearStage(Panic)` and the calls above) | `AIMoveToCommand`, as before | crowd: **unconfirmed** (live test 1 crashed on `NewObject('StimuliEvent')`, fixed); walk: live |
 | cower, get-down, seated | the same event, phase 2 (the seat's own fear); else the fear stage `Alarmed` | `AIHoldPositionCommand` 20 s and the scared pose | **unconfirmed** / live |
 | brawl | hostile + combat start as `attack`, then `AIEquipCommand` of `Items.w_melee_004__fists_a` to `AttachmentSlots.WeaponRight` (`failIfItemNotFound` off: nothing is added to the inventory); after 1.2 s, if the hand holds a weapon, one `AIUnequipCommand` | same | combat: live; fists: **unconfirmed** |
@@ -493,35 +500,53 @@ over the arms, a gun not counted when it is a knife or arms, read back at +1.5 s
 `TweakDBInterface` and `AIActionTransactionSystem`), an unreadable record falls back to the one seen, the gun over cyberware arms (never taken),
 no gun keeps the arms.
 
+Added 2026-10-27 (`fix/threats-live7`), from the live test 7 log lines, `bridge/npc-threats-lua.test.mjs` (25, four rewritten): get down
+for a walking crowd person with a fake conversation focus: pinned for 30 s at the acceptance and kept to the end when young (order `pose`, no
+release, no hold of our own, no move, let go at the end); 30 s old: let go and begun again 0.5 s later (order `pose,release,focus`); a drift of
+3 m begins it again (2 of 2), drifting again starts the moves to its spot, never a third focus; the talk already let go: begun again at once; an
+`Enqueued` hold begun again; a focus that cannot begin: the moves, and nobody else's focus let go; seated and not-crowd people as before. The
+escalation: our fists and put-away commands stopped by state (a finished one not counted), hostile and the combat start for every brawler,
+nothing equipped or taken, each record's first weapon in the log and the read-backs at +1.5 s and +5 s; V armed from the start (gorilla arms
+read as such); friends after the escalation in an ordinary fight (no fists), one with an unreadable record. The natives: the fists and put-away
+commands returned, `N.primary` (a melee, a cyberware, no and an unreadable record), `N.stop` (running, waiting, finished), no `N.weapons`.
+
 ## Live test (owner)
 
-Live tests 1 to 6 (2026-10-26 and 27) found the problems at the top. Live test 7 is this one, for `fix/threats-live6`.
+Live tests 1 to 7 (2026-10-26 and 27) found the problems at the top. Live test 8 is this one, for `fix/threats-live7`.
 
 Install: overlay `mod/npc-reactions.lua` and `mod/init.lua` (never `mod/diagnostics.lua`), CET reload (no bridge restart needed, no redscript, no game restart). Use
 a throwaway copy of a save. Keep `probe.log` open.
 
-1. **Switch on, "get down on the ground!" to a walking pedestrian.** Expect `get-down started, holds still for 20 s, kept by the
-   conversation's own hold (focused <n> s ago, not let go), in the scared pose (no crowd fear)`, then `get-down hold state=Executing moved=<under 1>
-   m (the conversation's hold)`, about 10 s later the same with `(half way)`, and at 20 s `get-down hold over, back to the crowd (moved=<under 1> m
-   in the hold, scared pose off, the conversation let go)`. If the conversation's hold does not keep it: `get-down the conversation's hold did not
-   keep it (state=<s>, moved=<m> m): back to its spot every 1 s`, `get-down first move back to its spot sent (moved=<m> m)`, and half way
-   `get-down held by moves to its spot, <n> sent, moved=<under 2> m (half way)`. `state=unreadable` only means the hold field could not be read
-   from CET; the moved distance still says whether it stayed. **Does the person stop and stay about 20 s (or walk back to where it stood), then
-   walk on? Does it crouch or look scared?**
+1. **Switch on, "get down on the ground!" to a walking pedestrian.** Expect `NPC reaction accepted: get-down, starts when the reply has been
+   heard (the conversation's focus kept on it)`, then (the reply heard) either `get-down started, holds still for 20 s, kept by the conversation's
+   own focus (begun <n> s ago, its hold runs to the end), in the scared pose (no crowd fear)`, or `... the conversation's focus (begun <n> s ago,
+   its hold would run out) let go, begun again in 0.5 s ...` followed by `get-down focus begun again for it (1 of 2, moved=<m> m)` with the
+   game's own `Focus class: ... crowd=true`, `Crowd focus begin: crowd focus started` and `Crowd focus after one second: metres_moved=<under 1.5>`,
+   then `get-down hold state=Executing moved=<under 1.5> m (the conversation's focus)`, about 10 s later the same with `(half way)`, and at 20 s
+   `get-down hold over, back to the crowd (moved=<under 2> m in the hold, scared pose off, the conversation let go)`. If it walks anyway:
+   `get-down the focus did not keep it (state=<s>, moved=<m> m): begun again in 0.5 s (2 of 2)`, then `... begun again 2 times): back to its spot
+   every 1 s`. **Does the person stop while its reply plays, stay about 20 s turned to V, then walk on? Does it crouch or look scared?**
 2. **A death threat to a pedestrian whose plan says `kill:cower`.** The same lines with `cower`.
-3. **A ganger with friends (gorilla-arms ones if you find them), an insult, then draw a gun.** `V drew <record>; the brawl escalates: <n> of <m>
-   asked for their guns (equip <gun> (its own), took <knife or fists>; equip <gun> (carried) over its cyberware arms Items.NPC_Strong_Arms; ...)`,
-   then `brawl escalated +1.5 s, <k> of <m> hold a gun (...)` and `brawl escalated +5 s, <k> of <m> hold a gun (...)`, and while the fight lasts
-   any `brawl kept on guns, <n> given their gun again (<hand> -> equip <gun> ...)`. **Does everyone, the gorilla-arms ones too, end up shooting,
-   and stay on guns after 5 s?** Note who is still on fists in the +5 s line, and how often `brawl kept on guns` appears.
-4. **Holster yours**: they keep their guns. After the fight, the knives taken are gone from their loot (expected).
+3. **A ganger with friends (gorilla-arms ones if you find them), an insult, then draw a gun.** `V drew <record>; the brawl escalates: the brawl
+   ended, an ordinary fight for <n> of <m> (1: <k> brawl commands stopped, hostile ok, combat start reaction-component, its record fights with
+   <record> (melee); 2: ..., its record fights with <record> (gun); ...)`, then `brawl escalated +1.5 s, <k> of <m> hold a gun (1: <hand> (melee),
+   its record: <record> (melee) first; 2: <gun> (gun); ...)` and the same at `+5 s`. **Do the ones whose record says `(gun)` shoot? Do the
+   ones whose record says `(melee)`, `(fists)` or `(cyberware arms)` keep fighting hand to hand (the game's own rule for gang melee fighters),
+   and switch to a gun if you get out of reach (a car, a roof)?**
+4. **Holster yours**: nothing changes back to a brawl. Nothing is taken from their loot any more.
 5. **Frame rate** as before.
 
-What only this can confirm: that the conversation's hold keeps a walking crowd person for 20 s when it is not let go (or the moves to its spot
-do), that `m_convaiFocusHold` reads from CET, that a gorilla-arms ganger takes and fires a gun, and that the record's gun stays in hand.
+What only this can confirm: that the conversation's focus, kept and begun again, holds a walking crowd person for the 20 s; that the end of
+the talk now waits for it; and that ending the brawl gives the ranged gangers their guns at once.
 
 ## Open risks
 
+- Live test 7: a gang melee fighter (its record's primary weapon a knife, the fists or gorilla arms) keeps fighting melee after V draws, as it
+  does in the game itself; making it shoot would mean changing the game's weapon conditions for every such NPC (a tweak), or giving it another
+  character record, neither of which is done. A held person is turned to V by `ConvaiBeginFocus` when the focus is begun again, and stays in the
+  conversation's focus (gaze on V, the bark window) for the 20 s; the end of the talk waits for it (at most 30 s from the acceptance, then 21 s
+  from the start). Items taken by the builds of live tests 5 and 6 cannot be given back (those people are gone after a reload); nothing is
+  taken any more.
 - Live test 6: a "get down" now keeps the conversation focused on the person for 20 s, so the conversation's own focus effects (the person's
   gaze on V, the vanilla bark window) last that long too; if V turns away and the focus ends by itself, the moves to its spot take over. The
   gun kept by re-equipping every 2 s is one `AIEquipCommand` per brawler not on its gun, at most for the 120 s watch (no per-frame work). A
