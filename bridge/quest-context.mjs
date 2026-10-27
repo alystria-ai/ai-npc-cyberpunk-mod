@@ -7,7 +7,8 @@ import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot} from './world-knowledge.m
 import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
-import {gearContext, visibleGearContext} from './player-gear.mjs';
+import {gearContext, visibleGearContext, gearChangeContext} from './player-gear.mjs';
+import {gearMemory} from './gear-memory.mjs';
 import {turnContext, describeTurnContext, sceneryFor, moneyNote} from './turn-context.mjs';
 import {lastTalkSentence} from './last-talk.mjs';
 import {headContext} from './johnny-head.mjs';
@@ -179,7 +180,8 @@ export function conversationContextBlocks(input) {
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {
-    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
+    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory, {visible: true}) : ''},
+      {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
       {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? visibleGearContext(input) : ''},
       {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}];
   }
@@ -191,6 +193,9 @@ export function conversationContextBlocks(input) {
   const history = !quest ? '' : trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): where he and V stand and how he answers "what next?", right after the now block.
   return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: background},
+    // What changed in V's gear since this character last saw it, as the current fact (bridge/gear-memory.mjs): in the turn's own notes, right before V's words, where the
+    // history of the talk (an earlier answer about V's clothes) cannot outweigh the gear line far above it.
+    {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory) : ''},
     {tier: 'world', key: 'knowledge', text: knowledge},
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: quest ? trusted?.jobsContext : ''},
     {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''},

@@ -3,7 +3,9 @@
 -- never per frame. Every native call is guarded; a failure drops that item (or the whole snapshot), never the turn.
 -- It hands plain strings to the bridge, which words them (bridge/player-gear.mjs).
 local M = {}
-M.MAX_AGE, M.MAX_NAME = 5, 60
+-- MAX_AGE: only a burst of builds of one turn (a group round, a voice start and its finish a moment later) shares a read; a turn after that sees what V wears now
+-- (it was 5 s until 2026-10-27: a change made a few seconds after the last turn must show on the next one).
+M.MAX_AGE, M.MAX_NAME = 2, 60
 -- {id sent to the bridge, gamedataEquipmentArea}. Clothing is read as the VISIBLE item (the wardrobe outfit or
 -- transmog if one is active, else what is equipped): that is what a person looking at V sees.
 M.CLOTHING = {{'head', 'Head'}, {'face', 'Face'}, {'outerTorso', 'OuterChest'}, {'innerTorso', 'InnerChest'},
