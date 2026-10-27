@@ -2671,6 +2671,30 @@ local function beginFocus(player, npc)
     log('Crowd focus begin: ' .. (probeOk and tostring(probeResult) or 'failed: ' .. tostring(probeResult)))
     return true
 end
+-- Live test 7 (2026-10-27): by the time a "get down" starts (once the reply has been heard) the conversation has let go, and a move command
+-- does not stop a walking crowd person either. What stops one is this focus (ConvaiBeginFocus: its 40 s hold and the turn to V).
+-- keepFocus(npc, seconds): the focus on that crowd person outlasts the end of the talk for `seconds` (the end-of-talk timeout waits); true
+-- when the focus is on it. refocus(player, npc, seconds): this same focus begun again for that person and kept `seconds`. The pin is a
+-- global (the main chunk is near Lua's limit of local variables), compared by the focus record itself: nothing is read per frame.
+if convaiNpcReactions then
+    convaiNpcReactions.options.keepFocus = function(npc, seconds)
+        local current = focusedCrowd
+        if not current or not npc then return false end
+        if tostring(current.npc:GetEntityID().hash) ~= tostring(npc:GetEntityID().hash) then return false end
+        convaiFocusKept = {crowd = current, untilAt = os.time() + math.ceil(seconds or 0)}
+        return true
+    end
+    convaiNpcReactions.options.refocus = function(player, npc, seconds)
+        local began, why = beginFocus(player, npc)
+        if not began then return false, why end
+        local current = focusedCrowd
+        if not current then return false, 'not a crowd focus' end
+        convaiFocusKept = {crowd = current, untilAt = os.time() + math.ceil(seconds or 0)}
+        focusUntil = os.time() + math.ceil(seconds or 0)
+        if focusMode == nil then focusMode = 'chat' end
+        return true, 'begun'
+    end
+end
 
 -- UI_System.IsInMenu. The blackboard definition and its id are script constants (the blackboard is found by
 -- that id on every read), so they are read once, not with GetAllBlackboardDefs and two property reads per call.
@@ -6131,6 +6155,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     pendingKnowledgeOwner = nil
     if convaiTalkGate then convaiTalkGate.waiting = nil end
+    convaiFocusKept = nil
     if convaiAddons and convaiAddons.live then pcall(convaiAddons.reset, reason) end
     if convaiHolocall then pcall(convaiHolocall.abandon, reason) end
     focusedCrowd, releasedCrowd = nil, nil
@@ -6770,7 +6795,9 @@ registerForEvent('onUpdate', function(delta)
         -- No add-on registered: one check at the first gameplay tick for an add-on or content pack the bridge could not load (mod/addons.lua idleTick).
         pcall(convaiAddons.idleTick, player, worldReady)
     end
-    if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
+    -- A "get down" or a cower keeps the focus on its person past the talk (convaiFocusKept: options.keepFocus above).
+    if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil
+        and not (convaiFocusKept and convaiFocusKept.crowd == focusedCrowd and os.time() < convaiFocusKept.untilAt) then
         endFocus(player)
         if convaiBarkEnd then convaiBarkEnd(true) end
         focusUntil = nil
