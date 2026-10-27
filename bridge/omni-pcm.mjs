@@ -61,8 +61,11 @@ const sleepFor = (ms, signal) => new Promise((resolve, reject) => {
  * synthesize(profile, text, {signal, steps, language}) -> Promise<{audio: base64 WAV, timing}> (the resident worker's job; one at a time).
  * voicedPhrases(phrases, {role, text}) -> phrases with voice tags written in (Natural speech), or undefined for the plain phrases.
  * steps() -> the quality setting (16 or 32), read for each reply. onPhrase({index, role, generated, seconds}) is a diagnostics hook.
+ * retries() -> how many more times a phrase whose render failed is asked for again before the reply ends there (default 0: none). The AMD route (ROCm) asks for one:
+ * a stray PyTorch/MIOpen error on one phrase (the worker answers it with an error and keeps running) otherwise cut a reply off mid-sentence. A cancelled reply or a
+ * worker that is gone is never retried. onRetry({index, error}) is a diagnostics hook.
  */
-export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => undefined, onPhrase, ahead = 2, maxLeadSeconds = 14, sleep = sleepFor,
+export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => undefined, onPhrase, onRetry, retries = () => 0, ahead = 2, maxLeadSeconds = 14, sleep = sleepFor,
   pollMs = 75, now = () => performance.now()}) {
   if (typeof synthesize !== 'function') throw Error('OmniVoice synthesis is required');
   let counter = 0;
@@ -86,10 +89,20 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
       const jobs = new Map(), inner = new AbortController(), relay = () => inner.abort(signal.reason);
       signal?.addEventListener('abort', relay, {once: true});
       if (signal?.aborted) relay();
+      let retryBudget = 0;
+      try { retryBudget = Math.max(0, Math.min(2, Math.floor(Number(retries()) || 0))); } catch { retryBudget = 0; }
+      const render = async (index, attempt = 0) => {
+        try { return await synthesize(profile, voiced[index], {signal: inner.signal, steps: quality, ...(language ? {language} : {})}); }
+        catch (error) {
+          if (attempt >= retryBudget || inner.signal.aborted || signal?.aborted) throw error;
+          try { onRetry?.({index, error}); } catch { /* a diagnostic never affects speech */ }
+          return render(index, attempt + 1);
+        }
+      };
       const queue = index => {
         if (index >= phrases.length || jobs.has(index)) return;
         const started = now();
-        const job = Promise.resolve().then(() => synthesize(profile, voiced[index], {signal: inner.signal, steps: quality, ...(language ? {language} : {})}))
+        const job = Promise.resolve().then(() => render(index))
           .then(generated => ({generated, queuedMs: now() - started}));
         job.catch(() => {});
         jobs.set(index, job);

@@ -424,7 +424,9 @@ export function localAiCheck(settings, info = {}) {
   else if (info.status === 'no-memory') code = 'no-memory';
   else if (info.status === 'not-installed') code = 'not-installed';
   else code = LOCAL_REASONS[info.reason] ?? 'failed';
-  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed, ...(code === 'start-failed' && info.playerServer === true ? {playerServer: true} : {})};
+  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed, ...(code === 'start-failed' && info.playerServer === true ? {playerServer: true} : {}),
+    // Windows refused to run a file of the model server (Smart App Control or an Application Control policy): the Help row says so and what to do.
+    ...(code === 'start-failed' && info.blocked === true ? {cause: 'blocked'} : {})};
 }
 
 const text = (value, size) => clip(value, size) ?? '';
@@ -460,17 +462,18 @@ export async function collectSetupCheck(options = {}) {
       const pack = await jsonOf(join(project, 'package.json'));
       runtime = typeof pack?.version === 'string' && pack.version.trim() ? clip(pack.version, 40) : null;
     }
-    if (scripts === null || runtime === null) return {state: 'unknown', code: 'unknown', scripts, runtime};
-    if (scripts !== runtime) return {state: 'problem', code: 'mismatch', scripts, runtime};
-    // The same version, but built for different games (the 2.31 Runtime with the 2.5 Scripts, or the other way): they must be replaced together.
+    // The game each half was built for, in every answer: the game side (mod/setup-check.lua, the 'build' check) compares them with the running game.
     const scriptsGame = modRoot ? await releaseGame(join(modRoot, 'release.json')) : DEFAULT_BUILD_GAME;
     const runtimeGame = project ? await releaseGame(join(project, 'release.json')) : DEFAULT_BUILD_GAME;
+    if (scripts === null || runtime === null) return {state: 'unknown', code: 'unknown', scripts, runtime, scriptsGame, runtimeGame};
+    if (scripts !== runtime) return {state: 'problem', code: 'mismatch', scripts, runtime, scriptsGame, runtimeGame};
+    // The same version, but built for different games (the 2.31 Runtime with the 2.5 Scripts, or the other way): they must be replaced together.
     if (scriptsGame !== runtimeGame) return {state: 'problem', code: 'game-mismatch', scripts, runtime, scriptsGame, runtimeGame};
     // The versions agree; the update steps on disk (bridge/runtime-steps.mjs) say whether a step in between was skipped.
     const chain = project ? await checkRuntimeSteps({project, current: runtime}) : {code: 'none'};
-    if (chain.code === 'gap') return {state: 'problem', code: 'chain-gap', scripts, runtime, from: clip(chain.from, 40), to: clip(chain.to, 40)};
-    if (chain.code === 'order') return {state: 'problem', code: 'chain-order', scripts, runtime};
-    return {state: 'ok', code: 'match', scripts, runtime};
+    if (chain.code === 'gap') return {state: 'problem', code: 'chain-gap', scripts, runtime, scriptsGame, runtimeGame, from: clip(chain.from, 40), to: clip(chain.to, 40)};
+    if (chain.code === 'order') return {state: 'problem', code: 'chain-order', scripts, runtime, scriptsGame, runtimeGame};
+    return {state: 'ok', code: 'match', scripts, runtime, scriptsGame, runtimeGame};
   });
 
   const packs = () => guarded('packs', async () => {

@@ -144,8 +144,13 @@ test('the offer is bounded: known kinds, no duplicates, the fixed order, nothing
     {...offer(), actor: {id: '44ULL', key: 'Bad Key'}}, null, 'leave']) {
     assert.equal(parseReactionOffer(bad), null, JSON.stringify(bad));
   }
-  assert.deepEqual(REACTION_KINDS, ['leave', 'call-police', 'attack']);
-  assert.deepEqual(REACTION_ACTIONS, {leave: 'Walk Away', 'call-police': 'Call Police', attack: 'Attack V'});
+  // The threat reactions (docs/NPC_THREATS_COMMANDS.md) come after the three first ones, and only on an offer that says `threats: true`.
+  assert.deepEqual(REACTION_KINDS, ['leave', 'call-police', 'attack', 'cower', 'brawl', 'get-down', 'stop', 'exit-vehicle']);
+  assert.deepEqual(REACTION_ACTIONS, {leave: 'Walk Away', 'call-police': 'Call Police', attack: 'Attack V',
+    cower: 'Cower', brawl: 'Attack V', 'get-down': 'Obey V', stop: 'Obey V', 'exit-vehicle': 'Obey V'});
+  for (const kind of ['cower', 'brawl', 'get-down', 'stop', 'exit-vehicle']) assert.equal(parseReactionOffer(offer(['leave', kind])), null, kind + ' without the switch');
+  assert.deepEqual(parseReactionOffer({...offer(['stop', 'leave']), threats: true}), {...offer(['leave', 'stop']), threats: true});
+  assert.equal(parseReactionOffer({...offer(), threats: false}), null, 'threats is true or absent');
 });
 
 const prepared = (reactionOffer = offer()) => ({sendAllowed: true, identified: true, worldToken: 'world-fixture', generation: 2,

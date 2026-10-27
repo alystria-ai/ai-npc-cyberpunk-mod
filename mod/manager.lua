@@ -873,6 +873,9 @@ local function loadSettings()
     -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
     -- and the redscript listener is not registered.
     if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
+    -- Off by default: Remote OmniVoice (Voices > Custom voices, docs/REMOTE_OMNIVOICE.md), the OmniVoice choices are rendered by an OmniVoice server on another PC. Off, nothing
+    -- is asked of any server; on, no OmniVoice model loads on this PC and the pack is not needed.
+    if type(settings.remoteOmni) ~= 'boolean' then settings.remoteOmni, settingsNeedSave = false, true end
     -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): none by default, so nothing changes for an existing player. Only an
     -- action of the mod with a game key name is kept, and two actions never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
     if type(settings.keyBindings) ~= 'table' then settings.keyBindings, settingsNeedSave = {}, true end
@@ -889,6 +892,8 @@ local function loadSettings()
     end
     -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
     if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
+    -- Off by default: ordinary NPCs react to threats and obey commands (docs/NPC_THREATS_COMMANDS.md).
+    if type(settings.npcThreats) ~= 'boolean' then settings.npcThreats, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
@@ -1097,6 +1102,13 @@ function M.reputation()
     return settings.reputation == true
 end
 
+-- NPCs react to threats and commands (docs/NPC_THREATS_COMMANDS.md): ordinary NPCs may also cower, brawl, and obey get down, stop and get out
+-- of the vehicle. Off by default. Read once when an ordinary NPC's reaction offer is made, never per frame.
+function M.npcThreats()
+    loadSettings()
+    return settings.npcThreats == true
+end
+
 -- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
 -- press and when the settings page is drawn, never per frame.
 function M.johnnyInHead()
@@ -1132,6 +1144,49 @@ end
 local customKeyOf = function() return false end
 function M.configureCustom(isCustom)
     customKeyOf = type(isCustom) == 'function' and isCustom or function() return false end
+end
+
+-- The characters the player made that can be invited (docs/CHARACTER_EDITOR.md, "Invite and phone"): {key, name, record} from mod/custom-characters.lua list(), called when that
+-- list changed (a character made, renamed or deleted), never per frame. Each is listed under Characters to invite with a definition of the record it was made from and no
+-- conversation profile, so its invitation is the Model browser's: the copy of that model, which then carries the custom key and name (companions.settleProfiles).
+-- A character found only by display name has no record, so it cannot be spawned and is not listed. The Companion Manager's memory and relationship lists are the shipped profiles only.
+local customInvite, customRegistered, customSignature = {}, {}, ''
+function M.setCustomCharacters(rows)
+    for key in pairs(customRegistered) do
+        if companions and type(companions.unregisterDefinition) == 'function' then companions.unregisterDefinition(key) end
+    end
+    customRegistered, customInvite = {}, {}
+    local parts = {}
+    for _, row in ipairs(type(rows) == 'table' and rows or {}) do
+        if type(row) == 'table' and type(row.key) == 'string' and type(row.name) == 'string' and row.name ~= ''
+            and type(row.record) == 'string' and row.record ~= '' and byKey[row.key] == nil and companions then
+            local registered = companions.registerDefinition(row.key, {id = row.record, name = row.name, custom = true})
+            if registered then
+                customRegistered[row.key] = true
+                customInvite[#customInvite + 1] = {key = row.key, name = row.name, custom = true}
+                parts[#parts + 1] = row.key .. '=' .. row.name
+            end
+        end
+    end
+    table.sort(customInvite, sortNames)
+    customSignature = table.concat(parts, '|')
+    dirty = true
+end
+
+-- Characters to invite: the shipped profiles and the player's own characters, sorted by name together (rebuilt only when either list changed).
+local invitableCache, invitableFor
+local function invitableProfiles()
+    if invitableCache and invitableFor == customSignature then return invitableCache end
+    if #customInvite == 0 then invitableCache = profiles
+    else
+        local all = {}
+        for _, profile in ipairs(profiles) do all[#all + 1] = profile end
+        for _, profile in ipairs(customInvite) do all[#all + 1] = profile end
+        table.sort(all, sortNames)
+        invitableCache = all
+    end
+    invitableFor = customSignature
+    return invitableCache
 end
 
 function M.profileEnabled(key)
@@ -1208,6 +1263,15 @@ end
 -- `noNvidia`: the bridge knows this PC has no NVIDIA graphics card (its card list, or a worker that found no CUDA): the entries stay choosable,
 -- the menu only says OmniVoice needs one. Unknown (no fresh report, or no card list yet) is false.
 -- `smallCard`: the NVIDIA card is known to have under 12 GB (the card list), or OmniVoice already failed for want of graphics memory: the menu says it needs 12 GB.
+-- Remote OmniVoice as the bridge reports it: {wanted (the setting), set (an address is saved), connected (the server's voice is loaded and answering)}.
+function M.remoteOmniVoice()
+    local state = type(localVoiceState) == 'table' and localVoiceState or {}
+    local fresh = type(state.updated) == 'number' and math.abs(os.time() - state.updated / 1000) < 15
+    local remote = fresh and type(state.omniRemote) == 'table' and state.omniRemote or {}
+    return {wanted = settings.remoteOmni == true, set = remote.set == true, connected = remote.connected == true, fresh = fresh,
+        provider = fresh and state.provider or nil, requested = fresh and state.requestedProvider or nil}
+end
+
 function M.omniPack()
     local pack = type(localVoiceState) == 'table' and localVoiceState.omniPack or nil
     local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
@@ -1238,6 +1302,9 @@ function M.takeVoiceFallbackNotice()
     end
     if pending.reason == 'omni-memory' and pending.to == 'pocket' then
         return ui.t('OmniVoice needs more graphics memory than is free next to the game. Pocket is used.')
+    end
+    if pending.reason == 'omni-remote' then
+        return ui.t('The OmniVoice server cannot be reached. Replies show as text until it answers. The mod asks it again every few seconds.')
     end
     if pending.reason == 'omni-no-nvidia' then
         if pending.to == 'text' then
@@ -1479,6 +1546,7 @@ end
 
 function M.configure(companionApi, profileList)
     companions, profiles, byKey, byRecord = companionApi, {}, {}, {}
+    invitableCache = nil
     companions.gazeSettings = M.gazeSettings
     for _, value in ipairs(profileList or {}) do
         if type(value.key) == 'string' and type(value.name) == 'string' and not byKey[value.key] then
@@ -1560,7 +1628,7 @@ local function updateLocalVoice()
         -- 'omni-memory' (not enough graphics memory next to the game) is its own notice when Pocket takes over.
         -- 'virtual-memory' (Windows ran out of memory: the paging file is too small) is its own notice for OmniVoice or Pocket, whatever the lower voice is.
         local reason = fallback.reason == 'virtual-memory' and (fallback.from == 'omni' or fallback.from == 'pocket') and fallback.reason
-            or fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
+            or fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or fallback.reason == 'omni-remote' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '') .. (reason and (':' .. reason) or '')
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true
@@ -2040,7 +2108,7 @@ function M.snapshot(player)
     local dynamicInfo = {}
     for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = M.dynamicInfo(kind) end
     return {
-        profiles = profiles, models = models, party = party, feedback = feedback,
+        profiles = profiles, invitable = invitableProfiles(), customSignature = customSignature, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             developerMode = settings.developerMode,
             useOwnConvaiKey = settings.useOwnConvaiKey,
@@ -2076,9 +2144,11 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
             padTalk = settings.padTalk == true,
+            remoteOmni = settings.remoteOmni == true,
             keyBindings = settings.keyBindings,
             companionOutfits = settings.companionOutfits == true,
             reputation = settings.reputation == true,
+            npcThreats = settings.npcThreats == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             companionSpeakUp = M.companionSpeakUp(),
@@ -2206,6 +2276,9 @@ function M.applySettings(player, values)
         elseif key == 'padTalk' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.padTalk = value
+        elseif key == 'remoteOmni' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.remoteOmni = value
         elseif key == 'keyBindings' then
             -- {action = 'IK_F7'} binds, {action = false} clears. A key another action already has is refused (the page says which).
             if type(value) ~= 'table' then return false, 'Choose a key or a controller button.' end
@@ -2224,6 +2297,9 @@ function M.applySettings(player, values)
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value
+        elseif key == 'npcThreats' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.npcThreats = value
         elseif key == 'johnnyInHead' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value
@@ -2262,7 +2338,10 @@ function M.applySettings(player, values)
             -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies use).
             if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
-            if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
+            -- With Remote OmniVoice on (saved, or in this batch) the voice is rendered on a server and no pack is needed on this PC.
+            if value == 'omni' and not M.omniPack().installed and not (values.remoteOmni == true or (values.remoteOmni == nil and settings.remoteOmni == true)) then
+                return false, OMNI_PACK_MISSING
+            end
             nextSettings.voiceProvider = value
         elseif key == 'vVoiceEngine' then
             if not isChoice(value, V_VOICE_ENGINES) then return false, 'Choose one of the listed voices for V.' end

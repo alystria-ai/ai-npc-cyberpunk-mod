@@ -245,6 +245,8 @@ const between = (from, to) => {
   return init.slice(start, end);
 };
 const loader = between('mods = function(player)', "-- Read the game's dialogue volume");
+// The presence probe is a global function of init.lua, shared by the reader and by the switch-off note.
+const presence = between('convaiDarkFuturePresent = function()', '-- Music and TV, the song');
 
 function withLoader(code) {
   run(`${world}
@@ -259,6 +261,7 @@ function withLoader(code) {
   end
   local logged = {}
   convaiLogLine = function(line) logged[#logged + 1] = line end
+  ${presence}
   local options = {
     ${loader}
   }
@@ -349,4 +352,150 @@ test('turn context: the mods reader is called only while the switch is on, and a
   local t2 = TC.new({native = native, enabled = function() return true end, mods = function() calls = calls + 1; error('Dark Future broke') end, now = function() return 100 end})
   t2:capture()
   assert(calls == 2, 'a raising reader does not break the capture')
+`));
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The probe line of 2026-10-26 (fix/df-hunger-3): what the game side found, as a note that rides the snapshot, and the switch-off line.
+
+test('note: the compact text of what the last read found, for the turn\'s probe line; the needs always, the rest only while not 0', () => withModule(`
+  assert(M.note() == nil, 'before any read')
+  install({nutrition = 1, nerve = 1})
+  assert(M.read(nil, log).darkFuture.nutrition == 1)
+  assert(M.note() == 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1', M.note())
+  install({hydration = -1, energy = 4, alcohol = 3, injury = 2})
+  M.read(nil, log)
+  assert(M.note() == 'installed=yes read=ok stage=hydration?,nutrition0,energy4,nerve0,alcohol3,injury2', M.note())
+  -- Everything fine: no table to send, still a note (this is how the probe line tells "installed, read, nothing to say" from "not installed").
+  install({})
+  assert(M.read(nil, log) == nil)
+  assert(M.note() == 'installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve0', M.note())
+  systems = {}
+  M.reset()
+  assert(M.note() == nil, 'a new save forgets it')
+  M.read(nil, log)
+  assert(M.note() == 'installed=yes read=none stage=hydration-,nutrition-,energy-,nerve-', M.note())
+  containerFails = true
+  M.read(nil, log)
+  assert(M.note() == 'installed=yes read=failed stage=-', M.note())
+`));
+
+// A strict fake of the way CET and Dark Future 2.0.3 answer: the container and every getter are called with the object itself (a colon call), the class names
+// are CName objects, an unknown class is nil, and a getter a class does not have is a missing method. Read from the game's own scripts: the needs have
+// GetNeedStage (Int32, -1 while the system is not running), the addictions GetAddictionStage and GetWithdrawalLevel, the conditions GetConditionLevel (Uint32).
+test('strict fake: the reader calls the container and every getter the way CET calls a script object, and reads the owner\'s live state (hungry at stage 1)', () => run(`
+  local seen, calls = {}, {}
+  local objects = {}
+  local container = {}
+  CName = {new = function(text) assert(type(text) == 'string', 'CName.new takes a string'); return setmetatable({text = text}, {__name = 'CName'}) end}
+  function container.Get(self, name)
+    assert(self == container, 'Get must be called with a colon')
+    assert(getmetatable(name) and getmetatable(name).__name == 'CName', 'Get takes a CName, not a string')
+    seen[#seen + 1] = name.text
+    return objects[name.text]
+  end
+  Game = {GetScriptableSystemsContainer = function(...) assert(select('#', ...) == 0, 'no argument'); return container end}
+  local function object(label, getters)
+    local o = {}
+    for method, value in pairs(getters) do
+      o[method] = function(self, ...)
+        assert(self == o, label .. ':' .. method .. ' must be called with a colon')
+        assert(select('#', ...) == 0, method .. ' takes no argument')
+        calls[#calls + 1] = label .. ':' .. method
+        return value
+      end
+    end
+    return o
+  end
+  -- The owner's state of 2026-10-26: nutrition 1, nerve 1, nothing else.
+  objects['DarkFuture.Needs.DFHydrationSystem'] = object('hydration', {GetNeedStage = 0})
+  objects['DarkFuture.Needs.DFNutritionSystem'] = object('nutrition', {GetNeedStage = 1})
+  objects['DarkFuture.Needs.DFEnergySystem'] = object('energy', {GetNeedStage = 0})
+  objects['DarkFuture.Needs.DFNerveSystem'] = object('nerve', {GetNeedStage = 1})
+  objects['DarkFuture.Addictions.DFAlcoholAddictionSystem'] = object('alcohol', {GetAddictionStage = 2, GetWithdrawalLevel = 0})
+  objects['DarkFuture.Addictions.DFNicotineAddictionSystem'] = object('nicotine', {GetAddictionStage = 0, GetWithdrawalLevel = 0})
+  objects['DarkFuture.Addictions.DFNarcoticAddictionSystem'] = object('narcotic', {GetAddictionStage = 0, GetWithdrawalLevel = 0})
+  objects['DarkFuture.Conditions.DFInjuryConditionSystem'] = object('injury', {GetConditionLevel = 0})
+  objects['DarkFuture.Conditions.DFHumanityLossConditionSystem'] = object('humanity', {GetConditionLevel = 0})
+  local M = (function() ${moduleSource} end)()
+  local lines = {}
+  local out = M.read(nil, function(line) lines[#lines + 1] = line end)
+  local count = 0
+  for _ in pairs(out.darkFuture) do count = count + 1 end
+  assert(out and out.darkFuture.nutrition == 1 and out.darkFuture.nerve == nil and count == 1, 'only the hunger is worth sending')
+  assert(#seen == 9 and #calls == 9, #seen .. '/' .. #calls)
+  assert(M.note() == 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1', M.note())
+  assert(lines[#lines] == 'Mod state: dark-future hydration=0 nutrition=1 energy=0 nerve=1 alcohol=0 nicotine=0 narcotic=0 injury=0 humanity=0', lines[#lines])
+  -- A class with the wrong getter (a build that renamed it) is a missing method: logged once, the rest still answers.
+  objects['DarkFuture.Needs.DFHydrationSystem'] = object('hydration', {GetStage = 4})
+  M.reset(); lines = {}
+  out = M.read(nil, function(line) lines[#lines + 1] = line end)
+  assert(out and out.darkFuture.nutrition == 1 and out.darkFuture.hydration == nil)
+  local failed = 0
+  for _, line in ipairs(lines) do if line:find('hydration GetNeedStage failed', 1, true) then failed = failed + 1 end end
+  assert(failed == 1, 'one line for the missing getter: ' .. failed)
+`));
+
+test('loader: the second answer is the note: installed and fine, a reader that failed to load; none while the mod is absent', () => withLoader(`
+  local out, note = options.mods({})
+  assert(out == nil and note == nil and loads == 0, 'absent: neither')
+  install({})
+  systems['DarkFuture.Main.DFMainSystem'] = {}
+  clock = clock + 100
+  out, note = options.mods({})
+  assert(out == nil and note == 'installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve0', tostring(note))
+  install({nutrition = 1})
+  out, note = options.mods({})
+  assert(out and out.darkFuture.nutrition == 1 and note == 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve0', tostring(note))
+  convaiModState, brokenLoad, clock = nil, true, clock + 100
+  out, note = options.mods({})
+  assert(out == nil and note == 'installed=yes read=load-failed stage=-', tostring(note))
+  out, note = options.mods({})
+  assert(out == nil and note == 'installed=yes read=load-failed stage=-', 'the same on the next turn, no retry: ' .. tostring(note) .. ' ' .. loads)
+`));
+
+test('loader: switch off: one df line a session when Dark Future is installed (no state read, nothing loaded), none for a player without it, three probes at most', () => withLoader(`
+  -- Without Dark Future: at most three probes, a minute apart, then silence; never a line.
+  for i = 1, 30 do options.modsOff() end
+  assert(counts.lookups == 2 and #logged == 0, 'one probe of two names inside the minute: ' .. counts.lookups)
+  for round = 1, 6 do clock = clock + 61; for i = 1, 5 do options.modsOff() end end
+  assert(counts.lookups == 6 and #logged == 0 and loads == 0 and counts.calls == 0, 'three probes in all: ' .. counts.lookups)
+  -- With it (a new session): exactly one line, which names the switch and says nothing is read or told.
+  convaiModOffNoted, convaiModOffProbedAt, convaiModOffProbes = nil, nil, nil
+  install({nutrition = 1})
+  systems['DarkFuture.Main.DFMainSystem'] = {}
+  reset()
+  for i = 1, 10 do options.modsOff() end
+  assert(#logged == 1 and counts.calls == 0 and loads == 0, #logged .. ' ' .. counts.calls .. ' ' .. loads)
+  assert(logged[1]:find('^df: installed=yes read=skipped stage=%- switch=off asked=%? sent=none%(') and logged[1]:find('nothing is read or told', 1, true), logged[1])
+  clock = clock + 500
+  options.modsOff()
+  assert(#logged == 1, 'once a session')
+`));
+
+test('turn context: the note rides the snapshot (plain words only, bounded) and counts as nothing read; the switch-off callback is called only while the switch is off', () => run(`
+  local TC = (function() ${read('../mod/turn-context.lua')} end)()
+  local native = {player = function() return {} end, ready = function() return true end}
+  local note, offCalls, on = 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1', 0, true
+  local function snapshotOf(extra)
+    local options = {native = native, enabled = function(kind) if kind == 'mods' then return on end return false end, now = function() return 100 end}
+    for k, v in pairs(extra) do options[k] = v end
+    return TC.new(options):capture()
+  end
+  local s = snapshotOf({mods = function() return {darkFuture = {nutrition = 1}}, note end})
+  assert(s.mods.darkFuture.nutrition == 1 and s.modsRead == note)
+  -- Nothing worth sending but the mod is there: no mods table, still the note; and a snapshot with nothing else is no snapshot.
+  s = snapshotOf({mods = function() return nil, note end})
+  assert(s == nil, 'a note alone is not something read')
+  for _, bad in ipairs({'installed=yes; os.execute()', string.rep('a', 200), 12, true, 'Installed=YES'}) do
+    s = snapshotOf({mods = function() return {darkFuture = {nutrition = 1}}, bad end})
+    assert(s.modsRead == nil, tostring(bad))
+  end
+  on = false
+  s = snapshotOf({mods = function() error('must not be read while off') end, modsOff = function() offCalls = offCalls + 1 end})
+  assert(offCalls == 1 and (s == nil or (s.mods == nil and s.modsRead == nil)))
+  on = true
+  s = snapshotOf({mods = function() return {darkFuture = {energy = 4}}, note end, modsOff = function() offCalls = offCalls + 1 end})
+  assert(offCalls == 1, 'not called while the switch is on')
+  on = false
+  snapshotOf({modsOff = function() error('boom') end})
 `));

@@ -17,13 +17,13 @@ Restore defaults (Native Settings UI's own button, and the Defaults footer butto
 | Company and vehicle (`dynamic:company`) | `dynamicInfo.company` | who is with V, in a vehicle, driving, V's motion, what a companion is doing, which weapon she carries, by its display name: drawn ("You are holding Satara."), holstered ("You carry Satara (holstered).") or none ("You carry no weapon."). The hand is read each turn; when it is empty, her inventory list is read (kept 5 s per copy) and, if that holds no weapon, the primary equipment of her character record, because the game adds a copy's weapon to its inventory only when it is first equipped, so a copy that has not drawn yet can have none listed. "No weapon" is said only when the record was read and holds none; a failed or unresolved read says nothing (`Companion recovery carried-weapon {...}` in probe.log, once per change: `result`, `via` list or record, `list` items, `weapons` among them, `record` weapon, none, unresolved or failed) and whether she wears other clothes than her appearance text (docs/COMPANION_OUTFITS.md) | "Also with V", "V is in a vehicle / driving / walking" and the companion's own activity | the party read, the activity inputs, the vehicle read |
 | Health, heat and fights (`dynamic:condition`) | `dynamicInfo.condition` | V's health band, the police heat, the last fight | "V is hurt", the heat sentence, the battle block of a manual turn | the health and heat reads, and the fight read of a manual turn (`battles.captureManual`: group, phone, microphone and typed text). The battle module's own capture is never gated: battle reactions carry their own fight whatever the switch says |
 | V's money (`dynamic:money`) | `dynamicInfo.money` | a rough band: nearly broke ... rich | the money sentence | the money read |
-| V's gear and clothes (`dynamic:gear`) | `dynamicInfo.gear` | clothes, weapons, cyberware | the gear block (and what a bystander can see) | `playerGear:capture()` |
+| V's gear and clothes (`dynamic:gear`) | `dynamicInfo.gear` | clothes, weapons, cyberware, and whether V is visibly topless or naked ([PLAYER_GEAR_CONTEXT.md](PLAYER_GEAR_CONTEXT.md), "Nudity") | the gear block (and what a bystander can see), the nudity note of the right-now block | `playerGear:capture()` |
 | V's gender and lifepath (`dynamic:about`) | `dynamicInfo.about` | V's gender and lifepath | "V is a woman ..., lifepath ..." | the gender and lifepath reads for the turn (the world facts of the story may still reflect the lifepath) |
 | Quest and journal (`dynamic:quest`) | `dynamicInfo.quest` | the tracked quest and objectives, open jobs, the journal history, the job briefing a quest giver gives when V asks about their job ([QUEST_BRIEFINGS.md](QUEST_BRIEFINGS.md)) | the journal, jobs, history and job-briefing blocks (not even the "history is unavailable" line) | `questContext.capture()`, and the journal-history scan is not stepped, asked for or sent (unless Johnny's remarks need it) |
 | Recent game dialogue (`dynamic:dialogue`) | `dynamicInfo.dialogue` | the last lines of scenes and V's chosen replies | the game-dialogue block | `gameDialogue:capture()` (the recorder stays: Johnny's remarks and the add-ons hear the game's lines through it, and it only works when the game shows a line) |
 | Time since last talk (`dynamic:lastTalk`) | `dynamicInfo.lastTalk` | how long since V last talked to this character, in the game and in real days | the Background line "You last talked with V ..." (and nothing is stored for the character) | the game clock in seconds (one read inside the turn-context snapshot) |
 | Music and TV (`dynamic:media`) | `dynamicInfo.media` | the song on the car radio while V rides in a car, or on V's pocket radio on foot; a TV that is on near V (its channel and what it just said) | the Background line's radio and TV sentences, for a companion in person and for Johnny in V's head | `mod/media-context.lua` (the radio and TV reads), `mod/media-song.lua` (the game's song-change events, hooked only while on) and the TV line ring in `mod/game-dialogue.lua` |
-| Other mods' state (`dynamic:mods`) | `dynamicInfo.mods` | V's thirst, hunger, tiredness, nerve, withdrawal, humanity and lasting injuries, from the Dark Future mod when it is installed | the "V is exhausted and parched" sentences of the Background line | `mod/mod-state.lua` is not loaded and Dark Future's classes are not asked, and `mod/equipment-ex.lua` is not loaded and Equipment-EX is not asked (with the switch off nothing at all is read from other mods and no probe line is logged; with the switch on and the mod absent: one failed lookup a minute at most, while a turn is built) |
+| Other mods' state (`dynamic:mods`) | `dynamicInfo.mods` | V's thirst, hunger, tiredness, nerve, withdrawal, humanity and lasting injuries, from the Dark Future mod, V's stamina, daily energy, drink and cigarettes from Flesh and Chrome and V's injuries (bleeding, a limp, a broken arm, a concussion) from Injuries, when they are installed | the "V is exhausted and parched" sentences of the Background line | `mod/mod-state.lua` and `mod/vixen-state.lua` are not loaded and the classes of Dark Future, Flesh and Chrome and Injuries are not asked, and `mod/equipment-ex.lua` is not loaded and Equipment-EX is not asked (with the switch off nothing at all is read from other mods and no probe line is logged; with the switch on and the mod absent: one failed lookup a minute at most, while a turn is built) |
 
 What is deliberately not a switch: what each character knows about the story (the world facts and the recent shared events, they are the character's own
 knowledge and the bridge binds a conversation to the save with them), a fight reaction's own subject (battle reactions have their own setting), the pickups
@@ -141,9 +141,61 @@ seem okay?" had nothing to say: she did not mention it. Now, when V's words ask 
 thirsty, tired, eat, drink, sleep; the English phrases and the stems of the 14 other menu languages, `asksAboutSelf` in `bridge/scenery-memory.mjs`; in doubt it says
 yes, since it costs one sentence and only when there is a state to tell), the scenery memory returns `modsAsked`, and `bridge/turn-context.mjs` puts the state in the
 right-now block itself, right after who she is and where (the same spot as an appointment, so a budget cut never reaches it), not in the Background line that says
-"mention only if it matters": "V is a little thirsty and a little hungry. V is asking how they look or how they are: let this show in your answer, in your own
-words." (`modsAskedSentences` in `bridge/mod-state.mjs`). The same forms get it as before (a companion, Johnny in V's head, a stranger's visible half); a phone chat, a call
-and an add-on voice still get nothing; with nothing to tell, nothing is said however V asks. The next plain turn is quiet again.
+"mention only if it matters": "V is a little thirsty and a little hungry. V is asking how they look or how they are, and this is plain to see on V (no scan or
+reading needed): say it in your own words." (`modsAskedSentences` in `bridge/mod-state.mjs`; the "plain to see" half was added on 2026-10-26 after a companion
+answered "I'm not a med-scanner"). The same forms get it as before (a companion, Johnny in V's head, a stranger's visible half); a phone chat, a call
+and an add-on voice still get nothing. The next plain turn is quiet again. With nothing to tell, nothing is said unless the game side read the state and found it fine (next paragraph).
+
+**Why the second live test failed too** (fix/df-hunger-3, 2026-10-26 ~16:40 IST, build with merge 9dfbf8d6, game 2.31). The evidence, from the 2.31 copy's `probe.log`
+and `runtime/last-input.json`: Dark Future was found and read (`Mod state: Dark Future found, reader loaded`, nine `... system found as DarkFuture.Needs.DFNutritionSystem`
+and so on, `Mod state: dark-future hydration=0 nutrition=1 energy=0 nerve=1 ...` at 11:10:06Z), the switch was on (`[DynamicInfo] all on`; `dynamicInfo.mods` true in
+`settings.json`), and the state reached the bridge (`turnContext.mods.darkFuture.nutrition` = 1 in `last-input.json`). What V typed was **"can you see information on the
+state of my body"**, which is not "how do I look": `asksAboutSelf` had no word for the state or the body of V, so `modsAsked` was false, the state rode the Background line
+only ("mention only if it matters or V asks": "V is a little hungry.") on that first turn, and Alex answered "I can see you're standing there, but I'm not a med-scanner."
+So the read, the value and the switch were fine; the question was not recognised, and a state told only as background is not enough for a model that takes the question for
+a technical one. Nothing was wrong with the thresholds either: in Dark Future 2.0.3 (`Needs/DFNeedSystemBase.reds`, `GetNeedStageImpl`) the stages split a need that runs
+from 100 (fine) to 0 at the deficits 15, 25, 50 and 75 (settings `basicNeedThresholdValue1..4` = 85, 75, 50, 25), so stage 1 is a need between 75 and 85: the point where the mod
+itself shows its first status effect, and where the owner was already hungry.
+
+The fix: (1) `asksAboutSelf` now also knows "the state / condition / shape / status / health / vitals of my ...", "my body / state / condition / stomach / energy ...", a
+perception verb with V as its object ("can you see me", "do you notice anything wrong with me", "check me out"), "what's wrong with me", "how do you find me", "I feel
+dizzy / rough / drained", meals and "I need a coffee", and the matching stems for the 14 other menu languages and the CJK scripts (`bridge/mod-state.test.mjs`: 36 asking
+phrases and 29 ordinary ones that must not match: "can you see the car", "check the door", "what is the status of the job", "state your name"); (2) the answer sentence says the
+state is plain to see; (3) one probe line per turn explains what happened (below).
+
+**When V asks and nothing is wrong** (added 2026-10-27). Live test (game 2.31, Dark Future, V fed, rested and not thirsty): V asked a companion "can you see my body state?" and she said no. `probe.log`: `df: installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve0 switch=on asked=yes sent=none(no stage worth saying)`. The game side sends only the stages worth saying (`mod/mod-state.lua`: `if not any then return nil end`), so a fine V has no `mods` table at all, and the bridge had nothing to tell. Two changes: (1) the scenery memory returns `modsAsked` for every question about V, not only when there is a state signature (`bridge/scenery-memory.mjs`); (2) `modsAskedSentences(mods, form, reads)` in `bridge/mod-state.mjs` also takes the game side's compact notes (`modsRead`, `facRead`, `injRead`, which the snapshot already carries for the probe lines) and, from the stages they say were **read as a number**, words what is fine: "V looks well: fed, rested, not thirsty, steady." (hunger 0, tiredness 0 in both mods, thirst 0, nerve below the bar of 3; Flesh and Chrome adds "not winded", Injuries "free of visible injuries" only when all four kinds were read as 0). A need the note marks `?` (no answer) or `-` (system not found), a note that is not `read=ok` (`none`, `failed`, `off`, `idle`) and a mod that is not installed claim nothing; nothing is said at all when nothing was read. When something is wrong it stays the answer and what else read fine follows it: "V is a little hungry. Otherwise V is rested, not thirsty and steady." A stranger is told only "V looks well." (he sees a body, so only the body and the visible injuries count, by the stranger's bars). The sentence is in the right-now block (same spot as the state sentences), followed by the same "plain to see" instruction; a phone chat, a call and an add-on voice get nothing. Unprompted turns are unchanged: a fine V is never mentioned. The probe line reads `sent=right-now(fine)` for this case (also in the `fac:` and `inj:` lines for their own part). No new file, read or poll: the notes were already in the turn. Tests: `bridge/mod-state.test.mjs` (the live turn rebuilt, a need not read, each failed read kind, the stranger, Johnny, the phone, the switch off, the mixed case, Flesh and Chrome and Injuries) and `bridge/vixen-state.test.mjs`. **Live check:** with Dark Future on and V fed, rested and not thirsty, ask a companion "can you see my body state?" and "how do I look?": she should say V looks fine (not that she cannot see); the probe line must end `sent=right-now(fine)`; a plain next turn must not mention V's body again.
+
+**The probe line** (`df:`). Every typed turn whose snapshot carries the game side's note gets one line in `probe.log`, next to `Conversation result`, and in the bridge log
+as `[DarkFuture] df: ...` (the `fac:` and `inj:` lines of the Digital Vixen mods are tagged `[FleshAndChrome]` and `[Injuries]`, below):
+
+```
+df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=yes sent=right-now
+```
+
+| Field | Meaning |
+| --- | --- |
+| `installed=` | the game side found Dark Future (`yes`); `read=` `ok` (some system answered), `none` (installed but none of the nine state systems could be found: names changed), `failed` (no scriptable-systems container), `load-failed` (`mod-state.lua` did not load) |
+| `stage=` | the raw stages the game side read: the four needs always (`?` unknown or not running, `-` system not found), an addiction (its withdrawal level) or a condition only while it is not 0 |
+| `switch=` | Settings > Conversations > Dynamic info > Other mods' state, as the bridge sees it |
+| `asked=` | V's words asked about themself (`asksAboutSelf`), whatever the state |
+| `sent=` | `right-now` (in the block, worded as the answer), `right-now(fine)` (asked, nothing wrong, told that V looks well from what was read), `background` (the Background line), or `none(reason)`: `told earlier in this talk, V did not ask`, `no stage worth saying`, `this stage is below the bar for this form` (a stranger under stage 3, or nerve under 3), `a phone gets none` (a call, a voice), `switch off` |
+
+The bridge writes it when a submitted turn starts (`logDarkFuture` in `bridge/convai-bridge.mjs`, never for a look-ahead, a reaction or an add-on voice), keeps the newest eight in
+a map, and adds it to the turn's reply as the field `df` (both reply writers); the game's reply handler (`mod/init.lua`) writes it with `log()` before `Conversation result`. No new
+file, no new poll, and nothing per frame. Without the note (Dark Future absent, or the switch off on the game side) there is no line.
+
+**The switch is off by default, and a direct question does not override it.** The one thing the owner could not tell from the old log was whether the switch was on. With it off,
+the game side does not read Dark Future, `mod-state.lua` is never loaded and the snapshot has no `mods`, however V asks ("do I look hungry?" included): the switch is the
+player's own choice about what other mods may tell a character, and the page says the mod stops reading it. What changed is that the reason is visible: with the switch off and
+Dark Future installed, the first turn built says so once per session, in one line (`modsOff` in `mod/init.lua`, a class lookup at most once a minute and three times a session,
+none once the line is written, no state read):
+
+```
+df: installed=yes read=skipped stage=- switch=off asked=? sent=none(Other mods' state is off in Settings > Dynamic info: nothing is read or told, whatever V asks)
+```
+
+**Confirmed live on 2026-10-26 (game 2.31, Dark Future 2.0.3):** CET returns the system for `Get(CName.new('DarkFuture.Needs.DFNutritionSystem'))` and dispatches `:GetNeedStage()` on it
+(the nine `system found as` lines and the raw stages in `probe.log`); `GetNeedStage` is a `final` method of the need base class and works all the same.
 
 **Not verified** (the live check in the captain's log): that a build of Dark Future for game 2.5 exists and keeps these names (none was published on 2026-10-25:
 the GitHub releases end at 2.0 for game 2.31, 2026-01-06; the Nexus page answered 403 to a plain fetch, but its Files tab, read in a browser on 2026-10-25 without logging in, lists one main file, 2.0.3-for-2.31 (20 January 2026), and the older 2.0.2, 2.0.1, 2.0.0, 1.4.2 and earlier: no build for game 2.5); that CET returns nil for a class name that does
@@ -152,8 +204,119 @@ not exist; that CET calls `:GetNeedStage()` on the handle `Get()` returns. The f
 `-` the system was not found; the addictions show the withdrawal level), and one line per name that answered or failure kind. The status effects Dark Future applies
 (a gameplay tag per need) were left out as a fallback: they go blank in cutscenes and menus, and no live read showed they are needed.
 
-Tests: `bridge/mod-state.test.mjs` (parsing, wording per form, caps, signature, scenery memory, the self-question case of 2026-10-26 and its 36 phrases in the menu languages, hostile input), `bridge/mod-state-lua.test.mjs` (the reader with a
-fake game: absent, partly present, -1, raising getters, moved class names, the lookup bound, the log lines, and the loader in `init.lua`: absent means never loaded).
+Tests: `bridge/mod-state.test.mjs` (parsing, wording per form, caps, signature, scenery memory, the self-question case of 2026-10-26 and its phrases in the menu languages, the owner's
+live turn of 2026-10-26 rebuilt from `last-input.json`, the probe line in every case, hostile input), `bridge/mod-state-lua.test.mjs` (the reader with a
+fake game: absent, partly present, -1, raising getters, moved class names, the lookup bound, the log lines, a strict fake that mirrors CET and Dark Future's real call shapes
+(colon calls, CName arguments, nil for an unknown class, a missing getter is an error), the note, and the loader in `init.lua`: absent means never loaded, the switch-off line).
+
+## Other mods' state: Flesh and Chrome and Injuries (Digital Vixen)
+
+Added 2026-10-27 after two player requests (Nexus, 26 Oct). Same switch, same rules as Dark Future above: **Other mods' state** on, the mod installed, a character is told in
+plain words of body language what shows: "V is out of breath." / "V is bleeding and limping a little." / "V has been drinking." Neither mod is loaded or asked while the switch is off.
+Both mods are read by one module, `mod/vixen-state.lua`, in the same pass (one scriptable-systems container, one player), inside the same cached turn snapshot: on demand, nothing per frame,
+no timer, hook or file. `mod/mod-state.lua` (Dark Future) is untouched; the `vixen` and `vixenOff` options in `mod/init.lua` sit beside `mods` and `modsOff`, and
+`mod/turn-context.lua` merges the result into the same `mods` table (`mods.fleshAndChrome`, `mods.injuries`) and carries a note each (`facRead`, `injRead`).
+
+### What the mods expose (read from their redscript, extracted read-only under `deliverables/reference/`; nothing of it is run or copied)
+
+**Flesh and Chrome 1.31.0** is a stamina and energy mod. It has NO injuries, bleeding or breathing getter of the kind the first brief guessed. What it keeps:
+
+| What | Where | Used |
+| --- | --- | --- |
+| `FleshAndChrome.FACSystem` | scriptable system; `container:Get(CName.new('FleshAndChrome.FACSystem'))` (the mod's own `FACExternal.System` does the same) | the entry point |
+| `IsEnabled() -> Bool` | its own switch (`modON`) | off: nothing is read |
+| `GetStaminaPercent(player) -> Float` 0 to 1 | short-term exertion pool (1.0 before it exists) | breath: below 20 percent stage 1, 10 stage 2, 5 stage 3, empty (or its `FACStatusEffect.Exhausted` still on: it clears above 5 percent) stage 4. These are the mod's own penalty bars (tunnel vision 20, heavy breathing and sway 10) |
+| `GetEnergyPercent(player) -> Float` 0 to 1 | the daily pool sleep, meals and drinks refill (3 percent of max an hour awake, more after 9 hours) | energy: below 35 percent stage 1, 20 stage 2, 10 stage 3, 5 stage 4 (a day awake only reaches about 60 percent) |
+| `GetTotalAlcohol(player)`, `GetTotalCigarettes(player)` -> Int32 | public getters on `FACSystem`: lifetime counts (`m_facTotalAlcohol`, `m_facTotalCigarettes`) | the source of drink and cigarettes (the persistent fields behind the sober-up window never read from CET, below). They are the SAVE'S LIFETIME totals (`+= 1` at FleshAndChrome.reds 1662 and 1675, nothing ever lowers or resets them, 1769 and 1781 return them as they are), not what is in V's body: a count that went up since the last read is a drink or a cigarette just had, and the count alone says nothing about the body |
+| `IsStaminaRegenning()`, `GetConfig()` | public: true while the pool refills; the config object (`alcoholSoberBaseHours` 6, `alcoholSoberHoursPerExtraDrink` 1, `smokingPenaltyDurationMinutes` 30, `regenDelayCooldownMinutes` 10) | probe line and the fallback's windows |
+| meal counts, `m_exhausted` | lifetime totals, a private flag | not used (`m_exhausted` is private and mirrored by the status effect) |
+
+**How the pool refills (why "out of breath" can last minutes):** the mod's tick (every half second, game time) refills the stamina pool only when V is not moving at a jog or faster (`FACActivity.GetDrainRate`
+is 0), after a cooldown of `regenDelayCooldownMinutes` (10 game minutes) times how empty the pool was (`FleshAndChrome.reds` 500, 518, 584), and never above the daily energy pool (`staminaCeiling = energy / maxEnergy * maxStamina`,
+586), at `staminaRegenRate` 2.78 a game second against a pool of 5000 or more. The game clock runs about 8 times real time (`DVClock` default ratio), so a fully emptied pool is exhausted for about 75 real seconds plus the refill. The
+Exhausted status clears above 5 percent. The reader reports the pool as it is (`GetStaminaPercent`), so a stage 4 that lasts for ten real minutes is either the mod's own state or a clock that is not running; the breath probe line (below) tells which.
+
+The mod has no visible drunkenness of its own (alcohol only adds sleep owed), but a small model took "V has had a lot to drink" for nothing worth saying (live 2026-10-27: V asked "am i drunk" at stage 3 and was told "Not drunk, just wired"). So since 2026-10-27 the heavier stages are said as how V is, in plain vivid words: stage 1 (1 to 2 drinks) "V has had a drink or two.", stage 2 (3 to 5) "V is tipsy: loose, a little loud, smelling of booze.", stage 3 (6 and more) "V is drunk: slurring, unsteady on their feet, reeking of booze." A cigarette is "V has just had a cigarette." V asking about themself ("am i drunk", "do i seem drunk", "am i sober") also gets the state as a fresh fact at both ends of the prompt, worded as the answer (stage 3: "V is drunk. If V asks whether they are drunk, the answer is yes: ..."), and the character's own earlier answers and remembered notes that say the opposite are not sent (`docs/FRESH_FACTS.md`, round 2).
+
+**Injuries 1.7.4** keeps injuries per body region as a tier 0 to 3 (none, light, medium, severe) on `PlayerPuppetPS.m_injurySeverity` and applies a status effect per kind:
+
+| What | Where | Used |
+| --- | --- | --- |
+| `Injuries.InjuriesSystem` | scriptable system (`InjuriesSystem.Get`) | the entry point |
+| `IsLive() -> Bool` | session armed; false before it and after a death | not live: nothing |
+| `GetAppliedTier(kind: Int32) -> Int32` 0 to 3 | kinds 0 limp (legs), 1 broken arm, 2 concussion (head), 3 bleeding (torso); what is IN EFFECT on V, after painkillers and medkits have suppressed some of it | the state: limp, arm, head, bleed, each tier 1 to 3 |
+| `GetSeverity(region: Int32) -> Int32` 0 to 3 | regions 0 head, 1 torso, 2 and 3 arms, 4 and 5 legs: the injury itself | all six regions are asked (probe line); severity above 0 for a kind with nothing in effect means a healing item holds it back, "bandaged up" (`treated`) |
+| status effects `Injuries.Limp_T1..3`, `BrokenArm_T1..3`, `Concussion_T1..3`, `Bleeding_T1..3` | applied by the mod for the tier in effect (`Injuries_Effects.reds` `SyncInjuryStatusEffect`, `TweakIDFor`) | a second opinion: when the system answers "none" they are asked (12 calls, at most once a minute); one in force is believed over the zeros and the disagreement is logged |
+
+**When Injuries injures at all** (`Injuries_HitProbe.reds`, `Injuries_Config.reds`): a hit worth 80 percent of V's health at once is an injury (two tiers); otherwise the damage of the last 10 seconds must add up to 50 percent of
+V's health, then a 75 percent roll (lowered by chrome in that region) decides. A fall or a few shots below those numbers honestly give all zeros; the first live test's zeros are consistent with that, and the signatures in the
+source (`IsLive`, `GetAppliedTier(kind)`, `GetSeverity(region)`) match the calls made, so the zeros were probably true. The probe line says what the system held while V was hurt.
+| fractures, bandage flags, a bleeding amount | none | Injuries has no fracture or bandage state beyond the above: a broken arm is the arm kind, a healed injury is no injury |
+
+The two mods share DigitalVixen Core and the Redscript Configuration Framework (config and clock), not their state: there is no common value to read once. The module reads both in one pass and shares the
+container and the player; there is no shared state class.
+
+### What is said, and to whom (`bridge/mod-state.mjs`)
+
+- Order of sentences, each at most three phrases, worst first: the body (breath, energy, thirst, hunger), V's injuries (bleeding, a broken arm, a limp, a concussion; "bandaged up" only when nothing else shows),
+  what V has had (drink, a cigarette), then Dark Future's inner states. Flesh and Chrome's energy and Dark Future's energy are one phrase, the worse stage.
+- Companion in person and Johnny in V's head: every stage from 1. Told with the Background line (mention only if it matters) when new, changed or after a long silence, never recited; in the block, worded as the answer, whenever V asks about themself.
+- A stranger: breathlessness from stage 2, energy from 3 (as before), blood from stage 1, a limp or a held arm from stage 2, a dazed face from 3 ("V looks to be bleeding."), strong drink ("V looks drunk and smells of booze."). Not a cigarette, not "bandaged up".
+- A phone chat, a call and an add-on voice: nothing.
+- No mod name, number or stage ever reaches the model.
+
+### The probe lines
+
+Per turn that carried the game side's note, beside `df:` (bridge log, and in the reply fields `fac` and `inj`, which `mod/init.lua` writes to `probe.log` next to "Conversation result"):
+
+`fac: installed=yes read=ok state=breath0,energy1,drinks0,smoke0 switch=on asked=no sent=background`
+`inj: installed=yes read=ok state=limp0,arm0,head0,bleed2,treated0 switch=on asked=yes sent=right-now`
+
+`read=` is `ok`, `off` (Flesh and Chrome switched off in its own settings), `idle` (Injuries not live), or `none` (installed, no getter answered: names changed). `?` is a getter that failed or answered out of range. `sent=` is the
+disposition of that mod's own sentences (right-now, background, none(...) with the reason). The reader also writes `Mod state: flesh-and-chrome breath=.. energy=.. drinks=.. smoke=..` and `Mod state: injuries limp=.. arm=.. head=.. bleed=.. treated=..` to
+`probe.log` once per distinct reading, `Mod state: Flesh and Chrome Injuries found, reader loaded` once, and with the switch OFF one line per installed mod, once a session:
+`fac: installed=yes read=skipped state=- switch=off asked=? sent=none(...)`. In the bridge log the three lines carry their own mod's tag (`[DarkFuture] df:`, `[FleshAndChrome] fac:`, `[Injuries] inj:`; before 2026-10-27
+all three said `[DarkFuture]`). Cost: with neither mod, two class lookups a minute while a turn is built (with the switch off, three probes in a session and no more); with them, two lookups
+and about twenty getter calls per 5 second snapshot (Flesh and Chrome: stamina, energy, config, two lifetime counts, one status check only below 5 percent; Injuries: `IsLive`, six `GetSeverity`, four `GetAppliedTier`,
+and once a minute twelve status checks while nothing is injured). Nothing runs between turns.
+
+### The probe lines of the game side (`Mod state probe:` in `probe.log`; added 2026-10-27 after the first live test)
+
+Every uncertain read says exactly what was tried and what came back, so the next live test settles it:
+
+| Line | Written | Tells |
+| --- | --- | --- |
+| `Mod state probe: the counts or the game clock went back (alcohol 9 to 6, cigarettes 0 to 0): another save, the baseline is taken again` | when a count falls | another save was loaded; what was watched is dropped |
+| `Mod state probe: drinks and cigarettes via=counts` (or `none`), then `counts alcohol=N cigarettes=N stages drinks=N smoke=N` | when the text changes | whether the counts answered, the lifetime counts seen, the resulting stages |
+| `Mod state probe: breath stage=4 stamina=0 energy=0.62 exhaustedStatus=nil regenning=false gamePool=0 clock=8.0x` | first read, every change of stage, and every 120 real seconds while the stage is 3 or 4 | `stamina`/`energy`: the raw fractions from the mod; `exhaustedStatus`: the Exhausted status (only asked below 5 percent); `regenning`: `IsStaminaRegenning()`; `gamePool`: the game's own stamina pool in percent (the mod writes its pool there every tick); `clock`: game seconds per real second since the last read (about 8 normally, 0 when time is held, `?` for the first read) |
+| `Mod state probe: injuries live=true applied=0,0,0,0 severity=0,0,0,0,0,0 effects=unchecked` (or `none`, `some`) | when the text changes | `applied` limp, arm, head, bleed; `severity` regions 0 to 5 (head, torso, arm, arm, leg, leg); whether the status-effect second opinion was asked |
+| `Mod state probe: injuries system said none but the status effect Injuries.Limp_T2 is in force: believed` | once per kind | the system and the status effects disagreed |
+
+**Drinks and cigarettes.** The mod keeps the sober-up window in persistent fields on `PlayerPuppetPS` (`m_facAlcoholDrinks`, `m_facAlcoholSoberEnd`, `m_facSmokingPenaltyEnd`). They never read from CET: on 2.31, three
+sessions of 27 Oct, every field was `nil` through the direct read and reflection, and the probe of the ways to the state showed `GetPS`, `GetPlayerPuppetPS` (does not exist) and the persistency system all giving a `PlayerPuppetPS` with
+`m_facInitialized` nil and 0 `m_fac` properties on the class. That path and its probe lines were removed (fix/vixen-read-3); nothing asks for the persistent state any more. What is used is the lifetime counts, watched on the game clock:
+a count that rose since an earlier read is a drink (stage 1 for one or two in the window, the window being 6 hours plus an hour for each further drink, from the mod's config) or a cigarette (30 game minutes). The window starts at
+the read that saw the rise, which can be a little after the drink.
+
+**The counts are lifetime totals, not the drinks in the body (second live test, 27 Oct).** The first version of the fallback took them for that and was right by accident: 0 at the first read, 9 after drinking (stage 3). Between sessions the
+count read 6 against 9, which is another save (each save keeps its own totals; nothing in the mod decreases them), and in a new game at 09:59 the first read already showed 6 after the owner had drunk, which the first read took for the baseline and said
+`drinks0`. A count therefore never maps to a stage by itself: 6 lifetime drinks would read "a lot to drink" for ever. What was fixed: (a) **a baseline read when a save has loaded**: `mod/init.lua` `convaiVixenBaseline`, one ordinary read of the reader
+3 seconds after the world is ready (from the existing 0.5 second sample in `updateBattles`, a nil check while nothing is due; due at start and set by `abandonSession` for every load, death or detach, not for a fast travel; only with Other mods' state on),
+so a drink had before the first question is a rise over the baseline at the first question; (b) **another save is recognised**: a count that falls, or a game clock that goes back, drops everything watched and takes the baseline again
+(`Mod state probe: the counts or the game clock went back (alcohol 9 to 6, ...): another save, the baseline is taken again`); `abandonSession` also resets the reader. Still unknown: a drink had while the switch was off or before the first
+baseline of a CET reload, or in a save loaded with the mod's own clock in another state; and a drink that the mod did not count (an item without its `FACAlcohol` tag).
+
+**What the first live test settled (27 Oct, game 2.31, all plugins loaded):** CET returns both systems and every getter in use answered with the right argument shape (no `failed` line); the breath stage 4 was logged
+from 06:56 to 07:06Z and fell to 0 at 07:06:35Z, which fits the mod's own cooldown at a game clock much slower than 8 times, or a pool held at zero by something else; the injuries stayed zero while a
+character described injuries (made up, by the thresholds above, unless the next probe lines show otherwise). Fixed: the log tags, the drink and cigarette fallback, the injuries second opinion and every probe above. Not settled
+from the source alone: why the breath stage lasted ten minutes. The next live test's breath probe lines give the pool, the cooldown and the clock pace to settle it.
+
+### Not confirmed in the game (only a live run can)
+
+Confirmed on 27 Oct (game 2.31): CET returns the system for both class names and dispatches `IsEnabled`, `GetStaminaPercent(player)`, `GetEnergyPercent(player)`, `IsLive`, `GetAppliedTier(kind)` and `GetSeverity(region)`. Confirmed later the same day: drink before talking, then "am i drunk?" is answered (the counts and the baseline). Still open: that `GetTotalAlcohol(player)`, `GetTotalCigarettes(player)`, `GetConfig()` and `IsStaminaRegenning()` answer from CET (if not: `failed` lines once, the stage stays `?`); that `Game.GetStatusEffectSystem():HasStatusEffect(entityId, TweakDBID)` exists (if not:
+exhausted shows as stage 3 until the pool is empty, and the injuries second opinion is silent); that `Game.GetStatPoolsSystem():GetStatPoolValue(entityId, Stamina, true)` takes an `EntityID` for its `StatsObjectID` (probe line only); that Injuries 1.7.4 and Flesh and Chrome 1.31.0 are the builds in the player's game.
+
+Tests: `bridge/vixen-state-lua.test.mjs` (strict fakes of both mods' real shapes: methods that need `self` and exactly the game's argument count, the stage bars, the exhausted status, a clock that does not match, out-of-range answers, raising getters, one mod missing or broken, the log lines, the passive-module scan, the loader and the switch-off notes in `init.lua`), `bridge/vixen-state.test.mjs` (parsing, wording per form, the merged energy, signatures, the probe lines, end to end with the switch, and the nudity note).
 
 ## Time since last talk
 

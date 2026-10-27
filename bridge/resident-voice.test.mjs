@@ -8,6 +8,7 @@ import {constants as osConstants} from 'node:os';
 import {readFileSync} from 'node:fs';
 import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS, PATH_ATTESTATION_FAILURE, pathAttestationFailed, NO_CUDA_EXIT_CODE, NO_CUDA_FAILURE, noCudaFailed, outOfMemoryFailed} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
+import {PriorityGate, PRIORITY_VARIABLE} from './process-priority.mjs';
 
 const config = {provider: 'hybrid', engine: 'omnivoice',
   voices: Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {
@@ -385,6 +386,140 @@ test('a background start loads below normal priority and returns to normal once 
   const normal = harness({workerOptions: {setPriority: () => calls.push('unexpected')}});
   await normal.client.start(); closed = normal.client.close(); normal.finish(); await closed;
   assert.equal(calls.includes('unexpected'), false, 'a normal start leaves the priority alone');
+});
+
+test('a worker with a priority level (high by default on both routes, below on request) is set at spawn and kept for good; priority errors never fail a start', async () => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH, BELOW = osConstants.priority.PRIORITY_BELOW_NORMAL;
+  const calls = [];
+  const high = harness({autoReady: false, workerOptions: {priority: 'high', setPriority: (pid, level) => calls.push([pid, level])}});
+  const started = high.client.start(); await tick();
+  assert.deepEqual(calls, [[1234, HIGH]]);
+  assert.notEqual(calls[0][1], osConstants.priority.PRIORITY_HIGHEST, 'HIGHEST is the realtime class and is never used');
+  high.ready(); await started;
+  assert.deepEqual(calls, [[1234, HIGH]], 'ready does not change it');
+  let closed = high.client.close(); high.finish(); await closed;
+  // A background start (lowPriority) with a level is also kept there once ready: the low-then-normal dance is for a worker without one.
+  const levels = [];
+  const both = harness({autoReady: false, workerOptions: {lowPriority: true, priority: 'high', setPriority: (pid, level) => levels.push(level)}});
+  const bothStarted = both.client.start(); await tick(); both.ready(); await bothStarted;
+  assert.deepEqual(levels, [HIGH]);
+  closed = both.client.close(); both.finish(); await closed;
+  const below = [];
+  const lowered = harness({autoReady: false, workerOptions: {priority: 'below', setPriority: (pid, level) => below.push(level)}});
+  const lowStarted = lowered.client.start(); await tick(); lowered.ready(); await lowStarted;
+  assert.deepEqual(below, [BELOW], 'priority = below (the player choice) is kept for good');
+  closed = lowered.client.close(); lowered.finish(); await closed;
+  // normal or no level: untouched, as before the rule.
+  for (const priority of ['normal', null, undefined]) {
+    const none = [];
+    const same = harness({workerOptions: {priority, setPriority: (pid, level) => none.push(level)}});
+    await same.client.start(); assert.deepEqual(none, [], String(priority));
+    closed = same.client.close(); same.finish(); await closed;
+  }
+  const refused = harness({workerOptions: {priority: 'high', setPriority() { throw Error('access denied'); }}});
+  await refused.client.start(); assert.equal(refused.client.loaded, true);
+  closed = refused.client.close(); refused.finish(); await closed;
+});
+
+// The title-screen gate (bridge/process-priority.mjs PriorityGate, docs/PROCESS_PRIORITY.md "Start-up"): a worker whose level is 'high' starts at NORMAL while the game is loading
+// and is raised once when the game has a world; only 'high' is gated.
+test('a high worker started while the title-screen gate is closed starts at normal (no environment, no by-pid high) and is raised once when the gate opens: by pid and by one command', async () => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH, calls = [], gate = new PriorityGate({open: false});
+  const h = harness({autoReady: false, workerOptions: {priority: 'high', gate, extraEnvironment: {[PRIORITY_VARIABLE]: 'high', KEEP: '1'}, setPriority: (pid, level) => calls.push([pid, level])}});
+  const started = h.client.start(); await tick();
+  assert.deepEqual(calls, [], 'no priority is set at the spawn');
+  assert.equal(h.launches[0].options.env[PRIORITY_VARIABLE], undefined, 'the worker is not told to take High itself');
+  assert.equal(h.launches[0].options.env.KEEP, '1', 'the rest of the extra environment is kept');
+  assert.equal(gate.waiting.length, 1);
+  h.ready(); await started;
+  assert.deepEqual(calls, [], 'ready does not set anything for a worker that is not a background start');
+  gate.open('world'); await tick();
+  assert.deepEqual(calls, [[1234, HIGH]], 'the child is raised by pid');
+  assert.notEqual(calls[0][1], osConstants.priority.PRIORITY_HIGHEST, 'never realtime');
+  assert.deepEqual(h.requests, [{op: 'priority', level: 'high'}], 'and the Python process is sent one command');
+  assert.equal(gate.open('again'), false); await tick();
+  assert.equal(calls.length, 1); assert.equal(h.requests.length, 1, 'never raised twice');
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('an open gate is what it was: environment and by-pid high at the spawn, no command, nothing registered', async () => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH, calls = [], gate = new PriorityGate({open: true});
+  const h = harness({autoReady: false, workerOptions: {priority: 'high', gate, setPriority: (pid, level) => calls.push([pid, level])}});
+  const started = h.client.start(); await tick();
+  assert.deepEqual(calls, [[1234, HIGH]]);
+  assert.equal(h.launches[0].options.env[PRIORITY_VARIABLE], 'high', 'a worker that is not told by its caller is told by its owner');
+  h.ready(); await started;
+  assert.deepEqual(h.requests, []); assert.equal(gate.waiting.length, 0);
+  const closed = h.client.close(); h.finish(); await closed;
+  // A gate that opened before the worker started (the caller computed its variables while it was closed) still starts the worker at High.
+  const late = new PriorityGate({open: false}); late.close(); late.open('world');
+  const opened = harness({workerOptions: {priority: 'high', gate: late, setPriority: (pid, level) => calls.push([pid, level])}});
+  await opened.client.start();
+  assert.equal(opened.launches[0].options.env[PRIORITY_VARIABLE], 'high'); assert.deepEqual(calls.at(-1), [1234, HIGH]);
+  const done = opened.client.close(); opened.finish(); await done;
+});
+
+test('a worker raised before it is ready is not lowered to normal by the background start; one raised after is unchanged', async () => {
+  const HIGH = osConstants.priority.PRIORITY_HIGH, BELOW = osConstants.priority.PRIORITY_BELOW_NORMAL, NORMAL = osConstants.priority.PRIORITY_NORMAL;
+  const early = [], gateEarly = new PriorityGate({open: false});
+  const a = harness({autoReady: false, workerOptions: {lowPriority: true, priority: 'high', gate: gateEarly, setPriority: (pid, level) => early.push(level)}});
+  const startedA = a.client.start(); await tick();
+  assert.deepEqual(early, [BELOW], 'a background start still loads below normal, as for a worker without a level');
+  gateEarly.open('world'); await tick(); a.ready(); await startedA;
+  assert.deepEqual(early, [BELOW, HIGH], 'raised while loading: ready keeps it High');
+  let closed = a.client.close(); a.finish(); await closed;
+  const late = [], gateLate = new PriorityGate({open: false});
+  const b = harness({autoReady: false, workerOptions: {lowPriority: true, priority: 'high', gate: gateLate, setPriority: (pid, level) => late.push(level)}});
+  const startedB = b.client.start(); await tick(); b.ready(); await startedB;
+  assert.deepEqual(late, [BELOW, NORMAL], 'ready while the title screen holds it: normal, as the background start does');
+  gateLate.open('world'); await tick();
+  assert.deepEqual(late, [BELOW, NORMAL, HIGH]); assert.deepEqual(b.requests, [{op: 'priority', level: 'high'}]);
+  closed = b.client.close(); b.finish(); await closed;
+});
+
+test('a worker that was replaced, closed, failed or is gone is never raised', async () => {
+  const gate = new PriorityGate({open: false}), calls = [];
+  const setPriority = (pid, level) => calls.push([pid, level]);
+  const closing = harness({workerOptions: {priority: 'high', gate, setPriority}});
+  await closing.client.start();
+  const closed = closing.client.close(); closing.finish(); await closed;
+  assert.equal(gate.waiting.length, 0, 'closing cancels the registration');
+  const failing = harness({autoReady: false, workerOptions: {priority: 'high', gate, setPriority}});
+  failing.client.start().catch(() => {}); await tick();
+  assert.equal(gate.waiting.length, 1);
+  failing.child.stdout.write('not json\n'); await tick();
+  assert.equal(gate.waiting.length, 0, 'a failed worker is not raised'); failing.finish();
+  // Its process is gone before the close event arrives: the entry runs but raises nothing.
+  const dead = harness({autoReady: false, workerOptions: {priority: 'high', gate, setPriority, isAlive: () => false}});
+  dead.client.start().catch(() => {}); await tick();
+  gate.open('world'); await tick();
+  assert.deepEqual(calls, []); assert.deepEqual(dead.requests, []);
+  dead.finish();
+  // A replacement: another instance on the same gate raises only itself.
+  const gate2 = new PriorityGate({open: false}), seen = [];
+  const first = harness({autoReady: false, workerOptions: {priority: 'high', gate: gate2, setPriority: (pid, level) => seen.push(['first', level])}});
+  const second = harness({autoReady: false, workerOptions: {priority: 'high', gate: gate2, setPriority: (pid, level) => seen.push(['second', level])}});
+  first.client.start().catch(() => {}); second.client.start().catch(() => {}); await tick();
+  const dropped = first.client.close(); first.finish(); await dropped;
+  gate2.open('world'); await tick();
+  assert.deepEqual(seen, [['second', osConstants.priority.PRIORITY_HIGH]]); assert.deepEqual(first.requests, []); assert.deepEqual(second.requests, [{op: 'priority', level: 'high'}]);
+  second.client.close().catch(() => {}); second.finish();
+});
+
+test('below and normal ignore the title-screen gate: below is set at the spawn, normal is never raised', async () => {
+  const BELOW = osConstants.priority.PRIORITY_BELOW_NORMAL;
+  const gate = new PriorityGate({open: false}), calls = [];
+  const below = harness({autoReady: false, workerOptions: {priority: 'below', gate, extraEnvironment: {[PRIORITY_VARIABLE]: 'below'}, setPriority: (pid, level) => calls.push(level)}});
+  const startedBelow = below.client.start(); await tick();
+  assert.deepEqual(calls, [BELOW]); assert.equal(below.launches[0].options.env[PRIORITY_VARIABLE], 'below'); assert.equal(gate.waiting.length, 0);
+  below.ready(); await startedBelow;
+  let closed = below.client.close(); below.finish(); await closed;
+  for (const priority of ['normal', null]) {
+    const none = harness({workerOptions: {priority, gate, setPriority: (pid, level) => calls.push(level)}});
+    await none.client.start(); gate.open('world'); await tick();
+    assert.deepEqual(calls, [BELOW], String(priority)); assert.deepEqual(none.requests, []); assert.equal(none.launches[0].options.env[PRIORITY_VARIABLE], undefined);
+    closed = none.client.close(); none.finish(); await closed;
+  }
 });
 
 test('render timeout rejects queued work and discards a late WAV while waiting for physical exit', async () => {

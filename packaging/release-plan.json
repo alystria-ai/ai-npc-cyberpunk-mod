@@ -422,6 +422,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mod-state.lua"
         },
         {
+          "source": "mod/vixen-state.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/vixen-state.lua"
+        },
+        {
           "source": "mod/equipment-ex.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/equipment-ex.lua"
         },
@@ -528,6 +532,10 @@
         {
           "source": "mod/custom-provider.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-provider.lua"
+        },
+        {
+          "source": "mod/remote-omni.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/remote-omni.lua"
         },
         {
           "source": "mod/movement-log.lua",
@@ -772,9 +780,11 @@
             "bridge/facial-timeline.mjs",
             "bridge/file-wake.mjs",
             "bridge/follow-up.mjs",
+            "bridge/fresh-facts.mjs",
             "bridge/game-dialogue.mjs",
             "bridge/game-launch.mjs",
             "bridge/game-state.mjs",
+            "bridge/gear-memory.mjs",
             "bridge/gpu-memory.mjs",
             "bridge/gpu-vendors.mjs",
             "bridge/group-context.mjs",
@@ -833,6 +843,7 @@
             "bridge/omni-own-python.mjs",
             "bridge/omni-pack.mjs",
             "bridge/omni-pcm.mjs",
+            "bridge/omni-remote.mjs",
             "bridge/parsed-snapshot.mjs",
             "bridge/party-connections.mjs",
             "bridge/pcm-edges.mjs",
@@ -855,7 +866,9 @@
             "bridge/pocket-language-models.mjs",
             "bridge/pocket-speech.mjs",
             "bridge/pocket-voice.mjs",
+            "bridge/process-priority.mjs",
             "bridge/prompt-budget.mjs",
+            "bridge/prompt-fit.mjs",
             "bridge/prompt-profile-store.mjs",
             "bridge/prompt-profiles.mjs",
             "bridge/prompting-editor.mjs",
@@ -868,6 +881,8 @@
             "bridge/realtime-host.mjs",
             "bridge/reasoning.mjs",
             "bridge/relationship-routing.mjs",
+            "bridge/remote-omni-control.mjs",
+            "bridge/remote-voice.mjs",
             "bridge/repeat-log.mjs",
             "bridge/reply-language.mjs",
             "bridge/reply-stream.mjs",
@@ -900,6 +915,7 @@
             "bridge/text-actions.mjs",
             "bridge/text-emotion.mjs",
             "bridge/text-provider-host.mjs",
+            "bridge/threat-screen.mjs",
             "bridge/transport-pool.mjs",
             "bridge/turn-clock.mjs",
             "bridge/turn-context.mjs",
@@ -919,6 +935,7 @@
             "bridge/voice-profile-registry.mjs",
             "bridge/voice-routing-log.mjs",
             "bridge/voice-selection.mjs",
+            "bridge/voice-silence.mjs",
             "bridge/voice-utterance.mjs",
             "bridge/voice-variants.mjs",
             "bridge/voxtral-languages.mjs",
@@ -935,6 +952,8 @@
             "bridge/jali-face-text.mjs",
             "bridge/face-visemes.mjs",
             "bridge/resident-voice-worker.py",
+            "bridge/omni-server.mjs",
+            "bridge/omni-server-main.mjs",
             "bridge/voice-cuda-graph.py",
             "bridge/pocket-voice-worker.py",
             "bridge/pocket_voice_runtime.py",

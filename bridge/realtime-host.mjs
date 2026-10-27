@@ -12,6 +12,7 @@ import {browserMissing, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
+import {BrowserPriority} from './process-priority.mjs';
 
 // ----------------------------------------------------------------------------------------------- the hidden browser's sandbox
 // The hidden Chromium runs with its renderer sandbox on (Playwright adds --no-sandbox unless chromiumSandbox is true). A sandbox that cannot work
@@ -221,6 +222,9 @@ export class RealtimeHost {
     // `node --test` child) or with CYBERPUNK_CONVAI_MUTE_BROWSER=1 it stays muted, so tests never reach the player's speakers.
     muteBrowser = process.env.CYBERPUNK_CONVAI_MUTE_BROWSER === '1' || !!process.env.NODE_TEST_CONTEXT,
     launchBrowser, probeSandbox, sandboxStatePath = sandboxStatePathDefault(), sandboxTimeouts = {},
+    // The level of the hidden browser's whole process tree (bridge/process-priority.mjs, docs/PROCESS_PRIORITY.md): it plays every reply and hears the microphone, so with 'high' the
+    // browser, its audio service and its renderers are raised after the start and after each page. setBrowserTree replaces the PowerShell call (tests). Nothing is raised without a level.
+    browserPriority = null, setBrowserTree,
     // One line a retry of a lost page writes (no character, player or text in it).
     log = line => console.error(`[CyberpunkConvai] ${line}`)} = {}) {
     this.browserExecutable = absoluteRuntimeOverride(browserExecutable, 'CYBERPUNK_CONVAI_BROWSER');
@@ -230,6 +234,7 @@ export class RealtimeHost {
     this.launchBrowser = launchBrowser ?? (options => chromium.launch(options));
     this.sandboxStatePath = sandboxStatePath; this.sandboxTimeouts = {...SANDBOX_TIMEOUTS, ...sandboxTimeouts};
     this.muteBrowser = !!muteBrowser; this.log = log;
+    this.priorityKeeper = browserPriority === 'high' ? new BrowserPriority({level: 'high', log: line => this.log(line), ...(setBrowserTree ? {setTree: setBrowserTree} : {})}) : null;
     // The page keys a running turn or microphone turn owns (key -> how many). The party plan's retain() never closes these: a page that is not in
     // the plan (the other resident of a profile the plan holds one route for, a turn started while the audio service was not ready) is swept when
     // its turn is over, not out from under the call it is running.
@@ -331,6 +336,15 @@ export class RealtimeHost {
     })();
     this.disconnects.set(page, task); return task;
   }
+  // High priority for the hidden browser (docs/PROCESS_PRIORITY.md): once it has started, and again whenever a page opens (a page brings a renderer of its own, the microphone
+  // tap's too). Joined and off the turn's path (bridge/process-priority.mjs BrowserPriority).
+  keepBrowserPriority(browser) {
+    const keeper = this.priorityKeeper;
+    if (!keeper || typeof browser?.newPage !== 'function') return;
+    const open = browser.newPage.bind(browser);
+    browser.newPage = async (...args) => { const page = await open(...args); keeper.request(); return page; };
+    keeper.request();
+  }
   async disposePage(page) {
     await this.disconnectPage(page);
     await page?.close({runBeforeUnload: false}).catch(() => {});
@@ -390,6 +404,7 @@ export class RealtimeHost {
       {executablePath: this.browserExecutable, log: line => console.error(`[CyberpunkConvai] ${line}`)});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
       this.browser = browser; this.server = server;
+      this.keepBrowserPriority(browser);
       const createLocalPage = async () => {
         if (epoch !== this.epoch || this.closing) throw cancelled();
         const page = await browser.newPage(), origin = `http://127.0.0.1:${server.address().port}`;
@@ -406,6 +421,7 @@ export class RealtimeHost {
           });
           if (epoch !== this.epoch || this.closing) throw cancelled();
           await page.goto(origin + '/local');
+          this.priorityKeeper?.request();
           await page.waitForFunction(() => !!window.localPcm, undefined, {timeout: 5000});
           if (epoch !== this.epoch || this.closing) throw cancelled();
           return page;
@@ -422,6 +438,7 @@ export class RealtimeHost {
             isCurrent: () => epoch === this.epoch && this.connectOwners.has(page)});
           await installConvaiAudioRoute(page, () => this.connectOwners.get(page));
           await page.goto(`http://127.0.0.1:${server.address().port}`);
+          this.priorityKeeper?.request();
           await page.waitForFunction(() => !!window.convaiRealtime);
           return page;
         } catch (error) { await page.close().catch(() => {}); throw error; }
@@ -993,6 +1010,7 @@ export class RealtimeHost {
   close() {
     if (this.closing) return this.closing;
     this.epoch++;
+    this.priorityKeeper?.cancel();
     // The microphone tap's device lives in this browser (bridge/mic-tap.mjs): it goes with it.
     try { this.onClosed?.(); } catch { /* an observer never breaks the close */ }
     this.connectOwners = new WeakMap();

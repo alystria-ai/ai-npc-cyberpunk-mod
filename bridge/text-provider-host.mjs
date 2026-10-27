@@ -11,7 +11,7 @@
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
-  summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+  summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS, freshNote} from './mistral-prompt.mjs';
 import {reactionTraceLine} from './companion-actions.mjs';
 import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
@@ -23,6 +23,7 @@ import {survivingLoss} from './local-server-recovery.mjs';
 import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
+import {LearnedLimits, learnedLimitChat, promptFitLine} from './prompt-fit.mjs';
 import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
@@ -110,7 +111,9 @@ export const LOCAL_RETRY_MS = 10_000;
  * token budget; docs/FREE_CLOUD_OPTION_RESEARCH.md).
  */
 export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionModel, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
-  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS} = {}) {
+  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS, limits, log = () => {}} = {}) {
+  // A prompt Mistral refuses as too long, with the limit it names, is cut to it once and sent again; the limit is remembered (bridge/prompt-fit.mjs).
+  chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
   return {name: 'mistral', provider: 'mistral', chat, endpoint, gapMs, now, blocked: new Map(), nextSlot: 0, scheduler, priorities,
     chatDefaults,
     noteHeaders: scheduler ? headers => { try { scheduler.noteHeaders(headers); } catch { /* spacing is best effort */ } } : undefined,
@@ -141,7 +144,9 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  * not retried and says so. The Mature layer follows MATURE_PROVIDERS (the Custom provider has it, #matureLevel).
  *   custom      the CustomEndpoint (address, key, model id)
  */
-export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess} = {}) {
+export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}} = {}) {
+  // A prompt the endpoint refuses as too long (a Groq plan of 8,000 tokens a minute, an 8k context) is cut to the limit it names, sent again once, and the limit is remembered for this model.
+  chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
   const adaptations = new Map();
   const adaptation = () => {
     const key = `${custom.origin}|${custom.model}`;
@@ -227,6 +232,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // Every request is fitted to the context the server really has (bridge/prompt-budget.mjs): n_ctx is read from the server, the prompt is
   // cut in a fixed order of priority when it does not fit, and a refusal that still comes (an estimate that was low) is learned from.
   const meters = new Map();
+  let lastModel = null;
   let lastMeter = null;   // the meter of the model that answered last: the compact character text (and its warm-up) counts its target with the same ratio the soft target does
   const mismatches = new Map();   // a gap between the budget's count and the server's is written to the log a few times per meter, not every turn
   // How fast this machine reads a prompt, per load of the model (a reload may have less graphics memory to work with): a slow one is given a
@@ -268,6 +274,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       if (!(handle?.contextSize > 0)) return null;
       if (!meters.has(handle.model)) meters.set(handle.model, new TokenMeter({charsPerToken: seedRatio(handle.model)}));
       lastMeter = meters.get(handle.model);
+      lastModel = handle.model;
       lastSpeed = speedOf(handle);
       const count = typeof server.tokenize !== 'function' ? undefined : async messages => {
         const tokens = await server.tokenize(messages.map(message => message.content).join('\n'), {signal: options?.signal});
@@ -277,6 +284,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count, server: handle.external === true};
     },
     learn: tokens => { try { server.learnContext?.(tokens); } catch { /* a note of the context never fails a request */ } },
+    // A refusal for length that was learned (a server the player runs that has a smaller context than it said): one line with what was cut and whether the second try went through.
+    onLearned: (info, options) => log(promptFitLine({provider: 'local', model: lastModel}, info)),
     // The compact character text of a machine measured to read slowly (bridge/compact-persona.mjs); a fast machine is given the very arguments it was built from.
     shape: (args, options, base) => {
       let persona = args.persona;
@@ -662,8 +671,18 @@ export class TextProviderHost {
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     // The reactions the game offers an ordinary NPC this turn (never a reaction line, never a companion: its offers come with the turn).
-    const reactions = !reaction && typeof this.deliverAction === 'function' ? reactionMenu(config.companionAction) : null;
+    // A threats offer (docs/NPC_THREATS_COMMANDS.md) is narrowed here by V's own words, the typed line or the transcript.
+    const reactions = !reaction && typeof this.deliverAction === 'function' ? reactionMenu(config.companionAction, {heard: text}) : null;
+    // The game decided from the transcript (a spoken turn; a typed line was decided by the bridge already): handed over now, before the reply is
+    // written, so the game acts on V's words and not on what the model makes of them. Its line is written by the CompanionActions that takes it.
+    // How the words read goes on the line first (the offer's own line said unheard for a spoken turn); the hand-over closes it, by=game.
+    if (reactions?.deliver) {
+      try { if (typeof this.traceReaction === 'function') this.traceReaction(config.companionAction?.token, {route: 'text', tag: reactions.decided, screen: reactions.screen, game: reactions.game}); } catch { /* a log line never breaks a turn */ }
+      this.#act({code: `REACTION ${reactions.decided}`, message: reactions.deliver});
+    }
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
+    // A generic person (a resident, an archetype) has a history of its own: one line says whose, and how many exchanges it had with V before this one (docs/NPC_ARCHETYPES.md, "Identity and memory").
+    if (memoryKey.ambientKey && !reaction) this.log(`Crowd person: profile=${local.profileKey} entity=${local.entity ?? '-'} key=${String(memoryKey.ambientKey).slice(0, 8)} earlier-turns=${recalled.turns.length}`);
     // The guard is on (Mature content on with the local AI or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
     // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
     const firstRoute = this.routes[this.provider.route];
@@ -716,7 +735,7 @@ export class TextProviderHost {
             deadlineAt = Math.max(deadlineAt, Math.min(readyAt + room, started + route.turnBudgetMs + LOCAL_TURN_STRETCH_MS));
           }
         }
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: !!reactions});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: reactions?.kinds.length ? reactions : null});
         if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
@@ -736,7 +755,7 @@ export class TextProviderHost {
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
         // Exactly one line says what became of the offer (reactionTraceLine): the tag, or why there was none.
-        if (reactions) {
+        if (reactions && !reactions.decided) {
           let picked = {kind: null, why: outcome.guarded ? 'guarded-reply' : 'reply-cut-back'};
           if (!outcome.guarded && reply === outcome.reply) {
             picked = reactions.pick(response.text);
@@ -837,10 +856,11 @@ export class TextProviderHost {
   #traceReaction(config, reactions, picked) {
     try {
       if (typeof this.traceReaction === 'function') {
-        this.traceReaction(config.companionAction?.token, {route: 'text', tag: picked.kind ?? null, why: picked.kind ? null : picked.why});
+        this.traceReaction(config.companionAction?.token, {route: 'text', tag: picked.kind ?? null, why: picked.kind ? null : picked.why,
+          ...(reactions.screen ? {kinds: reactions.kinds, screen: reactions.screen} : {}), ...(reactions.game ? {game: reactions.game} : {})});
         return;
       }
-      this.log(reactionTraceLine({person: config.local?.profileKey, kinds: reactions.kinds, route: 'text', tag: picked.kind ?? null, why: picked.why}));
+      this.log(reactionTraceLine({person: config.local?.profileKey, kinds: reactions.kinds, route: 'text', tag: picked.kind ?? null, why: picked.why, screen: reactions.screen, game: reactions.game}));
     } catch { /* a log line never breaks a turn */ }
   }
 
@@ -1014,7 +1034,7 @@ export class TextProviderHost {
     this.log(`[PromptProfile] turn uses ${id} (${profileSignature(profile)})`);
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = false}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = null}) {
     // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
     const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
     const guard = mature ? true : await this.#guardOn(route, signal);
@@ -1073,6 +1093,9 @@ export class TextProviderHost {
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
+      // One line per prompt that has anything to do with fresh facts: it carries some, V asked about clothes or themself, or lines were left out as stale (names and counts only,
+      // bridge/fresh-facts.mjs). An ordinary turn with none of these writes nothing.
+      if (!reaction) { try { const note = freshNote(messages, {quiet: true}); if (note) this.log(`[FreshFacts] profile=${profileKey ?? persona.name} ${note}`); } catch { /* a log line never affects a reply */ } }
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
       const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(config?.prepared === true ? {prepared: true, priority: 'background'} : {}), ...(sampling ? {sampling} : {}), ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
         const shown = visible(soFar);
@@ -1084,7 +1107,7 @@ export class TextProviderHost {
       const {text: spoken} = splitActions(response.text);
       // An ordinary NPC that answered with its reaction tag alone (the model decided and stopped; asking it again for "the tag and words" gets the tag
       // alone again about half the time): the choice stands, and a second request is asked only for the words that go with it, with no tag to write.
-      const only = tagged && !chosen.kind ? reactionOnlyTag(response.text) : null;
+      const only = tagged && !chosen.kind ? reactionOnlyTag(response.text, tagged.kinds) : null;
       if (only) {
         this.log('NPC reaction reply was only a tag; asking once more for the words');
         chosen.kind = only;

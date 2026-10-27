@@ -231,3 +231,24 @@ test('a sandbox that passed the probe is not probed again by a later launch of t
   await host.start();
   assert.deepEqual(browsers.map(browser => browser.pages), [1, 0], 'the second launch costs no probe page');
 });
+
+test('the hidden browser tree is raised to high after the start and again after a page opens, joined by the keeper; never without the level, and it is stopped with the browser', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const calls = [];
+  const {host, logs} = await hostWith(async () => fakeBrowser(), {browserPriority: 'high', setBrowserTree: async (level, {rootPid}) => { calls.push([level, rootPid]); return 5; }});
+  await host.start();
+  await new Promise(done => setTimeout(done, 700));
+  assert.deepEqual(calls, [['high', process.pid]], 'one call for the start and the pages opened with it');
+  assert.ok(logs.some(line => /hidden browser priority: high for 5 processes/.test(line)));
+  const before = host.browser.pages;
+  await host.browser.newPage();
+  assert.equal(host.browser.pages, before + 1, 'the wrapped newPage still opens the page');
+  assert.equal(host.priorityKeeper.timer !== null || host.priorityKeeper.running, true, 'a page asks for the tree again');
+  await host.close();
+  assert.equal(host.priorityKeeper.timer, null, 'nothing is scheduled for a closed browser');
+  const plain = await hostWith(async () => fakeBrowser(), {setBrowserTree: async () => { throw Error('must not run'); }});
+  await plain.host.start();
+  assert.equal(plain.host.priorityKeeper, null, 'no level, no keeper');
+  const normal = await hostWith(async () => fakeBrowser(), {browserPriority: 'normal', setBrowserTree: async () => { throw Error('must not run'); }});
+  assert.equal(normal.host.priorityKeeper, null, 'priority = normal leaves the browser as it starts');
+});

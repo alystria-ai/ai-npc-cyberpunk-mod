@@ -1,5 +1,5 @@
 -- Start-up clock (probe.log "Start-up:" lines): when this file began, then the load, onInit and title-screen figures. A global, so no local slot.
-pcall(function() convaiBoot = {t0 = os.clock(), frames = 0, worst = 0, total = 0} end)
+pcall(function() convaiBoot = {t0 = os.clock(), frames = 0, worst = 0, total = 0, gapWorst = 0, slow = 0, slowSum = 0, big = {}, ownTotal = 0, ownWorst = 0} end)
 -- AI NPC Cyberpunk Mod game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
 -- probe.log and mcm.log are appended for ever (many thousands of lines over weeks of play): once per load, before the native core takes over io,
@@ -214,8 +214,13 @@ local function publishWorldSession(frame, ready, force)
     -- Unchanged and still leased (the common case, twice per frame): no table or string is built.
     if not force and frame and frame.worldToken == worldSessionToken and (ready == true) == worldSessionReady
         and worldSessionAt and now >= worldSessionAt and now - worldSessionAt < 2 then return end
+    -- `loading`: a save is being loaded (set by the PlayerPuppet OnDetach observer just before the session is abandoned, whose forced write below carries it), no world yet. The service
+    -- starts V's helper voice then (it waited out the title screen, which has a key press to answer) instead of once the world exists, so it is ready sooner. Cleared by the first
+    -- ready write; a field of a table that already exists, one more key in a write that happens anyway, nothing per frame.
     local value = {version = 1, token = frame and frame.worldToken or (knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)),
-        generation = frame and frame.generation or (knowledgeEpoch + 1), ready = ready == true, updated = now * 1000}
+        generation = frame and frame.generation or (knowledgeEpoch + 1), ready = ready == true, updated = now * 1000,
+        loading = ready ~= true and convaiHeartbeat.loading or nil}
+    if ready == true then convaiHeartbeat.loading = nil end
     local signature = value.token .. ':' .. tostring(value.ready)
     -- Lease heartbeat: the bridge keeps world-session.json 5 s; refresh it every 2 s or on change.
     if not force and signature == worldSessionSignature and worldSessionAt and now >= worldSessionAt
@@ -717,9 +722,17 @@ do
                 for key in pairs(self.keys) do supportedProfiles[key] = true end
                 -- With no character made the catalogue is exactly as it was: resolve never calls into this module.
                 catalog.custom = self.count > 0 and self or nil
+                -- The copies from the Model browser take (or give back) the character they match.
+                if type(convaiSettleCopyProfiles) == 'function' then convaiSettleCopyProfiles() end
+                -- Each is also a character to invite (the Companion Manager) and a contact to text (the phone's Chat tab), under its own name: made, renamed or deleted, the lists follow.
+                local rows = self.list()
+                if type(manager.setCustomCharacters) == 'function' then pcall(manager.setCustomCharacters, rows) end
+                if type(phoneChat.setContacts) == 'function' then pcall(phoneChat.setContacts, 'custom', #rows > 0 and rows or nil) end
             end})
         if created and type(service) == 'table' then
             convaiCustomCharacters = service
+            -- A Chat with one of them is open only while Mistral, Local AI or Custom answers (asked when the chat is painted, never per frame).
+            phoneChat.contactBlocked = function(key) return service.has(key) and not service.providerReady() end
             if type(manager.configureCustom) == 'function' then manager.configureCustom(function(key) return service.has(key) end) end
             pcall(service.refresh, true)
         else print('[CyberpunkConvai] custom-characters.lua failed: ' .. tostring(service)) end
@@ -843,10 +856,12 @@ end
 
 -- forceFacts: read the TweakDB facts even when "Talk to ordinary NPCs" is off (the scanner names, mod/npc-names.lua).
 local function profileIdentity(npc, forceFacts)
-    local managedKey, managedName, owned = companions.identity(npc)
+    local managedKey, managedName, owned, serial, copyRecord, copyName, ready, carried = companions.identity(npc)
     local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
     local body = tostring(npc:GetBodyType() or '')
-    if owned and not managedKey then return nil, name, body end
+    -- Our own copy with no conversation profile is still one of the player's characters when its model matches one (docs/CHARACTER_EDITOR.md
+    -- "Matching"); without any character made, or while it is still being created, it has no profile as before.
+    if owned and not managedKey and not (ready and catalog.custom) then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
     -- spawned: a character another mod or a spawner created (mod/spawned-characters.lua, docs/SPAWNED_CHARACTERS.md). It is
@@ -861,12 +876,29 @@ local function profileIdentity(npc, forceFacts)
         and type(manager.storyConversations) == 'function' and manager.storyConversations() or nil
     local actor = {managedKey = managedKey, name = name, world = managedKey == nil and not spawned, spawned = spawned,
         story = story, bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
-    if not managedKey and (forceFacts or (type(manager.archetypeConversations) == 'function' and manager.archetypeConversations())) then
+    if owned then
+        -- A copy of ours is found by the model it was made from (the original record, not the private clone the game spawned) and its name.
+        actor.copy, actor.copyRecord, actor.copyName = true, copyRecord, copyName
+    end
+    if not managedKey and not owned and (forceFacts or (type(manager.archetypeConversations) == 'function' and manager.archetypeConversations())) then
         local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
         actor.facts = archetypeFacts(npc, idOk and entity or nil, body)
     end
     local key, canonical, archetype = characterCatalog.resolve(catalog, actor)
+    -- The copy carries what it resolved to (party rows, connections, subtitles): only when that differs from what it carries now.
+    if owned and ready and serial and key ~= carried then pcall(companions.settleProfile, serial, key, canonical) end
     return key, canonical, body, archetype
+end
+
+-- Every copy of ours against the player's characters: when the list changed and at each talk key press (a few table lookups on the few copies, never
+-- per frame). A copy of a model that is not a roster character becomes the custom character it matches, and goes back to its own profile when that
+-- character is deleted or Convai answers. A global, so no function here gains an upvalue.
+function convaiSettleCopyProfiles()
+    if type(companions.settleProfiles) ~= 'function' then return end
+    pcall(companions.settleProfiles, function(baseKey, baseName, record, model)
+        local key, name = characterCatalog.resolve(catalog, {managedKey = baseKey, copy = true, name = baseName, copyRecord = record, copyName = model})
+        return key, name
+    end)
 end
 
 -- Why a talk target ended with no profile, as the tail of the one probe-log line the talk key writes (a key press only, never per frame).
@@ -980,6 +1012,8 @@ do
             refusal = function(npc, player, entity) return convaiWorldTalk and convaiWorldTalk:refusal(npc, player, entity) or nil end,
             awaiting = function(requestId) return pending ~= nil and pending.requestId == requestId end,
             speaking = function(entity) return speech.requestId ~= nil and speech.context ~= nil and speech.context.entity == entity end,
+            -- "NPCs react to threats and commands" (docs/NPC_THREATS_COMMANDS.md), off by default: read once per offer.
+            threats = function() return type(manager.npcThreats) == 'function' and manager.npcThreats() == true end,
         })
         if built then convaiNpcReactions = service else print('[CyberpunkConvai] NPC reactions unavailable: ' .. tostring(service)) end
     elseif not loaded then print('[CyberpunkConvai] npc-reactions.lua unavailable: ' .. tostring(module)) end
@@ -1455,6 +1489,51 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     end}) or nil
 convaiGameDialogue = gameDialogue
 
+-- Whether the Dark Future mod is installed: one lookup of its main system, else of its hydration system (docs/DYNAMIC_INFO.md, "Other mods' state"). A global:
+-- the main chunk is near Lua's limit of locals.
+convaiDarkFuturePresent = function()
+    for _, name in ipairs({'DarkFuture.Main.DFMainSystem', 'DarkFuture.Needs.DFHydrationSystem'}) do
+        local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
+        if ok and system ~= nil then return true end
+    end
+    return false
+end
+
+-- Whether the Flesh and Chrome and Injuries mods (Digital Vixen) are installed: one lookup of each main system (docs/DYNAMIC_INFO.md, "Other mods' state"). Answers two
+-- booleans. Globals, like the Dark Future probe above.
+convaiVixenPresent = function()
+    local found = {}
+    for key, name in pairs({fac = 'FleshAndChrome.FACSystem', inj = 'Injuries.InjuriesSystem'}) do
+        local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
+        found[key] = ok and system ~= nil
+    end
+    return found.fac, found.inj
+end
+-- The baseline read of Flesh and Chrome's counts (mod/vixen-state.lua): its drink and cigarette counts are the save's lifetime totals, not what is in V's body, so a drink is
+-- only known as a rise since an earlier read. Without one the first question of a session would take the count as the baseline and miss a drink had just before it (live
+-- 2026-10-27, a new game). So one ordinary read of the reader is made once each time a save has loaded (convaiVixenBaselineDue, set here and by abandonSession), three seconds
+-- after the world is ready, from the 0.5 second sample of updateBattles: a nil check while nothing is due, one read per load, nothing between. Only with Other mods' state on.
+convaiVixenBaselineDue = true
+convaiVixenBaseline = function(player, now)
+    if convaiVixenBaselineAt == nil then convaiVixenBaselineAt = now + 3 end
+    if now < convaiVixenBaselineAt then return end
+    convaiVixenBaselineDue, convaiVixenBaselineAt = nil, nil
+    if manager.dynamicInfo == nil or not manager.dynamicInfo('mods') then return end
+    local options = convaiTurnContext and convaiTurnContext.options
+    if options and type(options.vixen) == 'function' then pcall(options.vixen, player) end
+end
+-- Whether Equipment-EX is installed (one lookup of its outfit system): its outfit can hide V's real clothes, so with Other mods' state off, where the outfit is not read,
+-- what V visibly wears is not known (mod/player-gear.lua nudity). Cached for a minute.
+convaiEquipmentExPresent = function()
+    local now = os.time()
+    local at = convaiEquipmentExProbedAt
+    if at ~= nil and now >= at and now - at < 60 then return convaiEquipmentExFound == true end
+    convaiEquipmentExProbedAt = now
+    local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new('EquipmentEx.OutfitSystem')) end)
+    convaiEquipmentExFound = ok and system ~= nil
+    return convaiEquipmentExFound
+end
+
 -- Music and TV, the song (mod/media-song.lua): the game's own song-change events, cached for mod/media-context.lua. Loaded and hooked only
 -- while the switch is on: at start (onInit) when it is on then, else the first time a turn is built with it on. Once hooked, a callback with
 -- the switch off returns after one boolean read. A failed load is not retried. Globals: the main chunk is near Lua's limit of locals.
@@ -1549,23 +1628,73 @@ do
         -- class name or two, pcall'd. Absent: mod-state.lua is never read from disk, and the probe is repeated at most once a minute (it may
         -- not exist yet during a loading screen), so a player without the mod pays one failed lookup a minute while talking and nothing else.
         -- Present: the module is loaded once (a failed load is not retried) and read per turn window.
+        -- The second answer is the compact note of what the read found ("installed=yes read=ok stage=hydration0,nutrition1,..."): it rides the snapshot so the
+        -- bridge's probe line of the turn (df: ...) can say what the game side saw, also when nothing was worth sending.
         mods = function(player)
             if convaiModState == nil then
                 local now = os.time()
                 local probedAt = convaiModStateProbedAt
                 if probedAt ~= nil and now >= probedAt and now - probedAt < 60 then return nil end
                 convaiModStateProbedAt = now
-                local present = false
-                for _, name in ipairs({'DarkFuture.Main.DFMainSystem', 'DarkFuture.Needs.DFHydrationSystem'}) do
-                    local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
-                    if ok and system ~= nil then present = true; break end
-                end
-                if not present then return nil end
+                if not convaiDarkFuturePresent() then return nil end
                 local loaded, module = pcall(dofile, 'mod-state.lua')
                 convaiModState = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
                 if convaiLogLine then convaiLogLine('Mod state: Dark Future found, reader ' .. (convaiModState and 'loaded' or 'failed to load')) end
             end
-            return convaiModState and convaiModState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end) or nil
+            if not convaiModState then return nil, 'installed=yes read=load-failed stage=-' end
+            local state = convaiModState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end)
+            return state, type(convaiModState.note) == 'function' and convaiModState.note() or nil
+        end,
+        -- Other mods' state switched OFF (it is off by default): nothing of Dark Future is read, loaded or told, whatever V asks. When Dark Future is installed a turn of
+        -- the session says so in one probe line, so a missing remark is not mistaken for a failed read. A class lookup at most once a minute and three times a session
+        -- (none after the line is written); no state is read.
+        modsOff = function()
+            if convaiModOffNoted then return end
+            local now = os.time()
+            local at = convaiModOffProbedAt
+            if at ~= nil and now >= at and now - at < 60 then return end
+            convaiModOffProbedAt, convaiModOffProbes = now, (convaiModOffProbes or 0) + 1
+            if convaiDarkFuturePresent() then
+                convaiModOffNoted = true
+                if convaiLogLine then
+                    convaiLogLine("df: installed=yes read=skipped stage=- switch=off asked=? sent=none(Other mods' state is off in Settings > Dynamic info: nothing is read or told, whatever V asks)")
+                end
+            elseif convaiModOffProbes >= 3 then
+                convaiModOffNoted = true
+            end
+        end,
+        -- Other mods' state, the Digital Vixen mods Flesh and Chrome and Injuries (mod/vixen-state.lua): the same gate as above. Their class names are looked up before
+        -- anything is loaded; absent: the module is never read from disk and the probe is repeated at most once a minute. Present: loaded once, read per turn window.
+        -- The second answer is {fac =, inj =}, the compact notes of what each read found, for the probe lines of the turn (fac: ..., inj: ...).
+        vixen = function(player)
+            if convaiVixenState == nil then
+                local now = os.time()
+                local probedAt = convaiVixenProbedAt
+                if probedAt ~= nil and now >= probedAt and now - probedAt < 60 then return nil end
+                convaiVixenProbedAt = now
+                local fac, inj = convaiVixenPresent()
+                if not (fac or inj) then return nil end
+                local loaded, module = pcall(dofile, 'vixen-state.lua')
+                convaiVixenState = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+                if convaiLogLine then convaiLogLine('Mod state: ' .. (fac and 'Flesh and Chrome ' or '') .. (inj and 'Injuries ' or '') .. 'found, reader ' .. (convaiVixenState and 'loaded' or 'failed to load')) end
+            end
+            if not convaiVixenState then return nil end
+            return convaiVixenState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end)
+        end,
+        -- The same mods with the switch OFF: one probe line each, once a session, when the mod is there (nothing is read, loaded or told). At most three class lookups.
+        vixenOff = function()
+            if convaiVixenOffNoted then return end
+            local now = os.time()
+            local at = convaiVixenOffProbedAt
+            if at ~= nil and now >= at and now - at < 60 then return end
+            convaiVixenOffProbedAt, convaiVixenOffProbes = now, (convaiVixenOffProbes or 0) + 1
+            local fac, inj = convaiVixenPresent()
+            for key, present in pairs({fac = fac, inj = inj}) do
+                if present and convaiLogLine then
+                    convaiLogLine(key .. ": installed=yes read=skipped state=- switch=off asked=? sent=none(Other mods' state is off in Settings > Dynamic info: nothing is read or told, whatever V asks)")
+                end
+            end
+            if fac or inj or convaiVixenOffProbes >= 3 then convaiVixenOffNoted = true end
         end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,
@@ -1865,15 +1994,29 @@ local function playerSpeedText(player)
     return string.format('%.2f', speed)
 end
 -- Phone chat typing opened (mod/phone-chat.lua, 10 Hz tick, one line per typing session).
+-- The redscript's account of opening a chat (PhoneChat.reds, PhoneChatTabs.reds): the press, the page, the focus. A few lines per opening; at most 120 a session.
+phoneChat.traced = 0
+phoneChat.trace = function(line)
+    if phoneChat.traced >= 120 then return end
+    phoneChat.traced = phoneChat.traced + 1
+    log('Phone chat: ' .. tostring(line))
+end
 phoneChat.typingOpened = function(player, contact)
     log('Phone chat typing opened: contact=' .. tostring(contact) .. ' speed=' .. playerSpeedText(player))
 end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
+if playerGear then playerGear.options.nudityLog = log end
 -- A wardrobe outfit of Equipment-EX shows instead of V's equipped clothes in that gear (docs/PLAYER_GEAR_CONTEXT.md). Only while Settings > Dynamic info >
 -- Other mods' state is on: off, the module is never loaded and nothing is read from that mod. Called inside the gear's cached read, once per window.
 if playerGear then
     local equipmentEx
+    -- With Other mods' state off the outfit is not read; when Equipment-EX is installed its outfit may be hiding V's real clothes, so the reader is told what V visibly
+    -- wears is not known (it then never says V is topless or naked: mod/player-gear.lua).
+    playerGear.options.outfitUnread = function()
+        if manager.dynamicInfo and manager.dynamicInfo('mods') then return false end
+        return convaiEquipmentExPresent()
+    end
     playerGear.options.outfit = function(player)
         if not (manager.dynamicInfo and manager.dynamicInfo('mods')) then return nil end
         if equipmentEx == nil then
@@ -2482,6 +2625,20 @@ convaiBarkEnd = function(quiet)
 end
 -- An ordinary NPC that reacts (walks off, attacks) first lets go of the conversation's hold and look-at, the same release.
 if convaiNpcReactions then convaiNpcReactions.options.release = function(player) endFocus(player) end end
+-- The conversation's own focus on a walking crowd person, for a get down or a cower that keeps it (live test 6, 2026-10-27: a hold of our own
+-- never ran on a crowd person, the conversation's does): {age = seconds since it began, hold = its AIHoldPositionCommand when readable}, or nil
+-- when the conversation is not focused on this person.
+if convaiNpcReactions then
+    convaiNpcReactions.options.focusOf = function(npc)
+        local current = focusedCrowd
+        if not current or not npc then return nil end
+        local same = tostring(current.npc:GetEntityID().hash) == tostring(npc:GetEntityID().hash)
+        if not same then return nil end
+        local hold
+        pcall(function() hold = Game.GetPlayer().m_convaiFocusHold end)
+        return {age = os.time() - (current.at or os.time()), hold = hold}
+    end
+end
 
 local function beginFocus(player, npc)
     endFocus(player)
@@ -2525,6 +2682,30 @@ local function beginFocus(player, npc)
     end)
     log('Crowd focus begin: ' .. (probeOk and tostring(probeResult) or 'failed: ' .. tostring(probeResult)))
     return true
+end
+-- Live test 7 (2026-10-27): by the time a "get down" starts (once the reply has been heard) the conversation has let go, and a move command
+-- does not stop a walking crowd person either. What stops one is this focus (ConvaiBeginFocus: its 40 s hold and the turn to V).
+-- keepFocus(npc, seconds): the focus on that crowd person outlasts the end of the talk for `seconds` (the end-of-talk timeout waits); true
+-- when the focus is on it. refocus(player, npc, seconds): this same focus begun again for that person and kept `seconds`. The pin is a
+-- global (the main chunk is near Lua's limit of local variables), compared by the focus record itself: nothing is read per frame.
+if convaiNpcReactions then
+    convaiNpcReactions.options.keepFocus = function(npc, seconds)
+        local current = focusedCrowd
+        if not current or not npc then return false end
+        if tostring(current.npc:GetEntityID().hash) ~= tostring(npc:GetEntityID().hash) then return false end
+        convaiFocusKept = {crowd = current, untilAt = os.time() + math.ceil(seconds or 0)}
+        return true
+    end
+    convaiNpcReactions.options.refocus = function(player, npc, seconds)
+        local began, why = beginFocus(player, npc)
+        if not began then return false, why end
+        local current = focusedCrowd
+        if not current then return false, 'not a crowd focus' end
+        convaiFocusKept = {crowd = current, untilAt = os.time() + math.ceil(seconds or 0)}
+        focusUntil = os.time() + math.ceil(seconds or 0)
+        if focusMode == nil then focusMode = 'chat' end
+        return true, 'begun'
+    end
 end
 
 -- UI_System.IsInMenu. The blackboard definition and its id are script constants (the blackboard is found by
@@ -2669,10 +2850,19 @@ function convaiFacingCharacter()
         return nil
     end
     local debugName = read(function() return TDBID.ToStringDEBUG(npc:GetRecordID()) end)
+    -- A copy of ours (the Model browser's, an invitation's) is spawned from a private clone of its model's record for a crowd or an unarmed
+    -- model ("CyberpunkConvai.NonCrowd_X", "CyberpunkConvai.Armed_X"): the record that finds it later is the model's own, which the copy remembers.
+    -- The model's name is what the catalogue matches a copy by, so it fills the name when the game gives none.
+    local identified, _, _, owned, _, copyRecord, copyName = pcall(companions.identity, npc)
+    if identified and owned == true then
+        if type(copyRecord) == 'string' and copyRecord:find('^[%w_][%w_%.%-]+$') then debugName = copyRecord end
+    else
+        copyName = nil
+    end
     -- The original of a record-cloning mod's copy ("NCA.Character.X" is "Character.X": the editor's rule finds both), else the readable name.
     local record = debugName and (characterCatalog.originalRecordName(debugName)
         or (debugName:find('^[%w_][%w_%.%-]+$') and debugName or nil)) or nil
-    local name = read(function() return tostring(npc:GetTweakDBFullDisplayName(true) or '') end)
+    local name = read(function() return tostring(npc:GetTweakDBFullDisplayName(true) or '') end) or read(function() return copyName end)
     local body = read(function() return tostring(npc:GetBodyType() or '') end)
     local gender = type(characterCatalog.gender) == 'function'
         and characterCatalog.gender({gender = read(function() return nameString(npc:GetResolvedGenderName()) end), bodyType = body}) or nil
@@ -2748,7 +2938,10 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
     if talkJohnny then return convaiTalkJohnny(player) end
     -- A character the player made may have been saved since the last look: the list is read if it is due (at most every 3 s, and only while
     -- there are characters or the editor was opened lately: mod/custom-characters.lua).
-    if convaiCustomCharacters then pcall(convaiCustomCharacters.refresh); pcall(convaiCustomCharacters.checkProvider) end
+    if convaiCustomCharacters then
+        pcall(convaiCustomCharacters.refresh); pcall(convaiCustomCharacters.checkProvider)
+        convaiSettleCopyProfiles()
+    end
     -- On a connected holocall the private talk keys address the caller wherever V is (mod/holocall.lua).
     local caller = convaiHolocall and convaiHolocall.partner(player, groupMode) or nil
     if caller then log('Holocall conversation: profile=' .. caller.profileKey .. ' mode=' .. caller.holocall.mode); return caller end
@@ -3426,6 +3619,21 @@ if convaiHolocall then
         warm = function(key, entity) generation = generation + 1; warmConversation(nil, key, entity) end,
         -- The caller's conversation is ready: the same check as the "Preparing connection" notice (mod/auto-connect.lua).
         ready = function(key) return autoConnect == nil or autoConnect.ready(key) end,
+        -- A Chat row the journal has no contact for (a character the player made, Rita Wheeler and the roster) can be called too: the window shows
+        -- her name and the unknown-caller picture. A character the player made needs Mistral, Local AI or Custom, as her Chat does.
+        -- The record of her game definition (the invite list's, or the roster's), when she has one, is the body filmed for a video call.
+        chatRow = function(contact)
+            local row = convaiPhoneChat and convaiPhoneChat.callRow(contact) or nil
+            if row and convaiCompanions and type(convaiCompanions.definition) == 'function' then
+                local asked, definition = pcall(convaiCompanions.definition, row.key)
+                if asked and type(definition) == 'table' and type(definition.id) == 'string' and definition.id ~= '' then row.record = definition.id end
+            end
+            return row
+        end,
+        blocked = function(key)
+            local chat = convaiPhoneChat
+            return chat ~= nil and type(chat.contactBlocked) == 'function' and chat.contactBlocked(key) == true
+        end,
         liveImage = function() return true end,   -- always on (the setting was removed 2026-10-20); the call still goes on with the portrait when the picture cannot be shown
         -- A turn with the caller is being typed, recorded, answered or spoken: the call is not idle.
         busy = function()
@@ -4858,6 +5066,7 @@ local function updateBattles(player, elapsed, worldReady)
         battlePoll = 0
         battleSample = battleObserver.sample(player)
         battleSampleAt = os.time() * 1000
+        if convaiVixenBaselineDue and worldReady then pcall(convaiVixenBaseline, player, os.time()) end
         if convaiSpawnedPeople then
             convaiSpawnedPeople.sample(player, battleSample, manager.battleReactions() or manager.lootReactions())
         end
@@ -5939,6 +6148,11 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiSettleReset then convaiSettleReset(reason, preserveTransit == true) end
     -- A new session forgets which look each copy wears and any home answers; fast travel keeps them (the copies are made again in the same clothes).
     if convaiOutfits and preserveTransit ~= true then pcall(convaiOutfits.reset) end
+    -- Another save: what the Flesh and Chrome reader watched belongs to the old one; a new baseline read follows once the world is ready (mod/vixen-state.lua).
+    if preserveTransit ~= true then
+        convaiVixenBaselineDue, convaiVixenBaselineAt = true, nil
+        if convaiVixenState and type(convaiVixenState.reset) == 'function' then pcall(convaiVixenState.reset) end
+    end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
     managerUi.resetSession()
     speech.abandon()
@@ -5953,6 +6167,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     pendingKnowledgeOwner = nil
     if convaiTalkGate then convaiTalkGate.waiting = nil end
+    convaiFocusKept = nil
     if convaiAddons and convaiAddons.live then pcall(convaiAddons.reset, reason) end
     if convaiHolocall then pcall(convaiHolocall.abandon, reason) end
     focusedCrowd, releasedCrowd = nil, nil
@@ -6163,6 +6378,7 @@ registerForEvent('onInit', function()
             -- world is still being torn down; until OnGameRestored the mod stays suspended (18 Oct 13:32 crash: a probe's kept
             -- handle of the old Johnny was sent an AI command 4 s after this detach, from onUpdate).
             convaiHeartbeat.restoreWait, convaiHeartbeat.restoreAttached = os.clock(), nil
+            convaiHeartbeat.loading = true
             abandonSession('player detached', false, true)
         elseif not fastTravelActive.finished then
             -- The teleport's own detach: the handles other hooks wrapped since the request (a callback's NPC argument is a
@@ -6295,6 +6511,8 @@ end
 registerForEvent('onUpdate', function(delta)
     -- Last chance for the native core plugin to bind (a global, so this closure gains no upvalue).
     if convaiNative and convaiNative.pending then pcall(convaiNative.redetect, 'onUpdate') end
+    -- Start-up probe: when this frame began (until the first world frame; a global, so this closure gains no local or upvalue).
+    if convaiBoot and not convaiBoot.reported then convaiBoot.top = os.clock() end
     convaiHeartbeat.frame = convaiHeartbeat.frame + 1
     -- Waiting probe.log lines go out within a second of the first (see log()); an empty buffer costs one field read.
     if convaiLog.n > 0 then convaiLogTick() end
@@ -6328,9 +6546,16 @@ registerForEvent('onUpdate', function(delta)
         -- What the mod spent in the title and loading frames (reported with the first world frame, below): the count, the worst, the sum.
         local boot = convaiBoot
         if boot and not boot.reported then
-            local spent = os.clock() - titleStart
+            local finished = os.clock()
+            local spent = finished - titleStart
             boot.frames, boot.total = boot.frames + 1, boot.total + spent
-            if spent > boot.worst then boot.worst, boot.worstAt = spent, os.clock() - boot.t0 end
+            if spent > boot.worst then boot.worst, boot.worstAt = spent, finished - boot.t0 end
+            convaiBootFrame(boot, finished)
+            -- Once, 45 s after onInit (the time the title screen waits for a key press): the same figures, so a player who quits there leaves them too.
+            if not boot.interim and boot.init and finished - boot.init >= 45 then
+                boot.interim = true
+                log(string.format('Start-up: title screen 45 s after onInit, %d frames; %s', boot.frames, convaiBootGaps(boot)))
+            end
         end
         if not titleOk and convaiHeartbeat.titleManagerError ~= tostring(titleError) then
             convaiHeartbeat.titleManagerError = tostring(titleError)
@@ -6342,8 +6567,8 @@ registerForEvent('onUpdate', function(delta)
     local boot = convaiBoot
     if boot and not boot.reported then
         boot.reported = true
-        log(string.format('Start-up: first world frame %.1f s after init.lua began (onInit at %.1f s); %d title frames, the mod used %.1f ms in them, worst %.2f ms at %.1f s',
-            os.clock() - boot.t0, (boot.init or boot.t0) - boot.t0, boot.frames, boot.total * 1000, boot.worst * 1000, boot.worstAt or 0))
+        log(string.format('Start-up: first world frame %.1f s after init.lua began (onInit at %.1f s); %d title frames, the mod used %.1f ms in them, worst %.2f ms at %.1f s; %s',
+            os.clock() - boot.t0, (boot.init or boot.t0) - boot.t0, boot.frames, boot.total * 1000, boot.worst * 1000, boot.worstAt or 0, convaiBootGaps(boot)))
     end
     sessionHasState = true
     knowledgeAllowed, knowledgeInvalidated = true, false
@@ -6414,6 +6639,11 @@ registerForEvent('onUpdate', function(delta)
     if convaiHeartbeat.flagsFrame == convaiHeartbeat.frame then phoneRead, phoneOpen = true, convaiHeartbeat.flags % 128 >= 64
     else phoneRead, phoneOpen = pcall(convaiInvoke, menuPlayer, 'ConvaiPhoneIsOpen') end
     phoneOpen = phoneRead and phoneOpen == true
+    -- The phone was just opened: the player's own characters are read again (rate-limited by the service; a character made a moment ago is in the Chat tab). Once per opening, on the edge.
+    if phoneOpen ~= convaiPhoneWasOpen then
+        convaiPhoneWasOpen = phoneOpen
+        if phoneOpen and convaiCustomCharacters then pcall(convaiCustomCharacters.refresh) end
+    end
     local phoneActionOk, phoneActionError = true, nil
     if phoneDrainDue(phoneOpen) then
         phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer)
@@ -6578,7 +6808,9 @@ registerForEvent('onUpdate', function(delta)
         -- No add-on registered: one check at the first gameplay tick for an add-on or content pack the bridge could not load (mod/addons.lua idleTick).
         pcall(convaiAddons.idleTick, player, worldReady)
     end
-    if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
+    -- A "get down" or a cower keeps the focus on its person past the talk (convaiFocusKept: options.keepFocus above).
+    if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil
+        and not (convaiFocusKept and convaiFocusKept.crowd == focusedCrowd and os.time() < convaiFocusKept.untilAt) then
         endFocus(player)
         if convaiBarkEnd then convaiBarkEnd(true) end
         focusUntil = nil
@@ -6804,6 +7036,13 @@ registerForEvent('onUpdate', function(delta)
                     end
                     -- A voice that could not start says why (speech.lua keeps the reason in speech.error), once, on the same line.
                     local why = speech.state == 'playback-failed' and speech.error and (' why=' .. tostring(speech.error):sub(1, 160)) or ''
+                    -- Dark Future's state in this turn (the bridge's probe line: what the game side found, the switch, whether V's words asked about themself, where the
+                    -- state went), next to the result so one grep shows the whole story. Absent unless the game side found Dark Future.
+                    if type(reply.df) == 'string' and reply.df:sub(1, 4) == 'df: ' and #reply.df <= 320 and not pending.reaction then log(reply.df) end
+                    for _, key in ipairs({'fac', 'inj'}) do
+                        local line = reply[key]
+                        if type(line) == 'string' and line:sub(1, #key + 2) == key .. ': ' and #line <= 320 and not pending.reaction then log(line) end
+                    end
                     local resultLine = 'Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
                         .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why .. faceNote
                     -- A failed turn that fails the same way every time (Local AI not installed, no browser, a key refused) is one console line per
@@ -6928,6 +7167,43 @@ registerForEvent('onShutdown', function()
     if type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.uninstall) == 'function' then pcall(convaiPerfProbe.uninstall) end
 end)
 
+pcall(function()
+    -- Title-frame stall probe. Per title frame (no world yet): the wait between the end of the previous onUpdate and the start of this one is time the
+    -- game, CET, other mods or the machine spent (a frame that did not come: a Space press in it is late); the mod's own part is the onUpdate
+    -- itself, start to end of the title branch. A stall with a small own part is not this mod's Lua. Two os.clock reads a frame, no allocation but the
+    -- rare (at most six) entry of a stall of 250 ms or more.
+    convaiBootFrame = function(boot, finished)
+        local top = boot.top
+        if not top then return end
+        local last = boot.last
+        boot.last = finished
+        if boot.cut then return end
+        if last then
+            local gap = top - last
+            -- A freeze of 3 s or more is a save loading (or a real stall): the figures stop there, and it is named once with the mod's part of that frame.
+            if gap >= 3 then boot.cut = string.format('first freeze of 3 s or more: %.0f ms at %.1f s (began %s UTC), own part of that frame %.1f ms', gap * 1000, top - boot.t0, os.date('!%H:%M:%S', os.time() - math.floor(gap)), (finished - top) * 1000); return end
+            if gap > boot.gapWorst then boot.gapWorst, boot.gapWorstAt = gap, top - boot.t0 end
+            if gap >= 0.1 then
+                boot.slow, boot.slowSum = boot.slow + 1, boot.slowSum + gap
+                -- The wall-clock second the gap began (UTC, the clock of probe.log and of the service's [Timeline] lines), so a stall can be lined up with what the service did.
+                local began = os.time() - math.floor(gap)
+                if gap >= boot.gapWorst then boot.gapWorstWall = began end
+                if gap >= 0.25 and #boot.big < 6 then boot.big[#boot.big + 1] = string.format('%.1f+%.0f@%s', top - boot.t0, gap * 1000, os.date('!%H:%M:%S', began)) end
+            end
+        end
+        local own = finished - top
+        boot.ownTotal = boot.ownTotal + own
+        if own > boot.ownWorst then boot.ownWorst = own end
+    end
+    -- The stall figures as one tail for a Start-up line: gaps of 100 ms or more (count, their total, the worst and when), the stalls of 250 ms or
+    -- more as seconds-since-init.lua-began + milliseconds, and the mod's whole onUpdate in those frames (total, worst).
+    convaiBootGaps = function(boot)
+        local worstWall = boot.gapWorstWall and os.date('!%H:%M:%S', boot.gapWorstWall) or '-'
+        return string.format('frame gaps over 100 ms: %d (%.0f ms in all), worst %.0f ms at %.1f s (began %s UTC), over 250 ms at [%s]; own whole title onUpdate %.1f ms, worst %.2f ms; %s',
+            boot.slow, boot.slowSum * 1000, boot.gapWorst * 1000, boot.gapWorstAt or 0, worstWall, table.concat(boot.big, ' '), boot.ownTotal * 1000, boot.ownWorst * 1000,
+            boot.cut or 'no freeze of 3 s or more yet')
+    end
+end)
 convaiBoot.loaded = os.clock()
 log(string.format('Start-up: init.lua loaded in %.0f ms', (convaiBoot.loaded - convaiBoot.t0) * 1000))
 

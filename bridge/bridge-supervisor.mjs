@@ -21,6 +21,7 @@ import {capLogFile} from './log-cap.mjs';
 import {CHILDREN_FILE, reapChildren} from './child-registry.mjs';
 import {parseKeyFileText} from './convai-key.mjs';
 import {AUTH_CONFIG_FILE, PACKAGED_AUTH_FILE, readAuthSettings} from './convai-credential.mjs';
+import {readTurnPriority, setProcessPriority} from './process-priority.mjs';
 import {NO_BROWSER_MESSAGE, browserLookupSummary, systemBrowserAvailable} from './system-browser.mjs';
 import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
@@ -89,6 +90,10 @@ export function parseSupervisorArguments(argv, {defaultProject, env = process.en
   return result;
 }
 
+// Wine's own stand-in for a default browser is what the lookup reports on a Windows game run on Linux or the Steam Deck (Proton): its prefix has no browser,
+// and the hidden one plays every voice and hears the microphone, so the service stops there (26 Oct: every browser-missing report of 0.3.2 was such a prefix).
+const WINE_BROWSER_MESSAGE = 'This looks like Wine or Proton (Linux, Steam Deck): there is no Windows browser in the game prefix, and the mod needs one for sound and the microphone. Install Chrome or Edge into the prefix and write its path in browser.txt next to launcher.ini.';
+
 export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
@@ -97,9 +102,12 @@ export class BridgeSupervisor {
     // requiredFiles: files (relative to `project`) the bridge cannot start without: its data files and the files of the Node packages it
     // imports (bridge/runtime-files.mjs RUNTIME_REQUIRED_FILES); the entry points of a real install pass them. One that is missing is the
     // failure `install-incomplete`, not a bridge that crashes five times.
-    requiredFiles = []} = {}) {
+    requiredFiles = [],
+    // The bridge runs at HIGH priority (docs/PROCESS_PRIORITY.md): it is the conversation service every reply passes through. `priority` is the level (normally read from the
+    // state folder's priority.txt at each start); the child is set here and the bridge sets itself too. A test's stand-in child is never handed to the system call.
+    priority = null, setPriority = spawn === spawnProcess ? undefined : () => { /* a stand-in child has no process */ }} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
-      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, browserReport, errorReports, requiredFiles});
+      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, browserReport, errorReports, requiredFiles, priority, setPriority});
     this.timings = {...DEFAULT_TIMINGS, ...timings};
     this.entry = resolve(project, 'bridge/convai-bridge.mjs');
     this.paths = {
@@ -255,7 +263,11 @@ export class BridgeSupervisor {
         // What the lookup had to go on, once per supervisor (it reads the registry), so a report of this failure says why no browser was found.
         if (!this.browserReported) {
           this.browserReported = true;
-          try { this.log(this.browserReport()); } catch { /* a diagnostic never changes the failure */ }
+          try {
+            const summary = this.browserReport();
+            this.log(summary);
+            if (/winebrowser\.exe/i.test(String(summary))) this.log(WINE_BROWSER_MESSAGE);
+          } catch { /* a diagnostic never changes the failure */ }
         }
       }
       // Said once, not on every retry: the names of the files (never a folder) that are not there.
@@ -392,6 +404,7 @@ export class BridgeSupervisor {
       if (err !== undefined) closeSync(err);
     }
     this.child = child; this.childPid = child.pid ?? null; this.childExit = null;
+    this.prioritize(child.pid);
     child.once('error', error => { this.childExit ||= {code: null, error: error.message}; });
     child.once('exit', (code, signal) => { this.childExit ||= {code, signal}; });
     this.ready = false; this.stopRequested = false; this.launchedAt = this.now(); this.mode = 'running';
@@ -399,6 +412,18 @@ export class BridgeSupervisor {
     await writeFile(this.paths.pid, `${this.childPid}\n`).catch(() => {});
     this.log(`Started the bridge (PID ${this.childPid}).`);
     await this.setStatus(this.restarts ? 'restarting' : 'starting', this.restarts ? 'bridge-restarting' : 'bridge-starting');
+  }
+
+  // The bridge's priority class (docs/PROCESS_PRIORITY.md): high in play, unless the state folder's priority.txt says normal. NOT at its start: the game is on its title screen then,
+  // loading with every core busy and its main thread waiting for the key press, and the service spends its first seconds importing modules; High there can starve the title
+  // (27 Oct 2026). So the child is left at normal here and takes High itself when the game has a world (bridge/convai-bridge.mjs, bridge/process-priority.mjs PriorityGate).
+  // Logged once per start so the supervisor log shows the level it was given. Best effort.
+  prioritize(pid) {
+    try {
+      const level = this.priority ?? readTurnPriority({stateDirectory: this.stateDirectory}).level;
+      if (level !== 'high' || !pid) return;
+      this.log('The bridge starts at normal priority and takes high priority itself once the game has a world.');
+    } catch { /* a priority is an optimisation, never a failure */ }
   }
 
   // What the bridge wrote to its stderr since its last start (at most 24 KB, from the supervisor's own start line on), or ''.

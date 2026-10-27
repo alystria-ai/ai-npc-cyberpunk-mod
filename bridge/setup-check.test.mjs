@@ -315,7 +315,7 @@ const options = (paths, over = {}) => ({...paths, now: () => 1_800_000_000_000, 
   modManagers: () => ({managers: []}), reach: async () => 'reachable', nestedPacks: async () => [], placement: async () => null, ...over});
 const byId = document => Object.fromEntries(document.checks.map(check => [check.id, check]));
 const KEYS = {
-  versions: ['id', 'state', 'code', 'scripts', 'runtime'], packs: ['id', 'state', 'code', 'found', 'nested', 'moved', 'omniMissing'],
+  versions: ['id', 'state', 'code', 'scripts', 'runtime', 'scriptsGame', 'runtimeGame'], packs: ['id', 'state', 'code', 'found', 'nested', 'moved', 'omniMissing'],
   browser: ['id', 'state', 'code', 'name'], 'local-ai': ['id', 'state', 'code', 'selected', 'installed'],
   internet: ['id', 'state', 'code', 'service', 'host'], gpu: ['id', 'state', 'code', 'name', 'memoryMiB', 'adapters'],
   'mod-manager': ['id', 'state', 'code', 'managers'], compiler: ['id', 'state', 'code'],
@@ -328,7 +328,7 @@ test('the document has exactly the agreed shape: eight checks in order, each wit
   assert.equal(document.bridgePid, process.pid); assert.equal(document.request, 'r-1');
   assert.deepEqual(document.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager', 'compiler']);
   for (const check of document.checks) assert.deepEqual(Object.keys(check), KEYS[check.id], check.id);
-  assert.deepEqual(byId(document).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0'});
+  assert.deepEqual(byId(document).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0', scriptsGame: '2.31', runtimeGame: '2.31'});
   assert.deepEqual(byId(document).browser, {id: 'browser', state: 'ok', code: 'found', name: 'Microsoft Edge'});
   assert.deepEqual(byId(document).gpu, {id: 'gpu', state: 'ok', code: 'found', name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188,
     adapters: [{name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188}, {name: 'Intel(R) UHD Graphics', memoryMiB: 128}]});
@@ -405,6 +405,11 @@ test('local AI: not used, ready, warming, and every way it can be unavailable', 
     assert.equal(localAiCheck(selected, {...installed, status: code === 'no-memory' ? 'no-memory' : 'failed', reason: {'no-memory': 'low-memory', 'no-gpu': 'no-gpu',
       'start-failed': 'start-failed', crashed: 'crashed', failed: 'x'}[code]}).state, 'problem', code);
   }
+  // Windows would not run the model server: the check names the cause (and only for a failed start).
+  const failedStart = {...installed, status: 'failed', reason: 'start-failed'};
+  assert.equal(localAiCheck(selected, {...failedStart, blocked: true}).cause, 'blocked');
+  assert.equal(localAiCheck(selected, failedStart).cause, undefined);
+  assert.equal(localAiCheck(selected, {...installed, status: 'failed', reason: 'crashed', blocked: true}).cause, undefined);
   // Mature-only install with Mature content off: blocked before any start is tried (the server still reads 'stopped', so the status says 'ready').
   const matureOnly = {packInstalled: true, tiers: {standard: null, lite: null}, matureOnly: true, models: [{tier: 'good', name: 'M', file: 'm.gguf', present: true}], status: 'ready'};
   assert.deepEqual(await check(selected, matureOnly), {id: 'local-ai', state: 'problem', code: 'mature-off', selected: true, installed: true});
@@ -419,28 +424,28 @@ test('local AI: not used, ready, warming, and every way it can be unavailable', 
 test('versions: equal, different, or unknown (a development checkout has no release.json)', async () => {
   await temp(async root => {
     const same = await collectSetupCheck(options(await install(join(root, 'a'))));
-    assert.deepEqual(byId(same).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0'});
+    assert.deepEqual(byId(same).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0', scriptsGame: '2.31', runtimeGame: '2.31'});
     const mismatch = await collectSetupCheck(options(await install(join(root, 'b'), {scripts: '0.2.0', runtime: '0.2.1'})));
-    assert.deepEqual(byId(mismatch).versions, {id: 'versions', state: 'problem', code: 'mismatch', scripts: '0.2.0', runtime: '0.2.1'});
+    assert.deepEqual(byId(mismatch).versions, {id: 'versions', state: 'problem', code: 'mismatch', scripts: '0.2.0', runtime: '0.2.1', scriptsGame: '2.31', runtimeGame: '2.31'});
     // No Scripts release.json: unknown, with the Runtime version still given.
     const development = await collectSetupCheck(options(await install(join(root, 'c'), {scripts: null, runtime: null, packageVersion: '0.3.0-dev'})));
-    assert.deepEqual(byId(development).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: '0.3.0-dev'});
+    assert.deepEqual(byId(development).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: '0.3.0-dev', scriptsGame: '2.31', runtimeGame: '2.31'});
     // release.json wins over package.json, and a release.json of the wrong package is not read.
     const both = await install(join(root, 'd'), {scripts: '0.2.0', runtime: '0.2.0', packageVersion: '9.9.9'});
     assert.equal(byId(await collectSetupCheck(options(both))).versions.runtime, '0.2.0');
     await put(join(both.modRoot, 'release.json'), JSON.stringify({package: 'runtime', version: '0.2.0'}));
     assert.equal(byId(await collectSetupCheck(options(both))).versions.scripts, null);
     await put(join(both.modRoot, 'release.json'), '{"version": "0.2');   // half written
-    assert.deepEqual(byId(await collectSetupCheck(options(both))).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: '0.2.0'});
+    assert.deepEqual(byId(await collectSetupCheck(options(both))).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: '0.2.0', scriptsGame: '2.31', runtimeGame: '2.31'});
     const none = await collectSetupCheck(options(await install(join(root, 'e'), {scripts: null, runtime: null})));
-    assert.deepEqual(byId(none).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: null});
+    assert.deepEqual(byId(none).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: null, scriptsGame: '2.31', runtimeGame: '2.31'});
   });
 });
 
 test('versions: the same version built for two games is a problem that names both games; a package with no game field is the 2.31 build', async () => {
   await temp(async root => {
     const both25 = await collectSetupCheck(options(await install(join(root, 'a'), {scriptsGame: '2.5', runtimeGame: '2.5'})));
-    assert.deepEqual(byId(both25).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0'});
+    assert.deepEqual(byId(both25).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0', scriptsGame: '2.5', runtimeGame: '2.5'});
     const oldRuntime = await collectSetupCheck(options(await install(join(root, 'b'), {scriptsGame: '2.5'})));
     assert.deepEqual(byId(oldRuntime).versions, {id: 'versions', state: 'problem', code: 'game-mismatch', scripts: '0.2.0', runtime: '0.2.0', scriptsGame: '2.5', runtimeGame: '2.31'});
     const oldScripts = await collectSetupCheck(options(await install(join(root, 'c'), {runtimeGame: '2.5'})));

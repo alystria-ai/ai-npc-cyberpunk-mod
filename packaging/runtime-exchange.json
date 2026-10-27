@@ -62,6 +62,8 @@
     "reaction-lease.json",
     "relationship-routing.json",
     "relationship-state.json",
+    "remote-omni-command.json",
+    "remote-omni-state.json",
     "reply.json",
     "report-request.json",
     "report-result.json",

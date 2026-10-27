@@ -48,6 +48,7 @@ local statusSources = {
     ['Waiting for your previous message to finish.'] = true,
     ['Conversations are disabled in Companion Manager.'] = true,
     ['Conversation is unavailable for this contact.'] = true,
+    ['This character needs Mistral, Local AI or Custom to answer.'] = true,
     ['Opening chat. Waiting for the conversation service.'] = true,
     ['You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'] = true,
     ['Mistral did not accept your key. Check it in Settings > Conversation provider.'] = true,

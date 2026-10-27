@@ -15,6 +15,7 @@ import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-sp
 import {textExpressionSignal} from './text-emotion.mjs';
 import {analyseReply, planSignal, createPlanner, baselineFromSignal} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
+import {personKey} from './protocol.mjs';
 import {MultilingualConversations, planTurnVoice, replyVoice} from './multilingual.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
@@ -35,13 +36,13 @@ function fixture({local = false, available = true, continuous = false, voiceSele
   // Not local: the player chose the Convai voice (`convaiVoiceAllowed`). A local voice that cannot run is a different fixture (voiceSelection with provider 'text').
   const selectedVoice = voiceSelection ?? {provider: local ? 'pocket' : 'convai', usesProfile: () => local, convaiVoiceAllowed: !local};
   // The turn's latency marks (bridge/turn-clock.mjs) are not under test here.
-  const sandbox = {customCharacters: {has: key => String(key).startsWith('custom-')}, addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, replyStreaming: false, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
+  const sandbox = {customCharacters: {has: key => String(key).startsWith('custom-')}, addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, replyStreaming: false, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}), dfNote: () => ({}),
     // The multilingual packs and Developer mode's last-reply capture (docs/VOICE_LANGUAGE_PACKS.md): none installed, capture off.
     languagePacks: {installed: false}, pocketLanguages: {speaks: () => false, packMissing: () => false, has: () => false, model: () => null, entry: () => null}, pocketLanguageNotice: {note() {}}, replyCapture: {enabled: false}, beginOmniCapture: () => {}, referenceOf: () => null, cloudReferenceOf: () => null,
     localVoice: selectedVoice, multilingual, speechLanguage: {evidence: null}, planTurnVoice, replyVoice, variantSeed, paceOf: () => null, omniPace: null,
     ownedPocketFace:()=>{},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,baselineFromSignal,
-    emotionSelection:new EmotionSelection(),waitLateEmotion,
+    emotionSelection:new EmotionSelection(),waitLateEmotion,personKey,
     splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,omniTagsFor,speechPhrases,logNaturalSpeech:()=>{},logFollowUp:()=>{},streaming:0,waitUntil,BufferedPcm,delivered,
     // The delivery function is the one both local voices share. OmniVoice's voice is driven the way deliverPocketSpeech drives it (the whole
     // reply text, or the held look-ahead's buffer), so the phrases reach the fake worker; Pocket's fake worker is not called here.

@@ -30,7 +30,8 @@ local DEFAULT_BUILD = '2.31'
 local RESULT, REQUEST, PROBE_LOG = 'runtime/setup-check.json', 'runtime/setup-check-request.json', 'runtime/probe.log'
 local SESSION_WINDOW_S = 180   -- a service answer written this long before the mod loaded still counts as this session's (service-status.lua)
 local FIRST_DELAY_S = 12       -- the first-load check waits this long after the first world is ready: the service has said something by then
-local FOLLOW_S = 15            -- how long the Help page follows the request it wrote
+local SETTLE_S = 8             -- the first-load notice is shown only after gameplay has been on screen this long without a menu or a load in between (the HUD that draws it exists by then)
+local FOLLOW_S = 15           -- how long the Help page follows the request it wrote
 local CATALOGS = {'world-knowledge.json', 'manager-characters.json', 'conversation-characters.json', 'phone-contacts.json'}
 local LOCALE_COUNT = 15
 -- bridge-service.json codes that mean the Runtime's files are missing or incomplete (bridge/bridge-supervisor.mjs, the launcher's
@@ -41,13 +42,13 @@ local INCOMPLETE = {['install-incomplete'] = true, ['bridge-missing'] = true, ['
 -- comes first: it is a Problem only when nothing it loads answers (this mod's native plugin, which does not depend on the script
 -- compile, and the probe of Codeware), and without it Codeware's scripts never reach the compile. This mod's scripts come next: when they did not load (a compile error anywhere disables every
 -- redscript mod), nothing below can be judged from them and the log, not a missing framework, is the thing to read.
-local CRITICAL = {'red4ext', 'redscript', 'codeware', 'nsui', 'files', 'service', 'versions', 'packs', 'internet'}
+local CRITICAL = {'red4ext', 'build', 'redscript', 'codeware', 'nsui', 'files', 'service', 'versions', 'packs', 'internet'}
 -- The requirements one first-load notice names together (Native Settings UI has its own notice: its name is long and the notice
 -- fits two lines), and at most this many names in one notice.
 local REQUIREMENT_IDS = {red4ext = true, codeware = true}
 local MAX_NAMES = 4
 -- Every game-side check, in the order the reports list them.
-local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
+local GAME_IDS = {'service', 'files', 'build', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
 -- The Companion Manager lives in Mod Configuration Menu 0.10.5 or newer (the default) or in Native Settings UI (the alternative): the
 -- check keeps its id, 'nsui', and is met by either.
 local function nsuiConsole(build)
@@ -64,6 +65,23 @@ local function scriptsConsole(build)
     return 'AI NPC Cyberpunk Mod: this mod\'s scripts did not load. Open r6/logs/redscript_rCURRENT.log. '
         .. 'If the error names another mod, that mod is the problem. '
         .. 'Missing or old Codeware or redscript, or a game version other than ' .. build.game .. ', can also cause it.'
+end
+-- The build mismatch for the CET console and probe.log, in English: the codes of buildCheck, with the three games as it found them.
+local function buildConsole(check)
+    local game, scripts, runtime = check.forGame or '?', check.scripts or '?', check.runtime or '?'
+    local head = 'AI NPC Cyberpunk Mod: game build mismatch (' .. tostring(check.detail) .. '). '
+    if check.code == 'runtime-wrong' then
+        return head .. 'Your game is ' .. game .. ' but the Runtime is the one for game ' .. runtime .. '. Download the Runtime for game ' .. game
+            .. ' from the mod’s Hugging Face page (main folder for game 2.5, game-2.31 folder for game 2.31) and extract it over this one, then restart the game.'
+    elseif check.code == 'scripts-wrong' then
+        return head .. 'Your game is ' .. game .. ' but the Scripts are the build for game ' .. scripts .. '. Download the Scripts for game ' .. game
+            .. ' from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and install them over these, then restart the game.'
+    elseif check.code == 'both-wrong' then
+        return head .. 'Your game is ' .. game .. ' but the Scripts and the Runtime are the build for game ' .. scripts .. '. Download both for game ' .. game
+            .. ' (Scripts from Nexus Mods, Runtime from Hugging Face), install them over these, then restart the game.'
+    end
+    return head .. 'The Scripts are the build for game ' .. scripts .. ' but the Runtime is the build for game ' .. runtime
+        .. ', and the game version matches neither. Install the Scripts and the Runtime made for the same game as yours, then restart the game.'
 end
 local COMPILER_CONSOLE = 'AI NPC Cyberpunk Mod: redscript is missing. Install it from Nexus Mods, then restart the game.'
 local OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Codeware is too old (it lacks the text input this mod needs). '
@@ -182,6 +200,42 @@ local function noteOmniPython()
 end
 
 ------------------------------------------------------------------ game side
+
+-- The Scripts, the Runtime and the running game must be for the same game version (docs/GAME_VERSIONS.md, "Wrong build"). The Runtime's build is the `runtimeGame`
+-- of the service's versions answer; a service of 0.3.1 says it only when the two games differ, so then app/release.json of the Runtime is read (the game folder is in
+-- the service's status file). A release.json without a game field is the 2.31 build. One small read each time the checks run (first load, Help page), never per frame.
+local function runtimeGameFromFiles()
+    local service = readJson('runtime/bridge-service.json')
+    local root = service and text(service.gameRoot, 400)
+    if not root then return nil end
+    local release = readJson(root .. '/red4ext/plugins/AiNpcCyberpunkMod/app/release.json')
+    if not release or release.package ~= 'runtime' then return nil end
+    return canonicalGame(text(release.game, 10)) or DEFAULT_BUILD
+end
+
+-- The 'build' check. running: the running game as the build table names it, or nil when it could not be read. Codes of a problem:
+--   runtime-wrong  the game and the Scripts agree, the Runtime is for the other game: get the Runtime for the game
+--   scripts-wrong  the game and the Runtime agree (or the Runtime is not known), the Scripts are for another game: get the Scripts for the game
+--   both-wrong     the Scripts and the Runtime agree with each other and the game is the other one: get both for the game
+--   differ         the Scripts and the Runtime are for different games and the game matches neither (or could not be read)
+-- detail is the machine-readable cause for the error reports: scripts=<game> runtime=<game or ?> game=<game or ?>.
+local function buildCheck(running)
+    local scripts = buildOf().game
+    local versions = bridgeCheck('versions')
+    local runtime
+    if versions then runtime = canonicalGame(text(versions.runtimeGame, 10)) or runtimeGameFromFiles() end
+    local known = running and BUILDS[running] and running or nil
+    local detail = 'scripts=' .. scripts .. ' runtime=' .. (runtime or '?') .. ' game=' .. (running or '?')
+    local function problem(code) return {state = 'problem', code = code, detail = detail, scripts = scripts, runtime = runtime, forGame = known} end
+    if runtime and runtime ~= scripts then
+        if known == scripts then return problem('runtime-wrong') end
+        if known == runtime then return problem('scripts-wrong') end
+        return problem('differ')
+    end
+    if known and known ~= scripts then return problem(runtime and 'both-wrong' or 'scripts-wrong') end
+    if not runtime and not known then return {state = 'unknown', code = 'unknown', detail = detail} end
+    return {state = 'ok', code = 'match', detail = detail}
+end
 
 
 -- ConvaiRequirements (Requirements.reds) as a set of words, or false when the player does not have it: this mod's scripts are
@@ -316,6 +370,7 @@ function M.run(now)
     checks.service = serviceCheck(now)
     checks.files = filesCheck()
     local version = text(try(function() return Game.GetSystemRequestsHandler():GetGameVersion() end), 30)
+    checks.build = buildCheck(version and canonicalGame(version) or nil)
     if not version then checks.game = {state = 'unknown', code = 'unknown'}
     else
         -- Tested: the game is the one this build is made for. Another game version this mod has a build for: the wrong build is installed.
@@ -421,8 +476,7 @@ end
 
 -- The conversation service line, for the Help page's existing Conversation service row: nil when its own label and help say it
 -- (running, starting, stopped, no browser, no key); otherwise {value, description} for a service that never started or failed.
-function M.serviceLine()
-    local check = game and game.checks.service
+local function lineFor(check)
     if not check then return nil end
     if check.code == 'never' then
         return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.')}
@@ -440,8 +494,52 @@ function M.serviceLine()
     end
     return nil
 end
+function M.serviceLine() return lineFor(game and game.checks.service) end
 
-local GAME_ORDER = {'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
+-- Why there is no conversation service, in words, for the places that can only say "Service not running" (the Local AI model row lists the installed
+-- models, which only the service knows: 2026-10-27, two Discord players had that one line and no way to tell a Runtime that did not load from a
+-- blocked Node). Returns {key, label, description} for a service that is down, with the label a short line for a row and the description the
+-- sentence for its help; nil when the service is up, starting or has nothing to add (the caller keeps its own words). It reads the same cached status
+-- files as the check (service-status.lua), so it is cheap, and it is called from the page, never per frame.
+function M.serviceWhy(now)
+    now = now or os.time()
+    local check = serviceCheck(now)
+    if check.state ~= 'problem' then return nil end
+    local function row(reason, description)
+        return {key = check.code .. ':' .. tostring(check.detail), label = ui.t('Service not running ({reason})', {reason = reason}), description = description}
+    end
+    if check.code == 'browser-missing' then
+        return {key = 'browser-missing', label = ui.t('Needs a browser'),
+            description = ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')}
+    end
+    if check.code == 'never' then
+        if check.detail == 'no-launcher-trace' then
+            return row(ui.t('Did not start'), ui.t('The Runtime’s plugin is loaded, but the conversation service left no trace in this session. launcher.log in red4ext/plugins/AiNpcCyberpunkMod says why: launcher.ini switched off, Node missing, or Node blocked by a security program. Fix that, then restart the game.'))
+        end
+        local line = lineFor(check)
+        return row(ui.t('Runtime not loaded'), (line and line.description or '') .. ' ' .. ui.t('If the folder is there, the newest log in red4ext/logs says why RED4ext did not load it: an antivirus that removed a file, or a missing Visual C++ runtime.'))
+    end
+    if check.code == 'incomplete' then
+        local line = lineFor(check)
+        return row(ui.t('Runtime incomplete'), line and line.description or '')
+    end
+    if check.code == 'failed' then
+        local code = check.detail
+        if code == 'launcher-failed' then
+            local number = try(function() return statusModule().failureError(now) end)
+            return row(ui.t('Could not start'), ui.t('Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.', {error = number or '?'}))
+        elseif code == 'service-silent' then
+            return row(ui.t('Did not start'), ui.t('The conversation service was started and never reported back. A security program probably stopped it at once, or Node cannot run on this PC. Allow red4ext/plugins/AiNpcCyberpunkMod/app/node/node.exe in your security program, then restart the game.'))
+        elseif code == 'game-folder-not-visible' then
+            return row(ui.t('Could not start'), ui.t('The conversation service cannot see this mod’s folder in the game: a mod manager’s virtual folders, or a folder it may not read. Extract the Runtime straight into the Cyberpunk 2077 folder, or start the game from the mod manager that holds the Runtime.'))
+        end
+        local line = lineFor(check)
+        return row(ui.t('Could not start'), line and line.description or '')
+    end
+    return nil
+end
+
+local GAME_ORDER = {'files', 'build', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
 local PRODUCT = {cet = 'Cyber Engine Tweaks', red4ext = 'RED4ext', redscript = 'redscript', codeware = 'Codeware', nsui = 'Native Settings UI'}
 
 local function gameLine(id, check)
@@ -453,6 +551,20 @@ local function gameLine(id, check)
             return line(id, label, 'problem', ui.t('Missing: {files}. Extract the Scripts zip into the Cyberpunk 2077 folder again and let it replace the files.', {files = check.detail or '?'}))
         end
         return line(id, label, 'ok', ui.t('All files found.'))
+    end
+    if id == 'build' then
+        -- Only a problem has a row: when the three agree there is nothing to say (the Game version row shows the version).
+        if check.state ~= 'problem' then return nil end
+        label = ui.t('Build for your game')
+        local values = {game = check.forGame or '?', scripts = check.scripts or '?', runtime = check.runtime or '?'}
+        if check.code == 'runtime-wrong' then
+            return line(id, label, 'problem', ui.t('Your game is {game} but the Runtime is the one for game {runtime}. Download the Runtime for game {game} from the mod’s Hugging Face page (the main folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.', values))
+        elseif check.code == 'scripts-wrong' then
+            return line(id, label, 'problem', ui.t('Your game is {game} but the Scripts are the build for game {scripts}. Download the Scripts for game {game} from the mod’s Nexus Mods page (the main file is for game 2.5, the optional file marked for game 2.31 is for game 2.31) and install them over these, then restart the game.', values))
+        elseif check.code == 'both-wrong' then
+            return line(id, label, 'problem', ui.t('Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Download both for game {game}: the Scripts from the mod’s Nexus Mods page, the Runtime from its Hugging Face page (the main folder is for game 2.5, the game-2.31 folder is for game 2.31). Install them over these, then restart the game.', values))
+        end
+        return line(id, label, 'problem', ui.t('The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Install the Scripts and the Runtime made for the same game as yours (the Scripts from Nexus Mods, the Runtime from Hugging Face), then restart the game.', values))
     end
     if id == 'game' then
         label = ui.t('Game version')
@@ -522,9 +634,10 @@ end
 
 local function bridgeLines(out)
     local versions = bridgeCheck('versions')
-    if versions and versions.code == 'game-mismatch' then
-        -- Same version, built for different games: the Runtime is replaced by the one made for the Scripts' game.
-        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}. Install the Runtime made for game {scripts} from the mod’s Hugging Face page, then restart the game.', {scripts = text(versions.scriptsGame, 10) or '?', runtime = text(versions.runtimeGame, 10) or '?'}))
+    local build = game and game.checks.build
+    if versions and (versions.code == 'game-mismatch' or (versions.code == 'mismatch' and build and build.state == 'problem'
+        and (build.code == 'runtime-wrong' or build.code == 'differ'))) then
+        -- The Runtime is for another game than the Scripts: the Build for your game row says which one to download, and the full Runtime replaces any update zips.
     elseif versions and (versions.code == 'match' or versions.code == 'mismatch') then
         local values = {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?'}
         local older = versions.code == 'mismatch' and runtimeIsOlder(versions)
@@ -580,7 +693,7 @@ local function bridgeLines(out)
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows ran out of memory for the voice. A larger paging file or closing other apps helps.'))
     elseif voice and voice.code == 'pocket-failed' and voice.cause == 'blocked' then
         -- Windows refused to load a file of the voice (Smart App Control, or an Application Control policy of a company or school): restarting changes nothing.
-        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.'))
+        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Turn Smart App Control off, or choose a cloud voice (Voxtral) in Settings.'))
     elseif voice and voice.code == 'pocket-failed' then
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.'))
     end
@@ -635,6 +748,7 @@ local function bridgeLines(out)
         elseif code == 'no-memory' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'))
         elseif code == 'mature-off' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Only Mature models found. Turn on Mature content to use them.'))
         elseif code == 'no-gpu' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.'))
+        elseif code == 'start-failed' and localAi.cause == 'blocked' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Turn Smart App Control off, or choose a cloud conversation provider in Settings.'))
         else out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI could not start. Generate a report below and send it, or choose another conversation provider.')) end
     end
     local internet = bridgeCheck('internet')
@@ -671,7 +785,8 @@ function M.lines()
     if service[1] and service[1].id == 'versions' then out[#out + 1] = table.remove(service, 1) end
     for _, id in ipairs(GAME_ORDER) do
         local check = game.checks[id]
-        if check then out[#out + 1] = gameLine(id, check) end
+        local item = check and gameLine(id, check)
+        if item then out[#out + 1] = item end
     end
     for _, item in ipairs(service) do out[#out + 1] = item end
     return out
@@ -737,10 +852,15 @@ end
 
 -- Every sentence of the first-load notice is in this one function (bridge/setup-notice-fit.test.mjs measures each against the warning
 -- line). id 'redscript': this mod's scripts did not load. id 'requirements': names is the list of two or more requirement names
--- (old: one of them is installed but too old). id 'codeware-old': Codeware
+-- (old: one of them is installed but too old). ids 'build-runtime', 'build-scripts', 'build-both', 'build-differ': the Scripts, the Runtime and the game are not for
+-- the same game version (values: game, other, scripts, runtime). id 'codeware-old': Codeware
 -- without the parts this mod needs. Any other id: one check,
 -- named by PRODUCT or, for an id that has no entry, by `names`.
-local function shortText(id, names, old)
+local function shortText(id, names, old, values)
+    if id == 'build-runtime' then return ui.t('The Runtime is for game {other}, yours is {game}. Get the Runtime for {game} from Hugging Face.', values) end
+    if id == 'build-scripts' then return ui.t('The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods.', values) end
+    if id == 'build-both' then return ui.t('This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}.', values) end
+    if id == 'build-differ' then return ui.t('Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings.', values) end
     if id == 'redscript' then return ui.t('Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.') end
     if id == 'requirements' then
         if old then return ui.t('Install or update: {names}. Then restart the game.', {names = names}) end
@@ -769,7 +889,14 @@ function M.problems()
         if check and check.state == 'problem' and (id ~= 'service' or check.code == 'never') then list[#list + 1] = id end
         if not check then
             local answer = bridgeCheck(id)
-            if answer and answer.state == 'problem' then list[#list + 1] = id
+            -- Scripts and Runtime of one version built for different games are one problem, the 'build' check's (it names what to download):
+            -- the versions answer then adds nothing, and its update-zip advice would be wrong.
+            -- (The same for versions that differ while the Runtime is also for the other game: the full Runtime of the right game fixes both.)
+            local build = game.checks.build
+            local together = build and build.state == 'problem' and (answer and answer.code == 'game-mismatch'
+                or (answer and answer.code == 'mismatch' and (build.code == 'runtime-wrong' or build.code == 'differ')))
+            if id == 'versions' and answer and answer.state == 'problem' and together then -- counted once, as build
+            elseif answer and answer.state == 'problem' then list[#list + 1] = id
             elseif id == 'versions' and not answer and silent then list[#list + 1] = id end
         end
     end
@@ -802,7 +929,8 @@ local function firstLoad()
     -- in English for the report, one line each.
     for _, id in ipairs(problems) do
         local check = game.checks[id]
-        if id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or scriptsConsole(buildOf()))
+        if id == 'build' then say(buildConsole(check))
+        elseif id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or scriptsConsole(buildOf()))
         elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or nsuiConsole(buildOf()))
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
         elseif REQUIREMENT_IDS[id] then
@@ -820,6 +948,15 @@ local function firstLoad()
         end
         if #named > 1 then return shortText('requirements', table.concat(named, ', '), old) end
         if first == 'codeware' and game.checks.codeware.code == 'old' then return shortText('codeware-old') end
+    end
+    -- The Scripts, the Runtime and the game are not for the same game version: say which half to replace (buildCheck).
+    if first == 'build' then
+        local check = game.checks.build
+        local runtime, scripts, running = check.runtime or '?', check.scripts or '?', check.forGame or '?'
+        if check.code == 'runtime-wrong' then return shortText('build-runtime', nil, nil, {game = running, other = runtime}) end
+        if check.code == 'scripts-wrong' then return shortText('build-scripts', nil, nil, {game = running, other = scripts}) end
+        if check.code == 'both-wrong' then return shortText('build-both', nil, nil, {game = running, other = scripts}) end
+        return shortText('build-differ', nil, nil, {scripts = scripts, runtime = runtime})
     end
     -- redscript itself is missing: the sentence of any missing requirement, with its name (there is no compile log to open)
     if first == 'redscript' and game.checks.redscript.code == 'no-compiler' then return shortText('compiler', PRODUCT.redscript) end
@@ -867,6 +1004,7 @@ local function playable()
 end
 
 local held   -- the first-load notice, computed when due and kept until gameplay can show it
+local readySince   -- when gameplay last became visible (os.time), nil while a menu, a pause or a loading screen is up
 
 -- Call from manager-ui.lua's slow update (every quarter second, with or without Native Settings UI). inSession: V is in a loaded game
 -- (the caller's player). Returns the first-load notice once, in gameplay, else nil.
@@ -897,7 +1035,13 @@ function M.tick(worldReady, inSession)
             end
         end
     end
-    if held and (worldReady or (game and game.checks.redscript.state == 'problem' and playable())) then
+    -- The notice waits for gameplay that has been on screen for SETTLE_S in a row. The 12 s above can run out in the pause menu or on a loading
+    -- screen (a CET reload, then a save loaded from the menu: the notice was due one frame after the save was restored, written to the warning
+    -- line before the HUD that draws it existed, and nobody ever saw it, 2026-10-27). A menu or a load in between starts the wait again.
+    local ready = worldReady == true
+    if not ready and held and game and game.checks.redscript.state == 'problem' then ready = playable() end
+    if ready then readySince = readySince or now else readySince = nil end
+    if held and readySince and now - readySince >= SETTLE_S then
         notice, held = held, nil
     end
     return notice

@@ -755,3 +755,9 @@ test('the report says whether the Runtime\'s code files match the release, and l
     assert.ok(!text.includes('secret contents') && !text.includes(PLANTED.hexKey), 'no contents, no environment');
   } finally { await f.cleanup(); }
 });
+
+test('the setup line of a Scripts and Runtime built for different games names both games', async () => {
+  const {setupLine} = await import('./support-report.mjs');
+  assert.equal(setupLine({id: 'versions', state: 'problem', code: 'game-mismatch', scripts: '0.3.2', runtime: '0.3.2', scriptsGame: '2.5', runtimeGame: '2.31'}),
+    'Setup check: versions game-mismatch (Scripts 0.3.2 for game 2.5, Runtime 0.3.2 for game 2.31)');
+});

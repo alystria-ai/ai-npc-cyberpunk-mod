@@ -19,6 +19,42 @@ typing, after which the normal back action returns to the Chat contact list.
 Typed case, clipboard operations and caret movement are preserved. Quest replies
 remain in the game's Messages and Contacts flows.
 
+**Focus on open (2026-10-27, branch `fix/chat-focus`; `PhoneChat.reds`, GAME RESTART; not yet seen in the game).** Owner: "when someone goes
+inside a chat page for a character it should auto go inside the textbox so that he doesnt have to press enter". Opening a character's
+chat page now puts the keyboard focus in the message box by itself, the same focus the Enter key gives (`ConvaiChatAutoFocus`). It runs
+from the first paint Lua asks for after the page has the focus (`ConvaiChatPresent`), so nothing runs per frame and no timer is added.
+Conditions: the page itself has the focus (`m_isFocused`: never on the Chat list, which is the game's phone and has no box, so J, L and
+V on the rows are not touched), the chat can be written to (not disabled, not a character the player made while Convai answers), the
+game allows texting, and the player last used keyboard and mouse (on a pad nothing can leave a box that swallows every action, so a pad
+keeps the Enter-to-write behaviour). One attempt per opening. The Enter that opened the chat may still be down or repeating, so no Enter
+counts as a send for 0.5 s after the automatic focus (an engine-time stamp read on a key press). Keys on the chat page:
+
+| State | Enter | Esc | C, V (call), F, J, L, other keys |
+|---|---|---|---|
+| Typing (the state on opening) | sends the text | stops typing, back to the idle page | typed as letters; the game's actions are swallowed, as before |
+| Idle page (after Esc, or when the box could not be focused) | starts typing | closes the chat, back to the list | C closes, V calls, as before |
+
+So a chat now takes two Escapes to close from a fresh opening (the first stops typing), and V (call) inside an open chat needs the first
+Esc. The call key on the Chat list rows is unchanged.
+
+**Opening a chat: F twice (2026-10-27, branch `fix/chat-focus-2`; `PhoneChat.reds` and `PhoneChatTabs.reds`, GAME RESTART; cause not proven offline).**
+Live (game 2.5, after focus-on-open): "if it is a new character i have to press F twice to get inside chat for it"; a chat with a history opens
+on the first press. The probe log of that session shows each chat reaching the typing state once (alex, adam-smasher, anders-hellman, ...), so the
+box focus itself works; what is lost is the first press, or the page's arrival, for a row with no journal contact (no history, no journal entry,
+`hash` 0). Reading the game's scripts and ours found no difference in the code path that depends on history, so two defences and a trace went in:
+- A press (F or R) on a Chat row when the tab's state says Off puts the state back to the list and opens (the state is reset by anything that
+  sets the game's screen type; only a Chat row under the cursor proves the Chat list is up, since only it shows one). Before, that press fell to the
+  game's own Contacts action (for F: a call attempt) and was lost.
+- A key press a full second after an opening whose page never reported ready starts the opening again (a new generation; the older attempt's
+  events are dropped). Before, the second press of a lost first one was ignored for as long as the state said "opening". A click's release and a
+  quick second press are not retries (a double popup would follow).
+- **Probe lines** (`Phone chat: ...` in the CET log, 120 a session at most, a few per opening): `open: contact=<id> journal=yes|no path=spawn|refresh`,
+  `open: state was off with a Chat row selected, put back to the list ...`, `open: pressed again, the page never reported ready, started again ...`,
+  `open ignored: the page is already open ...`, `open ignored: not a registered contact ...`, `page ready but not wanted: generation=<n> current=<m>
+  state=<s>` (the page arrived for an opening that is no longer wanted: states 0 off, 1 list, 2 opening, 3 conversation), `page focused contact=<id>`,
+  `autofocus asked ...` / `autofocus skipped ... (already typing | pad | texting off)`, `page closed, back on the list`. A chat that needed two
+  presses shows which of them it was.
+
 The character does not have to be spawned or nearby. Chat lists every character
 the mod has a profile for. The shipped phone contacts (`characters/phone-contacts.json`)
 appear once the journal has them as active, known contacts, including contacts with no
@@ -26,9 +62,7 @@ quest SMS. Every other named profile (Rita Wheeler and the rest) is listed alway
 the game's unknown-caller picture, because the game's journal has no contact for them;
 their contact id is their profile key and the list is sorted by name with the others
 (about 125 rows, in the phone's own scrolling list). The two ambient residents are not
-listed, and characters the player made are not yet (they have no Convai character for
-this route). Such a contact can be texted but cannot take a holocall (the call is refused
-with the usual notice). Content packs that rename a character show the new name. Newly unlocked contacts are picked up when opening the tab, because each open
+listed. The characters the player made in the character editor are (2026-10-27, docs/CHARACTER_EDITOR.md "Invite and phone"): each is a contact under its own name, answered through the text provider (Mistral, Local AI or Custom); with Convai answering its Chat is listed but closed, with "This character needs Mistral, Local AI or Custom to answer.". Such a contact can be texted and called (2026-10-27, branch `feat/custom-calls`: a voice call whose window shows her name and the unknown-caller picture, docs/HOLOCALL.md "A Chat row with no journal contact"; with Convai answering the call is refused with the same line as her Chat). Content packs that rename a character show the new name. Newly unlocked contacts are picked up when opening the tab, because each open
 reads the journal's active contacts again. The Contacts J/L mapping needs no such
 refresh: `companions.registerPhoneContacts` registers every contact in
 `characters/phone-contacts.json` once per session, whether or not the game has

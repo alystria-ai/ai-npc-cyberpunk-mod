@@ -1210,7 +1210,7 @@ class Producer(unittest.TestCase):
 
 
 class Priority(unittest.TestCase):
-    """A reply being voiced runs at normal priority; the worker is below normal while it waits."""
+    """A reply being voiced runs at the reply priority (high by default, normal on request); the worker is below normal while it waits."""
 
     def gate(self, hold=3.0, raises=True):
         self.now = 100.0
@@ -1233,6 +1233,12 @@ class Priority(unittest.TestCase):
         self.assertEqual(self.calls, ['normal', 'below'])
         gate.settle(); self.assertEqual(self.calls, ['normal', 'below'], 'lowered once')
         gate.request(); self.assertEqual(self.calls, ['normal', 'below', 'normal'], 'the next reply raises again')
+
+    def test_the_reply_level_is_high_when_the_bridge_says_so_and_never_realtime(self):
+        self.assertEqual(worker.reply_priority_class({worker.PRIORITY_VARIABLE: 'high'}), 0x00000080)
+        for other in ({}, {worker.PRIORITY_VARIABLE: 'normal'}, {worker.PRIORITY_VARIABLE: 'below'}, {worker.PRIORITY_VARIABLE: 'realtime'}, {worker.PRIORITY_VARIABLE: 'HIGH'}):
+            self.assertEqual(worker.reply_priority_class(other), worker.NORMAL_PRIORITY_CLASS, str(other))
+        self.assertNotEqual(worker.HIGH_PRIORITY_CLASS, 0x00000100, 'REALTIME_PRIORITY_CLASS is never used')
 
     def test_waiting_with_nothing_raised_changes_nothing(self):
         gate = self.gate()
@@ -1262,6 +1268,59 @@ class Priority(unittest.TestCase):
         self.assertGreater(main.index('lower_priority()'), main.index('started.set()'))
         self.assertLess(main.index('lower_priority()'), main.index('"op": "ready"'))
         self.assertGreater(main.index('lower_priority()'), main.index('cache.prepare(key)'), 'the warm-up is part of the start')
+
+    def tearDown(self):
+        worker._STATE.update(level=None, ready=False)
+
+    def test_a_priority_command_sets_the_reply_level_and_needs_no_request_id_or_queue_slot(self):
+        # Title screen: the worker started at normal (no level in its environment); the bridge says 'high' when the game has a world.
+        raised = []
+        pipe = Pipe(); commands = worker.Commands(pipe, 'a' * 32)
+        commands.on_priority = lambda level: worker.apply_priority_command(level, raise_to=lambda: raised.append(level))
+        commands.thread.start()
+        self.assertEqual(worker.reply_priority_class({}), worker.NORMAL_PRIORITY_CLASS)
+        pipe.send({'owner': 'a' * 32, 'op': 'priority', 'level': 'high'})
+        pipe.send({'owner': 'a' * 32, 'op': 'stream', 'id': 1, 'profile': 'johnny-silverhand', 'text': 'One full reply.'})
+        request = commands.queue.get(timeout=2)
+        self.assertEqual(request['id'], 1, 'the priority command did not take the one command slot or an id')
+        self.assertEqual(worker.reply_priority_class({}), worker.HIGH_PRIORITY_CLASS, 'it wins over an environment that says nothing')
+        self.assertEqual(worker.reply_priority_class({worker.PRIORITY_VARIABLE: 'normal'}), worker.HIGH_PRIORITY_CLASS)
+        self.assertEqual(raised, ['high'], 'still starting: raised at once so the imports run at it')
+        pipe.send({'owner': 'a' * 32, 'op': 'priority', 'level': 'normal'})
+        pipe.send({'owner': 'a' * 32, 'op': 'shutdown'})
+        commands.thread.join(2)
+        self.assertFalse(commands.thread.is_alive(), 'the reader ended on shutdown')
+        self.assertIsNone(commands.error, 'the reader is still healthy')
+        self.assertEqual(worker.reply_priority_class({worker.PRIORITY_VARIABLE: 'high'}), worker.NORMAL_PRIORITY_CLASS, 'the last level wins')
+
+    def test_a_priority_command_after_the_start_only_records_the_level(self):
+        raised = []
+        worker.mark_ready()
+        self.assertTrue(worker.apply_priority_command('high', raise_to=lambda: raised.append('high')))
+        self.assertEqual(raised, [], 'the gate raises per request after the start')
+        self.assertEqual(worker.reply_priority_class({}), worker.HIGH_PRIORITY_CLASS)
+
+    def test_an_unknown_or_malformed_level_is_ignored_and_never_kills_the_worker(self):
+        raised = []
+        for bad in ('realtime', 'HIGH', 'below', '', None, 5, ['high'], {'a': 1}):
+            self.assertFalse(worker.apply_priority_command(bad, raise_to=lambda: raised.append(1)), repr(bad))
+        self.assertEqual(raised, []); self.assertIsNone(worker._STATE['level'])
+        pipe = Pipe(); commands = worker.Commands(pipe, 'a' * 32)
+        commands.on_priority = lambda level: worker.apply_priority_command(level, raise_to=lambda: raised.append(level))
+        commands.thread.start()
+        pipe.send({'owner': 'a' * 32, 'op': 'priority', 'level': 'realtime'})
+        pipe.send({'owner': 'a' * 32, 'op': 'priority'})
+        pipe.send({'owner': 'a' * 32, 'op': 'stream', 'id': 1, 'profile': 'johnny-silverhand', 'text': 'Still alive.'})
+        self.assertEqual(commands.queue.get(timeout=2)['id'], 1)
+        self.assertIsNone(commands.error); self.assertEqual(raised, [])
+        pipe.lines.put(''); commands.thread.join(2)
+
+    def test_the_ready_mark_comes_before_the_worker_is_lowered(self):
+        source = (ROOT / 'bridge/pocket-voice-worker.py').read_text(encoding='utf-8')
+        main = source[source.index('def main():'):]
+        self.assertEqual(main.count('mark_ready()'), 1)
+        self.assertLess(main.index('mark_ready()'), main.index('lower_priority()'), 'a command after the lowering must not raise it again')
+        self.assertIn('commands.on_priority = apply_priority_command', main)
 
     def test_the_classes_are_the_windows_values(self):
         self.assertEqual((worker.NORMAL_PRIORITY_CLASS, worker.BELOW_NORMAL_PRIORITY_CLASS), (0x20, 0x4000))

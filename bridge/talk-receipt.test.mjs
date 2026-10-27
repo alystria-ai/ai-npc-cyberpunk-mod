@@ -123,7 +123,7 @@ test('init.lua: the receipt is set only for a request that was written, the tick
 test('bridge: a submitted request is marked received in its status as its turn starts (not awaited, not for a turn prepared ahead) and logged once', () => {
   const start = bridgeSource.indexOf('async function processInput(request, prepared) {');
   const body = bridgeSource.slice(start, bridgeSource.indexOf('\n}\n', start));
-  assert.match(body, /if \(!request\.lookahead && input\) \{\s*void status\('received', '', \{requestId: input\.requestId, provider: input\.provider\}\)\.catch\(\(\) => \{\}\);/);
+  assert.match(body, /if \(!request\.lookahead && input\) \{\s*endTitle\('a turn arrived'\);[^\n]*\n\s*void status\('received', '', \{requestId: input\.requestId, provider: input\.provider\}\)\.catch\(\(\) => \{\}\);/);
   assert.match(body, /console\.error\(`\[Turn\] received \$\{String\(input\.requestId\)\.slice\(0, 80\)\} generation=\$\{input\.generation\}/);
   assert.ok(body.indexOf("status('received'") < body.indexOf('withTurnClock('), 'before the turn runs');
   assert.ok(!/await status\('received'/.test(bridgeSource), 'the turn never waits for the receipt');

@@ -67,6 +67,12 @@ PACK_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_PACK'
 # The player's own Python (bridge/omni-own-python.mjs): set to '1' by the bridge, with the pack's OmniVoice source folder beside it.
 OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON'
 OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE'
+# On a ROCm PyTorch only (docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions (the default turns them off, PyTorch's own path is faster and steadier there).
+ROCM_MIOPEN_VARIABLE = 'CYBERPUNK_CONVAI_ROCM_MIOPEN'
+# The worker's process priority (docs/PROCESS_PRIORITY.md): the bridge names the level here ('high' by default on both routes, 'below' or nothing otherwise) and sets the
+# child it spawned too; the worker sets itself because a venv's python.exe is a launcher, so the child's pid is not the worker's. Never REALTIME.
+PRIORITY_VARIABLE = 'CYBERPUNK_CONVAI_WORKER_PRIORITY'
+PRIORITY_CLASSES = {'high': 0x00000080, 'below': 0x00004000}
 
 
 def usvfs_active(environ=None):
@@ -221,6 +227,91 @@ def cuda_graph_wanted(torch, environ=None):
     environ = os.environ if environ is None else environ
     hip = getattr(getattr(torch, 'version', None), 'hip', None)
     return environ.get('CYBERPUNK_CONVAI_CUDA_GRAPH', '0' if hip else '1') != '0'
+
+
+def rocm_build(torch):
+    """The ROCm/HIP version of this PyTorch, or None for a CUDA or CPU build (NVIDIA behaviour is never touched)."""
+    hip = getattr(getattr(torch, 'version', None), 'hip', None)
+    return hip if isinstance(hip, str) and hip else None
+
+
+def tune_rocm(torch, environ=None):
+    """ROCm only (torch.version.hip set): the two settings an RX 9070 XT player found fast and steady (docs/OMNIVOICE_AMD.md).
+
+    MIOPEN_FIND_MODE=FAST (a value the player already set stays) and PyTorch's own convolutions instead of MIOpen's (torch.backends.cudnn.enabled = False;
+    ROCM_MIOPEN_VARIABLE=1 keeps MIOpen). Both are read when the first convolution runs, so this is called before any model is loaded. Returns the one log
+    line, or None on a CUDA or CPU build.
+    """
+    environ = os.environ if environ is None else environ
+    hip = rocm_build(torch)
+    if not hip:
+        return None
+    if environ.get('MIOPEN_FIND_MODE'):
+        find = f"{environ['MIOPEN_FIND_MODE']} (already set)"
+    else:
+        environ['MIOPEN_FIND_MODE'] = 'FAST'
+        find = 'FAST'
+    if environ.get(ROCM_MIOPEN_VARIABLE) == '1':
+        convolutions = 'MIOpen kept on'
+    else:
+        torch.backends.cudnn.enabled = False
+        convolutions = "PyTorch's own, MIOpen off"
+    return f'[rocm] HIP {hip}: MIOPEN_FIND_MODE={find}; convolutions: {convolutions}'
+
+
+def keep_rocm_convolutions(torch, environ=None):
+    """After the model is loaded: a library that switched MIOpen back on is told off again. Returns a log line when it had to, else None."""
+    environ = os.environ if environ is None else environ
+    if not rocm_build(torch) or environ.get(ROCM_MIOPEN_VARIABLE) == '1' or not torch.backends.cudnn.enabled:
+        return None
+    torch.backends.cudnn.enabled = False
+    return '[rocm] MIOpen convolutions were switched on while the model loaded: off again'
+
+
+def set_process_priority_class(priority_class):
+    """Sets this process's Windows priority class; returns (done, last error). The handle is declared pointer-sized: GetCurrentProcess() returns the pseudo-handle
+    -1 and ctypes' default 32-bit int conversion turns it into 0xFFFFFFFF, which a 64-bit Windows refuses with ERROR_INVALID_HANDLE (6). That was the live
+    `[priority] could not be set to high` of 27 Oct 2026."""
+    import ctypes
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+    kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    kernel32.SetPriorityClass.restype = ctypes.c_int
+    done = bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), priority_class))
+    return done, (0 if done else ctypes.get_last_error())
+
+
+def apply_own_priority(environ=None, apply=None):
+    """The process priority class the bridge asks for (PRIORITY_VARIABLE = 'high' or 'below'; HIGH_PRIORITY_CLASS, never REALTIME). Best effort on Windows;
+    returns a log line, or None when nothing was asked, the value is anything else or this is not Windows. `apply(class)` returns done or (done, error)."""
+    environ = os.environ if environ is None else environ
+    level = environ.get(PRIORITY_VARIABLE)
+    if level not in PRIORITY_CLASSES:
+        return None
+    name = 'high' if level == 'high' else 'below normal'
+    try:
+        if apply is None:
+            if os.name != 'nt':
+                return None
+            result = set_process_priority_class(PRIORITY_CLASSES[level])
+        else:
+            result = apply(PRIORITY_CLASSES[level])
+        done, error = result if isinstance(result, tuple) else (bool(result), 0)
+        if done:
+            return f'[priority] {name}'
+        return f'[priority] could not be set to {name}' + (f' (Windows error {error})' if error else '')
+    except Exception as error:  # noqa: BLE001 - a priority is an optimisation, never a failure.
+        return f'[priority] could not be set to {name} ({str(error)[:80]})'
+
+
+def apply_requested_priority(request, apply=None):
+    """The bridge's one command to raise this worker after the title screen ({'op': 'priority', 'level': 'high'}; docs/PROCESS_PRIORITY.md "Start-up"): a worker started
+    while the game was still loading starts at normal, and takes HIGH here once the game has a world. Only 'high' is accepted (never 'below', never REALTIME). Returns the
+    log line in the style of the start-up `[priority]` note, or None for any other level. The bridge sends it once; a repeat is the caller's to ignore."""
+    if request.get('level') != 'high':
+        return None
+    note = apply_own_priority({PRIORITY_VARIABLE: 'high'}, apply)
+    return f'{note} (after the title screen)' if note else None
 
 
 def resolve_worker_paths(root=ROOT, environ=None):
@@ -514,8 +605,10 @@ class ProfileSession:
     readiness stays bounded and is removed when that actual prompt is evicted;
     no unrequested alias is advertised merely because another key prepared it.
     """
-    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None, evict=None, warm_prompt=None):
+    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None, evict=None, warm_prompt=None, apply_priority=None):
         self.registry, self.render, self.encode, self.send = registry, render, encode, send
+        # apply_priority(class) -> done or (done, error): sets this process's priority class (a test injects one); `priority_raised` keeps the raise to one.
+        self.apply_priority, self.priority_raised = apply_priority, False
         # warm_prompt(file, words) -> milliseconds: builds a reference's conditioning prompt into the prompt cache without rendering anything.
         self.warm_prompt = warm_prompt
         self.model_info, self.memory_info = model_info, memory_info
@@ -640,6 +733,14 @@ class ProfileSession:
             raise ValueError('Invalid voice command')
         if request.get('op') == 'shutdown':
             return False
+        if request.get('op') == 'priority':
+            # Not a request: no id, no frame back (the bridge reads only answers to its requests), no state of the session touched. One line on stderr, once.
+            if not self.priority_raised:
+                note = apply_requested_priority(request, self.apply_priority)
+                if note:
+                    self.priority_raised = True
+                    print(note, file=sys.stderr, flush=True)
+            return True
         request_id, key = request.get('id'), request.get('profile')
         if request.get('op') == 'voices':
             try:
@@ -895,6 +996,9 @@ def run_worker(registry):
     if paths['portable']:
         sys.dont_write_bytecode = True
     os.environ.update(voice_environment(registry))
+    note = apply_own_priority()
+    if note:
+        print(note, file=sys.stderr, flush=True)
     send({'op': 'state', 'state': 'loading'})
     sys.path.insert(0, str(paths['adapterDirectory']))
     use_packaged_omnivoice(paths)
@@ -909,6 +1013,9 @@ def run_worker(registry):
     if not torch.cuda.is_available():
         print('[no-cuda] OmniVoice requires a graphics card its PyTorch can use: CUDA on an NVIDIA card, or ROCm through omni-python.txt (docs/OMNIVOICE_AMD.md)', file=sys.stderr, flush=True)
         raise SystemExit(NO_CUDA_EXIT_CODE)
+    note = tune_rocm(torch)
+    if note:
+        print(note, file=sys.stderr, flush=True)
     # Progress marks. The bridge's startup limit restarts at every frame it receives, so a start that is slow
     # (a throttled CPU while the game loads) is told apart from one that is stuck. Same frame, no protocol change.
     send({'op': 'state', 'state': 'loading'})
@@ -923,6 +1030,9 @@ def run_worker(registry):
         tts_backend._PROMPT_CACHE_MAX = registry['maxCachedProfiles']
         original_cache_key = install_cache_identity(tts_backend, registry)
         backend._ensure_loaded()
+        note = keep_rocm_convolutions(torch)
+        if note:
+            print(note, file=sys.stderr, flush=True)
         if not (backend.execution_device or '').startswith('cuda'):
             raise RuntimeError('OmniVoice did not load on CUDA')
         if backend.dtype != 'torch.float16':

@@ -546,18 +546,23 @@ export const MIN_SERVER_CONTEXT = 2048;
  *                            to the budget's own (hard) limit as before, so a soft target never makes a request fail. A target `budget().speed` chose
  *                            (a slow machine) that the prompt cannot reach even with everything optional cut is raised to the smallest larger step that holds
  *                            the cut prompt (PrefillMeter.soft `reach`) before the hard limit is used: the next step up reads a few hundred tokens more, the hard limit thousands
+ *   budget().learnable       true: a provider that states the limit it refused the prompt for (a Groq or OpenAI-style size refusal, bridge/prompt-fit.mjs) and whose limit is not known
+ *                            before the first refusal (contextTokens is then a huge number): like `server`, a refusal teaches the limit and `learn` is called with it, but a prompt that
+ *                            still does not fit after that is the provider's plain refusal, not a model server's small context
+ *   onLearned(info, options)  called once after the request that followed a learned refusal: {limit, sent, trimmed, retried: 'ok' | 'failed'} (the [PromptFit] log line)
  *   onMismatch(info, options)  called when the server counted at least BUDGET.mismatchLog times what the budget did for the prompt that was sent: {raw, real, gap, exact, bias}
  * Only requests built by `buildMessages` are fitted (summaries, fact extraction and prewarm are small and pass through). A server that
  * still refuses the prompt (an estimate that was too low) says how many tokens it counted: that count is learned, the prompt is cut
  * to it, and the request is sent once more.
  */
-export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, learn} = {}) {
+export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, learn, onLearned} = {}) {
   return async function fittedChat(options) {
     const source = options?.messages?.[PROMPT_SOURCE];
     const base = source ? await budget?.(options) : null;
     if (!base) return chat(options);
     const args = shape ? shape(source, options, base) : source;
     let current = base;
+    let learnedFrom = null;   // {limit} between a refusal that was learned and the answer to the request sent again
     // `speed` (a PrefillMeter): on a machine that has been seen to read prompts slowly, a smaller target than the context is tried first.
     // An explicit `soft` of the budget wins.
     const floor = base.soft || !base.speed?.slow ? 0 : headTokens(args, base.meter?.charsPerToken);
@@ -581,8 +586,15 @@ export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, 
       if (!fit?.fits) { fit = await fitMessages({args, budget: hard, shrinkPersona: options?.lastResort === true}); if (soft) fit.target = 'hard'; }
       if (fit.trimmed.length || !fit.fits) { try { onFit?.(fit, options); } catch { /* a log line never fails a request */ } }
       if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider, {server: base.server === true});
+      const noteLearned = retried => {
+        if (!learnedFrom) return;
+        const info = {limit: learnedFrom.limit, sent: fit.tokens, trimmed: fit.trimmed, retried};
+        learnedFrom = null;
+        try { onLearned?.(info, options); } catch { /* a log line never fails a request */ }
+      };
       try {
         const result = await chat({...options, messages: fit.messages});
+        noteLearned('ok');
         base.meter?.observe(fit.messages, result?.usage?.prompt_tokens, {raw: fit.raw, exact: fit.exact});
         const gap = base.meter?.lastGap;
         if (gap >= BUDGET.mismatchLog) { try { onMismatch?.({raw: fit.raw, real: Number(result.usage.prompt_tokens), gap, exact: fit.exact, bias: base.meter.bias}, options); } catch { /* a log line never fails a request */ } }
@@ -591,9 +603,11 @@ export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, 
       } catch (error) {
         // A request that was stuck reading the prompt says how far it got: the next turn is fitted to what this machine reads.
         try { base.speed?.observeFailure(error?.trace); } catch { /* a measurement never fails a request */ }
-        const refused = error?.overflow;
-        if (!refused || options?.signal?.aborted) throw error;
+        // options.singleFit: the request is already the one sent again after a refusal that was learned elsewhere (bridge/prompt-fit.mjs): it is not cut and sent a third time.
+        const refused = options?.singleFit === true ? null : error?.overflow;
+        if (!refused || options?.signal?.aborted) { if (!options?.signal?.aborted) noteLearned('failed'); throw error; }
         if (attempt >= 1) {
+          noteLearned('failed');
           if (base.server !== true) throw error;
           // A model server the player runs that still refuses the prompt after it was fitted again: its context is too small for this character.
           const counted = Number(refused.promptTokens) > 0 ? Number(refused.promptTokens) : fit.tokens;
@@ -608,7 +622,8 @@ export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, 
         const said = Number(refused.contextTokens) > 0;
         let context = said ? Math.min(base.contextTokens, Number(refused.contextTokens)) : base.contextTokens;
         if (!said && base.server === true) context = Math.max(MIN_SERVER_CONTEXT, Math.floor(base.contextTokens / 2));
-        if (base.server === true && context < base.contextTokens) { try { learn?.(context, options); } catch { /* a note of the context never fails a request */ } }
+        if ((base.server === true || base.learnable === true) && context < base.contextTokens) { try { learn?.(context, options); } catch { /* a note of the context never fails a request */ } }
+        learnedFrom = {limit: context};
         current = {...base, contextTokens: context - missed - BUDGET.minMargin};
       }
     }

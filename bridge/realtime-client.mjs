@@ -45,6 +45,11 @@ const HEARD_WITHOUT_FINAL_MS = 4000;
 // longer transcripts keep the 60 s rule.
 const TINY_TRANSCRIPT_CHARACTERS = 3;
 const NO_SPEECH_ERROR = 'No speech was heard';
+// A Convai reply whose whole text has arrived (the SDK's end of the LLM message) and for which not one audio packet has arrived this long after that moment is shown as text and the
+// turn ends cleanly, instead of waiting out the 60 s ceiling and failing (error signature 915fca1c3ded7234: the written reply was complete from the first seconds, the voice never
+// came). Counted from the text's end, not from the send. Audio that has started (even if it is slow to finish) keeps the 60 s rule. Only Convai's own voice: a local voice never
+// reaches this code, and no cloud voice stands in.
+const TEXT_WITHOUT_AUDIO_MS = 5000;
 const COLLECT_TIMEOUT_ERROR = 'Convai did not finish the reply';
 const USER_TRANSCRIPT_LIMIT = 1200;
 // Convai's source PCM is 24 kHz mono. The output device is opened on standby at
@@ -205,6 +210,8 @@ async function shutdown(reason, keepRelay) {
       void previous.turn.live.player.stop(reason).catch(() => {});
       previousContinuous = continuousView(previous.turn);
       previousAnalysis = {token: previous.turn.live.token, analysis: previous.turn.live.analysis};
+      // A turn shown as text (the voice never started) has no speech state to hand over: the host's last look must not read this retirement as a renderer failure.
+      if (previous.turn.textFallback) previousContinuous = previousAnalysis = null;
     }
   }
   if (previous.turn) previousTurnDiagnostics = turnDiagnostics(previous.turn);
@@ -433,6 +440,7 @@ async function connect(config) {
       if (turn.dataAudio.accept(message, {kind, atMs: performance.now() - turn.started})) {
         if (turn.dataAudio.owner) companionActions.observeOwner(turn.dataAudio.owner);
         observed.acceptedAudioEvents++;
+        if (turn.dataAudio.packetCount > 0) turn.audioSeenAt ??= performance.now();
         queueContinuous(turn);
       }
     }
@@ -452,6 +460,16 @@ async function connect(config) {
       const heard = microphoneTranscript(fresh);
       if (heard !== turn.userText) turn.userTextAtMs = performance.now(); // when the final words last changed: the tiny-transcript wait counts from here
       turn.userText = heard;
+      // An ordinary NPC's reaction the game decides (docs/NPC_THREATS_COMMANDS.md "Who decides"): the moment the recogniser has finalised V's words,
+      // the game's plan reads them; a reading it answers is handed over at once (the game still starts it after the reply), and the model, told the
+      // plan in the context, has no action of it left.
+      const final = fresh.some(message => message.type === 'user-transcription' && message.isStreaming === false);
+      const decided = final && heard && verifiedProvider?.connection === connection ? companionActions.decide(heard) : null;
+      if (decided && typeof window.__convaiCompanionAction === 'function') {
+        observed.reactionDecided = decided.reaction;
+        void Promise.resolve().then(() => currentConnection() && verifiedProvider?.connection === connection
+          ? window.__convaiCompanionAction(decided) : false).catch(() => {});
+      }
     }
     const llm = fresh.filter(m => ['bot-llm-text', 'convai'].includes(m.type) && m.content?.trim());
     const rows = llm.length ? llm : fresh.filter(m => m.type === 'bot-output' && m.content?.trim());
@@ -465,6 +483,9 @@ async function connect(config) {
     // The SDK marks the LLM message complete on bot-llm-stopped, separately
     // from TTS. Never infer completion from a pause between text tokens.
     turn.textComplete = llm.length > 0 && llm.every(m => m.isStreaming === false);
+    // When the text became complete (the text fallback of collect counts from here), exact to the event.
+    if (!turn.textComplete) turn.textDoneAt = undefined;
+    else turn.textDoneAt ??= performance.now();
   });
   connection.on('userTranscriptionChange', text => {
     if (currentConnection() && turn?.microphone) turn.interim = typeof text === 'string' ? text : '';
@@ -696,8 +717,14 @@ async function collect(current) {
       }
       // Source bytes can arrive faster than their playback duration. Wait for
       // exact PCM + owned clean terminal + final text, never a browser clock.
-      return current.text && current.textComplete && !client.state.isThinking
-        && (!current.ttsEnabled || current.audioLost !== undefined || current.dataAudio.ready);
+      const textDone = current.text && current.textComplete && !client.state.isThinking;
+      // The one clock of the text fallback is this poll (waitFor's own interval, cleared on every exit), so nothing new runs per frame or per turn.
+      if (textDone && current.ttsEnabled && current.dataAudio && current.audioLost === undefined && current.dataAudio.packetCount === 0
+          && current.dataAudio.byteCount === 0 && performance.now() - (current.textDoneAt ?? started) > TEXT_WITHOUT_AUDIO_MS) {
+        current.audioLost = 'Convai audio did not arrive within ' + TEXT_WITHOUT_AUDIO_MS / 1000 + ' s of the finished text';
+        current.textFallback = true;
+      }
+      return textDone && (!current.ttsEnabled || current.audioLost !== undefined || current.dataAudio.ready);
     }, 60000, COLLECT_TIMEOUT_ERROR);
     const collectedAt = performance.now();
     if (current.epoch !== epoch || turn !== current || current.error) throw Error(current.error || 'Conversation cancelled');
@@ -713,7 +740,8 @@ async function collect(current) {
       retiredAudioOwners.push(owner);
       if (retiredAudioOwners.length > 32) retiredAudioOwners.shift();
     }
-    if (current.live) {
+    if (current.live && current.textFallback) retireStandby(current.live, 'Convai voice did not arrive');
+    else if (current.live) {
       await current.live.player.end(current.dataAudio.byteCount / (collected.channels * 2));
       await waitFor(() => {
         if (current.error || turn !== current || current.epoch !== epoch) throw Error(current.error || 'Conversation cancelled');
@@ -734,17 +762,25 @@ async function collect(current) {
       ...(current.emotion.snapshot() ? {expressionSignal: current.emotion.snapshot()} : {}),
       ...(lateEmotion?.turn === current ? {lateEmotionToken: lateEmotion.token} : {}),
       ...(current.userText ? {userText: current.userText} : {}),
-      ...(current.live ? {continuous: true, liveSpeechToken: current.live.token} : {audio: collected?.audio}),
+      ...(current.live && !current.textFallback ? {continuous: true, liveSpeechToken: current.live.token} : {audio: collected?.audio}),
       timing: {...current.timing, ...collected?.timing, collectionMs: collectedAt - started,
         audioEncodeMs: encodedAt - collectedAt,
         ...(collected ? {audioTransport: 'convai-data', audioPacketCount: collected.packetCount} : {})},
-      streamed: !!current.live, faces: collected?.faces ?? [], facesFormat: 'arkit61', facesTimebase: 'audio-seconds', captions: []};
+      streamed: !!current.live && !current.textFallback, faces: collected?.faces ?? [], facesFormat: 'arkit61', facesTimebase: 'audio-seconds', captions: []};
     // The audio of an optional-audio turn could not be used: the written reply stands. The connection is retired (what is left of this response on the wire must not reach another turn).
-    if (current.audioLost !== undefined) {
+    if (current.textFallback) {
+      // The voice never started: the written reply stands, the connection is retired (a late packet of this response must not reach another turn) and the turn ends as a success.
+      result.audioError = "Convai's voice did not arrive; showing the written reply.";
+      result.timing.convaiVoiceTimedOut = true;
+      result.timing.textWithoutAudioMs = Math.round(collectedAt - (current.textDoneAt ?? collectedAt));
+      await close('Convai voice did not arrive').catch(() => {});
+    }
+    else if (current.audioLost !== undefined) {
       result.audioError = "Convai's speech could not be used; showing the written reply.";
       result.timing.audioFormatFault = true;
       await close('Convai audio could not be used: ' + current.audioLost).catch(() => {});
     }
+    else if (current.textDoneAt !== undefined && current.audioSeenAt !== undefined) result.timing.textToFirstAudioMs = Math.round(Math.max(0, current.audioSeenAt - current.textDoneAt));
     return result;
   } catch (error) {
     const failure = rendererError(current, error);
@@ -956,7 +992,9 @@ async function updateContext(config, allowActions = false, seen = false) {
     text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
       + 'Use only explicitly supplied current-save facts for quest progress and relationships. '
       + 'Any relationship state not explicitly supplied is unknown; do not infer it from character presence or past sessions. '
-      + (config.context || 'This is a private conversation with V.') + (seen ? VISION_NOTE : '')};
+      + (config.context || 'This is a private conversation with V.') + (seen ? VISION_NOTE : '')
+      // Why the game offers no ride, on a turn where V may be asking for one (bridge/companion-actions.mjs driveLimitNote).
+      + (typeof config.driveLimit === 'string' ? config.driveLimit : '')};
   const baseContext = context.text;
   const manual = allowActions && !config.reaction && !config.freshSession && typeof config.endUserId === 'string';
   const privateManual = manual && /^private(?::|$)/.test(config.scope || '');

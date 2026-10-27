@@ -157,6 +157,10 @@ companion's text-to-speech request goes out (the worker does one job at a time).
 live marks is the bridge's event loop busy with the turn's other start-up work (knowledge, admission) on a slow CPU; it was not
 touched.
 
+## When V's helper voice is ready (27 Oct 2026)
+
+V's Pocket helper (the Pocket worker V uses when the companions are on OmniVoice, a cloud voice or the Convai voice) is a separate Python process that imports torch: about 7 s of CPU on a quiet PC with its bytecode cache warm and 13 s without, 30 to 80 s of wall time while the game is loading a save. It does not load during the title screen (a stalled frame there loses the Space press). It starts when the game's lease says a save is loading (`loading`, about 15 s before the world), at normal priority, and rises to High with the rest when the world exists (docs/PROCESS_PRIORITY.md, "Start-up"). Its Python keeps compiled bytecode in `<data folder>/python-cache` (`-X pycache_prefix`, the Runtime itself is never written): the Runtime ships no `.pyc` files, so before this every start compiled about 2000 torch source files again; the first start writes about 53 MB and takes about 6 s longer, every later one is about 6 s shorter. A typed line that finds the helper in its last steps (`loading-student`) waits for it, 5 s at most, and is dropped like any V line if it is not audible by the time the companion's reply is; a line that finds it earlier in the load is skipped as before (`V's line skipped: the Pocket voice for V is not loaded yet`; `this session: ... not started (voice-not-loaded=N)`), with no notice in the game (a player-facing notice would need a sentence in 14 languages). The log says when: `[Timeline] ... a save is loading`, `[VHelper] loading starts at <UTC>`, `[VHelper] V's helper voice is ready at <UTC>, N s after loading started`.
+
 ## V's subtitle (2026-10-15)
 
 What V says is also on screen, in the same cinematic subtitles the companions' replies use. When you send a typed line, `mod/init.lua`
@@ -419,6 +423,10 @@ voice, nor beside the Pocket voice (V then uses the chosen worker), nor while vo
   The helper is due when OmniVoice is the committed, loaded voice and V is wanted; it is released the moment that stops being true.
 - It uses Pocket's configuration, which already holds V's two voices, and the prepared-voice store (a saved setup makes V's voice
   nearly free after the first time). The composer's warm-up prepares V's voice on it, not as a hidden OmniVoice render.
+- The first load waits for the game's first world (the ready heartbeat in `world-session.json`), or ten minutes of service uptime (`startHold`,
+  `TITLE_HOLD_MAX_MS` in `bridge/convai-bridge.mjs`). The helper is a Python process that imports torch (about 25 s of CPU, thousands of files, at normal
+  priority, on the drive the game loads from): it no longer runs while the title screen waits for its key press. A helper that exists is never held again.
+  Its start line carries the time (`[VHelper] loading starts at <UTC>`) to line up with the `Start-up:` frame-gap lines in probe.log.
 - Pocket's work folder has one lock, so the helper is released, with its exit confirmed, before any other Pocket worker starts (a
   switch to the Pocket voice, or a Settings preview of it), and it never starts while another Pocket worker is stopping.
 - A V line that finds the helper still loading (the first typed lines after the game starts, or just after V was switched on) is

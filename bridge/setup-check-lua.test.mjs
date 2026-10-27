@@ -256,6 +256,47 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   assert(check.summary()[1].state == 'problem' and check.summary()[1].code == 'stopped' and #check.problems() == 0 and check.serviceLine() == nil)
 `));
 
+// 27 Oct triage: two Discord players on Local AI had "Service not running" on the model row and nothing else. serviceWhy gives that row the reason.
+test('serviceWhy: a service that is down says why on the Local AI model row, and a service that is up, starting or stopped on purpose says nothing', () => run(String.raw`
+  installFiles()
+  -- no trace of this session: the Runtime's plugin did not load, then the plugin is there and still nothing reported
+  local why = check.serviceWhy()
+  assert(why and why.label == 'Service not running (Runtime not loaded)', why and why.label)
+  assert(why.description:find('Extract the Runtime zip straight into the Cyberpunk 2077 folder', 1, true) and why.description:find('newest log in red4ext/logs', 1, true))
+  env.native = true; applyEnv()
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Did not start)' and why.description:find('launcher.log in red4ext/plugins/AiNpcCyberpunkMod', 1, true), why.label)
+  assert(why.key ~= check.serviceWhy().label, 'a key the page compares')
+  env.native = false; applyEnv()
+  -- the Runtime incomplete: its own sentence (the same as the Help page's)
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'install-incomplete', updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Runtime incomplete)' and why.description:find('The Runtime is incomplete (install-incomplete)', 1, true), why.description)
+  -- Windows refused the start: the number the launcher wrote is in the sentence
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 1260, updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Could not start)' and why.description:find('(error 1260)', 1, true) and why.description:find('node.exe', 1, true), why.description)
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 'x; drop', updated = ms()})
+  assert(check.serviceWhy().description:find('(error ?)', 1, true), 'an error that is not a number is not echoed')
+  -- the service started and never reported / cannot see the mod folder / crashed
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'service-silent', updated = ms()})
+  assert(check.serviceWhy().label == 'Service not running (Did not start)' and check.serviceWhy().description:find('security program', 1, true))
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'game-folder-not-visible', updated = ms()})
+  assert(check.serviceWhy().description:find('virtual folders', 1, true))
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'bridge-crashed', updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Service not running (Could not start)' and why.description:find('(bridge-crashed)', 1, true))
+  -- no browser: the existing words
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'browser-missing', updated = ms()})
+  why = check.serviceWhy()
+  assert(why.label == 'Needs a browser' and why.description:find('Chromium browser', 1, true))
+  -- starting, running: nothing to add
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'starting', updated = ms()})
+  assert(check.serviceWhy() == nil)
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'ready', updated = ms()})
+  assert(check.serviceWhy() == nil)
+`));
+
 test('the service answer is shown only from this game session and every check becomes one line with its fix', () => run(String.raw`
   installFiles(); serviceRunning()
   check.run()
@@ -292,10 +333,13 @@ test('the service answer is shown only from this game session and every check be
   assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   assert(table.concat(check.problems(), ',') == 'versions' and check.lines()[1].id == 'versions', 'the versions line sits first, next to the service')
-  -- the same version, built for different games: both games are named, and the page sends the player to the Runtime of the Scripts' game
+  -- the same version, built for different games: the 'Build for your game' row names both games and the Runtime to get (every combination: bridge/setup-check-build.test.mjs)
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.1', game = '2.5'}); env.gameVersion = '2.5'; applyEnv()
   answer({versions = {id = 'versions', state = 'problem', code = 'game-mismatch', scripts = '0.3.1', runtime = '0.3.1', scriptsGame = '2.5', runtimeGame = '2.31'}}); check.run()
-  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'The Scripts are the build for game 2.5 but the Runtime is the build for game 2.31. Install the Runtime made for game 2.5 from the mod’s Hugging Face page, then restart the game.', lineOf('versions').description)
-  assert(table.concat(check.problems(), ',') == 'versions')
+  assert(lineOf('versions') == nil, 'the build row replaces the versions row')
+  assert(lineOf('build').state == 'problem' and lineOf('build').label == 'Build for your game' and lineOf('build').description:find('the Runtime is the one for game 2.31', 1, true), tostring(lineOf('build') and lineOf('build').description))
+  assert(table.concat(check.problems(), ',') == 'build', 'a pure game mismatch is one problem, not also a versions problem')
+  installFiles(); env.gameVersion = '2.31'; applyEnv(); check.run()
   -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
   local gap = lineOf('versions').description
@@ -370,13 +414,20 @@ test('the browser, Local AI and the internet: every state has its own line and f
   assert(#check.problems() == 0, 'it has no first-load notice: the Help page tells it')
   -- Windows refused to load a file of the voice: restarting cannot help, so the line names what blocked it and offers another voice.
   answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'pocket', cause = 'blocked'}}); check.run()
-  assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('Windows blocked a file', 1, true) and lineOf('voice').description:find('Smart App Control', 1, true)
-    and lineOf('voice').description:find('another voice', 1, true) and not lineOf('voice').description:find('Restart', 1, true), tostring(lineOf('voice').description))
+  assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('blocks the files of the voice', 1, true) and lineOf('voice').description:find('Smart App Control', 1, true)
+    and lineOf('voice').description:find('Turn Smart App Control off, or choose a cloud voice (Voxtral)', 1, true) and not lineOf('voice').description:find('OmniVoice', 1, true)
+    and not lineOf('voice').description:find('Restart', 1, true), tostring(lineOf('voice').description))
   assert(#check.problems() == 0)
   -- Windows ran out of memory it can promise (error 1455): restarting cannot help, a larger paging file or fewer programs can; the same sentence as the in-game notice.
   answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'pocket', cause = 'virtual-memory'}}); check.run()
   assert(lineOf('voice').state == 'problem' and lineOf('voice').description == 'Windows ran out of memory for the voice. A larger paging file or closing other apps helps.', tostring(lineOf('voice').description))
   assert(#check.problems() == 0)
+  -- Local AI whose model server Windows would not run: the same advice, for a cloud conversation provider; a plain start failure keeps its own line.
+  answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true, cause = 'blocked'}}); check.run()
+  assert(lineOf('local-ai').state == 'problem' and lineOf('local-ai').description:find('blocks the files of the model server', 1, true)
+    and lineOf('local-ai').description:find('Turn Smart App Control off, or choose a cloud conversation provider', 1, true) and not lineOf('local-ai').description:find('OmniVoice', 1, true), tostring(lineOf('local-ai').description))
+  answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true}}); check.run()
+  assert(lineOf('local-ai').description:find('Local AI could not start', 1, true), 'without the cause the generic line stays')
   answer({voice = {id = 'voice', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('voice') == nil)
   local states = {
@@ -667,6 +718,9 @@ test('without this mod’s scripts the notice waits for gameplay on its own chec
   advance(1); env.menu = true
   assert(check.tick(false, true) == nil, 'held while a menu is open')
   advance(1); env.paused, env.menu = false, false
+  assert(check.tick(false, true) == nil, 'gameplay is back: the notice waits until it has been on screen for a few seconds')
+  advance(7); assert(check.tick(false, true) == nil)
+  advance(1)
   assert(check.tick(false, true) == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.')
   -- the console and probe.log say it once, in English, with the same advice and the other causes
   assert(#console == 1 and console[1]:find("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem.", 1, true), console[1])
@@ -707,14 +761,14 @@ test('reports: one plain line per check for the short report, and at most eight 
   check.run()
   local lines = table.concat(check.reportLines(), '\n')
   for _, expected in ipairs({'service: ok running', 'files: ok found 0.2.1', 'game: ok tested 2.31', 'cet: ok found 1.37.1', 'red4ext: ok loaded',
-    'redscript: ok loaded', 'codeware: problem missing', 'scripts compiled with: no Codeware', 'nsui: ok found 1.96',
+    'redscript: ok loaded', 'build: ok match (scripts=2.31 runtime=? game=2.31)', 'codeware: problem missing', 'scripts compiled with: no Codeware', 'nsui: ok found 1.96',
     'service versions: ok match scripts=0.2.1 runtime=0.2.1', 'service packs: problem nested found=Local AI lite nested=wrapped',
     'service browser: ok found name=Microsoft Edge', 'service internet: problem blocked host=api.mistral.ai service=mistral',
     'service gpu: ok found name=NVIDIA GeForce RTX 4070 memoryMiB=12282', 'service mod-manager: note vortex managers=vortex'}) do
     assert(lines:find(expected, 1, true), 'missing: ' .. expected .. '\n' .. lines)
   end
   local summary = check.summary()
-  assert(#summary == 8 and summary[1].id == 'service' and summary[8].id == 'nsui')
+  assert(#summary == 9 and summary[1].id == 'service' and summary[9].id == 'nsui')
   for _, row in ipairs(summary) do
     assert(type(row.id) == 'string' and type(row.state) == 'string' and type(row.code) == 'string')
     for key in pairs(row) do assert(key == 'id' or key == 'state' or key == 'code' or key == 'version', 'only short tokens: ' .. key) end

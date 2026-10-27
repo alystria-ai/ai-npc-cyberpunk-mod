@@ -28,6 +28,7 @@ import {matureLayer, guardLayer, matureClosing, matureWorld} from './mature-cont
 import {applyOverride} from './character-overrides.mjs';
 import {BASE_PROFILE, renderRules, renderExamples, renderIntro, renderClosing, limitsWith} from './prompt-profiles.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
+import {headLine, tailLine, staleTest, FRESH_MAX_CHARS} from './fresh-facts.mjs';
 
 export const LIMITS = Object.freeze({
   persona: 16000,        // characters of the persona sections (the longest named character is about 11,400)
@@ -165,6 +166,27 @@ export function worldBlocksInCacheOrder(blocks) {
   return at < 0 ? [...rest, ...changing] : [...rest.slice(0, at), ...changing, ...rest.slice(at)];
 }
 
+/**
+ * The fresh facts of a turn's context blocks (bridge/fresh-facts.mjs), as fields of `contextParts`: `fresh` and `freshDrop` only when there are facts; `freshCodes` (names only) and
+ * `freshAsked` for the bridge log whenever the turn has the block. {} for a context with no fresh block.
+ */
+export const freshParts = blocks => {
+  const block = (blocks ?? []).find(item => item?.tier === 'fresh');
+  if (!block) return {};
+  return {freshCodes: block.codes || '', freshAsked: block.asked === true, ...(block.facts ? {fresh: block.facts, freshDrop: block.drop || ''} : {})};
+};
+
+/** What the last prompt built with `buildMessages` did with the fresh facts, for the bridge log (names and counts only): see freshNote. */
+export const FRESH_NOTE = Symbol.for('cyberpunk-convai.fresh-note');
+/** `[FreshFacts]` line text for messages built by buildMessages: facts=<codes|none> placed=<where|none> asked=<yes|no> dropped=history:<n>,memory:<n>; '' for a message list with no note. */
+export function freshNote(messages, {quiet = false} = {}) {
+  const note = messages?.[FRESH_NOTE];
+  if (!note) return '';
+  // quiet: nothing for a prompt with no fresh facts, no question about oneself and nothing left out.
+  if (quiet && !note.codes && !note.placed.length && !note.asked && !note.history && !note.memory) return '';
+  return `facts=${note.codes || (note.placed.length ? 'unnamed' : 'none')} placed=${note.placed.join(',') || 'none'} asked=${note.asked ? 'yes' : 'no'} dropped=history:${note.history},memory:${note.memory}`;
+}
+
 /** Blocks of context text as one string: empty blocks and exact repeats (a block two sources both contribute) are dropped. */
 export function joinBlocks(blocks) {
   const seen = new Set(), out = [];
@@ -237,7 +259,9 @@ export function systemPrompt({persona, memory = '', limits = LIMITS, layers = nu
     section(profile.labels.world, world),
     memory ? section(profile.labels.remember, clip(memory, limits.summary)) : '',
     apart ? section(profile.labels.knowledge, lean(capContext(apart.knowledge, Math.floor(limits.world / 2)))) : '',
-    section(profile.labels.rightNow, clip(layers.now, limits.now))]
+    section(profile.labels.rightNow, clip(layers.now, limits.now)),
+    // What changed this turn or what V asks about, once more at the very end (bridge/fresh-facts.mjs): after the right-now block, which changes anyway, so a prompt cache keeps all before it.
+    layers.fresh ? headLine(clip(layers.fresh, FRESH_MAX_CHARS)) : '']
     .filter(Boolean).join('\n\n');
 }
 
@@ -282,10 +306,14 @@ const withoutPlace = here => String(here).replace(/;\s+V is in [^.]*(?=\.$)/, ''
 export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS, mature = null, guard = false, profile = BASE_PROFILE}) {
   const v2 = !!contextParts && typeof contextParts === 'object';
   const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature, guard, profile,
-    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now, worldBlocks: contextParts.worldBlocks} : null})}];
+    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now, worldBlocks: contextParts.worldBlocks, fresh: reaction ? '' : contextParts.fresh} : null})}];
+  // The earlier replies that say what is no longer true (V's clothes just changed) are not sent: a 4B model repeats its own last answer over any line above it (bridge/fresh-facts.mjs).
+  const stale = v2 && !reaction ? staleTest(contextParts.freshDrop) : null;
+  let droppedHistory = 0, droppedMemory = 0;
   for (const turn of history.slice(-limitsWith(profile, limits).turns)) {
     const v = clip(turn.v, limits.userLine), r = clip(turn.r, limits.replyLine);
     if (!v || !r) continue;
+    if (stale?.(r)) { droppedHistory++; continue; }
     messages.push({role: 'user', content: v}, {role: 'assistant', content: r});
   }
   const says = `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}`;
@@ -304,7 +332,10 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   let used = 0;
   for (const item of remembered) {
     const line = clip(item?.text, 240);
-    if (!line || used + line.length > limits.remembered) continue;
+    if (!line) continue;
+    // What the character remembers of V that the game just read as the opposite (a note made from its own earlier wrong answer) is not sent either.
+    if (stale?.(line)) { droppedMemory++; continue; }
+    if (used + line.length > limits.remembered) continue;
     used += line.length; facts.push(`- ${line}`);
   }
   const volatile = capContext(contextParts.volatile, limits.volatile);
@@ -313,6 +344,8 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   const here = reaction ? '' : withoutPlace(HERE.exec(String(contextParts.now ?? ''))?.[0] ?? '');
   // The profile may put the turn's notes after V's line (before the closing) instead of before it.
   const notesAfter = profile.layout.volatile === 'after' && !reaction && volatile;
+  // The fresh facts again, last before V's words (or, in a profile that puts the notes after V's line, last before the closing).
+  const fresh = reaction || !contextParts.fresh ? '' : tailLine(clip(contextParts.fresh, FRESH_MAX_CHARS));
   messages.push({role: 'user', content: [
     here && profile.layout.youNow ? `[${profile.labels.youNow}: ${here} ${here.startsWith('You are messaging')
       ? 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.'
@@ -323,7 +356,10 @@ export function buildMessages({persona, memory, history = [], context, contextPa
           : 'That is all you are doing; never claim to be anywhere else.'}]` : '',
     volatile && !notesAfter ? `[${profile.labels.thisTurn}]\n${volatile}` : '',
     facts.length ? `[${profile.labels.things}]\n${facts.join('\n')}` : '',
-    ...(notesAfter ? [says, `[${profile.labels.thisTurn}]\n${volatile}`, finish] : [message])].filter(Boolean).join('\n\n')});
+    ...(notesAfter ? [says, `[${profile.labels.thisTurn}]\n${volatile}`, fresh, finish] : [fresh, message])].filter(Boolean).join('\n\n')});
+  // For the bridge log: where the fresh facts went (names only) and what was left out because the game read the opposite.
+  Object.defineProperty(messages, FRESH_NOTE, {enumerable: false, value: {codes: reaction ? '' : contextParts.freshCodes || '', asked: !reaction && contextParts.freshAsked === true,
+    placed: fresh ? ['system-end', notesAfter ? 'before-closing' : 'before-v'] : [], history: droppedHistory, memory: droppedMemory}});
   return withPromptSource(messages, arguments[0]);
 }
 

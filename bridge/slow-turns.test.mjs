@@ -27,8 +27,8 @@ function watchWith(extra = {}) {
 }
 
 test('the defaults are the agreed ones, as constants', () => {
-  assert.equal(SLOW_TURNS.slowMs, 15_000);
-  assert.equal(SLOW_TURNS.extremeMs, 45_000);
+  assert.equal(SLOW_TURNS.slowMs, 10_000);
+  assert.equal(SLOW_TURNS.extremeMs, 30_000);
   assert.equal(SLOW_TURNS.windowTurns, 5);
   assert.equal(SLOW_TURNS.slowInWindow, 3);
   assert.throws(() => { SLOW_TURNS.slowMs = 1; });
@@ -53,16 +53,16 @@ test('three slow turns of the last five send one report; two do not; a fast turn
   assert.equal(data.voice, 'pocket');
   assert.equal(data.freeVideoMemoryMiB, 2048);
   assert.deepEqual(data.background, {warmConnections: 2, connectingConnections: 0}, 'only well-formed counts');
-  assert.deepEqual(data.thresholds, {windowTurns: 5, slowInWindow: 3, slowMs: 15_000, extremeMs: 45_000});
+  assert.deepEqual(data.thresholds, {windowTurns: 5, slowInWindow: 3, slowMs: 10_000, extremeMs: 30_000});
   for (let index = 0; index < 5; index++) watch.observe(turn(40_000));
   assert.equal(sent.length, 1, 'one report per run, however slow it gets');
 });
 
-test('one turn over 45 s sends a report at once; one at 30 s does not', () => {
+test('one turn over 30 s sends a report at once; one at 25 s does not', () => {
   const {watch, sent} = watchWith();
-  watch.observe(turn(30_000));
+  watch.observe(turn(25_000));
   assert.equal(sent.length, 0);
-  watch.observe(turn(46_000));
+  watch.observe(turn(31_000));
   assert.equal(sent.length, 1);
   assert.equal(sent[0].reason, 'one-turn-over-extreme');
 });
@@ -238,7 +238,7 @@ test('the payload holds the timings and the usual log tail, no text, and goes to
 
 test('the bridge judges every turn from its clock, annotates failed and paused turns, and nothing here runs per frame or per chunk', async () => {
   const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /const ended = slowTurns\.track\(clock\);\s*try \{ return await withClock\(clock, \(\) => run\(clock\)\); \} finally \{ ended\(\); \}/);
+  assert.match(bridge, /const ended = slowTurns\.track\(clock\),\s*silenceEnded = voiceSilence\.track\(clock\);\s*try \{ return await withClock\(clock, \(\) => run\(clock\)\); \} finally \{ ended\(\); silenceEnded\(\); \}/);
   assert.match(bridge, /onPaused: \(\) => turnClocks\.get\(input\.requestId\)\?\.annotate\(\{gamePaused: true\}\)/);
   assert.match(bridge, /turnClocks\.get\(input\?\.requestId\)\?\.annotate\(\{failed: true\}\)/);
   assert.match(bridge, /onSlow: data => errorEvents\.slowTurns\(data\)/);

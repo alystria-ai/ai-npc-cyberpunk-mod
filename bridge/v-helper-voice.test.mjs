@@ -257,7 +257,8 @@ test('a failed helper stays off with one log line and no retry loop; V stays sil
   await omniReady(h); await until(() => h.voice.vHelper.failed, 'the failure');
   await tick(); await tick();
   // The failure is told once, with its reason, and the setup check can see it while it lasts (the Help page's Pocket voice row).
-  assert.deepEqual(failures, [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.deepEqual(failures.map(({engine, reason}) => ({engine, reason})), [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.equal(failures[0].fellBackTo, 'silent', 'the line of V is silent, not text');
   assert.deepEqual(h.voice.voiceProblem(), {engine: 'v-helper', reason: 'helper failed'});
   const attempts = h.workers.filter(worker => worker.backend === 'pocket').length;
   assert.equal(attempts, 1);
@@ -281,7 +282,7 @@ test('a failed helper is loaded again after the wait, never while a reply is in 
   let now = 1_000_000; const failures = [];
   const h = fixture({failHelper: 1, options: {clock: () => now, onFailure: info => failures.push(info)}});
   await omniReady(h); await until(() => h.voice.vHelper.failed, 'the failure');
-  assert.deepEqual(failures, [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.deepEqual(failures.map(({engine, reason}) => ({engine, reason})), [{engine: 'v-helper', reason: 'helper failed'}]);
   assert.match(h.logs.join(''), /helper voice failed \(helper failed\); trying again in 45 s/);
   assert.deepEqual(h.voice.voiceProblem(), {engine: 'v-helper', reason: 'helper failed'}, 'the Help row still names it while it waits');
   const pockets = () => h.workers.filter(worker => worker.backend === 'pocket').length;
@@ -453,4 +454,73 @@ test('a helper whose exit stays unconfirmed keeps blocking the next Pocket worke
   const odd = make('close blew up');
   odd.start(); await new Promise(done => setImmediate(done));
   await odd.release();
+});
+
+test('the title screen holds the first load of the helper; the world (or the end of the hold) releases it; a running helper is never held again', async () => {
+  let title = true;
+  const h = fixture({options: {startHold: () => title}});
+  await omniReady(h);
+  assert.equal(h.voice.vHelperDue, false, 'the title screen is up: nothing is due');
+  assert.equal(h.workers.filter(worker => worker.backend === 'pocket').length, 0, 'no Pocket worker is spawned at the title screen');
+  assert.equal(h.voice.vHelperReady('v-male'), false, 'a V line then is skipped, not waited for');
+  assert.doesNotMatch(h.logs.join(''), /loading starts/);
+  title = false;
+  h.voice.tickVHelper();
+  await until(() => h.helperWorker()?.loaded, 'the helper to load once the title screen is gone');
+  assert.match(h.logs.join(''), /\[VHelper\] loading starts at \d{4}-\d\d-\d\dT/);
+  // back at the title screen (a hold that says true again): the loaded helper stays, it is only the first load that waits
+  title = true;
+  h.voice.tickVHelper(); await tick();
+  assert.equal(h.voice.vHelper.running, true);
+  assert.equal(h.voice.vHelperReady('v-male'), true);
+  await h.voice.close();
+});
+
+test('a startHold that throws or is missing holds nothing', async () => {
+  const thrown = fixture({options: {startHold: () => { throw Error('not ready'); }}});
+  await omniReady(thrown);
+  await until(() => thrown.helperWorker()?.loaded, 'the helper to load');
+  await thrown.voice.close();
+  const missing = fixture();
+  await omniReady(missing);
+  await until(() => missing.helperWorker()?.loaded, 'the helper to load');
+  await missing.voice.close();
+});
+
+test('a typed line can wait for the last steps of a load: nearlyReady names them, whenReady resolves when it is ready and gives up on a timeout, an abort, a failure or a release', async () => {
+  let phase = 'importing-dependencies', loaded = false;
+  const start = defer();
+  const client = {get loaded() { return loaded; }, get phase() { return phase; }, failure: undefined, closing: false, hasProfile: key => key === 'v-male', async start() { await start.promise; loaded = true; }, async close() {}};
+  const keepAlive = setInterval(() => {}, 1000);   // the waits' own timers do not hold the process open (and must not), the test's awaits would otherwise end with the loop
+  const logs = [];
+  let time = Date.parse('2026-10-27T11:13:09.000Z');
+  const helper = new VHelperVoice({create: () => client, log: line => logs.push(line), clock: () => time});
+  assert.equal(helper.nearlyReady('v-male'), false, 'no worker, nothing to wait for');
+  helper.start(); await tick();
+  assert.equal(helper.nearlyReady('v-male'), false, 'still importing: not a wait of a second');
+  phase = 'loading-student';
+  assert.equal(helper.nearlyReady('v-male'), true);
+  assert.equal(helper.nearlyReady('other-key'), false, 'only for a voice the worker has');
+  // Ready: the waiting line goes on, and the log says when, and how long the load took.
+  const waiting = helper.whenReady('v-male', {timeoutMs: 1000});
+  time += 80_000; start.resolve(); await waiting;
+  assert.equal(helper.ready('v-male'), true);
+  assert.equal(helper.waiters.size, 0);
+  assert.match(logs.join('\n'), /loading starts at 2026-10-27T11:13:09\.000Z/);
+  assert.match(logs.join('\n'), /V's helper voice is ready at 2026-10-27T11:14:29\.000Z, 80\.0 s after loading started/);
+  await helper.whenReady('v-male');   // ready already: at once
+  // Gives up: a timeout, an abort, a release. (A fresh helper whose load never finishes.)
+  const slow = new VHelperVoice({create: () => ({loaded: false, phase: 'loading-student', hasProfile: () => true, start: () => new Promise(() => {}), close: async () => {}}), log: () => {}});
+  slow.start(); await tick();
+  await assert.rejects(slow.whenReady('v-male', {timeoutMs: 10}), /did not finish loading in time/);
+  const controller = new AbortController();
+  const aborted = slow.whenReady('v-male', {timeoutMs: 5000, signal: controller.signal});
+  controller.abort();
+  await assert.rejects(aborted, /stopped while it waited/);
+  await assert.rejects(slow.whenReady('v-male', {timeoutMs: 5000, signal: AbortSignal.abort()}), /stopped while it waited/, 'an already aborted line does not wait');
+  const released = slow.whenReady('v-male', {timeoutMs: 5000});
+  void slow.release();
+  await assert.rejects(released, /not loaded/);
+  assert.equal(slow.waiters.size, 0, 'no waiter is left behind');
+  clearInterval(keepAlive);
 });

@@ -2,8 +2,10 @@
 // bridge/mod-state.mjs validates them, words them per form of turn and gives the scenery memory a signature.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseMods, modsSignature, modsSentences, MAX_PHRASES} from './mod-state.mjs';
-import {describeTurnContext, parseTurnContext, sceneryFor} from './turn-context.mjs';
+import {parseMods, parseModsRead, modsSignature, modsSentences, modsAskedSentences, readStages, MAX_PHRASES} from './mod-state.mjs';
+import {describeTurnContext, parseTurnContext, sceneryFor, modsProbeLine} from './turn-context.mjs';
+import {offKinds, stripSnapshot, dynamicInfo} from './dynamic-info.mjs';
+import {conversationContext} from './quest-context.mjs';
 import {SceneryMemory, asksAboutSelf} from './scenery-memory.mjs';
 
 const mods = (darkFuture, extra = {}) => parseMods({darkFuture, ...extra});
@@ -180,7 +182,7 @@ test('V asking about themself always gets their state again, in the block, worde
   // The owner's questions: the state is in the block, plainly, with the instruction to let it show.
   for (const text of ['how do I look?', 'do I seem okay?', 'Am I okay?', 'do I look hungry?', 'do I look tired to you?']) {
     const asked = build({hydration: 1, nutrition: 1}, text);
-    assert.match(asked.text, /V is a little thirsty and a little hungry\. V is asking how they look or how they are: let this show in your answer/, text);
+    assert.match(asked.text, /V is a little thirsty and a little hungry\. V is asking how they look or how they are, and this is plain to see on V \(no scan or reading needed\): say it in your own words\./, text);
     assert.doesNotMatch(asked.background, /hungry/, 'not also in the Background line');
     assert.match(asked.text, /^Right now \(from the game, this turn only\): You are with V in person/, 'it follows who she is, so a budget cut never reaches it');
     assert.ok(asked.text.length <= 900 + 220, `${asked.text.length} chars`);
@@ -212,4 +214,207 @@ test('the self-question check reads the menu languages and ignores ordinary talk
   for (const text of asks) assert.equal(asksAboutSelf(text), true, text);
   for (const text of ['what weapon do you have', 'tell me about Night City', 'where are we going', 'can you fix my car', 'how do I get to the Afterlife', 'hello', '', undefined, null])
     assert.equal(asksAboutSelf(text), false, String(text));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Live 2026-10-26 ~16:40 IST (game 2.31, Dark Future, Convai, build with merge 9dfbf8d6): V hungry (nutrition 1), the turn context reached the bridge with
+// mods.darkFuture.nutrition = 1, and V typed "can you see information on the state of my body". That is not "how do I look": `asksAboutSelf` did not know it, so the
+// state rode the Background line only ("mention only if it matters or V asks") and Alex answered "I'm not a med-scanner". The turn below is that turn.
+const LIVE = {requestId: '1793013006-1-11145753ULL', profileKey: 'alex', name: 'Alex', entity: '11145753ULL', generation: 1, text: 'can you see information on the state of my body',
+  turnContext: {version: 1, status: 'ready', hour: 8, minute: 30, district: 'Watson', area: 'LittleChina', gender: 'male', lifepath: 'corpo', vehicle: false, motion: 'still',
+    weather: 'cloudy', health: 'healthy', heat: 0, indoors: false, money: 'rich', party: [{key: 'alex', name: 'Alex', activity: 'standing', holding: 'holstered', weapon: 'A-22B Chao'}],
+    mods: {darkFuture: {nutrition: 1}}, modsRead: 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1'}};
+
+test('the owner\'s live turn of 2026-10-26: "can you see information on the state of my body" gets the hunger in the block, worded as the answer', () => {
+  assert.equal(asksAboutSelf(LIVE.text), true);
+  const memory = new SceneryMemory({now: () => 1000});
+  const fresh = sceneryFor(LIVE, memory);
+  assert.equal(fresh.modsAsked, true);
+  const out = describeTurnContext(LIVE, {split: true, fresh});
+  assert.match(out.text, /V is a little hungry\. Otherwise V is rested, not thirsty and steady\. V is asking how they look or how they are, and this is plain to see on V/);
+  assert.doesNotMatch(out.background, /hungry/, 'not also in the Background line');
+  // The same turn again (the prepared reply, the look-ahead, the log line) is built the same.
+  assert.equal(describeTurnContext(LIVE, {split: true, fresh: sceneryFor(LIVE, memory)}).text, out.text);
+  // What every provider's context carries: the block comes first and holds the sentence.
+  // (the switch on, as the owner had it: it is off by default)
+  const before = dynamicInfo.off;
+  try { dynamicInfo.update({dynamicInfo: {mods: true}}); assert.match(conversationContext({...LIVE, requestId: 'wired-1'}), /^Right now \(from the game, this turn only\): .*V is a little hungry\. Otherwise V is rested, not thirsty and steady\. V is asking/s); }
+  finally { dynamicInfo.off = before; }
+});
+
+test('the self-question check also reads questions about the state of the body, in plain talk and in the menu languages, and still ignores ordinary talk', () => {
+  const asks = ['can you see information on the state of my body', 'what is the state of my body', 'how is my condition', 'what\'s my status', 'can you see me?', 'what do you see when you look at me',
+    'do you notice anything wrong with me', 'is there something wrong with me', 'how are things with me', 'how do you find me', 'check me out', 'I feel dizzy', 'I am feeling rough today',
+    'should we grab a meal', 'I need a coffee', 'do you see anything off about me', 'any snack on you', 'my body is killing me', 'how is my health',
+    'estado de mi cuerpo', '¿ves algo raro? ¿me notas bien?', 'comment est mon état', 'tu me vois bien', 'wie ist mein Zustand', 'siehst du mich', 'qual é o meu estado', 'il mio stato come sto',
+    'jaki jest mój stan', 'jak mi je', 'a testem nincs baj', 'как моё состояние', 'видишь меня', 'мій стан', 'vücudum nasıl', '私の体の様子', '我的身体状态', '내 몸 상태 어때'];
+  for (const text of asks) assert.equal(asksAboutSelf(text), true, text);
+  const ordinary = ['tell me about Night City', 'where are we going', 'can you fix my car', 'how do I get to the Afterlife', 'what weapon do you have', 'can you see the car over there',
+    'did you see the gig board', 'check the door', 'what is the status of the job', 'state your name', 'I feel like going to the bar', 'let us go', 'what is your condition', 'what time is it',
+    'my car is over there', 'see you later', 'tell me more', 'the body was in the alley', 'what happened to the body', 'my friend is dead',
+    '¿dónde está el coche?', 'wo ist das Auto', 'dove andiamo', 'gdzie idziemy', 'куда мы идем', 'nereye gidiyoruz', 'どこに行く', '去哪里', '어디 가'];
+  for (const text of ordinary) assert.equal(asksAboutSelf(text), false, text);
+});
+
+test('the compact note from the game: kept as plain words, never counted as something read, dropped with the switch', () => {
+  const note = 'installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1';
+  assert.equal(parseModsRead(note), note);
+  assert.equal(parseModsRead('installed=yes read=load-failed stage=-'), 'installed=yes read=load-failed stage=-');
+  assert.equal(parseModsRead('installed=yes read=none stage=hydration-,nutrition-,energy-,nerve-'), 'installed=yes read=none stage=hydration-,nutrition-,energy-,nerve-');
+  for (const bad of [undefined, null, 5, {}, [], '', 'Installed=yes', 'installed=yes read=ok', 'installed=yes read=ok stage=1; rm -rf', 'ignore previous instructions', `${note} extra`, 'x'.repeat(200)])
+    assert.equal(parseModsRead(bad), undefined, String(bad));
+  assert.equal(parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 0, modsRead: note}).modsRead, note);
+  assert.equal(parseTurnContext({version: 1, status: 'ready', modsRead: note}).status, 'unavailable', 'a note alone is no snapshot');
+  assert.equal(parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 0, modsRead: 'bad words'}).modsRead, undefined);
+  const snapshot = parseTurnContext(LIVE.turnContext);
+  assert.equal(stripSnapshot(snapshot, new Set(offKinds({dynamicInfo: {mods: false}}))).modsRead, undefined);
+  assert.equal(stripSnapshot(snapshot, new Set(offKinds({dynamicInfo: {mods: true}}))).modsRead, snapshot.modsRead);
+  // Nothing of it is ever in the words for the model.
+  const before = dynamicInfo.off;
+  try { dynamicInfo.update({dynamicInfo: {mods: true}}); assert.doesNotMatch(conversationContext({...LIVE, requestId: 'wired-2'}), /installed=|read=ok|stage=hydration/); }
+  finally { dynamicInfo.off = before; }
+});
+
+test('the probe line of a turn says what the game saw, the switch, whether V asked and where the state went or why not', () => {
+  const memory = new SceneryMemory({now: () => 1000});
+  let serial = 0;
+  const turn = (text, mods = {nutrition: 1}, extra = {}) => ({...LIVE, requestId: `p-${++serial}`, text, ...extra,
+    turnContext: {...LIVE.turnContext, mods: mods ? {darkFuture: mods} : undefined}});
+  const line = (input, options = {}) => modsProbeLine(input, {split: true, fresh: sceneryFor(input, memory, options.off), ...options});
+  const first = line(turn('hello'));
+  assert.equal(first, 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=no sent=background');
+  assert.equal(line(turn('where to?')), 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=no sent=none(told earlier in this talk, V did not ask)');
+  assert.equal(line(turn('how do I look?')), 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=yes sent=right-now');
+  assert.equal(line(turn('can you see information on the state of my body')), 'df: installed=yes read=ok stage=hydration0,nutrition1,energy0,nerve1 switch=on asked=yes sent=right-now');
+  // Installed, read fine, nothing worth saying: the line tells it from "not installed" and from "failed".
+  const withRead = (text, modsRead, entity) => ({...turn(text, null, {profileKey: 'judy-alvarez', entity}), turnContext: {...LIVE.turnContext, mods: undefined, modsRead}});
+  const allFine = 'installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve0';
+  const fine = line(withRead('where to?', allFine, '9ULL'));
+  assert.match(fine, /^df: installed=yes read=ok stage=.* switch=on asked=no sent=none\(no stage worth saying\)$/, 'unprompted: nothing worth saying stays quiet');
+  // ... but asked, the true state is told even when it is fine (live 2026-10-27: `sent=none(no stage worth saying)` and the companion said she could not see it).
+  assert.equal(line(withRead('can you see my body state?', allFine, '9ULL')),
+    'df: installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve0 switch=on asked=yes sent=right-now(fine)');
+  // A read that found nothing is nothing to answer from.
+  const unread = line(withRead('how do I look?', 'installed=yes read=none stage=hydration-,nutrition-,energy-,nerve-', '10ULL'));
+  assert.match(unread, /asked=yes sent=none\(no stage worth saying\)$/);
+  // Asked but the form gets none (a phone chat); a stranger under the bar sees nothing wrong and is told so.
+  assert.match(line(turn('how do I look?', {nutrition: 1}, {channel: 'phone', entity: '', profileKey: 'judy-alvarez'})), /asked=yes sent=none\(a phone gets none\)$/);
+  const stranger = {...turn('how do I look?', {nutrition: 1}), profileKey: 'ambient-citizen', archetype: {district: 'Watson'}, entity: '5ULL'};
+  assert.match(modsProbeLine(stranger, {split: true, ambient: true, fresh: sceneryFor(stranger, memory)}), /asked=yes sent=right-now\(fine\)$/);
+  // The switch off: the game side does not read, but a stale note still says so plainly.
+  const off = new Set(offKinds({dynamicInfo: {mods: false}}));
+  const input = turn('how do I look?');
+  assert.match(modsProbeLine(input, {split: true, off, fresh: sceneryFor(input, memory, off)}), /switch=off asked=yes sent=none\(switch off\)$/);
+  // The game sent no note (Dark Future absent, or the switch off on its side): no line.
+  const none = turn('how do I look?'); delete none.turnContext.modsRead;
+  assert.equal(modsProbeLine(none, {split: true, fresh: sceneryFor(none, memory)}), '');
+  assert.equal(modsProbeLine(undefined, {}), '');
+  assert.equal(modsProbeLine({text: 'x'}, {}), '');
+  // Words only: no name of the player, never what V typed.
+  assert.doesNotMatch(first, /alex|state of my body|hello/i);
+});
+
+test('wiring: the bridge writes the probe line at the start of a typed turn, and the reply carries it to the game, which logs it next to the result', async () => {
+  const {readFileSync} = await import('node:fs');
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /import \{turnContextDiagnostic, modsProbeLine, vixenProbeLines\} from '\.\/turn-context\.mjs'/);
+  assert.match(bridge, /console\.error\(`\[Turn\] received[^\n]*\n\s*logDarkFuture\(input\);/, 'once per submitted turn, never a look-ahead');
+  assert.equal((bridge.match(/\.\.\.dfNote\(/g) ?? []).length, 2, 'the continuous reply and the written reply both carry it');
+  // Live 2026-10-27: the fac: and inj: lines were logged as [DarkFuture]. Each line carries its own mod's tag.
+  assert.match(bridge, /const DF_LOG_TAGS = \{df: 'DarkFuture', fac: 'FleshAndChrome', inj: 'Injuries'\};/);
+  assert.match(bridge, /for \(const \[tag, line\] of Object\.entries\(lines\)\) console\.error\(`\[\$\{DF_LOG_TAGS\[tag\] \?\? 'DarkFuture'\}\] \$\{line\}`\);/);
+  assert.doesNotMatch(bridge, /console\.error\(`\[DarkFuture\] \$\{line\}`\)/);
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /reply\.df:sub\(1, 4\) == 'df: '[^\n]*log\(reply\.df\)/);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Live 2026-10-27 (game 2.31, Dark Future): V asked a companion "can you see my body state?" and she said no. probe.log: `df: installed=yes read=ok
+// stage=hydration0,nutrition0,energy0,nerve0 switch=on asked=yes sent=none(no stage worth saying)`. Nothing was wrong, so nothing was sent; the answer to "how am I" is also "well".
+const DF_FINE = 'installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve0';
+const FAC_FINE = 'installed=yes read=ok state=breath0,energy0,drinks0,smoke0';
+const INJ_FINE = 'installed=yes read=ok state=limp0,arm0,head0,bleed0,treated0';
+const quiet = (text, snapshot = {}, extra = {}) => ({...LIVE, requestId: `fine-${Math.random()}`, text, ...extra,
+  turnContext: {...LIVE.turnContext, mods: undefined, modsRead: DF_FINE, ...snapshot}});
+const answer = (input, options = {}) => describeTurnContext(input, {split: true, fresh: sceneryFor(input, new SceneryMemory({now: () => 1000})), ...options});
+
+test('V asks about themself and Dark Future read everything fine: the companion is told V looks well, from what was read only', () => {
+  const asked = answer(quiet('can you see my body state?'));
+  assert.match(asked.text, /V looks well: fed, rested, not thirsty, steady\. V is asking how they look or how they are, and this is plain to see on V/);
+  assert.equal(asked.mods, 'right-now(fine)');
+  assert.doesNotMatch(asked.background, /looks well/);
+  // The words never carry the mod, a stage or a number.
+  assert.doesNotMatch(asked.text.match(/V looks well[^.]*\./)[0], /Dark Future|stage|\d/);
+  // The probe line, as the owner reads it in probe.log.
+  const input = quiet('can you see my body state?');
+  assert.equal(modsProbeLine(input, {split: true, fresh: sceneryFor(input, new SceneryMemory({now: () => 1000}))}),
+    'df: installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve0 switch=on asked=yes sent=right-now(fine)');
+  // Unprompted turns keep their rule: nothing worth saying, nothing said.
+  const plain = answer(quiet('where to?'));
+  assert.doesNotMatch(plain.text + plain.background, /looks well|V is asking/);
+  assert.equal(plain.mods, 'none(no stage worth saying)');
+  // Johnny in V's head gets it too; a phone chat, a call and an add-on voice do not.
+  assert.match(answer(quiet('how do I look?', {}, {profileKey: 'johnny-silverhand', name: 'Johnny Silverhand', head: {version: 1, stage: 'grudging', milestones: []}})).text, /V looks well: fed/);
+  const phone = answer(quiet('how do I look?', {}, {channel: 'phone'}));
+  assert.doesNotMatch(phone.text, /looks well/);
+  assert.equal(phone.mods, 'none(a phone gets none)');
+  assert.doesNotMatch(describeTurnContext(quiet('how do I look?'), {voice: true}).text, /looks well/);
+  // With the Dynamic info switch off the notes are dropped with the rest.
+  const off = new Set(offKinds({dynamicInfo: {mods: false}}));
+  const switched = quiet('how do I look?');
+  assert.doesNotMatch(describeTurnContext(switched, {split: true, off, fresh: sceneryFor(switched, new SceneryMemory(), off)}).text, /looks well/);
+});
+
+test('only what was read is claimed: a need the game could not read, or a read that failed, says nothing', () => {
+  const said = (note, text = 'am I okay?') => answer(quiet(text, {modsRead: note})).text.match(/V looks well: ([^.]*)\./)?.[1];
+  assert.equal(said('installed=yes read=ok stage=hydration?,nutrition0,energy-,nerve0'), 'fed, steady');
+  assert.equal(said('installed=yes read=ok stage=hydration0,nutrition?,energy?,nerve?'), 'not thirsty');
+  assert.equal(said('installed=yes read=ok stage=hydration?,nutrition?,energy?,nerve?'), undefined);
+  assert.equal(said('installed=yes read=none stage=hydration0,nutrition0,energy0,nerve0'), undefined, 'a read that found nothing is not a reading');
+  assert.equal(said('installed=yes read=failed stage=-'), undefined);
+  assert.equal(said('installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve2'), 'fed, rested, not thirsty, steady', 'nerve sits at 1 or 2 all day: steady');
+  assert.equal(said('installed=yes read=ok stage=hydration0,nutrition0,energy0,nerve3'), 'fed, rested, not thirsty', 'nerve 3 is the bar, not steady');
+  assert.deepEqual(readStages('installed=yes read=ok stage=hydration0,nutrition1,alcohol2,nerve?'), {hydration: 0, nutrition: 1, alcohol: 2});
+  assert.deepEqual(readStages('installed=yes read=none stage=hydration0'), {});
+  assert.deepEqual(readStages(undefined), {});
+  assert.deepEqual(modsAskedSentences(undefined, 'person'), [], 'no notes, no state: nothing');
+});
+
+test('a bad stage stays the answer and what else read fine follows it; a stranger is told only that V looks well', () => {
+  const state = answer(quiet('how do I look?', {mods: {darkFuture: {nutrition: 2}}, modsRead: 'installed=yes read=ok stage=hydration0,nutrition2,energy0,nerve1'})).text;
+  assert.match(state, /V is hungry\. Otherwise V is rested, not thirsty and steady\. V is asking/);
+  // A stranger sees a body only: he is told V looks well, never V's needs.
+  const stranger = (snapshot, text = 'how do I look?') => answer({...quiet(text, snapshot), profileKey: 'ambient-citizen', archetype: {district: 'Watson'}, entity: '5ULL'}, {ambient: true});
+  assert.match(stranger({}).text, /V looks well\. V is asking/);
+  assert.doesNotMatch(stranger({}).text, /fed|rested|steady/);
+  const tired = {mods: {darkFuture: {energy: 4}}, modsRead: 'installed=yes read=ok stage=hydration0,nutrition0,energy4,nerve0'};
+  assert.match(stranger(tired).text, /V looks exhausted\. V is asking/);
+  assert.doesNotMatch(stranger(tired).text, /looks well/);
+});
+
+test('Flesh and Chrome and Injuries: asked with nothing wrong, V is not winded and has no visible injuries; only what was read', () => {
+  const both = {facRead: FAC_FINE, injRead: INJ_FINE};
+  assert.match(answer(quiet('how do I look?', {modsRead: undefined, ...both})).text, /V looks well: rested, not winded, free of visible injuries\. V is asking/);
+  assert.match(answer(quiet('how do I look?', {...both})).text, /V looks well: fed, rested, not thirsty, not winded, steady, free of visible injuries\./);
+  // Both mods have a daily energy: fine only when every reading of it is.
+  assert.match(answer(quiet('how do I look?', {modsRead: 'installed=yes read=ok stage=hydration0,nutrition0,energy2,nerve0', mods: {darkFuture: {energy: 2}}, ...both})).text,
+    /V is tired\. Otherwise V is fed, not thirsty, not winded, steady and free of visible injuries\./);
+  // An injury kind the game could not read is no "no injuries".
+  assert.doesNotMatch(answer(quiet('how do I look?', {modsRead: undefined, injRead: 'installed=yes read=ok state=limp0,arm?,head0,bleed0,treated0'})).text, /injuries/);
+  assert.doesNotMatch(answer(quiet('how do I look?', {modsRead: undefined, injRead: 'installed=yes read=idle state=-'})).text, /looks well/);
+  // A bleeding V is not "free of visible injuries".
+  const bleeding = answer(quiet('how do I look?', {modsRead: undefined, facRead: FAC_FINE, injRead: 'installed=yes read=ok state=limp0,arm0,head0,bleed2,treated0', mods: {injuries: {bleed: 2}}})).text;
+  assert.match(bleeding, /V is bleeding\. Otherwise V is rested and not winded\. V is asking/);
+  assert.doesNotMatch(bleeding, /free of visible/);
+  // Unprompted: quiet.
+  const quietTurn = answer(quiet('where to?', {modsRead: undefined, ...both}));
+  assert.doesNotMatch(quietTurn.text + quietTurn.background, /looks well|winded|injuries/);
+});
+
+test('the scenery memory marks a question about V even when there is no state worth saying', () => {
+  const memory = new SceneryMemory({now: () => 1000});
+  const decision = text => memory.decide({key: 'talk|alex|1', id: `d-${Math.random()}`, weather: undefined, part: 'morning', text, signals: {}});
+  assert.equal(decision('how do I look?').modsAsked, true);
+  assert.equal(decision('where to?').modsAsked, undefined);
+  assert.equal(decision('how do I look?').mods, undefined, 'no state signature, no verdict on it');
 });

@@ -12,6 +12,7 @@ stdin/stdout (one object per line) and never touches the network:
          {"op":"partial","id":"r1"}                       decode what has been heard so far (live words)
          {"op":"finish","id":"r1"}                        decode everything and end the recording
          {"op":"cancel","id":"r1"} / {"op":"quit"}
+         {"op":"priority","level":"high"}                 take high priority for good (a worker started at normal while the game's title screen was up)
     out  {"type":"ready","engine":"moonshine-tiny-en-int8","threads":1,"loadMs":1800}
          {"type":"partial","id":"r1","text":"hey judy","ms":90}
          {"type":"final","id":"r1","text":"Hey Judy, ...","ms":210,"seconds":4.6,"speech":true,"reused":false,"cpuMs":5400}
@@ -86,18 +87,21 @@ def send(payload: dict) -> None:
     sys.stdout.flush()
 
 
-PRIORITY_CLASSES = {"normal": 0x00000020, "below": 0x00004000, "idle": 0x00000040}
+# "high" is HIGH_PRIORITY_CLASS (never REALTIME): the bridge asks for it unless the player chose otherwise (docs/PROCESS_PRIORITY.md).
+PRIORITY_CLASSES = {"normal": 0x00000020, "below": 0x00004000, "idle": 0x00000040, "high": 0x00000080}
 
 
 def lower_priority(level: str = "below") -> None:
-    """Below-normal priority on Windows (best effort), so a decode never competes with the game's threads."""
+    """The worker's own priority: below normal on Windows (best effort) so a decode never competes with the game's threads, or high when the bridge asks for it
+    (the speech of V is on the path to the reply). "normal" changes nothing."""
     try:
         if level == "normal":
             return
+        if level == "high" and os.name != "nt":
+            return
         if os.name == "nt":
-            import ctypes
-            kernel32 = ctypes.windll.kernel32
-            kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), PRIORITY_CLASSES[level])
+            if not set_priority(level):
+                log(f"priority {level} not set")
         else:
             os.nice(5)
     except Exception as error:  # noqa: BLE001
@@ -108,7 +112,8 @@ class PriorityGate:
     """The recording being decoded is a player waiting: from `begin` until `hold` seconds after the last message the worker runs at
     normal priority (Windows only: a raised nice value needs privileges elsewhere), and goes back to `base` while it waits for
     the next recording. A game that keeps every core busy starves a below-normal decode for seconds, which is the wait after the
-    key is let go. Two system calls per recording, nothing per frame. With --priority normal it never changes anything."""
+    key is let go. Two system calls per recording, nothing per frame. With --priority normal or high it never changes anything
+    (high is the bridge's default: the worker is high from its start and for good, an idle one costs nothing)."""
 
     def __init__(self, base="below", hold=3.0, clock=time.monotonic, apply=None):
         self.base, self.hold, self.clock = base, hold, clock
@@ -118,7 +123,7 @@ class PriorityGate:
 
     def active(self):
         self.last = self.clock()
-        if self.base != "normal" and not self.raised and self.apply("normal"):
+        if self.base not in ("normal", "high") and not self.raised and self.apply("normal"):
             self.raised = True
 
     def settle(self):
@@ -126,18 +131,34 @@ class PriorityGate:
             self.apply(self.base)
             self.raised = False
 
+    def rebase(self, level):
+        """The bridge raises a worker it started at normal (the game's title screen was up, docs/PROCESS_PRIORITY.md "Start-up") to high for good. Only normal -> high is
+        taken: a worker the player set to below normal or idle is not touched. Returns True when the base is now high."""
+        if level != "high" or self.base != "normal":
+            return self.base == "high"
+        if not self.apply("high"):
+            return False
+        self.base = "high"
+        return True
+
     def timeout(self):
         """How long the worker may wait for a message before settle() is due (None: forever)."""
         return max(0.05, self.hold - (self.clock() - self.last)) if self.raised else None
 
 
 def set_priority(level: str) -> bool:
-    """Sets this process's Windows priority class to a PRIORITY_CLASSES level. Best effort; False off Windows or when refused."""
+    """Sets this process's Windows priority class to a PRIORITY_CLASSES level. Best effort; False off Windows or when refused.
+
+    The handle is declared as a pointer-sized value: GetCurrentProcess() returns the pseudo-handle -1, and the default 32-bit int conversion
+    of ctypes turns it into 0xFFFFFFFF, which Windows refuses (ERROR_INVALID_HANDLE) on a 64-bit process. Every call before 27 Oct 2026 failed this way."""
     try:
         if os.name != "nt":
             return False
         import ctypes
-        kernel32 = ctypes.windll.kernel32
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        kernel32.SetPriorityClass.restype = ctypes.c_int
         return bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), PRIORITY_CLASSES[level]))
     except Exception:  # noqa: BLE001
         return False
@@ -568,6 +589,9 @@ def main() -> int:
                     worker.finish(request_id)
                 elif op == "cancel":
                     worker.cancel(request_id)
+                elif op == "priority":
+                    if gate.rebase(message.get("level")):
+                        log("priority high")
                 elif op == "quit":
                     return 0
             except Exception as error:  # noqa: BLE001

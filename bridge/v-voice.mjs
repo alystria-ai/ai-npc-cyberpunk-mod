@@ -347,7 +347,7 @@ export class VLine {
   summary() {
     const snapshot = this.clock.snapshot();
     return {result: this.state === 'done' ? 'played' : this.state === 'dropped' ? 'dropped' : this.state,
-      ...(this.reason ? {reason: this.reason} : {}), ...(this.spoken ? {spoken: true} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, ...(this.reference ? {reference: this.reference} : {}), chars: this.text.length,
+      ...(this.reason ? {reason: this.reason} : {}), ...(this.failure ? {failure: this.failure} : {}), ...(this.spoken ? {spoken: true} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, ...(this.reference ? {reference: this.reference} : {}), chars: this.text.length,
       marks: snapshot.marks, totalMs: snapshot.totalMs};
   }
 
@@ -395,7 +395,8 @@ export class VLine {
         else if (this.state === 'synth') this.drop('no-audio');
       } catch (error) {
         if (this.state !== 'dropped' && this.state !== 'done') {
-          this.log(`V's line was not spoken (${String(error?.message ?? error).slice(0, 120)})`);
+          this.failure = String(error?.message ?? error).split(/\r?\n/)[0].slice(0, 120);
+          this.log(`V's line was not spoken (${this.failure})`);
           this.drop('failed');
         }
       }
@@ -605,8 +606,15 @@ export class VVoice {
       } else if (this.helper?.speaks(voice.key)) {
         // V's own Pocket worker (the companions use OmniVoice, a cloud voice or the Convai voice). Still loading, or failed: V is skipped,
         // the reply never waits for it. Asking also starts a due load.
-        if (!this.helper.ready(voice.key)) { this.log("V's line skipped: the Pocket voice for V is not loaded yet"); return this.skip('voice-not-loaded'); }
-        route = {plan: {engine: 'pocket', helper: true, language: 'en'}, stream: (key, spoken, options) => this.helper.stream(key, spoken, options), local: false};
+        if (!this.helper.ready(voice.key)) {
+          // In the last steps of its load (the student model, a second or two): the line waits for it, a few seconds at most. It is dropped anyway when it is not audible by the
+          // time the companion's reply is, so the wait never delays a reply. Earlier in the load there is nothing to wait for: skipped, with how long the voice has been loading.
+          if (this.helper.nearlyReady?.(voice.key) === true && typeof this.helper.whenReady === 'function') {
+            this.log("V's line waits for the Pocket voice, which is nearly loaded");
+            route = {plan: {engine: 'pocket', helper: true, language: 'en'},
+              stream: async (key, spoken, options) => { await this.helper.whenReady(key, {signal: options?.signal}); return this.helper.stream(key, spoken, options); }, local: false};
+          } else { this.log("V's line skipped: the Pocket voice for V is not loaded yet"); return this.skip('voice-not-loaded'); }
+        } else route = {plan: {engine: 'pocket', helper: true, language: 'en'}, stream: (key, spoken, options) => this.helper.stream(key, spoken, options), local: false};
       } else {
         // The companions' Pocket worker speaks V too: one job at a time, so an unfinished V line steps aside for the reply's voice.
         if (!this.ready(voice.key)) { this.once('ready:' + voice.key, `V's voice skipped: the Pocket voice has no ${voice.key} voice yet`); return this.skip('voice-not-ready'); }

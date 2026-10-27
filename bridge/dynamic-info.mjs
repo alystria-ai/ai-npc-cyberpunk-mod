@@ -18,7 +18,7 @@
 //   dialogue   the last lines of game dialogue and V's chosen replies                    the game dialogue block
 //   lastTalk   how long since V last talked to this character (game and real time)      the turn context's background line
 //   media      the song on the car or pocket radio, what a TV near V shows               the turn context
-//   mods       V's state according to other mods (Dark Future)                           the turn context
+//   mods       V's state according to other mods (Dark Future, Flesh and Chrome, Injuries) the turn context
 // What each character knows about the story (the world facts, the recent shared events) is the character's own knowledge, not live info: it stays.
 // V's gender for V's own voice and the dialogue volume are no part of the words the model reads: they are kept.
 export const KINDS = Object.freeze(['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods']);
@@ -27,7 +27,7 @@ export const NO_KINDS = Object.freeze(new Set());
 // The fields of a turn-context snapshot (bridge/turn-context.mjs parseTurnContext) each kind owns.
 const SNAPSHOT_FIELDS = Object.freeze({
   location: ['district', 'area', 'indoors'], time: ['hour', 'minute', 'weather'], company: ['party', 'vehicle', 'driving', 'motion', 'housemate'],
-  condition: ['health', 'heat'], money: ['money'], about: ['gender', 'lifepath'], lastTalk: ['gameTime'], media: ['media'], mods: ['mods']});
+  condition: ['health', 'heat'], money: ['money'], about: ['gender', 'lifepath'], lastTalk: ['gameTime'], media: ['media'], mods: ['mods', 'modsRead', 'facRead', 'injRead']});
 
 /** The snapshot without what the off kinds own; the same object when nothing applies. `voice` and `dialogueVolume` always stay. */
 export function stripSnapshot(snapshot, off = NO_KINDS) {

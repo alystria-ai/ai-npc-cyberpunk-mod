@@ -204,7 +204,7 @@ test('the manager enables the keys of custom characters and says whether Mistral
 test('init.lua refreshes the list on the talk key, keeps the player\'s own characters out of battle and loot reactions, and the editor module stays free of native calls', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   const code = init.replace(/--.*$/gm, '');
-  assert.match(code, /pcall\(convaiCustomCharacters\.refresh\); pcall\(convaiCustomCharacters\.checkProvider\) end\s*\r?\n/, 'selectConversation reads the list when it is due and asks which provider answers');
+  assert.match(code, /pcall\(convaiCustomCharacters\.refresh\); pcall\(convaiCustomCharacters\.checkProvider\)\s*\r?\n\s*convaiSettleCopyProfiles\(\)\s*end\s*\r?\n/, 'selectConversation reads the list when it is due, asks which provider answers and settles the copies');
   assert.match(code, /convaiCustomCharacters\.clearSkipped\(\)\s*end\s*\r?\n\s*local key, name, bodyType, archetype = profileIdentity\(npc\)/, 'the skipped character is cleared and taken around the one resolution of the talk target');
   assert.match(code, /if roster and options\.roster and type\(characterCatalog\.isCustomKey\) == 'function' and characterCatalog\.isCustomKey\(key\) then roster = false end/, 'no reaction rows for custom characters');
   assert.match(code, /catalog\.custom = self\.count > 0 and self or nil/, 'the catalogue knows the list only while a character exists');

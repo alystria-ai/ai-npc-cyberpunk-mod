@@ -200,7 +200,8 @@ test('face: the generated named-record list is the game-placed roster; it is not
 test('memory and voice follow the profile key, so a clone shares them with the original character and with our copy', () => {
   // The conversation, memory and voice choice are addressed by the resolved profile key alone (init.lua profileIdentity ->
   // convai-bridge turn). No entity, record or spawner name is part of a memory key.
-  assert.match(init, /local key, canonical, archetype = characterCatalog\.resolve\(catalog, actor\)\s*return key, canonical, body, archetype/);
+  // (A copy of ours may carry the player's character it resolved to, settleProfile: still the resolved key and nothing else.)
+  assert.match(init, /local key, canonical, archetype = characterCatalog\.resolve\(catalog, actor\)(?:\s*--[^\n]*)*\s*if owned and ready and serial and key ~= carried then pcall\(companions\.settleProfile, serial, key, canonical\) end\s*return key, canonical, body, archetype/);
   assert.match(init, /return characterCatalog\.originalRecordName\(TDBID\.ToStringDEBUG\(recordId\)\)/);
 });
 

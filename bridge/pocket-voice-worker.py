@@ -185,6 +185,8 @@ class Commands:
         # Called from the reader thread when the active (or the queued) request is cancelled: the worker goes to normal priority at once so a
         # cancelled warm-up that was running below normal under a busy game stops in time (main sets it).
         self.on_cancel = None
+        # Called from the reader thread for a `priority` command (the bridge says the game has a world: the reply level is now high): see apply_priority_command.
+        self.on_priority = None
         # The request in hand reports its progress here (ProgressTimer.touch): a chunk of audio produced, a packet acknowledged.
         self.on_progress = None
         self.thread = threading.Thread(target=self.read, name="pocket-command-reader", daemon=True)
@@ -212,6 +214,14 @@ class Commands:
                 op = value.get("op")
                 if op == "shutdown":
                     break
+                if op == "priority":
+                    # Not a request: no identity, no place in the one-command queue. An unknown level is ignored; a priority is never a failure.
+                    if callable(self.on_priority):
+                        try:
+                            self.on_priority(value.get("level"))
+                        except Exception:  # noqa: BLE001 - a priority is an optimisation, never a failure.
+                            pass
+                    continue
                 request_id = value.get("id")
                 if type(request_id) is not int or not 0 < request_id <= 2**53 - 1:
                     raise ValueError("Pocket command lacks its request identity")
@@ -465,6 +475,42 @@ def heartbeat_frame(step=None, cpu_ms=None, io_bytes=process_io_bytes, modules=l
 
 NORMAL_PRIORITY_CLASS = 0x00000020
 BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
+HIGH_PRIORITY_CLASS = 0x00000080   # never REALTIME
+# The level a reply being voiced runs at (docs/PROCESS_PRIORITY.md): the bridge says 'high' (its default) or nothing (normal, as before 0.3.3) here.
+PRIORITY_VARIABLE = "CYBERPUNK_CONVAI_WORKER_PRIORITY"
+
+
+# Told by the bridge while the worker runs (a `priority` command, docs/PROCESS_PRIORITY.md "Start-up"): a worker started during the title screen has no level in its
+# environment (it starts at normal), and when the game has a world the bridge says 'high'. It wins over the environment from then on.
+_STATE_LOCK = threading.Lock()
+_STATE = {"level": None, "ready": False}
+
+
+def reply_priority_class(environ=None):
+    """HIGH_PRIORITY_CLASS when the bridge asked for 'high' (a `priority` command first, else the environment), else NORMAL_PRIORITY_CLASS."""
+    override = _STATE["level"]
+    if override is not None:
+        return HIGH_PRIORITY_CLASS if override == "high" else NORMAL_PRIORITY_CLASS
+    environ = os.environ if environ is None else environ
+    return HIGH_PRIORITY_CLASS if environ.get(PRIORITY_VARIABLE) == "high" else NORMAL_PRIORITY_CLASS
+
+
+def mark_ready():
+    """The start is over (main lowers the worker right after): a later priority command only records its level."""
+    with _STATE_LOCK:
+        _STATE["ready"] = True
+
+
+def apply_priority_command(level, raise_to=None):
+    """A `priority` command from the bridge: records the reply level ('high' or 'normal'; anything else is ignored) and, while the worker is still starting up,
+    takes it at once so the rest of the start (the imports) runs at it. After the start the PriorityGate raises per request to it, as it does with the environment."""
+    if level not in ("high", "normal"):
+        return False
+    with _STATE_LOCK:
+        _STATE["level"] = level
+        if not _STATE["ready"]:
+            (raise_priority if raise_to is None else raise_to)()
+    return True
 
 
 def set_priority_class(priority_class):
@@ -494,14 +540,14 @@ def lower_priority():
 
 
 def raise_priority():
-    """Normal priority class, for the time a reply is being voiced. Only Windows can go back up (a raised nice
-    value needs privileges elsewhere), so nothing changes there."""
-    return os.name == "nt" and set_priority_class(NORMAL_PRIORITY_CLASS)
+    """The reply priority class (high by default, normal when the player chose that), for the time a reply is being voiced and while starting up.
+    Only Windows can go back up (a raised nice value needs privileges elsewhere), so nothing changes there."""
+    return os.name == "nt" and set_priority_class(reply_priority_class())
 
 
 class PriorityGate:
     """A reply being voiced is a person waiting: the whole request (preparing the voice, the text, every chunk of audio) runs at
-    normal priority. A game that keeps every core busy otherwise starves a below-normal worker for seconds (Windows gives the
+    the reply priority (high; normal on request). A game that keeps every core busy otherwise starves a below-normal worker for seconds (Windows gives the
     foreground game longer time slices on top), which showed as 5 to 7 s before the first sound until the player switched
     windows. The worker goes back to below normal `hold` seconds after the last request, so it does not flap between the
     sentences of one reply, and never raises for a request that only prepares a voice ahead of time. Nothing here runs per
@@ -538,7 +584,7 @@ def main():
     args = parser.parse_args()
     if re.fullmatch(r"[a-f0-9]{32}", args.owner) is None:
         raise ValueError("Invalid Pocket worker owner")
-    # Starting up (the heavy imports, loading the student, warming voices) runs at NORMAL priority and the worker goes below normal only
+    # Starting up (the heavy imports, loading the student, warming voices) runs at the reply priority (high; normal on request) and the worker goes below normal only
     # when it is ready (below). Lowered from the first instruction it was starved by a game that was loading and every core busy: three
     # installs (0.2.7, 2026-10-21) saw `import pocket_tts` take under 3 s of CPU in 240 s (the worker got about 1% of a core) and the start
     # timed out, while the retry a minute later (the game in the world) imported in seconds. A start is a few seconds of one or two threads
@@ -572,6 +618,7 @@ def main():
     threading.Thread(target=heartbeats, name="pocket-start-heartbeat", daemon=True).start()
     commands = Commands(command_pipe(sys.stdin), args.owner)
     commands.on_cancel = gate.request
+    commands.on_priority = apply_priority_command
     commands.thread.start()
     cleaned = threading.Event()
 
@@ -737,6 +784,7 @@ def main():
             return (time.perf_counter() - started_at) * 1000
 
         started.set()
+        mark_ready()
         lower_priority()   # ready: from now on the game's own threads win any contested core, except while a reply is being voiced (PriorityGate)
         send({"op": "ready", **identity, **profiles(),
               "workerPaths": {key: str(value) for key, value in registry["paths"].items()},

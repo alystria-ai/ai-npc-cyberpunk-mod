@@ -300,7 +300,7 @@ test('the bridge cleans every reply, adds the block after Natural speech, and ha
   // OmniVoice and Pocket share one continuous speech and one planner (bridge/emotion-selector.mjs), which gets the marks.
   assert.equal(bridge.match(/marks: result\.emotionMarks/g).length, 1, 'the reply plan');
   assert.match(bridge, /continuousSpeech\(input, profile, current, signal, receiptPrepared, true, streamed \? streamed\.marks : result\.emotionMarks, \{player, late, engine: omni \? 'omni' : 'pocket'\}\)/);
-  assert.match(bridge, /emotionSelection\.planner\(\{player, profile: input\.profileKey, marks, late\}\)/);
+  assert.match(bridge, /emotionSelection\.planner\(\{player, profile: input\.profileKey, who: personKey\(input\), marks, late\}\)/);
   assert.match(bridge, /expressiveEmotions\.update\(settings\)/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   for (const name of EMOTION_NAMES) assert.ok(subtitles.includes(`'${name}'`), name);

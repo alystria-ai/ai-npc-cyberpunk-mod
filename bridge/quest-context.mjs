@@ -7,7 +7,10 @@ import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot} from './world-knowledge.m
 import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
-import {gearContext, visibleGearContext} from './player-gear.mjs';
+import {gearContext, visibleGearContext, gearChangeContext, gearFresh} from './player-gear.mjs';
+import {freshBlock} from './fresh-facts.mjs';
+import {asksAboutClothes, asksAboutSelf} from './scenery-memory.mjs';
+import {gearMemory} from './gear-memory.mjs';
 import {turnContext, describeTurnContext, sceneryFor, moneyNote} from './turn-context.mjs';
 import {lastTalkSentence} from './last-talk.mjs';
 import {headContext} from './johnny-head.mjs';
@@ -175,13 +178,17 @@ export function conversationContextBlocks(input) {
   const dialogue = on('dialogue') ? gameDialogueContext(input) : '';
   // The weather and the part of the day are scenery, stated only when new to the conversation (bridge/scenery-memory.mjs), as a short
   // "Background" line of their own in the volatile tail, so a turn that has or lacks them does not change the block the prompt cache keeps.
-  const {text: now, background} = describeTurnContext(input, turnContextOptions(input, ambient));
+  const {text: now, background, fresh: modsFresh} = describeTurnContext(input, turnContextOptions(input, ambient));
+  // What changed or what V asks about, as plain facts for the two places a small model reads last (bridge/fresh-facts.mjs): the end of the system message and right before V's words.
+  const asked = asksAboutClothes(input?.text) || asksAboutSelf(input?.text);
+  const fresh = freshBlock([on('gear') ? gearFresh(input, gearMemory, {visible: ambient, asked}) : null, modsFresh], {asked});
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {
-    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
+    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory, {visible: true}) : ''},
+      {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
       {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? visibleGearContext(input) : ''},
-      {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}];
+      {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}, fresh];
   }
   const attached = input[TRUSTED_KNOWLEDGE];
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
@@ -191,6 +198,9 @@ export function conversationContextBlocks(input) {
   const history = !quest ? '' : trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): where he and V stand and how he answers "what next?", right after the now block.
   return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: background},
+    // What changed in V's gear since this character last saw it, as the current fact (bridge/gear-memory.mjs): in the turn's own notes, right before V's words, where the
+    // history of the talk (an earlier answer about V's clothes) cannot outweigh the gear line far above it.
+    {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory) : ''},
     {tier: 'world', key: 'knowledge', text: knowledge},
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: quest ? trusted?.jobsContext : ''},
     {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''},
@@ -198,7 +208,7 @@ export function conversationContextBlocks(input) {
     {tier: 'volatile', text: quest ? trusted?.briefingContext : ''}, {tier: 'volatile', text: dialogue},
     {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? gearContext(input) : ''},
     {tier: 'world', key: 'authority', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
-    {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}];
+    {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}, fresh];
 }
 
 /**

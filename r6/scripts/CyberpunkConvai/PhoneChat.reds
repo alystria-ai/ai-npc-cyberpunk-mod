@@ -25,6 +25,9 @@ public class ConvaiPhoneChatInput extends HubTextInput {
     private let m_submit: Bool;
     // The Enter that opened the box is still down when focus arrives: its press (and a repeat) must not send.
     private let m_enterHeld: Bool;
+    // The box was focused by itself when the chat opened (not by an Enter of the player's): the Enter that opened the chat may still be down,
+    // or repeating, so no Enter counts as a send until this engine time (seconds). A time stamp read on a key press, not a timer.
+    private let m_enterGuardUntil: Float;
     private let m_owner: wref<PhoneMessagePopupGameController>;
 
     public static func Create(owner: wref<PhoneMessagePopupGameController>) -> ref<ConvaiPhoneChatInput> {
@@ -48,7 +51,8 @@ public class ConvaiPhoneChatInput extends HubTextInput {
     protected cb func OnInputKey(evt: ref<inkKeyInputEvent>) {
         if Equals(evt.GetKey(), EInputKey.IK_Enter) {
             if Equals(evt.GetAction(), EInputAction.IACT_Release) { this.m_enterHeld = false; };
-            if Equals(evt.GetAction(), EInputAction.IACT_Press) && !this.m_enterHeld { this.m_submit = true; };
+            if Equals(evt.GetAction(), EInputAction.IACT_Press) && !this.m_enterHeld
+                && (this.m_enterGuardUntil <= 0.0 || this.m_owner.ConvaiChatNow() >= this.m_enterGuardUntil) { this.m_submit = true; };
             return;
         };
         if Equals(evt.GetKey(), EInputKey.IK_Escape) {
@@ -88,11 +92,13 @@ public class ConvaiPhoneChatInput extends HubTextInput {
     protected cb func OnFocusLost(evt: ref<inkEvent>) {
         this.m_submit = false;
         this.m_enterHeld = false;
+        this.m_enterGuardUntil = 0.0;
         super.OnFocusLost(evt);
     }
 
     public final func HoldEnter() -> Void { this.m_enterHeld = true; }
     public final func ReleaseEnter() -> Void { this.m_enterHeld = false; }
+    public final func GuardEnter(seconds: Float) -> Void { this.m_enterGuardUntil = this.m_owner.ConvaiChatNow() + seconds; }
 
     public final func ReplaceDraft(value: String) -> Void {
         ArrayClear(this.m_keys);
@@ -115,6 +121,7 @@ public class ConvaiPhoneChatInput extends IScriptable {
     public final func ReplaceDraft(value: String) -> Void {}
     public final func HoldEnter() -> Void {}
     public final func ReleaseEnter() -> Void {}
+    public final func GuardEnter(seconds: Float) -> Void {}
     public final func SetDisabled(disabled: Bool) -> Void {}
 }
 
@@ -155,6 +162,21 @@ public final func ConvaiPhoneChatContact() -> String {
 public final func ConvaiPhoneChatTyping() -> Bool {
     return IsDefined(this.m_convaiChatView) && this.m_convaiChatView.ConvaiChatTyping();
 }
+// One line per step of opening a chat (the press, the page, the focus), for the probe log: mod/phone-chat.lua takes them on its 10 Hz tick and
+// logs them. Bounded, written only when a chat is opened or closed, never per frame.
+@addField(PlayerPuppet)
+private let m_convaiChatTrace: array<String>;
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatTrace(line: String) -> Void {
+    if ArraySize(this.m_convaiChatTrace) < 16 { ArrayPush(this.m_convaiChatTrace, line); };
+}
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatTakeTrace() -> String {
+    if ArraySize(this.m_convaiChatTrace) == 0 { return ""; };
+    let line = this.m_convaiChatTrace[0];
+    ArrayErase(this.m_convaiChatTrace, 0);
+    return line;
+}
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatTick() -> Void {
     if IsDefined(this.m_convaiChatView) { this.m_convaiChatView.ConvaiChatAdvanceGuard(); };
@@ -194,6 +216,10 @@ private let m_convaiChatBusy: Bool;
 private let m_convaiChatInitialized: Bool;
 @addField(PhoneMessagePopupGameController)
 private let m_convaiChatEscape: Bool;
+// Opening a character's chat puts the keyboard focus in the message box by itself, once per opening (ConvaiChatAutoFocus): armed when the
+// chat page gets the focus, spent by the first attempt, and gone when the page loses the focus.
+@addField(PhoneMessagePopupGameController)
+private let m_convaiChatAutoFocus: Bool;
 @addField(PhoneMessagePopupGameController)
 private let m_convaiChatEscapeFrames: Int32;
 // The contact id of the open chat: the journal entry's, or the character's own for one the journal has no entry for.
@@ -265,12 +291,14 @@ private func SetFocus(isFocused: Bool) -> Void {
     if !isFocused { this.ConvaiChatSaveDraft(); this.ConvaiChatBlur(); };
     wrappedMethod(isFocused);
     this.m_convaiChatEscape = false;
+    this.m_convaiChatAutoFocus = isFocused && this.m_data.convaiChat;
     let player = this.m_player as PlayerPuppet;
     if IsDefined(player) && this.m_data.convaiChat {
         if isFocused { player.m_convaiChatView = this; }
         else { if player.m_convaiChatView == this { player.m_convaiChatView = null; }; };
         if isFocused {
             this.ConvaiChatCreate();
+            player.ConvaiPhoneChatTrace("page focused contact=" + this.m_convaiChatId);
         };
     };
     if IsDefined(this.m_convaiChatPanel) { this.m_convaiChatPanel.SetVisible(isFocused && this.m_data.convaiChat); };
@@ -350,6 +378,39 @@ private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
     this.m_dialogViewController.ConvaiChatScroll();
 }
 
+// Seconds of the engine clock (it does not slow with the phone's time dilation).
+@addMethod(PhoneMessagePopupGameController)
+public final func ConvaiChatNow() -> Float {
+    return EngineTime.ToFloat(GameInstance.GetEngineTime(this.m_player.GetGame()));
+}
+
+// The first paint of an open chat that can be written to puts the focus in the message box, as the Enter key does, so the player types at once.
+// Only on the chat page itself (m_isFocused: never on the Chat list, where J, L and V belong to the rows), only for a keyboard and mouse player (a
+// pad has no Esc to leave a box that swallows every action), and only once per opening: after Esc has stopped the typing the page waits for Enter as
+// before, and a second Esc closes the chat. The Enter that opened the chat may still be down, so no Enter sends for the first half second.
+// Called from the paint Lua asks for (ConvaiChatPresent), never per frame.
+@if(ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatAutoFocus() -> Void {
+    if !this.m_convaiChatAutoFocus { return; };
+    if !this.m_data.convaiChat || !this.m_isFocused || !this.m_convaiChatEnabled || !IsDefined(this.m_convaiChatInput) { return; };
+    this.m_convaiChatAutoFocus = false;
+    let player = this.m_player as PlayerPuppet;
+    if this.m_convaiChatInput.IsFocused() || !this.m_phoneSystem.IsTextingEnabled() || !this.m_player.PlayerLastUsedKBM() {
+        if IsDefined(player) { player.ConvaiPhoneChatTrace("autofocus skipped contact=" + this.m_convaiChatId + (this.m_convaiChatInput.IsFocused() ? " (already typing)" : this.m_phoneSystem.IsTextingEnabled() ? " (pad)" : " (texting off)")); };
+        return;
+    };
+    this.m_convaiChatInput.GuardEnter(0.5);
+    this.RequestSetFocus(this.m_convaiChatInput.GetRootWidget());
+    this.m_dialogViewController.ConvaiChatScroll();
+    if IsDefined(player) { player.ConvaiPhoneChatTrace("autofocus asked contact=" + this.m_convaiChatId); };
+}
+
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatAutoFocus() -> Void {
+}
+
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatSaveDraft() -> Void {
     let player = this.m_player as PlayerPuppet;
@@ -410,6 +471,7 @@ public final func ConvaiChatPresent(lines: array<ref<ConvaiPhoneChatLine>>, stat
     this.m_convaiChatInput.SetDisabled(!enabled);
     this.m_convaiChatHint.SetText(StrLen(status) > 0 ? status : "ENTER  Write / Send   /   ESC  Stop typing");
     this.m_dialogViewController.ConvaiChatSetLines(lines);
+    this.ConvaiChatAutoFocus();
 }
 
 // While the player types, the popup swallows the keys the game would act on.

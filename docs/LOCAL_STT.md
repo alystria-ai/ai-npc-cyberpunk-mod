@@ -72,7 +72,7 @@ On a laptop in Silent power mode all numbers are slower; compare like with like.
 | "Listening", the player pauses (quiet 300 ms after speech) | one extra live-words decode at once, once per pause, at most 6 per recording, never while a decode runs, so the newest words are read before the key is pressed again |
 | Key pressed again | on the Mistral route, if the newest live decode read all the speech and the quiet after it, the reply is requested at once on its words and confirmed (or cancelled and asked again) when the final words are known (`docs/LATENCY_2026-10-14.md` 1.1); final decode if no live decode covered the recording |
 
-The worker runs at below-normal priority with one thread while it waits, and at normal priority from the start of a recording until 3 s after its last
+The worker runs at **High** priority (HIGH_PRIORITY_CLASS) with one thread, from its start and for good (since 27 Oct 2026, docs/PROCESS_PRIORITY.md: the recording is the first step of a reply and an idle worker costs nothing; `--priority high`, set on the child by the bridge and on itself by the worker). With the player's `priority = normal` it is the earlier rule: below normal while it waits, normal from the start of a recording until 3 s after its last
 message (`PriorityGate` in `local-stt-worker.py`, Windows only; a game that keeps every core busy otherwise starves the decode after the key is let
 go). Nothing runs on the game's side per frame: the Lua side is the existing
 state/words file poll.
@@ -268,7 +268,7 @@ or `runtime/stt-model/<id>/` (development), or in `<CYBERPUNK_CONVAI_STT_PACKS>/
 | `sense-voice-int8` | `model.int8.onnx`, `tokens.txt` | `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2` (163 MB; rename the folder to the id), FunASR model licence |
 
 Behaviour of a pack: a second `LocalStt` per pack (`bridge/local-stt.mjs`, `engine` option) in the same Python worker (`bridge/local-stt-worker.py --kind
-nemo-transducer|sense-voice`), one thread at below-normal priority, same sound gate and refusal of words that are not speech as Moonshine (the English-only
+nemo-transducer|sense-voice`), one thread at high priority (below normal with `priority = normal`, docs/PROCESS_PRIORITY.md), same sound gate and refusal of words that are not speech as Moonshine (the English-only
 stock-phrase list is harmless for other languages). It decodes once, when the key is pressed again (no live decodes, no pause decodes); it starts when
 a recording opens (the model loads while the player speaks) and **exits 60 s after the last recording**, giving its memory back; the page that holds the
 microphone is released once no recording is open (`createLocalSpeech`). The Parakeet loader leaves the feature size to the model (read from its
@@ -284,7 +284,7 @@ Runtime), each with a `NOTICE.txt` (CC-BY-4.0 attribution for Parakeet; FunASR l
 ### Measured with the real models (2026-10-19)
 
 The two archives were downloaded (sizes and SHA-256 in `packaging/release.config.json`), unpacked as untrusted data, and run through the mod's own
-`LocalStt` and `bridge/local-stt-worker.py` (python.exe of the dev environment, sherpa-onnx 1.13.6, **one thread, below-normal priority, CPU only**,
+`LocalStt` and `bridge/local-stt-worker.py` (python.exe of the dev environment, sherpa-onnx 1.13.6, **one thread, high priority since 27 Oct 2026 (below normal before; docs/PROCESS_PRIORITY.md), CPU only**,
 no GPU), on the development laptop (i9-13980HX, Balanced, nothing else heavy running). Clips: the models' own test clips (de, es, fr, en, ja, ko, zh, yue)
 and 14 languages x 3 sentences synthesised with OmniVoice from known text (game names in them: Judy, Afterlife, Watson, Jackie, Arasaka), 2.5 to 4.3 s each.
 The clips are not committed.

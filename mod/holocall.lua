@@ -38,6 +38,8 @@ M.RING_MIN, M.RING_MAX = 1.5, 10
 -- open, the same signal the "Preparing connection" notice reads), so the first reply does not wait on it; after
 -- READY_MAX seconds of ringing it connects anyway (live, 2026-10-16: the first reply on a call said "Preparing").
 M.READY_MAX = 18
+-- A request that reads as a scene is held this many seconds of play for a fresh reading before it is refused (see update).
+M.SCENE_WAIT = 4
 -- No turn and no speech for this long hangs up; no call is longer than MAX_LENGTH (seconds of play, pauses excluded).
 M.IDLE_LIMIT, M.MAX_LENGTH = 180, 1800
 -- The shot. The game's own rig (the holocall studio's camera node against its actor spot): 0.675 m in front, the lens
@@ -166,7 +168,9 @@ function M.loadCatalog(list)
 end
 
 -- env: log(line), supported(key), profileEnabled(key), warm(key, entity), liveImage(), busy(call),
--- onConnected(call), onEnded(call, reason), contacts() (the catalogue rows; phone-contacts.json when absent).
+-- onConnected(call), onEnded(call, reason), contacts() (the catalogue rows; phone-contacts.json when absent),
+-- chatRow(contact) ({key, name} of a Chat row the journal has no contact for, or nil), blocked(key) (true when her answers need a provider
+-- that is not on: a character the player made under Convai).
 function M.configure(env)
     M.env = type(env) == 'table' and env or {}
     local rows = type(M.env.contacts) == 'function' and M.env.contacts() or readJson('phone-contacts.json')
@@ -372,6 +376,21 @@ local function holoFail(call, reason)
     log('holo failed contact=' .. call.contact .. ' reason=' .. tostring(reason) .. ' fallback=audio')
 end
 
+-- The record the copy is spawned from: the character's own, or its non-crowd clone when it is a pedestrian's (a crowd copy would get no face layer).
+-- Returns the id and the name that is logged, or nil when a crowd record cannot be cloned. Without the module, the record itself.
+local function copyRecord(record)
+    if M.spawnRecords == nil then
+        local loaded, module = pcall(dofile, 'companion-records.lua')
+        M.spawnRecords = loaded and type(module) == 'table' and type(module.visual) == 'function' and module or false
+    end
+    local id = TweakDBID.new(record)
+    if not M.spawnRecords then return id, record end
+    local asked, resolved, name = pcall(M.spawnRecords.visual, id)
+    if not asked then return id, record end
+    if resolved == nil then return nil end
+    return resolved, name or record
+end
+
 -- The character's own record, as a real character record (a name that does not resolve would spawn a body with no
 -- record, which crashes a few seconds later).
 local function characterRecord(name)
@@ -481,7 +500,10 @@ local function holoSpawn(call, holo)
         assert(dynamic and dynamic:IsReady(), 'entity system not ready')
         holo.anchor = {x = spot.x, y = spot.y, z = spot.z}
         local copy = NewObject('DynamicEntitySpec')
-        copy.recordID = TweakDBID.new(call.record)
+        local recordID, copyName = copyRecord(call.record)
+        assert(recordID, 'a crowd record that cannot be copied')
+        call.copyName = copyName
+        copy.recordID = recordID
         copy.position = Vector4.new(spot.x, spot.y, spot.z, 1)
         copy.orientation = EulerAngles.new(0, 0, M.bodyYaw(spot)):ToQuat()
         copy.persistState, copy.persistSpawn = false, false
@@ -510,7 +532,7 @@ local function holoSpawn(call, holo)
     holo.faceNear = (spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2 <= M.FACE_RANGE^2
     log(string.format('holo spawn contact=%s record=%s floor=%+.1fm away=%.1fm yaw=%d body=%.1f lens=%.2fm', call.contact,
         call.record, spot.z - o.z, math.sqrt((spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2), spot.yaw,
-        M.bodyYaw(spot), holo.lens.dist))
+        M.bodyYaw(spot), holo.lens.dist) .. ' copy=' .. tostring(call.copyName or call.record))
 end
 
 
@@ -708,13 +730,31 @@ function M.abandon(reason)
     log('state=ended contact=' .. call.contact .. ' reason=' .. tostring(reason or 'abandoned') .. ' length=' .. math.floor(call.age) .. 's')
 end
 
-local function refuse(player, contact, reason, text)
-    log('refused contact=' .. tostring(contact) .. ' reason=' .. reason)
+-- A Chat row the journal has no contact for (a character the player made, Rita Wheeler and the rest of the roster) as a catalogue entry, or nil. The
+-- call window is given her name and the game's unknown-caller picture (Holocall.reds). Never Johnny, whatever the row says.
+function M.chatEntry(contact)
+    if type(M.env.chatRow) ~= 'function' then return nil end
+    local asked, row = pcall(M.env.chatRow, contact)
+    if not asked or type(row) ~= 'table' or type(row.key) ~= 'string' or not row.key:match('^[a-z0-9-]+$') or #row.key > 80
+        or excluded({key = row.key, contact = contact, record = row.record}) then return nil end
+    return {contact = contact, key = row.key, journal = false, record = type(row.record) == 'string' and row.record ~= '' and row.record or nil,
+        name = type(row.name) == 'string' and row.name ~= '' and row.name or row.key}
+end
+
+-- What the game's sample said when a call was held or refused for a scene (the probe line carries it, so a refusal can be read without a guess).
+local function sampleDetail(sample)
+    if type(sample) ~= 'table' then return 'sample=none' end
+    return 'tier=' .. tostring(sample.tier) .. ' dialogue=' .. tostring(sample.dialogue) .. ' choices=' .. tostring(sample.choices)
+        .. ' call=' .. tostring(sample.call) .. ' replacer=' .. tostring(sample.replacer)
+end
+
+local function refuse(player, contact, reason, text, detail)
+    log('refused contact=' .. tostring(contact) .. ' reason=' .. reason .. (detail and (' ' .. detail) or ''))
     if text then convaiNotices.send(player, 'holocall-refused', text) end
     return false
 end
 
-function M.start(player, contact, sample)
+function M.start(player, contact, sample, waited)
     if M.call then
         local same = M.call.contact == contact
         M.finish(player, 'replaced')
@@ -722,6 +762,7 @@ function M.start(player, contact, sample)
         if same then return false end
     end
     local entry = M.catalog[contact]
+    if not entry then entry = M.chatEntry(contact) end
     if not entry then return refuse(player, contact, 'not-a-mod-character', ui.t('This contact cannot take a holocall.')) end
     if type(M.env.supported) == 'function' and not M.env.supported(entry.key) then
         return refuse(player, contact, 'no-profile', ui.t('This contact cannot take a holocall.'))
@@ -729,10 +770,18 @@ function M.start(player, contact, sample)
     if type(M.env.profileEnabled) == 'function' and not M.env.profileEnabled(entry.key) then
         return refuse(player, contact, 'disabled', ui.t('Conversations are disabled for this contact.'))
     end
+    -- A character the player made has no Convai character: her calls, like her texts, need Mistral, Local AI or Custom (the same line as her Chat).
+    if type(M.env.blocked) == 'function' then
+        local asked, needs = pcall(M.env.blocked, entry.key)
+        if asked and needs == true then
+            return refuse(player, contact, 'needs-provider', ui.t('This character needs Mistral, Local AI or Custom to answer.'))
+        end
+    end
     local blocked = M.blocked(sample)
     if blocked then
         return refuse(player, contact, blocked, blocked == 'combat' and ui.t('Calls are not available during combat.')
-            or blocked == 'quest-call' and ui.t('You are already on a call.') or ui.t('Calls are not available right now.'))
+            or blocked == 'quest-call' and ui.t('You are already on a call.') or ui.t('Calls are not available right now.'),
+            sampleDetail(sample) .. (waited and string.format(' waited=%.1fs', waited) or ''))
     end
     -- Events queue on the player whenever the phone HUD is torn down or the game takes a call, with or without a call of ours; the queue
     -- is only read while one runs. Left in place, an old "hud-lost" or "quest-call" would hang up this call on its first step.
@@ -740,7 +789,14 @@ function M.start(player, contact, sample)
         local ok, event = pcall(function() return player:ConvaiHolocallTakeEvent() end)
         if not ok or type(event) ~= 'string' or event == '' then break end
     end
-    local began, result = pcall(function() return player:ConvaiHolocallBegin(contact) end)
+    -- A Chat row with no journal contact is shown by the name the mod gives (and the game's unknown-caller picture); a journal contact by its own.
+    local shown = entry.journal == false and entry.name or ''
+    local began, result = pcall(function() return player:ConvaiHolocallBegin(contact, shown) end)
+    -- Probe: what was tried for a row with no journal contact, and what the game answered (older scripts without the two-argument call answer no-hud).
+    if shown ~= '' then
+        log('no-journal call contact=' .. contact .. ' profile=' .. entry.key .. ' name=' .. entry.name .. ' picture=unknown-caller begin='
+            .. (began and tostring(result) or 'error ' .. tostring(result)))
+    end
     result = began and type(result) == 'string' and result or 'no-hud'
     if result ~= 'ok' then
         return refuse(player, contact, result, result == 'quest-call' and ui.t('You are already on a call.')
@@ -750,8 +806,9 @@ function M.start(player, contact, sample)
     local identity, entity = pcall(function() return tostring(player:GetEntityID().hash) end)
     local backed, backing = pcall(function() return player:ConvaiHolocallHasBacking() end)
     M.serial = M.serial + 1
-    -- A video holocall for the characters the game stages one for; the portrait voice call for everyone else.
-    local cast = M.STAGED[contact] and entry.record and 'video' or 'voice'
+    -- A video holocall for the characters the game stages one for, and for a Chat row with no journal contact that has a game record (a character the
+    -- player made with "Use the character I'm facing", Rita Wheeler and the roster): her own body is filmed. No record: the portrait voice call.
+    local cast = (M.STAGED[contact] or entry.journal == false) and entry.record and 'video' or 'voice'
     local call = {serial = M.serial, contact = contact, key = entry.key, name = entry.name, record = entry.record,
         state = 'dialing', mode = 'audio', entity = identity and entity or nil, ring = 0, age = 0, idle = 0, tick = 0,
         cast = cast, backing = backed and backing == true, wantLive = cast == 'video' and type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
@@ -863,8 +920,23 @@ function M.update(player, elapsed, worldReady, sample)
     if M.lenses then releaseLenses(elapsed) end
     if M.request then
         local request = M.request
-        M.request = nil
-        M.start(player, request.contact, sample)
+        request.waited = (request.waited or 0) + (tonumber(elapsed) or 0)
+        -- A scene reading is not trusted at once. The request comes from the open phone, and the sample (mod/battle-observer.lua) is taken every half
+        -- second of play, while the phone slows the game and holds its scene tier above gameplay's: the first reading after the phone closes can still be
+        -- the phone's own (live, 2026-10-27: a call refused with reason=scene in plain gameplay, and Alex's 13 s later passed). So the request waits for
+        -- a fresh sample, SCENE_WAIT seconds of play at most; a real scene or dialogue is still there after that and refuses as before.
+        if M.blocked(sample) == 'scene' and request.waited < M.SCENE_WAIT then
+            if not request.held then
+                request.held = true
+                log('held contact=' .. tostring(request.contact) .. ' reason=scene ' .. sampleDetail(sample) .. ' (waiting for a fresh reading, up to ' .. M.SCENE_WAIT .. 's)')
+            end
+        else
+            M.request = nil
+            if request.held and M.blocked(sample) == nil then
+                log(string.format('released contact=%s after %.1fs: gameplay again', tostring(request.contact), request.waited))
+            end
+            M.start(player, request.contact, sample, request.held and request.waited or nil)
+        end
     end
     local call = M.call
     if not call then return end

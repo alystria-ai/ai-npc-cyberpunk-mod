@@ -11,6 +11,7 @@ import {readGpuProcessMemory} from './gpu-memory.mjs';
 import {markBridgeStage} from './stage-marker.mjs';
 import {killProcessTree, pidAlive, recoverExit} from './worker-process.mjs';
 import {describeExitCode, stderrReason} from './voice-failures.mjs';
+import {nodePriority, priorityGate, PRIORITY_VARIABLE} from './process-priority.mjs';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
@@ -47,11 +48,14 @@ export class ResidentVoice {
     adapterDirectory = process.env.CYBERPUNK_CONVAI_OMNI_ADAPTER,
     referenceDirectory = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES,
     cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE,
-    lowPriority = false, setPriority = osSetPriority, isAlive, extraEnvironment = null,
+    lowPriority = false, priority = null, setPriority = spawnImpl === spawn ? osSetPriority : () => { /* a stand-in child has no process */ }, isAlive, extraEnvironment = null,
     // skipStartupWarm() -> boolean, asked once per worker start: true when every reply of this session is expected in a language with a voice pack, so the
     // worker does not spend its start warming the English startup profiles (the pack's clips are what speaks). Nothing else changes: each voice still
     // prepares when it is first asked.
     skipStartupWarm = null,
+    // The title-screen gate (bridge/process-priority.mjs PriorityGate, docs/PROCESS_PRIORITY.md "Start-up"): the shared one unless a test injects its own. While it is closed a
+    // worker whose level is 'high' starts at NORMAL and is raised once when the gate opens; 'below' and every other level ignore it.
+    gate = priorityGate,
     // gpuMemory(pid) -> {dedicatedMiB, sharedMiB} | null: one reading of the worker's graphics-memory counters when a generation or a preparation runs out of time
     // (diagnostics only). A test that supplies its own spawn gets none unless it passes this.
     gpuMemory = spawnImpl === spawn ? readGpuProcessMemory : null} = {}) {
@@ -73,6 +77,13 @@ export class ResidentVoice {
     // A background (re)start loads below normal priority so it does not compete with the game for CPU; it is
     // raised to normal once ready, because rendering replies is latency-sensitive.
     this.lowPriority = lowPriority === true; this.setPriority = setPriority;
+    // `priority` ('high' or 'below', bridge/process-priority.mjs; docs/PROCESS_PRIORITY.md): the worker's level from its start and for good, set on the child here
+    // and on itself by the worker (its environment names the level: a venv's python.exe is a launcher, its pid is not the worker's). It replaces the background
+    // start's low-then-normal dance. Anything else (null, 'normal') leaves the process as it started.
+    this.fixedLevel = priority === 'high' || priority === 'below' ? priority : null;
+    // The level asked for, and what start() makes of it: a 'high' worker starts with its level only when the gate is open; with the gate closed (the title screen) it
+    // starts at normal, `fixedLevel` stays empty and `heldHigh` says a raise is owed (raiseAfterTitle).
+    this.wantedLevel = this.fixedLevel; this.gate = gate && typeof gate.whenOpen === 'function' ? gate : priorityGate; this.heldHigh = false; this.cancelRaise = null;
     this.gpuMemory = typeof gpuMemory === 'function' ? gpuMemory : null;
     // Extra variables for this worker's environment (the voice service turns the CUDA graph off for the retry after a memory fault).
     this.extraEnvironment = extraEnvironment && typeof extraEnvironment === 'object' ? {...extraEnvironment} : null;
@@ -266,6 +277,9 @@ export class ResidentVoice {
     try { skipWarm = this.skipStartupWarm?.() === true; } catch { /* the default start: warm them */ }
     this.startupProfiles = skipWarm ? [] : this.registry.preparation.startupProfiles;
     let child;
+    this.cancelRaise?.(); this.cancelRaise = null;
+    this.fixedLevel = this.wantedLevel; this.heldHigh = this.wantedLevel === 'high' && this.gate.level('high') !== 'high';
+    if (this.heldHigh) this.fixedLevel = null;
     try {
       // pydub (a dependency of the OmniVoice package) warns at import that it found no ffmpeg; the worker never converts audio with it, and the
       // warning was in 13 of the first 82 error reports (2026-10-20), taking log lines from each. Only that warning is silenced.
@@ -275,6 +289,10 @@ export class ResidentVoice {
       for (const name of Object.values(OMNI_RUNTIME_PATHS)) delete environment[name];
       Object.assign(environment, this.workerEnvironment, this.extraEnvironment);
       if (this.workerEnvironment) environment.PYTHONDONTWRITEBYTECODE = '1';
+      // The worker takes its own 'high' from its environment (the launcher's pid is not its own): not while the title screen holds it back (it is told once the gate opens),
+      // always once it is open, whatever the caller's extra variables said when the gate was still closed.
+      if (this.heldHigh) { if (environment[PRIORITY_VARIABLE] === 'high') delete environment[PRIORITY_VARIABLE]; }
+      else if (this.wantedLevel === 'high') environment[PRIORITY_VARIABLE] = 'high';
       markBridgeStage('voice.worker-start');   // the supervisor's last-stage note (bridge/stage-marker.mjs)
       child = this.child = this.spawnImpl(this.pythonExecutable
         || resolve(this.project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe'),
@@ -304,6 +322,7 @@ export class ResidentVoice {
       this.rejectExited = reject;
       child.once('close', code => {
         this.clearPhase(); this.clearTimer(this.exitTimer); this.clearTimer(this.exitConfirmation);
+        if (this.child === child) { this.cancelRaise?.(); this.cancelRaise = null; }
         this.exitTimer = this.exitConfirmation = null;
         this.child = null; this.loaded = false; this.prepared.clear();
         this.details = {...this.details, cudaAllocatedMiB: 0, cudaReservedMiB: 0};
@@ -316,13 +335,33 @@ export class ResidentVoice {
       });
     });
     this.exited.catch(() => {});
-    if (this.lowPriority) this.priority(osConstants.priority.PRIORITY_BELOW_NORMAL);
+    if (this.fixedLevel) this.priority(nodePriority(this.fixedLevel));
+    else if (this.lowPriority) this.priority(osConstants.priority.PRIORITY_BELOW_NORMAL);
+    if (this.heldHigh) this.cancelRaise = this.gate.whenOpen(() => this.raiseAfterTitle(child), 'OmniVoice worker');
     this.phaseDeadline('startup', VOICE_WORKER_LIMITS.startupStallMs);
     this.capTimer = this.schedule(() => {
       this.capTimer = null;
       this.fail(Error('Local voice startup timed out (took too long to load)'));
     }, VOICE_WORKER_LIMITS.startupMaxMs);
     return this.ready;
+  }
+  /**
+   * The gate opened (the game has a world): the worker that started at normal takes the level it was asked for, once. The child by pid and the Python process itself by
+   * one command (`{op: 'priority', level: 'high'}`; the worker reads it in its command loop once loaded and answers on stderr only, no frame). From here it is what a worker
+   * that started High is: `fixedLevel` keeps it from being lowered to normal when it becomes ready. False when this worker is gone, stopping or failed (nothing is raised).
+   */
+  raiseAfterTitle(child) {
+    this.cancelRaise = null;
+    if (this.child !== child || !child?.pid || this.closing || this.failure || !this.heldHigh) return false;
+    let alive = true;
+    try { alive = this.isAlive(child.pid) !== false; } catch { alive = true; }
+    if (!alive) return false;
+    this.heldHigh = false; this.fixedLevel = 'high';
+    this.priority(nodePriority('high'));
+    try {
+      if (!child.stdin.writableEnded && !child.stdin.destroyed) child.stdin.write(JSON.stringify({op: 'priority', level: 'high'}) + '\n', () => { /* a refused write is the worker's exit, handled there */ });
+    } catch { /* best effort */ }
+    return true;
   }
   receive(frame) {
     if (frame.op === 'state') {
@@ -382,7 +421,7 @@ export class ResidentVoice {
       this.protocolVersion = version; this.available = new Set(profiles); this.prepared = new Set(prepared);
       this.loaded = true;
       this.clearPhase();
-      if (this.lowPriority) this.priority(osConstants.priority.PRIORITY_NORMAL);
+      if (this.lowPriority && !this.fixedLevel) this.priority(osConstants.priority.PRIORITY_NORMAL);
       this.details = {device: frame.device, dtype: frame.dtype, runtime: frame.runtime,
         tensorrt: frame.tensorrt, compiled: frame.compiled,
         acceleration: frame.acceleration || 'eager', cudaGraph: frame.cudaGraph,
@@ -510,6 +549,7 @@ export class ResidentVoice {
   }
   fail(error) {
     this.failure ||= error;
+    this.cancelRaise?.(); this.cancelRaise = null;
     this.clearPhase();
     this.rejectReady?.(error);
     for (const item of this.pending.values()) item.reject(error);
@@ -565,6 +605,7 @@ export class ResidentVoice {
   close() {
     if (this.closing) return this.closing;
     this.closing = Promise.resolve();
+    this.cancelRaise?.(); this.cancelRaise = null;
     this.rejectReady?.(cancelled());
     if (!this.child) { this.publish('stopped'); return this.closing; }
     this.publish('stopping');

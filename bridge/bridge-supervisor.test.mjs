@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {mkdtemp, mkdir, readFile, writeFile, rm, realpath} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {tmpdir, constants as osConstants} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {PassThrough} from 'node:stream';
 import {pathToFileURL} from 'node:url';
@@ -116,6 +116,32 @@ test('starts one hidden bridge with the configured paths and stops it gracefully
   for (const file of [f.statusPath, join(f.state, 'bridge-service.log')]) {
     assert.doesNotMatch(await readFile(file, 'utf8'), /fixture-key-not-a-credential/, 'the credential is never published');
   }
+});
+
+test('the bridge it starts is left at normal priority (it takes high itself once the game has a world, never realtime) unless the state folder priority.txt says normal; a refusal changes nothing', async t => {
+  const f = await fixture(t);
+  const calls = [];
+  const run = supervise(f, {setPriority: (pid, level) => calls.push([pid, level])});
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready');
+  // The title screen is loading with every core busy: the supervisor sets nothing (27 Oct 2026); the log says what the bridge was given.
+  assert.deepEqual(calls, []);
+  assert.match(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /The bridge starts at normal priority and takes high priority itself once the game has a world/);
+  assert.doesNotMatch(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /The bridge runs at high priority/);
+  run.endGame(); await run.done;
+  // The player's way back.
+  await writeFile(join(f.state, 'priority.txt'), ['# if the game stutters', 'priority = normal', ''].join(String.fromCharCode(10)));
+  const calmer = [];
+  const second = supervise(f, {setPriority: (pid, level) => calmer.push([pid, level])});
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready again');
+  assert.deepEqual(calmer, []);
+  const lastLines = (await readFile(join(f.state, 'bridge-service.log'), 'utf8')).split(/\r?\n/).slice(-6).join(' | ');
+  assert.doesNotMatch(lastLines, /takes high priority itself/, 'priority.txt = normal: the bridge is not told it will rise');
+  second.endGame(); await second.done;
+  await rm(join(f.state, 'priority.txt'), {force: true});
+  const refused = supervise(f, {setPriority() { throw Error('access denied'); }});
+  const ready = await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'a refused priority must not stop the start');
+  assert.equal(ready.code, 'bridge-ready');
+  refused.endGame(); await refused.done;
 });
 
 test('under Mod Organizer 2 the bridge gets the start script\'s stat fallbacks and nothing else from NODE_OPTIONS', async t => {
@@ -283,6 +309,22 @@ test('no Edge or Chrome is a setup failure with one clear log line, and the brid
   installed = true;
   await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the bridge did not start once a browser was available');
   run.endGame(); await run.done;
+});
+
+// 27 Oct triage: every browser-missing report of 0.3.2 had Wine's winebrowser.exe as the default browser and no browser folder (Linux, Steam Deck).
+test('a service stopped for a missing browser on Wine or Proton says so in its log, and an ordinary Windows lookup does not', async t => {
+  const f = await fixture(t);
+  const run = supervise(f, {browserAvailable: () => false,
+    browserReport: () => 'Browser lookup: LOCALAPPDATA set. Browser folders found: none. Registered programs found: none. Default browser: winebrowser.exe. Start menu browsers: none.'});
+  await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a missing browser was not reported');
+  const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+  assert.match(log, /This looks like Wine or Proton .*Install Chrome or Edge into the prefix and write its path in browser\.txt/);
+  run.endGame(); await run.done;
+  const g = await fixture(t);
+  const plain = supervise(g, {browserAvailable: () => false, browserReport: () => 'Browser lookup: LOCALAPPDATA set. Default browser: ChromeHTML. Start menu browsers: none.'});
+  await until(() => readJson(g.statusPath), value => value?.state === 'failed', 'a missing browser was not reported');
+  assert.doesNotMatch(await readFile(join(g.state, 'bridge-service.log'), 'utf8'), /Wine or Proton/);
+  plain.endGame(); await plain.done;
 });
 
 test('a Runtime that lacks a data file is "install-incomplete" with no bridge started, says which file once, and recovers when it is back', async t => {

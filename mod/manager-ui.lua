@@ -61,6 +61,8 @@ local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
 -- without the file its rows and notes are not shown. `factory` is what the file returned (or the error text), `instance` is made in
 -- M.configure.
 local customProvider = {factory = select(2, pcall(dofile, 'custom-provider.lua'))}
+-- Remote OmniVoice (mod/remote-omni.lua, docs/REMOTE_OMNIVOICE.md): the server address and the connection test, on the Custom voices page. Optional like the Custom provider.
+local remoteOmni = {factory = select(2, pcall(dofile, 'remote-omni.lua'))}
 -- Key bindings (docs/KEY_BINDINGS.md): the mod's own keys for its five actions, set from a page of their own. The module that listens for them
 -- (mod/key-bindings.lua) is loaded by init.lua (convaiKeyBindsModule) when this page opens or a binding is saved, so a player who never opens the page
 -- and sets nothing loads nothing.
@@ -241,6 +243,8 @@ local function navigate(nextView)
     -- A Set that is waiting belongs to its page (mod/key-bindings.lua, loaded only once the page was opened).
     if view == 'key-bindings' and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     view, listPage, listGroup = nextView, 1, 1
+    -- Characters to invite lists the player's own characters: one look at the file they are kept in (rate-limited by the service, and only while some exist or the editor was opened), so a character made a moment ago is there.
+    if nextView == 'characters' and convaiCustomCharacters then pcall(convaiCustomCharacters.refresh) end
     modelFind.text, modelFind.words = '', {}
     actionFeedback, preparationActionFeedback = nil, false
     refreshQueued = true
@@ -390,6 +394,13 @@ end
 -- number of copies in the party and `shared` comes from sharedCharacterLines.
 local function profileDescription(profile, snapshot, shared, count)
     local settings = snapshot.settings
+    -- A character the player made (mod/custom-characters.lua, docs/CHARACTER_EDITOR.md): no roster voice, memory or relationship lines, just what it is and how it talks.
+    if profile.custom then
+        local lines = {ui.t('Your own character, made in the character editor.') .. '\n',
+            ui.t('They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person.')}
+        if count > 0 then lines[#lines + 1] = ui.t('In your party: {count}', {count = count}) end
+        return table.concat(lines, '\n')
+    end
     -- The voice that really speaks this character's replies, or text when none does (manager.characterVoiceLabel). It names the Convai
     -- voice only when that voice speaks, not when a local voice or the Mistral voice could not run.
     local voice = manager.characterVoiceLabel(profile,
@@ -822,6 +833,35 @@ local function customEndpointRows()
     return rows
 end
 
+-- Settings > Voices > Custom voices: the Remote OmniVoice switch (a saved setting like any other), what it is doing now, the server address and the connection test.
+-- The address and test rows and their texts come from mod/remote-omni.lua; the page is empty without that file.
+local function customVoicesRows(snapshot)
+    local rows = {}
+    if not remoteOmni.instance then return rows end
+    local remote = manager.remoteOmniVoice()
+    local on = snapshot.settings.remoteOmni == true
+    rows[#rows + 1] = setting('remoteOmni', 'Remote OmniVoice', 'bool', on, false,
+        'Render the OmniVoice voices on another PC or graphics card that runs the OmniVoice server, so this PC keeps its frames.\n\nTurn it on, press Apply, add the server address below and pick an OmniVoice entry under Companion voices. If the server cannot be reached, replies show as text and the mod retries every few seconds.')
+    -- What it is doing now, from the saved setting and the voice service's own report.
+    local status
+    if not on then status = ui.t('Off. OmniVoice runs on this PC.')
+    elseif not remote.set and not (remoteOmni.instance.state().address) then status = ui.t('On, but no server address is saved. OmniVoice cannot speak yet.')
+    elseif remote.connected then status = ui.t('Connected. OmniVoice is rendered on the server.')
+    elseif remote.requested ~= 'omni' then status = ui.t('On. It is used when Companion voices is an OmniVoice entry.')
+    elseif remote.fresh then status = ui.t('Not connected. Replies show as text until the server answers.')
+    else status = ui.t('On. Waiting for the conversation service.') end
+    rows[#rows + 1] = readonly('remote-status', 'Status', status, 'Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play.', {value = true})
+    local made, items = pcall(remoteOmni.instance.rows)
+    if made and type(items) == 'table' then
+        for _, item in ipairs(items) do
+            rows[#rows + 1] = action(item.id, item.label, item.value, item.help,
+                function() return remoteOmni.instance.request(item.action) end, item.enabled,
+                {label = true, value = true, description = true})
+        end
+    end
+    return rows
+end
+
 -- What removing the Mistral key changes, as the sentences after "Deletes the saved key." (the row's Remove help): the key powers the text
 -- provider when Mistral is chosen, the companions' Voxtral voice when that is the voice, and V's voice when it is set to Voxtral (V then
 -- speaks with Pocket). Only what is in use now is named; a key nothing depends on says so.
@@ -941,7 +981,13 @@ local function ownKeyRows(snapshot)
         local serviceNote
         if #choices == 0 then
             local serviceState = support and support.serviceState() or 'unknown'
-            if serviceState == 'stopped' then labels[1], serviceNote = ui.t('Service not running'), support.serviceMessage()
+            if serviceState == 'stopped' then
+                labels[1], serviceNote = ui.t('Service not running'), support.serviceMessage()
+                -- The reason in plain words (mod/setup-check.lua serviceWhy): a Runtime that did not load, an incomplete one, a start Windows refused,
+                -- a missing browser. Without it the row could only say "Service not running" (2026-10-27: two players had nothing else to go on).
+                local whyOk, why = false, nil
+                if convaiSetupCheck and convaiSetupCheck.serviceWhy then whyOk, why = pcall(convaiSetupCheck.serviceWhy) end
+                if whyOk and type(why) == 'table' and why.label then labels[1], serviceNote = why.label, why.description or serviceNote end
             elseif serviceState == 'starting' then labels[1], serviceNote = ui.t('Service starting'), support.serviceMessage()
             else labels[1] = ui.t('No model installed') end
         end
@@ -1165,6 +1211,8 @@ local function pageSignature(snapshot)
     end
     if view == 'characters' or view == 'memory' then memorySignature() end
     if view == 'characters' then
+        -- The list changes when the player makes, renames or deletes a character of their own.
+        add('custom:' .. tostring(snapshot.customSignature))
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
             table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard),
@@ -1187,6 +1235,12 @@ local function pageSignature(snapshot)
     if view == 'custom-endpoint' and customProvider.instance then
         local read, signature = pcall(customProvider.instance.signature)
         add('custom-page:' .. (read and signature or ''))
+    end
+    if view == 'custom-voices' and remoteOmni.instance then
+        local read, signature = pcall(remoteOmni.instance.signature)
+        local remote = manager.remoteOmniVoice()
+        add('remote-page:' .. (read and signature or '') .. '|' .. tostring(remote.set) .. tostring(remote.connected) .. tostring(remote.requested) .. tostring(remote.fresh))
+        add(settingsDigest(snapshot.settings))
     end
     if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' or view == 'housemates' then add(settingsDigest(snapshot.settings)) end
     if view == 'key-bindings' then
@@ -1215,7 +1269,12 @@ local function pageSignature(snapshot)
         end
         for _, problem in ipairs(mistral.localModelProblems or {}) do modelKey[#modelKey + 1] = 'x:' .. problem.name .. ':' .. problem.reason end
         -- With no model listed the row names the service state (not running, starting, or its fault), which changes without the player.
-        if support and #(mistral.localModels or {}) == 0 then modelKey[#modelKey + 1] = 's:' .. support.serviceState() .. ':' .. tostring(support.serviceFault()) end
+        if support and #(mistral.localModels or {}) == 0 then
+            modelKey[#modelKey + 1] = 's:' .. support.serviceState() .. ':' .. tostring(support.serviceFault())
+            local whyOk, why = false, nil
+            if convaiSetupCheck and convaiSetupCheck.serviceWhy then whyOk, why = pcall(convaiSetupCheck.serviceWhy) end
+            if whyOk and type(why) == 'table' then modelKey[#modelKey + 1] = 'w:' .. tostring(why.key) end
+        end
         add(table.concat(modelKey, '|'))
         -- The Custom provider's rows (state file read at most every 1.5 s, like the Mistral state above).
         if customProvider.instance then
@@ -1261,10 +1320,12 @@ local function bindingSection(snapshot, module, id, name, how)
         action('kb:set:' .. id, 'Key or button', waiting and ui.t('Cancel') or keyText(module, mine),
             ui.t(how) .. '\n\n' .. ui.t('Press it, then the key or controller button you want. Esc or B cancels. It works at once.'),
             function()
-                local currentPlayer = player()
+                -- At the main menu Game.GetPlayer() can still hand back an object, but V is not there to hear a key (noWorld).
+                local currentPlayer = not noWorld and player() or nil
                 if waiting then module.abandonCapture(currentPlayer); return true end
                 local ok, reason = module.beginCapture(currentPlayer, id)
                 if ok then return true, ui.t('Press the key or controller button for {action}. Esc or B cancels.', {action = keyActionName(id)}) end
+                if reason == 'world' then return false, ui.t('Load a save first. A key can be set only while a game is loaded.') end
                 if reason == 'codeware' then return false, ui.t('Key bindings need Codeware, and this game does not have it. Open Help for what is missing.') end
                 return false, ui.t('The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.')
             end, nil, {value = true, description = true}),
@@ -1314,7 +1375,9 @@ function M.keyBindResult(result)
         named.key, named.other = keyText(module, result.name), keyActionName(result.other)
         actionFeedback = ui.t('{key} is already used for {other}. Choose another.', named)
     elseif result.kind == 'timeout' then
-        actionFeedback = ui.t('No key was pressed, so nothing changed.')
+        -- Not one key event reached the mod (the game keeps them from it in this menu): say so and name the way that always works.
+        if result.heard == 0 then actionFeedback = ui.t('No key press reached the mod, so nothing changed. If keys do not arrive from this menu, set the key in Cyber Engine Tweaks’ Bindings: it works the same.')
+        else actionFeedback = ui.t('No key was pressed, so nothing changed.') end
     elseif result.kind == 'failed' then
         actionFeedback = ui.t(result.reason or 'The settings could not be saved. Nothing was changed.')
     else
@@ -1474,7 +1537,7 @@ local function schema()
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings',
+        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings', ['custom-voices'] = 'settings',
         ['immersive-invitations'] = 'settings', housemates = 'settings'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
@@ -1509,7 +1572,7 @@ local function schema()
         -- Nothing more: the destinations are the page.
     elseif view == 'characters' then
         local shared = sharedCharacterLines(snapshot)
-        local profiles = snapshot.profiles
+        local profiles = snapshot.invitable or snapshot.profiles
         local first, last, pages = pageRange(#profiles)
         -- Without a loaded save the page can be read but nobody can be invited: say so, in a row, not only in greyed buttons.
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
@@ -1747,6 +1810,9 @@ local function schema()
         for _, section in ipairs(paidTierRows(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'custom-endpoint' and customProvider.instance then
         categories[#categories + 1] = category('custom-endpoint', 'Custom endpoint', customEndpointRows(), 'The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.')
+    elseif view == 'custom-voices' and remoteOmni.instance then
+        categories[#categories + 1] = category('custom-voices', 'Custom voices', customVoicesRows(snapshot),
+            'Render the OmniVoice voices on another PC or graphics card that runs the OmniVoice server.')
     elseif view == 'relationships' then
         local rows = relationshipRows(snapshot)
         if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
@@ -1782,6 +1848,8 @@ local function schema()
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
             setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
                 'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
+            setting('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot.settings.npcThreats == true, false,
+                'Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.'),
             -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
@@ -1902,6 +1970,17 @@ local function schema()
             setting('vVoiceMic', 'V speaks your microphone lines', 'bool', snapshot.settings.vVoiceMic == true, false,
                 'After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself.'),
         })
+        -- Remote OmniVoice and the server address are a page of their own, opened from here.
+        if remoteOmni.instance then
+            local at = 1
+            for index, voiceRow in ipairs(voicesCategory.settings) do if voiceRow.id == 'voiceProvider' then at = index + 1 end end
+            table.insert(voicesCategory.settings, at, action('custom-voices', 'Custom voices', 'Open', 'Render the OmniVoice voices on another PC or graphics card: the on/off switch, the server address and a connection test.',
+                function()
+                    -- The page reads the bridge's answer again at once, not at the next poll.
+                    pcall(remoteOmni.instance.state, true)
+                    return navigate('custom-voices')
+                end))
+        end
         for _, voiceRow in ipairs(voicesCategory.settings) do
             if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
                 voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
@@ -2036,6 +2115,11 @@ function M.configure(domain, companions, queueFactory, readiness)
         local created, instance = pcall(paidTierFactory.new, {ui = ui})
         if created and type(instance) == 'table' then paidTier = instance end
     end
+    local remoteFactory = remoteOmni.factory
+    if type(remoteFactory) == 'table' and type(remoteFactory.new) == 'function' then
+        local created, instance = pcall(remoteFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession})
+        remoteOmni.instance = created and type(instance) == 'table' and instance or nil
+    end
     local customFactory = customProvider.factory
     if type(customFactory) == 'table' and type(customFactory.new) == 'function' then
         local created, instance = pcall(customFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession})
@@ -2048,7 +2132,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
+    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['custom-voices'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
 
 function M.view() return view end
 
@@ -2077,7 +2161,7 @@ function M.search() return modelFind.text end
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
     if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier)
-        or (name == 'custom-endpoint' and not customProvider.instance) then name = 'home' end
+        or (name == 'custom-endpoint' and not customProvider.instance) or (name == 'custom-voices' and not remoteOmni.instance) then name = 'home' end
     if view == 'key-bindings' and name ~= view and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     local changed = name ~= view or listPage ~= 1 or listGroup ~= 1 or modelFind.text ~= ''
     view, listPage, listGroup = name, 1, 1
@@ -2236,6 +2320,9 @@ function M.apply(changes)
         refreshQueued = true
         return {ok = false, error = actionFeedback}
     end
+    -- Remote OmniVoice, as this batch leaves it: with it on, an OmniVoice entry needs no pack on this PC (the voice is rendered on a server).
+    local remoteAfter = snapshot.settings.remoteOmni == true
+    for _, change in ipairs(batch) do if change.id == 'remoteOmni' and type(change.value) == 'boolean' then remoteAfter = change.value end end
     for _, change in ipairs(batch) do
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
@@ -2296,7 +2383,7 @@ function M.apply(changes)
             if not choice then return refused('Choose one of the listed companion voices.') end
             -- Without the optional pack an OmniVoice entry cannot be applied: nothing changes and the
             -- player is told what it needs.
-            if choice.provider == 'omni' and not manager.omniPack().installed then
+            if choice.provider == 'omni' and not manager.omniPack().installed and not remoteAfter then
                 return refused('Requires the optional OmniVoice pack (GPU)')
             end
             -- Likewise the Mistral cloud voice needs a Mistral key (it works with any conversation provider).
@@ -2351,9 +2438,11 @@ function M.apply(changes)
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
+        elseif key == 'remoteOmni' then values.remoteOmni = change.value
         elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false, johnny_voice = false, johnny_text = false}
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value
+        elseif key == 'npcThreats' then values.npcThreats = change.value
         elseif key == 'johnnyInHead' then
             -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
             local pick = ({'off', 'off', 'rare', 'medium', 'normal'})[change.value]
@@ -2427,6 +2516,10 @@ local function paidTierOutcome(event, currentPlayer)
 end
 
 function M.slowUpdate(currentPlayer, worldReady)
+    -- A key being set (Key bindings page): read here, because the page is a menu and the game's 10 Hz tick (paced by the frame delta, zero in a menu) does
+    -- not run while it is open. One global and one table read when no Set waits (docs/KEY_BINDINGS.md).
+    local keys = convaiKeyBinds
+    if keys and keys.capturing() then pcall(keys.captureTick, currentPlayer) end
     local currentOwner = identity(currentPlayer)
     local messages = {}
     if currentOwner ~= owner then

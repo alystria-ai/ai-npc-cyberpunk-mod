@@ -27,7 +27,7 @@ The **Local AI model** row shows how Local AI is doing. While the model is not r
 | Local AI model (Not enough memory) | "Not enough free graphics memory to start Local AI. Try a smaller model in Settings." (Local AI stays your provider: each turn says so, and the next turn tries again.) |
 | Local AI model (Unavailable) | "Local AI could not start. Check Local AI in Settings > Conversation provider." or, when only Mature models are installed and Mature content is off, "Only Mature models found. Turn on Mature content to use them." |
 
-When the model is ready the row needs no words. With no model installed the row lists "No model installed". While the conversation service is not running, the row cannot know what is installed: it lists "Service not running" (or "Service starting" while it starts) instead, and the help says what is wrong with the service.
+When the model is ready the row needs no words. With no model installed the row lists "No model installed". While the conversation service is not running, the row cannot know what is installed: it lists "Service not running" (or "Service starting" while it starts) instead, with the reason in brackets ("Runtime not loaded", "Runtime incomplete", "Did not start", "Could not start", or "Needs a browser" alone), and the help says what is wrong with the service and what to do.
 
 The first start after installing takes about a minute while the graphics card prepares the model (the row name says "(Warming up)"). After that the model loads in a few seconds when you start talking, and it is unloaded again after ten minutes without a conversation so the game gets its video memory back.
 
@@ -689,7 +689,7 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   `end()` lowers it again `priorityHoldMs` (5 s) after the last request ends; a persona warm-up and background work (`begin({background: true})`) leave it
   below normal. The embedder loads at normal like the chat model, is lowered once it is up and is raised for the milliseconds of a query. Two system calls per
   turn, nothing per frame. The Pocket worker (`bridge/pocket-voice-worker.py`, `PriorityGate`) and the speech recogniser (`bridge/local-stt-worker.py`,
-  `PriorityGate`) do the same to themselves (the Pocket worker starts at normal priority and is lowered when ready: below normal from its first instruction it was starved to about 1% of a core by a game that was loading), because the python.exe the bridge starts can be a launcher whose child is the real worker.
+  `PriorityGate`) do the same to themselves (**since 27 Oct 2026 the level a turn is raised to is High, not normal, and the chat model also loads at High; one rule for every process on the reply path, with `priority = normal` in `priority.txt` as the way back: docs/PROCESS_PRIORITY.md. `LlamaProcess` takes `raiseLevel: 'high'` for the chat model and Mature model (the same server, one construction in `#startOnce`, so a first start, a model switch, a restart after the device was lost and a step-down all load at High); the embedder keeps the rule above.** The Pocket worker starts at normal priority and is lowered when ready: below normal from its first instruction it was starved to about 1% of a core by a game that was loading), because the python.exe the bridge starts can be a launcher whose child is the real worker.
 - **Pack files (the letter's second part: a model row with one "uncensored" model, no warm-up notice with Mature content off).** With both packs in place the
   list has both models (tested). With the Local AI pack's marker (`manifest.standard.json`) or its model file missing it has one, the Mature model, and with
   Mature content off Local AI then cannot start (`mature-off`): no warm-up and no warm-up notice, and a turn fails with the `mature-off` reason (no other provider answers). A model file with no marker
@@ -1329,6 +1329,8 @@ the same power mode, back to back.
 See "Prompt order (layout v2)" in `docs/MISTRAL.md`: persona and rules, then world and quest context, then the right-now block, then
 the turns. That keeps llama.cpp's prompt cache (hybrid models such as Qwen3.5 and Gemma 4 lose every checkpoint after one changed early
 token) and Mistral's cache valid.
+
+Fresh facts (`docs/FRESH_FACTS.md`, 2026-10-27) are the one deliberate exception: a fact that changed this turn (V's clothes, the weapon in hand) or that V asks about (drunk) is also said as `TRUE RIGHT NOW: ...` at the END of the system message (after the right-now block, so the cache keeps everything before it) and as `[RIGHT NOW, TRUE: ...]` right before V's words, and the history lines that state the old fact are not sent. Measured on the lite model: 38% contradicting answers before, 4% after.
 
 ### Actions
 

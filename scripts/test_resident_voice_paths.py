@@ -209,6 +209,111 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertTrue(worker.cuda_graph_wanted(cuda, {}))
         self.assertFalse(worker.cuda_graph_wanted(cuda, {'CYBERPUNK_CONVAI_CUDA_GRAPH': '0'}))
 
+    @staticmethod
+    def torch_with(hip, cuda, cudnn=True):
+        return SimpleNamespace(version=SimpleNamespace(hip=hip, cuda=cuda), backends=SimpleNamespace(cudnn=SimpleNamespace(enabled=cudnn)))
+
+    def test_rocm_gets_the_fast_find_mode_and_pytorchs_own_convolutions_and_nothing_else_does(self):
+        rocm, environ = self.torch_with('10.1.0', None), {}
+        line = worker.tune_rocm(rocm, environ)
+        self.assertEqual(environ, {'MIOPEN_FIND_MODE': 'FAST'})
+        self.assertFalse(rocm.backends.cudnn.enabled)
+        self.assertEqual(line, "[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=FAST; convolutions: PyTorch's own, MIOpen off")
+        # A find mode the player already set stays theirs.
+        mine = {'MIOPEN_FIND_MODE': 'NORMAL'}
+        self.assertEqual(worker.tune_rocm(self.torch_with('10.1.0', None), mine), "[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=NORMAL (already set); convolutions: PyTorch's own, MIOpen off")
+        self.assertEqual(mine, {'MIOPEN_FIND_MODE': 'NORMAL'})
+        # The override keeps MIOpen's convolutions on.
+        kept = self.torch_with('10.1.0', None)
+        self.assertEqual(worker.tune_rocm(kept, {worker.ROCM_MIOPEN_VARIABLE: '1'}), '[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=FAST; convolutions: MIOpen kept on')
+        self.assertTrue(kept.backends.cudnn.enabled)
+        for value in ('0', '', 'on'):
+            off = self.torch_with('10.1.0', None)
+            worker.tune_rocm(off, {worker.ROCM_MIOPEN_VARIABLE: value})
+            self.assertFalse(off.backends.cudnn.enabled, f'only "1" keeps MIOpen, not {value!r}')
+        # NVIDIA (CUDA build), a CPU build and a half-made torch object: untouched.
+        for other in (self.torch_with(None, '12.8'), self.torch_with(None, None), self.torch_with('', '12.8'), SimpleNamespace()):
+            environ = {}
+            self.assertIsNone(worker.tune_rocm(other, environ))
+            self.assertEqual(environ, {}, 'no MIOpen variable on a CUDA build')
+            if hasattr(other, 'backends'):
+                self.assertTrue(other.backends.cudnn.enabled, 'cuDNN stays on for NVIDIA')
+
+    def test_a_library_that_switches_miopen_back_on_during_the_load_is_told_off_again(self):
+        rocm = self.torch_with('10.1.0', None, cudnn=True)
+        self.assertIn('off again', worker.keep_rocm_convolutions(rocm, {}))
+        self.assertFalse(rocm.backends.cudnn.enabled)
+        self.assertIsNone(worker.keep_rocm_convolutions(rocm, {}), 'already off: nothing to say')
+        kept = self.torch_with('10.1.0', None, cudnn=True)
+        self.assertIsNone(worker.keep_rocm_convolutions(kept, {worker.ROCM_MIOPEN_VARIABLE: '1'}))
+        self.assertTrue(kept.backends.cudnn.enabled)
+        cuda = self.torch_with(None, '12.8', cudnn=True)
+        self.assertIsNone(worker.keep_rocm_convolutions(cuda, {}))
+        self.assertTrue(cuda.backends.cudnn.enabled)
+
+    def test_the_worker_sets_its_own_priority_only_when_the_bridge_asks_and_never_to_realtime(self):
+        applied = []
+        self.assertIsNone(worker.apply_own_priority({}, applied.append))
+        for other in ('normal', 'realtime', 'highest', 'HIGH', ''):
+            self.assertIsNone(worker.apply_own_priority({worker.PRIORITY_VARIABLE: other}, applied.append), other)
+        self.assertEqual(applied, [])
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, lambda level: applied.append(level) or True), '[priority] high')
+        self.assertEqual(applied, [0x00000080], 'HIGH_PRIORITY_CLASS')
+        self.assertNotIn(0x00000100, worker.PRIORITY_CLASSES.values(), 'REALTIME_PRIORITY_CLASS is never used')
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: applied.append(level) or True), '[priority] below normal')
+        self.assertEqual(applied[-1], 0x00004000)
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, lambda level: False), '[priority] could not be set to high')
+        def refuse(level):
+            raise OSError('access denied')
+        self.assertIn('could not be set to high (access denied)', worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, refuse))
+
+    def test_the_priority_command_raises_the_worker_once_after_the_title_screen_without_touching_the_session(self):
+        # docs/PROCESS_PRIORITY.md "Start-up": a worker started while the game was loading is at normal; the bridge sends {op: priority, level: high} when the game has a world.
+        import contextlib
+        import io
+        applied, frames = [], []
+        session = worker.ProfileSession({'refs': {}}, lambda *values: (b'', 1), lambda _: '', frames.append, {}, lambda: {},
+                                        apply_priority=lambda level: applied.append(level) or True)
+        session.prepared['judy-alvarez'] = 'kept'
+        def run(request):
+            captured = io.StringIO()
+            with contextlib.redirect_stderr(captured):
+                keep_going = session.handle(request)
+            return keep_going, captured.getvalue().strip()
+        self.assertEqual(run({'op': 'priority', 'level': 'high'}), (True, '[priority] high (after the title screen)'))
+        self.assertEqual(applied, [0x00000080], 'HIGH_PRIORITY_CLASS, never REALTIME')
+        self.assertEqual(run({'op': 'priority', 'level': 'high'}), (True, ''), 'a second command does nothing')
+        self.assertEqual(applied, [0x00000080])
+        self.assertEqual(frames, [], 'no frame goes back: the bridge reads only answers to its requests')
+        self.assertEqual(list(session.prepared), ['judy-alvarez'], 'no request or queue state is touched')
+        # Anything but high is ignored, and an ignored command does not use up the one raise.
+        other = worker.ProfileSession({'refs': {}}, lambda *values: (b'', 1), lambda _: '', frames.append, {}, lambda: {}, apply_priority=lambda level: applied.append(level) or True)
+        for level in ('below', 'normal', 'realtime', 'highest', None, ''):
+            captured = io.StringIO()
+            with contextlib.redirect_stderr(captured):
+                self.assertTrue(other.handle({'op': 'priority', 'level': level}))
+            self.assertEqual(captured.getvalue(), '', str(level))
+        self.assertEqual(applied, [0x00000080])
+        # A refusal is a log line, never a failure, and does not stop the command loop.
+        refused = worker.ProfileSession({'refs': {}}, lambda *values: (b'', 1), lambda _: '', frames.append, {}, lambda: {}, apply_priority=lambda level: (False, 5))
+        captured = io.StringIO()
+        with contextlib.redirect_stderr(captured):
+            self.assertTrue(refused.handle({'op': 'priority', 'level': 'high'}))
+        self.assertEqual(captured.getvalue().strip(), '[priority] could not be set to high (Windows error 5) (after the title screen)')
+        self.assertEqual(frames, [])
+        # The note's wording on its own, with the same rules as the start-up note.
+        self.assertIsNone(worker.apply_requested_priority({'level': 'below'}, lambda level: True))
+        self.assertEqual(worker.apply_requested_priority({'level': 'high'}, lambda level: True), '[priority] high (after the title screen)')
+
+    @unittest.skipUnless(os.name == 'nt', 'the Windows system call')
+    def test_the_real_system_call_accepts_the_pseudo_handle_of_the_current_process(self):
+        # 27 Oct 2026 live log: "[priority] could not be set to high". ctypes' default int conversion of GetCurrentProcess()'s -1 became 0xFFFFFFFF (error 6).
+        # NORMAL is set here: a test process is normal or lower, and the call must report that it worked.
+        done, error = worker.set_process_priority_class(0x00000020)
+        self.assertTrue(done, f'SetPriorityClass failed with Windows error {error}')
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: worker.set_process_priority_class(0x00000020)), '[priority] below normal')
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, lambda level: (False, 6)), '[priority] could not be set to high (Windows error 6)')
+
     def test_the_backend_line_names_rocm_or_cuda_and_the_card_from_pytorch(self):
         def fake(hip, cuda, available=True):
             properties = SimpleNamespace(name='AMD Radeon RX 9070 XT' if hip else 'NVIDIA GeForce RTX 4070', total_memory=16304 * 1048576)

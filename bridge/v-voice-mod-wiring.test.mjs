@@ -21,9 +21,11 @@ test('the scan runs once, in the background a little after start-up, and only wh
   const scans = [...bridge.matchAll(/loadVVoiceReferencesWithMods\(\{\.\.\.vVoiceLoadOptions, scan: true, current: vVoiceReferences\.voices\}\)/g)];
   assert.equal(scans.length, 1, 'one scan call in the whole bridge');
   assert.match(bridge, /if \(vVoice\.enabled\) startVVoiceModScan\(\);/, 'asked for only on the settings poll, when V\'s voice is on');
-  const starter = bridge.slice(bridge.indexOf('const startVVoiceModScan ='), bridge.indexOf('const startVVoiceModScan =') + 400);
+  const starter = bridge.slice(bridge.indexOf('const startVVoiceModScan ='), bridge.indexOf('// Which reference V speaks from'));
   assert.match(starter, /if \(vModScanStarted\) return;/);
-  assert.match(starter, /setTimeout\(\(\) => \{ void scanVVoiceMods\(\); \}, V_MOD_SCAN_DELAY_MS\)\.unref\?\.\(\)/, 'deferred, never awaited');
+  // Not at the title screen (27 Oct 2026): it waits for the game's world in 5 s looks, then runs after its delay; the scan itself is started in a detached call, never awaited.
+  assert.match(starter, /const wait = \(\) => \{ if \(titleHolds\(\)\) setTimeout\(wait, 5000\)\.unref\?\.\(\); else setTimeout\(run, V_MOD_SCAN_DELAY_MS\)\.unref\?\.\(\); \};/, 'deferred, never awaited');
+  assert.match(starter, /void scanVVoiceMods\(\)\.finally\(/);
   const body = bridge.slice(bridge.indexOf('const scanVVoiceMods ='), bridge.indexOf('const startVVoiceModScan ='));
   assert.match(body, /installVVoiceReference\(voice, \[\.\.\.referenceRoots, voiceConfig\.runtime\?\.referenceDirectory\]/);
   assert.match(body, /await liveVoices\?\.refresh\(V_VOICE_KEYS\[gender\]\)/, 'the running voices follow, the player\'s own clip still wins inside refresh');

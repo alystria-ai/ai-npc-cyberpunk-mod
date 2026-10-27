@@ -6,19 +6,19 @@
 -- Nothing is recorded while Settings > Privacy > "Send error reports automatically" is off.
 -- It also shows the one notice that says error reports are sent: once, at the first load after updating, in gameplay.
 --
--- Cost: nothing per frame. A record is one small file read and write, at most ten per game session; tick() is one boolean test
+-- Cost: nothing per frame. A record is one small file read and write; tick() is one boolean test
 -- once the notice was decided.
 if type(convaiErrorReports) == 'table' and convaiErrorReports.version == 1 then return convaiErrorReports end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {version = 1}
 
 local FILE = 'runtime/error-events.json'
-local MAX_EVENTS = 10                 -- kept in the file, newest last
-local MAX_PER_SESSION = 10            -- recorded in one game session
+local MAX_EVENTS = 40                 -- kept in the file, newest last
+local MAX_PER_SESSION = 200           -- recorded in one game session: a bound against a runaway, far above what a session produces
 local KEEP_S = 7 * 24 * 3600          -- an event older than a week is dropped from the file
 local NOTICE_DELAY_S = 40             -- after the world is ready: after the setup check's own first-load notice
 -- 'nsui' is the check of the Companion Manager's host (Mod Configuration Menu or Native Settings UI, setup-check.lua): its code says which one answered.
-local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
+local GAME_IDS = {'service', 'files', 'build', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
 
 local manager
 local recorded, count = {}, 0
@@ -112,6 +112,8 @@ function M.noteSetup(problems, checks)
             lines[#lines + 1] = id .. ': ' .. (plain(check.state, 20) or '?') .. ' ' .. (plain(check.code, 40) or '?')
                 .. (id == 'nsui' and plain(check.version, 40) and (' ' .. plain(check.version, 40)) or '')
                 -- Why the service never started ('plugin-not-loaded', 'no-launcher-trace', setup-check.lua): the line of every report of this session says it.
+                -- Which game each half is for (setup-check.lua buildCheck): "build: problem runtime-wrong (scripts=2.5 runtime=2.31 game=2.5)" tells a mixed install at a glance.
+                .. (id == 'build' and plain(check.detail, 60) and (' (' .. plain(check.detail, 60) .. ')') or '')
                 .. (id == 'service' and check.code == 'never' and plain(check.detail, 40) and (' (' .. plain(check.detail, 40) .. ')') or '')
         end
     end

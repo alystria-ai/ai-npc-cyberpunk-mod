@@ -742,9 +742,20 @@ function M.build(profiles, archetypes)
     return catalog
 end
 function M.resolve(catalog, actor)
-    if actor.managedKey then
-        local profile = catalog.keys[actor.managedKey]
-        return actor.managedKey, profile and profile.name or actor.name
+    if actor.managedKey or actor.copy then
+        local profile = actor.managedKey and catalog.keys[actor.managedKey]
+        -- A copy of ours keeps its roster profile (a roster profile always wins; the two ambient residents are crowd stand-ins, not roster people).
+        -- Any other copy (a generic model, an archetype, a resident, a model with no profile at all: the Model browser's) can be a character the player made (docs/CHARACTER_EDITOR.md "Matching"), found the way custom.match finds
+        -- anybody: by the model's record (actor.copyRecord, the original "Character." name the copy was made from, not the private clone the game
+        -- spawned) or its name (actor.copyName). actor.managedKey is the profile the copy was made with, never a custom key. catalog.custom is
+        -- nil until a character exists, so without one this is a single comparison.
+        local custom = (not profile or profile.kind == 'ambient') and catalog.custom
+        if custom then
+            local entry = custom.match({record = actor.copyRecord or actor.record, name = actor.copyName or actor.name})
+            if entry then return entry.key, entry.name end
+        end
+        if actor.managedKey then return actor.managedKey, profile and profile.name or actor.name end
+        return nil, actor.name
     end
     -- The record by its hash string (actor.record), then by its readable name (actor.facts.recordName, set when the facts were read) and the display name. A
     -- named roster character whose hash string did not match (2026-10-22: Panam in her apartment scene fell to npc-aldecaldos-female) is still found by name.

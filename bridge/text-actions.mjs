@@ -21,24 +21,15 @@
 // choices STAY (live at V's place, the apartment id follows), MOVEOUT and JOIN (come along from home; a name or ALL follows). Distract is gone.
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
-import {parseDriveUnavailable, SEATED_MODES, HOME_APARTMENT_NAMES} from './companion-actions.mjs';
+import {parseDriveUnavailable, DRIVE_LIMIT, SEATED_MODES, HOME_APARTMENT_NAMES, COMMAND_WORDS, decideReaction, decidedReactionText} from './companion-actions.mjs';
 import {screenWords, explicitRequest, certainWords} from './text-action-words.mjs';
+import {screenMessage, screenedKinds, screenCode} from './threat-screen.mjs';
 
 export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE']);
 // Housemates (docs/HOUSEMATES.md): live at V's place (an apartment id follows), move out, join V's party from home (a member name or ALL follows).
 export const HOME_CODES = Object.freeze(['STAY', 'MOVEOUT', 'JOIN']);
 
-// Why the game cannot let this companion drive V right now (codes: bridge/companion-actions.mjs). Each becomes one short sentence of what
-// V has to do first.
-export const DRIVE_LIMIT = Object.freeze({
-  'player-driving': 'V is driving a vehicle that is not V\'s own car; V would have to get out of it first, then ask',
-  'player-seated': 'V is sitting in a vehicle that is not V\'s own car; V would have to get out first, then ask',
-  'no-waypoint': 'no destination is marked on the map; V has to mark one first',
-  'no-car': "V's own car is not standing close by; V has to stand next to it or call it first",
-  'car-moving': "V's car has to stand still first",
-  combat: 'there is fighting going on; it has to be over first',
-  busy: 'it is not possible right now',
-});
+export {DRIVE_LIMIT};
 
 const FOLLOW_LIMIT = {
   quest: 'you are needed where you are for something important', scene: 'you are in the middle of something', combat: 'there is fighting going on',
@@ -301,8 +292,9 @@ const REQUEST_QUESTION = /^(?:[^?!.]{0,30}[,:] )?(?:can|could|would|will|won'?t|
 // The last three are an ordinary NPC's reactions (docs/NPC_REACTIONS.md, `reactionMenu` below): [attack], [call-police] (also spelled
 // "call police" or "police") and [leave], which is also the companion code above.
 // A tag's own full stop ("Fine. [leave].") goes with it, so no doubled stop is left behind.
-const TAG = /\[\s*(?:action\s*[:=]\s*)?(drive|fight|follow|leave|dismissed|none|no[ _-]?(?:tag|reaction)|attack|call[ _-]?police|police)\b\s*(?:[:=]\s*([^\]\n]{0,40}))?\]\.?/gi;
-const LOWER_CODES = ['drive', 'fight', 'follow', 'leave', 'dismissed', 'none', 'no-tag', 'no-reaction', 'attack', 'police', 'call-police', 'callpolice'];
+// [cower] and [obey] are the threat reactions' (docs/NPC_THREATS_COMMANDS.md).
+const TAG = /\[\s*(?:action\s*[:=]\s*)?(drive|fight|follow|leave|dismissed|none|no[ _-]?(?:tag|reaction)|attack|call[ _-]?police|police|cower|obey)\b\s*(?:[:=]\s*([^\]\n]{0,40}))?\]\.?/gi;
+const LOWER_CODES = ['drive', 'fight', 'follow', 'leave', 'dismissed', 'none', 'no-tag', 'no-reaction', 'attack', 'police', 'call-police', 'callpolice', 'cower', 'obey'];
 const normalCode = code => {
   const upper = String(code).toUpperCase().replace(/[ _]/g, '-');
   return upper === 'DISMISSED' ? 'LEAVE' : upper === 'CALLPOLICE' || upper === 'POLICE' ? 'CALL-POLICE' : upper;
@@ -351,43 +343,55 @@ export function splitActions(raw, {streaming = false} = {}) {
 // before the persona speaks, and with "[none]" as the answer for everything else the model judged every line (a joke, a flirt, "I could murder
 // a burger") correctly. The cost: a model that has chosen sometimes stops after the tag ("[attack]"); the host asks once more for the words.
 
-const REACTION_TAG = Object.freeze({leave: 'leave', 'call-police': 'call-police', attack: 'attack'});
+// With the threats switch (docs/NPC_THREATS_COMMANDS.md) a fight with fists (brawl) is written [attack] as well, and the three commands [obey]: V's
+// words already chose which kind each tag is (bridge/threat-screen.mjs), and the offer never holds both fights or two commands.
+const REACTION_TAG = Object.freeze({leave: 'leave', 'call-police': 'call-police', attack: 'attack', brawl: 'attack', cower: 'cower',
+  'get-down': 'obey', stop: 'obey', 'exit-vehicle': 'obey'});
 // When each tag is the right one, in the words the model reads. A civilian who is robbed or held at gunpoint reports it; a vicious insult sends
 // the person off; a ganger or a merc fights back.
 const REACTION_WORDS = Object.freeze({
   'call-police': 'you report V to the police (a robbery, a weapon, a threat to hurt or kill you)',
   attack: 'you turn on V and fight (a threat or an assault you will not take)',
+  brawl: 'you turn on V and fight with your fists (an insult or a threat you will not take)',
+  cower: 'you freeze in fear, crouch and cover where you are (V is too much for you to run from)',
   leave: 'you end the talk and walk or run off (a vicious insult, or V is too much for you)',
 });
-const REACTION_ORDER = Object.freeze(['leave', 'call-police', 'attack']);
+const REACTION_ORDER = Object.freeze(['leave', 'call-police', 'attack', 'cower', 'brawl', 'get-down', 'stop', 'exit-vehicle']);
+const COMMANDS = Object.freeze(['get-down', 'stop', 'exit-vehicle']);
 // The order of the note: the serious reactions first.
-const REACTION_NOTE_ORDER = Object.freeze(['call-police', 'attack', 'leave']);
-// The code in a reply (normalCode above) -> the reaction kind of the offer.
-const REACTION_OF_CODE = Object.freeze({LEAVE: 'leave', 'CALL-POLICE': 'call-police', ATTACK: 'attack'});
+const REACTION_NOTE_ORDER = Object.freeze(['call-police', 'attack', 'brawl', 'cower', 'leave']);
+// The code in a reply (normalCode above) -> the reaction kinds it can stand for; the offer holds at most one of each row.
+const KINDS_OF_CODE = Object.freeze({LEAVE: ['leave'], 'CALL-POLICE': ['call-police'], ATTACK: ['attack', 'brawl'], COWER: ['cower'], OBEY: COMMANDS});
+const kindOf = (code, kinds) => (KINDS_OF_CODE[code] ?? []).find(kind => kinds.includes(kind)) ?? null;
 // A tag at the very end of the reply, after the words, with at most closing punctuation after it; or at the very start, before them.
-const TRAILING_TAG = /\[\s*(leave|attack|call[ _-]?police|police)\s*\][\s.!?"'*)]*$/i;
-const LEADING_TAG = /^[\s"'*(]*\[\s*(leave|attack|call[ _-]?police|police)\s*\]/i;
+const TRAILING_TAG = /\[\s*(leave|attack|call[ _-]?police|police|cower|obey)\s*\][\s.!?"'*)]*$/i;
+const LEADING_TAG = /^[\s"'*(]*\[\s*(leave|attack|call[ _-]?police|police|cower|obey)\s*\]/i;
 
 /** The note a reply is written with when the game offers these reactions: kept short, it is read on every turn of such a person. */
 export function reactionNotes(kinds) {
   const list = REACTION_NOTE_ORDER.filter(kind => kinds?.includes(kind)).map(kind => `[${REACTION_TAG[kind]}] ${REACTION_WORDS[kind]}`).join('; ');
-  if (!list) return '';
+  const command = COMMANDS.find(kind => kinds?.includes(kind));
+  if (!list && !command) return '';
   return 'GAME REACTION: judge V\'s latest message, then begin your reply with exactly one tag, a space, and what you say out loud (one or two sentences, never the tag alone). '
-    + 'If the message threatens to hurt or kill you, robs you, assaults you or is a vicious insult, react whatever your character is like (scared, calm or tough) with one of: ' + list + '. '
-    + 'Anything else (small talk, questions, jokes, flirting, rude or annoyed remarks, "shut up", "go away", insults that are only rude, talk about violence in general) gets [none]. The tag is not spoken; the no-brackets rule does not apply to it.';
+    + (list ? 'If the message threatens to hurt or kill you, robs you, assaults you or is a vicious insult, react whatever your character is like (scared, calm or tough) with one of: ' + list + '. ' : '')
+    + (command ? `V just told you to ${COMMAND_WORDS[command]}: [obey] you do it, only if your character would (scared, sensible or outgunned); if you would not, refuse in your own words with [none]. ` : '')
+    + (list ? 'Anything else (small talk, questions, jokes, flirting, rude or annoyed remarks, "shut up", "go away", insults that are only rude, talk about violence in general) gets [none].'
+      : 'Anything else gets [none].') + ' The tag is not spoken; the no-brackets rule does not apply to it.';
 }
 
-/** The kind of reaction when the whole reply is one reaction tag and nothing else ("[attack]"), else null. */
-export function reactionOnlyTag(raw) {
+/** The kind of reaction when the whole reply is one reaction tag and nothing else ("[attack]"), else null. kinds: the turn's (decides [attack] and [obey]). */
+export function reactionOnlyTag(raw, kinds = ['leave', 'call-police', 'attack']) {
   const {found, text} = splitActions(raw);
-  return found.length === 1 && !text.trim() ? REACTION_OF_CODE[found[0].code] ?? null : null;
+  return found.length === 1 && !text.trim() ? kindOf(found[0].code, kinds) : null;
 }
 
 /** The note of the second request for a reply that was only a tag: the choice is made, the model is asked only for the words that go with it. */
 export function reactionChosenNotes(kind) {
   return `GAME REACTION: you have just decided to ${REACTION_ACT[kind] ?? 'react'}. Say out loud, in one or two short sentences and in your own voice, what you say as you do it. Write no tag.`;
 }
-const REACTION_ACT = Object.freeze({leave: 'end the talk and walk away from V', 'call-police': 'report V to the police', attack: 'turn on V and attack'});
+const REACTION_ACT = Object.freeze({leave: 'end the talk and walk away from V', 'call-police': 'report V to the police', attack: 'turn on V and attack',
+  brawl: 'turn on V and fight with your fists', cower: 'cower where you are, too scared to run', 'get-down': 'get down, as V told you',
+  stop: 'stop where you are, as V told you', 'exit-vehicle': 'get out of the vehicle, as V told you'});
 
 /**
  * The reaction an ordinary NPC's reply asked for, from the turn's offer (`config.companionAction`). Returns null when the turn offers none.
@@ -396,24 +400,48 @@ const REACTION_ACT = Object.freeze({leave: 'end the talk and walk away from V', 
  *   pick(raw)    {kind} for a reply that ends with an offered tag, else {kind: null, why}: 'no-tag', 'not-offered', 'not-at-end',
  *                'several-tags' or 'no-words' (codes only, never the words of the reply)
  *   resolve(kind)  the message for CompanionActions.deliver
+ *   screen       for a threats offer (docs/NPC_THREATS_COMMANDS.md): how V's words read (screenCode), the kinds above being what they left;
+ *                for a plan without the switch: how they read, for the log only
+ *   game         with a plan: the kind the game chose, or none(<why>) (companion-actions verdictWhy), for the turn's line
+ * heard: V's words this turn (the typed line or the transcript). A threats offer is narrowed by them; without them it keeps only the kinds that
+ * need no words (fail closed).
  */
-export function reactionMenu(offer) {
-  const kinds = Array.isArray(offer?.reaction?.kinds) ? REACTION_ORDER.filter(kind => offer.reaction.kinds.includes(kind)) : [];
-  if (!kinds.length || typeof offer.token !== 'string' || !offer.token) return null;
+export function reactionMenu(offer, {heard} = {}) {
+  if (typeof offer?.token !== 'string' || !offer.token || !offer.reaction) return null;
+  // The game decided (docs/NPC_THREATS_COMMANDS.md "Who decides"): by the bridge from the typed line (already handed over: `decided`), or here from
+  // the transcript by the game's plan (`deliver` is the message to hand over at once). No tag is asked for or read; the note says what the person does.
+  // A plan rides on every offer (both sides of the threats switch); its verdict is logged (game=) whether or not it chose.
+  const verdict = !offer.reaction.decided && offer.reaction.plan ? decideReaction(offer.reaction, heard ?? '') : null;
+  const game = offer.reaction.decided ? {kind: offer.reaction.decided, deliver: null, screen: undefined, reading: offer.reaction.reading ?? null}
+    : verdict?.kind ? {kind: verdict.kind, deliver: {version: 1, token: offer.token, reaction: verdict.kind, by: 'game'}, screen: verdict.screen, reading: verdict.reading} : null;
+  if (game && REACTION_ORDER.includes(game.kind)) {
+    return {kinds: [], decided: game.kind, deliver: game.deliver, screen: game.screen, game: game.kind, notes: 'GAME REACTION: ' + decidedReactionText(game.kind, game.reading),
+      pick: () => ({kind: null, why: 'decided-by-game'}), resolve: () => null};
+  }
+  const offered = Array.isArray(offer.reaction.kinds) ? REACTION_ORDER.filter(kind => offer.reaction.kinds.includes(kind)) : [];
+  if (!offered.length) return null;
+  const read = offer.reaction.threats === true ? screenMessage(heard ?? '') : null;
+  const kinds = read ? screenedKinds(offered, read) : offered;
+  const screen = read ? screenCode(read) : verdict?.screen;
+  const undecided = verdict ? {game: verdict.game} : {};
+  // Nothing left for these words (a calm line to a cop): no note, and the turn's line says so.
+  if (!kinds.length) return {kinds, notes: '', screen, ...undecided, pick: () => ({kind: null, why: 'screened'}), resolve: () => null};
   return {
     kinds,
+    screen,
+    ...undecided,
     notes: reactionNotes(kinds),
     pick(raw) {
       const text = String(raw ?? '');
       const {found, text: spoken} = splitActions(text);
-      const asked = found.map(item => REACTION_OF_CODE[item.code]).filter(Boolean);
+      const asked = found.filter(item => Object.hasOwn(KINDS_OF_CODE, item.code));
       if (!asked.length) return {kind: null, why: 'no-tag'};
       const end = TRAILING_TAG.exec(text.trimEnd()) ?? LEADING_TAG.exec(text);
       if (!end) return {kind: null, why: 'not-at-end'};
       if (found.length > 1) return {kind: null, why: 'several-tags'};
       if (!spoken.replace(/\s+/g, '').length) return {kind: null, why: 'no-words'};
-      const kind = REACTION_OF_CODE[normalCode(end[1])];
-      return kinds.includes(kind) ? {kind} : {kind: null, why: 'not-offered'};
+      const kind = kindOf(normalCode(end[1]), kinds);
+      return kind ? {kind} : {kind: null, why: 'not-offered'};
     },
     resolve: kind => (kinds.includes(kind) ? {version: 1, token: offer.token, reaction: kind} : null),
   };

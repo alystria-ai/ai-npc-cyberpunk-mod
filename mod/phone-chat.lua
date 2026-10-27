@@ -429,6 +429,21 @@ local function rebuildContacts()
     end
     M.registered = false
 end
+-- A character the player made has no Convai character: its Chat answers only through Mistral, Local AI or Custom (docs/CHARACTER_EDITOR.md). M.contactBlocked(key) is set by
+-- init.lua and asks the provider now; it is called when a Chat is painted or a message is sent, never per frame. Convai answering: the Chat is listed, closed, with this line.
+local CUSTOM_NEEDS_PROVIDER = 'This character needs Mistral, Local AI or Custom to answer.'
+local function customNeedsProvider(key)
+    if type(M.contactBlocked) ~= 'function' then return false end
+    local ok, blocked = pcall(M.contactBlocked, key)
+    return ok and blocked == true
+end
+-- A Chat row the journal has no contact for, as {key, name} (its contact id is its profile key, and only such rows carry a name), or nil. Asked when
+-- a holocall is started from the row (mod/holocall.lua), never per frame.
+function M.callRow(contact)
+    local key, name = M.catalog[contact], M.names[contact]
+    if type(key) ~= 'string' or type(name) ~= 'string' or name == '' then return nil end
+    return {key = key, name = name}
+end
 function M.setContacts(group, rows)
     M.groups[group] = type(rows) == 'table' and rows or nil
     rebuildContacts()
@@ -617,6 +632,16 @@ function M.update(player, delta)
     local supported, contact = pcall(function() return player:ConvaiPhoneChatContact() end)
     if not supported then return end -- staged Lua remains safe before native install
     player:ConvaiPhoneChatTick()
+    -- The redscript's account of opening a chat (a few lines per opening, none otherwise): handed to the probe log by init.lua. A missing method
+    -- (older scripts) is asked about once.
+    if type(M.trace) == 'function' and M.traceMissing ~= true then
+        for _ = 1, 8 do
+            local asked, line = pcall(function() return player:ConvaiPhoneChatTakeTrace() end)
+            if not asked then M.traceMissing = true; break end
+            if type(line) ~= 'string' or line == '' then break end
+            pcall(M.trace, line)
+        end
+    end
     if not M.registered then
         player:ConvaiPhoneChatClearContacts()
         -- Without the text input no chat is offered (the tab lists nothing) instead of one that opens and cannot be typed in.
@@ -663,6 +688,8 @@ function M.update(player, delta)
             M.errors[submission.contact] = 'Type a message first.'
         elseif not key or not M.manager.profileEnabled(key) then
             M.errors[submission.contact] = 'Conversations are disabled for this contact.'
+        elseif customNeedsProvider(key) then
+            M.errors[submission.contact] = CUSTOM_NEEDS_PROVIDER
         elseif M.pending then
             M.errors[submission.contact] = 'Wait for your previous reply before sending another message.'
         elseif type(M.serviceBlocked) == 'function' and M.serviceBlocked() then
@@ -787,7 +814,8 @@ function M.update(player, delta)
     if contact ~= '' and M.dirty then
         local key = M.catalog[contact]
         local blocked = M.blockAll or M.blockedProfiles[key]
-        local enabled = historyReady and key ~= nil and not blocked and M.manager.profileEnabled(key)
+        local needsProvider = key ~= nil and customNeedsProvider(key)
+        local enabled = historyReady and key ~= nil and not blocked and M.manager.profileEnabled(key) and not needsProvider
         local lines = {}
         for _, row in ipairs(historyReady and M.history[contact] or {}) do
             local line = NewObject('CyberpunkConvai.ConvaiPhoneChatLine')
@@ -795,7 +823,7 @@ function M.update(player, delta)
         end
         local waiting = M.pending and (M.pending.contact == contact and 'Message sent. Waiting for reply.' or 'Waiting for your previous message to finish.') or ''
         local status = (M.errors or {})[contact] or waiting
-        if not enabled then status = key and 'Conversations are disabled in Companion Manager.' or 'Conversation is unavailable for this contact.' end
+        if not enabled then status = key and (needsProvider and CUSTOM_NEEDS_PROVIDER or 'Conversations are disabled in Companion Manager.') or 'Conversation is unavailable for this contact.' end
         if blocked then status = 'Memory clearing is in progress. Your draft has been kept.' end
         if not historyReady then status = 'Saved Chat cleanup could not be verified. Please wait for the memory service.' end
         local reset = M.lastPaint ~= contact or M.clearDraft == contact or M.resetDrafts[contact] == true

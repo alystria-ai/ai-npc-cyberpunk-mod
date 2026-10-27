@@ -54,3 +54,77 @@ test('no redscript key handler listens before a session: Input/Key is registered
     assert.doesNotMatch(readFileSync(new URL(name, scripts), 'utf8'), /Input\/Key|Input\/Axis|Input\/Action/);
   }
 });
+
+test('the title-frame stall probe: frame gaps against its own onUpdate, once at 45 s and once with the first world frame', () => {
+  // the frame's start is stamped in onUpdate right after the native re-detect, with no local and only until the report; the title branch closes it
+  assert.match(init, /pcall\(convaiNative\.redetect, 'onUpdate'\) end\n    -- Start-up probe:[^\n]*\n    if convaiBoot and not convaiBoot\.reported then convaiBoot\.top = os\.clock\(\) end/);
+  assert.match(init, /convaiBootFrame\(boot, finished\)/);
+  assert.match(init, /Start-up: title screen 45 s after onInit, %d frames; %s/);
+  assert.match(init, /%d title frames, the mod used %.1f ms in them, worst %.2f ms at %.1f s; %s/);
+  // the tail names the gaps over 100 ms, the stalls over 250 ms with their time, its whole title onUpdate, and the first freeze of 3 s (a save loading)
+  const at = init.indexOf('convaiBootGaps = function(boot)');
+  const tail = init.slice(at, init.indexOf('end)', at));
+  for (const part of ['frame gaps over 100 ms', 'over 250 ms at', 'whole title onUpdate', 'no freeze of 3 s or more yet']) assert.ok(tail.includes(part), part);
+  const frame = init.slice(init.indexOf('convaiBootFrame = function(boot, finished)'), at);
+  assert.doesNotMatch(frame, /dofile|io\.open|json\.|print\(|log\(/);
+});
+
+test('the V helper voice (a Python process importing torch) waits for the first world of the game, or ten minutes, and its start line carries the time', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const voice = readFileSync(new URL('./voice-selection.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const helper = readFileSync(new URL('./v-helper-voice.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  assert.match(bridge, /const TITLE_HOLD_MAX_MS = 600_000;/);
+  assert.match(bridge, /new VoiceSelection\(voiceConfig, \{project, configPath: localVoiceConfigPath, startHold: helperHolds,/);
+  assert.match(bridge, /if \(worldSession\?\.ready === true\) endTitle\('the game has a world'\);\n  else if \(process\.uptime\(\) \* 1000 >= TITLE_HOLD_MAX_MS\) endTitle\('the title hold ran out'\);/);
+  // the first world heartbeat releases it at once
+  assert.match(bridge, /if \(nextWorld && endTitle\('the game has a world'\)\) \{[^\n]*localVoice\.tickVHelper\(\); \}/);
+  // only the first load waits: a running helper is not held
+  assert.match(voice, /if\(!this\.vHelper\.running&&this\.startHold\(\)\)return false;/);
+  assert.match(helper, /loading starts at/);
+});
+
+test('the title screen has no High priority: the service starts at normal, takes High when the game has a world (or a turn arrives, or the hold runs out), and says when', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const supervisor = readFileSync(new URL('./bridge-supervisor.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  // the gate closes before anything is spawned, and the service raises itself through it
+  assert.match(bridge, /priorityGate\.log = line => process\.stderr\.write\(line \+ '\\n'\);\nif \(turnPriority === 'high'\) \{\n  priorityGate\.close\(\);\n  priorityGate\.whenOpen\(\(\) => \{\n    const done = setProcessPriority\(process\.pid, 'high'\);/);
+  assert.ok(bridge.indexOf('priorityGate.close();') < bridge.indexOf('new VoiceSelection('), 'closed before the voice service can spawn a worker');
+  // three ways to end the title: the world, a turn, the long wait
+  assert.match(bridge, /function endTitle\(reason\) \{\n  if \(titleHoldOver\) return false;\n  titleHoldOver = true;\n  timeline\([^\n]*\);\n  priorityGate\.open\(reason\);/);
+  assert.match(bridge, /endTitle\('a turn arrived'\);/);
+  assert.match(bridge, /setTimeout\(\(\) => \{ endTitle\('the title hold ran out'\); \}, TITLE_HOLD_MAX_MS\)/);
+  // the supervisor no longer raises the bridge at its start
+  assert.doesNotMatch(supervisor, /setProcessPriority\(pid, 'high'/);
+  assert.match(supervisor, /The bridge starts at normal priority and takes high priority itself once the game has a world\./);
+  // the start-up timeline: wall-clock lines for the few events a freeze can be lined up with
+  assert.match(bridge, /\[Timeline\] \$\{new Date\(\)\.toISOString\(\)\} \+\$\{process\.uptime\(\)\.toFixed\(1\)\} s \$\{event\}/);
+  for (const event of ['the service began (modules loaded)', 'the settings were read for the first time', 'V voice mod scan starts', 'V voice mod scan done', 'a save is loading']) assert.ok(bridge.includes(`timeline('${event}')`), event);
+});
+
+test('the V voice mod scan waits for the world (27 Oct 2026: its cache write fell inside the title\'s 2.4 s freeze), then its 20 s delay', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const block = bridge.slice(bridge.indexOf('const startVVoiceModScan = () => {'), bridge.indexOf('// Which reference V speaks from'));
+  assert.match(block, /const wait = \(\) => \{ if \(titleHolds\(\)\) setTimeout\(wait, 5000\)\.unref\?\.\(\); else setTimeout\(run, V_MOD_SCAN_DELAY_MS\)\.unref\?\.\(\); \};/);
+  assert.doesNotMatch(block, /setTimeout\(\(\) => \{ void scanVVoiceMods\(\); \}, V_MOD_SCAN_DELAY_MS\)/, 'no timer that starts it at the title');
+});
+
+test('V\'s helper voice starts when a save is loading (the game\'s lease says so), not only when the world exists, with its own Python bytecode cache', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  assert.match(bridge, /function helperHolds\(\) \{ return titleHolds\(\) && !loadBegun; \}/);
+  assert.match(bridge, /if \(session\?\.loading === true && !loadBegun && !titleHoldOver\) \{ loadBegun = true; timeline\('a save is loading'\);/);
+  assert.match(bridge, /pythonCacheDirectory: resolve\(stateDirectory, 'python-cache'\)/);
+  // the game side: the lease carries `loading` from the PlayerPuppet OnDetach of a load, cleared by the first ready write; set just before the session is abandoned, whose forced write carries it
+  const lease = init.slice(init.indexOf('local function publishWorldSession('), init.indexOf('local function refreshKnowledgeFrame()'));
+  assert.match(lease, /loading = ready ~= true and convaiHeartbeat\.loading or nil\}/);
+  assert.match(lease, /if ready == true then convaiHeartbeat\.loading = nil end/);
+  assert.match(init, /convaiHeartbeat\.restoreWait, convaiHeartbeat\.restoreAttached = os\.clock\(\), nil\n            convaiHeartbeat\.loading = true\n            abandonSession\('player detached', false, true\)/);
+  assert.doesNotMatch(init, /convaiPublishLoading/, 'no extra write: the detach already publishes the lease once, with the flag');
+});
+
+test('the title-frame probe names the wall-clock second a stall began (UTC), so it lines up with the service\'s [Timeline] lines', () => {
+  assert.match(init, /string\.format\('%\.1f\+%\.0f@%s', top - boot\.t0, gap \* 1000, os\.date\('!%H:%M:%S', began\)\)/);
+  assert.match(init, /worst %\.0f ms at %\.1f s \(began %s UTC\), over 250 ms at \[%s\]/);
+  assert.match(init, /first freeze of 3 s or more: %\.0f ms at %\.1f s \(began %s UTC\)/);
+  const frame = init.slice(init.indexOf('convaiBootFrame = function(boot, finished)'), init.indexOf('convaiBootGaps = function(boot)'));
+  assert.doesNotMatch(frame, /dofile|io\.open|json\.|print\(|log\(/);
+});

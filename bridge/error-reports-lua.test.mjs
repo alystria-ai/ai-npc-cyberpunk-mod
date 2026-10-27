@@ -49,18 +49,22 @@ test('an event is written once per kind and code, as JSON the service reads, and
     return tostring(file())`), 'nil');
 });
 
-test('at most ten events a session; a week-old event is dropped from the file, newer ones are kept', () => {
+test('fifty distinct events of a session all count; the file keeps the newest forty; a week-old event is dropped from it; a runaway is bounded', () => {
   const text = run(`
     files['runtime/error-events.json'] = json.encode({version = 1, events = {
       {kind = 'service-failed', code = 'old', at = (now - 8 * 24 * 3600) * 1000.0},
       {kind = 'service-failed', code = 'recent', at = (now - 3600) * 1000.0}}})
-    for index = 1, 14 do M.record('setup-problem', 'problem ' .. index) end
-    assert(M.inspect().count == 10)
-    return file()`);
+    for index = 1, 50 do assert(M.record('setup-problem', 'problem ' .. index) == true) end
+    assert(M.inspect().count == 50)
+    local text = file()
+    for index = 51, 400 do M.record('setup-problem', 'problem ' .. index) end
+    assert(M.inspect().count == 200, 'a runaway stops at a sanity bound')
+    return text`);
   const parsed = parseGameEvents(text);
-  assert.equal(parsed.events.length, 10);
+  assert.equal(parsed.events.length, 40);
   assert.ok(!parsed.events.some(row => row.message === 'old'));
-  assert.equal(parsed.events.at(-1).message, 'problem 10');
+  assert.equal(parsed.events.at(-1).message, 'problem 50');
+  assert.equal(parsed.events[0].message, 'problem 11');
 });
 
 test('the first-load setup check gives the versions and check lines, and an event per critical problem the game found', () => {
@@ -136,4 +140,21 @@ test('the one-time notice waits for gameplay and 40 s, shows once, is remembered
   assert.equal(shown, `T:${NOTICE}`);
   assert.equal(run(`noticed = true; M.tick(true); now = now + 60; return tostring(M.tick(true))`), 'nil', 'already shown at an earlier load');
   assert.equal(run(`setting = false; M.tick(true); now = now + 60; return tostring(M.tick(true)) .. marks`), 'nil0');
+});
+
+test('a mixed install (Scripts of one game, Runtime of the other) is an event with the three games and a setup line in every report of the session', () => {
+  const parsed = parseGameEvents(run(`
+    local checks = {build = {state = 'problem', code = 'runtime-wrong', detail = 'scripts=2.5 runtime=2.31 game=2.5'},
+      files = {state = 'ok', code = 'found', version = '0.3.2'}, game = {state = 'ok', code = 'tested', version = '2.5'}}
+    assert(M.noteSetup({'build'}, checks) == true)
+    return file()`));
+  assert.deepEqual(parsed.events.map(row => row.message), ['build runtime-wrong']);
+  assert.deepEqual(parsed.events[0].detail, {detail: 'scripts=2.5 runtime=2.31 game=2.5'});
+  assert.ok(parsed.game.setup.includes('build: problem runtime-wrong (scripts=2.5 runtime=2.31 game=2.5)'), parsed.game.setup.join('|'));
+  // when the three agree the line still carries them, so every report shows which build it came from
+  const fine = parseGameEvents(run(`
+    assert(M.noteSetup({}, {build = {state = 'ok', code = 'match', detail = 'scripts=2.5 runtime=2.5 game=2.5'}}) == true)
+    return file()`));
+  assert.ok(fine.game.setup.includes('build: ok match (scripts=2.5 runtime=2.5 game=2.5)'), fine.game.setup.join('|'));
+  assert.deepEqual(fine.events, []);
 });

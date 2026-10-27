@@ -5,7 +5,8 @@
 -- party) and one leave offer (a party member leaving); the first matching
 -- packet consumes the whole lease. The first speaker of a manual group round
 -- leases a leave offer only (docs/WORLD_COMPANIONS.md). An ordinary world NPC with none of those offers leases at most one
--- reaction offer instead (leave, call the police, attack; docs/NPC_REACTIONS.md, mod/npc-reactions.lua), private turns only.
+-- reaction offer instead (leave, call the police, attack; docs/NPC_REACTIONS.md, mod/npc-reactions.lua; with the threats switch on also
+-- cower, brawl and three commands, docs/NPC_THREATS_COMMANDS.md), private turns only.
 -- A holocall line (the caller is not here) leases only a meeting offer (immersive invitations, docs/IMMERSIVE_INVITATIONS.md): come and meet V,
 -- or call a standing meeting off. The bridge answers it after her reply is complete, with the offer's own one-use token.
 local M = {}
@@ -217,7 +218,7 @@ function M.new(options)
         local reaction
         if private and not call and not drive and not tactic and not follow and not leave then
             reaction = capturedOffer(options.reactionOffer, context.entity, context)
-            if reaction and (type(reaction.kinds) ~= 'table' or #reaction.kinds < 1 or #reaction.kinds > 3) then reaction = nil end
+            if reaction and (type(reaction.kinds) ~= 'table' or #reaction.kinds < 1 or #reaction.kinds > 8) then reaction = nil end
         end
         -- A housing offer (mod/housemates.lua): V's flats to move into, the housemates V may call along, and moving out. Private turns
         -- carry the apartments; the first speaker of a group round carries only the audience.

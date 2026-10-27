@@ -50,7 +50,7 @@ function world(over = {}) {
   const context = vm.createContext({...flags, mistral, calls, PROVIDERS: ['convai', 'mistral', 'local', 'custom'],
     adoptProviderSetting: async settings => mistral.setPreference(settings.conversationProvider),
     realtime: {close: async () => calls.push('close-realtime')}, phoneRealtime: {close: async () => calls.push('close-phone')},
-    sessions: {clear: () => calls.push('clear-sessions')}, realtimeSessions: {clear() {}}, sceneryMemory: {clear() {}},
+    sessions: {clear: () => calls.push('clear-sessions')}, realtimeSessions: {clear() {}}, sceneryMemory: {clear() {}}, gearMemory: {clear() {}},
     warmTurnConnections: () => {}, dropPrefetch: () => calls.push('drop-prefetch'), prefetchObserved: '', logLocalDown: () => {}, customEndpoint: {},
     localServer: {ensure: async () => calls.push('local-ensure'), stop: async () => calls.push('local-stop')},
     mistralControl: {publishStatus: async () => {}}, rewarmLocalVoice: () => calls.push('rewarm'), localEmbedder: {close: async () => calls.push('embedder-close')},

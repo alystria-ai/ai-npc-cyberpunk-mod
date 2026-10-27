@@ -47,7 +47,7 @@ test('the bridge opens the local voice again after a world reset, a key switch a
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   // Not before the first settings poll has read the playback setting (voiceSettingsRead): with voice playback Off no browser is started at launch.
   assert.match(source, /function rewarmLocalVoice\(\) \{\s*(?:\/\/[^\n]*\n\s*)*if \(voiceSettingsRead && mistral\.active && localVoice\.playbackEnabled !== false && !stopped\) void realtime\.prewarmLocal\(\);/);
-  assert.match(source, /localVoice\.update\(settings, preview, voiceBoundaryBusy\(\)\)\) \{\s*dropPrefetch\(\); prefetchObserved = '';\s*\}\s*if \(!voiceSettingsRead\) \{ voiceSettingsRead = true; rewarmLocalVoice\(\); \}/);
+  assert.match(source, /localVoice\.update\(settings, preview, voiceBoundaryBusy\(\)\)\) \{\s*dropPrefetch\(\); prefetchObserved = '';\s*\}\s*if \(!voiceSettingsRead\) \{ voiceSettingsRead = true; timeline\('the settings were read for the first time'\); rewarmLocalVoice\(\); \}/);
   const sites = [/partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';\s*rewarmLocalVoice\(\);/,
     /Conversation key: [^\n]*\n\s*rewarmLocalVoice\(\);/, /async function finishProviderSwitch\(\) \{[\s\S]*?await phone\.forgetSessions\(\)\.catch\(\(\) => \{\}\);\s*rewarmLocalVoice\(\);/];
   for (const site of sites) assert.match(source, site);

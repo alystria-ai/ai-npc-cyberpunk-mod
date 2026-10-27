@@ -118,7 +118,8 @@ function parseRequest(raw) {
 }
 
 // {version: 1, contact, mode: 'audio' | 'holo'} from mod/holocall.lua -> {contact, mode}, or null.
-const HOLOCALL_CONTACT = /^[A-Za-z0-9_]{1,64}$/;
+// A journal contact id (letters, digits, underscore) or, for a Chat row with no journal contact, the character's profile key (lowercase, digits, hyphens; up to 80).
+const HOLOCALL_CONTACT = /^[A-Za-z0-9_-]{1,80}$/;
 export function parseHolocall(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 1) return null;
   if (typeof value.contact !== 'string' || !HOLOCALL_CONTACT.test(value.contact)) return null;
@@ -130,6 +131,18 @@ export function parseHolocall(value) {
 // sessions are partitioned by the actor entity, save-bound memory and quest knowledge are never attached.
 export function isAmbientProfile(key) {
   return key === 'resident-male' || key === 'resident-female' || (typeof key === 'string' && /^npc-[a-z0-9-]+$/.test(key));
+}
+
+/**
+ * Who a turn is with, for anything the bridge remembers between turns: the profile key for a named character, `<profile>|<entity>` for a generic person.
+ * A crowd profile is a template shared by every stranger who uses it, so state kept under the profile alone would pass from one stranger to the next
+ * (live 2026-10-27: two female pedestrians, one `resident-female`). The conversation history, the Convai session and the "already told" flags are already
+ * keyed by the person (bridge/conversation-knowledge.mjs sessionKey); this is the same rule for the smaller per-profile states (the carried mood).
+ * Without a usable entity the profile key is returned, as before.
+ */
+export function personKey(input) {
+  const profile = input?.profileKey;
+  return isAmbientProfile(profile) && typeof input.entity === 'string' && /^\d+ULL$/.test(input.entity) ? `${profile}|${input.entity}` : profile;
 }
 
 // The archetype facts the adapter sends: fixed vocabulary only (TweakDB enum names, the catalog base and title).

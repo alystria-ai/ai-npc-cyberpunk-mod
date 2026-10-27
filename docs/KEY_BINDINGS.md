@@ -34,6 +34,18 @@ Choosable: letters, digits, F1 to F24, the arrows and navigation keys, the numbe
 - **Set**: `M.beginCapture` asks the redscript half to report the keys a player may choose (`ConvaiKeyBindsCapture(<list>)`; an empty list stops it) and waits; the tick reads what it heard. Escape and the controller's B cancel; a key that cannot be bound (a modifier, the mouse, a stick) is ignored and the Set goes on waiting; presses within 0.4 s of pressing Set are ignored (a held Enter repeating). The saved key is registered on the tick that reads it (with the capture still listening for its release until then), so the release of the key just chosen is heard, and the bound keys do nothing for half a second after a choice. The result comes back through `managerUi.keyBindResult`, which sets the line under **Back** and redraws the page.
 - **Game versions**: the key target is the one place the builds differ. `GameVariant.reds` has `ConvaiKeyTarget(key, action)` (Codeware 2.31 filters by action; the 2.5 target does not) and now `ConvaiKeyTargetsByAction()` (true on 2.31, false on 2.5): `KeyBinds.reds` adds a press and a release target per key on 2.31, one target per key on 2.5, and checks the action in the handler on both. Both builds compile (`scripts/Compile-Redscript.ps1 -GameVersion 2.5` and `-GameVersion 2.31 -GameDirectory <the 2.31 folder>`), also against a game without Codeware (the methods that need it have plain stand-ins; the page then says "Key bindings need Codeware").
 
+## Why a Set could do nothing (26 Oct triage, three installs)
+
+The page is a menu, and a menu stops the game's clock: the frame delta is zero there, and the 10 Hz tick (`convaiKeyBindsTick`) is paced by that delta, so it does not run
+while the page is open. Until 27 Oct a Set was read by that tick only: the key was heard, queued and never read, the 12 s timeout never came, and the log said
+"waiting for a key" followed by "Set dropped" when the player left (installs `e940d8`, `72ad0d` of 0.3.1/0.3.2, four tries in 30 s on the second). The owner's own checks
+passed because the shortcut that opens the manager from the world does not pause the game, and the tick ran. Now `mod/manager-ui.lua` `M.slowUpdate` (which runs in
+menus, a quarter-second period) calls `mod/key-bindings.lua` `captureTick` while a Set waits: one global and one table read otherwise. `captureTick` ends the Set on its
+12 s wall clock, reads the capture's queue and saves the key; the tick calls the same function for a Set made in the world, and a menu being open no longer throws the Set
+away (only losing V does). At the main menu there is no V to hear a key: the button says "Load a save first. A key can be set only while a game is loaded." (before,
+"The mod's scripts did not load"). A Set that ends with no key event heard at all (`ConvaiKeyBindCaptureHeard`, logged as "N key events heard") says "No key press reached the mod ... set the key in Cyber Engine Tweaks' Bindings";
+that is the case to look for if Codeware's key callbacks do not arrive while a pause menu is open (not verified without the game).
+
 ## The Cyber Engine Tweaks line
 
 CET stores a binding in `bin/x64/plugins/cyber_engine_tweaks/bindings.json` as one 64-bit number per action of a mod: four 16-bit slots of Windows virtual-key codes, the first key in the top 16 bits (F6 alone is `0x0075` followed by 48 zero bits; a chord such as Ctrl + J has the modifier first). The numbers exceed 2^53, so `mod/key-bindings.lua` (`decodeBind`, `decodeCet`) reads them as text and divides by 65536 four times. CET reads the file when the game starts and writes it when the game ends; **the mod never writes it**.

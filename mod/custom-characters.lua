@@ -75,6 +75,8 @@ function M.new(options)
                 count = count + 1
                 for _, record in ipairs(type(row.records) == 'table' and row.records or {}) do
                     if type(record) == 'string' and record ~= '' then
+                        -- The record to spawn when the player invites this character: the first plain one (a clone's "NCA." copy only exists with that mod), else the first.
+                        if entry.record == nil or (not entry.record:find('^Character%.') and record:find('^Character%.')) then entry.record = record end
                         local variants = {record}
                         -- "Character.X" is also the original of a record-cloning mod's copy ("NCA.Character.X"): no row lists its clone.
                         if record:find('^Character%.') then
@@ -137,6 +139,19 @@ function M.new(options)
     function self.watch() self.watchUntil = clock() + WATCH_FOR end
 
     function self.has(key) return self.keys[key] ~= nil end
+    -- Every character as {key, name, record}, sorted by key (record nil: found by display name only, so there is no model to invite). Called when the list changed
+    -- (onChange), never per frame; the Companion Manager's invite list and the phone's Chat tab are built from it.
+    function self.list()
+        local rows = {}
+        for key, entry in pairs(self.keys) do rows[#rows + 1] = {key = key, name = entry.name, record = entry.record} end
+        table.sort(rows, function(a, b) return a.key < b.key end)
+        return rows
+    end
+    -- True while Mistral, the Local AI or Custom answers (asked now, at most one file read per 1.5 s inside manager.textProviderActive). Used when a Chat is opened, never per frame.
+    function self.providerReady()
+        self.checkProvider()
+        return self.count > 0 and providerOk == true
+    end
     function self.get(key) return self.keys[key] end
     function self.size() return self.count end
 

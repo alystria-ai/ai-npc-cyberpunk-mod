@@ -1054,3 +1054,24 @@ test('a meet tag in her reply never reaches the memory', async () => {
     assert.deepEqual(memory.recall({profileKey: 'judy-alvarez', channel: 'phone'}).turns.map(({v, r}) => ({v, r})), [{v: 'come meet me', r: 'On my way, I know that place.'}]);
   } finally { await close(); }
 });
+
+// ---- Crowd people with the same template (live 2026-10-27: two female pedestrians shared one history) ------------------------------
+
+test('two strangers on one crowd template keep their own turns; the same stranger keeps its own', async () => {
+  const {server, host, logs, close} = await harness(() => 'Coffee is down the block.');
+  try {
+    const stranger = (text, ambientKey, entity) => turn(text, {local: {profileKey: 'resident-female', name: 'Night City Resident Female', channel: 'private', ambientKey, entity}});
+    await host.reply(stranger('hello there, first stranger', 'key-a', '10009597ULL'));
+    await host.reply(stranger('hello there, second stranger', 'key-b', '11146316ULL'));
+    const seen = server.requests.at(-1).body.messages.map(message => message.content).join('\n');
+    assert.doesNotMatch(seen, /first stranger/, 'the second stranger saw the first one\'s talk');
+    await host.reply(stranger('and again, first stranger', 'key-a', '10009597ULL'));
+    const again = server.requests.at(-1).body.messages.map(message => message.content).join('\n');
+    assert.match(again, /hello there, first stranger/, 'the same stranger keeps its own turns');
+    assert.doesNotMatch(again, /second stranger/);
+    // One log line per turn says whose history it was, so a live test can read it.
+    assert.deepEqual(logs.filter(line => line.startsWith('Crowd person:')).map(line => line.replace(/ key=\S+/, '')),
+      ['Crowd person: profile=resident-female entity=10009597ULL earlier-turns=0', 'Crowd person: profile=resident-female entity=11146316ULL earlier-turns=0',
+        'Crowd person: profile=resident-female entity=10009597ULL earlier-turns=1']);
+  } finally { await close(); }
+});

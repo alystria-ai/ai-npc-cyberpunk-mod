@@ -16,7 +16,8 @@ export const DEFAULTS = Object.freeze({
   dailyTurnCap: 100,
   remintMarginSeconds: 300,
   // Error reports (errors.js)
-  errorInstallPerDay: 40,
+  // The only per-installation ceiling on reports (the client keeps no daily cap of its own; a repeat of one error is already turned away once a day per installation).
+  errorInstallPerDay: 1000,
   errorIpPerHour: 30,
   errorStorePerDay: 300,
   errorSamples: 10,

@@ -9,6 +9,7 @@ import fengari from 'fengari';
 const moduleSource = readFileSync(new URL('../mod/key-bindings.lua', import.meta.url), 'utf8');
 const initSource = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const readSource = name => readFileSync(new URL(name, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const managerUiSource = readSource('../mod/manager-ui.lua');
 const redsSource = readSource('../r6/scripts/CyberpunkConvai/KeyBinds.reds').replace(/^\s*\/\/.*$/gm, ''); // comments are not code
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
@@ -47,7 +48,10 @@ function player:ConvaiKeyBindsCapture(keys) called('Capture'); outsideEvent('Con
   if type(keys) ~= 'string' then error('ConvaiKeyBindsCapture takes a String, got ' .. type(keys)) end
   self.captures[#self.captures + 1] = keys ~= ''
   self.captured, self.listening, self.keys = {}, keys ~= '', keys ~= '' and keys or self.keys
+  if keys ~= '' then self.heard = 0 end
   return true end
+-- KeyBinds.reds ConvaiKeyBindCaptureHeard: the key events the capture's listener was handed since the Set began.
+function player:ConvaiKeyBindCaptureHeard() called('Heard'); return self.heard or 0 end
 function player:ConvaiKeyBindTake() called('Take'); return table.remove(self.queue, 1) or '' end
 -- KeyBinds.reds ConvaiKeyBindsObservable: whether the key events call into Lua as they happen (GameVariant.reds: 2.5 yes, 2.31 no).
 function player:ConvaiKeyBindsObservable() called('Observable'); return flags.observable end
@@ -62,7 +66,7 @@ function player:key(name)
   if not self.listening then return end
   local listed = false
   for listedName in (self.keys or ''):gmatch('[^,]+') do if listedName == name then listed = true; break end end
-  if listed then self.captured[#self.captured + 1] = 'k' .. name end
+  if listed then self.captured[#self.captured + 1] = 'k' .. name; self.heard = (self.heard or 0) + 1 end
 end
 kb.deps = {
   bindings = function() return saved end,
@@ -639,6 +643,71 @@ test('GameVariant: both game builds say whether a key target filters by action (
   assert.match(v25, /\npublic func ConvaiKeyNotifyInEvent\(\) -> Bool \{\s*return true;/);
   assert.match(redsSource, /ArrayPush\(this\.m_convaiKeyEvents, value\);\s*if ConvaiKeyNotifyInEvent\(\) \{ this\.ConvaiKeyBindNotify\(\); \};/);
   assert.match(redsSource, /public final func ConvaiKeyBindsObservable\(\) -> Bool \{\s*return ConvaiKeyNotifyInEvent\(\);/);
+});
+
+// 26 Oct triage: three installs of 0.3.1/0.3.2 logged "waiting for a key" and then nothing, not even the 12 s timeout. The page is a menu; a menu stops the
+// game's clock, the 10 Hz tick is paced by the frame delta, so the tick that reads a Set never ran. The owner's own tests passed because the Manager popup he
+// opens in the world does not pause the game.
+test('Set in a menu: the manager\'s slow update reads it (captureTick) while the 10 Hz tick does not run, and a menu does not drop it', () => run(fixture + `
+  assert(kb.beginCapture(player, 'text') == true)
+  clock = clock + 0.5; player:key('IK_F7')
+  -- No tick() at all: the game is paused in a menu. Only the slow update asks.
+  kb.captureTick(player)
+  assert(saved.text == 'IK_F7' and kb.capturing() == nil and lastResult().kind == 'bound', 'saved without the tick')
+  assert(player.list == '-,IK_F7,-,-,-' and not player.listening, 'registered, and the capture switched off')
+  -- The tick with the world not ready (a menu open) no longer throws a waiting Set away.
+  kb.beginCapture(player, 'voice'); clock = clock + 0.5
+  tick(0.1, false); tick(0.1, false)
+  assert(kb.capturing() == 'voice', 'a menu is where a Set is made')
+  player:key('IK_F9'); tick(0.1, false)
+  assert(saved.voice == 'IK_F9' and kb.capturing() == nil, 'and the tick reads it there too')
+  -- Nothing waits: captureTick costs nothing and touches nothing.
+  local before = player.calls.CaptureTake or 0
+  kb.captureTick(player); kb.captureTick(nil)
+  assert((player.calls.CaptureTake or 0) == before)
+`));
+
+test('Set in a menu: it times out on the clock (12 s) from captureTick alone and says how many key events were heard; no player ends it', () => run(fixture + `
+  kb.beginCapture(player, 'text')
+  clock = clock + 11; kb.captureTick(player)
+  assert(kb.capturing() == 'text', 'still waiting at 11 s')
+  clock = clock + 2; kb.captureTick(player)
+  assert(kb.capturing() == nil and lastResult().kind == 'timeout' and lastResult().heard == 0, 'no key event reached the listener at all')
+  assert(logged('text: timeout (0 key events heard)'), table.concat(logs, '|'))
+  assert(not player.listening, 'the listener is switched off')
+  -- Keys heard, none usable: the page says so differently (heard is not 0).
+  kb.beginCapture(player, 'text'); clock = clock + 1
+  player.heard = 1
+  clock = clock + 13; kb.captureTick(player)
+  assert(lastResult().kind == 'timeout' and lastResult().heard == 1)
+  -- V is gone (the save was left): the Set cannot be answered.
+  kb.beginCapture(player, 'text')
+  kb.captureTick(nil)
+  assert(kb.capturing() == nil and lastResult().kind == 'cancelled' and logged('cancelled (no game is loaded)'))
+  -- Redscript without the question: no number, no failure.
+  function player:ConvaiKeyBindCaptureHeard() error('no such method') end
+  kb.beginCapture(player, 'text'); clock = clock + 13; kb.captureTick(player)
+  assert(lastResult().kind == 'timeout' and lastResult().heard == nil)
+`));
+
+test('Set at the main menu: no player means "world", not "the scripts did not load"; the refusals are logged', () => run(fixture + `
+  local ok, reason = kb.beginCapture(nil, 'text')
+  assert(ok == false and reason == 'world', tostring(reason))
+  assert(logged('text: refused (no game is loaded)'))
+  player.ready = false
+  local ok2, reason2 = kb.beginCapture(player, 'text')
+  assert(ok2 == false and reason2 == 'codeware' and logged('text: refused (Codeware is missing)'))
+  local ok3, reason3 = kb.beginCapture({}, 'text')
+  assert(ok3 == false and reason3 == 'scripts' and logged('text: refused (the redscript half is not loaded)'))
+`));
+
+test('the page reads a waiting Set from the manager\'s slow update, refuses a Set with no game loaded, and tells a Set that heard nothing', () => {
+  const slow = managerUiSource.slice(managerUiSource.indexOf('function M.slowUpdate('));
+  assert.match(slow.slice(0, 900), /convaiKeyBinds[\s\S]*capturing\(\)[\s\S]*pcall\(keys\.captureTick, currentPlayer\)/, 'slowUpdate drives the capture');
+  assert.match(managerUiSource, /local currentPlayer = not noWorld and player\(\) or nil\s*if waiting then module\.abandonCapture/, 'no player at the main menu');
+  assert.match(managerUiSource, /reason == 'world' then return false, ui\.t\('Load a save first\./);
+  assert.match(managerUiSource, /result\.heard == 0 then actionFeedback = ui\.t\('No key press reached the mod/);
+  assert.match(redsSource, /public final func ConvaiKeyBindCaptureHeard\(\) -> Int32 \{\s*return this\.m_convaiKeyCaptureEvents;/);
 });
 
 test('the shipped file lists carry both new files', () => {
