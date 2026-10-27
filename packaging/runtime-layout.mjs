@@ -130,6 +130,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/omni-own-python.mjs',
   'bridge/omni-pack.mjs',
   'bridge/omni-pcm.mjs',
+  'bridge/omni-remote.mjs',
   'bridge/parsed-snapshot.mjs',
   'bridge/party-connections.mjs',
   'bridge/pcm-edges.mjs',
@@ -165,6 +166,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/realtime-host.mjs',
   'bridge/reasoning.mjs',
   'bridge/relationship-routing.mjs',
+  'bridge/remote-omni-control.mjs',
+  'bridge/remote-voice.mjs',
   'bridge/repeat-log.mjs',
   'bridge/reply-language.mjs',
   'bridge/reply-stream.mjs',
@@ -240,6 +243,9 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/jali-face-text.mjs', // imported only by the worker
   'bridge/face-visemes.mjs', // imported only by the worker
   'bridge/resident-voice-worker.py',
+  // The OmniVoice server (docs/REMOTE_OMNIVOICE.md): a separate program started from the server folder, not imported by the bridge.
+  'bridge/omni-server.mjs',
+  'bridge/omni-server-main.mjs',
   'bridge/voice-cuda-graph.py',
   'bridge/pocket-voice-worker.py',
   'bridge/pocket_voice_runtime.py',

@@ -1,5 +1,7 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {ResidentVoice, pathAttestationFailed, noCudaFailed, timedOutFailed, outOfMemoryFailed} from './resident-voice.mjs';
+import {RemoteVoice, REMOTE_RETRY_DELAYS_MS} from './remote-voice.mjs';
+import {parseServerAddress} from './omni-remote.mjs';
 import {lacksNvidia, isSmallCard, underNeeded} from './gpu-vendors.mjs';
 import {spillVerdict} from './gpu-memory.mjs';
 import {OMNI_SOURCE_VARIABLE, OWN_PYTHON_VARIABLE, ownPythonSummary} from './omni-own-python.mjs';
@@ -51,6 +53,10 @@ export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windo
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 // The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.
 export const TEXT_ROUTE = 'text';
+// Remote OmniVoice (docs/REMOTE_OMNIVOICE.md, Settings > Voices > Custom voices): while the setting `remoteOmni` is on, the OmniVoice worker is a bridge/remote-voice.mjs client of a
+// server on another PC (or another card): nothing of OmniVoice loads on this PC, the local pack, card and memory checks do not apply, and a server that cannot be reached
+// or fails in a reply is the same case as a failed local voice: the reply is written (TEXT_ROUTE) and the server is asked again after a short wait. Pocket is not started in its
+// place (the remote voice is chosen on purpose), and no failure of it files an error report (the player's own network is not a bug of the mod).
 const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
 export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 6000});
@@ -100,6 +106,8 @@ export class VoiceSelection {
     this.availabilities={pocket:new Set(pocketRegistry.keys),convai:new Set(),[TEXT_ROUTE]:new Set()};
     // The optional OmniVoice pack (worker Python, model weights): a function or a fixed {installed, missing}.
     this.omniPackSource=options.omniPack||(()=>({installed:true,missing:[]}));
+    // Remote OmniVoice: `omniRemoteAddress()` is the saved server address (text or {host, port}); `remoteWanted` follows the setting `remoteOmni`.
+    this.remoteAddressSource=typeof options.omniRemoteAddress==='function'?options.omniRemoteAddress:()=>null;this.remoteWanted=false;this.remoteSeen='';this.clientRemote='';
     // A character the player made (bridge/custom-characters.mjs) has a voice of its own only when it was given a clip before the service
     // started; `aliases(key)` names the voice that speaks it until then and when it has none (the resident voice of its gender).
     this.aliases=typeof options.aliases==='function'?options.aliases:null;
@@ -146,7 +154,11 @@ export class VoiceSelection {
     this.previewSince = 0;
     this.phoneAnalysis=options.phoneAnalysis;
     this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
-    this.omniFactory=options.omniFactory||((settings,hooks)=>new ResidentVoice(settings,hooks));
+    this.omniFactory=options.omniFactory||((settings,hooks)=>{
+      const remote=this.omniRemote;
+      return remote?new RemoteVoice(settings,{endpoint:remote,referenceRoots:this.options.omniReferenceRoots??[],onState:hooks.onState,onLog:hooks.onLog,
+        playerVoiceDirectory:settings.playerVoiceDirectory??undefined}):new ResidentVoice(settings,hooks);
+    });
     // V's typed line, while OmniVoice is the committed voice: a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs). It is
     // never the route of any character; `vHelperWanted` is the V setting (on, with clips), set by the bridge's settings poll.
     this.vHelperWanted=false;
@@ -198,7 +210,8 @@ export class VoiceSelection {
   // the Settings menu says what is missing. A pack installed while the game runs is noticed within 30 s.
   refreshOmniPack(){
     this.packCheckedAt=this.clock();
-    const found=typeof this.omniPackSource==='function'?this.omniPackSource():this.omniPackSource;
+    // The OmniVoice pack is not needed on this PC while the voice is rendered on a server.
+    const found=this.remoteWanted?{installed:true,missing:[]}:typeof this.omniPackSource==='function'?this.omniPackSource():this.omniPackSource;
     const next={installed:found?.installed!==false,missing:[...(found?.missing||[])]};
     const changed=!this.omniPack||this.omniPack.installed!==next.installed;
     this.omniPack=Object.freeze(next);
@@ -209,7 +222,7 @@ export class VoiceSelection {
   activateOmni(){
     const variant=this.omniVariants[this.omniReference];
     this.registries.omni=variant.registry;this.configs.omni=variant.snapshot;
-    this.configuredByBackend.omni=variant.configured&&this.omniPack.installed;
+    this.configuredByBackend.omni=variant.configured&&this.omniPack.installed&&!this.omniRemoteUnset;
     this.availabilities.omni=variant.availability;
   }
   // Verified availability is per worker configuration: Omni short and long each have their own.
@@ -220,6 +233,32 @@ export class VoiceSelection {
   }
   // The reference the Omni worker should hold: the settled draft's, else the committed one.
   get wantedReference(){return this.previewSettled&&this.preview.provider==='omni'?this.preview.omniReference:this.omniReference;}
+  // ---- Remote OmniVoice ----
+  /** {host, port} of the saved server while the setting is on and the address is a valid one, else null. */
+  get omniRemote(){
+    if(!this.remoteWanted)return null;
+    try{
+      const found=this.remoteAddressSource(),parsed=typeof found==='string'?parseServerAddress(found):found;
+      return parsed?.host&&Number.isInteger(parsed.port)?{host:parsed.host,port:parsed.port}:null;
+    }catch{return null;}
+  }
+  /** The setting is on but no usable address is saved: OmniVoice cannot speak (the reply is written), and nothing local starts in its place. */
+  get omniRemoteUnset(){return this.remoteWanted&&!this.omniRemote;}
+  get remoteKey(){const remote=this.omniRemote;return remote?`${remote.host}:${remote.port}`:'';}
+  // The worker held was made for another server (or for this PC while the setting changed): it is replaced at the next idle moment, like a change of reference.
+  clientStale(backend){return backend==='omni'&&this.clientRemote!==this.remoteKey;}
+  // Called with every settings poll after the setting is read: a change of the setting or of the address starts the OmniVoice story afresh.
+  checkRemote(){
+    const key=this.remoteWanted?`on:${this.remoteKey}`:'off';
+    if(key===this.remoteSeen)return;
+    const first=this.remoteSeen==='';
+    this.remoteSeen=key;
+    if(first&&!this.remoteWanted)return;
+    this.omniLanguageWarm.clear();
+    this.failedBackends.delete('omni');this.endOmniRetry();
+    this.refreshOmniPack();
+    this.log(this.remoteWanted?(this.omniRemote?'OmniVoice is rendered on a server of the network':'Remote OmniVoice is on, but no server address is saved'):'OmniVoice is rendered on this PC again','OmniRemote');
+  }
   setKeepPrepared(value){
     this.keepPrepared=value!==false;
     this.client?.setKeepPrepared?.(this.keepPrepared);
@@ -386,7 +425,7 @@ export class VoiceSelection {
     // `reason: 'omni-memory'`: it ran out of its time without enough graphics memory beside the game; Pocket speaks (the game says so once).
     // `reason: 'virtual-memory'`: Windows ran out of memory for the voice (the paging file is too small), for OmniVoice (Pocket speaks or the reply is written) or for Pocket itself.
     const paging=!this.requestedCloud&&((this.requestedProvider==='omni'&&(this.omniPagingFailed||this.pocketPagingFailed))||(this.requestedProvider==='pocket'&&this.pocketPagingFailed));
-    const reason=this.requestedCloud?null:paging&&!this.omniNoCuda?'virtual-memory':this.requestedProvider!=='omni'?null:this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
+    const reason=this.requestedCloud?null:paging&&!this.omniNoCuda?'virtual-memory':this.requestedProvider!=='omni'?null:this.remoteWanted?'omni-remote':this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
     const value={from:this.requestedCloud??this.requestedProvider,to:want,...(reason?{reason}:{})};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
@@ -452,13 +491,15 @@ export class VoiceSelection {
       }
       this.requestedProvider=chosen;
     }
+    if(typeof settings?.remoteOmni==='boolean')this.remoteWanted=settings.remoteOmni;
     if ([16,32].includes(settings?.omniSteps))this.requestedOmniSteps=settings.omniSteps;
     const reference=canonicalOmniReference(settings?.omniReference);
     if(reference)this.requestedOmniReference=reference;
     // Prepared voices are always kept (Settings has no switch for it any more): a saved keepPreparedVoices is not read.
   }
   get pending() { return this.provider!==this.resolvedProvider||this.cloud!==this.requestedCloud
-    ||(this.provider==='omni'&&(this.omniSteps!==this.requestedOmniSteps||this.omniReference!==this.requestedOmniReference)); }
+    ||(this.provider==='omni'&&(this.omniSteps!==this.requestedOmniSteps||this.omniReference!==this.requestedOmniReference))
+    ||(this.provider==='omni'&&this.client!=null&&this.clientBackend==='omni'&&this.clientStale('omni')); }
   get availabilityPending() { const verified=this.verifiedAvailabilities.get(this.verifiedKey(this.provider));
     return !!verified&&!equalSet(this.availability,verified); }
   get previewRoutingPending(){return local(this.provider)&&this.targetBackend!==null&&this.targetBackend!==this.provider;}
@@ -533,6 +574,7 @@ export class VoiceSelection {
     // Voices a player changed while a reply was in flight take effect now (one null check when there is nothing waiting).
     const voicesApplied=this.applyVoicesWhenIdle();
     this.request(settings);
+    this.checkRemote();
     const previewChanged = this.setPreview(preview);
     const applied = this.applyWhenIdle(busy)||voicesApplied;
     this.reconcile();
@@ -549,7 +591,7 @@ export class VoiceSelection {
   reconcile() {
     const wanted=this.targetBackend;
     this.phoneAnalysis?.setWanted(this.phoneWanted);
-    if(this.client&&(this.clientBackend!==wanted||(wanted==='omni'&&this.clientReference!==this.wantedReference))){
+    if(this.client&&(this.clientBackend!==wanted||(wanted==='omni'&&(this.clientReference!==this.wantedReference||this.clientStale('omni'))))){
       // A settings draft queues warm-up immediately, but never stops the
       // model that still owns a submitted local turn. An Omni worker holds
       // one reference configuration; the other one needs a new worker.
@@ -578,6 +620,7 @@ export class VoiceSelection {
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
       previewOmniReference:this.preview?.omniReference,
       omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
+      omniRemote:this.remoteWanted?{set:this.omniRemote!==null,connected:this.clientBackend==='omni'&&this.client?.loaded===true&&!this.client.failure}:null,
       gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,omniAmdRoute:this.omniAmdRoute,omniSmallCard:this.omniSmallCard,omniPython:ownPythonSummary(this.omniOwnPython),
       keepPreparedVoices:this.keepPrepared,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
@@ -638,7 +681,7 @@ export class VoiceSelection {
     }
     const backend=this.targetBackend;
     if(this.clientBackend===backend&&this.client?.failure)return Promise.reject(this.client.failure);
-    if(this.client&&(this.clientBackend!==backend||(backend==='omni'&&this.clientReference!==this.wantedReference))){
+    if(this.client&&(this.clientBackend!==backend||(backend==='omni'&&(this.clientReference!==this.wantedReference||this.clientStale('omni'))))){
       if(this.busy&&this.clientBackend===this.provider)return this.starting||Promise.resolve();
       this.retire();
     }
@@ -650,6 +693,7 @@ export class VoiceSelection {
     let client;
     this.clientBackend=backend;
     this.clientReference=backend==='omni'?this.wantedReference:null;
+    this.clientRemote=backend==='omni'?this.remoteKey:'';
     const variant=backend==='omni'?this.omniVariants[this.clientReference]:null;
     const factory=backend==='omni'?this.omniFactory:this.factory;
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,...(backend==='omni'?{configPath:variant.path,
@@ -688,7 +732,7 @@ export class VoiceSelection {
   // A voice that could not start, told to whoever listens (the bridge records it for an error report, bridge/error-events.mjs). Never throws.
   // `gpu` ({dedicatedMiB, sharedMiB}): the worker's graphics memory when a render ran out of time, when it was read.
   // A worker with no CUDA is this PC's setup (no NVIDIA card), not a bug: no report is filed for it.
-  noteFailure(engine,reason,gpu){if(noCudaFailed(reason))return;try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{})});}catch{}}
+  noteFailure(engine,reason,gpu){if(noCudaFailed(reason)||(engine==='omni'&&this.remoteWanted))return;try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{})});}catch{}}
   /**
    * What keeps the Pocket voice from speaking right now, for the Help page's setup check: null, or {engine: 'pocket'|'v-helper', reason}. The companions'
    * Pocket worker counts only while it is the voice they need (Pocket chosen, or OmniVoice that cannot run); V's own worker only while V's voice wants it.
@@ -706,7 +750,15 @@ export class VoiceSelection {
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason,gpu){
-    const failures=(this.omniRetry?.failures??0)+1,delay=this.omniRetryDelays[failures-1];
+    const remote=this.omniRemote!==null;
+    // A server on the player's network is asked again soon and for as long as the voice is wanted (the last wait repeats): it is usually only starting or briefly away.
+    const failures=(this.omniRetry?.failures??0)+1,delay=remote?REMOTE_RETRY_DELAYS_MS[Math.min(failures-1,REMOTE_RETRY_DELAYS_MS.length-1)]:this.omniRetryDelays[failures-1];
+    if(remote){
+      if(this.closed||this.requestedProvider!=='omni'){this.omniRetry=null;return;}
+      this.omniRetry={failures,nextAt:this.clock()+delay};
+      this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; asking the server again in ${Math.round(delay/1000)} s`,'OmniRemote');
+      return;
+    }
     // A worker that loaded both models and then could not confirm its paths fails the same way on every try, and each try loads the models again (a
     // minute or more of CPU and graphics memory, beside Local AI and the game): the paths are fixed for the life of the service, so it is not tried again.
     // A worker whose PyTorch has no CUDA (an AMD or Intel card) fails the same way on every try: it is not tried again, and Omni is not started again
@@ -774,6 +826,7 @@ export class VoiceSelection {
    * saved choice stays OmniVoice, so a bigger card later just works. Only a card the list shows to be an NVIDIA one under 9,000 MiB counts; an unknown card claims nothing and starts Omni as before.
    */
   get omniCardTooSmall(){
+    if(this.remoteWanted)return false;
     let card=null;
     try{const found=Number(this.gpuMemorySource(true));card=found>0?found:null;}catch{card=null;}
     const small=isSmallCard(card);
@@ -781,20 +834,20 @@ export class VoiceSelection {
     return small;
   }
   // The card list is still being read (the source answers undefined, not null): Omni is not started until it is known whether the card is big enough. The read is a registry query of well under a second.
-  get omniCardPending(){try{return this.gpuMemorySource(true)===undefined;}catch{return false;}}
+  get omniCardPending(){if(this.remoteWanted)return false;try{return this.gpuMemorySource(true)===undefined;}catch{return false;}}
   // Omni failed for want of graphics memory, or the card is known to be too small for it: Pocket speaks in its place.
-  get omniNoMemory(){return this.omniMemoryFailed||this.omniPagingFailed||this.omniCardTooSmall;}
+  get omniNoMemory(){return !this.remoteWanted&&(this.omniMemoryFailed||this.omniPagingFailed||this.omniCardTooSmall);}
   // The menu hint "OmniVoice needs 12 GB": the NVIDIA card is known to be under 11 GB, or Omni already failed for want of memory. Unknown claims nothing.
-  get omniSmallCard(){return this.omniMemoryFailed||underNeeded(this.graphicsMiB);}
+  get omniSmallCard(){return !this.remoteWanted&&(this.omniMemoryFailed||underNeeded(this.graphicsMiB));}
   // The card vendors for the Omni start and failure lines: names only.
   get graphicsVendors(){try{const found=this.gpuVendorsSource(this.omniWanted);return Array.isArray(found)?found:null;}catch{return null;}}
-  get graphicsNote(){const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
+  get graphicsNote(){if(this.remoteWanted)return 'remote server';const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
   // True when the game should say OmniVoice needs an NVIDIA card: a worker found no CUDA, or the cards are all known non-NVIDIA ones and no own Python with a
   // working GPU PyTorch (ROCm) is used or still to be tested (pending). Unknown claims nothing.
-  get omniNoNvidia(){const own=this.omniOwnPython;return this.omniNoCuda||(lacksNvidia(this.graphicsVendors)&&!own?.used&&!own?.pending);}
+  get omniNoNvidia(){if(this.remoteWanted)return false;const own=this.omniOwnPython;return this.omniNoCuda||(lacksNvidia(this.graphicsVendors)&&!own?.used&&!own?.pending);}
   // True when the PC has a discrete AMD Radeon card and no NVIDIA one (bridge/gpu-vendors.mjs amdRoute) and no own Python is working or still being tested: the menu and
   // the Help page then point to the experimental AMD route (docs/OMNIVOICE_AMD.md) instead of "needs NVIDIA". Nothing is downloaded or started for it.
-  get omniAmdRoute(){const own=this.omniOwnPython;try{return this.gpuAmdRouteSource(this.omniWanted)===true&&!own?.used&&!own?.pending;}catch{return false;}}
+  get omniAmdRoute(){if(this.remoteWanted)return false;const own=this.omniOwnPython;try{return this.gpuAmdRouteSource(this.omniWanted)===true&&!own?.used&&!own?.pending;}catch{return false;}}
   // The player's own Python for OmniVoice (bridge/omni-own-python.mjs resolveOwnPython), or null: without the file, and until its self-test has run.
   get omniOwnPython(){try{const found=this.options.omniOwnPython?.();return found?.configured?found:null;}catch{return null;}}
   // The python.exe and environment of an OmniVoice worker: the player's own Python only when its self-test passed (with OmniVoice's code from the pack,
@@ -846,7 +899,7 @@ export class VoiceSelection {
     if(this.closed)return;
     // A background worker for a reference the player no longer wants (loading, or loaded and waiting for its idle
     // commit) is released; the normal start path loads the wanted one after its confirmed exit.
-    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference||this.silent))void this.dropCandidate();
+    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference||this.candidate.remote!==this.remoteKey||this.silent))void this.dropCandidate();
     if(!this.omniRetry)return;
     if(this.requestedProvider!=='omni'||this.omniPack.installed===false){this.endOmniRetry();return;}
     if(this.candidate)return;
@@ -857,7 +910,7 @@ export class VoiceSelection {
   startCandidate(){
     const reference=this.requestedOmniReference,variant=this.omniVariants[reference];
     if(!variant.configured){this.omniRetry=null;return;}
-    const entry={reference,client:null,loaded:false,lastState:null};
+    const entry={reference,remote:this.remoteKey,client:null,loaded:false,lastState:null};
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,configPath:variant.path,
       ...this.omniWorkerHooks(),lowPriority:true,onState:value=>{
         if(this.closed)return;
@@ -919,9 +972,9 @@ export class VoiceSelection {
   // The loaded background worker becomes the committed one once the fallback worker is gone.
   adoptCandidate(wanted){
     const entry=this.candidate;
-    if(!entry?.loaded||this.client||wanted!=='omni'||entry.reference!==this.wantedReference||entry.client.failure||entry.client.closing)return false;
+    if(!entry?.loaded||this.client||wanted!=='omni'||entry.reference!==this.wantedReference||entry.remote!==this.remoteKey||entry.client.failure||entry.client.closing)return false;
     this.candidate=null;
-    this.client=entry.client;this.clientBackend='omni';this.clientReference=entry.reference;
+    this.client=entry.client;this.clientBackend='omni';this.clientReference=entry.reference;this.clientRemote=entry.remote;
     this.starting=Promise.resolve();
     this.details=entry.lastState||this.details;
     return true;
