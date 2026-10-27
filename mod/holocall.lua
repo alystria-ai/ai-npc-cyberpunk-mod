@@ -38,6 +38,8 @@ M.RING_MIN, M.RING_MAX = 1.5, 10
 -- open, the same signal the "Preparing connection" notice reads), so the first reply does not wait on it; after
 -- READY_MAX seconds of ringing it connects anyway (live, 2026-10-16: the first reply on a call said "Preparing").
 M.READY_MAX = 18
+-- A request that reads as a scene is held this many seconds of play for a fresh reading before it is refused (see update).
+M.SCENE_WAIT = 4
 -- No turn and no speech for this long hangs up; no call is longer than MAX_LENGTH (seconds of play, pauses excluded).
 M.IDLE_LIMIT, M.MAX_LENGTH = 180, 1800
 -- The shot. The game's own rig (the holocall studio's camera node against its actor spot): 0.675 m in front, the lens
@@ -721,13 +723,20 @@ function M.chatEntry(contact)
         name = type(row.name) == 'string' and row.name ~= '' and row.name or row.key}
 end
 
-local function refuse(player, contact, reason, text)
-    log('refused contact=' .. tostring(contact) .. ' reason=' .. reason)
+-- What the game's sample said when a call was held or refused for a scene (the probe line carries it, so a refusal can be read without a guess).
+local function sampleDetail(sample)
+    if type(sample) ~= 'table' then return 'sample=none' end
+    return 'tier=' .. tostring(sample.tier) .. ' dialogue=' .. tostring(sample.dialogue) .. ' choices=' .. tostring(sample.choices)
+        .. ' call=' .. tostring(sample.call) .. ' replacer=' .. tostring(sample.replacer)
+end
+
+local function refuse(player, contact, reason, text, detail)
+    log('refused contact=' .. tostring(contact) .. ' reason=' .. reason .. (detail and (' ' .. detail) or ''))
     if text then convaiNotices.send(player, 'holocall-refused', text) end
     return false
 end
 
-function M.start(player, contact, sample)
+function M.start(player, contact, sample, waited)
     if M.call then
         local same = M.call.contact == contact
         M.finish(player, 'replaced')
@@ -753,7 +762,8 @@ function M.start(player, contact, sample)
     local blocked = M.blocked(sample)
     if blocked then
         return refuse(player, contact, blocked, blocked == 'combat' and ui.t('Calls are not available during combat.')
-            or blocked == 'quest-call' and ui.t('You are already on a call.') or ui.t('Calls are not available right now.'))
+            or blocked == 'quest-call' and ui.t('You are already on a call.') or ui.t('Calls are not available right now.'),
+            sampleDetail(sample) .. (waited and string.format(' waited=%.1fs', waited) or ''))
     end
     -- Events queue on the player whenever the phone HUD is torn down or the game takes a call, with or without a call of ours; the queue
     -- is only read while one runs. Left in place, an old "hud-lost" or "quest-call" would hang up this call on its first step.
@@ -891,8 +901,23 @@ function M.update(player, elapsed, worldReady, sample)
     if M.lenses then releaseLenses(elapsed) end
     if M.request then
         local request = M.request
-        M.request = nil
-        M.start(player, request.contact, sample)
+        request.waited = (request.waited or 0) + (tonumber(elapsed) or 0)
+        -- A scene reading is not trusted at once. The request comes from the open phone, and the sample (mod/battle-observer.lua) is taken every half
+        -- second of play, while the phone slows the game and holds its scene tier above gameplay's: the first reading after the phone closes can still be
+        -- the phone's own (live, 2026-10-27: a call refused with reason=scene in plain gameplay, and Alex's 13 s later passed). So the request waits for
+        -- a fresh sample, SCENE_WAIT seconds of play at most; a real scene or dialogue is still there after that and refuses as before.
+        if M.blocked(sample) == 'scene' and request.waited < M.SCENE_WAIT then
+            if not request.held then
+                request.held = true
+                log('held contact=' .. tostring(request.contact) .. ' reason=scene ' .. sampleDetail(sample) .. ' (waiting for a fresh reading, up to ' .. M.SCENE_WAIT .. 's)')
+            end
+        else
+            M.request = nil
+            if request.held and M.blocked(sample) == nil then
+                log(string.format('released contact=%s after %.1fs: gameplay again', tostring(request.contact), request.waited))
+            end
+            M.start(player, request.contact, sample, request.held and request.waited or nil)
+        end
     end
     local call = M.call
     if not call then return end

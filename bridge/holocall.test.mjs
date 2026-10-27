@@ -143,8 +143,8 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   assert.doesNotMatch(chat, /Write a message/);
   // Both entry points end in the one request, which refuses anything that is not a Chat contact.
   const code = read('../r6/scripts/CyberpunkConvai/Holocall.reds');
-  assert.match(code, /public final func ConvaiChatHolocall\(\) -> Void \{[^]*?player\.ConvaiHolocallRequest\(this\.m_convaiChatId\);/);
-  assert.match(code, /public final func ConvaiChatListHolocall\(contact: wref<ContactData>\) -> Void \{[^]*?this\.m_player\.ConvaiHolocallRequest\(contact\.id\);/);
+  assert.match(code, /public final func ConvaiChatHolocall\(\) -> Void \{[^]*?ConvaiHolocallRequest\(this\.m_convaiChatId\)/);
+  assert.match(code, /public final func ConvaiChatListHolocall\(contact: wref<ContactData>\) -> Void \{[^]*?this\.m_player\.ConvaiHolocallRequest\(contact\.id\)/);
 });
 
 test('the live picture is not a setting any more: no row, no getter, an old saved key is ignored', () => {
@@ -284,7 +284,11 @@ test('a call is refused for a quest call, combat, a non-mod contact, Johnny and 
   ask('bad'); assert(holocall.call == nil)
   ask('panam'); assert(holocall.call == nil and lastNotice().text == 'This contact cannot take a holocall.')
   ask('judy', sample({combat = true})); assert(holocall.call == nil and lastNotice().text == 'Calls are not available during combat.')
-  ask('judy', sample({dialogue = true})); assert(holocall.call == nil and lastNotice().text == 'Calls are not available right now.')
+  -- A scene is held for a fresh reading first (see the stale-reading test below), then refused with its notice.
+  ask('judy', sample({dialogue = true})); assert(holocall.call == nil and holocall.request ~= nil and logged('held contact=judy reason=scene'))
+  tick(4.2, sample({dialogue = true}))
+  assert(holocall.call == nil and holocall.request == nil and lastNotice().text == 'Calls are not available right now.')
+  assert(logged('refused contact=judy reason=scene tier=1 dialogue=true choices=false call=false replacer=false waited='), tostring(logs[#logs]))
   game.begin = 'quest-call'; ask('judy'); assert(holocall.call == nil and lastNotice().id == 'holocall-refused' and lastNotice().text == 'You are already on a call.')
   game.begin = 'calling-disabled'; ask('judy'); assert(holocall.call == nil and logged('refused contact=judy reason=calling%-disabled'))
   game.begin = 'ok'; enabled['judy-alvarez'] = false; ask('judy')
@@ -792,4 +796,58 @@ test('the bridge accepts a profile key as the call contact (a Chat row with no j
   assert.deepEqual(input.holocall, {contact: 'custom-ana-aaaa', mode: 'audio'}, 'the call line reaches the custom turn with its call wording');
   const text = turnContext(turn({profileKey: 'custom-ana-aaaa', holocall: {contact: 'custom-ana-aaaa', mode: 'audio'}, turnContext: scene()}));
   assert.match(text, /You are on a voice call with V on the phone/);
+});
+
+// ---------------------------------------------------------------- a stale scene reading is not a scene (live, 2026-10-27)
+test('a call asked for from the open phone is not refused for a scene the phone itself made: it waits for a fresh reading, then rings', () => run(`
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana'}
+  -- The reading taken while the phone was open: tier 3. The game's time barely moves (the phone slows it), the reading is not renewed.
+  local phoneReading = sample({tier = 3})
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player)
+  holocall.update(player, 0.1, true, phoneReading)
+  assert(holocall.call == nil and holocall.request ~= nil and game.beganCalls == nil, 'held, not refused')
+  assert(logged('held contact=custom%-ana%-aaaa reason=scene tier=3 dialogue=false choices=false'), tostring(logs[#logs]))
+  assert(#notices == 0 and not logged('refused'), 'no refusal, no notice')
+  for _ = 1, 8 do holocall.update(player, 0.1, true, phoneReading) end
+  assert(holocall.call == nil and holocall.request ~= nil, 'still held while the old reading stands')
+  -- The phone has closed and the game takes a new reading: gameplay.
+  holocall.update(player, 0.1, true, open)
+  assert(holocall.request == nil and holocall.call ~= nil and game.beganCalls == 1 and game.beganName == 'Ana')
+  assert(logged('released contact=custom%-ana%-aaaa after 1%.0s: gameplay again'), tostring(logs[#logs - 1]))
+  assert(logged('state=dialing contact=custom%-ana%-aaaa'))
+  tick(2); assert(holocall.connected() and #notices == 0)
+`));
+
+test('a scene that really is there refuses after the wait, once, with a notice and the reading in the probe line; combat and a game call refuse at once', () => run(`
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana'}
+  local cutscene = sample({tier = 4, dialogue = true})
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player)
+  for _ = 1, 38 do holocall.update(player, 0.1, true, cutscene) end
+  assert(holocall.request ~= nil and #notices == 0, 'held for 3.8 s')
+  for _ = 1, 3 do holocall.update(player, 0.1, true, cutscene) end
+  assert(holocall.request == nil and holocall.call == nil and game.beganCalls == nil)
+  assert(#notices == 1 and notices[1].id == 'holocall-refused' and notices[1].text == 'Calls are not available right now.')
+  assert(logged('refused contact=custom%-ana%-aaaa reason=scene tier=4 dialogue=true choices=false call=false replacer=false waited=4%.'), tostring(logs[#logs]))
+  -- Combat and a game call are not stale readings: refused on the spot, with their notices.
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); holocall.update(player, 0.1, true, sample({combat = true}))
+  assert(holocall.request == nil and notices[2].text == 'Calls are not available during combat.')
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); holocall.update(player, 0.1, true, sample({call = true}))
+  assert(holocall.request == nil and notices[3].text == 'You are already on a call.')
+  -- A request that waits while the game is paused (no time passes) is not refused by the pause.
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player)
+  for _ = 1, 100 do holocall.update(player, 0, true, cutscene) end
+  assert(holocall.request ~= nil and #notices == 3)
+`));
+
+test('every way a call can be refused tells the player: each refuse() in holocall.lua carries a notice text, and the Chat tab request answers with the blocked notice', () => {
+  const code = holocallSource.split('\n').filter(line => !line.trim().startsWith('--')).join('\n');
+  const calls = [...code.matchAll(/refuse\(player, ([^\n]*)/g)].map(match => match[1]);
+  assert.ok(calls.length >= 7, `${calls.length} refusals found`);
+  // Every refusal passes a text (the fourth argument), which is what sends the notice: a ui.t line, or the one chosen by the reason.
+  for (const call of calls) assert.match(call, /ui\.t\(|text|blocked ==|result == /, call);
+  // The refusal helper itself sends a notice whenever it has a text.
+  assert.match(code, /if text then convaiNotices\.send\(player, 'holocall-refused', text\) end/);
+  const redscript = reds.split('\n').filter(line => !line.trim().startsWith('//')).join('\n');
+  assert.match(redscript, /if !player\.ConvaiHolocallRequest\(this\.m_convaiChatId\) \{ this\.ShowActionBlockedNotification\(\); \};/);
+  assert.match(redscript, /if !this\.m_player\.ConvaiHolocallRequest\(contact\.id\) \{ this\.ShowActionBlockedNotification\(\); \};/);
 });
