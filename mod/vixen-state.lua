@@ -89,6 +89,10 @@ local function once(log, key, line)
 end
 
 local function short(problem) return (tostring(problem):gsub('%s+', ' '):sub(1, 140)) end
+-- The same for the probe's lines, with the "file.lua:123:" the game puts in front of a Lua error taken out: a probe line says that a way to V's state does not exist on this game (the
+-- getter of one build is not on another), which is expected and settled by the next way tried. The error reports read "file.lua:123: attempt to ..." in this log as a Lua error of the
+-- mod (bridge/error-reports.mjs luaErrorsIn), and the first 2.31 run sent this probe as one (27 Oct 2026, 'attempt to call method GetPlayerPuppetPS').
+local function probeText(problem) return (short(problem):gsub('[%w_.%-]+%.lua:%d+:%s*', '')) end
 
 local function integer(value, low, high)
     value = tonumber(value)
@@ -220,7 +224,7 @@ local function playerState(player, log)
     end
     local okFirst, first = pcall(variants[1][2])
     if not okFirst or first == nil then
-        once(log, 'ps:get', 'Mod state probe: player:GetPS() ' .. (okFirst and 'gave nothing' or 'failed (' .. short(first) .. ')') .. ': drinks and cigarettes are read from the mod\'s lifetime counts instead')
+        once(log, 'ps:get', 'Mod state probe: player:GetPS() ' .. (okFirst and 'gave nothing' or 'failed (' .. probeText(first) .. ')') .. ': drinks and cigarettes are read from the mod\'s lifetime counts instead')
     end
     if state.psTried then return okFirst and first or nil end
     state.psTried = true
@@ -229,7 +233,7 @@ local function playerState(player, log)
         local ok, ps
         if index == 1 then ok, ps = okFirst, first else ok, ps = pcall(variant[2]) end
         if not ok then
-            parts[#parts + 1] = variant[1] .. '=failed(' .. short(ps):sub(1, 50) .. ')'
+            parts[#parts + 1] = variant[1] .. '=failed(' .. probeText(ps):sub(1, 50) .. ')'
         elseif ps == nil then
             parts[#parts + 1] = variant[1] .. '=nil'
         else

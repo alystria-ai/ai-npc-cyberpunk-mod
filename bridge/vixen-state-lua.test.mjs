@@ -553,11 +553,14 @@ test('the persistent state: every way is tried once and one line says what each 
     return {GetProperties = function() return {{GetName = function() return 'm_facStamina' end}, {GetName = function() return 'm_facEnergy' end}, {GetName = function() return 'other' end}} end,
       GetProperty = function() return {GetValue = function() return nil end} end}
   end}
+  -- The game words a missing method as "file.lua:LINE: attempt to call method ...": the probe line must not carry that, or the error reports take the probe for a Lua error of the mod.
+  player.GetPlayerPuppetPS = function() error("vixen-state.lua:205: attempt to call method 'GetPlayerPuppetPS' (a nil value)", 0) end
   local out = M.read(player, log)
   assert(out.fleshAndChrome.drinks == 2, 'four drinks in the window, through the persistency system')
   local ways
   for _, line in ipairs(lines) do if line:find('^Mod state probe: ways to V') then ways = line end end
   assert(ways:find('GetPS=PlayerPuppetPS/init=nil GetPlayerPuppetPS=failed(', 1, true), ways)
+  assert(not ways:find('%.lua:%d'), 'no file:line in the probe line: ' .. ways)
   assert(ways:find('persistency=PlayerPuppetPS/init=true', 1, true) and ways:find('(PlayerPuppetPS m_fac properties: 2 e.g. m_facStamina)', 1, true), ways)
   local count = asked
   M.read(player, log); M.read(player, log)
