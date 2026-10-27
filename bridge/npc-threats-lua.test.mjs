@@ -27,7 +27,22 @@ local function count(name) calls[name] = (calls[name] or 0) + 1 end
 local state = {alive = true, child = false, hostile = false, safe = false, heat = 0, ready = true, refused = nil, quest = false,
   awaiting = false, speaking = false, crowd = true, temper = 'neutral', threats = true, playerMounted = false, mounted = true,
   hand = 'Items.Preset_Unity_Default', failFear = false, failExit = false, released = 0, at = {x = 0, y = 0, z = 0},
-  points = {{x = 50, y = 0, z = 0, gap = 40}}}
+  points = {{x = 50, y = 0, z = 0, gap = 40}}, workspot = false, speed = nil, jump = false, vGun = false}
+-- The order of what the person was sent (walk, hold, fear, panic, release): a crowd person must get its own command before the conversation lets go.
+local order = {}
+-- A walk: with state.speed the person runs toward the point at that speed (metres a second, on the test clock); with state.jump (or no speed)
+-- it is put there at once, as the game does to a crowd person given a move command.
+local motion
+local function here()
+  if not motion then return state.at end
+  local m = motion
+  local dx, dy, dz = m.to.x - m.from.x, m.to.y - m.from.y, m.to.z - m.from.z
+  local d = math.sqrt(dx * dx + dy * dy + dz * dz)
+  local t = (state.jump or not state.speed) and d or math.min(d, (now - m.at) * state.speed)
+  local share = d > 0 and t / d or 1
+  return {x = m.from.x + dx * share, y = m.from.y + dy * share, z = m.from.z + dz * share}
+end
+local fighters = {}
 local npcs = {['44ULL'] = {id = '44ULL'}, ['55ULL'] = {id = '55ULL'}}
 local natives = {
   key = function(npc) return npc.id end,
@@ -43,19 +58,27 @@ local natives = {
   startCombat = function() count('startCombat'); return 'reaction-component' end,
   engage = function() count('engage'); return 'combat start' end,
   awayPoints = function() count('awayPoints'); return state.points end,
-  walkTo = function(npc, point, gait) count('walkTo'); state.at = {x = point.x, y = point.y, z = point.z}; return {id = 'walk'} end,
+  walkTo = function(npc, point, gait, continuing) count('walkTo'); order[#order + 1] = 'walk'
+    calls.gait, calls.continuing = gait, (calls.continuing or 0) + (continuing and 1 or 0)
+    if state.speed and not state.jump then local at = here(); state.at = at; motion = {from = at, to = {x = point.x, y = point.y, z = point.z}, at = now}
+    else motion = nil; state.at = {x = point.x, y = point.y, z = point.z} end
+    return {id = 'walk' .. calls.walkTo} end,
+  workspot = function() count('workspot'); return state.workspot end,
+  vArmed = function() count('vArmed'); return state.vGun end,
+  weapons = function(npc) count('weapons'); calls.drew = (calls.drew or 0) + 1; npc.drew = true end,
+  joined = function() count('joined'); return fighters end,
   commandState = function() count('commandState'); return 'Executing' end,
-  position = function() return {x = state.at.x, y = state.at.y, z = state.at.z} end,
+  position = function() local at = here(); return {x = at.x, y = at.y, z = at.z} end,
   crowd = function() count('crowd'); return state.crowd end,
   temper = function() count('temper'); return state.temper end,
-  crowdFear = function(npc, player, phase) count('crowdFear'); calls.phase = phase; if state.failFear then error('no crowd event') end
+  crowdFear = function(npc, player, phase) count('crowdFear'); order[#order + 1] = 'fear'; calls.phase = phase; if state.failFear then error('no crowd event') end
     if phase >= 3 and not state.fearStill then state.at = {x = state.at.x + 9, y = 0, z = 0} end end,
-  crowdPanic = function(npc, player, phase) count('crowdPanic'); calls.panicPhase = phase; if state.failPanic then error('no fear stage') end
+  crowdPanic = function(npc, player, phase) count('crowdPanic'); order[#order + 1] = 'panic'; calls.panicPhase = phase; if state.failPanic then error('no fear stage') end
     if phase >= 3 then state.at = {x = state.at.x + 6, y = 0, z = 0} end end,
-  hold = function(npc, seconds) count('hold'); calls.holdSeconds = seconds; return {id = 'hold'} end,
+  hold = function(npc, seconds) count('hold'); order[#order + 1] = 'hold'; calls.holdSeconds = seconds; return {id = 'hold'} end,
   fists = function() count('fists'); return 'fists asked' end,
   holster = function() count('holster') end,
-  hand = function() count('hand'); return state.hand end,
+  hand = function(npc) count('hand'); return npc.hand or state.hand end,
   exitVehicle = function() count('exitVehicle'); if state.failExit then error('no exit event') end; state.mounted = false end,
   mounted = function() count('mounted'); return state.mounted end,
   playerMounted = function() count('playerMounted'); return state.playerMounted end,
@@ -69,7 +92,7 @@ local function build(extra)
     policy = {ours = function() return false end, spawned = function() return false end,
       protected = function() return false end, story = function() return false end},
     storyFlag = function() return state.quest end, refusal = function() return state.refused end,
-    release = function() state.released = state.released + 1 end,
+    release = function() state.released = state.released + 1; order[#order + 1] = 'release' end,
     awaiting = function() return state.awaiting end, speaking = function() return state.speaking end,
     threats = function() if state.threats == 'error' then error('manager unreadable') end; return state.threats end}
   for key, value in pairs(extra or {}) do options[key] = value end
@@ -88,6 +111,9 @@ local function act(S, offer, kind, entity)
   S.update(); now = now + 2; S.update(); now = now + 4; S.update(); now = now + 2; S.update()
   return true
 end
+-- Time passing in small steps (a crowd person's run is read back leg by leg).
+local function run(S, seconds) for _ = 1, math.floor(seconds * 10 + 0.5) do now = now + 0.1; S.update() end end
+local function sequence() return table.concat(order, ',') end
 `;
 const withService = code => withModule(service + code);
 
@@ -209,14 +235,50 @@ test('switch on: the offer says threats, carries the person\'s kinds and the tem
 // ---------------------------------------------------------------------------------------------------------------------------------
 // What each kind sends to the game
 
-test('leave: a crowd person gets the crowd\'s own flight, never a move command (the "disappears" report); anyone else still walks', () => withService(`
+// Live test 2 (2026-10-27): a WALKING crowd person given the crowd reaction event after the conversation had let go kept walking (`moved=1.5 m in
+// 3 s`): the crowd's traffic had it back. The conversation's own focus hold is what stops such a person (Engagement.reds ConvaiBeginFocus), so the
+// person gets its own command while that hold still runs, and only then is it let go.
+test('leave: a walking crowd person gets its own run before the conversation lets go, in legs read back one by one, and goes back to the crowd at the end', () => withService(`
+  state.speed, state.fearStill = 5.5, true
   local S = build()
-  local offer = offerFor(S, 'street-resident', 'resident')
-  assert(act(S, offer, 'leave'))
+  assert(S.start('leave', offerFor(S, 'street-resident', 'resident'), '44ULL', 'r1'))
+  run(S, 1.8)
+  assert(sequence() == 'fear,walk,release', 'the fright for the people around, the run, then the conversation lets go: ' .. sequence())
+  assert(calls.gait == 'Run' and calls.walkTo == 1)
+  assert(logged("NPC reaction: leave started, taken from the crowd and run away in legs %(40 m from V; the conversation's hold let go after the first leg was sent%)"), table.concat(logs, '\\n'))
+  run(S, 12)
+  assert(logged('NPC reaction check: leave first leg moved=%d%.%d m in 0%.%d s %(running%)'), table.concat(logs, '\\n'))
+  assert(calls.walkTo >= 5 and calls.continuing == calls.walkTo - 1, 'later legs run on, no start animation: ' .. tostring(calls.walkTo))
+  assert(logged('NPC reaction check: leave ran %d+%.%d m in %d+ leg%(s%); back to the crowd'), table.concat(logs, '\\n'))
+  assert(not logged('jumped') and calls.crowdPanic == nil)
+  local legs = calls.walkTo
+  run(S, 10)
+  assert(calls.walkTo == legs, 'nothing more once it arrived')
+`));
+
+test('leave: a crowd run the game turns into a jump stops after that one leg (the crowd\'s fear instead); a person that does not run gets the fear too', () => withService(`
+  state.jump, state.fearStill = true, true
+  local S = build()
+  assert(S.start('leave', offerFor(S, 'street-resident', 'resident'), '44ULL', 'r1'))
+  run(S, 6)
+  assert(logged("NPC reaction check: leave leg 1 moved=4%.0 m in 0%.%d s %(jumped, not run%); no more moves, the crowd's fear instead"), table.concat(logs, '\\n'))
+  assert(calls.walkTo == 1 and calls.crowdPanic == 1, 'one leg at most, then the fear stage')
+  -- Standing still after the first leg was sent, twice in a row: the fear instead, no more legs.
+  state.jump, state.speed, state.at = false, 0, {x = 0, y = 0, z = 0}
+  local S2 = build()
+  assert(S2.start('leave', offerFor(S2, 'street-resident', 'resident', '55ULL'), '55ULL', 'r2'))
+  run(S2, 6)
+  assert(logged("NPC reaction check: leave did not run %(leg 1 moved=0%.0 m, command state=Executing%); the crowd's fear instead"), table.concat(logs, '\\n'))
+  assert(calls.walkTo == 2 and calls.crowdPanic == 2)
+`));
+
+test('leave: a seated crowd person (a bench, a counter) never gets a move command: the crowd\'s own flight; anyone not in the crowd still walks', () => withService(`
+  state.workspot = true
+  local S = build()
+  assert(act(S, offerFor(S, 'street-resident', 'resident'), 'leave'))
   assert(calls.crowdFear == 1 and calls.phase == 3 and calls.walkTo == nil, 'the flight, not the walk')
-  assert(state.released == 1, 'the conversation hold is let go first')
+  assert(sequence() == 'release,fear', sequence())
   assert(logged("NPC reaction: leave started, the crowd's own flight %(the crowd reaction event, no move command%)"))
-  assert(calls.crowdPanic == nil, 'the event moved the person: no second ask')
   assert(logged('NPC reaction check: leave crowd moved=9.0 m in 3 s'), table.concat(logs, '\\n'))
   -- Not a crowd person: the walk, with the metres it covered in the first read-back (and a jump named as one).
   state.crowd, state.at = false, {x = 0, y = 0, z = 0}
@@ -225,10 +287,17 @@ test('leave: a crowd person gets the crowd\'s own flight, never a move command (
   assert(act(S2, offer2, 'leave', '55ULL'))
   assert(calls.walkTo == 1, 'a walk')
   assert(logged('NPC reaction check: leave command state=Executing moved=50.0 m %(jumped, not walked%)'), table.concat(logs, '\\n'))
+  -- A workspot that cannot be read counts as seated: never a move command for a person who might be put somewhere at once.
+  state.crowd, state.at = true, {x = 0, y = 0, z = 0}
+  natives.workspot = function() error('unreadable') end
+  local S3 = build()
+  npcs['56ULL'] = {id = '56ULL'}
+  assert(act(S3, offerFor(S3, 'street-resident', 'resident', '56ULL'), 'leave', '56ULL'))
+  assert(calls.walkTo == 1, 'still only the earlier walk')
 `));
 
-test('leave: when the crowd reaction event cannot be made (the live test of 2026-10-26) the person still flees, with the crowd\'s fear stage; never a move command', () => withService(`
-  state.failFear = true
+test('leave, seated: when the crowd reaction event cannot be made (the live test of 2026-10-26) the person still flees, with the crowd\'s fear stage; never a move command', () => withService(`
+  state.failFear, state.workspot = true, true
   local S = build()
   assert(act(S, offerFor(S, 'street-resident', 'resident'), 'leave'))
   assert(calls.crowdFear == 1 and calls.crowdPanic == 1 and calls.panicPhase == 3 and calls.walkTo == nil, 'the fear stage, not the walk')
@@ -237,8 +306,8 @@ test('leave: when the crowd reaction event cannot be made (the live test of 2026
   assert(not logged('the person stays'))
 `));
 
-test('leave: an event that reached the person but did not move it is followed once by the fear stage; neither way available: the honest log, still no walk', () => withService(`
-  state.fearStill = true
+test('leave, seated: an event that reached the person but did not move it is followed once by the fear stage; neither way available: the honest log, still no walk', () => withService(`
+  state.fearStill, state.workspot = true, true
   local S = build()
   assert(act(S, offerFor(S, 'street-resident', 'resident'), 'leave'))
   now = now + 4; S.update()
@@ -319,33 +388,50 @@ test('the game decides: a threats offer carries the person\'s plan and logs it; 
   assert(offerFor(build(), 'maelstrom', 'gang', '55ULL').plan == nil)
 `));
 
-test('cower and get down: the crowd\'s own fear (phase 2) for a crowd person, a hold for anyone else', () => withService(`
+test('cower and get down: a walking crowd person is held before the conversation lets go, frightened in place, and back to the crowd after the hold', () => withService(`
   local S = build()
-  assert(act(S, offerFor(S, 'street-resident', 'resident'), 'cower'))
-  assert(calls.crowdFear == 1 and calls.phase == 2 and calls.hold == nil)
-  state.crowd = false
+  assert(S.start('get-down', offerFor(S, 'street-resident', 'resident'), '44ULL', 'r1'))
+  run(S, 1.8)
+  assert(sequence() == 'hold,fear,release', 'held first, then the fear (phase 2), then the conversation lets go: ' .. sequence())
+  assert(calls.holdSeconds == 20 and calls.phase == 2 and calls.walkTo == nil, tostring(calls.holdSeconds) .. ' ' .. tostring(calls.phase) .. ' ' .. tostring(calls.walkTo))
+  assert(logged("NPC reaction: get%-down started, holds still for 20 s, taken from the crowd before the conversation let go, in the crowd's own fear"), table.concat(logs, '\\n'))
+  run(S, 2)
+  assert(logged('NPC reaction check: get%-down hold state=Executing moved=0%.0 m'), table.concat(logs, '\\n'))
+  run(S, 20)
+  assert(logged('NPC reaction check: get%-down hold over, back to the crowd %(moved=0%.0 m in the hold%)'), table.concat(logs, '\\n'))
+  -- Only the crowd event failing: the fear stage instead, still held first.
+  state.failFear = true
+  order = {}
+  local S1 = build()
+  npcs['71ULL'] = {id = '71ULL'}
+  assert(S1.start('cower', offerFor(S1, 'street-resident', 'resident', '71ULL'), '71ULL', 'r2'))
+  run(S1, 1.8)
+  assert(sequence() == 'hold,fear,panic,release', sequence())
+  state.failFear = false
+  -- A seated crowd person: the seat's own fear (the event, phase 2), no hold.
+  state.workspot = true
   local S2 = build()
-  local offer = offerFor(S2, 'street-resident', 'resident', '55ULL')
-  assert(act(S2, offer, 'get-down', '55ULL'))
-  assert(calls.hold == 1 and calls.holdSeconds == 20, 'holds still for 20 s')
-  assert(logged('NPC reaction check: get%-down hold state=Executing'))
-  -- The crowd reaction event and the fear stage both switched off after failures: a crowd person cowers by holding still.
-  state.crowd, state.failFear, state.failPanic = true, true, true
+  npcs['72ULL'] = {id = '72ULL'}
+  local holds = calls.hold
+  assert(act(S2, offerFor(S2, 'street-resident', 'resident', '72ULL'), 'cower', '72ULL'))
+  assert(calls.hold == holds and calls.phase == 2, tostring(calls.hold) .. ' ' .. tostring(holds) .. ' ' .. tostring(calls.phase))
+  -- Not a crowd person: a hold of 20 s.
+  state.crowd, state.workspot = false, false
   local S3 = build()
+  local offer = offerFor(S3, 'street-resident', 'resident', '55ULL')
+  assert(act(S3, offer, 'get-down', '55ULL'))
+  assert(calls.hold == holds + 1 and calls.holdSeconds == 20, 'holds still for 20 s')
+  assert(logged('NPC reaction check: get%-down hold state=Executing'))
+  -- Seated, with the crowd reaction event and the fear stage both switched off after failures: holds still.
+  state.crowd, state.workspot, state.failFear, state.failPanic = true, true, true, true
+  local S4 = build()
   for index = 1, 3 do
     local entity = tostring(60 + index) .. 'ULL'
     npcs[entity] = {id = entity}
-    assert(act(S3, offerFor(S3, 'street-resident', 'resident', entity), 'cower', entity))
+    assert(act(S4, offerFor(S4, 'street-resident', 'resident', entity), 'cower', entity))
   end
-  assert(S3.inspect().off.fear == true, 'switched off after 3 failures')
-  assert(calls.hold == 4, 'every failed fear fell back to the hold')
-  assert(S3.inspect().off.panic == true)
-  -- Only the event failing: the fear stage (phase 2), no hold.
-  state.failPanic = false
-  local S4 = build()
-  npcs['70ULL'] = {id = '70ULL'}
-  assert(act(S4, offerFor(S4, 'street-resident', 'resident', '70ULL'), 'cower', '70ULL'))
-  assert(calls.panicPhase == 2 and calls.hold == 4, 'the fear stage, no hold')
+  assert(S4.inspect().off.fear == true and S4.inspect().off.panic == true, 'switched off after 3 failures')
+  assert(calls.hold == holds + 4, 'every failed fear fell back to the hold')
 `));
 
 test('brawl: hostile, combat and fists; a drawn weapon is put away once; it counts as a fight for the cooldown', () => withService(`
@@ -371,6 +457,48 @@ test('brawl: hostile, combat and fists; a drawn weapon is put away once; it coun
   state.hostileNow = false
   local ok, why = S3.start('brawl', second, '78ULL', 'r2')
   assert(not ok and why == 'brawl:cooldown', tostring(why))
+`));
+
+// Live test 2 (2026-10-27): the ganger's friends joined his brawl, one with a gun from the start; and the owner's rule: when V draws a gun, the
+// brawlers draw theirs (they escalate when V does, never de-escalate on their own).
+test('brawl: the friends who join get fists too (a drawn gun put away); when V holds a gun every brawler draws its own weapon, once, for good', () => withService(`
+  fighters[1] = {id = 'B1', hand = 'Items.Preset_Lexington'}
+  fighters[2] = {id = 'B2', hand = 'fists'}
+  fighters[3] = {id = 'B3', hand = 'empty', story = true}
+  local S = build({policy = {ours = function() return false end, spawned = function() return false end,
+    protected = function() return false end, story = function(npc) return npc.story == true end}})
+  assert(act(S, offerFor(S, 'maelstrom', 'gang'), 'brawl'))
+  assert(calls.joined == 1, 'searched once')
+  assert(logged('NPC reaction: brawl joined by 2 more, asked for fists %(1 had a weapon out, asked to put it away%)'), table.concat(logs, '\\n'))
+  assert(calls.fists == 3 and calls.holster == 2, 'the brawler and two friends; the story character is left alone: ' .. tostring(calls.fists) .. ' ' .. tostring(calls.holster))
+  assert(calls.weapons == nil and calls.vArmed >= 2, 'V empty-handed: checked once a second, no escalation')
+  -- V draws a gun: everyone in the brawl draws, once.
+  state.vGun = 'Items.Preset_Unity_Default'
+  run(S, 1.5)
+  assert(logged('NPC reaction: V drew Items.Preset_Unity_Default; the brawl escalates: 3 of 3 draw their own weapons'), table.concat(logs, '\\n'))
+  assert(calls.weapons == 3 and fighters[1].drew and fighters[2].drew and not fighters[3].drew)
+  -- V puts it away: nobody goes back to fists, and V's hand is not read any more.
+  local reads = calls.vArmed
+  state.vGun = false
+  run(S, 10)
+  assert(calls.weapons == 3 and calls.vArmed == reads and calls.holster == 2)
+  -- The watch ends by itself: a brawl V never escalates is read for escalateWatch seconds, then never again.
+  local S2 = build({config = {escalateWatch = 5}})
+  npcs['66ULL'] = {id = '66ULL'}
+  now = now + 500
+  state.hostileNow = false
+  local before = calls.vArmed
+  assert(act(S2, offerFor(S2, 'maelstrom', 'gang', '66ULL'), 'brawl', '66ULL'))
+  run(S2, 20)
+  assert(calls.vArmed - before <= 6, 'about once a second for 5 s: ' .. tostring(calls.vArmed - before))
+`));
+
+test('brawl: V already holding a gun when the brawl starts: no weapon is put away, the brawlers draw at the first watch', () => withService(`
+  state.vGun = 'Items.Preset_Overture_Default'
+  local S = build()
+  assert(act(S, offerFor(S, 'maelstrom', 'gang'), 'brawl'))
+  assert(logged('the brawl escalates: 1 of 1 draw their own weapons'), table.concat(logs, '\\n'))
+  assert(calls.holster == nil and calls.joined == nil, 'never de-escalated, no friends asked for fists after V escalated')
 `));
 
 test('stop: a hold that outlasts the conversation, no release (the talk goes on), not the person\'s one reaction, one command per 30 s', () => withService(`
@@ -430,7 +558,7 @@ TweakDBID = {new = function(name) return 'tdb:' .. name end}
 Enum = {new = function(kind, name) return kind .. '.' .. name end}
 -- CET's NewObject knows a native class only by its native name and gives nil for any other name (the live test of 2026-10-26: nil for
 -- 'StimuliEvent', whose native name is 'senseStimuliEvent'). The script classes are known by their own names.
-local CLASSES = {DelayedCrowdReactionEvent = true, AIHoldPositionCommand = true, AIEquipCommand = true, AIUnequipCommand = true, AIEvent = true,
+local CLASSES = {DelayedCrowdReactionEvent = true, AIHoldPositionCommand = true, AISwitchToPrimaryWeaponCommand = true, AIEquipCommand = true, AIUnequipCommand = true, AIEvent = true,
   AnimFeature_CrowdRunningAway = true}
 local nativeStimulus = false   -- the test turns the native name on
 local function stimulus(class)
@@ -543,4 +671,56 @@ test('natives: hold, fists, holster, the hand, the exit event and the mount read
   mounted['N-id'] = true
   assert(N.mounted(npc) == true and N.playerMounted(player) == false)
   mounted['V-id'] = true; assert(N.playerMounted(player) == true)
+`));
+
+test('natives: the workspot read, V\'s gun, the weapon switch, the friends who joined, the snapped leg and a continuing leg', () => withModule(fakeGame + `
+  Game.GetWorkspotSystem = function() return {IsActorInWorkspot = function(_, who) return who.seated == true end} end
+  assert(N.workspot(npc) == false); npc.seated = true; assert(N.workspot(npc) == true)
+  -- V's gun: a ranged weapon in the right hand, by its record; fists, a blade or nothing: false.
+  WeaponObject.IsRanged = function(id) return id == 'gun-id' end
+  assert(N.vArmed(player) == false)
+  player.weapon = {GetItemID = function() return 'blade-id' end}
+  ScriptedPuppet.GetWeaponRight = function(who) return who.weapon end
+  assert(N.vArmed(player) == false)
+  player.weapon = {GetItemID = function() return 'gun-id' end}
+  assert(N.vArmed(player) == 'Items.tdb-of:gun-id')
+  -- The weapon switch: the game's own command, the fists replaced (unEquip off).
+  N.weapons(npc)
+  assert(sent[#sent].class == 'AISwitchToPrimaryWeaponCommand' and sent[#sent].unEquip == false)
+  -- The friends: NPCs from one targeting search that are in combat and hostile to V, never the brawler itself.
+  player.GetAttitudeAgent = function() return {} end
+  local function agent(hostile) return {GetAttitudeTowards = function() return hostile and 'EAIAttitude : AIA_Hostile (2)' or 'EAIAttitude : AIA_Neutral (1)' end} end
+  local function person(id, fighting, hostile)
+    return {id = id, fighting = fighting, IsNPC = function() return true end, GetEntityID = function() return {hash = id} end,
+      GetAttitudeAgent = function() return agent(hostile) end}
+  end
+  local friend, calm, bystander = person('F1', true, true), person('F2', false, true), person('F3', true, false)
+  local self = person('N-hash', true, true)
+  npc.GetEntityID = function() return {hash = 'N-hash'} end
+  NPCPuppet.IsInCombat = function(who) return who.fighting == true end
+  TargetSearchQuery = {new = function() return {} end}
+  Game['TSF_NPC;'] = function() return 'npc-filter' end
+  local query
+  Game.GetTargetingSystem = function() return {GetTargetParts = function(_, _, q) query = q
+    local parts = {}
+    for _, who in ipairs({friend, calm, bystander, self, friend}) do parts[#parts + 1] = {entity = who} end
+    return true, parts end} end
+  TS_TargetPartInfo = {GetComponent = function(part) return {GetEntity = function() return part.entity end} end}
+  local found = N.joined(player, npc, 20)
+  assert(#found == 1 and found[1] == friend, 'only the fighting, hostile friend, once')
+  assert(query.maxDistance == 20 and query.testedSet == 'TargetingSet.Complete' and query.searchFilter == 'npc-filter')
+  -- The snapped leg point, and nil off the navmesh.
+  Game.GetAINavigationSystem = function() return {FindPointInSphereForCharacter = function(_, at, radius)
+    if at.x > 100 then return {status = 'worldNavigationRequestStatus.Failed'} end
+    return {status = 'worldNavigationRequestStatus.OK', point = Vector4.new(at.x, at.y + 0.5, at.z, 1)} end} end
+  local snapped = N.snap(npc, {x = 4, y = 0, z = 0}, 3)
+  assert(snapped.x == 4 and snapped.y == 0.5)
+  assert(N.snap(npc, {x = 200, y = 0, z = 0}, 3) == nil)
+  -- A later leg of a run has no start animation.
+  WorldPosition = {new = function() return {SetVector4 = function(self, v) self.v = v end} end}
+  AIPositionSpec = {new = function() return {SetWorldPosition = function(self, w) self.w = w end} end}
+  CLASSES.AIMoveToCommand = true
+  local first = N.walkTo(npc, {x = 1, y = 0, z = 0}, 'Run')
+  local later = N.walkTo(npc, {x = 2, y = 0, z = 0}, 'Run', true)
+  assert(first.useStart == true and later.useStart == false and later.movementType == 'moveMovementType.Run')
 `));
