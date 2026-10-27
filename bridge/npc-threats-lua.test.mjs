@@ -43,6 +43,13 @@ local function here()
   return {x = m.from.x + dx * share, y = m.from.y + dy * share, z = m.from.z + dz * share}
 end
 local fighters = {}
+-- A weapon record's kind, as the adapter reads it from its tags.
+local function kindOf(hand)
+  if hand == 'fists' or hand == 'empty' then return hand end
+  if hand:find('Strong_Arms') or hand:find('Mantis') then return 'cyberware' end
+  if hand:find('Tanto') or hand:find('Knife') or hand:find('Bat') then return 'melee' end
+  return 'ranged'
+end
 local npcs = {['44ULL'] = {id = '44ULL'}, ['55ULL'] = {id = '55ULL'}}
 local natives = {
   key = function(npc) return npc.id end,
@@ -66,9 +73,19 @@ local natives = {
   workspot = function() count('workspot'); return state.workspot end,
   vArmed = function() count('vArmed'); return state.vGun end,
   -- The draw: the remembered weapon (record) or what the person carries; with state.noDraw the hand stays as it was (live test 4).
-  weapons = function(npc, record) count('weapons'); calls.drew = (calls.drew or 0) + 1; npc.drew = true; npc.armedWith = record
-    if not state.noDraw then npc.hand = record or 'Items.Carried_Gun' end
-    return record and ('equip ' .. record) or 'equip Items.Carried_Gun (carried)' end,
+  -- The draw, as the adapter does it: a gun or cyberware arms in hand stay; else the melee weapons are taken and the gun (the remembered one when
+  -- it is a gun, else what the person carries) equipped. With state.noDraw (or npc.stubborn) the hand stays as it was (live test 5).
+  weapons = function(npc, record) count('weapons'); calls.drew = (calls.drew or 0) + 1; npc.drew = true
+    local hand = npc.hand or state.hand
+    if kindOf(hand) == 'ranged' then return 'already ' .. hand end
+    if kindOf(hand) == 'cyberware' then return 'cyberware arms ' .. hand .. ' kept (its own weapon)' end
+    local gun = (record and kindOf(record) == 'ranged') and record or npc.gun
+    if not gun then return 'no gun carried, keeps ' .. hand end
+    npc.armedWith = gun
+    local took = npc.melee; npc.melee = nil
+    if not state.noDraw and not npc.stubborn then npc.hand = gun end
+    return 'equip ' .. gun .. (took and (', took ' .. took) or '') end,
+  cancel = function(npc, command) count('cancel'); calls.cancelled = command end,
   joined = function() count('joined'); return fighters, {squad = #fighters, nearby = 0} end,
   scared = function(npc, on) count('scared'); order[#order + 1] = on and 'pose' or 'calm'; calls.posed = on end,
   commandState = function() count('commandState'); return 'Executing' end,
@@ -82,7 +99,7 @@ local natives = {
   hold = function(npc, seconds) count('hold'); order[#order + 1] = 'hold'; calls.holdSeconds = seconds; return {id = 'hold'} end,
   fists = function() count('fists'); return 'fists asked' end,
   holster = function() count('holster') end,
-  hand = function(npc) count('hand'); return npc.hand or state.hand end,
+  hand = function(npc) count('hand'); local hand = npc.hand or state.hand; return hand, kindOf(hand) end,
   exitVehicle = function() count('exitVehicle'); if state.failExit then error('no exit event') end; state.mounted = false end,
   mounted = function() count('mounted'); return state.mounted end,
   playerMounted = function() count('playerMounted'); return state.playerMounted end,
@@ -409,17 +426,22 @@ test('the game decides: a threats offer carries the person\'s plan and logs it; 
 // Live test 4 (2026-10-27, game 2.31): "get down on the ground!" to a walking homeless man: `get-down hold state=Enqueued moved=0.3 m`, then
 // `hold over, back to the crowd (moved=39.2 m in the hold)`. The crowd's phase 2 is its Surrender reaction (a second's cower), then its alarmed
 // stage walked him off and our hold never ran. Now: held, the scared pose, no crowd fear; a hold not running is sent again.
-test('cower and get down: a walking crowd person is held before the conversation lets go, in the scared pose with no crowd fear, held again when the hold is not running, and back to the crowd after it', () => withService(`
+// Live test 5 (2026-10-27): the hold sent while the conversation's own hold ran stayed `Enqueued` (and the second one too); the corpo walked
+// 20.8 m in the hold. Now the conversation's own order: it lets go first, and the hold goes to an empty queue in the same frame (the way
+// ConvaiBeginFocus stops a walking crowd person); a stuck hold is cancelled before the next is sent; a half-way read-back proves it runs.
+test('cower and get down: the conversation lets go and the hold goes to an empty queue in the same frame, the scared pose, no crowd fear, read back at 1.2 s and half way, a stuck hold cancelled and sent again, back to the crowd after it', () => withService(`
   local S = build()
   assert(S.start('get-down', offerFor(S, 'street-resident', 'resident'), '44ULL', 'r1'))
   run(S, 1.8)
-  assert(sequence() == 'hold,pose,release', 'held first, then the scared pose, then the conversation lets go: ' .. sequence())
+  assert(sequence() == 'release,hold,pose', 'the conversation lets go, then the hold, then the scared pose: ' .. sequence())
   assert(calls.holdSeconds == 20 and calls.crowdFear == nil and calls.crowdPanic == nil and calls.walkTo == nil, 'no crowd fear, no move')
-  assert(logged("NPC reaction: get%-down started, holds still for 20 s, taken from the crowd before the conversation let go, in the scared pose %(no crowd fear%)"), table.concat(logs, '\\n'))
+  assert(logged("NPC reaction: get%-down started, holds still for 20 s, the conversation let go first and the hold sent to an empty queue, in the scared pose %(no crowd fear%)"), table.concat(logs, '\\n'))
   run(S, 2)
-  assert(logged('NPC reaction check: get%-down hold state=Executing moved=0%.0 m'), table.concat(logs, '\\n'))
-  assert(calls.hold == 1, 'a running hold is not sent again')
-  run(S, 20)
+  assert(logged('NPC reaction check: get%-down hold state=Executing moved=0%.0 m$'), table.concat(logs, '\\n'))
+  assert(calls.hold == 1 and calls.cancel == nil, 'a running hold is not sent again')
+  run(S, 8)
+  assert(logged('NPC reaction check: get%-down hold state=Executing moved=0%.0 m %(half way%)'), table.concat(logs, '\\n'))
+  run(S, 12)
   assert(logged('NPC reaction check: get%-down hold over, back to the crowd %(moved=0%.0 m in the hold, scared pose off%)'), table.concat(logs, '\\n'))
   assert(calls.posed == false and order[#order] == 'calm', 'the pose is turned off when the hold ends')
   -- The live case: the hold is still queued at the first read-back: sent once more for the rest of the 20 s, then read back once more.
@@ -431,7 +453,8 @@ test('cower and get down: a walking crowd person is held before the conversation
   assert(S1.start('cower', offerFor(S1, 'street-resident', 'resident', '71ULL'), '71ULL', 'r2'))
   run(S1, 4)
   assert(calls.hold == holds + 2 and calls.holdSeconds >= 18 and calls.holdSeconds <= 19.5, tostring(calls.hold - holds) .. ' ' .. tostring(calls.holdSeconds))
-  assert(logged('NPC reaction: cower hold was Enqueued, sent again for 1[89] s %(sent%)'), table.concat(logs, '\\n'))
+  assert(logged('NPC reaction: cower hold was Enqueued, cancelled and sent again for 1[89] s %(sent%)'), table.concat(logs, '\\n'))
+  assert(calls.cancel == 1 and calls.cancelled.id == 'hold', 'the stuck hold is the one cancelled')
   run(S1, 4)
   assert(calls.hold == holds + 2, 'sent again once only')
   natives.commandState = function() count('commandState'); return 'Executing' end
@@ -467,7 +490,7 @@ test('cower and get down: a walking crowd person is held before the conversation
   local S5 = build()
   npcs['81ULL'] = {id = '81ULL'}
   assert(act(S5, offerFor(S5, 'street-resident', 'resident', '81ULL'), 'cower', '81ULL'))
-  assert(calls.hold == holds + 5 and logged('cower started, holds still for 20 s, taken from the crowd before the conversation let go$'))
+  assert(calls.hold == holds + 5 and logged('cower started, holds still for 20 s, the conversation let go first and the hold sent to an empty queue$'))
 `));
 
 test('brawl: hostile, combat and fists; a drawn weapon is put away once; it counts as a fight for the cooldown', () => withService(`
@@ -498,7 +521,7 @@ test('brawl: hostile, combat and fists; a drawn weapon is put away once; it coun
 // Live test 2 (2026-10-27): the ganger's friends joined his brawl, one with a gun from the start; and the owner's rule: when V draws a gun, the
 // brawlers draw theirs (they escalate when V does, never de-escalate on their own). Live test 4 (game 2.31): the one search at 1.2 s found
 // nobody while three friends joined (two with guns), and the game's weapon switch command ("1 of 1 draw") left the brawler on her fists.
-test('brawl: the friends are searched three times (squad and nearby) and get fists (a drawn gun put away, remembered); when V holds a gun every brawler equips its own gun, read back by person', () => withService(`
+test('brawl: the friends are searched three times (squad and nearby) and get fists (a drawn gun put away, remembered); V draws: every brawler is asked for its own gun, by person', () => withService(`
   local S = build({policy = {ours = function() return false end, spawned = function() return false end,
     protected = function() return false end, story = function(npc) return npc.story == true end}})
   assert(S.start('brawl', offerFor(S, 'maelstrom', 'gang'), '44ULL', 'r1'))
@@ -506,8 +529,8 @@ test('brawl: the friends are searched three times (squad and nearby) and get fis
   -- Nobody yet at the first search (the gang has not come in).
   assert(logged('NPC reaction: brawl joined by 0 more %(search 1 of 3: squad 0, nearby 0%)$'), table.concat(logs, '\\n'))
   -- They come in: the later searches find them, once each.
-  fighters[1] = {id = 'B1', hand = 'Items.Preset_Lexington'}
-  fighters[2] = {id = 'B2', hand = 'fists'}
+  fighters[1] = {id = 'B1', hand = 'Items.Preset_Lexington', gun = 'Items.Preset_Lexington'}
+  fighters[2] = {id = 'B2', hand = 'fists', gun = 'Items.Preset_Saratoga_Neon'}
   fighters[3] = {id = 'B3', hand = 'empty', story = true}
   run(S, 6)
   assert(calls.joined == 3, 'three searches: ' .. tostring(calls.joined))
@@ -515,13 +538,14 @@ test('brawl: the friends are searched three times (squad and nearby) and get fis
   assert(logged('NPC reaction: brawl joined by 0 more %(search 3 of 3'), 'nobody twice')
   assert(calls.fists == 3 and calls.holster == 2, 'the brawler and two friends; the story character is left alone: ' .. tostring(calls.fists) .. ' ' .. tostring(calls.holster))
   assert(calls.weapons == nil and calls.vArmed >= 2, 'V empty-handed: checked once a second, no escalation')
-  -- V draws a gun: everyone in the brawl equips a gun: the one each was seen holding, else what it carries.
+  -- V draws a gun: every brawler is asked for its own gun (the one seen, else what it carries), the melee taken.
+  npcs['44ULL'].hand, npcs['44ULL'].melee, npcs['44ULL'].gun = 'Items.Preset_Tanto_Default', 'Items.Preset_Tanto_Default', 'Items.Preset_Unity_Default'
+  fighters[1].hand = 'fists'
   state.vGun = 'Items.Preset_Unity_Default'
   run(S, 1.2)
-  assert(logged('NPC reaction: V drew Items.Preset_Unity_Default; the brawl escalates: 3 of 3 draw their own weapons %(equip Items.Preset_Unity_Default; equip Items.Preset_Lexington; equip Items.Carried_Gun %(carried%)%)'), table.concat(logs, '\\n'))
-  assert(npcs['44ULL'].armedWith == 'Items.Preset_Unity_Default' and fighters[1].armedWith == 'Items.Preset_Lexington' and fighters[2].armedWith == nil and not fighters[3].drew)
+  assert(logged('NPC reaction: V drew Items.Preset_Unity_Default; the brawl escalates: 3 of 3 asked for their guns %(equip Items.Preset_Unity_Default, took Items.Preset_Tanto_Default; equip Items.Preset_Lexington; equip Items.Preset_Saratoga_Neon%)'), table.concat(logs, '\\n'))
   run(S, 2)
-  assert(logged('NPC reaction check: brawl escalated, 3 of 3 hold a weapon %(Items.Preset_Unity_Default, Items.Preset_Lexington, Items.Carried_Gun%)'), table.concat(logs, '\\n'))
+  assert(logged('NPC reaction check: brawl escalated, 3 of 3 hold a gun or their cyberware arms %(Items.Preset_Unity_Default %(gun%), Items.Preset_Lexington %(gun%), Items.Preset_Saratoga_Neon %(gun%)%)'), table.concat(logs, '\\n'))
   -- V puts it away: nobody goes back to fists, and V's hand is not read any more.
   local reads = calls.vArmed
   state.vGun = false
@@ -538,23 +562,29 @@ test('brawl: the friends are searched three times (squad and nearby) and get fis
   assert(calls.vArmed - before <= 6, 'about once a second for 5 s: ' .. tostring(calls.vArmed - before))
 `));
 
-test('brawl: a draw the game ignores is read back and asked once more; a friend who joins after V escalated draws at once; V already armed: nothing put away', () => withService(`
-  state.vGun = 'Items.Preset_Overture_Default'
-  state.noDraw = true
-  state.hand = 'fists'
+// Live test 5 (2026-10-27): "3 of 4 hold a weapon (Items.Preset_Tanto_Default, fists -> asked again (...), Items.NPC_Strong_Arms,
+// Items.NPC_Strong_Arms)": a knife and gorilla arms were counted as weapons and nobody but one had a gun. Now only a gun counts, and
+// cyberware arms (the person's own body) are kept and counted as armed.
+test('brawl, live test 5: a knife is no gun (asked again, the knife taken), gorilla arms are the person\'s own weapon (kept, counted), fists asked again; a person with no gun keeps what it has', () => withService(`
+  state.vGun = 'Items.Preset_Kyubi_Default'
+  state.hand = 'Items.Preset_Tanto_Default'
+  npcs['44ULL'].gun, npcs['44ULL'].melee, npcs['44ULL'].stubborn = 'Items.Preset_Copperhead_Default', 'Items.Preset_Tanto_Default', true
   local S = build()
-  assert(S.start('brawl', offerFor(S, 'maelstrom', 'gang'), '44ULL', 'r1'))
+  assert(S.start('brawl', offerFor(S, 'tyger-claws', 'gang'), '44ULL', 'r1'))
   run(S, 6)
-  assert(logged('the brawl escalates: 1 of 1 draw their own weapons %(equip Items.Carried_Gun %(carried%)%)'), table.concat(logs, '\\n'))
+  assert(logged('the brawl escalates: 1 of 1 asked for their guns %(equip Items.Preset_Copperhead_Default, took Items.Preset_Tanto_Default%)'), table.concat(logs, '\\n'))
   assert(calls.holster == nil, 'never de-escalated: nothing put away')
-  assert(logged('NPC reaction check: brawl escalated, 0 of 1 hold a weapon %(fists %-> asked again %(equip Items.Carried_Gun %(carried%)%)%)'), table.concat(logs, '\\n'))
-  assert(logged('NPC reaction check: brawl escalated, 0 of 1 hold a weapon %(fists%)$'), 'the last read-back asks nothing more')
-  -- A friend who comes in after the escalation draws instead of getting fists.
-  state.noDraw = false
-  fighters[1] = {id = 'B9', hand = 'Items.Preset_Nue'}
-  local fists = calls.fists
-  run(S, 3)
-  assert(fighters[1].armedWith == 'Items.Preset_Nue' and calls.fists == fists and logged('brawl joined by 1 more %(search 3 of 3: squad 1, nearby 0%), asked to draw %(V has a gun out%)'), table.concat(logs, '\\n'))
+  -- The brawler's hand stays on the knife (the game ignored the draw): no gun, asked once more, then read back once more.
+  assert(logged('NPC reaction check: brawl escalated, 0 of 1 hold a gun or their cyberware arms %(Items.Preset_Tanto_Default %(melee%) %-> asked again %(equip Items.Preset_Copperhead_Default%)%)'), table.concat(logs, '\\n'))
+  assert(logged('NPC reaction check: brawl escalated, 0 of 1 hold a gun or their cyberware arms %(Items.Preset_Tanto_Default %(melee%)%)$'), 'the last read-back asks nothing more')
+  -- The friends come in after the escalation: gorilla arms kept (their own weapon), fists with no gun carried keep their fists; read back once.
+  fighters[1] = {id = 'G1', hand = 'Items.NPC_Strong_Arms', gun = 'Items.Preset_Overture_Default'}
+  fighters[2] = {id = 'G2', hand = 'Items.NPC_Strong_Arms', gun = 'Items.Preset_Overture_Default'}
+  fighters[3] = {id = 'F1', hand = 'fists'}
+  run(S, 4)
+  assert(logged('NPC reaction check: brawl escalated, 2 of 4 hold a gun or their cyberware arms %(Items.Preset_Tanto_Default %(melee%), Items.NPC_Strong_Arms %(cyberware arms%), Items.NPC_Strong_Arms %(cyberware arms%), fists%)$'), table.concat(logs, '\\n'))
+  assert(logged('brawl joined by 3 more %(search 3 of 3: squad 3, nearby 0%), asked to draw %(V has a gun out%)'), table.concat(logs, '\\n'))
+  assert(fighters[1].armedWith == nil and fighters[2].armedWith == nil and fighters[3].armedWith == nil, 'gorilla arms kept, no gun for the bare hands')
 `));
 
 test('stop: a hold that outlasts the conversation, no release (the talk goes on), not the person\'s one reaction, one command per 30 s', () => withService(`
@@ -740,22 +770,52 @@ test('natives: the workspot read, V\'s gun, the weapon switch, the friends who j
   assert(N.vArmed(player) == false)
   player.weapon = {GetItemID = function() return 'gun-id' end}
   assert(N.vArmed(player) == 'Items.tdb-of:gun-id')
-  -- The draw (live test 4: the switch command alone changed nothing): the equip command with the weapon the person was seen holding.
-  assert(N.weapons(npc, 'Items.Preset_Copperhead_Default') == 'equip Items.Preset_Copperhead_Default')
-  assert(sent[#sent].class == 'AIEquipCommand' and sent[#sent].slotId == 'tdb:AttachmentSlots.WeaponRight'
-    and sent[#sent].itemId == 'tdb:Items.Preset_Copperhead_Default' and sent[#sent].failIfItemNotFound == false)
-  -- Not seen holding one: the first ranged weapon it carries (the transaction system's list, CET's out list), skipping a blade.
+  -- The draw (live test 5: an equipped gun lost to the knife the combat AI picked again): a weapon's kind by its record's tags; the melee
+  -- weapons and fists items taken from the inventory, then the person's gun equipped (the one it was seen with when it carries it).
+  local tagsOf = {['gun-id'] = 'ranged', ['gun2-id'] = 'ranged', ['blade-id'] = 'melee', ['fists-id'] = 'fists', ['arms-id'] = 'cyberware'}
+  WeaponObject.IsRanged = function(id) return tagsOf[id] == 'ranged' end
+  WeaponObject.IsMelee = function(id) return tagsOf[id] == 'melee' end
+  WeaponObject.IsCyberwareWeapon = function(id) return tagsOf[id] == 'cyberware' end
+  assert(N.weaponKind('gun-id') == 'ranged' and N.weaponKind('blade-id') == 'melee' and N.weaponKind('fists-id') == 'fists' and N.weaponKind('arms-id') == 'cyberware'
+    and N.weaponKind('jacket-id') == 'other')
   local function item(id) return {GetID = function() return id end} end
-  Game.GetTransactionSystem = function() return {GetItemList = function(_, who) assert(who == npc); return true, {item('blade-id'), item('gun-id')} end} end
-  assert(N.weapons(npc) == 'equip Items.tdb-of:gun-id (carried)' and sent[#sent].itemId == 'tdb:Items.tdb-of:gun-id')
-  -- Nothing ranged carried (or the list unreadable): the game's own switch command, the fists replaced (unEquip off).
-  Game.GetTransactionSystem = function() return {GetItemList = function() return true, {item('blade-id')} end} end
-  assert(N.weapons(npc) == 'switch command' and sent[#sent].class == 'AISwitchToPrimaryWeaponCommand' and sent[#sent].unEquip == false)
+  local removed = {}
+  local inventory = {item('blade-id'), item('gun-id'), item('fists-id'), item('gun2-id'), item('jacket-id')}
+  Game.GetTransactionSystem = function() return {GetItemList = function(_, who) assert(who == npc); return true, inventory end,
+    RemoveItem = function(_, who, id, amount) assert(who == npc and amount == 1); removed[#removed + 1] = id; return true end} end
+  npc.weapon = {GetItemID = function() return 'blade-id' end}
+  assert(N.weapons(npc, 'Items.tdb-of:gun2-id') == 'equip Items.tdb-of:gun2-id, took Items.tdb-of:blade-id+Items.tdb-of:fists-id', 'the gun it was seen with')
+  assert(table.concat(removed, ',') == 'blade-id,fists-id', table.concat(removed, ','))
+  assert(sent[#sent].class == 'AIEquipCommand' and sent[#sent].slotId == 'tdb:AttachmentSlots.WeaponRight'
+    and sent[#sent].itemId == 'tdb:Items.tdb-of:gun2-id' and sent[#sent].failIfItemNotFound == false)
+  -- A remembered record that is not a gun (her knife): the first gun it carries.
+  assert(N.weapons(npc, 'Items.tdb-of:blade-id'):find('^equip Items.tdb%-of:gun%-id'))
+  -- Already holding a gun: nothing is done. Cyberware arms in hand (gorilla arms): kept, its own weapon.
+  local count = #sent
+  npc.weapon = {GetItemID = function() return 'gun-id' end}
+  assert(N.weapons(npc) == 'already Items.tdb-of:gun-id' and #sent == count)
+  npc.weapon = {GetItemID = function() return 'arms-id' end}
+  assert(N.weapons(npc) == 'cyberware arms Items.tdb-of:arms-id kept (its own weapon)' and #sent == count)
+  -- No gun carried (or the list unreadable): it keeps what it has, nothing taken.
+  npc.weapon = {GetItemID = function() return 'blade-id' end}
+  inventory, removed = {item('blade-id')}, {}
+  assert(N.weapons(npc) == 'no gun carried, keeps Items.tdb-of:blade-id' and #removed == 0 and #sent == count)
   Game.GetTransactionSystem = function() error('not exposed') end
-  assert(N.weapons(npc) == 'switch command')
-  -- The scared pose: the crowd's phase-2 fear animation set, on and off.
+  npc.weapon = nil
+  assert(N.weapons(npc) == 'no gun carried, keeps empty hands')
+  -- The hand with its kind.
+  npc.weapon = {GetItemID = function() return 'arms-id' end}
+  local held, kind = N.hand(npc)
+  assert(held == 'Items.tdb-of:arms-id' and kind == 'cyberware')
+  npc.weapon = nil
+  -- A stuck command taken back.
+  local cancelled
+  npc.GetAIControllerComponent = function() return {SendCommand = function(_, command) sent[#sent + 1] = command; return true end,
+    CancelCommand = function(_, command) cancelled = command; return true end} end
+  assert(N.cancel(npc, {id = 'stuck'}) == true and cancelled.id == 'stuck' and N.cancel(npc, nil) == false)
+  -- The scared pose: the crowd's phase-2 fear animation set and the crouch stance's, on and off.
   N.scared(npc, true); N.scared(npc, false)
-  assert(wrappers[#wrappers - 1] == 'cname:fear=1.0' and wrappers[#wrappers] == 'cname:fear=0.0', table.concat(wrappers, ','))
+  assert(table.concat(wrappers, ',', #wrappers - 3) == 'cname:fear=1.0,cname:inCrouch=1.0,cname:fear=0.0,cname:inCrouch=0.0', table.concat(wrappers, ','))
   -- The friends: the brawler's squad and one targeting search, each person once, in combat or hostile to V, within the radius of V,
   -- never the brawler itself.
   player.GetAttitudeAgent = function() return {} end

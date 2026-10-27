@@ -7,8 +7,20 @@ traffic before they react, and a brawl that escalates when V does. Reworked agai
 off, nothing fired): the game's plan and pick on both sides of the switch, more insults and dares read, and the game's verdict on the turn's line.
 Reworked again 2026-10-27 on `fix/threats-live4` after live test 4: the feeling of a decided reaction in the model's note, a "get down" that
 keeps a walking person down for its 20 s, and a brawl whose friends are found and whose escalation really puts guns in hands.
+Reworked again 2026-10-27 on `fix/threats-live5` after live test 5: the hold sent after the conversation lets go (the conversation's own
+order), and the escalation takes the melee weapons from the inventory so the combat AI can only pick the gun.
 Committed, NOT merged, NOT pushed, offline-tested only. The new kinds (cower, fists, the commands) are behind a Companion Manager switch that is
 **off by default**: Settings, Conversations, "NPCs react to threats and commands"; the crowd run and the game's pick among the old kinds are not.
+
+## Live test 5 (game 2.31, 2026-10-27) and what changed
+
+PASS: switch off, "get lost or ill kill you": he ran 34 m in 10 legs and sounded scared. Brawl friends found (`joined by 2 more (search 1 of 3:
+squad 1, nearby 1)`, then 1 more) and on fists; the brawler went to her melee weapon (a Tanto) by herself, which is fine.
+
+| Seen live | Cause | Fix (`fix/threats-live5`) |
+|---|---|---|
+| "Get down" to a walking corpo: he said the line and kept walking: `hold state=Enqueued moved=1.3 m`, `hold was Enqueued, sent again for 19 s (sent)`, `hold state=Enqueued moved=2.6 m`, `hold over, back to the crowd (moved=20.8 m in the hold, scared pose off)`; no visible pose | our hold was sent while the conversation's own hold (`ConvaiBeginFocus`, an `AIHoldPositionCommand` of 40 s) still ran, so it queued behind it; after the conversation stopped its hold the queued one never started, and the second one queued too. The conversation itself does it the other way round: `ConvaiBeginFocus` first stops its old hold (`ConvaiEndFocus`), then sends the new one, and that stops a walking crowd person every time V talks to one | the same order: the conversation lets go, and in the same frame our hold goes to an **empty** queue; a hold not `Executing` at 1.2 s is **cancelled** (`CancelCommand`) and sent once more; a second read-back half way through (`(half way)`) shows it still runs. The pose: the crouch stance's animation set (`inCrouch`) with the `fear` set (both still unconfirmed on crowd people) |
+| V drew a gun: `4 of 4 draw their own weapons (equip Items.Preset_Copperhead_Default; equip Items.Preset_Saratoga_Neon (carried); equip Items.Preset_Overture_Default (carried); ...)`, then `3 of 4 hold a weapon (Items.Preset_Tanto_Default, fists -> asked again (...), Items.NPC_Strong_Arms, Items.NPC_Strong_Arms)`: a knife and gorilla arms counted as weapons; the owner saw maybe one switch | the equip was taken, then the combat AI picked its own weapon again: an NPC's combat weapon comes from its equipment, and only an item it has can be picked (`transactionSystem.script` `GetEquipmentWithCondition`: `transactionSystem.HasItem(puppet, itemID)`), so at brawl range the knife wins. Gorilla arms (`Cyb_StrongArms`, the `Meleeware` tag) are cyberware, the person's own arms | the escalation **takes the melee weapons and fists items from the person's inventory** (`TransactionSystem.RemoveItem`), then equips its gun (the one it was seen with, if it carries it, else the first it carries); **cyberware arms are kept and count as armed** (the person's own body); a person with no gun keeps what it has. The read-back counts only a gun or cyberware arms and names the kind per person; a knife or fists is asked once more |
 
 ## Live test 4 (game 2.31, 2026-10-27, Local AI "lite" + Pocket) and what changed
 
@@ -117,7 +129,7 @@ workspot), the reaction sends **its own command first**, while the conversation'
 | Kind | Order | The person | Back to the crowd |
 |---|---|---|---|
 | leave (and the run after a police call, and the switch-off leave) | the crowd reaction event (phase 3: the game's own fright for the people around, its fear face and voice), the first run leg, then the conversation lets go | runs away in **legs**: a first leg of 4 m, read back after 0.4 s; then legs of 8 m, each sent from where the person is a second later, before the last one ends (no stop, no start animation between legs: `useStart` off), up to the walkable point 30 m away or ten legs | when it arrives (`ran <m> m in <n> leg(s); back to the crowd`), or once it streams out of sight |
-| cower, get-down | an `AIHoldPositionCommand` (20 s), the scared pose (no crowd fear since live test 4: it walked the person off), then the conversation lets go; a hold not running at 1.2 s is sent again for the rest | holds still where it is, in the scared pose | when the hold ends (`hold over, back to the crowd`, the pose off) |
+| cower, get-down | the conversation lets go, then in the same frame an `AIHoldPositionCommand` (20 s) to an empty queue (live test 5: sent before the release it stayed queued), then the scared pose; no crowd fear (live test 4); a hold not running at 1.2 s is cancelled and sent again for the rest; read back again half way | holds still where it is, in the scared pose | when the hold ends (`hold over, back to the crowd`, the pose off) |
 | stop | an `AIHoldPositionCommand` (30 s) without letting go (as before: the talk goes on) | holds still | when the hold ends |
 
 **Never a teleport, at worst one leg.** The game puts a crowd person given a move command at its end point at once in the cases seen so far
@@ -134,12 +146,14 @@ leg is 4 m, so the worst a jump can do is 4 m. A person that does not move in tw
   put away): `brawl joined by <n> more (search <i> of 3: squad <a>, nearby <b>), asked for fists (<k> had a weapon out, asked to put it away)`.
   One who joins after the escalation draws instead: `..., asked to draw (V has a gun out)`.
 - **Escalation, the owner's rule.** While a brawl lasts (up to 120 s) V's right hand is read once a second (`natives.vArmed`: a ranged weapon's
-  record, else false). The moment V holds a gun, every brawler (the person and its friends) is given its gun with the same equip command that
-  gave it its fists (`AIEquipCommand` into `AttachmentSlots.WeaponRight`): the weapon it was seen holding before it was put away, else the first
-  ranged weapon it carries (`TransactionSystem.GetItemList`), else the game's `AISwitchToPrimaryWeaponCommand` (live test 4: that command alone
-  changed nothing). `V drew <record>; the brawl escalates: <n> of <m> draw their own weapons (equip <record>; equip <record> (carried); ...)`, then
-  1.5 s later `brawl escalated, <k> of <m> hold a weapon (<hand>, <hand>, ...)`; a hand still on fists is asked once more and read back once
-  more. Once, for good: nothing is put away after it, V putting the gun away does not take them back to fists, and the watch stops. A brawl that
+  record, else false). The moment V holds a gun, every brawler (the person and its friends) gets its gun: its melee weapons and fists items are
+  taken from its inventory (`TransactionSystem.RemoveItem`; the combat AI picks only items the person has, live test 5), then its gun is equipped
+  (`AIEquipCommand` into `AttachmentSlots.WeaponRight`: the one it was seen with if it carries it, else the first it carries). Cyberware arms
+  (gorilla arms, mantis blades: the `Meleeware` tag) are the person's own body: kept, counted as armed. A person with no gun keeps what it has.
+  `V drew <record>; the brawl escalates: <n> of <m> asked for their guns (equip <record>, took <record>; cyberware arms <record> kept (its own
+  weapon); no gun carried, keeps <hand>; ...)`, then 1.5 s later `brawl escalated, <k> of <m> hold a gun or their cyberware arms (<record> (gun),
+  <record> (cyberware arms), <record> (melee) -> asked again (...), fists, ...)`; a hand without a gun is asked once more and read back once more.
+  Friends who join after the escalation are asked for their guns and read back once. Once, for good: nothing is put away after it, V putting the gun away does not take them back to fists, and the watch stops. A brawl that
   starts with V already holding a gun escalates at the first watch, before anything is put away. A death threat is still the plain `attack` with
   weapons from the start.
 
@@ -294,8 +308,8 @@ against the game's compiled script cache (`r6/cache/final.redscripts`, read-only
 | Kind | Crowd person | Anyone else | Status |
 |---|---|---|---|
 | leave, walking crowd person | the crowd event (phase 3), then `AIMoveToCommand` legs (`Run`, 4 m then 8 m, later legs `useStart` off), sent before the conversation lets go; a jump or a stall: the fear stage | (not crowd) | **unconfirmed** (live test 3) |
-| cower, get-down, walking crowd person | `AIHoldPositionCommand` 20 s first, the scared pose (`fear` animation set on, off when the hold ends), then the conversation lets go; no crowd fear (live test 4: its Surrender lasted a second, then the crowd walked him 39 m); the hold sent again if not running | (not crowd: the same hold and pose) | **unconfirmed** (live test 5) |
-| brawl friends, escalation | the squad (`AISquadHelper.GetSquadmatesID`, `Game.FindEntityByID`) and the targeting search (`GetTargetParts`), three times; the same fists and put-away; V's gun (`ScriptedPuppet.GetWeaponRight(V)`, `WeaponObject.IsRanged`) read once a second, then `AIEquipCommand` of each brawler's own gun (seen, else carried: `TransactionSystem.GetItemList`), else `AISwitchToPrimaryWeaponCommand`; hands read back 1.5 s later | same | **unconfirmed** (live test 5) |
+| cower, get-down, walking crowd person | the conversation lets go, then `AIHoldPositionCommand` 20 s to an empty queue, the scared pose (`fear` and `inCrouch` animation sets, off when the hold ends); no crowd fear (live test 4); a stuck hold cancelled (`CancelCommand`) and sent again | (not crowd: the same hold and pose) | **unconfirmed** (live test 6) |
+| brawl friends, escalation | the squad (`AISquadHelper.GetSquadmatesID`, `Game.FindEntityByID`) and the targeting search (`GetTargetParts`), three times: live (live test 5); the same fists and put-away; V's gun (`ScriptedPuppet.GetWeaponRight(V)`, `WeaponObject.IsRanged`) read once a second, then the melee weapons removed (`TransactionSystem.RemoveItem`) and `AIEquipCommand` of the person's gun (`GetItemList`, `WeaponObject.IsRanged/IsMelee/IsFists/IsCyberwareWeapon`); cyberware arms kept; hands read back by kind 1.5 s later | same | friends: live; escalation: **unconfirmed** (live test 6) |
 | leave, seated crowd person | `DelayedCrowdReactionEvent` (phase 3), `StimuliEvent.new()` (or `NewObject('senseStimuliEvent')`) from V of type `Terror` with its record (`StimuliSystem.GetStimRecord`), `npc:QueueEvent`; else, or when it did not move the person, the crowd's fear stage (`ChangeFearStage(Panic)` and the calls above) | `AIMoveToCommand`, as before | crowd: **unconfirmed** (live test 1 crashed on `NewObject('StimuliEvent')`, fixed); walk: live |
 | cower, get-down, seated | the same event, phase 2 (the seat's own fear); else the fear stage `Alarmed` | `AIHoldPositionCommand` 20 s and the scared pose | **unconfirmed** / live |
 | brawl | hostile + combat start as `attack`, then `AIEquipCommand` of `Items.w_melee_004__fists_a` to `AttachmentSlots.WeaponRight` (`failIfItemNotFound` off: nothing is added to the inventory); after 1.2 s, if the hand holds a weapon, one `AIUnequipCommand` | same | combat: live; fists: **unconfirmed** |
@@ -448,36 +462,41 @@ Added 2026-10-27 (`fix/threats-live4`), from the live test 4 log lines:
 - `bridge/npc-reaction-pipeline.test.mjs` (8): the decided configs carry the reading; the frightened note reaches the Local AI prompt; "get down"
   through every real piece is held in the scared pose with no crowd fear.
 
+Added 2026-10-27 (`fix/threats-live5`), from the live test 5 log lines, `bridge/npc-threats-lua.test.mjs` (25, four rewritten): get down
+lets the conversation go first and sends the hold to an empty queue (order `release,hold,pose`), reads it back at 1.2 s and half way, cancels a
+stuck hold before sending the next; the escalation of the live brawl (a Tanto taken, the Copperhead equipped; gorilla arms kept and counted; fists
+with no gun kept); a draw the game ignores read back as `(melee)` and asked once more; friends after the escalation read back; the natives: a
+weapon's kind by its tags, the melee and fists items removed, the remembered gun preferred only when it is a gun, already armed, cyberware kept, no
+gun, the hand with its kind, the cancel, the pose's two animation sets.
+
 ## Live test (owner)
 
-Live tests 1 to 4 (2026-10-26 and 27) found the problems at the top. Live test 5 is this one, for `fix/threats-live4`.
+Live tests 1 to 5 (2026-10-26 and 27) found the problems at the top. Live test 6 is this one, for `fix/threats-live5`.
 
-Install: overlay the committed files of the branch: `mod/npc-reactions.lua` (never `mod/diagnostics.lua`), `bridge/companion-actions.mjs` and
-`bridge/text-actions.mjs`, then CET reload and a bridge restart (no redscript, no game restart). Use a throwaway copy of a save. Keep
-`probe.log` and `bridge.stderr.log` open.
+Install: overlay `mod/npc-reactions.lua` (never `mod/diagnostics.lua`), CET reload (no bridge restart needed, no redscript, no game restart). Use
+a throwaway copy of a save. Keep `probe.log` open.
 
-1. **Switch off, Local AI "lite", a walking pedestrian, "get lost or I'll kill you".** `[NPCReaction] ... tag=leave delivered=yes screen=kill
-   game=leave by=game`, the run as in live test 4. **Does the person's line sound frightened (pleading, panicked), never "you don't scare me"?**
-   Then an insult ("you stupid bitch") to another pedestrian whose plan says `insult:leave`: **offended and walking off, not scared?**
-2. **Switch on, "get down on the ground!" to a walking pedestrian.** `get-down started, holds still for 20 s, taken from the crowd before the
-   conversation let go, in the scared pose (no crowd fear)`, then `get-down hold state=Executing moved=<under 1> m` (or `hold was Enqueued, sent
-   again for 19 s (sent)` and a second `hold state=Executing`), and 20 s later `get-down hold over, back to the crowd (moved=<under 1> m in the
-   hold, scared pose off)`. **Does the person stay where it is the whole 20 s, in a scared pose, then walk on?** Its line: frightened and obedient.
-3. **The same with a death threat to a pedestrian whose plan says `kill:cower`.** The same hold and pose; the line terrified.
-4. **A ganger with friends around, an insult** (Northside, not in a safe zone). `brawl ... fists fists asked`, then `brawl joined by <n> more
-   (search <i> of 3: squad <a>, nearby <b>), asked for fists (<k> had a weapon out, asked to put it away)` (three `search` lines in the first 6 s).
-   **Do all his friends fight with fists, guns put away?**
-5. **Escalation.** In that brawl, draw a pistol: `V drew <record>; the brawl escalates: <n> of <m> draw their own weapons (equip <record>; ...)`,
-   then `brawl escalated, <k> of <m> hold a weapon (<records>)`. **Do all of them switch to guns?** Holster yours: **they keep their guns.** Note
-   any `fists -> asked again (...)` in the read-back.
-6. **A friend who arrives after you drew**: `brawl joined by 1 more (search 3 of 3: ...), asked to draw (V has a gun out)`.
-7. **Frame rate.** Talk to a few people and start one brawl; FPS as before (one read a second during a brawl, three friend searches, nothing else).
+1. **Switch on, "get down on the ground!" to a walking pedestrian.** Expect `get-down started, holds still for 20 s, the conversation let go first
+   and the hold sent to an empty queue, in the scared pose (no crowd fear)`, then `get-down hold state=Executing moved=<under 1> m`, about 10 s
+   later `get-down hold state=Executing moved=<under 1> m (half way)`, and at 20 s `get-down hold over, back to the crowd (moved=<under 1> m in
+   the hold, scared pose off)`. If the first read-back says `Enqueued`: `get-down hold was Enqueued, cancelled and sent again for 19 s (sent)`
+   and a second `hold state=` line. **Does the person stop and stay about 20 s, then walk on? Does it crouch or look scared?**
+2. **A death threat to a pedestrian whose plan says `kill:cower`.** The same lines with `cower`.
+3. **A ganger with friends, an insult, then draw a gun.** `V drew <record>; the brawl escalates: <n> of <m> asked for their guns (equip <gun>,
+   took <knife or fists>; cyberware arms Items.NPC_Strong_Arms kept (its own weapon); ...)`, then `brawl escalated, <k> of <m> hold a gun or
+   their cyberware arms (<gun> (gun), Items.NPC_Strong_Arms (cyberware arms), ...)`. **Do the ones with knives or fists switch to guns and keep
+   them? Do the gorilla-arms ones keep fighting with their arms?** Note any `(melee) -> asked again` or `no gun carried`.
+4. **Holster yours**: they keep their guns. After the fight, the knives taken are gone from their loot (expected).
+5. **Frame rate** as before.
 
-What only this can confirm: that a held crowd person stays without the crowd's fear, that the `fear` animation set gives it a scared pose while
-it stands, that the squad lookup finds a gang's members from CET, and that equipping the gun by its record puts it in the hand mid-fight.
+What only this can confirm: that a hold sent right after the conversation lets go runs on a walking crowd person, that the `inCrouch` set shows
+a crouch on a crowd person, and that a person without its knife takes its gun and keeps it.
 
 ## Open risks
 
+- Live test 5: the escalation removes a brawler's melee weapons and fists items from its inventory (they are gone from its loot); cyberware
+  arms are never touched. If a person still goes back to melee, something other than its inventory decides (its weapon was put back by the
+  game's own equipment logic): the read-back shows it per person.
 - Live test 4: a held crowd person no longer gets the crowd's fear (it walked him off); whether the `fear` animation set alone gives a visible
   scared pose while it stands is what live test 5 shows (the hold keeps it in place either way). The squad lookup
   (`AISquadHelper.GetSquadmatesID`, an out list from CET) and the gun equip by record are new from CET; each is guarded, and the targeting search
