@@ -250,7 +250,7 @@ test('Local AI, typed, the switch off (live test 3): "get lost or I\'ll kill you
     assert.ok(prompts.some(text => text.includes('The game has decided what you do as you answer V\'s new message')), 'the model is told what the person does');
     assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave admitted=yes route=text tag=leave delivered=yes screen=kill game=leave by=game'],
       'exactly one line for the turn');
-    assert.deepEqual(bridgeLogs, [], 'no second line from the host');
+    assert.deepEqual(bridgeLogs.filter(line => !line.startsWith('Crowd person:')), [], 'no second line from the host (the crowd person line says whose history, not what happened to the offer)');
     game.receive(JSON.stringify(packet));
     assert.ok(game.logs().some(line => /^NPC reaction accepted: leave/.test(line)), 'the lease took the packet with the plan in its echo: ' + game.logs().join(' | '));
   } finally { game.close(); }
@@ -271,7 +271,7 @@ test('Local AI, spoken, the switch off: the plan waits for the transcript; the t
     assert.deepEqual(delivered, [{version: 1, token: turn.config.token, reaction: 'leave', by: 'game'}], 'the game\'s pick, before the reply');
     assert.ok(!prompts.some(text => text.includes('begin your reply with exactly one tag')), 'no tag is asked for');
     assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=leave delivered=yes screen=kill game=leave by=game']);
-    assert.deepEqual(bridgeLogs, []);
+    assert.deepEqual(bridgeLogs.filter(line => !line.startsWith('Crowd person:')), []);
     game.receive(JSON.stringify(files.find(item => item.action === 'npc-reaction')));
     assert.ok(game.logs().some(line => /^NPC reaction accepted: leave/.test(line)), game.logs().join(' | '));
   } finally { game.close(); }

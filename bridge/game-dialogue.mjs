@@ -31,6 +31,10 @@ function clean(value, limit) {
   return text && !text.startsWith('LocKey#') ? text : null;
 }
 const generic = key => typeof key === 'string' && key.startsWith('resident-');
+// A crowd person: a resident or any archetype (`npc-*`, bridge/protocol.mjs isAmbientProfile). Its profile is a template every stranger of that kind shares, so it is never a
+// participant, an addressee or "someone who was present": what a stranger spoke belongs to its body (the entity) alone. The ledger below keeps `generic` (its stored files already
+// reject a resident key, and nothing may reject an older file).
+const crowd = key => typeof key === 'string' && (key.startsWith('resident-') || key.startsWith('npc-'));
 // CET encodes an empty Lua sequence as an empty JSON object.
 function sequence(value, limit) {
   if (Array.isArray(value)) return value.length <= limit ? value : null;
@@ -82,7 +86,7 @@ export function parseGameDialogue(value) {
 }
 
 function participant(line) {
-  return line.profileKey && !generic(line.profileKey) ? line.profileKey : null;
+  return line.profileKey && !crowd(line.profileKey) ? line.profileKey : null;
 }
 
 // Episodes in chronological order. A phone call never shares an episode with
@@ -109,8 +113,8 @@ export function episodes(lines) {
       if (participant(line)) current.profiles.add(participant(line));
       if (line.entity) current.entities.add(line.entity);
     }
-    if (line.addressee && !generic(line.addressee)) current.profiles.add(line.addressee);
-    for (const key of line.present || []) if (!generic(key)) current.present.add(key);
+    if (line.addressee && !crowd(line.addressee)) current.profiles.add(line.addressee);
+    for (const key of line.present || []) if (!crowd(key)) current.present.add(key);
     previous = line;
   }
   return result;
@@ -120,7 +124,7 @@ function audienceOf(input) {
   const keys = new Set();
   if (input?.group && Array.isArray(input.group.audience)) for (const key of input.group.audience) keys.add(key);
   if (typeof input?.profileKey === 'string') keys.add(input.profileKey);
-  return [...keys].filter(key => !generic(key));
+  return [...keys].filter(key => !crowd(key));
 }
 
 // Select the lines this turn may use. `input` is the parsed conversation turn.
@@ -131,7 +135,7 @@ export function selectGameDialogue(input) {
   const audience = new Set(audienceOf(input));
   const entity = typeof input.entity === 'string' ? input.entity : null;
   const self = line => line.speaker === 'npc'
-    && ((entity && line.entity === entity) || (participant(line) && participant(line) === input.profileKey && !generic(input.profileKey)));
+    && ((entity && line.entity === entity) || (participant(line) && participant(line) === input.profileKey && !crowd(input.profileKey)));
   const recent = snapshot.lines.filter(line => line.age <= MAX_AGE);
   const chosen = [];
   for (const episode of episodes(recent)) {
@@ -236,7 +240,7 @@ export function parseDecisionLedger(value) {
  *  save was loaded), and the character was the one V was talking to or a companion standing by. Newest `limit`, oldest first. */
 export function ledgerPicks({ledger, worldToken, gameTimeSeconds, profileKey, limit = LEDGER_LIMIT} = {}) {
   const parsed = ledger?.parsed === true ? ledger : parseDecisionLedger(ledger);
-  if (!parsed || parsed.worldToken !== worldToken || typeof profileKey !== 'string' || generic(profileKey)) return [];
+  if (!parsed || parsed.worldToken !== worldToken || typeof profileKey !== 'string' || crowd(profileKey)) return [];
   const clock = Number.isSafeInteger(gameTimeSeconds) ? gameTimeSeconds : parsed.gameTimeSeconds;
   return parsed.entries.filter(entry => entry.t <= clock && (entry.addressee === profileKey || entry.present?.includes(profileKey)))
     .slice(-limit);

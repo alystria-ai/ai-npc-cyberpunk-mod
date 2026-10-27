@@ -144,6 +144,13 @@ language box is marked off (web session). See `docs/MULTILINGUAL_PROFILES.md`.
   so two Maelstrom gangers never share a conversation, and the same one keeps it while the world stays loaded.
   An ambient turn without an entity is refused (`ambient-entity-unavailable`). Save-bound quest knowledge and
   verified identity are never attached to ambient profiles.
+- **Everything remembered between turns is kept per person, never per profile (2026-10-27).** A profile such as `resident-female` is a template every stranger of that kind
+  shares, so state kept under the profile alone would pass from one stranger to the next. The conversation history (`ambient` map of `bridge/memory-store.mjs` and
+  `bridge/mistral-memory.mjs`, the 48 most recently used strangers, in memory only), the Convai session and its page, and the "already told" flags are keyed by the
+  session key, which holds the actor's entity. The smaller states use `personKey(input)` (`bridge/protocol.mjs`: the profile for a named character, `<profile>|<entity>` for
+  an ordinary person): the carried mood of the face (`bridge/emotion-selector.mjs`). The in-game lines a stranger heard (`bridge/game-dialogue.mjs`) are matched by the
+  body's entity alone for every `resident-*` and `npc-*` profile. The log line `[TextProvider] Crowd person: profile=... entity=... key=... earlier-turns=N` says whose
+  history a text-provider turn used (a new stranger shows `earlier-turns=0` and its own `key`). Tests: `bridge/crowd-person-history.test.mjs`.
 - **No Convai memory; vendor memory is local.** Convai long-term memory is disabled on all 74 (as on the residents),
   so nothing one ganger heard leaks to every other ganger. After a load the world token changes and the NPC starts fresh.
 - **Vendor memory (second batch).** A shopkeeper V returns to remembers V: the game sends `archetype.memoryKey`, the TweakDB

@@ -4,7 +4,7 @@ import {decisionLedgerReader} from './game-dialogue.mjs';
 import {witnessReceiptsReader} from './witness-receipts.mjs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
+import {archetypeContext, isAmbientProfile, parseInput, personKey, profileFor} from './protocol.mjs';
 import {configureKnowledgeParts, preloadKnowledgePart} from './knowledge-parts.mjs';
 import {audioReady, removeAudioDepot} from './speech-audio.mjs';
 import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
@@ -1235,8 +1235,9 @@ function localTurn(input, prepared = preparedInputs.get(input)) {
   const route = prepared ?? routeFor(input);
   const channel = route?.route?.channel ?? (input.channel === 'phone' ? 'phone' : input.group ? 'group' : 'private');
   const ambient = isAmbientProfile(input.profileKey);
+  // A generic person (a resident, an archetype) is remembered under its own key, never under the profile: the same template is every stranger who uses it. `entity` is for the log line only.
   return {profileKey: input.profileKey, name: profileFor(input, roster)?.name ?? input.name, channel,
-    ...(ambient ? {ambientKey: route?.sessionKey ?? `${input.profileKey}:${input.entity ?? ''}`} : {})};
+    ...(ambient ? {ambientKey: route?.sessionKey ?? `${input.profileKey}:${input.entity ?? ''}`, entity: input.entity} : {})};
 }
 let observed = '', observedIdentity = null, invalidSeen = '';
 let lastAcceptedIdentity = '';
@@ -1951,7 +1952,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
   // planner picks it up on its next rebuild. The receipt records what was used, with no dialogue text.
   // The face's expression is aligned to the audio by pauses and duration (bridge/expression-timeline.mjs), for every voice.
   const player = typeof result.userText === 'string' && result.userText.trim() ? result.userText : input.text;
-  const planFor = convai => emotionSelection.plan({player, reply: result.text, profile: input.profileKey, convai,
+  const planFor = convai => emotionSelection.plan({player, reply: result.text, profile: input.profileKey, who: personKey(input), convai,
     marks: result.emotionMarks, breaks: []});
   const late = {signal: undefined, settled: false, startedAt: Date.now()};
   if (result.expressionSignal === undefined && Number.isSafeInteger(result.lateEmotionToken)) {
@@ -1993,7 +1994,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
   result = withPlan(result, plan);
   // A streamed reply is planned again when it is finished (the plan above only covers its first sentence): the mood is
   // remembered and the receipt written once, from the whole reply.
-  if (!streamed) emotionSelection.remember(input.profileKey, plan);
+  if (!streamed) emotionSelection.remember(personKey(input), plan);
   if (!streamed) expressionReceipt(plan, result.expressionSignal, {convai: result.expressionSignal?.basis === 'ordered' || result.expressionSignal?.basis === 'response-id'
     ? result.expressionSignal.emotion : null, convaiLate: late.settled ? null : 'pending'});
   // Convai's late label, once known: one more receipt (and, for Omni, the plan used from the first face on).
@@ -2001,7 +2002,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     if (!late.signal) return false;
     plan = planFor(late.signal);
     result = withPlan({...result, expressionSignal: late.signal}, plan);
-    emotionSelection.remember(input.profileKey, plan);
+    emotionSelection.remember(personKey(input), plan);
     expressionReceipt(plan, late.signal, {convai: late.signal.emotion, convaiLate: late.lateMs ?? null});
     return true;
   };
@@ -2017,7 +2018,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     result = {...base, ...(known !== undefined ? {expressionSignal: known} : {})};
     plan = planFor(result.expressionSignal);
     result = withPlan(result, plan);
-    emotionSelection.remember(input.profileKey, plan);
+    emotionSelection.remember(personKey(input), plan);
     expressionReceipt(plan, result.expressionSignal, {convai: null, convaiLate: null, streamed: true});
     return {...base, ...(result.expressionSignal !== undefined ? {expressionSignal: result.expressionSignal} : {}),
       ...(result.expressionPlan ? {expressionPlan: result.expressionPlan} : {})};
@@ -2119,7 +2120,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
     // V speaks your microphone lines, on the Convai provider: the recognised words arrive in the stream, V's line starts from them and holds the reply (bridge/mic-v-line.mjs).
     ...(mic ? {onTranscript: mic.onTranscript, awaitTranscript: mic.awaitTranscript} : {}),
-    planExpression: emotionSelection.planner({player, profile: input.profileKey, marks, late}),
+    planExpression: emotionSelection.planner({player, profile: input.profileKey, who: personKey(input), marks, late}),
     onTimeline: timeline => logEmotionTimeline(input, profile, {provider: local ? 'pocket' : 'convai', ...timeline}),
     ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
     // A look-ahead turn buffers silently until the game submits it. Once its
