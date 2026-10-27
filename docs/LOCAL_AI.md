@@ -1330,6 +1330,8 @@ See "Prompt order (layout v2)" in `docs/MISTRAL.md`: persona and rules, then wor
 the turns. That keeps llama.cpp's prompt cache (hybrid models such as Qwen3.5 and Gemma 4 lose every checkpoint after one changed early
 token) and Mistral's cache valid.
 
+Fresh facts (`docs/FRESH_FACTS.md`, 2026-10-27) are the one deliberate exception: a fact that changed this turn (V's clothes, the weapon in hand) or that V asks about (drunk) is also said as `TRUE RIGHT NOW: ...` at the END of the system message (after the right-now block, so the cache keeps everything before it) and as `[RIGHT NOW, TRUE: ...]` right before V's words, and the history lines that state the old fact are not sent. Measured on the lite model: 38% contradicting answers before, 4% after.
+
 ### Actions
 
 The same companion-action path as Mistral applies (see "Companion actions" in `docs/MISTRAL.md`): the decision is a separate 12-token

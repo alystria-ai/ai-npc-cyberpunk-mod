@@ -238,8 +238,7 @@ is 0), after a cooldown of `regenDelayCooldownMinutes` (10 game minutes) times h
 586), at `staminaRegenRate` 2.78 a game second against a pool of 5000 or more. The game clock runs about 8 times real time (`DVClock` default ratio), so a fully emptied pool is exhausted for about 75 real seconds plus the refill. The
 Exhausted status clears above 5 percent. The reader reports the pool as it is (`GetStaminaPercent`), so a stage 4 that lasts for ten real minutes is either the mod's own state or a clock that is not running; the breath probe line (below) tells which.
 
-No visible drunkenness exists in the mod (alcohol only adds sleep owed), so drink is told as "has been drinking" / "has had a lot to drink", never "drunk" or slurring. Stages for drink:
-1 to 2 drinks stage 1 ("a drink or two"), 3 to 5 stage 2 ("been drinking"), 6 and more stage 3 ("a lot to drink"). A cigarette is "just had a cigarette".
+The mod has no visible drunkenness of its own (alcohol only adds sleep owed), but a small model took "V has had a lot to drink" for nothing worth saying (live 2026-10-27: V asked "am i drunk" at stage 3 and was told "Not drunk, just wired"). So since 2026-10-27 the heavier stages are said as how V is, in plain vivid words: stage 1 (1 to 2 drinks) "V has had a drink or two.", stage 2 (3 to 5) "V is tipsy: loose, a little loud, smelling of booze.", stage 3 (6 and more) "V is drunk: slurring, unsteady on their feet, reeking of booze." A cigarette is "V has just had a cigarette." V asking about themself ("am i drunk", "do i seem drunk", "am i sober") also gets the state as a fresh fact at both ends of the prompt (`docs/FRESH_FACTS.md`).
 
 **Injuries 1.7.4** keeps injuries per body region as a tier 0 to 3 (none, light, medium, severe) on `PlayerPuppetPS.m_injurySeverity` and applies a status effect per kind:
 
@@ -264,7 +263,7 @@ container and the player; there is no shared state class.
 - Order of sentences, each at most three phrases, worst first: the body (breath, energy, thirst, hunger), V's injuries (bleeding, a broken arm, a limp, a concussion; "bandaged up" only when nothing else shows),
   what V has had (drink, a cigarette), then Dark Future's inner states. Flesh and Chrome's energy and Dark Future's energy are one phrase, the worse stage.
 - Companion in person and Johnny in V's head: every stage from 1. Told with the Background line (mention only if it matters) when new, changed or after a long silence, never recited; in the block, worded as the answer, whenever V asks about themself.
-- A stranger: breathlessness from stage 2, energy from 3 (as before), blood from stage 1, a limp or a held arm from stage 2, a dazed face from 3 ("V looks to be bleeding."), strong drink ("V smells of drink."). Not a cigarette, not "bandaged up".
+- A stranger: breathlessness from stage 2, energy from 3 (as before), blood from stage 1, a limp or a held arm from stage 2, a dazed face from 3 ("V looks to be bleeding."), strong drink ("V looks drunk and smells of booze."). Not a cigarette, not "bandaged up".
 - A phone chat, a call and an add-on voice: nothing.
 - No mod name, number or stage ever reaches the model.
 

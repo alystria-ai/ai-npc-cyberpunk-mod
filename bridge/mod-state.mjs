@@ -19,7 +19,8 @@
 // (bridge/turn-context.mjs): told when new, changed, or after a long silence (bridge/scenery-memory.mjs, with the signature below), never on every
 // turn, so a stage that holds is said once, not recited.
 // At most four short sentences, at most three phrases each: the body (breath, energy, thirst, hunger), V's injuries (Injuries: bleeding, a held arm, a limp), what V has had
-// (drink, a cigarette), then the rest (nerve, withdrawal, humanity, injury). A stranger gets at most the body, the injuries that show and "V smells of drink".
+// (drink, a cigarette), then the rest (nerve, withdrawal, humanity, injury). A stranger gets at most the body, the injuries that show and "V looks drunk and smells of booze".
+// Drink at stage 2 and 3 is said as how V is ("V is drunk: slurring, unsteady ..."), not as something V "has had": docs/FRESH_FACTS.md.
 
 const BODY_KEYS = ['breath', 'energy', 'hydration', 'nutrition'];       // in the order a bystander notices them
 const HURT_KEYS = ['bleed', 'arm', 'limp', 'head', 'treated'];            // Injuries: what shows on V's body, the worst-looking first
@@ -46,8 +47,10 @@ const WORDS = {
 // A stranger sees blood, a limp, a held arm: after "V looks".
 const AMBIENT_HURT = {bleed: {1: 'to be bleeding', 2: 'to be bleeding', 3: 'to be bleeding heavily'}, arm: {2: 'to be holding a hurt arm', 3: 'to be holding a hurt arm'},
   limp: {2: 'to be limping', 3: 'to be limping'}, head: {3: 'to be dazed'}};
-// After "V has".
-const TRACE_WORDS = {drinks: {1: 'had a drink or two', 2: 'been drinking', 3: 'had a lot to drink'}, smoke: {1: 'just had a cigarette'}};
+// After "V has": a drink or two and a cigarette. Heavier drinking is not something V "has had": a small model took "V has had a lot to drink" for nothing worth saying (a live test of 2026-10-27:
+// V asked "am i drunk" and was told "Not drunk, just wired"), so stage 2 and 3 are said as how V is, in plain vivid words (docs/FRESH_FACTS.md).
+const TRACE_WORDS = {drinks: {1: 'had a drink or two'}, smoke: {1: 'just had a cigarette'}};
+const DRUNK_SENTENCES = {2: 'V is tipsy: loose, a little loud, smelling of booze.', 3: 'V is drunk: slurring, unsteady on their feet, reeking of booze.'};
 const SUBSTANCE_WORDS = {alcohol: 'alcohol', nicotine: 'nicotine', narcotic: 'narcotics'};
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -136,21 +139,23 @@ export function modsSentences(mods, form) {
   const found = notable(mods, form === 'ambient');
   if (!found) return [];
   const body = worstFirst(found.body).map(phrase);
-  // A stranger sees a body, nothing more: "V looks exhausted and parched." "V looks to be bleeding." "V smells of drink."
+  // A stranger sees a body, nothing more: "V looks exhausted and parched." "V looks to be bleeding." "V looks drunk and smells of booze."
   if (form === 'ambient') {
     const sentences = [];
     if (body.length) sentences.push(`V looks ${list(body)}.`);
     const hurt = worstFirst(found.hurt).map(row => AMBIENT_HURT[row.key][row.stage]);
     if (hurt.length) sentences.push(`V looks ${list([...new Set(hurt)])}.`);
-    if (found.trace.length) sentences.push('V smells of drink.');
+    if (found.trace.length) sentences.push('V looks drunk and smells of booze.');
     return sentences;
   }
   const sentences = [];
   if (body.length) sentences.push(`V is ${list(body)}.`);
   const hurt = worstFirst(found.hurt).map(phrase);
   if (hurt.length) sentences.push(`V is ${list(hurt)}.`);
-  const trace = worstFirst(found.trace).map(row => TRACE_WORDS[row.key][row.stage]);
-  if (trace.length) sentences.push(`V has ${list(trace)}.`);
+  const trace = worstFirst(found.trace);
+  for (const row of trace) if (row.key === 'drinks' && DRUNK_SENTENCES[row.stage]) sentences.push(DRUNK_SENTENCES[row.stage]);
+  const has = trace.filter(row => !(row.key === 'drinks' && DRUNK_SENTENCES[row.stage])).map(row => TRACE_WORDS[row.key][row.stage]);
+  if (has.length) sentences.push(`V has ${list(has)}.`);
   const inner = worstFirst(found.inner).map(phrase);
   if (inner.length) sentences.push(`V is ${list(inner)}.`);
   return sentences;

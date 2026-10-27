@@ -69,6 +69,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/facial-timeline.mjs',
   'bridge/file-wake.mjs',
   'bridge/follow-up.mjs',
+  'bridge/fresh-facts.mjs',
   'bridge/game-dialogue.mjs',
   'bridge/game-launch.mjs',
   'bridge/game-state.mjs',
