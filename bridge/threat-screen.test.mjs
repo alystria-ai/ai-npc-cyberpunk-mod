@@ -192,3 +192,8 @@ test('live test 3: "get lost or I\'ll kill you" and conditions with no object ar
     'or I\'ll shoot it', 'I\'ll shoot the target', 'give me your hand', 'try me lol', 'what are you gonna do about it?', 'the tygers are open late'])
     assert.match(code(line), /^none/, line);
 });
+
+test('live test 4: a typed "ill" with no apostrophe aimed at someone is "I\'ll"; "ill" as in sick stays harmless', () => {
+  expect(['get lost or ill kill you', 'Get lost or Ill kill you!', 'ill kill u', 'fuck off or ill shoot you'], 'kill');
+  expect(['you look ill', 'are you ill?', 'ill be back', 'i feel ill around you'], 'none');
+});

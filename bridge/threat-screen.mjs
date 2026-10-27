@@ -410,10 +410,14 @@ const QUESTION_END = /(?:[?？]|(?:吗|嗎|呢|か|니|냐|까)\s*[?？]?)\s*$/u
 // the very end of the sentence, in the words of the languages above.
 const TAG_QUESTION = /(?:,|\s-)\s*(?:(?:do\s+)?you\s+(?:hear|understand|get)(?:\s+me)?|understand|understood|got\s+(?:it|that|me)|you\s+got\s+(?:it|that|me)|capisce|capiche|yeah|ok(?:ay)?|right|is\s+that\s+clear|clear|comprende|feel\s+me|savvy|verstanden|kapiert|klar|compris|t'as\s+compris|c'est\s+clair|entendido|me\s+oyes|entiendes|entendeu|capito|chiaro|rozumiesz|jasne|rozumíš|rozumis|jasný|jasny|érted|világos|anladın\s+mı|anladin\s+mi|понял[аи]?|ясно|слышишь|зрозумів|зрозуміла|чуєш)\s*[?？]+\s*$/u;
 
-/** One message, ready to read: one case, one kind of apostrophe and dash, no doubled spaces. */
+/**
+ * One message, ready to read: one case, one kind of apostrophe and dash, no doubled spaces. A typed "ill" with no apostrophe aimed at someone
+ * ("get lost or ill kill you", live test 27 Oct) reads as "i'll"; "you look ill" has nobody after it and stays.
+ */
 export function normalize(text) {
   return String(text ?? '').normalize('NFKC').toLowerCase().replace(/̇/g, '').replace(/[’ʼ`´]/g, '\'').replace(/[‐-―]/g, '-')
-    .replace(/[*¡¿]+/g, '').replace(/[ \t ]+/g, ' ').trim();
+    .replace(/[*¡¿]+/g, '').replace(/[ \t ]+/g, ' ').trim()
+    .replace(/\bill (?=(?:[a-z']+ ){0,3}(?:you|ya|u|your|ur|yourself|y'all|yall)\b)/g, 'i\'ll ');
 }
 
 // The message in sentences, each with its own end (the question mark stays with its sentence).
