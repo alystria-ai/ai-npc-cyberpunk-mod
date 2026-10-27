@@ -166,7 +166,9 @@ function M.loadCatalog(list)
 end
 
 -- env: log(line), supported(key), profileEnabled(key), warm(key, entity), liveImage(), busy(call),
--- onConnected(call), onEnded(call, reason), contacts() (the catalogue rows; phone-contacts.json when absent).
+-- onConnected(call), onEnded(call, reason), contacts() (the catalogue rows; phone-contacts.json when absent),
+-- chatRow(contact) ({key, name} of a Chat row the journal has no contact for, or nil), blocked(key) (true when her answers need a provider
+-- that is not on: a character the player made under Convai).
 function M.configure(env)
     M.env = type(env) == 'table' and env or {}
     local rows = type(M.env.contacts) == 'function' and M.env.contacts() or readJson('phone-contacts.json')
@@ -708,6 +710,17 @@ function M.abandon(reason)
     log('state=ended contact=' .. call.contact .. ' reason=' .. tostring(reason or 'abandoned') .. ' length=' .. math.floor(call.age) .. 's')
 end
 
+-- A Chat row the journal has no contact for (a character the player made, Rita Wheeler and the rest of the roster) as a catalogue entry, or nil. The
+-- call window is given her name and the game's unknown-caller picture (Holocall.reds). Never Johnny, whatever the row says.
+function M.chatEntry(contact)
+    if type(M.env.chatRow) ~= 'function' then return nil end
+    local asked, row = pcall(M.env.chatRow, contact)
+    if not asked or type(row) ~= 'table' or type(row.key) ~= 'string' or not row.key:match('^[a-z0-9-]+$') or #row.key > 80
+        or excluded({key = row.key, contact = contact}) then return nil end
+    return {contact = contact, key = row.key, journal = false,
+        name = type(row.name) == 'string' and row.name ~= '' and row.name or row.key}
+end
+
 local function refuse(player, contact, reason, text)
     log('refused contact=' .. tostring(contact) .. ' reason=' .. reason)
     if text then convaiNotices.send(player, 'holocall-refused', text) end
@@ -722,12 +735,20 @@ function M.start(player, contact, sample)
         if same then return false end
     end
     local entry = M.catalog[contact]
+    if not entry then entry = M.chatEntry(contact) end
     if not entry then return refuse(player, contact, 'not-a-mod-character', ui.t('This contact cannot take a holocall.')) end
     if type(M.env.supported) == 'function' and not M.env.supported(entry.key) then
         return refuse(player, contact, 'no-profile', ui.t('This contact cannot take a holocall.'))
     end
     if type(M.env.profileEnabled) == 'function' and not M.env.profileEnabled(entry.key) then
         return refuse(player, contact, 'disabled', ui.t('Conversations are disabled for this contact.'))
+    end
+    -- A character the player made has no Convai character: her calls, like her texts, need Mistral, Local AI or Custom (the same line as her Chat).
+    if type(M.env.blocked) == 'function' then
+        local asked, needs = pcall(M.env.blocked, entry.key)
+        if asked and needs == true then
+            return refuse(player, contact, 'needs-provider', ui.t('This character needs Mistral, Local AI or Custom to answer.'))
+        end
     end
     local blocked = M.blocked(sample)
     if blocked then
@@ -740,7 +761,14 @@ function M.start(player, contact, sample)
         local ok, event = pcall(function() return player:ConvaiHolocallTakeEvent() end)
         if not ok or type(event) ~= 'string' or event == '' then break end
     end
-    local began, result = pcall(function() return player:ConvaiHolocallBegin(contact) end)
+    -- A Chat row with no journal contact is shown by the name the mod gives (and the game's unknown-caller picture); a journal contact by its own.
+    local shown = entry.journal == false and entry.name or ''
+    local began, result = pcall(function() return player:ConvaiHolocallBegin(contact, shown) end)
+    -- Probe: what was tried for a row with no journal contact, and what the game answered (older scripts without the two-argument call answer no-hud).
+    if shown ~= '' then
+        log('no-journal call contact=' .. contact .. ' profile=' .. entry.key .. ' name=' .. entry.name .. ' picture=unknown-caller begin='
+            .. (began and tostring(result) or 'error ' .. tostring(result)))
+    end
     result = began and type(result) == 'string' and result or 'no-hud'
     if result ~= 'ok' then
         return refuse(player, contact, result, result == 'quest-call' and ui.t('You are already on a call.')

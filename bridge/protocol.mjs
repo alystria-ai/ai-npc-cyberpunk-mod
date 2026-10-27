@@ -118,7 +118,8 @@ function parseRequest(raw) {
 }
 
 // {version: 1, contact, mode: 'audio' | 'holo'} from mod/holocall.lua -> {contact, mode}, or null.
-const HOLOCALL_CONTACT = /^[A-Za-z0-9_]{1,64}$/;
+// A journal contact id (letters, digits, underscore) or, for a Chat row with no journal contact, the character's profile key (lowercase, digits, hyphens; up to 80).
+const HOLOCALL_CONTACT = /^[A-Za-z0-9_-]{1,80}$/;
 export function parseHolocall(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 1) return null;
   if (typeof value.contact !== 'string' || !HOLOCALL_CONTACT.test(value.contact)) return null;
