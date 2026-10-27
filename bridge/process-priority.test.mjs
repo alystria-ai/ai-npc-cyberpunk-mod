@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {constants as osConstants} from 'node:os';
-import {BrowserPriority, DEFAULT_PRIORITY, PRIORITY_ENVIRONMENT, PRIORITY_FILE, PRIORITY_VARIABLE, nodePriority, parsePriorityText, priorityEnvironment, priorityLevel,
+import {BrowserPriority, DEFAULT_PRIORITY, PriorityGate, priorityGate, PRIORITY_ENVIRONMENT, PRIORITY_FILE, PRIORITY_VARIABLE, nodePriority, parsePriorityText, priorityEnvironment, priorityLevel,
   readTurnPriority, setBrowserTreePriority, setProcessPriority} from './process-priority.mjs';
 
 test('the default is high, and only high, normal and below are levels (never realtime)', () => {
@@ -115,4 +115,57 @@ test('BrowserPriority: a failing call is logged once as not set and never throws
   const keeper = new BrowserPriority({level: 'high', setTree: async () => { throw Error('powershell missing'); }, ...clock, log: line => logs.push(line)});
   keeper.request(); clock.advance(400); await flush();
   assert.deepEqual(logs, ['hidden browser priority: could not be set']);
+});
+
+test('PriorityGate: closed at the title screen everything starts at normal, the raisers run once when it opens, an open gate changes nothing', () => {
+  const lines = [];
+  let clock = 1000;
+  const gate = new PriorityGate({log: line => lines.push(line), now: () => clock});
+  // The shared gate and a fresh one are open: level() is the identity, whenOpen runs at once (tests, tools and standalone workers are unchanged).
+  assert.equal(priorityGate.isOpen, true);
+  assert.equal(gate.level('high'), 'high');
+  let ran = 0; gate.whenOpen(() => { ran++; }, 'early'); assert.equal(ran, 1);
+  assert.equal(gate.open('never closed'), false, 'a gate that never closed has nothing to open');
+  const closed = new PriorityGate({log: line => lines.push(line), now: () => clock});
+  closed.close();
+  assert.equal(closed.isOpen, false);
+  assert.equal(closed.level('high'), 'normal');
+  assert.equal(closed.level('below'), 'below', 'only high is held back');
+  assert.equal(closed.level('normal'), 'normal');
+  const order = [];
+  closed.whenOpen(() => { order.push('a'); }, 'conversation service');
+  closed.whenOpen(() => { order.push('b'); return false; }, 'browser');
+  closed.whenOpen(() => { throw Error('boom'); }, 'worker');
+  const cancel = closed.whenOpen(() => { order.push('cancelled'); }, 'gone'); cancel();
+  assert.deepEqual(order, [], 'nothing runs while the title is up');
+  clock = 4500;
+  assert.equal(closed.open('the game has a world'), true);
+  assert.deepEqual(order, ['a', 'b'], 'in order, a failing raiser does not stop the others, a cancelled one never runs');
+  assert.equal(closed.open('again'), false, 'once');
+  assert.equal(closed.level('high'), 'high');
+  closed.whenOpen(() => { order.push('late'); }, 'late'); assert.deepEqual(order, ['a', 'b', 'late'], 'a raiser registered after the open runs at once');
+  assert.equal(closed.close().isOpen, true, 'a gate that opened never closes again');
+  const said = lines.join('\n');
+  assert.match(said, /\[Priority\] title screen: everything starts at normal priority until the game has a world \(1970-01-01T00:00:01\.000Z\)/);
+  assert.match(said, /\[Priority\] raised at 1970-01-01T00:00:04\.500Z \(the game has a world, 3\.5 s after the service started\): conversation service, browser \(not raised\), worker \(not raised\)/);
+});
+
+test('BrowserPriority: at the title screen nothing is run, the tree is raised once when the gate opens', async () => {
+  const clock = fakeClock(), runs = [], logs = [];
+  const gate = new PriorityGate({open: false});
+  gate.close();
+  const keeper = new BrowserPriority({level: 'high', rootPid: 9, gate, setTree: async (level, {rootPid}) => { runs.push([level, rootPid]); return 4; }, ...clock, log: line => logs.push(line)});
+  keeper.request(); keeper.request(); keeper.request();
+  assert.equal(clock.pending, 0, 'no timer, no PowerShell call at the title screen');
+  assert.equal(gate.waiting.length, 1, 'one waiting raise however many requests');
+  clock.advance(60_000); await flush(); assert.deepEqual(runs, []);
+  gate.open('the game has a world');
+  assert.equal(clock.pending, 1);
+  clock.advance(400); await flush();
+  assert.deepEqual(runs, [['high', 9]]);
+  assert.deepEqual(logs, ['hidden browser priority: high for 4 processes']);
+  // A browser that went away before the world is not raised.
+  const gone = new PriorityGate({open: false}); gone.close();
+  const other = new BrowserPriority({level: 'high', gate: gone, setTree: async () => { throw Error('must not run'); }, ...clock});
+  other.request(); other.cancel(); gone.open('x'); assert.equal(clock.pending, 0);
 });

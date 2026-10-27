@@ -13,6 +13,7 @@ import {fileURLToPath} from 'node:url';
 import fengari from 'fengari';
 import {streamChat, MistralError, failureDetail, stallReason, newTrace, errorCodeFor, retryable, MIN_ATTEMPT_MS} from './mistral-client.mjs';
 import {constants as osConstants} from 'node:os';
+import {PriorityGate} from './process-priority.mjs';
 import {LlamaProcess, LocalAiUnavailable, LocalLlmServer, modelFamily, describeTemplate, describeProps, isAmdApu, isIntegratedGpu, parseDeviceList, pickDevice} from './local-llm-server.mjs';
 import {TextProviderHost, localRoute, describeLocalTurn, loadingLine, LOCAL_ATTEMPT_ROOM_MS, LOCAL_CHAT_LIMITS, LOCAL_TURN_BUDGET_MS, LOCAL_TURN_HARD_CAP_MS, LOCAL_STOP_STRINGS, SLOW_FIRST_WORD_MS} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
@@ -816,6 +817,82 @@ test('raiseLevel high (the chat model, docs/PROCESS_PRIORITY.md): it loads at HI
   t.after(() => embedder.stop());
   await embedder.start();
   assert.deepEqual(calls.slice(3), [['embedder', BELOW_NORMAL]]);
+});
+
+test('title-screen gate (docs/PROCESS_PRIORITY.md "Start-up"): with the gate closed the chat model loads and serves a turn at NORMAL, and goes to HIGH the moment the gate opens', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'llama-gate-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const HIGH = osConstants.priority.PRIORITY_HIGH, NORMAL = osConstants.priority.PRIORITY_NORMAL;
+  const make = (gate, extra = {}) => {
+    const calls = [], lines = [];
+    const proc = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, lowerAfter: 'ready', raiseLevel: 'high', gate,
+      log: line => lines.push(line), setPriorityImpl: (pid, level) => calls.push([pid, level]),
+      buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf'], ...extra});
+    t.after(() => proc.stop());
+    return {proc, calls, lines};
+  };
+  // Closed: no by-pid change at spawn (it is at normal), the log says why, a raise() for a turn is NORMAL, and the gate's opening raises a child that is not lowered.
+  const closed = new PriorityGate({open: false});
+  const a = make(closed);
+  await a.proc.start();
+  assert.deepEqual(a.calls, [], 'spawned at normal: nothing set while the gate is closed');
+  assert.ok(a.lines.some(line => /^\[local\] llama-server \(pid \d+\) process priority normal while the title screen is up, high once the game has a world$/.test(line)), a.lines.join(' | '));
+  assert.equal(closed.waiting.length, 1);
+  assert.equal(a.proc.lower(), true); assert.equal(a.proc.raise(), true);
+  assert.deepEqual(a.calls, [[a.proc.pid, BELOW_NORMAL], [a.proc.pid, NORMAL]], 'a turn under a closed gate raises to normal, never to high');
+  closed.close(); closed.open('world');
+  assert.deepEqual(a.calls.at(-1), [a.proc.pid, HIGH], 'raised for a turn (not lowered): high at once on open');
+  assert.equal(a.proc.lower(), true); assert.equal(a.proc.raise(), true);
+  assert.deepEqual(a.calls.at(-1), [a.proc.pid, HIGH], 'every later raise() uses high');
+  assert.ok(a.lines.some(line => /process priority high now \(the game has a world\)/.test(line)));
+
+  // A child that is loaded and lowered when the gate opens stays below normal (nothing is waiting on it) and is raised to high by its next raise().
+  const gateB = new PriorityGate({open: false});
+  const b = make(gateB);
+  await b.proc.start(); assert.equal(b.proc.lower(), true);
+  b.calls.length = 0;
+  gateB.close(); gateB.open('turn');
+  assert.deepEqual(b.calls, [], 'a lowered child is left lowered');
+  assert.equal(b.proc.raise(), true);
+  assert.deepEqual(b.calls, [[b.proc.pid, HIGH]]);
+
+  // A child still loading when the gate opens is raised to high at once.
+  const gateC = new PriorityGate({open: false});
+  const c = make(gateC);
+  const starting = c.proc.start();
+  await sleep(60);
+  gateC.close(); gateC.open('world');
+  await starting;
+  assert.deepEqual(c.calls, [[c.proc.pid, HIGH]], 'raised while it loaded');
+
+  // A child that exited is never raised: the raiser goes with it, and a replacement child owns its own raiser.
+  const gateD = new PriorityGate({open: false});
+  const d = make(gateD);
+  await d.proc.start();
+  const deadPid = d.proc.pid;
+  await d.proc.stop();
+  assert.equal(gateD.waiting.length, 0, 'the raiser was cancelled with the child');
+  gateD.close(); gateD.open('world');
+  assert.deepEqual(d.calls.filter(([pid]) => pid === deadPid), [], 'no set on a dead pid');
+  const replacement = make(gateD);
+  await replacement.proc.start();
+  assert.deepEqual(replacement.calls, [[replacement.proc.pid, HIGH]], 'an open gate starts the replacement at high, as before');
+  assert.ok(replacement.lines.some(line => /process priority high while it loads and while a turn waits$/.test(line)));
+  assert.equal(d.calls.length, 0);
+
+  // A refusal by the system when the gate opens is not an error.
+  const gateE = new PriorityGate({open: false});
+  const e = make(gateE, {setPriorityImpl() { throw Error('access denied'); }});
+  await e.proc.start();
+  gateE.close(); gateE.open('world');
+  assert.equal(e.proc.running, true);
+
+  // The embedder (raiseLevel normal, lowered at spawn) never depends on the gate.
+  const gateF = new PriorityGate({open: false});
+  const f = make(gateF, {lowerAfter: 'spawn', raiseLevel: 'normal'});
+  await f.proc.start();
+  assert.deepEqual(f.calls, [[f.proc.pid, BELOW_NORMAL]]);
+  assert.equal(gateF.waiting.length, 0);
 });
 
 test('the ready chat model at raiseLevel high: high while a turn waits on it and below normal otherwise, the engine line says so', async t => {

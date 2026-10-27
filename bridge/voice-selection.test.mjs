@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import {VoiceSelection, blockedByWindows, permanentVoiceFailure} from './voice-selection.mjs';
 import {LOCAL_VOICE_KEYS, ResidentVoice, NO_CUDA_FAILURE} from './resident-voice.mjs';
 import {abortable} from './transport-pool.mjs';
+import {PriorityGate} from './process-priority.mjs';
 
 const pocketSettings = voices => ({version:1,provider:'pocket',engine:'pocket-tts',voices,
   runtime:Object.fromEntries(['sourceDirectory','exportDirectory','referenceDirectory','workDirectory'].map(key=>[key,resolve('fixture',key)])),
@@ -1547,4 +1548,29 @@ test('the OmniVoice worker priority is high on both routes by default, the playe
   assert.equal(normal.priority, 'normal'); assert.equal(normal.extraEnvironment, undefined, 'normal: the worker is told nothing and keeps its own priority');
   const rocm = {configured: true, used: true, path: 'C:/p/python.exe', source: 'C:/s', backend: 'rocm', options: {priority: 'normal'}};
   assert.equal((await hooksFor(rocm, 'high')).priority, 'normal', 'the omni-python.txt line wins for this worker');
+});
+
+// The title-screen gate (docs/PROCESS_PRIORITY.md "Start-up"): while it is closed a 'high' OmniVoice worker is not told to take High (ResidentVoice raises it when the gate opens, given the
+// same gate); 'below' is unaffected; an open gate is what the tests above pin.
+test('the OmniVoice worker hooks while the title-screen gate is closed: high is held back (no variable), below and normal are unchanged, an open gate is unchanged', async () => {
+  const hooksFor = async (own, workerPriority, priorityGate) => {
+    const h = retryFixture({options: {omniOwnPython: () => own, processEnv: {}, priorityGate, ...(workerPriority ? {workerPriority} : {})}});
+    h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+    const hooks = h.omniWorkers()[0].hooks; await h.voice.close(); return hooks;
+  };
+  const closed = new PriorityGate({open: false});
+  const held = await hooksFor(null, undefined, closed);
+  assert.equal(held.priority, 'high', 'the level asked for is still passed (the worker is raised when the gate opens)');
+  assert.equal(held.extraEnvironment, undefined, 'the worker is not told to take High itself');
+  assert.equal(held.gate, closed, 'and it gets the same gate');
+  const rocm = {configured: true, used: true, path: 'C:/p/python.exe', source: 'C:/s', backend: 'rocm', options: {}};
+  const amd = await hooksFor(rocm, undefined, closed);
+  assert.equal(amd.priority, 'high'); assert.equal(amd.extraEnvironment.CYBERPUNK_CONVAI_WORKER_PRIORITY, undefined, 'the own-Python route is held back the same way');
+  assert.equal(amd.extraEnvironment.CYBERPUNK_CONVAI_OMNI_OWN_PYTHON, '1', 'the rest of its environment is kept');
+  const below = await hooksFor({...rocm, options: {priority: 'below'}}, undefined, closed);
+  assert.equal(below.priority, 'below'); assert.equal(below.extraEnvironment.CYBERPUNK_CONVAI_WORKER_PRIORITY, 'below', 'below is not gated');
+  const normal = await hooksFor(null, 'normal', closed);
+  assert.equal(normal.priority, 'normal'); assert.equal(normal.extraEnvironment, undefined);
+  const open = await hooksFor(null, undefined, new PriorityGate({open: true}));
+  assert.equal(open.priority, 'high'); assert.deepEqual(open.extraEnvironment, {CYBERPUNK_CONVAI_WORKER_PRIORITY: 'high'}, 'an open gate: as before');
 });

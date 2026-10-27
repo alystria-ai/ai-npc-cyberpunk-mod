@@ -485,3 +485,41 @@ test('a startHold that throws or is missing holds nothing', async () => {
   await until(() => missing.helperWorker()?.loaded, 'the helper to load');
   await missing.voice.close();
 });
+
+test('a typed line can wait for the last steps of a load: nearlyReady names them, whenReady resolves when it is ready and gives up on a timeout, an abort, a failure or a release', async () => {
+  let phase = 'importing-dependencies', loaded = false;
+  const start = defer();
+  const client = {get loaded() { return loaded; }, get phase() { return phase; }, failure: undefined, closing: false, hasProfile: key => key === 'v-male', async start() { await start.promise; loaded = true; }, async close() {}};
+  const keepAlive = setInterval(() => {}, 1000);   // the waits' own timers do not hold the process open (and must not), the test's awaits would otherwise end with the loop
+  const logs = [];
+  let time = Date.parse('2026-10-27T11:13:09.000Z');
+  const helper = new VHelperVoice({create: () => client, log: line => logs.push(line), clock: () => time});
+  assert.equal(helper.nearlyReady('v-male'), false, 'no worker, nothing to wait for');
+  helper.start(); await tick();
+  assert.equal(helper.nearlyReady('v-male'), false, 'still importing: not a wait of a second');
+  phase = 'loading-student';
+  assert.equal(helper.nearlyReady('v-male'), true);
+  assert.equal(helper.nearlyReady('other-key'), false, 'only for a voice the worker has');
+  // Ready: the waiting line goes on, and the log says when, and how long the load took.
+  const waiting = helper.whenReady('v-male', {timeoutMs: 1000});
+  time += 80_000; start.resolve(); await waiting;
+  assert.equal(helper.ready('v-male'), true);
+  assert.equal(helper.waiters.size, 0);
+  assert.match(logs.join('\n'), /loading starts at 2026-10-27T11:13:09\.000Z/);
+  assert.match(logs.join('\n'), /V's helper voice is ready at 2026-10-27T11:14:29\.000Z, 80\.0 s after loading started/);
+  await helper.whenReady('v-male');   // ready already: at once
+  // Gives up: a timeout, an abort, a release. (A fresh helper whose load never finishes.)
+  const slow = new VHelperVoice({create: () => ({loaded: false, phase: 'loading-student', hasProfile: () => true, start: () => new Promise(() => {}), close: async () => {}}), log: () => {}});
+  slow.start(); await tick();
+  await assert.rejects(slow.whenReady('v-male', {timeoutMs: 10}), /did not finish loading in time/);
+  const controller = new AbortController();
+  const aborted = slow.whenReady('v-male', {timeoutMs: 5000, signal: controller.signal});
+  controller.abort();
+  await assert.rejects(aborted, /stopped while it waited/);
+  await assert.rejects(slow.whenReady('v-male', {timeoutMs: 5000, signal: AbortSignal.abort()}), /stopped while it waited/, 'an already aborted line does not wait');
+  const released = slow.whenReady('v-male', {timeoutMs: 5000});
+  void slow.release();
+  await assert.rejects(released, /not loaded/);
+  assert.equal(slow.waiters.size, 0, 'no waiter is left behind');
+  clearInterval(keepAlive);
+});

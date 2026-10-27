@@ -214,8 +214,13 @@ local function publishWorldSession(frame, ready, force)
     -- Unchanged and still leased (the common case, twice per frame): no table or string is built.
     if not force and frame and frame.worldToken == worldSessionToken and (ready == true) == worldSessionReady
         and worldSessionAt and now >= worldSessionAt and now - worldSessionAt < 2 then return end
+    -- `loading`: a save is being loaded (set by the PlayerPuppet OnDetach observer just before the session is abandoned, whose forced write below carries it), no world yet. The service
+    -- starts V's helper voice then (it waited out the title screen, which has a key press to answer) instead of once the world exists, so it is ready sooner. Cleared by the first
+    -- ready write; a field of a table that already exists, one more key in a write that happens anyway, nothing per frame.
     local value = {version = 1, token = frame and frame.worldToken or (knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)),
-        generation = frame and frame.generation or (knowledgeEpoch + 1), ready = ready == true, updated = now * 1000}
+        generation = frame and frame.generation or (knowledgeEpoch + 1), ready = ready == true, updated = now * 1000,
+        loading = ready ~= true and convaiHeartbeat.loading or nil}
+    if ready == true then convaiHeartbeat.loading = nil end
     local signature = value.token .. ':' .. tostring(value.ready)
     -- Lease heartbeat: the bridge keeps world-session.json 5 s; refresh it every 2 s or on change.
     if not force and signature == worldSessionSignature and worldSessionAt and now >= worldSessionAt
@@ -6366,6 +6371,7 @@ registerForEvent('onInit', function()
             -- world is still being torn down; until OnGameRestored the mod stays suspended (18 Oct 13:32 crash: a probe's kept
             -- handle of the old Johnny was sent an AI command 4 s after this detach, from onUpdate).
             convaiHeartbeat.restoreWait, convaiHeartbeat.restoreAttached = os.clock(), nil
+            convaiHeartbeat.loading = true
             abandonSession('player detached', false, true)
         elseif not fastTravelActive.finished then
             -- The teleport's own detach: the handles other hooks wrapped since the request (a callback's NPC argument is a
@@ -7168,11 +7174,14 @@ pcall(function()
         if last then
             local gap = top - last
             -- A freeze of 3 s or more is a save loading (or a real stall): the figures stop there, and it is named once with the mod's part of that frame.
-            if gap >= 3 then boot.cut = string.format('first freeze of 3 s or more: %.0f ms at %.1f s, own part of that frame %.1f ms', gap * 1000, top - boot.t0, (finished - top) * 1000); return end
+            if gap >= 3 then boot.cut = string.format('first freeze of 3 s or more: %.0f ms at %.1f s (began %s UTC), own part of that frame %.1f ms', gap * 1000, top - boot.t0, os.date('!%H:%M:%S', os.time() - math.floor(gap)), (finished - top) * 1000); return end
             if gap > boot.gapWorst then boot.gapWorst, boot.gapWorstAt = gap, top - boot.t0 end
             if gap >= 0.1 then
                 boot.slow, boot.slowSum = boot.slow + 1, boot.slowSum + gap
-                if gap >= 0.25 and #boot.big < 6 then boot.big[#boot.big + 1] = string.format('%.1f+%.0f', top - boot.t0, gap * 1000) end
+                -- The wall-clock second the gap began (UTC, the clock of probe.log and of the service's [Timeline] lines), so a stall can be lined up with what the service did.
+                local began = os.time() - math.floor(gap)
+                if gap >= boot.gapWorst then boot.gapWorstWall = began end
+                if gap >= 0.25 and #boot.big < 6 then boot.big[#boot.big + 1] = string.format('%.1f+%.0f@%s', top - boot.t0, gap * 1000, os.date('!%H:%M:%S', began)) end
             end
         end
         local own = finished - top
@@ -7182,8 +7191,9 @@ pcall(function()
     -- The stall figures as one tail for a Start-up line: gaps of 100 ms or more (count, their total, the worst and when), the stalls of 250 ms or
     -- more as seconds-since-init.lua-began + milliseconds, and the mod's whole onUpdate in those frames (total, worst).
     convaiBootGaps = function(boot)
-        return string.format('frame gaps over 100 ms: %d (%.0f ms in all), worst %.0f ms at %.1f s, over 250 ms at [%s]; own whole title onUpdate %.1f ms, worst %.2f ms; %s',
-            boot.slow, boot.slowSum * 1000, boot.gapWorst * 1000, boot.gapWorstAt or 0, table.concat(boot.big, ' '), boot.ownTotal * 1000, boot.ownWorst * 1000,
+        local worstWall = boot.gapWorstWall and os.date('!%H:%M:%S', boot.gapWorstWall) or '-'
+        return string.format('frame gaps over 100 ms: %d (%.0f ms in all), worst %.0f ms at %.1f s (began %s UTC), over 250 ms at [%s]; own whole title onUpdate %.1f ms, worst %.2f ms; %s',
+            boot.slow, boot.slowSum * 1000, boot.gapWorst * 1000, boot.gapWorstAt or 0, worstWall, table.concat(boot.big, ' '), boot.ownTotal * 1000, boot.ownWorst * 1000,
             boot.cut or 'no freeze of 3 s or more yet')
     end
 end)

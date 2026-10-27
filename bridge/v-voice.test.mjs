@@ -491,12 +491,13 @@ test('the companion\'s continuous speech buffers silently while V is audible, pu
 // The engine is V's setting (runtime/settings.json vVoiceEngine), whatever the companions use. `main`: the companions' voice is the
 // Pocket worker itself (it speaks V, one job at a time). `own`: V has a Pocket worker of its own (the companions use OmniVoice, a
 // cloud voice or the Convai voice). `cloud`: the Voxtral voice.
-function engineFeature({engine = 'pocket', main = false, own = false, ownReady = true, problem = null, endAfter = 30, language = 'en', stream, ownStream, cloudStream, cloudLanguages = []} = {}) {
+function engineFeature({engine = 'pocket', main = false, own = false, ownReady = true, ownNearly = false, ownWait, problem = null, endAfter = 30, language = 'en', stream, ownStream, cloudStream, cloudLanguages = []} = {}) {
   const host = renderer({endAfter});
-  const seen = {own: [], ownReady: [], ownPrepare: [], cloud: [], cloudWarm: [], main: [], mainPrepare: []};
+  const seen = {own: [], ownReady: [], ownPrepare: [], ownWait: [], cloud: [], cloudWarm: [], main: [], mainPrepare: []};
   const helper = {
     speaks: () => own,
     ready: key => { seen.ownReady.push(key); return ownReady; },
+    ...(ownNearly || ownWait ? {nearlyReady: () => ownNearly, whenReady: async (key, options) => { seen.ownWait.push([key, typeof options]); if (ownWait) return ownWait(key, options); }} : {}),
     stream: async (key, text, options) => {
       seen.own.push([key, text]);
       if (ownStream) return ownStream(key, text, options);
@@ -608,6 +609,29 @@ test('V\'s own worker still loading (or failed) gives no V line, asks for a due 
   assert.deepEqual(seen.ownReady, ['v-male', 'v-male'], 'asking is what starts a due load');
   assert.deepEqual(calls.play.concat(seen.main, seen.own, seen.cloud), []);
   assert.ok(calls.logs.some(line => /not loaded yet/.test(line)));
+});
+
+test('V\'s own worker in the last steps of its load: the line waits for it (a few seconds at most) instead of being skipped; a wait that fails drops it, never the reply', async () => {
+  const waited = engineFeature({own: true, ownReady: false, ownNearly: true});
+  const made = waited.voice.start(typed());
+  assert.ok(made, 'a line, not a skip');
+  await made.finished;
+  assert.equal(waited.seen.ownWait.length, 1);
+  assert.deepEqual(waited.seen.own, [['v-male', 'Hey Judy, how are you holding up?']], 'spoken once the voice was ready');
+  assert.ok(waited.calls.logs.some(line => /waits for the Pocket voice, which is nearly loaded/.test(line)));
+  assert.equal(waited.voice.tally.skipped['voice-not-loaded'], undefined);
+  // The wait gives up (timeout, failure, release): the line is dropped, nothing is spoken, nothing throws.
+  const gaveUp = engineFeature({own: true, ownReady: false, ownNearly: true, ownWait: async () => { throw Error('V helper voice did not finish loading in time'); }});
+  const dropped = gaveUp.voice.start(typed());
+  assert.ok(dropped);
+  await dropped.finished;
+  assert.equal(dropped.state, 'dropped');
+  assert.deepEqual(gaveUp.seen.own, []);
+  // Earlier in the load (not nearly ready): skipped as before, no wait.
+  const early = engineFeature({own: true, ownReady: false, ownNearly: false, ownWait: async () => {}});
+  assert.equal(early.voice.start(typed()), null);
+  assert.deepEqual(early.seen.ownWait, []);
+  assert.equal(early.voice.tally.skipped['voice-not-loaded'], 1);
 });
 
 test('a Pocket turn with no worker able to speak it gives no line and warms nothing', async () => {

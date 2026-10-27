@@ -125,7 +125,7 @@ import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, m
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {ChildRegistry, CHILDREN_FILE, reapChildren} from './child-registry.mjs';
-import {readTurnPriority, setProcessPriority} from './process-priority.mjs';
+import {priorityGate, readTurnPriority, setProcessPriority} from './process-priority.mjs';
 import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
 import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
@@ -152,8 +152,21 @@ const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyb
 // One priority rule for everything on the path from V's words to the first sound of the reply (docs/PROCESS_PRIORITY.md): HIGH (never realtime) by default, `priority = normal`
 // in <state>/priority.txt is the player's way back. This process takes it first (the supervisor also sets it from outside), then the workers and the hidden browser it starts.
 const {level: turnPriority, source: turnPrioritySource} = readTurnPriority({stateDirectory});
-if (turnPriority === 'high') process.stderr.write(`[Priority] conversation service: ${setProcessPriority(process.pid, 'high') ? 'high' : 'could not be raised'}\n`);
-else process.stderr.write(`[Priority] ${turnPriority} (${turnPrioritySource}): nothing is raised above normal\n`);
+// Start-up timeline (docs/PROCESS_PRIORITY.md, "Start-up"): the wall-clock time (UTC, the clock of probe.log) and the seconds since this process began, for the few events that
+// can be lined up with the game's title-screen frame gaps (probe.log "Start-up:" lines). A handful of lines a session; most of this log has no clock.
+const timeline = event => { try { process.stderr.write(`[Timeline] ${new Date().toISOString()} +${process.uptime().toFixed(1)} s ${event}\n`); } catch { /* a log never fails */ } };
+timeline('the service began (modules loaded)');
+// The title screen has no turns, and the game is loading with every core busy (its main thread waits for the key press): the service starts at NORMAL and takes HIGH when the game
+// has a world (or a turn arrives, or the title hold runs out), so nothing of ours can starve the title. Everything it starts is gated the same way (bridge/process-priority.mjs PriorityGate).
+priorityGate.log = line => process.stderr.write(line + '\n');
+if (turnPriority === 'high') {
+  priorityGate.close();
+  priorityGate.whenOpen(() => {
+    const done = setProcessPriority(process.pid, 'high');
+    process.stderr.write(`[Priority] conversation service: ${done ? 'high' : 'could not be raised'}\n`);
+    return done;
+  }, 'conversation service');
+} else process.stderr.write(`[Priority] ${turnPriority} (${turnPrioritySource}): nothing is raised above normal\n`);
 // Automatic error reports (docs/ERROR_REPORTS.md): this process only records (bridge/error-events.mjs); the service's supervisor sends.
 // An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
 // not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
@@ -414,14 +427,30 @@ const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted &
 const remoteOmniAddress = await new RemoteOmniAddress({path: resolve(stateDirectory, REMOTE_FILE), log: message => console.error('[RemoteOmni] ' + message)}).load();
 // The game's title screen holds V's helper voice (bridge/voice-selection.mjs startHold): it loads once the game has a world, or when the service has
 // run TITLE_HOLD_MAX_MS without one. A function declaration: it is read before worldSession exists, and the latch is the module's.
+// The same moment ends the title screen's hold on priorities and on the start-up work (bridge/process-priority.mjs PriorityGate, docs/PROCESS_PRIORITY.md): everything the
+// service started at normal is raised to its turn level, and what waited for a world (V's helper voice, the V voice mod scan) goes ahead.
 const TITLE_HOLD_MAX_MS = 600_000;
 let titleHoldOver = false;
+function endTitle(reason) {
+  if (titleHoldOver) return false;
+  titleHoldOver = true;
+  timeline(`the title screen is over (${reason})`);
+  priorityGate.open(reason);
+  return true;
+}
 function titleHolds() {
   if (titleHoldOver) return false;
-  if (worldSession?.ready === true || process.uptime() * 1000 >= TITLE_HOLD_MAX_MS) titleHoldOver = true;
+  if (worldSession?.ready === true) endTitle('the game has a world');
+  else if (process.uptime() * 1000 >= TITLE_HOLD_MAX_MS) endTitle('the title hold ran out');
   return !titleHoldOver;
 }
-const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath, startHold: titleHolds, workerPriority: turnPriority,
+// V's helper voice (a Python process importing torch) has a shorter hold: the screen that waits for a key press is the title, so it may load as soon as a save is being loaded
+// (the game's lease says `loading`, mod/init.lua convaiPublishLoading), about 15 s before the world exists, and not only once the world does. It still starts at NORMAL priority
+// (the gate above) and rises with everything else when the world exists.
+let loadBegun = false;
+function helperHolds() { return titleHolds() && !loadBegun; }
+setTimeout(() => { endTitle('the title hold ran out'); }, TITLE_HOLD_MAX_MS).unref?.();
+const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath, startHold: helperHolds, workerPriority: turnPriority, pythonCacheDirectory: resolve(stateDirectory, 'python-cache'),
   omniRemoteAddress: () => remoteOmniAddress.endpoint, omniReferenceRoots: referenceRoots,
   gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
@@ -1444,10 +1473,17 @@ const scanVVoiceMods = async () => {
     }
   } catch (error) { console.error('[VVoice] the V voice mod scan failed: ' + String(error?.message ?? error).slice(0, 120)); }
 };
+// Not while the title screen is up (27 Oct 2026, game 2.5: the scan's cache write at 11:11:45.5 UTC fell inside the one 2.4 s freeze the title showed, 28.3 s after init.lua began):
+// it waits for the game's world (a 5 s look, nothing else runs meanwhile), then the delay above, so it never competes with the screen that waits for a key press.
 const startVVoiceModScan = () => {
   if (vModScanStarted) return;
   vModScanStarted = true;
-  setTimeout(() => { void scanVVoiceMods(); }, V_MOD_SCAN_DELAY_MS).unref?.();
+  const run = () => {
+    timeline('V voice mod scan starts');
+    void scanVVoiceMods().finally(() => timeline('V voice mod scan done'));
+  };
+  const wait = () => { if (titleHolds()) setTimeout(wait, 5000).unref?.(); else setTimeout(run, V_MOD_SCAN_DELAY_MS).unref?.(); };
+  wait();
 };
 // Which reference V speaks from, for the log and the support report: the player's own clip, a V voice mod's ('mod:<archive file name>') or the shipped one.
 const vReferenceLabel = gender => playerVoices.has(V_VOICE_KEYS[gender]) ? 'manual' : vVoiceReferences.voices[gender]?.source ?? 'shipped';
@@ -1472,7 +1508,9 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   // (never beside the Pocket route, with the Voxtral engine or with the Omni engine).
   helper: {speaks: key => localVoice.vHelperSpeaks(key), ready: key => localVoice.vHelperReady(key),
     stream: (key, text, options) => localVoice.vHelperStream(key, text, options),
-    prepare: (key, options) => localVoice.vHelperPrepare(key, options)},
+    prepare: (key, options) => localVoice.vHelperPrepare(key, options),
+    nearlyReady: key => localVoice.vHelperNearlyReady(key),
+    whenReady: (key, options) => localVoice.vHelperWhenReady(key, options)},
   // The OmniVoice engine: V's line is one more job on the companions' Omni worker (bridge/voice-selection.mjs vOmni*), queued the moment the
   // line is sent, so it renders while the companion's text is written and the companion's render queues right behind it. No worker is loaded for it.
   omni: {problem: key => localVoice.vOmniProblem(key), render: (key, text, options) => localVoice.vOmniRender(key, text, options),
@@ -2913,6 +2951,7 @@ async function processInput(request, prepared) {
   // typed turn reads it, mod/service-status.lua receipt): a request that never shows as received was never read. One log line, codes only. Not awaited.
   const input = request.input;
   if (!request.lookahead && input) {
+    endTitle('a turn arrived');   // a player talking has a world, whatever the poll has seen yet
     void status('received', '', {requestId: input.requestId, provider: input.provider}).catch(() => {});
     console.error(`[Turn] received ${String(input.requestId).slice(0, 80)} generation=${input.generation}${input.reaction ? ' reaction' : ''}`);
     logDarkFuture(input);
@@ -3498,11 +3537,13 @@ async function pollKnowledge() {
     const priorWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
     // A game that stalls stops rewriting its heartbeat; the file still names the world we follow, only late. That is not a world change: no route is reset and no
     // turn cancelled for it. Every ordinary check still refuses the late world (the 5 s lease), so nothing new starts on it until the game writes again.
+    // A save is loading (the game's lease says so before the world exists): V's helper voice may start (helperHolds).
+    if (session?.loading === true && !loadBegun && !titleHoldOver) { loadBegun = true; timeline('a save is loading'); console.error("[VHelper] a save is loading: V's helper voice may load now"); localVoice.tickVHelper(); }
     if (!session) session = lateWorld(lapse.value, worldSession);
     worldSession = session;
     const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
     // The first world ends the title screen's hold on V's helper voice: it loads now (nothing else asks it to between two V lines).
-    if (nextWorld && !titleHoldOver) { titleHoldOver = true; console.error("[VHelper] the game has a world: V's helper voice may load now"); localVoice.tickVHelper(); }
+    if (nextWorld && endTitle('the game has a world')) { console.error("[VHelper] the game has a world: V's helper voice may load now"); localVoice.tickVHelper(); }
     if (priorWorld && priorWorld !== nextWorld) {
       memoryQuiescing++;
       try { await resetLiveRoutes(); }
@@ -3833,7 +3874,7 @@ async function pollSettings(checkShutdown = true) {
     if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
       dropPrefetch(); prefetchObserved = '';
     }
-    if (!voiceSettingsRead) { voiceSettingsRead = true; rewarmLocalVoice(); }
+    if (!voiceSettingsRead) { voiceSettingsRead = true; timeline('the settings were read for the first time'); rewarmLocalVoice(); }
     // Multilingual packs installed (or removed) while the game runs are noticed within 30 s: one folder listing and a stat per manifest, never awaited by a reply.
     void languagePacks.refresh().catch(() => {});
     void pocketLanguages.refresh().catch(() => {});

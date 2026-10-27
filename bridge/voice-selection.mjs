@@ -5,7 +5,7 @@ import {parseServerAddress} from './omni-remote.mjs';
 import {lacksNvidia, isSmallCard, underNeeded} from './gpu-vendors.mjs';
 import {spillVerdict} from './gpu-memory.mjs';
 import {OMNI_SOURCE_VARIABLE, OWN_PYTHON_VARIABLE, omniPriority, ownPythonSummary, rocmWorkerEnvironment} from './omni-own-python.mjs';
-import {priorityEnvironment} from './process-priority.mjs';
+import {priorityEnvironment, priorityGate} from './process-priority.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
@@ -861,12 +861,14 @@ export class VoiceSelection {
   // override (omni-python.txt, docs/OMNIVOICE_AMD.md); nothing of that for NVIDIA or the Runtime's Python (rocmWorkerEnvironment).
   // The priority is one rule for both routes (docs/PROCESS_PRIORITY.md): High from the worker's start and for good (the `workerPriority` option, 'high' unless
   // the player's priority.txt says otherwise; omni-python.txt's `priority =` line wins for this worker). The bridge sets the child and the worker sets itself.
+  // While the title-screen gate is closed (bridge/process-priority.mjs PriorityGate) a 'high' worker starts at normal, with no priority variable: ResidentVoice raises it when the
+  // gate opens (`priority` stays the level asked for). 'below' and 'normal' ignore the gate. `priorityGate` (an option) is for tests; the shared gate is open by default.
   omniWorkerHooks(){
     const own=this.omniOwnPython,used=own?.used===true&&!!own.path&&!!own.source;
     const rocm=used?rocmWorkerEnvironment(own,this.options.processEnv??process.env):{};
     const level=omniPriority(own,this.options.workerPriority);
-    const extra={...(used?{[OWN_PYTHON_VARIABLE]:'1',[OMNI_SOURCE_VARIABLE]:own.source}:{}),...rocm,...priorityEnvironment(level),...(this.omniGraphOff?{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}:{})};
-    return {pythonExecutable:used?own.path:this.options.omniPythonExecutable,...(Object.keys(extra).length?{extraEnvironment:extra}:{}),priority:level};
+    const extra={...(used?{[OWN_PYTHON_VARIABLE]:'1',[OMNI_SOURCE_VARIABLE]:own.source}:{}),...rocm,...priorityEnvironment((this.options.priorityGate??priorityGate).level(level)),...(this.omniGraphOff?{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}:{})};
+    return {pythonExecutable:used?own.path:this.options.omniPythonExecutable,...(Object.keys(extra).length?{extraEnvironment:extra}:{}),priority:level,...(this.options.priorityGate?{gate:this.options.priorityGate}:{})};
   }
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
   // Would routing speak with Pocket if it could run? Only when the player chose Pocket: an Omni that cannot run does not load Pocket in its
@@ -1065,6 +1067,9 @@ export class VoiceSelection {
   vRouteSpeaks(key) { return this.pocketRoute&&this.usesProfile(key); }
   /** Is the helper loaded and ready for this key? Also asks it to load when it is due and not yet running, so a missed trigger heals itself. */
   vHelperReady(key) { this.tickVHelper(); return this.vHelper.ready(key); }
+  /** In the last steps of its load: a typed line may wait for it (bridge/v-voice.mjs). */
+  vHelperNearlyReady(key) { return this.vHelper.nearlyReady(key); }
+  vHelperWhenReady(key, options = {}) { return this.vHelper.whenReady(key, options); }
   vHelperStream(key, text, options = {}) { return this.vHelper.stream(key, stripSpeechTags(text), options); }
   vHelperPrepare(key, options = {}) { return this.vHelper.prepare(key, options); }
   // ---- V's typed line on OmniVoice (V's voice engine 'omni', docs/V_VOICE.md "V on OmniVoice") ----

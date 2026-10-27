@@ -20,7 +20,7 @@ import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {setPriority, constants as osConstants} from 'node:os';
-import {nodePriority} from './process-priority.mjs';
+import {nodePriority, priorityGate} from './process-priority.mjs';
 import {SpeechActivity} from './stt-activity.mjs';
 import {USVFS_FLAG, realPathFor} from './local-ai-pack.mjs';
 
@@ -117,10 +117,10 @@ export class LocalStt extends EventEmitter {
       startupMs = LOCAL_STT_LIMITS.startupMs, finishMs = LOCAL_STT_LIMITS.finishMs, fixups = DEFAULT_FIXUPS,
       engine = MOONSHINE_ENGINE, spawnImpl = spawn, exists = existsSync, setTimer = setTimeout, clearTimer = clearTimeout,
       paths = resolveLocalSttPaths({project, environment, pythonExecutable, engine}), lowerPriority = true,
-      priority = 'below', setPriorityImpl = setPriority, pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs, exitMs = 2000} = {}) {
+      priority = 'below', setPriorityImpl = setPriority, gate = priorityGate, pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs, exitMs = 2000} = {}) {
     super();
     Object.assign(this, {engine, paths, threads: Math.max(1, Math.min(LOCAL_STT_LIMITS.maxThreads, threads | 0 || 1)), partials,
-      partialIntervalMs, idleMs, startupMs, finishMs, fixups, spawnImpl, exists, setTimer, clearTimer, lowerPriority, setPriorityImpl,
+      partialIntervalMs, idleMs, startupMs, finishMs, fixups, spawnImpl, exists, setTimer, clearTimer, lowerPriority, setPriorityImpl, gate,
       pausePartials, pauseMs, exitMs, priority: ['high', 'normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
     this.worker = null;       // {child, ready, readyPromise, buffer}
     this.session = null;      // {id, held[], bytes, sentBytes, partialBytes, partialBusy, text, waiter}
@@ -154,7 +154,10 @@ export class LocalStt extends EventEmitter {
       return Promise.reject(error);
     }
     const {python, modelDirectory, worker: script} = this.paths;
-    const child = this.spawnImpl(python, ['-B', '-I', script, ...(this.engine.kind === 'moonshine' ? [] : ['--kind', this.engine.kind]), '--model', modelDirectory, '--threads', String(this.threads), '--priority', this.priority],
+    // While the title-screen gate is closed (docs/PROCESS_PRIORITY.md "Start-up") a 'high' worker starts at normal, whatever its imports cost the loading game; when the
+    // gate opens it is set high here by pid and told to take high itself (op 'priority'). 'below' and a player's 'normal' never depend on the gate.
+    const level = this.gate.level(this.priority);
+    const child = this.spawnImpl(python, ['-B', '-I', script, ...(this.engine.kind === 'moonshine' ? [] : ['--kind', this.engine.kind]), '--model', modelDirectory, '--threads', String(this.threads), '--priority', level],
       {stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: {...process.env, PYTHONNOUSERSITE: '1', PYTHONUTF8: '1',
         OMP_NUM_THREADS: String(this.threads)}});
     const state = {child, ready: false, buffer: '', exited: false, info: null};
@@ -166,7 +169,10 @@ export class LocalStt extends EventEmitter {
     const timer = this.setTimer(() => this.fail(state, Error('Local speech recognition took too long to start')), this.startupMs);
     state.startTimer = timer;
     // High (the default of the bridge, docs/PROCESS_PRIORITY.md) from the spawn and for good: the child is set here and the worker sets itself (--priority high). Otherwise below normal.
-    try { if (this.lowerPriority && child.pid) this.setPriorityImpl(child.pid, this.priority === 'high' ? nodePriority('high') : osConstants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
+    // Closed gate (level normal while high was asked for): the child stays at normal and is raised on open.
+    const held = this.priority === 'high' && level !== 'high';
+    try { if (this.lowerPriority && child.pid && !held) this.setPriorityImpl(child.pid, this.priority === 'high' ? nodePriority('high') : osConstants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
+    if (held) state.cancelRaise = this.gate.whenOpen(() => this.raiseOnOpen(state), 'speech recognition worker');
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', text => {
       state.buffer += text;
@@ -181,13 +187,24 @@ export class LocalStt extends EventEmitter {
     child.stderr?.on('data', () => {}); // diagnostics stay out of the bridge log; a failure is reported through the 'failure' event and the rejected finish()
     state.exitPromise = new Promise(done => { child.once('exit', done); child.once('error', done); });
     child.once('error', error => this.fail(state, error));
-    child.once('exit', code => { state.exited = true; this.fail(state, Error('Local speech recognition stopped (exit ' + code + ')')); });
+    child.once('exit', code => { state.exited = true; if (state.cancelRaise) { state.cancelRaise(); state.cancelRaise = null; } this.fail(state, Error('Local speech recognition stopped (exit ' + code + ')')); });
     return state.readyPromise;
+  }
+
+  // The gate opened: a live worker goes to high by pid and switches itself (nothing is sent to a dead one). False when the system refused the by-pid raise.
+  raiseOnOpen(state) {
+    state.cancelRaise = null;
+    if (state.failed || state.exited) return true;
+    let raised = true;
+    try { if (this.lowerPriority && state.child.pid) this.setPriorityImpl(state.child.pid, nodePriority('high')); } catch { raised = false; }
+    this.send(state, {op: 'priority', level: 'high'});
+    return raised;
   }
 
   fail(state, error) {
     if (state.failed) return;
     state.failed = true;
+    if (state.cancelRaise) { state.cancelRaise(); state.cancelRaise = null; }
     this.clearTimer(state.startTimer);
     if (this.worker === state) this.worker = null;
     state.rejectReady?.(error);

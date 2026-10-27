@@ -10,7 +10,7 @@ import {pocketSpokenText} from './pocket-language-models.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {killProcessTree, pidAlive, recoverExit} from './worker-process.mjs';
 import {describeExitCode, stderrReason} from './voice-failures.mjs';
-import {DEFAULT_PRIORITY, priorityEnvironment, priorityLevel, setProcessPriority} from './process-priority.mjs';
+import {DEFAULT_PRIORITY, priorityEnvironment, priorityGate, priorityLevel, setProcessPriority} from './process-priority.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
 export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666';
@@ -91,7 +91,7 @@ export function validatePocketConfig(config) {
 export class PocketVoice {
   constructor(config, {project, configPath, pythonExecutable, spawnImpl = spawn,
     onState = () => {}, onLog = () => {}, now = () => performance.now(),
-    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs, isAlive, workerPriority = DEFAULT_PRIORITY, setPriority} = {}) {
+    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs, isAlive, workerPriority = DEFAULT_PRIORITY, setPriority, gate = priorityGate, pythonCacheDirectory = null} = {}) {
     this.config = validatePocketConfig(config); this.registry = this.config.registry;
     // The voices the worker holds. It starts with the configuration's (`baseRegistry`, which its start is checked against); a voice the
     // player changed while it runs is sent to it (setVoices) and `registry` follows what it confirms. A worker that starts again holds the
@@ -105,6 +105,13 @@ export class PocketVoice {
     // The level a reply being voiced runs at (bridge/process-priority.mjs, docs/PROCESS_PRIORITY.md): 'high' by default, the player's priority.txt can say 'normal'. The worker
     // starts at it (the child is set here, the worker sets itself) and keeps it while a reply is voiced; a voice prepared ahead of time stays below normal (pocket-voice-worker.py).
     this.priorityLevel = priorityLevel(workerPriority) ?? DEFAULT_PRIORITY;
+    // The title-screen gate (docs/PROCESS_PRIORITY.md, "Start-up"): while it is closed (the game has no world yet) a worker starts at NORMAL and is raised once when it opens
+    // (`priorityLevel` stays the level wanted; the one a start uses is `gate.level(priorityLevel)`). The shared gate is open unless the conversation service closed it.
+    this.gate = gate; this.raiseOnOpen = null;
+    // Where the worker's Python keeps the compiled bytecode of the libraries it imports (`-X pycache_prefix`, a folder of the service's own data, never the Runtime): without it the
+    // worker runs with -B, the shipped libraries carry no .pyc files, and EVERY start compiles about 2000 torch source files again (measured 27 Oct 2026, quiet PC: the import of
+    // pocket_tts 13 s, 7 s once the cache is warm; the first start writes about 53 MB and takes 6 s longer). Null (a test, a standalone worker): -B as before.
+    this.pythonCacheDirectory = typeof pythonCacheDirectory === 'string' && pythonCacheDirectory ? pythonCacheDirectory : null;
     // A test's stand-in child has no process: its pid must never reach the real system call.
     this.setPriority = setPriority ?? (spawnImpl === spawn ? undefined : () => { /* a stand-in child: nothing to set */ });
     // Is a process still running (exit recovery)? A test's stand-in child has no process: it is alive until it says it closed.
@@ -277,18 +284,24 @@ export class PocketVoice {
     // A new worker reads the configuration's voices: what a player changed since is sent once it is ready.
     this.registry = this.baseRegistry; this.workerDir = this.baseDir;
     let child;
+    const level = this.gate.level(this.priorityLevel), held = this.priorityLevel === 'high' && level !== 'high';
     try {
-      const env = {...process.env, PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1', CUDA_VISIBLE_DEVICES: '-1',
+      const env = {...process.env, PYTHONUTF8: '1', ...(this.pythonCacheDirectory ? {} : {PYTHONDONTWRITEBYTECODE: '1'}), CUDA_VISIBLE_DEVICES: '-1',
         HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1', HF_HUB_DISABLE_TELEMETRY: '1',
         TOKENIZERS_PARALLELISM: 'false', OMP_NUM_THREADS: String(this.config.cpu.threads),
-        MKL_NUM_THREADS: String(this.config.cpu.threads), OPENBLAS_NUM_THREADS: String(this.config.cpu.threads), ...priorityEnvironment(this.priorityLevel)};
+        MKL_NUM_THREADS: String(this.config.cpu.threads), OPENBLAS_NUM_THREADS: String(this.config.cpu.threads), ...priorityEnvironment(level)};
       for (const key of ['HF_TOKEN', 'HUGGING_FACE_HUB_TOKEN', 'KAGGLE_API_TOKEN']) delete env[key];
+      if (this.pythonCacheDirectory) delete env.PYTHONDONTWRITEBYTECODE;
       child = this.child = this.spawnImpl(this.pythonExecutable,
-        ['-B', resolve(this.project, 'bridge/pocket-voice-worker.py'), '--config', this.configPath, '--owner', this.owner],
+        [...(this.pythonCacheDirectory ? ['-X', `pycache_prefix=${this.pythonCacheDirectory}`] : ['-B']), resolve(this.project, 'bridge/pocket-voice-worker.py'), '--config', this.configPath, '--owner', this.owner],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env});
     } catch (error) { this.fail(error); return; }
-    const raised = this.priorityLevel === 'high' ? setProcessPriority(child.pid, 'high', this.setPriority) : null;
-    this.startLog(`worker started (pid ${child.pid ?? '?'}${raised === null ? '' : raised ? ', priority high' : ', priority could not be set to high'})`);
+    const raised = level === 'high' ? setProcessPriority(child.pid, 'high', this.setPriority) : null;
+    this.startLog(`worker started (pid ${child.pid ?? '?'}${held ? ', priority normal until the game has a world' : raised === null ? '' : raised ? ', priority high' : ', priority could not be set to high'})`);
+    // Started while the gate was closed: raise this worker once when it opens (by pid, and the worker takes the level itself with a `priority` command, it may still be
+    // importing). A worker that exits or is replaced first takes its registration with it.
+    this.cancelRaise();
+    if (held) this.raiseOnOpen = {child, cancel: this.gate.whenOpen(() => this.raiseWorker(child), 'pocket worker')};
     let buffer = '';
     child.stdout.setEncoding('utf8');
     // Both pipes are always drained: a worker that fills an unread pipe would stop in its own write.
@@ -313,6 +326,7 @@ export class PocketVoice {
       child.once('close', code => {
         this.clearTimer(this.startTimer); this.clearTimer(this.exitTimer); this.clearTimer(this.confirmTimer); this.clearTimer(this.retryKillTimer);
         this.clearTimer(this.stallTimer); this.clearTimer(this.restartTimer);
+        if (this.raiseOnOpen?.child === child) this.cancelRaise();
         this.startTimer = this.exitTimer = this.confirmTimer = this.retryKillTimer = this.stallTimer = this.restartTimer = null;
         this.child = null; this.loaded = false; this.prepared.clear(); this.dropLanguage();
         // A worker stopped by the stall watchdog: the same start goes on with a new worker (`ready` stays pending).
@@ -334,6 +348,17 @@ export class PocketVoice {
       Math.max(this.attempt > 1 ? POCKET_LIMITS.restartMinMs : 1000, POCKET_LIMITS.startupMs - Math.max(0, this.now() - (this.startedAt ?? this.now()))));
     this.armStall(undefined);
   }
+  // The gate opened: this worker (if it is still the live one) goes to high, by pid and by telling it. False when nothing could be raised.
+  raiseWorker(child) {
+    if (this.child !== child || this.closing) return false;
+    this.raiseOnOpen = null;
+    const byPid = setProcessPriority(child.pid, 'high', this.setPriority);
+    let told = false;
+    try { this.send({op: 'priority', level: 'high'}); told = true; } catch { /* the worker's input is closed: it is going away */ }
+    this.startLog(`priority high (the game has a world${byPid ? '' : ', could not be set by pid'}${told ? '' : ', the worker was not told'})`);
+    return byPid || told;
+  }
+  cancelRaise() { const held = this.raiseOnOpen; this.raiseOnOpen = null; try { held?.cancel(); } catch { /* best effort */ } }
   // "Pocket worker exited (1)", the exit code in words when it is a Windows fault, and the last error line of the worker's stderr.
   exitedMessage(code) {
     const words = describeExitCode(code), reason = stderrReason(this.stderrTail);
@@ -685,7 +710,7 @@ export class PocketVoice {
   }
   close() {
     if (this.closing) return this.closing;
-    this.closing = Promise.resolve(); this.rejectReady?.(cancelled('Pocket speech stopped')); this.dropLanguage();
+    this.closing = Promise.resolve(); this.rejectReady?.(cancelled('Pocket speech stopped')); this.dropLanguage(); this.cancelRaise();
     for (const request of this.pending.values()) this.finishRequest(request, cancelled('Pocket speech stopped'));
     if (!this.child) { this.loaded = false; this.publish('stopped'); return this.closing; }
     this.publish('stopping'); this.child.stdin.end(); this.confirmExit();
