@@ -239,9 +239,10 @@ export const reactionActionName = (offer, kind) => token(offer?.token) && Object
 export function parseReactionOffer(value) {
   const threats = object(value) && value.threats === true;
   const allowed = threats ? REACTION_KINDS : BASE_REACTION_KINDS;
-  const planned = threats && Object.hasOwn(value, 'plan');
+  // The game's plan rides on both sides of the switch (live test 3, 2026-10-27: the switch off, every threat waited for a model tag).
+  const planned = object(value) && Object.hasOwn(value, 'plan');
   if (!object(value) || value.available !== true || !object(value.actor) || !Array.isArray(value.kinds)
-      || !keys(value, threats ? ['available', 'actor', 'kinds', 'threats', ...(planned ? ['plan'] : [])] : ['available', 'actor', 'kinds'])
+      || !keys(value, ['available', 'actor', 'kinds', ...(threats ? ['threats'] : []), ...(planned ? ['plan'] : [])])
       || !keys(value.actor, ['id', 'key']) || !entityId(value.actor.id) || !profile(value.actor.key)
       || value.kinds.length < 1 || value.kinds.length > allowed.length || new Set(value.kinds).size !== value.kinds.length
       || value.kinds.some(kind => !allowed.includes(kind)) || (planned && !validPlan(value.plan, value.kinds))) return null;
@@ -273,9 +274,16 @@ export function planReaction(plan, screen) {
 }
 /** The game's decision for V's words on a threats offer (or a turn's reaction config) with a plan: {kind, screen}; kind null when the words decide nothing. */
 export function decideReaction(reaction, heard) {
-  if (!reaction?.threats || !object(reaction.plan)) return null;
+  if (!object(reaction?.plan)) return null;
   const screen = screenMessage(typeof heard === 'string' ? heard : '');
-  return {kind: planReaction(reaction.plan, screen), screen: screenCode(screen)};
+  const kind = planReaction(reaction.plan, screen);
+  return {kind, screen: screenCode(screen), game: kind ?? `none(${verdictWhy(reaction.plan, screen)})`};
+}
+/** Why the game's plan decided nothing for these words: `unread` (no threat, insult or command in them), the screen's refusal (`joke`, `quote`,
+ * `question`, `negated`), or `no-row` (a reading the person's plan has no reaction for, e.g. a command to a cop). Codes only. */
+export function verdictWhy(plan, screen) {
+  if (!screen?.threat && !screen?.command) return screen?.why ?? 'unread';
+  return object(plan) && ((screen.threat && Object.hasOwn(plan, screen.threat)) || (screen.command && Object.hasOwn(plan, screen.command))) ? 'unread' : 'no-row';
 }
 /** What the person does, in the words the model reads with a decided reaction ("you attack V with your fists"). */
 export const REACTION_DEEDS = Object.freeze({
@@ -306,16 +314,19 @@ export function plannedReactionText(plan) {
 // which has the transcript (reactionMenu). Returns {kinds, screen} or null when nothing is narrowed here.
 // With the game's plan, words that decide leave exactly that kind (`decided`); words not heard yet (a voice turn) keep the plan for whoever hears
 // them (the text host, the Convai page) and, for the model, the kinds the screen leaves without words (`plan: true`).
+// `game`: the game's verdict for the turn's line, the decided kind or none(<why>) (verdictWhy; `unheard` for a voice turn whose words come later).
+// Without the switch (no `threats`) the model's own kinds are the old three, never narrowed: only the game's plan reads the words.
 function narrowReaction(reaction, input) {
-  if (!reaction?.threats) return null;
+  const planned = object(reaction?.plan);
+  if (!reaction?.threats && !planned) return null;
   const heard = typeof input?.text === 'string' && input.text.trim() ? input.text : '';
-  const planned = object(reaction.plan);
-  if (!heard && input?.provider !== undefined && input.provider !== 'convai') return planned ? {kinds: [...reaction.kinds], plan: true, screen: 'unheard'} : null;
+  if (!heard && input?.provider !== undefined && input.provider !== 'convai') return planned ? {kinds: [...reaction.kinds], plan: true, screen: 'unheard', game: 'none(unheard)'} : null;
   const screen = screenMessage(heard);
   const decided = heard && planned ? planReaction(reaction.plan, screen) : null;
-  if (decided) return {kinds: [decided], decided, screen: screenCode(screen)};
-  const kinds = screenedKinds(reaction.kinds, screen);
-  return !heard && planned ? {kinds, plan: true, screen: 'unheard'} : {kinds, screen: screenCode(screen)};
+  const game = !planned ? undefined : !heard ? 'none(unheard)' : decided ?? `none(${verdictWhy(reaction.plan, screen)})`;
+  if (decided) return {kinds: [decided], decided, screen: screenCode(screen), game};
+  const kinds = reaction.threats ? screenedKinds(reaction.kinds, screen) : [...reaction.kinds];
+  return !heard && planned ? {kinds, plan: true, screen: 'unheard', game} : {kinds, screen: screenCode(screen), game};
 }
 
 export const parseFollowUnavailable = value => typeof value === 'string' && Object.hasOwn(FOLLOW_UNAVAILABLE, value) ? value : null;
@@ -367,12 +378,15 @@ export function parseTacticOffer(value) {
 // screen: a threats offer's reading of V's words (bridge/threat-screen.mjs screenCode: "kill", "insult+stop", "none(joke)"), codes only; `offered` is
 // then what the words left of the game's offer.
 // by (a threats offer only): who chose the kind, `game` (its plan, for words the screen read) or `model` (a tag, a Convai action).
-export function reactionTraceLine({person, kinds, admitted = true, route, tag, why, delivered, extra, screen, by} = {}) {
+// game: the game's own verdict on V's words with its plan (every offer since 2026-10-27): the kind it picked, or none(<why>): unread (no threat,
+// insult or command read), joke, quote, question, negated (the screen's refusals), no-row (a reading this person's plan has no reaction for),
+// unheard (a voice turn, read when the words come). Codes only.
+export function reactionTraceLine({person, kinds, admitted = true, route, tag, why, delivered, extra, screen, by, game} = {}) {
   const list = Array.isArray(kinds) ? kinds.join(',') : String(kinds ?? '?');
   const outcome = tag ? String(tag) : why ? `none(${why})` : 'none';
   return `NPC reaction: person=${person ?? '?'} offered=${list || (Array.isArray(kinds) ? '-' : '?')} admitted=${admitted === true ? 'yes' : `no(${admitted})`}`
     + ` route=${route ?? '-'} tag=${admitted === true ? outcome : '-'} delivered=${delivered === true ? 'yes' : delivered ? `no(${delivered})` : '-'}`
-    + `${screen ? ' screen=' + screen : ''}${tag && by && admitted === true ? ' by=' + by : ''}${extra ? ' ' + extra : ''}`;
+    + `${screen ? ' screen=' + screen : ''}${game ? ' game=' + game : ''}${tag && by && admitted === true ? ' by=' + by : ''}${extra ? ' ' + extra : ''}`;
 }
 const LATE_TRACE_MS = LATE_ACTION_MS + 1000;
 
@@ -402,15 +416,16 @@ export class CompanionActions {
   }
   // The text host says what the reply's tag was ({tag: kind} before it hands the reaction over; {tag: null, why} when the reply asked for none).
   // A text route that narrowed a threats offer by the transcript (reactionMenu) also says what the words left (kinds) and how it read them (screen).
-  traceReaction(token, {route = 'text', tag = null, why = null, kinds = null, screen = null} = {}) {
+  traceReaction(token, {route = 'text', tag = null, why = null, kinds = null, screen = null, game = null} = {}) {
     const pending = this.pending, trace = pending?.trace;
     if (!trace || trace.logged || pending.packet.actionId !== token) return;
     // The game already chose for this turn (its hand-over closes the line): what the reply did changes nothing.
     if (trace.by === 'game') return;
     trace.route = route; trace.tag = tag; trace.why = why;
-    if (tag && pending.reaction?.threats) trace.by = 'model';
+    if (tag && (pending.reaction?.threats || pending.reaction?.plan)) trace.by = 'model';
     if (Array.isArray(kinds)) trace.kinds = [...kinds];
     if (screen) trace.screen = screen;
+    if (game) trace.game = game;
     if (!tag) this.#closeTrace(pending, null);
   }
   // The turn's reply has been published. A text turn that chose nothing is already closed; a Convai turn may still get a late action
@@ -431,7 +446,7 @@ export class CompanionActions {
     if (!trace || trace.logged) return;
     trace.logged = true;
     const parts = {person: trace.person, kinds: trace.kinds, route: trace.route, tag: trace.tag, why: trace.why ?? (trace.tag ? null : reason),
-      delivered: trace.tag ? (delivered === true ? true : delivered ?? 'turn-ended') : null, screen: trace.screen, by: trace.by};
+      delivered: trace.tag ? (delivered === true ? true : delivered ?? 'turn-ended') : null, screen: trace.screen, by: trace.by, game: trace.game};
     const emit = extra => { try { this.log(reactionTraceLine({...parts, extra})); } catch { /* a log line never breaks a turn */ } };
     if (!trace.route && typeof this.probe === 'function') {
       // The Convai route: what its page did with the offer is the part nobody could see.
@@ -538,7 +553,7 @@ export class CompanionActions {
     this.pending = {input, packet, tactic, follow, leave, home, homePick, reaction, reactionKinds, reactionModel, decided, planned: !!narrowed?.plan,
       meet, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
       ...(reaction ? {trace: {person: input.profileKey, kinds: [...reactionKinds], logged: false, ...(narrowed ? {screen: narrowed.screen} : {}),
-        ...(decided ? {route, tag: decided, by: 'game'} : {})}} : {}),
+        ...(narrowed?.game ? {game: narrowed.game} : {}), ...(decided ? {route, tag: decided, by: 'game'} : {})}} : {}),
       ...(home ? {homeTrace: {person: input.profileKey, apartments: home.apartments.map(apartment => apartment.id), here: home.here, pick: homePick, logged: false}} : {})};
     const config = this.configFor(input);
     // The game chose from V's words: handed over at once (the game starts it once the reply has been heard), whatever the reply says.
@@ -569,7 +584,7 @@ export class CompanionActions {
         ...(member.confirmed === true ? {confirmed: true} : {})}))}} : {}),
       ...(pending.home ? {home: homeConfig(pending.home, pending.homePick)} : {}),
       // A decided reaction: no kind left for the model, only what the person does. Words not heard yet: the model's kinds and the game's plan.
-      ...(pending.reaction ? {reaction: pending.decided ? {kinds: [], threats: true, decided: pending.decided}
+      ...(pending.reaction ? {reaction: pending.decided ? {kinds: [], ...(pending.reaction.threats ? {threats: true} : {}), decided: pending.decided}
         : {kinds: [...pending.reactionModel], ...(pending.reaction.threats ? {threats: true} : {}), ...(pending.planned ? {plan: {...pending.reaction.plan}} : {})}} : {}),
       ...(pending.meet ? {meet: meetSummary(pending.meet.meet)} : {}),
       ...(pending.refusal ? {followUnavailable: pending.refusal} : {}),
@@ -590,8 +605,8 @@ export class CompanionActions {
       // No tag came from the text host first: the model asked for the action itself (the Convai route).
       if (!trace.route) { trace.route = 'convai'; trace.tag = String(message.reaction); }
       // The game's own pick (the plan, applied where V's words were heard) is the turn's outcome, whatever the reply's tag said.
-      if (message.by === 'game') { trace.tag = String(message.reaction); trace.why = null; trace.by = 'game'; }
-      else if (pending.reaction?.threats) trace.by = trace.by ?? 'model';
+      if (message.by === 'game') { trace.tag = String(message.reaction); trace.why = null; trace.by = 'game'; trace.game = String(message.reaction); }
+      else if (pending.reaction?.threats || pending.reaction?.plan) trace.by = trace.by ?? 'model';
       this.#closeTrace(pending, null, attempt.value ? true : attempt.why ?? 'not-published');
     }
     // A housing choice: its line, and a stay or a move-out answers her "which apartment?" for good. A refused one is written and the turn's line stays open.
@@ -691,12 +706,13 @@ function windowTactic(value) {
 
 function windowReaction(value) {
   const threats = object(value) && value.threats === true;
-  if (threats && Object.hasOwn(value, 'decided')) return keys(value, ['kinds', 'threats', 'decided']) && Array.isArray(value.kinds) && value.kinds.length === 0
-    && REACTION_KINDS.includes(value.decided);
-  const planned = threats && Object.hasOwn(value, 'plan');
-  // A plan (V's words not heard yet) may leave the model no kind of its own.
-  return object(value) && keys(value, threats ? ['kinds', 'threats', ...(planned ? ['plan'] : [])] : ['kinds']) && Array.isArray(value.kinds)
-    && (value.kinds.length >= 1 || planned) && (!planned || validPlan(value.plan, REACTION_KINDS))
+  const allowed = threats ? REACTION_KINDS : BASE_REACTION_KINDS;
+  if (object(value) && Object.hasOwn(value, 'decided')) return keys(value, ['kinds', ...(threats ? ['threats'] : []), 'decided']) && Array.isArray(value.kinds)
+    && value.kinds.length === 0 && allowed.includes(value.decided);
+  const planned = object(value) && Object.hasOwn(value, 'plan');
+  // A plan (V's words not heard yet) may leave the model no kind of its own; it rides on both sides of the switch.
+  return object(value) && keys(value, ['kinds', ...(threats ? ['threats'] : []), ...(planned ? ['plan'] : [])]) && Array.isArray(value.kinds)
+    && (value.kinds.length >= 1 || planned) && (!planned || validPlan(value.plan, allowed))
     && new Set(value.kinds).size === value.kinds.length && value.kinds.every(kind => (threats ? REACTION_KINDS : BASE_REACTION_KINDS).includes(kind))
     // One fight action and one obey action at most: the words chose which kind each one is.
     && !(value.kinds.includes('attack') && value.kinds.includes('brawl')) && value.kinds.filter(kind => COMMAND_KINDS.includes(kind)).length <= 1;

@@ -220,70 +220,92 @@ const turnConfig = (input, config) => ({text: input.text, context: 'CURRENT PERS
 
 // ---- The turns --------------------------------------------------------------------------------------------------------------------
 
-test('Mistral / Local AI: V\'s first message threatens, the model opens with the tag, and the person calls the police', async () => {
+// The live test 3 cases (2026-10-27, game 2.31, the threats switch OFF in the player's settings): every offer said
+// "offered=leave,call-police ... route=text tag=none(no-tag)", because only a threats offer carried the game's plan and the model never tags.
+// Since then the game's plan rides on every offer (the old kinds with the switch off) and the game decides from V's words on every provider.
+const KILL = 'get lost or I\'ll kill you';
+const PLAN_OFF = {kill: 'leave', hurt: 'leave', insult: 'leave'};
+const withProvider = (requestText, provider) => JSON.stringify({...JSON.parse(requestText), provider});
+
+test('Local AI, typed, the switch off (live test 3): "get lost or I\'ll kill you" is decided by the game with no tag, handed over before the reply, and the person leaves', async () => {
   const game = luaSession();
   try {
-    const requestText = game.request(1, THREAT);
+    const requestText = game.request(1, KILL);
     assert.deepEqual(game.lease(), {pending: true, reaction: true, state: 'available'}, 'the first message earns the offer: ' + game.logs().join(' | '));
-    const wire = JSON.parse(requestText);
-    assert.deepEqual(wire.reactionOffer.kinds, ['leave', 'call-police']);
+    assert.deepEqual(JSON.parse(requestText).reactionOffer, {available: true, actor: {id: '11147869ULL', key: 'npc-corpo-resident-female'},
+      kinds: ['leave', 'call-police'], plan: PLAN_OFF}, 'the old kinds and the game\'s plan of them');
+    assert.ok(game.logs().includes('NPC reaction offered: kinds=leave,call-police type=corpo-resident message=1 temper=neutral plan=kill:leave,hurt:leave,insult:leave'),
+      game.logs().join(' | '));
     const files = [], bridgeLogs = [], trace = [];
-    const turn = await bridgeTurn(requestText, {files, logs: trace});
-    assert.ok(turn.config, 'the bridge admitted the turn and armed the reaction');
-    assert.deepEqual(turn.config.reaction, {kinds: ['leave', 'call-police']});
-    const {host, delivered} = await textHost('[call-police] Get away from me, I am calling the cops right now!', message => turn.actions.deliver(message), bridgeLogs, turn.actions);
+    const turn = await bridgeTurn(withProvider(requestText, 'local'), {files, logs: trace});
+    assert.deepEqual(turn.config.reaction, {kinds: [], decided: 'leave'}, 'the words decided at admission: nothing left for the model');
+    await settle();
+    const packet = files.find(item => item.action === 'npc-reaction');
+    assert.ok(packet && packet.reaction === 'leave', 'handed over before any reply: ' + JSON.stringify(files.map(item => item.action)));
+    const {host, delivered, prompts} = await textHost('Fine, fine, I am going!', message => turn.actions.deliver(message), bridgeLogs, turn.actions);
     const result = await host.reply(turnConfig(turn.input, turn.config));
     await settle();
-    assert.equal(result.text, 'Get away from me, I am calling the cops right now!');
-    assert.deepEqual(delivered, [{version: 1, token: turn.config.token, reaction: 'call-police'}]);
-    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=call-police delivered=yes'],
+    assert.equal(result.text, 'Fine, fine, I am going!');
+    assert.deepEqual(delivered, [], 'the text host hands nothing over: the game already did');
+    assert.ok(prompts.some(text => text.includes('The game has decided what you do as you answer V\'s new message')), 'the model is told what the person does');
+    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave admitted=yes route=text tag=leave delivered=yes screen=kill game=leave by=game'],
       'exactly one line for the turn');
     assert.deepEqual(bridgeLogs, [], 'no second line from the host');
-    const packet = files.find(item => item.action === 'npc-reaction');
-    assert.ok(packet, 'a packet for the game was written: ' + JSON.stringify(files.map(item => item.action)));
-    // The packet text reaches the game's poll; the reaction is accepted at once and starts when the reply has been heard.
     game.receive(JSON.stringify(packet));
-    assert.ok(game.logs().some(line => /^NPC reaction accepted: call-police/.test(line)), game.logs().join(' | '));
-    game.advance(0.1);
-    assert.equal(game.calls().callPolice, undefined, 'not before the reply has been over for a moment');
-    game.advance(2);
-    assert.equal(game.calls().callPolice, 1, 'the police call was made: ' + game.logs().join(' | '));
-    assert.ok(game.logs().some(line => /^NPC reaction: police call sent/.test(line)));
+    assert.ok(game.logs().some(line => /^NPC reaction accepted: leave/.test(line)), 'the lease took the packet with the plan in its echo: ' + game.logs().join(' | '));
   } finally { game.close(); }
 });
 
-test('Convai: the same first message, the model requests the Call Police action, and the person calls the police', async () => {
+test('Local AI, spoken, the switch off: the plan waits for the transcript; the text host decides from it, hands it over before the reply and logs the reading', async () => {
+  const game = luaSession();
+  try {
+    const files = [], bridgeLogs = [], trace = [];
+    // A spoken turn: the request comes before the transcript (its words are empty at admission).
+    const turn = await bridgeTurn(withProvider(game.request(1, 'mic'), 'local'), {files, logs: trace,
+      change: p => ({...p, input: {...p.input, text: ''}})});
+    assert.ok(turn.config, trace.join(' | '));
+    assert.deepEqual(turn.config.reaction, {kinds: ['leave', 'call-police'], plan: PLAN_OFF}, 'unheard: the model\'s kinds and the game\'s plan');
+    const {host, delivered, prompts} = await textHost('Okay, okay, I am out of here.', message => turn.actions.deliver(message), bridgeLogs, turn.actions);
+    await host.reply({...turnConfig(turn.input, turn.config), text: 'Get lost or I\'ll kill you!'});
+    await settle();
+    assert.deepEqual(delivered, [{version: 1, token: turn.config.token, reaction: 'leave', by: 'game'}], 'the game\'s pick, before the reply');
+    assert.ok(!prompts.some(text => text.includes('begin your reply with exactly one tag')), 'no tag is asked for');
+    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=leave delivered=yes screen=kill game=leave by=game']);
+    assert.deepEqual(bridgeLogs, []);
+    game.receive(JSON.stringify(files.find(item => item.action === 'npc-reaction')));
+    assert.ok(game.logs().some(line => /^NPC reaction accepted: leave/.test(line)), game.logs().join(' | '));
+  } finally { game.close(); }
+});
+
+test('Convai, typed, the switch off: the game decides at admission; the model\'s own Call Police is not taken; one line names the reading', async () => {
   const game = luaSession();
   try {
     const files = [], trace = [];
     const turn = await bridgeTurn(game.request(1, THREAT), {files, logs: trace});
-    assert.ok(turn.config, 'the bridge admitted the turn');
-    // What the realtime page does with the offer: the window opens, the prompt carries the sentence, the model's action proposal is accepted.
+    assert.deepEqual(turn.config.reaction, {kinds: [], decided: 'leave'});
     const window = new CompanionActionWindow({now: () => 1792531182000});
-    assert.equal(window.open(turn.config), true, 'the window opens for the offer exactly as configFor made it');
-    assert.match(CompanionActionWindow.contextText(turn.config), /Call Police drive-/);
-    const message = window.accept({actions: [{name: 'Call Police ' + turn.config.token, target: turn.config.token}]});
-    assert.deepEqual(message, {version: 1, token: turn.config.token, reaction: 'call-police'});
-    assert.equal(await turn.actions.deliver(message), true);
-    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=convai tag=call-police delivered=yes']);
+    assert.equal(window.open(turn.config), true, 'the window opens for the decided offer exactly as configFor made it');
+    assert.doesNotMatch(CompanionActionWindow.contextText(turn.config), /Call Police drive-/);
+    assert.equal(window.accept({actions: [{name: 'Call Police ' + turn.config.token, target: turn.config.token}]}), null);
+    await settle();
+    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave admitted=yes route=convai tag=leave delivered=yes screen=hurt game=leave by=game']);
     game.receive(JSON.stringify(files.find(item => item.action === 'npc-reaction')));
-    game.advance(0.1); game.advance(2);
-    assert.equal(game.calls().callPolice, 1, game.logs().join(' | '));
+    assert.ok(game.logs().some(line => /^NPC reaction accepted: leave/.test(line)), game.logs().join(' | '));
   } finally { game.close(); }
 });
 
-test('Convai: a model that asks for no action leaves one line after the window closes, with what the page saw of the offer', async () => {
+test('Convai: words the game does not read leave the model its kinds; a model that asks for no action leaves one line after the window closes', async () => {
   const game = luaSession();
   mock.timers.enable({apis: ['setTimeout']});
   try {
     const trace = [];
-    const turn = await bridgeTurn(game.request(1, THREAT), {logs: trace, probe: async () => 'convai=allowed:true privateManual:true verified:true armed:true published:1 accepted:0 skipped:0 skip:- ack:success'});
-    assert.ok(turn.config);
+    const turn = await bridgeTurn(game.request(1, 'got a light, lady'), {logs: trace, probe: async () => 'convai=allowed:true privateManual:true verified:true armed:true published:1 accepted:0 skipped:0 skip:- ack:success'});
+    assert.deepEqual(turn.config.reaction, {kinds: ['leave', 'call-police']}, 'no plan in the config: the words were read and decided nothing');
     turn.actions.endTurn(turn.prepared.input);   // the bridge's input of the turn is the prepared one
     assert.deepEqual(trace, [], 'the window stays open for a late action');
     mock.timers.tick(10_000);
     await new Promise(done => setImmediate(done));
-    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=- tag=none(no-action-requested) delivered=-'
+    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=- tag=none(no-action-requested) delivered=- screen=none game=none(unread)'
       + ' convai=allowed:true privateManual:true verified:true armed:true published:1 accepted:0 skipped:0 skip:- ack:success']);
     // A late action after the line is still handed over, quietly (the line was written once).
     assert.equal(await turn.actions.deliver({version: 1, token: turn.config.token, reaction: 'leave'}), true);
@@ -305,7 +327,7 @@ test('a turn that arms nothing says which rule stopped it, and a malformed offer
       const trace = [];
       const turn = await bridgeTurn(requestText, {logs: trace, change});
       assert.equal(turn.config, null, why);
-      assert.deepEqual(trace, [`NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=no(${why}) route=- tag=- delivered=-`], why);
+      assert.deepEqual(trace, [`NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=no(${why}) route=- tag=- delivered=- screen=hurt`], why);
     }
     // The world went stale between the parse and the admit.
     const stale = [];
@@ -327,31 +349,31 @@ test('a hand-over the game side refuses names the reason: the token of an older 
   const game = luaSession();
   try {
     const trace = [];
-    const turn = await bridgeTurn(game.request(1, THREAT), {logs: trace});
+    const turn = await bridgeTurn(game.request(1, 'nice night'), {logs: trace});
     assert.equal(await turn.actions.deliver({version: 1, token: turn.config.token, reaction: 'attack'}), false);
-    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=convai tag=attack delivered=no(not-offered)']);
+    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=convai tag=attack delivered=no(not-offered) screen=none game=none(unread) by=model']);
     const second = [];
-    const next = await bridgeTurn(game.request(2, THREAT), {logs: second});
+    const next = await bridgeTurn(game.request(2, 'nice night'), {logs: second});
     next.actions.traceReaction(next.config.token, {route: 'text', tag: 'leave'});
     await next.actions.revoke();
-    assert.deepEqual(second, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=leave delivered=no(revoked)']);
+    assert.deepEqual(second, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=leave delivered=no(revoked) screen=none game=none(unread) by=model']);
     assert.equal(await next.actions.deliver({version: 1, token: next.config.token, reaction: 'leave'}), false);
     assert.equal(second.length, 1, 'once');
   } finally { game.close(); }
 });
 
-test('the reaction arrives for a person who threatened later too, and a polite message offers it without the model using it', async () => {
+test('the offer comes on a later message too; a polite message is read as nothing and the model\'s [none] hands nothing over', async () => {
   const game = luaSession();
   try {
     game.request(1, 'good evening');
     const files = [], logs = [], trace = [];
-    const second = await bridgeTurn(game.request(2, THREAT), {files, logs: trace});
+    const second = await bridgeTurn(withProvider(game.request(2, 'got any cash on you, lady'), 'mistral'), {files, logs: trace});
     assert.ok(second.config?.reaction, 'the second message carries the offer too');
     const {host, delivered} = await textHost('[none] I do not carry cash, sorry.', undefined, logs, second.actions);
     await host.reply(turnConfig(second.input, second.config));
     await settle();
     assert.deepEqual(delivered, [], '[none] hands nothing over');
-    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=none(no-tag) delivered=-']);
+    assert.deepEqual(trace, ['NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=none(no-tag) delivered=- screen=none game=none(unread)']);
   } finally { game.close(); }
 });
 
@@ -378,15 +400,15 @@ test('threats switch on: "get down" through every real piece; the GAME decides f
     assert.ok(prompts.some(text => text.includes('The game has decided what you do as you answer V\'s new message: you get down, as V told you.')), 'the model is told what the person does');
     assert.ok(!prompts.some(text => text.includes('begin your reply with exactly one tag')), 'no tag is asked for');
     assert.equal(trace.length, 1, trace.join(' | '));
-    assert.match(trace[0], /^NPC reaction: person=npc-corpo-resident-female offered=get-down admitted=yes route=\S+ tag=get-down delivered=yes screen=get-down by=game$/);
+    assert.match(trace[0], /^NPC reaction: person=npc-corpo-resident-female offered=get-down admitted=yes route=\S+ tag=get-down delivered=yes screen=get-down game=get-down by=game$/);
     game.receive(JSON.stringify(packet));
     assert.ok(game.logs().some(line => /^NPC reaction accepted: get-down/.test(line)), 'the lease took the packet with the plan in its echo: ' + game.logs().join(' | '));
     game.advance(0.1); game.advance(2);
     assert.equal(game.calls().crowdFear2, 1, 'the crowd person cowers: ' + game.logs().join(' | '));
     assert.equal(game.calls().walkTo, undefined);
-    // Switched off again: the next message is offered exactly as before the threat reactions (no plan, no threats flag).
+    // Switched off again: the old kinds (no threats flag, no command) and the game's plan of them.
     game.threats(false);
     assert.deepEqual(JSON.parse(game.request(2, 'Get down!')).reactionOffer, {available: true, actor: {id: '11147869ULL', key: 'npc-corpo-resident-female'},
-      kinds: ['leave', 'call-police']});
+      kinds: ['leave', 'call-police'], plan: PLAN_OFF});
   } finally { game.close(); }
 });

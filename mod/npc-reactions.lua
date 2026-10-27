@@ -715,24 +715,25 @@ function M.new(options)
         exchanges[entity].category = context.archetype.base or context.archetype.category
         exchanges[entity].group = context.archetype.category
         exchanges[entity].base, exchanges[entity].affiliation = context.archetype.base, context.archetype.affiliation
-        -- The person's own temper (a passive ganger may also cower), read only with the switch on.
+        -- The person's own temper (a passive ganger may also cower; the game's plan reads it on both sides of the switch), one read per offer.
         local temper
-        if threats and natives.temper then
+        if natives.temper then
             local okTemper, value = guard('read-temper', natives.temper, npc)
             if okTemper then temper = value end
-            kinds = M.kindsFor(context.archetype, true, temper)
+            if threats then kinds = M.kindsFor(context.archetype, true, temper) end
         end
         local allowed, why = M.allowed(kinds, facts(npc, player, entity))
         if #allowed == 0 then
             logOnce('npc-reaction-no:' .. entity .. ':' .. tostring(why), 'NPC reaction not offered: ' .. tostring(why) .. ' (' .. tostring(context.archetype.base or context.archetype.category) .. ')')
             return nil
         end
-        -- With the switch on the game also decides (M.plan): what this person does for each clear reading of V's words.
-        local plan = threats and M.plan(context.archetype, temper, allowed, M.seed(entity)) or nil
+        -- The game decides (M.plan, the owner's rule of 2026-10-26) on BOTH sides of the switch: what this person does for each clear reading of
+        -- V's words, from the kinds allowed now. With the switch off those are the old three (leave, call the police, attack): live test 3
+        -- (2026-10-27, game 2.31, the switch off there) waited for a model tag on every threat, and none came.
+        local plan = M.plan(context.archetype, temper, allowed, M.seed(entity))
         log('NPC reaction offered: kinds=' .. table.concat(allowed, ',') .. ' type=' .. tostring(context.archetype.base or context.archetype.category)
-            .. ' message=' .. tostring(count) .. (threats and (' threats=on temper=' .. tostring(temper or '?') .. ' plan=' .. (plan and planText(plan) or '-')) or ''))
-        -- `threats` tells the bridge to narrow the kinds by V's words (bridge/threat-screen.mjs) and `plan` what the game picked for each reading;
-        -- without the switch the offer is exactly as before.
+            .. ' message=' .. tostring(count) .. (threats and ' threats=on' or '') .. ' temper=' .. tostring(temper or '?') .. ' plan=' .. (plan and planText(plan) or '-'))
+        -- `threats` tells the bridge to narrow the model's kinds by V's words (bridge/threat-screen.mjs); `plan` is what the game picked for each reading.
         return {available = true, actor = {id = entity, key = context.profileKey}, kinds = allowed, threats = threats or nil, plan = plan}
     end
 

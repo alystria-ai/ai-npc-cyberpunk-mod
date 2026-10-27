@@ -178,3 +178,17 @@ test('the screen is cheap: a long message is read in a few milliseconds', () => 
   for (let index = 0; index < 20; index++) assert.equal(code(long), 'kill');
   assert.ok((performance.now() - started) / 20 < 15, 'one long message under 15 ms');
 });
+
+// Live test 3 (2026-10-27, game 2.31): what V said to street people and to Tyger Claws, and what the screen used to miss.
+test('live test 3: "get lost or I\'ll kill you" and conditions with no object are death threats; insults and dares at a ganger are read', () => {
+  expect(['get lost or I\'ll kill you', 'Get lost or I\'ll kill you!', 'get lost, or I will kill you', 'move or I\'ll shoot', 'back off before I blast',
+    'walk away or else I\'m gonna waste you'], 'kill');
+  expect(['you\'re weak', 'you\'re nothing', 'you\'re soft', 'your gang is trash', 'Tyger Claws are scum', 'you Tyger Claws are a bunch of pussies',
+    'pussy', 'Coward!', 'you little wimp', 'fuck the tyger claws', 'you\'re a bunch of losers', 'your boys are nothing but cowards',
+    'Maelstrom are trash'], 'insult');
+  expect(['you don\'t scare me', 'bring it on', 'come on, bring it', 'try me', 'make me', 'I dare you', 'I\'m not scared of you',
+    'what are you gonna do about it', 'hand over your eddies', 'give me your money', 'gimme all your cash'], 'hurt');
+  for (const line of ['you\'re nothing like him', 'you\'re soft spoken', 'you\'re nothing special', 'bring it here', 'make me a sandwich',
+    'or I\'ll shoot it', 'I\'ll shoot the target', 'give me your hand', 'try me lol', 'what are you gonna do about it?', 'the tygers are open late'])
+    assert.match(code(line), /^none/, line);
+});

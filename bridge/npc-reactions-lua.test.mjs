@@ -181,7 +181,8 @@ test('the first message of a conversation earns the offer, for the kinds that fi
   assert(gang and #gang.kinds == 2 and gang.kinds[1] == 'leave' and gang.kinds[2] == 'attack')
   -- A person V has not spoken to for ten minutes is a new conversation (the count starts again; the offer is the same).
   now = now + 700
-  assert(S.offer('44ULL', ctx) ~= nil and logs[#logs]:find('message=1$'))
+  -- The line goes on with the person's temper and the game's plan (on both sides of the threats switch since 2026-10-27).
+  assert(S.offer('44ULL', ctx) ~= nil and logs[#logs]:find('message=1 temper=[^ ]+ plan='), logs[#logs])
 `));
 
 test('an offer that cannot be made says why, once per person and reason', () => withService(`
