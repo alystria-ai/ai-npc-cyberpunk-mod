@@ -789,22 +789,26 @@ test('raiseLevel high (the chat model, docs/PROCESS_PRIORITY.md): it loads at HI
   const directory = mkdtempSync(join(tmpdir(), 'llama-high-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   const HIGH = osConstants.priority.PRIORITY_HIGH;
-  const calls = [];
+  const calls = [], lines = [];
   const proc = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, lowerAfter: 'ready', raiseLevel: 'high',
-    setPriorityImpl: (pid, level) => calls.push(level),
+    log: line => lines.push(line), setPriorityImpl: (pid, level) => calls.push(level),
     buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
   t.after(() => proc.stop());
   await proc.start();
   assert.deepEqual(calls, [HIGH], 'loaded at high priority');
+  assert.ok(lines.some(line => /^\[local\] llama-server \(pid \d+\) process priority high while it loads and while a turn waits$/.test(line)), 'the log says the level: ' + lines.join(' | '));
   assert.equal(proc.lower(), true); assert.equal(proc.raise(), true);
   assert.deepEqual(calls, [HIGH, BELOW_NORMAL, HIGH]);
   assert.ok(!calls.includes(osConstants.priority.PRIORITY_HIGHEST), 'PRIORITY_HIGHEST is the realtime class and is never used');
+  const refusedLines = [];
   const refused = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, lowerAfter: 'ready', raiseLevel: 'high',
-    setPriorityImpl() { throw Error('access denied'); },
+    log: line => refusedLines.push(line), setPriorityImpl() { throw Error('access denied'); },
     buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
   t.after(() => refused.stop());
   await refused.start();
   assert.equal(refused.running, true, 'a refused change never fails the start');
+  assert.ok(refusedLines.some(line => /could not be set to high: it stays at normal/.test(line)), 'a refusal is said');
+
   // A CPU process that is lowered at spawn (the embedder) is not loaded at high even when asked.
   const embedder = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, raiseLevel: 'high',
     setPriorityImpl: (pid, level) => calls.push(['embedder', level]),

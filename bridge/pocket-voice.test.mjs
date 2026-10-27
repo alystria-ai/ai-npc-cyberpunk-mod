@@ -550,10 +550,12 @@ test('a reply is cut for standing still, not for its length: every chunk starts 
 
 test('the worker is told the reply level (high by default) and the child is set high at the spawn; normal tells it nothing; a stand-in child never reaches the system call',async()=>{
   const calls=[];
-  const high=harness({extra:{setPriority:(pid,level)=>calls.push([pid,level])}});
+  const lines=[];
+  const high=harness({extra:{onLog:line=>lines.push(line),setPriority:(pid,level)=>calls.push([pid,level])}});
   const started=high.client.start();await started;
   assert.equal(high.launches[0].options.env.CYBERPUNK_CONVAI_WORKER_PRIORITY,'high');
   assert.deepEqual(calls,[[987,osConstants.priority.PRIORITY_HIGH]]);
+  assert.match(lines.join(''),/worker started \(pid 987, priority high\)/,'the start log says the level');
   assert.notEqual(calls[0][1],osConstants.priority.PRIORITY_HIGHEST,'HIGHEST is the realtime class');
   await high.close();
   const normal=harness({extra:{workerPriority:'normal',setPriority:(pid,level)=>calls.push(['normal',pid,level])}});
@@ -565,7 +567,9 @@ test('the worker is told the reply level (high by default) and the child is set 
   await standIn.client.start();
   assert.equal(standIn.launches[0].options.env.CYBERPUNK_CONVAI_WORKER_PRIORITY,'high','the default level is high');
   await standIn.close();
-  const refused=harness({extra:{setPriority(){throw Error('access denied');}}});
+  const refusedLines=[];
+  const refused=harness({extra:{onLog:line=>refusedLines.push(line),setPriority(){throw Error('access denied');}}});
   await refused.client.start();assert.equal(refused.client.loaded,true);
+  assert.match(refusedLines.join(''),/priority could not be set to high/);
   await refused.close();
 });

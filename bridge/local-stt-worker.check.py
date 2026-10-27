@@ -387,4 +387,7 @@ steps.clear()
 refused = w.PriorityGate("below", clock=lambda: now[0], apply=lambda level: steps.append(level) or False)
 refused.active(); refused.active(); now[0] += 60; refused.settle()
 check(steps == ["normal", "normal"], "priority: a refused raise is tried again and nothing is lowered: %s" % steps)
+if os.name == "nt":
+    # 27 Oct 2026: the plain ctypes call failed with ERROR_INVALID_HANDLE (the pseudo-handle -1 became 0xFFFFFFFF); the pointer-sized one works.
+    check(w.set_priority("normal") is True, "priority: the real system call works on this process")
 print("ok")

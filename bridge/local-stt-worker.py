@@ -99,9 +99,8 @@ def lower_priority(level: str = "below") -> None:
         if level == "high" and os.name != "nt":
             return
         if os.name == "nt":
-            import ctypes
-            kernel32 = ctypes.windll.kernel32
-            kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), PRIORITY_CLASSES[level])
+            if not set_priority(level):
+                log(f"priority {level} not set")
         else:
             os.nice(5)
     except Exception as error:  # noqa: BLE001
@@ -137,12 +136,18 @@ class PriorityGate:
 
 
 def set_priority(level: str) -> bool:
-    """Sets this process's Windows priority class to a PRIORITY_CLASSES level. Best effort; False off Windows or when refused."""
+    """Sets this process's Windows priority class to a PRIORITY_CLASSES level. Best effort; False off Windows or when refused.
+
+    The handle is declared as a pointer-sized value: GetCurrentProcess() returns the pseudo-handle -1, and the default 32-bit int conversion
+    of ctypes turns it into 0xFFFFFFFF, which Windows refuses (ERROR_INVALID_HANDLE) on a 64-bit process. Every call before 27 Oct 2026 failed this way."""
     try:
         if os.name != "nt":
             return False
         import ctypes
-        kernel32 = ctypes.windll.kernel32
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        kernel32.SetPriorityClass.restype = ctypes.c_int
         return bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), PRIORITY_CLASSES[level]))
     except Exception:  # noqa: BLE001
         return False

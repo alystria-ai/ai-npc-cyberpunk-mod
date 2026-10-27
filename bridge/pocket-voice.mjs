@@ -287,8 +287,8 @@ export class PocketVoice {
         ['-B', resolve(this.project, 'bridge/pocket-voice-worker.py'), '--config', this.configPath, '--owner', this.owner],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env});
     } catch (error) { this.fail(error); return; }
-    if (this.priorityLevel === 'high') setProcessPriority(child.pid, 'high', this.setPriority);
-    this.startLog(`worker started (pid ${child.pid ?? '?'})`);
+    const raised = this.priorityLevel === 'high' ? setProcessPriority(child.pid, 'high', this.setPriority) : null;
+    this.startLog(`worker started (pid ${child.pid ?? '?'}${raised === null ? '' : raised ? ', priority high' : ', priority could not be set to high'})`);
     let buffer = '';
     child.stdout.setEncoding('utf8');
     // Both pipes are always drained: a worker that fills an unread pipe would stop in its own write.

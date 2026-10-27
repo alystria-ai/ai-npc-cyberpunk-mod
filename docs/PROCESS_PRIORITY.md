@@ -20,7 +20,7 @@ Restart the game. `normal` restores the earlier rule: workers are raised to norm
 
 The OmniVoice worker alone can also be set in `omni-python.txt` (`priority = high | normal | below` on its own line after the python.exe line, docs/OMNIVOICE_AMD.md). That line wins over `priority.txt` for the OmniVoice worker.
 
-The bridge log (`bridge.stderr.log`) says what was applied: `[Priority] conversation service: high`, `hidden browser priority: high for N processes`, the worker lines `[priority] high`, and the supervisor's `The bridge runs at high priority.`
+The bridge log (`bridge.stderr.log`) says what was applied: `[Priority] conversation service: high`, `hidden browser priority: high for N processes`, `[LocalVoice] [priority] high` (the OmniVoice worker setting itself; `could not be set to high (Windows error N)` if Windows refused), `[PocketStart] ... worker started (pid N, priority high)`, `[LocalAI] [local] llama-server (pid N) process priority high while it loads and while a turn waits`, and the supervisor's `The bridge runs at high priority.` (`bridge-service.log`). The speech recognition worker's stderr is not logged. Live on 27 Oct the OmniVoice worker printed `could not be set to high`: its `SetPriorityClass` call passed `GetCurrentProcess()` (the pseudo-handle -1) through ctypes' default 32-bit int, so Windows saw 0xFFFFFFFF and answered ERROR_INVALID_HANDLE (6). The handle is now declared pointer-sized (`c_void_p`) in `resident-voice-worker.py` and `local-stt-worker.py` (whose own calls had failed silently the same way; the bridge's by-pid call had worked); the Pocket worker already did.
 
 ## How it is set
 

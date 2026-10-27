@@ -267,6 +267,15 @@ class PortableVoicePaths(unittest.TestCase):
             raise OSError('access denied')
         self.assertIn('could not be set to high (access denied)', worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, refuse))
 
+    @unittest.skipUnless(os.name == 'nt', 'the Windows system call')
+    def test_the_real_system_call_accepts_the_pseudo_handle_of_the_current_process(self):
+        # 27 Oct 2026 live log: "[priority] could not be set to high". ctypes' default int conversion of GetCurrentProcess()'s -1 became 0xFFFFFFFF (error 6).
+        # NORMAL is set here: a test process is normal or lower, and the call must report that it worked.
+        done, error = worker.set_process_priority_class(0x00000020)
+        self.assertTrue(done, f'SetPriorityClass failed with Windows error {error}')
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: worker.set_process_priority_class(0x00000020)), '[priority] below normal')
+        self.assertEqual(worker.apply_own_priority({worker.PRIORITY_VARIABLE: 'high'}, lambda level: (False, 6)), '[priority] could not be set to high (Windows error 6)')
+
     def test_the_backend_line_names_rocm_or_cuda_and_the_card_from_pytorch(self):
         def fake(hip, cuda, available=True):
             properties = SimpleNamespace(name='AMD Radeon RX 9070 XT' if hip else 'NVIDIA GeForce RTX 4070', total_memory=16304 * 1048576)
