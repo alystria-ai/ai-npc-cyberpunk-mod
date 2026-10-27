@@ -129,7 +129,7 @@ import {readTurnPriority, setProcessPriority} from './process-priority.mjs';
 import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
 import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
-import {PersonaBook, joinBlocks, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
+import {PersonaBook, joinBlocks, worldBlocksInCacheOrder, freshParts} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {SpeechLanguage, LOCAL_PACKS, planRecording, PLAYER_LANGUAGE_FILE, parsePlayerLanguage, playerLanguageText} from './speech-language.mjs';
 import {VoxtralStt} from './voxtral-stt.mjs';
@@ -1568,7 +1568,7 @@ const contextPartsOf = blocks => {
   const world = worldBlocksInCacheOrder(blocks.filter(item => item.tier === 'world'));
   return {...Object.fromEntries(['now', 'notes', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
     world: joinBlocks(world.map(item => item.text)),
-    worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text}))};
+    worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text})), ...freshParts(blocks)};
 };
 const textProviderContext = input => {
   noteTurn(input);

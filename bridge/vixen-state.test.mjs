@@ -27,7 +27,7 @@ test('parseMods keeps the Flesh and Chrome and Injuries stages in range and drop
 test('a companion in person and Johnny get the body, the injuries, what V has had and the rest, in separate short sentences', () => {
   const state = parseMods({fleshAndChrome: {breath: 2, energy: 3, drinks: 2, smoke: 1}, injuries: {bleed: 2, limp: 1}, darkFuture: {nerve: 3}});
   const person = modsSentences(state, 'person');
-  assert.deepEqual(person, ['V is worn out and out of breath.', 'V is bleeding and limping a little.', 'V has been drinking and just had a cigarette.', 'V is badly on edge.']);
+  assert.deepEqual(person, ['V is worn out and out of breath.', 'V is bleeding and limping a little.', 'V is tipsy: loose, a little loud, smelling of booze.', 'V has just had a cigarette.', 'V is badly on edge.']);
   assert.deepEqual(modsSentences(state, 'head'), person);
   for (const sentence of person) assert.ok(sentence.length < 100, sentence);
   assert.doesNotMatch(person.join(' '), /Flesh|Chrome|Injuries|Digital|mod\b|stage|tier|\d/i, 'no mod name, stage or number reaches the model');
@@ -37,7 +37,9 @@ test('the stages are worded from mild to worst', () => {
   assert.deepEqual(modsSentences(fac({breath: 1}), 'person'), ['V is a little winded.']);
   assert.deepEqual(modsSentences(fac({breath: 4}), 'person'), ['V is too spent to run or fight.']);
   assert.deepEqual(modsSentences(fac({drinks: 1}), 'person'), ['V has had a drink or two.']);
-  assert.deepEqual(modsSentences(fac({drinks: 3}), 'person'), ['V has had a lot to drink.']);
+  assert.deepEqual(modsSentences(fac({drinks: 2}), 'person'), ['V is tipsy: loose, a little loud, smelling of booze.']);
+  assert.deepEqual(modsSentences(fac({drinks: 3}), 'person'), ['V is drunk: slurring, unsteady on their feet, reeking of booze.'], 'a small model took "V has had a lot to drink" for nothing worth saying (live 2026-10-27)');
+  assert.deepEqual(modsSentences(fac({drinks: 3, smoke: 1}), 'person'), ['V is drunk: slurring, unsteady on their feet, reeking of booze.', 'V has just had a cigarette.']);
   assert.deepEqual(modsSentences(inj({arm: 2}), 'person'), ['V is holding a broken arm.']);
   assert.deepEqual(modsSentences(inj({head: 3}), 'person'), ['V is badly concussed.']);
   assert.deepEqual(modsSentences(inj({bleed: 3}), 'person'), ['V is bleeding heavily.']);
@@ -53,7 +55,7 @@ test('both mods have a daily energy: one phrase, the worse stage', () => {
 });
 
 test('a stranger sees breathlessness, blood, a limp, a held arm, a dazed face and strong drink, nothing else', () => {
-  assert.deepEqual(modsSentences(fac({breath: 2, energy: 2, drinks: 3, smoke: 1}), 'ambient'), ['V looks out of breath.', 'V smells of drink.']);
+  assert.deepEqual(modsSentences(fac({breath: 2, energy: 2, drinks: 3, smoke: 1}), 'ambient'), ['V looks out of breath.', 'V looks drunk and smells of booze.']);
   assert.deepEqual(modsSentences(fac({breath: 1, energy: 3, drinks: 2}), 'ambient'), ['V looks worn out.']);
   assert.deepEqual(modsSentences(inj({bleed: 1, limp: 2, arm: 3, head: 2, treated: 1}), 'ambient'), ['V looks to be holding a hurt arm, to be limping and to be bleeding.']);
   assert.deepEqual(modsSentences(inj({limp: 1, arm: 1, head: 2}), 'ambient'), []);

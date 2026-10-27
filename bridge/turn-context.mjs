@@ -358,6 +358,8 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // V visibly topless or naked: told when new to the conversation (bridge/scenery-memory.mjs), in the block itself with room of its own.
   const nudity = nuditySentences(input.gear, form, off, fresh.nudity !== false);
   const modsSaid = modsSentences(snapshot.mods, form);
+  // V asking about themself also gets the state as a plain fact for the two places a small model reads last (bridge/fresh-facts.mjs, docs/FRESH_FACTS.md): the same sentences, without the instruction.
+  const freshMods = selfState.length ? modsSaid.join(' ') : '';
   const modsSent = modsDisposition({asked: selfState.length > 0, said: modsSaid.length > 0, known: snapshot.mods !== undefined, told: fresh.mods === false, split, form});
   // The same disposition for each of the Digital Vixen mods alone (their own probe lines, vixenProbeLines).
   const modsBy = {};
@@ -398,7 +400,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // A stranger hears who V is to them on every turn, with or without other facts: a player report (2026-10-25) had every pedestrian and guard talk as if they knew V.
   // A housemate's note: a named character in person, on a phone or in a call; not a stranger, not Johnny in V's head. Room of its own, like the meeting.
   const housing = !ambient && !head && snapshot.housemate ? housemateSentences(snapshot.housemate, phone) : [];
-  if (!sentences.length && !meeting && !housing.length && !selfState.length && !nudity.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: '', mods: modsSent, modsBy} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty', mods: modsSent, modsBy};
+  if (!sentences.length && !meeting && !housing.length && !selfState.length && !nudity.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: '', mods: modsSent, modsBy, fresh: freshMods} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty', mods: modsSent, modsBy, fresh: freshMods};
   const prefix = 'Right now (from the game, this turn only): ';
   let suffix = ambient
     ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
@@ -414,8 +416,8 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   if (selfState.length) sentences.splice(Math.min(lead + (meeting ? 1 : 0) + housing.length, sentences.length), 0, ...selfState);
   if (nudity.length) sentences.splice(Math.min(lead + (meeting ? 1 : 0) + housing.length + selfState.length, sentences.length), 0, ...nudity);
   if (remoteMeeting) suffix = suffix.slice(0, suffix.length - MENTION.length) + MEETING_EXCEPTION + MENTION;
-  if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: '', mods: modsSent, modsBy} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget', mods: modsSent, modsBy};
-  return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: '', mods: modsSent, modsBy};
+  if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: '', mods: modsSent, modsBy, fresh: freshMods} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget', mods: modsSent, modsBy, fresh: freshMods};
+  return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: '', mods: modsSent, modsBy, fresh: freshMods};
 }
 
 // What a stranger knows of V: nothing, not even the name the prompt uses for the player.
