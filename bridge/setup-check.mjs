@@ -424,7 +424,9 @@ export function localAiCheck(settings, info = {}) {
   else if (info.status === 'no-memory') code = 'no-memory';
   else if (info.status === 'not-installed') code = 'not-installed';
   else code = LOCAL_REASONS[info.reason] ?? 'failed';
-  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed, ...(code === 'start-failed' && info.playerServer === true ? {playerServer: true} : {})};
+  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed, ...(code === 'start-failed' && info.playerServer === true ? {playerServer: true} : {}),
+    // Windows refused to run a file of the model server (Smart App Control or an Application Control policy): the Help row says so and what to do.
+    ...(code === 'start-failed' && info.blocked === true ? {cause: 'blocked'} : {})};
 }
 
 const text = (value, size) => clip(value, size) ?? '';

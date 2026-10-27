@@ -405,6 +405,11 @@ test('local AI: not used, ready, warming, and every way it can be unavailable', 
     assert.equal(localAiCheck(selected, {...installed, status: code === 'no-memory' ? 'no-memory' : 'failed', reason: {'no-memory': 'low-memory', 'no-gpu': 'no-gpu',
       'start-failed': 'start-failed', crashed: 'crashed', failed: 'x'}[code]}).state, 'problem', code);
   }
+  // Windows would not run the model server: the check names the cause (and only for a failed start).
+  const failedStart = {...installed, status: 'failed', reason: 'start-failed'};
+  assert.equal(localAiCheck(selected, {...failedStart, blocked: true}).cause, 'blocked');
+  assert.equal(localAiCheck(selected, failedStart).cause, undefined);
+  assert.equal(localAiCheck(selected, {...installed, status: 'failed', reason: 'crashed', blocked: true}).cause, undefined);
   // Mature-only install with Mature content off: blocked before any start is tried (the server still reads 'stopped', so the status says 'ready').
   const matureOnly = {packInstalled: true, tiers: {standard: null, lite: null}, matureOnly: true, models: [{tier: 'good', name: 'M', file: 'm.gguf', present: true}], status: 'ready'};
   assert.deepEqual(await check(selected, matureOnly), {id: 'local-ai', state: 'problem', code: 'mature-off', selected: true, installed: true});

@@ -217,7 +217,7 @@ test('a listing that fails twice with a blocked-file error says Windows blocked 
   assert.equal(logs.filter(text => /could not list the graphics devices \(try/.test(text)).length, 2);
   // The next turn is refused the same way, with the same words (the failure stays until reset(); there is no other provider to fall to).
   await assert.rejects(server.ensure(), error => error.reason === 'start-failed' && error.detail === BLOCKED);
-  assert.match(unavailableDetail('start-failed', BLOCKED), /^Windows blocked a file of the model server \(Smart App Control or an Application Control policy\)/);
+  assert.match(unavailableDetail('start-failed', BLOCKED), /^Windows \(Smart App Control or an Application Control policy\) blocks a file of the model server.*turn Smart App Control off, or use a cloud provider$/);
   assert.match(unavailableDetail('start-failed', BLOCKED), /^[ -~]+$/, 'printable ASCII only');
 });
 
