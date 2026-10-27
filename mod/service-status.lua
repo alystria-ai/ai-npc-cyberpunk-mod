@@ -154,6 +154,17 @@ function M.failureCode(now)
     return type(code) == 'string' and code:match('^[%w%-_]+$') and code:sub(1, 60) or nil
 end
 
+-- The Windows error number the launcher wrote with a failed start (CreateProcess refused: 5 access denied, 1260 blocked by a policy, 225 a security
+-- program, 740 needs administrator rights ...), or nil. Only a whole number from the status of this session's launcher; nothing else is read from it.
+function M.failureError(now)
+    now = now or os.time()
+    local service = supervisor(now)
+    if type(service) ~= 'table' or service.state ~= 'failed' or service.source ~= 'launcher' then return nil end
+    local number = tonumber(service.error)
+    if not number or number < 1 or number > 99999 or number ~= math.floor(number) then return nil end
+    return number
+end
+
 -- The sentence for a kind of fault. `detail` (a failed kind's own words from detailOf) follows the failed sentence in brackets: it is the
 -- service's code, stage and reason, in English. Only places with room pass it (the Settings rows built from the short report's
 -- serviceMessage): the notices (notice, blockedMessage, lostSince) are the game's warning line, which holds two lines, and the failed

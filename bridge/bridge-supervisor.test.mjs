@@ -285,6 +285,22 @@ test('no Edge or Chrome is a setup failure with one clear log line, and the brid
   run.endGame(); await run.done;
 });
 
+// 27 Oct triage: every browser-missing report of 0.3.2 had Wine's winebrowser.exe as the default browser and no browser folder (Linux, Steam Deck).
+test('a service stopped for a missing browser on Wine or Proton says so in its log, and an ordinary Windows lookup does not', async t => {
+  const f = await fixture(t);
+  const run = supervise(f, {browserAvailable: () => false,
+    browserReport: () => 'Browser lookup: LOCALAPPDATA set. Browser folders found: none. Registered programs found: none. Default browser: winebrowser.exe. Start menu browsers: none.'});
+  await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a missing browser was not reported');
+  const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+  assert.match(log, /This looks like Wine or Proton .*Install Chrome or Edge into the prefix and write its path in browser\.txt/);
+  run.endGame(); await run.done;
+  const g = await fixture(t);
+  const plain = supervise(g, {browserAvailable: () => false, browserReport: () => 'Browser lookup: LOCALAPPDATA set. Default browser: ChromeHTML. Start menu browsers: none.'});
+  await until(() => readJson(g.statusPath), value => value?.state === 'failed', 'a missing browser was not reported');
+  assert.doesNotMatch(await readFile(join(g.state, 'bridge-service.log'), 'utf8'), /Wine or Proton/);
+  plain.endGame(); await plain.done;
+});
+
 test('a Runtime that lacks a data file is "install-incomplete" with no bridge started, says which file once, and recovers when it is back', async t => {
   const f = await fixture(t);
   await mkdir(join(f.project, 'characters'), {recursive: true});

@@ -348,6 +348,25 @@ test('the empty placeholders the install ships (bridge-service.json and the hear
   assert(status.unavailable().kind == 'setup')
 `));
 
+test('failureError(): the Windows error the launcher wrote with a failed start, only a whole number from a launcher status that failed', () => run(`
+    local file = 'runtime/bridge-service.json'
+    assert(status.failureError() == nil, 'no status, no number')
+    advance(1); put(file, {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 1260, updated = ms()})
+    assert(status.failureError() == 1260)
+    advance(1); put(file, {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 0, updated = ms()})
+    assert(status.failureError() == nil, '0 is no error')
+    advance(1); put(file, {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 'x; drop', updated = ms()})
+    assert(status.failureError() == nil, 'text is never echoed')
+    advance(1); put(file, {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 2.5, updated = ms()})
+    assert(status.failureError() == nil)
+    advance(1); put(file, {version = 1, state = 'failed', code = 'launcher-failed', source = 'launcher', error = 123456, updated = ms()})
+    assert(status.failureError() == nil, 'out of range')
+    advance(1); put(file, {version = 1, state = 'failed', code = 'service-error', source = 'supervisor', error = 5, updated = ms()})
+    assert(status.failureError() == nil, 'only the launcher writes it')
+    advance(1); put(file, {version = 1, state = 'ready', code = 'x', source = 'launcher', error = 5, updated = ms()})
+    assert(status.failureError() == nil, 'only a failed status')
+`));
+
 test('reach(): live only with a fresh heartbeat or a fresh ready, starting or restarting supervisor; no evidence is a definite "never"', () => run(`
   -- No evidence at all (unlike unavailable(), which stays silent): nothing started in this session.
   assert(status.reach() == 'never' and status.unavailable() == nil)
