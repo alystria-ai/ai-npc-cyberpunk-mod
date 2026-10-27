@@ -429,7 +429,12 @@ export class LlamaProcess extends EventEmitter {
     // Written down for the bridge that finds this child running after this process died without cleaning up (bridge/child-registry.mjs). Never throws.
     if (this.registry && child.pid !== undefined) { try { this.registry.add({pid: child.pid, exe: this.command, label: this.label}); } catch { /* the orphan guard is optional */ } }
     if (this.lowerAfter === 'spawn') this.lower();
-    else if (this.raiseLevel === 'high' && child.pid) { try { this.setPriorityImpl(child.pid, nodePriority('high')); } catch { /* best effort: it loads at normal */ } }
+    else if (this.raiseLevel === 'high' && child.pid) {
+      // One line per start (docs/PROCESS_PRIORITY.md): the level it loads at. A refusal leaves it at normal and says so.
+      let done = false;
+      try { this.setPriorityImpl(child.pid, nodePriority('high')); done = true; } catch { /* best effort: it loads at normal */ }
+      try { this.log('[local] ' + this.label + ' (pid ' + child.pid + ') process priority ' + (done ? 'high while it loads and while a turn waits' : 'could not be set to high: it stays at normal')); } catch { /* a log never fails */ }
+    }
     for (const stream of [child.stdout, child.stderr]) {
       stream?.setEncoding?.('utf8');
       stream?.on('data', text => this.#append(text));   // always drained, or a chatty child blocks

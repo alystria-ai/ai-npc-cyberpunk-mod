@@ -268,9 +268,22 @@ def keep_rocm_convolutions(torch, environ=None):
     return '[rocm] MIOpen convolutions were switched on while the model loaded: off again'
 
 
+def set_process_priority_class(priority_class):
+    """Sets this process's Windows priority class; returns (done, last error). The handle is declared pointer-sized: GetCurrentProcess() returns the pseudo-handle
+    -1 and ctypes' default 32-bit int conversion turns it into 0xFFFFFFFF, which a 64-bit Windows refuses with ERROR_INVALID_HANDLE (6). That was the live
+    `[priority] could not be set to high` of 27 Oct 2026."""
+    import ctypes
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+    kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    kernel32.SetPriorityClass.restype = ctypes.c_int
+    done = bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), priority_class))
+    return done, (0 if done else ctypes.get_last_error())
+
+
 def apply_own_priority(environ=None, apply=None):
     """The process priority class the bridge asks for (PRIORITY_VARIABLE = 'high' or 'below'; HIGH_PRIORITY_CLASS, never REALTIME). Best effort on Windows;
-    returns a log line, or None when nothing was asked, the value is anything else or this is not Windows."""
+    returns a log line, or None when nothing was asked, the value is anything else or this is not Windows. `apply(class)` returns done or (done, error)."""
     environ = os.environ if environ is None else environ
     level = environ.get(PRIORITY_VARIABLE)
     if level not in PRIORITY_CLASSES:
@@ -280,12 +293,13 @@ def apply_own_priority(environ=None, apply=None):
         if apply is None:
             if os.name != 'nt':
                 return None
-            import ctypes
-            kernel32 = ctypes.windll.kernel32
-            done = bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), PRIORITY_CLASSES[level]))
+            result = set_process_priority_class(PRIORITY_CLASSES[level])
         else:
-            done = bool(apply(PRIORITY_CLASSES[level]))
-        return f'[priority] {name}' if done else f'[priority] could not be set to {name}'
+            result = apply(PRIORITY_CLASSES[level])
+        done, error = result if isinstance(result, tuple) else (bool(result), 0)
+        if done:
+            return f'[priority] {name}'
+        return f'[priority] could not be set to {name}' + (f' (Windows error {error})' if error else '')
     except Exception as error:  # noqa: BLE001 - a priority is an optimisation, never a failure.
         return f'[priority] could not be set to {name} ({str(error)[:80]})'
 
