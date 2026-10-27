@@ -67,6 +67,11 @@ PACK_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_PACK'
 # The player's own Python (bridge/omni-own-python.mjs): set to '1' by the bridge, with the pack's OmniVoice source folder beside it.
 OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON'
 OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE'
+# On a ROCm PyTorch only (docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions (the default turns them off, PyTorch's own path is faster and steadier there),
+# and the bridge sets the priority variable to 'below' for the AMD route so the worker lowers itself (a venv's python.exe is a launcher, its pid is not the worker's).
+ROCM_MIOPEN_VARIABLE = 'CYBERPUNK_CONVAI_ROCM_MIOPEN'
+PRIORITY_VARIABLE = 'CYBERPUNK_CONVAI_WORKER_PRIORITY'
+BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
 
 
 def usvfs_active(environ=None):
@@ -221,6 +226,65 @@ def cuda_graph_wanted(torch, environ=None):
     environ = os.environ if environ is None else environ
     hip = getattr(getattr(torch, 'version', None), 'hip', None)
     return environ.get('CYBERPUNK_CONVAI_CUDA_GRAPH', '0' if hip else '1') != '0'
+
+
+def rocm_build(torch):
+    """The ROCm/HIP version of this PyTorch, or None for a CUDA or CPU build (NVIDIA behaviour is never touched)."""
+    hip = getattr(getattr(torch, 'version', None), 'hip', None)
+    return hip if isinstance(hip, str) and hip else None
+
+
+def tune_rocm(torch, environ=None):
+    """ROCm only (torch.version.hip set): the two settings an RX 9070 XT player found fast and steady (docs/OMNIVOICE_AMD.md).
+
+    MIOPEN_FIND_MODE=FAST (a value the player already set stays) and PyTorch's own convolutions instead of MIOpen's (torch.backends.cudnn.enabled = False;
+    ROCM_MIOPEN_VARIABLE=1 keeps MIOpen). Both are read when the first convolution runs, so this is called before any model is loaded. Returns the one log
+    line, or None on a CUDA or CPU build.
+    """
+    environ = os.environ if environ is None else environ
+    hip = rocm_build(torch)
+    if not hip:
+        return None
+    if environ.get('MIOPEN_FIND_MODE'):
+        find = f"{environ['MIOPEN_FIND_MODE']} (already set)"
+    else:
+        environ['MIOPEN_FIND_MODE'] = 'FAST'
+        find = 'FAST'
+    if environ.get(ROCM_MIOPEN_VARIABLE) == '1':
+        convolutions = 'MIOpen kept on'
+    else:
+        torch.backends.cudnn.enabled = False
+        convolutions = "PyTorch's own, MIOpen off"
+    return f'[rocm] HIP {hip}: MIOPEN_FIND_MODE={find}; convolutions: {convolutions}'
+
+
+def keep_rocm_convolutions(torch, environ=None):
+    """After the model is loaded: a library that switched MIOpen back on is told off again. Returns a log line when it had to, else None."""
+    environ = os.environ if environ is None else environ
+    if not rocm_build(torch) or environ.get(ROCM_MIOPEN_VARIABLE) == '1' or not torch.backends.cudnn.enabled:
+        return None
+    torch.backends.cudnn.enabled = False
+    return '[rocm] MIOpen convolutions were switched on while the model loaded: off again'
+
+
+def lower_own_priority(environ=None, apply=None):
+    """Below-normal process priority when the bridge asks (PRIORITY_VARIABLE = 'below'): the voice worker must not take CPU time from the game. Best
+    effort on Windows; returns a log line, or None when nothing was asked or this is not Windows."""
+    environ = os.environ if environ is None else environ
+    if environ.get(PRIORITY_VARIABLE) != 'below':
+        return None
+    try:
+        if apply is None:
+            if os.name != 'nt':
+                return None
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            done = bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS))
+        else:
+            done = bool(apply(BELOW_NORMAL_PRIORITY_CLASS))
+        return '[priority] below normal' if done else '[priority] could not be lowered'
+    except Exception as error:  # noqa: BLE001 - a priority is an optimisation, never a failure.
+        return f'[priority] could not be lowered ({str(error)[:80]})'
 
 
 def resolve_worker_paths(root=ROOT, environ=None):
@@ -895,6 +959,9 @@ def run_worker(registry):
     if paths['portable']:
         sys.dont_write_bytecode = True
     os.environ.update(voice_environment(registry))
+    note = lower_own_priority()
+    if note:
+        print(note, file=sys.stderr, flush=True)
     send({'op': 'state', 'state': 'loading'})
     sys.path.insert(0, str(paths['adapterDirectory']))
     use_packaged_omnivoice(paths)
@@ -909,6 +976,9 @@ def run_worker(registry):
     if not torch.cuda.is_available():
         print('[no-cuda] OmniVoice requires a graphics card its PyTorch can use: CUDA on an NVIDIA card, or ROCm through omni-python.txt (docs/OMNIVOICE_AMD.md)', file=sys.stderr, flush=True)
         raise SystemExit(NO_CUDA_EXIT_CODE)
+    note = tune_rocm(torch)
+    if note:
+        print(note, file=sys.stderr, flush=True)
     # Progress marks. The bridge's startup limit restarts at every frame it receives, so a start that is slow
     # (a throttled CPU while the game loads) is told apart from one that is stuck. Same frame, no protocol change.
     send({'op': 'state', 'state': 'loading'})
@@ -923,6 +993,9 @@ def run_worker(registry):
         tts_backend._PROMPT_CACHE_MAX = registry['maxCachedProfiles']
         original_cache_key = install_cache_identity(tts_backend, registry)
         backend._ensure_loaded()
+        note = keep_rocm_convolutions(torch)
+        if note:
+            print(note, file=sys.stderr, flush=True)
         if not (backend.execution_device or '').startswith('cuda'):
             raise RuntimeError('OmniVoice did not load on CUDA')
         if backend.dtype != 'torch.float16':

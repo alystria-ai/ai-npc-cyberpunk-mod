@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {createOmniPcmVoice, wavToPcm, PACKET_FRAMES, OMNI_RATE} from './omni-pcm.mjs';
+import {splitSpeechText} from './speech-phrases.mjs';
 import {encodePcmWav} from './convai-audio-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
@@ -108,6 +109,51 @@ test('a first phrase that fails is an error; a later one ends the reply there an
   const response = await part.synthesizeStream('judy', REPLY, {onPcm: packet => packets.push(packet)});
   assert.equal(response.truncated, true); assert.equal(response.timing.voiceTailFailed, true);
   assert.equal(response.frames, packets.reduce((total, packet) => total + packet.frames, 0));
+});
+
+test('with retries (the AMD route) a phrase whose render failed is asked for again, first or later; without them nothing changes', async () => {
+  const phrases = splitSpeechText(REPLY), SECOND = phrases[1], seen = [];
+  assert.ok(phrases.length >= 3);
+  const failFirstTry = pick => { const tries = new Map(); return fakeWorker({fail: call => { const n = (tries.get(call.text) ?? 0) + 1; tries.set(call.text, n); return pick(call) && n === 1; }}); };
+  const timesAsked = (worker, text) => worker.calls.filter(call => call.text === text).length;
+  // The second phrase fails on its first try only (a stray PyTorch error; the worker keeps running).
+  const worker = failFirstTry(call => call.text === SECOND);
+  const voice = createOmniPcmVoice({synthesize: worker.synthesize, retries: () => 1, onRetry: info => seen.push(info.index)});
+  const response = await voice.synthesizeStream('judy', REPLY, {onPcm: () => {}});
+  assert.equal(response.truncated, false, 'the reply is not cut off'); assert.deepEqual(seen, [1]); assert.equal(timesAsked(worker, SECOND), 2);
+  assert.equal(response.timing.voicePhrases, phrases.length);
+  // The first phrase too.
+  const first = failFirstTry(call => call.index === 0);
+  assert.equal((await createOmniPcmVoice({synthesize: first.synthesize, retries: () => 1}).synthesizeStream('judy', REPLY, {onPcm: () => {}})).truncated, false);
+  // A phrase that keeps failing ends the reply after the allowed tries.
+  const stubborn = fakeWorker({fail: call => call.text === SECOND});
+  assert.equal((await createOmniPcmVoice({synthesize: stubborn.synthesize, retries: () => 1}).synthesizeStream('judy', REPLY, {onPcm: () => {}})).truncated, true);
+  assert.equal(timesAsked(stubborn, SECOND), 2);
+  // Default: no retry (NVIDIA and everything else).
+  const plain = fakeWorker({fail: call => call.text === SECOND});
+  assert.equal((await createOmniPcmVoice({synthesize: plain.synthesize}).synthesizeStream('judy', REPLY, {onPcm: () => {}})).truncated, true);
+  assert.equal(timesAsked(plain, SECOND), 1);
+  // A retries() that throws or answers nonsense means none; the budget is capped at two.
+  for (const bad of [() => { throw Error('x'); }, () => 'many', () => -3]) {
+    const w = fakeWorker({fail: call => call.text === SECOND});
+    assert.equal((await createOmniPcmVoice({synthesize: w.synthesize, retries: bad}).synthesizeStream('judy', REPLY, {onPcm: () => {}})).truncated, true);
+    assert.equal(timesAsked(w, SECOND), 1);
+  }
+  const capped = fakeWorker({fail: call => call.text === SECOND});
+  await createOmniPcmVoice({synthesize: capped.synthesize, retries: () => 9}).synthesizeStream('judy', REPLY, {onPcm: () => {}});
+  assert.equal(timesAsked(capped, SECOND), 3);
+});
+
+test('a cancelled reply is never retried', async () => {
+  const controller = new AbortController(), gate = deferred();
+  const worker = fakeWorker({delay: call => call.index === 0 ? gate.promise : null});
+  const voice = createOmniPcmVoice({synthesize: worker.synthesize, retries: () => 2});
+  const running = voice.synthesizeStream('judy', REPLY, {signal: controller.signal, onPcm: () => {}}); running.catch(() => {});
+  await sleep(10);
+  controller.abort(Object.assign(Error('cancelled'), {name: 'AbortError'}));
+  gate.resolve();
+  await assert.rejects(running);
+  assert.equal(worker.calls.length, 2, 'the two phrases queued at the start; the cancelled one was not asked for again');
 });
 
 test('cancelling stops the queued phrases and sends nothing more', async () => {

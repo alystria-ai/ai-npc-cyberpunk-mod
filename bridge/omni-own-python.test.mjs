@@ -4,8 +4,8 @@ import {EventEmitter} from 'node:events';
 import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
-import {OWN_PYTHON_FILE, SELF_TEST_SOURCE, backendOf, ownPythonLine, ownPythonSummary, ownPythonVerdict, packagedOmniSource, parseOwnPythonText,
-  readOwnPythonSetting, resolveOwnPython, runOwnPythonSelfTest} from './omni-own-python.mjs';
+import {OWN_PYTHON_FILE, SELF_TEST_SOURCE, backendOf, ownPythonLine, ownPythonSummary, ownPythonVerdict, packagedOmniSource, parseOwnPythonText, parseRocmOptions,
+  readOwnPythonSetting, resolveOwnPython, rocmWorkerEnvironment, runOwnPythonSelfTest} from './omni-own-python.mjs';
 
 // What the self-test prints for each kind of PC (no real GPU: these are the reports, as a ROCm, a CUDA and a CPU-only PyTorch answer).
 const ROCM = {python: '3.12.10', torch: '2.14.0+rocm10.1.0', hip: '10.1.0', cuda: null, available: true, device: 'AMD Radeon RX 9070 XT', vramMiB: 16304, op: true, omnivoice: true};
@@ -139,6 +139,33 @@ test('resolveOwnPython: no file changes nothing; ROCm, CUDA and CPU-only Pythons
   assert.equal((await run(ROCM, {packInstalled: false})).reason, 'no-pack');
   assert.equal((await run(ROCM, {exists: async () => false})).reason, 'no-pack', 'the pack\'s OmniVoice code must be there');
   assert.equal((await run(ROCM, {selfTest: async () => { throw Error('x'); }})).reason, 'start-failed');
+});
+
+test('the lines after the python.exe name the ROCm options; only three names and their values count, anything else is ignored', async () => {
+  assert.deepEqual(parseOwnPythonText(`${PY}\nminiopen = on\n`), {path: PY, problem: null}, 'no known option: no options key');
+  assert.deepEqual(parseOwnPythonText(`# mine\n${PY}\n# tuning\nmiopen-find-mode = normal\nmiopen: on\npriority=normal\n`),
+    {path: PY, problem: null, options: {miopenFindMode: 'NORMAL', miopen: 'on', priority: 'normal'}});
+  assert.deepEqual(parseRocmOptions(['miopen = maybe', 'priority = high', 'miopen-find-mode = a b', 'unknown = 1', 'priority = below']), {priority: 'below'});
+  assert.deepEqual(parseRocmOptions(['miopen-find-mode = FAST; rm -rf', 'miopen-find-mode = ' + 'X'.repeat(30)]), {}, 'a value is a short plain word');
+  assert.equal(parseOwnPythonText('priority = normal\n' + PY).problem, 'not-absolute', 'an option line never replaces the path');
+  const folder = await mkdtemp(join(tmpdir(), 'omni-rocm-'));
+  try {
+    await writeFile(resolve(folder, OWN_PYTHON_FILE), `${PY}\nmiopen = on\n`);
+    assert.deepEqual(await readOwnPythonSetting({stateDirectory: folder, isFile: async () => true}), {configured: true, path: PY, problem: null, options: {miopen: 'on'}});
+    const used = await resolveOwnPython({readSetting: async () => ({configured: true, path: PY, problem: null, options: {miopen: 'on'}}), runtimePython: RUNTIME_PY,
+      selfTest: async () => ROCM, exists: async () => true});
+    assert.deepEqual(used.options, {miopen: 'on'}); assert.equal(used.used, true);
+  } finally { await rm(folder, {recursive: true, force: true}); }
+});
+
+test('the ROCm worker environment: FAST find mode, below-normal priority, only for a ROCm Python that passed, with the player\'s own settings winning', () => {
+  const rocm = {used: true, backend: 'rocm'};
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {}), {MIOPEN_FIND_MODE: 'FAST', CYBERPUNK_CONVAI_WORKER_PRIORITY: 'below'});
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {MIOPEN_FIND_MODE: 'NORMAL'}), {CYBERPUNK_CONVAI_WORKER_PRIORITY: 'below'}, 'a variable the player set is theirs');
+  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopenFindMode: 'HYBRID', miopen: 'on', priority: 'normal'}}, {MIOPEN_FIND_MODE: 'FAST'}),
+    {MIOPEN_FIND_MODE: 'HYBRID', CYBERPUNK_CONVAI_ROCM_MIOPEN: '1'}, 'the file wins over the environment');
+  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopen: 'off'}}, {}), {MIOPEN_FIND_MODE: 'FAST', CYBERPUNK_CONVAI_WORKER_PRIORITY: 'below'});
+  for (const other of [null, {}, {used: false, backend: 'rocm'}, {used: true, backend: 'cuda'}, {used: true, backend: 'none'}]) assert.deepEqual(rocmWorkerEnvironment(other, {}), {}, JSON.stringify(other));
 });
 
 test('the log line names the backend and the refusal; the summary carries no folder', () => {

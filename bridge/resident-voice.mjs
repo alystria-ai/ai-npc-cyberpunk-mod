@@ -47,7 +47,7 @@ export class ResidentVoice {
     adapterDirectory = process.env.CYBERPUNK_CONVAI_OMNI_ADAPTER,
     referenceDirectory = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES,
     cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE,
-    lowPriority = false, setPriority = osSetPriority, isAlive, extraEnvironment = null,
+    lowPriority = false, keepLowPriority = false, setPriority = osSetPriority, isAlive, extraEnvironment = null,
     // skipStartupWarm() -> boolean, asked once per worker start: true when every reply of this session is expected in a language with a voice pack, so the
     // worker does not spend its start warming the English startup profiles (the pack's clips are what speaks). Nothing else changes: each voice still
     // prepares when it is first asked.
@@ -73,6 +73,8 @@ export class ResidentVoice {
     // A background (re)start loads below normal priority so it does not compete with the game for CPU; it is
     // raised to normal once ready, because rendering replies is latency-sensitive.
     this.lowPriority = lowPriority === true; this.setPriority = setPriority;
+    // The AMD (ROCm) route (docs/OMNIVOICE_AMD.md): below normal from the start and for good, the game keeps its CPU while a voice renders. Not raised once ready.
+    this.keepLowPriority = keepLowPriority === true;
     this.gpuMemory = typeof gpuMemory === 'function' ? gpuMemory : null;
     // Extra variables for this worker's environment (the voice service turns the CUDA graph off for the retry after a memory fault).
     this.extraEnvironment = extraEnvironment && typeof extraEnvironment === 'object' ? {...extraEnvironment} : null;
@@ -316,7 +318,7 @@ export class ResidentVoice {
       });
     });
     this.exited.catch(() => {});
-    if (this.lowPriority) this.priority(osConstants.priority.PRIORITY_BELOW_NORMAL);
+    if (this.lowPriority || this.keepLowPriority) this.priority(osConstants.priority.PRIORITY_BELOW_NORMAL);
     this.phaseDeadline('startup', VOICE_WORKER_LIMITS.startupStallMs);
     this.capTimer = this.schedule(() => {
       this.capTimer = null;
@@ -382,7 +384,7 @@ export class ResidentVoice {
       this.protocolVersion = version; this.available = new Set(profiles); this.prepared = new Set(prepared);
       this.loaded = true;
       this.clearPhase();
-      if (this.lowPriority) this.priority(osConstants.priority.PRIORITY_NORMAL);
+      if (this.lowPriority && !this.keepLowPriority) this.priority(osConstants.priority.PRIORITY_NORMAL);
       this.details = {device: frame.device, dtype: frame.dtype, runtime: frame.runtime,
         tensorrt: frame.tensorrt, compiled: frame.compiled,
         acceleration: frame.acceleration || 'eager', cudaGraph: frame.cudaGraph,

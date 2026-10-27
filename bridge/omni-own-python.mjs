@@ -17,6 +17,9 @@ export const OWN_PYTHON_FILE = 'omni-python.txt';
 // Told to the worker (bridge/resident-voice-worker.py): it runs in the player's Python and loads OmniVoice's code from this folder of the pack.
 export const OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON';
 export const OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE';
+// ROCm tuning (bridge/resident-voice-worker.py tune_rocm, docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions; the priority variable is 'below' for the AMD route.
+export const ROCM_MIOPEN_VARIABLE = 'CYBERPUNK_CONVAI_ROCM_MIOPEN';
+export const PRIORITY_VARIABLE = 'CYBERPUNK_CONVAI_WORKER_PRIORITY';
 // Importing a ROCm PyTorch and OmniVoice's libraries the first time can take a while on a cold disk; a test that says nothing for this long is refused.
 export const SELF_TEST_TIMEOUT_MS = 120_000;
 const MARK = '@@OMNI-SELFTEST@@';
@@ -70,15 +73,51 @@ if out['available'] and out.get('op') and source:
 done()
 `;
 
-/** The python.exe named by the file's text: the first line that is not empty or a # comment, quotes and spaces trimmed. {path} or {problem}. Pure. */
+/**
+ * The optional ROCm settings in the lines after the python.exe line (`name = value`; # comments and anything else are ignored): `miopen-find-mode = NORMAL` (MIOpen's
+ * own MIOPEN_FIND_MODE instead of the mod's FAST), `miopen = on` (keep MIOpen's convolutions; the mod turns them off on ROCm), `priority = normal` (the voice worker
+ * keeps normal process priority; the mod lowers it to below normal on ROCm). Only these three names, only these values. Pure.
+ */
+export function parseRocmOptions(rows) {
+  const options = {};
+  for (const row of rows) {
+    const found = /^([a-z-]+)\s*[=:]\s*([A-Za-z0-9_]{1,24})$/.exec(row);
+    if (!found) continue;
+    const [, name, value] = found, lower = value.toLowerCase();
+    if (name === 'miopen-find-mode') options.miopenFindMode = value.toUpperCase();
+    else if (name === 'miopen' && ['on', 'off'].includes(lower)) options.miopen = lower;
+    else if (name === 'priority' && ['normal', 'below'].includes(lower)) options.priority = lower;
+  }
+  return options;
+}
+
+/**
+ * The worker's environment for the ROCm route (a Python whose self-test found torch.version.hip): MIOPEN_FIND_MODE=FAST unless the file names another mode or the
+ * variable is already set where the game started (`processEnv`), MIOpen's convolutions off unless `miopen = on`, below-normal priority unless `priority = normal`.
+ * {} for any other backend: NVIDIA and the Runtime's Python are never touched. Pure.
+ */
+export function rocmWorkerEnvironment(own, processEnv = process.env) {
+  if (!own?.used || own.backend !== 'rocm') return {};
+  const options = own.options ?? {};
+  const environment = {};
+  if (options.miopenFindMode) environment.MIOPEN_FIND_MODE = options.miopenFindMode;
+  else if (!processEnv?.MIOPEN_FIND_MODE) environment.MIOPEN_FIND_MODE = 'FAST';
+  if (options.miopen === 'on') environment[ROCM_MIOPEN_VARIABLE] = '1';
+  if (options.priority !== 'normal') environment[PRIORITY_VARIABLE] = 'below';
+  return environment;
+}
+
+/** The python.exe named by the file's text: the first line that is not empty or a # comment, quotes and spaces trimmed. {path} or {problem}, plus `options` (parseRocmOptions) when the lines after it name some. Pure. */
 export function parseOwnPythonText(text) {
-  const line = String(text ?? '').replace(/^﻿/, '').split(/\r?\n/).map(row => row.trim()).find(row => row && !row.startsWith('#'));
+  const rows = String(text ?? '').replace(/^﻿/, '').split(/\r?\n/).map(row => row.trim()).filter(row => row && !row.startsWith('#'));
+  const line = rows[0];
   if (!line) return {path: null, problem: null};
   const path = line.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1').trim();
   const qualified = process.platform !== 'win32' || /^(?:[a-z]:[\\/]|[\\/]{2}[^\\/]+[\\/][^\\/]+[\\/])/i.test(path);
   if (!path || /[\x00-\x1f\x7f]/.test(path) || !isAbsolute(path) || !qualified) return {path: null, problem: 'not-absolute'};
   if (!/^python(?:3(?:\.\d+)?)?(?:\.exe)?$/i.test(basename(path))) return {path: null, problem: 'not-python'};
-  return {path, problem: null};
+  const options = parseRocmOptions(rows.slice(1));
+  return {path, problem: null, ...(Object.keys(options).length ? {options} : {})};
 }
 
 /**
@@ -89,10 +128,10 @@ export async function readOwnPythonSetting({stateDirectory, readFile = fsReadFil
   if (!stateDirectory) return {configured: false};
   let text;
   try { text = await readFile(resolve(stateDirectory, OWN_PYTHON_FILE), 'utf8'); } catch { return {configured: false}; }
-  const {path, problem} = parseOwnPythonText(String(text).slice(0, 4096));
+  const {path, problem, options} = parseOwnPythonText(String(text).slice(0, 4096));
   if (!path && !problem) return {configured: false};
   if (problem) return {configured: true, path: null, problem};
-  return {configured: true, path, problem: (await isFile(path)) ? null : 'not-found'};
+  return {configured: true, path, problem: (await isFile(path)) ? null : 'not-found', ...(options ? {options} : {})};
 }
 async function defaultIsFile(path) { try { return (await stat(path)).isFile(); } catch { return false; } }
 
@@ -161,7 +200,7 @@ export async function resolveOwnPython({stateDirectory, runtimePython, packInsta
   let setting;
   try { setting = await readSetting({stateDirectory}); } catch { setting = {configured: false}; }
   if (!setting?.configured) return {configured: false};
-  const base = {configured: true, used: false, path: setting.path ?? null};
+  const base = {configured: true, used: false, path: setting.path ?? null, ...(setting.options ? {options: setting.options} : {})};
   if (setting.problem) return {...base, backend: null, reason: setting.problem};
   const source = packagedOmniSource(runtimePython);
   if (!packInstalled || !source || !(await exists(resolve(source, '__init__.py')))) return {...base, backend: null, reason: 'no-pack'};

@@ -209,6 +209,60 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertTrue(worker.cuda_graph_wanted(cuda, {}))
         self.assertFalse(worker.cuda_graph_wanted(cuda, {'CYBERPUNK_CONVAI_CUDA_GRAPH': '0'}))
 
+    @staticmethod
+    def torch_with(hip, cuda, cudnn=True):
+        return SimpleNamespace(version=SimpleNamespace(hip=hip, cuda=cuda), backends=SimpleNamespace(cudnn=SimpleNamespace(enabled=cudnn)))
+
+    def test_rocm_gets_the_fast_find_mode_and_pytorchs_own_convolutions_and_nothing_else_does(self):
+        rocm, environ = self.torch_with('10.1.0', None), {}
+        line = worker.tune_rocm(rocm, environ)
+        self.assertEqual(environ, {'MIOPEN_FIND_MODE': 'FAST'})
+        self.assertFalse(rocm.backends.cudnn.enabled)
+        self.assertEqual(line, "[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=FAST; convolutions: PyTorch's own, MIOpen off")
+        # A find mode the player already set stays theirs.
+        mine = {'MIOPEN_FIND_MODE': 'NORMAL'}
+        self.assertEqual(worker.tune_rocm(self.torch_with('10.1.0', None), mine), "[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=NORMAL (already set); convolutions: PyTorch's own, MIOpen off")
+        self.assertEqual(mine, {'MIOPEN_FIND_MODE': 'NORMAL'})
+        # The override keeps MIOpen's convolutions on.
+        kept = self.torch_with('10.1.0', None)
+        self.assertEqual(worker.tune_rocm(kept, {worker.ROCM_MIOPEN_VARIABLE: '1'}), '[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=FAST; convolutions: MIOpen kept on')
+        self.assertTrue(kept.backends.cudnn.enabled)
+        for value in ('0', '', 'on'):
+            off = self.torch_with('10.1.0', None)
+            worker.tune_rocm(off, {worker.ROCM_MIOPEN_VARIABLE: value})
+            self.assertFalse(off.backends.cudnn.enabled, f'only "1" keeps MIOpen, not {value!r}')
+        # NVIDIA (CUDA build), a CPU build and a half-made torch object: untouched.
+        for other in (self.torch_with(None, '12.8'), self.torch_with(None, None), self.torch_with('', '12.8'), SimpleNamespace()):
+            environ = {}
+            self.assertIsNone(worker.tune_rocm(other, environ))
+            self.assertEqual(environ, {}, 'no MIOpen variable on a CUDA build')
+            if hasattr(other, 'backends'):
+                self.assertTrue(other.backends.cudnn.enabled, 'cuDNN stays on for NVIDIA')
+
+    def test_a_library_that_switches_miopen_back_on_during_the_load_is_told_off_again(self):
+        rocm = self.torch_with('10.1.0', None, cudnn=True)
+        self.assertIn('off again', worker.keep_rocm_convolutions(rocm, {}))
+        self.assertFalse(rocm.backends.cudnn.enabled)
+        self.assertIsNone(worker.keep_rocm_convolutions(rocm, {}), 'already off: nothing to say')
+        kept = self.torch_with('10.1.0', None, cudnn=True)
+        self.assertIsNone(worker.keep_rocm_convolutions(kept, {worker.ROCM_MIOPEN_VARIABLE: '1'}))
+        self.assertTrue(kept.backends.cudnn.enabled)
+        cuda = self.torch_with(None, '12.8', cudnn=True)
+        self.assertIsNone(worker.keep_rocm_convolutions(cuda, {}))
+        self.assertTrue(cuda.backends.cudnn.enabled)
+
+    def test_the_worker_lowers_its_own_priority_only_when_the_bridge_asks(self):
+        applied = []
+        self.assertIsNone(worker.lower_own_priority({}, applied.append))
+        self.assertIsNone(worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'normal'}, applied.append))
+        self.assertEqual(applied, [])
+        self.assertEqual(worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: applied.append(level) or True), '[priority] below normal')
+        self.assertEqual(applied, [0x00004000])
+        self.assertEqual(worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'below'}, lambda level: False), '[priority] could not be lowered')
+        def refuse(level):
+            raise OSError('access denied')
+        self.assertIn('could not be lowered (access denied)', worker.lower_own_priority({worker.PRIORITY_VARIABLE: 'below'}, refuse))
+
     def test_the_backend_line_names_rocm_or_cuda_and_the_card_from_pytorch(self):
         def fake(hip, cuda, available=True):
             properties = SimpleNamespace(name='AMD Radeon RX 9070 XT' if hip else 'NVIDIA GeForce RTX 4070', total_memory=16304 * 1048576)
