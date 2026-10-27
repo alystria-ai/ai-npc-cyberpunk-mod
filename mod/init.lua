@@ -3558,7 +3558,15 @@ if convaiHolocall then
         ready = function(key) return autoConnect == nil or autoConnect.ready(key) end,
         -- A Chat row the journal has no contact for (a character the player made, Rita Wheeler and the roster) can be called too: the window shows
         -- her name and the unknown-caller picture. A character the player made needs Mistral, Local AI or Custom, as her Chat does.
-        chatRow = function(contact) return convaiPhoneChat and convaiPhoneChat.callRow(contact) or nil end,
+        -- The record of her game definition (the invite list's, or the roster's), when she has one, is the body filmed for a video call.
+        chatRow = function(contact)
+            local row = convaiPhoneChat and convaiPhoneChat.callRow(contact) or nil
+            if row and convaiCompanions and type(convaiCompanions.definition) == 'function' then
+                local asked, definition = pcall(convaiCompanions.definition, row.key)
+                if asked and type(definition) == 'table' and type(definition.id) == 'string' and definition.id ~= '' then row.record = definition.id end
+            end
+            return row
+        end,
         blocked = function(key)
             local chat = convaiPhoneChat
             return chat ~= nil and type(chat.contactBlocked) == 'function' and chat.contactBlocked(key) == true

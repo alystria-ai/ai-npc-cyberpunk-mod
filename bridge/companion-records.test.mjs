@@ -537,3 +537,37 @@ test('readiness: companions scale a copy at attach once and re-read a differing 
   tick(2); assert(reads.group==2 and has('attitude ok on re%-read'),'one re-read: '..reads.group)
   tick(40); assert(reads.group==2 and scales==1,'nothing more is read or scaled afterwards')
 `));
+
+// A body that is only filmed (a holocall's copy, mod/holocall.lua): its own record, or the non-crowd clone of a pedestrian's, with no combat adaptation.
+test('visual(): a named record is itself, a pedestrian\'s record is its private non-crowd clone, one that cannot be cloned is nothing', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const source = readFileSync(new URL('../mod/companion-records.lua', import.meta.url), 'utf8').replace(/^\uFEFF/, '');
+  const program = `
+    local flats, clones, writes = {}, {}, 0
+    TDBID = {ToStringDEBUG = function(id) return id end}
+    TweakDBID = {new = function(v) return v end}
+    TweakDB = {
+      GetRecord = function(_, id)
+        if clones[id] then return {IsA = function() return true end, IsCrowd = function() return flats[id .. '.isCrowd'] ~= false end} end
+        if tostring(id):find('^CyberpunkConvai%.') then return nil end
+        return {IsA = function() return true end, IsCrowd = function() return id == 'Character.Pedestrian' or id == 'Character.Broken' end,
+          IsLightCrowd = function() return false end}
+      end,
+      CloneRecord = function(_, name, src) if src == 'Character.Broken' then return false end; clones[name] = src; return true end,
+      SetFlat = function(_, name, value) writes = writes + 1; flats[name] = value; return true end,
+      GetFlat = function(_, name) return flats[name] end}
+    local module = (function() ${source} end)()
+    local id, name = module.visual('Character.Ana_Model')
+    assert(id == 'Character.Ana_Model' and name == nil and writes == 0 and next(clones) == nil, 'a named record is filmed as it is, nothing cloned')
+    id, name = module.visual('Character.Pedestrian')
+    assert(id == 'CyberpunkConvai.NonCrowd_Pedestrian' and name == 'CyberpunkConvai.NonCrowd_Pedestrian', tostring(id))
+    assert(clones['CyberpunkConvai.NonCrowd_Pedestrian'] == 'Character.Pedestrian' and flats['CyberpunkConvai.NonCrowd_Pedestrian.isCrowd'] == false)
+    local again = module.visual('Character.Pedestrian')
+    assert(again == 'CyberpunkConvai.NonCrowd_Pedestrian' and writes == 1, 'the clone is made once')
+    assert(module.visual('Character.Broken') == nil, 'a crowd record that cannot be cloned is nothing')
+  `;
+  const status = lauxlib.luaL_dostring(state, to_luastring(program));
+  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state);
+  assert.equal(status, lua.LUA_OK, error);
+});

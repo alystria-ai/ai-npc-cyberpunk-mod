@@ -851,3 +851,79 @@ test('every way a call can be refused tells the player: each refuse() in holocal
   assert.match(redscript, /if !player\.ConvaiHolocallRequest\(this\.m_convaiChatId\) \{ this\.ShowActionBlockedNotification\(\); \};/);
   assert.match(redscript, /if !this\.m_player\.ConvaiHolocallRequest\(contact\.id\) \{ this\.ShowActionBlockedNotification\(\); \};/);
 });
+
+
+// ---------------------------------------------------------------- a Chat row with no journal contact gets the video call with her own body when she has a record
+test('a Chat row with a game record (a character made with "Use the character I\'m facing", Rita and the roster) gets the live picture of her own body, named as she is', () => run(world + `
+  records['Character.Ana_Model'] = true
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana', record = 'Character.Ana_Model'}
+  game.window = 'holocall'
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); tick(0.1)
+  assert(game.beganName == 'Ana' and logged('no%-journal call contact=custom%-ana%-aaaa profile=custom%-ana%-aaaa name=Ana picture=unknown%-caller begin=ok'))
+  assert(logged('state=dialing contact=custom%-ana%-aaaa profile=custom%-ana%-aaaa mode=holo cast=video hud=ok'), tostring(logs[#logs]))
+  tick(2.5)
+  local copy = created[1]
+  assert(copy and copy.recordID == 'Character.Ana_Model' and copy.persistState == false and copy.alwaysSpawned == true, 'her own record')
+  assert(copy.tags[1] == 'CyberpunkConvaiCompanion' and copy.tags[2] == 'CyberpunkConvaiHolocall', 'the speech face layer, as for every holocall copy')
+  assert(logged('holo spawn contact=custom%-ana%-aaaa record=Character.Ana_Model floor=.* copy=Character.Ana_Model'), 'the spawn line says which record was filmed')
+  assert(holocall.connected() and holocall.call.mode == 'holo' and game.connects[#game.connects] == true, 'the window shows the picture')
+  assert(logged('state=connected contact=custom%-ana%-aaaa mode=holo window=holocall') and #notices == 0)
+  local caller = holocall.partner(player, false)
+  assert(caller.profileKey == 'custom-ana-aaaa' and caller.name == 'Ana' and caller.holocall.mode == 'holo' and caller.entity == '9000ULL')
+  game.events = {'hangup'}; tick(0.3)
+  assert(holocall.call == nil and #deleted >= 1, 'hanging up removes the copy as for any holocall')
+`));
+
+test('a pedestrian\'s record is filmed through its non-crowd clone; a crowd record that cannot be cloned falls back to the portrait call', () => run(world + `
+  records['Character.Crowd_Man'] = true; records['Character.Crowd_Stuck'] = true
+  local base = dofile
+  dofile = function(path)
+    if path == 'companion-records.lua' then
+      return {visual = function(id)
+        if id == 'Character.Crowd_Man' then return 'CyberpunkConvai.NonCrowd_Crowd_Man', 'CyberpunkConvai.NonCrowd_Crowd_Man' end
+        if id == 'Character.Crowd_Stuck' then return nil end
+        return id, nil
+      end}
+    end
+    return base(path)
+  end
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana', record = 'Character.Crowd_Man'}
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); tick(2.5)
+  assert(created[1].recordID == 'CyberpunkConvai.NonCrowd_Crowd_Man', tostring(created[1].recordID))
+  assert(logged('holo spawn contact=custom%-ana%-aaaa record=Character.Crowd_Man floor=.* copy=CyberpunkConvai.NonCrowd_Crowd_Man'))
+  holocall.finish(player, 'hangup'); tick(2)
+  local spawned = #created
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana', record = 'Character.Crowd_Stuck'}
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); tick(3)
+  assert(#created == spawned, 'nothing was spawned for a record that cannot be copied')
+  assert(logged('holo failed contact=custom%-ana%-aaaa reason=spawn: .*crowd record that cannot be copied.* fallback=audio'), tostring(logs[#logs]))
+  assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[#game.connects] == false)
+  assert(lastNotice().id == 'holocall-live-fallback' and lastNotice().text == 'Live picture unavailable. The call continues with the portrait.')
+`));
+
+test('a Chat row with no record, or a record this installation does not have, is the portrait voice call with her name', () => run(world + `
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana'}
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); tick(2)
+  assert(logged('state=dialing contact=custom%-ana%-aaaa profile=custom%-ana%-aaaa mode=audio cast=voice hud=ok'))
+  assert(game.beganName == 'Ana' and holocall.connected() and holocall.call.mode == 'audio' and #created == 0 and spatial.rays == 0 and #notices == 0, 'no spawn, no search, no notice')
+  holocall.finish(player, 'hangup')
+  chatRows['custom-ana-aaaa'] = {key = 'custom-ana-aaaa', name = 'Ana', record = 'Character.Not_Installed'}
+  game.requests = {'custom-ana-aaaa'}; holocall.drain(player); tick(2)
+  assert(logged('holo failed contact=custom%-ana%-aaaa reason=record%-unavailable fallback=audio') and #created == 0)
+  assert(holocall.connected() and holocall.call.mode == 'audio' and lastNotice().id == 'holocall-live-fallback')
+  -- Johnny's record is never filmed, whatever the row says.
+  chatRows['rita-wheeler'] = {key = 'rita-wheeler', name = 'Rita Wheeler', record = 'Character.Silverhand'}
+  holocall.finish(player, 'hangup')
+  game.requests = {'rita-wheeler'}; holocall.drain(player); holocall.update(player, 0.1, true, open)
+  assert(holocall.call == nil and logged('refused contact=rita%-wheeler reason=not%-a%-mod%-character'))
+`));
+
+test('the record of a Chat row comes from her game definition: the invite list\'s for a character the player made, the roster\'s for Rita', () => {
+  const init = read('../mod/init.lua');
+  assert.match(init, /chatRow = function\(contact\)\s*local row = convaiPhoneChat and convaiPhoneChat\.callRow\(contact\) or nil\s*if row and convaiCompanions and type\(convaiCompanions\.definition\) == 'function' then\s*local asked, definition = pcall\(convaiCompanions\.definition, row\.key\)/);
+  assert.match(init, /type\(definition\.id\) == 'string' and definition\.id ~= '' then row\.record = definition\.id end/);
+  // Only a Chat row with no journal contact is filmed from a record that is not in STAGED; the staged list is unchanged.
+  assert.match(holocallSource, /local cast = \(M\.STAGED\[contact\] or entry\.journal == false\) and entry\.record and 'video' or 'voice'/);
+  // The clone for a pedestrian's record exists in the spawn-record module.
+  assert.match(read('../mod/companion-records.lua'), /function M\.visual\(source\)\s*local copy, name = nonCrowd\(source\)\s*if copy == false then return nil end\s*if copy then return copy, name end\s*return source, nil\s*end/);
+});

@@ -78,8 +78,22 @@ refused it was `mod/holocall.lua` (no catalogue entry) and then `ConvaiCallFindC
   provider, with the call wording of `turn-context.mjs`), in her chosen voice, the same path as her face-to-face talk. The bridge's
   call contact check (`protocol.mjs` `parseHolocall`) now accepts a profile key (letters, digits, underscore and hyphen, up to 80):
   before, a hyphen dropped the call information and the line would have been worded as an ordinary talk.
-- **Portrait.** Characters made in the editor have no picture, so the window shows the unknown-caller picture. A later step could
-  give them one (an atlas or a texture path set on the window's avatar image); not built.
+- **A video call when she has a record (branch `fix/custom-calls-3`, 2026-10-27).** Live: the voice call to Abernathy worked, but "call does not show
+  face for abernathy, it shows for alex and other main cast". The live picture only needs a character record to film (the copy is spawned from
+  it), not the game's holocall setup that `STAGED` names; `STAGED` only decides which *journal* contacts get one. So a Chat row with no journal
+  contact and a record now gets the same video call (`cast=video`): a character made with "Use the character I'm facing" (the invite list's
+  record, `companions.definition(key).id`, the first plain `Character.` record the editor stored), Rita Wheeler and every roster row with a
+  definition. `init.lua` `chatRow` adds the record to the row; `M.chatEntry` keeps it (Johnny/Silverhand records are still excluded). The window shows
+  her name; the picture is her own body, placed, lit, framed and kept animating exactly as for Alex (everything under "Live picture" above).
+  **A pedestrian's record** is crowd-flagged, so its copy would get no face layer: the copy is spawned from its private non-crowd clone
+  (`companion-records.lua` `M.visual`, the same clone the invitation uses, no combat adaptation), logged as `copy=<name>`. A crowd record that cannot
+  be cloned, a record this installation does not have, no studio within `FACE_RANGE`, or a failed spawn: the call goes on as the voice call with the
+  unknown-caller picture and the usual notice. No record at all: the voice call from the start, no search, no notice. The appearance is the record's
+  default one (as for her invited copy), not the look of the person she was made from.
+  Probe lines: `state=dialing contact=<key> ... mode=holo cast=video`, `holo spawn contact=<key> record=<record> ... copy=<record or clone>`,
+  `holo ready ...`, `state=connected ... mode=holo window=holocall`; or `holo failed contact=<key> reason=<no-record|record-unavailable|spawn: ...|no-studio-spot (...)> fallback=audio`.
+- **Portrait.** Characters made in the editor have no picture of their own, so a voice call (no record, or the picture failed) shows the unknown-caller
+  picture. A later step could give them one (an atlas or a texture path set on the window's avatar image); not built.
 - **Rita Wheeler and the other roster rows** fall out of the same path (voice call, unknown-caller picture, Convai conversation).
 - **A scene reading is not trusted at once (branch `fix/custom-calls-2`, 2026-10-27).** Live, game 2.31: a call to a character the player made
   was refused with `reason=scene` in plain gameplay (`requested` and `refused` in the same second), and Alex rang from the same spot 13 s
@@ -529,7 +543,7 @@ Needs a full game restart (redscript).
 requested contact=<id>
 no-journal call contact=<key> profile=<key> name=<name> picture=unknown-caller begin=<result>    (a Chat row with no journal contact only)
 state=dialing contact=<id> profile=<key> mode=audio|holo cast=video|voice hud=ok
-holo spawn contact=<id> record=<record> floor=+<m>m away=<m>m yaw=<deg> lens=<m>m        (live picture only)
+holo spawn contact=<id> record=<record> floor=+<m>m away=<m>m yaw=<deg> lens=<m>m copy=<record or clone>   (live picture only)
 holo ready contact=<id> held=yes camera=on animated=true|false look=true|false drift=<m> lights=<n>/3 (live picture only)
 holo lit contact=<id> lights=3/3                                                         (a late lamp, live picture only)
 holo failed contact=<id> reason=<r> fallback=audio                                       (live picture only)

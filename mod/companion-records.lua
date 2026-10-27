@@ -146,6 +146,16 @@ local function armed(source)
     return armedCopies[key].id, result
 end
 
+-- A record to spawn a body that is only seen (a holocall's copy, mod/holocall.lua): the record itself, or its private non-crowd clone when it is a
+-- pedestrian's (a crowd copy gets no face layer). nil when it is a crowd record that cannot be cloned. The second value is the clone's name.
+-- No combat adaptation: the copy stands in a pose and never fights.
+function M.visual(source)
+    local copy, name = nonCrowd(source)
+    if copy == false then return nil end
+    if copy then return copy, name end
+    return source, nil
+end
+
 function M.resolve(source)
     if source == TweakDBID.new(kerrySource) then return source, nil, nil, kerryAppearance end
     if source ~= TweakDBID.new(johnnySource) then

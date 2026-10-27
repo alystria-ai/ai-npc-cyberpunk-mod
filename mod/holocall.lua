@@ -376,6 +376,21 @@ local function holoFail(call, reason)
     log('holo failed contact=' .. call.contact .. ' reason=' .. tostring(reason) .. ' fallback=audio')
 end
 
+-- The record the copy is spawned from: the character's own, or its non-crowd clone when it is a pedestrian's (a crowd copy would get no face layer).
+-- Returns the id and the name that is logged, or nil when a crowd record cannot be cloned. Without the module, the record itself.
+local function copyRecord(record)
+    if M.spawnRecords == nil then
+        local loaded, module = pcall(dofile, 'companion-records.lua')
+        M.spawnRecords = loaded and type(module) == 'table' and type(module.visual) == 'function' and module or false
+    end
+    local id = TweakDBID.new(record)
+    if not M.spawnRecords then return id, record end
+    local asked, resolved, name = pcall(M.spawnRecords.visual, id)
+    if not asked then return id, record end
+    if resolved == nil then return nil end
+    return resolved, name or record
+end
+
 -- The character's own record, as a real character record (a name that does not resolve would spawn a body with no
 -- record, which crashes a few seconds later).
 local function characterRecord(name)
@@ -485,7 +500,10 @@ local function holoSpawn(call, holo)
         assert(dynamic and dynamic:IsReady(), 'entity system not ready')
         holo.anchor = {x = spot.x, y = spot.y, z = spot.z}
         local copy = NewObject('DynamicEntitySpec')
-        copy.recordID = TweakDBID.new(call.record)
+        local recordID, copyName = copyRecord(call.record)
+        assert(recordID, 'a crowd record that cannot be copied')
+        call.copyName = copyName
+        copy.recordID = recordID
         copy.position = Vector4.new(spot.x, spot.y, spot.z, 1)
         copy.orientation = EulerAngles.new(0, 0, M.bodyYaw(spot)):ToQuat()
         copy.persistState, copy.persistSpawn = false, false
@@ -514,7 +532,7 @@ local function holoSpawn(call, holo)
     holo.faceNear = (spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2 <= M.FACE_RANGE^2
     log(string.format('holo spawn contact=%s record=%s floor=%+.1fm away=%.1fm yaw=%d body=%.1f lens=%.2fm', call.contact,
         call.record, spot.z - o.z, math.sqrt((spot.x - o.x)^2 + (spot.y - o.y)^2 + (spot.z - o.z)^2), spot.yaw,
-        M.bodyYaw(spot), holo.lens.dist))
+        M.bodyYaw(spot), holo.lens.dist) .. ' copy=' .. tostring(call.copyName or call.record))
 end
 
 
@@ -718,8 +736,8 @@ function M.chatEntry(contact)
     if type(M.env.chatRow) ~= 'function' then return nil end
     local asked, row = pcall(M.env.chatRow, contact)
     if not asked or type(row) ~= 'table' or type(row.key) ~= 'string' or not row.key:match('^[a-z0-9-]+$') or #row.key > 80
-        or excluded({key = row.key, contact = contact}) then return nil end
-    return {contact = contact, key = row.key, journal = false,
+        or excluded({key = row.key, contact = contact, record = row.record}) then return nil end
+    return {contact = contact, key = row.key, journal = false, record = type(row.record) == 'string' and row.record ~= '' and row.record or nil,
         name = type(row.name) == 'string' and row.name ~= '' and row.name or row.key}
 end
 
@@ -788,8 +806,9 @@ function M.start(player, contact, sample, waited)
     local identity, entity = pcall(function() return tostring(player:GetEntityID().hash) end)
     local backed, backing = pcall(function() return player:ConvaiHolocallHasBacking() end)
     M.serial = M.serial + 1
-    -- A video holocall for the characters the game stages one for; the portrait voice call for everyone else.
-    local cast = M.STAGED[contact] and entry.record and 'video' or 'voice'
+    -- A video holocall for the characters the game stages one for, and for a Chat row with no journal contact that has a game record (a character the
+    -- player made with "Use the character I'm facing", Rita Wheeler and the roster): her own body is filmed. No record: the portrait voice call.
+    local cast = (M.STAGED[contact] or entry.journal == false) and entry.record and 'video' or 'voice'
     local call = {serial = M.serial, contact = contact, key = entry.key, name = entry.name, record = entry.record,
         state = 'dialing', mode = 'audio', entity = identity and entity or nil, ring = 0, age = 0, idle = 0, tick = 0,
         cast = cast, backing = backed and backing == true, wantLive = cast == 'video' and type(M.env.liveImage) == 'function' and M.env.liveImage() == true}
