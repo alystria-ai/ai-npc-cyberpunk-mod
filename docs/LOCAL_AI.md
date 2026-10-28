@@ -1161,7 +1161,9 @@ which is "right after I finish speaking" (the talk key's persona warm-up starts 
 already in the environment is kept). llama.cpp's Vulkan backend then allocates in pieces of 64 MiB at most. Same game, same quiet PC, alternating runs:
 default loads froze for 608, 189 + 102, -, -, 1,226 ms; 64 MiB loads for -, -, -, -, 106 + 78 ms. The model reads and writes at the same speed (2,365 to 2,519
 prompt tokens a second against 2,299 to 2,475; 89 against 82 to 91 written). All four models of the packs (lite, standard, both Mature) load and answer with it,
-wholly on the card. The idle stop is unchanged.
+wholly on the card. The idle stop is unchanged. In the game with the change installed, the server carried the variable (read from its environment) and
+three reloads (a model choice change at the title screen, 60 fps) froze nothing: worst frame 20 ms in about 3,300 frames each, against 976 and 1,964 ms for the
+reloads before the change (in the world).
 
 **Not measured:** a 24 GB card and game 2.31 (the report's), a voice turn through the talk key (the test sent typed turns through the request file, so the game's
 own key handling was not part of it), a model the player added (not tried; one that failed to start would take the existing start-failed path).
