@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "не подключён",
     ["{name}, chosen in Settings > Voices."] = "{name}, выбран в Настройки > Голоса.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, вход Windows по умолчанию. Другой выбирается в Настройки > Голоса > Микрофон.",
+    ["Gameplay"] = "Геймплей",
+    ["Revenge ambushes"] = "Засады из мести",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Банда, которую вы продолжаете убивать, изредка может выслать небольшой отряд с короткой угрозой. После каждого следует долгое ожидание.\n\nНикогда во время боя, сцены, звонка, в транспорте, в помещении, в безопасной зоне или когда вас разыскивают. Угрозы требуют «Разговоры с обычными NPC».",
 }

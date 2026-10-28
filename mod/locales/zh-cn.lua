@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "未连接",
     ["{name}, chosen in Settings > Voices."] = "{name}，在 设置 > 语音 中选择。",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}，Windows 默认输入。在 设置 > 语音 > 麦克风 中可以选择其他输入。",
+    ["Gameplay"] = "游戏玩法",
+    ["Revenge ambushes"] = "复仇伏击",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "你反复杀死的帮派，很少会派一支小队来找你，并喊出一句简短的威胁。每次之后都有较长的等待。\n\n绝不会在战斗、剧情、通话、载具中、室内、安全区或通缉期间出现。威胁需要开启“与普通 NPC 对话”。",
 }

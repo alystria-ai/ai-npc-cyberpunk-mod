@@ -15,6 +15,7 @@ import {parseMeetReaction} from './appointment-events.mjs';
 import {parseCallMeetOffer} from './call-meet.mjs';
 import {parseHouseReaction} from './house-chat.mjs';
 import {parseSpeakUpReaction} from './speakup-context.mjs';
+import {parseAmbushReaction} from './ambush-context.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
@@ -70,6 +71,8 @@ function parseRequest(raw) {
   // A companion speaks up on her own (docs/COMPANION_SPEAK_UP.md): a private turn of a named roster character with the journal, the right-now snapshot and,
   // after a scene, the scene's lines. It carries no battle, loot or head field, no add-on and no group, or the whole turn is refused.
   const speakUp = value.reaction?.kind === 'speakup';
+  // A revenge ambush squad's taunt (bridge/ambush-context.mjs): an ordinary NPC's private turn of the gang's own archetype profile, no add-on, group, head, loot, battle or holocall field.
+  const ambush = value.reaction?.kind === 'ambush';
   const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon, profileKey)
     : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
       // She met V at the place she was invited to (docs/IMMERSIVE_INVITATIONS.md): her own greeting, a private turn only (bridge/appointment-events.mjs).
@@ -77,7 +80,8 @@ function parseRequest(raw) {
         // A housemate speaks (docs/HOUSEMATES.md): a line of a chat with another housemate, or a welcome home; a private turn only (bridge/house-chat.mjs).
         : value.reaction?.kind === 'house' ? parseHouseReaction(value.reaction, {group: !!group})
           : speakUp ? (group || head || addon || loot || battle || value.holocall !== undefined || value.head !== undefined ? null : parseSpeakUpReaction(value.reaction, profileKey))
-            : parseReaction(value.reaction, battle, loot);
+            : ambush ? (group || head || addon || loot || battle || value.holocall !== undefined || value.head !== undefined ? null : parseAmbushReaction(value.reaction, profileKey, parseArchetype(value.archetype)))
+              : parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   // A malformed optional offer removes only gameplay admission; the original
   // conversation is still valid and must keep its actor/request identity.

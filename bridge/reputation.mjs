@@ -1,7 +1,7 @@
 // Street reputation for ordinary NPCs (docs/REPUTATION_DESIGN.md): a KCD2-style standing per gang, corporation, the NCPD and the residents
 // of each district, worded as at most two short lines for an archetype or resident the player talks to.
 //
-// Off unless the game sends a `reputation` snapshot with the turn (Settings > Conversations > Street reputation, settings.reputation,
+// Off unless the game sends a `reputation` snapshot with the turn (Settings > Gameplay > Street reputation, settings.reputation,
 // default off): without one nothing here reads or writes a file and every context is ''. Never for a named, story or companion
 // character: reputationApplies() needs an ambient profile (a resident or npc-*) with archetype facts, a private turn, no reaction.
 //

@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "nicht verbunden",
     ["{name}, chosen in Settings > Voices."] = "{name}, in Einstellungen > Stimmen gewählt.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, die Windows-Standardeingabe. Eine andere wählst du unter Einstellungen > Stimmen > Mikrofon.",
+    ["Gameplay"] = "Spielablauf",
+    ["Revenge ambushes"] = "Rachehinterhalte",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Eine Gang, die du immer wieder tötest, schickt dir selten einen kleinen Trupp mit einer kurzen Drohung. Danach folgt eine lange Wartezeit.\n\nNie im Kampf, in Szenen, bei Anrufen, im Fahrzeug, in Innenräumen, in sicheren Zonen oder solange du gesucht wirst. Die Drohungen brauchen „Mit gewöhnlichen NPCs sprechen“.",
 }

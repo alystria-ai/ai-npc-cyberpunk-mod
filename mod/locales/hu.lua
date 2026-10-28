@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "nincs csatlakoztatva",
     ["{name}, chosen in Settings > Voices."] = "{name}, a Beállítások > Hangok menüben választva.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, a Windows alapértelmezett bemenete. Másikat a Beállítások > Hangok > Mikrofon menüben lehet választani.",
+    ["Gameplay"] = "Játékmenet",
+    ["Revenge ambushes"] = "Bosszúból jövő támadások",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Az a banda, amelyet folyamatosan öldösöl, ritkán küldhet utánad kis osztagot rövid fenyegetéssel. Mindegyik után hosszú várakozás következik.\n\nSoha nem harc, jelenet, hívás, jármű, zárt tér, biztonsági zóna vagy körözés alatt. A fenyegetésekhez a „Beszélgetés hétköznapi NPC-kkel” kell.",
 }

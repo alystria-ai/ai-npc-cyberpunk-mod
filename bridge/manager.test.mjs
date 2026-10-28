@@ -4455,7 +4455,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
     local order = {}
     for _, category in ipairs(loaded.categories) do order[#order + 1] = category.id end
     local joined = table.concat(order, ',')
-    assert(joined:find('navigation,interface,conversation-controls,conversation-provider,companion-behavior,voices,', 1, true) and not joined:find('relationships', 1, true), joined)
+    assert(joined:find('navigation,interface,conversation-controls,conversation-provider,companion-behavior,gameplay,voices,', 1, true) and not joined:find('relationships', 1, true), joined)
     local function idsOf(categoryId)
       for _, category in ipairs(loaded.categories) do
         if category.id == categoryId then
@@ -6053,7 +6053,7 @@ test('Natural speech beside other providers is unaffected by a retired Multiling
   `);
 });
 
-test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures): no row, no snapshot key, no getter, no text on the page, no Apply branch, and Companion behavior keeps its rows (the two gaze rows, Companions change outfits, the Immersive invitations button and the Housemates button)', () => {
+test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures): no row, no snapshot key, no getter, no text on the page, no Apply branch, Companion behavior keeps the two gaze rows, and Gameplay holds the rest (Street reputation, NPCs react to threats and commands, Companions change outfits, the Immersive invitations and Housemates buttons, Revenge ambushes)', () => {
   run(`${nsuiFixture}
     local GONE = {autoConnectNearby = 'Auto-connect nearby characters', expressiveEmotions = 'Expressive emotions', gameDialogueContext = 'Continue from game dialogue',
       holocallLiveImage = 'Live holocall picture', bodyGestures = 'Body gestures'}
@@ -6091,8 +6091,13 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
       end
       local behavior
       for _, category in ipairs(loaded.categories) do if category.id == 'companion-behavior' then behavior = category end end
-      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 5, 'Companion behavior: two gaze rows, Companions change outfits, the Immersive invitations button and the Housemates button')
-      assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength' and behavior.settings[3].id == 'companionOutfits' and behavior.settings[4].id == 'immersive-invitations' and behavior.settings[5].id == 'housemates')
+      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 2, 'Companion behavior: the two gaze rows')
+      assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength')
+      local gameplay
+      for _, category in ipairs(loaded.categories) do if category.id == 'gameplay' then gameplay = category end end
+      assert(gameplay and gameplay.name == 'Gameplay' and #gameplay.settings == 6, 'Gameplay: six rows')
+      local want = {'reputation', 'npcThreats', 'companionOutfits', 'immersive-invitations', 'housemates', 'revengeAmbushes'}
+      for index, id in ipairs(want) do assert(gameplay.settings[index].id == id, 'Gameplay row ' .. index .. ': ' .. tostring(gameplay.settings[index].id)) end
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.
     for key in pairs(GONE) do

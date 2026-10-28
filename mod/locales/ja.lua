@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "未接続",
     ["{name}, chosen in Settings > Voices."] = "{name}、設定 > 音声 で選択。",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}、Windowsの既定の入力。別のものは設定 > 音声 > マイク で選べます。",
+    ["Gameplay"] = "ゲームプレイ",
+    ["Revenge ambushes"] = "復讐の待ち伏せ",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "何度も倒すギャングは、まれに少人数の部隊を送り込み、短い脅し文句を叫ばせることがある。1回ごとに長い間隔があく。\n\n戦闘、シーン、通話、乗り物の中、屋内、セーフゾーン、指名手配中には決して起きない。脅しには「一般NPCと会話」が必要。",
 }

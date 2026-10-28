@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "není připojen",
     ["{name}, chosen in Settings > Voices."] = "{name}, vybráno v Nastavení > Hlasy.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, výchozí vstup Windows. Jiný lze vybrat v Nastavení > Hlasy > Mikrofon.",
+    ["Gameplay"] = "Hratelnost",
+    ["Revenge ambushes"] = "Pomstná přepadení",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Gang, který pořád zabíjíš, ti vzácně pošle malou skupinu s krátkou výhrůžkou k vykřiknutí. Po každé následuje dlouhé čekání.\n\nNikdy během boje, scény, hovoru, ve vozidle, uvnitř, v bezpečné zóně nebo když tě hledá policie. Výhrůžky vyžadují „Mluvit s běžnými NPC“.",
 }

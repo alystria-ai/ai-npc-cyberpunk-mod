@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "연결 안 됨",
     ["{name}, chosen in Settings > Voices."] = "{name}, 설정 > 음성에서 선택됨.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, Windows 기본 입력. 다른 입력은 설정 > 음성 > 마이크에서 고를 수 있습니다.",
+    ["Gameplay"] = "게임플레이",
+    ["Revenge ambushes"] = "복수 매복",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "계속해서 죽이는 갱단이 드물게 짧은 위협과 함께 소규모 무리를 보낼 수 있어요. 한 번 뒤에는 오랜 대기 시간이 있어요.\n\n전투, 장면, 통화, 차량 안, 실내, 안전 구역, 수배 중에는 절대 나타나지 않아요. 위협에는 “일반 NPC와 대화”가 필요해요.",
 }

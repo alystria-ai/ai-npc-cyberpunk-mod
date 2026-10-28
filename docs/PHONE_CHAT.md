@@ -108,7 +108,7 @@ replies. No API keys or session IDs enter game widgets or test output.
 
 ## Meetings and texts she sends herself (Immersive invitations)
 
-With Settings > Companion behavior > Immersive invitations On, a typed message to a contact the mod can invite carries a **meet offer** (`meetOffer` in the
+With Settings > Gameplay > Immersive invitations On, a typed message to a contact the mod can invite carries a **meet offer** (`meetOffer` in the
 request: one-use token, where V is, the map waypoint when V set one, the delay and wait in minutes, or only a reason when she cannot come). The bridge
 (`bridge/meet-requests.mjs`) answers a clear request with an `action` (`meet-here`, `meet-waypoint`, `cancel-meet`) in `phone-chat-output.json` and the reply text without its
 tag; the game accepts it only for the offer it sent. A text a character sends on her own (arrived, stood up, called off) is a phone turn with an `event` and no typed line

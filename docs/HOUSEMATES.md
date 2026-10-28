@@ -585,7 +585,7 @@ Nothing is called from `onUpdate` per frame. Movement is AI commands only (walks
 
 The owner's decision: "make the housemate thing a submenu setting off by default, that way these new things we add when offed cant affect the game".
 `settings.housemates` (one saved table, `mod/manager.lua`; the page is `housemateSettingRows` in `mod/manager-ui.lua`, view `housemates`, opened by the
-**Housemates** button of Settings > Companion behavior, Back goes to Settings, Restore defaults covers it, MCM and Native Settings UI share the page):
+**Housemates** button of Settings > Gameplay, Back goes to Settings, Restore defaults covers it, MCM and Native Settings UI share the page):
 
 | Row | Values | Default | Key |
 | --- | --- | --- | --- |

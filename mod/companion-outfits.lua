@@ -1,4 +1,4 @@
--- Companions change outfits (Settings > Companion behavior > Companions change outfits, on by default; docs/COMPANION_OUTFITS.md).
+-- Companions change outfits (Settings > Gameplay > Companions change outfits, on by default; docs/COMPANION_OUTFITS.md).
 --
 -- A party copy of a curated character (mod/companion-outfits-data.lua) changes into another look of its own entity template: by the game's time of day
 -- (a day look, a night look), now and then for variety, and into casual clothes while V is at home. Only our own spawned copies are touched; a character the

@@ -2,7 +2,7 @@
 
 A Kingdom Come: Deliverance 2 style standing, for the generic people of Night City only: gang members, NCPD, corporate
 guards, nomads, vendors and passers-by (the archetypes of `characters/archetypes.json` and the two residents). It changes how
-they talk to V (greeting tone, trust, willingness) and nothing else. **Off by default** (Settings > Conversations >
+they talk to V (greeting tone, trust, willingness) and nothing else. **Off by default** (Settings > Gameplay >
 "Street reputation", `settings.reputation`). Named, story, quest and companion characters never get it.
 
 Research source: the KCD2 bullet in `TODO.md` ("Ideas and features"). What carried over: standing per group and per region,
@@ -175,7 +175,7 @@ Three gates, each enough by itself:
 
 ## 11. The setting
 
-`reputation`, boolean, **default off**, Settings > Conversations > "Street reputation", saved in `runtime/settings.json`.
+`reputation`, boolean, **default off**, Settings > Gameplay > "Street reputation", saved in `runtime/settings.json`.
 Help text: what it does, that it is only for ordinary people, that named characters are not affected, and that it is light
 (no per-frame work).
 

@@ -1552,7 +1552,7 @@ local function inviteKey(key)
     return queue.invite(key)
 end
 
--- Immersive invitations: its own page, opened from Companion behavior. The list values are positions in the lists of manager.immersiveChoices.
+-- Immersive invitations: its own page, opened from Gameplay. The list values are positions in the lists of manager.immersiveChoices.
 local function immersiveRows(snapshot)
     local value = snapshot.settings.immersive or {}
     local arrivals, delays, waits = manager.immersiveChoices()
@@ -1579,7 +1579,7 @@ local function immersiveRows(snapshot)
     }
 end
 
--- Housemates: its own page, opened from Companion behavior (docs/HOUSEMATES.md). Off by default: nothing of the feature is loaded while it is Off.
+-- Housemates: its own page, opened from Gameplay (docs/HOUSEMATES.md). Off by default: nothing of the feature is loaded while it is Off.
 -- The Move-in apartment list: "Ask me", then the apartments V owns now (the owned ones are known while Housemates is On). {ids, names (translated)}.
 local function moveInChoices()
     local ids, names = {'ask'}, {ui.t('Ask me')}
@@ -1959,10 +1959,6 @@ local function schema()
                 'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
             setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
-            setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
-                'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
-            setting('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot.settings.npcThreats == true, false,
-                'Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.'),
             -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
@@ -2002,6 +1998,14 @@ local function schema()
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.',
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
+        })
+        -- Settings > Gameplay (2026-10-28): what the world and the companions DO, as against what the characters say. Only the page moved: every row keeps its
+        -- stored key and its saved value. Revenge ambushes (docs/AMBUSHES.md) is new and off by default.
+        categories[#categories + 1] = category('gameplay', 'Gameplay', {
+            setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
+                'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
+            setting('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot.settings.npcThreats == true, false,
+                'Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.'),
             -- Off by default (the owner's call, 2026-10-25): party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
             setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits == true, false,
                 'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
@@ -2011,6 +2015,9 @@ local function schema()
             action('housemates', 'Housemates', 'Open',
                 'Characters you tell they can stay at your place move into your apartments and live there.\n\nOff by default.',
                 function() return navigate('housemates') end),
+            -- Off by default: a gang V keeps killing may send a small squad after V, now and then, with a threat of its own to shout (mod/revenge-ambush.lua).
+            setting('revengeAmbushes', 'Revenge ambushes', 'bool', snapshot.settings.revengeAmbushes == true, false,
+                'A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs.'),
         })
         -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
         -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
@@ -2592,6 +2599,7 @@ function M.apply(changes)
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'npcThreats' then values.npcThreats = change.value
+        elseif key == 'revengeAmbushes' then values.revengeAmbushes = change.value
         elseif key == 'johnnyInHead' then
             -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
             local pick = ({'off', 'off', 'rare', 'medium', 'normal'})[change.value]

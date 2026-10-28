@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "не підключено",
     ["{name}, chosen in Settings > Voices."] = "{name}, обрано в Налаштування > Голоси.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, стандартний вхід Windows. Інший обирається в Налаштування > Голоси > Мікрофон.",
+    ["Gameplay"] = "Ігровий процес",
+    ["Revenge ambushes"] = "Засідки помсти",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Банда, яку ти постійно вбиваєш, рідко може надіслати невеликий загін із короткою погрозою. Після кожного настає довга пауза.\n\nНіколи під час бою, сцени, дзвінка, у транспорті, в приміщенні, в безпечній зоні чи коли тебе розшукують. Погрози потребують «Розмови зі звичайними NPC».",
 }

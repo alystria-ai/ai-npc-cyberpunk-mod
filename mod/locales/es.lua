@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "no conectado",
     ["{name}, chosen in Settings > Voices."] = "{name}, elegido en Ajustes > Voces.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, la entrada predeterminada de Windows. Otra se elige en Ajustes > Voces > Micrófono.",
+    ["Gameplay"] = "Jugabilidad",
+    ["Revenge ambushes"] = "Emboscadas de venganza",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Una banda a la que sigues matando puede enviarte, rara vez, un pequeño escuadrón con una breve amenaza. Tras cada una hay una larga espera.\n\nNunca en combate, escenas, llamadas, vehículos, interiores, zonas seguras ni mientras te busca la policía. Las amenazas necesitan «Hablar con PNJ comunes».",
 }

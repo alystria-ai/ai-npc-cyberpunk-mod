@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "non connesso",
     ["{name}, chosen in Settings > Voices."] = "{name}, scelto in Impostazioni > Voci.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, l'ingresso predefinito di Windows. Impostazioni > Voci > Microfono ne sceglie un altro.",
+    ["Gameplay"] = "Giocabilità",
+    ["Revenge ambushes"] = "Agguati di vendetta",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Una banda che continui a uccidere può mandarti, di rado, una piccola squadra con una breve minaccia. Ognuna è seguita da una lunga attesa.\n\nMai durante scontri, scene, chiamate, a bordo di un veicolo, al chiuso, in zone sicure o mentre sei ricercato. Le minacce richiedono «Parla con PNG comuni».",
 }

@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "bağlı değil",
     ["{name}, chosen in Settings > Voices."] = "{name}, Ayarlar > Sesler'de seçildi.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, Windows varsayılan girişi. Başkasını Ayarlar > Sesler > Mikrofon'dan seçebilirsin.",
+    ["Gameplay"] = "Oynanış",
+    ["Revenge ambushes"] = "İntikam pusuları",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Sürekli öldürdüğün bir çete, nadiren kısa bir tehditle küçük bir ekip gönderebilir. Her birinin ardından uzun bir bekleme gelir.\n\nAsla dövüş, sahne, telefon görüşmesi, araç içi, bina içi, güvenli bölge ya da arananken olmaz. Tehditler için «Sıradan NPC'lerle konuş» gerekir.",
 }

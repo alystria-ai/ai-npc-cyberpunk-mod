@@ -1544,4 +1544,7 @@ return {
     ["not connected"] = "niepodłączony",
     ["{name}, chosen in Settings > Voices."] = "{name}, wybrany w Ustawienia > Głosy.",
     ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, domyślne wejście Windows. Inne wybierzesz w Ustawienia > Głosy > Mikrofon.",
+    ["Gameplay"] = "Rozgrywka",
+    ["Revenge ambushes"] = "Zasadzki z zemsty",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Gang, który ciągle zabijasz, może rzadko wysłać mały oddział z krótką groźbą. Po każdym następuje długa przerwa.\n\nNigdy podczas walki, sceny, połączenia, w pojeździe, w budynku, w strefie bezpiecznej ani gdy jesteś poszukiwany. Groźby wymagają „Rozmowy ze zwykłymi NPC”.",
 }

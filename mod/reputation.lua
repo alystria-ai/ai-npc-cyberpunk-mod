@@ -1,4 +1,4 @@
--- Street reputation, the game side (docs/REPUTATION_DESIGN.md). Loaded and hooked only while Settings > Conversations > Street reputation
+-- Street reputation, the game side (docs/REPUTATION_DESIGN.md). Loaded and hooked only while Settings > Gameplay > Street reputation
 -- is on (settings.reputation, default off): with it off init.lua never loads this file, so no hook is registered and nothing is written.
 --
 -- It records V's deeds as they happen, event-driven only (no update function, nothing per frame):
@@ -26,6 +26,8 @@ M.DISTRICT_CACHE = 15   -- seconds a district read is reused (a firefight kills 
 --   stat(name)           V's stat by gamedataStatType name (StreetCred, Level), or nil
 --   write(path, raw)     optional; default io.open 'wb' in place (the file ships as an empty placeholder: Mod Organizer 2)
 --   clock()              seconds (os.clock)       log(line)       session   this CET session's id
+--   onDeed(row, npc)     optional: told of every kill or takedown that was recorded (Revenge ambushes, mod/revenge-ambush.lua, keeps its own grudge
+--                        from them); a throw is swallowed. The recorder runs while Street reputation OR Revenge ambushes is on (init.lua `enabled`).
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local S = {options = options, ring = {}, seq = 0, flushed = 0, hooks = {}, counts = {calls = 0, recorded = 0, skipped = {}, seconds = 0},
@@ -116,6 +118,7 @@ function M.new(options)
                 p = call(function() return npc:IsCharacterPolice() end) == true,
                 c = call(function() return npc:IsCrowd() end) == true}
             done = record(row)
+            if done and type(options.onDeed) == 'function' then pcall(options.onDeed, row, npc) end
         end)
         if not ok then skip('read-failed'); say('error:' .. kind, 'Reputation: ' .. kind .. ' hook failed: ' .. tostring(err):sub(1, 160)) end
         S.counts.seconds = S.counts.seconds + math.max(0, clock() - started)
