@@ -3,7 +3,6 @@
   "exchange": [
     "addon-state.json",
     "addons-status.json",
-    "ambush-state.json",
     "audio-delay.json",
     "battle-cancellations.json",
     "bridge-latency.json",
@@ -27,7 +26,6 @@
     "custom-characters.json",
     "custom-provider-command.json",
     "custom-provider-state.json",
-    "eddies-ledger.json",
     "eddies-offer.json",
     "editor-command.json",
     "editor-status.json",
@@ -90,7 +88,9 @@
   ],
   "state": [
     "addon-settings.json",
+    "ambush-state.json",
     "decision-ledger.json",
+    "eddies-ledger.json",
     "favorites.json",
     "housemate-learned.json",
     "housemates.json",
