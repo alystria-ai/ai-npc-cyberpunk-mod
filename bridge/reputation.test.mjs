@@ -299,7 +299,7 @@ test('Lua: nothing is hooked, recorded, captured or written while the setting is
   // And init.lua loads the module only when the setting is on; the update loop never mentions it.
   const init = read('../mod/init.lua');
   assert.match(init, /function convaiDeedsWanted\(\)\r?\n    if type\(manager\.reputation\) == 'function' and manager\.reputation\(\) then return true end\r?\n    return type\(manager\.revengeAmbushes\) == 'function' and manager\.revengeAmbushes\(\) == true\r?\nend\r?\nfunction convaiReputationWanted\(\)\r?\n    if not convaiDeedsWanted\(\) then return nil end/);
-  assert.match(init, /if type\(manager\.reputation\) == 'function' and manager\.reputation\(\) then pcall\(convaiReputationWanted\) end/);
+  assert.match(init, /if convaiDeedsWanted\(\) then pcall\(convaiReputationWanted\) end/);
   assert.match(init, /if convaiReputation or convaiReputationPending then pcall\(convaiReputationAttach, context\) end/);
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));
   assert.doesNotMatch(update, /[Rr]eputation/, 'nothing per frame');
