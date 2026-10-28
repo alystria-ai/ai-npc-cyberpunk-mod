@@ -203,8 +203,13 @@ public abstract class ConvaiBarkGate {
     }
 }
 
+// The game's own signature, return type included (DelayID): other mods wrap this method too (Much Better Contracts, Night City Allies
+// companions) and return what their wrappedMethod gives, so a wrapper declared -> Void here broke their compile (and with it every redscript mod).
 @wrapMethod(GameObject)
-public static func PlayVoiceOver(self: ref<GameObject>, voName: CName, debugInitialContext: CName, opt delay: Float, opt answeringEntityId: EntityID, opt ignoreFrustumCheck: Bool) -> Void {
-    if ConvaiBarkGate.Ambient(voName) && ConvaiBarkGate.Muted(self) { return; };
-    wrappedMethod(self, voName, debugInitialContext, delay, answeringEntityId, ignoreFrustumCheck);
+public final static func PlayVoiceOver(self: ref<GameObject>, voName: CName, debugInitialContext: CName, opt delay: Float, opt answeringEntityID: EntityID, opt canPlayInVehicle: Bool) -> DelayID {
+    if ConvaiBarkGate.Ambient(voName) && ConvaiBarkGate.Muted(self) {
+        let dropped: DelayID;
+        return dropped;
+    };
+    return wrappedMethod(self, voName, debugInitialContext, delay, answeringEntityID, canPlayInVehicle);
 }

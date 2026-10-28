@@ -95,7 +95,7 @@ A phone-overhaul mod that wraps the same methods therefore still runs for every 
 Always skipped: `NewHudPhoneGameController.SelectOtherTab` (the phone's Tab key). The mod makes it cycle Unread, Contacts and Chat through its own
 `ConvaiSelectPhoneTab`, so a phone mod that wraps `SelectOtherTab` beneath ours never runs while this mod is installed. It is the one wrapper that behaves like
 a replace; `bridge/redscript-compat.test.mjs` names it so a second one cannot appear unnoticed.
-Elsewhere: `GameObject.PlayVoiceOver` returns early for four ambient contexts (`greeting`, `fear_foll`, `stlh_curious_grunt`, `bump`) within 15 m of V
+Elsewhere: `GameObject.PlayVoiceOver` (declared with the game's own `-> DelayID`, so other mods' wrappers stacked on it compile) returns an empty `DelayID` early for four ambient contexts (`greeting`, `fear_foll`, `stlh_curious_grunt`, `bump`) within 15 m of V
 while a mod conversation is open. `AIMoveToCommandHandler.UpdateCommand` runs for every walking NPC each AI tick: one type test and one Bool read.
 
 Other mods that change these classes, in practice: phone UI overhauls (the 39 phone wraps), voice-over and bark mods (`PlayVoiceOver`), AI-movement mods
@@ -112,7 +112,8 @@ Other mods that change these classes, in practice: phone UI overhauls (the 39 ph
 | 2.5 build against the 2.31 game | compiles |
 | **2.31 build against the 2.5 game** | **fails**: `[NO_MATCHING_OVERLOAD] … GameVariant.reds:20:12`, then `REDScript compilation has failed. - CyberpunkConvai` |
 | another mod `@replaceMethod`s `NewHudPhoneGameController.OnInitialize`, `PhoneMessagePopupGameController.SetupData`, `MessengerDialogViewController.UpdateData`, `PlayerPuppet.OnGameAttached`, `GameObject.PlayVoiceOver` (the exact vanilla signatures); its folder sorts before and after ours | compiles both ways |
-| another mod `@wrapMethod`s the same five | compiles |
+| another mod `@wrapMethod`s the same five | compiles (those synthetic wrappers returned nothing; see the next row) |
+| Much Better Contracts 2.1 and Rebecca NPV for Night City Allies 1.4 (with Night City Allies 1.6.11, Audioware 1.10.1, TweakXL 1.12.0), 2.5 | **failed** before 28 Oct: our `PlayVoiceOver` wrapper declared `-> Void`, theirs `return wrappedMethod(...)` as the game's `DelayID` (`can't coerce 'Void' into 'DelayID'`, SecurityReplay.reds:35 / Greeting.reds:64). Fixed: ours declares the game's own signature and returns the original's value; `GAME_RETURN_TYPES` in the test holds it. Compiles now, and the 2.31 build still compiles |
 | two other mods `@replaceMethod` one method we wrap | compiles (the later file silently wins) |
 
 `Compile-Redscript.ps1` was changed for this: it now also puts every other RED4ext plugin's `Scripts` folder (TweakXL, ArchiveXL) on the compile, as the game does;
