@@ -35,6 +35,30 @@ same renderer as Pocket, Voxtral and Convai.
 - The bridge removes what older versions left under `r6/audioware/CyberpunkConvai` (`removeAudioDepot`, only files of exactly our names), and
   `packaging/runtime-removals.json` declares them for Runtime updates.
 
+## Joins between phrases (28 Oct 2026, branch `feat/voice-034`)
+
+The owner heard OmniVoice as "broken in phrases" at the joins and the ends. Measured on the CUDA model with the worker's own call (postprocess off): the model pads
+every phrase with silence of its own, **150 to 900 ms before the first word (often 450 to 650) and 130 to 300 ms after the last**, so two phrases had 0.4 to 1.2 s of
+dead air between them, a different length each time, even where the cut fell at a comma; the first word of a reply came about half a second late; phrases differ in
+loudness by a few dB; and a phrase can end on the model's last frame with the voice still sounding. The cuts also fell at commas of a long sentence (the first
+cut at the first comma after 12 words, later ones after 22), where the model ends its intonation as a finished sentence.
+
+- `bridge/omni-join.mjs` (`PhraseJoiner`, used by `bridge/omni-pcm.mjs`): each phrase is cropped to its speech (30 ms of air before the first frame above -45 dB of the
+  phrase's loudest, 80 ms after the last; 120 ms after the reply's last), faded (6 ms in where the crop began inside the padding, 30 ms raised-cosine out), set to the
+  first phrase's loudness within +-3 dB (never past 0.98 peak; the first phrase is left as rendered) and followed by a pause of a speaker's length counted from sound to
+  sound: 320 ms after a sentence, 140 ms after a comma or dash, 110 ms for a cut with no mark. A silence of more than 600 ms between two words inside a phrase (the model
+  sometimes leaves 1.1 s between the sentences of one render) is cut to 450 ms, as the model's own post-processing (`mid_sil`, off in the worker) would. `createOmniPcmVoice({join: false})`
+  sends phrases as rendered.
+- `bridge/speech-phrases.mjs` (`PHRASE_LIMITS`): the first phrase ends at the first sentence end after 6 words (within 24; else the last comma within 24, else a sentence
+  end within 32, else 24 words) so the first word is still early; the second, which renders while the first plays, ends at the last sentence end within 24 words
+  (a longer sentence is not cut, it ends at its own end within 40); later phrases end at the LAST sentence end that fits 40 words (was a comma cut from 12 or 22 words
+  on). A comma is a cut only when no sentence end can be reached. A render costs a fixed 1.4 to 1.7 s on a quiet RTX 4080 Laptop whatever its length up to about 5 s of
+  speech (+0.1 s per further second), so longer later phrases are cheaper than two short ones.
+- Cropping the model's lead is also the biggest first-sound gain: the first word starts 30 ms after the first packet instead of 450 to 900 ms.
+- Measure: `node scripts/Measure-OmniJoins.mjs` (renders old and new cuts of four sample replies with `scripts/Render-OmniPhrases.py`, writes before/after WAVs and
+  first-word / finished / join-silence numbers). Tests: `bridge/omni-join.test.mjs`, `bridge/speech-phrases.test.mjs`, `bridge/omni-pcm.test.mjs`.
+- Not changed: V's own OmniVoice line (`bridge/v-voice.mjs omniProducer`) still plays the render as the model made it plus the line's edges (`bridge/pcm-edges.mjs`).
+
 ## Cost
 
 - No per-frame work was added in the game: the Lua side lost code (the native phrase path, the manifest poll, the Audioware cursor read).

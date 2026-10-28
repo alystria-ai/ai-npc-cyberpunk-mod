@@ -80,3 +80,22 @@ test('a phrase that cannot be measured is passed on whole, and the shaping is fa
   for (let n = 0; n < 20; n++) new PhraseJoiner().shape(long, {text: 'A long one.', first: true});
   assert.ok((performance.now() - began) / 20 < 20, 'twelve seconds of speech shaped in well under 20 ms');
 });
+
+test('a silence of more than 600 ms between two words inside a phrase is cut to 450 ms, shorter ones are left alone', () => {
+  const word = seconds => phrase({lead: 0, speech: seconds * 1000, tail: 0});
+  const gap = milliseconds => new Float32Array(ms(milliseconds));
+  const make = silence => Float32Array.from([...phrase({lead: 300, speech: 0, tail: 0}), ...word(0.6), ...gap(silence), ...word(0.6), ...gap(200)]);
+  const lengthOf = silence => new PhraseJoiner().shape(make(silence), {text: 'Hello.', first: true, last: true}).length;
+  const found = measureSpeech(make(1200));
+  assert.equal(found.pauses.length, 1);
+  assert.ok(Math.abs((found.pauses[0][1] - found.pauses[0][0]) - ms(1200)) <= ms(20));
+  assert.equal(measureSpeech(make(500)).pauses.length, 0, '500 ms is a pause, not dead air');
+  // 1200 ms becomes 450: the phrase is 750 ms shorter than the same phrase with the silence left in.
+  const shortened = lengthOf(1200), kept = lengthOf(500);
+  assert.ok(Math.abs((shortened - kept) - ms(450 - 500)) <= ms(25), `${shortened} vs ${kept}`);
+  const out = new PhraseJoiner().shape(make(1200), {text: 'Hello.', first: true, last: true});
+  assert.equal(measureSpeech(out).pauses.length, 0);
+  // Both words are whole.
+  let loud = 0; for (const value of out) if (Math.abs(value) > 0.1) loud++;
+  assert.ok(loud > ms(800));
+});

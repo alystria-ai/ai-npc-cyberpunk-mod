@@ -8,6 +8,8 @@
 //   - cropped to its speech: from `LEAD_KEEP_MS` before the first frame that is louder than -45 dB of the phrase's loudest, to `TAIL_KEEP_MS` after the
 //     last such frame (`LAST_TAIL_KEEP_MS` after the reply's last phrase). Nothing audible is cut: the thresholds sit far below a quiet consonant, and the
 //     kept margins hold the soft start of a breath and the decay of the last syllable;
+//   - shortened inside: a silence of more than INNER_PAUSE_MAX_MS between two words (the model sometimes leaves 1 s or more between the sentences of one
+//     phrase) is cut to INNER_PAUSE_KEEP_MS, the way the model's own post-processing does (its mid_sil), which the worker switches off;
 //   - faded: 6 ms in where the crop began inside the model's padding, 30 ms out at the end (a raised cosine, so even a phrase that ends on the model's last
 //     frame ends smoothly);
 //   - set to the loudness of the reply's first phrase, within +-3 dB (the first phrase is left as rendered, it is already on its way to the speaker), never
@@ -24,6 +26,8 @@ export const FADE_OUT_MS = 30;
 export const PAUSE_SENTENCE_MS = 320;
 export const PAUSE_CLAUSE_MS = 140;
 export const PAUSE_PLAIN_MS = 110;
+export const INNER_PAUSE_MAX_MS = 600;
+export const INNER_PAUSE_KEEP_MS = 450;
 export const SPEECH_FLOOR_DB = -45;
 export const MATCH_LIMIT_DB = 3;
 const FRAME_MS = 10;
@@ -37,8 +41,8 @@ export const phraseEnding = text => (SENTENCE_END.test(String(text ?? '').trim()
 const samples = (ms, rate = JOIN_RATE) => Math.round(ms * rate / 1000);
 
 /**
- * Where the speech of a phrase is: {start, end} in samples (end exclusive), the RMS `level` of its voiced frames and its `peak`; null when the phrase has no
- * frame above the floor (silence, or a few samples).
+ * Where the speech of a phrase is: {start, end} in samples (end exclusive), the RMS `level` of its voiced frames and its `peak`, and `pauses`: the silences
+ * between words longer than INNER_PAUSE_MAX_MS as [from, to) sample ranges. Null when the phrase has no frame above the floor (silence, or a few samples).
  */
 export function measureSpeech(pcm, rate = JOIN_RATE) {
   const frame = Math.max(1, samples(FRAME_MS, rate)), count = Math.floor(pcm.length / frame);
@@ -58,7 +62,13 @@ export function measureSpeech(pcm, rate = JOIN_RATE) {
     if (energy[at] > voicedFrom) { voiced++; voicedEnergy += energy[at]; }
   }
   if (first < 0 || voiced === 0) return null;
-  return {start: first * frame, end: Math.min(pcm.length, (last + 1) * frame), level: Math.sqrt(voicedEnergy / voiced), peak};
+  const pauses = [], longest = Math.ceil(INNER_PAUSE_MAX_MS / FRAME_MS);
+  for (let at = first, from = -1; at <= last + 1; at++) {
+    const quiet = at <= last && Math.sqrt(energy[at]) <= threshold;
+    if (quiet && from < 0) from = at;
+    else if (!quiet && from >= 0) { if (at - from > longest) pauses.push([from * frame, at * frame]); from = -1; }
+  }
+  return {start: first * frame, end: Math.min(pcm.length, (last + 1) * frame), level: Math.sqrt(voicedEnergy / voiced), peak, pauses};
 }
 
 /**
@@ -88,8 +98,17 @@ export class PhraseJoiner {
       const wanted = this.previous.ending === 'sentence' ? PAUSE_SENTENCE_MS : this.previous.ending === 'clause' ? PAUSE_CLAUSE_MS : PAUSE_PLAIN_MS;
       pause = Math.max(0, samples(wanted, rate) - this.previous.tail - lead);
     }
-    const body = end - start, out = new Float32Array(pause + body);
-    out.set(pcm.subarray(start, end), pause);
+    // The stretches of the crop that are kept: all of it, less the middle of every long silence between words.
+    const keep = samples(INNER_PAUSE_KEEP_MS, rate), parts = [];
+    let cursor = start;
+    for (const [from, to] of measured?.pauses ?? []) {
+      if (to - from <= keep || from < cursor || to > end) continue;
+      const half = Math.floor(keep / 2);
+      parts.push(pcm.subarray(cursor, from + half)); cursor = to - (keep - half);
+    }
+    parts.push(pcm.subarray(cursor, end));
+    const body = parts.reduce((total, part) => total + part.length, 0), out = new Float32Array(pause + body);
+    for (let at = pause, part = 0; part < parts.length; at += parts[part].length, part++) out.set(parts[part], at);
     if (measured) {
       let gain = 1;
       if (this.reference === null) this.reference = measured.level;
