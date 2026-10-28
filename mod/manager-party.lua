@@ -557,6 +557,8 @@ function M.new(companions, readiness, options)
             gate = type(extra) == 'table' and type(extra.gate) == 'function' and extra.gate or nil,
             quiet = type(extra) == 'table' and extra.quiet == true or nil,
             resident = type(extra) == 'table' and extra.resident == true or nil,
+            -- A party spawned from a saved party (Parties page): its bodies are created one per flush, not all in one frame.
+            stagger = type(extra) == 'table' and extra.stagger == true or nil,
             -- An immersive-invitation visitor (mod/immersive-invitations.lua): where and when she is created.
             appointment = type(extra) == 'table' and type(extra.appointment) == 'table' and extra.appointment or nil}
         -- A generic person (no memory of its own to prepare) joins as a model
@@ -829,6 +831,7 @@ function M.new(companions, readiness, options)
             end
         end
         local remaining = {}
+        local staggeredSpawn = false
         for _, job in ipairs(joins) do
             local status = preparation(job)
             local gate, gateReason = true, nil
@@ -843,6 +846,9 @@ function M.new(companions, readiness, options)
                 joinFailed(job, ui.t(job.error), job.id)
             elseif not job.error and gate == false then
                 remaining[#remaining + 1] = job
+            elseif not job.error and job.stagger and staggeredSpawn and (status.state == 'ready' or status.state == 'model-only') then
+                -- A saved party already made a body in this flush: this one waits for the next (a quarter of a second later).
+                remaining[#remaining + 1] = job
             elseif not job.error and (status.state == 'ready' or status.state == 'model-only') then
                 local called, serial, err, deferred = pcall(companions.spawn, job.key, job)
                 if called and deferred == true then
@@ -850,6 +856,7 @@ function M.new(companions, readiness, options)
                     -- failure. Keep its prepared reservation and retry later.
                     remaining[#remaining + 1] = job
                 elseif called and serial then
+                    if job.stagger then staggeredSpawn = true end
                     local assigned, assignmentError = companions.setProfile(serial, job.profileKey or job.attachProfileKey,
                         job.profileKey and job.profileName or job.attachProfileName or job.profileName)
                     job.warning = not assigned and tostring(assignmentError) or nil

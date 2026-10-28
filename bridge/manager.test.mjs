@@ -3271,9 +3271,11 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
       assert(item.label == names[index], 'a row is the base name and its number: ' .. tostring(item.label))
     end
     local total = 0
+    -- Save current party (saved parties) closes the section once somebody is in it: it is no copy's row.
+    assert(row('party:save') and row('party:save').value == 'Save')
     for _, section in ipairs(loaded.categories) do
       for _, item in ipairs(section.id ~= 'navigation' and section.settings or {}) do
-        total = total + 1
+        if item.id ~= 'party:save' then total = total + 1 end
         assert(not item.id:find('^state:') and not item.id:find('^assign') and item.id ~= 'feedback'
           and item.id ~= 'party-count', 'extra party row ' .. item.id)
         assert(not item.label:find('Following') and not item.value:find('Following') and not item.value:find('/ 8'))

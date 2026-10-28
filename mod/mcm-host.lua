@@ -325,9 +325,10 @@ local function schema()
     if api then
         pageSeen = core.pageId()
         -- The Model browser searches itself (followSearch): with the provider search mode MCM does not filter the rows by the box, which
-        -- would hide the models the page lists on a page of twelve. Every other page keeps MCM's own filter.
+        -- would hide the models the page lists on a page of twelve. Parties takes the same mode because the box holds the name the Rename
+        -- button takes, not a filter. Every other page keeps MCM's own filter.
         local navigation = {pageId = pageSeen, backActionId = currentBack and currentBack.id, escapeBack = true,
-            searchMode = searchProvider and (core.view() == 'models' or core.view() == 'characters') and 'provider' or nil}
+            searchMode = searchProvider and (core.view() == 'models' or core.view() == 'characters' or core.view() == 'party') and 'provider' or nil}
         local called, accepted = pcall(api.ui.setNavigation, MOD_KEY, navigation)
         if navigation.searchMode and not (called and accepted == true) then
             -- An MCM that refuses the option refuses the whole call: the page is given without it, and keeps MCM's filter and no hint.
@@ -399,14 +400,14 @@ end
 local function followSearch()
     local view = core.view()
     if view ~= searchView then
-        local involved = view == 'models' or searchView == 'models' or view == 'characters' or searchView == 'characters'
+        local involved = view == 'models' or searchView == 'models' or view == 'characters' or searchView == 'characters' or view == 'party' or searchView == 'party'
         searchView = view
         if involved and contextSearch ~= '' then
             pcall(api.ui.setSearch, MOD_KEY, '')
             contextSearch = ''
         end
     end
-    if (view == 'models' or view == 'characters') and searchProvider then core.setSearch(contextSearch) end
+    if (view == 'models' or view == 'characters' or view == 'party') and searchProvider then core.setSearch(contextSearch) end
 end
 
 -- A button of a long list's page control: the list moves to another page, or to the next letter group.

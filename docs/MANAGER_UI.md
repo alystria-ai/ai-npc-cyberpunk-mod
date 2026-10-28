@@ -30,7 +30,7 @@ that sub-pages stuck. The page logic moved to `mod/manager-ui.lua`, the NSUI hos
 Mods screen (Esc > Mods)
  +-- tab "AI NPC Cyberpunk Mod"            id aiNpcCyberpunkMod; one tab for the whole manager
       +-- section "Companion Manager"      first section of every page, kept when the page changes
-      |     Home:         Characters to invite, Current party, Model browser, Character editor,   (button "Open")
+      |     Home:         Characters to invite, Parties, Model browser, Character editor,   (button "Open")
       |                   Key bindings, Settings
       |     other pages:  the Back row at the TOP                                         (button "Back")
       |     then, only when there is something to say: one feedback line
@@ -42,7 +42,7 @@ Mods screen (Esc > Mods)
 | Home | none | none: the six destinations are the page (the fourth, Character editor, opens the browser at once and has no page; Key bindings sits between it and Settings) |
 | Key bindings | Home | one section for each of the seven actions (the key set here, the key set in Cyber Engine Tweaks, Set, Clear), Controller (`docs/KEY_BINDINGS.md`) |
 | Characters to invite | Home | Characters to invite |
-| Current party | Home | Your group (only while a companion drives), Current party |
+| Parties (was Current party until 2026-10-28) | Home | Your group (only while a companion drives), Current party, one Saved party section for each saved party |
 | Model browser | Home | Installed character models |
 | Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Gameplay, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
 | Memory | Settings | Memory, Whose memories |
@@ -75,7 +75,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 
 ## Player flow
 
-- **Home:** six destinations: Characters to invite, Current party, Model browser, Character editor, Key bindings, Settings (2026-10-25: Key bindings between the
+- **Home:** six destinations: Characters to invite, Parties, Model browser, Character editor, Key bindings, Settings (2026-10-25: Key bindings between the
   Character editor and Settings). All but the Character editor move to a page of the manager.
   **Key bindings** (`docs/KEY_BINDINGS.md`) is where the player gives the mod's own actions a key or controller button (press its Key or button row, then the key; Clear). Set and Clear are
   actions, applied at once on both hosts (MCM refuses an action while drafts are pending, as for every button). Since 0.3.4 there is no Controller talk button: a controller button is given to Talk by voice here. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
@@ -91,7 +91,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   model to spawn. The help of a row shows the character's summary, voice, conversation state, relationship mode, the shared settings in
   effect (speech, behavior, memory) and, for a character in the party, how many copies. This catalogue is independent of phone
   contacts and quest unlocks. There is no search box (NSUI has none); the list pages (see "How lists page").
-- **Current party:** one row per actual or invited copy, "Name #number", with one action per state: **Dismiss** once it has joined, **Cancel invitation** while it is
+- **Parties** (its first section is **Current party**; saved parties are under it, see "Parties" below): one row per actual or invited copy, "Name #number", with one action per state: **Dismiss** once it has joined, **Cancel invitation** while it is
   still being prepared, **Remove** if its preparation failed. A copy that is dismissed leaves the list at once, even while the game is paused; the world deletion is queued and runs after
   gameplay resumes, and if the game refuses it the row returns with the reason on a line below it. A failed invitation is listed with its
   reason and **Remove** only while the menu is paused: when gameplay resumes the queue posts its one notice and drops it. An empty party shows "Your party is empty". While a companion drives (the chauffeur), the section **Your group**
@@ -555,6 +555,50 @@ Ukrainian, Chinese, Japanese, Korean; `mod/ui-fonts.lua`) needs that family when
 description area get it, in bounded batches from update, after a draw and when the tab opens; the description area's font goes back
 when the tab is left. Latin languages (Italian, Polish, Czech, Hungarian and Turkish included, which the game ships with its ordinary
 Latin family) get nothing, and no widget is walked (tested).
+
+## Parties (saved parties, 2026-10-28, branch `feat/saved-parties`)
+
+The Home destination formerly called Current party is **Parties** (view id `party`, row id `tab:party`). Its first section is still **Current party**,
+unchanged (one row per copy, the housemates, the driver group above it). New:
+
+* **Save current party** (`party:save`), the last row of Current party and shown only while somebody is in the party. It stores the party as
+  **Party 1**, **Party 2** and so on (the lowest number no saved party has; the word comes from the string "Party", so it follows the interface
+  language at the moment of saving). It keeps, in order, each member's character key and name: a character in the party twice is two entries (a
+  copy), and a character the player made in the character editor is an entry like any other (its key is the custom key). Nothing else is kept,
+  because the invitation has no other per-member choice: the conversation profile of a copy is the character's own, and voice, outfit and behaviour
+  are saved by character in the settings already. Members still being prepared count; a copy that is leaving and a failed invitation do not.
+* One section per saved party under Current party, headed **Saved party: {name}**, with a read-only line of the members ("Judy, Panam (2)"; a
+  character twice shows her count) and four buttons:
+  * **Spawn party** invites the members. It ADDS to the party and dismisses nobody (the choice made: replacing would dismiss people the player did not
+    ask to lose). A character already in the party (joined, being prepared, or an appointment of Immersive invitations still on her way) counts
+    toward the saved members, so pressing it twice does not double the party, and a saved party that names a character twice gets her second copy.
+    Each missing member goes through the same invitation as the Invite button: the same queue, preparation, notices board and "joined" notice. With
+    Immersive invitations On the first invitation of a character is an appointment (the Invite button's behaviour), a copy beyond the first is a
+    plain invitation. A member that cannot come (the character model is gone, for example a deleted custom character, or the invitation is refused) is
+    left out and named with the reason in the feedback line, "Could not invite: Rita (that character model is unavailable).", and the others still come.
+    There is no party size limit (see "Party size"), so none is checked. The bodies appear one per queue flush (a flush runs about four times a
+    second): `queue.invite(key, {stagger = true})` marks the job and `mod/manager-party.lua` `flush` makes at most one marked body per flush, so a party
+    of six does not create six bodies in one frame. A plain Invite is not staggered. Placement still spends the shared query budget as before.
+  * **Update with current party** replaces the saved members with the current party (disabled while the party is empty, so a saved party is never
+    wiped).
+  * **Rename party** takes the new name from **Mod Configuration Menu's Search box**: type the name there, then press Rename. Native Settings UI has no
+    text field (nor does anything else in the manager: the Model browser's search uses the same box), so there the row says so and the default name
+    stays. On this page the box is not a filter: `mcm-host.lua` gives the page MCM's provider search mode (as for Characters to invite and the Model
+    browser), `M.setSearch` keeps the typed text with its case in `modelFind.typed` and draws nothing for it, and the box is emptied on the way in and out like on
+    those pages. A name is cleaned to one line of at most 32 characters without braces, and another saved party's name (case-insensitive) is refused.
+  * **Delete** asks twice: the first press turns the button into "Press again" (and says so), the second deletes. Any other button or another page
+    disarms it.
+  Up to 12 saved parties, up to 16 members each (a longer party is cut and the feedback says so).
+* Storage: `runtime/saved-parties.json`, `{version = 1, next = n, parties = [{id = "party-<n>", name, members = [{key, name}]}]}`, written by
+  `mod/saved-parties.lua` only when a button changes something (a write that fails keeps the parties for the session and the feedback line says so),
+  read once when the page first needs it. It is player state like `favorites.json`: listed in `GAME_STATE_FILES` (`bridge/game-state.mjs`) and in
+  the `state` class of `packaging/runtime-exchange.json`, so the service keeps a copy outside the game folder, restores it if the file goes missing,
+  and no package ever ships or replaces it (`packaging/vortex-no-rewrites.test.mjs`). It belongs to the player, not to a save. The module loads
+  with `pcall(dofile, 'saved-parties.lua')` and is read through the global `convaiSavedParties`; without it the page is the old Current party page.
+* Cost: nothing runs per frame. The page is built when it opens or changes (its signature carries the saved-parties revision), the file is read
+  once, and a Spawn is one pass over at most 16 members.
+* Characters the game placed (story characters too) are not part of this: a saved party only ever invites our companions and copies, as the Invite
+  button does.
 
 ## Party size
 

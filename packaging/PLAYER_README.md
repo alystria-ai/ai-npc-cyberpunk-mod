@@ -254,7 +254,8 @@ Invite someone from Companion Manager > Characters to invite. Party members foll
 
 - **Drive you somewhere:** set a waypoint on the map and have your car nearby (call it, or stand within 20 m of one of your cars). Ask them to drive, for example "can you drive us to the waypoint?". They walk to the car and take the wheel; get in the passenger seat yourself within a few minutes. Change the waypoint and they follow it. Stop trip in the Companion Manager ends it; fast travel or loading a save does too.
 - **Fight someone:** tag the enemy with your scanner (or look right at them) and tell them to attack. They fight on their own anyway when a fight starts.
-- **Leave:** tell them to go home or leave the party, or use Dismiss in Companion Manager > Current party.
+- **Leave:** tell them to go home or leave the party, or use Dismiss in Companion Manager > Parties > Current party.
+- **Save a party:** in Companion Manager > Parties, press Save current party under your party. It is saved as Party 1, Party 2 and so on, with your copies and the characters you made. Each saved party has a Spawn party button that invites everyone in it to your side with one press (it adds to your party and does not dismiss anyone, and a character who is already with you is not invited twice), Update with current party, Rename party (type the name in the Search box of Mod Configuration Menu, then press Rename) and Delete (press it twice).
 
 They can't wait, stay or sit on command yet.
 

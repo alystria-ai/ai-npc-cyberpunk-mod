@@ -50,10 +50,10 @@ test('every page builds on the tab and the tab always starts with the way back, 
   -- Home: the six destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
   local home = ns.sections()
   assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 6)
-  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Character editor', 'Key bindings', 'Settings'}) do
+  for index, label in ipairs({'Characters to invite', 'Parties', 'Model browser', 'Character editor', 'Key bindings', 'Settings'}) do
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
-  for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Current party', 'Current party'}, {'Model browser', 'Installed character models'},
+  for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Parties', 'Current party'}, {'Model browser', 'Installed character models'},
       {'Key bindings', 'Talk by voice'}, {'Settings', 'Interface'}}) do
     press(page[1])
     check(page[1], 'Back to Companion Manager')
@@ -483,12 +483,12 @@ test('nothing runs while the Mods screen is closed: no calls into Native Setting
   assert(builds == 0 and #ns.calls == 0, 'the closed page followed the game')
   -- Opened again, it shows the party as it is now.
   ns.openScreen(TAB); frames(3)
-  press('Current party')
+  press('Parties')
   assert(ns.find('Johnny Silverhand #1') or ns.find('Johnny Silverhand'), shownOutline())
 `));
 
 test('the tab keeps what is on screen current: a state that changes is drawn, a state that does not change is not', () => run(`${harness()}
-  press('Current party')
+  press('Parties')
   assert(ns.find('Your party is empty'))
   ns.resetCalls()
   frames(40, 0.1)
@@ -510,7 +510,7 @@ test('the tab keeps what is on screen current: a state that changes is drawn, a 
 
 test('sections are only ever removed from the end, so Native Settings UI never holds a hole in its list', () => run(`${harness()}
   local function holes() return not dense(ns.data[TAB]) end
-  for _, name in ipairs({'Settings', 'Back to Companion Manager', 'Characters to invite', 'Back to Companion Manager', 'Current party',
+  for _, name in ipairs({'Settings', 'Back to Companion Manager', 'Characters to invite', 'Back to Companion Manager', 'Parties',
       'Back to Companion Manager', 'Settings', 'Memory', 'Back to settings', 'Help and support', 'Back to settings', 'Back to Companion Manager'}) do
     press(name)
     assert(not holes(), 'a hole after ' .. name)
@@ -724,7 +724,7 @@ test('at the main menu the buttons work: Settings opens, and the pages that need
   titlePress('Back to Companion Manager')
   assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', shownOutline())
   -- Pages that need one say so, visibly, and their invite buttons are not offered as if they worked.
-  for _, page in ipairs({'Characters to invite', 'Current party', 'Model browser'}) do
+  for _, page in ipairs({'Characters to invite', 'Parties', 'Model browser'}) do
     titlePress(page)
     local note = assert(ns.find('Characters and party'), page .. ': no row that says a save is needed')
     assert(note.type == 'button' and note.buttonText == 'Load a save first', page)
@@ -740,7 +740,7 @@ test('at the main menu the buttons work: Settings opens, and the pages that need
   local source = player
   player = {hash = 'player-1', open = true, queue = {}, rows = {}, GetEntityID = function(self) return {hash = self.hash} end}
   frames(4)
-  press('Current party')  -- gameplay frames: init.lua passes the player once a save is loaded
+  press('Parties')  -- gameplay frames: init.lua passes the player once a save is loaded
   assert(not ns.find('Characters and party') and ns.find('Your party is empty'), shownOutline())
 `));
 

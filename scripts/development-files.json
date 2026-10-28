@@ -635,6 +635,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/favorites.lua"
     },
     {
+      "source": "mod/saved-parties.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/saved-parties.lua"
+    },
+    {
       "source": "mod/omni-amd.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/omni-amd.lua"
     },

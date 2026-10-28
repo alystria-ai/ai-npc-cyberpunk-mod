@@ -17,7 +17,7 @@ local manager, queue
 local view, listPage, listGroup = 'home', 1, 1
 -- The Model browser's search: the text a host handed over (M.setSearch) and its words, whether the host offers a search box at all
 -- (M.offerSearch), and the list worked out for that text (see searchedModels).
-local modelFind = {text = '', words = {}, offered = false}
+local modelFind = {text = '', words = {}, offered = false, typed = ''}
 local actions, disabledActions, refreshQueued = {}, {}, false
 local owner, lastSignature, pollAt, snapshotAt = nil, '', 0, 0
 -- What the page that is on screen was built from (pageSignature) and what the last once-a-second look found. The page is drawn again
@@ -50,6 +50,9 @@ pcall(dofile, 'setup-check.lua')
 -- Favorites (mod/favorites.lua): the characters and models the player starred, kept in runtime/favorites.json (player state). Optional too:
 -- without it the pages have no Add to favorites button. Read through its global convaiFavorites, so no function here gains an upvalue.
 pcall(dofile, 'favorites.lua')
+-- Saved parties (mod/saved-parties.lua): the parties the player saved from the current one, in runtime/saved-parties.json (player state). Optional
+-- too: without it the Parties page has no Save row. Read through its global convaiSavedParties, so no function here gains an upvalue.
+pcall(dofile, 'saved-parties.lua')
 -- The row the player is on (M.focus, the host's report) and what that page was, with whether the host can report it at all
 -- (M.offerFocus). A host that cannot report it uses the Search box instead (see favoriteKey).
 local focusRow = {key = nil, page = nil, offered = false}
@@ -253,7 +256,9 @@ local function navigate(nextView)
     view, listPage, listGroup = nextView, 1, 1
     -- Characters to invite lists the player's own characters: one look at the file they are kept in (rate-limited by the service, and only while some exist or the editor was opened), so a character made a moment ago is there.
     if nextView == 'characters' and convaiCustomCharacters then pcall(convaiCustomCharacters.refresh) end
-    modelFind.text, modelFind.words = '', {}
+    modelFind.text, modelFind.words, modelFind.typed = '', {}, ''
+    -- A Delete that asked for a second press asks again after any page change.
+    if convaiSavedParties then convaiSavedParties.disarm() end
     actionFeedback, preparationActionFeedback = nil, false
     refreshQueued = true
     return true
@@ -1298,6 +1303,7 @@ local function pageSignature(snapshot)
         add(modelFind.text)
     end
     if (view == 'characters' or view == 'models') and convaiFavorites then add('favorites:' .. tostring(convaiFavorites.revision())) end
+    if view == 'party' and convaiSavedParties then add('parties:' .. tostring(convaiSavedParties.revision()) .. '|' .. tostring(convaiSavedParties.armed())) end
     if view == 'models' then
         -- The list is built once the scan has finished (the models are sorted then); until then only the status line shows.
         add(tostring(snapshot.scan.finished))
@@ -1660,6 +1666,194 @@ local function housemateSettingRows(snapshot)
     }
 end
 
+-- ---- Parties: the saved parties (mod/saved-parties.lua, docs/MANAGER_UI.md "Parties") -------------------------------------------------
+-- Everything here runs when the page is built or a button is pressed, never per frame. The one entry point is a function of M, not a local,
+-- so schema() gains no upvalue.
+
+-- The members of the party now, in the order they joined, as a saved party keeps them: an invitation still being prepared counts, a copy
+-- that is leaving and a failed invitation do not.
+local function currentPartyMembers(list)
+    local members = {}
+    for _, member in ipairs(list) do
+        if member.state ~= 'leaving' and member.state ~= 'failed' and type(member.key) == 'string' then
+            members[#members + 1] = {key = member.key, name = member.baseName or member.name}
+        end
+    end
+    return members
+end
+
+-- "Judy, Panam (2)": the names of a saved party's members, a character who is in it more than once with the number of copies. The name is the
+-- character's own now (a custom character may have been renamed), the saved one when the character is gone.
+local function memberSummary(party)
+    local order, names, counts = {}, {}, {}
+    for _, member in ipairs(party.members) do
+        if not counts[member.key] then
+            local definition = manager.definition(member.key)
+            order[#order + 1] = member.key
+            names[member.key] = definition and definition.name or member.name
+            counts[member.key] = 0
+        end
+        counts[member.key] = counts[member.key] + 1
+    end
+    local parts = {}
+    for _, key in ipairs(order) do
+        parts[#parts + 1] = counts[key] > 1 and ui.t('{name} ({count})', {name = names[key], count = counts[key]}) or names[key]
+    end
+    return table.concat(parts, ', ')
+end
+
+local function savedParty(id)
+    local saved = convaiSavedParties
+    local party = saved and saved.get(id) or nil
+    if not party then refreshQueued = true end
+    return party
+end
+
+local function savedNotWritten(text, kept)
+    if kept == false then text = text .. ' ' .. ui.t('Your saved parties could not be written to disk, so they last only until the game closes.') end
+    return text
+end
+
+local function saveCurrentParty()
+    local saved = convaiSavedParties
+    local members = currentPartyMembers(queue.list())
+    if #members == 0 then return false, ui.t('Your party is empty. Invite someone first.') end
+    local created, kept = saved.create(members, nil, ui.t('Party'))
+    if not created then
+        if kept == 'full' then return false, ui.t('You can keep {count} saved parties. Delete one first.', {count = saved.MAX_PARTIES}) end
+        return false, ui.t('The party could not be saved.')
+    end
+    local text = ui.t('Saved as {name}. Press Spawn party under it to invite them again.', {name = created.name})
+    if #members > saved.MAX_MEMBERS then text = text .. ' ' .. ui.t('A saved party holds {count} characters, so the rest were left out.', {count = saved.MAX_MEMBERS}) end
+    return true, savedNotWritten(text, kept)
+end
+
+local function updateSavedParty(id)
+    local party = savedParty(id)
+    if not party then return false, ui.t('That party no longer exists.') end
+    local members = currentPartyMembers(queue.list())
+    if #members == 0 then return false, ui.t('Your party is empty. Invite someone first.') end
+    local _, kept = convaiSavedParties.update(id, members)
+    local text = ui.t('{name} now has the characters of your party.', {name = party.name})
+    if #members > convaiSavedParties.MAX_MEMBERS then text = text .. ' ' .. ui.t('A saved party holds {count} characters, so the rest were left out.', {count = convaiSavedParties.MAX_MEMBERS}) end
+    return true, savedNotWritten(text, kept)
+end
+
+-- The new name comes from MCM's Search box (the only text box the manager can use; Native Settings UI has none).
+local function renameSavedParty(id)
+    local party = savedParty(id)
+    if not party then return false, ui.t('That party no longer exists.') end
+    if not modelFind.offered then
+        return false, ui.t('This menu has no text box, so the party keeps its name. Mod Configuration Menu has one: type the name in its Search box.')
+    end
+    local name = convaiSavedParties.cleanName(modelFind.typed)
+    if not name then return false, ui.t('Type the new name in the Search box first, then press Rename.') end
+    local renamed, kept = convaiSavedParties.rename(id, name)
+    if not renamed then return false, ui.t('Another saved party already has that name.') end
+    return true, savedNotWritten(ui.t('Renamed to {name}.', {name = renamed.name}), kept)
+end
+
+-- Delete asks twice: the first press arms the row, the second one deletes (any other button, or another page, disarms it).
+local function deleteSavedParty(id)
+    local party = savedParty(id)
+    if not party then return false, ui.t('That party no longer exists.') end
+    if convaiSavedParties.armed() ~= id then
+        convaiSavedParties.arm(id)
+        return true, ui.t('Press Delete again to delete {name}.', {name = party.name})
+    end
+    local _, kept = convaiSavedParties.remove(id)
+    return true, savedNotWritten(ui.t('{name} deleted.', {name = party.name}), kept)
+end
+
+-- Spawn party: the members who are not with V yet are invited, the way the Invite buttons invite them one at a time (the same queue, the same
+-- preparation, the same notices; with Immersive invitations On a first invitation of a character is an appointment). It ADDS to the party:
+-- nobody is dismissed, and a character already in the party (joined, being prepared or on her way) counts toward the saved members, so pressing
+-- it twice does not double the party, while a saved party that names a character twice gets her second copy. A member that cannot come is
+-- left out and named with the reason. The bodies appear one per flush (the queue's `stagger`), not all in one frame.
+local function spawnSavedParty(id)
+    local party = savedParty(id)
+    if not party then return false, ui.t('That party no longer exists.') end
+    if not owner then return false, ui.t('Load a save before inviting a companion.') end
+    local have = {}
+    for _, member in ipairs(queue.list()) do
+        if member.state ~= 'leaving' and member.state ~= 'failed' and type(member.key) == 'string' then have[member.key] = (have[member.key] or 0) + 1 end
+    end
+    local service = convaiImmersiveGet and convaiImmersiveGet() or nil
+    if service then
+        for _, row in ipairs(service.rows()) do
+            if not row.serial and row.key then have[row.key] = (have[row.key] or 0) + 1 end
+        end
+    end
+    local board = invitationBoard()
+    local invited, present, left, asked = {}, {}, {}, {}
+    for _, member in ipairs(party.members) do
+        local key = member.key
+        local definition = manager.definition(key)
+        local name = definition and definition.name or member.name
+        if (have[key] or 0) > 0 then
+            have[key] = have[key] - 1
+            present[#present + 1] = name
+        elseif not definition then
+            left[#left + 1] = ui.t('{name} ({reason})', {name = name, reason = ui.t('that character model is unavailable')})
+        else
+            local accepted, message, invitationId
+            -- The first invitation of a character may be an appointment; a copy beyond it is a plain invitation.
+            if service and not asked[key] then accepted, message, invitationId = service.requestInvite(key) end
+            asked[key] = true
+            if accepted == nil then accepted, message, invitationId = queue.invite(key, {stagger = true}) end
+            if accepted == true then
+                invited[#invited + 1] = name
+                if type(invitationId) == 'string' and board then board.track(invitationId, 'manager') end
+            else
+                local reason = (message ~= nil and message ~= '') and message or ui.t('the invitation was refused')
+                left[#left + 1] = ui.t('{name} ({reason})', {name = name, reason = reason})
+            end
+        end
+    end
+    local parts = {}
+    if #invited > 0 then parts[#parts + 1] = ui.t('{party}: inviting {names}.', {party = party.name, names = table.concat(invited, ', ')}) end
+    if #present > 0 then parts[#parts + 1] = ui.t('Already with you: {names}.', {names = table.concat(present, ', ')}) end
+    if #left > 0 then parts[#parts + 1] = ui.t('Could not invite: {names}.', {names = table.concat(left, '; ')}) end
+    if #parts == 0 then return false, ui.t('{name} has nobody to invite.', {name = party.name}) end
+    return #invited > 0 or #present > 0, table.concat(parts, ' ')
+end
+
+-- The last row of Current party (Save current party), added to `rows`, and one section per saved party under it, added to `categories`.
+-- `list` is the queue's party list.
+function M.partyRows(rows, categories, list, canInvite)
+    local saved = convaiSavedParties
+    if not saved then return end
+    local hasMembers = #currentPartyMembers(list) > 0
+    -- Nobody to save (an empty party, or no save loaded): no Save row, so that page stays as it was.
+    if hasMembers then
+        rows[#rows + 1] = action('party:save', 'Save current party', 'Save',
+            ui.t('Saves the characters in your party now, copies and your own characters included, as a party you can invite again with one press. It is named Party 1, Party 2 and so on, and appears below.\n\nYou keep up to {count} saved parties.', {count = saved.MAX_PARTIES}),
+            saveCurrentParty, nil, {description = true})
+    end
+    for _, party in ipairs(saved.list()) do
+        local id = party.id
+        local armed = saved.armed() == id
+        local summary = memberSummary(party)
+        local section = {}
+        section[#section + 1] = readonly('party:members:' .. id, summary, '', ui.t('The characters of this party: {names}.', {names = summary}), {label = true, description = true})
+        section[#section + 1] = action('party:spawn:' .. id, 'Spawn party', 'Spawn',
+            ui.t('Invites the characters of this party to your side: {names}.\n\nIt adds to your party and dismisses nobody. A character who is already with you is not invited twice. Anyone who cannot come is named, with the reason.', {names = summary}),
+            function() return spawnSavedParty(id) end, canInvite, {description = true})
+        section[#section + 1] = action('party:update:' .. id, 'Update with current party', 'Update',
+            'Replaces the characters of this saved party with the ones in your party now.', function() return updateSavedParty(id) end, hasMembers)
+        section[#section + 1] = action('party:rename:' .. id, 'Rename party', 'Rename',
+            'Type the new name in the Search box at the top (Mod Configuration Menu), then press Rename. Native Settings UI has no text box, so a party keeps its name there.',
+            function() return renameSavedParty(id) end)
+        local delete = function() return deleteSavedParty(id) end
+        if armed then
+            section[#section + 1] = action('party:delete:' .. id, 'Delete', 'Press again', 'Press again to delete this saved party. Anything else cancels.', delete)
+        else
+            section[#section + 1] = action('party:delete:' .. id, 'Delete', 'Delete', 'Deletes this saved party. The characters in your party now are not touched.', delete)
+        end
+        categories[#categories + 1] = category('saved-party:' .. id, ui.t('Saved party: {name}', {name = party.name}), section)
+    end
+end
+
 local function schema()
     local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
@@ -1682,7 +1876,7 @@ local function schema()
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
         -- the editor module loaded, and above Settings (the owner's order). Built with the page, never per frame.
-        for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
+        for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Parties'},
             {'models', 'Model browser'}, {'editor'}, {'key-bindings', 'Key bindings'}, {'settings', 'Settings'}}) do
             if tab[1] == 'editor' then
                 if editor then
@@ -1820,6 +2014,8 @@ local function schema()
                 'Inviting characters and managing your party need a loaded game.')
         elseif shown == 0 and #meetings == 0 and #housemates == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         categories[#categories + 1] = category('party', 'Current party', rows)
+        -- Save current party is the last row of that section (rows is the table the section holds); the saved parties follow as sections.
+        M.partyRows(rows, categories, queue.list(), canInvite)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models
         local modelsShown = {}
@@ -2350,6 +2546,11 @@ function M.offerSearch(offered)
     modelFind.offered = offered == true
 end
 function M.setSearch(text)
+    -- Parties does not search: the box holds the name the Rename button takes (case kept), and nothing is drawn again for it.
+    if view == 'party' then
+        modelFind.typed = tostring(text or ''):sub(1, 100)
+        return false
+    end
     local clean, words = searchWords(text)
     if (view ~= 'models' and view ~= 'characters') or clean == modelFind.text then return false end
     modelFind.text, modelFind.words = clean, words
@@ -2436,6 +2637,7 @@ function M.invoke(id)
         refreshQueued = true
         return {ok = false, error = actionFeedback}
     end
+    if convaiSavedParties and not id:match('^party:delete:') then convaiSavedParties.disarm() end
     local called, ok, reason, invitationId = pcall(callback)
     if not called then
         ok, reason = false, ui.t('The action could not finish: {reason}', {reason = tostring(ok):sub(1, 160)})
