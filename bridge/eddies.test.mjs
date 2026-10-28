@@ -88,7 +88,12 @@ test('the screen reads what V means, and refuses negations, conditions, the past
     'do you need money?': ['lend', null], 'here, take 300 eddies': ['give', 300], "Thanks for the help, here's 200 eddies": ['give', 200],
     'Take this, 1,000 eddies': ['give', 1000], "I'm paying you 300 eddies for the ride": ['give', 300], 'I will give you 100 eddies': ['give', 100],
     "Here's the 500 I owe you": ['repay', 500], 'Thanks, choom, I owe you 300 eddies': ['repay', 300],
-    'pay me back': ['reclaim', null], 'you owe me 200 eddies': ['reclaim', 200], 'pay me back the 300': ['reclaim', 300],
+    'pay me back': ['reclaim', null], 'you owe me 200 eddies': ['reclaim', 200], 'pay me back the 300': ['reclaim', 300],    // The live test of 2026-10-28: asks the first grammar missed, and a promise to pay back next to an ask (it is the ask, not a payback).
+    'give me a thousand eddies': ['borrow', 1000], 'can I get 200 eddies?': ['borrow', 200], 'need 300 eddies': ['borrow', 300], 'gimme 200 eddies': ['borrow', 200],
+    'would you mind lending me 300 eddies?': ['borrow', 300], 'hey man spot 200 eddies': ['borrow', 200], 'can you hook me up with 500 eddies': ['borrow', 500],
+    'mind if I borrow 200 eddies': ['borrow', 200], 'you got 500 eddies for me?': ['borrow', 500], 'I really need a thousand eddies': ['borrow', 1000],
+    "its for a special shipment, give me 200 and i'll pay you back 400 easy": ['borrow', 200], "give me 200 and I'll pay you back": ['borrow', 200],
+    "I'll pay you back 200 eddies": ['repay', 200],
   };
   for (const [text, [intent, amount]] of Object.entries(reads)) {
     const screen = screenWords(text);
@@ -97,7 +102,9 @@ test('the screen reads what V means, and refuses negations, conditions, the past
   }
   const nothing = ["I won't lend you anything", 'if I lent you 500 would you pay me back', "I'll pay you back tomorrow", 'I paid you yesterday',
     "here's the thing about money", 'I owe you one', 'you owe me an explanation', 'Lend me a hand', 'can I borrow your car?', 'give me 5 minutes',
-    'what do you think about money?', 'hey, how are you?', "I'm broke"];
+    'what do you think about money?', 'hey, how are you?', "I'm broke",
+    'I need a thousand bullets', 'can I get 20 more bullets', 'gimme a sec', 'can I have a sec', 'gimme 5 minutes', 'you need 500 eddies for that',
+    'do you have time for me', 'got 20 minutes to spare?'];
   for (const text of nothing) assert.equal(screenWords(text).intent, null, text);
   assert.equal(screenWords('hey, how are you?').about, false);
   assert.equal(screenWords('what do you think about money?').about, true);
@@ -227,6 +234,17 @@ test('one decision per turn: ordinary talk pays nothing, a turn about money gets
   assert.match(reminded.note, /V owes you 300 eddies/);
   assert.doesNotMatch(reminded.note, /Your money:/);
   assert.equal(reminded.proposal, null);
+});
+
+test('asks the live test missed now make a proposal; an unread money line tells the character to ask how much', () => {
+  const decisions = new EddiesDecisions({random: () => 0.99});
+  for (const text of ['hey man spot 300 eddies', 'can I get 300 eddies?', "give me 300 eddies and I'll pay you back 600 easy"]) {
+    const decided = decisions.forTurn(turn(text));
+    assert.deepEqual([decided.proposal?.flow, decided.proposal?.amount], ['loanToV', 300], text);
+  }
+  const vague = decisions.forTurn(turn('i need money for the thing, alex'));
+  assert.equal(vague.proposal, null);
+  assert.match(vague.note, /V has not named a sum you can act on/);
 });
 
 test('a spoken turn: a short standing note now, V\'s words decide when the transcript arrives', () => {

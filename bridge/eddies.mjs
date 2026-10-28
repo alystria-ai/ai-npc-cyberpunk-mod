@@ -184,6 +184,11 @@ const INTENTS = [
   ['lend', /\b(?:(?:do|would|did) you (?:want|need|wanna|like) (?:to borrow|a loan|some (?:money|cash|eddies|eds))|you need (?:a loan|some (?:money|cash|eddies)|money|cash|eddies))\b/],
   // V asks the character to lend (or give) V money.
   ['borrow', /\b(?:lend me(?! (?:a hand|your ear|a sec))|loan me|(?:can|could|may|let) (?:i|me) borrow|borrow (?:some|a few|a bit|a little|\d|€|\$|a hundred|a grand|money|eddies|cash)|spot me|front me|float me|advance me|(?:can|could|would|will) you (?:give|spare|lend|loan|send|wire|transfer) me|spare (?:me )?(?:some|a few|any|\d)|i need (?:some |a few |a bit of |a little |a loan|\d|€|\$)|i'?m (?:broke|short on (?:cash|eddies|money))|help me out with|give me (?:some |a few |\d|€|\$|a hundred|a grand)|need a loan|got any (?:money|eddies|cash|eds) (?:to spare|for me))/],
+  // More ways to ask, as players type them (the live test of 2026-10-28 missed "give me a thousand eddies", "can I get 200 eddies", "need 300 eddies",
+  // "would you mind lending me 300", "spot 200 eddies", "hook me up with 500"). A worded hundred or thousand needs a money word (bullets are not eddies).
+  ['borrow', /\b(?:give me (?:(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|twenty|fifty) (?:hundred|thousand) (?:eddies|eds|eurodollars?|creds?|credits?|bucks)|(?:a|one|two|three|four|five|six|seven|eight|nine|ten) grand)|gimm(?:e|ie) (?:me )?(?:some |a few |\d|€|\$|a (?:hundred|thousand|grand))|(?:can|could|may) i (?:get|have|take) (?=.*(?:eddies|eddie|\beds\b|money|cash|creds?|credits?|bucks|\bgrand\b|€\$|e\$|\$\s?\d|\d\s?k\b))|(?:can|could|would|will) you (?:hook me up|throw me|toss me|slide me|drop me|hand me|set me up with|bless me)|(?:lend|loan)ing me(?! (?:a hand|your ear|a sec))|spot (?:\d|€|\$|a (?:hundred|thousand|grand))|hit me (?:up )?with (?:\d|€|\$|some (?:money|cash|eddies))|i'?m (?:short|out) of (?:cash|money|eddies))/],
+  ['borrow', /(?:^\s*|\bi (?:really |just |still |kinda )?|\bi'?m (?:gonna |going to )?)need (?:some |a few |a bit of |a little |a loan|\d|€|\$|(?:a|one|two|three|four|five|six|seven|eight|nine|ten|twenty|fifty) (?:hundred|thousand) (?:eddies|eds|eurodollars?|creds?|credits?|bucks)|(?:a|one|two|three|four|five|six|seven|eight|nine|ten) grand)/],
+  ['borrow', /(?:^\s*|\b(?:do |did )?(?:you|u|ya) )(?:got|have)\s+(?:any |some |a few |a bit of )?[^.]{0,40}?(?:to spare|for me|i (?:could|can) borrow|you (?:could|can) (?:spare|lend|give))/],
   // V offers to lend the character money.
   ['lend', /\b(?:i(?:'ll| will| can| could|'m going to| am going to| want to|'d like to)? (?:lend|lent|loan|float|front) you|let me (?:lend|loan|front|float) you|(?:lend|loan)(?:ing)? you|borrow (?:it |them |some |this |that )?from me|take a loan from me|you can borrow)\b/],
   // V gives the character money (a gift, a tip, a payment for something).
@@ -195,6 +200,10 @@ const NEGATION = /\b(?:don'?t|do not|not|never|no way|won'?t|cannot|can'?t|could
 // A negative question still asks ("can't you lend me 50?"): these openings are not negations.
 const NEGATIVE_ASK = /\b(?:can'?t|couldn'?t|won'?t|wouldn'?t) you\b/g;
 const HYPOTHETICAL = /\b(?:if|would you ever|what if|imagine|suppose|hypothetically|pretend|joking|kidding)\b/;
+// "mind if I borrow 200" asks: the "if" is politeness, not a condition.
+const MIND_IF = /\b(?:do you |would you )?mind if i\b/g;
+// "I'll", "I promise" ... right before "pay you back": a promise, not a payment.
+const PROMISE = /\b(?:i'?ll|i will|i'd|i would|i promise|i swear|gonna|going to|i can|i could)\s+(?:(?:definitely|totally|surely|easily|also|then|for sure|really)\s+)?$/;
 const LATER = /\b(?:tomorrow|later|next (?:week|month|time)|someday|some day|one day|soon|when i (?:get|can|have)|after (?:the|this|that) (?:job|gig)|yesterday|already|last (?:week|time|night))\b/;
 
 /**
@@ -218,12 +227,15 @@ function screenEnglish(line) {
   const about = MONEY_WORDS.test(line);
   if (!about && !/\d/.test(line) && !/\b(?:hundred|thousand|grand)\b/i.test(line)) return {about: false, intent: null, amount: null};
   // Clauses end at . ! ? ; "but", "and then" and a comma that is not inside a number (1,000 stays one sum).
-  const clauses = line.toLowerCase().split(/[!?;]+|\.(?!\d)|,(?!\d{3}\b)|\bbut\b|\band then\b/);
+  const clauses = line.toLowerCase().replace(MIND_IF, 'can i').split(/[!?;]+|\.(?!\d)|,(?!\d{3}\b)|\bbut\b|\band then\b/);
   const intentOf = clause => INTENTS.some(([, pattern]) => pattern.test(clause));
+  const asksFor = clause => INTENTS.some(([name, pattern]) => name === 'borrow' && pattern.test(clause));
   for (const [index, clause] of clauses.entries()) {
     for (const [intent, pattern] of INTENTS) {
       const match = pattern.exec(clause);
       if (!match) continue;
+      // "give me 200 and I'll pay you back": a promise next to an ask is the ask, not a payback.
+      if (intent === 'repay' && PROMISE.test(clause.slice(0, match.index)) && asksFor(clause)) continue;
       const before = clause.slice(0, match.index + match[0].length).replace(NEGATIVE_ASK, ' ');
       // The sum may follow in the next clause when that clause asks for nothing of its own ("Take this, 1,000 eddies").
       const next = clauses[index + 1] ?? '', tail = next && !intentOf(next) ? next : '';
@@ -428,6 +440,8 @@ export class EddiesDecisions {
       trace = `words:${screen.intent}${screen.amount ? ':' + screen.amount : ''}`;
     } else if (screen?.about) {
       parts.push(standingLine(lendLimit(finance, row, now, trust)));
+      // The words were not read as a clear ask with a sum, so nothing will move: do not agree to money V has not put a sum on.
+      parts.push('V has not named a sum you can act on: if V seems to want money, ask how much, and do not agree to an amount V has not said.');
       trace = screen.refused ? `about:refused-${screen.refused}` : 'about';
     } else if (!typed) {
       // A spoken line: its words are known only after the reply (finish below), so the character knows its limits now, in short (no means line: most
