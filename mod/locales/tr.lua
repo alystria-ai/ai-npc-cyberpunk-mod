@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "Çok kısa: yaklaşık {words} kelimeye kadar",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "Kaydedilen bir seçim birkaç saniye içinde geçerli olur. Kıyafetler kimse bakmazken değişir.",
     ["Look and moves"] = "Görünüm ve hareketler",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Bir tuşa basarken Shift, Ctrl veya Alt tuşunu basılı tutarak Shift+F5 gibi bir kombinasyon belirle. Kombinasyon yalnızca tam olarak bu tuşlar basılıyken çalışır, düz bir tuş ise bunlardan biri basılıyken çalışmaz. Oyunda Shift koşturur, Ctrl kaçınır, Alt ise silah çarkını açar, bu yüzden V de bunu yapar.",
 }

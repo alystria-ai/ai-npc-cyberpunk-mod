@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "Muy corta: hasta unas {words} palabras",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "Una opción guardada se aplica en pocos segundos. La ropa cambia cuando nadie está mirando.",
     ["Look and moves"] = "Aspecto y movimientos",
+    ["Shift"] = "Mayús",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Mantén pulsada Mayús, Ctrl o Alt mientras pulsas una tecla para definir una combinación como Mayús+F5. Una combinación solo se activa con exactamente esas teclas pulsadas, y una tecla simple no se activa mientras haya una pulsada. En el juego Mayús sirve para correr, Ctrl para esquivar y Alt abre la rueda de armas, así que V también lo hace.",
 }

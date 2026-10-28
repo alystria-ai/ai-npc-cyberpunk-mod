@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "Velmi krátká: až zhruba {words} slov",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "Uložená volba se projeví do několika sekund. Oblečení se mění, když se nikdo nedívá.",
     ["Look and moves"] = "Vzhled a pohyby",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Podrž Shift, Ctrl nebo Alt při stisku klávesy a nastavíš kombinaci, například Shift+F5. Kombinace se spustí jen tehdy, když jsou drženy přesně tyto klávesy, a obyčejná klávesa se nespustí, dokud je některá z nich držena. Ve hře Shift znamená sprint, Ctrl úhyb a Alt otevírá kolo zbraní, takže to udělá i V.",
 }

@@ -6445,6 +6445,13 @@ test('own key bindings: only game key names of the seven actions are kept, no ke
     assert(keys.voice == 'IK_F7' and keys.text == nil and keys.group_voice == 'IK_Pad_Start' and keys.group_text == nil and keys.manager == nil and keys.nonsense == nil)
     assert(keys.johnny_voice == 'IK_J' and keys.johnny_text == nil, 'the Johnny actions are kept, and a key twice is dropped for them too')
     assert(saved.keyBindings.voice == 'IK_F7' and saved.keyBindings.nonsense == nil and saved.future.keep == 'unchanged', 'the cleaned table was saved, the rest untouched')
+    -- A combination in a saved file is kept, a malformed one (modifiers out of order, a controller button with one) is dropped.
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, keyDefaultsGiven = true,
+      keyBindings = {voice = 'IK_LShift+IK_F5', text = 'IK_LShift+IK_LControl+IK_F6', group_voice = 'IK_LShift+IK_Pad_Start', group_text = 'IK_F5'}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    keys = manager.keyBindings()
+    assert(keys.voice == 'IK_LShift+IK_F5' and keys.text == nil and keys.group_voice == nil and keys.group_text == 'IK_F5', 'F5 and Shift+F5 are two bindings')
     -- A file that holds something else than a table gets the default.
     for _, wrong in ipairs({'IK_F7', 5, true}) do
       seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, keyDefaultsGiven = true, keyBindings = wrong}
@@ -6462,10 +6469,20 @@ test('own key bindings: only game key names of the seven actions are kept, no ke
     -- Refused, and nothing changes: a key another action has, a name that is no key, an unknown action, a value of the wrong kind.
     local ok, why = manager.setKeyBinding(player, 'voice', 'IK_Pad_LeftShoulder')
     assert(ok == false and why == 'That key is already used for another action.' and manager.keyBindings().voice == nil)
-    for _, bad in ipairs({{'voice', 'F7'}, {'voice', 7}, {'voice', ''}, {'voice', 'IK_' .. string.rep('A', 60)}, {'nonsense', 'IK_A'}}) do
+    for _, bad in ipairs({{'voice', 'F7'}, {'voice', 7}, {'voice', ''}, {'voice', 'IK_' .. string.rep('A', 70)}, {'nonsense', 'IK_A'}}) do
       local accepted, reason = manager.setKeyBinding(player, bad[1], bad[2])
       assert(accepted == false and reason == 'Choose a key or a controller button.', tostring(bad[2]))
     end
+    -- A combination (Shift, Ctrl, Alt held with a keyboard key) is stored as the modifiers' game names in one order, then the key. The same key with another set of modifiers is another binding.
+    assert(manager.setKeyBinding(player, 'voice', 'IK_LShift+IK_F5') and saved.keyBindings.voice == 'IK_LShift+IK_F5')
+    assert(manager.setKeyBinding(player, 'group_voice', 'IK_F5') and manager.setKeyBinding(player, 'johnny_voice', 'IK_LControl+IK_Alt+IK_LShift+IK_F5'))
+    local twice, twiceWhy = manager.setKeyBinding(player, 'johnny_text', 'IK_LShift+IK_F5')
+    assert(twice == false and twiceWhy == 'That key is already used for another action.', 'the clash check is on the whole combination')
+    for _, malformed in ipairs({'IK_LShift+IK_LControl+IK_F5', 'IK_LShift+IK_LShift+IK_F5', 'IK_LShift+', 'IK_LShift+IK_Pad_A_CROSS', 'IK_RShift+IK_F5', 'Shift+IK_F5'}) do
+      local accepted, reason = manager.setKeyBinding(player, 'johnny_text', malformed)
+      assert(accepted == false and reason == 'Choose a key or a controller button.', malformed)
+    end
+    assert(manager.setKeyBinding(player, 'voice', nil) and manager.setKeyBinding(player, 'group_voice', nil) and manager.setKeyBinding(player, 'johnny_voice', nil))
     assert(manager.applySettings(player, {keyBindings = 'IK_F7'}) == false)
     -- It survives other changes, and a batch with a bad binding changes nothing at all.
     assert(manager.applySettings(player, {followUpInterest = false}) and manager.keyBindings().text == 'IK_Pad_LeftShoulder')

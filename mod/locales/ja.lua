@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "とても短め：約{words}語まで",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "保存した選択は数秒以内に反映されます。衣装は誰も見ていないときに着替わります。",
     ["Look and moves"] = "見た目と動き",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "キーを押すときに Shift、Ctrl、Alt を押したままにすると、Shift+F5 のような組み合わせを設定できます。組み合わせは、ちょうどそのキーを押している間だけ動作し、単独のキーはいずれかを押している間は動作しません。ゲームでは Shift でダッシュ、Ctrl で回避、Alt でウェポンホイールが開くため、V もそれを行います。",
 }

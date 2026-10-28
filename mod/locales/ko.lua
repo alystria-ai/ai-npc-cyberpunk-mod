@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "아주 짧게: 약 {words}단어까지",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "저장한 선택은 몇 초 안에 적용됩니다. 옷은 아무도 보지 않을 때 바뀝니다.",
     ["Look and moves"] = "룩과 동작",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "키를 누를 때 Shift, Ctrl 또는 Alt를 함께 누르고 있으면 Shift+F5 같은 조합을 설정할 수 있습니다. 조합은 정확히 그 키들을 누르고 있을 때만 작동하고, 단독 키는 그중 하나를 누르고 있으면 작동하지 않습니다. 게임에서는 Shift는 질주, Ctrl은 회피, Alt는 무기 휠 열기에 쓰이므로 V도 그 동작을 합니다.",
 }

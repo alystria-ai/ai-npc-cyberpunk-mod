@@ -2965,14 +2965,11 @@ function convaiKeyHint(action)
         local visible = text:gsub('\226\128[\139-\143\168-\175]', ''):gsub('\194\160', ''):gsub('\239\187\191', '')
         return visible:find('%S') ~= nil
     end
-    if own and convaiKeyBinds and type(convaiKeyBinds.describe) == 'function' and type(manager.keyBindings) == 'function' then
+    if own and convaiKeyBinds and type(convaiKeyBinds.label) == 'function' and type(manager.keyBindings) == 'function' then
         local ok, text = pcall(function()
             local bindings = manager.keyBindings()
             local name = type(bindings) == 'table' and bindings[own] or nil
-            local kind, word = convaiKeyBinds.describe(name)
-            if not kind then return nil end
-            if kind == 'pad' then return ui.t('Controller {button}', {button = ui.t(word)}) end
-            return ui.t(word)
+            return convaiKeyBinds.label(name, ui.t)
         end)
         if ok and readable(text) then return text end
     end

@@ -1420,10 +1420,7 @@ end
 -- D-pad up ...) are literals in mod/key-bindings.lua, which the catalogue reads (scripts/Extract-UiCatalog.mjs, page.key-bindings); the other keys are a
 -- letter, a digit or a symbol, the same in every language.
 local function keyText(module, name)
-    local kind, word = module.describe(name)
-    if not kind then return ui.t('Not set') end
-    if kind == 'pad' then return ui.t('Controller {button}', {button = ui.t(word)}) end
-    return ui.t(word)
+    return module.label(name, ui.t) or ui.t('Not set')
 end
 -- One section of the page: an action with the key set for it here (its button sets it) and Clear.
 local function bindingSection(snapshot, module, id, name, how)
@@ -2502,7 +2499,8 @@ local function schema()
     return {name = ui.t(LABEL), categories = categories,
         description = view == 'key-bindings'
             and (ui.t('Choose the keys and controller buttons for the mod’s actions. Press Set, then the key or button you want. Esc or B cancels. A change works at once, and the keys you set in Cyber Engine Tweaks keep working. Pick keys the game does not already use.')
-                .. '\n\n' .. ui.t('Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.'))
+                .. '\n\n' .. ui.t('Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.')
+                .. '\n\n' .. ui.t('Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too.'))
             or ui.t('Your companions, character models and conversation settings.')}
 end
 function M.configure(domain, companions, queueFactory, readiness)

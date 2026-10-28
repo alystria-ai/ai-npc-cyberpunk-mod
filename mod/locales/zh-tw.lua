@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "很短：約 {words} 字以內",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "儲存的選擇會在幾秒內生效。無人注視時服裝會更換。",
     ["Look and moves"] = "造型與動作",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "按下按鍵時按住 Shift、Ctrl 或 Alt，可以設定像 Shift+F5 這樣的組合鍵。組合鍵只在恰好按住這些鍵時才會觸發，一般按鍵在按住其中任何一個時不會觸發。遊戲中 Shift 用於衝刺，Ctrl 用於閃避，Alt 用於開啟武器輪盤，所以 V 也會做出這些動作。",
 }

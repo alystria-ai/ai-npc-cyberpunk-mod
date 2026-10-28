@@ -689,15 +689,24 @@ local function isChoice(value, choices)
     return false
 end
 
--- The mod's own key bindings (mod/key-bindings.lua): the five actions, and a key is stored by the game's name for it ('IK_F7'). Which names the player can
+-- The mod's own key bindings (mod/key-bindings.lua): the seven actions, and a key is stored by the game's name for it ('IK_F7', a combination 'IK_LShift+IK_F5'). Which names the player can
 -- choose is that module's business; here a stored name only has to look like one.
 local keyBindingOrder = {'voice', 'text', 'group_voice', 'group_text', 'manager', 'johnny_voice', 'johnny_text'}
 -- The keys given to the actions that have none: F4 the Companion Manager, F6 talk by text, F7 talk by voice, F8 group text chat, F10 group voice chat (owner, 2026-10-28: F9 is the game's Quick load).
 local keyBindingDefaults = {manager = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F10'}
 local keyBindingActions = {}
 for _, action in ipairs(keyBindingOrder) do keyBindingActions[action] = true end
+-- A name is a key ('IK_F7') or a keyboard key with modifiers in front ('IK_LShift+IK_F5', 'IK_LControl+IK_Alt+IK_LShift+IK_F5': the game's names for Ctrl, Alt and
+-- Shift, always in that order, each at most once). A controller button is never combined. A version of the mod from before combinations has the first form only
+-- and drops the second as unreadable.
 local function validKeyName(name)
-    return type(name) == 'string' and #name <= 40 and name:match('^IK_[%w_]+$') ~= nil
+    if type(name) ~= 'string' or #name > 64 then return false end
+    local rest, modifiers = name, false
+    for _, modifier in ipairs({'IK_LControl+', 'IK_Alt+', 'IK_LShift+'}) do
+        if rest:sub(1, #modifier) == modifier then rest, modifiers = rest:sub(#modifier + 1), true end
+    end
+    if rest:match('^IK_[%w_]+$') == nil then return false end
+    return not (modifiers and rest:sub(1, 7) == 'IK_Pad_')
 end
 
 -- Maps any saved engine name to the nearest current choice. Unknown values
