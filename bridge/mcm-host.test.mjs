@@ -1659,7 +1659,7 @@ test('React to battles and to collected loot are on by default, and Restore defa
   local settings = manager.snapshot(player).settings
   assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
-  assert(settings.companionSpeakUp == 'rare' and mcm.row('Companions speak up').value == 2, 'companions are back to Rarely')
+  assert(settings.companionSpeakUp == 'normal' and mcm.row('Companions speak up').value == 4, 'companions are back to Often')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(mcm.row('Johnny in your head').value == 1 and mcm.row('V’s voice for typed lines').value == 2)
   assert(mcm.row('React to battles').value == true and mcm.row('React to collected loot').value == true)

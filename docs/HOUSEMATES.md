@@ -406,6 +406,8 @@ All through the one body: `companions.joinVisitor` (immersive branch) and its mi
 
 Housemates talk to each other while V is home and has released them from the party. Goals: one conversation at a time, a random pair, 7 to 8 lines in all, then a pause, V can join in or call someone back, and no requests, no connections and no lines whenever V is not at home.
 
+The engine of this chat (`mod/housemate-chat.lua`: turn order, the lines said so far, the line written ahead, the beat, the ending) also runs the short chat of party companions that speak up together (0.3.4, `docs/COMPANION_SPEAK_UP.md`, "Group speak-up (0.3.4)"), started by its owner with `start()` instead of by its own schedule. The pair chat is unchanged by it. It reads the same Companions speak up setting, which now defaults to Often, so its hourly count is up to 6 by default.
+
 ### Conditions to start
 
 All must hold (checked at the scheduler's step, once a second, only while two or more residents are settled in the flat V is in):

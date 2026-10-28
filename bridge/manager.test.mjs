@@ -891,13 +891,13 @@ test('Johnny in your head: a saved file maps to the row at load (false with rema
     end
   `);
 });
-test('Companions speak up is one select row, Rarely by default: four entries (Off, Rarely, Normally, Often) stored as off, rare, medium, normal, and a bad stored value reads as Rarely', () => {
+test('Companions speak up is one select row, Often by default: four entries (Off, Rarely, Normally, Often) stored as off, rare, medium, normal, and a bad stored value reads as Often', () => {
   run(`${nsuiFixture}
-    assert(manager.companionSpeakUp() == 'rare' and manager.snapshot(player).settings.companionSpeakUp == 'rare', 'a missing key is Rarely')
-    assert(saved.companionSpeakUp == 'rare', 'a new install saves the default')
+    assert(manager.companionSpeakUp() == 'normal' and manager.snapshot(player).settings.companionSpeakUp == 'normal', 'a missing key is Often')
+    assert(saved.companionSpeakUp == 'normal' and saved.speakUpOftenGiven == true, 'a new install saves the default and the marker')
     assert(invoke('tab:settings').ok)
     local speak = assert(row('companionSpeakUp'), 'the setting is not offered')
-    assert(speak.type == 'select' and speak.value == 2 and speak.defaultValue == 2 and speak.label == 'Companions speak up')
+    assert(speak.type == 'select' and speak.value == 4 and speak.defaultValue == 4 and speak.label == 'Companions speak up')
     assert(#speak.elements == 4 and speak.elements[1] == 'Off' and speak.elements[2] == 'Speaks up rarely'
       and speak.elements[3] == 'Speaks up normally' and speak.elements[4] == 'Speaks up often', 'four entries')
     local cases = {{1, 'off'}, {2, 'rare'}, {3, 'medium'}, {4, 'normal'}}
@@ -913,22 +913,42 @@ test('Companions speak up is one select row, Rarely by default: four entries (Of
     end
     assert(not manager.applySettings(player, {companionSpeakUp = 'often'}) and manager.companionSpeakUp() == 'rare')
     assert(manager.applySettings(player, {companionSpeakUp = 'normal'}) and manager.companionSpeakUp() == 'normal')
-    -- Restore defaults puts it back to Rarely, and Johnny's list is left to its own default.
+    -- Restore defaults puts it back to Often, and Johnny's list is left to its own default.
+    assert(manager.applySettings(player, {companionSpeakUp = 'rare'}) and manager.companionSpeakUp() == 'rare')
     local back
     for _, change in ipairs(core.defaults()) do if change.id == 'companionSpeakUp' then back = change.value end end
-    assert(back == 2, tostring(back))
+    assert(back == 4, tostring(back))
     assert(registered.applyBatch('manager', core.defaults()).ok)
-    assert(manager.companionSpeakUp() == 'rare' and manager.johnnyRemarks() == 'off')
+    assert(manager.companionSpeakUp() == 'normal' and manager.johnnyRemarks() == 'off')
   `);
   run(`${managerFixture}
-    -- A saved value that is not one of the four reads as Rarely and is put right once; a saved Off stays Off.
-    for _, case in ipairs({{'off', 'off'}, {'rare', 'rare'}, {'medium', 'medium'}, {'normal', 'normal'}, {'often', 'rare'}, {true, 'rare'}, {7, 'rare'}}) do
+    -- A file that has not been through the 0.3.4 move (no speakUpOftenGiven): the old default Rarely moves to Often once; Off, Normally and Often stay; a value that
+    -- is not one of the four reads as Often. The marker is saved either way.
+    for _, case in ipairs({{'off', 'off'}, {'rare', 'normal'}, {'medium', 'medium'}, {'normal', 'normal'}, {'often', 'normal'}, {true, 'normal'}, {7, 'normal'}}) do
       seed = {version = 2, voiceProvider = 'pocket', companionSpeakUp = case[1], enabledByKey = {}, future = {keep = 'unchanged'}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
       assert(manager.companionSpeakUp() == case[2], tostring(case[1]))
-      assert(saved.companionSpeakUp == case[2] and saved.future.keep == 'unchanged', tostring(case[1]))
+      assert(saved.companionSpeakUp == case[2] and saved.speakUpOftenGiven == true and saved.future.keep == 'unchanged', tostring(case[1]))
     end
+    -- A file that has: a Rarely the player chose afterwards is kept, and the marker is not written again.
+    for _, case in ipairs({{'rare', 'rare'}, {'off', 'off'}, {'medium', 'medium'}, {'often', 'normal'}}) do
+      seed = {version = 2, voiceProvider = 'pocket', companionSpeakUp = case[1], speakUpOftenGiven = true, enabledByKey = {}, future = {keep = 'unchanged'}}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(manager.companionSpeakUp() == case[2], 'marked ' .. tostring(case[1]))
+      assert(saved == nil or (saved.companionSpeakUp == case[2] and saved.speakUpOftenGiven == true), 'marked ' .. tostring(case[1]))
+    end
+    -- No key at all: Often, with the marker.
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(manager.companionSpeakUp() == 'normal' and saved.companionSpeakUp == 'normal' and saved.speakUpOftenGiven == true)
+    -- Once moved, the player chooses Rarely, restarts, and it stays: the move happens one time only.
+    assert(manager.applySettings(player, {companionSpeakUp = 'rare'}) and saved.companionSpeakUp == 'rare')
+    seed = saved; files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(manager.companionSpeakUp() == 'rare', 'a later choice of Rarely is kept')
   `);
 });
 

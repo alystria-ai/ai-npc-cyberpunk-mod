@@ -2241,8 +2241,8 @@ local function schema()
             -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
             setting('companionSpeakUp', 'Companions speak up', 'select',
                 snapshot.settings.companionSpeakUp == 'normal' and 4 or snapshot.settings.companionSpeakUp == 'medium' and 3
-                    or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 2,
-                'Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
+                    or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 4,
+                'Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. With two or more of them near you, it is often a short chat between up to three of them, and you can join in by talking. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often (the default): about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
                 {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.

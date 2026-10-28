@@ -35,7 +35,7 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]At home in your flat.[/b] While you stay in your own apartment, companions sit down on seats by themselves instead of trailing you, and on a bar stool they face the counter.
 [*][b]Revenge ambushes (new, off by default).[/b] Switch it on in Settings > Gameplay > Revenge ambushes and a gang you keep killing may, rarely, send a small squad after you, with a short threat to shout. Never in a fight, a scene, a call, a vehicle, indoors, in a safe zone or while wanted.
 [*][b]Companions change outfits (new, off by default).[/b] Switch it on in Settings > Gameplay > Companions change outfits and companions change into other looks, only while you are not looking. One who stood up to change sits down again within seconds.
-[*][b]They speak up.[/b] Now and then a companion starts a remark by themselves at a calm moment. Settings > Conversations > Companions speak up (Speaks up rarely by default, Off turns it off).
+[*][b]They speak up.[/b] Now and then a companion starts a remark by themselves at a calm moment, and with two or more of them near they chat for a few lines, up to three at a time, and you can join in by talking. Settings > Conversations > Companions speak up (Speaks up often by default, Off turns it off).
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
 [*][b]Send them home.[/b] Tell them to leave, or use Dismiss in Current party.
