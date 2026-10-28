@@ -164,7 +164,7 @@ test('the zip layout is the sibling multilingual-pocket folder, sorted, with the
     const rest = names.slice(1);
     assert.deepEqual(rest.map(name => name.slice(`${ROOT}/${lang}/`.length)), ['NOTICE.txt', 'inference.yaml', 'model.safetensors', 'pocket-model.json', 'tokenizer.json']);
     for (const name of rest) assert.ok(name.startsWith(`red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/${lang}/`), name);
-    assert.equal(packBase(lang), `PocketTTS-Model-${LANGUAGES[lang].title}`);
+    assert.equal(packBase(lang), `PocketTTS-Model-100M-${LANGUAGES[lang].title}`);
   }
 });
 
@@ -180,8 +180,8 @@ test('a build from stand-in files writes the zip and the listing (no checksum fi
     const second = await buildLanguage('pt-br', {...common, out: join(dir, 'two')});
     assert.equal(first.sha256, second.sha256);
     assert.equal(first.entries, 6);
-    assert.equal(first.zip, join(dir, 'one', 'pt-br', 'PocketTTS-Model-Portuguese.zip'));
-    assert.deepEqual((await readdir(join(dir, 'one', 'pt-br'))).sort(), ['PocketTTS-Model-Portuguese.files.json', 'PocketTTS-Model-Portuguese.zip'], 'no loose checksum file');
+    assert.equal(first.zip, join(dir, 'one', 'pt-br', 'PocketTTS-Model-100M-Portuguese.zip'));
+    assert.deepEqual((await readdir(join(dir, 'one', 'pt-br'))).sort(), ['PocketTTS-Model-100M-Portuguese.files.json', 'PocketTTS-Model-100M-Portuguese.zip'], 'no loose checksum file');
     assert.equal(sha256(await readFile(first.zip)), first.sha256);
 
     const entries = await listZip(first.zip);
@@ -200,7 +200,7 @@ test('a build from stand-in files writes the zip and the listing (no checksum fi
       assert.deepEqual(manifest.files[name], {bytes: data.length, sha256: sha256(data)}, name);
     }
     // The listing holds path, bytes and sha256 per file, the install note first.
-    const listing = JSON.parse(await readFile(join(dir, 'one', 'pt-br', 'PocketTTS-Model-Portuguese.files.json'), 'utf8'));
+    const listing = JSON.parse(await readFile(join(dir, 'one', 'pt-br', 'PocketTTS-Model-100M-Portuguese.files.json'), 'utf8'));
     assert.deepEqual(listing.map(item => item.path), zipEntryNames('pt-br'));
     assert.deepEqual(listing.find(item => item.path.endsWith('model.safetensors')), {path: `${folder}/model.safetensors`, bytes: model.length, sha256: sha256(model)});
     // The entry timestamp comes from the manifest date: the first local header holds 00:00:00 on 22 October 2026 in DOS format.

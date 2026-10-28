@@ -19,14 +19,37 @@ const py = (args, options = {}) => spawnSync(python, ['-I', ...args], {encoding:
 const UPLOADS = {
   scripts: ['AI-NPC-Cyberpunk-Mod-Scripts-0.2.9.zip', 'Scripts.zip'],
   runtime: ['Runtime-0.2.9.zip', 'Runtime.zip'],
-  omni: ['OmniPack-0.2.9.zip', 'voice/OmniPack.zip'],
-  'localai-standard': ['LocalAI-Standard-0.2.9.zip', 'local-ai/LocalAI-Standard.zip'],
-  'localai-lite': ['LocalAI-Lite-0.2.9.zip', 'local-ai/LocalAI-Lite.zip'],
-  'mature-lite': ['Mature-Lite-0.2.9.zip', 'mature/Mature-Lite.zip'],
-  'mature-standard': ['Mature-Standard-0.2.9.zip', 'mature/Mature-Standard.zip'],
-  'micpack-european': ['MicPack-European-0.2.9.zip', 'mic/MicPack-European.zip'],
+  omni: ['OmniPack-OmniVoice-0.6B-0.2.9.zip', 'voice/OmniPack-OmniVoice-0.6B.zip'],
+  'localai-standard': ['LocalAI-Standard-Gemma-4-E4B-0.2.9.zip', 'local-ai/LocalAI-Standard-Gemma-4-E4B.zip'],
+  'localai-lite': ['LocalAI-Lite-Bonsai-2-4B-0.2.9.zip', 'local-ai/LocalAI-Lite-Bonsai-2-4B.zip'],
+  'mature-lite': ['Mature-Lite-Qwen3.5-4B-0.2.9.zip', 'mature/Mature-Lite-Qwen3.5-4B.zip'],
+  'mature-standard': ['Mature-Standard-Gemma-4-E4B-0.2.9.zip', 'mature/Mature-Standard-Gemma-4-E4B.zip'],
+  'micpack-european': ['MicPack-European-Parakeet-TDT-0.6B-v3-0.2.9.zip', 'mic/MicPack-European-Parakeet-TDT-0.6B-v3.zip'],
+  'micpack-asian': ['MicPack-Asian-SenseVoice-Small-234M-0.2.9.zip', 'mic/MicPack-Asian-SenseVoice-Small-234M.zip'],
+};
+// The same packs built before 0.3.4 (old zip names) are accepted and published under the new names; --also-old-name adds the old path.
+const OLD = {
+  omni: ['OmniPack-0.2.9.zip', 'voice/OmniPack.zip'], 'localai-standard': ['LocalAI-Standard-0.2.9.zip', 'local-ai/LocalAI-Standard.zip'],
+  'localai-lite': ['LocalAI-Lite-0.2.9.zip', 'local-ai/LocalAI-Lite.zip'], 'mature-lite': ['Mature-Lite-0.2.9.zip', 'mature/Mature-Lite.zip'],
+  'mature-standard': ['Mature-Standard-0.2.9.zip', 'mature/Mature-Standard.zip'], 'micpack-european': ['MicPack-European-0.2.9.zip', 'mic/MicPack-European.zip'],
   'micpack-asian': ['MicPack-Asian-0.2.9.zip', 'mic/MicPack-Asian.zip'],
 };
+
+test('a build folder that still holds a pack under its old name is accepted, and --also-old-name publishes the old path too', {skip: !python && 'no Python'}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'hf legacy '));
+  try {
+    for (const [zip] of Object.values(OLD)) await writeFile(join(directory, zip), 'x');
+    for (const [pack, [oldZip, oldRemote]] of Object.entries(OLD)) {
+      const plain = py(['packaging/upload-packs.py', '--version', '0.2.9', '--pack', pack, '--packages', directory, '--dry-run']);
+      assert.equal(plain.status, 0, plain.stderr);
+      assert.deepEqual(plain.stdout.trim().split(/\r?\n/), [`${join(directory, oldZip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${UPLOADS[pack][1]}`]);
+      const both = py(['packaging/upload-packs.py', '--version', '0.2.9', '--pack', pack, '--packages', directory, '--dry-run', '--also-old-name']);
+      assert.equal(both.status, 0, both.stderr);
+      assert.deepEqual(both.stdout.trim().split(/\r?\n/), [`${join(directory, oldZip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${UPLOADS[pack][1]}`,
+        `${join(directory, oldZip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${oldRemote}`]);
+    }
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
 
 test('the uploader puts every pack in the folder of its kind under its unversioned name, and uploads no checksum file', {skip: !python && 'no Python'}, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'hf layout '));
@@ -41,7 +64,7 @@ test('the uploader puts every pack in the folder of its kind under its unversion
       assert.equal(lines[0], `${join(directory, zip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${remote}`);
     }
     // A pack in parts, or a missing zip, is refused.
-    await writeFile(join(directory, 'OmniPack-0.2.9-part1of2.zip'), 'x');
+    await writeFile(join(directory, 'OmniPack-OmniVoice-0.6B-0.2.9-part1of2.zip'), 'x');
     assert.notEqual(py(['packaging/upload-packs.py', '--version', '0.2.9', '--pack', 'omni', '--packages', directory, '--dry-run']).status, 0);
     assert.notEqual(py(['packaging/upload-packs.py', '--version', '0.2.8', '--pack', 'omni', '--packages', directory, '--dry-run']).status, 0);
   } finally { await rm(directory, {recursive: true, force: true}); }
@@ -111,7 +134,7 @@ test('no tool writes, uploads or mentions a loose checksum file, and the builder
   const builder = await read('packaging/build-release.mjs');
   assert.match(builder, /id === 'scripts' \? `\$\{config\.product\}-Scripts-\$\{version\}` : `\$\{titles\[id\]\}-\$\{version\}`/);
   assert.match(await read('packaging/build-runtime-update.mjs'), /const base = `Runtime-Update-\$\{from\}-to-\$\{to\}\$\{GAME_VARIANTS\[game\]\.suffix\}`/);
-  assert.match(await read('packaging/build-pocket-models.mjs'), /`PocketTTS-Model-\$\{languageInfo\(lang\)\.title\}`/);
+  assert.match(await read('packaging/build-pocket-models.mjs'), /pocketModelTitle\(RELEASE_CONFIG, languageInfo\(lang\)\.title\)/);
   assert.match(await read('scripts/voice-packs/package_pack.mjs'), /`Voices-\$\{LANGUAGE_NAMES\[language\]\}`/);
 });
 
@@ -127,8 +150,7 @@ test('the player texts link the files at their folders and new names, say nothin
   const nexus = texts['docs/NEXUS_PAGE.md'];
   assert.doesNotMatch(nexus, /;/, 'no semicolons on Nexus');
   assert.doesNotMatch(nexus, /18\+/, 'no "18+" on Nexus');
-  for (const link of ['Runtime.zip', 'local-ai/LocalAI-Standard.zip', 'local-ai/LocalAI-Lite.zip', 'voice/OmniPack.zip', 'mature/Mature-Lite.zip', 'mature/Mature-Standard.zip',
-    'mic/MicPack-European.zip', 'mic/MicPack-Asian.zip']) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
+  for (const link of ['Runtime.zip', ...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
   assert(nexus.includes(`${HF}/tree/main/updates`) && nexus.includes(`${HF}/tree/main/multilingual`), 'the updates and multilingual folder links are the same as before');
   // Every file name on HF has lost the prefix: the model card lists the new paths.
   const card = texts['packaging/HF_MODEL_CARD.md'];

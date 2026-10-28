@@ -552,7 +552,7 @@ test('the build writes the manifest fragments the detector reads, and ships both
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
   assert.match(builder, /manifest\.\$\{tierKey\}\.json/);
   assert.match(builder, /'localai-standard'/); assert.match(builder, /'localai-lite'/);
-  assert.match(builder, /LocalAI-Standard/); assert.match(builder, /LocalAI-Lite/);
+  assert.match(builder, /LocalAI-Standard-Gemma-4-E4B/); assert.match(builder, /LocalAI-Lite-Bonsai-2-4B/);
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
   assert.match(workflow, /tier: \[standard, lite\]/);
   assert.match(workflow, /--packages "localai-\$\{\{ matrix\.tier \}\}"/);
@@ -655,10 +655,10 @@ test('the optional packs are uploaded to Hugging Face, one zip each in the folde
   // The uploader: one zip, in the folder of its kind under its unversioned name, no checksum file, a clear message when the token cannot write.
   const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
   assert.match(uploader, /REPOSITORY = "alystria-ai\/ai-npc-cyberpunk-mod-packs"/);
-  assert.match(uploader, /"omni": \("voice", "OmniPack"\)/);
-  assert.match(uploader, /"localai-lite": \("local-ai", "LocalAI-Lite"\)/);
-  assert.match(uploader, /"mature-standard": \("mature", "Mature-Standard"\)/);
-  assert.match(uploader, /"micpack-asian": \("mic", "MicPack-Asian"\)/);
+  // The names come from the packFiles block of the config (the model's name and size are in them, test below).
+  assert.match(uploader, /PACK_FILES\["packs"\]\.items\(\)/);
+  assert.deepEqual(Object.entries(config.packFiles.packs).map(([id, pack]) => [id, pack.folder]), [['omni', 'voice'], ['localai-standard', 'local-ai'], ['localai-lite', 'local-ai'],
+    ['mature-lite', 'mature'], ['mature-standard', 'mature'], ['micpack-european', 'mic'], ['micpack-asian', 'mic']]);
   assert.match(uploader, /f"\{folder\}\/\{title\}\.zip"/);
   assert.doesNotMatch(uploader, /sha256sums|sums_name/i, 'no checksum file is uploaded');
   assert.match(uploader, /The HF_PACKS_TOKEN secret cannot write to the Hugging Face repository \{repository\}\./);
@@ -905,7 +905,7 @@ test('the README and the release notes send players to Hugging Face for every op
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
   // The files sit in folders by kind and carry no product prefix (docs/PACKAGING.md, "Hugging Face upload").
-  const files = ['voice/OmniPack', 'local-ai/LocalAI-Standard', 'local-ai/LocalAI-Lite', 'mature/Mature-Lite', 'mature/Mature-Standard'].map(name => `${name}.zip`);
+  const files = ['voice/OmniPack-OmniVoice-0.6B', 'local-ai/LocalAI-Standard-Gemma-4-E4B', 'local-ai/LocalAI-Lite-Bonsai-2-4B', 'mature/Mature-Lite-Qwen3.5-4B', 'mature/Mature-Standard-Gemma-4-E4B'].map(name => `${name}.zip`);
   for (const file of files) assert(readme.includes(hf + '/blob/main/' + file), 'the README links ' + file);
   for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/' + file), 'the release notes link ' + file);
   assert(readme.includes(hf + ')'), 'and the repository page');
@@ -1011,12 +1011,12 @@ test('the voice-input packs are two opt-in packages: ids, titles, one zip each, 
   assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'mature-standard', 'micpack-european', 'micpack-asian'\]/, 'the two packs are package ids after the Mature packs');
   assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\) && !id\.startsWith\('micpack'\)\)/, 'the default set leaves them out');
   assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\[[^\]]*'micpack-european', 'micpack-asian'\]\)/, 'they are optional packs: one zip each, hosted on Hugging Face');
-  assert.match(builder, /'micpack-european': 'MicPack-European', 'micpack-asian': 'MicPack-Asian'/, 'the titles name the zips');
+  assert.match(builder, /packTitle\(config, id\)/, 'the titles (packFiles in the config) name the zips');
   assert.match(builder, /'micpack-european': \(\) => micPackage\(source, config, 'european'\)/);
   assert.match(builder, /'micpack-asian': \(\) => micPackage\(source, config, 'asian'\)/);
   const header = builder.slice(0, builder.indexOf('// Options:'));
-  assert.match(header, /\n\/\/   MicPack-European-<v>\.zip[^\n]*--packages micpack-european/);
-  assert.match(header, /\n\/\/   MicPack-Asian-<v>\.zip[^\n]*--packages micpack-asian/);
+  assert.match(header, /\n\/\/   MicPack-European-Parakeet-TDT-0\.6B-v3-<v>\.zip[^\n]*--packages micpack-european/);
+  assert.match(header, /\n\/\/   MicPack-Asian-SenseVoice-Small-234M-<v>\.zip[^\n]*--packages micpack-asian/);
   assert.match(builder, /--packages LIST    comma list of [^\n]*mature-standard,micpack-european,micpack-asian \(default: the first five\)/);
   assert.match(builder, /--mic-pack-source DIR/); assert.match(builder, /CYBERPUNK_CONVAI_MIC_PACKS_DEV/);
   // The Runtime builder never reads the packs' pins or files, and the Runtime keeps its own Moonshine folder to itself.
@@ -1042,7 +1042,8 @@ test('the voice-input pack pins match what the bridge looks for, and every file 
   assert.deepEqual(Object.keys(spec.packs), ['european', 'asian']);
   assert.deepEqual(Object.values(spec.packs).map(pack => pack.id), ['parakeet-tdt-0.6b-v3-int8', 'sense-voice-int8']);
   assert.deepEqual(Object.values(spec.packs).map(pack => pack.packageId), ['micpack-european', 'micpack-asian']);
-  assert.deepEqual(Object.values(spec.packs).map(pack => pack.title), ['MicPack-European', 'MicPack-Asian']);
+  assert.deepEqual(Object.values(spec.packs).map(pack => pack.title), ['MicPack-European-Parakeet-TDT-0.6B-v3', 'MicPack-Asian-SenseVoice-Small-234M']);
+  assert.deepEqual(Object.values(spec.packs).map(pack => pack.title), Object.values(spec.packs).map(pack => config.packFiles.packs[pack.packageId].title), 'the mic pack titles are the packFiles titles');
   assert.equal(new Set(LOCAL_PACKS.map(pack => pack.id)).size, LOCAL_PACKS.length);
   for (const pack of Object.values(spec.packs)) {
     const known = LOCAL_PACKS.find(item => item.id === pack.id);
@@ -1104,8 +1105,39 @@ test('the release workflow builds the voice-input packs only in an opt-in job: o
   assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
   // The uploader knows both packs and puts them in mic/.
   const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
-  assert.match(uploader, /"micpack-european": \("mic", "MicPack-European"\)/);
-  assert.match(uploader, /"micpack-asian": \("mic", "MicPack-Asian"\)/);
+  assert.equal(config.packFiles.packs['micpack-european'].folder, 'mic');
+  assert.equal(config.packFiles.packs['micpack-asian'].folder, 'mic');
+  assert.match(uploader, /PACK_FILES\["packs"\]\.items\(\)/);
+});
+
+test('the model packs carry the model name and parameter count in their file names, the old names stay known, and the Pocket models follow', async () => {
+  const {packTitle, legacyPackTitle, packTitles, hfPath, legacyHfPath, pocketModelTitle, legacyPocketModelTitle, packIdOfName} = await import('./lib/pack-names.mjs');
+  const expected = {
+    omni: ['voice', 'OmniPack-OmniVoice-0.6B', 'OmniPack'],
+    'localai-standard': ['local-ai', 'LocalAI-Standard-Gemma-4-E4B', 'LocalAI-Standard'],
+    'localai-lite': ['local-ai', 'LocalAI-Lite-Bonsai-2-4B', 'LocalAI-Lite'],
+    'mature-lite': ['mature', 'Mature-Lite-Qwen3.5-4B', 'Mature-Lite'],
+    'mature-standard': ['mature', 'Mature-Standard-Gemma-4-E4B', 'Mature-Standard'],
+    'micpack-european': ['mic', 'MicPack-European-Parakeet-TDT-0.6B-v3', 'MicPack-European'],
+    'micpack-asian': ['mic', 'MicPack-Asian-SenseVoice-Small-234M', 'MicPack-Asian'],
+  };
+  assert.deepEqual(Object.keys(config.packFiles.packs), Object.keys(expected));
+  for (const [id, [folder, title, legacy]] of Object.entries(expected)) {
+    assert.equal(packTitle(config, id), title); assert.equal(legacyPackTitle(config, id), legacy);
+    assert.deepEqual(packTitles(config, id), [title, legacy], 'new name first, then the old one');
+    assert.equal(hfPath(config, id), `${folder}/${title}.zip`); assert.equal(legacyHfPath(config, id), `${folder}/${legacy}.zip`);
+    assert(title.startsWith(legacy + '-'), `${title} keeps the old name (the tier word) as its start`);
+    // Both names, with or without a version, find the pack id.
+    for (const name of [title, legacy]) { assert.equal(packIdOfName(config, `${name}-0.3.4.zip`), id); assert.equal(packIdOfName(config, `${name}.zip`), id); }
+  }
+  assert.equal(new Set(Object.values(config.packFiles.packs).map(pack => pack.title)).size, 7, 'no two packs share a name');
+  assert.equal(config.micPacks.packs.european.title, packTitle(config, 'micpack-european'));
+  assert.equal(config.micPacks.packs.asian.title, packTitle(config, 'micpack-asian'));
+  assert.equal(pocketModelTitle(config, 'French'), 'PocketTTS-Model-100M-French');
+  assert.equal(legacyPocketModelTitle(config, 'French'), 'PocketTTS-Model-French');
+  assert.equal(packIdOfName(config, 'Scripts.zip'), null);
+  const {packBase} = await import('./build-pocket-models.mjs');
+  assert.equal(packBase('pt-br'), 'PocketTTS-Model-100M-Portuguese');
 });
 
 test('the notices cover the voice-input packs: Parakeet (CC-BY-4.0, attribution) and SenseVoice (FunASR licence, linked)', async () => {

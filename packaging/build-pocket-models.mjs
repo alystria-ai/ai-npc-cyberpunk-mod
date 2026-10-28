@@ -1,4 +1,5 @@
-// Builds the optional PocketTTS models (the Pocket voice speaking another language): PocketTTS-Model-<Language>.zip (French, Italian, German, Spanish, Portuguese).
+// Builds the optional PocketTTS models (the Pocket voice speaking another language): PocketTTS-Model-100M-<Language>.zip (French, Italian, German, Spanish, Portuguese;
+// the file name carries the model's parameter count since 0.3.4, before that PocketTTS-Model-<Language>.zip: packaging/release.config.json, "packFiles").
 // They are published in the multilingual/ folder of the Hugging Face repository.
 //
 //   node packaging/build-pocket-models.mjs --languages fr,it,de,es-es,pt-br --gated-cache <folder> --out E:/SteamLibrary/AiNpc-voice-packs/pocket
@@ -19,13 +20,14 @@
 // or a command line), and the missing tokenizers and configurations (public) are fetched too. Every file is checked against the size and
 // sha256 pinned below before it is used.
 import {mkdir, readFile, rename, stat, writeFile, link, symlink, copyFile, rm} from 'node:fs/promises';
-import {createReadStream, createWriteStream} from 'node:fs';
+import {createReadStream, createWriteStream, readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {ZipWriter} from './lib/zip.mjs';
+import {pocketModelTitle} from './lib/pack-names.mjs';
 
 export const BUILT = '2026-10-22';
 export const POCKET_SOURCE = '3.3.0';
@@ -309,7 +311,9 @@ export function buildManifest(lang, files) {
 }
 
 export const manifestText = manifest => JSON.stringify(manifest, null, 2) + '\n';
-export const packBase = lang => `PocketTTS-Model-${languageInfo(lang).title}`;
+// The file name carries the model and its size (PocketTTS-Model-100M-French); the prefix is the "packFiles" block of the release config.
+const RELEASE_CONFIG = JSON.parse(readFileSync(new URL('./release.config.json', import.meta.url), 'utf8').replace(/^﻿/, ''));
+export const packBase = lang => pocketModelTitle(RELEASE_CONFIG, languageInfo(lang).title);
 
 // The zip's entries in order: the install note, then the five pack files (sorted by name).
 export function zipEntryNames(lang) {

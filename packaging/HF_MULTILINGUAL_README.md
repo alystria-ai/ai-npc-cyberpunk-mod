@@ -33,10 +33,10 @@ The Pocket voice runs on your processor and speaks English. With the PocketTTS m
 
 | Language | File | Size |
 | --- | --- | --- |
-| French | [PocketTTS-Model-French.zip](PocketTTS-Model-French.zip) | 219 MB |
-| Italian | [PocketTTS-Model-Italian.zip](PocketTTS-Model-Italian.zip) | 219 MB |
-| German | [PocketTTS-Model-German.zip](PocketTTS-Model-German.zip) | 219 MB |
-| Spanish (Spain) | [PocketTTS-Model-Spanish.zip](PocketTTS-Model-Spanish.zip) | 219 MB |
-| Portuguese (Brazil) | [PocketTTS-Model-Portuguese.zip](PocketTTS-Model-Portuguese.zip) | 219 MB |
+| French | [PocketTTS-Model-100M-French.zip](PocketTTS-Model-100M-French.zip) | 219 MB |
+| Italian | [PocketTTS-Model-100M-Italian.zip](PocketTTS-Model-100M-Italian.zip) | 219 MB |
+| German | [PocketTTS-Model-100M-German.zip](PocketTTS-Model-100M-German.zip) | 219 MB |
+| Spanish (Spain) | [PocketTTS-Model-100M-Spanish.zip](PocketTTS-Model-100M-Spanish.zip) | 219 MB |
+| Portuguese (Brazil) | [PocketTTS-Model-100M-Portuguese.zip](PocketTTS-Model-100M-Portuguese.zip) | 219 MB |
 
 Extract the PocketTTS model after the voice pack. It is Kyutai's Pocket TTS language model (kyutai/pocket-tts), licensed CC-BY-4.0 with Kyutai's prohibited-use terms; the zip carries the notice (NOTICE.txt). Needs the mod and Runtime from the release that announces the models, or newer. The Pocket voice keeps one language model loaded at a time: it changes only when a reply comes in a different language.

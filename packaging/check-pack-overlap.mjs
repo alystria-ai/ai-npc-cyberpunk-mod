@@ -10,7 +10,7 @@
 //   node packaging/check-pack-overlap.mjs listing <out.json> <Name=zip-or-url>...
 //       Writes the listing from the packs' zips. A URL (the pack on Hugging Face, public, no token) is read with HTTP range requests: the
 //       end of the file and its directory, a few MB for the biggest pack, never the pack itself. Prints the bytes read.
-//       e.g. OmniPack=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/resolve/main/voice/OmniPack.zip
+//       e.g. OmniPack=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/resolve/main/voice/OmniPack-OmniVoice-0.6B.zip
 //
 // Why: docs/PACKAGING.md, "Packs reused unchanged". The rule and the shared names are in packaging/lib/pack-overlap.mjs.
 import {readFile, writeFile} from 'node:fs/promises';

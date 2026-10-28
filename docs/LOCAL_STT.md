@@ -276,7 +276,7 @@ metadata); it is written against sherpa-onnx 1.13.6's signatures, tested with a 
 (next section). In the bridge log the first real run reads `speech language ... local pack ...`, then `recorded ... heard "..."`.
 
 Packaging: `micPacks` in `packaging/release.config.json` pins both archives and every file; `node packaging/build-release.mjs --version <v> --packages
-micpack-european,micpack-asian` builds `MicPack-European-<v>.zip` and `MicPack-Asian-<v>.zip` (opt-in, never in the default set, hosted
+micpack-european,micpack-asian` builds `MicPack-European-Parakeet-TDT-0.6B-v3-<v>.zip` and `MicPack-Asian-SenseVoice-Small-234M-<v>.zip` (opt-in, never in the default set, hosted
 on Hugging Face only, one zip each, extract-into-game-folder layout `red4ext/plugins/AiNpcCyberpunkMod/app/models/stt/<id>/`, no path shared with the
 Runtime), each with a `NOTICE.txt` (CC-BY-4.0 attribution for Parakeet; FunASR licence name, source and link for SenseVoice) and a `mic-pack.json` marker.
 `THIRD_PARTY_NOTICES.md` has both lines. The FunASR licence text itself is linked, not bundled: it was not among the approved downloads.
