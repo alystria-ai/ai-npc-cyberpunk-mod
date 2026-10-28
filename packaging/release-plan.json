@@ -162,6 +162,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/revenge-ambush-world.lua"
         },
         {
+          "source": "mod/eddies.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/eddies.lua"
+        },
+        {
           "source": "mod/companion-outfits.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits.lua"
         },
@@ -714,6 +718,10 @@
           "target": "r6/scripts/CyberpunkConvai/Composer.reds"
         },
         {
+          "source": "r6/scripts/CyberpunkConvai/Eddies.reds",
+          "target": "r6/scripts/CyberpunkConvai/Eddies.reds"
+        },
+        {
           "source": "r6/scripts/CyberpunkConvai/Engagement.reds",
           "target": "r6/scripts/CyberpunkConvai/Engagement.reds"
         },
@@ -783,6 +791,8 @@
             "bridge/custom-voice-clip.mjs",
             "bridge/dialogue-level.mjs",
             "bridge/dynamic-info.mjs",
+            "bridge/eddies-finances.mjs",
+            "bridge/eddies.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
             "bridge/emotion-selector.mjs",

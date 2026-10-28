@@ -1,0 +1,1024 @@
+{
+  "dev": {
+    "asks": [
+      [
+        "Bana 500 eddie borç verir misin?",
+        "borrow",
+        500
+      ],
+      [
+        "Bana 2 bin eddie borç verebilir misin?",
+        "borrow",
+        2000
+      ],
+      [
+        "Ödünç verir misin, beş yüz eddie?",
+        "borrow",
+        500
+      ],
+      [
+        "Ver bana üç yüz eddie",
+        "borrow",
+        300
+      ],
+      [
+        "Bana biraz para verir misin?",
+        "borrow",
+        null
+      ],
+      [
+        "Borç alabilir miyim? 300 eddie",
+        "borrow",
+        300
+      ],
+      [
+        "Param bitti, borç verebilir misin?",
+        "borrow",
+        null
+      ],
+      [
+        "İki bin beş yüz eddie lazım",
+        "borrow",
+        2500
+      ],
+      [
+        "Borç ister misin?",
+        "lend",
+        null
+      ],
+      [
+        "Paraya ihtiyacın var mı?",
+        "lend",
+        null
+      ],
+      [
+        "Sana 400 eddie borç veririm",
+        "lend",
+        400
+      ],
+      [
+        "Sana 300 eddie borç veriyorum",
+        "lend",
+        300
+      ],
+      [
+        "Borç vereyim mi? 200 eddie",
+        "lend",
+        200
+      ],
+      [
+        "Sana borç verebilirim, istersen",
+        "lend",
+        null
+      ],
+      [
+        "Ödünç veriyorum sana, iki yüz eddie",
+        "lend",
+        200
+      ],
+      [
+        "Sana 1.000 eddie borç vermek istiyorum",
+        "lend",
+        1000
+      ],
+      [
+        "Üstü kalsın, 50 eddie",
+        "give",
+        50
+      ],
+      [
+        "Buyur, beş yüz eddie",
+        "give",
+        500
+      ],
+      [
+        "Bahşiş olarak yüz eddie",
+        "give",
+        100
+      ],
+      [
+        "Sana iki yüz para veriyorum, sağ ol",
+        "give",
+        200
+      ],
+      [
+        "Alsana, iki yüz eddie",
+        "give",
+        200
+      ],
+      [
+        "Sana 1500 eddie ödüyorum",
+        "give",
+        1500
+      ],
+      [
+        "Hediye olarak 400 eddie",
+        "give",
+        400
+      ],
+      [
+        "Bahşiş bırakıyorum, 100 para",
+        "give",
+        100
+      ],
+      [
+        "Sana borcum var, 500 eddie",
+        "repay",
+        500
+      ],
+      [
+        "Borcumu ödüyorum, üç yüz eddie",
+        "repay",
+        300
+      ],
+      [
+        "İşte senin paran, 250 eddie",
+        "repay",
+        250
+      ],
+      [
+        "Borcumu kapatıyorum, bin eddie",
+        "repay",
+        1000
+      ],
+      [
+        "Sana geri veriyorum, 800 eddie",
+        "repay",
+        800
+      ],
+      [
+        "Sana 150 eddie borcum var",
+        "repay",
+        150
+      ],
+      [
+        "Eşitiz şimdi, al sana 50 eddie",
+        "repay",
+        50
+      ],
+      [
+        "Sana borcumu ödüyorum, iki yüz eddie",
+        "repay",
+        200
+      ],
+      [
+        "Bana borcun var, 500 eddie",
+        "reclaim",
+        500
+      ],
+      [
+        "Borcunu öde, iki bin eddie",
+        "reclaim",
+        2000
+      ],
+      [
+        "Ne zaman parayı ödeyeceksin?",
+        "reclaim",
+        null
+      ],
+      [
+        "Bana parayı geri öde",
+        "reclaim",
+        null
+      ],
+      [
+        "Paramı ver",
+        "reclaim",
+        null
+      ],
+      [
+        "Ödemen gerek, 300 eddie",
+        "reclaim",
+        300
+      ],
+      [
+        "Bana ödemen lazım, 200 eddie",
+        "reclaim",
+        200
+      ],
+      [
+        "Bana geri ver, 150 eddie",
+        "reclaim",
+        150
+      ],
+      [
+        "Bana beş yüz lira kadar borç verir misin?",
+        "borrow",
+        500
+      ],
+      [
+        "İki bin lira civarında avans verebilir misin?",
+        "borrow",
+        2000
+      ],
+      [
+        "Bin lira falan yeter, ödünç verir misin?",
+        "borrow",
+        1000
+      ],
+      [
+        "Bana iki yüz eddie avans verir misin",
+        "borrow",
+        200
+      ],
+      [
+        "Sana 600 eddie avans verebilirim",
+        "lend",
+        600
+      ],
+      [
+        "Sana avans yapabilirim, 700 eddie",
+        "lend",
+        700
+      ],
+      [
+        "Sana 250 eddie borç vermek isterim",
+        "lend",
+        250
+      ],
+      [
+        "Ödünç vermek isterim, 150 eddie",
+        "lend",
+        150
+      ],
+      [
+        "Borç almak ister misin? 900 eddie var bende",
+        "lend",
+        900
+      ],
+      [
+        "Ödünç almak ister misin? Üç yüz eddie.",
+        "lend",
+        300
+      ],
+      [
+        "Al, 120 eddie, ilaç için",
+        "give",
+        120
+      ],
+      [
+        "Al bunu, 80 eddie",
+        "give",
+        80
+      ],
+      [
+        "Emeğinin karşılığı olarak 800 eddie burada",
+        "give",
+        800
+      ],
+      [
+        "İşte 300 eddie burada",
+        "give",
+        300
+      ],
+      [
+        "Sana borçlu olduğum iki yüz eddie burada",
+        "repay",
+        200
+      ],
+      [
+        "Borçlu olduğum 400 eddieyi ödüyorum",
+        "repay",
+        400
+      ],
+      [
+        "Beş yüz eddie borcun var, hatırla",
+        "reclaim",
+        500
+      ],
+      [
+        "Üç yüz lira borcun var",
+        "reclaim",
+        300
+      ],
+      [
+        "Bana beş yüz eddie borçlusun",
+        "reclaim",
+        500
+      ],
+      [
+        "Üç yüz eddie geri vereceğini söylemiştin",
+        "reclaim",
+        300
+      ],
+      [
+        "Eddielerimi geri istiyorum",
+        "reclaim",
+        null
+      ],
+      [
+        "Bana 500 eddie yarına kadar borç verir misin?",
+        "borrow",
+        500
+      ]
+    ],
+    "near": [
+      "Bana yardım et, sorun yok",
+      "Beş dakika bekle",
+      "Sana bir dakika ayırabilir misin?",
+      "Bana bir şey ver",
+      "Bu yemeği ben ödedim",
+      "Dün sana borç verdim",
+      "Yarın borcumu öderim",
+      "Bana borç verme",
+      "Sana borç vermem",
+      "Borç vermeyeceğim",
+      "Eğer sana 500 eddie borç verirsem ne olur?",
+      "Sana borcum yok",
+      "Bana borç verdin mi?",
+      "Borç vermek istemiyorum",
+      "Paran var mı?",
+      "Bana bir açıklama borçlusun",
+      "Ben sana bir teşekkür borçluyum",
+      "Bana bir iyilik borçlusun",
+      "Beş dakika bekler misin?",
+      "Bana beş dakika ver",
+      "Bana bir bardak su ver",
+      "Bana bir şans ver",
+      "Ödünç aldığım kitabı iade ettim",
+      "Ben sana para göndermedim",
+      "Eddie'lerle ne yapayım?",
+      "Parasız kaldım ama sorun değil",
+      "Maaşım geç yatıyor",
+      "Sana iyi şanslar",
+      "Sana ne oldu?",
+      "Ne kadar eddie var?",
+      "Bunu sana vermeyeceğim",
+      "Borç nedir?",
+      "Ödemeli bilet mi?",
+      "Beşe kadar say",
+      "Yarım saat sonra gel",
+      "Bu ayın sonunda seni ararım",
+      "Kitabı ödünç verir misin?",
+      "Bana kitap ver",
+      "Sana bir şey anlatacağım",
+      "Yarın sana 500 eddie vereceğim",
+      "Sana 200 eddie verirsem geri öder misin?",
+      "Şaka, bana 500 eddie borç ver",
+      "Dalga geçiyorum, bana 500 eddie borç ver",
+      "Sana iki kelime borcun var",
+      "Sana bir teşekkür borçlu olduğum var",
+      "Yarın sana 500 eddie borç veririm",
+      "Kimseye avans vermem"
+    ],
+    "amounts": [
+      [
+        "beş yüz eddie",
+        500
+      ],
+      [
+        "iki bin eddie",
+        2000
+      ],
+      [
+        "2 bin para",
+        2000
+      ],
+      [
+        "üç yüz eddie",
+        300
+      ],
+      [
+        "bin beş yüz eddie",
+        1500
+      ],
+      [
+        "iki yüz para",
+        200
+      ],
+      [
+        "on beş eddie",
+        15
+      ],
+      [
+        "yirmi eddie",
+        20
+      ],
+      [
+        "1.000 eddie",
+        1000
+      ],
+      [
+        "1,5 bin eddie",
+        1500
+      ],
+      [
+        "5k eddie",
+        5000
+      ],
+      [
+        "500 eddie",
+        500
+      ],
+      [
+        "dokuz yüz doksan dokuz eddie",
+        999
+      ],
+      [
+        "yedi bin eddie",
+        7000
+      ],
+      [
+        "altı yüz eddie",
+        600
+      ],
+      [
+        "elli bin eddie",
+        50000
+      ],
+      [
+        "beş dakika",
+        null
+      ],
+      [
+        "birkaç eddie",
+        null
+      ],
+      [
+        "üç kere",
+        null
+      ],
+      [
+        "on kişi",
+        null
+      ],
+      [
+        "iki adet",
+        null
+      ],
+      [
+        "yirmi yaşında",
+        null
+      ],
+      [
+        "bir gün",
+        null
+      ],
+      [
+        "2018 yıl",
+        null
+      ],
+      [
+        "beş mermi",
+        null
+      ],
+      [
+        "yirmi bin lira",
+        20000
+      ],
+      [
+        "üç binlik",
+        3000
+      ],
+      [
+        "on iki lira",
+        12
+      ],
+      [
+        "beş yüzlük",
+        500
+      ],
+      [
+        "iki yüzlük eddie",
+        200
+      ]
+    ]
+  },
+  "held": {
+    "asks": [
+      [
+        "abi bana 300 eddie borc verir misin ya",
+        "borrow",
+        300
+      ],
+      [
+        "yaa 1 bin eddie ver bana",
+        "borrow",
+        1000
+      ],
+      [
+        "borc verebilir misin, 150 eddie",
+        "borrow",
+        150
+      ],
+      [
+        "parasiz kaldim, bana biraz para ver",
+        "borrow",
+        null
+      ],
+      [
+        "bana 800 lazim",
+        "borrow",
+        800
+      ],
+      [
+        "bana 250 eddie lazim",
+        "borrow",
+        250
+      ],
+      [
+        "borc ister misin abi",
+        "lend",
+        null
+      ],
+      [
+        "ben sana 200 eddie borc veririm",
+        "lend",
+        200
+      ],
+      [
+        "param var, istersen borc veririm",
+        "lend",
+        null
+      ],
+      [
+        "sana 60 eddie borc vereyim",
+        "lend",
+        60
+      ],
+      [
+        "sana odunc veriyorum, 1 bin eddie",
+        "lend",
+        1000
+      ],
+      [
+        "para istiyor musun",
+        "lend",
+        null
+      ],
+      [
+        "alsana 600 eddie",
+        "give",
+        600
+      ],
+      [
+        "bahsis olarak 2 bin eddie",
+        "give",
+        2000
+      ],
+      [
+        "ustu sende kalsin eddie",
+        "give",
+        null
+      ],
+      [
+        "bunu sana veriyorum, 250 para",
+        "give",
+        250
+      ],
+      [
+        "sana 1000 eddie oduyorum",
+        "give",
+        1000
+      ],
+      [
+        "ben sana iki yuz eddie yolluyorum",
+        "give",
+        200
+      ],
+      [
+        "sana 90 eddie borcum var",
+        "repay",
+        90
+      ],
+      [
+        "borcumu oduyorum sana, 120 eddie",
+        "repay",
+        120
+      ],
+      [
+        "borcumu kapatiyorum 75 eddie",
+        "repay",
+        75
+      ],
+      [
+        "borcumu geri veriyorum, 300 para",
+        "repay",
+        300
+      ],
+      [
+        "basabas, 40 eddie al",
+        "repay",
+        40
+      ],
+      [
+        "senin parani geri veriyorum",
+        "repay",
+        null
+      ],
+      [
+        "ne zaman odersin? para bekliyorum",
+        "reclaim",
+        null
+      ],
+      [
+        "bana 300 eddie borcun var",
+        "reclaim",
+        300
+      ],
+      [
+        "borcunu ode, 80 eddie",
+        "reclaim",
+        80
+      ],
+      [
+        "bana geri ver para",
+        "reclaim",
+        null
+      ],
+      [
+        "geri ver paramı",
+        "reclaim",
+        null
+      ],
+      [
+        "eddieleri geri verir misin",
+        "reclaim",
+        null
+      ]
+    ],
+    "near": [
+      "Sana bir kahve ismarlayayim",
+      "Beş dakika sonra konuşuruz",
+      "Bana bir sey anlatma",
+      "Borç nedir ki",
+      "Yalan söyleme, borç verme sana",
+      "Hayır, vermem",
+      "Hiç istemem",
+      "Dün akşam borç verdim ama",
+      "Bu sefer sana para vermedim",
+      "Eğer parayı ver dersen ne olur",
+      "Kardeşim senin borcun var mı bilmiyorum",
+      "Bana bir bilgi borçlusun",
+      "Sana iki kelime borcum var",
+      "Ödedik sonunda hepsini",
+      "Maaşım yattı, sevindim",
+      "Bu ay param bitti hep",
+      "Bu kalemi ödünç alır mısın",
+      "Bana ses ver",
+      "Bana cevap ver",
+      "Sana bir soru soracağım",
+      "Sana 5 dakika vereyim",
+      "Üç gün sonra gel",
+      "Bu parayla ne alabilirim",
+      "Eddie kazanmak zor abi",
+      "Borçlanmak istemiyorum",
+      "Ödemeni yap sen ben beklerim",
+      "Bana bir kere daha bak",
+      "Sana iyi geceler",
+      "Ödünç alma diye çağırdı",
+      "Bana bir şey verir misin"
+    ],
+    "amounts": [
+      [
+        "bes yuz eddie",
+        500
+      ],
+      [
+        "uc bin para",
+        3000
+      ],
+      [
+        "dort yuz elli eddie",
+        450
+      ],
+      [
+        "yirmi bes eddie",
+        25
+      ],
+      [
+        "seksen bin eddie",
+        80000
+      ],
+      [
+        "2.500 eddie",
+        2500
+      ],
+      [
+        "3,5 bin eddie",
+        3500
+      ],
+      [
+        "10k eddie",
+        10000
+      ],
+      [
+        "sekiz yuz doksan eddie",
+        890
+      ],
+      [
+        "iki yuz para",
+        200
+      ],
+      [
+        "on iki eddie",
+        12
+      ],
+      [
+        "bin iki yuz eddie",
+        1200
+      ],
+      [
+        "yedi yuz eddie",
+        700
+      ],
+      [
+        "doksan dokuz para",
+        99
+      ],
+      [
+        "iki saat",
+        null
+      ],
+      [
+        "bir kere",
+        null
+      ],
+      [
+        "dort tane",
+        null
+      ],
+      [
+        "yirmi yasinda",
+        null
+      ],
+      [
+        "bir iki gun",
+        null
+      ],
+      [
+        "2019 yil",
+        null
+      ]
+    ]
+  },
+  "blind": {
+    "asks": [
+      [
+        "Kanka, bana 500 eddie borç verir misin? Cuma günü öderim.",
+        "borrow",
+        500
+      ],
+      [
+        "Ripperdoc için 2k lazım, yardım eder misin?",
+        "borrow",
+        2000
+      ],
+      [
+        "Param bitti, bana biraz borç para verir misin?",
+        "borrow",
+        null
+      ],
+      [
+        "İki yüz eddie ödünç verir misin, choom? Yarın geri veririm.",
+        "borrow",
+        200
+      ],
+      [
+        "Bana bin lira kadar avans yapabilir misin?",
+        "borrow",
+        1000
+      ],
+      [
+        "Taksi parası lazım, bana üç bin eddie verir misin?",
+        "borrow",
+        3000
+      ],
+      [
+        "Sana 400 eddie borç verebilirim, lazım olursa.",
+        "lend",
+        400
+      ],
+      [
+        "Paraya ihtiyacın var mı? Sana biraz ödünç verebilirim.",
+        "lend",
+        null
+      ],
+      [
+        "Ödünç para ister misin?",
+        "lend",
+        null
+      ],
+      [
+        "İşin için 1.500 eddie avans verebilirim, sonra hesaplaşırız.",
+        "lend",
+        1500
+      ],
+      [
+        "Sana 800 eddie borç vermek isterim, sorun değil.",
+        "lend",
+        800
+      ],
+      [
+        "Üç yüz eddie ödünç almak ister misin? Bende var.",
+        "lend",
+        300
+      ],
+      [
+        "Al, 300 eddie yolculuk için.",
+        "give",
+        300
+      ],
+      [
+        "Üstü kalsın, kardeşim.",
+        "give",
+        null
+      ],
+      [
+        "Yolculuk için sana 500 eddie ödüyorum, tamam mı?",
+        "give",
+        500
+      ],
+      [
+        "Zahmetin karşılığı olarak iki bin eddie burada.",
+        "give",
+        2000
+      ],
+      [
+        "Bunu hediye olarak al: 1000 eddie.",
+        "give",
+        1000
+      ],
+      [
+        "Al bakalım, 150 eddie bahşiş.",
+        "give",
+        150
+      ],
+      [
+        "İşte sana borçlu olduğum 500 eddie.",
+        "repay",
+        500
+      ],
+      [
+        "Borcumu ödüyorum, söz verdiğim gibi.",
+        "repay",
+        null
+      ],
+      [
+        "Ödünç aldığım iki yüz eddieyi geri veriyorum.",
+        "repay",
+        200
+      ],
+      [
+        "Hesap kapandı, işte üç yüz eddie.",
+        "repay",
+        300
+      ],
+      [
+        "Borcumu kapatıyorum, bin beş yüz eddie.",
+        "repay",
+        1500
+      ],
+      [
+        "Sana olan borcumu ödüyorum, sekiz yüz eddie.",
+        "repay",
+        800
+      ],
+      [
+        "Bana borçlu olduğun 300 eddieyi ne zaman ödeyeceksin?",
+        "reclaim",
+        300
+      ],
+      [
+        "İki yüz eddie borcun var, unutmadın değil mi?",
+        "reclaim",
+        200
+      ],
+      [
+        "Bana iki bin eddie borçlusun, ne zaman vereceksin?",
+        "reclaim",
+        2000
+      ],
+      [
+        "Bana borçlu olduğunu hatırlıyor musun? Paramı geri istiyorum.",
+        "reclaim",
+        null
+      ],
+      [
+        "Bin lirayı geri vereceğini söylemiştin, nerede?",
+        "reclaim",
+        1000
+      ],
+      [
+        "500 eddie ödünç almıştın, ne zaman geri döndüreceksin?",
+        "reclaim",
+        500
+      ]
+    ],
+    "near": [
+      "Bana bir el uzatır mısın, kutuyu taşıyalım.",
+      "Kulağını ödünç ver de anlatayım.",
+      "Kaleminizi ödünç verir misiniz?",
+      "Bana beş dakika ver, hemen geliyorum.",
+      "Dün akşam yemeğin parasını ben ödedim, sıra sende.",
+      "Bu tüfek 2000 eddie, çok pahalı.",
+      "Burada bir odanın kirası ne kadar?",
+      "Sana hiç borç vermem, unut gitsin.",
+      "Sana bir kuruş bile vermem.",
+      "Arabamı kimseye ödünç vermem.",
+      "Sana 500 eddie borç versem, geri öder misin?",
+      "Bir milyon eddien olduğunu düşün, ne yapardın?",
+      "Yarın parayı geri veririm, söz.",
+      "Dün sana ödedim zaten, hatırlamıyor musun?",
+      "Maaşımı alınca her şeyi hallederiz.",
+      "Şaka yapıyordum, bana hiçbir şey borç verme.",
+      "Para mutluluk getirmez, derler.",
+      "Ayda ne kadar kazanıyorsun?",
+      "Son zamanlarda param az, zor durumdayım.",
+      "Saat üçte, yani 15:30'da sinemanın önünde buluşalım.",
+      "Bu hafta orada üç kez oldum.",
+      "Adres: Gül Sokak 14.",
+      "Beş dakika sonra beni ara, olur mu?",
+      "İki dakika bekle, bunu bitireyim.",
+      "Teşekkürler, sana bir iyilik borçluyum.",
+      "Bana bir açıklama borçlusun, para değil.",
+      "Sonra beni geri ara, tamam mı?",
+      "Tuzu uzatır mısın?",
+      "Night City'de yaşam çok pahalı.",
+      "Fiyat dünden beri 50 eddie düştü.",
+      "Otopark için 300 eddie ödedim, delilik.",
+      "Görev parasını alınca eğlenip kutlarız.",
+      "Bugün on iki saat çalıştım, yoruldum.",
+      "Şarjörde iki kurşun var.",
+      "Dükkanda on iki çeşit silah var."
+    ],
+    "amounts": [
+      [
+        "iki yüz eddie",
+        200
+      ],
+      [
+        "iki bin eddie",
+        2000
+      ],
+      [
+        "1.500 eddie",
+        1500
+      ],
+      [
+        "üç bin eddie",
+        3000
+      ],
+      [
+        "beş yüz eddie",
+        500
+      ],
+      [
+        "bin eddie",
+        1000
+      ],
+      [
+        "2k eddie",
+        2000
+      ],
+      [
+        "on iki bin eddie",
+        12000
+      ],
+      [
+        "300 eddie",
+        300
+      ],
+      [
+        "sekiz yüz eddie",
+        800
+      ],
+      [
+        "on beş bin lira",
+        15000
+      ],
+      [
+        "iki binlik",
+        2000
+      ],
+      [
+        "1 000 eddie",
+        1000
+      ],
+      [
+        "iki bin beş yüz eddie",
+        2500
+      ],
+      [
+        "beş dakika",
+        null
+      ],
+      [
+        "biraz eddie",
+        null
+      ],
+      [
+        "üç kez",
+        null
+      ],
+      [
+        "on kurşun",
+        null
+      ],
+      [
+        "iki saat",
+        null
+      ]
+    ]
+  }
+}

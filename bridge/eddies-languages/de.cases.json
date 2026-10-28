@@ -1,0 +1,999 @@
+{
+  "dev": {
+    "asks": [
+      [
+        "Kannst du mir 500 Eddies leihen?",
+        "borrow",
+        500
+      ],
+      [
+        "Leih mir mal tausend Eddies, Choom",
+        "borrow",
+        1000
+      ],
+      [
+        "ich brauch 2k für den Ripperdoc",
+        "borrow",
+        2000
+      ],
+      [
+        "Könntest du mir zweihundert Eddies geben?",
+        "borrow",
+        200
+      ],
+      [
+        "Ich bin pleite, hast du was Kohle für mich?",
+        "borrow",
+        null
+      ],
+      [
+        "gib mir 300 Eddies bitte",
+        "borrow",
+        300
+      ],
+      [
+        "kannst du mir nicht 50 Eddies leihen?",
+        "borrow",
+        50
+      ],
+      [
+        "Ich leih dir 400 Eddies",
+        "lend",
+        400
+      ],
+      [
+        "Wenn du willst, kann ich dir eintausendfünfhundert Eddies leihen",
+        "lend",
+        1500
+      ],
+      [
+        "Brauchst du Geld?",
+        "lend",
+        null
+      ],
+      [
+        "Hier, nimm 300 Eddies",
+        "give",
+        300
+      ],
+      [
+        "Danke für die Hilfe, hier hast du 200 Eddies",
+        "give",
+        200
+      ],
+      [
+        "ich zahl dir 300 Eddies für die Fahrt",
+        "give",
+        300
+      ],
+      [
+        "Ich gebe dir 1.000 Eddies",
+        "give",
+        1000
+      ],
+      [
+        "Hier ist das Geld, das ich dir schulde: 500 Eddies",
+        "repay",
+        500
+      ],
+      [
+        "ich schulde dir 300 Eddies, nimm",
+        "repay",
+        300
+      ],
+      [
+        "ich geb dir die 250 Eddies zurück",
+        "repay",
+        250
+      ],
+      [
+        "Zahl mir zurück, was du mir schuldest",
+        "reclaim",
+        null
+      ],
+      [
+        "du schuldest mir 200 Eddies",
+        "reclaim",
+        200
+      ],
+      [
+        "Wann zahlst du mir die 300 Eddies zurück?",
+        "reclaim",
+        300
+      ],
+      [
+        "Gib mir mein Geld zurück, Alter",
+        "reclaim",
+        null
+      ],
+      [
+        "Kannst du mir mal eben einen Tausender pumpen?",
+        "borrow",
+        1000
+      ],
+      [
+        "Hast du vielleicht 150 Eddies für mich?",
+        "borrow",
+        150
+      ],
+      [
+        "Ich brauche 1500 Eddies für die Reparatur",
+        "borrow",
+        1500
+      ],
+      [
+        "Pump mir ein paar Eddies, Chummer",
+        "borrow",
+        null
+      ],
+      [
+        "Willst du dir Geld leihen?",
+        "lend",
+        null
+      ],
+      [
+        "Nimm das, 1.200 Eddies",
+        "give",
+        1200
+      ],
+      [
+        "Trinkgeld, für dich: 50 Eddies",
+        "give",
+        50
+      ],
+      [
+        "Behalt den Rest, Kumpel",
+        "give",
+        null
+      ],
+      [
+        "Meine Schuld bei dir: 600 Eddies, hier",
+        "repay",
+        600
+      ],
+      [
+        "Ich zahl dir alles zurück, hier sind 400 Eddies",
+        "repay",
+        400
+      ],
+      [
+        "Gib mir die 900 Eddies wieder",
+        "reclaim",
+        900
+      ],
+      [
+        "Zahl mich aus, du Schuldner! 2000 Eddies",
+        "reclaim",
+        2000
+      ],
+      [
+        "Mein Kredit an dich liegt bei 350 Eddies, zahl mir das",
+        "reclaim",
+        350
+      ],
+      [
+        "Könntest du mir bitte zwei Tausend Eddies leihen?",
+        "borrow",
+        2000
+      ],
+      [
+        "Ich würde dir gern 700 Eddies leihen",
+        "lend",
+        700
+      ],
+      [
+        "Kann ich mir von dir 100 Eddies leihen?",
+        "borrow",
+        100
+      ],
+      [
+        "Hier, nimm dreihundert Eddies für die Mühe",
+        "give",
+        300
+      ],
+      [
+        "Ich schulde dir was, hier, 75 Eddies",
+        "repay",
+        75
+      ],
+      [
+        "Gib mir einen Kredit über 5000 Eddies",
+        "borrow",
+        5000
+      ],
+      [
+        "Hier sind die 700, die ich dir schuldig war",
+        "repay",
+        700
+      ],
+      [
+        "Ich bin dir noch 450 schuldig",
+        "repay",
+        450
+      ],
+      [
+        "So, jetzt sind wir quitt, 800 Eddies für die Schulden",
+        "repay",
+        800
+      ],
+      [
+        "Für deine Hilfe: 400 Eddies",
+        "give",
+        400
+      ],
+      [
+        "Hier sind 800 Eddies als Dank",
+        "give",
+        800
+      ],
+      [
+        "Nimm die zweitausend, du bist ein Engel",
+        "give",
+        2000
+      ],
+      [
+        "Stimmt so, Kumpel",
+        "give",
+        null
+      ],
+      [
+        "Könnten Sie mir bitte 600 Eddies vorstrecken?",
+        "borrow",
+        600
+      ],
+      [
+        "Ich kann dir 300 vorstrecken, wenn du willst",
+        "lend",
+        300
+      ],
+      [
+        "Brauchst du Geld? Ich leih dir gern 500",
+        "lend",
+        500
+      ],
+      [
+        "Gib mir einen Tausender",
+        "borrow",
+        1000
+      ],
+      [
+        "Du hast mir 600 Eddies geliehen, ich will sie wieder",
+        "reclaim",
+        600
+      ],
+      [
+        "Wann gibst du mir die 900 Eddies zurück?",
+        "reclaim",
+        900
+      ]
+    ],
+    "near": [
+      "Ich leih dir mal meine Hand, kein Problem",
+      "Kannst du mir kurz dein Ohr leihen?",
+      "Leih mir mal dein Auto für heute",
+      "Gib mir fünf Minuten, dann reden wir",
+      "Pass auf, da kommt ein Typ",
+      "Du schuldest mir eine Erklärung",
+      "Ich schulde dir einen Gefallen",
+      "Ich habe das Geld gestern bezahlt",
+      "Das Essen hat mich 500 Eddies gekostet",
+      "Ich zahle nie für so was, niemals",
+      "Ich leihe dir kein Geld, auf keinen Fall",
+      "Wenn ich dir 500 Eddies leihen würde, würdest du zurückzahlen?",
+      "Morgen zahle ich dir alles zurück",
+      "Gestern hab ich dir was überwiesen",
+      "Geld ist nicht alles im Leben",
+      "Wie hoch ist dein Gehalt eigentlich?",
+      "Wie viel Zeit bleibt noch?",
+      "Gib mir zwei Stunden, ich bin gleich da",
+      "Ich brauche drei Kugeln, mehr nicht",
+      "Hast du fünf Minuten Zeit für mich?",
+      "Bezahl deine Rechnung, bevor du gehst",
+      "Ich bezahle die Pizza später mit dem Handy",
+      "Aufmerksamkeit ist alles, Chummer",
+      "Schön, dass du da bist",
+      "Das Wetter ist heute trüb",
+      "Ich schenke dir eine Umarmung",
+      "Gib mir einen Moment",
+      "Ich habe drei Bier getrunken",
+      "Hast du den Schlüssel gefunden?",
+      "Was hältst du von dem Deal?",
+      "Ich hab keine Lust auf Geld heute",
+      "Hol mir mal einen Kaffee",
+      "Wenn ich Geld hätte, würde ich dir was geben",
+      "Ich gebe dir keinen Cent",
+      "Der Preis war mir egal, es zählt die Wirkung",
+      "Die Mission hat mich einen Haufen Zeit gekostet",
+      "Ich habe nie gesagt, dass ich dir Geld leihe",
+      "Hör auf, mir Geld anzubieten, das ist peinlich",
+      "Ich schulde dir nichts",
+      "Kann ich mir mal deine Jacke leihen?",
+      "Ich will nichts zurück",
+      "Ich bin dir nichts schuldig",
+      "Du bist mir eine Erklärung schuldig",
+      "Gib mir die Akte",
+      "Kannst du mir die Akte leihen?",
+      "Hier sind die Schlüssel",
+      "Wir sind schon quitt, wir haben uns lange nicht gesehen"
+    ],
+    "amounts": [
+      [
+        "zweihundert Eddies",
+        200
+      ],
+      [
+        "zweitausendfünfhundert Eddies",
+        2500
+      ],
+      [
+        "2 Tausend Eddies",
+        2000
+      ],
+      [
+        "500€",
+        500
+      ],
+      [
+        "1.500 Eddies",
+        1500
+      ],
+      [
+        "hundert Eddies",
+        100
+      ],
+      [
+        "fünf Minuten",
+        null
+      ],
+      [
+        "ein paar Eddies",
+        null
+      ],
+      [
+        "fünfunddreißig Eddies",
+        35
+      ],
+      [
+        "€$300",
+        300
+      ],
+      [
+        "3 Stunden",
+        null
+      ],
+      [
+        "dreihundertfünfzig Eddies",
+        350
+      ],
+      [
+        "ein Riese Eddies",
+        1000
+      ],
+      [
+        "zwei Riesen",
+        2000
+      ],
+      [
+        "5k Eddies",
+        5000
+      ],
+      [
+        "1 000 Eddies",
+        1000
+      ],
+      [
+        "achtzehn Eddies",
+        18
+      ],
+      [
+        "einhundertzwölf Eddies",
+        112
+      ],
+      [
+        "sieben Eddies",
+        7
+      ],
+      [
+        "zwei Mal",
+        null
+      ],
+      [
+        "neun Kugeln",
+        null
+      ],
+      [
+        "fünfzig Euro",
+        50
+      ],
+      [
+        "zwanzig Stück",
+        null
+      ],
+      [
+        "tausendzweihundert Eddies",
+        1200
+      ],
+      [
+        "sechzehn Eddies",
+        16
+      ],
+      [
+        "zwölfhundert Eddies",
+        1200
+      ],
+      [
+        "fünftausend Eddies",
+        5000
+      ],
+      [
+        "ein Tausender",
+        1000
+      ],
+      [
+        "einhundert Eddies",
+        100
+      ],
+      [
+        "dreihundert Eddies",
+        300
+      ]
+    ]
+  },
+  "held": {
+    "asks": [
+      [
+        "hey mann, kannst mir paar kröten vorschießen? 800 eddies wär top",
+        "borrow",
+        800
+      ],
+      [
+        "Entschuldige, würden Sie mir bitte 250 Eddies vorstrecken?",
+        "borrow",
+        250
+      ],
+      [
+        "leihste mir mal 'nen Tausender?",
+        "borrow",
+        1000
+      ],
+      [
+        "Ich brauch so 1,5k fürs Zeug, kannst du das übernehmen",
+        "borrow",
+        1500
+      ],
+      [
+        "Hätteste mal 30 Eddies für mich? Bin knapp dran",
+        "borrow",
+        30
+      ],
+      [
+        "gib mir einfach was Kohle, egal wieviel",
+        "borrow",
+        null
+      ],
+      [
+        "Könnte ich mir bitte 400 Eddies von dir borgen?",
+        "borrow",
+        400
+      ],
+      [
+        "Mein Akku ist leer, kannst du mir 60 Eddies für die Taxe geben?",
+        "borrow",
+        60
+      ],
+      [
+        "Pump mich mal mit achthundert Eddies, ich zahl das schnell zurück",
+        "borrow",
+        800
+      ],
+      [
+        "kannst du mich mit dreihundert Eddies aushelfen",
+        "borrow",
+        300
+      ],
+      [
+        "Yo, ich hab kein Cent mehr. Spot me 200 eddies?",
+        "borrow",
+        200
+      ],
+      [
+        "Vielleicht könntest du mir ja was leihen, sagen wir 2000 Eddies",
+        "borrow",
+        2000
+      ],
+      [
+        "Hey, brauchst du was? Ich kann dir 600 Eddies leihen",
+        "lend",
+        600
+      ],
+      [
+        "Ich hab noch 900 Eddies übrig, die kann ich dir geben, wenn du willst",
+        "lend",
+        900
+      ],
+      [
+        "Sag Bescheid, wenn du Geld brauchst, ich leih dir gern",
+        "lend",
+        null
+      ],
+      [
+        "Willst du 'nen Kredit von mir? 150 Eddies",
+        "lend",
+        150
+      ],
+      [
+        "Ich würde dir gern 3000 Eddies vorstrecken",
+        "lend",
+        3000
+      ],
+      [
+        "Brauchst du Kohle? Ich mach dir ein Angebot",
+        "lend",
+        null
+      ],
+      [
+        "Hier, das ist für dich. Dreihundert Eddies, Kumpel",
+        "give",
+        300
+      ],
+      [
+        "Schmeiß das Geld hier rüber, 400 Eddies",
+        "give",
+        400
+      ],
+      [
+        "Für den Auftrag gibt's 1.800 Eddies, nimm das",
+        "give",
+        1800
+      ],
+      [
+        "Das ist mein Dankeschön, 120 Eddies, passt so",
+        "give",
+        120
+      ],
+      [
+        "Behalt die 80 Eddies, du hast's dir verdient",
+        "give",
+        80
+      ],
+      [
+        "Ich hab dir das Geld zurück, 350 Eddies, hier",
+        "repay",
+        350
+      ],
+      [
+        "Da, die 500 Eddies, die ich dir noch schulde",
+        "repay",
+        500
+      ],
+      [
+        "Endlich zahl ich dir mein Darlehen zurück: 700 Eddies",
+        "repay",
+        700
+      ],
+      [
+        "Ich hab dir noch was zu zahlen, 45 Eddies",
+        "repay",
+        45
+      ],
+      [
+        "Gib mir gefälligst die 1000 Eddies, die du mir schuldest",
+        "reclaim",
+        1000
+      ],
+      [
+        "Du hast noch Schulden bei mir, 400 Eddies",
+        "reclaim",
+        400
+      ],
+      [
+        "Wann überweist du mir endlich das Geld?",
+        "reclaim",
+        null
+      ]
+    ],
+    "near": [
+      "Kannst du mir mal kurz die Tür aufhalten?",
+      "Hol mir bitte fünf Minuten Ruhe, ich bin fertig",
+      "Ich schulde dir nix, alles gut",
+      "Die Rechnung habe ich letzte Woche bezahlt",
+      "Ich zahle nicht für Müll wie den da",
+      "Das Auto hat mich 9000 Eddies gekostet, frag nicht",
+      "Leg das Geld weg, ich will nicht drüber reden",
+      "Auf keinen Fall leih ich dir was, vergiss es",
+      "Wenn ich reich wäre, würde ich das Haus kaufen",
+      "Leihst du mir mal dein Ladegerät?",
+      "Gib mir die Akte, bitte",
+      "Pass auf dich auf, Kumpel",
+      "Ich bezahl dich nicht, du bist ja nur ein Spinner",
+      "Hast du schon bezahlt? Ich hab's vergessen",
+      "Wie schwer ist das Paket?",
+      "Mein Kredit bei der Bank läuft noch zwei Jahre",
+      "Wenn du mir 1000 Eddies leihen würdest, wäre alles gut",
+      "Ich hab dir das gestern gegeben, erinner dich",
+      "Ich zahl's dir nächsten Monat zurück",
+      "Die Schulden von meinem Bruder sind nicht meine",
+      "Schuld war niemand, es ist einfach passiert",
+      "Gib mir zehn Sekunden Zeit",
+      "Kannst du mir was zu trinken holen?",
+      "Ich habe keine Ahnung, wie viel das kostet",
+      "Gib mir Feuer, bitte",
+      "Hör auf zu rumschreien, ich hör dir doch zu",
+      "Danke für dein Geschenk, es ist schön",
+      "Aus Spaß hab ich dir 500 Eddies angeboten, hahaha",
+      "Im Film haben sie 1000 Eddies geklaut",
+      "Bezahlt wird am Ende des Monats, egal was passiert"
+    ],
+    "amounts": [
+      [
+        "achthundert Eddies",
+        800
+      ],
+      [
+        "tausend Eddies",
+        1000
+      ],
+      [
+        "zwölfhundert Eddies",
+        1200
+      ],
+      [
+        "3 Tausend Eddies",
+        3000
+      ],
+      [
+        "zehn Minuten",
+        null
+      ],
+      [
+        "1.250 eddies",
+        1250
+      ],
+      [
+        "dreißig Eddies",
+        30
+      ],
+      [
+        "1,5k eddies",
+        1500
+      ],
+      [
+        "ein Tausender",
+        1000
+      ],
+      [
+        "sechs Monate",
+        null
+      ],
+      [
+        "hundertfünfzig Eddies",
+        150
+      ],
+      [
+        "neunhundertneunzig Euro",
+        990
+      ],
+      [
+        "€$800",
+        800
+      ],
+      [
+        "zwei Kugeln",
+        null
+      ],
+      [
+        "siebzig Eddies",
+        70
+      ],
+      [
+        "drei Riesen",
+        3000
+      ],
+      [
+        "vierundzwanzig Stunden",
+        null
+      ],
+      [
+        "ein paar Eddies",
+        null
+      ],
+      [
+        "zwanzigtausend Eddies",
+        20000
+      ],
+      [
+        "einundneunzig Eddies",
+        91
+      ]
+    ]
+  },
+  "blind": {
+    "asks": [
+      [
+        "Leih mir kurz zweihundert Eddies, Choom?",
+        "borrow",
+        200
+      ],
+      [
+        "Kannst du mir 500 Eddies leihen, Alter?",
+        "borrow",
+        500
+      ],
+      [
+        "Ich brauch 2k für den Ripperdoc, kannst du aushelfen?",
+        "borrow",
+        2000
+      ],
+      [
+        "Könntest du mir bis morgen was vorstrecken, 1.000 Eddies?",
+        "borrow",
+        1000
+      ],
+      [
+        "Hast du vielleicht ein paar Mäuse übrig, die du mir leihen kannst?",
+        "borrow",
+        null
+      ],
+      [
+        "Entschuldigung, könnten Sie mir dreihundert Eddies leihen?",
+        "borrow",
+        300
+      ],
+      [
+        "Ich leih dir 400 Eddies, wenn du willst.",
+        "lend",
+        400
+      ],
+      [
+        "Brauchst du Geld? Ich kann dir 300 vorstrecken.",
+        "lend",
+        300
+      ],
+      [
+        "Willst du dir was leihen? Ich hab 1000 Eddies übrig.",
+        "lend",
+        1000
+      ],
+      [
+        "Wenn du Kohle brauchst, leih ich dir was.",
+        "lend",
+        null
+      ],
+      [
+        "Ich kann dir zwei Tausender leihen, kein Stress.",
+        "lend",
+        2000
+      ],
+      [
+        "Soll ich dir einen Tausender vorstrecken?",
+        "lend",
+        1000
+      ],
+      [
+        "Hier, nimm 300 Eddies, für die Fahrt.",
+        "give",
+        300
+      ],
+      [
+        "Stimmt so, Alter.",
+        "give",
+        null
+      ],
+      [
+        "Ich zahl dir 250 Eddies für den Job.",
+        "give",
+        250
+      ],
+      [
+        "Für deine Mühe: 200 Eddies.",
+        "give",
+        200
+      ],
+      [
+        "Nimm die fünftausend, du hast es dir verdient.",
+        "give",
+        5000
+      ],
+      [
+        "Hier sind 1.000 Eddies als Trinkgeld.",
+        "give",
+        1000
+      ],
+      [
+        "Hier sind die 500, die ich dir schuldig bin.",
+        "repay",
+        500
+      ],
+      [
+        "Ich zahl dir die 200 zurück, die du mir geliehen hast.",
+        "repay",
+        200
+      ],
+      [
+        "Ich bezahl dir jetzt die 300, die ich dir schulde.",
+        "repay",
+        300
+      ],
+      [
+        "So, wir sind quitt, hier sind tausend Eddies.",
+        "repay",
+        1000
+      ],
+      [
+        "Ich zahl dir alles zurück, was ich dir schulde.",
+        "repay",
+        null
+      ],
+      [
+        "Hier, die zwei Tausend, die ich dir noch schulde.",
+        "repay",
+        2000
+      ],
+      [
+        "Du schuldest mir 200 Eddies, wann zahlst du's zurück?",
+        "reclaim",
+        200
+      ],
+      [
+        "Wann zahlst du mir die 300 zurück?",
+        "reclaim",
+        300
+      ],
+      [
+        "Gib mir meine 500 Eddies zurück, Alter.",
+        "reclaim",
+        500
+      ],
+      [
+        "Du schuldest mir noch Geld, zahl es zurück.",
+        "reclaim",
+        null
+      ],
+      [
+        "Du hast mir tausend Eddies geliehen, und ich will sie zurück.",
+        "reclaim",
+        1000
+      ],
+      [
+        "Zahl mir die zwei Tausender zurück, die du mir schuldest.",
+        "reclaim",
+        2000
+      ]
+    ],
+    "near": [
+      "Kannst du mir kurz unter die Arme greifen?",
+      "Leih mir mal dein Auto heute Abend.",
+      "Gib mir 'ne Minute, ich bin gleich da.",
+      "Gib mir mal den Stift, bitte.",
+      "Ich schulde dir einen, echt jetzt.",
+      "Du schuldest mir eine Erklärung.",
+      "Gestern hab ich das Essen bezahlt.",
+      "Die Waffe kostet 2000 Eddies.",
+      "Wie viel kostet die Miete hier?",
+      "Ich leihe dir nichts, vergiss es.",
+      "Ich gebe dir keinen Cent.",
+      "Wenn ich dir 500 leihen würde, würdest du's zurückzahlen?",
+      "Stell dir vor, du hättest eine Million Eddies.",
+      "Ich zahl's dir morgen zurück, versprochen.",
+      "Ich hab dir gestern schon bezahlt, erinnerst du dich nicht?",
+      "Wenn ich Geld bekomme, rechnen wir ab.",
+      "Quatsch, leih mir bloß nichts.",
+      "Geld ist nicht alles, Chummer.",
+      "Was verdienst du eigentlich so?",
+      "Ich bin gerade total pleite.",
+      "Wie spät ist es?",
+      "Es ist halb sechs.",
+      "Ich wohne in der Hauptstraße 12.",
+      "Ich hab dich drei Mal angerufen.",
+      "Ich hab nur noch zwei Kugeln.",
+      "Ruf mich zurück, wenn du kannst.",
+      "Reich mir mal das Salz, bitte.",
+      "Das Ticket kostet fünf Eddies, glaub ich.",
+      "Wie viel kosten die Kugeln?",
+      "Ich hab mein Gehalt bekommen und schon alles ausgegeben.",
+      "Gib mir fünf Minuten, bitte.",
+      "Das hab ich schon dreimal gemacht.",
+      "Ich wünschte, ich hätte mehr Geld.",
+      "Die Miete ist wieder gestiegen, oder?",
+      "Gib mir eine Pause, ich bin müde."
+    ],
+    "amounts": [
+      [
+        "fünfhundert Eddies",
+        500
+      ],
+      [
+        "1.500 Eddies",
+        1500
+      ],
+      [
+        "zweitausend Eddies",
+        2000
+      ],
+      [
+        "2k Eddies",
+        2000
+      ],
+      [
+        "achthundert Eddies",
+        800
+      ],
+      [
+        "12.000 Eddies",
+        12000
+      ],
+      [
+        "14 Tausend Eddies",
+        14000
+      ],
+      [
+        "einen Tausender",
+        1000
+      ],
+      [
+        "zwei Tausender",
+        2000
+      ],
+      [
+        "1 000 Eddies",
+        1000
+      ],
+      [
+        "sechzig Eddies",
+        60
+      ],
+      [
+        "neunzehnhundert Eddies",
+        1900
+      ],
+      [
+        "5k Eddies",
+        5000
+      ],
+      [
+        "zwanzigtausend Eddies",
+        20000
+      ],
+      [
+        "hundert Eddies",
+        100
+      ],
+      [
+        "fünf Tausend Eddies",
+        5000
+      ],
+      [
+        "2500 Eddies",
+        2500
+      ],
+      [
+        "siebenhundertfünfzig Eddies",
+        750
+      ],
+      [
+        "vierhundertdreißig Eddies",
+        430
+      ],
+      [
+        "fünf Minuten",
+        null
+      ],
+      [
+        "ein paar Eddies",
+        null
+      ],
+      [
+        "drei Mal",
+        null
+      ],
+      [
+        "zehn Kugeln",
+        null
+      ],
+      [
+        "zwei Stunden",
+        null
+      ]
+    ]
+  }
+}

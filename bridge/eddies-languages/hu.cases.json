@@ -1,0 +1,1000 @@
+{
+  "dev": {
+    "asks": [
+      [
+        "Kölcsönadnál nekem 500 forintot?",
+        "borrow",
+        500
+      ],
+      [
+        "adj kölcsön ezer forintot, haver",
+        "borrow",
+        1000
+      ],
+      [
+        "Szükségem van kétezer forintra",
+        "borrow",
+        2000
+      ],
+      [
+        "Tudnál nekem kölcsönadni kétszáz forintot?",
+        "borrow",
+        200
+      ],
+      [
+        "Csőd vagyok, van valami pénzed?",
+        "borrow",
+        null
+      ],
+      [
+        "adj nekem 300 forintot kérlek",
+        "borrow",
+        300
+      ],
+      [
+        "nem tudnál kölcsönadni 50 forintot?",
+        "borrow",
+        50
+      ],
+      [
+        "Kérek kölcsönt 1500 forintot",
+        "borrow",
+        1500
+      ],
+      [
+        "Kölcsönadok neked 400 forintot",
+        "lend",
+        400
+      ],
+      [
+        "Kölcsön tudok adni neked ezer forintot",
+        "lend",
+        1000
+      ],
+      [
+        "Kell pénzed?",
+        "lend",
+        null
+      ],
+      [
+        "Szükséged van pénzre?",
+        "lend",
+        null
+      ],
+      [
+        "Akarsz kölcsönt?",
+        "lend",
+        null
+      ],
+      [
+        "Kölcsönadhatok neked háromszáz forintot",
+        "lend",
+        300
+      ],
+      [
+        "Adok kölcsön egy kis pénzt",
+        "lend",
+        null
+      ],
+      [
+        "Kell neked pénz? Kölcsönadok",
+        "lend",
+        null
+      ],
+      [
+        "Tessék, itt van 300 forint",
+        "give",
+        300
+      ],
+      [
+        "Vedd ezt 500 forintot",
+        "give",
+        500
+      ],
+      [
+        "Fogd, ez 200 Ft",
+        "give",
+        200
+      ],
+      [
+        "Borravaló: 150 forint",
+        "give",
+        150
+      ],
+      [
+        "Tartsd meg a visszajárót, 50 forint",
+        "give",
+        50
+      ],
+      [
+        "Neked adom ezt az ezer forintot",
+        "give",
+        1000
+      ],
+      [
+        "Kifizetem a taxit, neked adom a 800 forintot",
+        "give",
+        800
+      ],
+      [
+        "Ajándék: kétszáz forint",
+        "give",
+        200
+      ],
+      [
+        "Visszafizetem a 500 forintot, tartozom neked",
+        "repay",
+        500
+      ],
+      [
+        "Visszaadom a 300 forintot, ami a tiéd",
+        "repay",
+        300
+      ],
+      [
+        "tartozom neked 400 forinttal",
+        "repay",
+        400
+      ],
+      [
+        "Visszaadtam volna, de 250 forintot tartozom",
+        "repay",
+        250
+      ],
+      [
+        "Itt a 900 forint, amivel tartozom",
+        "repay",
+        900
+      ],
+      [
+        "Visszafizetem neked a 600 forintot",
+        "repay",
+        600
+      ],
+      [
+        "Tartozom neked 75 Ft-tal",
+        "repay",
+        75
+      ],
+      [
+        "Ezt a 120 forintot visszaadom",
+        "repay",
+        120
+      ],
+      [
+        "Tartozol nekem 200 forinttal",
+        "reclaim",
+        200
+      ],
+      [
+        "Fizesd vissza a pénzem",
+        "reclaim",
+        null
+      ],
+      [
+        "Add vissza a 500 forintot",
+        "reclaim",
+        500
+      ],
+      [
+        "Mikor fizeted vissza a pénzem?",
+        "reclaim",
+        null
+      ],
+      [
+        "Visszafizetnéd a 1000 forintot?",
+        "reclaim",
+        1000
+      ],
+      [
+        "Visszaadod végre a 700 forintot?",
+        "reclaim",
+        700
+      ],
+      [
+        "Tartozol nekem, fizess vissza a pénzt",
+        "reclaim",
+        null
+      ],
+      [
+        "Mikor adod vissza a 2 ezres pénzt?",
+        "reclaim",
+        2000
+      ],
+      [
+        "Visszaadom a 300 forintot, amivel tartoztam",
+        "repay",
+        300
+      ],
+      [
+        "Itt van a 450 forint, amivel tartozom",
+        "repay",
+        450
+      ],
+      [
+        "Kvittek vagyunk, itt van ötszáz forint",
+        "repay",
+        500
+      ],
+      [
+        "Visszafizettem neked a 150 forintot",
+        "repay",
+        150
+      ],
+      [
+        "Kölcsönadtam neked 700 forintot, most visszakérem",
+        "reclaim",
+        700
+      ],
+      [
+        "Mikor fizetsz vissza a kétszázat?",
+        "reclaim",
+        200
+      ],
+      [
+        "Hátha kölcsönadnál nekem ötezer forintot",
+        "borrow",
+        5000
+      ],
+      [
+        "Tudna nekem kölcsönadni egy ezrest?",
+        "borrow",
+        1000
+      ],
+      [
+        "Ha kell, adok kölcsön ezer forintot",
+        "lend",
+        1000
+      ],
+      [
+        "Pénz kell? Kölcsönadnék neked ötven eddie-t",
+        "lend",
+        50
+      ],
+      [
+        "Ezt neked szánom: 90 forint",
+        "give",
+        90
+      ],
+      [
+        "Borravaló a pincérnek: 300 forint",
+        "give",
+        300
+      ],
+      [
+        "Kifizetem a taxit, 1500 forint",
+        "give",
+        1500
+      ],
+      [
+        "Fogd, tessék, kétszáz eddie",
+        "give",
+        200
+      ]
+    ],
+    "near": [
+      "Tudnál egy kicsit segíteni?",
+      "Adj kölcsön egy kis figyelmet",
+      "Kölcsönadnál nekem egy tollat?",
+      "Tartozom neked egy sörrel",
+      "Nem adok semmit",
+      "Nem kérek pénzt",
+      "Soha nem adnék neked pénzt",
+      "Ha lenne pénzem, kölcsönadnék",
+      "Ha kölcsönadnék neked 500 forintot, visszafizetnéd?",
+      "Holnap visszaadom a pénzt",
+      "Tegnap visszafizettem a 300 forintot",
+      "Majd kölcsönadok, ha lesz pénzem",
+      "Ezer évig tart a munka",
+      "Ötven embert hívtam meg",
+      "Három órát vártam",
+      "Kétszáz kilométer az út",
+      "A pénz nem minden",
+      "Mennyit keresel?",
+      "Hány éves vagy?",
+      "Kérlek, segíts nekem",
+      "Csak vicceltem",
+      "Ezt nekem szánják?",
+      "Szükségem van egy új kabátra",
+      "Vedd figyelembe a helyzetet",
+      "Fogd a kezem",
+      "Tessék, mit kérsz?",
+      "Az ajándék nagyon szép",
+      "Az egész ház 5 millió forintba került",
+      "Ötszáz métert futottam",
+      "Visszaadtam a könyvet a könyvtárnak",
+      "Fizessek a bankban?",
+      "Neked adom a jegyzetet",
+      "Szívesen kölcsönadnám a könyvem",
+      "Tudsz segíteni a házi feladatban?",
+      "Kell egy jó ötlet",
+      "Tartozol nekem egy bocsánatkéréssel",
+      "Nem kell pénz, köszi",
+      "Hány forint van az asztalon?",
+      "Adj nekem egy percet",
+      "Kérek egy kávét",
+      "Kérlek, adj nekem egy percet",
+      "Ha kölcsönadnék valakinek, akkor visszakérném",
+      "A fizetésem kevés, nem tudok kölcsönt adni"
+    ],
+    "amounts": [
+      [
+        "kétszáz forint",
+        200
+      ],
+      [
+        "kétezer forint",
+        2000
+      ],
+      [
+        "ötszáz Ft",
+        500
+      ],
+      [
+        "1 000 forint",
+        1000
+      ],
+      [
+        "1.500 forint",
+        1500
+      ],
+      [
+        "tízezer forint",
+        10000
+      ],
+      [
+        "ezer forint",
+        1000
+      ],
+      [
+        "2 ezer forint",
+        2000
+      ],
+      [
+        "háromszáz forintot",
+        300
+      ],
+      [
+        "húsz forint",
+        20
+      ],
+      [
+        "harminc forint",
+        30
+      ],
+      [
+        "huszonegy forint",
+        21
+      ],
+      [
+        "negyvenöt forint",
+        45
+      ],
+      [
+        "kétszázötven forint",
+        250
+      ],
+      [
+        "5000 Ft",
+        5000
+      ],
+      [
+        "egy forint",
+        1
+      ],
+      [
+        "három óra",
+        null
+      ],
+      [
+        "öt perc",
+        null
+      ],
+      [
+        "sok pénz",
+        null
+      ],
+      [
+        "néhány forint",
+        null
+      ],
+      [
+        "három alkalommal",
+        null
+      ],
+      [
+        "száz embert",
+        null
+      ],
+      [
+        "kétezres",
+        2000
+      ],
+      [
+        "tízezer",
+        10000
+      ],
+      [
+        "nyolcszáz forint",
+        800
+      ],
+      [
+        "háromezer forint",
+        3000
+      ],
+      [
+        "hatszázötven forint",
+        650
+      ],
+      [
+        "ezer kétszáz forint",
+        1200
+      ],
+      [
+        "húsz ezer forint",
+        20000
+      ],
+      [
+        "ezerötszáz Ft",
+        1500
+      ]
+    ]
+  },
+  "held": {
+    "asks": [
+      [
+        "hé, kolcsonadnal 800 forintot?",
+        "borrow",
+        800
+      ],
+      [
+        "Kérnék kölcsönt, mondjuk 3000 Ft-ot",
+        "borrow",
+        3000
+      ],
+      [
+        "Adj már 150 forintot, nincs pénzem",
+        "borrow",
+        150
+      ],
+      [
+        "Szükségem lenne ezer forintra, kösz",
+        "borrow",
+        1000
+      ],
+      [
+        "Csak 300 forint kellene, tesó",
+        "borrow",
+        300
+      ],
+      [
+        "Haver, kölcsönadnál 2 ezres?",
+        "borrow",
+        2000
+      ],
+      [
+        "Ha van kedved, kölcsönadok 500 forintot",
+        "lend",
+        500
+      ],
+      [
+        "Adok neked 1500 forintot kölcsön",
+        "lend",
+        1500
+      ],
+      [
+        "Pénzed kell? Kölcsönadok",
+        "lend",
+        null
+      ],
+      [
+        "Szükséged van kölcsönre?",
+        "lend",
+        null
+      ],
+      [
+        "Adok kölcsön 600 forintot, ha kell",
+        "lend",
+        600
+      ],
+      [
+        "Kell neked 800 forint?",
+        "lend",
+        800
+      ],
+      [
+        "Tessék, vegyed ezt az 1000 forintot",
+        "give",
+        1000
+      ],
+      [
+        "fogd, ezer forint",
+        "give",
+        1000
+      ],
+      [
+        "Ezt a 350 Ft-ot neked szánom",
+        "give",
+        350
+      ],
+      [
+        "Ajándékba adok neked 40 forintot",
+        "give",
+        40
+      ],
+      [
+        "Tartsd meg a maradékot, 90 forint",
+        "give",
+        90
+      ],
+      [
+        "Kifizetem a számlát, 2000 forint",
+        "give",
+        2000
+      ],
+      [
+        "Hoztam a pénzt, amivel tartozom: 450 forint",
+        "repay",
+        450
+      ],
+      [
+        "Visszafizetem a 120 forintot",
+        "repay",
+        120
+      ],
+      [
+        "Visszaadom a 600 Ft-ot",
+        "repay",
+        600
+      ],
+      [
+        "Tartozom neked 2000 forinttal",
+        "repay",
+        2000
+      ],
+      [
+        "Visszaadtam a múltkori 300 forintot",
+        "repay",
+        300
+      ],
+      [
+        "Rendben, visszafizetem neked a 180 forintot",
+        "repay",
+        180
+      ],
+      [
+        "Mikor fizeted vissza a 1200 forintot?",
+        "reclaim",
+        1200
+      ],
+      [
+        "Haver, add vissza a pénzt",
+        "reclaim",
+        null
+      ],
+      [
+        "Tartozol 500 forinttal, szóval fizess",
+        "reclaim",
+        500
+      ],
+      [
+        "Adod vissza végre a 2 ezres?",
+        "reclaim",
+        2000
+      ],
+      [
+        "Visszaadnád a pénzem, légyszi",
+        "reclaim",
+        null
+      ],
+      [
+        "Mikor fizetsz vissza, te szemét?",
+        "reclaim",
+        null
+      ]
+    ],
+    "near": [
+      "Nincs időm most, ne haragudj",
+      "Kölcsönadnál egy tollat?",
+      "Tartozom neked egy bocsánatkéréssel",
+      "Ha lenne pénzem, mindent megvennék",
+      "Nem akarok pénzt, csak nyugalmat",
+      "Soha nem tartozom senkinek",
+      "Kérsz egy teát?",
+      "Ajándékot vettem anyának",
+      "Holnap elutazom Szegedre",
+      "Tegnap láttam a filmet",
+      "Ez a film 90 percig tart",
+      "Két órát vártam rád",
+      "Ötven évesen költözött",
+      "Háromszor próbáltam",
+      "Vedd fel a kabátod",
+      "Tessék, mi a baj?",
+      "Fogd meg a kezem",
+      "Szükségem van egy új kabátra",
+      "Szükséged van pihenésre?",
+      "Kölcsönadnám a kocsim, ha megkérsz",
+      "Az élet nem a pénz, hanem a szeretet",
+      "Mennyibe került ez a könyv?",
+      "Hány embert hívtál?",
+      "Ezer éve nem láttalak",
+      "Csak viccelek, ne hidd el",
+      "Kérlek, ne kérj tőlem semmit",
+      "A kölcsön végül nem jött össze",
+      "Adj még egy esélyt",
+      "Holnapra kész leszek",
+      "Visszaadtam a kulcsot a portásnak"
+    ],
+    "amounts": [
+      [
+        "háromezer forint",
+        3000
+      ],
+      [
+        "hétszáz Ft",
+        700
+      ],
+      [
+        "kilencven forint",
+        90
+      ],
+      [
+        "nyolcvanhat forint",
+        86
+      ],
+      [
+        "egy ezres",
+        1000
+      ],
+      [
+        "2.500 Ft",
+        2500
+      ],
+      [
+        "15 000 forint",
+        15000
+      ],
+      [
+        "tizenkét forint",
+        12
+      ],
+      [
+        "huszonkét forint",
+        22
+      ],
+      [
+        "kétszázharminc forint",
+        230
+      ],
+      [
+        "tíz perc",
+        null
+      ],
+      [
+        "három nap",
+        null
+      ],
+      [
+        "kettő alkalom",
+        null
+      ],
+      [
+        "valami pénz",
+        null
+      ],
+      [
+        "néhány ezer forint",
+        null
+      ],
+      [
+        "ötezer Ft",
+        5000
+      ],
+      [
+        "kétezer-háromszáz forint",
+        2300
+      ],
+      [
+        "ezer forint",
+        1000
+      ],
+      [
+        "hatvan forint",
+        60
+      ],
+      [
+        "húsz ezer forint",
+        20000
+      ]
+    ]
+  },
+  "blind": {
+    "asks": [
+      [
+        "Kölcsönadnál nekem ötszáz eddie-t, haver?",
+        "borrow",
+        500
+      ],
+      [
+        "Adj kölcsön kétszáz eddie-t, mert kell a pénz.",
+        "borrow",
+        200
+      ],
+      [
+        "Kell 2k a ripperdocra, kölcsönadnál?",
+        "borrow",
+        2000
+      ],
+      [
+        "Adnál kölcsön egy ezrest, amíg fizetést nem kapok?",
+        "borrow",
+        1000
+      ],
+      [
+        "Van véletlenül egy kis lóvé, amit kölcsönadnál nekem?",
+        "borrow",
+        null
+      ],
+      [
+        "Elnézést, kölcsönadna nekem háromszáz eddie-t?",
+        "borrow",
+        300
+      ],
+      [
+        "Kölcsönadok neked négyszáz eddie-t, ha akarod.",
+        "lend",
+        400
+      ],
+      [
+        "Pénz kell? Adhatok kölcsön háromszázat.",
+        "lend",
+        300
+      ],
+      [
+        "Akarsz kölcsönt kérni? Van pár eddie-m.",
+        "lend",
+        null
+      ],
+      [
+        "Ha kell pénz, kölcsönadok valamennyit.",
+        "lend",
+        null
+      ],
+      [
+        "Kölcsönadhatok kétezret, nincs gond.",
+        "lend",
+        2000
+      ],
+      [
+        "Kölcsönadnék ezer eddie-t, ha kell.",
+        "lend",
+        1000
+      ],
+      [
+        "Tessék, vedd ezt háromszáz eddie-t a fuvarért.",
+        "give",
+        300
+      ],
+      [
+        "Tartsd meg a visszajárót, haver.",
+        "give",
+        null
+      ],
+      [
+        "Fizetek neked kétszázötven eddie-t a munkáért.",
+        "give",
+        250
+      ],
+      [
+        "A fáradozásodért: kétszáz eddie.",
+        "give",
+        200
+      ],
+      [
+        "Tessék, öt ezer, megérdemled.",
+        "give",
+        5000
+      ],
+      [
+        "Itt van egy borravaló: 1000 eddie.",
+        "give",
+        1000
+      ],
+      [
+        "Itt az ötszáz, amivel tartozom.",
+        "repay",
+        500
+      ],
+      [
+        "Visszaadom a kétszázat, amit kölcsönadtál.",
+        "repay",
+        200
+      ],
+      [
+        "Kifizetem most a háromszázat, amivel tartozom.",
+        "repay",
+        300
+      ],
+      [
+        "Akkor kvittek vagyunk, itt egy ezres.",
+        "repay",
+        1000
+      ],
+      [
+        "Visszafizetem neked mindazt, amivel tartozom.",
+        "repay",
+        null
+      ],
+      [
+        "Tessék, a kétezer, amivel még adós vagyok.",
+        "repay",
+        2000
+      ],
+      [
+        "Tartozol nekem 200 eddie-vel, mikor fizeted vissza?",
+        "reclaim",
+        200
+      ],
+      [
+        "Mikor adod vissza a háromszázat?",
+        "reclaim",
+        300
+      ],
+      [
+        "Fizesd vissza az ötszázat, haver.",
+        "reclaim",
+        500
+      ],
+      [
+        "Tartozol nekem pénzzel, fizess már.",
+        "reclaim",
+        null
+      ],
+      [
+        "Kölcsönadtam neked ezer eddie-t, most visszakérem.",
+        "reclaim",
+        1000
+      ],
+      [
+        "Add már vissza a kétezret, amivel tartozol.",
+        "reclaim",
+        2000
+      ]
+    ],
+    "near": [
+      "Segítenél egy kicsit ezzel?",
+      "Kölcsönadnád a kocsidat ma estére?",
+      "Adj egy percet, mindjárt jövök.",
+      "Add ide a tollat, légy szíves.",
+      "Tartozom neked egy szívességgel, köszi.",
+      "Magyarázattal tartozol nekem.",
+      "Tegnap a vacsorát én fizettem ki.",
+      "Ez a fegyver kétezer eddie-be kerül.",
+      "Mennyibe kerül itt a lakbér?",
+      "Soha nem adok neked kölcsönt.",
+      "Egy fillért sem adok neked.",
+      "Ha kölcsönadnék ötszáz eddie-t, visszafizetnéd?",
+      "Képzeld el, hogy van egymillió eddie-d.",
+      "Holnap visszafizetem, ígérem.",
+      "Tegnap már kifizettem, nem emlékszel?",
+      "Ha megkapom a fizetésem, elszámolunk.",
+      "Csak viccelek, ne adj kölcsön semmit.",
+      "A pénz nem minden, haver.",
+      "Mennyit keresel egyébként?",
+      "Mostanában teljesen padlón vagyok.",
+      "Hány óra van?",
+      "Fél hat van.",
+      "Az Akác utca 12. alatt lakom.",
+      "Háromszor hívtalak fel.",
+      "Már csak két golyóm maradt.",
+      "Hívj vissza, ha ráérsz.",
+      "Add a sót, kérlek.",
+      "Ez a jegy öt eddie-be kerül, azt hiszem.",
+      "Mennyibe kerülnek a lőszerek?",
+      "Megkaptam a fizetésem, és már el is költöttem.",
+      "Adj öt percet, kérlek.",
+      "Ezt már háromszor csináltam.",
+      "Jó lenne egyszer egy luxusautó.",
+      "Megint emelkedett a bérleti díj, nem?",
+      "Adj egy szünetet, fáradt vagyok."
+    ],
+    "amounts": [
+      [
+        "ötszáz eddie",
+        500
+      ],
+      [
+        "1 500 eddie",
+        1500
+      ],
+      [
+        "kétezer eddie",
+        2000
+      ],
+      [
+        "2k eddie",
+        2000
+      ],
+      [
+        "százhúsz eddie",
+        120
+      ],
+      [
+        "hétszázötven eddie",
+        750
+      ],
+      [
+        "tízezer eddie",
+        10000
+      ],
+      [
+        "egy ezres",
+        1000
+      ],
+      [
+        "hatezer eddie",
+        6000
+      ],
+      [
+        "kilencszáz eddie",
+        900
+      ],
+      [
+        "nyolcvan eddie",
+        80
+      ],
+      [
+        "15 ezer eddie",
+        15000
+      ],
+      [
+        "ötezer eddie",
+        5000
+      ],
+      [
+        "száz eddie",
+        100
+      ],
+      [
+        "háromezer-kétszáz eddie",
+        3200
+      ],
+      [
+        "négyezer eddie",
+        4000
+      ],
+      [
+        "kétszázötven eddie",
+        250
+      ],
+      [
+        "7k eddie",
+        7000
+      ],
+      [
+        "2500 eddie",
+        2500
+      ],
+      [
+        "öt perc",
+        null
+      ],
+      [
+        "néhány eddie",
+        null
+      ],
+      [
+        "háromszor",
+        null
+      ],
+      [
+        "tíz golyó",
+        null
+      ],
+      [
+        "két óra",
+        null
+      ]
+    ]
+  }
+}

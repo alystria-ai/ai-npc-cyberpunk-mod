@@ -1,0 +1,994 @@
+{
+  "dev": {
+    "asks": [
+      [
+        "Você pode me emprestar 500 reais?",
+        "borrow",
+        500
+      ],
+      [
+        "Me empresta mil reais, mano",
+        "borrow",
+        1000
+      ],
+      [
+        "preciso de 2k pro ripperdoc",
+        "borrow",
+        2000
+      ],
+      [
+        "Podes emprestar-me duzentos euros?",
+        "borrow",
+        200
+      ],
+      [
+        "Estou sem grana, me dá um trocado?",
+        "borrow",
+        null
+      ],
+      [
+        "dá-me 300 reais",
+        "borrow",
+        300
+      ],
+      [
+        "Cara, tu me empresta 80 reais aí?",
+        "borrow",
+        80
+      ],
+      [
+        "Tu podes adiantar-me 150 euros?",
+        "borrow",
+        150
+      ],
+      [
+        "Te empresto 400 reais",
+        "lend",
+        400
+      ],
+      [
+        "Posso te emprestar mil e quinhentos reais",
+        "lend",
+        1500
+      ],
+      [
+        "Precisas de dinheiro?",
+        "lend",
+        null
+      ],
+      [
+        "Você precisa de grana?",
+        "lend",
+        null
+      ],
+      [
+        "Queres que te empreste uns euros?",
+        "lend",
+        null
+      ],
+      [
+        "Vou te emprestar 2 mil reais",
+        "lend",
+        2000
+      ],
+      [
+        "Te adianto 100 euros, tranquilo",
+        "lend",
+        100
+      ],
+      [
+        "Eu te empresto o dinheiro que precisar",
+        "lend",
+        null
+      ],
+      [
+        "Toma, 300 reais",
+        "give",
+        300
+      ],
+      [
+        "Aqui tens 200 euros pelo favor",
+        "give",
+        200
+      ],
+      [
+        "Eu te pago 300 reais pela corrida",
+        "give",
+        300
+      ],
+      [
+        "Fica com o troco, 20 reais",
+        "give",
+        20
+      ],
+      [
+        "Te mando 500 reais por pix",
+        "give",
+        500
+      ],
+      [
+        "Dou-te 250 euros, é para ti",
+        "give",
+        250
+      ],
+      [
+        "Pega 40 reais, valeu",
+        "give",
+        40
+      ],
+      [
+        "É um presente: 100 euros",
+        "give",
+        100
+      ],
+      [
+        "Devo-te 300 euros",
+        "repay",
+        300
+      ],
+      [
+        "Aqui está o que te devo: 500 reais",
+        "repay",
+        500
+      ],
+      [
+        "Te devolvo os 200 reais",
+        "repay",
+        200
+      ],
+      [
+        "Pago-te o que te devo, 150 euros",
+        "repay",
+        150
+      ],
+      [
+        "Te devo 50 reais",
+        "repay",
+        50
+      ],
+      [
+        "Estamos quites, são 80 reais",
+        "repay",
+        80
+      ],
+      [
+        "Eu te devolvo 120 reais que peguei emprestado",
+        "repay",
+        120
+      ],
+      [
+        "Ficamos quites com o dinheiro do almoço",
+        "repay",
+        null
+      ],
+      [
+        "Você me deve 200 reais",
+        "reclaim",
+        200
+      ],
+      [
+        "Me devolve os 300 reais",
+        "reclaim",
+        300
+      ],
+      [
+        "Quando é que me pagas os 400 euros?",
+        "reclaim",
+        400
+      ],
+      [
+        "Tu me deves 150 euros desde o mês passado",
+        "reclaim",
+        150
+      ],
+      [
+        "Me paga os 100 reais que eu emprestei",
+        "reclaim",
+        100
+      ],
+      [
+        "Me reembolsa os 250 reais",
+        "reclaim",
+        250
+      ],
+      [
+        "Pagas-me os 90 euros que te emprestei",
+        "reclaim",
+        90
+      ],
+      [
+        "Me restitui 60 euros",
+        "reclaim",
+        60
+      ],
+      [
+        "Você me deve 300 eddies desde março.",
+        "reclaim",
+        300
+      ],
+      [
+        "Você ainda me deve 150 reais, né?",
+        "reclaim",
+        150
+      ],
+      [
+        "Quero o meu dinheiro de volta, 400 eddies.",
+        "reclaim",
+        400
+      ],
+      [
+        "Você pegou 200 eddies emprestado e não devolveu.",
+        "reclaim",
+        200
+      ],
+      [
+        "Estou te devolvendo os 300 eddies que te devia.",
+        "repay",
+        300
+      ],
+      [
+        "Aqui está o dinheiro que eu te devia, 200 reais.",
+        "repay",
+        200
+      ],
+      [
+        "Já estamos quites, toma 40 reais e acabou.",
+        "repay",
+        40
+      ],
+      [
+        "Consegues emprestar-me 100 eddies?",
+        "borrow",
+        100
+      ],
+      [
+        "Me dá uma força com 50 reais?",
+        "borrow",
+        50
+      ],
+      [
+        "Quero pegar emprestado mil reais, consegue?",
+        "borrow",
+        1000
+      ],
+      [
+        "Posso emprestar-te 400 eddies, sem problema.",
+        "lend",
+        400
+      ],
+      [
+        "Tu queres pegar emprestado 300 eddies?",
+        "lend",
+        300
+      ],
+      [
+        "Para o trabalho de ontem, cem reais.",
+        "give",
+        100
+      ],
+      [
+        "Pelo esforço, duzentos reais.",
+        "give",
+        200
+      ],
+      [
+        "Me deves 500 eddies, ouviste?",
+        "reclaim",
+        500
+      ],
+      [
+        "Empresta-me 90 reais até amanhã, por favor.",
+        "borrow",
+        90
+      ],
+      [
+        "Eu te empresto 120 reais até sexta.",
+        "lend",
+        120
+      ]
+    ],
+    "near": [
+      "Você me deve uma explicação",
+      "Eu te devo uma",
+      "Me dá cinco minutos",
+      "Me empresta teu lápis",
+      "Empresta-me o teu ouvido",
+      "Presta atenção, cara",
+      "Não vou te emprestar nada",
+      "Nunca te daria dinheiro",
+      "Se eu te emprestasse 500 reais, você me pagava?",
+      "Amanhã te devolvo o livro",
+      "Ontem eu te paguei a conta",
+      "Eu te paguei o almoço",
+      "Paguei o jantar ontem, foi caro",
+      "Isso me custou 500 reais",
+      "Dinheiro não é tudo na vida",
+      "Quanto você ganha por mês?",
+      "Me dá um tempo, tá?",
+      "Dá-me dez balas",
+      "Dá-me 3 tiros",
+      "Você me paga!",
+      "Vou te pagar amanhã",
+      "Te devolvo a bola quando acabar",
+      "Me passa o sal, por favor",
+      "Me devolve a caneta",
+      "Tu me deves uma cerveja",
+      "Dá-me duas cervejas",
+      "Ele me deve dinheiro",
+      "Dá pra acertar o relógio?",
+      "Tenho que pagar a conta do bar",
+      "Pagar a conta é chato",
+      "Dá-me a mão",
+      "Eles pagaram 500 reais pelo carro",
+      "Preciso de um banho, tô suado",
+      "O chefe me deve 2 mil reais",
+      "Mano, tenho 3 horas livres",
+      "Eu te devo uma cerveja, valeu",
+      "Se me pagares mais, eu trabalho",
+      "Esse filme custou 40 reais, que roubo",
+      "Hoje o céu está lindo",
+      "Eu nunca te emprestei nada",
+      "Eu te devo um favor, tá?",
+      "Se você me emprestasse teu carro, eu agradecia.",
+      "Não te empresto nem um real.",
+      "Ele me deve o aluguel há meses.",
+      "Pela tua ajuda, obrigado.",
+      "A cerveja que eu te devo é por minha conta."
+    ],
+    "amounts": [
+      [
+        "duzentos reais",
+        200
+      ],
+      [
+        "dois mil reais",
+        2000
+      ],
+      [
+        "2 mil euros",
+        2000
+      ],
+      [
+        "2k",
+        2000
+      ],
+      [
+        "1.500 reais",
+        1500
+      ],
+      [
+        "mil e quinhentos reais",
+        1500
+      ],
+      [
+        "cem reais",
+        100
+      ],
+      [
+        "um conto",
+        1000
+      ],
+      [
+        "dois contos",
+        2000
+      ],
+      [
+        "trinta e cinco euros",
+        35
+      ],
+      [
+        "cinco minutos",
+        null
+      ],
+      [
+        "uns trocados",
+        null
+      ],
+      [
+        "alguns reais",
+        null
+      ],
+      [
+        "R$300",
+        300
+      ],
+      [
+        "€$300",
+        300
+      ],
+      [
+        "trezentos euros",
+        300
+      ],
+      [
+        "quinhentos reais",
+        500
+      ],
+      [
+        "setecentos e cinquenta euros",
+        750
+      ],
+      [
+        "dez mil reais",
+        10000
+      ],
+      [
+        "cento e vinte reais",
+        120
+      ],
+      [
+        "três vezes",
+        null
+      ],
+      [
+        "dez balas",
+        null
+      ],
+      [
+        "vinte e um reais",
+        21
+      ],
+      [
+        "dois tiros",
+        null
+      ],
+      [
+        "5 mil",
+        5000
+      ],
+      [
+        "setecentos paus",
+        700
+      ],
+      [
+        "três contos",
+        3000
+      ],
+      [
+        "mil e quinhentos paus",
+        1500
+      ],
+      [
+        "dois mil eddies",
+        2000
+      ]
+    ]
+  },
+  "held": {
+    "asks": [
+      [
+        "me empresta uns 300 reais aí, valeu",
+        "borrow",
+        300
+      ],
+      [
+        "tô sem grana, me arruma 50 reais?",
+        "borrow",
+        50
+      ],
+      [
+        "Preciso de dinheiro emprestado urgente",
+        "borrow",
+        null
+      ],
+      [
+        "Me adianta 400 que eu pago dia 5",
+        "borrow",
+        400
+      ],
+      [
+        "Poderias me emprestar 1500 reais?",
+        "borrow",
+        1500
+      ],
+      [
+        "da-me 60 euros pelo cafe",
+        "borrow",
+        60
+      ],
+      [
+        "Eu te empresto os 100 reais que quiseres",
+        "lend",
+        100
+      ],
+      [
+        "Quer que eu te empreste dinheiro?",
+        "lend",
+        null
+      ],
+      [
+        "Vai precisar de grana?",
+        "lend",
+        null
+      ],
+      [
+        "Te adianto 2k pra esse rolê",
+        "lend",
+        2000
+      ],
+      [
+        "Posso emprestar-te 300 euros",
+        "lend",
+        300
+      ],
+      [
+        "Ei, você quer grana?",
+        "lend",
+        null
+      ],
+      [
+        "Pega 300 reais, valeu, brother",
+        "give",
+        300
+      ],
+      [
+        "Leva 50 reais pra você comprar algo",
+        "give",
+        50
+      ],
+      [
+        "Te pago 120 reais pelo serviço",
+        "give",
+        120
+      ],
+      [
+        "Pago-te 80 euros pelo ajuste",
+        "give",
+        80
+      ],
+      [
+        "Essa grana é pra você, 40 reais",
+        "give",
+        40
+      ],
+      [
+        "Gorjeta de 20 reais pro motorista",
+        "give",
+        20
+      ],
+      [
+        "Te devolvo os 200 reais que te devia",
+        "repay",
+        200
+      ],
+      [
+        "Aqui tá o que te devo, 300 reais",
+        "repay",
+        300
+      ],
+      [
+        "Devolvo-te 90 euros, já que te devia",
+        "repay",
+        90
+      ],
+      [
+        "Acertamos contas: 150 reais",
+        "repay",
+        150
+      ],
+      [
+        "Te pago o que te devo, 75 reais",
+        "repay",
+        75
+      ],
+      [
+        "Estamos conversados, são 60 reais",
+        "repay",
+        60
+      ],
+      [
+        "Quando é que tu me pagas os 60 reais?",
+        "reclaim",
+        60
+      ],
+      [
+        "Tu me deves 500 reais já",
+        "reclaim",
+        500
+      ],
+      [
+        "Me devolve esses 75 reais, bora",
+        "reclaim",
+        75
+      ],
+      [
+        "Cadê o dinheiro que tu me devias?",
+        "reclaim",
+        null
+      ],
+      [
+        "Você me reembolsa os 120 reais?",
+        "reclaim",
+        120
+      ],
+      [
+        "Você me restitui os 30 euros que emprestei",
+        "reclaim",
+        30
+      ]
+    ],
+    "near": [
+      "Ele me deve dinheiro há anos",
+      "Me dá uma moral",
+      "Me empresta a tua bike",
+      "Te empresto a minha caneta",
+      "Eu te devo um favor",
+      "Não te devo nada",
+      "Nunca emprestei dinheiro a ninguém",
+      "Se você me emprestasse 500 reais, eu ficava feliz",
+      "Você me paga!",
+      "Você me deve uma cerveja, cara",
+      "Ontem te paguei o almoço",
+      "Já te paguei, lembra?",
+      "Pagamos 40 reais pela entrada, nada demais",
+      "Custou-me 200 reais o conserto",
+      "Gastei 90 reais no mercado",
+      "Tenho três horas livres hoje",
+      "Me dá dez segundos",
+      "Dá-me dois tiros",
+      "Me devolve a caneta, por favor",
+      "O dinheiro não nasce em árvore",
+      "Tu não me deves nada",
+      "Não me dá nada de graça",
+      "Eu não te empresto dinheiro",
+      "Acho que você é o cara que me deve",
+      "Dá pra acertar o relógio?",
+      "Vou te pagar amanhã sem falta",
+      "Preciso de um café e de sono",
+      "Empresta a caneta",
+      "Esse grupo me deve respeito",
+      "Te devolvo a bola no sábado"
+    ],
+    "amounts": [
+      [
+        "trezentos e vinte reais",
+        320
+      ],
+      [
+        "mil reais",
+        1000
+      ],
+      [
+        "mil e duzentos euros",
+        1200
+      ],
+      [
+        "dois mil e quinhentos reais",
+        2500
+      ],
+      [
+        "quarenta e dois euros",
+        42
+      ],
+      [
+        "cinco contos",
+        5000
+      ],
+      [
+        "um conto de reais",
+        1000
+      ],
+      [
+        "R$ 250",
+        250
+      ],
+      [
+        "100 reais",
+        100
+      ],
+      [
+        "3 horas",
+        null
+      ],
+      [
+        "várias vezes",
+        null
+      ],
+      [
+        "algumas moedas",
+        null
+      ],
+      [
+        "quinze minutos",
+        null
+      ],
+      [
+        "três mil euros",
+        3000
+      ],
+      [
+        "vinte reais",
+        20
+      ],
+      [
+        "setenta e nove euros",
+        79
+      ],
+      [
+        "oitocentos reais",
+        800
+      ],
+      [
+        "quatrocentos e noventa euros",
+        490
+      ],
+      [
+        "5k",
+        5000
+      ],
+      [
+        "dezenas de reais",
+        null
+      ]
+    ]
+  },
+  "blind": {
+    "asks": [
+      [
+        "Me empresta 500 eddies, mano? Devolvo na sexta.",
+        "borrow",
+        500
+      ],
+      [
+        "Você consegue me emprestar dois mil eddies pro ripperdoc?",
+        "borrow",
+        2000
+      ],
+      [
+        "Não me emprestas uns eddies até ao fim do mês?",
+        "borrow",
+        null
+      ],
+      [
+        "Me adianta duzentos eddies, cara, depois eu te pago.",
+        "borrow",
+        200
+      ],
+      [
+        "Poderias emprestar-me mil paus? Tenho de pagar a renda.",
+        "borrow",
+        1000
+      ],
+      [
+        "Tá difícil, não rola uma grana emprestada pra eu passar o mês?",
+        "borrow",
+        null
+      ],
+      [
+        "Eu te empresto 400 eddies se precisar.",
+        "lend",
+        400
+      ],
+      [
+        "Precisas de dinheiro? Posso emprestar-te algum.",
+        "lend",
+        null
+      ],
+      [
+        "Quer que eu te empreste uma grana?",
+        "lend",
+        null
+      ],
+      [
+        "Posso adiantar 1.500 eddies pra você pelo trampo, depois a gente acerta.",
+        "lend",
+        1500
+      ],
+      [
+        "Se quiseres, empresto-te 800 eddies, sem stress.",
+        "lend",
+        800
+      ],
+      [
+        "Quer pegar emprestado trezentos eddies? Eu tenho.",
+        "lend",
+        300
+      ],
+      [
+        "Toma, 300 eddies pela corrida.",
+        "give",
+        300
+      ],
+      [
+        "Fica com o troco, valeu.",
+        "give",
+        null
+      ],
+      [
+        "Te pago 500 eddies pela viagem, beleza?",
+        "give",
+        500
+      ],
+      [
+        "Para o incómodo, aqui tens dois mil eddies.",
+        "give",
+        2000
+      ],
+      [
+        "Pega esses mil eddies como presente.",
+        "give",
+        1000
+      ],
+      [
+        "Toma aí 150 reais de gorjeta, mano.",
+        "give",
+        150
+      ],
+      [
+        "Aqui estão os 500 que eu te devia.",
+        "repay",
+        500
+      ],
+      [
+        "Tô te pagando de volta, como combinado.",
+        "repay",
+        null
+      ],
+      [
+        "Estou a devolver-te o empréstimo, trezentos eddies.",
+        "repay",
+        300
+      ],
+      [
+        "Toma os duzentos que eu te devo, tamo quites.",
+        "repay",
+        200
+      ],
+      [
+        "Acertei as contas, aqui estão mil e duzentos eddies.",
+        "repay",
+        1200
+      ],
+      [
+        "Tá aqui o que te devo: 800 eddies, sem mais dívida.",
+        "repay",
+        800
+      ],
+      [
+        "Quando é que você me paga os 300 que me deve?",
+        "reclaim",
+        300
+      ],
+      [
+        "Me deves duzentos eddies, quando pagas?",
+        "reclaim",
+        200
+      ],
+      [
+        "Você me deve dois mil eddies, vai pagar quando?",
+        "reclaim",
+        2000
+      ],
+      [
+        "Lembra que você ainda me deve uma grana? Quero meu dinheiro de volta.",
+        "reclaim",
+        null
+      ],
+      [
+        "Tinhas prometido devolver os mil paus.",
+        "reclaim",
+        1000
+      ],
+      [
+        "Você pegou 500 eddies emprestado e até agora nada, cadê?",
+        "reclaim",
+        500
+      ]
+    ],
+    "near": [
+      "Me dá uma mão com essa caixa?",
+      "Me empresta o teu ouvido, preciso desabafar.",
+      "Empresta-me a tua caneta, por favor.",
+      "Dá-me cinco minutos, já volto.",
+      "Ontem paguei o jantar, agora é a tua vez.",
+      "Essa arma custa 2000 eddies, é cara demais.",
+      "Quanto custa alugar um quarto aqui?",
+      "Não vou te emprestar nada, esquece.",
+      "Não te dou nem um centavo.",
+      "Nunca emprestaria o meu carro a ninguém.",
+      "Se eu te emprestasse 500 eddies, você me devolvia?",
+      "Imagina que tens um milhão de eddies, o que farias?",
+      "Amanhã te devolvo a grana, prometo.",
+      "Já te paguei ontem, lembra?",
+      "Quando cair o salário eu acerto tudo.",
+      "Tava brincando, não me empresta nada não.",
+      "Dinheiro não traz felicidade, né.",
+      "Quanto você ganha por mês?",
+      "Ando sem grana ultimamente, complicado.",
+      "A gente se vê às 15h30 na frente do cinema.",
+      "Já estive lá três vezes essa semana.",
+      "O endereço é Rua das Flores, 14.",
+      "Me liga daqui a cinco minutos, tá?",
+      "Me dá dois minutos que eu termino isso.",
+      "Valeu, fico te devendo essa.",
+      "Me deves uma explicação, não dinheiro.",
+      "Me retorna mais tarde, por favor.",
+      "Me passa o sal, por favor.",
+      "A vida em Night City é muito cara.",
+      "O preço caiu 50 eddies desde ontem.",
+      "Paguei 300 eddies de estacionamento, uma loucura.",
+      "Quando receber o pagamento da missão, comemoro.",
+      "Trabalhei doze horas hoje, tô morto.",
+      "Tem 2 balas no pente.",
+      "Quando tiver grana, vou comprar uma blindagem nova."
+    ],
+    "amounts": [
+      [
+        "duzentos eddies",
+        200
+      ],
+      [
+        "2 mil eddies",
+        2000
+      ],
+      [
+        "1.500 eddies",
+        1500
+      ],
+      [
+        "três mil eddies",
+        3000
+      ],
+      [
+        "quinhentos reais",
+        500
+      ],
+      [
+        "mil paus",
+        1000
+      ],
+      [
+        "2k eddies",
+        2000
+      ],
+      [
+        "doze mil eddies",
+        12000
+      ],
+      [
+        "300 eddies",
+        300
+      ],
+      [
+        "oitocentos eddies",
+        800
+      ],
+      [
+        "quinze mil reais",
+        15000
+      ],
+      [
+        "um conto",
+        1000
+      ],
+      [
+        "1 000 eddies",
+        1000
+      ],
+      [
+        "dois mil e quinhentos eddies",
+        2500
+      ],
+      [
+        "cinco minutos",
+        null
+      ],
+      [
+        "algum eddie",
+        null
+      ],
+      [
+        "três vezes",
+        null
+      ],
+      [
+        "dez balas",
+        null
+      ],
+      [
+        "duas horas",
+        null
+      ]
+    ]
+  }
+}

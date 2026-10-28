@@ -913,6 +913,8 @@ local function loadSettings()
     -- Off by default: Revenge ambushes (Settings > Gameplay, docs/AMBUSHES.md). A gang V keeps killing may send a small squad after V now and then.
     -- Off, mod/revenge-ambush.lua is not loaded and nothing is watched.
     if type(settings.revengeAmbushes) ~= 'boolean' then settings.revengeAmbushes, settingsNeedSave = false, true end
+    -- Off by default: eddies between V and the characters, borrowed, lent and paid back with a confirmation pop-up (docs/EDDIES.md).
+    if type(settings.characterEddies) ~= 'boolean' then settings.characterEddies, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
@@ -1138,6 +1140,13 @@ end
 function M.revengeAmbushes()
     loadSettings()
     return settings.revengeAmbushes == true
+end
+
+-- Eddies with characters (Settings > Gameplay, docs/EDDIES.md): off by default. Read once per private turn V sends to a named character
+-- and before eddies move (one boolean each), never per frame.
+function M.characterEddies()
+    loadSettings()
+    return settings.characterEddies == true
 end
 
 -- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
@@ -2212,6 +2221,7 @@ function M.snapshot(player)
             reputation = settings.reputation == true,
             npcThreats = settings.npcThreats == true,
             revengeAmbushes = settings.revengeAmbushes == true,
+            characterEddies = settings.characterEddies == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             companionSpeakUp = M.companionSpeakUp(),
@@ -2372,6 +2382,9 @@ function M.applySettings(player, values)
         elseif key == 'revengeAmbushes' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.revengeAmbushes = value
+        elseif key == 'characterEddies' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.characterEddies = value
         elseif key == 'johnnyInHead' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value

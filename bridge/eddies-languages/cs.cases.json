@@ -1,0 +1,1001 @@
+{
+  "dev": {
+    "asks": [
+      [
+        "Půjčíš mi 500 eddies?",
+        "borrow",
+        500
+      ],
+      [
+        "můžeš mi půjčit tisíc eddies, kámo?",
+        "borrow",
+        1000
+      ],
+      [
+        "Potřebuju dva tisíce na ripperdoca",
+        "borrow",
+        2000
+      ],
+      [
+        "Mohla bys mi půjčit dvě stě eddies?",
+        "borrow",
+        200
+      ],
+      [
+        "Jsem úplně na mizině, dáš mi nějaké prachy?",
+        "borrow",
+        null
+      ],
+      [
+        "dej mi 300 eddies prosím",
+        "borrow",
+        300
+      ],
+      [
+        "nemůžeš mi půjčit 50 eddies?",
+        "borrow",
+        50
+      ],
+      [
+        "Půjč mi pět set eddies, brácho",
+        "borrow",
+        500
+      ],
+      [
+        "Půjčím ti 400 eddies",
+        "lend",
+        400
+      ],
+      [
+        "Když chceš, můžu ti půjčit tisíc pět set eddies",
+        "lend",
+        1500
+      ],
+      [
+        "Potřebuješ peníze?",
+        "lend",
+        null
+      ],
+      [
+        "Chceš nějaké prachy?",
+        "lend",
+        null
+      ],
+      [
+        "Půjčím ti pár korun",
+        "lend",
+        null
+      ],
+      [
+        "Můžu ti půjčit 800 eddies, jestli chceš",
+        "lend",
+        800
+      ],
+      [
+        "Chceš si půjčit tisíc eddies?",
+        "lend",
+        1000
+      ],
+      [
+        "Potřebuješ 600 eddies na opravu?",
+        "lend",
+        600
+      ],
+      [
+        "Tady máš 300 eddies",
+        "give",
+        300
+      ],
+      [
+        "Díky za pomoc, tady máš 200 eddies",
+        "give",
+        200
+      ],
+      [
+        "zaplatím ti 300 eddies za tu jízdu",
+        "give",
+        300
+      ],
+      [
+        "Dám ti 1 000 eddies",
+        "give",
+        1000
+      ],
+      [
+        "Vem si 1500 eddies",
+        "give",
+        1500
+      ],
+      [
+        "Spropitné: 50 eddies",
+        "give",
+        50
+      ],
+      [
+        "Nech si drobné, kámo",
+        "give",
+        null
+      ],
+      [
+        "Tohle je pro tebe, 700 eddies",
+        "give",
+        700
+      ],
+      [
+        "Tady máš těch 500 eddies, co ti dlužím",
+        "repay",
+        500
+      ],
+      [
+        "dlužím ti 300 eddies, hele",
+        "repay",
+        300
+      ],
+      [
+        "vracím ti těch 250 eddies",
+        "repay",
+        250
+      ],
+      [
+        "Splácím ti těch 400 eddies, jak jsem slíbil",
+        "repay",
+        400
+      ],
+      [
+        "Vracím ti dluh, 600 eddies",
+        "repay",
+        600
+      ],
+      [
+        "Konečně ti vracím 150 eddies",
+        "repay",
+        150
+      ],
+      [
+        "Hele, splácím dluh: 75 eddies",
+        "repay",
+        75
+      ],
+      [
+        "Vracím ti to, co ti dlužím: 1200 eddies",
+        "repay",
+        1200
+      ],
+      [
+        "Vrať mi peníze",
+        "reclaim",
+        null
+      ],
+      [
+        "dlužíš mi 200 eddies",
+        "reclaim",
+        200
+      ],
+      [
+        "Kdy mi zaplatíš těch 300 eddies?",
+        "reclaim",
+        300
+      ],
+      [
+        "Vrať mi těch 900 eddies, sakra",
+        "reclaim",
+        900
+      ],
+      [
+        "Dlužíš mi ty peníze, že jo?",
+        "reclaim",
+        null
+      ],
+      [
+        "Kdy mi konečně vrátíš ty prachy?",
+        "reclaim",
+        null
+      ],
+      [
+        "Splatíš mi těch 1000 eddies?",
+        "reclaim",
+        1000
+      ],
+      [
+        "Zaplatíš mi zbytek, 450 eddies",
+        "reclaim",
+        450
+      ],
+      [
+        "Vracím ti těch 400 eddies, co jsem ti dlužil",
+        "repay",
+        400
+      ],
+      [
+        "Jsem ti pořád dlužil 350 eddies, tady to máš",
+        "repay",
+        350
+      ],
+      [
+        "Vrátil jsem ti těch 120 eddies",
+        "repay",
+        120
+      ],
+      [
+        "Dlužils mi 500 eddies, pamatuješ?",
+        "reclaim",
+        500
+      ],
+      [
+        "Jsi mi dlužil 300 eddies, kdy zaplatíš?",
+        "reclaim",
+        300
+      ],
+      [
+        "Půjčil jsem ti 800 eddies, vrátíš mi je?",
+        "reclaim",
+        800
+      ],
+      [
+        "Mohl bys mi půjčit tisíc korun?",
+        "borrow",
+        1000
+      ],
+      [
+        "Nemohl bys mi půjčit dvacet eddies?",
+        "borrow",
+        20
+      ],
+      [
+        "Půjčíš mi aspoň padesát eddies?",
+        "borrow",
+        50
+      ],
+      [
+        "Chceš, ať ti půjčím dvě stě eddies?",
+        "lend",
+        200
+      ],
+      [
+        "Můžu ti půjčit tisícovku",
+        "lend",
+        1000
+      ],
+      [
+        "Dýško: 40 eddies",
+        "give",
+        40
+      ],
+      [
+        "Za tvůj čas, 250 eddies",
+        "give",
+        250
+      ],
+      [
+        "Vem si těch 600 eddies za pomoc",
+        "give",
+        600
+      ],
+      [
+        "Tady máš 90 eddies, díky",
+        "give",
+        90
+      ]
+    ],
+    "near": [
+      "Nemůžu ti s tím pomoct, nemám nic",
+      "Půjč mi tu knížku, prosím",
+      "Pomoz mi s tím autem",
+      "Podrž mi dveře, díky",
+      "Dlužím ti jednu, kámo",
+      "Dlužíš mi vysvětlení, co se stalo?",
+      "Zaplatil jsem večeři, nic zvláštního",
+      "Ta oprava mě stála 9000 eddies, šílené",
+      "Nikdy ti nepůjčím ani korunu",
+      "Kdybych ti půjčil 500 eddies, vrátil bys mi je?",
+      "Kdyby mi někdo půjčil peníze, koupil bych loď",
+      "Zítra ti vrátím všechno, slibuju",
+      "Zaplatím ti zítra, až přijdu",
+      "Včera jsem ti zaplatil 300 eddies",
+      "Až budu mít peníze, vrátím ti je",
+      "Peníze nejsou všechno, že jo",
+      "Kolik vyděláváš?",
+      "Dej mi pět minut",
+      "Mám dvě hodiny čas",
+      "Dej mi chvilku, jsem hned tam",
+      "Půjčil mi to Petr, ne já",
+      "Potřebuju vodu, prosím",
+      "Dal jsem ti na vědomí, že přijdu",
+      "Dlužíš mi omluvu",
+      "Zaplatíš mi pivo?",
+      "Tohle je jen žert, neber to vážně",
+      "Nemám čas na peníze",
+      "Kdo to zaplatí?",
+      "Vem si židli a sedni si",
+      "Nech si ten nápad",
+      "Hele, pomůžeš mi s nákupem?",
+      "Potřebuju vyspat",
+      "Dám ti vědět zítra",
+      "Dám ti pět minut",
+      "Platíš v hotovosti nebo kartou?",
+      "Tohle stálo sto korun",
+      "Dej mi tu sklenici, prosím",
+      "Půjčím ti svůj kartáč",
+      "Kolik je hodin?",
+      "Chceš čaj?",
+      "Vrátil bys mi ten sešit?",
+      "Kdybys mi půjčil svou knížku, přečtu si ji",
+      "Jdu zpátky domů až večer",
+      "Zavolám ti zpátky, až budu mít čas"
+    ],
+    "amounts": [
+      [
+        "dvě stě eddies",
+        200
+      ],
+      [
+        "dva tisíce eddies",
+        2000
+      ],
+      [
+        "pět set eddies",
+        500
+      ],
+      [
+        "500 eddies",
+        500
+      ],
+      [
+        "1 000 eddies",
+        1000
+      ],
+      [
+        "1.500 eddies",
+        1500
+      ],
+      [
+        "tisíc eddies",
+        1000
+      ],
+      [
+        "5 tisíc eddies",
+        5000
+      ],
+      [
+        "stovka eddies",
+        100
+      ],
+      [
+        "tři sta eddies",
+        300
+      ],
+      [
+        "dvacet pět eddies",
+        25
+      ],
+      [
+        "třicet eddies",
+        30
+      ],
+      [
+        "devadesát devět eddies",
+        99
+      ],
+      [
+        "sto eddies",
+        100
+      ],
+      [
+        "pět minut",
+        null
+      ],
+      [
+        "tři hodiny",
+        null
+      ],
+      [
+        "několik eddies",
+        null
+      ],
+      [
+        "dvakrát",
+        null
+      ],
+      [
+        "dva kusy",
+        null
+      ],
+      [
+        "2k eddies",
+        2000
+      ],
+      [
+        "šest set eddies",
+        600
+      ],
+      [
+        "sedm set eddies",
+        700
+      ],
+      [
+        "čtyřicet eddies",
+        40
+      ],
+      [
+        "osm eddies",
+        8
+      ],
+      [
+        "jeden tisíc eddies",
+        1000
+      ],
+      [
+        "pětitisíc eddies",
+        5000
+      ],
+      [
+        "dvoutisíc eddies",
+        2000
+      ],
+      [
+        "dvacet tisíc eddies",
+        20000
+      ],
+      [
+        "sto padesát eddies",
+        150
+      ],
+      [
+        "osm set eddies",
+        800
+      ]
+    ]
+  },
+  "held": {
+    "asks": [
+      [
+        "cau choom, pujc mi 800 eddies, vratim ti to do patku",
+        "borrow",
+        800
+      ],
+      [
+        "Mohl byste mi laskavě půjčit 1200 eddies?",
+        "borrow",
+        1200
+      ],
+      [
+        "jsem na dně, mohl bys mi dát něco prachů?",
+        "borrow",
+        null
+      ],
+      [
+        "potrebuju 1 500 eddies na lekare",
+        "borrow",
+        1500
+      ],
+      [
+        "Dej mi aspoň dvacet eddies, prosím tě",
+        "borrow",
+        20
+      ],
+      [
+        "Hele, nemůžeš mi půjčit třicet eddies na taxíka?",
+        "borrow",
+        30
+      ],
+      [
+        "Chceš si půjčit pět set eddies, kámo?",
+        "lend",
+        500
+      ],
+      [
+        "Potřebuješ nějaké eddies, nebo jsi v pohodě?",
+        "lend",
+        null
+      ],
+      [
+        "Půjčím ti tisíc eddies, jen řekni",
+        "lend",
+        1000
+      ],
+      [
+        "Můžu ti půjčit 2000 eddies, jestli potřebuješ",
+        "lend",
+        2000
+      ],
+      [
+        "Chceš peníze? Můžu půjčit",
+        "lend",
+        null
+      ],
+      [
+        "Půjčím ti pár stovek, kámo",
+        "lend",
+        null
+      ],
+      [
+        "Vem si tohle, 400 eddies za ten výlet",
+        "give",
+        400
+      ],
+      [
+        "tady máš, dvě stovky",
+        "give",
+        200
+      ],
+      [
+        "Tohle je pro tebe, dva tisíce, nech si to",
+        "give",
+        2000
+      ],
+      [
+        "Spropitné pro barmana: 30 eddies",
+        "give",
+        30
+      ],
+      [
+        "Platím ti za tu opravu 450 eddies",
+        "give",
+        450
+      ],
+      [
+        "Nech si drobné, ať to stojí za to",
+        "give",
+        null
+      ],
+      [
+        "vratim ti ty peníze z minula, je to 500 eddies",
+        "repay",
+        500
+      ],
+      [
+        "Dlužim ti pořád 350 eddies, tady to máš",
+        "repay",
+        350
+      ],
+      [
+        "Splácím dluh, tohle je 120 eddies",
+        "repay",
+        120
+      ],
+      [
+        "Co ti dlužím, to je 800 eddies, bereš?",
+        "repay",
+        800
+      ],
+      [
+        "Konečně ti splácím tu půjčku, 1 000 eddies",
+        "repay",
+        1000
+      ],
+      [
+        "Vracím ti těch 90 eddies, co jsi mi půjčil",
+        "repay",
+        90
+      ],
+      [
+        "Kdy mi vrátíš těch 1100 eddies?",
+        "reclaim",
+        1100
+      ],
+      [
+        "Sakra, vrať mi ty prachy",
+        "reclaim",
+        null
+      ],
+      [
+        "Dlužíš mi 400 eddies, já vím",
+        "reclaim",
+        400
+      ],
+      [
+        "Zaplatíš mi konečně těch 60 eddies?",
+        "reclaim",
+        60
+      ],
+      [
+        "Vrať mi peníze, které jsem ti půjčil",
+        "reclaim",
+        null
+      ],
+      [
+        "Splatíš mi to, 250 eddies, kámo",
+        "reclaim",
+        250
+      ]
+    ],
+    "near": [
+      "Nemůžu ti s tím pomoct, promiň",
+      "Půjč mi svůj kabát, je zima",
+      "Dlužíš mi omluvu za to",
+      "Nikdy nic nikomu nepůjčím",
+      "Kdybych měl 5000 eddies, koupil bych si loď",
+      "Zítra ti zaplatím, až přijdu",
+      "Jak se máš, kámo?",
+      "Výplata jde celá na nájem",
+      "Stálo to 350 eddies, šílené",
+      "Platím kartou, ne hotovostí",
+      "Zaplatil jsem za tu pizzu 40 eddies",
+      "Dám ti vědět, až budu vědět",
+      "Vem si židli a sedni si",
+      "Dej mi pět minut a pak se uvidíme",
+      "Potřebuju dvě hodiny spánku",
+      "Chceš čaj nebo kávu?",
+      "Tohle je záhada, žádné peníze tu nejsou",
+      "Dlužím ti omluvu, promiň",
+      "Vrať mi tu knihu do pátku",
+      "Půjčím ti svůj kartáč",
+      "Vracím se domů pozdě",
+      "Dal jsem ti ten prsten minulý rok",
+      "Počítej se mnou, mám tři kamarády",
+      "Na to se nevykašlu, ani za tisíc eddies",
+      "Platím za všechno, co chci",
+      "Nech si ten kebab, vypadá hnusně",
+      "Stál jsem v řadě dvě hodiny",
+      "Kolik lidí tam bude?",
+      "Zaplatím za kávu, to je moje",
+      "Pozdě večer zavolám zpátky"
+    ],
+    "amounts": [
+      [
+        "dvě stě padesát eddies",
+        250
+      ],
+      [
+        "tři tisíce eddies",
+        3000
+      ],
+      [
+        "devět set eddies",
+        900
+      ],
+      [
+        "5000 eddies",
+        5000
+      ],
+      [
+        "pět minut",
+        null
+      ],
+      [
+        "dva tisíce eddies",
+        2000
+      ],
+      [
+        "sedmdesát dva eddies",
+        72
+      ],
+      [
+        "sto dvacet eddies",
+        120
+      ],
+      [
+        "šest tisíc šest set eddies",
+        6600
+      ],
+      [
+        "1,5k eddies",
+        1500
+      ],
+      [
+        "ani korunu",
+        null
+      ],
+      [
+        "pár eddies",
+        null
+      ],
+      [
+        "osmdesát osm eddies",
+        88
+      ],
+      [
+        "stovka",
+        100
+      ],
+      [
+        "jedno eddie",
+        1
+      ],
+      [
+        "tři kusy",
+        null
+      ],
+      [
+        "dvě hodiny",
+        null
+      ],
+      [
+        "€$450",
+        450
+      ],
+      [
+        "1 500 eddies",
+        1500
+      ],
+      [
+        "čtyři sta padesát pět eddies",
+        455
+      ]
+    ]
+  },
+  "blind": {
+    "asks": [
+      [
+        "Pujcis mi 500 eddies, bracho?",
+        "borrow",
+        500
+      ],
+      [
+        "Můžeš mi půjčit dvě stě eddies do zítřka?",
+        "borrow",
+        200
+      ],
+      [
+        "Potřebuju 2k na ripperdoca, nevypomůžeš?",
+        "borrow",
+        2000
+      ],
+      [
+        "Nepůjčil bys mi tisícovku, než dostanu výplatu?",
+        "borrow",
+        1000
+      ],
+      [
+        "Nemáš nějaké prachy, co bys mi mohl půjčit?",
+        "borrow",
+        null
+      ],
+      [
+        "Promiňte, mohl byste mi půjčit tři sta eddies?",
+        "borrow",
+        300
+      ],
+      [
+        "Půjčím ti 400 eddies, jestli chceš.",
+        "lend",
+        400
+      ],
+      [
+        "Potřebuješ prachy? Můžu ti půjčit tři sta.",
+        "lend",
+        300
+      ],
+      [
+        "Když budeš potřebovat peníze, půjčím ti.",
+        "lend",
+        null
+      ],
+      [
+        "Můžu ti půjčit dva tisíce, bez stresu.",
+        "lend",
+        2000
+      ],
+      [
+        "Chceš, ať ti půjčím tisíc eddies?",
+        "lend",
+        1000
+      ],
+      [
+        "Tady máš 300 eddies za tu jízdu.",
+        "give",
+        300
+      ],
+      [
+        "Nech si drobné, brácho.",
+        "give",
+        null
+      ],
+      [
+        "Zaplatím ti 250 eddies za práci.",
+        "give",
+        250
+      ],
+      [
+        "Za tvůj čas: dvě stě eddies.",
+        "give",
+        200
+      ],
+      [
+        "Vem si pět tisíc, zasloužil jsi to.",
+        "give",
+        5000
+      ],
+      [
+        "Dýško 1 000 eddies, bylo to dobrý.",
+        "give",
+        1000
+      ],
+      [
+        "Tady máš těch 500, co ti dlužím.",
+        "repay",
+        500
+      ],
+      [
+        "Vracím ti těch dvě stě, co jsi mi půjčil.",
+        "repay",
+        200
+      ],
+      [
+        "Teď ti zaplatím těch 300, co ti dlužím.",
+        "repay",
+        300
+      ],
+      [
+        "Takže jsme kvit, tady je tisícovka.",
+        "repay",
+        1000
+      ],
+      [
+        "Vrátím ti vše, co jsem ti dlužil.",
+        "repay",
+        null
+      ],
+      [
+        "Tady jsou ty dva tisíce, co ti pořád dlužím.",
+        "repay",
+        2000
+      ],
+      [
+        "Dlužíš mi 200 eddies, kdy mi je vrátíš?",
+        "reclaim",
+        200
+      ],
+      [
+        "Kdy mi vrátíš těch 300?",
+        "reclaim",
+        300
+      ],
+      [
+        "Vrať mi mých 500 eddies, brácho.",
+        "reclaim",
+        500
+      ],
+      [
+        "Dlužíš mi prachy, tak mi je vrať.",
+        "reclaim",
+        null
+      ],
+      [
+        "Půjčil jsem ti tisíc eddies, chci je zpátky.",
+        "reclaim",
+        1000
+      ],
+      [
+        "Vrať mi ty dva tisíce, co mi dlužíš.",
+        "reclaim",
+        2000
+      ]
+    ],
+    "near": [
+      "Můžeš mi s tímhle pomoct?",
+      "Půjč mi dnes večer svoje auto.",
+      "Dej mi minutku, hned jsem tu.",
+      "Podej mi sůl, prosím.",
+      "Dlužím ti laskavost, díky moc.",
+      "Dlužíš mi vysvětlení, ne?",
+      "Včera jsem zaplatil večeři celé partě.",
+      "Tahle pistole stojí 2000 eddies.",
+      "Kolik stojí nájem tady?",
+      "Nikdy ti nic nepůjčím.",
+      "Ani floka ti nedám.",
+      "Kdybych ti půjčil 500, vrátil bys mi je?",
+      "Představ si, že máš milion eddies.",
+      "Zítra ti to vrátím, slibuju.",
+      "Včera jsem ti už zaplatil, nepamatuješ se?",
+      "Až dostanu výplatu, vyrovnáme to.",
+      "Jen si dělám srandu, nic mi nepůjčuj.",
+      "Peníze nejsou všechno, brácho.",
+      "Kolik vyděláváš?",
+      "Poslední dobou jsem úplně na mizině.",
+      "Kolik je hodin?",
+      "Je půl šesté.",
+      "Bydlím v Dlouhé ulici, číslo 12.",
+      "Volal jsem ti třikrát.",
+      "Mám už jen dva náboje.",
+      "Zavolej mi zpátky, až budeš moct.",
+      "Podej mi ovladač, prosím.",
+      "Ten lístek stojí asi pět eddies.",
+      "Kolik stojí náboje?",
+      "Dostal jsem výplatu a hned jsem ji utratil.",
+      "Dej mi pět minut, prosím.",
+      "Tohle jsem udělal už třikrát.",
+      "Bylo by hezký mít jednou luxusní auto.",
+      "Nájem zase zdražil, co?",
+      "Dej mi chvilku pauzu, jsem unavený."
+    ],
+    "amounts": [
+      [
+        "pět set eddies",
+        500
+      ],
+      [
+        "1 500 eddies",
+        1500
+      ],
+      [
+        "dva tisíce eddies",
+        2000
+      ],
+      [
+        "2k eddies",
+        2000
+      ],
+      [
+        "sto dvacet eddies",
+        120
+      ],
+      [
+        "sedm set padesát eddies",
+        750
+      ],
+      [
+        "deset tisíc eddies",
+        10000
+      ],
+      [
+        "tisícovka",
+        1000
+      ],
+      [
+        "šest tisíc eddies",
+        6000
+      ],
+      [
+        "devadesát eddies",
+        90
+      ],
+      [
+        "patnáct tisíc eddies",
+        15000
+      ],
+      [
+        "pětitisíc eddies",
+        5000
+      ],
+      [
+        "sto eddies",
+        100
+      ],
+      [
+        "tři tisíce dvě stě eddies",
+        3200
+      ],
+      [
+        "čtyři tisíce eddies",
+        4000
+      ],
+      [
+        "dvě stě padesát eddies",
+        250
+      ],
+      [
+        "7k eddies",
+        7000
+      ],
+      [
+        "2500 eddies",
+        2500
+      ],
+      [
+        "osm set eddies",
+        800
+      ],
+      [
+        "pět minut",
+        null
+      ],
+      [
+        "pár eddies",
+        null
+      ],
+      [
+        "třikrát",
+        null
+      ],
+      [
+        "deset nábojů",
+        null
+      ],
+      [
+        "dvě hodiny",
+        null
+      ]
+    ]
+  }
+}
