@@ -20,7 +20,7 @@ The only thing in the way was Johnny: with Johnny in your head turned on, the ta
 - With no party member in range the talk keys show the notice they always showed with nobody in front ("Face a nearby character to talk."). The group keys with a party of one show "Group chat needs two characters nearby."
 - Housemates (visiting copies that live in V's flat) and characters another mod spawned never count as the party for the fallback. In a group round they still fill a seat the party cannot, after the party members.
 - An installed add-on voice (a talking gun, a cab) still answers a talk key with nobody faced, as before: it was always ahead of the empty crosshair. The fallback is what is left when no add-on voice is available.
-- The controller talk button (hold the left stick click, `docs/CONTROLLER_BINDING.md`) and Voice activation use the same talk path, so they follow the party too. A controller button for Johnny is set on the Key bindings page like any other action.
+- A controller button given to Talk by voice on the Key bindings page and Voice activation use the same talk path, so they follow the party too. A controller button for Johnny is set on the Key bindings page like any other action.
 - Facing a party member, or anyone else, is exactly as before, including the rule that a conversation in progress keeps its partner (`mod/talk-target.lua`).
 
 ### Johnny

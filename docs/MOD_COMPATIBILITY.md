@@ -33,7 +33,7 @@ Added fields and methods (all prefixed, none saved):
 | `NewHudPhoneGameController`, `PhoneMessagePopupGameController`, `MessengerDialogViewController`, `MessangerItemRenderer`, `PhoneDialerLogicController`, `PhoneDialerSelectionController`, `PhoneContactItemVirtualController`, `HoloAudioCallLogicController`, `HudPhoneAvatarController`, `ContactData`, `JournalNotificationData` | phone Chat tab, holocall, key handling | `m_convai…`, `convai…`, `Convai…` |
 | `AIMoveToCommand`, `AIMoveToCommandHandler` | the companion movement filter | `m_convaiOwned`, `ConvaiMarkOwned`, `ConvaiOwnedMoveUpdate` |
 
-Script classes declared by the mod: all `Convai…` (`ConvaiFaceService`, `ConvaiManagerPopup`, `ConvaiPadTalkListener`, `ConvaiPhoneChatInput`,
+Script classes declared by the mod: all `Convai…` (`ConvaiFaceService`, `ConvaiManagerPopup`, `ConvaiPhoneChatInput`,
 `ConvaiBarkGate`, and so on). Global functions: `ConvaiCallbackSystem`, `ConvaiKeyTarget`, `ConvaiKeyTargetsByAction`, `ConvaiKeyNotifyInEvent`,
 `ConvaiServiceContainer`, `ConvaiHasCodeware`, `ConvaiHasCodewareUi`, `ConvaiHasCodewareTextInput`. Files with a `module` line use `module CyberpunkConvai`.
 `Face.reds`, `FaceFeature.reds`, `GameVariant.reds` and `Speech.reds` have none (global module); their names are `Convai…` as well.

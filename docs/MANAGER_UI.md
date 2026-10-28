@@ -78,7 +78,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 - **Home:** six destinations: Characters to invite, Current party, Model browser, Character editor, Key bindings, Settings (2026-10-25: Key bindings between the
   Character editor and Settings). All but the Character editor move to a page of the manager.
   **Key bindings** (`docs/KEY_BINDINGS.md`) is where the player gives the mod's own actions a key or controller button (press its Key or button row, then the key; Clear). Set and Clear are
-  actions, applied at once on both hosts (MCM refuses an action while drafts are pending, as for every button); the Controller talk button is the Settings row again. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
+  actions, applied at once on both hosts (MCM refuses an action while drafts are pending, as for every button). Since 0.3.4 there is no Controller talk button: a controller button is given to Talk by voice here. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
   when `mod/character-editor.lua` loaded, and pressing it opens the character editor in the player's browser through the very request of
   Settings > Conversation provider > **Edit characters** (`editor.request()`: one small `runtime/editor-command.json`, nothing polled and
   nothing per frame). The player stays on Home; the result is the line under the way back (NSUI) or the status line (MCM): "Opening the
@@ -119,10 +119,11 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
     opens the Custom page, below), Convai API key, Convai paid tier, Edit characters.
   - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
   - Gameplay (a section of its own since 2026-10-28; the rows moved here with their saved values untouched, only the page changed): Street reputation (was in Conversations, off by default), NPCs react to threats and commands (was in Conversations, off), Companions change outfits (was in Companion behavior, off), an **Immersive invitations** button (Open, since 2026-10-25) to its own page and a **Housemates** button (Open, since 2026-10-26) to its own page (both were in Companion behavior and still go Back to Settings), and the new Revenge ambushes (off by default, `docs/AMBUSHES.md`). Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
-  - Voices: Voice playback, Companion voices, Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
-    Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; default Pocket,
-    `docs/V_VOICE.md`).
-  - Subtitles; Automatic reactions (React to battles, React to collected loot; both on by default since 2026-10-26); one section per installed add-on that has settings
+  - Voices (0.3.4): Companion voices (the first entry is Off, the old Voice playback switch: it keeps the voice that was chosen), Voice language, Subtitles (Off, Cinematic subtitles, Above the speaker: the old switch and
+    Subtitle display in one list), Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
+    Follow-up questions (on by default), V's voice for typed lines and V's voice for microphone lines (two rows of one kind: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; typed default Pocket, microphone default Off,
+    one engine for both, `docs/V_VOICE.md`). React to battles and React to collected loot (both on by default since 2026-10-26) moved to Gameplay, and the Subtitles and Automatic reactions sections are gone.
+  - One section per installed add-on that has settings
     (see [ADDON_API.md](ADDON_API.md); the add-on wrote its own labels); Development (Developer mode); Help.
 
   Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),

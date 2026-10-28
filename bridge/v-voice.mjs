@@ -15,7 +15,7 @@
 //     before the reply to a typed line, so V's line is WAITED FOR: it is never dropped for being slow (only a real failure drops it, with
 //     the reason in the log), the companion's reply follows it. The overlap is kept: V's render is queued on the Omni worker the moment
 //     the line is sent (it renders while the companion's text is written), the companion's own render queues right behind it.
-// Microphone lines (setting vVoiceMic, off by default): the same voice also repeats what the player SAID, after a voice turn (hold to talk, Voice activation)
+// Microphone lines (setting vVoiceMic, off by default, independent of the typed-line setting since 0.3.4): the same voice also repeats what the player SAID, after a voice turn (hold to talk, Voice activation)
 // once the final transcript exists (VVoice.startSpoken). The player chose it, so it behaves exactly like a typed line (owner, 2026-10-24: "it's fine to wait,
 // we should respect player choice"): spoken in full, the reply follows it (the same hold, grace and hand-off), on any engine including OmniVoice. It starts the
 // moment the transcript is known (bridge/mic-v-line.mjs), beside the reply's text request. The first version cut a line short when the reply was ready.
@@ -475,7 +475,7 @@ export class VVoice {
     remember = null, graceMs = V_GRACE_MS, referenceLabel = null} = {}) {
     Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, omni, log, report, remember, graceMs, referenceLabel});
     this.enabled = false;
-    // V speaks the player's microphone lines too (runtime/settings.json "vVoiceMic", off by default); meaningful only while `enabled`.
+    // V speaks the player's microphone lines (runtime/settings.json "vVoiceMic", off by default), independent of `enabled` (the typed lines).
     this.micEnabled = false;
     this.engine = 'pocket';
     this.lastGender = null;
@@ -497,8 +497,10 @@ export class VVoice {
     // A saved false counts only when the player set it (vVoiceChosen, mod/manager.lua): the first version saved false as its default.
     const next = settings.vVoice !== false || settings.vVoiceChosen !== true;
     const engine = V_ENGINES.includes(settings.vVoiceEngine) ? settings.vVoiceEngine : 'pocket';
-    // Off unless the player turned it on: a file that never stored it, or anything that is not true, is off.
-    const mic = settings.vVoiceMic === true;
+    // Off unless the player turned it on: a file that never stored it, or anything that is not true, is off. Since 0.3.4 it does not depend on the typed-lines
+    // setting (two rows, four on/off pairs). A settings file the mod has not rewritten yet (no vVoiceMicOwn) still follows the old rule, under which a microphone
+    // line was repeated only beside typed lines, so a player who had only the microphone setting on is not suddenly heard.
+    const mic = settings.vVoiceMic === true && (settings.vVoiceMicOwn === true || next);
     if (next === this.enabled && engine === this.engine && mic === this.micEnabled) return false;
     this.enabled = next;
     this.micEnabled = mic;
@@ -524,11 +526,14 @@ export class VVoice {
 
   get available() { return GENDERS.some(gender => this.voices[gender]); }
 
-  /** V's voice is on and so is the microphone-line setting: a voice turn's transcript is worth passing to start() (cheap check, no work). */
-  get micWanted() { return this.enabled && this.micEnabled && this.available; }
+  /** The microphone-line setting is on (whatever the typed one is): a voice turn's transcript is worth passing to start() (cheap check, no work). */
+  get micWanted() { return this.micEnabled && this.available; }
+
+  /** Some V line is wanted, typed or spoken: the voice, its clips and its worker are needed. */
+  get active() { return this.enabled || this.micEnabled; }
 
   /** V's line is wanted from the Pocket voice (some Pocket worker has to be loaded for it). */
-  get wantsPocket() { return this.enabled && this.available && this.engine === 'pocket'; }
+  get wantsPocket() { return this.active && this.available && this.engine === 'pocket'; }
 
   once(key, line) { if (this.logged.has(key)) return; this.logged.add(key); this.log(line); }
 
@@ -538,10 +543,11 @@ export class VVoice {
    * voice (live 2026-10-16: V was silent in the Delamain cab); an add-on remark carries a reaction and never does.
    */
   skipReason(input, {spoken = false} = {}) {
-    if (!this.enabled) return 'off';
-    // A spoken line (the final transcript of a voice turn) is repeated only with the microphone setting on. It is a conversation line like a typed one otherwise:
-    // its input carries source 'microphone' (a companion) or none (an add-on's or a made character's voice turn), so that mark is not held against it.
-    if (spoken && !this.micEnabled) return 'mic-off';
+    // A spoken line (the final transcript of a voice turn) is repeated only with the microphone setting on, and a typed one only with the typed setting on:
+    // the two are independent. A spoken line is a conversation line like a typed one otherwise: its input carries source 'microphone' (a companion) or none
+    // (an add-on's or a made character's voice turn), so that mark is not held against it.
+    if (spoken) { if (!this.micEnabled) return 'mic-off'; }
+    else if (!this.enabled) return 'off';
     if (!input || input.reaction || (!spoken && input.source !== undefined) || input.channel === 'phone') return 'not-typed';
     if (input.group && input.group.index !== 1) return 'later-group-speaker';
     if (!this.available) return 'no-clips';
@@ -695,7 +701,7 @@ export class VVoice {
    * other, and the second is skipped once a line says which V it is. Work happens in the background and only here, never per frame.
    */
   warmUp({signal, page = true} = {}) {
-    if (!this.enabled || !this.available) return;
+    if (!this.active || !this.available) return;
     const keys = this.preparationKeys();
     // An engine that cannot speak right now (no key, no worker) warms and prepares nothing.
     if (!keys.some(key => this.speakable(key))) return;

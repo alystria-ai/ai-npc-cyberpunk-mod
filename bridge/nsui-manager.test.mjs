@@ -170,28 +170,32 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   assert(ns.find('React to battles') == gestures and gestures.state == false, 'the row is the same widget and shows the saved value')
   -- Two changes close together are one transaction (one save).
   local writes = #fileWrites
-  ns.interact.toggle(ns.find('Subtitles')); ns.interact.toggle(ns.find('Voice playback'))
+  ns.interact.select(ns.find('Subtitles'), 1); ns.interact.select(ns.find('Companion voices'), 1)
   frames(8)
-  assert(saved.subtitles == false and saved.voice == false)
+  assert(saved.subtitles == false and saved.voice == false and saved.voiceProvider == 'pocket' and saved.subtitleStyle == 'dialogue', 'Off for both rows, the chosen voice and display are kept')
+  assert(ns.find('Companion voices').selectedElementIndex == 1 and ns.find('Subtitles').selectedElementIndex == 1 and ns.find('Voice playback') == nil and ns.find('Subtitle display') == nil)
   local settingsWrites = 0
   for index = writes + 1, #fileWrites do if fileWrites[index].path == 'runtime/settings.json' or fileWrites[index].path:find('settings', 1, true) then settingsWrites = settingsWrites + 1 end end
   assert(settingsWrites <= 2, 'one transaction (a file and its swap), not one per change: ' .. settingsWrites)
+  -- A voice after Off turns the playback back on in the same save.
+  ns.interact.select(ns.find('Companion voices'), 2); frames(8); ns.verify()
+  assert(saved.voice == true and saved.voiceProvider == 'pocket' and ns.find('Companion voices').selectedElementIndex == 2)
   -- A refused choice goes back and says why; the other change in the same moment is kept.
   ns.interact.toggle(ns.find('Follow-up questions'))
-  ns.interact.select(ns.find('Companion voices'), 2)   -- Voxtral without a Mistral key
+  ns.interact.select(ns.find('Companion voices'), 3)   -- Voxtral without a Mistral key
   frames(8); ns.verify()
   assert(saved.followUpInterest == false, 'the change that could be made was made')
-  assert(ns.find('Companion voices').selectedElementIndex == 1, 'the refused voice went back to the saved one')
+  assert(ns.find('Companion voices').selectedElementIndex == 2, 'the refused voice went back to the saved one')
   assert(managerUi.inspect().shown == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(managerUi.inspect().shown))
   assert(ns.sections()[1].options[2].label:find('Requires a Mistral key', 1, true) == 1, 'the line is under the way back')
   -- A rule that moves another row: Natural speech beside the cloud voice moves the voice, in place, with the notice.
-  ns.interact.select(ns.find('Companion voices'), 7)   -- Convai cloud voice
+  ns.interact.select(ns.find('Companion voices'), 8)   -- Convai cloud voice
   frames(8); ns.verify()
-  assert(saved.voiceProvider == 'convai' and ns.find('Companion voices').selectedElementIndex == 7)
+  assert(saved.voiceProvider == 'convai' and ns.find('Companion voices').selectedElementIndex == 8)
   assert(ns.find('Expressive emotions') == nil and saved.expressiveEmotions == nil, 'Expressive emotions is not a setting any more')
   ns.interact.toggle(ns.find('Natural speech')); frames(8); ns.verify()
   assert(saved.naturalSpeech == true and saved.voiceProvider == 'pocket', 'Natural speech moved the voice to Pocket')
-  assert(ns.find('Companion voices').selectedElementIndex == 1, 'the voice row shows it')
+  assert(ns.find('Companion voices').selectedElementIndex == 2, 'the voice row shows it')
   assert(managerUi.inspect().shown:find('Natural speech needs a local voice', 1, true), tostring(managerUi.inspect().shown))
   assert(ns.sections()[1].options[2].label:find('Natural speech needs a local voice', 1, true) == 1)
   -- The line goes away with the next page.
@@ -309,10 +313,10 @@ test('Mature content beside Mistral: turning it on selects Local AI and says so 
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', tostring(saved.voiceProvider))
   assert(managerUi.inspect().shown == 'Also changed: Pocket · Performance, V’s voice for typed lines.', tostring(managerUi.inspect().shown))
-  assert(ns.find('Companion voices').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+  assert(ns.find('Companion voices').selectedElementIndex == 2 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', tostring(saved.voiceProvider))
-  assert(ns.find('Companion voices').selectedElementIndex == 2 and ns.find('V’s voice for typed lines').selectedElementIndex == 3)
+  assert(ns.find('Companion voices').selectedElementIndex == 3 and ns.find('V’s voice for typed lines').selectedElementIndex == 3)
 `));
 
 test('with Mature content on the Voxtral entries say so in their labels and a click on one is refused in place (Native Settings UI has no greyed-out entries), the rows go back to what is saved', () => run(`${harness()}
@@ -329,7 +333,7 @@ test('with Mature content on the Voxtral entries say so in their labels and a cl
   for index, label in ipairs(companions.elements) do if label:find('Voxtral', 1, true) then voxtral = index end end
   assert(companions.elements[voxtral] == 'Voxtral · not with Mature' and engine.elements[3] == 'Voxtral · not with Mature', tostring(companions.elements[voxtral]))
   ns.interact.select(companions, voxtral); frames(8); ns.verify()
-  assert(saved.voiceProvider == 'pocket' and ns.find('Companion voices').selectedElementIndex == 1, 'refused, the row shows the saved voice')
+  assert(saved.voiceProvider == 'pocket' and ns.find('Companion voices').selectedElementIndex == 2, 'refused, the row shows the saved voice')
   assert(managerUi.inspect().shown == 'Voxtral is not used with Mature content.', tostring(managerUi.inspect().shown))
   ns.interact.select(ns.find('V’s voice for typed lines'), 3); frames(8); ns.verify()
   assert(saved.vVoiceEngine == 'pocket' and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
@@ -345,14 +349,14 @@ test('Restore defaults goes through the same validated path, only on the Setting
   assert(manager.applySettings(player, {battleReactions = false, followUpInterest = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
     naturalSpeech = false}))
   frames(20)
-  assert(ns.find('React to battles').state == false and ns.find('Subtitle display').selectedElementIndex == 2)
+  assert(ns.find('React to battles').state == false and ns.find('Subtitles').selectedElementIndex == 3)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
   assert(settings.followUpInterest == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
   assert(ns.find('Follow-up questions').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
-  assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 1)
+  assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 2)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
   -- Restore defaults after the cloud voice was chosen puts the default voice back.
   assert(manager.applySettings(player, {voiceProvider = 'convai'}))
@@ -448,16 +452,16 @@ test('add-on settings are rows of the Settings page, staged and committed with t
   local gap, marks = ns.find('Time between remarks'), ns.find('Mark our lines in the subtitles')
   assert(gap.type == 'selectorString' and gap.selectedElementIndex == 2 and marks.type == 'switch' and marks.state == true)
   -- An add-on change alone is saved by the add-on; with a main change in the same moment, after the main settings were saved.
-  ns.interact.select(gap, 3); ns.interact.toggle(ns.find('Subtitles')); frames(8); ns.verify()
+  ns.interact.select(gap, 3); ns.interact.select(ns.find('Subtitles'), 1); frames(8); ns.verify()
   assert(table.concat(committed, ',') == 'addon:skippy:remarkGap=3', table.concat(committed, ','))
   assert(saved.subtitles == false and ns.find('Time between remarks').selectedElementIndex == 3)
   -- A refused main change drops the add-on's staged change with it (nothing is half saved), and the row goes back.
   committed = {}
   ns.interact.toggle(marks)
-  ns.interact.select(ns.find('Companion voices'), 2)
+  ns.interact.select(ns.find('Companion voices'), 3)
   frames(8)
   assert(table.concat(committed, ',') == 'addon:skippy:markLines=false', 'the add-on change is its own: ' .. table.concat(committed, ','))
-  assert(ns.find('Companion voices').selectedElementIndex == 1)
+  assert(ns.find('Companion voices').selectedElementIndex == 2)
 `));
 
 test('nothing runs while the Mods screen is closed: no calls into Native Settings UI, no page build, no reads of the page state', () => run(`${harness()}
@@ -844,13 +848,13 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   assert(stale(held) == 0, 'switch: handles that no longer resolve to their option: ' .. stale(held))
   ns.setOption(ns.find('Voice volume (%)', TAB), 135); frames(8)
   assert(saved.voiceVolume == 135 and stale(held) == 0, 'slider: ' .. stale(held))
-  ns.setOption(ns.find('Subtitle display', TAB), 2); frames(8)
+  ns.setOption(ns.find('Subtitles', TAB), 3); frames(8)
   assert(stale(held) == 0, 'selector: ' .. stale(held))
   -- A rule that moves another row (Natural speech moves the voice) and puts a line under the way back: still the same options.
   ns.setOption(ns.find('Natural speech', TAB), true); frames(8)
   assert(saved.naturalSpeech == true and saved.voiceProvider == 'pocket', 'the rule ran')
   assert(stale(held) == 0, 'rule: ' .. stale(held))
-  assert(ns.find('Companion voices', TAB).selectedElementIndex == 1, 'and the row shows the corrected value')
+  assert(ns.find('Companion voices', TAB).selectedElementIndex == 2, 'and the row shows the corrected value')
   -- Pressing a button through the mirror works while the tab is not on screen, and the page it opens is the page MCM reads next.
   go('Back to Companion Manager')
   assert(#ns.sections(TAB) == 1 and ns.sections(TAB)[1].options[1].label == 'Characters to invite')
@@ -939,13 +943,13 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
 
 test('Custom endpoint with a change just made: the change is still applied after the page is opened, and the page has no pending state of its own', () => run(`${harness()}
   press('Settings')
-  ns.interact.toggle(ns.find('Subtitles'))
+  ns.interact.select(ns.find('Subtitles'), 1)
   press('Custom endpoint')
   frames(8); ns.verify()
   assert(managerUi.inspect().view == 'custom-endpoint', 'still on the page')
   assert(saved.subtitles == false, 'the change made on Settings was applied')
   press('Back to settings')
-  assert(ns.find('Subtitles').state == false, 'and shown on Settings')
+  assert(ns.find('Subtitles').selectedElementIndex == 1, 'and shown on Settings')
 `));
 
 test('Custom endpoint is not offered without the provider module: no button on Settings, the page cannot be reached', () => run(`${harness({modules: withoutCustomModule})}
@@ -1083,8 +1087,8 @@ test('Native Settings UI: with the conversation service stopped the Character ed
 });
 
 // ---------------------------------------------------------------------------------------------------- Key bindings (docs/KEY_BINDINGS.md)
-// The page on Native Settings UI: one section for each of the five actions (the key set here, the key set in Cyber Engine Tweaks, Set and Clear), the
-// Controller talk button, and Restore defaults. The redscript half is a fake player here.
+// The page on Native Settings UI: one section for each action (the key set here, Set and Clear), starting with the five default keys, and Restore
+// defaults, which puts the five default keys back. The redscript half is a fake player here.
 test('Native Settings UI: Key bindings sits between Character editor and Settings, Set waits for a key, the key shows on the page, Clear and Restore defaults take it away', () => run(`${harness()}
   local keyQueue, keyList = {}, ''
   function player:ConvaiKeyBindsReady() return true end
@@ -1103,21 +1107,27 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   assert(managerUi.inspect().view == 'key-bindings')
   local names = {}
   for _, s in ipairs(ns.sections()) do names[#names + 1] = s.label end
-  assert(table.concat(names, ' | ') == 'Companion Manager | Talk by voice | Talk by text | Group voice chat | Group text chat | Talk to Johnny by voice | Talk to Johnny by text | Companion Manager | Controller', table.concat(names, ' | '))
-  for _, name in ipairs({'Talk by voice', 'Talk by text', 'Group voice chat', 'Group text chat', 'Companion Manager'}) do
-    local keySection = ns.sections()
-    local target = name == 'Companion Manager' and keySection[6] or section(name)
-    assert(target.options[1].label == 'Key or button' and target.options[1].buttonText == 'Not set', name)
-    assert(#target.options == 1, 'one look: only the key (no Cyber Engine Tweaks row), and no Clear while nothing is set: ' .. name)
+  assert(table.concat(names, ' | ') == 'Companion Manager | Talk by voice | Talk by text | Group voice chat | Group text chat | Talk to Johnny by voice | Talk to Johnny by text | Companion Manager', table.concat(names, ' | '))
+  assert(ns.find('Controller talk button') == nil and section('Controller') == nil, 'the Controller talk button is gone')
+  -- The five actions start with their default key (and a Clear beside it); the two Johnny ones have none.
+  local defaultKeys = {['Talk by voice'] = 'F7', ['Talk by text'] = 'F6', ['Group voice chat'] = 'F9', ['Group text chat'] = 'F8'}
+  for name, keyName in pairs(defaultKeys) do
+    local target = section(name)
+    assert(target.options[1].label == 'Key or button' and target.options[1].buttonText == keyName, name)
+    assert(#target.options == 2 and option(name, 'Clear'), 'one look: the key (no Cyber Engine Tweaks row) and Clear: ' .. name)
   end
-  assert(ns.find('Controller talk button').state == false)
+  local sections = ns.sections()
+  assert(sections[8].options[1].buttonText == 'F4' and #sections[8].options == 2, 'Companion Manager starts with F4')
+  for _, index in ipairs({6, 7}) do
+    assert(sections[index].options[1].buttonText == 'Not set' and #sections[index].options == 1, 'Johnny has no default key: ' .. sections[index].label)
+  end
   ns.interact.press(option('Talk by voice', 'Key or button')); frames(4); ns.verify()
   assert(managerUi.inspect().shown == 'Press the key or controller button for Talk by voice. Esc or B cancels.', tostring(managerUi.inspect().shown))
   assert(option('Talk by voice', 'Key or button').buttonText == 'Cancel')
-  clock = clock + 1; key('kIK_F7')
-  assert(managerUi.inspect().shown == 'Talk by voice is set to F7.', tostring(managerUi.inspect().shown))
-  assert(option('Talk by voice', 'Key or button').buttonText == 'F7' and option('Talk by voice', 'Clear'), 'the key shows, Clear appeared')
-  assert(manager.keyBindings().voice == 'IK_F7' and keyList == 'IK_F7,-,-,-,-')
+  clock = clock + 1; key('kIK_F10')
+  assert(managerUi.inspect().shown == 'Talk by voice is set to F10.', tostring(managerUi.inspect().shown))
+  assert(option('Talk by voice', 'Key or button').buttonText == 'F10' and option('Talk by voice', 'Clear'), 'the key shows, Clear is there')
+  assert(manager.keyBindings().voice == 'IK_F10' and keyList == 'IK_F10,IK_F6,IK_F9,IK_F8,IK_F4', keyList)
   -- A controller button, Clear, and Restore defaults.
   ns.interact.press(option('Talk by text', 'Key or button')); frames(3)
   clock = clock + 1; key('kIK_Pad_RightTrigger')
@@ -1125,11 +1135,26 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   ns.interact.press(option('Talk by voice', 'Clear')); frames(4); ns.verify()
   assert(manager.keyBindings().voice == nil and option('Talk by voice', 'Key or button').buttonText == 'Not set' and not option('Talk by voice', 'Clear'))
   assert(managerUi.inspect().shown == 'Talk by voice cleared.', tostring(managerUi.inspect().shown))
-  ns.interact.toggle(ns.find('Controller talk button')); frames(10); ns.verify()
-  assert(manager.padTalk() == true)
   ns.interact.restoreDefaults(); frames(10); ns.verify()
   convaiKeyBinds.tick(player, true)
-  assert(next(manager.keyBindings()) == nil and manager.padTalk() == false and keyList == '', 'the keys and the button are back to the defaults')
-  assert(ns.find('Controller talk button').state == false and option('Talk by text', 'Key or button').buttonText == 'Not set')
+  local bindings = manager.keyBindings()
+  assert(bindings.voice == 'IK_F7' and bindings.text == 'IK_F6' and bindings.group_voice == 'IK_F9' and bindings.group_text == 'IK_F8' and bindings.manager == 'IK_F4', 'the five default keys are back')
+  assert(keyList == 'IK_F7,IK_F6,IK_F9,IK_F8,IK_F4', 'and the listeners follow: ' .. keyList)
+  assert(option('Talk by voice', 'Key or button').buttonText == 'F7' and option('Talk by text', 'Key or button').buttonText == 'F6')
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
+`));
+
+test('V’s voice for microphone lines is its own select: independent of the typed lines row, any on/off pair, one shared engine', () => run(`${harness()}
+  press('Settings'); frames(8)
+  local typed, mic = ns.find('V’s voice for typed lines'), ns.find('V’s voice for microphone lines')
+  assert(mic and mic.type == 'selectorString' and table.concat(mic.elements, ' | ') == table.concat(typed.elements, ' | '), 'the same four entries')
+  assert(typed.selectedElementIndex == 2 and mic.selectedElementIndex == 1, 'typed lines on Pocket, the microphone Off by default')
+  -- Microphone on, typed off: the row shows the engine, the other stays Off.
+  ns.interact.select(mic, 2); ns.interact.select(typed, 1); frames(8); ns.verify()
+  assert(saved.vVoiceMic == true and saved.vVoice == false and saved.vVoiceEngine == 'pocket')
+  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 1 and ns.find('V’s voice for microphone lines').selectedElementIndex == 2)
+  -- Typed on, microphone off.
+  ns.interact.select(ns.find('V’s voice for typed lines'), 2); ns.interact.select(ns.find('V’s voice for microphone lines'), 1); frames(8); ns.verify()
+  assert(saved.vVoiceMic == false and saved.vVoice == true)
+  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 2 and ns.find('V’s voice for microphone lines').selectedElementIndex == 1)
 `));

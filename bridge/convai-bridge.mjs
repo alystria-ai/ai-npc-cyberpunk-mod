@@ -3763,7 +3763,7 @@ async function releaseUnused() {
     const muted = localVoice.silent;
     if (jaliFace) { if (muted) await jaliFace.suspend(); else if (!jaliFace.active) void jaliFace.resume(); }
     if (voiceBoundaryBusy() || voiceRouteReservation || keySwitching || providerSwitching) return;
-    await realtime.releaseRendererPages({line: !vVoice.enabled || !vVoice.available, companion: muted});
+    await realtime.releaseRendererPages({line: !vVoice.active || !vVoice.available, companion: muted});
     const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
     await realtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS, keepRenderer});
     await phoneRealtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS});
@@ -3973,8 +3973,8 @@ async function pollSettings(checkShutdown = true) {
     // graphics memory, or no CUDA: both last for the session): the companions are on Pocket or text, so V reads as Pocket too and speaks with the Pocket worker that is loaded.
     const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && !localVoice.omniNoMemory && !localVoice.omniNoCuda;
     const vSettings = vSettingsFor(settings, {cloudUsable: matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
-    if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}, microphone lines ${vVoice.micEnabled ? 'on' : 'off'}`);
-    if (vVoice.enabled) startVVoiceModScan();
+    if (vVoice.update(vSettings)) console.error(`[VVoice] typed lines ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}, microphone lines ${vVoice.micEnabled ? 'on' : 'off'}`);
+    if (vVoice.active) startVVoiceModScan();
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));

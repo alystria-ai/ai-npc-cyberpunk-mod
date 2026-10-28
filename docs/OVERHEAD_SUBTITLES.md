@@ -1,6 +1,6 @@
 # Native subtitle display
 
-The default subtitle style is the previously accepted **Dialogue HUD**. Companion Manager → Settings → **Subtitle display** offers **Above speaker** as an optional alternative. The existing Subtitles toggle controls both. Phone Chat keeps its own conversation history UI. An explicitly saved Above speaker selection remains selected; installing the stability correction does not rewrite it.
+The default subtitle style is the previously accepted **Dialogue HUD**. Companion Manager → Settings → Voices → **Subtitles** is one list: Off, Cinematic subtitles (the Dialogue HUD) and **Above the speaker**. Off is what the old Subtitles switch off meant, and it keeps the style that was chosen. Phone Chat keeps its own conversation history UI. An explicitly saved Above speaker selection remains selected; installing the stability correction does not rewrite it.
 
 The user rejected the first overhead presentation on September 30: it sat too high and split speech unnecessarily. Dawnwalker is a feature reference, not the presentation specification for Cyberpunk. Missing or invalid preferences and Restore defaults now choose Dialogue HUD; an explicitly selected overhead preference still persists. The current live preference was restored through the running manager's save transaction.
 

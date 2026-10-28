@@ -2,6 +2,14 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.3.4
+
+- **Default bindings**: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager are set from the start, so a new install works at once. A binding you set before stays yours, the mod only fills actions that had none. Change, clear or restore them on the bindings page of the Companion Manager. The game uses F9 for Quick load, so you may want another binding for group voice chat.
+- **Fewer rows in Settings > Voices**: Voice playback is now the first entry of Companion voices (Off keeps the voice you chose, so turning it back on restores it), and Subtitles moved to Voices with Off as its first entry. React to battles and React to collected loot moved to Gameplay.
+- **V's voice for typed and for microphone lines**: two rows of the same kind, each with its own Off, so one can be on while the other is off. V speaks with one voice engine for both.
+- **Controller talk button removed**: give Talk by voice a controller button, such as the left stick click, on the bindings page of the Companion Manager. If you had the button on, Talk by voice is set to the left stick click for you.
+- **Generate report**: the button reads Creating… while the report is made and ignores further clicks until it is done.
+
 ## What's new in 0.3.3
 
 - **NPCs react to threats and commands (new, off by default)**: Settings > Gameplay > NPCs react to threats and commands. With it on, ordinary people you threaten or order around react in their own way: they cower, run, throw a punch or obey a plain order like "get down". The game picks the reaction from the person's temper and tells the character, on every provider. A frightened person in a crowd now runs away instead of vanishing.
@@ -47,7 +55,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 ## What's new in 0.3.1
 
 - **Game 2.5 support**: the mod now comes in two builds, one for game 2.5 (the default, the main download) and one for the older game 2.31. Get the Scripts and the Runtime made for your game (the files for 2.31 have "-for-2.31" in their names, and the Runtime for 2.31 is in the game-2.31 folder on Hugging Face). The 2.5 build needs the 2.5 versions of Cyber Engine Tweaks, RED4ext, redscript, Codeware and Native Settings UI, listed under Requirements. Both builds are the same mod, and the features that read the game's quest history (the world knowledge rules, and the relationship facts behind the automatic romantic style and Johnny's remarks) work on both games: the quest data they read was compared between 2.31 and 2.5 and is the same.
-- **Controller talk button (optional, off by default)**: Settings > Voices > Controller talk button. Hold the left stick click while you look at someone, speak and let go to send. It does nothing in menus, scenes, calls, combat or vehicles, and the click keeps its normal job when the setting is off.
+- **Controller talk button (optional, off by default, replaced in 0.3.4 by a controller button on the bindings page)**: Settings > Voices > Controller talk button. Hold the left stick click while you look at someone, speak and let go to send. It does nothing in menus, scenes, calls, combat or vehicles, and the click keeps its normal job when the setting is off.
 - **V speaks your microphone lines (optional, off by default)**: Settings > Voices. A line you speak is repeated in V's voice like a typed one, and the reply follows V's line. It works with every voice and provider, OmniVoice and Convai included.
 - **Convai and the local model**: with Convai chosen, the mod no longer starts the Local AI model server just to look up a setting.
 - **Hold to talk**: a game that stalls for a few seconds no longer cancels the voice turn, a late signal no longer takes the microphone back, letting go before the microphone opened fails at once, and words that were heard but never got a final transcript are sent to the character.

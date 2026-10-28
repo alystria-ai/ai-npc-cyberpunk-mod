@@ -692,6 +692,8 @@ end
 -- The mod's own key bindings (mod/key-bindings.lua): the five actions, and a key is stored by the game's name for it ('IK_F7'). Which names the player can
 -- choose is that module's business; here a stored name only has to look like one.
 local keyBindingOrder = {'voice', 'text', 'group_voice', 'group_text', 'manager', 'johnny_voice', 'johnny_text'}
+-- The keys given to the actions that have none: F4 the Companion Manager, F6 talk by text, F7 talk by voice, F8 group text chat, F9 group voice chat (owner, 2026-10-28).
+local keyBindingDefaults = {manager = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F9'}
 local keyBindingActions = {}
 for _, action in ipairs(keyBindingOrder) do keyBindingActions[action] = true end
 local function validKeyName(name)
@@ -883,17 +885,15 @@ local function loadSettings()
     if type(settings.voiceChoices) ~= 'boolean' then settings.voiceChoices, settingsNeedSave = false, true end
     -- On by default: Companions change outfits (docs/COMPANION_OUTFITS.md). Off, mod/companion-outfits.lua is not loaded, nothing ticks and nothing is changed.
     if type(settings.companionOutfits) ~= 'boolean' then settings.companionOutfits, settingsNeedSave = false, true end
-    -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
-    -- and the redscript listener is not registered.
-    if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
     -- Off by default: Remote OmniVoice (Voices > Custom voices, docs/REMOTE_OMNIVOICE.md), the OmniVoice choices are rendered by an OmniVoice server on another PC. Off, nothing
     -- is asked of any server; on, no OmniVoice model loads on this PC and the pack is not needed.
     if type(settings.remoteOmni) ~= 'boolean' then settings.remoteOmni, settingsNeedSave = false, true end
     -- On by default: OmniVoice on an AMD Radeon card (Voices > OmniVoice for AMD, docs/OMNIVOICE_AMD.md) lets AMD's MIOpen run the convolutions. Off, PyTorch's own convolutions run.
     -- Only the bridge reads it, and only on an AMD card.
     if type(settings.amdMiopen) ~= 'boolean' then settings.amdMiopen, settingsNeedSave = true, true end
-    -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): none by default, so nothing changes for an existing player. Only an
-    -- action of the mod with a game key name is kept, and two actions never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
+    -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): F4 the Companion Manager, F6 talk by text, F7 talk by voice, F8 group text
+    -- chat, F9 group voice chat unless the player set a key already (keyBindingDefaults, below). Only an action of the mod with a game key name is kept, and two actions
+    -- never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
     if type(settings.keyBindings) ~= 'table' then settings.keyBindings, settingsNeedSave = {}, true end
     do
         for action in pairs(settings.keyBindings) do
@@ -904,6 +904,26 @@ local function loadSettings()
             local name = settings.keyBindings[action]
             if name ~= nil and (not validKeyName(name) or seen[name]) then settings.keyBindings[action], settingsNeedSave = nil, true
             elseif name ~= nil then seen[name] = true end
+        end
+        -- The Controller talk button (hold the left stick click to talk by voice) was a setting of its own until 0.3.4, when Key bindings took over: a controller button
+        -- set there does the same. A player who had it on keeps the click for Talk by voice, if that action has no key and no other action has the click. The setting
+        -- itself is gone from the file.
+        if settings.padTalk ~= nil then
+            if settings.padTalk == true and settings.keyBindings.voice == nil and not seen.IK_Pad_LeftThumb then
+                settings.keyBindings.voice, seen.IK_Pad_LeftThumb = 'IK_Pad_LeftThumb', true
+            end
+            settings.padTalk, settingsNeedSave = nil, true
+        end
+        -- Default keys (0.3.4), given once to the actions that have no key: a player who set a key keeps it, a key another action already has is not taken, and a key
+        -- cleared later stays cleared (keyDefaultsGiven marks a file that has been through this). The Johnny actions have no default.
+        if settings.keyDefaultsGiven ~= true then
+            for _, action in ipairs(keyBindingOrder) do
+                local default = keyBindingDefaults[action]
+                if default and settings.keyBindings[action] == nil and not seen[default] then
+                    settings.keyBindings[action], seen[default] = default, true
+                end
+            end
+            settings.keyDefaultsGiven, settingsNeedSave = true, true
         end
     end
     -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
@@ -963,9 +983,15 @@ local function loadSettings()
     -- carried it, vVoiceChosen); an unchosen false becomes the default, true (the pattern of holocallLiveImage above).
     if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
     if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
-    -- V speaks your microphone lines (key vVoiceMic): off by default and kept off unless the player turns it on. The bridge reads it beside vVoice (a hold-to-talk or
-    -- Voice activation line is repeated in V's voice only while both are on, docs/V_VOICE.md "Microphone lines"). Anything that is not a boolean is the default, off.
+    -- V's voice for microphone lines (key vVoiceMic): off by default and kept off unless the player turns it on. Anything that is not a boolean is the default, off.
+    -- Since 0.3.4 it is a setting of its own, next to vVoice (typed lines): the two are independent, so any of the four on/off pairs speaks (docs/V_VOICE.md "Microphone lines").
+    -- Before, a microphone line was repeated only while vVoice was ALSO on. A file saved under that rule keeps what the player heard: a vVoiceMic true beside
+    -- a typed-lines Off was silent, so it becomes off, once (vVoiceMicOwn marks a file that has been through this; the bridge applies the same rule to a file without it).
     if type(settings.vVoiceMic) ~= 'boolean' then settings.vVoiceMic, settingsNeedSave = false, true end
+    if settings.vVoiceMicOwn ~= true then
+        if settings.vVoice ~= true then settings.vVoiceMic = false end
+        settings.vVoiceMicOwn, settingsNeedSave = true, true
+    end
     -- 'omni' is kept as saved even when it cannot be used now (the companions are not on OmniVoice, the pack is missing): the page and the bridge read
     -- it as Pocket then (M.vOmniBlock), and the file is left alone.
     if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' and settings.vVoiceEngine ~= 'omni' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
@@ -1103,17 +1129,17 @@ function M.companionOutfits()
     return settings.companionOutfits == true
 end
 
--- Controller talk button (Settings > Voices): hold the left stick click to talk by voice. Off by default. Read on the game's 10 Hz tick (one boolean),
--- never per frame.
-function M.padTalk()
-    loadSettings()
-    return settings.padTalk == true
-end
-
 -- The saved own key bindings, {action = 'IK_F7'} (the table itself: callers read it and never change it). Read on the game's 10 Hz tick, never per frame.
 function M.keyBindings()
     loadSettings()
     return settings.keyBindings
+end
+
+-- The default keys as a batch for applySettings({keyBindings = ...}): each action's default key, false for an action with none (Restore defaults).
+function M.defaultKeyBindings()
+    local result = {}
+    for _, action in ipairs(keyBindingOrder) do result[action] = keyBindingDefaults[action] or false end
+    return result
 end
 
 -- Saves one own key binding (name nil clears it) in one validated transaction, for the Key bindings page.
@@ -1418,13 +1444,13 @@ end
 
 -- On by default. On, what the player types is also spoken aloud in V's own voice (male or female V), cloned by V's own voice engine
 -- (vVoiceEngine: Pocket by default, Voxtral, or OmniVoice while the companions use it), whatever voice the companions use otherwise. Typed lines only,
--- unless the player also turned on vVoiceMic (off by default: push-to-talk never replayed V because you had just said it yourself).
+-- The player's microphone lines are the other row, vVoiceMic (off by default: push-to-talk never replayed V because you had just said it yourself).
 function M.vVoice()
     loadSettings()
     return settings.vVoice == true
 end
 
--- Off by default. On, and with V's voice on, what the player says by microphone (hold to talk, Voice activation) is repeated in V's voice too (the bridge).
+-- Off by default. On, what the player says by microphone (hold to talk, Voice activation) is repeated in V's voice, whether or not typed lines are (the bridge).
 function M.vVoiceMic()
     loadSettings()
     return settings.vVoiceMic == true
@@ -1449,11 +1475,11 @@ function M.vVoiceEngine()
     return 'pocket'
 end
 
--- The setting is on, so a real V line can follow a typed turn. Used to skip work that only a real V line needs (the game-side read of the
+-- Either V row is on, so a real V line can follow a typed or a spoken turn. Used to skip work that only a real V line needs (the game-side read of the
 -- dialogue volume). It no longer depends on the companions' voice: V's engine is its own choice.
 function M.vVoiceActive()
     loadSettings()
-    return settings.vVoice == true
+    return settings.vVoice == true or settings.vVoiceMic == true
 end
 
 -- Natural speech and the Convai cloud voice exclude each other where that voice is what speaks (cloudVoiceBlocksTags: the Convai voice on a Convai
@@ -2213,7 +2239,6 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
             voiceChoices = settings.voiceChoices == true,
-            padTalk = settings.padTalk == true,
             remoteOmni = settings.remoteOmni == true,
             amdMiopen = settings.amdMiopen ~= false,
             keyBindings = settings.keyBindings,
@@ -2349,9 +2374,6 @@ function M.applySettings(player, values)
         elseif key == 'voiceChoices' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.voiceChoices = value
-        elseif key == 'padTalk' then
-            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
-            nextSettings.padTalk = value
         elseif key == 'remoteOmni' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.remoteOmni = value

@@ -557,6 +557,96 @@ test('the engine is the player\'s choice: Pocket unless Voxtral is stored, and a
   assert.equal(new VVoice({voices: {}}).wantsPocket, false);
 });
 
+// V's voice has two settings since 0.3.4: typed lines (vVoice) and microphone lines (vVoiceMic). Any of the four on/off pairs is legal.
+const spokenInput = (extra = {}) => ({requestId: '1-2-3ULL', profileKey: 'judy-alvarez', text: '[Microphone]', source: 'microphone',
+  turnContext: {version: 1, status: 'ready', gender: 'male', dialogueVolume: 0.8}, ...extra});
+
+test('typed lines and microphone lines are two settings: each of the four on/off pairs speaks exactly the lines that are on', async () => {
+  const pairs = [
+    {typedOn: false, micOn: true},
+    {typedOn: true, micOn: false},
+    {typedOn: false, micOn: false},
+    {typedOn: true, micOn: true},
+  ];
+  for (const {typedOn, micOn} of pairs) {
+    const label = 'typed ' + (typedOn ? 'on' : 'off') + ', microphone ' + (micOn ? 'on' : 'off');
+    const {voice, calls} = feature();
+    voice.update({vVoice: typedOn, vVoiceChosen: true, vVoiceMic: micOn, vVoiceMicOwn: true});
+    assert.equal(voice.enabled, typedOn, label); assert.equal(voice.micEnabled, micOn, label);
+    assert.equal(voice.active, typedOn || micOn, label);
+    assert.equal(voice.micWanted, micOn, label);
+    assert.equal(voice.skipReason(typed()), typedOn ? null : 'off', label + ': a typed line');
+    assert.equal(voice.skipReason(spokenInput(), {spoken: true}), micOn ? null : 'mic-off', label + ': a spoken line');
+    const typedLine = voice.start(typed());
+    const spokenLine = voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
+    assert.equal(typedLine !== null, typedOn, label + ': typed line started');
+    assert.equal(spokenLine !== null, micOn, label + ': spoken line started');
+    await Promise.all([typedLine?.finished, spokenLine?.finished]);
+    assert.equal(calls.stream.length, (typedOn ? 1 : 0) + (micOn ? 1 : 0), label + ': what reached the voice');
+    if (micOn) assert.ok(calls.stream.some(row => row[1] === 'Hey Judy, how are you doing tonight?'), label + ': the transcript was spoken');
+    if (typedOn) assert.ok(calls.stream.some(row => row[1] === typed().text), label + ': the typed words were spoken');
+  }
+});
+
+test('microphone lines on beside typed lines off: only the spoken line is repeated, and the typed one is skipped without a log line', async () => {
+  const {voice, calls} = feature();
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true});
+  assert.equal(voice.start(typed()), null, 'a typed line');
+  const spoken = voice.startSpoken(spokenInput(), 'Hello Judy, nice to see you.');
+  assert(spoken, 'a spoken line');
+  await spoken.finished;
+  assert.deepEqual(calls.stream, [['v-male', 'Hello Judy, nice to see you.']]);
+  assert.deepEqual(calls.logs, []);
+});
+
+test('typed lines on beside microphone lines off: the reverse, and the warm-up still runs for the typed ones', async () => {
+  const {voice, calls} = feature();
+  voice.update({vVoice: true, vVoiceMic: false, vVoiceMicOwn: true});
+  assert.equal(voice.startSpoken(spokenInput(), 'Hello Judy, nice to see you.'), null, 'a spoken line');
+  assert.equal(voice.skipReason(spokenInput(), {spoken: true}), 'mic-off');
+  const line = voice.start(typed()); assert(line, 'a typed line'); await line.finished;
+  assert.deepEqual(calls.stream, [['v-male', typed().text]]);
+  voice.warmUp();
+  await until(() => calls.warm > 0, 'the warm-up');
+});
+
+test('both off: nothing is started, nothing is warmed and no Pocket worker is wanted; either one on wakes the voice up', async () => {
+  const {voice, calls} = feature();
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: false, vVoiceMicOwn: true});
+  assert.equal(voice.active, false); assert.equal(voice.micWanted, false); assert.equal(voice.wantsPocket, false);
+  assert.equal(voice.start(typed()), null); assert.equal(voice.startSpoken(spokenInput(), 'Hello there.'), null);
+  voice.warmUp();
+  assert.equal(calls.warm, 0, 'nothing to warm');
+  assert.deepEqual(calls.stream.concat(calls.play), []);
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true});
+  assert.equal(voice.active, true); assert.equal(voice.wantsPocket, true, 'microphone lines alone want the Pocket worker');
+  voice.update({vVoiceEngine: 'voxtral', vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true});
+  assert.equal(voice.wantsPocket, false, 'the cloud engine needs none, whichever row is on');
+  voice.update({vVoiceEngine: 'pocket', vVoice: true, vVoiceMic: false, vVoiceMicOwn: true});
+  assert.equal(voice.active, true); assert.equal(voice.wantsPocket, true, 'typed lines alone want it too');
+  voice.update({vVoice: true, vVoiceMic: true, vVoiceMicOwn: true});
+  assert.equal(voice.wantsPocket, true);
+});
+
+test('update() reads the microphone setting by the marker: without vVoiceMicOwn it follows the old rule (only beside typed lines), with it nothing is forced', () => {
+  const voice = new VVoice({voices: {male: {key: 'v-male'}}});
+  // A file the mod has not rewritten yet: the player heard microphone lines only while typed lines were on.
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true});
+  assert.equal(voice.enabled, false); assert.equal(voice.micEnabled, false, 'typed Off, no marker: still silent');
+  assert.equal(voice.micWanted, false); assert.equal(voice.active, false);
+  voice.update({vVoice: true, vVoiceMic: true});
+  assert.equal(voice.micEnabled, true, 'typed on, no marker: on, as before');
+  // The marker (set by mod/manager.lua after its one-time migration) lets the saved microphone choice stand.
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true});
+  assert.equal(voice.micEnabled, true, 'typed Off with the marker: on'); assert.equal(voice.active, true);
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: 'yes'});
+  assert.equal(voice.micEnabled, false, 'only a true marker counts');
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: false, vVoiceMicOwn: true});
+  assert.equal(voice.micEnabled, false, 'a saved off stays off');
+  assert.equal(voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true}), true, 'a change of the microphone setting alone is reported');
+  assert.equal(voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true}), false);
+});
+
 test('Pocket with the companions on Pocket: the shared worker speaks V, one job at a time, so the companion\'s own request waits behind an unfinished V line', async () => {
   const {voice, seen} = engineFeature({main: true});
   const clock = new TurnClock();

@@ -705,3 +705,77 @@ test('Dynamic info: a fresh settings file has the mods kind off and the other el
   assert.deepEqual(JSON.parse(out.text).dynamicInfo, expected);
   assert.equal(out.malformed, false);
 });
+
+// Default key bindings (0.3.4): the five actions that have a default get it once, a key another action holds is not taken, a key cleared later stays cleared.
+const defaultKeys = {manager: 'IK_F4', text: 'IK_F6', voice: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F9'};
+const withoutKeys = () => { const {keyBindings, keyDefaultsGiven, ...rest} = freshSettings; return rest; };
+
+test('default keys: an old file without keyDefaultsGiven is rewritten once with the five defaults; the next start writes nothing', () => {
+  const first = loadFile(withoutKeys());
+  assert.equal(first.writes, 1);
+  assert.deepEqual(first.settings.keyBindings, defaultKeys);
+  assert.deepEqual(JSON.parse(first.text).keyBindings, defaultKeys);
+  assert.equal(JSON.parse(first.text).keyDefaultsGiven, true);
+  assert.deepEqual(JSON.parse(first.text), freshSettings);
+  const second = loadFile(JSON.parse(first.text));
+  assert.equal(second.writes, 0, 'a file that has had its defaults is not rewritten');
+});
+
+test('default keys: a key the player set is kept, a key another action holds is skipped, the Johnny actions get none', () => {
+  const kept = loadFile({...withoutKeys(), keyBindings: {voice: 'IK_F10'}});
+  assert.deepEqual(kept.settings.keyBindings, {...defaultKeys, voice: 'IK_F10'});
+  // text already holds F7, so the default of voice (F7) is skipped; the others still get theirs.
+  const taken = loadFile({...withoutKeys(), keyBindings: {text: 'IK_F7'}});
+  assert.deepEqual(taken.settings.keyBindings, {manager: 'IK_F4', text: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F9'});
+  assert.equal(taken.settings.keyBindings.johnny_voice, undefined);
+  assert.equal(taken.settings.keyBindings.johnny_text, undefined);
+});
+
+test('default keys: a key cleared after the defaults were given stays cleared through a restart, and Restore defaults puts the defaults back', () => {
+  const out = run(`${managerLua}
+    local player, manager = newPlayer(), newManager()
+    manager.update(player, 0.1)
+    assert(manager.setKeyBinding(player, 'voice', nil))
+    local again = newManager()
+    report('cleared', again.keyBindings())
+    report('batch', manager.defaultKeyBindings())
+    assert(manager.applySettings(player, {keyBindings = manager.defaultKeyBindings()}))
+    report('restored', newManager().keyBindings())
+  `);
+  assert.deepEqual(out.cleared, {manager: 'IK_F4', text: 'IK_F6', group_text: 'IK_F8', group_voice: 'IK_F9'});
+  assert.deepEqual(out.batch, {...defaultKeys, johnny_voice: false, johnny_text: false});
+  assert.deepEqual(out.restored, defaultKeys);
+});
+
+test('the Controller talk button is gone: a saved padTalk true becomes the left stick click on Talk by voice, quietly, and the key leaves the file', () => {
+  const on = loadFile({...withoutKeys(), padTalk: true});
+  assert.equal(on.settings.padTalk, undefined);
+  assert.equal(JSON.parse(on.text).padTalk, undefined);
+  assert.deepEqual(on.settings.keyBindings, {...defaultKeys, voice: 'IK_Pad_LeftThumb'});
+  // padTalk false (the old default) only drops the key.
+  const off = loadFile({...freshSettings, padTalk: false});
+  assert.equal(off.writes, 1);
+  assert.equal(JSON.parse(off.text).padTalk, undefined);
+  assert.deepEqual(off.settings.keyBindings, defaultKeys);
+  // A voice key the player already set is not replaced, and a click another action holds is not taken twice.
+  const set = loadFile({...withoutKeys(), padTalk: true, keyBindings: {voice: 'IK_F10'}});
+  assert.equal(set.settings.keyBindings.voice, 'IK_F10');
+  const held = loadFile({...withoutKeys(), padTalk: true, keyBindings: {text: 'IK_Pad_LeftThumb'}});
+  assert.equal(held.settings.keyBindings.text, 'IK_Pad_LeftThumb');
+  assert.notEqual(held.settings.keyBindings.voice, 'IK_Pad_LeftThumb');
+  assert.equal(JSON.parse(held.text).padTalk, undefined);
+});
+
+test('V’s microphone voice is its own setting: a file without vVoiceMicOwn and typed lines Off loses the microphone setting once, with the marker nothing is forced', () => {
+  const old = loadFile((({vVoiceMicOwn, ...rest}) => rest)({...freshSettings, vVoice: false, vVoiceChosen: true, vVoiceMic: true}));
+  assert.equal(old.settings.vVoiceMic, false, 'what the player used to hear');
+  assert.equal(old.writes, 1);
+  assert.equal(JSON.parse(old.text).vVoiceMicOwn, true);
+  const typedOn = loadFile((({vVoiceMicOwn, ...rest}) => rest)({...freshSettings, vVoice: true, vVoiceMic: true}));
+  assert.equal(typedOn.settings.vVoiceMic, true, 'typed lines on: nothing to correct');
+  assert.equal(typedOn.writes, 1, 'the marker is saved');
+  const own = loadFile({...freshSettings, vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true});
+  assert.equal(own.settings.vVoiceMic, true, 'with the marker, microphone on beside typed Off stands');
+  assert.equal(own.settings.vVoice, false);
+  assert.equal(own.writes, 0);
+});

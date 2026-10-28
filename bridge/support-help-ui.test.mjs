@@ -94,6 +94,12 @@ test('with the conversation service running the page asks it for a report, shows
   local result = invoke('help:generate')
   assert(result.ok)
   assert(row('help:generate').disabled == true, 'generate is disabled while the report is being created')
+  assert(row('help:generate').value == 'Creating…', 'the button says so while the report is being made: ' .. tostring(row('help:generate').value))
+  -- A second click is ignored whole: no second request, no change to the line under Back.
+  local firstRequest = jsonFixtures[files['runtime/report-request.json']].id
+  local again = invoke('help:generate')
+  assert(again.ok and again.error == nil, 'a click during the work is ignored without an error')
+  assert(jsonFixtures[files['runtime/report-request.json']].id == firstRequest, 'one click, one report')
   local request = jsonFixtures[files['runtime/report-request.json']]
   assert(request and request.version == 1 and type(request.id) == 'string' and request.lua.view == 'help')
   assert(not next(request.lua.party), 'no party yet')

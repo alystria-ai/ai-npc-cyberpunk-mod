@@ -57,7 +57,7 @@ A pick needs a score of at least 0.6, a lead of 0.18 over the next caption and a
 
 * **Voice activation** (Settings > Voices): never listens while a choice list is on screen (its own busy test), so the two never record the same sentence. Speak dialogue choices opens the same microphone tap (`listenChoice` in `mod/microphone.lua`) only while a list is open and releases it when the list closes; with Voice activation off nothing else about it changes. The bridge lets a listen request through when either setting is on.
 * **V speaks your microphone lines**: no turn exists, so V says nothing for a spoken choice; the game plays V's own line for the choice it applies, as for a keypress.
-* **Talk keys, group voice, the controller button**: unchanged. The game already keeps them out while a list is open (`battle-observer` marks `choices` as busy).
+* **Talk keys, group voice, a controller button on the Key bindings page**: unchanged. The game already keeps them out while a list is open (`battle-observer` marks `choices` as busy).
 * **Convai, Mistral, Local AI, Custom**: not involved. Recognition needs the local recogniser or Mistral transcription already set up for voice input; without one the player gets the notice "Speaking a choice needs speech recognition on this PC.".
 
 ## Cost

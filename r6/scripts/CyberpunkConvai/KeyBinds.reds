@@ -4,7 +4,7 @@ module CyberpunkConvai
 // has nothing registered here).
 //
 // The keys are read as Codeware key callbacks ("Input/Key"), the same way the manager popup and the phone read theirs (Manager.reds, PhoneContacts.reds),
-// because the game's walking-action listener (PadTalk.reds) only hears the actions a button is mapped to, while a binding the player picks can be any key
+// because a listener on the game's own actions (the retired controller talk button) only hears the actions a button is mapped to, while a binding the player picks can be any key
 // or controller button. The game calls the callback when a key goes down and when it comes up, and at no other moment: nothing per frame. Without
 // Codeware these scripts still compile (a compile error would disable every redscript mod) and the bindings do nothing; mod/setup-check.lua tells the
 // player Codeware is missing and the page says so.
