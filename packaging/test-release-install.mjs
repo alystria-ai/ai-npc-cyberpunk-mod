@@ -26,6 +26,13 @@
 //    must go, and afterwards every file must match the NEW full Runtime's file list (paths, sizes, SHA-256; the new Runtime's own
 //    .files.json is read, its zip is not needed) with nothing of the previous Runtime left over that the new one does not ship, except
 //    what the removal step may never delete (listed in the output). The remaining checks run on that installation, so they also prove it works.
+// 5b. The same flags with NO Runtime update zip among the packages (0.3.4 and later, docs/PACKAGING.md, "The Full install package" and "Code in the Scripts"):
+//    the code upgrade. The previous release's Scripts and Runtime are extracted first, then, in a fresh stand-in folder each, path a: the new Update zip
+//    (--update-zip, default the Update zip in --packages) over them, and path b: the Full zip over them (--upgrade-path update|full|both, default both).
+//    Checked per path: code.json names this release, game and commit; the code in the Runtime's app/ equals the Update's copy (none of the previous code
+//    that code.json drops is left); the launcher retires the old DLLs; the 2.31 driver-guard archive is gone on 2.5 and kept on 2.31; the base files equal
+//    the new base (path b) or none is missing (path a, which leaves the previous base in place); the setup check is ok; the service is ready and stops
+//    with the game. A real Runtime update zip among the packages (older releases) keeps the checks of 5.
 // 6. With --local-ai: both Local AI packs are extracted too (one zip each, the chat models whole: nothing is joined), the
 //    packaged bridge detects the pack, and the packaged llama-server loads the chat models and the embedding
 //    model on the processor (no sound, no graphics card, no game).
@@ -58,7 +65,10 @@ import {DEFAULT_GAME, GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs'
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {packTitles} from './lib/pack-names.mjs';
 import {updateBaseNameFor} from './lib/full-package.mjs';
-import {CODE_FOLDER, INSTALLER, isCodeGamePath} from './lib/code-payload.mjs';
+import {CODE_APP, CODE_FOLDER, INSTALLER, RETIRED_DLLS, RUNTIME_APP, isCodeGamePath} from './lib/code-payload.mjs';
+import {MODES, baseVerdict, chooseMode, hadRetiredDlls, packagesForPath, runtimeUpdateZips, setupCheckVerdict, staleCode, upgradePathsFor, upgradeZips} from './lib/install-test-plan.mjs';
+import {GAME_REMOVALS} from './runtime/install-code.mjs';
+import {fullBaseName} from './lib/full-package.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -76,6 +86,7 @@ const values = name => argv.flatMap((item, index) => (item === name && argv[inde
 const updateFrom = values('--update-from');
 const updateFromScripts = values('--update-from-scripts');
 const updateZipArgument = values('--update-zip')[0];
+const upgradePathOption = value('--upgrade-path');
 // A manual script that needs built packages: `node --test packaging/` picks the file up like a test, so under the test runner (NODE_TEST_CONTEXT) a run without --version is a skip, not a failure.
 if (!version && process.env.NODE_TEST_CONTEXT) { console.log('skipped: a manual script (needs built packages and --version)'); process.exit(0); }
 if (!version) { console.error('--version is required'); process.exit(2); }
@@ -276,7 +287,11 @@ console.log(JSON.stringify(detectLocalAiPack({project: app, environment: env})))
   }
 }
 
-async function main() {
+async function main({names, mode, upgradePath}) {
+  const legacy = mode === MODES.runtimeUpdate, codeUpgrade = mode === MODES.codeUpgrade, upgrading = legacy || codeUpgrade;
+  const fullPath = codeUpgrade && upgradePath === 'full';
+  results.length = 0;
+  console.log(`\n=== ${codeUpgrade ? `upgrade path ${fullPath ? 'b (Full zip over the previous release)' : 'a (Update zip over the previous release)'}` : legacy ? 'Runtime update' : 'clean install'}, game ${gameId} ===`);
   const work = await mkdtemp(join(tmpdir(), 'convai install test '));
   const game = join(work, 'Cyberpunk 2077 Ünïcode Test');
   dataHome = join(work, 'LocalAppData', 'AiNpcCyberpunkMod');
@@ -290,28 +305,44 @@ async function main() {
     await copyFile(host, join(game, 'bin/x64/Cyberpunk2077.exe'));
 
     // Extract and compare every file with the build's file list.
-    const names = await readdir(packagesDir);
     // Exact names only: version 0.2 must not pick up files of 0.2.1 or 0.20.
     const escaped = text => text.replace(/[.+]/g, '\\$&');
     // Only the Runtime may still come in several zips; the optional packs (OmniVoice, Local AI) are one zip each.
     const pick = (prefix, {parts = false} = {}) => names.filter(name => titlesOf(prefix).some(title => name === `${packageBase(prefix, version, title)}.zip`
       || (parts && new RegExp(`^${packageBase(prefix, escaped(version), title)}-part\\d+of\\d+\\.zip$`).test(name)))).sort();
     const localIds = localAi ? ['localai-standard', 'localai-lite'] : [];
-    // The update test extracts the previous version and the update zip instead of the new full Runtime (see the header).
-    const updateZips = names.filter(name => new RegExp(`^Runtime-Update-.+-to-${escaped(version)}${escaped(gameSuffix)}\\.zip$`).test(name));
-    const updateZip = updateFrom.length ? (updateZipArgument ?? (updateZips.length === 1 ? join(packagesDir, updateZips[0]) : null)) : null;
-    const wanted = updateFrom.length ? [...pick('Scripts'), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)]
-      : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)];
-    check('packages present', pick('Scripts').length === 1 && (updateFrom.length ? existsSync(updateZip ?? '') && existsSync(join(packagesDir, `${packageBase('Runtime', version)}.files.json`))
-      : pick('Runtime', {parts: true}).length >= 1) && (!omni || pick('omni').length === 1) && localIds.every(id => pick(id).length === 1),
-    updateFrom.length ? [...wanted, updateZip ? updateZip.split(/[\\/]/).pop() : '(no update zip)'].join(', ') : wanted.join(', '));
+    // The upgrade tests extract the previous version and the update (or Full) zip instead of the new full Runtime (see the header).
+    const runtimeUpdates = runtimeUpdateZips(names, version, gameSuffix);
+    const updateZip = legacy ? (updateZipArgument ?? (runtimeUpdates.length === 1 ? join(packagesDir, runtimeUpdates[0]) : null)) : null;
+    // Code upgrade: path a extracts the Update zip (the build's Scripts package, or the one --update-zip names), path b the Full zip of this version.
+    const codeUpdateName = updateZipArgument ? updateZipArgument.split(/[\\/]/).pop() : pick('Scripts')[0];
+    const zips = codeUpgrade ? upgradeZips({names, version, game: gameId, updateName: codeUpdateName}) : null;
+    const pathPackages = codeUpgrade ? packagesForPath(upgradePath, zips) : null;
+    const optionalOk = (!omni || pick('omni').length === 1) && localIds.every(id => pick(id).length === 1);
+    const wanted = codeUpgrade ? [...(fullPath ? [zips.full] : [zips.update]).filter(Boolean), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)]
+      : legacy ? [...pick('Scripts'), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)]
+        : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)];
+    const previousGiven = updateFrom.length > 0 && updateFromScripts.length > 0;
+    const runtimeListing = join(packagesDir, `${packageBase('Runtime', version)}.files.json`);
+    check('packages present', codeUpgrade ? previousGiven && pathPackages.missing.length === 0 && existsSync(runtimeListing) && optionalOk
+      : pick('Scripts').length === 1 && (legacy ? existsSync(updateZip ?? '') && existsSync(runtimeListing) : pick('Runtime', {parts: true}).length >= 1) && optionalOk,
+    codeUpgrade ? `previous release: ${[...updateFromScripts, ...updateFrom].map(zip => zip.split(/[\\/]/).pop()).join(', ') || '(none given)'}; then ${wanted.join(', ')}${pathPackages.missing.length ? `; MISSING ${pathPackages.missing.join(', ')}` : ''}`
+      : legacy ? [...wanted, updateZip ? updateZip.split(/[\\/]/).pop() : '(no update zip)'].join(', ') : wanted.join(', '));
     let t = Date.now();
     let update = null;
-    if (updateFrom.length) {
+    // The previous release's file names (game-relative): its Runtime for the Runtime update checks, both its zips for the code upgrade.
+    const previous = new Set(), previousAll = new Set();
+    if (upgrading) {
       // As a player updates: the previous Runtime and Scripts, then the update zip over them, then the new Scripts (below).
       for (const zip of [...updateFromScripts, ...updateFrom]) await expand(zip, game);
-      const previous = new Set();
-      for (const zip of updateFrom) for (const entry of await listZip(zip)) if (!entry.name.endsWith('/')) previous.add(entry.name);
+      for (const zip of [...updateFromScripts, ...updateFrom]) {
+        for (const entry of await listZip(zip)) {
+          if (entry.name.endsWith('/')) continue;
+          previousAll.add(entry.name); if (updateFrom.includes(zip)) previous.add(entry.name);
+        }
+      }
+    }
+    if (legacy) {
       await expand(updateZip, game);
       const listed = (await listZip(updateZip)).find(entry => entry.name === REMOVALS_ENTRY);
       const removes = listed ? JSON.parse((await readEntry(updateZip, listed)).toString('utf8')).removes : null;
@@ -319,14 +350,22 @@ async function main() {
       update = {previous, removes, present, listBytes: listed ? await readEntry(updateZip, listed) : null};
       check('the previous Runtime is installed and the update zip carries a removal list', previous.size > 0 && Array.isArray(removes),
         `${previous.size} files before; the update names ${removes?.length ?? '(no list)'} to remove, ${present.length} of them installed`);
+    } else if (codeUpgrade) {
+      const oldDlls = hadRetiredDlls([...previousAll], RETIRED_DLLS);
+      check('the previous release is installed, with the old launcher and native plugin DLLs the new launcher retires', previous.size > 0 && oldDlls.length === RETIRED_DLLS.length
+        && oldDlls.every(rel => existsSync(join(game, rel))), `${previousAll.size} files before; old DLLs: ${oldDlls.map(rel => rel.split('/').pop()).join(', ') || 'none'}`);
     }
     for (const zip of wanted) await expand(join(packagesDir, zip), game);
-    check('extracted with Expand-Archive', true, `${wanted.length + (update ? updateFrom.length + updateFromScripts.length + 1 : 0)} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);
+    check('extracted with Expand-Archive', true, `${wanted.length + (upgrading ? updateFrom.length + updateFromScripts.length + (legacy ? 1 : 0) : 0)} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);
     let mismatches = 0, count = 0, longest = 0;
     const omniSplit = new Set();
-    for (const id of ['Scripts', 'Runtime', ...(omni ? ['omni'] : []), ...localIds]) {
+    // The files the zips of this run ship: the Full zip's own listing for path b (the Update and the Runtime base in one); for path a only the Update (it leaves the
+    // previous Runtime base in place, which is compared below); otherwise the Update, the Runtime and the optional packs.
+    const listIds = [...(fullPath ? ['Full'] : ['Scripts']), ...(codeUpgrade ? [] : ['Runtime']), ...(omni ? ['omni'] : []), ...localIds];
+    for (const id of listIds) {
       // The file list sits beside the zip, under whichever title the zip has.
-      const listed = titlesOf(id).map(title => join(packagesDir, `${packageBase(id, version, title)}.files.json`)).find(existsSync) ?? join(packagesDir, `${packageBase(id, version)}.files.json`);
+      const listed = id === 'Full' ? join(packagesDir, `${fullBaseName(version, gameId)}.files.json`)
+        : titlesOf(id).map(title => join(packagesDir, `${packageBase(id, version, title)}.files.json`)).find(existsSync) ?? join(packagesDir, `${packageBase(id, version)}.files.json`);
       const list = JSON.parse(await readFile(listed, 'utf8'));
       for (const file of list) {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
@@ -341,7 +380,21 @@ async function main() {
         if (file.path.endsWith('.parts.json')) omniSplit.add(file.path);
       }
     }
-    check('every file matches the build', mismatches === 0, `${count} files, longest path ${longest} characters`);
+    check(fullPath ? 'every file of the Full zip matches the build (the Update and the new base)' : codeUpgrade ? 'every file of the Update zip matches the build' : 'every file matches the build',
+      mismatches === 0, `${count} files, longest path ${longest} characters`);
+    // Path a leaves the previous Runtime base in place. Nothing the new base ships may be missing; files that stayed at the previous base (a README, a notice, the
+    // marker DLL) are allowed to differ and are counted. Path b put the new base in place and checked it above.
+    if (codeUpgrade && !fullPath) {
+      const missing = [], differing = [];
+      for (const file of JSON.parse(await readFile(runtimeListing, 'utf8'))) {
+        const path = join(game, file.path);
+        if (!existsSync(path)) missing.push(file.path);
+        else if ((await stat(path)).size !== file.bytes || await sha256File(path) !== file.sha256) differing.push(file.path);
+      }
+      const verdict = baseVerdict('update', {missing, differing});
+      check('the Runtime base stays as the previous release had it, and no file the new code needs is missing', verdict.ok,
+        `${differing.length} base files differ (left at the previous base${differing.length ? `, e.g. ${differing.slice(0, 4).map(rel => rel.split('/').pop()).join(', ')}` : ''}), ${missing.length} missing${missing.length ? `: ${missing.slice(0, 5).join(', ')}` : ''}`);
+    }
 
     const plugin = join(game, 'red4ext/plugins/AiNpcCyberpunkMod'), app = join(plugin, 'app');
     const mod = join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod'), state = join(dataHome, 'data');
@@ -396,6 +449,40 @@ async function main() {
         `${stepNames.join(', ') || '(none)'}; chain ${chain.code}`);
       check('the plugin folder holds nothing the new Runtime does not ship', extra.length === 0, extra.slice(0, 5).join(', ') || `${newList.length} shipped files`);
     }
+    // The code upgrade (docs/PACKAGING.md, "Code in the Scripts"): the Update's code, installed into the Runtime's app/ by the start step just run.
+    const driverGuard = GAME_REMOVALS['2.5'][0];
+    if (codeUpgrade) {
+      const readJson = async path => { try { return JSON.parse((await readFile(path, 'utf8')).replace(/^﻿/, '')); } catch { return null; } };
+      const code = await readJson(join(game, CODE_FOLDER, 'code.json'));
+      const modRelease = await readJson(join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/release.json'));
+      check('code.json names this release, this game and the build\'s commit', code?.release === version && (code.game ?? LEGACY_GAME) === gameId
+        && typeof code.commit === 'string' && /^[0-9a-f]{7,40}$/.test(code.commit) && code.commit === modRelease?.commit && modRelease?.version === version,
+      code ? `release ${code.release}, game ${code.game}, commit ${String(code.commit).slice(0, 8)}, Scripts release.json ${modRelease?.version}/${String(modRelease?.commit).slice(0, 8)}` : 'no code.json');
+      const rows = Array.isArray(code?.files) ? code.files : [];
+      // The code in the Runtime's app/ equals the Update's copy (its bytes in red4ext/plugins/AiNpcCyberpunkCode/app/ and the sizes and hashes code.json lists).
+      let differs = 0, absent = 0;
+      for (const row of rows) {
+        const installedPath = join(game, RUNTIME_APP, ...row.path.split('/')), copyPath = join(game, CODE_APP, ...row.path.split('/'));
+        if (!existsSync(installedPath)) { absent++; if (absent + differs < 5) console.log(`  not installed: ${row.path}`); continue; }
+        if ((await stat(installedPath)).size !== row.size || await sha256File(installedPath) !== row.sha256
+          || !existsSync(copyPath) || await sha256File(copyPath) !== row.sha256) { differs++; if (absent + differs < 5) console.log(`  differs from the Update's copy: ${row.path}`); }
+      }
+      check("the code in the Runtime's app/ equals the Update's copy", rows.length > 0 && differs === 0 && absent === 0, `${rows.length} files, ${differs} differ, ${absent} not installed`);
+      const installedList = await readJson(join(app, 'defaults/scripts-code.json'));
+      check("the Runtime's defaults/scripts-code.json lists that release, game and commit", installedList?.release === code?.release && installedList?.game === code?.game
+        && installedList?.commit === code?.commit && installedList?.files?.length === rows.length, installedList ? `${installedList.release}/${installedList.game}/${String(installedList.commit).slice(0, 8)}, ${installedList.files?.length} files` : 'missing');
+      // Code of the previous release that this one no longer has is gone (code.json "removes" and the install's own sweep).
+      const stale = staleCode({previousNames: [...previousAll], codeRows: rows});
+      const kept = stale.filter(name => existsSync(join(game, name)));
+      // Not a failure: install-code deletes only what code.json "removes" names, so previous code that release dropped without being listed stays as dead files (nothing loads it). Reported for the release owner.
+      console.log(`  note: ${stale.length} code files of the previous release are not in the new code; ${kept.length} of them were not removed${kept.length ? ` (${kept.map(name => name.split('/').slice(-2).join('/')).join(', ')})` : ''}`);
+      // The 2.31 driver-guard archive: removed from a 2.5 install, kept on 2.31.
+      const archivePath = join(game, driverGuard);
+      const hadArchive = previousAll.has(driverGuard);
+      check(gameId === '2.5' ? 'the 2.31 driver-guard archive is removed on 2.5' : 'the driver-guard archive is kept on 2.31',
+        gameId === '2.5' ? !existsSync(archivePath) : existsSync(archivePath),
+        `${hadArchive ? 'the previous Runtime had it' : 'the previous Runtime did not have it'}; now ${existsSync(archivePath) ? 'present' : 'absent'}; start reported ${JSON.stringify(summary.gameRemovals ?? summary.removals ?? null)}`);
+    }
     for (const name of omniSplit) {
       const target = join(game, name.replace(/\.parts\.json$/, ''));
       check(`split file joined: ${name.split('/').pop().replace('.parts.json', '')}`, existsSync(target) && existsSync(`${target}.verified`));
@@ -406,7 +493,7 @@ async function main() {
     const plugins = join(game, 'red4ext/plugins');
     const pluginFolders = (await readdir(plugins, {withFileTypes: true})).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
     check('only the shipped plugins are installed (no development launcher)',
-      pluginFolders.every(name => ['AiNpcCyberpunkCode', 'AiNpcCyberpunkMod', ...(update ? ['AiNpcCyberpunkModNative'] : [])].includes(name))
+      pluginFolders.every(name => ['AiNpcCyberpunkCode', 'AiNpcCyberpunkMod', ...(upgrading ? ['AiNpcCyberpunkModNative'] : [])].includes(name))
         && pluginFolders.includes('AiNpcCyberpunkMod') && pluginFolders.includes('AiNpcCyberpunkCode'), pluginFolders.join(', '));
     // A clean install has no folder under the mod's first name, and the first start finds no old installation to move.
     check('no old-name folders on a clean install', summary.legacy === null
@@ -535,6 +622,19 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
       check('bridge loaded the lip-sync model', !/Facial model unavailable/.test(stderr), stderr.match(/Facial model[^\n]*/)?.[0] ?? 'no facial-model error');
       check('bridge printed its ready marker', /Convai conversation bridge ready/.test(stdout));
     }
+    if (codeUpgrade) {
+      // The Scripts' launcher renamed the previous release's two DLLs (0.3.3 and older) before RED4ext could load them; a later start deletes the renamed files.
+      const left = RETIRED_DLLS.filter(rel => existsSync(join(game, rel)));
+      check('the old launcher and native plugin DLLs are retired (renamed away, not loadable)', left.length === 0,
+        left.length ? `still at their old path: ${left.join(', ')}` : RETIRED_DLLS.map(rel => `${rel.split('/').pop()} ${existsSync(join(game, `${rel}.retired`)) ? 'renamed to .retired' : 'gone'}`).join('; '));
+      // Help > Setup check, first (light) run at the end of the service's start: the versions row matches and no row but the redscript compiler (not in a stand-in folder) is a problem.
+      let setup = null;
+      for (let i = 0; i < 30 && !setup; i++) {
+        try { setup = JSON.parse((await readFile(join(mod, 'runtime/setup-check.json'), 'utf8')).replace(/^﻿/, '')); } catch { await sleep(1000); }
+      }
+      const verdict = setupCheckVerdict(setup);
+      check('the setup check is ok (versions match, no row reports a problem)', verdict.ok, `versions ${verdict.versions}${verdict.bad.length ? `; problems: ${verdict.bad.join(', ')}` : ''}`);
+    }
     // A normal game exit closes the lifeline; the service must stop the bridge.
     await writeFile(`${result}.exit`, '');
     await new Promise(done => hostProcess.once('close', done));
@@ -549,13 +649,21 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
     check('service log has no packaging errors', !/Preparing the installation failed|Supervisor failed/.test(log));
   } finally {
     const failed = results.filter(item => !item.ok).length;
-    console.log(`\n${results.length - failed}/${results.length} checks passed.`);
+    console.log(`\n${results.length - failed}/${results.length} checks passed${codeUpgrade ? ` (${fullPath ? 'path b, Full zip' : 'path a, Update zip'}, game ${gameId})` : ''}.`);
     if (!keep) {
       // The bridge may still be releasing files for a moment after it stops.
       for (let i = 0; i < 10; i++) { try { await rm(work, {recursive: true, force: true}); break; } catch { await sleep(2000); } }
     } else console.log(`Kept ${work}`);
-    process.exitCode = failed ? 1 : 0;
+    if (failed) process.exitCode = 1;
   }
 }
 
-main().catch(error => { console.error(error?.stack || error); process.exit(1); });
+// One run per upgrade path (a code upgrade tests the Update zip and the Full zip over the previous release, each in a stand-in folder of its own), otherwise one.
+async function runAll() {
+  const names = await readdir(packagesDir);
+  const mode = chooseMode({previous: updateFrom.length > 0, names, version, suffix: gameSuffix, updateZipArgument});
+  const paths = mode === MODES.codeUpgrade ? upgradePathsFor(upgradePathOption) : [null];
+  for (const upgradePath of paths) await main({names, mode, upgradePath});
+}
+
+runAll().catch(error => { console.error(error?.stack || error); process.exit(1); });
