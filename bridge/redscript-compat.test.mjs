@@ -40,7 +40,7 @@ function annotated() {
         }
         body = text.slice(open, end + 1);
       }
-      out.push({file, kind, target, name: named ? named[1] : '?', body});
+      out.push({file, kind, target, name: named ? named[1] : '?', line, body});
     }
   }
   return out;
@@ -92,6 +92,22 @@ test('every wrapper runs the original method, except the one documented switch',
       continue;
     }
     assert(/\bwrappedMethod\(/.test(item.body), `${item.file}: the wrapper of ${name} never calls wrappedMethod`);
+  }
+});
+
+// Wrappers of game methods that other mods wrap too, with the game's own return type. Another mod's wrapper returns what its
+// wrappedMethod gives; when ours sits beneath it and declares another type the OTHER mod fails to compile ("can't coerce 'Void' into
+// 'DelayID'", Much Better Contracts and Night City Allies companions with PlayVoiceOver, 28 Oct), and with it every redscript mod.
+const GAME_RETURN_TYPES = {'GameObject.PlayVoiceOver': 'DelayID'};
+
+test('wrappers of methods other mods also wrap declare the game’s own return type and return what the original gives', () => {
+  for (const [name, type] of Object.entries(GAME_RETURN_TYPES)) {
+    const wraps = declarations.filter(item => item.kind === 'wrapMethod' && `${item.target}.${item.name}` === name);
+    assert(wraps.length > 0, `${name} is not wrapped any more: drop it from GAME_RETURN_TYPES`);
+    for (const item of wraps) {
+      assert(new RegExp(`->\\s*${type}\\s*\\{?\\s*$`).test(item.line), `${item.file}: the wrapper of ${name} must declare -> ${type}, the game's type`);
+      assert(/\breturn\s+wrappedMethod\(/.test(item.body), `${item.file}: the wrapper of ${name} must return what wrappedMethod gives`);
+    }
   }
 });
 
