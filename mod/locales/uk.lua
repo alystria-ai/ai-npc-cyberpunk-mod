@@ -154,7 +154,6 @@ return {
     ["Generate report"] = "Згенерувати звіт",
     ["Generated reports are saved in {path}. The five newest are kept."] = "Згенеровані звіти зберігаються в {path}. Зберігаються п’ять найновіших.",
     ["Gentle (default)"] = "Помірна (типово)",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "Для групового чату потрібні двоє персонажів поблизу. Для розмови з однією особою використовуй приватний чат.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "Для групового чату потрібні двоє персонажів поблизу. Для розмови з однією особою натисни {key}.",
     ["Head tracking strength"] = "Сила стеження головою",
     ["Help"] = "Довідка",

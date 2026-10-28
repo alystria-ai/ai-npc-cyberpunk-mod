@@ -645,7 +645,8 @@ test('private and group text/voice share the explicitly addressed primary and un
  end
  looked=judy;people={judy,actor('judy-alvarez',4,'Second Judy')}
  talkDown(GROUP);talkUp(GROUP);assert(#commands==count and not microphone.context)
- assert(feedback[#feedback]=='Group chat needs two characters nearby. Use private chat for one person.')
+ -- No key text to name (none bound): the action's own name, never an empty "Use  for one person."
+ assert(feedback[#feedback]=='Group chat needs two characters nearby. Use Talk by voice for one person.',feedback[#feedback])
  looked=nil;people={alex,judy};talkDown(GROUP)
  assert(microphone.context.profileKey=='alex'and microphone.context.group.index==1)
  assertHotkeyClean()

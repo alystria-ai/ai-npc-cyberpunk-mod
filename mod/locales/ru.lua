@@ -293,7 +293,6 @@ return {
     ["{name}: preparation failed. Cancel and invite again."] = "{name}: ошибка подготовки. Отмените приглашение и пригласите заново.",
   ["Interface"] = "Интерфейс",
   ["Choose an interface language."] = "Выберите язык интерфейса.",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "Для группового чата нужны два персонажа поблизости. С одним персонажем используйте личный чат.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "Для группового чата нужны два персонажа поблизости. Для беседы с одним используйте {key}.",
     ["Back to Companion Manager"] = "К управлению напарниками",
     ["Return to Companion Manager."] = "Вернуться к управлению напарниками.",

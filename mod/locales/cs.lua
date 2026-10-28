@@ -154,7 +154,6 @@ return {
     ["Generate report"] = "Vytvořit hlášení",
     ["Generated reports are saved in {path}. The five newest are kept."] = "Vytvořená hlášení se ukládají do: {path}. Uchovává se pět nejnovějších.",
     ["Gentle (default)"] = "Jemné (výchozí)",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "Skupinový chat vyžaduje poblíž dvě postavy. Pro jednu osobu použij soukromý chat.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "Skupinový chat vyžaduje poblíž dvě postavy. Pro jednu osobu použij {key}.",
     ["Head tracking strength"] = "Síla sledování hlavou",
     ["Help"] = "Nápověda",

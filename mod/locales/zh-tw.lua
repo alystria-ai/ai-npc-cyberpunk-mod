@@ -293,7 +293,6 @@ return {
     ["{name}: preparation failed. Cancel and invite again."] = "{name}：準備失敗，請取消後重新邀請。",
   ["Interface"] = "介面",
   ["Choose an interface language."] = "請選擇介面語言。",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "群聊需要附近有兩位角色。與一人交談請使用私人聊天。",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "群聊需要附近有兩位角色。與一人交談請使用 {key}。",
     ["Back to Companion Manager"] = "返回夥伴管理器",
     ["Return to Companion Manager."] = "返回夥伴管理器。",

@@ -1249,6 +1249,9 @@ convaiWorldPolicy = {
 
 -- How far from V a spawned character still counts: the range group chat uses for the companions (companions.conversationCandidates).
 convaiSpawnedRange = 8
+-- How far from V an ordinary person, a named character or a quest-bound person still joins a group round (convaiTalkNearbyPeople): a
+-- normal speaking distance. The faced person may be farther (the targeting query reaches 8 m).
+convaiStrangerRange = 6
 
 -- The profile keys of the group round that is running (nil outside one), for auto-connect: every speaker of a round has
 -- talked, not only the one V addressed. Read by auto-connect only while a conversation partner exists; no native call.
@@ -2905,6 +2908,107 @@ function convaiTalkGroupFromParty(candidates, random)
     return list
 end
 
+-- The key that answers one person, for a notice that points the player to it ("Use {key} for one person."): the key set on the mod's own Key
+-- bindings page, else CET's binding of the action, and when neither gives text that can be read (no key, or a binding whose text is blank or
+-- invisible) the action's own name ("Talk by text"), so the sentence is never "Use  for one person." action: 'cyberpunk_convai_text' or
+-- 'cyberpunk_convai_voice'. Key press only. A global, so no function here gains an upvalue.
+function convaiKeyHint(action)
+    local own = type(action) == 'string' and action:match('^cyberpunk_convai_(%a+)$') or nil
+    local function readable(text)
+        if type(text) ~= 'string' then return false end
+        -- Whitespace, no-break space, zero-width and format characters are not a key's name.
+        local visible = text:gsub('\226\128[\139-\143\168-\175]', ''):gsub('\194\160', ''):gsub('\239\187\191', '')
+        return visible:find('%S') ~= nil
+    end
+    if own and convaiKeyBinds and type(convaiKeyBinds.describe) == 'function' and type(manager.keyBindings) == 'function' then
+        local ok, text = pcall(function()
+            local bindings = manager.keyBindings()
+            local name = type(bindings) == 'table' and bindings[own] or nil
+            local kind, word = convaiKeyBinds.describe(name)
+            if not kind then return nil end
+            if kind == 'pad' then return ui.t('Controller {button}', {button = ui.t(word)}) end
+            return ui.t(word)
+        end)
+        if ok and readable(text) then return text end
+    end
+    local cet = ui.boundKey(action)
+    if readable(cet) then return cet end
+    return ui.t(own == 'voice' and 'Talk by voice' or 'Talk by text')
+end
+
+-- Group talk takes anyone nearby that V can talk to, not only companions and characters another mod placed: the ordinary people of the
+-- street (strangers), the game's named characters (while Talk to story characters is on) and quest-bound people, after the ones V faces and
+-- V's companions. Rows for the NPCs of this key press's own native query (convaiTalkNative: what the camera sees within 8 m, already gathered
+-- for the talk target), nearest first, at most `limit`, within `radius` metres, same row shape as companions.conversationCandidates plus
+-- stranger = true (and generic/archetype for an ordinary person, story or guarded for a game-placed character). `taken` is the set of
+-- entity IDs already in the round. A game-placed person is treated as the private talk treats it (docs/WORLD_CHARACTERS.md): talk, voice and
+-- face only, and left out while the game is in charge of them (the same refusal as "{name} is busy right now."). Key press only; no query of
+-- its own. A global, so no function here gains an upvalue.
+function convaiTalkNearbyPeople(player, taken, limit, radius)
+    local rows, stats = {}, {seen = 0, noProfile = 0, unsupported = 0, disabled = 0, refused = 0, far = 0}
+    local list = convaiTalkNative
+    if type(list) ~= 'table' or not player or limit < 1 then return rows, stats end
+    local okOrigin, origin = pcall(function() return player:GetWorldPosition() end)
+    if not okOrigin or not origin then return rows, stats end
+    local measured, seen = {}, {}
+    for _, npc in ipairs(list) do
+        pcall(function()
+            if not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool() then return end
+            if adoption and adoption.hidden(npc) then return end
+            local id = tostring(npc:GetEntityID().hash)
+            if seen[id] or taken[id] then return end
+            seen[id] = true
+            local at = npc:GetWorldPosition()
+            local distance = math.sqrt((at.x - origin.x)^2 + (at.y - origin.y)^2 + (at.z - origin.z)^2)
+            if distance > radius then stats.far = stats.far + 1; return end
+            measured[#measured + 1] = {npc = npc, entity = id, distance = distance}
+        end)
+    end
+    table.sort(measured, function(a, b)
+        if a.distance == b.distance then return a.entity < b.entity end
+        return a.distance < b.distance
+    end)
+    local hostile = Enum ~= nil and Enum.new('EAIAttitude', 'AIA_Hostile') or nil
+    for _, item in ipairs(measured) do
+        if #rows >= limit then break end
+        stats.seen = stats.seen + 1
+        pcall(function()
+            local npc = item.npc
+            -- Our own copies and the characters another mod placed are the other lists' (companions, convaiSpawnedPeople.nearby).
+            if companions.owns(npc) == true then return end
+            if convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) == true then return end
+            -- Somebody who is fighting V is not a person to chat with.
+            if hostile ~= nil then
+                local read, attitude = pcall(function() return npc:GetAttitudeAgent():GetAttitudeTowards(player:GetAttitudeAgent()) end)
+                if read and attitude == hostile then return end
+            end
+            local key, name, body, archetype = profileIdentity(npc)
+            if not key then stats.noProfile = stats.noProfile + 1; return end
+            if not supportedProfiles[key] then stats.unsupported = stats.unsupported + 1; return end
+            if not manager.profileEnabled(key) then stats.disabled = stats.disabled + 1; return end
+            local story = convaiWorldPolicy ~= nil and convaiWorldPolicy.story(npc) == true or false
+            local guarded = false
+            if not story and convaiWorldTalk ~= nil and convaiWorldPolicy ~= nil
+                and (convaiWorldPolicy.protected(npc) == true or convaiWorldTalk.runtimeQuest(npc) == true) then guarded = true end
+            if story or guarded then
+                local why = convaiWorldTalk:refusal(npc, player, nil, key, guarded or nil)
+                if why then stats.refused = stats.refused + 1; return end
+            end
+            local row = {npc = npc, entity = item.entity, profileKey = key, name = name, bodyType = body,
+                distance = item.distance, stranger = true, story = story or nil, guarded = guarded or nil}
+            if not archetype and archetypes.keys[key] and type(characterCatalog.describe) == 'function' then
+                archetype = characterCatalog.describe(archetypes, key, {})
+            end
+            if archetype or key == 'resident-male' or key == 'resident-female' then
+                row.generic = true
+                row.archetype = archetype
+            end
+            rows[#rows + 1] = row
+        end)
+    end
+    return rows, stats
+end
+
 -- The Johnny keys (docs/JOHNNY_IN_YOUR_HEAD.md): Johnny as the voice in V's head, wherever V faces, while the story has him there and
 -- the game does not have the floor. Otherwise a notice says why and nothing starts.
 function convaiTalkJohnny(player)
@@ -2948,10 +3052,20 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
     local npc, reason, decision = targetAtCrosshair()
     logTalkTarget(decision)
     if convaiSpawnedPeople then convaiSpawnedPeople.noteNative(convaiTalkNative) end
-    -- A story character of the game takes private talk only (docs/WORLD_CHARACTERS.md): aimed at with a group key it is not a
-    -- member of the round, which is then built from the characters with V, as when V aims at nothing.
-    if groupMode and npc and convaiWorldPolicy ~= nil and convaiWorldPolicy.story(npc) == true then
-        npc, reason = nil, 'Group chat needs two characters nearby. Use private chat for one person.'
+    -- A named character of the game, or a quest-bound person, takes part in a group round like anybody else (talk, voice and face only,
+    -- docs/WORLD_CHARACTERS.md) while the game leaves them alone. Aimed at while the game is in charge of them ("busy right now"), they are
+    -- not a member of the round, which is then built from the people around, as when V aims at nothing.
+    if groupMode and npc and convaiWorldTalk ~= nil and convaiWorldPolicy ~= nil and not companions.owns(npc)
+        and not convaiWorldPolicy.spawned(npc) then
+        local story = convaiWorldPolicy.story(npc) == true
+        if story or convaiWorldPolicy.protected(npc) == true or convaiWorldTalk.runtimeQuest(npc) == true then
+            local faced = profileIdentity(npc)
+            local why = faced and convaiWorldTalk:refusal(npc, player, nil, faced, not story or nil) or nil
+            if why then
+                log('World conversation refused: group chat leaves out the faced person, reason=' .. why)
+                npc, reason = nil, 'Face a nearby character to talk.'
+            end
+        end
     end
     local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
     if groupMode then
@@ -2974,6 +3088,21 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
                 .. ' (found=' .. tostring(stats.found) .. ' generic=' .. tostring(stats.generic) .. ' noProfile=' .. tostring(stats.noProfile)
                 .. ' unsupported=' .. tostring(stats.unsupported) .. ' disabled=' .. tostring(stats.disabled) .. ')'
                 .. convaiSpawnedPeople.describe())
+        end
+        -- Anyone else V could talk to fills the round (up to three people in all): the ordinary people of the street, the game's named
+        -- characters and quest-bound people, nearest first, from the native query this key press already made (convaiTalkNearbyPeople).
+        if convaiTalkNearbyPeople then
+            local taken, count = {}, 0
+            local function take(entity) if entity ~= nil and not taken[entity] then taken[entity] = true; count = count + 1 end end
+            if npc then pcall(function() take(tostring(npc:GetEntityID().hash)) end) end
+            for _, candidate in ipairs(candidates) do take(candidate.entity) end
+            if count < 3 then
+                local others, found = convaiTalkNearbyPeople(player, taken, 3 - count, convaiStrangerRange or 6)
+                for _, row in ipairs(others) do candidates[#candidates + 1] = row end
+                log('Group candidates: people=' .. #others .. ' of ' .. tostring(found.seen) .. ' looked at (noProfile=' .. found.noProfile
+                    .. ' unsupported=' .. found.unsupported .. ' disabled=' .. found.disabled .. ' refused=' .. found.refused
+                    .. ' far=' .. found.far .. ')')
+            end
         end
         -- Nobody faced: the first party member leads and two more come at random from the party (fewer in a smaller party).
         if not npc then
@@ -3012,10 +3141,8 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
             local voice = voices[1]
             local together = groupMode and groupChat.choose(voice, candidates, supportedProfiles) or nil
             if together and #together < 2 then
-                local shortcut = ui.boundKey(singleAction)
-                convaiNotices.send(player, 'group-needs-two', shortcut
-                    and ui.t('Group chat needs two characters nearby. Use {key} for one person.', {key = shortcut})
-                    or ui.t('Group chat needs two characters nearby. Use private chat for one person.'))
+                convaiNotices.send(player, 'group-needs-two',
+                    ui.t('Group chat needs two characters nearby. Use {key} for one person.', {key = convaiKeyHint(singleAction)}))
                 return nil
             end
             log('Add-on voice conversation: profile=' .. voice.profileKey)
@@ -3135,7 +3262,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
     local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
     -- A generic spawned person in the round learns where it stands and gets its Night City name, like a generic primary.
     for _, person in ipairs(participants or {}) do
-        if person ~= primary and person.spawned and person.generic then
+        if person ~= primary and (person.spawned or person.stranger) and person.generic then
             person.archetype = person.archetype or {category = 'resident'}
             local place = (manager.dynamicInfo == nil or manager.dynamicInfo('location')) and currentDistrict() or nil
             if place then person.archetype.district, person.archetype.area = place.district, place.area end
@@ -3144,10 +3271,8 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
         end
     end
     if participants and #participants < 2 then
-        local shortcut = ui.boundKey(singleAction)
-        convaiNotices.send(player, 'group-needs-two', shortcut
-            and ui.t('Group chat needs two characters nearby. Use {key} for one person.', {key = shortcut})
-            or ui.t('Group chat needs two characters nearby. Use private chat for one person.'))
+        convaiNotices.send(player, 'group-needs-two',
+            ui.t('Group chat needs two characters nearby. Use {key} for one person.', {key = convaiKeyHint(singleAction)}))
         return nil
     end
     -- The ongoing conversation keeps this partner on the next talk key press.
@@ -3529,7 +3654,7 @@ local function sendRequest(context)
     elseif context.voiceOnly then
         -- An add-on's voice (docs/ADDON_API.md) cannot follow, fight or drive: no gameplay actions, and its context blocks.
         if convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
-    elseif convaiStory and convaiStory.entity == context.entity and not context.group then
+    elseif convaiStory and convaiStory.entity == context.entity then
         -- A game-placed story character gets no action offers or advisories (docs/WORLD_CHARACTERS.md).
     elseif not context.group and not context.reaction then gameplayActions.capture(context, 'private-text')
     elseif context.group and context.group.index == 1 and not context.reaction then
@@ -3719,6 +3844,17 @@ speech.storyGuard = function(actor, context, starting)
     log('World conversation ended: profile=' .. story.key .. ' reason=' .. why .. (starting and ' (before the reply began)' or '')
         .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or '')
         .. (convaiWorldTalk.facts and (' facts[' .. convaiWorldTalk.facts .. ']') or ''))
+    -- A speaker of a group round: the round goes on without it (its line is dropped, the next speaker comes), instead of a private reply being retired.
+    if type(context.group) == 'table' and groupChat.round ~= nil and groupChat.round.requestId == context.requestId then
+        if starting then
+            groupChat.received(context.requestId, '', true, {})
+            if pending and pending.requestId == context.requestId then pending = nil end
+            return true
+        end
+        pcall(speech.stop, 'story-' .. why)
+        groupChat.completed(context.requestId, false)
+        return true
+    end
     if starting then return true end
     retirePrivateReply(context.entity, 'story-' .. why)
     return true
@@ -5523,6 +5659,35 @@ local function retireGroupRound(round, speaker, reason)
     focusUntil = os.time() + 1
 end
 
+-- A game-placed person in a group round (a named character, or a quest-bound person that joined by being nearby) is judged by the game's
+-- own checks as its turn comes (a scene, a call, a fight, an injury, a ride: mod/world-talk.lua), and while it speaks its mouth is let through
+-- the story rules exactly as in private talk. Returns false when the game is in charge of it right now: its turn is skipped and the round goes
+-- on with the others. Any other speaker clears the story state of the speaker before. Once per speaker, never per frame. A global, so
+-- updateGroup gains no upvalue.
+function convaiGroupSpeakerStory(player, person)
+    local facial = convaiFacialPlayback
+    if person and (person.story or person.guarded) and convaiWorldTalk ~= nil then
+        local why = convaiWorldTalk:refusal(person.npc, player, nil, person.profileKey, person.guarded and true or nil)
+        if why then
+            log('World conversation refused: group speaker profile=' .. tostring(person.profileKey) .. ' reason=' .. why
+                .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or ''))
+            return false
+        end
+        local projection = person.story and convaiWorldTalk.PROJECTIONS ~= nil and convaiWorldTalk.PROJECTIONS[person.profileKey] == true or nil
+        convaiStory = {entity = person.entity, key = person.profileKey, name = person.name, projection = projection,
+            idle = person.guarded and true or nil}
+        if facial then facial.storyEntity, facial.storyProjection = person.entity, projection == true end
+        return true
+    end
+    -- The speaker is not game-placed: whatever the speaker before it set no longer applies. A round with a story character as its primary
+    -- set the state at the key press for that one; it is set again here at its turn.
+    if convaiStory ~= nil then
+        convaiStory = nil
+        if facial then facial.storyEntity, facial.storyProjection = nil, nil end
+    end
+    return true
+end
+
 local function updateGroup(player)
     local round = groupChat.round
     if not round then return end
@@ -5567,14 +5732,31 @@ local function updateGroup(player)
     if groupChat.round ~= round then return end
     if round.stage ~= 'next' or not gameplayCanAcquire(player) then return end
     generation = generation + 1
+    -- Whoever of the round the game is in charge of right now does not speak: its turn is skipped (a story character, a quest-bound person).
+    if round.stage == 'next' then
+        for index = round.index + 1, #round.participants do
+            local later = round.participants[index]
+            if later.story or later.guarded then
+                local why = live[later.entity] and convaiWorldTalk ~= nil
+                    and convaiWorldTalk:refusal(later.npc, player, nil, later.profileKey, later.guarded and true or nil) or nil
+                if why then live[later.entity] = nil end
+            end
+        end
+    end
     local context, actor = groupChat.next(generation, os.time(), live)
     if not context then focusUntil = os.time() + 1; return end
+    if not convaiGroupSpeakerStory(player, round.participants[round.index]) then
+        groupChat.received(context.requestId, '', true, {})
+        return
+    end
     speech.target = actor
     -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
     if not context.voiceOnly then
         local faceOk, faceStatus = pcall(function() return actor:ConvaiFaceRequest() end)
         convaiFaceRequestLog(actor, context.entity, faceOk, faceStatus)
-        beginFocus(player, actor)
+        -- A game-placed person (story or quest-bound) keeps its own gaze, pose and AI: voice and face only, as in private talk.
+        local placed = round.participants[round.index]
+        if not (placed and (placed.story or placed.guarded)) then beginFocus(player, actor) end
     end
     focusMode, focusEntity = 'chat', context.entity
     if not sendRequest(context) then groupChat.cancel(); log('Group request could not be written') end

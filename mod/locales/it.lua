@@ -154,7 +154,6 @@ return {
     ["Generate report"] = "Genera report",
     ["Generated reports are saved in {path}. The five newest are kept."] = "I report generati vengono salvati in {path}. Vengono conservati i cinque più recenti.",
     ["Gentle (default)"] = "Delicato (predefinito)",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "La chat di gruppo richiede due personaggi vicini. Usa la chat privata per una sola persona.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "La chat di gruppo richiede due personaggi vicini. Usa {key} per una sola persona.",
     ["Head tracking strength"] = "Intensità del movimento della testa",
     ["Help"] = "Aiuto",

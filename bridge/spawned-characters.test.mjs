@@ -527,6 +527,7 @@ test('wiring: group chat and reactions ask for spawned characters on events only
 // chat needs two people. Spawned characters count whoever V faces, whether the scan sees them or not, and generic ones too.
 function selectionRun(body) {
   const selection = between('local function selectConversation(', 'local function voiceTargetValid');
+  const keyHint = between('function convaiKeyHint(', '-- Group talk takes anyone nearby');
   peopleRun(`
     local scanSees, scanList = true, nil
     local lines, notices = {}, {}
@@ -562,6 +563,7 @@ function selectionRun(body) {
     convaiNpcNames = nil
     convaiWorldPolicy = {spawned = function(n) return n.hash:sub(1, 1) == 'S' end, story = function() return false end}
     convaiHolocall, convaiAddons = nil, nil
+    ${keyHint}
     ${selection}
     ${body}
   `);
