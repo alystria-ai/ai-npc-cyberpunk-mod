@@ -9,6 +9,19 @@ const retryable = new Set(['EPERM', 'EACCES', 'EBUSY']);
 // about 300 ms in total, which outlasts those short-lived handles.
 const RENAME_ATTEMPTS = 6;
 const RENAME_BACKOFF_MS = [10, 20, 40, 80, 150];
+// A PC where something (antivirus, an indexer, a sync client) keeps refusing the rename gets the same refusals at every write, each one a retry
+// loop that ends in an error for the caller. After this many refused renames in one session the writes go in place instead (the way the
+// Mod Organizer 2 case below already does): every reader of these files treats a half-written file as empty and reads it again. It is logged once.
+export const IN_PLACE_AFTER_REFUSALS = 6;
+const defaultSession = {refused: 0, inPlace: false};
+/** For tests: the process-wide count of refused renames and whether writes have switched to in place. */
+export const atomicFileSession = defaultSession;
+export function resetAtomicFileSession() { defaultSession.refused = 0; defaultSession.inPlace = false; }
+function switchToInPlace(session, log) {
+  if (session.inPlace) return;
+  session.inPlace = true;
+  try { (log ?? console.warn)(`[atomicFile] Windows refused ${session.refused} renames this session, so files are now written in place (a reader that finds one half written reads it again)`); } catch { /* the log is not worth a failed write */ }
+}
 
 // files may override individual fs methods; retryDelay may be milliseconds (fixed) or an
 // async delay hook called with the failed attempt index; the default is a short backoff.
@@ -16,8 +29,10 @@ const RENAME_BACKOFF_MS = [10, 20, 40, 80, 150];
 // temporary file is removed; callers on a poll loop must catch that.
 // isCurrentSync must return true to authorize the final commit.
 // The default rename commits in the same JS turn as that synchronous guard.
-export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, files, retryDelay} = {}) {
+export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, files, retryDelay, session, log} = {}) {
   const io = {...defaultFiles, ...files};
+  // Only the real rename counts toward the process-wide switch (a test that injects its own rename passes its own `session`, or none).
+  const count = session ?? (files?.rename ? null : defaultSession);
   const current = async () => {
     if (signal?.aborted) return false;
     const valid = !isCurrent || await isCurrent();
@@ -27,6 +42,10 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
 
   const temp = path + '.' + randomUUID() + '.tmp';
   let handle, owned = false, committed = false;
+  const writeInPlace = async () => {
+    const target = await io.open(path, 'w');
+    try { await target.writeFile(data); } finally { await target.close().catch(() => {}); }
+  };
   try {
     handle = await io.open(temp, 'wx');
     owned = true;
@@ -41,6 +60,7 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
       if (!await current() || signal?.aborted) return false;
       if (isCurrentSync && isCurrentSync() !== true) return false;
       if (signal?.aborted) return false;
+      if (count?.inPlace) { await writeInPlace(); return true; }
       try {
         const renamed = io.rename(temp, path);
         // Async rename overrides are a test seam. Once dispatched, they cannot
@@ -56,9 +76,19 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
         if (error.code === 'EXDEV') {
           if (!await current() || signal?.aborted) return false;
           if (isCurrentSync && isCurrentSync() !== true) return false;
-          const target = await io.open(path, 'w');
-          try { await target.writeFile(data); } finally { await target.close().catch(() => {}); }
+          await writeInPlace();
           return true;
+        }
+        if (count && retryable.has(error.code)) {
+          count.refused += 1;
+          // The write in hand goes in place at once (no more retries of a rename that keeps being refused); so do the writes after it.
+          if (count.refused >= IN_PLACE_AFTER_REFUSALS) {
+            switchToInPlace(count, log);
+            if (!await current() || signal?.aborted) return false;
+            if (isCurrentSync && isCurrentSync() !== true) return false;
+            await writeInPlace();
+            return true;
+          }
         }
         if (attempt === RENAME_ATTEMPTS - 1 || !retryable.has(error.code)) throw error;
         if (!await current() || signal?.aborted) return false;
