@@ -574,6 +574,22 @@ test('Pocket with a worker of its own (companions on OmniVoice, a cloud voice or
   assert.equal(host.state.played, true);
 });
 
+test('the voice gets the line with its missing end mark; the typed text itself (history, model input, subtitle) is left as typed', async () => {
+  for (const [text, spoken] of [['hey whats up', 'Hey, whats up?'], ['where are we going', 'Where are we going?'], ['Already done.', 'Already done.']]) {
+    const {voice, seen} = engineFeature({own: true});
+    const input = typed({text});
+    const made = voice.start(input);
+    assert.ok(made, text); await made.finished;
+    assert.deepEqual(seen.own, [['v-male', spoken]], text);
+    assert.equal(input.text, text, 'the input the rest of the turn reads is untouched');
+  }
+  // The line's language comes from the turn's plan: a German line is read by the German rules.
+  const {voice, seen} = engineFeature({engine: 'voxtral', language: 'de', cloudLanguages: ['de']});
+  const made = voice.start(typed({text: 'kannst du mir helfen'}));
+  await made.finished;
+  assert.deepEqual(seen.cloud, [['v-male', 'Kannst du mir helfen?']]);
+});
+
 test('with its own worker V is first and the companion second, in order, never overlapping: held while V is audible, released after it ends', async () => {
   const order = [];
   const {voice} = engineFeature({own: true, endAfter: 40});

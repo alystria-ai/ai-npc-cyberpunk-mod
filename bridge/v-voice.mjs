@@ -44,6 +44,7 @@ import {readFile as readFileDefault} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {inspectReference} from './addons.mjs';
 import {PcmEdges} from './pcm-edges.mjs';
+import {punctuateForSpeech} from './speech-punctuation.mjs';
 import {readPcmWav} from './speech-audio.mjs';
 import {voiceVolumeDb} from './dialogue-level.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
@@ -571,10 +572,13 @@ export class VVoice {
         return null;
       }
       this.know(gender);
-      const text = vLineText(input.text);
-      if (!text) return null;
+      const typed = vLineText(input.text);
+      if (!typed) return null;
       const plan = this.planFor(input, voice.key);
       if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'voxtral' && plan.engine !== 'omni')) return null;
+      // The voice gets the line with its missing end mark put on (bridge/speech-punctuation.mjs: "hey whats up" -> "Hey, whats up?"): a TTS model gives a line
+      // with no final mark a hanging, poorer ending. Only this copy changes; the typed text (history, the model's input, the subtitle) is `input.text` as typed.
+      const text = punctuateForSpeech(typed, {language: plan.language});
       // Pocket has no language but English. The Voxtral voice speaks the language the line is written in, for the languages its model lists
       // (Voxtral TTS 3: bridge/voxtral-languages.mjs): a line in another language is spoken by it, and skipped when the model does not list it.
       // OmniVoice clones the English reference into any language (the worker takes any ISO code, as for a companion's reply), so it skips none.
