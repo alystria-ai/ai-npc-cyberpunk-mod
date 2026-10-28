@@ -252,3 +252,43 @@ test('driveLimitNote: the reason is told when V may be asking for a ride, and or
   // Nothing known, nothing said.
   for (const bad of [undefined, null, '', 'dance', 7, {}]) assert.equal(driveLimitNote(bad, 'take the wheel'), '');
 });
+
+// ---- The ride promise (2026-10-28 report): the facts a character gets, and the false yes ----------------------------------------------
+
+test('no waypoint: the character is told to ask V to set one on the map, and a person who is not a party companion is told to decline', async () => {
+  const {driveLimitNote, DRIVE_LIMIT, DRIVE_HONEST, DRIVE_UNAVAILABLE_CODES} = await import('./companion-actions.mjs');
+  assert.match(driveLimitNote('no-waypoint', 'drive me there'), /ask V to open the map and set one, then ask again/);
+  assert.match(driveLimitNote('not-driver', 'you drive'), /not one of V's party companions[\s\S]*decline briefly in character/);
+  assert.doesNotMatch(driveLimitNote('not-driver', 'you drive'), /what is needed first/);
+  for (const code of DRIVE_UNAVAILABLE_CODES) assert.ok(DRIVE_HONEST[code] && DRIVE_LIMIT[code], 'every code has its honest line: ' + code);
+  assert.match(DRIVE_HONEST['no-waypoint'], /waypoint/);
+});
+
+test('driveAdvisoryFor: not-driver is sent for a typed line about a ride, for a named character on a spoken turn, and never for small talk or a crowd person on a spoken turn', async () => {
+  const {driveAdvisoryFor} = await import('./companion-actions.mjs');
+  assert.equal(driveAdvisoryFor('not-driver', 'you drive', {ambient: false}), 'not-driver');
+  assert.equal(driveAdvisoryFor('not-driver', 'you drive', {ambient: true}), 'not-driver', 'a typed ride request counts for a crowd person too');
+  assert.equal(driveAdvisoryFor('not-driver', 'How are you?', {ambient: false}), null);
+  assert.equal(driveAdvisoryFor('not-driver', '[Microphone]', {ambient: false}), 'not-driver');
+  assert.equal(driveAdvisoryFor('not-driver', '[Microphone]', {ambient: true}), null);
+  assert.equal(driveAdvisoryFor('no-waypoint', 'How are you?', {ambient: true}), 'no-waypoint', 'every other code is as the game wrote it');
+  assert.equal(driveAdvisoryFor('dance', 'you drive'), null);
+});
+
+test('claimsToDrive: a yes to a ride is found, an honest reply or plain talk is not', async () => {
+  const {claimsToDrive} = await import('./companion-actions.mjs');
+  for (const yes of ["Yeah, bro, I'll drive.", 'Sure thing, hop in.', "I'll take the wheel, V.", 'Alright, get in. Buckle up.', 'You got it, I will drive us there.', "Okay, let me drive."]) {
+    assert.equal(claimsToDrive(yes), true, yes);
+  }
+  for (const no of ["I can't drive you yet, V. Set a waypoint on the map first.", 'Where to, choom? Mark a spot on the map and I will drive.', "I'm not one of your crew, V. Can't take the wheel for you.",
+    'Your car is not close enough. Stand next to it first.', 'I used to drive a delivery van, back in the day.', 'Nice day, huh?', '', undefined]) {
+    assert.equal(claimsToDrive(no), false, String(no));
+  }
+});
+
+test('the Convai drive context tells the character to let it take the wheel before V gets in, not when V already sits in the car', async () => {
+  const {CompanionActionWindow} = await import('./companion-actions.mjs');
+  const base = {token: 'drive-0123456789abcdefghij', carName: 'Quadra', destinationName: 'Afterlife'};
+  assert.match(CompanionActionWindow.contextText(base), /V lets you get behind the wheel first and then gets in on the passenger side/);
+  assert.doesNotMatch(CompanionActionWindow.contextText({...base, seated: 'passenger'}), /gets in on the passenger side/);
+});

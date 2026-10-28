@@ -226,6 +226,9 @@ test('a ride the game refuses is reported to the bridge as one plain code, and n
  driveRefusal={available=false,reason='Stopped',code='ambiguous-owned-car'}
  input=context('request-2');assert(not q.capture(input,'private-text'))
  assert(input.driveUnavailable=='no-car','several refusals share one code')
+ driveRefusal={available=false,reason='Choose a ready companion from your party.',code='not-companion'}
+ input=context('request-2b');assert(not q.capture(input,'private-text'))
+ assert(input.driveUnavailable=='not-driver','a character the game placed (no copy of ours) is told it does not drive')
  driveRefusal={available=false,reason='Elsewhere',code='some-new-code'}
  input=context('request-3');assert(not q.capture(input,'private-text'))
  assert(input.driveUnavailable==nil,'an unknown reason is not sent')

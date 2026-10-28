@@ -19,7 +19,7 @@ import {parseAmbushReaction} from './ambush-context.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
 import {parseEddies} from './eddies.mjs';
-import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
+import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, driveAdvisoryFor}
   from './companion-actions.mjs';
 
 export {parseMeetReaction};
@@ -99,7 +99,7 @@ function parseRequest(raw) {
     ? 'malformed-offer' : undefined;
   const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
-  const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
+  const driveUnavailable = chauffeurOffer ? null : driveAdvisoryFor(value.driveUnavailable, text, {ambient: isAmbientProfile(profileKey)});
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V (parsed above). Private turns only; never a holocall as well.
   const holocall = group || head ? null : parseHolocall(value.holocall);

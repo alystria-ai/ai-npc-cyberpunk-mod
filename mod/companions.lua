@@ -1486,10 +1486,12 @@ end
 -- cached snapshot and retain the exact serial/entity pair in their intent.
 function M.chauffeurOffer(entity)
     if M.reloadCleanupSnapshot().active then
-        return {available=false,reason='Step out and wait for the previous driver cleanup to finish.'}
+        return {available=false,code='transport-busy',reason='Step out and wait for the previous driver cleanup to finish.'}
     end
     local entry=chauffeurEntry(entity)
-    if not entry then return {available=false,reason='Choose a ready companion from your party.'} end
+    -- Not one of our ready copies (a character the game placed, story people included, or a stranger): it never drives. The code
+    -- reaches the character's prompt (bridge/companion-actions.mjs DRIVE_LIMIT 'not-driver') so it does not promise a ride.
+    if not entry then return {available=false,code='not-companion',reason='Choose a ready companion from your party.'} end
     return vehicles.chauffeurOffer(fleet,Game.GetPlayer(),entry)
 end
 
