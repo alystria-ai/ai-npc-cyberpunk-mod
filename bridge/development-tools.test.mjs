@@ -10,6 +10,8 @@ import {readProvisionState} from '../scripts/provision-state.mjs';
 
 const exec = promisify(execFile), root = fileURLToPath(new URL('..', import.meta.url));
 const manifest = JSON.parse(await readFile(join(root, 'scripts/development-files.json'), 'utf8'));
+// The files of game 2.5, the default of the installer: a file with "games" belongs to those versions only (the ambient driver guard archive: 2.31).
+const forGame25 = manifest.files.filter(f => !f.games);
 // The development scripts target PowerShell 7. Without it the installer tests
 // still run under Windows PowerShell 5.1 (process-scoped execution policy only;
 // nothing on the machine changes), but Set-DevelopmentBindings.ps1 needs
@@ -74,13 +76,13 @@ test('native install quarantines only the retired owned file and records old byt
   await assert.rejects(readFile(retired), {code: 'ENOENT'});
   const backups = join(folder, 'project/backups'), backup = join(backups, (await readdir(backups))[0]);
   const receipt = await json(join(backup, 'manifest.json'));
-  assert.equal(receipt.complete, true); assert.equal(receipt.files.length, manifest.files.length);
+  assert.equal(receipt.complete, true); assert.equal(receipt.files.length, forGame25.length);
   assert.deepEqual(receipt.quarantined.map(f => f.path), manifest.retiredNative);
   assert.equal(await readFile(join(backup, manifest.retiredNative[0]), 'utf8'), 'retired crash-prone code');
   assert.equal(await readFile(join(backup, manifest.files[0].target), 'utf8'), 'previous working version');
   assert.equal(await readFile(join(game, 'r6/scripts/OtherMod/Keep.reds'), 'utf8'), 'user mod');
   assert.equal(await readFile(join(game, 'r6/scripts/CyberpunkConvai/Unknown.reds'), 'utf8'), 'unknown owned-folder file');
-  for (const file of manifest.files) assert.equal(await readFile(join(game, file.target), 'utf8'), `new:${file.source}`);
+  for (const file of forGame25) assert.equal(await readFile(join(game, file.target), 'utf8'), `new:${file.source}`);
 }));
 
 test('Lua-only install neither changes nor claims validation of native files', async () => fixture(async folder => {
