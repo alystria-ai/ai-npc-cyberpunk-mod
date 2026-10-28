@@ -48,6 +48,17 @@ M.directional = {'point', 'describe_left', 'describe_right', 'describe_back', 'h
 -- Clips found to contain symbolic hand shapes by measurement (thumbs-up,
 -- middle finger), generated into the catalog as clip.symbolic=true.
 function M.symbolic(clip) return clip.symbolic == true end
+-- Per character talking style, chosen by the player in the character editor ("Talking gestures", docs/CHARACTER_EDITOR.md). input.style is nil for the
+-- behaviour described everywhere else in this file (the default of every character). Only numbers of the rules above change, never the rules:
+--   energy  added to the mood's largest hand reach (cm)
+--   colour  chance that a pick is coloured by the line's emotion (.6 normally)
+--   rate    multiplies the character's pacing rate, so the calm hold between clips is divided by it
+--   rest    chance that a phrase start is left calm (.2 normally)
+-- 'none' (no talking gestures) is handled by the controller, which does not enter the stance; select.next also returns nothing for it.
+M.styles = {
+    calm = {energy = -10, colour = .2, rate = .5, rest = .42},
+    lively = {energy = 8, colour = .85, rate = 2, rest = .08},
+}
 -- Per character pacing: rate > 1 gestures more often.
 M.profiles = {
     takemura = {rate = .7}, johnny = {rate = 1.2}, panam = {rate = 1.15}, kerry = {rate = 1.15},
@@ -310,8 +321,9 @@ end
 local function speaking(s, input)
     local family = M.families[input.family or 'neutral'] and input.family or 'unknown'
     local order, clash = M.families[family], M.clash[family] or {}
-    local energy = (M.energy[family] or M.energy.neutral) + (clampScale(input.scale) - 1) * M.energyStep
-    local colour = family ~= 'neutral' and family ~= 'unknown' and s.random() < .6
+    local style = M.styles[input.style]
+    local energy = (M.energy[family] or M.energy.neutral) + (clampScale(input.scale) - 1) * M.energyStep + (style and style.energy or 0)
+    local colour = family ~= 'neutral' and family ~= 'unknown' and s.random() < (style and style.colour or .6)
     local item = pick(s, speakingPool(input, order, clash, energy, colour), input.now, input.remaining, false, 2)
     if item then return item end
     -- Nothing fresh within the mood's reach: allow a little more arm before
@@ -350,6 +362,7 @@ function M.next(s, input)
     local item
     if input.mode == 'speaking' then
         -- User decision: talk gestures only for fairly long replies.
+        if input.style == 'none' then return nil end
         if input.total and input.total < M.minimumSpeech then return nil end
         if input.remaining and input.remaining < 1.2 then return nil end
         local age = input.phraseAge
@@ -358,12 +371,15 @@ function M.next(s, input)
             -- One decision per phrase start: rest or gesture.
             if s.phraseDecided == input.phraseAt then return nil end
             s.phraseDecided = input.phraseAt
-            if (s.history[1] ~= nil) and now - (s.restedAt or now) < M.restLongest and s.random() < M.restChance then
+            local style = M.styles[input.style]
+            if (s.history[1] ~= nil) and now - (s.restedAt or now) < M.restLongest and s.random() < (style and style.rest or M.restChance) then
                 return nil
             end
         end
         item = speaking(s, input)
     elseif input.mode == 'listening' then
+        -- A character the player switched the nods off for never nods (the controller does not enter the stance for it either).
+        if input.nods == false then return nil end
         -- Nods: the same kind by nature, but never the same clip twice running.
         -- A group listener also nods only inside a fairly long reply of the speaker, never in its last
         -- moments, on a phrase start when the timing is known, and only for a nod that fits what is left.
@@ -381,7 +397,7 @@ function M.next(s, input)
     local finish = now + item.duration
     if input.mode == 'speaking' then
         local hold = M.holds[clampScale(input.scale)]
-        s.nextAt = finish + between(s, hold[1], hold[2]) / rate(input.character)
+        s.nextAt = finish + between(s, hold[1], hold[2]) / (rate(input.character) * (M.styles[input.style] and M.styles[input.style].rate or 1))
         s.restedAt = s.nextAt
     elseif group then
         s.nextAt = finish + between(s, M.groupGap[1], M.groupGap[2])

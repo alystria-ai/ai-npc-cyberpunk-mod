@@ -740,6 +740,21 @@ do
         else print('[CyberpunkConvai] custom-characters.lua failed: ' .. tostring(service)) end
     else print('[CyberpunkConvai] custom-characters.lua unavailable: ' .. tostring(module)) end
 end
+-- What the player chose for a character in the editor's "Look and moves" part (docs/CHARACTER_EDITOR.md): its look, its gestures and idle moves, whether it sits, whether it
+-- comments on fights and loot. mod/character-options.lua reads runtime/character-options.json at load and, for two hours after the editor was opened, every few seconds from
+-- the 10 Hz tick; a character with no choice is exactly as before. A global with no new upvalue; optional like the modules around it.
+do
+    local loaded, module = pcall(dofile, 'character-options.lua')
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local created, service = pcall(module.new, {
+            -- A saved look is worn soon, not at the next 20 s look at the party.
+            onChange = function() if convaiOutfits and convaiOutfits.nudge then convaiOutfits.nudge() end end})
+        if created and type(service) == 'table' then
+            convaiCharacterOptions = service
+            pcall(service.refresh)
+        else print('[CyberpunkConvai] character-options.lua failed: ' .. tostring(service)) end
+    else print('[CyberpunkConvai] character-options.lua unavailable: ' .. tostring(module)) end
+end
 -- Developer-mode frame-cost probe (runtime/perf-probe.json). It wraps module
 -- table fields from outside, so the onUpdate closure gains no upvalue.
 pcall(function() dofile('perf-probe.lua').install(companions, function() return manager.developerMode() end) end)
@@ -2338,6 +2353,8 @@ do
         speech = speechFor,
         listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
         thinking = function() return convaiFacialPlayback and convaiFacialPlayback.thinkingEntity end,
+        -- The player's choices for this copy (character editor, Look and moves): talking gestures, nods, idle moves. A table lookup by profile key.
+        prefs = function(entry) local chosen = convaiCharacterOptions; return chosen and entry and chosen.get(entry.profileKey) or nil end,
         -- Group rounds: the other members listen (nod now and then, keep the stance) while one speaks.
         group = function(entity) return groupChat.roleOf(entity) end,
         log = function(kind, fields)
@@ -2356,6 +2373,8 @@ do
         -- The gesture catalogue (1.4 MB of generated Lua) is compiled and held once, shared with the gesture controller.
         catalog = controller and type(controller.catalog) == 'table' and controller.catalog or nil,
         gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
+        -- The player's choices for this copy (character editor, Look and moves): sit = false keeps it on its feet beside V.
+        prefs = function(entry) local chosen = convaiCharacterOptions; return chosen and entry and chosen.get(entry.profileKey) or nil end,
         -- V settled on a seat: its root is learned so that no housemate is given it (mod/housemates.lua).
         onSettled = function(anchor, forward, kind)
             if convaiHousemateLearn then convaiHousemateLearn(anchor, forward, kind) end
@@ -4007,7 +4026,9 @@ local function reactionPeople(player, observation)
     local ok, candidates = pcall(companions.conversationCandidates, player, 20)
     if ok then
         for _, person in ipairs(candidates) do
-            if supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey) then
+            -- (A character the player told in the editor not to comment on fights and loot is left out; Look and moves.)
+            local chosen = convaiCharacterOptions and convaiCharacterOptions.get(person.profileKey)
+            if supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey) and not (chosen and chosen.react == false) then
                 person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, combat and 'start' or 'end')
                 people[#people + 1] = person
             end
@@ -4021,7 +4042,8 @@ local function reactionPeople(player, observation)
         local present = {}
         for _, person in ipairs(people) do present[person.profileKey] = true end
         for _, person in ipairs(nearby) do
-            if not present[person.profileKey] then
+            local chosen = convaiCharacterOptions and convaiCharacterOptions.get(person.profileKey)
+            if not present[person.profileKey] and not (chosen and chosen.react == false) then
                 present[person.profileKey] = true
                 person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, combat and 'start' or 'end')
                 people[#people + 1] = person
@@ -6415,6 +6437,9 @@ function convaiOutfitModule()
     convaiOutfits = module
     convaiOutfits.deps = {
         enabled = function() return manager.companionOutfits() end,
+        -- The look the player chose for a character in the editor (Look and moves), worn all the time and even with the setting off.
+        pinned = function(key) local chosen = convaiCharacterOptions; return chosen and chosen.outfit(key) or nil end,
+        anyPinned = function() local chosen = convaiCharacterOptions; return chosen ~= nil and chosen.hasOutfits() end,
         rows = function() return companions.outfitRows(convaiOutfits.known) end,
         current = function(row) return NameToString(row.npc:GetCurrentAppearanceName()) end,
         prefetch = function(row, name) return companions.changeAppearance(row.serial, name, 'prefetch') end,
@@ -6457,7 +6482,10 @@ function convaiOutfitModule()
 end
 
 function convaiOutfitTick(player, elapsed, ready)
-    if not manager.companionOutfits() then return end
+    -- The character choices file is looked at every few seconds, but only for two hours after the editor was opened (mod/character-options.lua).
+    local chosen = convaiCharacterOptions
+    if chosen then chosen.tick(elapsed) end
+    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) then return end
     local module = convaiOutfitModule()
     if module then module.tick(player, elapsed, ready) end
 end
@@ -6529,7 +6557,8 @@ end
 
 -- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
 companions.spawnOutfit = function(record, key)
-    if not manager.companionOutfits() then return nil end
+    local chosen = convaiCharacterOptions
+    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) then return nil end
     local module = convaiOutfitModule()
     return module and module.spawnAppearance(record, key) or nil
 end

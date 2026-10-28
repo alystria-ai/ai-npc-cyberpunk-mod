@@ -11,6 +11,8 @@ import {CUSTOM_LIMITS, isCustomKey} from './custom-characters.mjs';
 import {CLIP, CLIP_FORMATS} from './custom-voice-clip.mjs';
 import {WORLD_RULES_LIMIT} from './world-rules.mjs';
 import {PromptingEditor} from './prompting-editor.mjs';
+import {OPTION_FIELDS, OPTION_VALUES, REPLY_WORDS, validateOptions} from './character-options.mjs';
+import {isOutfitOf, outfitsFor} from './outfit-choices.mjs';
 
 export class EditorError extends Error {
   constructor(status, code, errors = []) { super(code); this.status = status; this.code = code; this.errors = errors; }
@@ -34,12 +36,13 @@ export class CharacterEditor {
    *   worldRules WorldRules (optional: without it the editor has no "World rules" page): one text for the whole world (bridge/world-rules.mjs)
    *   promptProfiles PromptProfiles (optional: without it the editor has no "Prompting" page): the wording of the prompt per conversation option (bridge/prompt-profile-store.mjs)
    *   addonContent AddonContent (optional): the content packs of the add-ons (bridge/addon-content.mjs); the World rules page lists their rules read-only
+   *   options    CharacterOptions (optional: without it the editor has no "Look and moves" part): the clothes, gestures, idle moves, seating, reactions and reply length per character (bridge/character-options.mjs)
    *   onChanged  (key) => void: after a save, reset, memory edit or character change reached the store. Everything the prompt reads is a plain lookup per
    *              turn (PersonaBook, CharacterOverrides, CustomCharacters, MemoryStore), so the next turn already uses it; what a speculative turn
    *              (a prepared group reply, a look-ahead) wrote before the save is the one thing that does not, and the bridge drops it here.
    */
-  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, worldRules = null, promptProfiles = null, addonContent = null, onChanged = () => {}} = {}) {
-    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, worldRules, addonContent, onChanged});
+  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, worldRules = null, promptProfiles = null, addonContent = null, options = null, onChanged = () => {}} = {}) {
+    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, worldRules, addonContent, options, onChanged});
     // The Prompting page (bridge/prompting-editor.mjs). A saved change counts from the next turn like every other editor change.
     this.prompting = promptProfiles ? new PromptingEditor({profiles: promptProfiles, onChanged: () => this.#changed('')}) : null;
   }
@@ -66,6 +69,12 @@ export class CharacterEditor {
       maxUploadBytes: CLIP.maxUploadBytes, formats: [...CLIP_FORMATS], convertRate: CLIP.convertRate};
   }
 
+  /** What the page needs for the "Look and moves" part: the values each choice may take and the reply lengths in words. Null without a store. */
+  get optionsForPage() {
+    if (!this.options) return null;
+    return {values: Object.fromEntries(Object.entries(OPTION_VALUES).map(([field, list]) => [field, [...list]])), words: {...REPLY_WORDS}};
+  }
+
   #row(key) {
     const row = KEY.test(key ?? '') ? this.personas.rows.get(key) : null;
     if (!row || !['named', 'ambient', 'archetype'].includes(row.kind)) throw new EditorError(404, 'not-found');
@@ -81,7 +90,7 @@ export class CharacterEditor {
     return [...shipped, ...own, ...v]
       .sort((a, b) => (GROUP_ORDER[a.group] - GROUP_ORDER[b.group]) || a.name.localeCompare(b.name, 'en', {sensitivity: 'base'}));
   }
-  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage, prompting: this.prompting?.forPage ?? null}; }
+  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage, prompting: this.prompting?.forPage ?? null, options: this.optionsForPage}; }
 
   // ---- the world rules: one text for every character (bridge/world-rules.mjs). Saved at once; the next turn already reads it.
   /** Stores the text ('' clears it). Throws EditorError 422 with `errors` when it is over the limit; nothing is stored then. */
@@ -116,7 +125,13 @@ export class CharacterEditor {
     return {key, name: String(row.name || key), group: row.kind === 'named' ? 'story' : 'everyday', defaults,
       values: Object.fromEntries(FIELDS.map(field => [field, field in stored ? stored[field] : defaults[field]])),
       edited: Object.fromEntries(FIELDS.map(field => [field, field in stored])), memory,
-      voice: row.kind === 'named' ? this.#voiceOf(key, 'shipped') : null};
+      voice: row.kind === 'named' ? this.#voiceOf(key, 'shipped') : null,
+      options: row.kind === 'named' ? this.#optionsOf(key, row.records) : null};
+  }
+  // The "Look and moves" part of a character's details: what is chosen now, and the looks the character can wear (null: it has one look in the game's files).
+  #optionsOf(key, records) {
+    if (!this.options) return null;
+    return {values: {...(this.options.get(key) ?? {})}, outfits: outfitsFor(records)};
   }
   /** One of V's two voice rows: only the voice part (the page draws the voice section and nothing else). 404 without a clip store. */
   vDetails(key) {
@@ -153,6 +168,35 @@ export class CharacterEditor {
     try { await this.overrides.set(key, fields); } catch { throw new EditorError(500, 'not-saved'); }
   }
 
+  // ---- the "Look and moves" choices (bridge/character-options.mjs): clothes, gestures, idle moves, seating, reactions, reply length. Named characters and the player's own only.
+  #optionsTarget(key) {
+    if (!this.options) throw new EditorError(404, 'not-found');
+    if (isCustomKey(key)) return this.#custom(key).records;
+    const row = this.#row(key);
+    if (row.kind !== 'named') throw new EditorError(404, 'not-found');
+    return row.records;
+  }
+  /** Saves the choices in `patch` (null puts a choice back to today's behaviour). 422 with `errors` when a value is not allowed; nothing is stored then. Resolves to the details. */
+  async saveOptions(key, patch) {
+    const records = this.#optionsTarget(key), looks = outfitsFor(records);
+    const result = validateOptions(patch, this.options.get(key) ?? {}, {outfitOk: name => !!looks && isOutfitOf(looks.record, name)});
+    if (!result.ok) throw new EditorError(422, 'invalid', result.errors);
+    try { await this.options.set(key, result.value); } catch (error) { throw error?.code === 'full' ? new EditorError(422, 'invalid', [{field: '', code: 'options-full', max: error.max}]) : new EditorError(500, 'not-saved'); }
+    this.#changed(key);
+    return this.details(key);
+  }
+  /** Back to today's behaviour: the named choices, or all of them. */
+  async resetOptions(key, fields) {
+    this.#optionsTarget(key);
+    const list = fields == null ? OPTION_FIELDS : Array.isArray(fields) ? fields : null;
+    if (!list || list.some(field => !OPTION_FIELDS.includes(field))) throw new EditorError(400, 'bad-request');
+    const stored = {...(this.options.get(key) ?? {})};
+    for (const field of list) delete stored[field];
+    try { await this.options.set(key, stored); } catch { throw new EditorError(500, 'not-saved'); }
+    this.#changed(key);
+    return this.details(key);
+  }
+
   // ---- characters the player made
   #custom(key) {
     if (!this.custom || !isCustomKey(key) || !this.custom.has(key)) throw new EditorError(404, 'not-found');
@@ -171,7 +215,7 @@ export class CharacterEditor {
     return {key, name: row.name, group: 'custom',
       custom: {name: row.name, gender: row.gender, records: [...row.records], names: [...row.names], bio: row.bio, style: row.style,
         examples: [...row.examples], memories: [...row.memories]},
-      memory: this.#memoryOf(key), voice: this.#voiceOf(key, 'generic')};
+      memory: this.#memoryOf(key), voice: this.#voiceOf(key, 'generic'), options: this.#optionsOf(key, row.records)};
   }
   async createCustom(input) {
     if (!this.custom) throw new EditorError(404, 'not-found');

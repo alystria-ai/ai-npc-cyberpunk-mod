@@ -110,7 +110,7 @@ local catalog={device='dev.ent',seatComponents={couch='convai_sit_couch',chair='
 local c
 local function build(options)
   options=options or {}
-  c=m.new({catalog=options.catalog or catalog,native=native,
+  c=m.new({catalog=options.catalog or catalog,native=native,prefs=options.prefs,
     log=function(kind,fields) logs[#logs+1]={kind=kind,fields=fields} end})
 end
 build()
@@ -305,6 +305,17 @@ test('V sits on a couch: the companion walks to the free seat, sits, and stands 
   step(2)
   assert(held[1]==false and decisions[1]==nil,'following resumes')
   assert(count('delete')>=1,'device removed')
+`));
+
+test('a character the player told not to sit (character editor, Look and moves) stays on her feet beside V; other choices change nothing', () => run(`
+  build({prefs=function(entry) return {sit=false,talk='calm'} end})
+  couch(-.35,1.7);sitV();step(3)
+  assert(count('play')==0 and count('spawn')==0,'no seat for her')
+  assert(held[1]~=true and decisions[1]==nil,'she keeps following V')
+  build({prefs=function(entry) return {talk='calm',react=false} end})
+  step(3)
+  assert(count('play')==1 and last('play').component=='convai_sit_couch','a choice about something else leaves her seat alone')
+  build({prefs=function(entry) return nil end})
 `));
 
 test('V getting up (workspot exiting) stands the companion up at once', () => run(`

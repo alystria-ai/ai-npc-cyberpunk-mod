@@ -542,6 +542,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-editor.lua"
         },
         {
+          "source": "mod/character-options.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-options.lua"
+        },
+        {
           "source": "mod/convai-paid-tier.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/convai-paid-tier.lua"
         },
@@ -773,6 +777,7 @@
             "bridge/character-editor-page.mjs",
             "bridge/character-editor-server.mjs",
             "bridge/character-editor.mjs",
+            "bridge/character-options.mjs",
             "bridge/character-overrides.mjs",
             "bridge/chat-memory-resets.mjs",
             "bridge/child-registry.mjs",
@@ -897,6 +902,7 @@
             "bridge/omni-pack.mjs",
             "bridge/omni-pcm.mjs",
             "bridge/omni-remote.mjs",
+            "bridge/outfit-choices.mjs",
             "bridge/parsed-snapshot.mjs",
             "bridge/party-connections.mjs",
             "bridge/pcm-edges.mjs",

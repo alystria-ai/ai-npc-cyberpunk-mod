@@ -57,7 +57,7 @@
     ]
   },
   "counts": {
-    "strings": 1632,
+    "strings": 1687,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -97,8 +97,10 @@
     "A report is already being created.": "A report is already being created.",
     "A rough idea of how many eddies V has: nearly broke, short, comfortable or rich.\n\nOff: it is not sent, and the mod stops reading it from the game.": "A rough idea of how many eddies V has: nearly broke, short, comfortable or rich.\n\nOff: it is not sent, and the mod stops reading it from the game.",
     "A rule is too long. Keep each one under {max} characters.": "A rule is too long. Keep each one under {max} characters.",
+    "A saved choice counts within a few seconds. Clothes change when nobody is looking.": "A saved choice counts within a few seconds. Clothes change when nobody is looking.",
     "A scene has taken control of the car.": "A scene has taken control of the car.",
     "A short rule": "A short rule",
+    "A small nod now and then while you speak.": "A small nod now and then while you speak.",
     "A speaker with a reply length of its own": "A speaker with a reply length of its own",
     "A stop text is too long. Keep each one under {max} characters.": "A stop text is too long. Keep each one under {max} characters.",
     "A text that ends the reply": "A text that ends the reply",
@@ -157,6 +159,7 @@
     "Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.": "Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.",
     "Automatic": "Automatic",
     "Automatic (game interface language)": "Automatic (game interface language)",
+    "Automatic follows the “Companions change outfits” setting in the game: day and night looks, now and then a change, and casual clothes at home. A look you pick is worn all the time. Only your own companions and residents are dressed, and they change while nobody is looking. Characters the game places are never changed.": "Automatic follows the “Companions change outfits” setting in the game: day and night looks, now and then a change, and casual clothes at home. A look you pick is worn all the time. Only your own companions and residents are dressed, and they change while nobody is looking. Characters the game places are never changed.",
     "Automatic reactions": "Automatic reactions",
     "Back": "Back",
     "Back to Companion Manager": "Back to Companion Manager",
@@ -164,7 +167,9 @@
     "Back to settings": "Back to settings",
     "Back to the shipped prompting.": "Back to the shipped prompting.",
     "Back to the shipped text.": "Back to the shipped text.",
+    "Back to the usual look and moves.": "Back to the usual look and moves.",
     "Backspace": "Backspace",
+    "Bartender": "Bartender",
     "Behavior: {list}": "Behavior: {list}",
     "Billed every month.": "Billed every month.",
     "Billed once a year.": "Billed once a year.",
@@ -177,6 +182,8 @@
     "Browser": "Browser",
     "Build for your game": "Build for your game",
     "Buy": "Buy",
+    "CEO look": "CEO look",
+    "CEO look with coat": "CEO look with coat",
     "CHARACTERS": "CHARACTERS",
     "CHAT": "CHAT",
     "CLOSE PHONE TO CONTINUE": "CLOSE PHONE TO CONTINUE",
@@ -184,6 +191,7 @@
     "COMPANION UNAVAILABLE": "COMPANION UNAVAILABLE",
     "Calls are not available during combat.": "Calls are not available during combat.",
     "Calls are not available right now.": "Calls are not available right now.",
+    "Calm: smaller gestures, not as often": "Calm: smaller gestures, not as often",
     "Cancel": "Cancel",
     "Cancel invitation": "Cancel invitation",
     "Cancel this meeting. She is not told.": "Cancel this meeting. She is not told.",
@@ -216,6 +224,7 @@
     "Checking your plan…": "Checking your plan…",
     "Checking…": "Checking…",
     "Chinese": "Chinese",
+    "Choices for how this character looks and moves. They work with every conversation option, Convai included, except the reply length.": "Choices for how this character looks and moves. They work with every conversation option, Convai included, except the reply length.",
     "Choose 16 or 32 voice steps.": "Choose 16 or 32 voice steps.",
     "Choose Check my plan to ask Convai.": "Choose Check my plan to ask Convai.",
     "Choose Generate report. The file name and its folder appear here and in the banner above.": "Choose Generate report. The file name and its folder appear here and in the banner above.",
@@ -284,7 +293,10 @@
     "Closing clause": "Closing clause",
     "Closing line": "Closing line",
     "Closing line for a speaker with a reply length of its own": "Closing line for a speaker with a reply length of its own",
+    "Club night, no jacket": "Club night, no jacket",
     "Codeware is too old. Update it from Nexus Mods, then restart the game.": "Codeware is too old. Update it from Nexus Mods, then restart the game.",
+    "Collar down": "Collar down",
+    "Comment on fights and loot": "Comment on fights and loot",
     "Companion Manager": "Companion Manager",
     "Companion behavior": "Companion behavior",
     "Companion driver": "Companion driver",
@@ -394,6 +406,7 @@
     "D-pad up": "D-pad up",
     "DETAILS  {page} / {pages}": "DETAILS  {page} / {pages}",
     "DISMISS QUEUED - CLOSE PHONE": "DISMISS QUEUED - CLOSE PHONE",
+    "Date night": "Date night",
     "Default": "Default",
     "Defaults": "Defaults",
     "Defaults restored.": "Defaults restored.",
@@ -421,6 +434,7 @@
     "Downloading {done} of {total} MB ({percent}%)": "Downloading {done} of {total} MB ({percent}%)",
     "Downloading…": "Downloading…",
     "Drag the slider, or press left and right, to turn the page.": "Drag the slider, or press left and right, to turn the page.",
+    "Dress without the fur coat": "Dress without the fur coat",
     "Driver boarding": "Driver boarding",
     "Driver leaving the car": "Driver leaving the car",
     "Driving": "Driving",
@@ -508,6 +522,7 @@
     "Go back to the shipped prompting for {name}? Your changes to this part are removed.": "Go back to the shipped prompting for {name}? Your changes to this part are removed.",
     "Go back to the shipped text for {name}? All your changes to this character are removed.": "Go back to the shipped text for {name}? All your changes to this character are removed.",
     "Go back to the shipped text for {name}? Your changes to this part are removed.": "Go back to the shipped text for {name}? Your changes to this part are removed.",
+    "Go back to the usual look and moves for {name}? Your choices on this part are removed.": "Go back to the usual look and moves for {name}? Your choices on this part are removed.",
     "Graphics card": "Graphics card",
     "Group chat needs two characters nearby. Use {key} for one person.": "Group chat needs two characters nearby. Use {key} for one person.",
     "Group text chat": "Group text chat",
@@ -532,6 +547,11 @@
     "Holocall ended: combat started.": "Holocall ended: combat started.",
     "Holocall with {name} ended.": "Holocall with {name} ended.",
     "Home": "Home",
+    "Home clothes: shirt and trousers": "Home clothes: shirt and trousers",
+    "Home clothes: t-shirt and trousers": "Home clothes: t-shirt and trousers",
+    "Home clothes: tank top and trousers": "Home clothes: tank top and trousers",
+    "Home clothes: tank top, boxer shorts, flip-flops": "Home clothes: tank top, boxer shorts, flip-flops",
+    "Hooded jacket": "Hooded jacket",
     "Housemates": "Housemates",
     "Housemates in one chat": "Housemates in one chat",
     "Housemates moved out: {count}": "Housemates moved out: {count}",
@@ -547,11 +567,13 @@
     "How many housemates join one chat when that many are home near each other. They speak one at a time. With fewer at home, the chat is as big as it can be.": "How many housemates join one chat when that many are home near each other. They speak one at a time. With fewer at home, the chat is as big as it can be.",
     "How she arrives": "How she arrives",
     "How the game finds this character": "How the game finds this character",
+    "How the hands move while they speak a longer reply.": "How the hands move while they speak a longer reply.",
     "How they sound: pace, attitude, favourite habits of speech.": "How they sound: pace, attitude, favourite habits of speech.",
     "Hungarian": "Hungarian",
     "I waited {minutes} minutes at {place} and you never showed. Forget it.": "I waited {minutes} minutes at {place} and you never showed. Forget it.",
     "I'm here at {place}. Where are you?": "I'm here at {place}. Where are you?",
     "INVITE QUEUED - CLOSE PHONE": "INVITE QUEUED - CLOSE PHONE",
+    "Idle moves": "Idle moves",
     "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.": "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.",
     "If something goes wrong": "If something goes wrong",
     "If the folder is there, the newest log in red4ext/logs says why RED4ext did not load it: an antivirus that removed a file, or a missing Visual C++ runtime.": "If the folder is there, the newest log in red4ext/logs says why RED4ext did not load it: an antivirus that removed a file, or a missing Visual C++ runtime.",
@@ -610,6 +632,7 @@
     "Lip sync delay (Bluetooth)": "Lip sync delay (Bluetooth)",
     "Lite and Standard are the two Local AI model sizes. “Mature on” is used while Mature content is on.": "Lite and Standard are the two Local AI model sizes. “Mature on” is used while Mature content is on.",
     "Live picture unavailable. The call continues with the portrait.": "Live picture unavailable. The call continues with the portrait.",
+    "Lively: bigger gestures, more often": "Lively: bigger gestures, more often",
     "Load a save before inviting a companion.": "Load a save before inviting a companion.",
     "Load a save first": "Load a save first",
     "Load a save first. A key can be set only while a game is loaded.": "Load a save first. A key can be set only while a game is loaded.",
@@ -639,6 +662,7 @@
     "Location": "Location",
     "Longest character description, in characters": "Longest character description, in characters",
     "Longest reply (in tokens)": "Longest reply (in tokens)",
+    "Look and moves": "Look and moves",
     "MIOpen convolutions (AMD)": "MIOpen convolutions (AMD)",
     "Male": "Male",
     "Manage": "Manage",
@@ -728,6 +752,8 @@
     "No entries are available.": "No entries are available.",
     "No entries yet.\nTry another search or tab.": "No entries yet.\nTry another search or tab.",
     "No example replies.": "No example replies.",
+    "No jacket": "No jacket",
+    "No jacket and harness": "No jacket and harness",
     "No key added": "No key added",
     "No key press reached the mod, so nothing changed. If keys do not arrive from this menu, set the key in Cyber Engine Tweaks’ Bindings: it works the same.": "No key press reached the mod, so nothing changed. If keys do not arrive from this menu, set the key in Cyber Engine Tweaks’ Bindings: it works the same.",
     "No key was pressed, so nothing changed.": "No key was pressed, so nothing changed.",
@@ -743,9 +769,13 @@
     "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.": "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.",
     "No speech was heard. Hold the talk key while you speak.": "No speech was heard. Hold the talk key while you speak.",
     "Nobody lives at your place.": "Nobody lives at your place.",
+    "Nod while you talk to them": "Nod while you talk to them",
     "None found: installed by hand.": "None found: installed by hand.",
     "None installed. They are optional.": "None installed. They are optional.",
     "None yet": "None yet",
+    "None: the hands stay at rest": "None: the hands stay at rest",
+    "None: they keep the stance they have": "None: they keep the stance they have",
+    "Normal": "Normal",
     "Normal memory": "Normal memory",
     "Not added": "Not added",
     "Not available": "Not available",
@@ -827,6 +857,7 @@
     "Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.": "Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.",
     "Other mods’ state": "Other mods’ state",
     "Other versions of this rule": "Other versions of this rule",
+    "Outfit": "Outfit",
     "Output rules": "Output rules",
     "Own Python": "Own Python",
     "Page": "Page",
@@ -834,6 +865,7 @@
     "Page up": "Page up",
     "Page {page} / {pages}": "Page {page} / {pages}",
     "Page {page} of {pages}  |  {count} results": "Page {page} of {pages}  |  {count} results",
+    "Paradise look": "Paradise look",
     "Partner paragraph: affection and desire": "Partner paragraph: affection and desire",
     "Partner paragraph: nothing invented": "Partner paragraph: nothing invented",
     "Parts of the character": "Parts of the character",
@@ -849,6 +881,7 @@
     "Pending departure lost its vehicle binding.": "Pending departure lost its vehicle binding.",
     "Phone Chat messages": "Phone Chat messages",
     "Picked up in your talks": "Picked up in your talks",
+    "Plain stances only, no props like a cup or a cigarette": "Plain stances only, no props like a cup or a cigarette",
     "Plans": "Plans",
     "Plans Convai made for this mod. They give your own Convai API key more conversations; the free tier stays as it is.": "Plans Convai made for this mod. They give your own Convai API key more conversations; the free tier stays as it is.",
     "Play saved clip": "Play saved clip",
@@ -894,6 +927,7 @@
     "Prompting": "Prompting",
     "Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.": "Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.",
     "PyTorch is not installed in it": "PyTorch is not installed in it",
+    "Pyjamas": "Pyjamas",
     "Quest and journal": "Quest and journal",
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.",
     "RED4ext logs": "RED4ext logs",
@@ -931,6 +965,7 @@
     "Repeat the “where you are” sentence right before V’s words": "Repeat the “where you are” sentence right before V’s words",
     "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.": "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.",
     "Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.": "Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.",
+    "Reply length": "Reply length",
     "Reply length in words": "Reply length in words",
     "Report for the developer": "Report for the developer",
     "Report path copied to the clipboard.": "Report path copied to the clipboard.",
@@ -1023,6 +1058,7 @@
     "Short rules this character always follows when talking, for example: Never swear. Answer in one sentence.": "Short rules this character always follows when talking, for example: Never swear. Answer in one sentence.",
     "Short summary of earlier talks": "Short summary of earlier talks",
     "Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter.": "Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter.",
+    "Shorter: up to about {words} words": "Shorter: up to about {words} words",
     "Show companion reply subtitles during conversations.": "Show companion reply subtitles during conversations.",
     "Show only the models whose name starts with this letter.": "Show only the models whose name starts with this letter.",
     "Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.": "Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.",
@@ -1030,6 +1066,8 @@
     "Sign in on the Convai page in your browser. Your key is saved here when you finish.": "Sign in on the Convai page in your browser. Your key is saved here when you finish.",
     "Sign in with Convai": "Sign in with Convai",
     "Signed in. Your Convai API key is saved.": "Signed in. Your Convai API key is saved.",
+    "Sit down and take a place": "Sit down and take a place",
+    "Solo look": "Solo look",
     "Some Runtime files are from a newer update than this Runtime says. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version, or extract the full Runtime again. Then restart the game.": "Some Runtime files are from a newer update than this Runtime says. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version, or extract the full Runtime again. Then restart the game.",
     "Some game models have special rigs or roles and may not behave as ordinary companions.": "Some game models have special rigs or roles and may not behave as ordinary companions.",
     "Some mod files are missing. Extract the Scripts zip again. See Help in Settings.": "Some mod files are missing. Extract the Scripts zip again. See Help in Settings.",
@@ -1081,10 +1119,14 @@
     "Subtitle display": "Subtitle display",
     "Subtitles": "Subtitles",
     "Subtle": "Subtle",
+    "Suit": "Suit",
     "Support report saved: {path}": "Support report saved: {path}",
+    "Switched off, they say nothing about fights or about what you pick up.": "Switched off, they say nothing about fights or about what you pick up.",
+    "T-shirt": "T-shirt",
     "TALK TO {character}": "TALK TO {character}",
     "TEXT  >": "TEXT  >",
     "Tab": "Tab",
+    "Takes a seat beside you when you sit, and a seat or a spot in your flat at home. Switched off, they stay on their feet beside you.": "Takes a seat beside you when you sit, and a seat or a spot in your flat at home. Switched off, they stay on their feet beside you.",
     "Talk by text": "Talk by text",
     "Talk by voice": "Talk by voice",
     "Talk to Johnny by text": "Talk to Johnny by text",
@@ -1094,6 +1136,7 @@
     "Talk to story characters": "Talk to story characters",
     "Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand.": "Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand.",
     "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.": "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.",
+    "Talking gestures": "Talking gestures",
     "Temperature": "Temperature",
     "Test": "Test",
     "Test connection": "Test connection",
@@ -1106,6 +1149,7 @@
     "That address is a web page, not the API. Use the API address from your provider.": "That address is a web page, not the API. Use the API address from your provider.",
     "That character model is unavailable.": "That character model is unavailable.",
     "That character was not found.": "That character was not found.",
+    "That choice is not available.": "That choice is not available.",
     "That companion is no longer in your party.": "That companion is no longer in your party.",
     "That companion is no longer ready to drive.": "That companion is no longer ready to drive.",
     "That companion is not available.": "That companion is not available.",
@@ -1119,6 +1163,7 @@
     "That is not valid JSON.": "That is not valid JSON.",
     "That is too long.": "That is too long.",
     "That key is already used for another action.": "That key is already used for another action.",
+    "That look is not one of this character’s.": "That look is not one of this character’s.",
     "That model is no longer available.": "That model is no longer available.",
     "That prompting option was not found.": "That prompting option was not found.",
     "That setting is read-only.": "That setting is read-only.",
@@ -1222,6 +1267,7 @@
     "The eddies could not be moved.": "The eddies could not be moved.",
     "The editor could not be opened. Try again.": "The editor could not be opened. Try again.",
     "The editor is closed. You can close this tab.": "The editor is closed. You can close this tab.",
+    "The editor keeps choices for {max} characters. Reset one first.": "The editor keeps choices for {max} characters. Reset one first.",
     "The endpoint URL was removed.": "The endpoint URL was removed.",
     "The endpoint answered with no text. Check the model ID.": "The endpoint answered with no text. Check the model ID.",
     "The endpoint did not accept your API key.": "The endpoint did not accept your API key.",
@@ -1256,6 +1302,7 @@
     "The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.": "The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.",
     "The last thing the model reads before it answers. Use {name} for the character’s name and {words} for the reply length. The Mature setting adds its own clause after it.": "The last thing the model reads before it answers. Use {name} for the character’s name and {words} for the reply length. The Mature setting adds its own clause after it.",
     "The list will refresh in a moment.": "The list will refresh in a moment.",
+    "The longest reply, in words. Works with Mistral, Local AI and Custom, not Convai.": "The longest reply, in words. Works with Mistral, Local AI and Custom, not Convai.",
     "The manager could not be prepared: {reason}": "The manager could not be prepared: {reason}",
     "The manager could not refresh: {reason}": "The manager could not refresh: {reason}",
     "The memory clear request could not be sent. Check the memory service before trying again.": "The memory clear request could not be sent. Check the memory service before trying again.",
@@ -1327,6 +1374,7 @@
     "This PC has no AMD Radeon card this setup can use.": "This PC has no AMD Radeon card this setup can use.",
     "This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.": "This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.",
     "This address is not encrypted, which is fine on your own computer or home network.": "This address is not encrypted, which is fine on your own computer or home network.",
+    "This character has only one look in the game files, so there is no outfit to choose.": "This character has only one look in the game files, so there is no outfit to choose.",
     "This character needs Mistral, Local AI or Custom to answer.": "This character needs Mistral, Local AI or Custom to answer.",
     "This character speaks with a generic voice that fits the gender.": "This character speaks with a generic voice that fits the gender.",
     "This character speaks with the shipped voice.": "This character speaks with the shipped voice.",
@@ -1365,6 +1413,7 @@
     "Too many stop texts. Keep {max} or fewer.": "Too many stop texts. Keep {max} or fewer.",
     "Top K": "Top K",
     "Top P": "Top P",
+    "Trench coat": "Trench coat",
     "Trip cancelled from Companion Manager.": "Trip cancelled from Companion Manager.",
     "Trip cancelled.": "Trip cancelled.",
     "Turkish": "Turkish",
@@ -1408,6 +1457,7 @@
     "Use this conversation profile": "Use this conversation profile",
     "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.": "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.",
     "Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.": "Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.",
+    "Usual look": "Usual look",
     "V (female voice)": "V (female voice)",
     "V (male voice)": "V (male voice)",
     "V changed seats or vehicles.": "V changed seats or vehicles.",
@@ -1415,12 +1465,15 @@
     "V or a scene has taken vehicle control.": "V or a scene has taken vehicle control.",
     "V speaks with the voice of your installed V voice mod, or the shipped V voice.": "V speaks with the voice of your installed V voice mod, or the shipped V voice.",
     "V speaks your microphone lines": "V speaks your microphone lines",
+    "Valentino look": "Valentino look",
     "Vehicle exit workspot state is unavailable.": "Vehicle exit workspot state is unavailable.",
     "Vehicle information became unavailable.": "Vehicle information became unavailable.",
     "Vehicle information is not ready.": "Vehicle information is not ready.",
     "Version {version}.": "Version {version}.",
     "Version {version}. The mod is tested on {game} only, so some things may not work.": "Version {version}. The mod is tested on {game} only, so some things may not work.",
     "Version {version}. These files are the mod build for game {build}. Install the build made for game {game} from the mod’s Nexus Mods page (Scripts) and Hugging Face page (Runtime), then restart the game.": "Version {version}. These files are the mod build for game {build}. Install the build made for game {game} from the mod’s Nexus Mods page (Scripts) and Hugging Face page (Runtime), then restart the game.",
+    "Very short: up to about {words} words": "Very short: up to about {words} words",
+    "Vest": "Vest",
     "View": "View",
     "Voice": "Voice",
     "Voice activation": "Voice activation",
@@ -1482,6 +1535,7 @@
     "Westbrook Japantown": "Westbrook Japantown",
     "What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.": "What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.",
     "What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).": "What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).",
+    "What they do now and then while they stand beside you.": "What they do now and then while they stand beside you.",
     "What to do": "What to do",
     "When she arrives": "When she arrives",
     "When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your settings, PC details (graphics card, processor, Windows, security software, game drive, screen), installed mod names, setup check, reply timings and the log lines around it.": "When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your settings, PC details (graphics card, processor, Windows, security software, game drive, screen), installed mod names, setup check, reply timings and the log lines around it.",
@@ -1504,6 +1558,7 @@
     "Windows default": "Windows default",
     "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.": "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.",
     "Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.": "Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.",
+    "Without the coat": "Without the coat",
     "Word bank": "Word bank",
     "Words said in the clip": "Words said in the clip",
     "World rules": "World rules",
@@ -2557,7 +2612,9 @@
       "A reply ends when the model writes one of these. Line breaks count. Up to {max}.",
       "A report is already being created.",
       "A rule is too long. Keep each one under {max} characters.",
+      "A saved choice counts within a few seconds. Clothes change when nobody is looking.",
       "A short rule",
+      "A small nod now and then while you speak.",
       "A speaker with a reply length of its own",
       "A stop text is too long. Keep each one under {max} characters.",
       "A text that ends the reply",
@@ -2595,9 +2652,13 @@
       "Asking Convai for the payment page…",
       "Asks the server three times who it is and shows whether it is reachable, how long it takes to answer and its version. It sends no speech.",
       "Auto",
+      "Automatic",
+      "Automatic follows the “Companions change outfits” setting in the game: day and night looks, now and then a change, and casual clothes at home. A look you pick is worn all the time. Only your own companions and residents are dressed, and they change while nobody is looking. Characters the game places are never changed.",
       "Back",
       "Back to the shipped prompting.",
       "Back to the shipped text.",
+      "Back to the usual look and moves.",
+      "Bartender",
       "Behavior: {list}",
       "Billed every month.",
       "Billed once a year.",
@@ -2606,8 +2667,11 @@
       "Browse {section}. {query}",
       "Browser",
       "Build for your game",
+      "CEO look",
+      "CEO look with coat",
       "Calls are not available during combat.",
       "Calls are not available right now.",
+      "Calm: smaller gestures, not as often",
       "Cancel",
       "Cancel this meeting. She is not told.",
       "Cancelled",
@@ -2619,6 +2683,7 @@
       "Checking your card…",
       "Checking your plan…",
       "Checking…",
+      "Choices for how this character looks and moves. They work with every conversation option, Convai included, except the reply length.",
       "Choose Check my plan to ask Convai.",
       "Choose Generate report. The file name and its folder appear here and in the banner above.",
       "Choose a character on the left.",
@@ -2645,7 +2710,10 @@
       "Closing clause",
       "Closing line",
       "Closing line for a speaker with a reply length of its own",
+      "Club night, no jacket",
       "Codeware is too old. Update it from Nexus Mods, then restart the game.",
+      "Collar down",
+      "Comment on fights and loot",
       "Companion Manager",
       "Companion preparation failed.",
       "Companion preparation is unavailable.",
@@ -2706,6 +2774,7 @@
       "Custom: rate limited for now",
       "Custom: {model} at {host}",
       "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}",
+      "Date night",
       "Defaults",
       "Defaults restored.",
       "Delete",
@@ -2722,6 +2791,7 @@
       "Display names",
       "Downloading {done} of {total} MB ({percent}%)",
       "Downloading…",
+      "Dress without the fur coat",
       "EDDIES",
       "Earlier turns kept",
       "Edited",
@@ -2773,6 +2843,7 @@
       "Go back to the shipped prompting for {name}? Your changes to this part are removed.",
       "Go back to the shipped text for {name}? All your changes to this character are removed.",
       "Go back to the shipped text for {name}? Your changes to this part are removed.",
+      "Go back to the usual look and moves for {name}? Your choices on this part are removed.",
       "Graphics card",
       "Group chat needs two characters nearby. Use {key} for one person.",
       "Group text chat",
@@ -2789,13 +2860,20 @@
       "Heywood Glen",
       "Holocall ended: combat started.",
       "Holocall with {name} ended.",
+      "Home clothes: shirt and trousers",
+      "Home clothes: t-shirt and trousers",
+      "Home clothes: tank top and trousers",
+      "Home clothes: tank top, boxer shorts, flip-flops",
+      "Hooded jacket",
       "Housemates moved out: {count}",
       "How each conversation option is told to answer. Every option has its own prompting. A change counts from the next reply, and nothing needs restarting.",
       "How freely the model words its reply. Leave a box empty to use the shipped value.",
       "How the game finds this character",
+      "How the hands move while they speak a longer reply.",
       "How they sound: pace, attitude, favourite habits of speech.",
       "I waited {minutes} minutes at {place} and you never showed. Forget it.",
       "I'm here at {place}. Where are you?",
+      "Idle moves",
       "If the folder is there, the newest log in red4ext/logs says why RED4ext did not load it: an antivirus that removed a file, or a missing Visual C++ runtime.",
       "In use now",
       "In your party: {count}",
@@ -2823,6 +2901,7 @@
       "Lines in their voice. They show the tone only and are never said back word for word.",
       "Lite and Standard are the two Local AI model sizes. “Mature on” is used while Mature content is on.",
       "Live picture unavailable. The call continues with the portrait.",
+      "Lively: bigger gestures, more often",
       "Load a save before inviting a companion.",
       "Load a save first. A key can be set only while a game is loaded.",
       "Loaded.",
@@ -2849,6 +2928,7 @@
       "Local AI, Standard, Mature on",
       "Longest character description, in characters",
       "Longest reply (in tokens)",
+      "Look and moves",
       "Male",
       "Mature content is on",
       "Mature content is turned off because you chose a model that is not a Mature model.",
@@ -2907,6 +2987,8 @@
       "No closing line.",
       "No conversation profile. This model joins as a follower without AI conversations.",
       "No example replies.",
+      "No jacket",
+      "No jacket and harness",
       "No key added",
       "No key press reached the mod, so nothing changed. If keys do not arrive from this menu, set the key in Cyber Engine Tweaks’ Bindings: it works the same.",
       "No key was pressed, so nothing changed.",
@@ -2919,9 +3001,13 @@
       "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.",
       "No speech was heard. Hold the talk key while you speak.",
       "Nobody lives at your place.",
+      "Nod while you talk to them",
       "None found: installed by hand.",
       "None installed. They are optional.",
       "None yet",
+      "None: the hands stay at rest",
+      "None: they keep the stance they have",
+      "Normal",
       "Normal memory",
       "Not added",
       "Not available on this PC. It needs an AMD Radeon card and the OmniVoice pack.",
@@ -2982,9 +3068,11 @@
       "Optional packs",
       "Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.",
       "Other versions of this rule",
+      "Outfit",
       "Output rules",
       "Own Python",
       "Page {page} / {pages}",
+      "Paradise look",
       "Partner paragraph: affection and desire",
       "Partner paragraph: nothing invented",
       "Parts of the character",
@@ -2995,6 +3083,7 @@
       "Paste model ID",
       "Pay {name} back {amount} eddies?",
       "Picked up in your talks",
+      "Plain stances only, no props like a cup or a cigarette",
       "Play saved clip",
       "Pocket could not load. See Help in Settings.",
       "Pocket voice",
@@ -3021,6 +3110,7 @@
       "Prompting",
       "Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.",
       "PyTorch is not installed in it",
+      "Pyjamas",
       "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.",
       "RED4ext writes its logs in {path}",
       "Reached {host}.",
@@ -3045,6 +3135,7 @@
       "Repeat the “where you are” sentence right before V’s words",
       "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.",
       "Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.",
+      "Reply length",
       "Reply length in words",
       "Report path copied to the clipboard.",
       "Report saved: {path}",
@@ -3102,8 +3193,11 @@
       "Short rules this character always follows when talking, for example: Never swear. Answer in one sentence.",
       "Short summary of earlier talks",
       "Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter.",
+      "Shorter: up to about {words} words",
       "Sign in on the Convai page in your browser. Your key is saved here when you finish.",
       "Signed in. Your Convai API key is saved.",
+      "Sit down and take a place",
+      "Solo look",
       "Some Runtime files are from a newer update than this Runtime says. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version, or extract the full Runtime again. Then restart the game.",
       "Some game models have special rigs or roles and may not behave as ordinary companions.",
       "Some mod files are missing. Extract the Scripts zip again. See Help in Settings.",
@@ -3130,12 +3224,17 @@
       "Stopping the trip. Wait for the car to stop before stepping out.",
       "Story characters",
       "Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom.",
+      "Suit",
       "Support report saved: {path}",
+      "Switched off, they say nothing about fights or about what you pick up.",
+      "T-shirt",
+      "Takes a seat beside you when you sit, and a seat or a spot in your flat at home. Switched off, they stay on their feet beside you.",
       "Talk by text",
       "Talk by voice",
       "Talk to Johnny by text",
       "Talk to Johnny by voice",
       "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.",
+      "Talking gestures",
       "Temperature",
       "Test",
       "Test connection",
@@ -3148,6 +3247,7 @@
       "That address is a web page, not the API. Use the API address from your provider.",
       "That character model is unavailable.",
       "That character was not found.",
+      "That choice is not available.",
       "That companion is no longer in your party.",
       "That companion is not available.",
       "That copy is no longer in your party.",
@@ -3157,6 +3257,7 @@
       "That file is too big for a voice clip.",
       "That is not valid JSON.",
       "That is too long.",
+      "That look is not one of this character’s.",
       "That prompting option was not found.",
       "That was not accepted.",
       "The AMD setup (Settings > Voices > OmniVoice for AMD) runs OmniVoice with ROCm on {card}. Experimental.",
@@ -3243,6 +3344,7 @@
       "The eddies could not be moved.",
       "The editor could not be opened. Try again.",
       "The editor is closed. You can close this tab.",
+      "The editor keeps choices for {max} characters. Reset one first.",
       "The endpoint URL was removed.",
       "The endpoint answered with no text. Check the model ID.",
       "The endpoint did not accept your API key.",
@@ -3266,6 +3368,7 @@
       "The headings that mark each part of the prompt. Change the wording, not the order.",
       "The key could not be saved.",
       "The last thing the model reads before it answers. Use {name} for the character’s name and {words} for the reply length. The Mature setting adds its own clause after it.",
+      "The longest reply, in words. Works with Mistral, Local AI and Custom, not Convai.",
       "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.",
       "The memory service did not respond. Check your connection, then invite again.",
       "The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}.",
@@ -3320,6 +3423,7 @@
       "This PC has no AMD Radeon card this setup can use.",
       "This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.",
       "This address is not encrypted, which is fine on your own computer or home network.",
+      "This character has only one look in the game files, so there is no outfit to choose.",
       "This character needs Mistral, Local AI or Custom to answer.",
       "This character speaks with a generic voice that fits the gender.",
       "This character speaks with the shipped voice.",
@@ -3350,6 +3454,7 @@
       "Too many stop texts. Keep {max} or fewer.",
       "Top K",
       "Top P",
+      "Trench coat",
       "Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Mistral, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.",
       "Two options fit. Say its number.",
       "Type a name in the Search box first, then press the button.",
@@ -3374,13 +3479,17 @@
       "Use the character I’m facing",
       "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.",
       "Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.",
+      "Usual look",
       "V (female voice)",
       "V (male voice)",
       "V speaks with the voice of your installed V voice mod, or the shipped V voice.",
       "V speaks your microphone lines",
+      "Valentino look",
       "Version {version}.",
       "Version {version}. The mod is tested on {game} only, so some things may not work.",
       "Version {version}. These files are the mod build for game {build}. Install the build made for game {game} from the mod’s Nexus Mods page (Scripts) and Hugging Face page (Runtime), then restart the game.",
+      "Very short: up to about {words} words",
+      "Vest",
       "Voice",
       "Voice activation could not open the microphone. Check your Windows input device.",
       "Voice conversation failed. Check your microphone and try again.",
@@ -3406,6 +3515,7 @@
       "Warming up",
       "Watson Northside",
       "Westbrook Japantown",
+      "What they do now and then while they stand beside you.",
       "Where some notes go in the prompt.",
       "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
       "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
@@ -3416,6 +3526,7 @@
       "Windows default",
       "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.",
       "Windows would not let the game start the conversation service (error {error}). A security program may be blocking node.exe in red4ext/plugins/AiNpcCyberpunkMod/app/node: allow it, then restart the game.",
+      "Without the coat",
       "Word bank",
       "Words said in the clip",
       "World rules",
@@ -3893,6 +4004,14 @@
         "mod/character-editor.lua:29"
       ]
     },
+    "A saved choice counts within a few seconds. Clothes change when nobody is looking.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:367"
+      ]
+    },
     "A scene has taken control of the car.": {
       "contexts": [
         "chauffeur.feedback"
@@ -3907,6 +4026,14 @@
       ],
       "references": [
         "mod/character-editor.lua:145"
+      ]
+    },
+    "A small nod now and then while you speak.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:354"
       ]
     },
     "A speaker with a reply length of its own": {
@@ -3938,7 +4065,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6400"
+        "mod/init.lua:6422"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -3946,7 +4073,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6125"
+        "mod/init.lua:6147"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -3954,7 +4081,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6171"
+        "mod/init.lua:6193"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -3962,7 +4089,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6124"
+        "mod/init.lua:6146"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -3970,7 +4097,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6170"
+        "mod/init.lua:6192"
       ]
     },
     "AI NPC Cyberpunk Mod: talk to Johnny by text": {
@@ -3978,7 +4105,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6173"
+        "mod/init.lua:6195"
       ]
     },
     "AI NPC Cyberpunk Mod: talk to Johnny by voice": {
@@ -3986,7 +4113,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6174"
+        "mod/init.lua:6196"
       ]
     },
     "AMD’s ROCm PyTorch does not support this card yet.": {
@@ -4221,7 +4348,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2712"
+        "mod/manager-ui.lua:2715"
       ]
     },
     "An AutoDrive journey is already active.": {
@@ -4366,10 +4493,12 @@
     },
     "Automatic": {
       "contexts": [
-        "page.reply-language"
+        "page.reply-language",
+        "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5505",
+        "mod/character-editor.lua:345",
+        "mod/init.lua:5527",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -4379,6 +4508,14 @@
       ],
       "references": [],
       "planned": true
+    },
+    "Automatic follows the “Companions change outfits” setting in the game: day and night looks, now and then a change, and casual clothes at home. A look you pick is worn all the time. Only your own companions and residents are dressed, and they change while nobody is looking. Characters the game places are never changed.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:344"
+      ]
     },
     "Automatic reactions": {
       "contexts": [
@@ -4439,6 +4576,14 @@
         "mod/character-editor.lua:65"
       ]
     },
+    "Back to the usual look and moves.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:341"
+      ]
+    },
     "Backspace": {
       "contexts": [
         "page.key-bindings"
@@ -4446,6 +4591,14 @@
       "references": [
         "mod/key-bindings.lua:141",
         "mod/key-bindings.lua:63"
+      ]
+    },
+    "Bartender": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:333"
       ]
     },
     "Behavior: {list}": {
@@ -4546,6 +4699,22 @@
         "mod/manager-ui.lua:1198"
       ]
     },
+    "CEO look": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:338"
+      ]
+    },
+    "CEO look with coat": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:337"
+      ]
+    },
     "CHARACTERS": {
       "contexts": [
         "legacy.manager.native"
@@ -4607,6 +4776,14 @@
       "references": [
         "mod/holocall.lua:783",
         "mod/holocall.lua:804"
+      ]
+    },
+    "Calm: smaller gestures, not as often": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:350"
       ]
     },
     "Cancel": {
@@ -4738,7 +4915,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5694"
+        "mod/init.lua:5716"
       ]
     },
     "Characters": {
@@ -4885,6 +5062,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:214"
+      ]
+    },
+    "Choices for how this character looks and moves. They work with every conversation option, Convai included, except the reply length.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:342"
       ]
     },
     "Choose 16 or 32 voice steps.": {
@@ -5042,7 +5227,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2541",
+        "mod/manager-ui.lua:2544",
         "mod/manager.lua:2414"
       ]
     },
@@ -5060,7 +5245,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:2615"
+        "mod/manager-ui.lua:2618"
       ]
     },
     "Choose an eye-contact height from the available settings.": {
@@ -5078,7 +5263,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2584",
+        "mod/manager-ui.lua:2587",
         "mod/manager.lua:2420"
       ]
     },
@@ -5104,7 +5289,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2668",
+        "mod/manager-ui.lua:2671",
         "mod/manager.lua:2392"
       ]
     },
@@ -5114,7 +5299,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2674",
+        "mod/manager-ui.lua:2677",
         "mod/manager.lua:2395"
       ]
     },
@@ -5132,7 +5317,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2569",
+        "mod/manager-ui.lua:2572",
         "mod/manager.lua:2289"
       ]
     },
@@ -5143,7 +5328,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:2598",
+        "mod/manager-ui.lua:2601",
         "mod/manager.lua:2425"
       ]
     },
@@ -5153,7 +5338,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2562",
+        "mod/manager-ui.lua:2565",
         "mod/manager.lua:2400"
       ]
     },
@@ -5163,7 +5348,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2546",
+        "mod/manager-ui.lua:2549",
         "mod/manager.lua:2403"
       ]
     },
@@ -5173,7 +5358,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2553",
+        "mod/manager-ui.lua:2556",
         "mod/manager.lua:2410"
       ]
     },
@@ -5183,9 +5368,9 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2632",
-        "mod/manager-ui.lua:2642",
-        "mod/manager-ui.lua:2647",
+        "mod/manager-ui.lua:2635",
+        "mod/manager-ui.lua:2645",
+        "mod/manager-ui.lua:2650",
         "mod/manager.lua:2331",
         "mod/manager.lua:2333",
         "mod/manager.lua:2335"
@@ -5197,7 +5382,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2620",
+        "mod/manager-ui.lua:2623",
         "mod/manager.lua:2292",
         "mod/manager.lua:2295"
       ]
@@ -5209,7 +5394,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:2574",
+        "mod/manager-ui.lua:2577",
         "mod/manager.lua:2406"
       ]
     },
@@ -5220,7 +5405,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:2578",
+        "mod/manager-ui.lua:2581",
         "mod/manager.lua:2417"
       ]
     },
@@ -5230,7 +5415,7 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2590",
+        "mod/manager-ui.lua:2593",
         "mod/manager.lua:2436"
       ]
     },
@@ -5480,6 +5665,14 @@
         "mod/character-editor.lua:199"
       ]
     },
+    "Club night, no jacket": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:327"
+      ]
+    },
     "Codeware is too old. Update it from Nexus Mods, then restart the game.": {
       "contexts": [
         "ui.localized"
@@ -5487,6 +5680,22 @@
       "references": [
         "mod/setup-check.lua:602",
         "mod/setup-check.lua:898"
+      ]
+    },
+    "Collar down": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:324"
+      ]
+    },
+    "Comment on fights and loot": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:361"
       ]
     },
     "Companion Manager": {
@@ -5700,7 +5909,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2943",
+        "mod/init.lua:2962",
         "mod/manager-ui.lua:1388"
       ]
     },
@@ -5720,7 +5929,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5561"
+        "mod/init.lua:5583"
       ]
     },
     "Convai could not start the payment. Try again later.": {
@@ -5753,7 +5962,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5537"
+        "mod/init.lua:5559"
       ]
     },
     "Convai does not show a paid plan for your key yet.": {
@@ -5802,7 +6011,7 @@
       ],
       "references": [
         "mod/convai-paid-tier.lua:161",
-        "mod/manager-ui.lua:2723"
+        "mod/manager-ui.lua:2726"
       ]
     },
     "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.": {
@@ -6281,7 +6490,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:364",
-        "mod/init.lua:5662"
+        "mod/init.lua:5684"
       ]
     },
     "Custom voices": {
@@ -6414,6 +6623,14 @@
       "references": [
         "mod/phone-chat-style.lua:79",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:366"
+      ]
+    },
+    "Date night": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:329"
       ]
     },
     "Default": {
@@ -6637,6 +6854,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:281"
+      ]
+    },
+    "Dress without the fur coat": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:334"
       ]
     },
     "Driver boarding": {
@@ -6897,8 +7122,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2616",
-        "mod/init.lua:3080"
+        "mod/init.lua:2635",
+        "mod/init.lua:3099"
       ]
     },
     "Facts the character noticed while you talked. Change or delete the ones that are wrong.": {
@@ -7149,7 +7374,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5649",
+        "mod/init.lua:5671",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -7296,7 +7521,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5649",
+        "mod/init.lua:5671",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -7356,6 +7581,14 @@
         "mod/character-editor.lua:64"
       ]
     },
+    "Go back to the usual look and moves for {name}? Your choices on this part are removed.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:340"
+      ]
+    },
     "Graphics card": {
       "contexts": [
         "ui.localized"
@@ -7370,8 +7603,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3159",
-        "mod/init.lua:3289"
+        "mod/init.lua:3178",
+        "mod/init.lua:3308"
       ]
     },
     "Group text chat": {
@@ -7555,6 +7788,46 @@
         "mod/key-bindings.lua:64"
       ]
     },
+    "Home clothes: shirt and trousers": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:320"
+      ]
+    },
+    "Home clothes: t-shirt and trousers": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:323"
+      ]
+    },
+    "Home clothes: tank top and trousers": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:321"
+      ]
+    },
+    "Home clothes: tank top, boxer shorts, flip-flops": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:317"
+      ]
+    },
+    "Hooded jacket": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:322"
+      ]
+    },
     "Housemates": {
       "contexts": [
         "page.action",
@@ -7679,6 +7952,14 @@
         "mod/character-editor.lua:121"
       ]
     },
+    "How the hands move while they speak a longer reply.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:348"
+      ]
+    },
     "How they sound: pace, attitude, favourite habits of speech.": {
       "contexts": [
         "ui.localized"
@@ -7718,6 +7999,14 @@
       "references": [
         "mod/phone-chat-style.lua:78",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:366"
+      ]
+    },
+    "Idle moves": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:355"
       ]
     },
     "If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.": {
@@ -7996,7 +8285,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5649",
+        "mod/init.lua:5671",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -8038,7 +8327,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3031"
+        "mod/init.lua:3050"
       ]
     },
     "Joining...": {
@@ -8205,6 +8494,14 @@
         "mod/holocall.lua:874"
       ]
     },
+    "Lively: bigger gestures, more often": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:351"
+      ]
+    },
     "Load a save before inviting a companion.": {
       "contexts": [
         "ui.localized"
@@ -8287,7 +8584,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5610"
+        "mod/init.lua:5632"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -8295,8 +8592,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5598",
-        "mod/init.lua:5602",
+        "mod/init.lua:5620",
+        "mod/init.lua:5624",
         "mod/manager-ui.lua:110"
       ]
     },
@@ -8373,7 +8670,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5624"
+        "mod/init.lua:5646"
       ]
     },
     "Local AI stopped working and was restarted.": {
@@ -8381,7 +8678,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5620"
+        "mod/init.lua:5642"
       ]
     },
     "Local AI switched to {model}: the game is using most of your graphics memory.": {
@@ -8389,7 +8686,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5641"
+        "mod/init.lua:5663"
       ]
     },
     "Local AI, Lite": {
@@ -8446,6 +8743,14 @@
       ],
       "references": [
         "mod/character-editor.lua:207"
+      ]
+    },
+    "Look and moves": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:368"
       ]
     },
     "MIOpen convolutions (AMD)": {
@@ -8763,7 +9068,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5565",
+        "mod/init.lua:5587",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:12"
       ]
@@ -8789,7 +9094,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5656"
+        "mod/init.lua:5678"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -8797,7 +9102,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5658"
+        "mod/init.lua:5680"
       ]
     },
     "Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.": {
@@ -8838,7 +9143,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5567",
+        "mod/init.lua:5589",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:13"
       ]
@@ -9184,6 +9489,22 @@
         "mod/character-editor.lua:307"
       ]
     },
+    "No jacket": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:318"
+      ]
+    },
+    "No jacket and harness": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:319"
+      ]
+    },
     "No key added": {
       "contexts": [
         "ui.localized"
@@ -9237,7 +9558,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:6273"
+        "mod/init.lua:6295"
       ]
     },
     "No problem found. Select a line to see what was checked.": {
@@ -9261,7 +9582,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:7348"
+        "mod/init.lua:7377"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -9306,6 +9627,14 @@
         "mod/manager-ui.lua:1648"
       ]
     },
+    "Nod while you talk to them": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:353"
+      ]
+    },
     "None found: installed by hand.": {
       "contexts": [
         "ui.localized"
@@ -9328,6 +9657,30 @@
       ],
       "references": [
         "mod/manager-ui.lua:1888"
+      ]
+    },
+    "None: the hands stay at rest": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:352"
+      ]
+    },
+    "None: they keep the stance they have": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:358"
+      ]
+    },
+    "Normal": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:349"
       ]
     },
     "Normal memory": {
@@ -9371,7 +9724,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2418"
+        "mod/manager-ui.lua:2421"
       ]
     },
     "Not checked yet": {
@@ -9395,7 +9748,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5596",
+        "mod/init.lua:5618",
         "mod/manager-ui.lua:109",
         "mod/setup-check.lua:777"
       ]
@@ -9928,7 +10281,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:345"
+        "mod/character-editor.lua:401"
       ]
     },
     "Opening the page in your browser…": {
@@ -10020,6 +10373,14 @@
         "mod/character-editor.lua:250"
       ]
     },
+    "Outfit": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:343"
+      ]
+    },
     "Output rules": {
       "contexts": [
         "ui.localized"
@@ -10079,6 +10440,14 @@
       ],
       "references": [
         "mod/manager.lua:2063"
+      ]
+    },
+    "Paradise look": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:332"
       ]
     },
     "Partner paragraph: affection and desire": {
@@ -10202,6 +10571,14 @@
         "mod/character-editor.lua:72"
       ]
     },
+    "Plain stances only, no props like a cup or a cigarette": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:357"
+      ]
+    },
     "Plans": {
       "contexts": [
         "page.category"
@@ -10255,7 +10632,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2533"
+        "mod/init.lua:2552"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -10338,7 +10715,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5649",
+        "mod/init.lua:5671",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -10565,6 +10942,14 @@
       ],
       "references": [
         "mod/setup-check.lua:738"
+      ]
+    },
+    "Pyjamas": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:339"
       ]
     },
     "Quest and journal": {
@@ -10840,7 +11225,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2413"
+        "mod/manager-ui.lua:2416"
       ]
     },
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": {
@@ -10872,7 +11257,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5645"
+        "mod/init.lua:5667"
       ]
     },
     "Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.": {
@@ -10881,6 +11266,14 @@
       ],
       "references": [
         "mod/character-editor.lua:264"
+      ]
+    },
+    "Reply length": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:363"
       ]
     },
     "Reply length in words": {
@@ -10930,8 +11323,8 @@
       ],
       "references": [
         "mod/manager-ui.lua:2186",
-        "mod/manager-ui.lua:2592",
-        "mod/manager-ui.lua:2606"
+        "mod/manager-ui.lua:2595",
+        "mod/manager-ui.lua:2609"
       ]
     },
     "Requires the Companion voices to be an OmniVoice choice": {
@@ -10941,7 +11334,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:2190",
-        "mod/manager-ui.lua:2687"
+        "mod/manager-ui.lua:2690"
       ]
     },
     "Requires the optional OmniVoice pack (GPU)": {
@@ -10953,8 +11346,8 @@
       "references": [
         "mod/manager-ui.lua:2167",
         "mod/manager-ui.lua:2190",
-        "mod/manager-ui.lua:2602",
-        "mod/manager-ui.lua:2686",
+        "mod/manager-ui.lua:2605",
+        "mod/manager-ui.lua:2689",
         "mod/manager.lua:36",
         "mod/mcm-host.lua:360"
       ]
@@ -11650,6 +12043,14 @@
         "mod/character-editor.lua:280"
       ]
     },
+    "Shorter: up to about {words} words": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:365"
+      ]
+    },
     "Show companion reply subtitles during conversations.": {
       "contexts": [
         "legacy.manager"
@@ -11704,6 +12105,22 @@
       ],
       "references": [
         "mod/convai-paid-tier.lua:154"
+      ]
+    },
+    "Sit down and take a place": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:359"
+      ]
+    },
+    "Solo look": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:328"
       ]
     },
     "Some Runtime files are from a newer update than this Runtime says. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version, or extract the full Runtime again. Then restart the game.": {
@@ -11786,7 +12203,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5649",
+        "mod/init.lua:5671",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -11811,7 +12228,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:6272"
+        "mod/init.lua:6294"
       ]
     },
     "Speaking rules": {
@@ -11836,7 +12253,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3571"
+        "mod/init.lua:3590"
       ]
     },
     "Speaks up normally": {
@@ -11904,7 +12321,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:5941"
+        "mod/init.lua:5963"
       ]
     },
     "Start the OmniVoice server on the other PC. Its window shows the address to use, for example 192.168.1.20:8765. Copy it, then choose Paste address. It is read from the clipboard once and saved on this computer.\n\nOn the same PC use 127.0.0.1:8765. You can also write address=192.168.1.20:8765 in player-remote-omnivoice.txt in the conversation service folder.\n\nNothing is sent to it until Remote OmniVoice is on and OmniVoice is chosen, or you press Test.": {
@@ -12129,12 +12546,36 @@
         "mod/manager-ui.lua:2033"
       ]
     },
+    "Suit": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:326"
+      ]
+    },
     "Support report saved: {path}": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
         "mod/support-report.lua:467"
+      ]
+    },
+    "Switched off, they say nothing about fights or about what you pick up.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:362"
+      ]
+    },
+    "T-shirt": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:330"
       ]
     },
     "TALK TO {character}": {
@@ -12162,6 +12603,14 @@
       "references": [
         "mod/key-bindings.lua:141",
         "mod/key-bindings.lua:63"
+      ]
+    },
+    "Takes a seat beside you when you sit, and a seat or a spot in your flat at home. Switched off, they stay on their feet beside you.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:360"
       ]
     },
     "Talk by text": {
@@ -12217,7 +12666,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:940"
+        "mod/init.lua:955"
       ]
     },
     "Talk to story characters": {
@@ -12243,6 +12692,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:2115"
+      ]
+    },
+    "Talking gestures": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:347"
       ]
     },
     "Temperature": {
@@ -12359,6 +12816,14 @@
         "mod/character-editor.lua:23"
       ]
     },
+    "That choice is not available.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:314"
+      ]
+    },
     "That companion is no longer in your party.": {
       "contexts": [
         "ui.localized"
@@ -12471,6 +12936,14 @@
         "mod/manager.lua:2370"
       ]
     },
+    "That look is not one of this character’s.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:313"
+      ]
+    },
     "That model is no longer available.": {
       "contexts": [
         "manager.feedback"
@@ -12493,8 +12966,8 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:2634",
-        "mod/manager-ui.lua:2680"
+        "mod/manager-ui.lua:2637",
+        "mod/manager-ui.lua:2683"
       ]
     },
     "That was not accepted.": {
@@ -12568,7 +13041,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5634"
+        "mod/init.lua:5656"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -12601,7 +13074,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5569",
+        "mod/init.lua:5591",
         "mod/phone-chat-style.lua:56",
         "mod/phone-chat.lua:14"
       ]
@@ -12708,7 +13181,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2424",
+        "mod/manager-ui.lua:2427",
         "mod/manager.lua:2567",
         "mod/nsui.lua:444"
       ]
@@ -12780,7 +13253,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5606"
+        "mod/init.lua:5628"
       ]
     },
     "The car has stopped. Step out so your companion can leave the driver seat.": {
@@ -12997,7 +13470,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5533"
+        "mod/init.lua:5555"
       ]
     },
     "The conversation service cannot reach the internet. See Help in Settings.": {
@@ -13029,7 +13502,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5674"
+        "mod/init.lua:5696"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -13103,7 +13576,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:330"
+        "mod/character-editor.lua:386"
       ]
     },
     "The conversation service is not running. Restart the game to start it again.": {
@@ -13207,7 +13680,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:352",
-        "mod/init.lua:5574",
+        "mod/init.lua:5596",
         "mod/phone-chat-style.lua:57",
         "mod/phone-chat.lua:15"
       ]
@@ -13219,7 +13692,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:362",
-        "mod/init.lua:5591",
+        "mod/init.lua:5613",
         "mod/phone-chat-style.lua:63",
         "mod/phone-chat.lua:21"
       ]
@@ -13231,7 +13704,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:354",
-        "mod/init.lua:5578",
+        "mod/init.lua:5600",
         "mod/phone-chat-style.lua:59",
         "mod/phone-chat.lua:17"
       ]
@@ -13242,7 +13715,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:363",
-        "mod/init.lua:5660"
+        "mod/init.lua:5682"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -13252,7 +13725,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:355",
-        "mod/init.lua:5580",
+        "mod/init.lua:5602",
         "mod/phone-chat-style.lua:60",
         "mod/phone-chat.lua:18"
       ]
@@ -13264,7 +13737,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:353",
-        "mod/init.lua:5576",
+        "mod/init.lua:5598",
         "mod/phone-chat-style.lua:58",
         "mod/phone-chat.lua:16"
       ]
@@ -13342,7 +13815,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:344"
+        "mod/character-editor.lua:400"
       ]
     },
     "The editor is closed. You can close this tab.": {
@@ -13351,6 +13824,14 @@
       ],
       "references": [
         "mod/character-editor.lua:170"
+      ]
+    },
+    "The editor keeps choices for {max} characters. Reset one first.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:315"
       ]
     },
     "The endpoint URL was removed.": {
@@ -13472,7 +13953,7 @@
       "references": [
         "mod/custom-provider.lua:234",
         "mod/custom-provider.lua:358",
-        "mod/init.lua:5585"
+        "mod/init.lua:5607"
       ]
     },
     "The free daily limit for this model was reached. Try again after it resets.": {
@@ -13482,7 +13963,7 @@
       "references": [
         "mod/custom-provider.lua:235",
         "mod/custom-provider.lua:359",
-        "mod/init.lua:5587"
+        "mod/init.lua:5609"
       ]
     },
     "The game could not verify a safe companion position.": {
@@ -13632,6 +14113,14 @@
       ],
       "references": [
         "r6/scripts/CyberpunkConvai/Manager.reds:728"
+      ]
+    },
+    "The longest reply, in words. Works with Mistral, Local AI and Custom, not Convai.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:364"
       ]
     },
     "The manager could not be prepared: {reason}": {
@@ -14143,7 +14632,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5628"
+        "mod/init.lua:5650"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -14218,6 +14707,14 @@
         "mod/custom-provider.lua:264"
       ]
     },
+    "This character has only one look in the game files, so there is no outfit to choose.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:346"
+      ]
+    },
     "This character needs Mistral, Local AI or Custom to answer.": {
       "contexts": [
         "phone.chat",
@@ -14277,7 +14774,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5693",
+        "mod/init.lua:5715",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:478"
       ]
     },
@@ -14369,7 +14866,7 @@
       "references": [
         "mod/custom-provider.lua:237",
         "mod/custom-provider.lua:361",
-        "mod/init.lua:5589"
+        "mod/init.lua:5611"
       ]
     },
     "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.": {
@@ -14402,9 +14899,9 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:2628",
-        "mod/manager-ui.lua:2636",
-        "mod/manager-ui.lua:2650",
+        "mod/manager-ui.lua:2631",
+        "mod/manager-ui.lua:2639",
+        "mod/manager-ui.lua:2653",
         "mod/manager.lua:2279",
         "mod/manager.lua:2282",
         "mod/manager.lua:2300",
@@ -14465,7 +14962,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5528"
+        "mod/init.lua:5550"
       ]
     },
     "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
@@ -14473,7 +14970,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5526"
+        "mod/init.lua:5548"
       ]
     },
     "Tone line": {
@@ -14556,6 +15053,14 @@
         "mod/character-editor.lua:201"
       ]
     },
+    "Trench coat": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:335"
+      ]
+    },
     "Trip cancelled from Companion Manager.": {
       "contexts": [
         "chauffeur.feedback"
@@ -14626,7 +15131,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:6271"
+        "mod/init.lua:6293"
       ]
     },
     "Type a message first.": {
@@ -14919,6 +15424,14 @@
         "mod/character-editor.lua:158"
       ]
     },
+    "Usual look": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:316"
+      ]
+    },
     "V (female voice)": {
       "contexts": [
         "ui.localized"
@@ -14977,6 +15490,14 @@
         "mod/manager-ui.lua:401"
       ]
     },
+    "Valentino look": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:325"
+      ]
+    },
     "Vehicle exit workspot state is unavailable.": {
       "contexts": [
         "party.vehicle-transition-feedback"
@@ -15027,6 +15548,22 @@
         "mod/setup-check.lua:577"
       ]
     },
+    "Very short: up to about {words} words": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:366"
+      ]
+    },
+    "Vest": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:331"
+      ]
+    },
     "View": {
       "contexts": [
         "page.key-bindings"
@@ -15057,7 +15594,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:6219"
+        "mod/init.lua:6241"
       ]
     },
     "Voice conversation failed. Check your microphone and try again.": {
@@ -15065,7 +15602,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5676"
+        "mod/init.lua:5698"
       ]
     },
     "Voice input could not reach Convai. Hold the voice key again, or type.": {
@@ -15160,7 +15697,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:2184",
-        "mod/manager-ui.lua:2697",
+        "mod/manager-ui.lua:2700",
         "mod/manager-ui.lua:465"
       ]
     },
@@ -15263,7 +15800,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2714"
+        "mod/manager-ui.lua:2717"
       ]
     },
     "V’s voice switches from Voxtral to Pocket.": {
@@ -15536,6 +16073,14 @@
         "mod/manager-ui.lua:1973"
       ]
     },
+    "What they do now and then while they stand beside you.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:356"
+      ]
+    },
     "What to do": {
       "contexts": [
         "page.readonly"
@@ -15713,6 +16258,14 @@
         "mod/setup-check.lua:530"
       ]
     },
+    "Without the coat": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:336"
+      ]
+    },
     "Word bank": {
       "contexts": [
         "ui.localized"
@@ -15873,7 +16426,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5535"
+        "mod/init.lua:5557"
       ]
     },
     "Your Convai plan": {
@@ -15889,7 +16442,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5539"
+        "mod/init.lua:5561"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -15897,7 +16450,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5556"
+        "mod/init.lua:5578"
       ]
     },
     "Your Convai plan is active.": {
@@ -15907,7 +16460,7 @@
       "references": [
         "mod/convai-paid-tier.lua:160",
         "mod/convai-paid-tier.lua:169",
-        "mod/manager-ui.lua:2727"
+        "mod/manager-ui.lua:2730"
       ]
     },
     "Your Convai plan is active. Choose Convai API key in Settings > Conversation provider.": {
@@ -15915,7 +16468,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2734"
+        "mod/manager-ui.lua:2737"
       ]
     },
     "Your Convai plan is active. Conversations now use your Convai API key.": {
@@ -15923,7 +16476,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:2732"
+        "mod/manager-ui.lua:2735"
       ]
     },
     "Your Custom models and APIs": {
@@ -16089,7 +16642,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3390"
+        "mod/init.lua:3409"
       ]
     },
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.": {
@@ -16098,7 +16651,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5614",
+        "mod/init.lua:5636",
         "mod/phone-chat-style.lua:74",
         "mod/phone-chat.lua:29"
       ]
@@ -16109,7 +16662,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5616",
+        "mod/init.lua:5638",
         "mod/phone-chat-style.lua:75",
         "mod/phone-chat.lua:30"
       ]
@@ -16290,8 +16843,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5633",
-        "mod/init.lua:5640"
+        "mod/init.lua:5655",
+        "mod/init.lua:5662"
       ]
     },
     "at home": {
@@ -16586,7 +17139,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5652"
+        "mod/init.lua:5674"
       ]
     },
     "{message} The change is active, but could not be saved for next time.": {
@@ -16643,7 +17196,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3142"
+        "mod/init.lua:3161"
       ]
     },
     "{name} answers typed messages only for now. Use {key}.": {
@@ -16651,7 +17204,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3141"
+        "mod/init.lua:3160"
       ]
     },
     "{name} asks to borrow {amount} eddies. Lend them?": {
@@ -16675,7 +17228,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:944"
+        "mod/init.lua:959"
       ]
     },
     "{name} could not join: {reason}": {
@@ -16713,8 +17266,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3192",
-        "mod/init.lua:5685"
+        "mod/init.lua:3211",
+        "mod/init.lua:5707"
       ]
     },
     "{name} has moved out.": {
@@ -16730,7 +17283,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:942"
+        "mod/init.lua:957"
       ]
     },
     "{name} is a story character. Turn on Talk to story characters in Esc > Mods.": {
@@ -16738,7 +17291,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:937"
+        "mod/init.lua:952"
       ]
     },
     "{name} is already on the way.": {
@@ -16771,9 +17324,9 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3044",
-        "mod/init.lua:3225",
-        "mod/init.lua:3243"
+        "mod/init.lua:3063",
+        "mod/init.lua:3244",
+        "mod/init.lua:3262"
       ]
     },
     "{name} is coming with you.": {
@@ -16839,7 +17392,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:943"
+        "mod/init.lua:958"
       ]
     },
     "{name} is not in your group.": {
@@ -16849,7 +17402,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:6016"
+        "mod/init.lua:6038"
       ]
     },
     "{name} is not in your head right now.": {
@@ -16858,7 +17411,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3048"
+        "mod/init.lua:3067"
       ]
     },
     "{name} is now a favorite. Favorites are listed first.": {
@@ -16891,7 +17444,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3187"
+        "mod/init.lua:3206"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.": {
@@ -16899,7 +17452,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5680"
+        "mod/init.lua:5702"
       ]
     },
     "{name} joined your group.": {
@@ -17076,7 +17629,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:4165"
+        "mod/init.lua:4187"
       ]
     },
     "{name}: chat {state}.": {
@@ -17460,8 +18013,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3159",
-        "mod/init.lua:3289"
+        "mod/init.lua:3178",
+        "mod/init.lua:3308"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -17747,8 +18300,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3192",
-        "mod/init.lua:5685"
+        "mod/init.lua:3211",
+        "mod/init.lua:5707"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -17772,7 +18325,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:6016"
+        "mod/init.lua:6038"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

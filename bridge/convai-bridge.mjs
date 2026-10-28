@@ -87,6 +87,7 @@ import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtim
 import {gpuVendors, nvidiaCardMiB, amdRoute} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
+import {CharacterOptions} from './character-options.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
 import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
@@ -241,7 +242,7 @@ console.error(`[PlayerVoices] voice clips and their list are kept in ${playerVoi
 // Convai character: runCustomTurn answers them. Deleting one removes its voice clip and its prepared voice setups.
 const customCharacters = await CustomCharacters.open({dir: stateDirectory, exchangePath: resolve(runtime, 'custom-characters.json'), roster: rosterIndex(roster),
   log: message => console.error('[Custom] ' + message), onChange: () => syncCustomRoster(),
-  onDeleted: key => { void playerVoices.clear(key).catch(() => {}); return releaseCustomVoice(key); }});
+  onDeleted: key => { void playerVoices.clear(key).catch(() => {}); void characterOptions.remove(key).catch(() => {}); return releaseCustomVoice(key); }});
 function syncCustomRoster() {
   for (let at = roster.length - 1; at >= 0; at--) if (roster[at]?.kind === 'custom') roster.splice(at, 1);
   roster.push(...customCharacters.rosterRows());
@@ -249,6 +250,10 @@ function syncCustomRoster() {
   addonHost.characterLookup?.reset?.();
 }
 syncCustomRoster();
+// What the player chose for a character besides its words (docs/CHARACTER_EDITOR.md, "Look and moves"): <state>/character-options.json, read once here. The reply length is a plain
+// lookup in the persona; the choices the game acts on (the look, gestures, idle moves, seating, reactions) are copied to runtime/character-options.json for the Lua side.
+const characterOptions = await CharacterOptions.open({dir: stateDirectory, exchangePath: resolve(runtime, 'character-options.json'), log: message => console.error('[Editor] ' + message)});
+await characterOptions.prune(key => !isCustomKey(key) || customCharacters.has(key));
 // The content packs' rewritten characters and names are laid over the roster rows now, and again each time a pack is switched (bridge/addon-content.mjs bindRoster).
 addonContent.bindRoster(roster);
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
@@ -507,6 +512,7 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
 const key = parseKeyFileText(await readFile(keyFile, 'utf8').catch(() => ''));
 await mkdir(runtime, {recursive: true});
 await customCharacters.publish();
+await characterOptions.publish({quiet: true});
 // Which add-ons were found and why any was not loaded, for the game to tell the player (docs/ADDON_API.md). With none, a status
 // file an earlier run left is removed and nothing is written. Then the add-on state and settings the game last wrote.
 await addonHost.publishStatus(runtime).catch(error => console.error('[Addons] Status not written:', error.message));
@@ -1135,7 +1141,7 @@ const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDire
 // with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
 const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
 // The text providers' personas carry the player's rules and then the content packs' (a view of the same store); the editor and Convai below read the store itself.
-const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters,
+const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, options: characterOptions,
   worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules});
 // "Mature content": read from the settings file when it changes (never per turn); the local AI and Custom routes use it, Mistral and Convai never. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
@@ -4122,7 +4128,7 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
 const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: scopedMemory(mistralMemory, memoryNamespace.keyFor), route: () => mistral.route, custom: customCharacters,
-  voices: playerVoices, worldRules, promptProfiles, addonContent: addonContent.installed ? addonContent : null,
+  voices: playerVoices, worldRules, promptProfiles, addonContent: addonContent.installed ? addonContent : null, options: characterOptions,
   // Every turn reads the persona, the overrides, the memories and the player's characters with a plain lookup, so a save counts from the next turn with
   // no restart. A group reply prepared before the save was written from the old text: it is dropped, so the next one is written from the new.
   onChanged: () => { dropPrefetch(); prefetchObserved = ''; }});

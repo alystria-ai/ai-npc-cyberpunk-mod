@@ -593,12 +593,13 @@ test('init.lua: the tick is in the 10 Hz branch after the poll gate, off costs o
   const tick = initSource.indexOf('pcall(convaiOutfitTick, player, elapsedPoll, worldReady)');
   assert.ok(gate > 0 && tick > gate, 'the outfit tick comes after the 0.1 s gate of onUpdate');
   assert.ok(tick < initSource.indexOf('registerForEvent(\'onShutdown\''));
-  assert.match(initSource, /function convaiOutfitTick\(player, elapsed, ready\)\s*if not manager\.companionOutfits\(\) then return end\s*local module = convaiOutfitModule\(\)\s*if module then module\.tick\(player, elapsed, ready\) end/);
+  // (The player's chosen looks of the character editor keep the module running with the setting off, for those characters only: docs/CHARACTER_EDITOR.md "Look and moves".)
+  assert.match(initSource, /function convaiOutfitTick\(player, elapsed, ready\)(?:\s*--[^\n]*)*\s*local chosen = convaiCharacterOptions\s*if chosen then chosen\.tick\(elapsed\) end\s*if not manager\.companionOutfits\(\) and not \(chosen and chosen\.hasOutfits\(\)\) then return end\s*local module = convaiOutfitModule\(\)\s*if module then module\.tick\(player, elapsed, ready\) end/);
   assert.match(initSource, /pcall\(dofile, 'companion-outfits\.lua'\)/);
   // Only companions.lua's three hooks and the API global leave init.lua; the module is not on the onUpdate path any other way.
   assert.equal([...initSource.matchAll(/convaiOutfitTick/g)].length, 2, 'defined once and called once (the pcall in the 10 Hz branch)');
   assert.match(initSource, /if convaiOutfits and preserveTransit ~= true then pcall\(convaiOutfits\.reset\) end/);
-  assert.match(initSource, /companions\.spawnOutfit = function\(record, key\)\s*if not manager\.companionOutfits\(\) then return nil end/);
+  assert.match(initSource, /companions\.spawnOutfit = function\(record, key\)\s*local chosen = convaiCharacterOptions\s*if not manager\.companionOutfits\(\) and not \(chosen and chosen\.hasOutfits\(\)\) then return nil end/);
   assert.match(initSource, /convaiOutfitApi = \{\s*setHome = function\(key, on\)/);
   // The game's own frustum test and the margins its reaction code uses; the world check is the battle observer's.
   assert.match(initSource, /IsInCameraFrustum\(npc, 2\.0, 0\.75\)/);

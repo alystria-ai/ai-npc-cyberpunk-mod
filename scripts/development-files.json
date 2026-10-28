@@ -627,6 +627,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-editor.lua"
     },
     {
+      "source": "mod/character-options.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-options.lua"
+    },
+    {
       "source": "mod/convai-paid-tier.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/convai-paid-tier.lua"
     },

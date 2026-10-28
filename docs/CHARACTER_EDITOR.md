@@ -12,6 +12,8 @@ Voice clips (the section of that name below, branch `player-characters`, 2026-10
 
 Live apply ("Changing a clip while the service runs" below, branch `feat/editor-live-apply`, 2026-10-19): every editor change, a voice clip included, counts without restarting the game or the service. Built and tested (unit tests, scripted workers, the Python worker tests); NOT yet seen in the game.
 
+Look and moves (the section of that name below, branch `feat/editor-outfits`, 2026-10-28): a tab per character for its outfit, talking gestures, nods, idle moves, seating, comments on fights and loot, and reply length. Most of it works with every conversation option, Convai included. Built; unit-, Lua- and headless-browser tested; NOT yet seen in the game.
+
 ## Why a web page and not an in-game editor
 
 - **Text entry.** The mod's menu (Native Settings UI, drawn by the game) has no multi-line text box, no scrolling text area, no list editing and no paste. A bio is up to 9,000 characters. Editing it with CET's `ImGui.InputTextMultiline` would need a per-frame draw callback and would grab the keyboard from the game.
@@ -115,9 +117,75 @@ A **Prompting** button above the character list (with World rules) opens a page 
 
 **Tests.** `bridge/character-editor-prompting.test.mjs` (auth, Host, Origin, content type, body cap, ids, every limit and its code, save, reset of a part and of all, preview, a missing store, the size of the command file, an override reaching the next turn's prompt and Reset restoring the default byte for byte) and three tests in `bridge/character-editor-browser.test.mjs` (the whole path in real Edge: badges, live preview, edit, save, reset, inline errors; French sentences and markup shown as text at phone width; the light theme and the wide layout). NOT yet seen in the game.
 
+## Look and moves (2026-10-28, branch `feat/editor-outfits`)
+
+A player asked for outfit options in the editor; the owner added "options for selecting what animations the character is allowed to use in idle and talking" and "look for more information that the player can customise for a character". Every named character (the story characters) and every character the player made has a **Look and moves** tab (for a character of the player's own, a section of its page once it is saved). Everyday people and V's two voice rows have none. Built; unit-, Lua- and headless-browser tested; NOT yet seen in the game.
+
+Unlike the text edits, almost all of these work with **every** conversation option, Convai included: they are game-side choices. The tab says so, and the Convai warning banner is left off it (the reply length needs a text provider, and its row says so). A choice is a list or a box; **Save** sends only what differs from the saved choices, **Reset to default** removes them all, a tab with an unsaved choice is marked and leaving asks first.
+
+| Choice | Values (the first is today's behaviour) | What it does |
+|---|---|---|
+| **Outfit** | Automatic, or one of the character's looks (below) | A look worn all the time. Automatic leaves the *Companions change outfits* setting in charge |
+| **Talking gestures** | Normal, Calm, Lively, None | The hand gestures while the character speaks a longer reply (`mod/gesture-selection.lua` `styles`) |
+| **Nod while you talk** | on, off | The nods while V speaks to the character (`listening` mode, private and group) |
+| **Idle moves** | Normal, Plain stances only, None | The idle workspots the character takes now and then while it stands settled (`companion-gestures.lua` flavour idles) |
+| **Sit down and take a place** | on, off | A seat beside V when V sits, and a seat or a standing place of V's flat (`companion-seating.lua` `steer`) |
+| **Comment on fights and loot** | on, off | Whether the character is picked to say something after a fight or a pickup (`reactionPeople` in `mod/init.lua`) |
+| **Reply length** | Normal, Shorter (25 words), Very short (12 words) | The longest reply of the character, in every channel, through the add-on speakers' own mechanism (`persona.talkWords`: the rules and the closing line name the word limit); Mistral, Local AI and Custom only. A speaker that has a length of its own (an add-on) keeps it |
+
+No choice is the old behaviour byte for byte: a character with no row in the file has none of these changed (a prompt with no reply length choice is tested to be identical, and `get(key)` is `nil` in the game).
+
+### The outfit row
+
+**Where the looks come from.** `mod/companion-outfits-data.lua` (docs/COMPANION_OUTFITS.md): the curated list of 15 characters with 42 looks, each an appearance name that the character's own entity template lists, read from the installed game (`characters/companion-outfit-evidence.json`), with undress, damage, other ages, disguises and shared crowd templates left out. The service cannot read a Lua file in the game folder, so `bridge/outfit-choices.mjs` carries a copy with a short English label per look, and `bridge/character-options.test.mjs` reads the Lua file as text and fails when the two differ. The row offers only looks of that character (a look of another character is refused with `outfit-bad`); a character with no list (everyone else: the game's data gives them one suitable look, or a template shared with crowd members) shows "This character has only one look in the game files". No other game data was searched for more (the appearance names of a record need the template unbundled with WolvenKit, which is the evidence script's job); clothing items through the equipment or transaction systems are not touched.
+
+**When it applies.** (`mod/companion-outfits.lua`) A look is picked up in two places: a new copy is created in it (`spawnAppearance`, whatever the setting says), and a copy that is already spawned changes into it with the same safe path as the automatic outfits: out of V's view for 5 s, not in a fight, scene, call or ride, standing up from a flat's seat first, prefetch, schedule, read back, a look that never shows is not tried again. A saved choice brings the next look at the party forward to about a second (`nudge`). A pinned look beats the time of day, the variety roll and the home clothes. With the *Companions change outfits* setting **off** the module still runs, for the characters that have a pinned look only; with it on, a character without a pin follows the rotation as before. Only a copy the mod itself made (a companion in the party, a resident of V's flat) is ever dressed: a character the game placed, story characters included, is not in the lists the module reads. Turning the choice back to Automatic hands the copy to the rotation again, which changes it at its next hour change.
+
+**The turn context.** A pinned look other than the base is "changed" (or "home") for the talk context, like any other change of clothes: one sentence that the character is not wearing the outfit its appearance text describes.
+
+**Preview.** The editor has no pictures, so there is no preview: the rows are named by what the look is.
+
+### The animation choices
+
+All of this reuses what the code already has: the gesture selection policy (`mod/gesture-selection.lua`, docs/COMPANION_GESTURES.md), the controller (`mod/companion-gestures.lua`) and the seating controller. Nothing new is played and nothing new is shipped (`convai_gestures.archive` is unchanged).
+
+- **Talking gestures.** The selection already weighs a clip by the mood's reach cap, an emotion colour (60 % of picks) and a calm hold between clips divided by a per-character rate. The two styles change only those numbers (`M.styles`): **Calm** lowers the reach cap by 10 cm, colours 20 % of picks by emotion, holds twice as long and rests at 42 % of phrase starts (20 % normally); **Lively** raises the cap by 8 cm, colours 85 %, holds half as long and rests at 8 %. Banned, directional, symbolic and leg-crossing clips stay banned in every style. **None** keeps the hands at rest: the controller does not enter the talk stance for the character's own reply (the stance would only be a different rest pose), and `select.next` returns nothing for it.
+- **Nods.** Off: no listening stance and no nod, in a private talk and in a group round (a group listener stays in the round, it just does not nod). With talking gestures None and nods on, the stance is entered while V talks and held through the reply with no clips.
+- **Idle moves.** The controller already takes a signature or generic idle workspot now and then while a copy is settled beside V (`catalog.idleComponents`, the character's `idle` and `idles`). **Plain stances only** drops the prop idles (`catalog.propIdles`: a cigarette, a paper cup, a beer bottle, sunglasses) from the pool; **None** never starts one, so the character keeps its vanilla idle. Whether a character has an idle of its own or only the rig's generic ones does not change.
+- **Sitting and leaning.** The seating controller offers a seat beside a seated V and a seat or standing place of V's flat (couch, chair, bar, stool, window, lean spots in `housemate-spots-data.lua`). The box switches both off for the character, which then trails V on foot like any companion without a place. The check runs only while there is a seat or a home to offer, as a table lookup.
+
+### What the game reads, and when
+
+`bridge/character-options.mjs` keeps `<state>/character-options.json` (`{version: 1, updated, characters: {<key>: {...}}}`, at most 400 characters; a row holds only the choices that differ from today's; atomic writes, one at a time; a damaged file is left as it is and kept as `.corrupt` before the first save) and copies the choices the game acts on (everything but the reply length) to `runtime/character-options.json` (an exchange file, listed in `packaging/runtime-exchange.json`, replaced in place, never shipped; at start it is written only when there are choices or an older copy to clear, so a player who never uses it gets no new file in the game folder). `mod/character-options.lua` reads it:
+
+- when the mod loads (`convaiCharacterOptions` in `mod/init.lua`);
+- for two hours after the editor was opened (the same `watch` call as the player's own characters, from Settings > Edit characters > Open), every 5 seconds from the 10 Hz tick, with one subtraction per call and a read of a file of a few hundred bytes. Without a recent editor visit it is never read again, so a game that does not use the editor pays nothing. Nothing is per frame, nothing is a native call.
+
+`get(key)` is a table lookup by profile key: gestures and seating ask it once per observed copy and tick, the outfit module once per look at the party, the reactions once per fight or pickup. The player-made characters' keys (`custom-<name>-<letters>`) work like any other; deleting a character removes its row (`onDeleted` in the bridge, and a sweep at start).
+
+### Strings and tests
+
+56 new page sentences (the tab, the choices and their help, 24 look labels, three problems), through `T()` and listed in `mod/character-editor.lua` (346 in all, under the server's 400), in `localization/en.json` (regenerated by `scripts/Extract-UiCatalog.mjs`) and in the 15 dictionaries (translated by Haiku helpers from the exact English with the editor's existing terms in a glossary, then checked by script: placeholders, quotes, length). The look labels reach the page through a table of `T('...')` calls (`outfitLabel`) so the page, the game's list and the catalogue stay in step (tested).
+
+Tests: `bridge/character-options.test.mjs` (the store, the checks, the game's copy, the looks against the Lua list and the template evidence, the editor, the routes, a character the player made, the reply length in the prompt), `bridge/character-options-lua.test.mjs` (the game's file and its two-hour watch, pinned looks with the setting off and on, spawn, nudge, invalid pins, the talking styles, nods, the controller's gates, the wiring in `init.lua`), `bridge/companion-seating.test.mjs` (a character that does not sit), one headless-browser test in `bridge/character-editor-browser.test.mjs`. **Live check owed** (TODO.md captain's log): pick Judy's home clothes with *Companions change outfits* off, see her change out of view and again after fast travel; Lively and None talking gestures; Plain idles over a few minutes; "Sit down" off in the flat; a quiet Judy in a fight; Reply length Very short on a Local AI talk.
+
+### Candidates not built (effort estimates)
+
+- **Voice speed**: only OmniVoice has the knob (`backend.generate(..., speed=1)` in `bridge/resident-voice-worker.py`, fixed at 1); Pocket's worker says in a comment that it applies no speed adjustment or resampling on purpose, and no pitch control exists anywhere. A per-character speed would be OmniVoice-only, and it changes the length of every reply, which the face timeline, the reply length estimate of the gestures (2.6 words a second) and the lip sync read. About two days with a listening and lip-sync check; pitch is not cheap.
+- **A greeting line** (what the character says first when V talks to them): with a text provider the opening is the model's own; a per-character first-line hint is a prompt change plus a place for the text on the page (Convai keeps its greeting on its own side). Half a day.
+- **Default reply language** per character: the reply language is one setting today (Settings > Voices > Reply language) and the multilingual twins are per language; a per-character override means threading it through the twin choice and the voice pack choice. About one day.
+- **Relationship or familiarity start**: the game side keeps a live relationship state per character (`mod/relationship-state.lua`); a starting value is easy to store, but the prompt wording around it was written for values that are earned in play, so it needs a prompt review (not looked into in detail). About a day.
+- **Display name** for a story character: names are matched by the game's own name tables and used in memories and the party list; only a custom character's name is safe to change (it already is editable). A story character's name would need an alias layer in the prompt. About one day.
+- **Portrait or holocall picture**: a character of the player's own has no picture of its own (the call window uses the game's unknown-caller picture, `ConvaiHolocallBegin(contact, name)`); a picture of the player's would need a texture the game can show, which the mod has no path for today. Large.
+- **More looks**: docs/COMPANION_OUTFITS.md ("Limits") says everyone else has one suitable look in the game's data or a template shared with crowd members; the few variants it names (Aaron, Hanako, Voodoo Queen and others that only add or remove a detail) would need their `.app` files read to tell clothes from damage, and the evidence script (`scripts/Extract-CompanionOutfitEvidence.mjs`) run for each added record. Small yield, game files needed. Looks from another mod are not the character's own and are left out.
+- **Clothing items** (a hat, glasses, a jacket) through the transaction system on a copy: possible on our own copies, but it overlaps the appearance system and fights with the face rig rebuild. Large and risky.
+- **Gesture groups by stance** (arms crossed, hands on hips, hands behind the back) as a pick of the idle stance: the catalog has the groups (`catalog.idleGroups`); a pick needs the pool per character on the page, so the bridge would have to know the catalogue. About a day.
+
 ## Files
 
+- `bridge/character-options.mjs`, `bridge/outfit-choices.mjs`, `mod/character-options.lua`: the Look and moves choices (above).
 - `bridge/prompting-editor.mjs`: the Prompting part (the checked layer over the prompt profile store).
+- Look and moves, changed: `bridge/character-editor.mjs` (`saveOptions`, `resetOptions`, `details().options`), `character-editor-server.mjs` (`PUT /api/character/<key>/options`, `POST .../options/reset`), `character-editor-page.mjs` (the tab and the section), `mistral-prompt.mjs` (`PersonaBook` `options`: the reply length), `convai-bridge.mjs`; game side `mod/companion-outfits.lua`, `companion-gestures.lua`, `gesture-selection.lua`, `companion-seating.lua`, `init.lua`, `manager-ui.lua` (the `watch` call).
 - `bridge/character-overrides.mjs`: limits, validation, storage, merge.
 - `bridge/character-editor.mjs`: the editor logic (catalogue, state, save, reset, memory edits).
 - `bridge/character-editor-server.mjs`: the loopback server and routes.

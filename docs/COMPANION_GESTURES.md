@@ -132,7 +132,16 @@ start), never per frame. Rules as of October 9 (Round 4):
 - **Thinking / idle:** no clips; idle may use the character's signature idle
   component (`idleComponent`).
 
-## Stance families (catalog v2)
+## Per-character choices (character editor, 2026-10-28)
+
+The character editor's **Look and moves** tab (docs/CHARACTER_EDITOR.md) sets, per character, what the policy above may do. Nothing new is played: `options.prefs(entry)` of the controller (and of the seating controller) returns the player's choices for the copy's profile key, or nil, which is every character's default.
+
+- **Talking gestures** `calm`, `lively`, `none` (`selection.styles`, `input.style`): calm lowers the mood's reach cap by 10 cm, colours 20 % of the picks by emotion (60 %), holds twice as long and rests at 42 % of phrase starts (20 %); lively raises the cap by 8 cm, colours 85 %, holds half as long and rests at 8 %. The bans, directional and symbolic exclusions and the repetition rules apply in every style. `none`: the controller does not enter the talk stance for the copy's own reply.
+- **Nods** off (`input.nods == false`): no nod in a private talk or a group round, and no listening stance.
+- **Idle moves** `plain` (the pool without `catalog.propIdles`) or `none` (no flavour idle starts).
+- **Sit** off: `companion-seating.lua` `steer` offers neither V's neighbouring seat nor a place of V's flat.
+
+The lookup is one table read per observed copy; with no choice stored the code paths and the picks are unchanged (tested against the same seeds).
 
 `assets/gestures/gestures.json` v2 defines talk families; each becomes one
 workspot and one device component. Clips are discovered by prefix, kept only

@@ -15,6 +15,7 @@ import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
 import {PlayerVoices} from './player-voices.mjs';
 import {speechWav} from './voice-clip-fixture.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
+import {CharacterOptions} from './character-options.mjs';
 import {customProfileId, defaultProfile, renderRules} from './prompt-profiles.mjs';
 
 // The real page in real Edge, muted and headless (no sound, nothing leaves 127.0.0.1): the player's whole path through the editor,
@@ -27,7 +28,7 @@ const executable = process.env.CYBERPUNK_CONVAI_BROWSER
 const skip = !executable && 'no Chromium browser found';
 const shots = process.env.EDITOR_SHOTS_DIR;
 
-async function bench({route = 'local'} = {}) {
+async function bench({route = 'local', options = false} = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'character-editor-browser-'));
   await mkdir(join(dir, 'local-memory', 'player'), {recursive: true});
   await writeFile(join(dir, 'local-memory', 'player', 'judy-alvarez.json'), JSON.stringify({version: 1, profileKey: 'judy-alvarez', updated: 5,
@@ -40,15 +41,17 @@ async function bench({route = 'local'} = {}) {
   const custom = await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(rows)});
   const voices = await PlayerVoices.open({dir: join(dir, 'state')});
   const worldRules = await WorldRules.open({dir: join(dir, 'state')});
-  const personas = new PersonaBook(rows, {overrides, custom, worldRules});
+  // The Look and moves choices (bridge/character-options.mjs) only for the test that is about them: the other tests see the tabs they always saw.
+  const choices = options ? await CharacterOptions.open({dir: join(dir, 'state')}) : null;
+  const personas = new PersonaBook(rows, {overrides, custom, worldRules, options: choices});
   const state = {route};
   // The prompt profiles: the next turn would be Local AI, Standard, with a Custom endpoint configured (so its profile is listed too).
   const profiles = await PromptProfiles.open({dir: join(dir, 'prompt-overrides'), active: () => ({route: 'local', tier: 'standard', mature: false, custom: {origin: 'https://openrouter.ai', model: 'qwen3-8b'}})});
-  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom, voices, worldRules, promptProfiles: profiles})});
-  return {dir, overrides, memory, server, state, custom, voices, personas, worldRules, profiles, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
+  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom, voices, worldRules, promptProfiles: profiles, options: choices})});
+  return {dir, overrides, memory, server, state, custom, voices, personas, worldRules, profiles, choices, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
 }
-async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark', facing = null} = {}) {
-  const b = await bench({route});
+async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark', facing = null, options = false} = {}) {
+  const b = await bench({route, options});
   const browser = await chromium.launch({executablePath: executable, headless: true, args: ['--mute-audio']});
   t.after(async () => { await browser.close(); await b.done(); });
   const url = await b.server.start({strings, language, facing});
@@ -873,4 +876,75 @@ test('Prompting: in the light theme, wide, the preview sits beside the form; Con
   await page.waitForSelector('#f-bio');
   assert.equal(await page.locator('.pcols').count(), 0);
   assert.equal(await page.locator('#prompting').evaluate(node => node.classList.contains('on')), false);
+});
+
+test('Look and moves: the outfit and the moves of a story character are chosen, saved and reset; a character with one look says so; Convai answering keeps the text warning off this tab', {skip, timeout: 180000}, async t => {
+  const e = await open(t, {options: true, route: 'convai', strings: {'Look and moves': 'Aspect et mouvements', 'Automatic': 'Automatique', 'Usual look': 'Aspect habituel', 'Outfit': 'Tenue'}});
+  const {page} = e;
+  await page.fill('#search', 'judy');
+  await page.locator('#list button.pick').click();
+  await page.waitForSelector('#f-bio');
+  assert.equal(await page.locator('#banner').isVisible(), true, 'the text tabs still warn that Convai ignores them');
+  assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Bio', 'Speaking style', 'Speaking rules', 'Memories', 'Voice', 'Aspect et mouvements']);
+  await page.getByRole('tab', {name: 'Aspect et mouvements'}).click();
+  await page.waitForSelector('#f-look-outfit');
+  assert.equal(await page.locator('#banner').isHidden(), true, 'most choices work with Convai: no warning here');
+  assert.deepEqual(await page.locator('#f-look-outfit option').allTextContents(), ['Automatique', 'Aspect habituel', 'Home clothes: tank top, boxer shorts, flip-flops']);
+  assert.match(await page.locator('label[for=f-look-outfit]').textContent(), /Tenue/);
+  assert.equal(await page.locator('#f-look-nods').isChecked(), true);
+  assert.equal(await page.locator('#f-look-sit').isChecked(), true);
+  assert.equal(await page.locator('#f-look-react').isChecked(), true);
+  assert.equal(await page.getByRole('button', {name: 'Save'}).isDisabled(), true, 'nothing chosen yet');
+  assert.equal(await page.getByRole('button', {name: 'Reset to default'}).isDisabled(), true);
+  await e.shot('look-01');
+
+  await page.selectOption('#f-look-outfit', 'judy__mq055__apartment_01');
+  await page.selectOption('#f-look-talk', 'calm');
+  await page.selectOption('#f-look-idle', 'plain');
+  await page.selectOption('#f-look-length', 'brief');
+  await page.uncheck('#f-look-nods');
+  await page.uncheck('#f-look-react');
+  assert.equal(await page.getByRole('tab', {name: 'Aspect et mouvements'}).evaluate(node => node.classList.contains('dirty')), true, 'the tab shows an unsaved choice');
+  assert.equal(e.choices.get('judy-alvarez'), null, 'nothing is stored before Save');
+  await page.getByRole('button', {name: 'Save'}).click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Saved.');
+  assert.deepEqual({...e.choices.get('judy-alvarez')}, {outfit: 'judy__mq055__apartment_01', talk: 'calm', idle: 'plain', nods: false, react: false, length: 'brief'});
+  assert.equal(await page.locator('#f-look-outfit').inputValue(), 'judy__mq055__apartment_01');
+  assert.equal(await page.locator('#f-look-nods').isChecked(), false);
+  assert.equal(await page.getByRole('button', {name: 'Save'}).isDisabled(), true);
+  assert.equal(await page.getByRole('tab', {name: 'Aspect et mouvements'}).evaluate(node => node.classList.contains('dirty')), false);
+  assert.equal(e.personas.persona('judy-alvarez').talkWords, 12, 'the reply length reaches the next prompt');
+  await e.shot('look-02');
+
+  // Back to the usual: one button, after a question.
+  await page.getByRole('button', {name: 'Reset to default'}).click();
+  await page.waitForFunction(() => document.querySelector('#f-look-outfit')?.value === '' && document.querySelector('#note.show')?.textContent === 'Back to the usual look and moves.');
+  assert.equal(e.choices.get('judy-alvarez'), null);
+  assert.match(e.dialogs.at(-1), /Go back to the usual look and moves for Judy Alvarez\? Your choices on this part are removed\./);
+
+  // A choice not saved is kept across tabs, and leaving the character asks first.
+  await page.selectOption('#f-look-talk', 'lively');
+  const asked = e.dialogs.length;
+  await page.getByRole('tab', {name: 'Bio'}).click();
+  await page.getByRole('tab', {name: 'Aspect et mouvements'}).click();
+  assert.equal(await page.locator('#f-look-talk').inputValue(), 'lively', 'the unsaved choice is still there after a look at another tab');
+  await page.fill('#search', 'viktor');
+  await page.locator('#list button.pick').first().click();
+  await page.waitForFunction(() => document.querySelector('#main h2')?.textContent === 'Viktor Vektor');
+  assert.equal(e.dialogs.length, asked + 1, 'leaving with an unsaved choice asks first');
+  assert.match(e.dialogs.at(-1), /You have changes that are not saved/);
+  await page.getByRole('tab', {name: 'Aspect et mouvements'}).click();
+  await page.waitForSelector('#f-look-talk');
+  assert.equal(await page.locator('#f-look-outfit').count(), 0, 'one look in the game files: no outfit to choose');
+  assert.match(await page.locator('.panel').textContent(), /only one look in the game files/);
+  assert.equal(await page.locator('#f-look-talk').inputValue(), '', 'the other character did not get the unsaved choice');
+  // Everyday people have no such tab.
+  await page.fill('#search', '');
+  const everyday = page.locator('#list h3.group', {hasText: 'Everyday people'}).locator('xpath=following-sibling::ul[1]//button').first();
+  await everyday.click();
+  await page.waitForSelector('#f-bio');
+  assert.equal(await page.getByRole('tab', {name: 'Aspect et mouvements'}).count(), 0);
+  assert.deepEqual(e.problems, []);
+  const origin = e.url.slice(0, e.url.indexOf('/editor'));
+  assert(e.requests.every(url => url.startsWith(origin)), 'nothing left this computer');
 });

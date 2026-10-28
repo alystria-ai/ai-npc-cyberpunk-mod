@@ -103,6 +103,10 @@ switch off drops the party row and with it this sentence), and it is the first t
 default (Kerry: the appearance `companion-records.lua` selects), which is the look the bio was written for; where the bio and that default already disagreed before
 this feature (the bio was written from a picture) nothing gets worse.
 
+## A look the player picks (character editor)
+
+The character editor's **Look and moves** tab (docs/CHARACTER_EDITOR.md) lets the player pick one look from the list above for a character. It is worn all the time: it beats the time of day, the variety roll and the home clothes, it is the look a new copy is created in, and it works with the setting **off** (the module then looks only at the copies of characters that have a pick). The pick is read from `runtime/character-options.json` through `deps.pinned(key)` / `deps.anyPinned()`; a name that is not one of that character's own looks is ignored. Everything else (unseen for 5 s, nothing in a fight, scene, call or ride, standing up from a flat's seat, prefetch, schedule, read back, a look that never shows is not tried again) is the same path, and `nudge()` brings the next look at the party forward when a choice is saved. Choosing Automatic again hands the copy back to the rotation.
+
 ## Home outfit API
 
 A global, `convaiOutfitApi`, defined by `mod/init.lua`; safe to call at any time (it loads the module on first use) and with the setting off (it then only remembers):
@@ -137,7 +141,7 @@ or the setting off read nothing.
 
 ## Files
 
-`mod/companion-outfits.lua` (decision, check cycle, home, status), `mod/companion-outfits-data.lua` (the curated list), `mod/companions.lua` (`outfitRows`,
+`mod/companion-outfits.lua` (decision, check cycle, home, status, the player's pinned look), `mod/companion-outfits-data.lua` (the curated list), `mod/companions.lua` (`outfitRows`,
 `outfitBusy`, `changeAppearance`, the `spawnOutfit` and `outfitCreated` hooks, `outfitStatus` in `activityInputs`), `mod/init.lua` (wiring, the API global),
 `mod/manager.lua` and `mod/manager-ui.lua` (the setting `companionOutfits`), `mod/turn-context.lua` and `bridge/turn-context.mjs` (the clothes sentence),
 15 locale files, `characters/companion-outfit-evidence.json` and `scripts/Extract-CompanionOutfitEvidence.mjs`.

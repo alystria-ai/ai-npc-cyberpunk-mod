@@ -34,7 +34,8 @@ export function editorClient() {
   const count = text => Array.from(text).length;
   const FIELDS = ['bio', 'style', 'rules', 'examples', 'memories'];
   // The Voice tab is only for the characters that can have a clip (story characters, not everyday people); its one "field" is the clip.
-  const TABS = [['bio', ['bio']], ['style', ['style', 'examples']], ['rules', ['rules']], ['memories', ['memories']], ['voice', ['voice']]];
+  // The Look and moves tab is for the named characters (clothes, gestures, idle moves, seating, reactions, reply length); its one "field" is the set of choices.
+  const TABS = [['bio', ['bio']], ['style', ['style', 'examples']], ['rules', ['rules']], ['memories', ['memories']], ['voice', ['voice']], ['look', ['look']]];
   const clone = value => JSON.parse(JSON.stringify(value));
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const blankCustom = () => ({name: '', gender: '', records: [], names: [], bio: '', style: '', examples: [], memories: [] });
@@ -43,7 +44,8 @@ export function editorClient() {
   // voice: the voice part of the open character ({key, words, chosen, saved}); null when it cannot have a clip (see voiceSection).
   // world: the world rules page ({draft: {worldRules}}) while it is open, else null; it belongs to no character, so `data` is null then.
   // prompting: the Prompting page (the options, the open one and its draft) while it is open, else null; it belongs to no character either.
-  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, world: null, prompting: null, tab: 'bio', filter: '', note: null};
+  // look: the Look and moves choices of the open character ({key, draft}); null when it has none (everyday people, V's voices, a character not saved yet).
+  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, look: null, world: null, prompting: null, tab: 'bio', filter: '', note: null};
   let noteTimer = 0, pickSeq = 0;
 
   const say = (text, bad) => {
@@ -95,6 +97,9 @@ export function editorClient() {
       case 'clip-silent': return T('The clip is mostly silence. Use a clip where somebody is talking most of the time.');
       case 'voice-text-short': return T('Type the words said in the clip, at least {min} characters.', values);
       case 'voice-text-long': return T('The words said in the clip are too long. Keep them under {max} characters.', values);
+      case 'outfit-bad': return T('That look is not one of this character’s.');
+      case 'option-bad': return T('That choice is not available.');
+      case 'options-full': return T('The editor keeps choices for {max} characters. Reset one first.', values);
       default: return T('Could not save. Try again.');
     }
   };
@@ -105,11 +110,12 @@ export function editorClient() {
   // A file chosen and not saved, or words changed for a clip that is saved, are changes that are not saved. Words typed with no clip are not (nothing keeps them).
   const voiceDirty = () => !!model.voice && (!!model.voice.chosen || (!!model.data && !!model.data.voice && !!model.data.voice.clip && model.voice.words !== model.data.voice.transcript));
   const worldDirty = () => !!model.world && model.world.draft.worldRules !== model.state.worldRules.text;
+  const lookDirty = () => !!model.look && !!model.data && !!model.data.options && !same(model.look.draft, lookDraft(model.data.options.values));
   const dirtyFields = () => {
     if (model.world) return worldDirty() ? ['world'] : [];
     if (model.prompting) return promptingDirty() ? ['prompting'] : [];
     const text = model.custom ? (customDirty() ? ['custom'] : []) : model.data && model.draft ? FIELDS.filter(field => !same(model.draft[field], model.data.values[field])) : [];
-    return voiceDirty() ? [...text, 'voice'] : text;
+    return [...text, ...(voiceDirty() ? ['voice'] : []), ...(lookDirty() ? ['look'] : [])];
   };
   const leave = () => !dirtyFields().length || confirm(T('You have changes that are not saved. Leave without saving?'));
 
@@ -198,6 +204,9 @@ export function editorClient() {
       if (!(keepDraft && model.custom)) model.custom = {draft: clone(data.custom)};
       model.draft = null;
     } else { model.custom = null; if (!(keepDraft && model.draft)) model.draft = clone(data.values); }
+    // The Look and moves choices follow the character; they are kept (unsaved edits included) only while the same character is shown again.
+    if (!data.options) model.look = null;
+    else if (!(keepDraft && model.look && model.look.key === data.key)) model.look = {key: data.key, draft: lookDraft(data.options.values)};
     if (!data.voice || (model.voice && model.voice.key !== data.key)) dropVoice();
     if (data.voice && !model.voice) model.voice = {key: data.key, words: data.voice.transcript, chosen: null, saved: null};
     if (data.key) syncEntry(data);
@@ -302,7 +311,7 @@ export function editorClient() {
     try {
       hush();
       const reply = await api('DELETE', '/api/custom/' + encodeURIComponent(model.data.key));
-      model.state.characters = reply.characters; model.key = ''; model.data = null; model.custom = null; dropVoice();
+      model.state.characters = reply.characters; model.key = ''; model.data = null; model.custom = null; model.look = null; dropVoice();
       drawList(); drawMain(); say(T('Deleted.'));
     } catch (error) { say(problem(error), true); }
   };
@@ -454,6 +463,84 @@ export function editorClient() {
     draw();
     return box;
   };
+  // ---- Look and moves: the clothes, gestures, idle moves, seating, reactions and reply length of one character. The saved choices hold only what differs from today's
+  // behaviour; the draft has a value for every control ('' is the default of a list, true the default of a box).
+  const lookDraft = values => ({outfit: values.outfit || '', talk: values.talk || '', nods: values.nods !== false, idle: values.idle || '',
+    sit: values.sit !== false, react: values.react !== false, length: values.length || ''});
+  // The English labels of the looks come from the service; the translated sentences are looked up here so the page and the game's list stay in step.
+  const outfitLabel = text => ({
+    'Usual look': T('Usual look'), 'Home clothes: tank top, boxer shorts, flip-flops': T('Home clothes: tank top, boxer shorts, flip-flops'),
+    'No jacket': T('No jacket'), 'No jacket and harness': T('No jacket and harness'), 'Home clothes: shirt and trousers': T('Home clothes: shirt and trousers'),
+    'Home clothes: tank top and trousers': T('Home clothes: tank top and trousers'), 'Hooded jacket': T('Hooded jacket'),
+    'Home clothes: t-shirt and trousers': T('Home clothes: t-shirt and trousers'), 'Collar down': T('Collar down'), 'Valentino look': T('Valentino look'),
+    'Suit': T('Suit'), 'Club night, no jacket': T('Club night, no jacket'), 'Solo look': T('Solo look'), 'Date night': T('Date night'), 'T-shirt': T('T-shirt'),
+    'Vest': T('Vest'), 'Paradise look': T('Paradise look'), 'Bartender': T('Bartender'), 'Dress without the fur coat': T('Dress without the fur coat'),
+    'Trench coat': T('Trench coat'), 'Without the coat': T('Without the coat'), 'CEO look with coat': T('CEO look with coat'), 'CEO look': T('CEO look'),
+    'Pyjamas': T('Pyjamas'),
+  })[text] || text;
+  const lookPatch = (draft, saved) => {
+    const was = lookDraft(saved), patch = {};
+    const put = (field, value, normal) => { if (draft[field] !== was[field]) patch[field] = draft[field] === normal ? null : value; };
+    put('outfit', draft.outfit, ''); put('talk', draft.talk, ''); put('nods', false, true); put('idle', draft.idle, '');
+    put('sit', false, true); put('react', false, true); put('length', draft.length, '');
+    return patch;
+  };
+  const lookSection = () => {
+    const look = model.look, spec = model.state.options, data = model.data, key = data.key, outfits = data.options.outfits;
+    const box = h('div', {class: 'field look'});
+    let save = null, undo = null;
+    const refresh = () => {
+      const dirty = lookDirty(), stored = Object.keys(data.options.values).length > 0;
+      if (save) save.disabled = !dirty;
+      if (undo) undo.disabled = !stored && !dirty;
+      refreshButtons();
+    };
+    const choice = (field, label, help, options) => {
+      const select = h('select', {id: 'f-look-' + field, 'aria-describedby': 'h-look-' + field}, options.map(([value, text]) => h('option', {value}, text)));
+      select.value = look.draft[field];
+      select.addEventListener('change', () => { look.draft[field] = select.value; refresh(); });
+      return h('div', {class: 'field'}, h('label', {for: 'f-look-' + field}, label), h('p', {class: 'help', id: 'h-look-' + field}, help), select);
+    };
+    const toggle = (field, label, help) => {
+      const input = h('input', {type: 'checkbox', id: 'f-look-' + field, 'aria-describedby': 'h-look-' + field});
+      input.checked = look.draft[field];
+      input.addEventListener('change', () => { look.draft[field] = input.checked; refresh(); });
+      return h('div', {class: 'field'}, h('div', {class: 'check'}, input, h('label', {for: 'f-look-' + field}, label)), h('p', {class: 'help', id: 'h-look-' + field}, help));
+    };
+    const saveLook = async () => {
+      const patch = lookPatch(look.draft, data.options.values);
+      if (!Object.keys(patch).length) return;
+      try { hush(); model.look = null; apply(await api('PUT', '/api/character/' + encodeURIComponent(key) + '/options', patch), true); say(T('Saved.')); }
+      catch (error) { model.look = look; say(problem(error), true); }
+    };
+    const resetLook = async () => {
+      if (!confirm(T('Go back to the usual look and moves for {name}? Your choices on this part are removed.', {name: data.name || key}))) return;
+      try { hush(); model.look = null; apply(await api('POST', '/api/character/' + encodeURIComponent(key) + '/options/reset', {}), true); say(T('Back to the usual look and moves.')); }
+      catch (error) { model.look = look; say(problem(error), true); }
+    };
+    save = h('button', {type: 'button', class: 'primary', onclick: saveLook}, T('Save'));
+    undo = h('button', {type: 'button', class: 'secondary', onclick: resetLook}, T('Reset to default'));
+    const words = spec.words;
+    box.replaceChildren(
+      h('p', {class: 'help'}, T('Choices for how this character looks and moves. They work with every conversation option, Convai included, except the reply length.')),
+      outfits
+        ? choice('outfit', T('Outfit'), T('Automatic follows the “Companions change outfits” setting in the game: day and night looks, now and then a change, and casual clothes at home. A look you pick is worn all the time. Only your own companions and residents are dressed, and they change while nobody is looking. Characters the game places are never changed.'),
+          [['', T('Automatic')], ...outfits.looks.map(item => [item.name, outfitLabel(item.label)])])
+        : h('div', {class: 'field'}, h('h3', {}, T('Outfit')), h('p', {class: 'help'}, T('This character has only one look in the game files, so there is no outfit to choose.'))),
+      choice('talk', T('Talking gestures'), T('How the hands move while they speak a longer reply.'),
+        [['', T('Normal')], ['calm', T('Calm: smaller gestures, not as often')], ['lively', T('Lively: bigger gestures, more often')], ['none', T('None: the hands stay at rest')]]),
+      toggle('nods', T('Nod while you talk to them'), T('A small nod now and then while you speak.')),
+      choice('idle', T('Idle moves'), T('What they do now and then while they stand beside you.'),
+        [['', T('Normal')], ['plain', T('Plain stances only, no props like a cup or a cigarette')], ['none', T('None: they keep the stance they have')]]),
+      toggle('sit', T('Sit down and take a place'), T('Takes a seat beside you when you sit, and a seat or a spot in your flat at home. Switched off, they stay on their feet beside you.')),
+      toggle('react', T('Comment on fights and loot'), T('Switched off, they say nothing about fights or about what you pick up.')),
+      choice('length', T('Reply length'), T('The longest reply, in words. Works with Mistral, Local AI and Custom, not Convai.'),
+        [['', T('Normal')], ['short', T('Shorter: up to about {words} words', {words: words.short})], ['brief', T('Very short: up to about {words} words', {words: words.brief})]]),
+      h('p', {class: 'help'}, T('A saved choice counts within a few seconds. Clothes change when nobody is looking.')),
+      h('div', {class: 'actions bar'}, save, undo));
+    refresh();
+    return box;
+  };
   const customPanel = () => {
     const ctx = customCtx(), mine = model.custom, draft = mine.draft, isNew = !model.data.key;
     const genders = [['female', T('Female')], ['male', T('Male')]];
@@ -476,13 +563,14 @@ export function editorClient() {
       listField('examples', T('Example lines'), T('Lines in their voice. They show the tone only and are never said back word for word.'), T('Add a line'), T('A line this character might say'), ctx, 'example'),
       listField('memories', T('Things they always know'), T('Short facts you write yourself, such as a name or a promise. The character knows them in every talk.'), T('Add a memory'), T('For example: V has a sister called Lena.'), ctx, 'memory'),
       isNew || !model.voice ? h('p', {class: 'help'}, T('Save the character first. Then it can have a voice clip, and it starts to remember your talks.')) : voiceSection(true),
+      !isNew && model.look ? h('div', {class: 'field'}, h('h3', {}, T('Look and moves')), lookSection()) : null,
       h('div', {class: 'actions bar'}, h('button', {type: 'button', class: 'primary', onclick: saveCustom}, T('Save')),
         isNew ? null : h('button', {type: 'button', class: 'quiet', onclick: removeCustom}, T('Delete character'))),
       isNew ? null : h('div', {}, ...learnedPanel()));
   };
   const newCharacter = () => {
     if (!leave()) return;
-    model.key = ''; model.draft = null; model.world = null; clearTimeout(model.prompting?.timer); model.prompting = null;
+    model.key = ''; model.draft = null; model.look = null; model.world = null; clearTimeout(model.prompting?.timer); model.prompting = null;
     model.data = {key: '', name: '', group: 'custom', custom: blankCustom(), memory: {available: false, learns: false, summary: '', records: []}, voice: null};
     model.custom = {draft: blankCustom()};
     dropVoice();
@@ -523,7 +611,7 @@ export function editorClient() {
   };
   const openWorld = () => {
     if (model.world || !leave()) return;
-    model.key = ''; model.data = null; model.draft = null; model.custom = null; dropVoice(); clearTimeout(model.prompting?.timer); model.prompting = null;
+    model.key = ''; model.data = null; model.draft = null; model.custom = null; model.look = null; dropVoice(); clearTimeout(model.prompting?.timer); model.prompting = null;
     model.world = {draft: {worldRules: model.state.worldRules.text}};
     chrome(); drawList(); drawMain();
     $('main').focus({preventScroll: true});
@@ -957,7 +1045,7 @@ export function editorClient() {
       const first = profiles.find(item => item.active) || profiles[0];
       if (!first) return;
       const data = await api('GET', promptPath(first.id));
-      model.key = ''; model.data = null; model.draft = null; model.custom = null; model.world = null; dropVoice();
+      model.key = ''; model.data = null; model.draft = null; model.custom = null; model.look = null; model.world = null; dropVoice();
       model.prompting = {profiles, id: first.id, data, draft: toDraft(data.effective), errors: [], preview: null, stale: false, seq: 0, timer: 0, ui: null,
         sample: {name: 'Judy', talk: false, words: 30, mature: first.id.startsWith('mature')}};
       chrome(); drawList(); drawMain();
@@ -974,6 +1062,7 @@ export function editorClient() {
     if (tab === 'rules') return h('div', {}, listField('rules', T('Speaking rules'),
       T('Short rules this character always follows when talking, for example: Never swear. Answer in one sentence.'), T('Add a rule'), T('A short rule')), actions(['rules']));
     if (tab === 'voice' && model.voice) return h('div', {}, voiceSection(false));
+    if (tab === 'look' && model.look) return h('div', {}, lookSection());
     return memoriesPanel();
   };
   function drawMain() {
@@ -993,8 +1082,8 @@ export function editorClient() {
       return;
     }
     const edited = FIELDS.some(field => data.edited[field]);
-    const labels = {bio: T('Bio'), style: T('Speaking style'), rules: T('Speaking rules'), memories: T('Memories'), voice: T('Voice')};
-    const tabs = h('div', {role: 'tablist', class: 'tabs', 'aria-label': T('Parts of the character')}, TABS.filter(([id]) => id !== 'voice' || model.voice).map(([id]) => h('button', {
+    const labels = {bio: T('Bio'), style: T('Speaking style'), rules: T('Speaking rules'), memories: T('Memories'), voice: T('Voice'), look: T('Look and moves')};
+    const tabs = h('div', {role: 'tablist', class: 'tabs', 'aria-label': T('Parts of the character')}, TABS.filter(([id]) => (id !== 'voice' || model.voice) && (id !== 'look' || model.look)).map(([id]) => h('button', {
       type: 'button', role: 'tab', 'data-tab': id, id: 'tab-' + id, 'aria-selected': String(model.tab === id), class: model.tab === id ? 'on' : '',
       onclick: () => { model.tab = id; drawMain(); },
     }, labels[id])));
@@ -1051,7 +1140,8 @@ export function editorClient() {
   // The warning that Convai is answering. Not on the world rules page: Convai gets those as context, and that page says so.
   function drawBanner() {
     const banner = $('banner');
-    if (model.state.provider === 'convai' && !model.world) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.'); }
+    // The Look and moves tab has its own sentence about Convai (most of its choices work with it), so the warning about the text edits is left out there.
+    if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.'); }
     else banner.hidden = true;
   }
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });
@@ -1119,6 +1209,9 @@ select{width:auto;min-width:220px}
 input[type=file]{width:100%;color:var(--text);font:inherit}
 audio{display:block;width:100%;max-width:460px;margin:6px 0 10px}
 .field p.status{margin:6px 0;font-weight:600}
+.field .check{display:flex;align-items:center;gap:10px}
+.field .check input{width:18px;height:18px;margin:0}
+.field .check label{margin:0}
 textarea{resize:vertical;line-height:1.5}
 textarea:focus,input:focus,select:focus,button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 .meter{display:flex;justify-content:flex-end;margin-top:3px}

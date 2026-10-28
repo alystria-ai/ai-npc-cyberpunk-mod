@@ -1272,6 +1272,12 @@ function M.new(options)
     function self.steer(entry, context)
         local s = stateFor(entry)
         if s.phase == 'off' then
+            -- A character the player told in the character editor never to sit: no seat beside V and no place of the flat (options.prefs, a table lookup, only
+            -- asked while there is a seat or a home to offer).
+            if (session or home) and options.prefs then
+                local chosen = options.prefs(entry)
+                if chosen and chosen.sit == false then return nil end
+            end
             -- V's seat first (beside V), then a place of the home.
             if session and session.seats and s.session ~= session.id then
                 local skip = context.combat or self.clock < (s.cooldownUntil or 0)
