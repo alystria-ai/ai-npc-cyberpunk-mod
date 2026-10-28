@@ -38,7 +38,22 @@ foreach ($plugin in @('Codeware')) {
         Copy-Item -Destination $deps -Force
 }
 
-& (Join-Path $game 'engine\tools\scc.exe') '-compile' $scripts '-customCacheDir' $cache *>&1 |
+# The game finds the scripts of every other RED4ext plugin too (TweakXL, ArchiveXL, ...); another installed redscript mod can need them
+# (Dark Future calls TweakXL's TweakDBManager), and without them it fails to compile here although the game compiles it.
+$pluginsRoot = Join-Path $game 'red4ext\plugins'
+if ([IO.Directory]::Exists($pluginsRoot)) {
+    foreach ($pluginFolder in Get-ChildItem -LiteralPath $pluginsRoot -Directory) {
+        if ($pluginFolder.Name -ieq 'Codeware' -or $pluginFolder.Name -like 'AiNpcCyberpunkMod*') { continue }
+        $extra = Join-Path $pluginFolder.FullName 'Scripts'
+        if (-not [IO.Directory]::Exists($extra)) { continue }
+        $target = Join-Path $deps $pluginFolder.Name
+        [IO.Directory]::CreateDirectory($target) | Out-Null
+        Get-ChildItem -LiteralPath $extra -File -Filter '*.reds' | Copy-Item -Destination $target -Force
+    }
+}
+
+# Standard input is closed so the compiler can never wait for a key press after an error.
+$null | & (Join-Path $game 'engine\tools\scc.exe') '-compile' $scripts '-customCacheDir' $cache *>&1 |
     Set-Content -LiteralPath $log -Encoding utf8
 $result = $LASTEXITCODE
 Write-Output "Compiler exit: $result"
