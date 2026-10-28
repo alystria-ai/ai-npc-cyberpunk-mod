@@ -31,7 +31,6 @@
     "eddies-offer.json",
     "editor-command.json",
     "editor-status.json",
-    "eddies-offer.json",
     "error-events.json",
     "expression-receipt.json",
     "group-prefetch.json",
@@ -91,9 +90,7 @@
   ],
   "state": [
     "addon-settings.json",
-    "ambush-state.json",
     "decision-ledger.json",
-    "eddies-ledger.json",
     "favorites.json",
     "housemate-learned.json",
     "housemates.json",
