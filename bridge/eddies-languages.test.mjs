@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync, existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {LANGUAGES, parseAmountIn, warmLanguagesNow} from './eddies-languages.mjs';
 import {screenWords} from './eddies.mjs';
 
@@ -54,4 +55,40 @@ test('English lines and street slang give no foreign intent', () => {
   const lines = JSON.parse(readFileSync(new URL('./eddies-languages.english.json', import.meta.url), 'utf8'));
   const wrong = lines.map(text => [text, screenWords(text)]).filter(([, screen]) => screen.intent).map(([text, screen]) => `${text} => ${screen.intent}:${screen.amount ?? null}`);
   assert.deepEqual(wrong, []);
+});
+
+// The warm-up is stall-free: no single slice of work (building or first-running one regular expression) blocks the event loop for long. Measured on a quiet
+// machine the worst slice is 3 to 6 ms; the bound here leaves room for a busy one. warmLanguagesNow ran every language already (top of this file), so this
+// warms a second set of rules in a child process.
+test('warming a language takes small slices', () => {
+  const script = `
+    const m = await import(${JSON.stringify(new URL('./eddies-languages.mjs', import.meta.url).href)});
+    const worst = {};
+    for (const code of m.LANGUAGES) { let max = 0; m.warmLanguagesNow([code], ms => { max = Math.max(max, ms); }); worst[code] = max; }
+    console.log(JSON.stringify(worst));`;
+  const out = execFileSync(process.execPath, ['--input-type=module', '-e', script], {encoding: 'utf8'});
+  const worst = JSON.parse(out.trim().split('\n').pop());
+  const slow = Object.entries(worst).filter(([, ms]) => ms > 30);
+  assert.deepEqual(slow, [], `slices over 30 ms: ${JSON.stringify(worst)}`);
+});
+
+// Only the languages that matter are compiled: a typed line in Spanish warms Spanish (and nothing else), the line itself is read in English only, the next
+// ones by the Spanish grammar. A line in a language that is not warm never goes through another language's grammar.
+test('a language warms on demand, in the background, and only that one', () => {
+  const script = `
+    const e = await import(${JSON.stringify(new URL('./eddies.mjs', import.meta.url).href)});
+    const m = await import(${JSON.stringify(new URL('./eddies-languages.mjs', import.meta.url).href)});
+    const first = e.screenWords('Hermano, me prestas quinientos eddies para el ripperdoc?');
+    m.warmFor('Hermano, me prestas quinientos eddies para el ripperdoc?');
+    const before = m.LANGUAGES.filter(code => m.isWarm(code));
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const later = e.screenWords('Hermano, me prestas quinientos eddies para el ripperdoc?');
+    const other = e.screenWords('500エディ貸してくれない？');
+    console.log(JSON.stringify({first: first.intent, before, warm: m.LANGUAGES.filter(code => m.isWarm(code)), later: [later.intent, later.amount], other: other.intent}));`;
+  const result = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], {encoding: 'utf8'}).trim().split('\n').pop());
+  assert.equal(result.first, null, 'the first line is read in English only');
+  assert.deepEqual(result.before, [], 'nothing is compiled inside the call');
+  assert.deepEqual(result.warm, ['es'], 'only the line\'s own language warms');
+  assert.deepEqual(result.later, ['borrow', 500]);
+  assert.equal(result.other, null, 'Japanese is not warm: that line is not read by any other grammar');
 });

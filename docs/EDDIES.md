@@ -98,7 +98,7 @@ How a line is read (all regular expressions, about 0.1 to 1 ms for a line that i
    here.
 2. Which language: `assessLanguage` (bridge/reply-language.mjs, tens of microseconds). A solid call for English means English only. A solid call for another
    language reads with that language and its close relatives (es, pt, it and fr; cs and pl; ru and uk), whose detections get mixed up. A call that is not solid
-   (short lines, mixed lines, "choom, prestame 500") tries every language whose script is in the line, the detected one first. The reading with an intent wins;
+   (short lines, mixed lines, "choom, prestame 500") tries the warm languages whose script is in the line, the detected one first. The reading with an intent wins;
    when close relatives agree on the intent, the fuller sum wins ("dos mil": 2000, not the Portuguese "mil"); a refusal by the detected language is final.
 3. The language's clauses: the line is split at punctuation, "but" words and a comma or full stop that is not inside a number (1.000, 1,5k). Per clause, the
    six intent patterns in a fixed order (reclaim, repay, lend as "do you need money", borrow, lend as an offer, give); an intent counts only with money in its
@@ -111,9 +111,15 @@ How a line is read (all regular expressions, about 0.1 to 1 ms for a line that i
    a clause from 20 up; a number followed by minutes, times, bullets and the like is no sum; "a few" and "some" are no sum. At most 100,000 as before.
 5. Eddies slang: each data file lists the money nouns and units players use besides "eddies" (euros, dollars, local slang).
 
-Cost: the grammars are compiled lazily. V8 compiles a regular expression on its first run (30 to 60 ms a language), so the first turn with the setting on only
-starts a background warm-up (one language per timer tick, `warmLanguages`, called from `EddiesDecisions` the first time a block with the setting on arrives);
-until a language is warm a line is read in English only, which is about the first second of a session.
+Cost: nothing compiles inside a turn. V8 compiles a regular expression on its first run (and again per string width), so a grammar is warmed in the background
+and only when it matters: `EddiesDecisions` calls `warmFor(text)` with each typed line to a named character while the setting is on, which starts warming the
+language the line is in (English needs nothing; a line the detector cannot place warms nothing); a line that reaches the grammar in a language that is not
+warm yet (a voice transcript, say) starts that language's warm-up too. Until a language is warm, a line in it is read as English only, never by another
+language's grammar, so the first money ask in a new language can be missed once (about 0.1 to 0.3 s of a session), later ones are read. Warming is cut into
+slices: a `setImmediate` step per job, a job being the first run of one small regular expression (a grammar list is 5 to 20 parts of about 70 characters, built
+on first use by `bridge/eddies-regex.mjs`; `\p{L}` and `\p{N}` are written out as ranges because V8 spent about 5 ms per expression on the property class).
+A whole language takes 11 to 140 ms of work in 100 to 300 slices, the worst slice 0.5 to 6 ms (measured per language by `warmLanguagesNow(codes, onSlice)`;
+`eddies-languages.test.mjs` bounds it at 30 ms for a busy machine), and the event loop shows no gap beyond the Windows timer tick while a language warms.
 
 Tuning and accuracy (`bridge/eddies-languages/<code>.cases.json`, `<code>.blind2.json`, `node scripts/Eval-EddiesLanguages.mjs [--set dev|held|blind|blind2|all] [code]`,
 `bridge/eddies-languages.test.mjs`). Each language has real asks (intent and sum), near-misses (other uses of the same verbs, "I paid for dinner", "I owe you

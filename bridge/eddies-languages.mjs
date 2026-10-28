@@ -23,6 +23,7 @@
 // also matches the line typed without them; `\b` in a source means a word edge for any letter (JavaScript's own is ASCII only). Japanese, Korean and
 // Chinese are not folded and not split into words.
 import {assessLanguage} from './reply-language.mjs';
+import {Multi, chunksOf} from './eddies-regex.mjs';
 import cs from './eddies-languages/cs.mjs';
 import de from './eddies-languages/de.mjs';
 import es from './eddies-languages/es.mjs';
@@ -61,7 +62,33 @@ const edges = source => source.replace(/\\b/g, (_, at) => {
   if (at === 0 || '(|: '.includes(before)) return START_EDGE;
   return /[\p{L}\p{N}]/u.test(before) ? END_EDGE : ANY_EDGE;
 });
-const compile = (source, language, flags = 'iu') => new RegExp(edges(prepareSource(source, language)), flags);
+// \p{L} and \p{N} in a source become explicit ranges: V8 builds the Unicode property class (and its case closure) for every regular expression that holds one, about
+// 5 ms each, which made each of the ~50 patterns of a language a slice of its own. The text is NFKC-normalised and lower-cased, so the letters of the 15 languages
+// (Latin with accents, Greek, Cyrillic, Hangul, kana and Han) and ASCII digits are all that is needed.
+const LETTERS = String.raw`a-zªµºÀ-ɏḀ-ỿͰ-ϿЀ-ԯᄀ-ᇿ぀-ヿ㐀-䶿一-鿿가-힯`;
+function plain(source) {
+  let out = '', inClass = false;
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i];
+    if (c === '\\') {
+      const token = source.slice(i, i + 5);
+      if (token === '\\p{L}' || token === '\\p{N}') {
+        const set = token === '\\p{L}' ? LETTERS : '0-9';
+        out += inClass ? set : `[${set}]`;
+        i += 4;
+        continue;
+      }
+      out += c + (source[i + 1] ?? '');
+      i++;
+      continue;
+    }
+    if (c === '[') inClass = true;
+    else if (c === ']') inClass = false;
+    out += c;
+  }
+  return out;
+}
+const compile = (source, language, flags = 'iu') => new RegExp(plain(edges(prepareSource(source, language))), flags);
 
 const SIGN = String.raw`(?:€\$|e\$|\$|€)`;
 const GROUPED = /^\d{1,3}(?:[.,'   ]\d{3})+$/;
@@ -81,23 +108,39 @@ function rulesOf(language) {
   // A digit run may be followed by k or a scale word of 100 or more ("5k", "2 mil", "3 тысячи", "5 соток", "2万").
   const suffixWords = [...scales].filter(([, value]) => value >= 100).map(([word]) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const suffix = prepareSource(String.raw`(?:k|к${suffixWords.length ? '|' + suffixWords.join('|') : ''})`, language);
-  const digits = new RegExp(String.raw`(${SIGN}\s?)?(${NUMBER})(?:\s?(${suffix})${cjk ? '' : String.raw`(?![\p{L}])`})?`, 'giu');
+  const digits = new RegExp(plain(String.raw`(${SIGN}\s?)?(${NUMBER})(?:\s?(${suffix})${cjk ? '' : String.raw`(?![\p{L}])`})?`), 'giu');
   const edged = source => cjk ? source : String.raw`(?<![\p{L}\p{N}])(?:${source})(?![\p{L}\p{N}])`;
   // A refusal word starts at a word start ("aldim" is not inside "kaldim").
-  const refusal = source => compile((cjk ? '' : String.raw`(?<![\p{L}\p{N}])`) + `(?:${source})`, language);
+  const wordStart = chunk => (cjk ? '' : String.raw`(?<![\p{L}\p{N}])`) + `(?:${chunk})`;
+  // The parts of a list are built on first use too (a list is 5 to 20 of them, about 1 ms each).
+  const multi = (source, wrap = chunk => chunk) => {
+    const chunks = chunksOf(source), parts = chunks.map(() => null);
+    chunks.forEach((chunk, index) => Object.defineProperty(parts, index, {configurable: true, enumerable: true,
+      get() { const value = compile(wrap(chunk), language); Object.defineProperty(parts, index, {value}); return value; }}));
+    return new Multi(parts);
+  };
+  const refusal = source => multi(source, wordStart);
   const rules = {
     language, cjk, words, scales, skip, unit, digits,
     compound: !!data.numbers?.compound, unitOnly: data.numbers?.unitOnly !== false, tail: !!data.numbers?.tail,
-    money: compile((cjk ? '' : String.raw`(?<![\p{L}\p{N}])`) + `(?:${data.money}${data.moneyPhrases ? '|' + data.moneyPhrases : ''})`, language),
     after: data.after ? compile(String.raw`^\s*(?:${data.after})`, language) : null,
     notMoney: data.notMoney ? compile(String.raw`^\s*(?:${data.notMoney})`, language) : null,
     // Clauses end at ! ? ; and a full stop or comma that is not inside a number (1.000, 1,5k), and at the language's "but"s.
     split: new RegExp(String.raw`[!?;。！？；、，]+|\.(?!\d)|,(?!\d)|(?<!\d),` + (data.but ? '|' + compile(edged(data.but), language).source : ''), 'giu'),
-    intents: data.intents.map(([name, source]) => [name, compile(source, language)]),
-    negation: refusal(data.negation), hypothetical: refusal(data.hypothetical), later: refusal(data.later),
     joke: data.joke ? compile(data.joke, language) : null,
     until: data.until ? compile(data.until, language, 'giu') : null,
   };
+  // The large lists are built on first use, one at a time, so the warm-up can build them in separate slices (a list is 5 to 20 small expressions).
+  const lazy = (key, make) => Object.defineProperty(rules, key, {configurable: true, enumerable: true, get() { const value = make(); Object.defineProperty(rules, key, {value}); return value; }});
+  lazy('money', () => multi(`${data.money}${data.moneyPhrases ? '|' + data.moneyPhrases : ''}`, wordStart));
+  lazy('negation', () => refusal(data.negation));
+  lazy('hypothetical', () => refusal(data.hypothetical));
+  lazy('later', () => refusal(data.later));
+  rules.intents = data.intents.map(([name, source]) => {
+    const entry = [name, null];
+    Object.defineProperty(entry, 1, {configurable: true, enumerable: true, get() { const value = multi(source); Object.defineProperty(entry, 1, {value}); return value; }});
+    return entry;
+  });
   rulesCache.set(language, rules);
   return rules;
 }
@@ -312,31 +355,68 @@ export function screenIn(language, line) {
   return refusal;
 }
 
-// Warming. A grammar's regular expressions are compiled by V8 the first time they run (about 30 ms a language, half a second for all), and again for a
-// line with letters outside Latin-1. That must never land in a turn: the first turn with the setting on only starts the warm-up, one language per
-// timer tick, and a language reads lines only once it is warm (until then the line is English-only). warmLanguagesNow is for tests and tools.
-const warm = new Set();
-let warming = false;
-// Lines that make every path of a grammar run: clause split, intents, the refusal tests, digit and word sums (V8 compiles a regular expression again for
-// split, matchAll and a wider string, so priming one pattern at a time is not enough).
-const PRIMES = ['hola, me prestas 500 eddies? mañana 1.000 k; te debo dos mil', 'ñ ж 長 ő 500 eddies. 2万 , 3 mil и пять сотен 借我', 'borrow lend 200, pay back 5k €$300'];
-// The jobs that warm one language: build its rules, then run the lines through it one at a time (a job is 10 to 100 ms).
-function primeJobs(language) {
+// Warming. A grammar's regular expressions are compiled by V8 the first time they run (tens of ms a language), once for each string width. That must never
+// land in a turn, so a language is warmed only when it matters (the language the player writes in: `warmFor`, called with each typed line, and a language
+// the detector names for a line that reaches the grammar) and in small slices: one timer-less `setImmediate` step per job, a job being the construction of one
+// regular expression or one first run of it (a few ms; the slices are measured in eddies-languages.test.mjs). A language reads lines only once it is
+// warm; a line in a language that is not warm yet is read in English only, and starts that language's warm-up. warmLanguagesNow is for tests and tools.
+const warm = new Set(), queued = new Set(), queue = [];
+let pumping = false;
+const PRIMES = ['hola, me prestas 500 eddies? te debo dos mil', 'ñ ж 長 ő 500 eddies. 2万 , 3 mil и пять сотен 借我'];
+/** The jobs that warm one language. The first builds the rules (one job per regular expression) and returns the rest, each of which runs one pattern. */
+function jobsOf(language) {
+  // One job is one first run of one pattern on one string width (V8 compiles per width), twice (the second run tiers up).
+  const prime = (pattern, text) => () => { pattern.lastIndex = 0; pattern.exec(prepare(text, language)); pattern.lastIndex = 0; };
+  const primeJobs = pattern => PRIMES.flatMap(text => [prime(pattern, text), prime(pattern, text)]);
+  // Building a pattern is a job of its own, followed by the jobs that run it.
+  const build = get => () => {
+    const built = get();
+    if (!built) return [];
+    if (!built.parts) return primeJobs(built);
+    return built.parts.map((_, index) => () => primeJobs(built.parts[index]));     // a list: one job per part
+  };
   return [() => {
-    rulesOf(language);
-    return [...PRIMES.flatMap(text => [1, 2, 3].map(() => () => { screenIn(language, text); parseAmountIn(language, text); })), () => { warm.add(language); }];
+    const rules = rulesOf(language);
+    return [build(() => rules.split), build(() => rules.unit), build(() => rules.after), build(() => rules.notMoney), build(() => rules.joke), build(() => rules.until),
+      build(() => rules.digits), build(() => rules.money), build(() => rules.negation), build(() => rules.hypothetical), build(() => rules.later),
+      ...rules.intents.map((_, index) => build(() => rules.intents[index][1])),
+      () => { for (const text of PRIMES) parseAmountIn(language, text); }, () => { warm.add(language); }];
   }];
 }
-function run(queue, job) { const more = job(); if (Array.isArray(more)) queue.unshift(...more); }
-export function warmLanguages() {
-  if (warming) return;
-  warming = true;
-  const queue = LANGUAGES.flatMap(primeJobs);
-  const step = () => {
-    run(queue, queue.shift());
-    if (queue.length) setTimeout(step, 0).unref?.();
-  };
-  setTimeout(step, 0).unref?.();
+function step() {
+  pumping = false;
+  const job = queue.shift();
+  if (!job) return;
+  const more = job();
+  if (Array.isArray(more)) queue.unshift(...more);
+  if (queue.length) { pumping = true; setImmediate(step); }
+}
+/** Warm these languages (codes the detector uses; unknown ones, English and warm ones are skipped), in small slices between other work. */
+export function warmLanguages(codes) {
+  for (const code of codes ?? []) {
+    if (!DATA[code] || queued.has(code) || !LANGUAGES.includes(code)) continue;
+    queued.add(code);
+    queue.push(...jobsOf(code));
+  }
+  if (!pumping && queue.length) { pumping = true; setImmediate(step); }
+}
+/** The player's language from a typed line: start warming it (a line that is not about money costs nothing else). */
+export function warmFor(text) {
+  if (typeof text !== 'string' || text.length < 3) return;
+  const found = assessLanguage(text);
+  if (found.language && found.language !== 'en' && !queued.has(found.language)) warmLanguages([found.language]);
+}
+export function isWarm(code) { return warm.has(code); }
+/** Runs the warm-up of these languages (all by default) at once and calls `onSlice(milliseconds)` after each job: tests and tools. */
+export function warmLanguagesNow(codes = LANGUAGES, onSlice = null) {
+  const own = [];
+  for (const code of codes) if (!queued.has(code) && LANGUAGES.includes(code)) { queued.add(code); own.push(...jobsOf(code)); }
+  while (own.length) {
+    const start = performance.now();
+    const more = own.shift()();
+    if (Array.isArray(more)) own.unshift(...more);
+    onSlice?.(performance.now() - start);
+  }
 }
 /** Whether a line has a money word of any warm language (the gate in screenWords: no digit and no money word, no grammar runs). */
 export function mentionsMoneyAnywhere(line) {
@@ -344,10 +424,6 @@ export function mentionsMoneyAnywhere(line) {
   const lower = line.normalize('NFKC').toLowerCase(), folded = foldWord(lower);
   for (const language of warm) if (rulesOf(language).money.test(CJK.has(language) ? lower : folded)) return true;
   return false;
-}
-export function warmLanguagesNow() {
-  warming = true;
-  for (const language of LANGUAGES) if (!warm.has(language)) for (const queue = primeJobs(language); queue.length;) run(queue, queue.shift());
 }
 
 /**
@@ -359,10 +435,11 @@ export function warmLanguagesNow() {
 const RELATIVES = {es: ['pt', 'it', 'fr'], pt: ['es', 'it', 'fr'], it: ['es', 'pt', 'fr'], fr: ['it', 'es', 'pt'], cs: ['pl'], pl: ['cs'], ru: ['uk'], uk: ['ru']};
 
 export function screenForeign(line) {
-  if (!warming) warmLanguages();
-  if (warm.size === 0) return null;
   const found = assessLanguage(line);
   const detected = found.language;
+  // The line's own language is not warm yet: start warming it, and read this line in English only.
+  if (detected && detected !== 'en' && LANGUAGES.includes(detected) && !warm.has(detected)) { warmLanguages([detected]); return null; }
+  if (warm.size === 0) return null;
   if (found.solid && detected === 'en') return null;       // a line the detector is sure is English is English (read by eddies.mjs): no grammar of another language
   const text = line.normalize('NFKC');
   const scripts = {cyrillic: /[Ѐ-ӿ]/.test(text), kana: /[぀-ヿ]/.test(text), hangul: /[ᄀ-ᇿ㄰-㆏가-힯]/.test(text), han: /[㐀-鿿]/.test(text)};

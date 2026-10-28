@@ -13,7 +13,7 @@
 // spoken turn carries one short "standing" note (what the character would lend), and the words are screened when the transcript arrives.
 import {FINANCES} from './eddies-finances.mjs';
 import {MIC_PLACEHOLDER} from './call-meet.mjs';
-import {screenForeign, warmLanguages, mentionsMoneyAnywhere} from './eddies-languages.mjs';
+import {screenForeign, warmFor, mentionsMoneyAnywhere} from './eddies-languages.mjs';
 
 /** The most eddies one transfer can move, whatever the balances (mod/eddies.lua holds the same number). */
 export const EDDIES_CAP = 100000;
@@ -404,8 +404,8 @@ export class EddiesDecisions {
     if (!block?.on || input.reaction || input.group || input.holocall || input.head) return null;
     const finance = financeOf(input.profileKey);
     if (!finance) return null;
-    warmLanguages();             // idempotent: the other languages' grammars warm up in the background, never inside a turn
     const {now, row} = block, typed = typedWords(input.text);
+    if (typed) warmFor(input.text);   // the player's language warms up in small background slices, never inside a turn (bridge/eddies-languages.mjs)
     const screen = typed ? screenWords(input.text) : null;
     const ambient = isArchetype(input.profileKey);
     // An ordinary NPC, or a character the game placed: talk only. The NPC keeps the old money note (turn-context.mjs moneyNote: V pays, words only) and gets
