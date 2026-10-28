@@ -5,7 +5,7 @@ import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {OWN_PYTHON_FILE, SELF_TEST_SOURCE, backendOf, ownPythonLine, ownPythonSummary, ownPythonVerdict, omniPriority, packagedOmniSource, parseOwnPythonText, parseRocmOptions,
-  readOwnPythonSetting, resolveOwnPython, rocmWorkerEnvironment, runOwnPythonSelfTest} from './omni-own-python.mjs';
+  miopenWanted, readOwnPythonSetting, resolveOwnPython, rocmWorkerEnvironment, runOwnPythonSelfTest} from './omni-own-python.mjs';
 
 // What the self-test prints for each kind of PC (no real GPU: these are the reports, as a ROCm, a CUDA and a CPU-only PyTorch answer).
 const ROCM = {python: '3.12.10', torch: '2.14.0+rocm10.1.0', hip: '10.1.0', cuda: null, available: true, device: 'AMD Radeon RX 9070 XT', vramMiB: 16304, op: true, omnivoice: true};
@@ -158,14 +158,21 @@ test('the lines after the python.exe name the ROCm options; only three names and
   } finally { await rm(folder, {recursive: true, force: true}); }
 });
 
-test('the ROCm worker environment: FAST find mode, only for a ROCm Python that passed, with the player own settings winning; the priority is not part of it', () => {
+test('the ROCm worker environment: MIOpen on with find mode 2 and enforce 1 by default, off by the game setting, the file and the player own variables winning; the priority is not part of it', () => {
   const rocm = {used: true, backend: 'rocm'};
-  assert.deepEqual(rocmWorkerEnvironment(rocm, {}), {MIOPEN_FIND_MODE: 'FAST'});
-  assert.deepEqual(rocmWorkerEnvironment(rocm, {MIOPEN_FIND_MODE: 'NORMAL'}), {}, 'a variable the player set is theirs');
-  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopenFindMode: 'HYBRID', miopen: 'on', priority: 'normal'}}, {MIOPEN_FIND_MODE: 'FAST'}),
-    {MIOPEN_FIND_MODE: 'HYBRID', CYBERPUNK_CONVAI_ROCM_MIOPEN: '1'}, 'the file wins over the environment');
-  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopen: 'off'}}, {}), {MIOPEN_FIND_MODE: 'FAST'});
-  for (const other of [null, {}, {used: false, backend: 'rocm'}, {used: true, backend: 'cuda'}, {used: true, backend: 'none'}]) assert.deepEqual(rocmWorkerEnvironment(other, {}), {}, JSON.stringify(other));
+  const on = {CYBERPUNK_CONVAI_ROCM_MIOPEN: '1', MIOPEN_FIND_MODE: '2', MIOPEN_FIND_ENFORCE: '1'};
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {}), on);
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {}, {miopen: true}), on);
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {}, {miopen: false}), {CYBERPUNK_CONVAI_ROCM_MIOPEN: '0', MIOPEN_FIND_MODE: '2'}, 'the AMD-only choice off');
+  assert.deepEqual(rocmWorkerEnvironment(rocm, {MIOPEN_FIND_MODE: 'NORMAL', MIOPEN_FIND_ENFORCE: '3'}), {CYBERPUNK_CONVAI_ROCM_MIOPEN: '1'}, 'a variable the player set is theirs');
+  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopenFindMode: 'HYBRID', miopen: 'on', priority: 'normal'}}, {MIOPEN_FIND_MODE: 'FAST'}, {miopen: false}),
+    {MIOPEN_FIND_MODE: 'HYBRID', CYBERPUNK_CONVAI_ROCM_MIOPEN: '1', MIOPEN_FIND_ENFORCE: '1'}, 'the file wins over the environment and the game setting');
+  assert.deepEqual(rocmWorkerEnvironment({...rocm, options: {miopen: 'off'}}, {}, {miopen: true}), {CYBERPUNK_CONVAI_ROCM_MIOPEN: '0', MIOPEN_FIND_MODE: '2'});
+  assert.equal(miopenWanted(rocm), true); assert.equal(miopenWanted(rocm, false), false); assert.equal(miopenWanted({options: {miopen: 'on'}}, false), true);
+  for (const other of [null, {}, {used: false, backend: 'rocm'}, {used: true, backend: 'cuda'}, {used: true, backend: 'none'}]) {
+    assert.deepEqual(rocmWorkerEnvironment(other, {}), {}, JSON.stringify(other));
+    assert.deepEqual(rocmWorkerEnvironment(other, {}, {miopen: false}), {}, 'NVIDIA is never touched: ' + JSON.stringify(other));
+  }
 });
 
 test('the OmniVoice worker priority: the omni-python.txt line (high, normal or below) wins, else the level for the PC, else high; the same on every backend', () => {

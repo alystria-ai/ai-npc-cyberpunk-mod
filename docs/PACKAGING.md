@@ -397,6 +397,35 @@ CRC-32), converts the model (the old file must be the pinned upstream file), app
 zip with the builder's writer (`OmniPack-OmniVoice-0.6B-<v>.zip` and `.files.json`). It stops when the old pack already holds a clip the Runtime carries. `packaging/omni-pack-rules.test.mjs` covers the rules, the pins and a
 small synthetic pack through the tool.
 
+### OmniVoice for AMD (seven small packs in `voice/amd/`, 0.3.4)
+
+AMD players press Settings > Voices > OmniVoice for AMD > Install, and the bridge downloads **one pack for the card's family** from Hugging Face, `voice/amd/OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip`
+(decided by the owner on 28 Oct 2026), unpacks it into `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\amd\` and tests it (docs/OMNIVOICE_AMD.md). The packs hold AMD's ROCm PyTorch wheels unchanged;
+AMD's index (`https://stable.repo.amd.com/rocm/whl-next/`) stays as the fallback when a pack is missing or wrong. They are not part of a release build (no entry in `release.config.json`, not in the
+Runtime, not on Nexus): they are built and uploaded when the pinned PyTorch changes, and at the first release that has the button.
+
+What a release carries is the pinned list `bridge/omni-amd-wheels.mjs` and the pack list `bridge/omni-amd-packs.mjs` (both modules, so they ship with the bridge's import closure in the Runtime, no `appData` entry).
+Before the release that has the button, or whenever AMD's PyTorch changes:
+
+1. `node packaging/resolve-omni-amd.mjs` (metadata only: HTTP range reads of each wheel's METADATA and the 27 KB `rocm` source package; about a minute). It follows AMD's Requires-Dist lines for
+   `torch[device-<gfx>]==ROOTS.torch`, `torchaudio`, `torchvision[device-<gfx>]` for the pack's Python (`cp311`, `win_amd64`) and every family in `TARGETS`, leaves out what the pack has (`FROM_PACK`)
+   and records size, unpacked size and AMD's ETag (an MD5 the game checks for files uploaded in one part). A newer PyTorch from AMD means changing `ROOTS` in the script (and checking it still pairs with
+   the pack's libraries: docs/OMNIVOICE_AMD.md, omni-requirements.txt). The pack names follow `ROOTS.torch` (PyTorch 2.14, ROCm 10.1), so a new PyTorch gives new file names and old players' packs are never overwritten.
+2. `node packaging/build-omni-amd-packs.mjs --plan` shows the packs and their sizes (nothing is downloaded): gfx1201 1480 MiB, gfx1200 1541, gfx1100 1500, gfx1101 1496, gfx1102 1494, gfx1030 1062, gfx1031 1062,
+   about 9.4 GB to upload, about 3.0 GB downloaded from AMD because the same torch and ROCm files are in several packs.
+3. `node packaging/build-omni-amd-packs.mjs --out <folder> [--target gfx1201,gfx1100] [--downloads <folder>] [--no-list]` downloads each family's files from AMD (resumed, size and checksum checked, shared between
+   families), writes `OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip` (files stored whole in the pinned order, then `omni-amd-pack.json` with each file's size and SHA-256; the same files give the same zip), reads it
+   back, and writes each zip's size and SHA-256 into `bridge/omni-amd-packs.mjs` (`--no-list` only prints them). The pinned list may stay without `--hash`: the pack's SHA-256 is what the game checks.
+4. `python packaging/upload-packs.py --version <release> --pack omni-amd --packages <folder>` uploads every `OmniAMD-*.zip` in the folder to `voice/amd/` (`--dry-run` lists them) and checks the sizes on Hugging Face.
+   The Hugging Face token comes from the environment as for the other packs and is never printed.
+5. Commit the changed lists **after** the upload (a list that names a pack that is not on Hugging Face only costs the player the fallback to AMD, but keep it true). The model card (`packaging/HF_MODEL_CARD.md`)
+   already describes the `voice/amd/` folder.
+
+`bridge/omni-amd-setup.test.mjs` checks the list's shape (every family has torch, torchaudio, torchvision, the rocm SDK core, libraries and device parts, https URLs on AMD's host, nothing from the pack) and that
+a pack list entry matches the pinned files; `packaging/build-omni-amd-packs.test.mjs` covers the builder. The two exchange files (`omni-amd-command.json`, `omni-amd-state.json`) are in
+`packaging/runtime-exchange.json`. Nothing is added to the OmniVoice pack or the Runtime update zip beyond the two small lists. ROCm's libraries are open source under their own licences (the wheels carry them
+inside, and the packs keep the wheels whole); check them once before the packs go public.
+
 ### Packs reused unchanged
 
 A new version rebuilds the Scripts and the Runtime, but the optional packs are several GB each, so a version that did not change them

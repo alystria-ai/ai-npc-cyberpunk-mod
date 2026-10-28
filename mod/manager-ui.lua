@@ -69,6 +69,8 @@ local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
 local customProvider = {factory = select(2, pcall(dofile, 'custom-provider.lua'))}
 -- Remote OmniVoice (mod/remote-omni.lua, docs/REMOTE_OMNIVOICE.md): the server address and the connection test, on the Custom voices page. Optional like the Custom provider.
 local remoteOmni = {factory = select(2, pcall(dofile, 'remote-omni.lua'))}
+-- OmniVoice for AMD (mod/omni-amd.lua, docs/OMNIVOICE_AMD.md): the one-button setup of OmniVoice on an AMD Radeon card and the MIOpen choice. Optional like Remote OmniVoice.
+local omniAmd = {factory = select(2, pcall(dofile, 'omni-amd.lua'))}
 -- Key bindings (docs/KEY_BINDINGS.md): the mod's own keys for its five actions, set from a page of their own. The module that listens for them
 -- (mod/key-bindings.lua) is loaded by init.lua (convaiKeyBindsModule) when this page opens or a binding is saved, so a player who never opens the page
 -- and sets nothing loads nothing.
@@ -906,6 +908,24 @@ local function microphoneChoices(settings)
     return labels, values, index
 end
 
+-- Settings > Voices > OmniVoice for AMD: the setup and remove rows (their texts come from mod/omni-amd.lua) and the MIOpen choice, a saved setting like any other.
+-- The page is empty without that file.
+local function omniAmdRows(snapshot)
+    local rows = {}
+    if not omniAmd.instance then return rows end
+    local made, items = pcall(omniAmd.instance.rows)
+    if made and type(items) == 'table' then
+        for _, item in ipairs(items) do
+            rows[#rows + 1] = action(item.id, item.label, item.value, item.help,
+                function() return omniAmd.instance.request(item.action) end, item.enabled,
+                {label = true, value = true, description = true})
+        end
+    end
+    rows[#rows + 1] = setting('amdMiopen', 'MIOpen convolutions (AMD)', 'bool', snapshot.settings.amdMiopen ~= false, true,
+        'On: AMD’s MIOpen runs the convolutions, with MIOPEN_FIND_MODE=2 and MIOPEN_FIND_ENFORCE=1. Off: PyTorch’s own convolutions. Which is faster depends on your card and driver: if voices are slow or stop part-way, try the other one. AMD cards only. OmniVoice restarts with the new choice when it is idle.')
+    return rows
+end
+
 -- What removing the Mistral key changes, as the sentences after "Deletes the saved key." (the row's Remove help): the key powers the text
 -- provider when Mistral is chosen, the companions' Voxtral voice when that is the voice, and V's voice when it is set to Voxtral (V then
 -- speaks with Pocket). Only what is in use now is named; a key nothing depends on says so.
@@ -1288,6 +1308,11 @@ local function pageSignature(snapshot)
         add('remote-page:' .. (read and signature or '') .. '|' .. tostring(remote.set) .. tostring(remote.connected) .. tostring(remote.requested) .. tostring(remote.fresh))
         add(settingsDigest(snapshot.settings))
     end
+    if view == 'omni-amd' and omniAmd.instance then
+        local read, signature = pcall(omniAmd.instance.signature)
+        add('amd-page:' .. (read and signature or ''))
+        add(settingsDigest(snapshot.settings))
+    end
     if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' or view == 'housemates' then add(settingsDigest(snapshot.settings)) end
     if view == 'key-bindings' then
         add(settingsDigest(snapshot.settings))
@@ -1300,6 +1325,11 @@ local function pageSignature(snapshot)
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
         -- when the voice service changes state; every row when its saved value changes.
         add(settingsDigest(snapshot.settings))
+        -- The OmniVoice for AMD row appears when the service says this PC can use it.
+        if omniAmd.instance then
+            local asked, visible = pcall(omniAmd.instance.visible)
+            add('amd-row:' .. tostring(asked and visible == true))
+        end
         local own, pack, mistral = snapshot.ownKey, manager.omniPack(), snapshot.mistral or {}
         add(table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
             own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff),
@@ -1637,7 +1667,7 @@ local function schema()
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings', ['custom-voices'] = 'settings',
+        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings', ['custom-voices'] = 'settings', ['omni-amd'] = 'settings',
         ['immersive-invitations'] = 'settings', housemates = 'settings'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
@@ -1926,6 +1956,9 @@ local function schema()
     elseif view == 'custom-voices' and remoteOmni.instance then
         categories[#categories + 1] = category('custom-voices', 'Custom voices', customVoicesRows(snapshot),
             'Render the OmniVoice voices on another PC or graphics card that runs the OmniVoice server.')
+    elseif view == 'omni-amd' and omniAmd.instance then
+        categories[#categories + 1] = category('omni-amd', 'OmniVoice for AMD', omniAmdRows(snapshot),
+            'Run OmniVoice on your AMD Radeon card with AMD’s ROCm: one download, set up from here.')
     elseif view == 'relationships' then
         local rows = relationshipRows(snapshot)
         if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
@@ -2046,7 +2079,7 @@ local function schema()
         local voiceName = ui.t('Companion voices')
         if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')'
         -- The bridge knows this PC has no NVIDIA graphics card: the OmniVoice entries stay choosable (they fall back), the row says what they need.
-        elseif pack.amdRoute then voiceName = voiceName .. ' (' .. ui.t('OmniVoice on AMD: experimental') .. ')'
+        elseif pack.amdRoute then voiceName = voiceName .. ' (' .. ui.t('OmniVoice on AMD: set up first') .. ')'
         elseif pack.noNvidia then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs NVIDIA') .. ')'
         -- The NVIDIA card has under 12 GB (the bridge's card list): the entries stay choosable, the row says what OmniVoice needs.
         elseif pack.smallCard then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs 12 GB') .. ')' end
@@ -2111,13 +2144,27 @@ local function schema()
                     return navigate('custom-voices')
                 end))
         end
+        -- OmniVoice for AMD sits right under the voice list, before Custom voices: shown only when the service says this PC offers it (or has it).
+        if omniAmd.instance then
+            local asked, visible = pcall(omniAmd.instance.visible)
+            if asked and visible == true then
+                local at = 1
+                for index, voiceRow in ipairs(voicesCategory.settings) do if voiceRow.id == 'voiceProvider' then at = index + 1 end end
+                table.insert(voicesCategory.settings, at, action('omni-amd', 'OmniVoice for AMD', 'Open', 'Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.',
+                    function()
+                        -- The page reads the bridge's answer again at once, not at the next poll.
+                        pcall(omniAmd.instance.state, true)
+                        return navigate('omni-amd')
+                    end))
+            end
+        end
         for _, voiceRow in ipairs(voicesCategory.settings) do
             if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
                 voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
             end
             -- First paragraph, so a long description that is cut keeps it.
             if voiceRow.id == 'voiceProvider' and pack.amdRoute then
-                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md in the mod’s repository (github.com/alystria-ai/ai-npc-cyberpunk-mod). Until it is set up, OmniVoice will not start here. Choose Pocket to hear voices.')
+                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.')
                     .. '\n\n' .. voiceRow.description
             elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
                 voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
@@ -2250,6 +2297,11 @@ function M.configure(domain, companions, queueFactory, readiness)
         local created, instance = pcall(remoteFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession})
         remoteOmni.instance = created and type(instance) == 'table' and instance or nil
     end
+    local amdFactory = omniAmd.factory
+    if type(amdFactory) == 'table' and type(amdFactory.new) == 'function' then
+        local created, instance = pcall(amdFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession})
+        omniAmd.instance = created and type(instance) == 'table' and instance or nil
+    end
     local customFactory = customProvider.factory
     if type(customFactory) == 'table' and type(customFactory.new) == 'function' then
         local created, instance = pcall(customFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession})
@@ -2262,7 +2314,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['custom-voices'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
+    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['custom-voices'] = true, ['omni-amd'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
 
 function M.view() return view end
 
@@ -2313,7 +2365,7 @@ end
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
     if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier)
-        or (name == 'custom-endpoint' and not customProvider.instance) or (name == 'custom-voices' and not remoteOmni.instance) then name = 'home' end
+        or (name == 'custom-endpoint' and not customProvider.instance) or (name == 'custom-voices' and not remoteOmni.instance) or (name == 'omni-amd' and not omniAmd.instance) then name = 'home' end
     if view == 'key-bindings' and name ~= view and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     local changed = name ~= view or listPage ~= 1 or listGroup ~= 1 or modelFind.text ~= ''
     view, listPage, listGroup = name, 1, 1
@@ -2599,6 +2651,7 @@ function M.apply(changes)
         elseif key == 'voiceChoices' then values.voiceChoices = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
         elseif key == 'remoteOmni' then values.remoteOmni = change.value
+        elseif key == 'amdMiopen' then values.amdMiopen = change.value
         elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false, johnny_voice = false, johnny_text = false}
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value

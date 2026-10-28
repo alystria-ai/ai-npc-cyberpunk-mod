@@ -889,6 +889,9 @@ local function loadSettings()
     -- Off by default: Remote OmniVoice (Voices > Custom voices, docs/REMOTE_OMNIVOICE.md), the OmniVoice choices are rendered by an OmniVoice server on another PC. Off, nothing
     -- is asked of any server; on, no OmniVoice model loads on this PC and the pack is not needed.
     if type(settings.remoteOmni) ~= 'boolean' then settings.remoteOmni, settingsNeedSave = false, true end
+    -- On by default: OmniVoice on an AMD Radeon card (Voices > OmniVoice for AMD, docs/OMNIVOICE_AMD.md) lets AMD's MIOpen run the convolutions. Off, PyTorch's own convolutions run.
+    -- Only the bridge reads it, and only on an AMD card.
+    if type(settings.amdMiopen) ~= 'boolean' then settings.amdMiopen, settingsNeedSave = true, true end
     -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): none by default, so nothing changes for an existing player. Only an
     -- action of the mod with a game key name is kept, and two actions never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
     if type(settings.keyBindings) ~= 'table' then settings.keyBindings, settingsNeedSave = {}, true end
@@ -1267,7 +1270,7 @@ function M.characterVoiceLabel(profile, view, pack)
     if chosen == 'omni' and type(pack) == 'table' then
         local omni = M.voiceLabel('omni', settings.omniSteps, settings.omniReference)
         if pack.known and not pack.installed then return ui.t('{voice} · needs Omni pack', {voice = omni}) end
-        if pack.amdRoute then return ui.t('{voice} · AMD experimental', {voice = omni}) end
+        if pack.amdRoute then return ui.t('{voice} · AMD: set up first', {voice = omni}) end
         if pack.noNvidia then return ui.t('{voice} · needs NVIDIA card', {voice = omni}) end
         if pack.smallCard then return ui.t('{voice} · needs 12 GB card', {voice = omni}) end
     end
@@ -1305,7 +1308,7 @@ function M.omniPack()
     local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
     local noNvidia = fresh and localVoiceState.omniNoNvidia == true
     local smallCard = fresh and localVoiceState.omniSmallCard == true
-    -- `amdRoute`: no NVIDIA card but a discrete AMD Radeon one, and no working own Python (docs/OMNIVOICE_AMD.md): the menu points to that experimental route.
+    -- `amdRoute`: no NVIDIA card but a discrete AMD Radeon one, and OmniVoice is not set up on it yet (Voices > OmniVoice for AMD, docs/OMNIVOICE_AMD.md): the menu points to that setup.
     local amdRoute = noNvidia and localVoiceState.omniAmdRoute == true
     if fresh and type(pack) == 'table' and pack.installed == false then
         return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia, smallCard = smallCard, amdRoute = amdRoute}
@@ -2203,6 +2206,7 @@ function M.snapshot(player)
             voiceChoices = settings.voiceChoices == true,
             padTalk = settings.padTalk == true,
             remoteOmni = settings.remoteOmni == true,
+            amdMiopen = settings.amdMiopen ~= false,
             keyBindings = settings.keyBindings,
             companionOutfits = settings.companionOutfits == true,
             reputation = settings.reputation == true,
@@ -2341,6 +2345,9 @@ function M.applySettings(player, values)
         elseif key == 'remoteOmni' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.remoteOmni = value
+        elseif key == 'amdMiopen' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.amdMiopen = value
         elseif key == 'keyBindings' then
             -- {action = 'IK_F7'} binds, {action = false} clears. A key another action already has is refused (the page says which).
             if type(value) ~= 'table' then return false, 'Choose a key or a controller button.' end

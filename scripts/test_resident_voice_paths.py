@@ -213,24 +213,28 @@ class PortableVoicePaths(unittest.TestCase):
     def torch_with(hip, cuda, cudnn=True):
         return SimpleNamespace(version=SimpleNamespace(hip=hip, cuda=cuda), backends=SimpleNamespace(cudnn=SimpleNamespace(enabled=cudnn)))
 
-    def test_rocm_gets_the_fast_find_mode_and_pytorchs_own_convolutions_and_nothing_else_does(self):
+    def test_rocm_runs_miopen_with_find_mode_2_and_enforce_1_by_default_and_nothing_else_is_touched(self):
         rocm, environ = self.torch_with('10.1.0', None), {}
         line = worker.tune_rocm(rocm, environ)
-        self.assertEqual(environ, {'MIOPEN_FIND_MODE': 'FAST'})
-        self.assertFalse(rocm.backends.cudnn.enabled)
-        self.assertEqual(line, "[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=FAST; convolutions: PyTorch's own, MIOpen off")
-        # A find mode the player already set stays theirs.
+        self.assertEqual(environ, {'MIOPEN_FIND_MODE': '2', 'MIOPEN_FIND_ENFORCE': '1'})
+        self.assertTrue(rocm.backends.cudnn.enabled)
+        self.assertEqual(line, '[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=2, MIOPEN_FIND_ENFORCE=1; convolutions: MIOpen')
+        on = self.torch_with('10.1.0', None)
+        self.assertEqual(worker.tune_rocm(on, {worker.ROCM_MIOPEN_VARIABLE: '1'}), line)
+        self.assertTrue(on.backends.cudnn.enabled)
+        # A value the player already set stays theirs.
         mine = {'MIOPEN_FIND_MODE': 'NORMAL'}
-        self.assertEqual(worker.tune_rocm(self.torch_with('10.1.0', None), mine), "[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=NORMAL (already set); convolutions: PyTorch's own, MIOpen off")
-        self.assertEqual(mine, {'MIOPEN_FIND_MODE': 'NORMAL'})
-        # The override keeps MIOpen's convolutions on.
-        kept = self.torch_with('10.1.0', None)
-        self.assertEqual(worker.tune_rocm(kept, {worker.ROCM_MIOPEN_VARIABLE: '1'}), '[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=FAST; convolutions: MIOpen kept on')
-        self.assertTrue(kept.backends.cudnn.enabled)
-        for value in ('0', '', 'on'):
-            off = self.torch_with('10.1.0', None)
-            worker.tune_rocm(off, {worker.ROCM_MIOPEN_VARIABLE: value})
-            self.assertFalse(off.backends.cudnn.enabled, f'only "1" keeps MIOpen, not {value!r}')
+        self.assertEqual(worker.tune_rocm(self.torch_with('10.1.0', None), mine), '[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=NORMAL (already set), MIOPEN_FIND_ENFORCE=1; convolutions: MIOpen')
+        self.assertEqual(mine, {'MIOPEN_FIND_MODE': 'NORMAL', 'MIOPEN_FIND_ENFORCE': '1'})
+        # The AMD-only choice off: PyTorch's own convolutions, find mode 2, no enforcement.
+        off, environ = self.torch_with('10.1.0', None), {worker.ROCM_MIOPEN_VARIABLE: '0'}
+        self.assertEqual(worker.tune_rocm(off, environ), "[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=2; convolutions: PyTorch's own, MIOpen off")
+        self.assertFalse(off.backends.cudnn.enabled)
+        self.assertEqual(environ, {worker.ROCM_MIOPEN_VARIABLE: '0', 'MIOPEN_FIND_MODE': '2'})
+        for value in ('', 'on', '1'):
+            kept = self.torch_with('10.1.0', None)
+            worker.tune_rocm(kept, {worker.ROCM_MIOPEN_VARIABLE: value})
+            self.assertTrue(kept.backends.cudnn.enabled, f'only "0" turns MIOpen off, not {value!r}')
         # NVIDIA (CUDA build), a CPU build and a half-made torch object: untouched.
         for other in (self.torch_with(None, '12.8'), self.torch_with(None, None), self.torch_with('', '12.8'), SimpleNamespace()):
             environ = {}
@@ -241,14 +245,16 @@ class PortableVoicePaths(unittest.TestCase):
 
     def test_a_library_that_switches_miopen_back_on_during_the_load_is_told_off_again(self):
         rocm = self.torch_with('10.1.0', None, cudnn=True)
-        self.assertIn('off again', worker.keep_rocm_convolutions(rocm, {}))
+        off = {worker.ROCM_MIOPEN_VARIABLE: '0'}
+        self.assertIn('off again', worker.keep_rocm_convolutions(rocm, off))
         self.assertFalse(rocm.backends.cudnn.enabled)
-        self.assertIsNone(worker.keep_rocm_convolutions(rocm, {}), 'already off: nothing to say')
-        kept = self.torch_with('10.1.0', None, cudnn=True)
-        self.assertIsNone(worker.keep_rocm_convolutions(kept, {worker.ROCM_MIOPEN_VARIABLE: '1'}))
-        self.assertTrue(kept.backends.cudnn.enabled)
+        self.assertIsNone(worker.keep_rocm_convolutions(rocm, off), 'already off: nothing to say')
+        for kept_environ in ({}, {worker.ROCM_MIOPEN_VARIABLE: '1'}):
+            kept = self.torch_with('10.1.0', None, cudnn=True)
+            self.assertIsNone(worker.keep_rocm_convolutions(kept, kept_environ), 'MIOpen on (the default): left on')
+            self.assertTrue(kept.backends.cudnn.enabled)
         cuda = self.torch_with(None, '12.8', cudnn=True)
-        self.assertIsNone(worker.keep_rocm_convolutions(cuda, {}))
+        self.assertIsNone(worker.keep_rocm_convolutions(cuda, {worker.ROCM_MIOPEN_VARIABLE: '0'}))
         self.assertTrue(cuda.backends.cudnn.enabled)
 
     def test_the_worker_sets_its_own_priority_only_when_the_bridge_asks_and_never_to_realtime(self):

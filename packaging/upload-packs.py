@@ -9,6 +9,7 @@ commit message), and there are NO checksum files:
     mature/Mature-Standard-Gemma-4-E4B.zip      mature/Mature-Lite-Qwen3.5-4B.zip
     mic/MicPack-European-Parakeet-TDT-0.6B-v3.zip   mic/MicPack-Asian-SenseVoice-Small-234M.zip
     voice/OmniPack-OmniVoice-0.6B.zip           (OmniVoice is the only downloadable voice model)
+    voice/amd/OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip    (AMD's ROCm PyTorch for OmniVoice, one zip per card family; packaging/build-omni-amd-packs.mjs)
     updates/Runtime-Update-<from>-to-<to>.zip   and   multilingual/Voices-<Language>.zip, PocketTTS-Model-100M-<Language>.zip   (published by their own tools)
 
 Every model pack carries the model's name and parameter count in its file name (owner decision 2026-10-28): <Type>-<Tier>-<Model>-<Params>.zip. The names
@@ -26,6 +27,7 @@ The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs; 
     python packaging/upload-packs.py --check                                   (can the token write to the repository?)
     python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR   (upload the pack's zip from DIR to its folder)
     python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR --dry-run   (list what would be uploaded)
+    python packaging/upload-packs.py --version 0.3.4 --pack omni-amd --packages DIR        (upload every OmniAMD-*.zip in DIR to voice/amd/; the names carry no release version)
 
 The token comes from the HF_PACKS_TOKEN environment variable (the GitHub Actions secret of the account that owns the pack
 repository; HF_TOKEN is the fallback for local runs) and is never printed. A missing repository is created, private. Nothing is uploaded
@@ -53,7 +55,11 @@ LAYOUT = {
 }
 # pack id -> the title before 0.3.4 (OmniPack, LocalAI-Lite ...): still accepted in a build folder, and the old path of --also-old-name.
 LEGACY_TITLES = {pack: entry["legacyTitle"] for pack, entry in PACK_FILES["packs"].items()}
-PACKS = tuple(LAYOUT)
+PACKS = tuple(LAYOUT) + ("omni-amd",)
+# The AMD packs (packaging/build-omni-amd-packs.mjs) are not part of a release build: the zips are named by what is inside, not by the release,
+# and go to voice/amd/ as they are. --pack omni-amd uploads every one found in the folder.
+AMD_FOLDER = "voice/amd"
+AMD_NAME = re.compile(r"OmniAMD-gfx[0-9a-f]{3,5}-PyTorch-\d+\.\d+-ROCm-\d+\.\d+\.zip")
 PRODUCT = "AI-NPC-Cyberpunk-Mod"
 # The game versions the mod is built for (packaging/game-variants.json, docs/GAME_VERSIONS.md): the Scripts and Runtime of a game other than
 # the default (2.5) carry a suffix in the file name of a build and sit in a folder of their own, game-<version>/. The other packs are shared.
@@ -158,10 +164,17 @@ def plan(version: str, pack: str, packages: Path, game: str = "2.5", also_old_na
     """The (local file, path in the repository) pair of one pack: its one zip, in the pack's folder. No checksum file goes with it.
     The zip is looked for under its new name, then under the name before 0.3.4; it is published under the new name either way. With
     also_old_name the same file is also published at the old path."""
-    if pack not in LAYOUT:
+    if pack not in PACKS:
         raise SystemExit(f"Unknown pack {pack}; expected one of {', '.join(PACKS)}.")
     if not re.fullmatch(r"\d+(\.\d+){1,3}([-+][0-9A-Za-z.-]+)?", version):
         raise SystemExit(f"Invalid version: {version}")
+    if pack == "omni-amd":
+        if game != "2.5":
+            raise SystemExit("The AMD packs are the same for every game version; upload them without --game.")
+        found = sorted(path for path in packages.iterdir() if path.is_file() and AMD_NAME.fullmatch(path.name))
+        if not found:
+            raise SystemExit(f"No OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip in {packages} (packaging/build-omni-amd-packs.mjs writes them).")
+        return [(path, f"{AMD_FOLDER}/{path.name}") for path in found]
     name = built_name(pack, version, game)
     parts = sorted(packages.glob(f"{name[:-4]}-part*of*.zip"))
     if parts:

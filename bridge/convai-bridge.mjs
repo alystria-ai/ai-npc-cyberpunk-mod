@@ -67,6 +67,7 @@ import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
 import {ownPythonLine, ownPythonSummary, readOwnPythonSetting, resolveOwnPython} from './omni-own-python.mjs';
+import {OmniAmdSetup} from './omni-amd-setup.mjs';
 import {REMOTE_FILE, RemoteOmniAddress, RemoteOmniControl} from './remote-omni-control.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
@@ -404,13 +405,17 @@ let graphicsLookup = false, graphicsKnown = false;
 let omniOwnPython = null, omniOwnPythonRun = null, graphicsCards = [];
 const cardMiB = () => omniOwnPython?.used && omniOwnPython.vramMiB ? omniOwnPython.vramMiB : nvidiaCardMiB(graphicsCards);
 let omniOwnPythonBusy = false;
+// Settings > Voices > OmniVoice for AMD (bridge/omni-amd-setup.mjs), made further down; told when the Python test has a new answer.
+let omniAmdSetup = null;
 // Until its self-test has run, a file that names a Python is only known to be there (one small read at start-up, no process): the voice menu does not
 // say "needs NVIDIA" while it may still pass.
 let omniOwnPythonNamed = null;
 readOwnPythonSetting({stateDirectory}).then(setting => { if (setting.configured && !setting.problem) omniOwnPythonNamed = {configured: true, used: false, pending: true, reason: null}; }, () => {});
-const checkOwnPython = ({again = false} = {}) => {
-  if (omniOwnPythonRun && (omniOwnPythonBusy || !(again && omniOwnPython?.configured && !omniOwnPython.used))) return omniOwnPythonRun;
+// `again`: a Python that was refused is tested again (the Help page). `force`: tested again whatever the last answer was (the AMD setup just finished or was removed).
+const checkOwnPython = ({again = false, force = false} = {}) => {
+  if (omniOwnPythonRun && (omniOwnPythonBusy || !(force || (again && omniOwnPython?.configured && !omniOwnPython.used)))) return omniOwnPythonRun;
   omniOwnPythonBusy = true;
+  if (force) omniOwnPythonNamed = null;
   omniOwnPythonRun = resolveOwnPython({stateDirectory, runtimePython: process.env.CYBERPUNK_CONVAI_PYTHON,
     packInstalled: detectOmniPack({project, config: omniVoiceConfigs.long}).installed})
     .catch(() => ({configured: false}))
@@ -419,6 +424,7 @@ const checkOwnPython = ({again = false} = {}) => {
       if (graphicsKnown) graphicsCardMiB = cardMiB();
       if (result.configured) process.stderr.write(`[LocalVoice] [OmniPython] ${ownPythonLine(result)}\n`);
       try { if (!localVoice.closed) localVoice.publish(); } catch {}
+      void omniAmdSetup?.publishStatus().catch(() => {});
       return result;
     });
   return omniOwnPythonRun;
@@ -3894,6 +3900,7 @@ async function pollSettings(checkShutdown = true) {
       await remoteOmniControl.poll().catch(() => {});
       adoptMicDevice(settings);
       await micDevicesControl.poll().catch(() => {});
+      await omniAmdSetup?.poll().catch(() => {});
       if (Date.now() - speechCheckedAt > 10000) {
         speechCheckedAt = Date.now();
         const stt = mistralSpeech?.available() === true;
@@ -4010,6 +4017,25 @@ const customControl = await new CustomControl({custom: customEndpoint, provider:
   test: () => testCustomConnection(customEndpoint, {adapt: textRoutes.custom.adaptation()}),
   log: message => console.error('[Custom] ' + message)}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); void customControl.publishStatus().catch(() => {}); });
+// Settings > Voices > OmniVoice for AMD (bridge/omni-amd-setup.mjs, docs/OMNIVOICE_AMD.md): one download of AMD's ROCm PyTorch, tested like omni-python.txt.
+// Idle until the page writes a command, apart from one card list read a little after start-up when the OmniVoice pack is installed.
+omniAmdSetup = await new OmniAmdSetup({stateDirectory, commandPath: resolve(runtime, 'omni-amd-command.json'),
+  publish: value => atomic(resolve(runtime, 'omni-amd-state.json'), JSON.stringify(value)),
+  runtimePython: () => process.env.CYBERPUNK_CONVAI_PYTHON || null,
+  packInstalled: () => detectOmniPack({project, config: omniVoiceConfigs.long}).installed === true,
+  cards: () => cachedGraphicsCards(),
+  ownPython: () => omniOwnPython ?? omniOwnPythonNamed,
+  ownFile: async () => { const setting = await readOwnPythonSetting({stateDirectory, managed: async () => null}); return setting.configured === true; },
+  recheck: () => checkOwnPython({force: true}),
+  // The AMD Python is let go before its files change: no worker is given it any more, and the one that runs from it is replaced at the next idle moment.
+  release: async () => {
+    if (omniOwnPython?.managed || omniOwnPythonNamed?.managed) {
+      omniOwnPython = {configured: false}; omniOwnPythonNamed = null; omniOwnPythonRun = Promise.resolve(omniOwnPython);
+      try { if (!localVoice.closed) localVoice.publish(); } catch {}
+      await localVoice.releaseOmniWorkers?.().catch(() => {});
+    }
+  },
+  log: message => console.error('[OmniAMD] ' + message)}).open();
 // Remote OmniVoice's settings page: Paste address, Remove address and Test (bridge/remote-omni-control.mjs). Idle until the page writes a command.
 const remoteOmniControl = await new RemoteOmniControl({address: remoteOmniAddress, commandPath: resolve(runtime, 'remote-omni-command.json'),
   publish: value => atomic(resolve(runtime, 'remote-omni-state.json'), JSON.stringify(value)),
@@ -4063,11 +4089,11 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
         const done = await Promise.race([checkOwnPython({again: true}), new Promise(wait => setTimeout(wait, 8000).unref?.())]);
         if (done) return ownPythonSummary(done);
         const setting = await readOwnPythonSetting({stateDirectory});
-        return setting.configured ? {...ownPythonSummary({configured: true, used: false, reason: setting.problem ?? null}), testing: !setting.problem} : null;
+        return setting.configured ? {...ownPythonSummary({configured: true, used: false, managed: setting.managed === true, reason: setting.problem ?? null}), testing: !setting.problem} : null;
       }
       if (omniOwnPython) return ownPythonSummary(omniOwnPython);
       const setting = await readOwnPythonSetting({stateDirectory});
-      return ownPythonSummary(setting.configured ? {configured: true, used: false, reason: setting.problem ?? null} : setting);
+      return ownPythonSummary(setting.configured ? {configured: true, used: false, managed: setting.managed === true, reason: setting.problem ?? null} : setting);
     },
     // Whether the Pocket voice (V's voice, the companions') has failed to start: a row of the Help page when it has.
     voice: () => localVoice.voiceProblem(),

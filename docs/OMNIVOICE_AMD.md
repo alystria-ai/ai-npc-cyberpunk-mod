@@ -1,159 +1,175 @@
-# OmniVoice on an AMD graphics card (experimental, untested)
+# OmniVoice on an AMD graphics card (experimental)
 
-Added 2026-10-25 after a player request: an RX 9070 XT owner runs OmniVoice on its own with AMD's ROCm build of PyTorch, but the mod never tried their card.
+OmniVoice was NVIDIA-only until 0.3.3: the OmniVoice pack's PyTorch is a CUDA build. Since 0.3.4 an AMD Radeon card gets **one button in the game** that sets it up: Settings > Voices > **OmniVoice for AMD** > **Set up OmniVoice for AMD**. It downloads AMD's own ROCm build of PyTorch (one pack for the card's family, from our Hugging Face), puts it in the mod's data folder, tests it on the card and, if the test passes, OmniVoice starts on the AMD card by itself. No Python to install, no files to edit, nothing of the NVIDIA route changes.
 
-**Experimental.** We have no AMD card ourselves: everything below is built from AMD's install guide and tested with stand-ins only. On 27 Oct 2026 the first AMD player (RX 9070 XT, 16 GB) reported that it works on their PC (see "What the first AMD player reported" below). If you try it, please tell us how it went (Nexus posts or Discord) and attach a report: Settings > Help > Help and support > **Generate report**. The report now says which backend your Python found (CUDA, ROCm or none) and why it was refused, if it was.
+Still experimental: the setup is built from AMD's package index and tested with stand-ins only (no AMD card here). On 27 Oct 2026 the first AMD player (RX 9070 XT, 16 GB) reported that OmniVoice works on their PC with their own Python (see "What the first AMD player reported"). If you try the in-game setup, tell me how it went (Nexus posts or Discord) and attach a report: Settings > Help > Help and support > **Generate report**.
+
+## Route chosen (28 Oct 2026) and why
+
+The owner asked for "easy for AMD players, ideally from the game UI": auto-detect AMD or NVIDIA, or a separate installation per vendor. Three routes were weighed:
+
+| | In-game button, files from AMD's index | In-game button, one pack per card family on our Hugging Face (chosen) | An OmniPack-AMD the player installs by hand |
+|---|---|---|---|
+| What the player does | Presses one button in Settings > Voices | The same, one button | Downloads a 1.5 GB zip and installs it with the mod manager |
+| Card family | Picked from the card's name automatically (RX 9070 = gfx1201 ...) | The same | The player has to pick the right one of seven |
+| Whose files | AMD's own, 11 files per family from stable.repo.amd.com | AMD's own wheels, unchanged, zipped once per family into `voice/amd/` (decided by the owner on 28 Oct: "I don't mind putting it in Hugging Face inside a sub folder for AMD under voice") | The same zips |
+| If AMD removes a version from its "next" index | The install fails | Not affected: our copy stays | Not affected |
+| Updates | Re-run `packaging/resolve-omni-amd.mjs`, ship the small list in the next Runtime | The same, then rebuild and re-upload the packs of the changed families (`packaging/build-omni-amd-packs.mjs`) | The same, and tell players |
+| NVIDIA | Untouched | Untouched | Untouched |
+
+So the game detects the vendor (it already lists the graphics cards for the Help page), shows the AMD page only on a PC with a discrete AMD Radeon card and no NVIDIA card, and downloads the one pack of the card's family from Hugging Face. Files go in as AMD publishes them, with the licence files the wheels carry. **AMD's index stays as the fallback**: if our pack is missing from Hugging Face or does not match its SHA-256, or no pack is listed yet for the family (`bridge/omni-amd-packs.mjs` is empty until the packs are built), the same files are downloaded one by one from AMD, each checked, exactly as before. `omni-python.txt` (your own Python) stays as the override for players who want their own setup.
 
 ## For players
 
-### The game points you here by itself
+### Where it is
 
-The mod reads the display adapters Windows lists (the same registry read the Help page's graphics row uses, once, the first time OmniVoice is wanted or when Help checks, never per frame). When the PC has a discrete AMD Radeon card (an RX, Pro or Instinct name, or 6 GB or more of video memory) **and no NVIDIA card**, and no `omni-python.txt` is working yet:
+- With the OmniVoice pack installed and an AMD Radeon RX 6000, 7000 or 9000 card (and no NVIDIA card), Settings > Voices has a row **OmniVoice for AMD**, right under the voice list. It appears about 20 seconds after the game starts (the card list is read once then).
+- Until the setup is done the voice list reads "Companion voices (OmniVoice on AMD: set up first)" and a character set to OmniVoice reads "OmniVoice · AMD: set up first". Pocket speaks for them meanwhile. A local voice never switches to a cloud voice.
+- A PC with an NVIDIA card (also next to an AMD one) sees nothing new. An Intel or AMD integrated-only PC keeps "OmniVoice needs NVIDIA".
 
-- the Voices row reads "Companion voices (OmniVoice on AMD: experimental)" and its text says "Your AMD Radeon card can run OmniVoice with your own Python and AMD's ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md ...";
-- the character voice line reads "OmniVoice · AMD experimental";
-- Settings > Help > Setup check has an **OmniVoice Python** note with the same pointer.
+### The page
 
-It never downloads or installs anything. Other PCs are unchanged: an Intel or AMD integrated-only PC keeps "OmniVoice needs NVIDIA", a PC with an NVIDIA card (also next to an AMD integrated one) stays on the NVIDIA route, and an unknown or failed card read says nothing. Once `omni-python.txt` passes its test the pointer goes away. Code: `gpu-vendors.mjs amdRoute`, `VoiceSelection.omniAmdRoute` (voice state `omniAmdRoute`), the `amd-route` code of the `omni-python` setup check.
+| Row | What it does |
+|---|---|
+| **Set up OmniVoice for AMD** (Install) | Checks the card, downloads the pack of the card's family with a progress line ("Downloading 740 of 1480 MB (50%)"), unpacks them, tests them on the card. The game keeps running the whole time. Install turns into **Cancel** while it runs (a cancelled download resumes where it stopped next time). Afterwards the row says Ready, or why it did not work, and offers **Reinstall**. |
+| **Remove AMD setup** | Deletes everything the setup put on the drive (about 4 GB). OmniVoice then no longer starts on the AMD card. |
+| **MIOpen convolutions (AMD)** (on by default) | On: AMD's MIOpen runs the convolutions, with `MIOPEN_FIND_MODE=2` and `MIOPEN_FIND_ENFORCE=1`. Off: PyTorch's own convolutions. Which is faster depends on the card and driver: if voices are slow or stop part-way, try the other one. OmniVoice restarts with the new choice at its next idle moment. AMD cards only: an NVIDIA card is never touched by it. |
 
-### Why OmniVoice does not start on an AMD card
+### What it downloads
 
-The OmniVoice pack brings its own Python with a CUDA build of PyTorch (torch 2.8.0+cu128). A CUDA build can only see NVIDIA cards. On an AMD card it finds no graphics card, the voice worker stops with "needs CUDA", and the mod does not try OmniVoice again until the game restarts. Your companions then speak with Pocket, or their replies show as text. Never with a cloud voice.
+One zip, the pack of the card's family, from the mod's Hugging Face repository: `voice/amd/OmniAMD-<family>-PyTorch-2.14-ROCm-10.1.zip`, for example [`voice/amd/OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/resolve/main/voice/amd/OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip). It holds AMD's own files unchanged (from AMD's index `https://stable.repo.amd.com/rocm/whl-next/`, the one AMD's PyTorch install guide names): PyTorch 2.14.0 with ROCm 10.1.0 for Python 3.11 (the OmniVoice pack's Python), only the files of the card's family, and `omni-amd-pack.json` (each file's size and SHA-256). The game picks the right zip itself. For an RX 9070 / 9070 XT (gfx1201) the zip holds:
 
-The mod cannot simply ship AMD's PyTorch: it is several gigabytes, it has to match your card, and we cannot test it. Instead you can point the mod at **your own Python** that already has AMD's PyTorch in it.
+| File (as AMD publishes it) | MB |
+|---|---|
+| rocm_sdk_core-10.1.0-py3-none-win_amd64.whl | 741 |
+| rocm_sdk_device_gfx1201-10.1.0-py3-none-win_amd64.whl | 300 |
+| amd_torch_device_gfx12_0-2.14.0+rocm10.1.0-cp311-cp311-win_amd64.whl | 164 |
+| rocm_sdk_libraries-10.1.0-py3-none-win_amd64.whl | 113 |
+| torch-2.14.0+rocm10.1.0-cp311-cp311-win_amd64.whl | 110 |
+| amd_torch_device_gfx1201-2.14.0+rocm10.1.0-cp311-cp311-win_amd64.whl | 49 |
+| torchaudio-2.11.0.3+rocm10.1.0, torchvision-0.29.0a0+rocm10.1.0 (+ its gfx1201 part), rocm_bootstrap-0.3.0, rocm-10.1.0.tar.gz | 3 |
+| **Total** | **about 1.45 GB download, 4.0 GB on the drive** |
 
-### What you need
+| Card family | Cards (Windows names) | Download | On the drive |
+|---|---|---|---|
+| gfx1201 | RX 9070, RX 9070 XT, Radeon AI PRO R9700 | 1.45 GB | 4.0 GB |
+| gfx1200 | RX 9060, RX 9060 XT | 1.50 GB | 4.0 GB |
+| gfx1100 | RX 7900 XTX / XT / GRE, RX 7900M, PRO W7800 / W7900 | 1.46 GB | 4.0 GB |
+| gfx1101 | RX 7800 XT, RX 7700 (XT), PRO W7700 | 1.46 GB | 4.0 GB |
+| gfx1102 | RX 7600 (XT / M), RX 7650 GRE, PRO W7500 / W7600 | 1.46 GB | 4.0 GB |
+| gfx1030 | RX 6800 (XT), RX 6900 XT, RX 6950 XT, PRO W6800 | 1.04 GB | 3.4 GB |
+| gfx1031 | RX 6700 (XT), RX 6750 XT | 1.04 GB | 3.4 GB |
 
-- An AMD Radeon card that AMD's ROCm for Windows supports. AMD lists the RX 9070 XT (gfx1201) among the supported cards. Check AMD's page: https://rocm.docs.amd.com/projects/ai-ecosystem/en/latest/frameworks/pytorch/install.html
-- A current AMD graphics driver (AMD's compatibility list on that page names the version).
-- Python 3.12 from python.org (AMD's guide allows 3.11 to 3.14, but some libraries OmniVoice uses may have no ready-made files for 3.13 or 3.14 yet. 3.12 is the safe pick).
-- The mod's **OmniVoice pack**, installed as usual. The voice model and OmniVoice's own code still come from it. Only PyTorch and the plain libraries come from your Python.
-- About 12 GB of video memory or more, the same as on NVIDIA (OmniVoice runs next to the game). An RX 9070 XT has 16 GB.
+Another discrete Radeon (an RX 6600, an RX 5000 card) gets the page too, and Install says "AMD's ROCm PyTorch does not support this card yet." OmniVoice still needs about 12 GB of video memory next to the game, the same as on NVIDIA: on an 8 GB card the setup may pass and OmniVoice is then not started (the small-card rules use the memory PyTorch reports).
 
-### Steps
+The zip is checked after the download: its size and its SHA-256, which `bridge/omni-amd-packs.mjs` records when the pack is built. A zip that is missing or does not match is dropped and the files are downloaded from AMD instead: each one is checked by its size and by its MD5 against the one AMD's server publishes for it (the ETag), or by its SHA-256 when `bridge/omni-amd-wheels.mjs` has one. A file that does not match is deleted and the setup says so. The pack sizes are the "Download" column of the table above (the zips add a few KB).
 
-1. **Make a Python environment.** Open a terminal in a folder of your choice (for example `C:\omni-rocm`) and run:
+| Pack in `voice/amd/` | Size |
+|---|---|
+| `OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip` | 1480 MiB |
+| `OmniAMD-gfx1200-PyTorch-2.14-ROCm-10.1.zip` | 1541 MiB |
+| `OmniAMD-gfx1100-PyTorch-2.14-ROCm-10.1.zip` | 1500 MiB |
+| `OmniAMD-gfx1101-PyTorch-2.14-ROCm-10.1.zip` | 1496 MiB |
+| `OmniAMD-gfx1102-PyTorch-2.14-ROCm-10.1.zip` | 1494 MiB |
+| `OmniAMD-gfx1030-PyTorch-2.14-ROCm-10.1.zip` | 1062 MiB |
+| `OmniAMD-gfx1031-PyTorch-2.14-ROCm-10.1.zip` | 1062 MiB |
+| Seven packs together | about 9.4 GB to upload (the same torch and ROCm files are in several of them) |
 
-   ```
-   py -3.12 -m venv .venv
-   .venv\Scripts\activate
-   ```
+### Where it goes
 
-2. **Install AMD's PyTorch** with AMD's own command for your card. For the RX 9070 XT (gfx1201) AMD's guide gives (PyTorch 2.14.0 with ROCm 10.1.0, as of 25 Oct 2026, check the page for newer versions):
+`%LOCALAPPDATA%\AiNpcCyberpunkMod\data\amd\` (short names on purpose: AMD's deepest file path is 164 characters and Windows stops at 260). Nothing in the game folder, nothing in the OmniVoice pack changes. **Remove AMD setup** deletes the whole folder.
+
+### What can go wrong (the page's words)
+
+| The page says | Why |
+|---|---|
+| The OmniVoice pack is not installed. Install it first. | OmniVoice's model and code come from the pack. |
+| This PC has no AMD Radeon card this setup can use. | No discrete AMD card, or an NVIDIA card is there too (that PC uses the NVIDIA route). |
+| AMD's ROCm PyTorch does not support this card yet. | A family not in AMD's list. |
+| There is not enough free space on drive C:. | It needs the download, the wheels it holds (the zip and its content are on the drive together for a moment, about 3 GB), about 4 GB for the unpacked files and 0.5 GB to spare. |
+| The download did not finish. / The downloaded files did not check out. | Connection lost, or a file did not match (it was deleted). Try again: a lost download resumes. |
+| The setup did not pass the test on your card, so OmniVoice cannot use it. | PyTorch did not see the card or the test sum on it failed. A current AMD graphics driver is the usual fix. Help > Setup check names the exact reason. |
+| Your own Python (omni-python.txt) is used instead. | Your own file wins. Delete it to use the in-game setup. |
+
+## What the in-game setup does, step by step
+
+1. **Checking.** The OmniVoice pack is there, the card list has a discrete AMD card and no NVIDIA one, its family is in the pinned list, the drive has room.
+2. **Downloading.** The family's pack from `voice/amd/` on Hugging Face into `data\amd\downloads\` (a `.part` file resumes with an HTTP range request), checked by size and SHA-256, unpacked there with `tar.exe` (the page says "Unpacking" for that), and the zip deleted. A marker file (`<pack>.done`) records that the wheels are out, so a later try after a failure further on does not download or unpack again. If the pack is missing (HTTP 401, 403, 404 or 410 from Hugging Face) or its SHA-256 is wrong, the same step downloads AMD's files for the family one by one from AMD's index instead. Any other error (a lost connection, a server error) ends the job with "The download did not finish" and resumes next time. `setup.json` records which source was used (`"source": "huggingface"` or `"amd"`).
+3. **Unpacking.** Into `data\amd\st\`: the top-level files of the pack's `app\omni\python` (python.exe, python311.dll, python311.zip, the `.pyd` files: the interpreter, a few MB) and AMD's wheels unpacked into `st\sp\` with Windows' own `tar.exe`. The `rocm` meta package comes from AMD as a tiny source package: its pure-Python `rocm_sdk` package is copied and given a `.dist-info` from its PKG-INFO, which is what pip's build of it installs. The path file `python311._pth` lists `sp` **before** the pack's own `Lib\site-packages`, so `import torch` finds AMD's PyTorch and every other library (numpy, transformers, OmniVoice's code) is the pack's. Then `setup.json` is written, any older setup is let go and replaced, `st\` becomes `py\` and the downloads are deleted.
+4. **Testing.** Exactly the test a player's own `omni-python.txt` gets: PyTorch imports, sees the card, one FP16 sum on it is right, and OmniVoice's code from the pack imports. Only a pass with the ROCm backend counts.
+5. **Ready.** OmniVoice starts on the card at once (the earlier "needs CUDA" of this session is undone), with the ROCm settings below.
+
+The service reads the card list once, about 20 seconds after start-up and only with the OmniVoice pack installed (three registry reads, the same the Help page makes). Everything else happens only after a button press, in the background, never on the game's thread and never per frame.
+
+### The speed and stability settings on ROCm
+
+**They change nothing for an NVIDIA card or for the Runtime's own Python.** The worker logs one line when it starts, for example `[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=2, MIOPEN_FIND_ENFORCE=1; convolutions: MIOpen`, and `[priority] high`.
+
+| Setting | Default since 0.3.4 | How to change it |
+|---|---|---|
+| MIOpen convolutions | On, with `MIOPEN_FIND_MODE=2` (FAST) and `MIOPEN_FIND_ENFORCE=1`, as an RX 9070 XT player suggested. Off: `torch.backends.cudnn.enabled = False` (PyTorch's own convolutions, the 0.3.3 default), with `MIOPEN_FIND_MODE=2`. | The **MIOpen convolutions (AMD)** row in game. `miopen = on` or `miopen = off` in `omni-python.txt` wins over it. |
+| MIOpen find mode, find enforcement | `2` and `1` | `miopen-find-mode = NORMAL` (or another mode) in `omni-python.txt`, or set `MIOPEN_FIND_MODE` / `MIOPEN_FIND_ENFORCE` yourself where the game starts: the mod then leaves them alone. |
+| Process priority (both routes, NVIDIA too) | High from the worker's start, for good (docs/PROCESS_PRIORITY.md) | **If the game stutters while a voice renders**, `priority = normal` in `priority.txt` in the mod's data folder, or in `omni-python.txt` for your own Python. `priority = below` lowers the worker below normal. |
+
+### Your own Python instead (`omni-python.txt`, kept as the override)
+
+For players who want their own Python with AMD's PyTorch, or another version than the pinned one. It always wins over the in-game setup.
+
+1. Make a Python 3.12 environment (`py -3.12 -m venv .venv`, `.venv\Scripts\activate`).
+2. Install AMD's PyTorch with AMD's own command for the card, for the RX 9070 XT:
 
    ```
    python -m pip install --index-url https://stable.repo.amd.com/rocm/whl-next/ "torch[device-gfx1201]==2.14.0+rocm10.1.0" "torchvision[device-gfx1201]==0.29.0a0+rocm10.1.0" "torchaudio==2.11.0.3+rocm10.1.0"
    ```
 
-   For another card, use the `device-all` line on AMD's page instead. Check it works:
-
-   ```
-   python -c "import torch; print(torch.cuda.is_available(), torch.version.hip)"
-   ```
-
-   It should print `True` and a ROCm version. (ROCm builds answer through the same `torch.cuda` functions, which is why this works with OmniVoice's code at all.)
-
-3. **Install OmniVoice's libraries without touching PyTorch.** Save the list at the end of this page as `omni-requirements.txt` and run, in the same activated terminal:
-
-   ```
-   python -m pip install --no-deps -r omni-requirements.txt
-   ```
-
-   `--no-deps` matters: it installs exactly these versions and never replaces AMD's PyTorch with another one. You do **not** need to install OmniVoice itself: the mod uses the copy in its pack.
-
-4. **Tell the mod where your Python is.** Create a text file named `omni-python.txt` in the mod's data folder:
-
-   ```
-   %LOCALAPPDATA%\AiNpcCyberpunkMod\data\omni-python.txt
-   ```
-
-   (paste `%LOCALAPPDATA%\AiNpcCyberpunkMod\data` into the Explorer address bar to open the folder). Put the full path of your python.exe on one line, for example:
-
-   ```
-   C:\omni-rocm\.venv\Scripts\python.exe
-   ```
-
-   Lines starting with `#` are ignored. To undo everything, delete the file.
-
-5. **Restart the game**, choose an OmniVoice entry in Settings > Voices, and open Settings > Help. The setup check has an **OmniVoice Python** row.
-
-### What to expect
-
-- The mod tests your Python first, in the background: it imports PyTorch, reads the card's name and video memory, runs one tiny sum on the card and loads OmniVoice's code with your libraries. This can take up to a minute the first time. Only a Python that passes is used.
-- The Help row then says, for example, "Your own Python (omni-python.txt) runs OmniVoice with ROCm on AMD Radeon RX 9070 XT, 15.9 GB. Experimental." If the test failed, it says why: no PyTorch, no graphics card found, the test on the card failed, a missing module (with its name), and so on. In that case nothing changes from today: OmniVoice falls back the same way as before (Pocket or text, never a cloud voice).
-- The first OmniVoice start takes two to three minutes, as on NVIDIA. If it works, it may be slower than on a comparable NVIDIA card: a speed-up the mod uses on NVIDIA (CUDA graph replay) is turned off on ROCm, because it is untested there. The mod also applies three ROCm settings (find mode, convolutions, priority), described under "The speed and stability settings the mod applies on ROCm" below.
-- If it gets to the voice and then fails (for example an error deep in PyTorch), the voice falls back as above and the reason is in the report.
-
-### The speed and stability settings the mod applies on ROCm
-
-Since 0.3.3 the mod applies two settings by itself when the voice worker runs on a ROCm PyTorch (`torch.version.hip` is set), and a third one, the process priority, on every route. **The two ROCm settings change nothing for an NVIDIA card or for the Runtime's own Python.** The worker logs one line when it starts, for example `[rocm] HIP 10.1.0: MIOPEN_FIND_MODE=FAST; convolutions: PyTorch's own, MIOpen off`, and `[priority] high`.
-
-| Setting | What the mod does | How to change it |
-|---|---|---|
-| MIOpen find mode | Sets the environment variable `MIOPEN_FIND_MODE=FAST` for the worker, so MIOpen picks a convolution quickly instead of searching for the fastest one (the search is where the "not able to find convolution paths" errors came from). | Set `MIOPEN_FIND_MODE` yourself where the game starts and the mod leaves it alone, or put `miopen-find-mode = NORMAL` (or `HYBRID`, `DYNAMIC_HYBRID`, ...) on its own line in `omni-python.txt`. |
-| Convolutions | Turns MIOpen's convolutions off (`torch.backends.cudnn.enabled = False`), so PyTorch's own convolution code runs instead. Done after the card is found, and again after the model has loaded in case a library switched it back on. | Put `miopen = on` on its own line in `omni-python.txt` to keep MIOpen's convolutions. |
-| Process priority (both routes, NVIDIA too) | The voice worker runs at **High** Windows priority (HIGH_PRIORITY_CLASS, never Realtime) from its start and for good, on the AMD route and on NVIDIA alike: the voice is the last step before you hear the reply, and a game that keeps every core busy would otherwise make a render wait (latency comes first). A venv's `python.exe` is only a launcher, so the bridge sets the process it started and the worker sets itself. An earlier 0.3.3 build lowered the worker on the AMD route; that is gone. | **If the game stutters while a voice renders**, put `priority = normal` on its own line in `omni-python.txt` (the worker then keeps the priority it starts with), or `priority = normal` in `priority.txt` in the mod's data folder for every worker at once (docs/PROCESS_PRIORITY.md). `priority = below` lowers this worker below normal, as the first AMD build did. |
-
-The optional lines go **after** the python.exe line in `omni-python.txt` (comments with `#` are still fine). Example:
-
-```
-C:\omni-rocm\.venv\Scripts\python.exe
-# keep the mod's defaults for everything else
-miopen-find-mode = NORMAL
-```
-
-An unknown name or value is ignored. Restart the game after changing the file. Developers can also set `CYBERPUNK_CONVAI_ROCM_MIOPEN=1` (keep MIOpen's convolutions) for the worker directly.
+   Check with `python -c "import torch; print(torch.cuda.is_available(), torch.version.hip)"` (it should print `True` and a ROCm version).
+3. Install OmniVoice's libraries without touching PyTorch: save the list at the end of this page as `omni-requirements.txt` and run `python -m pip install --no-deps -r omni-requirements.txt`.
+4. Put the full path of that python.exe on one line in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\omni-python.txt`. Optional lines after it: `miopen = on|off`, `miopen-find-mode = <mode>`, `priority = high|normal|below`. Lines starting with `#` are ignored. Delete the file to undo.
+5. Restart the game and choose an OmniVoice entry. Settings > Help > Setup check has an **OmniVoice Python** row with the result of its test.
 
 ### What the first AMD player reported
 
-These are one player's numbers on one PC (RX 9070 XT, 16 GB, 27 Oct 2026), reported to us, not measured by us and not a guarantee:
+One player's numbers on one PC (RX 9070 XT, 16 GB, 27 Oct 2026), reported to me, not measured here and not a guarantee:
 
-- Stock (before these settings): about 10 to 15 seconds per sentence, sometimes the voice stopped part-way through a sentence, and MIOpen errors "not able to find convolution paths" showed up.
-- They found two remedies: `MIOPEN_FIND_MODE=FAST` on ROCm, or turning cuDNN/MIOpen convolutions off (`torch.backends.cudnn.enabled = False`), which they set by hand in the OmniVoice loader and found snappier, under 10 seconds per sentence.
-- The quality presets (16 or 32 steps) barely changed the speed.
-- The game dropped frames noticeably while a sentence was being generated.
+- Stock (before any ROCm settings): about 10 to 15 seconds per sentence, sometimes the voice stopped part-way, and MIOpen errors "not able to find convolution paths".
+- Two remedies they found: `MIOPEN_FIND_MODE=FAST`, or MIOpen's convolutions off (`torch.backends.cudnn.enabled = False`), which they found snappier, under 10 seconds per sentence. 0.3.3 applied both. On 28 Oct they suggested MIOpen on with `MIOPEN_FIND_MODE=2` and `MIOPEN_FIND_ENFORCE=1` as the default and MIOpen off as an AMD-only option: that is 0.3.4's default and the in-game choice.
+- The quality presets (16 or 32 steps) barely changed the speed. The game dropped frames while a sentence rendered (the worker's priority is a choice, above).
 
-The mod now does the first two for you. For the third, the frame drops, an earlier build lowered the worker's priority; the owner decided on 27 Oct that the voice comes first, so the worker now runs at High priority on both routes (the way back is `priority = normal`, above). We cannot measure the result ourselves, so please tell us what you see after the update (Nexus posts or Discord, with Settings > Help > Help and support > **Generate report**).
+### Why the voice could stop part-way
 
-### Why the voice could stop part-way (and what the mod does now)
-
-A reply is spoken phrase by phrase: the worker renders a phrase, the game plays it, and the next phrase renders behind it. When a **later** phrase fails to render (for example a PyTorch/MIOpen error like the one above), the reply used to end there: the sentence already played was kept and the rest was dropped. That fits "the voice stops mid-sentence". On the AMD route the mod now asks once more for a phrase that failed (the first phrase of a reply too) before giving up. The retry goes behind the phrase already queued, so the pause is a little longer, never a cut. A phrase that fails twice still ends the reply as before, and a cancelled reply is never retried. The reason is in the log (`[OmniPython] phrase N failed (...), asking again`). With the convolution setting above, MIOpen's errors should not happen at all.
-
-Memory is not the cause on 16 GB as far as we can tell: the card size on this route comes from PyTorch (`vramMiB`), the same small-card rules as NVIDIA apply (under 9 GB OmniVoice is not started, under 11 GB the menu hint shows), and the worker's time limit for one render is 120 seconds, far above 10 to 15 seconds. Not confirmed on real hardware.
+A reply is spoken phrase by phrase. When a later phrase failed to render (for example a MIOpen error), the reply used to end there. On the ROCm route the mod asks once more for a phrase that failed before giving up (`[OmniPython] phrase N failed (...), asking again`). A phrase that fails twice still ends the reply, and a cancelled reply is never retried.
 
 ### What is untested
 
-Most of it, on real AMD hardware beyond the one report above. In particular: whether every part of OmniVoice runs on ROCm for Windows (it uses half-precision weights and PyTorch's attention functions), how fast it is, and how it shares video memory with the game. Please report back, it helps every AMD player.
+On real AMD hardware: the in-game download and unpacking (tested with a fake AMD server and real `tar.exe` on small stand-in files), whether AMD's unpacked wheels load from the borrowed interpreter exactly as from a pip install, every part of OmniVoice on ROCm for Windows (half-precision weights, PyTorch's attention), speed, and video memory next to the game. Please report back.
 
 ## For developers
 
 ### What blocked AMD (root cause)
 
-1. **The bundled PyTorch is a CUDA wheel.** `app/omni/python` ships `torch-2.8.0+cu128` (`packaging/python/omni.in`, `omni.lock.txt`). It cannot see a Radeon.
-2. **The worker's CUDA gate then ends OmniVoice for the session.** `bridge/resident-voice-worker.py` exits with `NO_CUDA_EXIT_CODE` (78) when `torch.cuda.is_available()` is false. `bridge/resident-voice.mjs` turns that into `NO_CUDA_FAILURE`, and `VoiceSelection.scheduleOmniRetry` sets `omniNoCuda` (never retried, fallback reason `omni-no-nvidia`).
-3. **The menu hint.** `gpu-vendors.mjs lacksNvidia` makes `omniNoNvidia` true for an AMD-only card list ("OmniVoice needs NVIDIA"). It does not block the start, it only words the menu.
-4. **Card memory is NVIDIA-only.** `nvidiaCardMiB` returns null for an AMD card, so the small-card rules (`isSmallCard`, `underNeeded`) claimed nothing on AMD.
-5. **No way to use another Python.** The launcher sets `CYBERPUNK_CONVAI_PYTHON` to the pack's python.exe (`packaging/runtime/prepare-state.mjs serviceEnvironment`) and clears any inherited one. And a portable worker refuses an `omnivoice` package outside the application directory (`validate_portable_source`), so even a swapped interpreter with its own OmniVoice install would be refused.
+1. **The bundled PyTorch is a CUDA wheel.** `app/omni/python` ships `torch-2.8.0+cu128` (`packaging/python/omni.in`). It cannot see a Radeon.
+2. **The worker's CUDA gate then ends OmniVoice for the session.** `resident-voice-worker.py` exits with `NO_CUDA_EXIT_CODE` (78), `VoiceSelection.scheduleOmniRetry` sets `omniNoCuda`. Since 0.3.4 `VoiceSelection.checkOwnWorker` undoes it when a Python newly passes its test (the AMD setup finished), so no restart is needed.
+3. **Card memory is NVIDIA-only** in the card list (`nvidiaCardMiB`): with a passed test the memory comes from PyTorch (`vramMiB`).
+4. **The pack's Python is embeddable** (python 3.11.9 with `python311._pth`): PYTHONPATH is ignored and the worker runs with `-I`. That is why the setup is a second interpreter with its own path file, not an extra folder on the pack's.
 
-What was **not** a blocker: the worker's `device.startsWith('cuda')` and FP16 checks (a ROCm PyTorch reports device `cuda`), `torch.cuda.*` memory calls (HIP answers them), `TORCH_COMPILE_DISABLE=1`, the graphics-memory counters (`gpu-memory.mjs` reads Windows' vendor-neutral GPU counters, not nvidia-smi), and `runtime-integrity.mjs` (it only reports changed code files, never refuses, and does not cover `app/omni/python`). No flash-attn, xformers, bitsandbytes, Triton or TensorRT is used by the worker.
+Not blockers: the worker's `device.startsWith('cuda')` and FP16 checks (ROCm reports device `cuda`), `torch.cuda.*` memory calls (HIP answers them), `gpu-memory.mjs` (Windows' vendor-neutral counters), `runtime-integrity.mjs`. No flash-attn, xformers, bitsandbytes, Triton or TensorRT.
 
-### The override
+### The pieces
 
-- **File:** `<data>/omni-python.txt` (`stateDirectory`, normally `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`). One absolute path to `python.exe`. No settings menu entry, on purpose: one place, nothing for the other players to see. Code: `bridge/omni-own-python.mjs`.
-- **Self-test:** `runOwnPythonSelfTest` runs `python -I -` with `SELF_TEST_SOURCE` on stdin (isolated: no PYTHONPATH, no user site). It reports `torch.__version__`, `torch.version.hip` / `torch.version.cuda`, `torch.cuda.is_available()`, the device name and total memory from `torch.cuda.get_device_properties(0)` (never nvidia-smi), one FP16 sum on `cuda`, and whether `numpy`, `soundfile` and the pack's `omnivoice.models.omnivoice` import. `ownPythonVerdict` turns the report into `{usable, backend: 'rocm'|'cuda'|'none', reason}`. Refusal codes: `not-absolute`, `not-found`, `not-python`, `no-pack`, `start-failed`, `timed-out` (120 s), `bad-output`, `no-torch`, `no-gpu`, `op-failed`, `missing-module` (+ module), `omnivoice-failed`.
-- **When it runs:** on demand only. The first time OmniVoice is wanted (beside the lazy card list in `convai-bridge.mjs lookUpGraphics`: OmniVoice waits for both through `omniCardPending`), or when the Help page's setup check asks (capped at 8 s there, then the row says "being tested"). Never at start-up (only the small file is read then, so the menu does not say "needs NVIDIA" while the test may still pass) and never on a turn.
-- **Worker:** `VoiceSelection.omniWorkerHooks` gives a worker the player's python.exe only for a passed test, plus `CYBERPUNK_CONVAI_OMNI_OWN_PYTHON=1` and `CYBERPUNK_CONVAI_OMNI_SOURCE` (the pack's `app/omni/python/Lib/site-packages/omnivoice`). The worker (`use_packaged_omnivoice`) checks that folder (absolute, no links, inside the application directory or the named pack, the two source files present) and installs a meta-path finder for `omnivoice` only, so `validate_portable_source` checks the same packaged copy as before. A player's own OmniVoice install is never imported. The CUDA graph replay is off by default on a HIP build (`cuda_graph_wanted`, `CYBERPUNK_CONVAI_CUDA_GRAPH=1` turns it on). The worker logs one `[gpu]` line with the backend, card and memory.
-- **Admission:** with a passed test the card memory comes from PyTorch (`vramMiB`), so `isSmallCard` / `underNeeded` / the 8 GB no-start rule work on AMD like on NVIDIA. `omniNoNvidia` is false while the own Python is used or still pending. A worker that still exits 78 sets `omniNoCuda` as before.
-- **ROCm tuning (0.3.3):** `omni-own-python.mjs rocmWorkerEnvironment(own, processEnv)` gives the worker's environment for a passed self-test with `backend === 'rocm'` and `{}` for anything else: `MIOPEN_FIND_MODE=FAST` (not when `omni-python.txt` names `miopen-find-mode` or the bridge's own environment already has the variable) and `CYBERPUNK_CONVAI_ROCM_MIOPEN=1` for `miopen = on`. `VoiceSelection.omniWorkerHooks` merges it into `extraEnvironment`. In the worker (`resident-voice-worker.py`) `tune_rocm(torch)` runs after the CUDA gate, before any model loads: it detects ROCm by `torch.version.hip`, sets `MIOPEN_FIND_MODE=FAST` if empty (this also covers a bridge that did not know), sets `torch.backends.cudnn.enabled = False` unless `CYBERPUNK_CONVAI_ROCM_MIOPEN=1`, and prints one `[rocm]` line; `keep_rocm_convolutions` re-asserts it after `_ensure_loaded()`. A CUDA or CPU build returns at once. The `omni-python.txt` parser (`parseRocmOptions`) reads only `miopen-find-mode`, `miopen` (`on`/`off`) and `priority` (`high`/`normal`/`below`), values limited to a short plain word.
-- **Priority, one rule for both routes (27 Oct):** `omniPriority(own, turnLevel)` (omni-own-python.mjs) is the `priority =` line of `omni-python.txt` when the own Python passed, else the level of the PC (`priority.txt`, default `high`). `omniWorkerHooks` passes it as `priority` to `ResidentVoice` and, for `high` and `below`, as `CYBERPUNK_CONVAI_WORKER_PRIORITY` in the worker's environment (`normal` tells the worker nothing). `ResidentVoice` sets the child at spawn (`os.setPriority`, `PRIORITY_HIGH`, never `PRIORITY_HIGHEST`, which is Realtime) and does not change it when ready; because a venv's python.exe is a launcher process, the worker also sets itself (`apply_own_priority`, `SetPriorityClass` HIGH_PRIORITY_CLASS 0x80, or BELOW_NORMAL 0x4000 for `below`). A background start (the second worker that loads while another serves) carries the same level from its start. With `normal` the earlier NVIDIA behaviour returns (a background start loads below normal and goes to normal when ready; a normal start is never touched). The same code path serves NVIDIA and AMD; nothing else of `ResidentVoice` is shared with another worker.
-- **Phrase retry (0.3.3):** `omni-pcm.mjs createOmniPcmVoice({retries})`: a phrase whose render failed is asked for again up to `retries()` times (capped at 2, default 0), unless the reply is cancelled. `convai-bridge.mjs omniVoiceFor` passes 1 only when the own Python passed with the ROCm backend, so NVIDIA is unchanged. A worker that is gone (`failure` set, timeout, exit) fails the retry at once, as it did the first call.
-- **Fallback:** any refusal keeps the Runtime's Python, so a failure ends exactly as today (Pocket or text, never cloud: docs rule "a local voice failure never goes to the cloud").
-- **Messages:** Help > Setup check row `omni-python` (`bridge/setup-check.mjs`, `mod/setup-check.lua`), one English line in `probe.log` per changed answer (`Setup check: omni-python used backend=rocm card=... memoryMiB=...` or `... refused backend=... reason=...`), the bridge log line `[OmniPython] ...`, `local-voice-state.json omniPython` and the support report's `summary.json` (`providers.omniPython`). A refused own Python is the player's setup: no automatic error report (`error-events.mjs setupChecked`).
-- **Tests:** `bridge/gpu-vendors.test.mjs` (`amdRoute`: AMD only, NVIDIA only, both, Intel only, AMD integrated, unknown, empty), the AMD-route cases in `bridge/voice-selection.test.mjs`, `bridge/setup-check.test.mjs`, `bridge/setup-check-lua.test.mjs` and `bridge/manager.test.mjs`, `bridge/omni-own-python.test.mjs` (ROCm, CUDA and CPU-only reports, a broken path, a hung or garbled self-test, no pack), `bridge/voice-selection.test.mjs` (worker hooks, the NVIDIA hint, the graph retry), `bridge/setup-check.test.mjs` and `bridge/setup-check-lua.test.mjs` (the row and probe.log), `scripts/test_resident_voice_paths.py` (the packaged-source finder, an OmniVoice copy outside the application directory refused, the ROCm graph default, the backend line, `tune_rocm`, `keep_rocm_convolutions`, `apply_own_priority`), `bridge/omni-own-python.test.mjs` (the option lines, `rocmWorkerEnvironment`), `bridge/voice-selection.test.mjs` (the ROCm environment reaches only a ROCm worker), `bridge/resident-voice.test.mjs` (the `priority` level), `bridge/process-priority.test.mjs`, `bridge/omni-pcm.test.mjs` (the phrase retry).
+- **Pinned list:** `bridge/omni-amd-wheels.mjs`, written by `node packaging/resolve-omni-amd.mjs [--hash]`. It reads AMD's simple index, follows the Requires-Dist lines of `torch[device-<gfx>]`, `torchaudio` and `torchvision[device-<gfx>]` like pip for `cp311`/`win_amd64` (each wheel's METADATA through two or three HTTP range reads, the `rocm` source package of 27 KB whole), skips what the pack has (`FROM_PACK`: numpy, sympy, networkx, jinja2, fsspec, filelock, typing-extensions, setuptools, pillow, markupsafe, mpmath) and records size, unpacked size and ETag per file. `--hash` downloads everything once (several GB) and records SHA-256, which the game then checks instead of the ETag MD5. A module, not JSON, so the Runtime build ships it with the bridge's import closure. Families: `TARGETS` (gfx1201, gfx1200, gfx1100, gfx1101, gfx1102, gfx1030, gfx1031). AMD's `whl-next` index is "next": re-run the resolver before a release, and if AMD removed these versions the download fails with "did not finish".
+- **The AMD packs:** `bridge/omni-amd-packs.mjs` (written by `node packaging/build-omni-amd-packs.mjs`, empty until the packs are built): per family `{name, size, sha256, files, built}`. `packFor` accepts an entry only when its name is the one `amdPackName` gives (`OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip`), it has a SHA-256 and its `files` are exactly the family's files in the pinned list, so a list that is stale after `resolve-omni-amd.mjs` is ignored and AMD's index is used. The URL is built in the game (`amdPackUrl`: `https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/resolve/main/voice/amd/<name>`), never read from the list. The builder downloads each family's files from AMD (checked, shared between families), writes the zip with the release builder's deterministic `ZipWriter` (files stored whole, `omni-amd-pack.json` last: the same files give the same zip), reads it back and records its size and SHA-256. Upload: `python packaging/upload-packs.py --version <release> --pack omni-amd --packages DIR`.
+- **Layout:** `bridge/omni-amd-layout.mjs` (`amdPaths`, `pthText`, `prepareInterpreter`, `syncAmdPython`, `readAmdSetup`, `amdPackName`, `amdPackUrl`). `setup.json` is written last: without it nothing in `data\amd` is used.
+- **Job and IPC:** `bridge/omni-amd-setup.mjs` `OmniAmdSetup`: `runtime/omni-amd-command.json` (`{version: 1, id, action: install | cancel | remove, issuedAt}`) in, `runtime/omni-amd-state.json` out (`{version, updated, offered, installed, arch, card, downloadMiB, diskMiB, ownPython, job: {id, action, state: checking | downloading | unpacking | testing | done | failed | cancelled | removed, doneMiB, totalMiB, code}, test: {state: used | refused | testing, backend, device, vramMiB}}`). Failure codes: `no-pack`, `not-amd`, `unsupported-card`, `no-space`, `download-failed`, `checksum`, `unpack-failed`, `test-failed`, `not-ready`, `unknown`. A cancelled job answers with the cancel command's id. `amdArch(name)` maps Windows card names to families, `amdCard(cards)` uses `gpu-vendors.mjs amdRoute`. Both exchange files are in `packaging/runtime-exchange.json` (shipped placeholders the game writes in place).
+- **Game side:** `mod/omni-amd.lua` (state cleaning, rows, commands, the latest-command rule) and `mod/manager-ui.lua` (the Voices row, the page, the MIOpen row). `amdMiopen` is an ordinary saved setting (`mod/manager.lua`, default true).
+- **The test and the worker:** `omni-own-python.mjs readOwnPythonSetting` returns the setup's Python as `{configured, managed: true, path}` when there is no `omni-python.txt`. `resolveOwnPython` runs `syncAmdPython` first (the path file follows a moved game folder or a new pack, the interpreter is copied again when the pack's changed), then the same self-test. `managed` is carried into the voice state, the support report, the log line (`OmniVoice uses the AMD setup: ...`) and the Help row ("The AMD setup (Settings > Voices > OmniVoice for AMD) runs OmniVoice with ROCm on ..."). The bridge (`convai-bridge.mjs`) passes `recheck` (`checkOwnPython({force: true})`) and `release` (the setup's Python is no longer given to a worker, `VoiceSelection.releaseOmniWorkers` lets the running one go) before files are replaced or removed.
+- **MIOpen:** `rocmWorkerEnvironment(own, processEnv, {miopen})` gives a ROCm worker `CYBERPUNK_CONVAI_ROCM_MIOPEN=1|0`, `MIOPEN_FIND_MODE=2` and, with MIOpen on, `MIOPEN_FIND_ENFORCE=1` (a variable already in the bridge's environment is the player's; `omni-python.txt` lines win over the setting, `miopenWanted`). `{}` for CUDA or the Runtime's Python. `VoiceSelection.workerKey` includes the Python and the MIOpen choice, so a changed choice replaces a ROCm worker at the next idle moment (`clientStale`). In the worker `tune_rocm` applies the same defaults when the variables are missing (MIOpen on unless `CYBERPUNK_CONVAI_ROCM_MIOPEN=0`), `keep_rocm_convolutions` re-asserts "off" after the model load only when it is off.
+- **Fallback:** any refusal keeps the Runtime's Python, so a failure ends as before (Pocket or text, never cloud). A refused AMD setup is the player's setup: no automatic error report.
+- **Tests:** `bridge/omni-amd-setup.test.mjs` (card names, the pinned list, checksums, commands, resumed and cancelled downloads, the path file, the interpreter copy, `omni-python.txt` winning, unpacking with the real `tar.exe`, the whole job against a fake AMD server and a fake pack, every failure code, cancel, the install through our pack, the fallback to AMD when it is missing or wrong, resume after a failed unpack), `packaging/build-omni-amd-packs.test.mjs` (the pack builder with small fake wheels: names, stored files, deterministic zip, the manifest, `tar.exe` unpacking, a bad file), `bridge/omni-amd-lua.test.mjs` (the page), `bridge/omni-own-python.test.mjs` (`rocmWorkerEnvironment`, `miopenWanted`), `bridge/voice-selection.test.mjs` (a setup that passes after "no CUDA", the MIOpen choice replacing a ROCm worker and not a CUDA one), `bridge/setup-check-lua.test.mjs` (the AMD setup rows), `scripts/test_resident_voice_paths.py` (`tune_rocm`, `keep_rocm_convolutions`).
+- **Live checks still needed (an AMD card):** one install end to end on an RX 9070 XT (download, unpack, `[OmniPython] OmniVoice uses the AMD setup` in the log, a voice), MIOpen on against off on the same card, Cancel and resume, Remove (folder gone, OmniVoice back to Pocket), and a PC with an NVIDIA card showing no AMD row.
 
 ## omni-requirements.txt
 
-The OmniVoice pack's libraries (`packaging/python/omni.in`) without `torch`, `torchaudio`, `torchvision` (they come from AMD) and `nvidia-ml-py` (NVIDIA only):
+The OmniVoice pack's libraries (`packaging/python/omni.in`) without `torch`, `torchaudio`, `torchvision` (they come from the AMD pack) and `nvidia-ml-py` (NVIDIA only):
 
 ```
 accelerate==1.14.0

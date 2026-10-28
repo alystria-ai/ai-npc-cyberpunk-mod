@@ -26,7 +26,7 @@ Downloads for **AI NPC Cyberpunk Mod**, a Cyberpunk 2077 mod that lets you talk 
 | [`local-ai/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/local-ai) | The Local AI packs, standard and lite. |
 | [`mature/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mature) | The Mature packs, lite and standard (adults only). |
 | [`mic/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mic) | The microphone packs, European and Asian languages. |
-| [`voice/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/voice) | The OmniVoice pack. |
+| [`voice/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/voice) | The OmniVoice pack, and in [`voice/amd/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/voice/amd) the AMD packs for OmniVoice on Radeon cards. |
 | [`updates/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) | The Runtime updates for game 2.5: small zips that bring a Runtime you already have up to date. |
 | [`multilingual/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/multilingual) | The multilingual packs and the PocketTTS models. |
 
@@ -44,6 +44,7 @@ The mod comes in two builds, one for game version 2.5 (the current game, and the
 | `local-ai/LocalAI-Standard-Gemma-4-E4B.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `local-ai/LocalAI-Lite-Bonsai-2-4B.zip` | 1.3 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `voice/OmniPack-OmniVoice-0.6B.zip` | 5.3 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
+| `voice/amd/OmniAMD-<card family>-PyTorch-2.14-ROCm-10.1.zip` | 1.0 to 1.5 GB each | OmniVoice on an AMD Radeon card (RX 6000, 7000 and 9000, experimental): AMD's ROCm PyTorch for one card family (`gfx1201` is the RX 9070 and 9070 XT, `gfx1200` the RX 9060, `gfx1100` the RX 7900, `gfx1101` the RX 7800 and 7700, `gfx1102` the RX 7600, `gfx1030` the RX 6800 and 6900, `gfx1031` the RX 6700). **You do not download these yourself.** The game does it: with the OmniVoice pack installed, Settings > Voices > OmniVoice for AMD > Set up OmniVoice for AMD picks the zip for your card, downloads it, unpacks it and tests it. The files are AMD's own, unchanged. | Optional, automatic |
 | `server/OmniVoice-Server.zip` | 4.8 GB | New in 0.3.3: the OmniVoice server for Remote OmniVoice. It renders the OmniVoice voices on another PC or a second graphics card (Windows and an NVIDIA card, no game needed there), so the game PC loads no OmniVoice. Set it up in Settings > Voices > Custom voices; the steps are in the zip's README. | Optional |
 | `mature/Mature-Lite-Qwen3.5-4B.zip` | 2.8 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `mature/Mature-Standard-Gemma-4-E4B.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). Needs the Runtime of version 0.2.7 or newer. | Optional |
