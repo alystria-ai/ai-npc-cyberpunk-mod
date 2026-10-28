@@ -25,7 +25,7 @@ test('the Conversation provider options are translated (the catalogue has them i
 
 test('the phone-chat 30 ms reply probe runs before the 10 Hz early return, not after it', () => {
   const phone = read('../mod/phone-chat.lua');
-  const update = phone.slice(phone.indexOf('function M.update(player, delta)'));
+  const update = phone.slice(phone.indexOf('function M.update(player, delta, phoneOpen)'));
   assert.ok(update.indexOf("convaiNative.revision('phone-chat-output.json')") < update.indexOf('if M.tick < 0.10 and M.world then return end'));
 });
 

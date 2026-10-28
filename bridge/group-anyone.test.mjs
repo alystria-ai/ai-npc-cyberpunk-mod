@@ -13,6 +13,7 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const init = read('../mod/init.lua');
 const groupSource = read('../mod/group-chat.lua');
+const keyBindingsSource = read('../mod/key-bindings.lua');
 const between = (from, to) => {
   const start = init.indexOf(from), end = init.indexOf(to, start);
   assert.ok(start >= 0 && end > start, `markers ${from} .. ${to}`);
@@ -54,9 +55,7 @@ function selectionRun(body) {
     characterCatalog = {describe = function(_, key) return {category = 'ordinary', base = key} end}
     local keyBindings = {}
     manager = {profileEnabled = function(key) return key ~= 'off' end, keyBindings = function() return keyBindings end}
-    convaiKeyBinds = {describe = function(name)
-      if name == 'IK_F7' then return 'key', 'F7' elseif name == 'IK_Pad_A_CROSS' then return 'pad', 'A' end
-      return nil end}
+    convaiKeyBinds = (function() ${keyBindingsSource} end)()
     local boundText = nil
     ui = {boundKey = function() return boundText end,
       t = function(text, args)

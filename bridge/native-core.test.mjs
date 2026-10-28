@@ -426,7 +426,7 @@ test('init.lua checks reply.json through revision() every 30 ms while a reply is
 
 test('phone-chat.lua checks phone-chat-output.json through revision() every 30 ms while a reply is due, before its 0.1 s tick', () => {
   const phone = readFileSync(new URL('../mod/phone-chat.lua', import.meta.url), 'utf8');
-  const update = phone.slice(phone.indexOf('function M.update(player, delta)'));
+  const update = phone.slice(phone.indexOf('function M.update(player, delta, phoneOpen)'));
   const probe = update.indexOf("convaiNative.revision('phone-chat-output.json')");
   const tick = update.indexOf('if M.tick < 0.10 then return end');
   const early = update.indexOf('if M.tick < 0.10 and M.world then return end');
