@@ -2042,10 +2042,10 @@ local function schema()
             -- Off by default (the owner's call, 2026-10-25): party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
             setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits == true, false,
                 'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
-            -- Off by default (docs/EDDIES.md): borrow, lend and pay back eddies with your own characters; every transfer asks first. Off: nothing is read or sent.
+            -- Off by default (docs/EDDIES.md): borrow, lend and pay back eddies with your own characters; the eddies move when the character agrees. Off: nothing is read or sent.
             -- It sits in Settings > Gameplay (moved there when the section was made); the stored key is unchanged.
             setting('characterEddies', 'Eddies with characters', 'bool', snapshot.settings.characterEddies == true, false,
-                'Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nNothing moves without your Yes on a pop-up. Eddies move only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.'),
+                'Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.'),
             action('immersive-invitations', 'Immersive invitations', 'Open',
                 'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
                 function() return navigate('immersive-invitations') end),

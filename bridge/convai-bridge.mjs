@@ -1620,7 +1620,7 @@ const vendorScope = prepared => {
 const eddiesDecisions = new EddiesDecisions({log: line => console.error('[Eddies] ' + line)});
 const eddiesNote = (input, prepared, admitted) => input.eddies
   ? eddiesDecisions.forTurn(input, {romance: romanceOf(admitted ? prepared.relationship : null, RELATIONSHIP_PROFILES)})?.note ?? '' : '';
-// The proposal of a published turn (a spoken turn's words are read now), for the game's Yes/No pop-up (mod/eddies.lua). Never awaited, never in front of a reply.
+// The proposal of a published turn (a spoken turn's words are read now), for the game to carry out (mod/eddies.lua). Never awaited, never in front of a reply.
 function publishEddies(input, result) {
   if (!input?.eddies) return;
   try {

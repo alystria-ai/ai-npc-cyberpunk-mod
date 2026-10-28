@@ -216,7 +216,7 @@ test('one decision per turn: ordinary talk pays nothing, a turn about money gets
   const decided = decisions.forTurn(borrow);
   assert.match(decided.note, /^Eddies \(game-verified, this turn\):/);
   assert.match(decided.note, /You agree to lend V 300 eddies/);
-  assert.match(decided.note, /never say the money has already moved/);
+  assert.match(decided.note, /never say money moved when you refused/);
   assert.deepEqual([decided.proposal.flow, decided.proposal.amount, decided.proposal.requestId, decided.proposal.profileKey], ['loanToV', 300, borrow.requestId, 'judy-alvarez']);
   // The same turn again (or as another object with the same request id): the same decision.
   assert.equal(decisions.forTurn({...borrow}), decided);
@@ -235,6 +235,8 @@ test('a spoken turn: a short standing note now, V\'s words decide when the trans
   const decided = decisions.forTurn(spoken);
   assert.match(decided.note, /If V asks to borrow eddies: the most you would lend V right now is/);
   assert.doesNotMatch(decided.note, /Your money:/, 'no means line on every spoken turn');
+  assert.match(decided.note, /Eddies change hands the moment you agree in your reply, so agree only to what you really mean to do, and never say money moved when you refused/);
+  assert.doesNotMatch(decided.note, /pop-up|confirm/i, 'no pop-up: the money moves when the character agrees');
   assert.equal(decided.proposal, null, 'no initiative on a spoken turn, even when the dice say so');
   const proposal = decisions.finish(spoken, 'could you lend me 200 eddies?');
   assert.deepEqual([proposal.flow, proposal.amount], ['loanToV', 200]);

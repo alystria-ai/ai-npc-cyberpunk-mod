@@ -5,8 +5,8 @@
 // housemate), V's balance, the clock and the character's ledger row (the game owns the ledger, runtime/eddies-ledger.json). From that and the
 // character's money data (bridge/eddies-finances.mjs) the bridge decides what the character does about money this turn and tells the character in
 // one volatile note, on every provider. When the decision is a transfer, the bridge writes a proposal after the reply is published
-// (runtime/eddies-offer.json); the game shows V a Yes/No pop-up and moves the eddies only on Yes. The model decides nothing: a reply can never move
-// money, and V always confirms.
+// (runtime/eddies-offer.json); the game moves the eddies at once, when the reply is over and V is free. The model decides nothing: the bridge's reading
+// of V's words makes the proposal, and the game checks it again (V's balance, the cap, the debt) before it moves anything.
 //
 // Cost: ordinary talk pays nothing. A typed line is screened by a few regular expressions (well under a millisecond); only a line about money, a
 // character with an open debt, or a rare initiative roll gets a note. A spoken line's words are not known when its context is made, so an own copy's
@@ -275,7 +275,7 @@ export function ledgerLine(row, now) {
 }
 
 const meansLine = (finance, have) => `Your money: you are ${TIER[finance.tier] ?? 'getting by'}, with about ${sum(have)} you could lay hands on. ${finance.style}`;
-const RULE = 'Eddies only change hands when V confirms the game\'s pop-up after your reply, so never say the money has already moved. '
+const RULE = 'Eddies change hands the moment you agree in your reply, so agree only to what you really mean to do, and never say money moved when you refused. '
   + 'Never invent a different sum than the one stated here.';
 const TALK_RULE = 'No eddies can change hands in this conversation. If money comes up, talk about it in character, but never say you handed over or received any.';
 
@@ -363,7 +363,7 @@ export function decideInitiative({finance, row, now, balance, trust, random = Ma
   const amount = roundDown(clamp(finance.cash * 0.3, 100, 5000));
   if (!amount || balance < amount * 2) return null;
   const need = finance.needs[Math.floor(random() * finance.needs.length) % finance.needs.length];
-  return {say: `You need ${sum(amount)} for ${need}. Bring it up yourself in this reply, briefly and in your own way, and ask V to lend it to you. V answers through the game's pop-up.`,
+  return {say: `You need ${sum(amount)} for ${need}. Bring it up yourself in this reply, briefly and in your own way, and ask V to lend it to you. Nothing moves unless V agrees in their own words.`,
     flow: 'loanFromV', amount, origin: 'asked'};
 }
 
