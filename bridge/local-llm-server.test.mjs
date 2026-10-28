@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {LlamaProcess, LocalLlmServer, LocalAiUnavailable, buildServerArgs, chooseTier, defaultCacheRamMiB, fillerText, isIntegratedGpu, parseDeviceList, tierNeedMiB,
-  pickDevice, unavailableDetail, looksBlocked, BLOCKED, isAsciiPath, withoutKeyFile} from './local-llm-server.mjs';
+  pickDevice, unavailableDetail, looksBlocked, BLOCKED, isAsciiPath, withoutKeyFile, serverEnvironment} from './local-llm-server.mjs';
 import {SPILL_LIMITS} from './gpu-memory.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
@@ -70,6 +70,17 @@ test('buildServerArgs: the model, context, device and key file are arguments, an
   for (const flag of ['-ngl', '-c', '--device']) assert.ok(args.includes(flag), flag);
   assert.equal(buildServerArgs({model: 'M', port: 1, keyFile: 'K', device: 'V'})[7], '8192');
   assert.throws(() => buildServerArgs({model: 'M', port: 1, keyFile: 'K'}), TypeError);
+});
+
+test('the chat model server allocates graphics memory in 64 MiB pieces (a load stalled the game), and a value already set is kept', async t => {
+  assert.deepEqual(serverEnvironment({}), {GGML_VK_FORCE_MAX_ALLOCATION_SIZE: String(64 * 1024 * 1024)});
+  assert.deepEqual(serverEnvironment({GGML_VK_FORCE_MAX_ALLOCATION_SIZE: '1048576'}), {});
+  const seen = [];
+  const {server} = harness(t, {env: {FAKE_LLAMA_DELAY_MS: '0'}, spawnImpl: (command, args, options) => { seen.push(options.env); return spawn(command, args, options); }});
+  await server.ensure();
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].GGML_VK_FORCE_MAX_ALLOCATION_SIZE, process.env.GGML_VK_FORCE_MAX_ALLOCATION_SIZE ?? String(64 * 1024 * 1024));
+  assert.equal(seen[0].FAKE_LLAMA_DELAY_MS, '0', 'the process options keep their own variables');
 });
 
 test('device lines are parsed, integrated and software adapters are skipped, and the biggest discrete one wins', () => {
