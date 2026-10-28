@@ -369,7 +369,7 @@ test('a missing framework, a missing file and a service that never started are P
   files['phone-contacts.json'] = nil
   files['runtime/knowledge-status.json'] = nil
   assert(invoke('tab:settings').ok and invoke('help').ok)
-  assert(row('help-service').value == 'Not running' and row('help-service').description:find('Runtime zip straight into the Cyberpunk 2077 folder', 1, true), row('help-service').description)
+  assert(row('help-service').value == 'Not running' and row('help-service').description:find('full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder', 1, true), row('help-service').description)
   assert(setupRow('codeware').value == 'Problem' and setupRow('codeware').description == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
   assert(setupRow('files').value == 'Problem' and setupRow('files').description:find('Missing: phone-contacts.json.', 1, true))
   assert(setupRow('red4ext').value == 'OK')
