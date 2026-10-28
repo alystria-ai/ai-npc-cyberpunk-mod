@@ -80,6 +80,12 @@ No model is asked and nothing waits. A typed line is read by a few regular expre
 negations, conditions ("if", "would you ever"), the past and the future ("tomorrow", "already"). A line about something else gets **no note at all**
 unless a debt is open between them (then one line of what is owed).
 
+The live test of 2026-10-28 found English asks the first grammar missed ("give me a thousand eddies", "can I get 200 eddies", "need 300 eddies", "gimme 200",
+"would you mind lending me 300", "spot 200 eddies", "hook me up with 500", "mind if I borrow 200") and a promise read as a payback ("give me 200 and I'll pay you
+back 400" is a borrow, not a repay). Both are fixed in `INTENTS` and `PROMISE`; a worded hundred or thousand needs a money word. A money line that is still not read
+gets a note telling the character to ask how much and to agree to no sum V has not said, so a "yes" with nothing moving is rarer. A request above what the
+character can spare (Alex, 3,800 in cash, lends about 1,500 at party trust) is refused by design, with the reason in the reply.
+
 A spoken line's words are not known when its context is made (the context goes out with the recording, as for the drive limit note), so an own copy's
 spoken turn carries a short standing note ("the most you would lend V right now is N; if V asks for more, offer that much or say no", plus what is
 owed), and the bridge reads the transcript when the reply is published (`finish`) to make the proposal. No initiative on a spoken turn.
