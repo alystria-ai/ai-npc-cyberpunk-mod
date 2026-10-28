@@ -74,7 +74,7 @@ The first start after installing takes a little longer while the service prepare
 - `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice, Local AI and Mature packs)
 - `red4ext\plugins\AiNpcCyberpunkModNative`
 - `r6\scripts\CyberpunkConvai` (the scripts; internal name), and `r6\audioware\CyberpunkConvai` if an older version left it
-- `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
+- `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and, if it is there, `cyberpunk_convai_ambient_driver_guard.archive`
 
 To remove everything, also delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (the memories stored on your computer, saved keys, logs, reports and any models you added in its `local-ai` folder).
 
@@ -1389,7 +1389,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
 red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll   native core plugin
 bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/         Lua, locales, JSON; data/ (player state); runtime/ (exchange files)
 r6/scripts/CyberpunkConvai/  redscript
-archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard
+archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (game 2.31 only)
 ```
 
 RED4ext loads DLLs only from `red4ext/plugins/*.dll` and one folder deep, so the Python and torch DLLs under `app/` are never loaded into the game. The build refuses any entry whose game-relative path would exceed 255 characters under a 70-character game folder (Windows' built-in zip extractor fails beyond 260).

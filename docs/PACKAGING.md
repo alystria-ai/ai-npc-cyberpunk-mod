@@ -92,7 +92,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
     native-off.txt           the native kill switch, no system listed from 0.2.7 (Runtime package, see below)
 r6/scripts/CyberpunkConvai/  redscript (Scripts package)
 (r6/audioware/CyberpunkConvai, speech.yml and eight silent reply slots, was shipped by Runtimes before 2026-10-22 and is no longer used)
-archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (Runtime)
+archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (Runtime; the driver guard in the 2.31 Runtime only)
 
 %LOCALAPPDATA%/AiNpcCyberpunkMod/   outside the game folder (packaging/runtime/state-home.mjs)
   data/                      player state, created on first start (before this change: mods/AiNpcCyberpunkMod/data)

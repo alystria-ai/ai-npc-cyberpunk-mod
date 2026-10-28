@@ -17,6 +17,18 @@ export const DEFAULT_GAME = Object.keys(GAME_VARIANTS).find(id => GAME_VARIANTS[
 export const LEGACY_GAME = '2.31';
 
 /**
+ * The entries of a release list (`{source, target, games?}`) that ship for `game`: an entry without `games` ships for every game, one with `games`
+ * only for the games it names (the ambient driver guard archive is built from a 2.31 quest phase, so only the 2.31 Runtime carries it). A name
+ * that is not a game of game-variants.json is refused, so a typo cannot drop a file from every build.
+ */
+export function forGame(entries, game) {
+  for (const entry of entries) {
+    for (const id of entry.games ?? []) if (!Object.hasOwn(GAME_VARIANTS, id)) throw Error(`${entry.target}: unknown game ${id} in "games"`);
+  }
+  return entries.filter(entry => !entry.games || entry.games.includes(game));
+}
+
+/**
  * The files a variant lays over the source's own: Map of game-relative target path (forward slashes) to the absolute source file, from
  * packaging/game-variants/<game>/. A variant with no folder (2.31, the source tree's own game) has none.
  */

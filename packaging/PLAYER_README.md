@@ -323,7 +323,7 @@ Delete these folders from your Cyberpunk 2077 folder:
 - `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice and Local AI packs)
 - `red4ext\plugins\AiNpcCyberpunkModNative`
 - `r6\scripts\CyberpunkConvai` (the scripts; internal name), and `r6\audioware\CyberpunkConvai` if an older version left it
-- `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
+- `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and, if it is there, `cyberpunk_convai_ambient_driver_guard.archive`
 - `HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt`, if it is still there
 
 Then delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (paste that into the Explorer address bar). It is outside the game folder and holds your memories, conversation history, logs and reports (and the models you added in its `local-ai` folder; copy those out first if you want to keep them), so a mod manager leaves it behind too.

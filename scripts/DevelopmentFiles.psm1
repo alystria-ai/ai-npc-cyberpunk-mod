@@ -43,6 +43,8 @@ function Get-DevelopmentFiles([string]$ProjectDirectory, [string]$GameDirectory,
     $manifest = Get-DevelopmentManifest $ProjectDirectory
     foreach ($file in $manifest.files) {
         if ($LuaOnly -and [IO.Path]::GetExtension($file.source) -notin @('.lua', '.json')) { continue }
+        # A file with "games" belongs to those game versions only (the ambient driver guard archive: 2.31).
+        if ($file.PSObject.Properties['games'] -and $Game -notin @($file.games)) { continue }
         [pscustomobject]@{
             From = (Resolve-DevelopmentSource $ProjectDirectory $file $Game)
             To = (Resolve-DevelopmentPath $GameDirectory $file.target)
