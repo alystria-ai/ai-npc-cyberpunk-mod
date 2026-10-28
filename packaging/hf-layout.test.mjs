@@ -152,14 +152,17 @@ test('the player texts link the files at their folders and new names, say nothin
   const nexus = texts['docs/NEXUS_PAGE.md'];
   assert.doesNotMatch(nexus, /;/, 'no semicolons on Nexus');
   assert.doesNotMatch(nexus, /18\+/, 'no "18+" on Nexus');
-  for (const link of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip', 'game-2.31/AI-NPC-LLM-Companions.zip', ...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
+  // The mod itself downloads from Nexus only (owner, 2026-10-29): no Hugging Face mirror of the full install or the update.
+  for (const link of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip']) assert(!nexus.includes(`/blob/main/${link}`) && !nexus.includes(`/blob/main/game-2.31/${link}`), `the Nexus page links no Hugging Face ${link}`);
+  for (const link of [...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
   assert(nexus.includes(`${HF}/tree/main/multilingual`), 'the multilingual folder link is the same as before');
   assert(!nexus.includes('Runtime.zip'), 'managers install the full install as one mod: the Nexus page does not advertise the Runtime alone');
   assert.match(nexus, /Remove both of the old mods, then install the main file/, 'the one step for a manager coming from 0.3.3');
   assert(!nexus.includes(`${HF}/tree/main/updates`), 'the Runtime update zips are no longer offered: the Nexus page does not link them');
   // Every file name on HF has lost the prefix: the model card lists the new paths.
   const card = texts['packaging/HF_MODEL_CARD.md'];
-  for (const path of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip', 'local-ai/', 'mature/', 'mic/', 'voice/', 'updates/', 'multilingual/']) assert(card.includes(path), `the model card lists ${path}`);
+  assert(!card.includes('AI-NPC-LLM-Companions'), 'the model card offers no full install or update (Nexus only)');
+  for (const path of ['local-ai/', 'mature/', 'mic/', 'voice/', 'updates/', 'multilingual/']) assert(card.includes(path), `the model card lists ${path}`);
   // The Runtime alone is no longer on Hugging Face (owner, 2026-10-28): the full install holds it.
   assert(!card.includes('runtime/Runtime.zip') &&!card.includes('tree/main/runtime'), 'the model card names no runtime/ folder');
   assert.doesNotMatch(card, /Pocket language model/i, 'the Pocket language models are PocketTTS models in the texts players read');
@@ -221,7 +224,7 @@ test('the Update is found whatever its <from> is (a version, or "any"), exactly 
 
 test('the model card and both updates READMEs make game 2.5 the default and 2.31 the older option in game-2.31/, with the 2_31_old note, and no text names the game-2.5 folder', async () => {
   const card = await read('packaging/HF_MODEL_CARD.md');
-  for (const needle of ['game-2.31/AI-NPC-LLM-Companions.zip', 'game-2.31/AI-NPC-LLM-Companions-Update.zip', '2_31_old', 'older game version 2.31']) assert(card.includes(needle), `the model card has ${needle}`);
+  for (const needle of ['game-2.31/updates/', 'nexusmods.com/cyberpunk2077/mods/35436?tab=files', 'older game 2.31']) assert(card.includes(needle), `the model card has ${needle}`);
   assert.match(await read('packaging/HF_UPDATES_README.md'), /Runtime-Update-0\.3\.0-to-0\.3\.1-for-2\.5\.zip/);
   assert.match(await read('packaging/HF_UPDATES_README_2_31.md'), /Runtime-Update-0\.2\.2-to-0\.2\.3\.zip/);
   for (const rel of ['README.md', 'packaging/PLAYER_README.md', 'packaging/HF_MODEL_CARD.md', 'packaging/HF_UPDATES_README.md', 'packaging/HF_UPDATES_README_2_31.md', 'docs/NEXUS_PAGE.md']) {

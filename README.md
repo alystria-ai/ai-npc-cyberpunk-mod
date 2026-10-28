@@ -1357,8 +1357,8 @@ The player release is built from a git commit, never from the working tree, so u
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip` | Nexus Mods (the same file is `AI-NPC-LLM-Companions-Update.zip` on Hugging Face). `<from>` is the oldest Runtime it runs on, or `any` | The update, the former Scripts: the CET Lua mod, redscript, the JSON catalogs the Lua reads, `README.txt`, `release.json`, and all of the mod's code with the launcher and native plugin |
-| `AI-NPC-LLM-Companions-<v>.zip` | Nexus Mods and Hugging Face (`AI-NPC-LLM-Companions.zip`) | The full install: the update and the Runtime base in one zip (built from the two by `packaging/build-full.mjs`, which refuses an overlap) |
+| `AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip` | Nexus Mods only. `<from>` is the oldest Runtime it runs on, or `any` | The update, the former Scripts: the CET Lua mod, redscript, the JSON catalogs the Lua reads, `README.txt`, `release.json`, and all of the mod's code with the launcher and native plugin |
+| `AI-NPC-LLM-Companions-<v>.zip` | Nexus Mods only | The full install: the update and the Runtime base in one zip (built from the two by `packaging/build-full.mjs`, which refuses an overlap) |
 | `Runtime-<v>.zip` | GitHub release (the asset is `Runtime-<v>.zip`), mirrored to Hugging Face as `runtime/Runtime.zip` (an input of the full install, and for old two-mod Vortex and Mod Organizer 2 setups) | The Runtime base (from 0.3.4): bundled Node and Python, llama.cpp, vgmstream, Playwright, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives. The mod's code, the launcher and the native plugin are in the Scripts (`red4ext/plugins/AiNpcCyberpunkCode`; [docs/PACKAGING.md](docs/PACKAGING.md), "Code in the Scripts") |
 | `OmniPack-OmniVoice-0.6B-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
 | `LocalAI-Standard-Gemma-4-E4B-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip |
