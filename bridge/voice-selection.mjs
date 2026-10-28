@@ -1,5 +1,6 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {ResidentVoice, pathAttestationFailed, noCudaFailed, timedOutFailed, outOfMemoryFailed} from './resident-voice.mjs';
+import {browserStartFailed} from './system-browser.mjs';
 import {RemoteVoice, REMOTE_RETRY_DELAYS_MS} from './remote-voice.mjs';
 import {parseServerAddress} from './omni-remote.mjs';
 import {lacksNvidia, isSmallCard, underNeeded} from './gpu-vendors.mjs';
@@ -60,7 +61,7 @@ export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windo
   : pocketIntegrityFailed(reason) ? 'a Pocket file is not the one this version pins (the Runtime needs its update)'
   : missingFilesFailed(reason) ? 'a file of the voice is missing from the install' : null;
 // The cause of a voice failure as one word for the error report (bridge/error-events.mjs cleanVoice), so a triage can group them without reading the lines.
-export const voiceFailureCause = reason => blockedByWindows(reason) ? 'windows-blocked' : pagingFileFailed(reason) ? 'virtual-memory' : noCudaFailed(reason) ? 'no-cuda'
+export const voiceFailureCause = reason => blockedByWindows(reason) ? 'windows-blocked' : browserStartFailed(reason) ? 'browser-failed' : pagingFileFailed(reason) ? 'virtual-memory' : noCudaFailed(reason) ? 'no-cuda'
   : outOfMemoryFailed(reason) ? 'out-of-memory' : timedOutFailed(reason) ? 'timeout' : pocketIntegrityFailed(reason) ? 'integrity' : missingFilesFailed(reason) ? 'missing-files' : 'unknown';
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 // The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.

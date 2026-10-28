@@ -26,12 +26,13 @@ import {BrowserPriority} from './process-priority.mjs';
 export const SANDBOX_STATE_FILE = 'browser-sandbox.json';
 export const SANDBOX_TIMEOUTS = Object.freeze({launchMs: 20_000, probeMs: 8_000, closeMs: 3_000, rememberMs: 30 * 86_400_000});
 const sandboxRefusals = new Map();      // browser key -> when it was found not to work (ms), for this process
+const graphicsRefusals = new Map();     // browser key -> when it was found to start only without its graphics process (ms), for this process
 const sandboxFilesRead = new Set();     // state files already read in this process
 const sandboxPassed = new Set();        // browsers whose sandbox passed the probe in this process (a later launch of the same one is not probed again)
 let sandboxLogged = false;
 const sandboxKey = options => String(options?.executablePath ?? options?.channel ?? 'default');
 /** Forgets what this process learned about the sandbox (the tests). */
-export function resetSandboxMemory() { sandboxRefusals.clear(); sandboxFilesRead.clear(); sandboxPassed.clear(); sandboxLogged = false; }
+export function resetSandboxMemory() { sandboxRefusals.clear(); graphicsRefusals.clear(); sandboxFilesRead.clear(); sandboxPassed.clear(); sandboxLogged = false; }
 function sandboxRefused(key, statePath, now) {
   if (statePath && !sandboxFilesRead.has(statePath)) {
     sandboxFilesRead.add(statePath);
@@ -40,6 +41,9 @@ function sandboxRefused(key, statePath, now) {
       if (saved?.version === 1 && saved.refused && typeof saved.refused === 'object') {
         for (const [name, at] of Object.entries(saved.refused)) if (Number.isFinite(at) && !sandboxRefusals.has(name)) sandboxRefusals.set(name, at);
       }
+      if (saved?.version === 1 && saved.graphicsOff && typeof saved.graphicsOff === 'object') {
+        for (const [name, at] of Object.entries(saved.graphicsOff)) if (Number.isFinite(at) && !graphicsRefusals.has(name)) graphicsRefusals.set(name, at);
+      }
     } catch { /* no file, or one that is not ours: the sandbox is simply tried */ }
   }
   const at = sandboxRefusals.get(key);
@@ -47,12 +51,35 @@ function sandboxRefused(key, statePath, now) {
   if (now - at > SANDBOX_TIMEOUTS.rememberMs) { sandboxRefusals.delete(key); return false; }
   return true;
 }
+// Does this browser start only without its graphics process on this PC (found out by an earlier start, 30 days)? Read after sandboxRefused, which loads the file.
+function graphicsRefused(key, now) {
+  const at = graphicsRefusals.get(key);
+  if (at === undefined) return false;
+  if (now - at > SANDBOX_TIMEOUTS.rememberMs) { graphicsRefusals.delete(key); return false; }
+  return true;
+}
+const saveSandboxState = (statePath, reason) => {
+  try {
+    writeFileSync(statePath, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), graphicsOff: Object.fromEntries(graphicsRefusals), reason: String(reason).slice(0, 160)}));
+  } catch { /* read-only: remembered for this process only */ }
+};
 // `persist` false: found out in this process only (a timeout says the PC was slow, not that the sandbox cannot work: it is not written for 30 days).
 function rememberSandboxRefusal(key, statePath, now, reason, persist = true) {
   sandboxRefusals.set(key, now);
   if (!statePath || !persist) return;
-  try { writeFileSync(statePath, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), reason: String(reason).slice(0, 160)})); } catch { /* read-only: remembered for this process only */ }
+  saveSandboxState(statePath, reason);
 }
+function rememberGraphicsRefusal(key, statePath, now, reason) {
+  graphicsRefusals.set(key, now); sandboxRefusals.set(key, now);
+  if (statePath) saveSandboxState(statePath, reason);
+}
+// The browser's graphics process is not needed by a page that plays sound and shows nothing. A browser whose every start ended at once (Edge on a card whose driver the browser
+// crashes on: the browser process quits with the graphics process) is started once more with it off; the arguments of that start.
+export const NO_GRAPHICS_ARGUMENTS = Object.freeze(['--disable-gpu']);
+const withoutGraphics = options => ({...options, args: [...(options.args ?? []), ...NO_GRAPHICS_ARGUMENTS]});
+// A start that ended because the browser process went away at once (Playwright: "Target page, context or browser has been closed", "Browser closed unexpectedly", an exit code).
+const browserWentAway = error => /has been closed|closed unexpectedly|process did exit|exitCode|exited/i.test(String(error?.message ?? error));
+const firstLine = error => String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
 const sandboxStatePathDefault = () => (process.env.NODE_TEST_CONTEXT ? null
   : resolve(process.env.CYBERPUNK_CONVAI_STATE || fileURLToPath(new URL('../runtime/', import.meta.url)), SANDBOX_STATE_FILE));
 const withTimeout = (promise, ms, what) => new Promise((resolveIt, rejectIt) => {
@@ -454,13 +481,17 @@ export class RealtimeHost {
    * remembered (module level, shared by the hosts, and on disk), so no later start tries the sandbox on that PC again. A browser that is simply not
    * there is not retried.
    */
-  async launchWithSandbox(options) {
-    const key = sandboxKey(options), now = Date.now();
+  async launchWithSandbox(wanted) {
+    const key = sandboxKey(wanted), now = Date.now();
     const log = line => { try { this.log(line); } catch { /* a log that fails changes nothing */ } };
-    if (process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX === '1') return this.launchBrowser({...options, chromiumSandbox: false});
-    if (sandboxRefused(key, this.sandboxStatePath, now)) {
+    const noSandbox = process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX === '1';
+    const refused = !noSandbox && sandboxRefused(key, this.sandboxStatePath, now);   // also loads the state file, which graphicsRefused reads
+    // A browser that an earlier start found to quit at once unless its graphics process is off starts that way from the first try.
+    const options = graphicsRefused(key, now) ? withoutGraphics(wanted) : wanted;
+    if (noSandbox) return this.launchBrowser({...options, chromiumSandbox: false});
+    if (refused) {
       if (!sandboxLogged) { sandboxLogged = true; log(`The hidden browser runs without its sandbox: an earlier start found it does not work on this PC (delete ${SANDBOX_STATE_FILE} to try it again)`); }
-      return this.launchBrowser({...options, chromiumSandbox: false});
+      return this.launchWithoutSandbox(options, key, now, null);
     }
     let browser = null;
     try {
@@ -471,12 +502,32 @@ export class RealtimeHost {
     } catch (error) {
       if (browser) await Promise.race([browser.close().catch(() => {}), new Promise(done => setTimeout(done, this.sandboxTimeouts.closeMs).unref?.())]);
       if (browserMissing(error)) throw error;
-      const reason = String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
-      const plain = await this.launchBrowser({...options, chromiumSandbox: false});
-      rememberSandboxRefusal(key, this.sandboxStatePath, now, reason, !/took longer than|\btimeout\b|timed out/i.test(String(error?.message ?? error)));
+      const reason = firstLine(error);
+      const plain = await this.launchWithoutSandbox(options, key, now, reason);
+      // A start that needed the rescue below has remembered more than the sandbox; one that did not remembers the sandbox only.
+      if (!graphicsRefused(key, now)) rememberSandboxRefusal(key, this.sandboxStatePath, now, reason, !/took longer than|\btimeout\b|timed out/i.test(String(error?.message ?? error)));
       sandboxLogged = true;
       log(`The hidden browser would not work with its sandbox (${reason}); it runs without it`);
       return plain;
+    }
+  }
+  /**
+   * The start without the sandbox. A browser that goes away at once even so ("Target page, context or browser has been closed": 27 Oct 2026, Edge on an AMD RX 9070 XT, no
+   * voice at all) is started once more with its graphics process off, which a page that only plays sound does not need; if that works it is remembered like the sandbox's verdict
+   * and used from the first try. Whatever fails last carries the earlier reasons (`earlier`, `rescue`), which the report prints below the browser's own lines.
+   */
+  async launchWithoutSandbox(options, key, now, earlier) {
+    const annotate = (error, extra = {}) => { try { if (earlier) error.earlier = earlier; Object.assign(error, extra); } catch { /* a frozen error stays as it is */ } return error; };
+    try { return await this.launchBrowser({...options, chromiumSandbox: false}); }
+    catch (error) {
+      if (browserMissing(error) || !browserWentAway(error) || (options.args ?? []).includes(NO_GRAPHICS_ARGUMENTS[0])) throw annotate(error);
+      let browser;
+      try { browser = await this.launchBrowser({...withoutGraphics(options), chromiumSandbox: false}); }
+      catch (second) { throw annotate(error, {rescue: firstLine(second)}); }
+      const reason = `${firstLine(error)}; it starts without its graphics process`;
+      rememberGraphicsRefusal(key, this.sandboxStatePath, now, reason);
+      try { this.log(`The hidden browser went away at once (${firstLine(error)}); it runs without its graphics process`); } catch { /* a log that fails changes nothing */ }
+      return browser;
     }
   }
   async evaluateSpeech(page, method, config, {signal, liveSpeech, textStream, current = () => true} = {}) {

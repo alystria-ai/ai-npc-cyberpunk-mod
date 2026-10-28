@@ -546,9 +546,14 @@ export class ErrorEvents {
    * a day. Numbers, fixed names and the furthest stage the last silent reply reached; no turn's text is ever passed here.
    */
   voiceSilent(data) {
-    this.#withHardware(hardware => this.record({kind: 'voice-failed', message: 'voice never played this session', frame: 'voice-silence', detail: {engine: slowWord(data?.engine) ?? 'voice'},
-      voice: {requested: data?.requested, active: data?.active, fellBackTo: data?.fellBackTo, silent: false, cause: 'never-played', turns: data?.turns, silentTurns: data?.silentTurns,
-        playedTurns: data?.playedTurns, lastStage: data?.lastStage, reasons: data?.reasons, tail: data?.tail, ...hardware}}));
+    // The hidden browser that plays every voice would not start in this run (bridge/system-browser.mjs lastBrowserStartFailure): that is the reason, said as one, with the
+    // browser's own words (its first line, then what it printed and how it ended) below.
+    const browser = data?.browser && typeof data.browser.message === 'string' ? data.browser : null;
+    const tail = browser ? [browser.message, ...(Array.isArray(browser.diagnostic) ? browser.diagnostic : [])] : data?.tail;
+    this.#withHardware(hardware => this.record({kind: 'voice-failed', message: browser ? 'voice never played this session: the hidden browser would not start' : 'voice never played this session',
+      frame: 'voice-silence', detail: {engine: slowWord(data?.engine) ?? 'voice'},
+      voice: {requested: data?.requested, active: data?.active, fellBackTo: data?.fellBackTo, silent: false, cause: browser ? 'browser-failed' : 'never-played', turns: data?.turns, silentTurns: data?.silentTurns,
+        playedTurns: data?.playedTurns, lastStage: data?.lastStage, reasons: data?.reasons, tail, ...hardware}}));
   }
   /**
    * Replies are slow and stay slow (bridge/slow-turns.mjs decides; `data` is its report section). The message is the same every time, so

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {join} from 'node:path';
 import {BROWSER_OVERRIDE_FILE, NO_BROWSER_MESSAGE, OTHER_CHROMIUM_BROWSERS, SYSTEM_BROWSERS, browserNameFor, defaultBrowserPath, installedSystemBrowsers,
   browserLookupSummary, isChromiumProgram, launchSystemBrowser, parseAppPath, parseBrowserOverride, parseCommandProgram, readBrowserOverride, registeredPaths,
-  resetBrowserFailureLog, resolveBrowserOverride, startMenuBrowserPaths, systemBrowserAvailable, systemBrowserCandidates} from './system-browser.mjs';
+  browserFailureTail, browserStartFailed, lastBrowserStartFailure, launchDiagnostics, resetBrowserFailureLog, resolveBrowserOverride, startMenuBrowserPaths, systemBrowserAvailable, systemBrowserCandidates} from './system-browser.mjs';
 
 const env = {LOCALAPPDATA: 'C:\\Users\\p\\AppData\\Local', PROGRAMFILES: 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)'};
 const at = (...paths) => path => paths.includes(path);
@@ -342,4 +342,62 @@ test('the lookup summary for the log names what was set, found and chosen, in pr
   const edge = edgeIn(env.PROGRAMFILES);
   const odd = browserLookupSummary({env: {PROGRAMFILES: env.PROGRAMFILES}, exists: at(edge), run: () => { throw Error('spawn failed'); }});
   assert.equal(odd, 'Browser lookup: LOCALAPPDATA not set, PROGRAMFILES set, PROGRAMFILES(X86) not set. Browser folders found: Microsoft Edge. Registered programs found: none. Default browser: none. Start menu browsers: none.');
+});
+
+// 27 Oct 2026, install 0d0750 (Edge on an AMD RX 9070 XT): "Edge was found but would not start: Target page, context or browser has been closed" was all the report held;
+// Playwright prints what the browser said and how its process ended below that first line.
+const CLOSED = [
+  'browserType.launch: Target page, context or browser has been closed',
+  'Browser logs:',
+  '',
+  '<launched> pid=4242',
+  '[pid=4242][err] [1027/163508.123:ERROR:gpu_process_host.cc(990)] GPU process exited unexpectedly: exit_code=-1073740791',
+  '[pid=4242][err] [1027/163508.456:FATAL:gpu_data_manager_impl_private.cc(415)] GPU process isn\'t usable. Goodbye. (C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe)',
+  '<process did exit: exitCode=21, signal=null>',
+  '<gracefully close start>',
+  'Call log:',
+  '  - <launching> C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe --disable-field-trial-config --headless',
+].join('\n');
+
+test('a browser that goes away at once says what it printed and its exit code, paths cut to file names', async () => {
+  resetBrowserFailureLog();
+  const logs = [];
+  const launch = async ({channel}) => { throw Error(channel === 'msedge' ? CLOSED : "Chromium distribution 'chrome' is not found"); };
+  await assert.rejects(launchSystemBrowser(launch, {...machine([edgeIn(env.PROGRAMFILES)]), log: line => logs.push(line)}), error => {
+    assert.equal(error.message, 'Microsoft Edge was found but would not start: Target page, context or browser has been closed (exit code 21)');
+    assert.equal(error.code, 'BROWSER_START_FAILED');
+    assert.equal(error.diagnostic.length, 3, error.diagnostic.join(' / '));
+    assert.match(error.diagnostic[0], /GPU process exited unexpectedly/);
+    assert.match(error.diagnostic[1], /Goodbye\. \(msedge\.exe\)/);
+    assert.equal(error.diagnostic[2], '<process did exit: exitCode=21, signal=null>');
+    return true;
+  });
+  assert.equal(logs.length, 2);
+  assert.match(logs[1], /^The browser said: \[1027\/163508\.123:ERROR:gpu_process_host\.cc\(990\)\] GPU process exited unexpectedly/);
+  assert.ok(!logs.join('\n').includes('Program Files'), 'no folder in the log');
+  const last = lastBrowserStartFailure();
+  assert.match(last.message, /would not start/);
+  assert.equal(browserFailureTail(last.message), last.diagnostic);
+  assert.equal(browserFailureTail('some other failure'), undefined);
+  // Asked again, nothing is logged a second time.
+  await assert.rejects(launchSystemBrowser(launch, {...machine([edgeIn(env.PROGRAMFILES)]), log: line => logs.push(line)}), /would not start/);
+  assert.equal(logs.length, 2);
+});
+
+test('the earlier tries of one start are in the diagnostic, and a failure with no browser output has none of its own', () => {
+  const error = Object.assign(Error('browserType.launch: Target closed'), {earlier: 'browserType.launch: Browser closed unexpectedly', rescue: 'browserType.launch: Target closed'});
+  assert.deepEqual(launchDiagnostics(error), ['first try, with the sandbox: browserType.launch: Browser closed unexpectedly', 'last try, without the graphics process: browserType.launch: Target closed']);
+  assert.deepEqual(launchDiagnostics(Error('boom')), []);
+  assert.deepEqual(launchDiagnostics(undefined), []);
+  const long = Error('x\n' + Array.from({length: 30}, (_, i) => `[pid=1][err] line ${i} ${'y'.repeat(300)}`).join('\n'));
+  const lines = launchDiagnostics(long);
+  assert.equal(lines.length, 8); assert.ok(lines.every(line => line.length <= 200));
+});
+
+test('browserStartFailed recognises the words of a browser that would not start or is not there', () => {
+  assert.equal(browserStartFailed('Microsoft Edge was found but would not start: Target closed'), true);
+  assert.equal(browserStartFailed('Thorium is set as the browser but its program is not there'), true);
+  assert.equal(browserStartFailed(NO_BROWSER_MESSAGE), true);
+  assert.equal(browserStartFailed('Pocket student startup timed out'), false);
+  assert.equal(browserStartFailed(undefined), false);
 });

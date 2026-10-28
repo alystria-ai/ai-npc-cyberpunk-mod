@@ -41,6 +41,7 @@ import {PartyConnections, parsePartyConnections, spawnedWarmLimit} from './party
 import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection, voiceFailureCause} from './voice-selection.mjs';
+import {browserFailureTail, lastBrowserStartFailure} from './system-browser.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
@@ -1302,7 +1303,9 @@ const slowTurns = new SlowTurnWatch({onSlow: data => errorEvents.slowTurns(data)
   }});
 // Voice playback is on and the replies of this run never made a sound: one `voice-failed` report (bridge/voice-silence.mjs). Judged from the stage clock after each turn.
 const voiceSilence = new VoiceSilenceWatch({onSilent: data => errorEvents.voiceSilent(data), wanted: () => !localVoice.closed && !localVoice.silent,
-  context: () => ({engine: localVoice.provider, requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: localVoice.resolvedProvider})});
+  context: () => ({engine: localVoice.provider, requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: localVoice.resolvedProvider,
+    // The hidden browser that plays every voice could not start in this run: that is why nothing was heard, with what the browser said.
+    browser: lastBrowserStartFailure()})});
 let metricsWriting = Promise.resolve(), metricsNext = null;
 let connectionMetricsWriting = Promise.resolve();
 
@@ -1566,7 +1569,9 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
       // A line that was started and then failed, or whose renderer finished without any sound, is a voice failure to look at (one report per distinct reason, the voice report's rules).
       if (summary.result === 'dropped' && (summary.reason === 'failed' || summary.reason === 'no-audio')) {
         errorEvents.voiceFailed({engine: 'v-line', reason: summary.failure ?? 'the renderer finished without any sound', cause: summary.reason === 'no-audio' ? 'no-audio' : voiceFailureCause(summary.failure),
-          requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: 'silent', silent: localVoice.silent});
+          requested: localVoice.requestedProvider, active: localVoice.provider, fellBackTo: 'silent', silent: localVoice.silent,
+          // A hidden browser that would not start: what the browser itself said, which the one line of the failure does not hold.
+          tail: browserFailureTail(summary.failure)});
       }
     } catch { /* a log line never affects a reply */ }
   }});
