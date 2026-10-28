@@ -20,7 +20,7 @@ test('at start the bridge only reads what an earlier V voice mod scan built (no 
 test('the scan runs once, in the background a little after start-up, and only while V\'s voice is on; what it changes is installed and applied live', () => {
   const scans = [...bridge.matchAll(/loadVVoiceReferencesWithMods\(\{\.\.\.vVoiceLoadOptions, scan: true, current: vVoiceReferences\.voices\}\)/g)];
   assert.equal(scans.length, 1, 'one scan call in the whole bridge');
-  assert.match(bridge, /if \(vVoice\.enabled\) startVVoiceModScan\(\);/, 'asked for only on the settings poll, when V\'s voice is on');
+  assert.match(bridge, /if \(vVoice\.active\) startVVoiceModScan\(\);/, 'asked for only on the settings poll, when V\'s voice is on for typed or microphone lines');
   const starter = bridge.slice(bridge.indexOf('const startVVoiceModScan ='), bridge.indexOf('// Which reference V speaks from'));
   assert.match(starter, /if \(vModScanStarted\) return;/);
   // Not at the title screen (27 Oct 2026): it waits for the game's world in 5 s looks, then runs after its delay; the scan itself is started in a detached call, never awaited.
