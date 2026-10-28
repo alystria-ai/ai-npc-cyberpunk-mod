@@ -13,6 +13,7 @@
 // spoken turn carries one short "standing" note (what the character would lend), and the words are screened when the transcript arrives.
 import {FINANCES} from './eddies-finances.mjs';
 import {MIC_PLACEHOLDER} from './call-meet.mjs';
+import {screenForeign, warmLanguages, mentionsMoneyAnywhere} from './eddies-languages.mjs';
 
 /** The most eddies one transfer can move, whatever the balances (mod/eddies.lua holds the same number). */
 export const EDDIES_CAP = 100000;
@@ -152,6 +153,8 @@ export function parseAmount(clause) {
   const digits = DIGITS.exec(clause);
   if (digits) {
     const raw = digits[1] ?? digits[3], unit = (digits[2] ?? digits[4] ?? '').toLowerCase();
+    // A bare digit under 10 with no currency word or sign is a count ("take 5", "I need 2 more bullets"), not a sum.
+    if (!unit && /^\d{1,9}$/.test(raw) && Number(raw) < 10 && !/[\p{L}€$]/u.test(digits[0].replace(raw, ''))) return null;
     // 1,000 and 1.000 are thousands; a decimal part (0.5, 2.55) is not a sum of eddies, except before k (2.5k).
     let value;
     if (/^\d{1,3}(?:[,.]\d{3})+$/.test(raw)) value = Number(raw.replace(/[,.]/g, ''));
@@ -182,7 +185,7 @@ const INTENTS = [
   // V asks the character to lend (or give) V money.
   ['borrow', /\b(?:lend me(?! (?:a hand|your ear|a sec))|loan me|(?:can|could|may|let) (?:i|me) borrow|borrow (?:some|a few|a bit|a little|\d|€|\$|a hundred|a grand|money|eddies|cash)|spot me|front me|float me|advance me|(?:can|could|would|will) you (?:give|spare|lend|loan|send|wire|transfer) me|spare (?:me )?(?:some|a few|any|\d)|i need (?:some |a few |a bit of |a little |a loan|\d|€|\$)|i'?m (?:broke|short on (?:cash|eddies|money))|help me out with|give me (?:some |a few |\d|€|\$|a hundred|a grand)|need a loan|got any (?:money|eddies|cash|eds) (?:to spare|for me))/],
   // V offers to lend the character money.
-  ['lend', /\b(?:i(?:'ll| will| can| could|'m going to| am going to| want to|'d like to)? (?:lend|loan|float|front) you|let me (?:lend|loan|front|float) you|(?:lend|loan)(?:ing)? you|borrow (?:it |them |some |this |that )?from me|take a loan from me|you can borrow)\b/],
+  ['lend', /\b(?:i(?:'ll| will| can| could|'m going to| am going to| want to|'d like to)? (?:lend|lent|loan|float|front) you|let me (?:lend|loan|front|float) you|(?:lend|loan)(?:ing)? you|borrow (?:it |them |some |this |that )?from me|take a loan from me|you can borrow)\b/],
   // V gives the character money (a gift, a tip, a payment for something).
   ['give', /\b(?:(?:here'?s|here is|here are) (?=\d|€|\$|some |a (?:few|hundred|grand|couple)|(?:a|one|two|three|four|five|six|seven|eight|nine|ten|twenty|fifty) (?:hundred|thousand|grand)|(?:the|your|my|this|these) (?:money|eddies|cash|eds|creds))|here,? take|take (?:this|these|it|them|the|some|\d|€|\$)|have (?:this|these|some)|i(?:'ll| will| can|'m going to| am going to| want to|'d like to)? (?:give|send|transfer|wire|pay|tip) you|(?:giving|sending|transferring|wiring|tipping|paying) you|a gift|keep the change|it'?s on me|my treat|for your trouble)/],
 ];
@@ -194,14 +197,28 @@ const NEGATIVE_ASK = /\b(?:can'?t|couldn'?t|won'?t|wouldn'?t) you\b/g;
 const HYPOTHETICAL = /\b(?:if|would you ever|what if|imagine|suppose|hypothetically|pretend|joking|kidding)\b/;
 const LATER = /\b(?:tomorrow|later|next (?:week|month|time)|someday|some day|one day|soon|when i (?:get|can|have)|after (?:the|this|that) (?:job|gig)|yesterday|already|last (?:week|time|night))\b/;
 
-/** V's words, read: {about, intent, amount, clause}. `about`: the line is about money at all (any language); `intent` (English only): reclaim, repay, borrow, lend, give or null. */
+/**
+ * V's words, read: {about, intent, amount, clause}. `about`: the line is about money at all (any language); `intent`: reclaim, repay, borrow, lend, give or
+ * null. English is read here, the other menu languages by bridge/eddies-languages.mjs (docs/EDDIES.md "Languages"); English goes first because the
+ * characters and the players mix it into every language. A refusal ("I won't lend you anything", "if I lent you...") has `refused`, never an intent.
+ */
 export function screenWords(text) {
   if (typeof text !== 'string') return {about: false, intent: null, amount: null};
   const line = text.slice(0, 600).replace(/[‘’ʼ]/g, "'");
+  const english = screenEnglish(line);
+  if (english.intent) return english;
+  if (!/\d/.test(line.normalize('NFKC')) && !english.about && !mentionsMoneyAnywhere(line)) return english;
+  const foreign = screenForeign(line);
+  if (foreign?.intent) return foreign;
+  if (english.refused) return english;
+  return foreign ? {...foreign, about: true} : english;
+}
+
+function screenEnglish(line) {
   const about = MONEY_WORDS.test(line);
   if (!about && !/\d/.test(line) && !/\b(?:hundred|thousand|grand)\b/i.test(line)) return {about: false, intent: null, amount: null};
   // Clauses end at . ! ? ; "but", "and then" and a comma that is not inside a number (1,000 stays one sum).
-  const clauses = line.toLowerCase().split(/[.!?;]+|,(?!\d{3}\b)|\bbut\b|\band then\b/);
+  const clauses = line.toLowerCase().split(/[!?;]+|\.(?!\d)|,(?!\d{3}\b)|\bbut\b|\band then\b/);
   const intentOf = clause => INTENTS.some(([, pattern]) => pattern.test(clause));
   for (const [index, clause] of clauses.entries()) {
     for (const [intent, pattern] of INTENTS) {
@@ -387,6 +404,7 @@ export class EddiesDecisions {
     if (!block?.on || input.reaction || input.group || input.holocall || input.head) return null;
     const finance = financeOf(input.profileKey);
     if (!finance) return null;
+    warmLanguages();             // idempotent: the other languages' grammars warm up in the background, never inside a turn
     const {now, row} = block, typed = typedWords(input.text);
     const screen = typed ? screenWords(input.text) : null;
     const ambient = isArchetype(input.profileKey);

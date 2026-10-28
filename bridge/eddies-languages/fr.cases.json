@@ -1,0 +1,1019 @@
+{
+  "dev": {
+    "asks": [
+      [
+        "Tu peux me prêter 500 eddies ?",
+        "borrow",
+        500
+      ],
+      [
+        "Prête-moi mille euros, mon pote",
+        "borrow",
+        1000
+      ],
+      [
+        "j'ai besoin de 2k pour le ripperdoc",
+        "borrow",
+        2000
+      ],
+      [
+        "Pourriez-vous me prêter deux cents eddies ?",
+        "borrow",
+        200
+      ],
+      [
+        "Je suis fauché, tu peux me filer du fric ?",
+        "borrow",
+        null
+      ],
+      [
+        "donne-moi 300 eddies svp",
+        "borrow",
+        300
+      ],
+      [
+        "tu peux pas me prêter 50 eddies ?",
+        "borrow",
+        50
+      ],
+      [
+        "Il me faut 1 500 euros",
+        "borrow",
+        1500
+      ],
+      [
+        "Je te prête 400 eddies",
+        "lend",
+        400
+      ],
+      [
+        "Je peux te prêter mille cinq cents eddies",
+        "lend",
+        1500
+      ],
+      [
+        "Tu veux que je te prête un peu d'argent ?",
+        "lend",
+        null
+      ],
+      [
+        "T'as besoin de thunes ?",
+        "lend",
+        null
+      ],
+      [
+        "Toi, tu veux de l'argent ?",
+        "lend",
+        null
+      ],
+      [
+        "Je vais te prêter 2 mille euros",
+        "lend",
+        2000
+      ],
+      [
+        "Tu veux un prêt de 300 eddies ?",
+        "lend",
+        300
+      ],
+      [
+        "Je t'avance 150 eddies, pas de stress",
+        "lend",
+        150
+      ],
+      [
+        "Tiens, prends 300 eddies",
+        "give",
+        300
+      ],
+      [
+        "Merci pour l'aide, voilà 200 eddies",
+        "give",
+        200
+      ],
+      [
+        "je te paie 300 eddies pour le trajet",
+        "give",
+        300
+      ],
+      [
+        "Garde la monnaie, ça c'est pour toi",
+        "give",
+        null
+      ],
+      [
+        "Je te donne mille euros",
+        "give",
+        1000
+      ],
+      [
+        "Voici 500 euros, c'est un cadeau",
+        "give",
+        500
+      ],
+      [
+        "Je te paye le trajet, 40 eddies",
+        "give",
+        40
+      ],
+      [
+        "Tiens, prends 1 000 eddies, c'est pour les frais",
+        "give",
+        1000
+      ],
+      [
+        "Voilà ce que je te dois : 500 eddies",
+        "repay",
+        500
+      ],
+      [
+        "je te dois 300 eddies, tiens",
+        "repay",
+        300
+      ],
+      [
+        "Je te rends les 250 eddies",
+        "repay",
+        250
+      ],
+      [
+        "Je te rembourse mes 100 eddies",
+        "repay",
+        100
+      ],
+      [
+        "Je te rembourse",
+        "repay",
+        null
+      ],
+      [
+        "Ok, je te dois 80 euros",
+        "repay",
+        80
+      ],
+      [
+        "Voilà ce que je te devais, 600 eddies",
+        "repay",
+        600
+      ],
+      [
+        "Je te rends ton fric, 90 eddies",
+        "repay",
+        90
+      ],
+      [
+        "Rends-moi mes 300 eddies",
+        "reclaim",
+        300
+      ],
+      [
+        "Tu me dois 200 eddies",
+        "reclaim",
+        200
+      ],
+      [
+        "Quand est-ce que tu me rembourses les 300 eddies ?",
+        "reclaim",
+        300
+      ],
+      [
+        "Rembourse-moi, choom",
+        "reclaim",
+        null
+      ],
+      [
+        "Allez, pay me back les 150 eddies",
+        "reclaim",
+        150
+      ],
+      [
+        "Tu me rembourses quand, les 400 eddies ?",
+        "reclaim",
+        400
+      ],
+      [
+        "Tu me dois toujours 120 eddies",
+        "reclaim",
+        120
+      ],
+      [
+        "Rends-moi l'argent, 80 euros",
+        "reclaim",
+        80
+      ],
+      [
+        "Voilà les 300 eddies que je te devais.",
+        "repay",
+        300
+      ],
+      [
+        "Tu m'avais prêté 700 eddies, rends-les-moi.",
+        "reclaim",
+        700
+      ],
+      [
+        "Je te rends les 80 euros que je te devais.",
+        "repay",
+        80
+      ],
+      [
+        "Il est temps de me rembourser les 400 eddies.",
+        "reclaim",
+        400
+      ],
+      [
+        "On est quittes, je te paie les 500 eddies.",
+        "repay",
+        500
+      ],
+      [
+        "Tu me dois encore 150 eddies depuis le mois dernier.",
+        "reclaim",
+        150
+      ],
+      [
+        "Pour ton aide, cinq cents eddies.",
+        "give",
+        500
+      ],
+      [
+        "Pour le trajet, trois cents eddies.",
+        "give",
+        300
+      ],
+      [
+        "Pour tes efforts, 1 000 eddies.",
+        "give",
+        1000
+      ],
+      [
+        "Vous pourriez m'avancer deux mille eddies ?",
+        "borrow",
+        2000
+      ],
+      [
+        "Tu me prêterais 200 eddies, s'il te plaît ?",
+        "borrow",
+        200
+      ],
+      [
+        "Tu veux me prêter 100 eddies ?",
+        "borrow",
+        100
+      ],
+      [
+        "Tu veux emprunter 300 eddies ?",
+        "lend",
+        300
+      ],
+      [
+        "Tu veux emprunter des thunes ?",
+        "lend",
+        null
+      ],
+      [
+        "Je te donne 2 briques, mec.",
+        "give",
+        2000
+      ],
+      [
+        "Cinq cents eddies, tiens.",
+        "give",
+        500
+      ],
+      [
+        "Prête-moi 200 eddies jusqu'à lundi, s'il te plaît.",
+        "borrow",
+        200
+      ],
+      [
+        "Je te prête 90 euros jusqu'à demain, ça marche ?",
+        "lend",
+        90
+      ]
+    ],
+    "near": [
+      "Tu peux me donner un coup de main ?",
+      "Prête-moi ton oreille deux minutes",
+      "Prête-moi ta voiture demain matin",
+      "Donne-moi cinq minutes",
+      "Prête attention à ce qu'il dit",
+      "Je te dois une fière chandelle",
+      "Tu me dois une explication",
+      "J'ai payé le dîner hier soir",
+      "Ça m'a coûté 500 euros",
+      "Je ne te prêterai rien",
+      "Je ne te prête jamais d'argent",
+      "Si je te prêtais 500 euros, tu me rembourserais ?",
+      "Demain je te rembourse, promis",
+      "Hier je t'ai remboursé",
+      "L'argent ne fait pas le bonheur",
+      "Tu gagnes combien par mois ?",
+      "Il me reste dix minutes",
+      "Je te donne mon avis, c'est tout",
+      "Je te paie un verre",
+      "Je t'offre un café",
+      "Tiens bon, on arrive",
+      "Prends 2 secondes",
+      "Donne-moi 3 balles",
+      "Donne-moi dix cartouches",
+      "Tu peux pas me filer un coup de main ?",
+      "Je te prête mon stylo",
+      "T'es sûr que tu me dois rien ?",
+      "Je te rends visite demain",
+      "Dans 3 jours je te rembourse",
+      "Je n'ai pas d'argent sur moi",
+      "Tu me prêtes un stylo ?",
+      "Je t'ai donné l'adresse, c'est bon",
+      "Mon oncle a pris cent fois le bus",
+      "Prends ton temps, ça ira",
+      "Je te paie pas, c'est trop cher",
+      "Mets 2 euros dans la machine",
+      "Tu me dois toujours ta vie",
+      "Le chef me doit une faveur",
+      "Je veux pas ton argent",
+      "Fais pas ton radin, prête-moi",
+      "Tu me dois une explication, pas de l'argent.",
+      "Je suis là pour ta peine, c'est tout.",
+      "Si tu veux, je peux te prêter ma voiture.",
+      "Dis-moi si tu veux emprunter ma voiture.",
+      "Si je te prêtais mille eddies, tu me rendrais la pareille ?",
+      "Tu me dois pas grand-chose, c'est cool."
+    ],
+    "amounts": [
+      [
+        "deux cents euros",
+        200
+      ],
+      [
+        "mille cinq cents euros",
+        1500
+      ],
+      [
+        "quatre-vingt-dix eddies",
+        90
+      ],
+      [
+        "soixante-dix-neuf euros",
+        79
+      ],
+      [
+        "vingt et un euros",
+        21
+      ],
+      [
+        "un euro",
+        1
+      ],
+      [
+        "une brique",
+        1000
+      ],
+      [
+        "deux briques",
+        2000
+      ],
+      [
+        "5 000 euros",
+        5000
+      ],
+      [
+        "5000€",
+        5000
+      ],
+      [
+        "2k",
+        2000
+      ],
+      [
+        "1,5k",
+        1500
+      ],
+      [
+        "dix mille euros",
+        10000
+      ],
+      [
+        "cinquante eddies",
+        50
+      ],
+      [
+        "cent euros",
+        100
+      ],
+      [
+        "quelques euros",
+        null
+      ],
+      [
+        "trois minutes",
+        null
+      ],
+      [
+        "3 heures",
+        null
+      ],
+      [
+        "cent fois",
+        null
+      ],
+      [
+        "des centaines d'euros",
+        null
+      ],
+      [
+        "€$300",
+        300
+      ],
+      [
+        "seize mille eddies",
+        16000
+      ],
+      [
+        "cinq cent mille euros",
+        500000
+      ],
+      [
+        "mille",
+        1000
+      ],
+      [
+        "un peu",
+        null
+      ],
+      [
+        "2 briques",
+        2000
+      ],
+      [
+        "dix-huit cents eddies",
+        1800
+      ],
+      [
+        "cent mille eddies",
+        100000
+      ],
+      [
+        "quinze cents eddies",
+        1500
+      ]
+    ]
+  },
+  "held": {
+    "asks": [
+      [
+        "pret moi 300 thunes stp",
+        "borrow",
+        300
+      ],
+      [
+        "dépanne-moi 2 mille, svp",
+        "borrow",
+        2000
+      ],
+      [
+        "Vous pourriez m'avancer 150 euros ?",
+        "borrow",
+        150
+      ],
+      [
+        "jsuis raide, t'aurais 40 euros a me filer ?",
+        "borrow",
+        40
+      ],
+      [
+        "c'est la dèche, tu peux me depanner de 500 ?",
+        "borrow",
+        500
+      ],
+      [
+        "il me faudrait 3k max",
+        "borrow",
+        3000
+      ],
+      [
+        "Écoute, je t'avancerai 250 eddies, pas de souci",
+        "lend",
+        250
+      ],
+      [
+        "je te prete 200 eddies si tu veux",
+        "lend",
+        200
+      ],
+      [
+        "T'es à sec ? Je te prête 100 eddies",
+        "lend",
+        100
+      ],
+      [
+        "Vous voulez un petit prêt, monsieur ?",
+        "lend",
+        null
+      ],
+      [
+        "tu veux de la thune ou quoi",
+        "lend",
+        null
+      ],
+      [
+        "je te prete 60 euros",
+        "lend",
+        60
+      ],
+      [
+        "tiens, t'as 2 mille de ma part",
+        "give",
+        2000
+      ],
+      [
+        "c'est pour toi, 100 euros",
+        "give",
+        100
+      ],
+      [
+        "Je t'envoie les 500 euros par virement",
+        "give",
+        500
+      ],
+      [
+        "Prends 150 euros, t'as bien bossé",
+        "give",
+        150
+      ],
+      [
+        "Un petit pourboire pour le serveur, 5 euros",
+        "give",
+        5
+      ],
+      [
+        "garde le reste, c'est un cadeau",
+        "give",
+        null
+      ],
+      [
+        "j'te dois 250 eddies",
+        "repay",
+        250
+      ],
+      [
+        "voila les 300 eddies que je te devais",
+        "repay",
+        300
+      ],
+      [
+        "Je te rends tes sous, 90 euros",
+        "repay",
+        90
+      ],
+      [
+        "Bon, on est quittes : voilà 200 eddies",
+        "repay",
+        200
+      ],
+      [
+        "Je m'acquitte de ma dette, 400 euros",
+        "repay",
+        400
+      ],
+      [
+        "Au fait, je te dois 60 euros",
+        "repay",
+        60
+      ],
+      [
+        "rembourse moi, la thune",
+        "reclaim",
+        null
+      ],
+      [
+        "vous me devez 350 euros monsieur",
+        "reclaim",
+        350
+      ],
+      [
+        "quand tu me payes les 120 eddies ?",
+        "reclaim",
+        120
+      ],
+      [
+        "tu me rends mes 400 eddies quand ?",
+        "reclaim",
+        400
+      ],
+      [
+        "t'as pas oublié les 500 que tu me dois ?",
+        "reclaim",
+        500
+      ],
+      [
+        "Remboursez-moi, s'il vous plaît, 200 euros",
+        "reclaim",
+        200
+      ]
+    ],
+    "near": [
+      "Tu veux bien me filer un coup de main pour déménager ?",
+      "t'inquiète je gère",
+      "Demande à ton pote de te prêter sa moto",
+      "Dis-moi deux secondes ce qui se passe",
+      "Je te dois des excuses",
+      "Tu me dois pas d'explication",
+      "J'ai dépensé 300 euros hier au marché",
+      "Cette arme m'a coûté 2000 euros",
+      "Je te prêterais bien mon flingue, mais non",
+      "Non je ne te donnerai pas un centime",
+      "Je n'ai jamais prêté un sou à personne",
+      "Si je te donnais 300 euros, tu ferais quoi ?",
+      "Je te paierai demain si tu veux",
+      "L'an dernier je t'ai rendu le fric",
+      "Le fric, c'est pas tout dans la vie",
+      "C'est combien ton loyer ?",
+      "Donne-moi juste dix minutes, je reviens",
+      "Passe-moi le sel, merci",
+      "Tu m'as pas oublié, hein ?",
+      "Je te file un coup de main, c'est gratuit",
+      "Garde-moi une place à côté de toi",
+      "Je te donne une minute pour te calmer",
+      "On se paie une bière ce soir ?",
+      "T'as payé combien pour cette bagnole ?",
+      "Mets 5 euros dans le bocal",
+      "Tu me dois toujours une bière, hein",
+      "Le boss me doit 2000 euros",
+      "Je t'ai dit de rester tranquille",
+      "Pas de souci, je t'attends dehors",
+      "Dans trois jours je te rembourse, promis"
+    ],
+    "amounts": [
+      [
+        "deux mille euros",
+        2000
+      ],
+      [
+        "cinq cents balles",
+        500
+      ],
+      [
+        "trois cent cinquante-six euros",
+        356
+      ],
+      [
+        "quatre-vingts euros",
+        80
+      ],
+      [
+        "soixante et onze eddies",
+        71
+      ],
+      [
+        "1.500€",
+        1500
+      ],
+      [
+        "2,5k",
+        2500
+      ],
+      [
+        "dix-sept briques",
+        17000
+      ],
+      [
+        "trois briques",
+        3000
+      ],
+      [
+        "neuf euros et quatre-vingt-dix centimes",
+        9
+      ],
+      [
+        "vingt-deux eddies",
+        22
+      ],
+      [
+        "cent un euros",
+        101
+      ],
+      [
+        "mille deux cents",
+        1200
+      ],
+      [
+        "quelques centaines d'eddies",
+        null
+      ],
+      [
+        "un peu d'euros",
+        null
+      ],
+      [
+        "cinq minutes",
+        null
+      ],
+      [
+        "2 heures",
+        null
+      ],
+      [
+        "1 fois",
+        null
+      ],
+      [
+        "15 personnes",
+        null
+      ],
+      [
+        "€500",
+        500
+      ]
+    ]
+  },
+  "blind": {
+    "asks": [
+      [
+        "Tu peux me preter 500 eddies, mec ?",
+        "borrow",
+        500
+      ],
+      [
+        "Dépanne-moi de deux cents eddies, choom.",
+        "borrow",
+        200
+      ],
+      [
+        "Il me faut 2k pour le ripperdoc, tu peux m'aider ?",
+        "borrow",
+        2000
+      ],
+      [
+        "Tu me filerais pas mille eddies jusqu'à demain ?",
+        "borrow",
+        1000
+      ],
+      [
+        "T'aurais pas un peu de thune à me prêter ?",
+        "borrow",
+        null
+      ],
+      [
+        "Excusez-moi, pourriez-vous me prêter trois cents eddies ?",
+        "borrow",
+        300
+      ],
+      [
+        "Je te prête 400 eddies si tu veux.",
+        "lend",
+        400
+      ],
+      [
+        "Tu as besoin de thunes ? Je peux t'avancer 300.",
+        "lend",
+        300
+      ],
+      [
+        "Tu veux emprunter un peu d'argent ?",
+        "lend",
+        null
+      ],
+      [
+        "Si t'as besoin de fric, je peux te dépanner.",
+        "lend",
+        null
+      ],
+      [
+        "Je peux te prêter deux mille, pas de souci.",
+        "lend",
+        2000
+      ],
+      [
+        "Tu veux que je te prête cinq cents eddies ?",
+        "lend",
+        500
+      ],
+      [
+        "Tiens, 300 eddies, pour la course.",
+        "give",
+        300
+      ],
+      [
+        "Garde la monnaie, mec.",
+        "give",
+        null
+      ],
+      [
+        "Je te paye 250 eddies pour le trajet.",
+        "give",
+        250
+      ],
+      [
+        "Pour ta peine, deux cents eddies.",
+        "give",
+        200
+      ],
+      [
+        "Tiens, c'est cinq mille pour la mission.",
+        "give",
+        5000
+      ],
+      [
+        "Un pourboire de 1 000 eddies, t'as assuré.",
+        "give",
+        1000
+      ],
+      [
+        "Voilà les 500 que je te devais.",
+        "repay",
+        500
+      ],
+      [
+        "Je te rends les 200 que tu m'as prêtés.",
+        "repay",
+        200
+      ],
+      [
+        "Je te paie ce que je te dois, 300 eddies.",
+        "repay",
+        300
+      ],
+      [
+        "Bon, on est quittes, voilà mille eddies.",
+        "repay",
+        1000
+      ],
+      [
+        "Je te rembourse tout ce que je te dois.",
+        "repay",
+        null
+      ],
+      [
+        "Tiens, les 2k que je te dois encore.",
+        "repay",
+        2000
+      ],
+      [
+        "Tu me dois 200 eddies, tu me les rends quand ?",
+        "reclaim",
+        200
+      ],
+      [
+        "Tu me rembourses les 300 quand ?",
+        "reclaim",
+        300
+      ],
+      [
+        "Rends-moi mes 500 eddies, mec.",
+        "reclaim",
+        500
+      ],
+      [
+        "Tu me dois du fric, rembourse-moi.",
+        "reclaim",
+        null
+      ],
+      [
+        "Tu m'avais prêté mille eddies, je veux les récupérer.",
+        "reclaim",
+        1000
+      ],
+      [
+        "Il est temps que tu me rendes les deux mille.",
+        "reclaim",
+        2000
+      ]
+    ],
+    "near": [
+      "Tu peux me donner un coup de main ?",
+      "Prête-moi ta voiture ce soir.",
+      "Donne-moi une minute, j'arrive.",
+      "Passe-moi le sel, s'il te plaît.",
+      "Je te dois un verre, merci pour tout.",
+      "Tu me dois une explication, non ?",
+      "Hier j'ai payé le dîner pour tout le monde.",
+      "Ce flingue coûte 2000 eddies.",
+      "Tu sais combien coûte le loyer ici ?",
+      "Je ne te prêterai rien, jamais.",
+      "Je ne te donne pas un centime.",
+      "Si je te prêtais 500, tu me rembourserais ?",
+      "Imagine que tu aies un million d'eddies.",
+      "Je te rembourse demain, promis.",
+      "Je t'ai déjà payé hier, tu te rappelles pas ?",
+      "Quand je toucherai mon salaire, on réglera les comptes.",
+      "Je rigole, ne me prête rien.",
+      "L'argent ne fait pas le bonheur, chum.",
+      "Tu gagnes combien, toi ?",
+      "Je suis complètement fauché en ce moment.",
+      "Quelle heure est-il ?",
+      "Il est cinq heures et demie.",
+      "J'habite au 12 de la rue des Lilas.",
+      "Je t'ai appelé trois fois.",
+      "Il me reste deux cartouches seulement.",
+      "Rappelle-moi quand tu peux.",
+      "Passe-moi la manette, s'il te plaît.",
+      "Ce ticket coûte cinq eddies, je crois.",
+      "Combien coûtent les munitions ?",
+      "J'ai eu mon salaire et j'ai tout dépensé.",
+      "Donne-moi cinq minutes, s'il te plaît.",
+      "Je l'ai fait trois fois déjà.",
+      "Ce serait cool d'avoir une voiture de luxe un jour.",
+      "Le loyer a encore augmenté, tu trouves pas ?",
+      "Accorde-moi une pause, je suis crevé."
+    ],
+    "amounts": [
+      [
+        "cinq cents eddies",
+        500
+      ],
+      [
+        "1 500 eddies",
+        1500
+      ],
+      [
+        "deux mille eddies",
+        2000
+      ],
+      [
+        "2k eddies",
+        2000
+      ],
+      [
+        "mille deux cents eddies",
+        1200
+      ],
+      [
+        "trois cent cinquante eddies",
+        350
+      ],
+      [
+        "soixante-dix eddies",
+        70
+      ],
+      [
+        "neuf mille eddies",
+        9000
+      ],
+      [
+        "dix mille eddies",
+        10000
+      ],
+      [
+        "quatre-vingts eddies",
+        80
+      ],
+      [
+        "15 000 eddies",
+        15000
+      ],
+      [
+        "7 k eddies",
+        7000
+      ],
+      [
+        "vingt-cinq mille eddies",
+        25000
+      ],
+      [
+        "cent eddies",
+        100
+      ],
+      [
+        "huit cents eddies",
+        800
+      ],
+      [
+        "2 500 eddies",
+        2500
+      ],
+      [
+        "mille eddies",
+        1000
+      ],
+      [
+        "quatre cent douze eddies",
+        412
+      ],
+      [
+        "3 000 eddies",
+        3000
+      ],
+      [
+        "cinq minutes",
+        null
+      ],
+      [
+        "quelques eddies",
+        null
+      ],
+      [
+        "trois fois",
+        null
+      ],
+      [
+        "dix cartouches",
+        null
+      ],
+      [
+        "deux heures",
+        null
+      ]
+    ]
+  }
+}

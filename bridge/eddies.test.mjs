@@ -4,6 +4,8 @@ import {readFileSync, readdirSync} from 'node:fs';
 import {EDDIES_CAP, FLOWS, parseEddies, financeOf, debts, purse, roundDown, trustOf, lendLimit, parseAmount, screenWords, ledgerLine, decideWords,
   decideInitiative, EddiesDecisions, romanceOf} from './eddies.mjs';
 import {FINANCES} from './eddies-finances.mjs';
+import {warmLanguagesNow} from './eddies-languages.mjs';
+warmLanguagesNow();   // the bridge warms the grammars in the background; a test reads at once
 import {moneyNote, MONEY_NOTE} from './turn-context.mjs';
 import {parseInput} from './protocol.mjs';
 import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
@@ -99,9 +101,19 @@ test('the screen reads what V means, and refuses negations, conditions, the past
   for (const text of nothing) assert.equal(screenWords(text).intent, null, text);
   assert.equal(screenWords('hey, how are you?').about, false);
   assert.equal(screenWords('what do you think about money?').about, true);
-  // Other languages: about money (the standing note), never a decision (the intent grammar is English, docs/EDDIES.md "Languages").
+  // Other languages are read by bridge/eddies-languages.mjs (per-language sets: eddies-languages.test.mjs): about money, and the same decisions.
   for (const text of ['Kannst du mir 500 Eddies leihen?', 'Tu peux me prêter de l\'argent ?', 'Можешь одолжить мне денег?', 'お金を貸してくれる？']) {
     assert.equal(screenWords(text).about, true, text);
+  }
+  const foreign = {'Kannst du mir 500 Eddies leihen?': ['borrow', 500], 'Prestame doscientos eddies, hermano': ['borrow', 200], 'Tiens, 300 eddies pour la course': ['give', 300],
+    'Ecco i 500 eddies che ti dovevo': ['repay', 500], 'Ты мне должен 200 эдди': ['reclaim', 200], '500エディ貸してくれない？': ['borrow', 500], '借我两百块': ['borrow', 200],
+    '내가 천 에디 빌려줄게': ['lend', 1000]};
+  for (const [text, [intent, amount]] of Object.entries(foreign)) {
+    const screen = screenWords(text);
+    assert.deepEqual([screen.intent, screen.amount], [intent, amount], text);
+  }
+  for (const text of ['Ich leihe dir nichts', 'Si te presto 500 eddies, ¿me pagas?', 'Je te rembourserai demain', 'Mi devi una spiegazione, non soldi.', '金を貸すつもりはない']) {
+    assert.equal(screenWords(text).intent, null, text);
   }
 });
 

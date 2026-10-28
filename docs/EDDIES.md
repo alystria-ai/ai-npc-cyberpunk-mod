@@ -87,8 +87,57 @@ own copy, and nothing otherwise.
 
 ### Languages
 
-The intent grammar is English. A line in another of the 15 menu languages that is about money (`MONEY_WORDS` covers all of them) gets the standing
-note, never a decision; a proposal then only comes from a spoken English transcript or the character's own move. Follow-up: per-language intents.
+Money asks are understood in every language the mod supports: English (`bridge/eddies.mjs`) and 14 more (`bridge/eddies-languages.mjs` with one data file per
+language in `bridge/eddies-languages/`): Czech, German, Spanish, French, Hungarian, Italian, Japanese, Korean, Polish, Portuguese (Brazilian and European),
+Russian, Turkish, Ukrainian and Chinese (one grammar for both scripts, so the zh-cn and zh-tw menus are covered). The same five intents (borrow, lend,
+give, repay, reclaim), by text, voice transcript and phone, with the same refusals and the same rules after the reading. Still no model call and no wait.
+
+How a line is read (all regular expressions, about 0.1 to 1 ms for a line that is about money, two tests for one that is not):
+
+1. English is read first (the characters and the players mix English into every language). A line with no digit and no money word in any warm language stops
+   here.
+2. Which language: `assessLanguage` (bridge/reply-language.mjs, tens of microseconds). A solid call for English means English only. A solid call for another
+   language reads with that language and its close relatives (es, pt, it and fr; cs and pl; ru and uk), whose detections get mixed up. A call that is not solid
+   (short lines, mixed lines, "choom, prestame 500") tries every language whose script is in the line, the detected one first. The reading with an intent wins;
+   when close relatives agree on the intent, the fuller sum wins ("dos mil": 2000, not the Portuguese "mil"); a refusal by the detected language is final.
+3. The language's clauses: the line is split at punctuation, "but" words and a comma or full stop that is not inside a number (1.000, 1,5k). Per clause, the
+   six intent patterns in a fixed order (reclaim, repay, lend as "do you need money", borrow, lend as an offer, give); an intent counts only with money in its
+   clause or next to it (a money noun, a phrase only money fits, or a sum). The sum is the clause's own, else a filler clause after it ("Rends-moi, s'il te
+   plaît, 200 euros") or the one before ("3万円、貸して"). A refusal (negation, condition, a past or future time, a joke in the clause before) drops the clause;
+   a condition or time in the clause that asks stops the line ("if I lent you 500, would you pay me back?"). The first clause with a sum wins.
+4. The sum, in the language's own words: digits (500, 1.000, 1 000, 1,000, 5k, €$500, 500€), digits with a scale word (2 mil, 3 тысячи, 2万, 5 соток), number words
+   and compounds (doscientos, zweihundertfünfzig, cinquecento, kétszáz, pięćset, двести, 二百, 이백, quatre-vingt-dix), slang for a thousand or a hundred
+   (Riese, косарь, tysiak, lucas, un kilo) and Chinese "三千五". A number word with no unit counts only with a scale word or at the end of
+   a clause from 20 up; a number followed by minutes, times, bullets and the like is no sum; "a few" and "some" are no sum. At most 100,000 as before.
+5. Eddies slang: each data file lists the money nouns and units players use besides "eddies" (euros, dollars, local slang).
+
+Cost: the grammars are compiled lazily. V8 compiles a regular expression on its first run (30 to 60 ms a language), so the first turn with the setting on only
+starts a background warm-up (one language per timer tick, `warmLanguages`, called from `EddiesDecisions` the first time a block with the setting on arrives);
+until a language is warm a line is read in English only, which is about the first second of a session.
+
+Tuning and accuracy (`bridge/eddies-languages/<code>.cases.json`, `<code>.blind2.json`, `node scripts/Eval-EddiesLanguages.mjs [--set dev|held|blind|blind2|all] [code]`,
+`bridge/eddies-languages.test.mjs`). Each language has real asks (intent and sum), near-misses (other uses of the same verbs, "I paid for dinner", "I owe you
+one", "you owe me an explanation", refusals, conditions, past and future, jokes, prices, counts) and sums:
+
+* `dev` and `held`: written with the grammar (held looked at once, then general fixes only). About 1,100 asks, 1,000 near-misses, 645 sums over the 14
+  languages and Spanish: 99% of asks right (intent and sum), 0 false offers, 99.8% of sums.
+* `blind`: written by a separate writer who never saw the grammar; the first run scored 59% of asks (the grammars had overfit) and fed a second tuning round
+  (now 98%, so it is training data, not an exam).
+* `blind2`, the exam: a fresh set by another writer who saw neither the grammars nor the cases, read once before any tuning on it, 20 asks, 20 near-misses
+  and 12 sums per language. First run: **76% of asks right (214 of 280, intent and sum), 278 of 280 near-misses clean (99.3%), 165 of 168 sums**. Per
+  language, asks: zh 19, ko 17, pl 17, ja 16, ru 16, de 15, it 15, cs 14, es 14, fr 14, hu 14, pt 14, tr 14, uk 14 (of 20). The two false offers (a French
+  colloquial negation, "Je te prêterai pas un seul eddie", and a Korean "다시는 ... 안 줘") were fixed with general rules (a colloquial French negation after
+  "je te", a Korean "never again"), after which blind2 has 0 false offers; the recall misses were left alone (they are the fresh numbers). Later changes keep
+  it at 213 to 214 of 280.
+* A set of English chatter and street slang that other grammars might wake ("Ten minutes later", "Toma the shot", "I'll take 5") gives no intent.
+
+What the misses look like: the line is about money, so the character gets the standing note, but no proposal comes. The usual causes: a gift or payback
+phrased without the verbs the data file knows (a bare "Tessék, kétezer" or "Voilà les cinq cents que je te devais" in some languages), a condition worded as
+an offer, and colloquial or very polite forms. A fix is a pattern in `bridge/eddies-languages/<code>.mjs` plus its case in `<code>.cases.json`.
+
+Known limits: a give or borrow clause before a debt clause wins ("Tady máš těch 500, co ti dlužím" reads as a give); a bare "vot / na / ось" presentative is
+not a give cue (too many false offers); a sum over 100,000 is not read (a million); "half" and "two and a half thousand" are not sums; a negation anywhere in
+the clause refuses it ("take 150 and don't whine").
 
 ## The game half (`mod/eddies.lua`, `r6/scripts/CyberpunkConvai/Eddies.reds`)
 
@@ -124,7 +173,7 @@ favours paid in quests), so it stays off until a story pack defines exactly when
 5. `companions.ownCopy` is `party` for a party member, `visitor` for an invited visitor, `housemate` for a housemate, and nil for the game's own Judy (her
    note says no eddies can change hands).
 6. A load of a save from before a loan: the next money talk with that character no longer mentions it (`Eddies: person=... forgot=1`).
-7. A spoken "can you lend me 200 eddies?" (English) to a party member: a pop-up for the sum the character agreed to.
+7. A spoken "can you lend me 200 eddies?" (and the same in German, Spanish, Japanese ...) to a party member: a pop-up for the sum the character agreed to.
 8. No FPS change with the setting on and off (nothing runs per frame; the proposal read is 2 Hz for 150 s after a turn to an own copy).
 
 ## Safety rules
@@ -145,7 +194,7 @@ favours paid in quests), so it stays off until a story pack defines exactly when
    she pays back over time; refused: she finds another way, stage 2b); stage notes go in the same volatile note, the proposals through the same pop-up,
    and each stage is one ledger entry with a story id. The loader would validate the file (character keys, stage ids, sums within the cap, a quest-done
    condition) and offer at most one active story per character. Not built yet.
-3. **Later:** per-language intents; deciding a spoken turn's words before the reply on the text providers (their host has the transcript when it calls
+3. **Later:** deciding a spoken turn's words before the reply on the text providers (their host has the transcript when it calls
    the model); game-placed characters per story pack; a Gameplay settings section.
 
 ## Files and tests

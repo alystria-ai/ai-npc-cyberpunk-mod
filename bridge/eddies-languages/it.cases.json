@@ -1,0 +1,999 @@
+{
+  "dev": {
+    "asks": [
+      [
+        "Mi prestaresti 500 euro?",
+        "borrow",
+        500
+      ],
+      [
+        "Prestami mille euro, amico",
+        "borrow",
+        1000
+      ],
+      [
+        "ho bisogno di 2k per il ripper",
+        "borrow",
+        2000
+      ],
+      [
+        "Potresti prestarmi duecento euro?",
+        "borrow",
+        200
+      ],
+      [
+        "Sono al verde, mi dai qualche euro?",
+        "borrow",
+        null
+      ],
+      [
+        "dammi 300 euro per il taxi",
+        "borrow",
+        300
+      ],
+      [
+        "Non mi presti 50 euro?",
+        "borrow",
+        50
+      ],
+      [
+        "mi servono 800 euro subito",
+        "borrow",
+        800
+      ],
+      [
+        "Ti presto 400 euro",
+        "lend",
+        400
+      ],
+      [
+        "Ti posso prestare millecinquecento euro",
+        "lend",
+        1500
+      ],
+      [
+        "Hai bisogno di soldi?",
+        "lend",
+        null
+      ],
+      [
+        "Ti servono soldi?",
+        "lend",
+        null
+      ],
+      [
+        "Vuoi un prestito di 300 euro?",
+        "lend",
+        300
+      ],
+      [
+        "Posso prestarti 2 mila euro",
+        "lend",
+        2000
+      ],
+      [
+        "Ti faccio un prestito, quanto ti serve?",
+        "lend",
+        null
+      ],
+      [
+        "Ti anticipo io 600 euro",
+        "lend",
+        600
+      ],
+      [
+        "Tieni, 300 euro",
+        "give",
+        300
+      ],
+      [
+        "Prendi 150 euro, e grazie",
+        "give",
+        150
+      ],
+      [
+        "Ecco 200 euro per la birra",
+        "give",
+        200
+      ],
+      [
+        "Ti pago io la cena, ecco 80 euro",
+        "give",
+        80
+      ],
+      [
+        "Ti do 1000 euro, sei un bravo amico",
+        "give",
+        1000
+      ],
+      [
+        "Ti mando 500 euro subito",
+        "give",
+        500
+      ],
+      [
+        "Tieni il resto, grazie",
+        "give",
+        null
+      ],
+      [
+        "È un regalo: 100 euro",
+        "give",
+        100
+      ],
+      [
+        "Ti devo 300 euro",
+        "repay",
+        300
+      ],
+      [
+        "Ecco quello che ti devo: 500 euro",
+        "repay",
+        500
+      ],
+      [
+        "Ti ridò i 200 euro che ti devo",
+        "repay",
+        200
+      ],
+      [
+        "Ti restituisco i soldi, 120 euro",
+        "repay",
+        120
+      ],
+      [
+        "Ti devo ancora 40 euro",
+        "repay",
+        40
+      ],
+      [
+        "Siamo pari, ti ridò i 90 euro",
+        "repay",
+        90
+      ],
+      [
+        "Ti ripago il debito, 350 euro",
+        "repay",
+        350
+      ],
+      [
+        "Ti rimborso i 60 euro",
+        "repay",
+        60
+      ],
+      [
+        "Mi devi 200 euro",
+        "reclaim",
+        200
+      ],
+      [
+        "Ridammi i 300 euro",
+        "reclaim",
+        300
+      ],
+      [
+        "Quando mi paghi i 400 euro?",
+        "reclaim",
+        400
+      ],
+      [
+        "Rendimi i soldi, 80 euro",
+        "reclaim",
+        80
+      ],
+      [
+        "Mi restituisci 150 euro?",
+        "reclaim",
+        150
+      ],
+      [
+        "Ti ricordi che mi devi 100 euro?",
+        "reclaim",
+        100
+      ],
+      [
+        "Mi ripaghi quando puoi, 60 euro",
+        "reclaim",
+        60
+      ],
+      [
+        "Mi devi ancora mille euro",
+        "reclaim",
+        1000
+      ],
+      [
+        "Ti devo ancora 60 euro, ma sono in ritardo.",
+        "repay",
+        60
+      ],
+      [
+        "Ti ridò tutto quello che ti dovevo, 400 eddies.",
+        "repay",
+        400
+      ],
+      [
+        "Mi devi 300 euro, quando li rendi?",
+        "reclaim",
+        300
+      ],
+      [
+        "Mi ridai i 150 eddies che ti ho prestato?",
+        "reclaim",
+        150
+      ],
+      [
+        "Ti ho prestato 800 eddies e ora li voglio indietro.",
+        "reclaim",
+        800
+      ],
+      [
+        "Potrebbe prestarmi mille eddies, per favore?",
+        "borrow",
+        1000
+      ],
+      [
+        "Mi presterebbe 500 eddies per il garage?",
+        "borrow",
+        500
+      ],
+      [
+        "Vuoi prestarmi 500 eddies?",
+        "borrow",
+        500
+      ],
+      [
+        "Vuoi farti prestare 500 eddies?",
+        "lend",
+        500
+      ],
+      [
+        "Ti posso prestare 300 euro, se ti servono.",
+        "lend",
+        300
+      ],
+      [
+        "Passami 50 euro, ti ringrazio.",
+        "borrow",
+        50
+      ],
+      [
+        "Mi basterebbe un kilo per il pranzo.",
+        "borrow",
+        1000
+      ],
+      [
+        "Ti pago un kilo per il lavoro.",
+        "give",
+        1000
+      ],
+      [
+        "Mille eddies, tieni.",
+        "give",
+        1000
+      ],
+      [
+        "Tenga, sono 200 euro per il disturbo.",
+        "give",
+        200
+      ],
+      [
+        "Ti pago 300 euro per la festa, bravo.",
+        "give",
+        300
+      ],
+      [
+        "Prestami 150 euro fino a domani, grazie.",
+        "borrow",
+        150
+      ],
+      [
+        "Ti presto 90 euro fino a venerdì.",
+        "lend",
+        90
+      ]
+    ],
+    "near": [
+      "Mi devi una spiegazione",
+      "Ti devo un favore, amico",
+      "Dammi cinque minuti",
+      "Prestami attenzione per un secondo",
+      "Prestami la macchina domani",
+      "Pago io la cena, tranquillo",
+      "Ho pagato la cena ieri",
+      "Questo mi è costato 500 euro",
+      "Non ti presto niente, mai",
+      "Non ti presterei mai 500 euro",
+      "Se ti presto 500 euro, mi paghi?",
+      "Non è vero, mi prendi in giro",
+      "I soldi non fanno la felicità",
+      "Quanto guadagni al mese?",
+      "Mi sono rotto, dammi un attimo",
+      "Dammi 10 minuti",
+      "Dammi due minuti di tregua",
+      "Tieni duro, ce la fai",
+      "Prendi il tuo tempo",
+      "Ti presto la mia giacca",
+      "Ti do una mano con il trasloco",
+      "Ti pago una birra stasera",
+      "Ti offro da bere",
+      "Mi servono due minuti",
+      "Mi servono dieci proiettili",
+      "Dammi dieci cartucce",
+      "Dammi due birre",
+      "Il boss mi deve duemila euro",
+      "Sono sempre al verde, figurati",
+      "Ti ho pagato ieri",
+      "Ti ridò il libro domani",
+      "Ti devo dire una cosa",
+      "Il regalo di Natale è bello",
+      "Mi serve una mano",
+      "Mi presti il tuo cellulare?",
+      "Ti mando un messaggio",
+      "Sei un amico, grazie mille",
+      "Oggi ho speso 300 euro al mercato",
+      "Quest'auto costa 20mila euro",
+      "Non ho nemmeno un euro",
+      "Mi devi scuse, non soldi.",
+      "Ti devo dire una cosa, non soldi.",
+      "Se mi prestassi 200 euro, ci penseresti?",
+      "Mi presterebbe la macchina per domani?",
+      "Passami il sale, grazie.",
+      "Ho pagato 30 euro di benzina ieri."
+    ],
+    "amounts": [
+      [
+        "duecento euro",
+        200
+      ],
+      [
+        "due mila euro",
+        2000
+      ],
+      [
+        "2000 euro",
+        2000
+      ],
+      [
+        "2.000 euro",
+        2000
+      ],
+      [
+        "mille euro",
+        1000
+      ],
+      [
+        "centocinquanta euro",
+        150
+      ],
+      [
+        "ventuno euro",
+        21
+      ],
+      [
+        "trentatre euro",
+        33
+      ],
+      [
+        "cinque minuti",
+        null
+      ],
+      [
+        "tre ore",
+        null
+      ],
+      [
+        "due volte",
+        null
+      ],
+      [
+        "qualche euro",
+        null
+      ],
+      [
+        "un po'",
+        null
+      ],
+      [
+        "mille",
+        1000
+      ],
+      [
+        "cinquecento",
+        500
+      ],
+      [
+        "€500",
+        500
+      ],
+      [
+        "500€",
+        500
+      ],
+      [
+        "1,5 mila euro",
+        1500
+      ],
+      [
+        "dieci mila euro",
+        10000
+      ],
+      [
+        "sette euro",
+        7
+      ],
+      [
+        "cento euro",
+        100
+      ],
+      [
+        "novecentonovantanove euro",
+        999
+      ],
+      [
+        "ventimila euro",
+        20000
+      ],
+      [
+        "cinquanta euro",
+        50
+      ],
+      [
+        "1.200 euro",
+        1200
+      ],
+      [
+        "un kilo",
+        1000
+      ],
+      [
+        "cento mila euro",
+        100000
+      ],
+      [
+        "novemila euro",
+        9000
+      ],
+      [
+        "settantasette euro",
+        77
+      ]
+    ]
+  },
+  "held": {
+    "asks": [
+      [
+        "mi puoi anticipare 300 euro? ti restituisco",
+        "borrow",
+        300
+      ],
+      [
+        "Son rimasto a secco, mi dai 50 euro?",
+        "borrow",
+        50
+      ],
+      [
+        "Prestami 20 euro che ho finito i contanti",
+        "borrow",
+        20
+      ],
+      [
+        "Ho bisogno di duemilacinquecento euro, urgente",
+        "borrow",
+        2500
+      ],
+      [
+        "Mi servirebbero 700 euro",
+        "borrow",
+        700
+      ],
+      [
+        "Mi fai un prestito di 1.200 euro?",
+        "borrow",
+        1200
+      ],
+      [
+        "Ti anticipo io 75 euro",
+        "lend",
+        75
+      ],
+      [
+        "Hai bisogno di contanti?",
+        "lend",
+        null
+      ],
+      [
+        "Ti posso dare un prestito da 500",
+        "lend",
+        500
+      ],
+      [
+        "Se ti serve qualcosa, ti presto 100 euro",
+        "lend",
+        100
+      ],
+      [
+        "Ti servono quattrini?",
+        "lend",
+        null
+      ],
+      [
+        "Ti presto la somma che ti serve, 400 euro",
+        "lend",
+        400
+      ],
+      [
+        "Tieni questi 60 euro e vai",
+        "give",
+        60
+      ],
+      [
+        "Ti giro 200 euro per la festa",
+        "give",
+        200
+      ],
+      [
+        "Ecco 25 euro per il caffè",
+        "give",
+        25
+      ],
+      [
+        "Per la corsa del taxi, 15 euro",
+        "give",
+        15
+      ],
+      [
+        "Prenditi questi 100 euro, sei un grande",
+        "give",
+        100
+      ],
+      [
+        "È un regalo di compleanno: 300 euro",
+        "give",
+        300
+      ],
+      [
+        "Ti ridò i 100 euro dell'altra sera",
+        "repay",
+        100
+      ],
+      [
+        "Eccoti i 350 euro che ti devo",
+        "repay",
+        350
+      ],
+      [
+        "Ti restituisco 40 eur di quelli che ti devo",
+        "repay",
+        40
+      ],
+      [
+        "Siamo in pari, questi sono 90 euro",
+        "repay",
+        90
+      ],
+      [
+        "Mi sdebito: 120 euro",
+        "repay",
+        120
+      ],
+      [
+        "Ti devo 500 euro, eccoli",
+        "repay",
+        500
+      ],
+      [
+        "Mi devi 900 euro, ricordi?",
+        "reclaim",
+        900
+      ],
+      [
+        "Mi ridai quei 150 euro?",
+        "reclaim",
+        150
+      ],
+      [
+        "Quando me li ridai, quei 300 euro?",
+        "reclaim",
+        300
+      ],
+      [
+        "Pagami i 250 euro che ti ho prestato",
+        "reclaim",
+        250
+      ],
+      [
+        "Restituiscimi 75 euro",
+        "reclaim",
+        75
+      ],
+      [
+        "Rendimi 60 euro che ti ho dato",
+        "reclaim",
+        60
+      ]
+    ],
+    "near": [
+      "Mi devi una risposta, lascia perdere",
+      "Ti devo dire una cosa importante",
+      "Dammi un secondo che controllo",
+      "Prestami il tuo martello",
+      "Mi presti la penna?",
+      "Ti regalo un sorriso",
+      "Ieri ti ho pagato la birra",
+      "Pago io la prossima, non discutere",
+      "Non ti darò un euro, mai",
+      "Non mi presterai mai niente",
+      "Se ti dessi 100 euro, cosa faresti?",
+      "Immagina di avere un milione di euro",
+      "Per scherzo ti chiedo 500 euro",
+      "Quanto costa il biglietto?",
+      "Il conto è di 80 euro, pago io",
+      "Mi sono comprato un vestito da 400 euro",
+      "Ho pagato 50 euro per la riparazione",
+      "Questo coso mi è costato 3000 euro",
+      "Dammi 3 proiettili e basta",
+      "Dammi dieci minuti, ti prego",
+      "Ci vediamo domani sera",
+      "Ti giro il messaggio di Luca",
+      "Il regalo è in macchina",
+      "Ti prendo un caffè",
+      "Non ho un soldo, sono rovinato",
+      "Il capo mi deve un favore",
+      "Tu mi devi solo ascoltare",
+      "Hai i soldi per il biglietto?",
+      "Mi servono soltanto due ore di sonno",
+      "Ti presto la macchina domani"
+    ],
+    "amounts": [
+      [
+        "trecentoquaranta euro",
+        340
+      ],
+      [
+        "duemila euro",
+        2000
+      ],
+      [
+        "cinquemila euro",
+        5000
+      ],
+      [
+        "1.500 euro",
+        1500
+      ],
+      [
+        "millecento euro",
+        1100
+      ],
+      [
+        "ventisette euro",
+        27
+      ],
+      [
+        "dodici euro",
+        12
+      ],
+      [
+        "un euro",
+        1
+      ],
+      [
+        "tre ore",
+        null
+      ],
+      [
+        "tanti euro",
+        null
+      ],
+      [
+        "qualche centinaio di euro",
+        null
+      ],
+      [
+        "due minuti",
+        null
+      ],
+      [
+        "sei persone",
+        null
+      ],
+      [
+        "€ 300",
+        300
+      ],
+      [
+        "3 mila euro",
+        3000
+      ],
+      [
+        "novantanove euro",
+        99
+      ],
+      [
+        "quattrocentocinquanta euro",
+        450
+      ],
+      [
+        "centomila euro",
+        100000
+      ],
+      [
+        "ottanta euro",
+        80
+      ],
+      [
+        "milleduecento euro",
+        1200
+      ]
+    ]
+  },
+  "blind": {
+    "asks": [
+      [
+        "Ehi, mi presti 500 eddies? Ti ridò tutto venerdi.",
+        "borrow",
+        500
+      ],
+      [
+        "Scusa choom, mi servono 2k per il ripperdoc, mi aiuti?",
+        "borrow",
+        2000
+      ],
+      [
+        "Potresti anticiparmi duecento eddies?",
+        "borrow",
+        200
+      ],
+      [
+        "Dai, passami qualche soldo, sono rimasto senza.",
+        "borrow",
+        null
+      ],
+      [
+        "Vieni qui, hai 3.000 eddies da prestarmi per il garage?",
+        "borrow",
+        3000
+      ],
+      [
+        "Per il taxi mi basterebbe un kilo, se puoi.",
+        "borrow",
+        1000
+      ],
+      [
+        "Ti presto io 400 eddies, se ti servono.",
+        "lend",
+        400
+      ],
+      [
+        "Hai bisogno di soldi? Posso prestartene un po'.",
+        "lend",
+        null
+      ],
+      [
+        "Vuoi farti prestare trecento eddies? Io ce li ho.",
+        "lend",
+        300
+      ],
+      [
+        "Ti anticipo io 1.500 eddies per il lavoro, poi vediamo.",
+        "lend",
+        1500
+      ],
+      [
+        "Se ti serve, ti posso prestare pure 800, choom.",
+        "lend",
+        800
+      ],
+      [
+        "Vuoi che ti presti qualche eddie per la benzina?",
+        "lend",
+        null
+      ],
+      [
+        "Ecco, prendi 300 eddies, per il passaggio.",
+        "give",
+        300
+      ],
+      [
+        "Tieni il resto, amico.",
+        "give",
+        null
+      ],
+      [
+        "Ti pago 500 eddies per la corsa, tutto ok?",
+        "give",
+        500
+      ],
+      [
+        "Per il disturbo, questi duemila eddies sono tuoi.",
+        "give",
+        2000
+      ],
+      [
+        "Ti lascio 150 euro di mancia, te li meriti.",
+        "give",
+        150
+      ],
+      [
+        "Tieni, mille eddies come regalo.",
+        "give",
+        1000
+      ],
+      [
+        "Ecco i 500 che ti dovevo, siamo pari.",
+        "repay",
+        500
+      ],
+      [
+        "Ti sto ripagando, come promesso.",
+        "repay",
+        null
+      ],
+      [
+        "Eccoti i duecento che ti dovevo.",
+        "repay",
+        200
+      ],
+      [
+        "Siamo a posto ora, ti ho rimandato i 300.",
+        "repay",
+        300
+      ],
+      [
+        "Tieni, sono i 1.200 eddies che ti devo, conto chiuso.",
+        "repay",
+        1200
+      ],
+      [
+        "Ti restituisco il prestito di ieri, settecento eddies.",
+        "repay",
+        700
+      ],
+      [
+        "Quando mi ridai i 300 che mi devi?",
+        "reclaim",
+        300
+      ],
+      [
+        "Mi devi ancora 200 eddies, sbrigati a restituirli.",
+        "reclaim",
+        200
+      ],
+      [
+        "Mi ridai i soldi o no? Mi devi ancora duemila.",
+        "reclaim",
+        2000
+      ],
+      [
+        "Ricordi che mi devi qualcosa? Voglio indietro i miei soldi.",
+        "reclaim",
+        null
+      ],
+      [
+        "Mi avevi promesso di ridarmi mille eddies, dove sono?",
+        "reclaim",
+        1000
+      ],
+      [
+        "Ti ho prestato 500 eddies, quando me li ridai?",
+        "reclaim",
+        500
+      ]
+    ],
+    "near": [
+      "Mi dai una mano con il camion?",
+      "Ti presto l'orecchio, dimmi tutto.",
+      "Puoi prestarmi la penna un secondo?",
+      "Dammi cinque minuti, arrivo.",
+      "Ieri sera ho pagato io la cena, tocca a te la prossima.",
+      "Questo fucile costa 2000 eddies, troppo caro.",
+      "Quanto costa affittare una stanza qui?",
+      "Non ti presterò un centesimo, scordatelo.",
+      "Non ti do nemmeno un euro.",
+      "Non presto mai la mia macchina a nessuno.",
+      "Se ti prestassi 500 eddies, me li restituiresti?",
+      "Immagina di avere un milione di eddies, cosa faresti?",
+      "Domani ti restituisco i soldi, promesso.",
+      "Ti ho già pagato ieri, non ricordi?",
+      "Quando mi arriva lo stipendio ti salderò il conto.",
+      "Scherzavo, non prestarmi niente, tranquillo.",
+      "I soldi non fanno la felicità, si dice.",
+      "Quanto guadagni al mese?",
+      "Ultimamente sono al verde, che periodo.",
+      "Ci vediamo alle 15:30 davanti al cinema.",
+      "Ci sono stato tre volte questa settimana.",
+      "L'indirizzo è via Roma 14.",
+      "Ti richiamo tra cinque minuti.",
+      "Dammi due minuti che finisco questa cosa.",
+      "Grazie, ti devo un favore.",
+      "Mi devi una spiegazione, non soldi.",
+      "Richiamami più tardi, ok?",
+      "Passami il sale, per favore.",
+      "La vita a Night City è carissima.",
+      "Il prezzo è sceso di 50 eddies da ieri.",
+      "Ho pagato 300 eddies di parcheggio, roba da pazzi.",
+      "Quando riceverò il compenso della missione, festeggiamo.",
+      "Oggi ho lavorato dodici ore, sono stanco morto.",
+      "Nel caricatore ci sono 2 proiettili.",
+      "Nel negozio ci sono dodici armi in vetrina."
+    ],
+    "amounts": [
+      [
+        "duecento eddies",
+        200
+      ],
+      [
+        "2 mila eddies",
+        2000
+      ],
+      [
+        "1.500 eddies",
+        1500
+      ],
+      [
+        "tremila eddies",
+        3000
+      ],
+      [
+        "cinquecento euro",
+        500
+      ],
+      [
+        "mille eddies",
+        1000
+      ],
+      [
+        "2k eddies",
+        2000
+      ],
+      [
+        "dodicimila eddies",
+        12000
+      ],
+      [
+        "300 eddies",
+        300
+      ],
+      [
+        "ottocento eddies",
+        800
+      ],
+      [
+        "quindicimila euro",
+        15000
+      ],
+      [
+        "1 000 eddies",
+        1000
+      ],
+      [
+        "novanta eddies",
+        90
+      ],
+      [
+        "duemilacinquecento eddies",
+        2500
+      ],
+      [
+        "cinque minuti",
+        null
+      ],
+      [
+        "qualche eddie",
+        null
+      ],
+      [
+        "3 volte",
+        null
+      ],
+      [
+        "dieci proiettili",
+        null
+      ],
+      [
+        "due ore",
+        null
+      ]
+    ]
+  }
+}
