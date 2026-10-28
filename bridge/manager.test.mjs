@@ -443,11 +443,7 @@ test('manager home owns the five destinations and every inner page has one paren
       assert(managerUi.inspect().view == expected)
       assert(loaded.categories[1].id == 'navigation', 'the way back is not the first section')
       local first = loaded.categories[1].settings
-      -- Characters to invite and the Model browser have the page-wide Add to favorites button beside it, right after.
-      -- (The Model browser has it once its models are read.)
-      local favorite = (expected == 'characters' or (expected == 'models' and #first == 2)) and 1 or 0
-      assert(#first == 1 + favorite and first[1].id == back and first[1].value == 'Back', 'the first row of ' .. expected .. ' is not its Back')
-      assert(favorite == 0 or first[2].id == 'favorite:toggle', 'the button beside Back of ' .. expected)
+      assert(#first == 1 and first[1].id == back and first[1].value == 'Back', 'the first row of ' .. expected .. ' is not its Back')
       for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end

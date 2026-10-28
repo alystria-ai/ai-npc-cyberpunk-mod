@@ -57,8 +57,6 @@ local wasLive, closedFlag = false, false
 local connectAt = 0
 local renderFailures = 0
 local hooksInstalled = false
--- Whether the game's hover event of the Settings screen is watched (installHooks): the host can then tell which row the player is on.
-local focusHooked = false
 local fontScope, fontWork, fontsDue = nil, nil, false
 local framesDue = false             -- the frames of the read-only rows are hidden again on the next frame the tab is shown
 local lastError = ''
@@ -393,8 +391,6 @@ end
 
 local function render()
     if not ns then return end
-    -- This host reports the row the player is on (see onSettingHover): the page's Add to favorites button uses it.
-    core.offerFocus(focusHooked and type(ns.getOptionTable) == 'function')
     local model = core.model()
     savedValue = {}
     reconcile(sectionsOf(model))
@@ -658,21 +654,6 @@ local function newEntry()
         select = selectTab, notify = notify, live = live})
 end
 
--- The row the pointer or the highlight is on, as the page's row id: Native Settings UI finds its option from the event's widget
--- (getOptionTable), and the option is looked up among the rows this module drew. Only the two list pages care.
-local function onSettingHover(event)
-    if not (ns and ns.fromMods == true and live() and type(ns.getOptionTable) == 'function') then return end
-    local view = core.view()
-    if view ~= 'characters' and view ~= 'models' then return end
-    local option = ns.getOptionTable(event:GetCurrentTarget():GetController())
-    if not option then return end
-    for _, section in ipairs(rendered) do
-        for _, current in ipairs(section.rows) do
-            if current.opt == option then core.focus(current.id); return end
-        end
-    end
-end
-
 local function installHooks()
     if hooksInstalled then return end
     hooksInstalled = true
@@ -686,15 +667,6 @@ local function installHooks()
         end
     end)
     if not ok then log('Manager: could not watch the Settings screen: ' .. tostring(problem)) end
-    -- The pointer or the highlight moves onto a setting: the game raises the same event Native Settings UI uses for its description panel.
-    -- It fires when the player moves between rows, never per frame, and does a lookup in a list of a few dozen rows on the two list pages
-    -- only. The page learns which Invite row the player was last on, which is what the Add to favorites button acts on.
-    local hooked, hookProblem = pcall(Observe, 'SettingsMainGameController', 'OnSettingHoverOver', function(_, event)
-        local ran, why = pcall(onSettingHover, event)
-        if not ran then logRepeat('Manager: a hover could not be read: ' .. tostring(why)) end
-    end)
-    focusHooked = hooked == true
-    if not hooked then log('Manager: could not watch the rows of the Settings screen: ' .. tostring(hookProblem)) end
 end
 
 -- Whether another host has the page (Mod Configuration Menu 0.10.5 or newer registered it). The rule: with that MCM installed the page

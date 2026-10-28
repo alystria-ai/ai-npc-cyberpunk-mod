@@ -272,16 +272,36 @@ search (one log line). The hint line on the page ("Type in the search box ...") 
 (`M.offerSearch`, set by `mcm-host.lua` while it is registered). **Native Settings UI has no text field**, so its Model browser keeps
 the letter group and the page slider.
 
-**Favorites (2026-10-28, branch `feat/favorites`).** Characters to invite and the Model browser have a page-wide button beside the way back:
-**Add to favorites**, which reads **Remove from favorites** while the row it acts on is a favorite (row id `favorite:toggle`, built in
-`manager-ui.lua` `favoriteButton`). A favorite is listed first (page 1, the others keep their order) and its name starts with `* `
-(plain ASCII on purpose: the game's font is not known to draw a star; the marker is `MARK` in `mod/favorites.lua`). The two pages keep
-separate favorites. They live in `runtime/favorites.json` (`{version, characters = {key = true}, models = {key = true}}`, at most 500 a
-page), a player-state file like `settings.json`: `bridge/game-state.mjs` copies it to `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\game-state\` and
-puts it back if it is missing, and `packaging/runtime-exchange.json` class `state` means no package ships or replaces it, so an update never
-touches it. The file is read once, when a page first needs it, and written only when the button is pressed (a write that fails keeps the
-favorite for the session and the page says so). The lists are sorted only when a page is built, and `convaiFavorites.order` keeps its answer
-while the list and the favorites stay the same. Without `favorites.lua` the pages have no button.
+**Favorites (2026-10-28, branches `feat/favorites` and `feat/favorites-2`).** Characters to invite and the Model browser have **per-row
+buttons only**. The first version had a page-wide Add to favorites button beside Back that acted on the row the player was last on; the
+settings screens do not reliably tell which row is selected (Native Settings UI's hover event, MCM's private hovered row), so it was
+removed with everything only it needed (the focus hook in `nsui.lua`, `M.offerFocus` / `M.focus`, the Search-box fallback, the footer button
+of `mcm-host.lua`). The rows now (`manager-ui.lua` `entryRows`, `favoriteRows`, `setFavorite`):
+- A character (model) that is **not in the party**: one row, **Invite** (id `invite:<key>`).
+- **In the party and not a favorite**: the row's button is **Add to favorites** (id `favorite:add:<key>`), and a second row of the same name
+  right under it is **Add copy (n)** (id `invite:<key>`, the old button).
+- **A favorite**: no Add to favorites row. Her place in the list keeps its one Invite / Add copy row, and she is also in the **Favorites block**,
+  a section of its own right under Back (category id `favorites`, heading "Favorites"): her Invite / Add copy row (id `invite:favorite:<key>`) and under
+  it a **Remove from favorites** row (id `favorite:remove:<key>`, button "Remove"). The block is on **page 1 only** (a favorite on any page is in
+  it; the Search text and the Model browser's letter group narrow it like the list), at most 30 favorites with a "{count} more favorites" line
+  after them.
+- The Model browser uses the same rows. A model counts as invited when it is in the party (its button then also reads Add copy (n), which it did
+  not before). The two pages keep separate favorites.
+Pressing a favorite row draws the page again, so the rows below an invited entry move down one (Native Settings UI replaces the rows from there;
+the widget count never grows by more than the extra row). Favorites live in `runtime/favorites.json` (`{version, characters = {key = true},
+models = {key = true}}`, at most 500 a page), a player-state file like `settings.json`: `bridge/game-state.mjs` copies it to
+`%LOCALAPPDATA%\AiNpcCyberpunkMod\data\game-state\` and puts it back if it is missing, and `packaging/runtime-exchange.json` class `state` means
+no package ships or replaces it, so an update never touches it (existing favorites carry over: the file did not change). The file is read once,
+when a page first needs it, and written only when a button is pressed (a write that fails keeps the favorite for the session and the page says
+so). Nothing sorts the lists any more: the list keeps its own order, the block is built from it when the page is built. Without `favorites.lua`
+the pages have no favorite rows.
+
+**Page buttons say where they go (2026-10-28).** `pageRows` gives the page slider row `previousHelp` / `nextHelp`, and `mcm-host.lua` uses them as
+the description of the **Previous page** / **Next page** footer buttons, so the description panel says "Page 2 of 5: characters 13 to 24." and
+"Press to go to page 3 of 5: characters 25 to 36." (or "This is the first page." / "This is the last page."); the noun is characters, models or
+entries. The line under the slider (`list-range`, drawn again with every page) carries the same "Page 2 of 5: ..." line for Native Settings UI,
+which has no page buttons; the slider's own text stays the same on every page because a row whose text changes is drawn again and the player
+may be holding it. Not seen in the game: whether MCM shows a footer button's description in its panel on hover.
 
 *The Chat tab of V's phone* (a character made favorite on Characters to invite): the favorites are listed first there too, with the same `* `
 mark, then the others in the list's own order (by name). Read only: `mod/phone-chat.lua` `M.pushFavorites` compares `convaiFavorites.revision()`
@@ -299,21 +319,6 @@ the chat's name never show the mark. Scripts older than the Lua skip it (asked o
 `mod/mcm-host.lua` sends `setActionVisibility(modKey, {favorite = 'hide'})` with the presentation (see "MCM 0.10.6" below), so only ours shows
 on our pages. MCM 0.10.5 has no public option to hide it, so there it still sits beside ours (it favorites the mod in MCM, ours favorites a row);
 that is known and not a bug.
-
-*Which row the button acts on* depends on what the host can tell:
-- **Native Settings UI** reports it. `nsui.lua` observes the game's `SettingsMainGameController.OnSettingHoverOver` (the event NSUI itself uses
-  for its description panel; it fires for the pointer and for the gamepad highlight), asks NSUI for the option (`getOptionTable`) and looks it up
-  among the rows it drew; `manager-ui.lua` `M.focus(id)` keeps the last Invite row (`invite:<key>`) the player was on, for as long as the page
-  (`M.pageId()`) is the same. Other rows do not count, the button itself included, because the pointer is on the button when it is pressed. The
-  label follows the focused row (the page is drawn again only when the label would change). Pressed before any row: "Move onto an entry in the
-  list first, then press the button." The host sets `core.offerFocus(true)` when it builds its page.
-- **Mod Configuration Menu cannot say.** Its public `getContext()` holds the mod, the page, the Search text and the scroll position; the row
-  under the pointer (`hoveredSetting`) is private to it, a click on a footer button leaves no row under the pointer anyway, and `invokeAction`
-  hands over only the scroll position and its controller. So the closest workable equivalent is the Search box: `mcm-host.lua` now gives
-  Characters to invite the same provider search as the Model browser (a character answers when every word is in its name or key), the
-  footer button (beside Back, labelled by its whole text) acts on the **first entry the search leaves**, and with no text it answers "Type a
-  name in the Search box first, then press the button." The label follows that first entry. `core.offerFocus(false)` is set when the host
-  builds its page.
 
 **The tab and NSUI's list.** NSUI keeps a hole in its section list when a section in the middle is removed. The host therefore
 removes sections only from the end (last first) and adds the new ones; a change inside a page replaces only the rows that differ.
@@ -875,9 +880,8 @@ hole it leaves in its section list, and checks that the widgets on screen are wh
   disabled OmniVoice entries, the page buttons, how it looks (the fake knows no layout: the label width, font sizes and the description
   area are MCM's), and that no Native Settings UI tab is listed in MCM when both are installed.
 - The debounce times (0.3, 0.4 and 0.6 s, at most 2 s) are chosen, not measured against real widget callbacks.
-- Favorites: that the game raises `OnSettingHoverOver` for the pointer and for the gamepad highlight on the rows of NSUI's tab, that the
-  button row is replaced (its label flips) without a gamepad focus being lost, that MCM's footer holds the extra button at its widths, and
-  that the `*` marker reads well (see "Favorites" above).
+- Favorites: that the Favorites block and the pairs of rows read well in both hosts, that a row replaced by a press (Add to favorites) does not
+  lose a gamepad focus, and that MCM shows the page buttons' descriptions in its panel (see "Favorites" above).
 - The visibility and timing of the invitation notices (the 3 s and 5 s stays) in the running game.
 
 ## Housemates (2026-10-25, docs/HOUSEMATES.md)

@@ -48,11 +48,8 @@ local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
 -- global convaiSetupCheck, so no function here gains an upvalue (LuaJIT limits them).
 pcall(dofile, 'setup-check.lua')
 -- Favorites (mod/favorites.lua): the characters and models the player starred, kept in runtime/favorites.json (player state). Optional too:
--- without it the pages have no Add to favorites button. Read through its global convaiFavorites, so no function here gains an upvalue.
+-- without it the pages have no Add to favorites rows. Read through its global convaiFavorites, so no function here gains an upvalue.
 pcall(dofile, 'favorites.lua')
--- The row the player is on (M.focus, the host's report) and what that page was, with whether the host can report it at all
--- (M.offerFocus). A host that cannot report it uses the Search box instead (see favoriteKey).
-local focusRow = {key = nil, page = nil, offered = false}
 -- Edit characters: opens the character editor page in the player's browser. Optional like Help: without it the row is not shown.
 local editor
 local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
@@ -272,18 +269,38 @@ local function shortName(name)
     return cutToUnits(name, 14)
 end
 
+-- What a page of a long list holds, as the description of the page controls: "Page 2 of 5: characters 13 to 24." `kind` is the list's noun
+-- (characters, models; entries for any other list) and `count` the length of the whole list.
+local function pageLine(target, page, pages, kind, count)
+    local from = (page - 1) * PAGE_SIZE + 1
+    local noun = kind == 'characters' and ui.t('characters') or kind == 'models' and ui.t('models') or ui.t('entries')
+    local data = {page = page, pages = pages, kind = noun, first = from, last = math.min(page * PAGE_SIZE, count or from)}
+    if target then return ui.t('Press to go to page {page} of {pages}: {kind} {first} to {last}.', data) end
+    return ui.t('Page {page} of {pages}: {kind} {first} to {last}.', data)
+end
+
 -- The rows that read a long list: the page slider (only with more than one page) and the names the page starts and ends with.
--- `nameAt(index)` is the display name of the index-th item of the list.
-local function pageRows(first, last, pages, nameAt)
+-- `nameAt(index)` is the display name of the index-th item of the list. The slider row also carries what the Previous and Next page buttons of a
+-- host that has buttons say when the player is on them (previousHelp, nextHelp).
+local function pageRows(first, last, pages, nameAt, kind, count)
     local rows = {}
     if pages > 1 then
-        rows[#rows + 1] = setting('ui:page', 'Page', 'int', listPage, 1,
+        local here = pageLine(false, listPage, pages, kind, count)
+        -- The slider's own text never changes with the page (a row whose text changes is drawn again, and the player may be holding it).
+        local row = setting('ui:page', 'Page', 'int', listPage, 1,
             'Drag the slider, or press left and right, to turn the page.', nil, {min = 1, max = pages, step = 1})
+        row.previousHelp = here .. '\n' .. (listPage > 1 and pageLine(true, listPage - 1, pages, kind, count)
+            or ui.t('This is the first page.'))
+        row.nextHelp = here .. '\n' .. (listPage < pages and pageLine(true, listPage + 1, pages, kind, count)
+            or ui.t('This is the last page.'))
+        rows[#rows + 1] = row
     end
     if last >= first then
         local range = shortName(nameAt(first)) .. ' – ' .. shortName(nameAt(last))
+        -- The line under the slider (drawn again with every page): what the page holds, in the description panel.
+        local help = pages > 1 and (pageLine(false, listPage, pages, kind, count) .. '\n' .. range) or range
         rows[#rows + 1] = readonly('list-range', ui.t('Page {page} / {pages}', {page = listPage, pages = pages}), range,
-            range, {label = true, value = true, description = true})
+            help, {label = true, value = true, description = true})
     end
     return rows
 end
@@ -1520,55 +1537,62 @@ local function dynamicInfoRows(snapshot)
 end
 
 -- ---- Favorites (Characters to invite, Model browser) ------------------------------------------------------------------------------
--- The page-wide Add to favorites button, beside the way back. It acts on one row of the page's list, found in one of two ways:
---   * a host that reports the row the player is on (Native Settings UI: M.offerFocus, M.focus) gives the last list row the player was on,
---     for as long as the page is the one that was on screen then;
---   * a host that cannot (Mod Configuration Menu has no call for the row under the pointer or the highlight, and a click on a footer button
---     leaves no row under it anyway) uses the Search box: the first entry the search leaves is the target.
--- The key of the target in `list` (the page's whole list, favorites first, search applied), or nil.
-local function favoriteKey(list)
-    if focusRow.offered then
-        if focusRow.key and focusRow.page == M.pageId() then return focusRow.key end
-        return nil
-    end
-    if #modelFind.words > 0 and list[1] then return list[1].key end
-    return nil
-end
+-- Per-row buttons only: the settings screens cannot tell which row the player is on, so there is no page-wide button. On both pages:
+--   * a character (model) that is not invited has one row, Invite;
+--   * once she is in the party the row's button is Add to favorites, and a row of the same name right under it is Add copy (the old button);
+--   * a favorite has no Add to favorites row: she is in the Favorites block at the top of page 1, each with her Invite / Add copy row and,
+--     under it, Remove from favorites; her place in the list below keeps its one Invite / Add copy row.
+-- The favorites are the data of mod/favorites.lua; the phone's Chat tab lists them first (mod/phone-chat.lua).
+local FAVORITES_SHOWN = 30
 
-local function favoriteName(item)
-    return item.unnamedIndex and ui.t('Unnamed model {index}', {index = item.unnamedIndex}) or tostring(item.name or item.key)
-end
-
--- Toggles the favorite of the target and says what happened (the page's feedback line).
-local function toggleFavorite(scope, list)
-    local favorites = convaiFavorites
-    local key = favoriteKey(list)
-    if not key then
-        if focusRow.offered then return false, ui.t('Move onto an entry in the list first, then press the button.') end
-        if modelFind.offered then return false, ui.t('Type a name in the Search box first, then press the button.') end
-        return false, ui.t('This menu cannot tell which entry you are on, and has no Search box.')
-    end
-    local name = key
-    for _, item in ipairs(list) do if item.key == key then name = favoriteName(item); break end end
-    local now, kept, why = favorites.set(scope, key)
+-- Turns the favorite of one entry on or off and says what happened (the page's feedback line).
+local function setFavorite(scope, key, name, on)
+    local now, kept, why = convaiFavorites.set(scope, key, on)
     if now == nil then return false, ui.t('That entry cannot be a favorite.') end
     refreshQueued = true
     if why == 'full' then return false, ui.t('You have too many favorites. Remove one first.') end
-    local text = now and ui.t('{name} is now a favorite. Favorites are listed first.', {name = name})
+    local text = now and ui.t('{name} is now a favorite. Favorites are at the top of page 1.', {name = name})
         or ui.t('{name} is no longer a favorite.', {name = name})
     if kept == false then text = text .. ' ' .. ui.t('Your favorites could not be saved, so they last only until the game closes.') end
     return true, text
 end
 
-local function favoriteButton(scope, list)
-    local key = favoriteKey(list)
-    local on = key ~= nil and convaiFavorites.isFavorite(scope, key)
-    local how = focusRow.offered
-        and ui.t('Adds the last entry you were on in the list to your favorites, or takes it out again.')
-        or ui.t('Type a name in the Search box, then press this to add the first entry listed to your favorites, or to take it out again.')
-    return action('favorite:toggle', on and ui.t('Remove from favorites') or ui.t('Add to favorites'), on and ui.t('Remove') or ui.t('Add'),
-        how .. '\n\n' .. ui.t('Favorites are listed first, on page 1, and their name starts with a *. Updates never touch them.'),
-        function() return toggleFavorite(scope, list) end)
+-- The rows of one entry of the main list: Add to favorites above the Invite / Add copy row, for an entry that is in the party and not yet a
+-- favorite. `inviteOf(item, id)` builds the Invite / Add copy row of the page.
+local function entryRows(rows, scope, item, name, copies, inviteOf)
+    if convaiFavorites and copies > 0 and not convaiFavorites.isFavorite(scope, item.key) then
+        local key = item.key
+        rows[#rows + 1] = action('favorite:add:' .. key, name, 'Add to favorites',
+            ui.t('Adds {name} to your favorites. They are listed at the top of page 1, and first in the phone’s Chat tab. Updates never touch them.', {name = name}),
+            function() return setFavorite(scope, key, name, true) end, nil, {label = true, description = true})
+    end
+    rows[#rows + 1] = inviteOf(item, 'invite:' .. item.key)
+end
+
+-- The Favorites block: the favorites of `list` (the page's list, search and letter group applied) on page 1, each with her Invite / Add copy row
+-- and a Remove from favorites row under it. Empty on any other page.
+local function favoriteRows(scope, list, nameOf, inviteOf)
+    local rows = {}
+    if not convaiFavorites or listPage ~= 1 or convaiFavorites.count(scope) == 0 then return rows end
+    local shown, more = 0, 0
+    for _, item in ipairs(list) do
+        local key = item.key
+        if convaiFavorites.isFavorite(scope, key) then
+            if shown < FAVORITES_SHOWN then
+                shown = shown + 1
+                local name = nameOf(item)
+                rows[#rows + 1] = inviteOf(item, 'invite:favorite:' .. key)
+                rows[#rows + 1] = action('favorite:remove:' .. key, 'Remove from favorites', 'Remove',
+                    ui.t('Takes {name} out of your favorites. Her place in the list below stays.', {name = name}),
+                    function() return setFavorite(scope, key, name, false) end, nil, {description = true})
+            else more = more + 1 end
+        end
+    end
+    if more > 0 then
+        rows[#rows + 1] = readonly('favorites-more', ui.t('{count} more favorites', {count = more}), '',
+            ui.t('Only the first {count} favorites are listed here. The others are in the list below.', {count = FAVORITES_SHOWN}), {label = true, description = true})
+    end
+    return rows
 end
 
 -- Invite (Characters, Model browser): with Settings > Immersive invitations On it is an appointment she travels to; Off, or when it
@@ -1703,8 +1727,7 @@ local function schema()
     elseif view == 'characters' then
         local shared = sharedCharacterLines(snapshot)
         local profiles = snapshot.invitable or snapshot.profiles
-        -- Favorites first (sorted when the page is built), then the Search of a host that has a box.
-        if convaiFavorites then profiles = convaiFavorites.order('characters', profiles) end
+        -- The Search of a host that has a box.
         local searching = #modelFind.words > 0
         if searching then profiles = searchedModels(profiles, profileMatches) end
         local first, last, pages = pageRange(#profiles)
@@ -1715,17 +1738,21 @@ local function schema()
             rows[#rows + 1] = readonly('character-status', ui.t('{count} matching characters', {count = #profiles}), '', ui.t('{count} matching characters', {count = #profiles}),
                 {label = true, description = true})
         end
-        for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end)) do rows[#rows + 1] = row end
-        for index = first, last do
-            local profile = profiles[index]
+        for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end, 'characters', #profiles)) do rows[#rows + 1] = row end
+        local function inviteOf(profile, id)
             local key = profile.key
             local count = countKey(party, key)
             local available = manager.definition(key) ~= nil
-            rows[#rows + 1] = action('invite:' .. key, convaiFavorites and convaiFavorites.name('characters', key, profile.name) or profile.name,
-                available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
+            return action(id, profile.name, available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
                 profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
         end
-        if convaiFavorites then nav[#nav + 1] = favoriteButton('characters', profiles) end
+        -- The Favorites block above the list, on page 1.
+        local favorites = favoriteRows('characters', profiles, function(profile) return profile.name end, inviteOf)
+        if #favorites > 0 then categories[#categories + 1] = category('favorites', 'Favorites', favorites) end
+        for index = first, last do
+            local profile = profiles[index]
+            entryRows(rows, 'characters', profile, profile.name, countKey(party, profile.key), inviteOf)
+        end
         categories[#categories + 1] = category('characters', 'Characters to invite', rows)
     elseif view == 'party' then
         local trip = queue.chauffeur()
@@ -1773,7 +1800,7 @@ local function schema()
             for _, row in ipairs(pageRows(first, last, pages, function(index)
                 local member = copies[index]
                 return member.serial and ((member.baseName or member.name) .. ' #' .. member.serial) or member.name
-            end)) do rows[#rows + 1] = row end
+            end, nil, shown)) do rows[#rows + 1] = row end
         end
         for index = first, last do
             local member = copies[index]
@@ -1813,7 +1840,7 @@ local function schema()
         categories[#categories + 1] = category('party', 'Current party', rows)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models
-        local modelsShown = {}
+        local favorites = {}
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.') end
         -- The list is sorted when the scan has finished; until then only the progress shows, and the page is built once.
@@ -1829,10 +1856,8 @@ local function schema()
             local groupElements = {ui.t('All')}
             for _, group in ipairs(groups) do groupElements[#groupElements + 1] = group end
             listGroup = math.max(1, math.min(listGroup, #groupElements))
-            local matches = searching and searchedModels(convaiFavorites and convaiFavorites.order('models', cache.all) or cache.all)
+            local matches = searching and searchedModels(cache.all)
                 or listGroup == 1 and cache.all or cache.lists[groupElements[listGroup]] or {}
-            if convaiFavorites and not searching then matches = convaiFavorites.order('models', matches) end
-            modelsShown = matches
             local talking = 0
             for _, model in ipairs(matches) do if model.profileName then talking = talking + 1 end end
             rows[#rows + 1] = readonly('model-status', ui.t('{count} matching models', {count = #matches}), '',
@@ -1844,28 +1869,35 @@ local function schema()
                     'Show only the models whose name starts with this letter.', groupElements, {elements = true})
             end
             local first, last, pages = pageRange(#matches)
-            for _, row in ipairs(pageRows(first, last, pages, function(index) return matches[index].name end)) do rows[#rows + 1] = row end
-            for index = first, last do
-                local model = matches[index]
+            for _, row in ipairs(pageRows(first, last, pages, function(index) return matches[index].name end, 'models', #matches)) do rows[#rows + 1] = row end
+            local function nameOf(model)
+                return model.unnamedIndex and ui.t('Unnamed model {index}',{index=model.unnamedIndex}) or model.name
+            end
+            local function inviteOf(model, id)
                 local key = model.key
-                local modelName = model.unnamedIndex and ui.t('Unnamed model {index}',{index=model.unnamedIndex}) or model.name
+                local count = countKey(party, key)
                 local conversation = model.archetype and ui.t('Conversation: {name} (archetype)', {name = model.profileName})
                     or model.profileName and ui.t('Conversation: {state}',{state=model.profileName})
                     or ui.t('No conversation profile. This model joins as a follower without AI conversations.')
-                rows[#rows + 1] = action('invite:' .. key, convaiFavorites and convaiFavorites.name('models', key, modelName) or modelName, 'Invite',
+                return action(id, nameOf(model), count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite',
                     model.record .. '\n\n' .. conversation
                         .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
                     function() return inviteKey(key) end, canInvite)
             end
+            favorites = favoriteRows('models', matches, nameOf, inviteOf)
+            for index = first, last do
+                local model = matches[index]
+                entryRows(rows, 'models', model, nameOf(model), countKey(party, model.key), inviteOf)
+            end
         end
-        if convaiFavorites and scan.finished then nav[#nav + 1] = favoriteButton('models', modelsShown) end
+        if #favorites > 0 then categories[#categories + 1] = category('favorites', 'Favorites', favorites) end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
     elseif view == 'memory' then
         -- The memory controls, then the list the character is chosen from, on the same page.
         categories[#categories + 1] = category('memory', 'Memory', memorySettings(snapshot))
         local profiles = snapshot.profiles
         local first, last, pages = pageRange(#profiles)
-        for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end)) do rows[#rows + 1] = row end
+        for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end, 'characters', #profiles)) do rows[#rows + 1] = row end
         for index = first, last do
             local profile = profiles[index]
             local key = profile.key
@@ -2343,28 +2375,6 @@ function M.setSearch(text)
     return true
 end
 function M.search() return modelFind.text end
-
--- The row the player is on. A host that can tell (Native Settings UI hears the game's hover and highlight events) says so with
--- offerFocus and reports each row with focus(id). Only a row of the list counts (an Invite row, id invite:<key>): the pointer is on the
--- Add to favorites button when it is pressed, and that must leave the last list row as the target. Returns whether the button's text
--- changed (the host draws the page again on its next check; nothing is drawn here).
-function M.offerFocus(offered)
-    focusRow.offered = offered == true
-    if not focusRow.offered then focusRow.key, focusRow.page = nil, nil end
-end
-function M.focus(id)
-    local favorites = convaiFavorites
-    if not favorites or not focusRow.offered or (view ~= 'characters' and view ~= 'models') or type(id) ~= 'string' then return false end
-    local key = id:match('^invite:(.+)$')
-    if not key then return false end
-    local page = M.pageId()
-    if focusRow.key == key and focusRow.page == page then return false end
-    local before = focusRow.key ~= nil and focusRow.page == page and favorites.isFavorite(view, focusRow.key)
-    focusRow.key, focusRow.page = key, page
-    if before == favorites.isFavorite(view, key) then return false end
-    refreshQueued = true
-    return true
-end
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
