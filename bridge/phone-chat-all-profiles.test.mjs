@@ -135,6 +135,17 @@ test('Lua: favorite characters are handed to the game for the Chat list, again o
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 });
 
+test('redscript: the Chat list orders favorites first by its own comparison, not by how the marked names sort', () => {
+  const tabs = read('../r6/scripts/CyberpunkConvai/PhoneChatTabs.reds');
+  const wrap = tabs.match(/@wrapMethod\(DialerContactDataView\)\s+public func SortItem\([^)]*\) -> Bool \{([\s\S]*?)\n\}/);
+  assert.ok(wrap, 'SortItem of the phone list is wrapped');
+  assert.match(wrap[1], /first\.convaiChat && second\.convaiChat/, 'only Chat rows are touched');
+  assert.match(wrap[1], /NotEquals\(first\.convaiFavorite, second\.convaiFavorite\)[\s\S]*return first\.convaiFavorite;/, 'a favorite goes before a non-favorite');
+  assert.match(wrap[1], /return wrappedMethod\(left, right\);/, 'equal groups keep the game\'s own (by name) order');
+  assert.equal((tabs.match(/row\.convaiFavorite = this\.m_player\.ConvaiPhoneChatIsFavorite\(/g) || []).length, 2, 'both kinds of Chat row set the flag');
+  assert.doesNotMatch(wrap[1], /OnUpdate|GameInstance|Delay/, 'no per-frame or timed work');
+});
+
 function luaValue(value) {
   if (Array.isArray(value)) return `{${value.map(luaValue).join(',')}}`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).map(([k, v]) => `[${JSON.stringify(k)}]=${luaValue(v)}`).join(',')}}`;

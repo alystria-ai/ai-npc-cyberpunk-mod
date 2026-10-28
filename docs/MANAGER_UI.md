@@ -287,8 +287,10 @@ mark, then the others in the list's own order (by name). Read only: `mod/phone-c
 (one number) on the phone's existing 10 Hz tick and, only when it changed (or the contacts were registered again), hands the game the favorite
 contact ids (`ConvaiPhoneChatClearFavorites(mark)`, `ConvaiPhoneChatAddFavorite(id)`; the contact id maps to its profile key through the
 catalog, so the shipped phone contacts such as `judy` follow `judy-alvarez`). The list is built in `PhoneChatTabs.reds`
-`ConvaiShowChatContacts` when the tab opens: a favorite's row name is the mark plus the name (`ConvaiPhoneChatListName`), and because the
-game's list sorts by name and `*` sorts before letters, the favorites come first, each group still by name. Nothing runs while the list is open
+`ConvaiShowChatContacts` when the tab opens: a favorite's row name is the mark plus the name (`ConvaiPhoneChatListName`). The order is explicit, not a side effect of the mark: each Chat row carries `ContactData.convaiFavorite` and `PhoneChatTabs.reds` wraps
+`DialerContactDataView.SortItem` (the comparison of the phone's list) so a favorite goes before a non-favorite; two rows of the same kind fall
+through to the game's own comparison (by name), so each group stays in name order. The wrap touches only Chat rows (`convaiChat`) and runs only
+while the game sorts the list, which is when the tab opens. Nothing runs while the list is open
 and no widget is touched per frame. The name without the mark is kept on the row (`ContactData.convaiPlainName`), so the chat page title and
 the chat's name never show the mark. Scripts older than the Lua skip it (asked once, `M.favoritesMissing`).
 
