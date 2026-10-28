@@ -77,7 +77,8 @@ test('the Node rules leave out the browser install scripts and the TypeScript de
 test('the declared removals name the old support report tool so a full install over an old Runtime cleans it up', async () => {
   const declared = JSON.parse(await readFile(resolve(project, DECLARED_REMOVALS), 'utf8')).removes;
   for (const rel of [`${PLUGIN}/Make support report.bat`, `${APP}/bridge/make-support-report.mjs`, `${APP}/bridge/offline-support-report.mjs`]) assert(declared.includes(rel), rel);
-  assert.deepEqual(checkRemovals(declared).refused, []);
+  // From 0.3.4 the two bridge files are code: the Scripts' install-code.mjs deletes them (code.json "removes"), the Runtime's own step refuses code.
+  assert.deepEqual(checkRemovals(declared).refused.filter(item => item.why !== 'code the Scripts install'), []);
 });
 
 // An old Runtime with the files and a new one without them, as the update builder sees them.

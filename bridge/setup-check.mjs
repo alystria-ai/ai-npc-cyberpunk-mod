@@ -36,6 +36,13 @@ const MOD_NAME = 'AiNpcCyberpunkMod';
 export const SERVICE_HOSTS = Object.freeze({convai: 'api.convai.com', mistral: 'api.mistral.ai'});
 
 const clip = (value, size = 120) => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, size) : null;
+// Version order of two release strings (0.3.4 before 0.3.10): negative when a is older; non-numeric parts count as 0.
+export function versionOrder(a, b) {
+  const parts = value => String(value ?? '').split(/[-+]/)[0].split('.').map(part => Number.parseInt(part, 10) || 0);
+  const x = parts(a), y = parts(b);
+  for (let index = 0; index < Math.max(x.length, y.length); index += 1) if ((x[index] ?? 0) !== (y[index] ?? 0)) return (x[index] ?? 0) - (y[index] ?? 0);
+  return 0;
+}
 const exists = async (path, kind = 'dir') => {
   try { const info = await stat(path); return kind === 'dir' ? info.isDirectory() : info.isFile(); } catch { return false; }
 };
@@ -466,6 +473,20 @@ export async function collectSetupCheck(options = {}) {
     const scriptsGame = modRoot ? await releaseGame(join(modRoot, 'release.json')) : DEFAULT_BUILD_GAME;
     const runtimeGame = project ? await releaseGame(join(project, 'release.json')) : DEFAULT_BUILD_GAME;
     if (scripts === null || runtime === null) return {state: 'unknown', code: 'unknown', scripts, runtime, scriptsGame, runtimeGame};
+    // From 0.3.4 the Scripts carry the code and the Runtime is the base (docs/PACKAGING.md, "Code in the Scripts"): the Scripts' release.json names
+    // the oldest base they run on (runtimeBase), the Runtime's release.json is the base's version, and the code the Scripts installed into the
+    // Runtime is listed in defaults/scripts-code.json. A base older than runtimeBase is 'base-old' (the row and the notice name the base needed).
+    const required = modRoot ? clip((await jsonOf(join(modRoot, 'release.json')))?.runtimeBase, 40) : null;
+    if (required) {
+      const code = project ? clip((await jsonOf(join(project, 'defaults', 'scripts-code.json')))?.release, 40) : null;
+      if (code !== scripts) return {state: 'problem', code: 'mismatch', scripts, runtime: code ?? runtime, scriptsGame, runtimeGame};
+      if (scriptsGame !== runtimeGame) return {state: 'problem', code: 'game-mismatch', scripts, runtime, scriptsGame, runtimeGame, base: true};
+      if (versionOrder(runtime, required) < 0) return {state: 'problem', code: 'base-old', scripts, runtime, required, scriptsGame, runtimeGame, base: true};
+      const chain = project ? await checkRuntimeSteps({project, current: runtime}) : {code: 'none'};
+      if (chain.code === 'gap') return {state: 'problem', code: 'chain-gap', scripts, runtime, scriptsGame, runtimeGame, from: clip(chain.from, 40), to: clip(chain.to, 40), base: true};
+      if (chain.code === 'order') return {state: 'problem', code: 'chain-order', scripts, runtime, scriptsGame, runtimeGame, base: true};
+      return {state: 'ok', code: 'match', scripts, runtime, required, scriptsGame, runtimeGame, base: true};
+    }
     if (scripts !== runtime) return {state: 'problem', code: 'mismatch', scripts, runtime, scriptsGame, runtimeGame};
     // The same version, but built for different games (the 2.31 Runtime with the 2.5 Scripts, or the other way): they must be replaced together.
     if (scriptsGame !== runtimeGame) return {state: 'problem', code: 'game-mismatch', scripts, runtime, scriptsGame, runtimeGame};

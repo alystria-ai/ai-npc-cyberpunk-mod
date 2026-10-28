@@ -37,8 +37,8 @@ function localeTable(code) {
   return rows;
 }
 
-test('the notice is one of eighteen short sentences, each catalogued and each within the English budget', () => {
-  assert.equal(notices.length, 18, notices.join('\n'));
+test('the notice is one of nineteen short sentences, each catalogued and each within the English budget', () => {
+  assert.equal(notices.length, 19, notices.join('\n'));
   for (const text of notices) {
     assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);
     assert.deepEqual(noticeProblems(filled(text), {english: true}), [], text);

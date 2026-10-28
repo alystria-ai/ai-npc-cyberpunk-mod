@@ -815,3 +815,24 @@ test('the module is packaged, its exchange files are classified, and it never de
   const control = await source('./setup-check.mjs');
   assert.doesNotMatch(control, /atomicFile\(\s*(?:this\.)?requestPath/, 'the request file is only read');
 });
+
+// From 0.3.4 the Scripts carry the code and the Runtime is the base (docs/PACKAGING.md, "Code in the Scripts"): the Scripts' release.json names
+// runtimeBase, the Runtime's release.json is the base's version and defaults/scripts-code.json the code the Scripts installed.
+test('versions with the code in the Scripts: a base at or above runtimeBase matches, an older one is base-old naming the base needed', async () => temp(async root => {
+  const scheme = async (name, {base, required = '0.3.3', code = '0.3.4', scripts = '0.3.4'} = {}) => {
+    const paths = await install(join(root, name), {scripts, runtime: base, scriptsGame: '2.5', runtimeGame: '2.5'});
+    await put(join(paths.modRoot, 'release.json'), JSON.stringify({package: 'scripts', version: scripts, game: '2.5', runtimeBase: required}));
+    if (code !== null) await put(join(paths.project, 'defaults', 'scripts-code.json'), JSON.stringify({version: 1, package: 'scripts-code', release: code, files: []}));
+    return byId(await collectSetupCheck(options(paths))).versions;
+  };
+  assert.deepEqual(await scheme('a', {base: '0.3.3'}), {id: 'versions', state: 'ok', code: 'match', scripts: '0.3.4', runtime: '0.3.3', required: '0.3.3',
+    scriptsGame: '2.5', runtimeGame: '2.5', base: true});
+  assert.equal((await scheme('b', {base: '0.3.4'})).code, 'match');
+  assert.equal((await scheme('c', {base: '0.3.10', required: '0.3.9'})).code, 'match', 'compared as numbers');
+  assert.deepEqual(await scheme('d', {base: '0.3.2'}), {id: 'versions', state: 'problem', code: 'base-old', scripts: '0.3.4', runtime: '0.3.2', required: '0.3.3',
+    scriptsGame: '2.5', runtimeGame: '2.5', base: true});
+  // The code in the Runtime is not the Scripts' (the copy did not happen): a mismatch between the Scripts and the code that runs.
+  assert.deepEqual(await scheme('e', {base: '0.3.3', code: '0.3.3'}), {id: 'versions', state: 'problem', code: 'mismatch', scripts: '0.3.4', runtime: '0.3.3',
+    scriptsGame: '2.5', runtimeGame: '2.5'});
+  assert.equal((await scheme('f', {base: '0.3.3', code: null})).code, 'mismatch');
+}));

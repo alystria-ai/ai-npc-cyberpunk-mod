@@ -98,8 +98,9 @@ test('launcher.ini: UTF-16 with a byte order mark, Node started through the boot
   const text = bytes.subarray(2).toString('utf16le');
   assert.equal(text, launcherIniLines().join('\r\n') + '\r\n');
   const values = Object.fromEntries(launcherIniLines().filter(line => /^\w+=/.test(line)).map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
-  assert.deepEqual(values, {enabled: '1', program: '%PLUGIN%\\app\\node\\node.exe', arg1: '--eval', arg2: LAUNCHER_BOOTSTRAP,
-    arg3: '%PLUGIN%\\app\\launcher\\start-service.mjs', working_directory: '%PLUGIN%\\app'});
+  // From launcher 1.1.0 (0.3.4): the Runtime base's Node, the Scripts' install-code.mjs beside the launcher (docs/PACKAGING.md, "Code in the Scripts").
+  assert.deepEqual(values, {enabled: '1', program: '%GAME%\\red4ext\\plugins\\AiNpcCyberpunkMod\\app\\node\\node.exe', arg1: '--eval', arg2: LAUNCHER_BOOTSTRAP,
+    arg3: '%PLUGIN%\\install-code.mjs', working_directory: '%PLUGIN%'});
   // CyberpunkConvaiLauncher.c reads each value into 1024 characters and refuses one that fills them; GetPrivateProfileString takes
   // quotes around a whole value away; %GAME% and %PLUGIN% are the only expansions.
   for (const [key, value] of Object.entries(values)) {

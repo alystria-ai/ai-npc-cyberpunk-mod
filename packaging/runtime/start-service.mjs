@@ -1,6 +1,6 @@
-// Packaged entry point of the conversation service. The RED4ext launcher
-// (red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvai.dll) starts it with the bundled Node
-// when the game starts, as configured by launcher.ini next to the DLL (packaging/lib/launcher-ini.mjs):
+// Packaged entry point of the conversation service. From 0.3.4 the RED4ext launcher (red4ext/plugins/AiNpcCyberpunkCode/CyberpunkConvai.dll,
+// shipped in the Scripts) starts the Scripts' install-code.mjs with the Runtime base's Node, which copies the Scripts' code into the Runtime's
+// app/ and then runs this file in the same process as if it had been started as (an older Runtime's launcher did exactly this):
 //   app/node/node.exe --eval <bootstrap> app/launcher/start-service.mjs --game-pid <pid> --game-root <root> --lifeline stdin
 // The bootstrap loads this script from its real place when Node's stat cannot see it (a Runtime installed as a Mod Organizer 2 mod);
 // process.argv is the same as with the script as Node's entry.
@@ -292,6 +292,8 @@ const log = message => { try { appendFileSync(logPath, `${new Date().toISOString
 for (const message of early) log(message);
 logSink = log;
 for (const message of startNotes.splice(0)) log(message);
+// What the Scripts' install-code.mjs did before it ran this script (from 0.3.4 it starts the service: docs/PACKAGING.md, "Code in the Scripts").
+for (const message of globalThis[Symbol.for('ai-npc-cyberpunk-mod.install-code')] ?? []) log(message);
 
 // The same facts in one line for the player's log, with the paths: the game's mod folder and its runtime/ folder are visible or not.
 function viewLine(shown) {
@@ -363,9 +365,21 @@ function readGame(path) {
 let prepared;
 try {
   const runtimeVersion = readVersion(resolve(appDirectory, 'release.json'));
-  const scriptsVersion = readVersion(resolve(layout.mod, 'release.json'));
-  log(`Conversation service ${runtimeVersion ?? '(unknown version)'} preparing ${layout.gameRoot}; player data in ${layout.state}.`);
-  if (scriptsVersion && runtimeVersion && scriptsVersion !== runtimeVersion) {
+  const scriptsRelease = (() => { try { return JSON.parse(readFileSync(resolve(layout.mod, 'release.json'), 'utf8')); } catch { return null; } })();
+  const scriptsVersion = scriptsRelease?.version ?? null;
+  // From 0.3.4 the code comes with the Scripts (install-code.mjs copies it into app/ and lists it in defaults/scripts-code.json) and the Runtime is
+  // the base: its release.json is the base's version, which must be at least the Scripts' runtimeBase. Before, the two versions had to be equal.
+  const code = (() => { try { return JSON.parse(readFileSync(resolve(appDirectory, 'defaults', 'scripts-code.json'), 'utf8')); } catch { return null; } })();
+  log(`Conversation service ${code?.release ?? runtimeVersion ?? '(unknown version)'} preparing ${layout.gameRoot}; player data in ${layout.state}`
+    + `${code ? `; Runtime base ${runtimeVersion ?? '(unknown)'}` : ''}.`);
+  if (scriptsRelease?.runtimeBase) {
+    if (code?.release !== scriptsVersion) log(`Warning: the Scripts package is ${scriptsVersion} but the code installed in the Runtime is ${code?.release ?? 'none'}. The Scripts' launcher installs it at the start; see the line about the code copy above.`);
+    const parts = value => String(value ?? '').split(/[-+]/)[0].split('.').map(part => Number.parseInt(part, 10) || 0);
+    const older = (a, b) => { const x = parts(a), y = parts(b); for (let i = 0; i < Math.max(x.length, y.length); i += 1) { if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0); } return false; };
+    if (runtimeVersion && older(runtimeVersion, scriptsRelease.runtimeBase)) {
+      log(`Warning: the Scripts ${scriptsVersion} need the Runtime base ${scriptsRelease.runtimeBase} or newer, and this Runtime is ${runtimeVersion}. Apply the Runtime update zips from ${runtimeVersion} on, or install the full Runtime.`);
+    }
+  } else if (scriptsVersion && runtimeVersion && scriptsVersion !== runtimeVersion) {
     log(`Warning: the Scripts package is ${scriptsVersion} but the Runtime package is ${runtimeVersion}. Install matching versions.`);
   }
   const runtimeGame = readGame(resolve(appDirectory, 'release.json')), scriptsGame = readGame(resolve(layout.mod, 'release.json'));

@@ -314,18 +314,14 @@ test('native-off.txt is never an empty placeholder: an empty file means every sy
   const builder = read('packaging/build-release.mjs');
   const scripts = builder.slice(builder.indexOf('async function scriptsPackage'), builder.indexOf('async function runtimePackage'));
   assert.match(scripts, /for \(const name of \(await loadRuntimeExchange\(source\.root\)\)\.exchange\) pkg\.text\(`\$\{mod\}\/runtime\/\$\{name\}`, ''\)/);
-  assert.ok(!/native-off/.test(scripts), 'the Scripts package builder does not name native-off.txt');
-  // Only the Runtime package (the one that carries the DLL) writes it, and only when the DLL is built into the package.
-  const runtime = builder.slice(builder.indexOf('async function runtimePackage'));
-  const at = runtime.indexOf('pkg.text(config.native.offFile, nativeOffText(config.native.off))');
-  assert.ok(at > 0, 'the Runtime package writes the switch file');
-  assert.ok(runtime.lastIndexOf('if (nativeDll) {', at) > 0, 'and only beside the DLL: no plugin, no switch file');
-  assert.equal(runtime.indexOf('native.offFile'), at + 'pkg.text(config.'.length, 'it is written once');
-  assert.equal(runtime.split('config.native.offFile').length - 1, 1);
+  // From 0.3.4 no package writes it (the DLL is in the Scripts, native.off is empty and a missing file means every system is on); the build refuses a
+  // non-empty native.off rather than silently shipping those systems on.
+  assert.ok(!builder.includes('config.native.offFile'), 'no package writes the switch file');
+  assert.match(scripts, /if \(config\.native\.off\.length\) throw Error\(/);
+  assert.deepEqual(config.native.off, []);
 });
 
 test('the native-off.txt the Runtime package writes switches off exactly the configured systems, and the docs list the same names', () => {
-  assert.match(read('packaging/build-release.mjs'), /import \{nativeOffText\} from '\.\/lib\/native-off\.mjs';/, 'the builder uses the shared writer');
   const text = nativeOffText(config.native.off);
   const parsed = parseSwitchFile(text);
   assert.equal(parsed.all, false, 'the shipped file must not say "all": io, which ships proven, would go to Lua with the rest');

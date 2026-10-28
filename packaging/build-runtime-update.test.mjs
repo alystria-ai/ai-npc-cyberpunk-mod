@@ -42,7 +42,7 @@ function fixture(directory) {
   const old = {
     [NOTE]: 'install note',
     [`${APP}/bridge/convai-bridge.mjs`]: 'bridge v1',
-    [`${APP}/bridge/old-module.mjs`]: 'old module',
+    [`${APP}/models/old-model.bin`]: 'old module',
     [`${APP}/models/model.bin`]: BIG,
     [`${APP}/launcher/start-service.mjs`]: 'start v1',
     [`${PLUGIN}/voices/keep.wav`]: 'keep',
@@ -65,7 +65,7 @@ function fixture(directory) {
     [BASE_ENTRY]: baseText('0.2.3'),
     [REMOVALS_ENTRY]: removalListText('0.2.3', [`${PLUGIN}/voices/declared-gone.wav`]),
   };
-  for (const gone of [`${APP}/bridge/old-module.mjs`, `${PLUGIN}/voices/renamed-from.wav`, `${PLUGIN}/voices/pack-owned.wav`, 'archive/pc/mod/convai_old.archive', NOTE]) delete next[gone];
+  for (const gone of [`${APP}/models/old-model.bin`, `${PLUGIN}/voices/renamed-from.wav`, `${PLUGIN}/voices/pack-owned.wav`, 'archive/pc/mod/convai_old.archive', NOTE]) delete next[gone];
   return {old, next};
 }
 
@@ -77,7 +77,7 @@ test('compares two Runtimes by path, size and CRC-32: added, changed, unchanged,
     const diff = compareRuntimes(before, after);
     assert.deepEqual(diff.added.map(item => item.name), [`${APP}/bridge/new-module.mjs`, `${APP}/defaults/runtime-removals.json`, `${APP}/launcher/apply-removals.mjs`, `${PLUGIN}/voices/renamed-to.wav`]);
     assert.deepEqual(diff.changed.map(item => item.name), [`${APP}/bridge/convai-bridge.mjs`, BASE_ENTRY, RELEASE_ENTRY]);
-    assert.deepEqual(diff.removed.map(item => item.name), [NOTE, 'archive/pc/mod/convai_old.archive', `${APP}/bridge/old-module.mjs`, `${PLUGIN}/voices/pack-owned.wav`, `${PLUGIN}/voices/renamed-from.wav`]);
+    assert.deepEqual(diff.removed.map(item => item.name), [NOTE, 'archive/pc/mod/convai_old.archive', `${APP}/models/old-model.bin`, `${PLUGIN}/voices/pack-owned.wav`, `${PLUGIN}/voices/renamed-from.wav`]);
     assert.equal(diff.unchanged, 6);
     // Windows names are not case sensitive: a path that only changes case is the same file.
     const cased = compareRuntimes(await runtimeFiles([await makeZip(join(dir, 'a.zip'), {'Red4ext/X.TXT': 'same'})]), await runtimeFiles([await makeZip(join(dir, 'b.zip'), {'red4ext/x.txt': 'same'})]));
@@ -107,7 +107,7 @@ test('the update holds only what changed, the new version stamp and a removal li
     assert.equal(JSON.parse(held[RELEASE_ENTRY]).version, '0.2.3');
     // Removed: the bridge module, the renamed clip, the old archive, and what the new Runtime's own list declares. Not removed: the file a pack ships and the
     // install note at the top of the game folder (the start step may only delete under the folders a Runtime installs into).
-    assert.deepEqual(JSON.parse(held[REMOVALS_ENTRY]), {version: '0.2.3', removes: ['archive/pc/mod/convai_old.archive', `${APP}/bridge/old-module.mjs`, `${PLUGIN}/voices/declared-gone.wav`, `${PLUGIN}/voices/renamed-from.wav`]});
+    assert.deepEqual(JSON.parse(held[REMOVALS_ENTRY]), {version: '0.2.3', removes: ['archive/pc/mod/convai_old.archive', `${APP}/models/old-model.bin`, `${PLUGIN}/voices/declared-gone.wav`, `${PLUGIN}/voices/renamed-from.wav`]});
     assert.deepEqual(summary.leftInPlace, [`${NOTE} (outside the folders a Runtime installs into)`, `${PLUGIN}/voices/pack-owned.wav (an optional pack ships it)`]);
     assert.equal(summary.added, 4);
     assert.equal(summary.changed, 3);
@@ -222,10 +222,10 @@ test('extra removals are listed when the start step may delete them and refused 
     const summary = await buildRuntimeUpdate({oldZips: [await makeZip(join(dir, 'old.zip'), old)], newZips: [await makeZip(join(dir, 'new.zip'), next)], out: join(dir, 'out'), listing: null,
       remove: [`${PLUGIN}/voices/extra.wav`, `${PLUGIN}/launcher.ini`, 'bin/x64/Cyberpunk2077.exe', `${APP}/bridge/new-module.mjs`], log: quiet});
     const held = await entriesOf(summary.zip);
-    assert.deepEqual(JSON.parse(held[REMOVALS_ENTRY]).removes, ['archive/pc/mod/convai_old.archive', `${APP}/bridge/old-module.mjs`, `${PLUGIN}/voices/declared-gone.wav`,
+    assert.deepEqual(JSON.parse(held[REMOVALS_ENTRY]).removes, ['archive/pc/mod/convai_old.archive', `${APP}/models/old-model.bin`, `${PLUGIN}/voices/declared-gone.wav`,
       `${PLUGIN}/voices/extra.wav`, `${PLUGIN}/voices/pack-owned.wav`, `${PLUGIN}/voices/renamed-from.wav`]);
     assert.deepEqual(summary.leftInPlace.map(line => line.replace(/ \(.*\)$/, '')).sort(), [NOTE, `${APP}/bridge/new-module.mjs`, 'bin/x64/Cyberpunk2077.exe', `${PLUGIN}/launcher.ini`].sort());
-    assert.match(summary.leftInPlace.find(line => line.includes('new-module')), /the new Runtime ships it/);
+    assert.match(summary.leftInPlace.find(line => line.includes('new-module')), /the new Runtime ships it|code the Scripts install/);
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
 

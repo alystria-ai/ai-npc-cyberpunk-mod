@@ -37,6 +37,13 @@ dry-run builds of 0.3.1: 8,676 files each, 8,662 identical; the other twelve are
 differ in `GameVariant.reds` and `release.json`. The optional packs (Local AI, Mature, microphone, OmniVoice, language packs) hold no game-dependent
 file and are shared.
 
+**From 0.3.4 the code, the launcher and the native plugin are in the Scripts** (docs/PACKAGING.md, "Code in the Scripts"): each variant's Scripts carry
+the native plugin built for that game (`red4ext/plugins/AiNpcCyberpunkCode/CyberpunkConvaiNative.dll`), the same launcher and the same code copy, and
+`code.json` names the game. The two Scripts then differ in `GameVariant.reds`, `release.json`, `code.json` and the native DLL. The Runtime base is still
+built per game: the two differ in `app/release.json` and, with `fix/driver-guard-2.31-only`, in the driver guard archive (2.31 only). Both
+`release.json` files name the game, and the Scripts name the oldest Runtime base they run on (`runtimeBase`); the `build` check below is unchanged, the
+`versions` row compares the base with `runtimeBase` instead of requiring equal versions.
+
 ## Building
 
 ```

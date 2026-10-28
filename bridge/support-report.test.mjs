@@ -354,12 +354,12 @@ test('the launcher log is found in the released plugin folder, with the old deve
   const f = await fakeInstall();
   try {
     const launcherPath = async () => (await locateLogs({game: f.game, modRoot: f.modRoot, runtime: f.runtime})).find(row => row.id === 'launcher').path;
-    const released = join(f.game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod', 'launcher.log');
+    const released = join(f.game, 'red4ext', 'plugins', 'AiNpcCyberpunkCode', 'launcher.log');
     const old = join(f.game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher', 'launcher.log');
     assert.equal(await launcherPath(), released, 'neither exists: the released folder is where it will appear');
     await writeFile(old, 'old');
     assert.equal(await launcherPath(), old, 'only the old folder has one');
-    await mkdir(join(f.game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod'), {recursive: true});
+    await mkdir(join(f.game, 'red4ext', 'plugins', 'AiNpcCyberpunkCode'), {recursive: true});
     await writeFile(released, `2026-10-18 10:00:00 Game directory: C:\\Users\\${PLANTED.windowsUser}\\Games`);
     assert.equal(await launcherPath(), released, 'both exist: the released folder wins');
     const report = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project, reportId: 'r-launcher'});

@@ -31,7 +31,7 @@
 //    model on the processor (no sound, no graphics card, no game).
 import {spawn, spawnSync} from 'node:child_process';
 import {copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import net from 'node:net';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -52,6 +52,7 @@ import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs';
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
+import {CODE_FOLDER, INSTALLER, isCodeGamePath} from './lib/code-payload.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -346,7 +347,9 @@ async function main() {
     }
 
     // Prepare the data folder exactly as the launcher does, then exercise voice and face.
-    const prepare = spawnSync(node, [join(app, 'launcher/start-service.mjs'), '--prepare-only', '--game-root', game],
+    // From 0.3.4 the launcher starts the Scripts' install-code.mjs, which copies the Scripts' code into app/ and then runs start-service.mjs.
+    const codeFolder = join(game, CODE_FOLDER);
+    const prepare = spawnSync(node, [join(codeFolder, INSTALLER), '--prepare-only', '--game-root', game],
       {env: cleanEnv(), encoding: 'utf8'});
     let summary = {};
     try { summary = JSON.parse(prepare.stdout.trim().split('\n').pop()); } catch {}
@@ -371,7 +374,9 @@ async function main() {
         `${dropped.length} no longer shipped, ${dropped.length - stayed.length} gone, ${stayed.length} left in place${stayed.length ? ` (${stayed.slice(0, 5).map(name => `${name} [${why(name)}]`).join('; ')})` : ''}`);
       // Nothing else is in the Runtime's folders: no file of the previous Runtime the update missed.
       const extra = (await walk(join(game, PLUGIN_FOLDER), {skip: rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel)})).map(rel => `${PLUGIN_FOLDER}/${rel}`)
-        .filter(name => !shippedNow.has(name.toLowerCase()) && !stayed.includes(name) && !name.endsWith('.pyc') && !name.startsWith(`${PLUGIN_FOLDER}/app/${STEPS_DIR}/step-`));
+        .filter(name => !shippedNow.has(name.toLowerCase()) && !stayed.includes(name) && !name.endsWith('.pyc') && !name.startsWith(`${PLUGIN_FOLDER}/app/${STEPS_DIR}/step-`)
+          // The code install-code.mjs copied in from the Scripts (0.3.4 and later): not the Runtime base's.
+          && !isCodeGamePath(name) && !/\.retired$/.test(name));
       // The update step markers (bridge/runtime-steps.mjs): the update adds only its own step-<from>-to-<to>.json and never base.json (a previous Runtime without markers has none, so the
       // chain starts at this step and shows no gap); the setup check's own walk reaches the installed version.
       const stepsDir = join(app, STEPS_DIR), stepNames = existsSync(stepsDir) ? await readdir(stepsDir) : [];
@@ -387,18 +392,24 @@ async function main() {
       const target = join(game, name.replace(/\.parts\.json$/, ''));
       check(`split file joined: ${name.split('/').pop().replace('.parts.json', '')}`, existsSync(target) && existsSync(`${target}.verified`));
     }
-    // RED4ext plugin folders: the shipped launcher and the optional native plugin, nothing else. The development launcher
+    // RED4ext plugin folders: the Scripts' code folder (the launcher and the native plugin) and the Runtime base's folder, nothing else. An update from
+    // 0.3.3 or older also has the old native plugin's folder (its DLL is renamed by the launcher). The development launcher
     // (red4ext/plugins/CyberpunkConvaiLauncher) would start a second service.
     const plugins = join(game, 'red4ext/plugins');
     const pluginFolders = (await readdir(plugins, {withFileTypes: true})).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
     check('only the shipped plugins are installed (no development launcher)',
-      pluginFolders.every(name => ['AiNpcCyberpunkMod', 'AiNpcCyberpunkModNative'].includes(name)) && pluginFolders.includes('AiNpcCyberpunkMod'), pluginFolders.join(', '));
+      pluginFolders.every(name => ['AiNpcCyberpunkCode', 'AiNpcCyberpunkMod', ...(update ? ['AiNpcCyberpunkModNative'] : [])].includes(name))
+        && pluginFolders.includes('AiNpcCyberpunkMod') && pluginFolders.includes('AiNpcCyberpunkCode'), pluginFolders.join(', '));
     // A clean install has no folder under the mod's first name, and the first start finds no old installation to move.
     check('no old-name folders on a clean install', summary.legacy === null
       && !existsSync(join(plugins, 'CyberpunkConvai')) && !existsSync(join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai')), JSON.stringify(summary.legacy));
     // Mod Organizer 2: the files the game and the service exchange exist from the start, and so does launcher.log, so nothing creates them new.
     const placeholders = (await loadRuntimeExchange(project)).exchange.filter(name => !existsSync(join(mod, 'runtime', name)));
-    check('runtime/ exchange placeholders and launcher.log are installed', placeholders.length === 0 && existsSync(join(plugin, 'launcher.log')), placeholders.slice(0, 8).join(', '));
+    check('runtime/ exchange placeholders are installed', placeholders.length === 0, placeholders.slice(0, 8).join(', '));
+    // The code the Scripts carry is installed into the Runtime's app/, listed as the Scripts' release.
+    const installedCode = (() => { try { return JSON.parse(readFileSync(join(app, 'defaults/scripts-code.json'), 'utf8')); } catch { return null; } })();
+    check('the Scripts\' code is installed in the Runtime (defaults/scripts-code.json names this release)', installedCode?.release === version
+      && installedCode.files.every(row => existsSync(join(app, ...row.path.split('/')))), installedCode ? `${installedCode.files.length} files` : 'missing');
     // What the Runtime must carry for its features (packaging/lib/runtime-required.mjs): V's voice clips and its OmniVoice lists.
     // A Runtime without them (0.2 and 0.2.1 had no V clips) fails here, and so does one whose clips the bridge's own loader rejects.
     // The Runtime ships no Convai key: a build with the token backend carries its settings (app/defaults/convai-auth.json, enabled, no fallback) and no
@@ -455,11 +466,9 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
     try { vResult = JSON.parse(vLoad.stdout.trim().split('\n').pop()); } catch { /* reported below */ }
     check("the packaged bridge loads both of V's voice clips (names and hashes match the manifest)", vLoad.status === 0 && vResult.genders?.join() === 'female,male' && !vResult.log?.length,
       vLoad.status === 0 ? `${vResult.genders?.join(', ') || 'none'}${vResult.log?.length ? `; ${vResult.log.join('; ')}` : ''}` : (vLoad.stderr || '').slice(-300));
-    const nativeDll = join(plugins, 'AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll');
+    const nativeDll = join(codeFolder, 'CyberpunkConvaiNative.dll');
     const nativeOff = join(mod, 'runtime/native-off.txt');
-    const release = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
     if (existsSync(nativeDll)) {
-      check('native plugin matches the recorded hash', release.nativePlugin === await sha256File(nativeDll), (release.nativePlugin || '').slice(0, 12));
       if (existsSync(pluginHost)) {
         const inspected = spawnSync(pluginHost, [nativeDll], {env: cleanEnv(), encoding: 'utf8'});
         check('native plugin exports what RED4ext needs and imports only system DLLs', inspected.status === 0, (inspected.stdout || '').trim().split('\n').slice(-3).join(' | '));
@@ -467,10 +476,11 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
       const buildConfig = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8'));
       // The plugin's own parser rule: one name per line, '#' starts a comment, a missing file means all on.
       const off = existsSync(nativeOff) ? (await readFile(nativeOff, 'utf8')).split(/\r?\n/).map(line => line.replace(/#.*/, '').trim().toLowerCase()).filter(Boolean) : null;
-      check('runtime/native-off.txt ships and lists exactly the configured off systems (none: every system on)', JSON.stringify(off) === JSON.stringify(buildConfig.native.off), off ? (off.join(', ') || 'no system off') : 'missing');
-      check('native plugin licences ship beside the DLL', ['RED4ext.SDK-LICENSE.md', 'yyjson-LICENSE.txt', 'README.txt'].every(name => existsSync(join(plugins, 'AiNpcCyberpunkModNative', name))));
+      // From 0.3.4 no package ships native-off.txt (a missing file means every system is on); an older Runtime's file lists none.
+      check('runtime/native-off.txt switches off exactly the configured systems (none: every system on)', JSON.stringify(off ?? []) === JSON.stringify(buildConfig.native.off), off ? (off.join(', ') || 'no system off') : 'no file');
+      check('native plugin licences ship beside the DLL', ['RED4ext.SDK-LICENSE.md', 'yyjson-LICENSE.txt', 'README.txt'].every(name => existsSync(join(codeFolder, name))));
     } else {
-      check('package without the native plugin has no native-off.txt', !existsSync(nativeOff) && release.nativePlugin === 'none');
+      check('package without the native plugin has no native-off.txt', !existsSync(nativeOff));
     }
     if (localAi) await localAiChecks({work, game, app});
 
@@ -494,7 +504,7 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
     const result = join(work, 'host-result.json');
     const status = join(mod, 'runtime/bridge-service.json');
     await rm(status, {force: true});
-    const hostProcess = spawn(join(game, 'bin/x64/Cyberpunk2077.exe'), [join(plugin, 'CyberpunkConvai.dll'), result, '900000'],
+    const hostProcess = spawn(join(game, 'bin/x64/Cyberpunk2077.exe'), [join(codeFolder, 'CyberpunkConvai.dll'), result, '900000'],
       {env: cleanEnv(), windowsHide: true, stdio: 'ignore'});
     // A package with the token backend's settings starts without setup, like one with the player's own key.
     const keyed = !!keyFile || signIn;

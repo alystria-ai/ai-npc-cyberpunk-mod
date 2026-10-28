@@ -58,9 +58,9 @@ process.stdin.resume();
 setInterval(() => {}, 1000);
 `;
 
-// ini: null writes no launcher.ini. runtime: true gives the plugin folder the Runtime's own node and start script (what the built-in
-// settings run), recording into app/launcher/result.jsonl.
-async function fakeGame(t, {mod = true, cet = true, ini, runtime = false} = {}) {
+// ini: null writes no launcher.ini. runtime: true gives the Runtime base's folder its node and the launcher's folder the Scripts' install-code.mjs
+// (what the built-in settings run), recording into result.jsonl beside the DLL. old: true puts an older Runtime's two DLLs at their old places.
+async function fakeGame(t, {mod = true, cet = true, ini, runtime = false, old = false} = {}) {
   const root = await mkdtemp(join(tmpdir(), prefix + 'space dir '));
   const game = join(root, 'Cyberpunk 2077'), x64 = join(game, 'bin', 'x64');
   const plugin = join(game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher');
@@ -79,11 +79,19 @@ async function fakeGame(t, {mod = true, cet = true, ini, runtime = false} = {}) 
     await writeFile(join(plugin, 'launcher.ini'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]));
   }
   let recorded = result;
+  // The built-in settings (launcher 1.1.0): Node from the Runtime base's folder, the Scripts' install-code.mjs beside the DLL.
+  const runtimePlugin = join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod');
   if (runtime) {
-    await mkdir(join(plugin, 'app', 'node'), {recursive: true}); await mkdir(join(plugin, 'app', 'launcher'), {recursive: true});
-    await link(process.execPath, join(plugin, 'app', 'node', 'node.exe')).catch(() => copyFile(process.execPath, join(plugin, 'app', 'node', 'node.exe')));
-    await writeFile(join(plugin, 'app', 'launcher', 'start-service.mjs'), builtInStart);
-    recorded = join(plugin, 'app', 'launcher', 'result.jsonl');
+    await mkdir(join(runtimePlugin, 'app', 'node'), {recursive: true});
+    await link(process.execPath, join(runtimePlugin, 'app', 'node', 'node.exe')).catch(() => copyFile(process.execPath, join(runtimePlugin, 'app', 'node', 'node.exe')));
+    await writeFile(join(plugin, 'install-code.mjs'), builtInStart);
+    recorded = join(plugin, 'result.jsonl');
+  }
+  // An older Runtime's launcher and native plugin (0.3.3 and older shipped them) at their old places: the launcher renames both.
+  if (old) {
+    await mkdir(join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkModNative'), {recursive: true});
+    await writeFile(join(runtimePlugin, 'CyberpunkConvai.dll'), 'old launcher');
+    await writeFile(join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkModNative', 'CyberpunkConvaiNative.dll'), 'old native');
   }
   const children = [];
   t.after(async () => {
@@ -95,7 +103,7 @@ async function fakeGame(t, {mod = true, cet = true, ini, runtime = false} = {}) 
     assert(basename(target).startsWith(prefix));
     await rm(target, {recursive: true, force: true, maxRetries: 5, retryDelay: 100});
   });
-  return {root, game, plugin, result: recorded, probePath, children, hostResult: join(root, 'host.json'),
+  return {root, game, plugin, runtimePlugin, result: recorded, probePath, children, hostResult: join(root, 'host.json'),
     status: join(game, ...modRuntime, 'bridge-service.json'), log: join(plugin, 'launcher.log')};
 }
 
@@ -131,7 +139,7 @@ test('the launcher reports a runtime-independent RED4ext plugin and starts the h
       .find(row => row.event === 'started');
     const info = JSON.parse(await readFile(f.hostResult, 'utf8'));
     assert.deepEqual(info, {...info, api: 1, sdk: [0, 5, 0, 0, 0], name: 'CyberpunkConvaiLauncher',
-      author: 'AI NPC Cyberpunk Mod', version: [1, 0, 1, 0, 0], runtime: [65535, 65535, 65535, 65535], load: true});
+      author: 'AI NPC Cyberpunk Mod', version: [1, 1, 0, 0, 0], runtime: [65535, 65535, 65535, 65535], load: true});
     assert.deepEqual(started.argv, ['C:\\path with space\\', 'say "hi"', `${f.game}\\bin`,
       '--game-pid', String(info.pid), '--game-root', f.game, '--lifeline', 'stdin']);
     assert.equal(started.cwd.toLowerCase(), f.root.toLowerCase());
@@ -258,7 +266,7 @@ test('without a launcher.ini, or with one that names no program, the launcher st
         .find(row => row.event === 'started');
       const info = JSON.parse(await readFile(f.hostResult, 'utf8'));
       assert.deepEqual(started.argv, ['--game-pid', String(info.pid), '--game-root', f.game, '--lifeline', 'stdin']);
-      assert.equal(started.cwd.toLowerCase(), join(f.plugin, 'app').toLowerCase(), 'the working directory is the Runtime\'s app folder');
+      assert.equal(started.cwd.toLowerCase(), f.plugin.toLowerCase(), 'the working directory is the launcher\'s own folder');
       const status = JSON.parse(await readFile(f.status, 'utf8'));
       assert.equal(status.state, 'starting'); assert.equal(status.code, 'launcher-started');
       const log = await readFile(f.log, 'utf8');
@@ -280,4 +288,26 @@ test('without a launcher.ini and without the Runtime\'s node the failure is the 
     assert.match(await readFile(disabled.log, 'utf8'), /disabled in launcher\.ini/);
     assert.equal(existsSync(disabled.status), false);
     assert.deepEqual(await events(disabled.result), []);
+  });
+
+test("an older Runtime's launcher and native plugin are renamed before they load, and the service starts once from the Scripts",
+  {skip, timeout: 180_000}, async t => {
+    const f = await fakeGame(t, {ini: null, runtime: true, old: true});
+    const host = runHost(f, 60_000);
+    await until(() => events(f.result), rows => rows.some(row => row.event === 'started'), 'the built-in start did not happen');
+    assert.equal(existsSync(join(f.runtimePlugin, 'CyberpunkConvai.dll')), false);
+    assert.equal(await readFile(join(f.runtimePlugin, 'CyberpunkConvai.dll.retired'), 'utf8'), 'old launcher');
+    const nativeFolder = join(f.game, 'red4ext', 'plugins', 'AiNpcCyberpunkModNative');
+    assert.equal(existsSync(join(nativeFolder, 'CyberpunkConvaiNative.dll')), false);
+    assert.equal(await readFile(join(nativeFolder, 'CyberpunkConvaiNative.dll.retired'), 'utf8'), 'old native');
+    const log = await readFile(f.log, 'utf8');
+    assert.match(log, /Retired an older Runtime's .*CyberpunkConvai\.dll .*before it loaded/);
+    assert.match(log, /Retired an older Runtime's .*CyberpunkConvaiNative\.dll .*before it loaded/);
+    await writeFile(f.hostResult + '.exit', 'exit');
+    assert.equal(await host.exited, 0);
+    // A second start (an old full Runtime extracted again brings the DLL back): retired again, the older .retired file replaced.
+    await writeFile(join(f.runtimePlugin, 'CyberpunkConvai.dll'), 'old launcher again');
+    const again = runHost(f, 300);
+    assert.equal(await again.exited, 0);
+    assert.equal(await readFile(join(f.runtimePlugin, 'CyberpunkConvai.dll.retired'), 'utf8'), 'old launcher again');
   });

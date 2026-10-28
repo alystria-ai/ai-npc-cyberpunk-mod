@@ -406,7 +406,7 @@ function M.new(options)
         result.reports = (published and published.reports) or REPORTS_FALLBACK
         local bridge = pick('bridge-stderr') and dirName(pick('bridge-stderr')) or stateDirectory
         result.bridge = bridge or DATA_FALLBACK
-        result.launcher = pick('launcher') or underGame('red4ext\\plugins\\AiNpcCyberpunkMod\\launcher.log')
+        result.launcher = pick('launcher') or underGame('red4ext\\plugins\\AiNpcCyberpunkCode\\launcher.log')
         result.cet = pick('cet') and dirName(pick('cet')) or underGame('bin\\x64\\plugins\\cyber_engine_tweaks')
         result.redscript = pick('redscript') or underGame('r6\\logs\\redscript_rCURRENT.log')
         result.red4ext = pick('red4ext') and dirName(pick('red4ext')) or underGame('red4ext\\logs')

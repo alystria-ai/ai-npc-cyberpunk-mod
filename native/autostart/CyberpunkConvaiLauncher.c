@@ -59,22 +59,31 @@ _Static_assert(offsetof(R4ePluginInfo, name) == 16 && offsetof(R4ePluginInfo, au
     && sizeof(R4ePluginInfo) == 56, "PluginInfo layout");
 
 #define LAUNCHER_VERSION_MAJOR 1
-#define LAUNCHER_VERSION_MINOR 0
-#define LAUNCHER_VERSION_PATCH 1
+#define LAUNCHER_VERSION_MINOR 1
+#define LAUNCHER_VERSION_PATCH 0
 #define PATH_CAP 1024
 #define VALUE_CAP 1024
 #define COMMAND_CAP 16384
 #define MAX_ARGS 24
 #define MOD_RELATIVE L"\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod"
 
-/* What the shipped launcher.ini says (packaging/lib/launcher-ini.mjs); used when launcher.ini is missing or names no program. */
-#define DEFAULT_PROGRAM L"%PLUGIN%\\app\\node\\node.exe"
+/* The built-in settings (packaging/lib/launcher-ini.mjs). From launcher 1.1.0 (release 0.3.4) no package ships a launcher.ini, so these are
+ * what runs; a launcher.ini a player puts beside the DLL still overrides them. This DLL ships in the Scripts, in red4ext/plugins/AiNpcCyberpunkCode/
+ * with the mod's own code; the Runtime base (red4ext/plugins/AiNpcCyberpunkMod/) brings Node and the large parts. install-code.mjs brings the
+ * Runtime's copy of the code up to the Scripts' version and then runs the service (docs/PACKAGING.md, "Code in the Scripts"). */
+#define DEFAULT_PROGRAM L"%GAME%\\red4ext\\plugins\\AiNpcCyberpunkMod\\app\\node\\node.exe"
 #define DEFAULT_ARG_COUNT 3
 #define DEFAULT_ARG1 L"--eval"
 #define DEFAULT_ARG2 L"const f=require('node:fs');let p=process.argv[1];try{f.statSync(p)}catch{try{p=f.realpathSync.native(p)}catch{}}" \
     L"import(require('node:url').pathToFileURL(p).href)"
-#define DEFAULT_ARG3 L"%PLUGIN%\\app\\launcher\\start-service.mjs"
-#define DEFAULT_DIRECTORY L"%PLUGIN%\\app"
+#define DEFAULT_ARG3 L"%PLUGIN%\\install-code.mjs"
+#define DEFAULT_DIRECTORY L"%PLUGIN%"
+/* The two DLLs a Runtime of 0.3.3 or older ships (game-relative): that Runtime's launcher and its native plugin. Both ship in the Scripts
+ * beside this DLL now, so the old copies are renamed (+ RETIRED_SUFFIX) before RED4ext loads them: RED4ext lists every plugin first and then
+ * loads them in folder order, and on NTFS AiNpcCyberpunkCode comes before AiNpcCyberpunkMod and AiNpcCyberpunkModNative. */
+#define OLD_LAUNCHER_RELATIVE L"\\red4ext\\plugins\\AiNpcCyberpunkMod\\CyberpunkConvai.dll"
+#define OLD_NATIVE_RELATIVE L"\\red4ext\\plugins\\AiNpcCyberpunkModNative\\CyberpunkConvaiNative.dll"
+#define RETIRED_SUFFIX L".retired"
 static const wchar_t *const DEFAULT_ARGS[DEFAULT_ARG_COUNT] = {DEFAULT_ARG1, DEFAULT_ARG2, DEFAULT_ARG3};
 
 static HANDLE g_lifeline = NULL; /* Write end. Deliberately never closed. */
@@ -215,14 +224,35 @@ static void publish_status(const wchar_t *mod, const char *state, const char *co
     if (!ok || !MoveFileExW(temporaryPath, NATIVE(target, nativeTarget), MOVEFILE_REPLACE_EXISTING)) DeleteFileW(temporaryPath);
 }
 
+/* What retire() found: nothing there (or this DLL is that file), the old copy renamed before anything loaded it, the old copy already loaded in
+ * this process (it was listed first; renamed for the next start when that worked), or a copy that could not be renamed and will load. */
+enum retired { RETIRE_NONE, RETIRE_DONE, RETIRE_LOADED, RETIRE_FAILED };
+
+static enum retired retire(const wchar_t *game, const wchar_t *relative, const wchar_t *own) {
+    wchar_t path[PATH_CAP], target[PATH_CAP], nativePath[PATH_CAP + 16], nativeTarget[PATH_CAP + 16];
+    if (!join(path, PATH_CAP, game, relative) || !join(target, PATH_CAP, path, RETIRED_SUFFIX)) return RETIRE_NONE;
+    if (_wcsicmp(path, own) == 0 || !file_exists(path)) return RETIRE_NONE;
+    bool loaded = GetModuleHandleW(path) != NULL;
+    if (MoveFileExW(NATIVE(path, nativePath), NATIVE(target, nativeTarget), MOVEFILE_REPLACE_EXISTING)) {
+        log_line(L"Retired an older Runtime's %ls (renamed to %ls%ls)%ls.", path, wcsrchr(path, L'\\') + 1, RETIRED_SUFFIX,
+            loaded ? L"; it was already loaded, so it serves this session" : L" before it loaded");
+        return loaded ? RETIRE_LOADED : RETIRE_DONE;
+    }
+    DWORD error = GetLastError();
+    log_line(L"Could not retire an older Runtime's %ls (Windows error %lu)%ls.", path, error, loaded ? L"; it is loaded" : L"");
+    return loaded ? RETIRE_LOADED : RETIRE_FAILED;
+}
+
 static void launch(HMODULE self) {
-    wchar_t game[PATH_CAP], plugin[PATH_CAP], mod[PATH_CAP], path[PATH_CAP], ini[PATH_CAP];
+    wchar_t game[PATH_CAP], plugin[PATH_CAP], mod[PATH_CAP], path[PATH_CAP], ini[PATH_CAP], own[PATH_CAP];
     DWORD length = GetModuleFileNameW(NULL, game, PATH_CAP);
     if (length == 0 || length >= PATH_CAP) return;
     /* <game>\bin\x64\Cyberpunk2077.exe -> <game> */
     if (!strip_component(game) || !strip_component(game) || !strip_component(game)) return;
     length = GetModuleFileNameW(self, plugin, PATH_CAP);
-    if (length == 0 || length >= PATH_CAP || !strip_component(plugin)) return;
+    if (length == 0 || length >= PATH_CAP) return;
+    wcscpy_s(own, PATH_CAP, plugin);
+    if (!strip_component(plugin)) return;
     wchar_t nativeLog[PATH_CAP + 16];
     if (!join(path, PATH_CAP, plugin, L"\\launcher.log")) return;
     g_log = CreateFileW(NATIVE(path, nativeLog), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS,
@@ -230,6 +260,21 @@ static void launch(HMODULE self) {
     log_line(L"CyberpunkConvaiLauncher %d.%d.%d in game process %lu", LAUNCHER_VERSION_MAJOR,
         LAUNCHER_VERSION_MINOR, LAUNCHER_VERSION_PATCH, GetCurrentProcessId());
     log_line(L"Game directory: %ls", game);
+
+    /* An older Runtime's launcher and native plugin (0.3.3 and older shipped them; the Scripts do now) must not run beside these: two launchers
+     * would start two services, and the old one runs the old code. The native plugin beside this DLL stands down by itself while an old copy is
+     * loaded or still in place (native/core/src/plugin/Main.cpp, AnotherCopyServes). */
+    enum retired oldNative = retire(game, OLD_NATIVE_RELATIVE, own);
+    (void)oldNative;
+    enum retired oldLauncher = retire(game, OLD_LAUNCHER_RELATIVE, own);
+    if (oldLauncher == RETIRE_LOADED) {
+        log_line(L"Not started: the older Runtime's launcher already started the conversation service in this session. From the next start this launcher does.");
+        return;
+    }
+    if (oldLauncher == RETIRE_FAILED) {
+        log_line(L"Not started: the older Runtime's launcher could not be retired and starts the service itself.");
+        return;
+    }
 
     /* Start only when the mod can actually run: CET and the CyberpunkConvai mod are installed. */
     if (!join(mod, PATH_CAP, game, MOD_RELATIVE)) return;
@@ -391,7 +436,11 @@ __declspec(dllexport) void Query(R4ePluginInfo *info) {
     const R4eSemVer version = {LAUNCHER_VERSION_MAJOR, LAUNCHER_VERSION_MINOR, LAUNCHER_VERSION_PATCH, {0, 0}};
     const R4eFileVer independent = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF}; /* RED4EXT_V1_RUNTIME_VERSION_INDEPENDENT */
     info->sdk = sdk;
+#ifdef CONVAI_BASE_MARKER
+    info->name = L"AiNpcCyberpunkModRuntimeBase";
+#else
     info->name = L"CyberpunkConvaiLauncher";
+#endif
     info->author = L"AI NPC Cyberpunk Mod";
     info->version = version;
     info->runtime = independent;
@@ -400,6 +449,14 @@ __declspec(dllexport) void Query(R4ePluginInfo *info) {
 /* EMainReason is an 8-bit enum: Load = 0, Unload = 1. */
 __declspec(dllexport) bool Main(HMODULE handle, uint8_t reason, const void *sdk) {
     (void)sdk;
+#ifdef CONVAI_BASE_MARKER
+    /* The Runtime base's marker plugin (red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvaiBase.dll, built from this file with
+     * CONVAI_BASE_MARKER): it does nothing at all. It exists so that the Runtime base zip has a RED4ext plugin in the place Vortex's
+     * Cyberpunk extension expects one (red4ext/plugins/<name>/<name>.dll); without it the extension refuses a zip whose only DLLs lie deeper
+     * (Python, llama.cpp). The launcher that starts the service is the Scripts' (docs/PACKAGING.md, "Code in the Scripts"). */
+    (void)handle; (void)reason;
+    return true;
+#else
     if (reason == 0 && !g_started) {
         g_started = true;
         launch(handle);
@@ -407,4 +464,5 @@ __declspec(dllexport) bool Main(HMODULE handle, uint8_t reason, const void *sdk)
     }
     /* Unload: nothing to do. The lifeline closes when the process exits. */
     return true;
+#endif
 }

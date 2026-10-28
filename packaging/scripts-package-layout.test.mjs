@@ -5,6 +5,7 @@
 import {test, before, after} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {existsSync, readFileSync} from 'node:fs';
 import {mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -28,7 +29,12 @@ function build(args, env = {}) {
     cwd: project, encoding: 'utf8', timeout: 180_000, env: {...process.env, GITHUB_ACTIONS: '', ...env},
   });
 }
-const buildArgs = (out, cache, extra = []) => ['--version', VERSION, '--dry-run', '--packages', 'scripts', '--worktree', '--out', out, '--cache', cache, ...extra];
+// From 0.3.4 the Scripts carry the code (docs/PACKAGING.md, "Code in the Scripts"): the launcher and the native plugin are compiled by the build. These
+// layout tests give a stand-in launcher and leave the native plugin and the picture helper out, so they need no compiler.
+const CODE = 'red4ext/plugins/AiNpcCyberpunkCode';
+const FAKE_LAUNCHER = join(tmpdir(), `scripts-layout-launcher-${process.pid}.dll`);
+const CODE_ARGS = ['--launcher', FAKE_LAUNCHER, '--no-native', '--no-vision'];
+const buildArgs = (out, cache, extra = []) => ['--version', VERSION, '--dry-run', '--packages', 'scripts', '--worktree', '--out', out, '--cache', cache, ...CODE_ARGS, ...extra];
 
 let root, out, packages, zipPath, entries, extracted, built;
 const names = () => entries.map(entry => entry.name);
@@ -36,6 +42,7 @@ const under = prefix => names().filter(name => name.startsWith(prefix));
 const text = async rel => readFile(join(extracted, ...rel.split('/')), 'utf8');
 
 before(async () => {
+  await writeFile(FAKE_LAUNCHER, 'stand-in launcher');
   root = await mkdtemp(join(tmpdir(), 'scripts-package-layout-'));
   out = join(root, 'out'); packages = join(out, 'packages'); extracted = join(root, 'extracted');
   built = build(buildArgs(out, join(root, 'cache')));
@@ -46,7 +53,7 @@ before(async () => {
   const result = spawnSync(tar, ['-xf', zipPath, '-C', extracted], {encoding: 'utf8'});
   if (result.status !== 0) throw Error(`tar could not extract the Scripts zip: ${result.stderr}`);
 });
-after(async () => { if (root) await rm(root, {recursive: true, force: true}); });
+after(async () => { if (root) await rm(root, {recursive: true, force: true}); await rm(FAKE_LAUNCHER, {force: true}); });
 
 test('a Scripts-only dry run builds with no download, model or key, and writes the zip, its file list and the manifest (no checksum file)', async () => {
   assert.equal(built.status, 0, built.stderr + built.stdout);
@@ -79,8 +86,8 @@ test('the manifest and the file list agree with the zip, byte for byte', async (
   }
 });
 
-test('every entry sits in the CET mod folder, the redscript folder or is the install note, and every path fits a typical game folder', () => {
-  const stray = names().filter(name => name !== INSTALL_NOTE && !name.startsWith(`${MOD}/`) && !name.startsWith('r6/scripts/CyberpunkConvai/'));
+test('every entry sits in the CET mod folder, the redscript folder, the code folder or is the install note, and every path fits a typical game folder', () => {
+  const stray = names().filter(name => name !== INSTALL_NOTE && !name.startsWith(`${MOD}/`) && !name.startsWith('r6/scripts/CyberpunkConvai/') && !name.startsWith(`${CODE}/`));
   assert.deepEqual(stray, []);
   const limit = config.layout.maxPathLength - config.layout.maxGameRootLength - 1;
   assert.deepEqual(names().filter(name => name.length > limit), []);
@@ -88,10 +95,28 @@ test('every entry sits in the CET mod folder, the redscript folder or is the ins
   assert.equal(new Set(names().map(name => name.toLowerCase())).size, names().length, 'no two names differ only by case (Windows would merge them)');
 });
 
-test('the package is text only: no binary, no archive, no executable, no model', () => {
-  const unexpected = names().filter(name => !/\.(?:lua|reds|json|txt|log|ndjson)$/.test(name));
+test('outside the code folder the package is text only: no binary, no archive, no executable, no model', () => {
+  const unexpected = names().filter(name => !name.startsWith(`${CODE}/`) && !/\.(?:lua|reds|json|txt|log|ndjson)$/.test(name));
   assert.deepEqual(unexpected, []);
-  assert.deepEqual(entries.filter(entry => entry.method !== 8 && entry.uncompressed > 0), [], 'text is deflated, never stored');
+  assert.deepEqual(entries.filter(entry => !entry.name.startsWith(`${CODE}/`) && entry.method !== 8 && entry.uncompressed > 0), [], 'text is deflated, never stored');
+});
+
+test('the code folder holds the launcher, install-code.mjs and one complete copy of the code, listed in code.json with sizes and hashes', async () => {
+  const manifest = JSON.parse(await text(`${CODE}/code.json`));
+  assert.equal(manifest.version, 1); assert.equal(manifest.package, 'scripts-code'); assert.equal(manifest.release, VERSION);
+  assert.equal(manifest.runtimeBase, config.runtimeBase.required); assert.equal(manifest.game, '2.5');
+  assert.equal(await text(`${CODE}/install-code.mjs`), await readFile(resolve(project, 'packaging/runtime/install-code.mjs'), 'utf8'));
+  assert.equal(await text(`${CODE}/CyberpunkConvai.dll`), 'stand-in launcher');
+  const listed = new Set(manifest.files.map(row => `${CODE}/app/${row.path}`));
+  assert.deepEqual(under(`${CODE}/app/`).filter(name => !listed.has(name)), [], 'every file in app/ is listed');
+  for (const row of manifest.files) {
+    const bytes = await readFile(join(extracted, ...`${CODE}/app/${row.path}`.split('/')));
+    assert.equal(bytes.length, row.size, row.path); assert.equal(createHash('sha256').update(bytes).digest('hex'), row.sha256, row.path);
+  }
+  for (const rel of ['bridge/convai-bridge.mjs', 'bridge/bridge-supervisor.mjs', 'launcher/start-service.mjs', 'launcher/usvfs-compat.mjs', 'assets/realtime-client.js',
+    'characters/roster.json', 'defaults/characters.json', 'defaults/runtime-code-files.json', 'package.json']) assert(listed.has(`${CODE}/app/${rel}`), rel);
+  // Nothing of the Runtime base: no Node, Python, models, voices, engine, sign-in settings or voice lists.
+  assert.deepEqual(names().filter(name => /\/(?:node|python|models|llama-cpp|vgmstream|node_modules|pocket-tts)\/|convai-auth\.json$|pocket-voices|local-voices|\/voices\//.test(name)), []);
 });
 
 test('every shipped Lua file and locale is in the package and byte-identical to the source; no development-only file ships', async () => {
@@ -159,7 +184,7 @@ test("the player's own state and secrets never ship: no settings, key, memory, c
 
 test('release.json, README.txt and LICENSE.txt are written from the build and the repository', async () => {
   const release = JSON.parse(await text(`${MOD}/release.json`));
-  assert.deepEqual(release, {product: config.product, package: 'scripts', version: VERSION, game: '2.5', commit: 'worktree'});
+  assert.deepEqual(release, {product: config.product, package: 'scripts', version: VERSION, game: '2.5', commit: 'worktree', runtimeBase: config.runtimeBase.required});
   assert.equal(await text(`${MOD}/README.txt`), await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'));
   assert.equal(await text(`${MOD}/LICENSE.txt`), await readFile(resolve(project, 'LICENSE'), 'utf8'));
 });
@@ -169,9 +194,9 @@ test('the install note is the first thing in the zip root and tells the player t
   assert.match(note, /Extract this zip INTO your Cyberpunk 2077 folder/);
   assert.match(note, /bin, archive and r6/);
   assert.match(note, /Do not extract it into a new folder named after the zip/);
-  // What the note promises about the zip is true of this zip: it starts with the game's own folders (bin and r6 here).
+  // What the note promises about the zip is true of this zip: it starts with the game's own folders (bin, r6 and, from 0.3.4, red4ext for the code folder).
   const roots = new Set(names().filter(name => name !== INSTALL_NOTE).map(name => name.split('/')[0]));
-  assert.deepEqual([...roots].sort(), ['bin', 'r6']);
+  assert.deepEqual([...roots].sort(), ['bin', 'r6', 'red4ext']);
   assert.equal(names().filter(name => !name.includes('/')).join(), INSTALL_NOTE, 'the note is the only top-level file');
 });
 
@@ -280,7 +305,7 @@ test('building the same commit twice gives the same zip, and the commit it recor
   try {
     const sums = [];
     for (const name of ['one', 'two']) {
-      const run = build(['--version', VERSION, '--dry-run', '--packages', 'scripts', '--out', join(twice, name), '--cache', join(twice, 'cache')]);
+      const run = build(['--version', VERSION, '--dry-run', '--packages', 'scripts', '--out', join(twice, name), '--cache', join(twice, 'cache'), ...CODE_ARGS]);
       assert.equal(run.status, 0, run.stderr);
       sums.push(await sha256File(join(twice, name, 'packages', ZIP_NAME)));
       const unpacked = join(twice, `x-${name}`); await mkdir(unpacked);
@@ -308,14 +333,15 @@ test('the 2.31 build: suffixed file name, game 2.31 in release.json, only GameVa
   const dir231 = join(root, 'extracted231');
   await mkdir(dir231);
   assert.equal(spawnSync(tar, ['-xf', zip231, '-C', dir231], {encoding: 'utf8'}).status, 0);
-  assert.deepEqual(JSON.parse(await readFile(join(dir231, ...`${MOD}/release.json`.split('/')), 'utf8')), {product: config.product, package: 'scripts', version: VERSION, game: '2.31', commit: 'worktree'});
+  assert.deepEqual(JSON.parse(await readFile(join(dir231, ...`${MOD}/release.json`.split('/')), 'utf8')), {product: config.product, package: 'scripts', version: VERSION, game: '2.31', commit: 'worktree', runtimeBase: config.runtimeBase.required});
   const differing = [];
   for (const rel of names()) {
     const a = await readFile(join(extracted, ...rel.split('/')));
     const b = await readFile(join(dir231, ...rel.split('/')));
     if (!a.equals(b)) differing.push(rel);
   }
-  assert.deepEqual(differing, [`${MOD}/release.json`, 'r6/scripts/CyberpunkConvai/GameVariant.reds']);
+  // The code is the same for both games; its list names the game (and a real build carries each game's own native plugin, left out here).
+  assert.deepEqual(differing, [`${MOD}/release.json`, 'r6/scripts/CyberpunkConvai/GameVariant.reds', `${CODE}/code.json`].sort((a, b) => names().indexOf(a) - names().indexOf(b)));
   // The 2.5 file (the default build) is the overlay's, the 2.31 file is the one in the source tree, and the callers name only the two helpers.
   const variant = await text('r6/scripts/CyberpunkConvai/GameVariant.reds');
   assert.equal(variant, await readFile(resolve(project, 'packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds'), 'utf8'));

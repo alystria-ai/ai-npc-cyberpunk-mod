@@ -184,7 +184,8 @@ export function logPaths({game, modRoot, runtime, stateDirectory}) {
   return {
     'bridge-stderr': stateDirectory ? join(stateDirectory, 'bridge.stderr.log') : null,
     service: stateDirectory ? join(stateDirectory, 'bridge-service.log') : null,
-    launcher: game ? join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod', 'launcher.log') : null,
+    // From 0.3.4 the launcher is in the Scripts' red4ext/plugins/AiNpcCyberpunkCode and writes its log there.
+    launcher: game ? join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkCode', 'launcher.log') : null,
     probe: runtime ? join(runtime, 'probe.log') : null,
     'cet-mod': modRoot ? join(modRoot, 'AiNpcCyberpunkMod.log') : null,
     redscript: game ? join(game, 'r6', 'logs', 'redscript_rCURRENT.log') : null,

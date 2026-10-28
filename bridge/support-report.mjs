@@ -235,9 +235,9 @@ export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
   for (const folder of folders) {
     for (const path of await newest(folder, /^bootstrap-.+\.(?:stdout|stderr)\.log$/i, 2)) add(`bootstrap-${slug(path)}`, path);
   }
-  // The launcher DLL writes launcher.log next to itself: red4ext/plugins/AiNpcCyberpunkMod in a released install. The old
-  // development folder name stays as a fallback; the first one that exists wins.
-  add('launcher', [join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod', 'launcher.log'),
+  // The launcher DLL writes launcher.log next to itself: red4ext/plugins/AiNpcCyberpunkCode from 0.3.4 (the Scripts carry the launcher),
+  // red4ext/plugins/AiNpcCyberpunkMod before. The old development folder name stays as a fallback; the first one that exists wins.
+  add('launcher', [join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkCode', 'launcher.log'), join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod', 'launcher.log'),
     join(game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher', 'launcher.log')]);
   const cet = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks');
   add('cet', join(cet, 'cyber_engine_tweaks.log'));

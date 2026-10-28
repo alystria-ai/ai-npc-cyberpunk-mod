@@ -514,7 +514,7 @@ function M.serviceWhy(now)
     end
     if check.code == 'never' then
         if check.detail == 'no-launcher-trace' then
-            return row(ui.t('Did not start'), ui.t('The Runtime’s plugin is loaded, but the conversation service left no trace in this session. launcher.log in red4ext/plugins/AiNpcCyberpunkMod says why: launcher.ini switched off, Node missing, or Node blocked by a security program. Fix that, then restart the game.'))
+            return row(ui.t('Did not start'), ui.t('The Runtime’s plugin is loaded, but the conversation service left no trace in this session. launcher.log in red4ext/plugins/AiNpcCyberpunkCode says why: launcher.ini switched off, Node missing, or Node blocked by a security program. Fix that, then restart the game.'))
         end
         local line = lineFor(check)
         return row(ui.t('Runtime not loaded'), (line and line.description or '') .. ' ' .. ui.t('If the folder is there, the newest log in red4ext/logs says why RED4ext did not load it: an antivirus that removed a file, or a missing Visual C++ runtime.'))
@@ -638,6 +638,14 @@ local function bridgeLines(out)
     if versions and (versions.code == 'game-mismatch' or (versions.code == 'mismatch' and build and build.state == 'problem'
         and (build.code == 'runtime-wrong' or build.code == 'differ'))) then
         -- The Runtime is for another game than the Scripts: the Build for your game row says which one to download, and the full Runtime replaces any update zips.
+    elseif versions and versions.code == 'base-old' then
+        -- From 0.3.4 the Scripts carry the code and the Runtime is the base (docs/PACKAGING.md, "Code in the Scripts"): its version must be at least the
+        -- base the Scripts name (runtimeBase). An older base gets its update zips (or the full Runtime), the base it needs named.
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version, or download the full Runtime. Extract each into the Cyberpunk 2077 folder, then restart the game.',
+            {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?', required = text(versions.required, 30) or '?'}))
+    elseif versions and versions.code == 'match' and versions.base == true then
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} on Runtime base {runtime}.',
+            {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?'}))
     elseif versions and (versions.code == 'match' or versions.code == 'mismatch') then
         local values = {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?'}
         local older = versions.code == 'mismatch' and runtimeIsOlder(versions)
@@ -872,6 +880,7 @@ local function shortText(id, names, old, values)
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
     if id == 'versions-old' then return ui.t('The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.') end
+    if id == 'versions-base' then return ui.t('Update the Runtime to base {required} or newer. See Help in Settings.', values) end
     if id == 'versions-steps' then return ui.t('A Runtime update step is missing. Apply its update zips one by one from the updates folder.') end
     if id == 'versions' then return ui.t('The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.') end
     if id == 'packs' then return ui.t('A pack is one folder too deep. See Help in Settings.') end
@@ -964,6 +973,7 @@ local function firstLoad()
     -- Scripts and Runtime of different versions: a Runtime that is the older one (nearly every report) is told to apply its update zips or take the full Runtime. A Runtime that never
     -- answered (0.2.1 and older: no update zips exist for it) has no versions to compare: it gets the generic notice, and the Help line tells it to get the full Runtime.
     local versions = bridgeCheck('versions')
+    if first == 'versions' and versions ~= nil and versions.code == 'base-old' then return shortText('versions-base', nil, nil, {required = text(versions.required, 30) or '?'}) end
     if first == 'versions' and versions ~= nil and runtimeIsOlder(versions) == true then return shortText('versions-old') end
     -- The versions agree but an update step was skipped (bridge/runtime-steps.mjs).
     if first == 'versions' and versions ~= nil and (versions.code == 'chain-gap' or versions.code == 'chain-order') then return shortText('versions-steps') end

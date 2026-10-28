@@ -389,7 +389,7 @@ test('empty exchange files read as missing: no result, no published paths, no re
 
 test('log locations: exact paths from the service, derived paths from the launcher status, and honest placeholders otherwise', () => run(`
   local none = newSupport().locations()
-  assert(none.known == false and none.launcher:find('the game folder\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log', 1, true))
+  assert(none.known == false and none.launcher:find('the game folder\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkCode\\\\launcher.log', 1, true))
   assert(not none.launcher:find('CyberpunkConvaiLauncher', 1, true))
   assert(none.mod:find('the game folder\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\AiNpcCyberpunkMod\\\\runtime', 1, true))
   assert(none.redscript:find('r6\\\\logs\\\\redscript_rCURRENT.log', 1, true) and none.red4ext:find('red4ext\\\\logs', 1, true))
@@ -399,7 +399,7 @@ test('log locations: exact paths from the service, derived paths from the launch
   put('runtime/bridge-service.json', {state = 'failed', updated = ms(), gameRoot = 'D:\\\\Games\\\\Cyberpunk 2077', stateDirectory = 'D:\\\\Mod\\\\runtime'})
   local derived = newSupport().locations()
   assert(derived.known and derived.bridge == 'D:\\\\Mod\\\\runtime')
-  assert(derived.launcher == 'D:\\\\Games\\\\Cyberpunk 2077\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log')
+  assert(derived.launcher == 'D:\\\\Games\\\\Cyberpunk 2077\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkCode\\\\launcher.log')
   assert(derived.cet == 'D:\\\\Games\\\\Cyberpunk 2077\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks')
   assert(derived.reports == '%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\reports')
   put('runtime/support-paths.json', {version = 1, gameRoot = 'E:\\\\G', runtime = 'E:\\\\G\\\\mod\\\\runtime', reports = 'C:\\\\Users\\\\V\\\\AppData\\\\Local\\\\AiNpcCyberpunkMod\\\\reports',

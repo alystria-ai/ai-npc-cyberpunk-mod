@@ -7,9 +7,9 @@ How the player release is built, what it contains and how it starts. Players rea
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods (the same file is `Scripts.zip` on Hugging Face: the name on Nexus is the owner's own) | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
+| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods (the same file is `Scripts.zip` on Hugging Face: the name on Nexus is the owner's own) | The CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`, all text; and from 0.3.4 ALL of the mod's own code in `red4ext/plugins/AiNpcCyberpunkCode/`: the launcher and native DLLs, `install-code.mjs` and the code copy in `app/` ("Code in the Scripts" below). |
 | `Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder (every step is kept; before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
-| `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the root of the Hugging Face repository as `Runtime.zip` | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references and game archives (the Audioware reply bank of older Runtimes is gone: every voice plays through the browser renderer). |
+| `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the root of the Hugging Face repository as `Runtime.zip` | From 0.3.4 the Runtime BASE, installed once ("Code in the Scripts" below): no launcher, native plugin or code of ours any more (a do-nothing marker plugin keeps Vortex accepting it). Bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the Pocket voice and lip-sync models, voice references and game archives (the Audioware reply bank of older Runtimes is gone: every voice plays through the browser renderer). |
 | `OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip (about 5.3 GB since 0.2.9): CUDA Python environment, the VoiceStudio adapter, the OmniVoice model (the language model as float16) and the OmniVoice references the Runtime does not carry ("The OmniVoice pack" below). |
 | `LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole. Models only since 0.2.9 (`localAi.server.inPacks` is false): the llama-server engine is in the Runtime, so the pack needs the Runtime of 0.2.7 or newer. |
 | `LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.3 GB), the same embedding model, models only. |
@@ -33,9 +33,122 @@ binary runtime goes to the GitHub release as plain zips, which is how the core f
 (RED4ext, Codeware) are distributed too. Audioware and TweakXL are not requirements any more
 (2026-10-22): the mod ships no tweak files and plays all voices through its own audio path.
 
-All of them use game-root-relative paths and merge into one install. Versions must match;
-`app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
-Runtime one.
+All of them use game-root-relative paths and merge into one install. From 0.3.4 the versions need not match: the Scripts name the oldest
+Runtime base they run on (`runtimeBase`), and the setup check names it when the base is older ("Code in the Scripts" below). Before 0.3.4
+`app/launcher/start-service.mjs` warned when the Scripts `release.json` differed from the Runtime one (it still does for Scripts without `runtimeBase`).
+
+## Code in the Scripts (from 0.3.4)
+
+Owner decision (2026-10-28): everything we write or change between releases ships in the Scripts; the Runtime keeps the large, rarely changing
+parts. Why: 9 of 22 error reports in the week before were players whose Scripts and Runtime were of different versions (a new Scripts zip from
+Nexus, the Runtime update zips never applied). Now a Scripts download always brings matching code, and the Runtime is needed again only when a
+base component changes.
+
+**What is where.**
+
+| Scripts (Nexus, usually installed with Vortex; about 7.6 MiB zipped, was 3.2) | Runtime base (Hugging Face, installed by hand; about 1.1 GB) |
+|---|---|
+| `bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/` (CET Lua, locales, catalogs, `runtime/` placeholders, `release.json`) and `r6/scripts/CyberpunkConvai/` (redscript), text only as before | `red4ext/plugins/AiNpcCyberpunkMod/app/`: `node/`, `python/`, `pocket-tts/`, `node_modules/` (Playwright), `llama-cpp/`, `vgmstream/`, `models/` (Pocket, lip sync, Moonshine), `licenses/` |
+| `red4ext/plugins/AiNpcCyberpunkCode/CyberpunkConvai.dll`: the launcher (native/autostart, 1.1.0) | `red4ext/plugins/AiNpcCyberpunkMod/voices/` (reference clips, prepared Mistral slots, V's voice) |
+| `red4ext/plugins/AiNpcCyberpunkCode/CyberpunkConvaiNative.dll` + its two licence texts: the native plugin, built for the variant's game | `app/defaults/`: the Pocket and OmniVoice voice lists (they describe the base's voices and models), `convai-auth.json` (sign-in settings), `error-reports.json` (owner-added), `runtime-removals.json`, `runtime-steps/`; `app/release.json` (`kind: "base"`) |
+| `red4ext/plugins/AiNpcCyberpunkCode/install-code.mjs`, `code.json` (the list), `README.txt`, `LICENSE.txt`, `THIRD-PARTY-NOTICES.txt` | `archive/pc/mod/`: the three game archives |
+| `red4ext/plugins/AiNpcCyberpunkCode/app/`: one complete copy of the code, laid out as in the Runtime's `app/`: `bridge/` (closure + Python workers), `launcher/` (start-service and its modules), `assets/` (client bundle, PCM modules), `licenses/client/`, `characters/`, `research/` (the data the bridge reads), `vision/CyberpunkConvaiVision.exe`, `defaults/characters.json`, `defaults/multilingual-profiles.json`, `defaults/runtime-code-files.json`, `package.json` (24 MiB unzipped, 271 files) | `red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvaiBase.dll`: a RED4ext plugin that does nothing (native/autostart built with `CONVAI_BASE_MARKER`), so Vortex's Cyberpunk extension still accepts the Runtime zip (it refuses a zip whose DLLs all lie deeper than `red4ext/plugins/<name>/`) |
+
+The rule for what is code: `packaging/lib/code-payload.mjs` (`CODE_PREFIXES`, `CODE_FILES`); `install-code.mjs` and `apply-removals.mjs` carry the same
+lists and `packaging/code-payload.test.mjs` holds them equal. The build refuses a code path in the Runtime base and a non-code path in the Scripts'
+`app/`. No package ships `launcher.ini`, `launcher.log` or `runtime/native-off.txt` any more (the launcher's built-in settings apply; a missing kill
+switch means every native system is on; a player's own `launcher.ini` beside the Scripts' DLL still overrides). The Scripts' game-side files stay
+text only (the check in `scriptsPackage` covers everything outside `red4ext/plugins/AiNpcCyberpunkCode/`).
+
+**Size.** The code folder is 24 MiB unzipped (characters 11 MiB, bridge 6 MiB, research 5 MiB, client bundle 1.6 MiB), so the Scripts zip goes from
+3.2 MiB to 7.6 MiB, comfortable for Nexus and Vortex. The large "ours" content stays in the base: the voices (reference clips, about 0.6 GB with
+the prepared slots), the trained Pocket and lip-sync models and the voice lists that describe them. A release that adds or re-records voices or
+retrains a model is a base change (a Runtime update zip, and `runtimeBase` raised). If voices change most releases, the next step is a separate
+small "voices" download on its own versioned folder; not done now.
+
+**How it starts.** RED4ext lists every plugin first and then loads them in folder order. The Scripts' folder, `AiNpcCyberpunkCode`, sorts before
+`AiNpcCyberpunkMod` and `AiNpcCyberpunkModNative` on NTFS, so:
+
+1. The Scripts' launcher loads first. Before anything else it **retires an older Runtime's two DLLs** (0.3.3 and older shipped
+   `red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvai.dll` and `red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll`): each is renamed to
+   `<name>.retired` (a rename works on a DLL that is loaded, too). RED4ext then fails to load the old paths (a log line, no dialog), so only one
+   launcher and one native plugin run. If the old launcher was loaded first anyway (a FAT/exFAT drive lists folders in creation order) the Scripts'
+   launcher starts nothing this session (the old one did; it is retired for the next start), and if it could not rename it, it stands down too, so
+   two services never start. The Scripts' native plugin stands down by itself (`AnotherCopyServes` in `native/core/src/plugin/Main.cpp`) while an
+   older copy is loaded or still at its old path, so two native plugins never run.
+2. It starts the Runtime base's `app\node\node.exe` (`%GAME%\red4ext\plugins\AiNpcCyberpunkMod\app\node\node.exe`) with the usual bootstrap on
+   `%PLUGIN%\install-code.mjs`. No Node there (no Runtime base) is `launcher-program-missing`: the game says the Runtime is missing.
+3. `install-code.mjs` makes the Runtime's `app/` copy of the code equal to the Scripts' copy. Nothing to do (the Runtime's
+   `app/defaults/scripts-code.json` names the same release and commit and every file has its listed size): two reads and one stat per file, about
+   10 ms. Otherwise every listed file whose bytes differ is replaced (temporary file renamed over it; a file Windows will not replace, such as a
+   picture helper still running from a closing session, is renamed aside first and removed at a later start), files the previous copy listed and
+   this one does not are deleted, code files of older Runtimes that no release has any more (`code.json` "removes", from the code entries of
+   `packaging/runtime-removals.json`) are deleted, and the list is written last. Every Scripts file is checked against `code.json` before the first
+   write, so damaged Scripts change nothing. The first start after an update copies about 270 files (a second or so). It also deletes the `.retired`
+   DLLs of an earlier start. Problems end in the status the game reads (`install-incomplete`, stage `installing-code`, with a short reason).
+4. It then runs the Runtime's `app/launcher/start-service.mjs` (the copy it just installed) in the same process, with `process.argv[1]` set to the
+   path an older launcher would have started, so start-service and everything after it (the supervisor, the bridge, the Python workers, all paths
+   relative to `app/`) are exactly as before. start-service logs what install-code did.
+
+Why copy into the base instead of running the code from the Scripts' folder: the bridge, the Python workers and their path checks all assume one
+`app/` folder that holds the code and the models, Python, Playwright and the engine (the workers refuse assets outside their application folder,
+Python's `._pth` names `..\bridge`, `import 'playwright'` resolves from the code's folder). The copy keeps all of that unchanged, which is what a
+same-day release needs; the Scripts' copy is the source and is never written.
+
+**Versions and the update chain.** The Runtime's `app/release.json` is the base's version. The Scripts' `release.json` and `code.json` name
+`runtimeBase`: the oldest base they run on (`runtimeBase.required` in `release.config.json`, 0.3.3 for 0.3.4). Raise it only in a release that
+changes the base; that release ships a Runtime update zip as before (`build-runtime-update.mjs`, `updates/`), and every other release ships none.
+The setup check's `versions` row (`bridge/setup-check.mjs`): the code installed in the Runtime must be the Scripts' release (else `mismatch`), the
+two must be for the same game (`game-mismatch`), and the base must be at least `runtimeBase` (else `base-old`, with `required`); the update-step
+chain is checked as before. The Help row says "Scripts 0.3.4 on Runtime base 0.3.3." or names the base needed, and the first-load notice says
+"Update the Runtime to base {required} or newer. See Help in Settings." A base that is too old still starts (best effort). Removal lists never delete
+code (`apply-removals.mjs` refuses a code path: "code the Scripts install"), so an update zip that compares a Runtime with code to a base without it
+leaves the code to install-code.
+
+**Migration from 0.3.3 and older (no Runtime download needed when the base is 0.3.3).** The player installs the new Scripts over the old ones. At the
+next start the Scripts' launcher retires the old DLLs, install-code copies the code over the old Runtime's copy (the first start lists no previous
+copy, so it deletes nothing but the declared old files), and the service runs the new code. No player data moves (it is in
+`%LOCALAPPDATA%\AiNpcCyberpunkMod`). The old Runtime's `launcher.ini` and `launcher.log` stay, unused, and so do the old native folder's licence and
+README texts. Checked on this PC (2026-10-28): the real 0.3.3 Runtime (2.5) with the 0.3.3 Scripts, then the 0.3.4 Scripts extracted over them, started
+through the test host and the real launcher: both old DLLs retired before they loaded, 267 files copied, the bridge reached Ready. A player who later
+extracts an older full Runtime again gets its DLLs retired again and its code replaced again at the next start.
+
+**Vortex.** The Scripts zip is claimed by the Cyberpunk extension's multi-type installer (CET mod + RED4ext plugin folder + redscript), which copies
+every file of `red4ext/plugins/**` and of the CET mod folder to the same path; two DLLs in one plugin folder and the nested `app/**` files are
+accepted, and the root `HOW TO INSTALL` note is moved to its extra-files folder as before (a loose `.json` at the zip root would send it to the
+fallback dialog: there is none). The Scripts' folder is one the Runtime never ships, so Vortex deploys and purges only its own files. A Runtime from
+0.3.3 that Vortex deployed: the launcher's rename of the old DLL and install-code's replaced code files are "external changes" at the next deploy;
+keeping them is right, reverting only means the next start retires and copies again. Vortex's tag files (`__folder_managed_by_vortex`) in the code
+folders are ignored (install-code reads the list, never the folder).
+
+**Mod Organizer 2.** Scripts as a mod: the launcher is loaded from the virtual path; the bootstrap runs install-code.mjs from its real place, so the
+code is read from the Scripts mod's real folder. The Runtime's `app/` is resolved to its real place (a Runtime installed as a mod: its mod folder,
+outside the game folder, written directly), so the copy lands in the Runtime's own mod folder and start-service runs from there as before. A
+Runtime installed in the game folder itself: existing files are replaced in place (a rename over an existing file stays in place under usvfs), and a
+file that is NEW in a release lands in MO2's Overwrite, which the bundled Node's resolution cannot stat; `usvfs-compat.mjs` adds a resolve hook
+(`moduleFallback`, `module.registerHooks`) that answers such an import with the file when it opens, for the service and every Node child. A new
+Python worker module in that one setup is not covered (Python's import stats the file); none is new in 0.3.4. install-code installs the
+Scripts' own usvfs fallbacks before it reads anything.
+
+**Both games.** The code is the same for 2.5 and 2.31; the native plugin is built per game and ships in each variant's Scripts (`-for-2.31`), and
+`code.json` names the game. The Runtime base is still built per game (the archives differ: `fix/driver-guard-2.31-only` makes the driver guard
+archive 2.31-only).
+
+**Interplay with held branches.** `fix/vortex-runtime-files` (stops shipping empty `runtime/*` placeholders) touches `scriptsPackage` in
+`build-release.mjs` (the placeholder loop right above the text-only check) and `scripts-package-layout.test.mjs` (the `runtime/` test): merge by
+keeping both changes. `feat/pack-model-names` renames pack files (pack builders and `upload-packs.py`); no shared lines expected beyond the header
+comment of `build-release.mjs`. `fix/driver-guard-2.31-only` changes `releaseData.archives` per game in `release.config.json` (the archives stay in the
+Runtime base; with it, 2.5 bases lose the driver guard archive, a base change, so that release raises `runtimeBase` and ships an update zip with the
+removal) and may touch `runtimePackage`.
+
+**Tests.** `packaging/code-payload.test.mjs` (the copy, damaged Scripts, removals, leftovers, the hand-off as the launcher runs it, the failure
+status, the usvfs resolve fallback, the shared rules), `bridge/autostart-plugin.test.mjs` (the built-in settings, the retirement of an older
+Runtime's two DLLs), `packaging/scripts-package-layout.test.mjs` (the code folder and `code.json`), `bridge/setup-check.test.mjs` and
+`bridge/setup-check-lua.test.mjs` (`base-old`, the base row and notice), `packaging/runtime-removals.test.mjs`, `packaging/build-runtime-update.test.mjs`.
+`packaging/test-release-install.mjs` starts the service through install-code.mjs and checks the code folder.
+
+**Live checks owed** (see the report of 2026-10-28): fresh install (new base + new Scripts), upgrade from 0.3.3 on 2.5 and on 2.31 (Scripts only),
+Scripts with Vortex over a hand-installed 0.3.3 Runtime, MO2 with both as mods.
 
 ## Two game versions
 
@@ -60,10 +173,14 @@ tool `test-release-install.mjs` matches package files by exact version, so 0.2 n
 ## Installed layout
 
 ```
-red4ext/plugins/AiNpcCyberpunkMod/
-  CyberpunkConvai.dll        launcher (native/autostart, compiled in the build)
-  launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe --eval <bootstrap> app\launcher\start-service.mjs (packaging/lib/launcher-ini.mjs)
-  app/                       the application, replaced by every update
+red4ext/plugins/AiNpcCyberpunkCode/   Scripts, from 0.3.4 ("Code in the Scripts")
+  CyberpunkConvai.dll        launcher 1.1.0 (native/autostart): %GAME%\red4ext\plugins\AiNpcCyberpunkMod\app\node\node.exe --eval <bootstrap> %PLUGIN%\install-code.mjs
+  CyberpunkConvaiNative.dll  the native core plugin (native/core, built per game) and its licence texts
+  install-code.mjs, code.json   copies app/ below into the Runtime's app/, then runs its launcher/start-service.mjs
+  app/                       the code: bridge/, launcher/, assets/, characters/, research/, vision/, licenses/client/, defaults/ (3 files), package.json
+red4ext/plugins/AiNpcCyberpunkMod/    Runtime base (0.3.3 and older: also CyberpunkConvai.dll and launcher.ini, retired by the Scripts' launcher)
+  CyberpunkConvaiBase.dll    marker plugin that does nothing (for Vortex's installer)
+  app/                       the application: the base's parts, and the code install-code.mjs copies in (listed in app/defaults/scripts-code.json)
     node/node.exe            official Node.js (node.exe and LICENSE only)
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
     pocket-tts/              Kyutai pocket-tts: the pocket_tts/ package and LICENSE of the pinned revision (the build verifies the whole upstream tree's hash; 53 of its 140 files ship)
@@ -84,8 +201,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
   voices/                    reference clips (outside app/: the Omni worker requires it)
     prepared/                the bridge's cache of the Mistral voice's references, and the OmniVoice pack's slots (see below)
     prepared-runtime/        the Runtime's pre-built slots for the Pocket clips (read after prepared/, never written)
-red4ext/plugins/AiNpcCyberpunkModNative/
-  CyberpunkConvaiNative.dll  the native core plugin (native/core, compiled in the build) and its licence texts
+red4ext/plugins/AiNpcCyberpunkModNative/   0.3.3 and older only: the old native plugin, renamed to .retired by the Scripts' launcher
 bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
   *.lua, locales/, *.json    Scripts package
   runtime/                   Lua <-> bridge exchange files (the only folder the service writes in the game folder's CET mod)
@@ -107,6 +223,9 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
 
 ## How it starts
 
+0. From 0.3.4 the launcher is the Scripts' (`red4ext/plugins/AiNpcCyberpunkCode/`): it first retires an older Runtime's launcher and native plugin,
+   starts the Runtime base's Node on `install-code.mjs`, which copies the Scripts' code into `app/` and then runs `app/launcher/start-service.mjs` in
+   the same process exactly as below ("Code in the Scripts").
 1. RED4ext loads `CyberpunkConvai.dll`. It checks that CET and the CET mod are present, reads
    `launcher.ini` and starts `app\node\node.exe --eval <bootstrap> app\launcher\start-service.mjs` hidden, with a pipe
    whose closing tells the service that the game ended. launcher.ini is optional from launcher 1.0.1 (0.2.4): without it, or with one that
@@ -144,15 +263,15 @@ they ignore any Python installed on the machine.
 
 ### The native plugin and `native-off.txt`
 
-`red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll` is built from `native/core` in the release build
+`red4ext/plugins/AiNpcCyberpunkCode/CyberpunkConvaiNative.dll` (in the Scripts from 0.3.4; `red4ext/plugins/AiNpcCyberpunkModNative/` in the Runtime before) is built from `native/core` in the release build
 (the CMake project that `scripts/Build-NativeCore.ps1` drives, MSVC from Visual Studio 2022, static CRT, `/Brepro`; the RED4ext SDK
 is fetched by CMake at the commit pinned in `native/core/CMakeLists.txt`). The Runtime job of the workflow checks the toolchain
 before building and the clean-install test inspects the DLL with `convai_plugin_host.exe` (it checks the file without running game
 code). The package works without it: `--no-native` leaves it out and the Lua falls back to its own path for every system
 (`mod/native-core.lua`). The plugin's licence texts (RED4ext.SDK, yyjson) sit next to the DLL.
 
-`bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/native-off.txt` is the kill switch and ships in every Runtime
-package that carries the plugin. Through 0.2.6 it listed `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`, the systems not
+`bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/native-off.txt` is the kill switch. Up to 0.3.3 it shipped in every Runtime
+package that carried the plugin; from 0.3.4 no package ships it (the list was empty, and a missing file means every system is on). Through 0.2.6 it listed `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`, the systems not
 yet proven in the real game, which started switched off. From 0.2.7 the list is empty (`native.off` in
 `packaging/release.config.json` is `[]`), so the file holds only its comment header (`packaging/lib/native-off.mjs` writes it) and
 every system is on. One name per line, `#` starts a comment, `all` switches everything off; the plugin polls the file about once a
@@ -430,6 +549,9 @@ The OmniPack is not changed by this: its Python (3.11, CUDA torch) is built by t
 How it reaches a player who has the files: the update zip's removal list holds every path the old Runtime had and the new one has not (about 2,400 paths for this change), the start step deletes them one by one under the folders a Runtime installs into (`app/python/`, `app/pocket-tts/` and `app/node_modules/` are all under `app/`) and removes the folders it empties. A list this long is applied within one start (the budget is eight seconds and the rest waits for the next start; `packaging/runtime-prune.test.mjs` runs the chain on fixture zips, and `packaging/test-release-install.mjs --update-from` runs it on the real ones). A player on an older Runtime who extracts the full Runtime keeps the old files (extracting adds, never deletes) and they are harmless. What is not removed from an existing install: the Lua files the Scripts zip no longer carries (`devOnlyLua`, below), because the start step only deletes under the Runtime's folders.
 
 ### Runtime update zip
+
+From 0.3.4 the code is in the Scripts and a release ships a Runtime update zip only when it changes the base (and raises `runtimeBase`); the chain
+below works as before for those, and removal lists never delete code ("Code in the Scripts").
 
 The Runtime is about 1 GB and most of it (Python, torch, Node, the voice and lip-sync models) does not change between releases. From 0.2.3 on, every
 release ships a **Runtime update zip** on Hugging Face, in the `updates/` folder of the repository (from 0.2.8; every step is kept and `updates/README.md` lists them), named `Runtime-Update-<from>-to-<to>.zip` (the first:

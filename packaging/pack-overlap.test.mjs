@@ -129,8 +129,11 @@ test('names are compared like Windows does (without case) and a pack\'s own tree
 // ---- the real Scripts package -------------------------------------------------------------------------------------------------------------
 
 async function buildScripts(root) {
+  // A stand-in launcher, no native plugin and no picture helper: no compiler needed (the Scripts carry the code from 0.3.4).
+  await writeFile(join(root, 'launcher.dll'), 'stand-in launcher');
   const run = spawnSync(process.execPath, [resolve(project, 'packaging/build-release.mjs'), '--version', '0.0.1', '--dry-run', '--packages', 'scripts', '--worktree',
-    '--out', join(root, 'out'), '--cache', join(root, 'cache')], {cwd: project, encoding: 'utf8', timeout: 180_000, env: {...process.env, GITHUB_ACTIONS: ''}});
+    '--out', join(root, 'out'), '--cache', join(root, 'cache'), '--launcher', join(root, 'launcher.dll'), '--no-native', '--no-vision'],
+    {cwd: project, encoding: 'utf8', timeout: 180_000, env: {...process.env, GITHUB_ACTIONS: ''}});
   assert.equal(run.status, 0, run.stderr);
   return join(root, 'out/packages/AI-NPC-Cyberpunk-Mod-Scripts-0.0.1.zip');
 }
