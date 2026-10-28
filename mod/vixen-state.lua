@@ -87,9 +87,10 @@ local function once(log, key, line)
 end
 
 local function short(problem) return (tostring(problem):gsub('%s+', ' '):sub(1, 140)) end
--- The same for the probe's lines, with the "file.lua:123:" the game puts in front of a Lua error taken out: a probe line says that a way to V's state does not exist on this game (the
--- getter of one build is not on another), which is expected and settled by the next way tried. The error reports read "file.lua:123: attempt to ..." in this log as a Lua error of the
--- mod (bridge/error-reports.mjs luaErrorsIn), and the first 2.31 run sent this probe as one (27 Oct 2026, 'attempt to call method GetPlayerPuppetPS').
+-- The same for this module's lines about the other mods, with the "file.lua:123:" the game puts in front of a Lua error taken out: such a line says that a getter or a way to V's state
+-- does not exist on this game or this version of the other mod (the getter of one build is not on another), which is expected and settled by the next way tried. The error reports read
+-- "file.lua:123: attempt to ..." in this log as a Lua error of the mod (bridge/error-reports.mjs luaErrorsIn): the first 2.31 run sent the probe as one (27 Oct 2026, 'attempt to call
+-- method GetPlayerPuppetPS'), and a player's Injuries without IsLive sent the getter's line (a1ba6f, 0.3.3: 'Mod state: injuries IsLive failed (vixen-state.lua:131: attempt to call a nil value)').
 local function probeText(problem) return (short(problem):gsub('[%w_.%-]+%.lua:%d+:%s*', '')) end
 
 local function integer(value, low, high)
@@ -118,7 +119,7 @@ end
 local function lookup(container, class, label, log)
     local ok, system = pcall(function() return container:Get(CName.new(class)) end)
     if not ok then
-        once(log, label .. ':get', 'Mod state: ' .. label .. ' lookup of ' .. class .. ' failed (' .. short(system) .. ')')
+        once(log, label .. ':get', 'Mod state: ' .. label .. ' lookup of ' .. class .. ' failed (' .. probeText(system) .. ')')
         return nil
     end
     return system
@@ -132,7 +133,7 @@ local function ask(system, method, label, log, argument)
         return system[method](system, argument)
     end)
     if not ok then
-        once(log, label .. ':' .. method, 'Mod state: ' .. label .. ' ' .. method .. ' failed (' .. short(value) .. ')')
+        once(log, label .. ':' .. method, 'Mod state: ' .. label .. ' ' .. method .. ' failed (' .. probeText(value) .. ')')
         return false
     end
     return true, value
