@@ -142,6 +142,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-activation.lua"
         },
         {
+          "source": "mod/voice-choices.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-choices.lua"
+        },
+        {
           "source": "mod/pad-binding.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/pad-binding.lua"
         },
@@ -937,6 +941,8 @@
             "bridge/vendor-memory.mjs",
             "bridge/vision-capture.mjs",
             "bridge/voice-activity.mjs",
+            "bridge/voice-choice-match.mjs",
+            "bridge/voice-choice.mjs",
             "bridge/voice-config-paths.mjs",
             "bridge/voice-failures.mjs",
             "bridge/voice-key-stream.mjs",
@@ -961,6 +967,7 @@
             "bridge/jali-face-worker.mjs",
             "bridge/jali-face-text.mjs",
             "bridge/face-visemes.mjs",
+            "bridge/choice-keys.py",
             "bridge/resident-voice-worker.py",
             "bridge/omni-server.mjs",
             "bridge/omni-server-main.mjs",

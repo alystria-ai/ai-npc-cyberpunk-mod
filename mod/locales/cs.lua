@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "Hratelnost",
     ["Revenge ambushes"] = "Pomstná přepadení",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Gang, který pořád zabíjíš, ti vzácně pošle malou skupinu s krátkou výhrůžkou k vykřiknutí. Po každé následuje dlouhé čekání.\n\nNikdy během boje, scény, hovoru, ve vozidle, uvnitř, v bezpečné zóně nebo když tě hledá policie. Výhrůžky vyžadují „Mluvit s běžnými NPC“.",
+    ["Speak dialogue choices"] = "Říkat volby v dialogu",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Řekni volbu v dialogu, aby se vybrala: její slova, část z nich nebo její číslo (\"dvě\", \"poslední\"). Pokud nic jasně nesedí, nic se nevybere. Žádná postava neodpoví.\n\nStiskne šipky a Enter, takže hra musí být v popředí. Vyžaduje rozpoznávání řeči na tomto počítači. Nejlépe fungují sluchátka.",
+    ["No option matched. Say its number."] = "Žádná možnost neodpovídá. Řekni její číslo.",
+    ["Two options fit. Say its number."] = "Hodí se dvě možnosti. Řekni její číslo.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Vyslovení volby vyžaduje rozpoznávání řeči na tomto počítači.",
 }

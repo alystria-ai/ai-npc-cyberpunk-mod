@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "ゲームプレイ",
     ["Revenge ambushes"] = "復讐の待ち伏せ",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "何度も倒すギャングは、まれに少人数の部隊を送り込み、短い脅し文句を叫ばせることがある。1回ごとに長い間隔があく。\n\n戦闘、シーン、通話、乗り物の中、屋内、セーフゾーン、指名手配中には決して起きない。脅しには「一般NPCと会話」が必要。",
+    ["Speak dialogue choices"] = "会話の選択肢を話す",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "会話の選択肢を話すと選べます。話す内容は、選択肢の言葉、その一部、または番号（\"二\"、\"最後のもの\"）でかまいません。どれにもはっきり合わなければ、何も選ばれません。キャラクターは応答しません。\n\n方向キーと Enter を押すため、ゲームが前面にある必要があります。このPCで音声認識が必要です。ヘッドホンが一番おすすめです。",
+    ["No option matched. Say its number."] = "一致する選択肢がありません。番号を言ってください。",
+    ["Two options fit. Say its number."] = "二つの選択肢が当てはまります。番号を言ってください。",
+    ["Speaking a choice needs speech recognition on this PC."] = "選択肢を話すには、このPCで音声認識が必要です。",
 }

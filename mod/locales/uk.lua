@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "Ігровий процес",
     ["Revenge ambushes"] = "Засідки помсти",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Банда, яку ти постійно вбиваєш, рідко може надіслати невеликий загін із короткою погрозою. Після кожного настає довга пауза.\n\nНіколи під час бою, сцени, дзвінка, у транспорті, в приміщенні, в безпечній зоні чи коли тебе розшукують. Погрози потребують «Розмови зі звичайними NPC».",
+    ["Speak dialogue choices"] = "Озвучування варіантів реплік",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Назви варіант репліки, щоб вибрати його: його слова, частину слів або його номер (\"два\", \"останній\"). Якщо нічого не пасує явно, нічого не вибирається. Жоден персонаж не відповідає.\n\nНатискає стрілки та Enter, тож гра має бути на передньому плані. Потрібне розпізнавання мовлення на цьому ПК. Найкраще працюють навушники.",
+    ["No option matched. Say its number."] = "Жоден варіант не підійшов. Назви його номер.",
+    ["Two options fit. Say its number."] = "Пасують два варіанти. Назви номер потрібного.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Озвучення варіанта потребує розпізнавання мовлення на цьому ПК.",
 }

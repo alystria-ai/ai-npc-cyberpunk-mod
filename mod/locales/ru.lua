@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "Геймплей",
     ["Revenge ambushes"] = "Засады из мести",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Банда, которую вы продолжаете убивать, изредка может выслать небольшой отряд с короткой угрозой. После каждого следует долгое ожидание.\n\nНикогда во время боя, сцены, звонка, в транспорте, в помещении, в безопасной зоне или когда вас разыскивают. Угрозы требуют «Разговоры с обычными NPC».",
+    ["Speak dialogue choices"] = "Произнесение вариантов реплик",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Назовите вариант реплики, чтобы выбрать его: его слова, часть слов или его номер (\"два\", \"последний\"). Если ничего не подходит явно, ничего не выбирается. Ни один персонаж не отвечает.\n\nНажимает стрелки и Enter, поэтому игра должна быть в фокусе. Нужно распознавание речи на этом ПК. Лучше всего работают наушники.",
+    ["No option matched. Say its number."] = "Подходящего варианта нет. Назовите его номер.",
+    ["Two options fit. Say its number."] = "Подходят два варианта. Назовите номер нужного.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Для произнесения варианта нужно распознавание речи на этом ПК.",
 }

@@ -878,6 +878,9 @@ local function loadSettings()
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
     -- Off by default: Voice activation (docs/VOICE_INPUT.md), talk with no key. Off, the microphone is closed, mod/voice-activation.lua is not loaded and the bridge runs no detector.
     if type(settings.voiceActivation) ~= 'boolean' then settings.voiceActivation, settingsNeedSave = false, true end
+    -- Off by default: Speak dialogue choices (docs/VOICE_CHOICES.md), say a dialogue choice instead of pressing it. Off, mod/voice-choices.lua is not loaded, no event is
+    -- observed and the microphone stays closed.
+    if type(settings.voiceChoices) ~= 'boolean' then settings.voiceChoices, settingsNeedSave = false, true end
     -- On by default: Companions change outfits (docs/COMPANION_OUTFITS.md). Off, mod/companion-outfits.lua is not loaded, nothing ticks and nothing is changed.
     if type(settings.companionOutfits) ~= 'boolean' then settings.companionOutfits, settingsNeedSave = false, true end
     -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
@@ -1081,6 +1084,12 @@ end
 function M.voiceActivation()
     loadSettings()
     return settings.voiceActivation == true
+end
+
+-- Speak dialogue choices (Settings > Gameplay): say one of the game's own dialogue choices to pick it. Off by default. Read on the game's 10 Hz tick (one boolean), never per frame.
+function M.voiceChoices()
+    loadSettings()
+    return settings.voiceChoices == true
 end
 
 -- Companions change outfits (Settings > Gameplay, docs/COMPANION_OUTFITS.md): off by default. Read on the game's 10 Hz tick (one boolean), never per frame.
@@ -2191,6 +2200,7 @@ function M.snapshot(player)
             archetypeConversations = settings.archetypeConversations,
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
+            voiceChoices = settings.voiceChoices == true,
             padTalk = settings.padTalk == true,
             remoteOmni = settings.remoteOmni == true,
             keyBindings = settings.keyBindings,
@@ -2322,6 +2332,9 @@ function M.applySettings(player, values)
         elseif key == 'voiceActivation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.voiceActivation = value
+        elseif key == 'voiceChoices' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.voiceChoices = value
         elseif key == 'padTalk' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.padTalk = value

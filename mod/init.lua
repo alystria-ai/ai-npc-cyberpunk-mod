@@ -6226,6 +6226,63 @@ function convaiVoiceActivationTick(player, elapsed, ready)
     end
     convaiVoiceActivationModule().update(player, elapsed, ready)
 end
+-- Speak dialogue choices (Settings > Gameplay, off by default; docs/VOICE_CHOICES.md): while the game shows its own dialogue choice list, the player can say a
+-- choice and it is picked. mod/voice-choices.lua publishes the list when it opens, changes or closes (the HUD's own events) and shows one notice when the bridge
+-- could not pick; the bridge hears, matches and presses the keys. One boolean per tick while the setting is off; the module is not even loaded then. A global
+-- function, so onUpdate reaches it without a new upvalue.
+function convaiVoiceChoicesModule()
+    if convaiVoiceChoices then return convaiVoiceChoices end
+    convaiVoiceChoices = dofile('voice-choices.lua')
+    local function board() local defs = Game.GetAllBlackboardDefs(); return Game.GetBlackboardSystem():Get(defs.UIInteractions), defs.UIInteractions end
+    convaiVoiceChoices.deps = {
+        enabled = function() return manager.voiceChoices() end,
+        observe = function(class, method, fn) ObserveAfter(class, method, fn) end,
+        hubsNow = function() local bb, def = board(); return FromVariant(bb:GetVariant(def.DialogChoiceHubs)) end,
+        activeHub = function() local bb, def = board(); return bb:GetInt(def.ActiveChoiceHubID) end,
+        selectedIndex = function() local bb, def = board(); return bb:GetInt(def.SelectedIndex) end,
+        localized = function(text)
+            if type(text) == 'string' and text:match('^LocKey#') then return GetLocalizedText(text) end
+            return text
+        end,
+        -- Greyed-out lines (the game cannot apply them): never picked by voice.
+        unavailable = function(item)
+            local kind = item.type
+            return ChoiceTypeWrapper.IsType(kind, Enum.new('gameinteractionsChoiceType', 'Inactive'))
+                or ChoiceTypeWrapper.IsType(kind, Enum.new('gameinteractionsChoiceType', 'CheckFailed'))
+        end,
+        write = function(path, text)
+            local file = io.open(path, 'wb')
+            if not file then return false end
+            file:write(text); file:close()
+            return true
+        end,
+        read = function(path)
+            local file = io.open(path, 'rb')
+            if not file then return nil end
+            local text = file:read('*a'); file:close()
+            return text
+        end,
+        listen = function(on) return microphone.listenChoice(on) end,
+        notice = function(kind)
+            local text = kind == 'ambiguous' and ui.t('Two options fit. Say its number.')
+                or kind == 'unavailable' and ui.t('Speaking a choice needs speech recognition on this PC.')
+                or ui.t('No option matched. Say its number.')
+            convaiNotices.send(Game.GetPlayer(), 'voice-choice', text)
+        end,
+        log = log,
+    }
+    return convaiVoiceChoices
+end
+
+function convaiVoiceChoicesTick()
+    if not manager.voiceChoices() then
+        -- Turned off after being on: the list is forgotten and the bridge releases the microphone (once; the module's tick returns at its first line otherwise).
+        if convaiVoiceChoices then convaiVoiceChoices.tick() end
+        return
+    end
+    convaiVoiceChoicesModule().tick()
+end
+
 -- Controller talk button (Settings > Voices, off by default; docs/CONTROLLER_BINDING.md): hold the left stick click (L3) to talk, let go to send. The
 -- redscript half (PadTalk.reds) listens to the game's walking action for that click and times the hold; mod/pad-binding.lua decides whether the moment is
 -- allowed and runs the talk key's own code path (voiceKeyEdge, under its own key id so a keyboard hold and a controller hold never end each other).
@@ -7047,6 +7104,9 @@ registerForEvent('onUpdate', function(delta)
     -- Voice activation (Settings > Voices, off by default): one boolean while it is off; the module is not even loaded then.
     local vaOk, vaError = pcall(convaiVoiceActivationTick, player, elapsedPoll, worldReady)
     if not vaOk then convaiLogOnce('Voice activation failed: ' .. tostring(vaError)) end
+    -- Speak dialogue choices (Settings > Gameplay, off by default): one boolean per tick while it is off; the module is not even loaded then.
+    local vcOk, vcError = pcall(convaiVoiceChoicesTick)
+    if not vcOk then convaiLogOnce('Speak dialogue choices failed: ' .. tostring(vcError)) end
     -- Controller talk button (Settings > Voices, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local padOk, padError = pcall(convaiPadBindingTick, player, worldReady)
     if not padOk then convaiLogOnce('Controller talk button failed: ' .. tostring(padError)) end

@@ -138,6 +138,7 @@ import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-captu
 import {MicTap, TapCapture, TAP} from './mic-tap.mjs';
 import {MicDevicesControl, MIC_DEVICES_COMMAND, MIC_DEVICES_STATE, settingMicDevice} from './mic-devices-control.mjs';
 import {MicLive} from './mic-live.mjs';
+import {createVoiceChoice, KeySender, parseHub, HUB_FILE, RESULT_FILE} from './voice-choice.mjs';
 import {describeThresholds} from './voice-activity.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
@@ -919,6 +920,7 @@ async function abandonMicrophone(why) {
   await publishMicState().catch(() => {});
 }
 async function cancelMicrophone() {
+  void voiceChoice?.cancel('another turn');
   micV.dropAll('turn-ended');   // V's line for a spoken turn ends with the turn (bridge/mic-v-line.mjs)
   const current = mic.current;
   if (current && companionActions.pending?.packet.requestId === current.requestId) void companionActions.revoke();
@@ -1210,12 +1212,14 @@ function publishMicState(options) {
 }
 // The input the player chose in Settings > Voices > Microphone (the label; '' is the Windows default), read from settings.json on the settings poll and asked for at each open.
 let micPreferred = '';
+// Speak dialogue choices (bridge/voice-choice.mjs, docs/VOICE_CHOICES.md): created below, once the recogniser exists; the tap reports the detector to it.
+let voiceChoice = null, voiceChoicesOn = false;
 const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime), preferredDevice: () => micPreferred});
 const micLive = new MicLive({tap: null, read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
   log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
   onListenError: () => { micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {}); }});
 const micTap = new MicTap({capture: micCapture, log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
-  onVad: status => { micVad = micVadBody(status); void publishMicState().catch(() => {}); },
+  onVad: status => { micVad = micVadBody(status); void publishMicState().catch(() => {}); try { voiceChoice?.onVad(status); } catch { /* never breaks the tap */ } },
   // The talk key pressed with the device cold: the game shows "Opening microphone…" and then "Speak now" (mod/microphone.lua).
   onCue: cue => { micCue = {id: BOOT_ID + ':cue:' + (++micCueSeq), hold: cue.hold, phase: cue.phase, cold: true}; void publishMicState().catch(() => {}); },
   // A released tap is reopened for listening when the game still asks for it (a turn ended, the voice browser restarted).
@@ -1237,6 +1241,14 @@ const mistralSpeech = createLocalSpeech({
   alternatives: () => (mistral.route === 'mistral' && voxtralStt.ready) || installedPackIds().length > 0,
   // The input device, its level and the words (or why they were ignored) of every recording, one line each.
   log: line => console.error('[CyberpunkConvai] Microphone: ' + line)});
+// Speak dialogue choices: the list on screen is published by the game (runtime/choice-hub.json) when it opens or changes; a spoken line is recognised here, matched
+// to a caption with no language model and applied with the arrow keys and Enter (bridge/choice-keys.py). The result goes back in runtime/choice-result.json.
+const readChoiceHub = async () => parseHub(await readFile(resolve(runtime, HUB_FILE), 'utf8').catch(() => ''));
+voiceChoice = createVoiceChoice({speech: mistralSpeech, tap: micTap, readHub: readChoiceHub, enabled: () => voiceChoicesOn,
+  publish: body => atomic(resolve(runtime, RESULT_FILE), JSON.stringify(body)),
+  makeSender: () => new KeySender({python: voiceConfig.runtime?.pythonExecutable, script: fileURLToPath(new URL('./choice-keys.py', import.meta.url)),
+    log: line => console.error('[CyberpunkConvai] Voice choice: ' + line)}),
+  log: line => console.error('[CyberpunkConvai] ' + line)});
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
 // The custom provider warms its own https origin (none for a server on this computer or the home network, which has no TLS to open).
 const warmTurnConnections = options => options?.provider === 'custom'
@@ -3894,7 +3906,12 @@ async function pollSettings(checkShutdown = true) {
       }
     }
     // Voice activation (Settings > Voices, off by default): without it the game's listen request is not honoured and a listening tap is released.
-    if (settings) micLive.setAllowed(settings.voiceActivation === true);
+    // Speak dialogue choices (Settings > Gameplay, off by default) listens the same way, but only while the game shows a choice list.
+    if (settings) {
+      const choices = settings.voiceChoices === true;
+      if (choices !== voiceChoicesOn) { voiceChoicesOn = choices; if (!choices) void voiceChoice?.cancel('the setting is off'); }
+      micLive.setAllowed(settings.voiceActivation === true || choices);
+    }
     if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
@@ -4119,6 +4136,8 @@ watchFiles(runtime, {
   'microphone-command.json': () => pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)),
   // The key press opens the microphone tap with no wait for the 150 ms poll above.
   'microphone-live.json': () => micLive.poll().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)),
+  // The choice list on screen (mod/voice-choices.lua): a recording of a list that has changed or closed is dropped.
+  'choice-hub.json': () => readChoiceHub().then(hub => voiceChoice.hubChanged(hub)).catch(error => pollLog('[CyberpunkConvai] Choice list poll:', error)),
   'phone-chat-input.json': () => pollPhone().catch(error => pollLog('[CyberpunkConvai] Phone poll:', error)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),

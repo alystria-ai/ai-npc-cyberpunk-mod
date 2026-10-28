@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "Giocabilità",
     ["Revenge ambushes"] = "Agguati di vendetta",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Una banda che continui a uccidere può mandarti, di rado, una piccola squadra con una breve minaccia. Ognuna è seguita da una lunga attesa.\n\nMai durante scontri, scene, chiamate, a bordo di un veicolo, al chiuso, in zone sicure o mentre sei ricercato. Le minacce richiedono «Parla con PNG comuni».",
+    ["Speak dialogue choices"] = "Pronuncia le scelte di dialogo",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Pronuncia una scelta di dialogo per selezionarla: le sue parole, una parte di esse o il suo numero (\"due\", \"l'ultima\"). Se nulla corrisponde chiaramente, non viene selezionato nulla. Nessun personaggio risponde.\n\nPreme i tasti freccia e Enter, quindi il gioco deve essere in primo piano. Richiede il riconoscimento vocale su questo PC. Le cuffie funzionano meglio.",
+    ["No option matched. Say its number."] = "Nessuna scelta corrisponde. Dì il suo numero.",
+    ["Two options fit. Say its number."] = "Due scelte corrispondono. Dì il suo numero.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Dire una scelta richiede il riconoscimento vocale su questo PC.",
 }

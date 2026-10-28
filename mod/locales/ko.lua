@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "게임플레이",
     ["Revenge ambushes"] = "복수 매복",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "계속해서 죽이는 갱단이 드물게 짧은 위협과 함께 소규모 무리를 보낼 수 있어요. 한 번 뒤에는 오랜 대기 시간이 있어요.\n\n전투, 장면, 통화, 차량 안, 실내, 안전 구역, 수배 중에는 절대 나타나지 않아요. 위협에는 “일반 NPC와 대화”가 필요해요.",
+    ["Speak dialogue choices"] = "대화 선택지 말하기",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "대화 선택지를 말하면 고를 수 있습니다. 선택지의 단어, 일부 단어, 또는 번호(\"둘\", \"마지막 것\")로 말하면 됩니다. 어떤 선택지에도 분명히 맞지 않으면 아무것도 고르지 않습니다. 어떤 캐릭터도 응답하지 않습니다.\n\n방향키와 Enter를 누르므로 게임이 맨 앞에 있어야 합니다. 이 PC에서 음성 인식이 필요합니다. 헤드폰을 쓰면 가장 잘 작동합니다.",
+    ["No option matched. Say its number."] = "일치하는 선택지가 없습니다. 번호를 말하세요.",
+    ["Two options fit. Say its number."] = "두 개의 선택지가 맞습니다. 번호를 말하세요.",
+    ["Speaking a choice needs speech recognition on this PC."] = "선택지를 말하려면 이 PC에서 음성 인식이 필요합니다.",
 }

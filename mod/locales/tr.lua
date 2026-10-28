@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "Oynanış",
     ["Revenge ambushes"] = "İntikam pusuları",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Sürekli öldürdüğün bir çete, nadiren kısa bir tehditle küçük bir ekip gönderebilir. Her birinin ardından uzun bir bekleme gelir.\n\nAsla dövüş, sahne, telefon görüşmesi, araç içi, bina içi, güvenli bölge ya da arananken olmaz. Tehditler için «Sıradan NPC'lerle konuş» gerekir.",
+    ["Speak dialogue choices"] = "Diyalog seçeneklerini söyle",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Bir diyalog seçeneğini söyleyerek seç: sözcükleri, bir kısmı ya da numarası (\"iki\", \"sondaki\"). Hiçbir şey açıkça uymuyorsa hiçbir şey seçilmez. Hiçbir karakter yanıt vermez.\n\nYön tuşlarına ve Enter'a basar, bu yüzden oyunun ön planda olması gerekir. Bu bilgisayarda konuşma tanıma gerekir. En iyi sonucu kulaklıkla alırsın.",
+    ["No option matched. Say its number."] = "Hiçbir seçenekle eşleşmedi. Numarasını söyle.",
+    ["Two options fit. Say its number."] = "İki seçenek uyuyor. Numarasını söyle.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Bir seçeneği söylemek için bu bilgisayarda konuşma tanıma gerekir.",
 }

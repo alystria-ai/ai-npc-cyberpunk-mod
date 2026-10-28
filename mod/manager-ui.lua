@@ -2018,6 +2018,9 @@ local function schema()
             -- Off by default: a gang V keeps killing may send a small squad after V, now and then, with a threat of its own to shout (mod/revenge-ambush.lua).
             setting('revengeAmbushes', 'Revenge ambushes', 'bool', snapshot.settings.revengeAmbushes == true, false,
                 'A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs.'),
+            -- Off by default: say one of the game's dialogue choices to pick it (docs/VOICE_CHOICES.md). It moved from Voices to Gameplay when that section was made; the stored key is unchanged.
+            setting('voiceChoices', 'Speak dialogue choices', 'bool', snapshot.settings.voiceChoices == true, false,
+                'Say a dialogue choice to pick it: its words, a part of them, or its number ("two", "the last one"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best.'),
         })
         -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
         -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
@@ -2593,6 +2596,7 @@ function M.apply(changes)
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
+        elseif key == 'voiceChoices' then values.voiceChoices = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
         elseif key == 'remoteOmni' then values.remoteOmni = change.value
         elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false, johnny_voice = false, johnny_text = false}

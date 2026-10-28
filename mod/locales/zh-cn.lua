@@ -1547,4 +1547,9 @@ return {
     ["Gameplay"] = "游戏玩法",
     ["Revenge ambushes"] = "复仇伏击",
     ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "你反复杀死的帮派，很少会派一支小队来找你，并喊出一句简短的威胁。每次之后都有较长的等待。\n\n绝不会在战斗、剧情、通话、载具中、室内、安全区或通缉期间出现。威胁需要开启“与普通 NPC 对话”。",
+    ["Speak dialogue choices"] = "说出对话选项",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "说出某个对话选项即可选中它：说出它的文字、部分文字，或它的编号（\"二\"、\"最后一个\"）。若没有明确匹配，则不选中任何选项。没有角色回应。\n\n会按方向键和 Enter，因此游戏必须在最前面。需要本机具备语音识别功能。最好使用耳机。",
+    ["No option matched. Say its number."] = "没有匹配的选项。请说出它的编号。",
+    ["Two options fit. Say its number."] = "有两个选项符合。请说出它的编号。",
+    ["Speaking a choice needs speech recognition on this PC."] = "说出选项需要本机具备语音识别功能。",
 }
