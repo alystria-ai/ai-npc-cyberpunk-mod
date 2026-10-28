@@ -318,3 +318,44 @@ test('join: false sends every phrase exactly as rendered, and a phrase that is o
   assert.equal(a.reduce((n, packet) => n + packet.frames, 0), 24000);
   assert.equal(b.reduce((n, packet) => n + packet.frames, 0), 24000, 'an unmeasurable phrase comes back whole');
 });
+
+test('a streamed reply tail goes on from the head: a sentence pause between them, the level of the head, and the head ends only when no tail follows', async () => {
+  const sound = (level, seconds = 1.5) => padded(seconds, {lead: 0.6, tail: 0.25, level});
+  let calls = 0;
+  const synthesize = async () => ({audio: wavOf(sound(calls++ === 0 ? 0.6 : 0.5)), timing: {voiceGenerationMs: 900}});
+  const voice = createOmniPcmVoice({synthesize});
+  const head = [], tail = [];
+  await voice.synthesizeStream('judy', 'The air is still here.', {role: 'head', onPcm: packet => head.push(packet), progress: {emitted: 0, heard: 0, upcoming: () => 'Just wait for me to speak again.'}});
+  await voice.synthesizeStream('judy', 'Just wait for me to speak again.', {role: 'tail', onPcm: packet => tail.push(packet)});
+  const headPcm = Float32Array.from(head.flatMap(packet => [...packet.pcm])), tailPcm = Float32Array.from(tail.flatMap(packet => [...packet.pcm]));
+  // The head keeps 80 ms after its speech (it is not the end of the reply) and the tail opens with the rest of a 320 ms sentence pause, then its speech.
+  const headEnd = measureSpeech(headPcm).end, tailStart = measureSpeech(tailPcm).start;
+  const gap = (headPcm.length - headEnd + tailStart) / OMNI_RATE;
+  assert.ok(Math.abs(gap - 0.32) < 0.02, `${gap.toFixed(3)} s between the last word of the head and the first of the tail`);
+  // The tail (0.5) is brought up to the head's level (0.6), within the 3 dB allowed.
+  assert.ok(Math.abs(measureSpeech(tailPcm).level / measureSpeech(headPcm).level - 1) < 0.03);
+  // A head that nothing follows is the end of the reply: it keeps the longer 120 ms tail.
+  calls = 0;
+  const whole = [];
+  await createOmniPcmVoice({synthesize}).synthesizeStream('judy', 'The air is still here.', {role: 'head', onPcm: packet => whole.push(packet), progress: {emitted: 0, heard: 0, upcoming: () => ''}});
+  const wholePcm = Float32Array.from(whole.flatMap(packet => [...packet.pcm]));
+  assert.ok(Math.abs((wholePcm.length - measureSpeech(wholePcm).end) / OMNI_RATE - 0.12) < 0.01);
+});
+
+test('the first phrase tells how long the first sound should wait for the rest: onRunway is told 0 at the start and then the hold, and the reply carries it', async () => {
+  const told = [];
+  // A short first phrase made in 1.7 s, a long rest: the rest cannot be ready when the first part has played.
+  const synthesize = async (profile, text) => ({audio: wavOf(padded(text.length < 30 ? 1.2 : 6, {lead: 0.5, tail: 0.2})), timing: {voiceGenerationMs: 1700}});
+  const voice = createOmniPcmVoice({synthesize, onRunway: ms => told.push(ms)});
+  const response = await voice.synthesizeStream('judy', 'Hey V, wait a moment please. ' + 'This is the rest of what I have to tell you about the market and the food and the next job. '.repeat(2), {role: 'head', onPcm: () => {}});
+  assert.equal(told[0], 0);
+  assert.ok(told[1] > 0 && told[1] <= 1200, `hold ${told[1]}`);
+  assert.equal(response.timing.voiceRunwayMs, told[1]);
+  // A tail call does not touch it; a whole reply that cannot run dry is told 0.
+  told.length = 0;
+  await voice.synthesizeStream('judy', 'The rest.', {role: 'tail', onPcm: () => {}});
+  assert.deepEqual(told, []);
+  const quick = createOmniPcmVoice({synthesize: async () => ({audio: wavOf(padded(4)), timing: {voiceGenerationMs: 1000}}), onRunway: ms => told.push(ms)});
+  await quick.synthesizeStream('judy', 'Hello there V.', {onPcm: () => {}});
+  assert.deepEqual(told, [0, 0]);
+});

@@ -59,6 +59,22 @@ cut at the first comma after 12 words, later ones after 22), where the model end
   first-word / finished / join-silence numbers). Tests: `bridge/omni-join.test.mjs`, `bridge/speech-phrases.test.mjs`, `bridge/omni-pcm.test.mjs`.
 - V's own OmniVoice line (`bridge/v-voice.mjs` `omniProducer`) is cropped the same way (`cropOmniPackets`), so the companion reply no longer waits behind the model's padding.
 
+## The seam between the head and the tail, and the runway (28 Oct 2026, after the owner's game test)
+
+The owner heard the breaks in the game as worse than in the sample files. What the game's own records show (`runtime/bridge-latency.json`, 13 OmniVoice turns of 28 Oct,
+16 steps, CUDA graph, the game running): the worker renders a phrase in 0.8 to 2.1 s; every turn reports 0 underruns; 6 of the 13 were voiced while written, so
+their rest (`voiceTailChars`) is a second call, `role: 'tail'`, after the first sentence's `role: 'head'` call; one of those six played 1 s longer than its audio
+(`playedMs` 14550 for 13.56 s: a stall, or a pause of the game, the record cannot tell). Almost every reply is one phrase, so the seam that matters is not between phrases of
+one call but between the head and the tail: two renders with their own padding (0.2 to 0.9 s each), and since each call had its own joiner the first version of the
+joins left only 110 ms there. The PCM transport adds nothing at such a seam: `bridge/local-pcm-client.mjs` takes packets only at `offsetFrames` equal to what it holds
+and appends them as they are.
+- The joiner now lives for the whole reply (`createOmniPcmVoice`): a tail continues the head's pause (a sentence pause), level and fades. A head keeps the longer
+  end only when `progress.upcoming()` says no tail follows (`bridge/pocket-speech.mjs` gives it: the tail text once the reply is written, null before).
+- `bridge/omni-runway.mjs`: when the first phrase is in, its render time and audio tell how fast this reply is being made; the renders still to come (the rest of the
+  call and a known tail) are predicted, and the first sound is held back by the shortfall only (`SpeechPace.runwayMs`, the pace the engine already has; released when the
+  audio is complete), 150 ms at least, 1.2 s at most, 0 when the reply cannot run dry. Reported as `voiceRunwayMs` in the turn's timing. Cost on a quiet GPU: 0 ms for the
+  four sample replies, about 0.7 s for a 1.3 s first sentence with a 98 character tail; on a GPU twice as slow 0.6 to 1.2 s.
+
 ## Cost
 
 - No per-frame work was added in the game: the Lua side lost code (the native phrase path, the manifest poll, the Audioware cursor read).

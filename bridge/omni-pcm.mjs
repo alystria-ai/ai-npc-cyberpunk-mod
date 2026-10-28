@@ -19,6 +19,7 @@
 import {readPcmWav} from './speech-audio.mjs';
 import {splitSpeechText} from './speech-phrases.mjs';
 import {PhraseJoiner} from './omni-join.mjs';
+import {runwayMs} from './omni-runway.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {randomBytes, createHash} from 'node:crypto';
 
@@ -68,16 +69,20 @@ const sleepFor = (ms, signal) => new Promise((resolve, reject) => {
  * retries() -> how many more times a phrase whose render failed is asked for again before the reply ends there (default 0: none). The AMD route (ROCm) asks for one:
  * a stray PyTorch/MIOpen error on one phrase (the worker answers it with an error and keeps running) otherwise cut a reply off mid-sentence. A cancelled reply or a
  * worker that is gone is never retried. onRetry({index, error}) is a diagnostics hook.
- * join: false sends each phrase exactly as the worker rendered it (no crop, fade, level match or pause: bridge/omni-join.mjs); the default shapes the joins.
+ * join: false sends each phrase exactly as the worker rendered it (no crop, fade, level match or pause: bridge/omni-join.mjs); the default shapes the joins. The
+ * joins are kept across the calls of one reply: a 'tail' call (the rest of a reply voiced while it was written) continues the 'head' call's pause, level and fades.
+ * onRunway(ms) is told, when a reply's first phrase is in, how long its first sound should be held so the queue does not run dry (bridge/omni-runway.mjs; 0: not at
+ * all); it is called with 0 at the start of every head or whole reply.
  */
 export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => undefined, onPhrase, onRetry, retries = () => 0, ahead = 2, maxLeadSeconds = 14, sleep = sleepFor,
-  pollMs = 75, now = () => performance.now(), join = true}) {
+  pollMs = 75, now = () => performance.now(), join = true, onRunway}) {
   if (typeof synthesize !== 'function') throw Error('OmniVoice synthesis is required');
-  let counter = 0;
+  let counter = 0, joiner = null;
   return {
     /**
      * options: signal; onPcm(packet) (awaited, in order); role 'head' | 'tail' | undefined; language; steps; utterance (told 'pocket': not a cloud
-     * voice); progress {emitted, heard} in seconds (kept by the caller: the reply stops queueing phrases while it is `maxLeadSeconds` ahead).
+     * voice); progress {emitted, heard} in seconds (kept by the caller: the reply stops queueing phrases while it is `maxLeadSeconds` ahead) and optionally upcoming() -> the text still to come
+     * after this call (a streamed reply's tail: '' none, null not known yet), which tells whether this call ends the reply and what the worker has still to render.
      */
     async synthesizeStream(profile, text, options = {}) {
       const {signal, onPcm, role, language, utterance, progress} = options;
@@ -114,13 +119,15 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
       };
       // The worker's one queue: this phrase, and the next one behind it.
       for (let index = 0; index < Math.min(ahead, phrases.length); index++) queue(index);
-      let frames = 0, packets = 0, first;
-      const joiner = join ? new PhraseJoiner({rate: OMNI_RATE}) : null;
+      let frames = 0, packets = 0, first, runway = 0;
+      // A new reply (a head or a whole reply) starts new joins; a tail goes on with the head's.
+      if (!join) joiner = null; else if (role !== 'tail' || !joiner) joiner = new PhraseJoiner({rate: OMNI_RATE});
+      if (role !== 'tail') { try { onRunway?.(0); } catch { /* a hint never affects speech */ } }
       try {
         for (let index = 0; index < phrases.length; index++) {
-          let generated;
+          let generated, queuedMs = 0;
           try {
-            ({generated} = await jobs.get(index));
+            ({generated, queuedMs} = await jobs.get(index));
             throwIfCancelled(signal);
           } catch (error) {
             throwIfCancelled(signal);
@@ -131,9 +138,21 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
           }
           jobs.delete(index);
           const rendered = wavToPcm(generated.audio);
-          const pcm = joiner ? joiner.shape(rendered, {text: phrases[index], first: index === 0, last: index === phrases.length - 1}) : rendered;
+          let more = '';
+          try { more = typeof progress?.upcoming === 'function' ? progress.upcoming() : ''; } catch { more = ''; }   // null: a tail may come, not known yet
+          // The last phrase of a head is the end of the reply only when no tail follows.
+          const finalPhrase = index === phrases.length - 1 && (role !== 'head' || more === '');
+          const pcm = joiner ? joiner.shape(rendered, {text: phrases[index], first: index === 0 && role !== 'tail', last: finalPhrase}) : rendered;
           if (frames + pcm.length > MAX_FRAMES) throw Error('Speech exceeded two minutes');
           first ??= generated;
+          if (index === 0 && role !== 'tail' && onRunway) {
+            // What the first phrase taught: the worker's own render time (not the wait behind another job) and the audio it made. The rest of this call, and the tail
+            // of a streamed reply that is already known, are the renders still to come.
+            const renderMs = Number(generated.timing?.voiceGenerationMs) > 0 ? Number(generated.timing.voiceGenerationMs) : queuedMs;
+            const tailText = typeof more === 'string' && more ? [more] : [];
+            try { runway = runwayMs({renderMs, firstSeconds: pcm.length / OMNI_RATE, firstChars: phrases[0].length, later: [...phrases.slice(1), ...tailText]}); } catch { runway = 0; }
+            try { onRunway(runway); } catch { /* a hint never affects speech */ }
+          }
           for (let at = 0; at < pcm.length; at += PACKET_FRAMES) {
             const piece = pcm.subarray(at, Math.min(pcm.length, at + PACKET_FRAMES));
             await onPcm({version: 1, engine: 'pocket-tts', sampleRate: OMNI_RATE, channels: 1, format: 'f32le', owner, id,
@@ -151,7 +170,7 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
           }
         }
       } finally { inner.abort(); signal?.removeEventListener('abort', relay); jobs.clear(); }
-      const timing = {...first?.timing, voiceProvider: 'omni', voiceEngine: 'omnivoice', voicePhrases: phrases.length};
+      const timing = {...first?.timing, voiceProvider: 'omni', voiceEngine: 'omnivoice', voicePhrases: phrases.length, ...(runway ? {voiceRunwayMs: runway} : {})};
       return {frames, chunks: packets, duration: frames / OMNI_RATE, truncated: false, timing};
     },
   };

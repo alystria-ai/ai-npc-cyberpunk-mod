@@ -14,6 +14,7 @@ export class SpeechPace {
   constructor({keep = 3, lead = 1.2, maxWaitMs = 1500, maxLead = 2.4, maxWaitCapMs = 3000} = {}) {
     Object.assign(this, {keep, leadSeconds: lead, maxWaitMs, maxLead, maxWaitCapMs});
     this.history = [];
+    this.runwayMs = 0;   // set per reply by the OmniVoice engine; 0 for none
   }
 
   /**
@@ -51,7 +52,10 @@ export class SpeechPace {
 
   /** True while a line that has `buffered` seconds of audio, `waitedMs` after its first audio, should still stay silent. */
   holds(buffered, waitedMs, {complete = false} = {}) {
+    if (complete) return false;
+    // OmniVoice's runway (bridge/omni-runway.mjs): this reply's first sound waits for the time its rest needs to be rendered, whatever is buffered.
+    if (this.runwayMs > 0 && waitedMs < this.runwayMs) return true;
     const lead = this.lead;
-    return lead > 0 && !complete && buffered < lead && waitedMs < this.waitMs;
+    return lead > 0 && buffered < lead && waitedMs < this.waitMs;
   }
 }

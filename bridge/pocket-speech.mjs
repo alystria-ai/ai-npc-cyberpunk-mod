@@ -32,7 +32,8 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
   const languageOption=language&&language!=='en'?{language}:{};
   // Seconds of audio handed to the renderer and heard so far (read by an engine that renders in phrases, bridge/omni-pcm.mjs, to stay a bounded
   // lead ahead of the player; Pocket ignores it).
-  const progress={emitted:0,heard:0};
+  // upcoming() tells that engine what is still to come after the call it is in (a streamed reply's tail: its text once the reply is written, null while it is not, '' for none).
+  const progress={emitted:0,heard:0,upcoming:()=>stream?(stream.complete?stream.tail:null):''};
   const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,jaliFace,signal,expressionSignal:result.expressionSignal,text:result.text,textComplete:!stream,onAnalysis});
   try {
     const generated=await host.playLocalPcm({token:speech.token,text:result.text,
