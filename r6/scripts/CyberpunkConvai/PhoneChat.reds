@@ -154,22 +154,31 @@ public final func ConvaiPhoneChatContactName(contact: String) -> String {
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatHasContact(contact: String) -> Bool { return ArrayContains(this.m_convaiChatContacts, contact); }
 
-// The favorite contacts (the characters starred in Characters to invite): the Chat list puts them first and starts their name with the
-// mark. Set from Lua when the favorites change; read only when the list is built.
+// The favorite contacts (the characters starred in Characters to invite): the Chat list puts them first (SortItem in PhoneChatTabs.reds) and
+// shows their name as any other row's. Set from Lua when the favorites change; read only when the list is built.
 @addField(PlayerPuppet)
 private let m_convaiChatFavorites: array<String>;
-@addField(PlayerPuppet)
-private let m_convaiChatFavoriteMark: String;
 @addMethod(PlayerPuppet)
-public final func ConvaiPhoneChatClearFavorites(mark: String) -> Void { ArrayClear(this.m_convaiChatFavorites); this.m_convaiChatFavoriteMark = mark; }
+public final func ConvaiPhoneChatClearFavorites() -> Void { ArrayClear(this.m_convaiChatFavorites); }
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatAddFavorite(contact: String) -> Void { ArrayPush(this.m_convaiChatFavorites, contact); }
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatIsFavorite(contact: String) -> Bool { return ArrayContains(this.m_convaiChatFavorites, contact); }
-// The name as the Chat list shows it: a favorite's name starts with the mark, so the list's own sort by name puts it first.
+
+// The Chat contacts that are in the party (a copy present or an invitation being prepared): the row shows Dismiss (L) for these and Invite (J)
+// for the others. Set from Lua while the phone is open, when the party changes; a J or L press also updates it at once.
+@addField(PlayerPuppet)
+private let m_convaiChatParty: array<String>;
 @addMethod(PlayerPuppet)
-public final func ConvaiPhoneChatListName(contact: String, name: String) -> String {
-    return ArrayContains(this.m_convaiChatFavorites, contact) ? this.m_convaiChatFavoriteMark + name : name;
+public final func ConvaiPhoneChatClearParty() -> Void { ArrayClear(this.m_convaiChatParty); }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatAddParty(contact: String) -> Void { ArrayPush(this.m_convaiChatParty, contact); }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatInParty(contact: String) -> Bool { return ArrayContains(this.m_convaiChatParty, contact); }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatSetParty(contact: String, inParty: Bool) -> Void {
+    ArrayRemove(this.m_convaiChatParty, contact);
+    if inParty { ArrayPush(this.m_convaiChatParty, contact); };
 }
 
 // The F key on the Chat list turns a contact's favorite on or off. The list shows the change at once from this array; the request goes on

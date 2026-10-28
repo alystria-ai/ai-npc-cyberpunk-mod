@@ -589,7 +589,7 @@ function M.pushFavorites(player)
     local revision = favorites.revision()
     if M.favoritesSeen == revision then return end
     local ok = pcall(function()
-        player:ConvaiPhoneChatClearFavorites(favorites.MARK)
+        player:ConvaiPhoneChatClearFavorites()
         if favorites.count('characters') > 0 then
             for id, key in pairs(M.catalog) do
                 if favorites.isFavorite('characters', key) then player:ConvaiPhoneChatAddFavorite(id) end
@@ -618,7 +618,31 @@ function M.takeFavoriteRequests(player)
     end
 end
 
-function M.update(player, delta)
+-- Tells the game which Chat contacts are in the party, so a row offers Invite (J) or Dismiss (L), not both. M.partyKeys() (init.lua) returns the profile keys of
+-- the copies present and the invitations being prepared. Read only while the phone is open (the argument of update), at most twice a second, and sent only
+-- when the set changed. Older scripts without the methods are asked once.
+local PARTY_PERIOD = 0.5
+function M.pushParty(player, phoneOpen, elapsed)
+    if M.partyMissing or type(M.partyKeys) ~= 'function' then return end
+    if phoneOpen ~= true then M.partyWait, M.partySeen = PARTY_PERIOD, nil; return end
+    M.partyWait = (M.partyWait or PARTY_PERIOD) + (tonumber(elapsed) or 0)
+    if M.partyWait < PARTY_PERIOD and M.partySeen ~= nil then return end
+    M.partyWait = 0
+    local ok, keys = pcall(M.partyKeys)
+    if not ok or type(keys) ~= 'table' then return end
+    local ids = {}
+    for id, key in pairs(M.catalog) do if keys[key] then ids[#ids + 1] = id end end
+    table.sort(ids)
+    local signature = table.concat(ids, ',')
+    if M.partySeen == signature then return end
+    local sent = pcall(function()
+        player:ConvaiPhoneChatClearParty()
+        for _, id in ipairs(ids) do player:ConvaiPhoneChatAddParty(id) end
+    end)
+    if sent then M.partySeen = signature else M.partyMissing = true end
+end
+
+function M.update(player, delta, phoneOpen)
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
     -- A reply due: the native plugin's revision of phone-chat-output.json is checked every 30 ms (one number, no disk access)
@@ -694,6 +718,7 @@ function M.update(player, delta)
     -- tick), and the list puts them first when it is built (PhoneChatTabs.reds), so there is no work while the list is open.
     M.takeFavoriteRequests(player)
     M.pushFavorites(player)
+    M.pushParty(player, phoneOpen, elapsed)
     contact = tostring(contact or '')
     -- One evidence hook per typing session, on its rising edge. The native read is
     -- made only while a phone chat is open, on this 10 Hz tick.

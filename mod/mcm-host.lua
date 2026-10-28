@@ -182,7 +182,10 @@ end
 -- Page 1 / 11"), like the page number, and the help of the line is the page's description (the schema's, which MCM's description panel
 -- shows while no row is hovered: MCM's own heading has no hover text). Native Settings UI draws the rows as they are.
 -- Each entry names the part of the row the heading says: its value, its label, or both (the label, then the value).
+-- The members line of a saved party (Parties, "Saved party: Party 1") is one of them: it sat indented and red above the party's buttons. Its row id
+-- ends in the party's id, so it is matched by its start (statusPart).
 local STATUS_ROWS = {['needs-save'] = 'value', ['empty-party'] = 'label', ['model-status'] = 'label', ['character-status'] = 'label', ['chauffeur-state'] = 'both'}
+local function statusPart(id) return STATUS_ROWS[id] or (id:sub(1, 14) == 'party:members:' and 'label' or nil) end
 
 -- The rows of manager-ui.lua's page as rows of MCM's schema. A row with no counterpart is dropped (nil); a page control becomes
 -- footer buttons (the second value is 'footer': they go in the footer, beside the way back, and not in the list).
@@ -203,8 +206,8 @@ local function convert(row)
         controls.group, controls.groups = group, math.max(1, #elements)
         local current = ui.t('Starts with: {letter}', {letter = elements[group] or ''})
         return {action('ui:group:next', current, current, row.description)}, 'footer'
-    elseif STATUS_ROWS[id] then
-        local part = STATUS_ROWS[id]
+    elseif statusPart(id) then
+        local part = statusPart(id)
         local text = part == 'value' and tostring(row.value or '') or tostring(row.label or '')
         if part == 'both' and tostring(row.value or '') ~= '' then text = text .. ' · ' .. tostring(row.value) end
         -- `row` is the line as a line: it stays one when nothing is listed under it (see schema).

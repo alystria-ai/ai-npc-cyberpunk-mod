@@ -1834,12 +1834,17 @@ test('MCM: without Codeware the Set button says so and nothing waits; without th
 
 // ---- Saved parties: the Search box names a party (Rename), and does not filter the page.
 test('Parties takes MCM\'s Search box as the new name for Rename: the provider search mode is on, the rows are not filtered, an empty box is refused', () => withScreen(`
+  ${footer}
   press('Characters to invite')
   press('Johnny Silverhand'); frames(8)
   members[1].state = 'ready'; frames(4)
   press('Back to Companion Manager'); press('Parties')
   press('Save current party')
   assert(mcm.config().navigation.searchMode == 'provider', 'the box names the party and is no filter: ' .. tostring(mcm.config().navigation.searchMode))
+  -- The members line is not a read-only row (MCM draws that one indented and red above the buttons): the heading of the party's section says it.
+  local savedId = convaiSavedParties.list()[1].id
+  assert(not mcm.row('party:members:' .. savedId), 'no members row: ' .. labels())
+  assert(headings():find('Saved party: Party 1 · ', 1, true), headings())
   local refused = mcm.press('Rename party'); frames(2)
   assert(refused == false and convaiSavedParties.list()[1].name == 'Party 1' and core.feedback():find('Type the new name', 1, true), core.feedback())
   mcm.search('  Night   crew '); frames(8)

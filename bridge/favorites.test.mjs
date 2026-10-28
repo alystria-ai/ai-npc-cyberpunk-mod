@@ -25,7 +25,6 @@ test('a favorite is saved in runtime/favorites.json and read back by a new sessi
   assert(favorites.set('characters', 'k2') == true)
   assert(favorites.set('models', 'k4') == true, 'the two pages keep their own favorites')
   assert(favorites.isFavorite('characters', 'k2') and not favorites.isFavorite('characters', 'k1'))
-  assert(favorites.MARK == '* ', 'the phone marks a favorite with this')
   assert(#fileWrites == 3 and fileWrites[3].path == 'runtime/favorites.json', 'one small write per press, in the mod folder: ' .. #fileWrites)
   -- A new session (the file is all that is left).
   local saved = files['runtime/favorites.json']

@@ -1,5 +1,5 @@
 -- Favorites of the Companion Manager: the characters (Characters to invite) and the game models (Model browser) the player starred. A
--- favorite is listed in the Favorites block at the top of its page, and first in the phone's Chat tab, marked in its name there. Pure data:
+-- favorite is listed in the Favorites block at the top of its page, and first in the phone's Chat tab. Pure data:
 -- the page logic is in manager-ui.lua (per-row buttons), the phone side in mod/phone-chat.lua.
 --
 -- Where it lives: runtime/favorites.json in the mod folder (CET lets the Lua open files only there), a player-state file like settings.json:
@@ -15,8 +15,6 @@ if type(convaiFavorites) == 'table' and convaiFavorites.version == 1 then return
 local M = {version = 1}
 
 local FILE = 'runtime/favorites.json'
--- The marker in front of a favorite's name in the phone's Chat tab. Plain ASCII on purpose: the game's UI font is not known to draw a star glyph.
-M.MARK = '* '
 local SCOPES = {characters = true, models = true}
 local LIMIT = 500          -- favorites per page: a few hundred is a long list already, and the file stays small
 local KEY_LIMIT = 160
