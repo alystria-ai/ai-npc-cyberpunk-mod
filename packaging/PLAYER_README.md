@@ -320,9 +320,10 @@ From 0.3.4 the launcher and the native plugin come with the Scripts too, in `red
 
 ## Uninstall
 
-Delete these folders from your Cyberpunk 2077 folder:
+Delete these folders from your Cyberpunk 2077 folder. Uninstalling or reinstalling the game through Steam, GOG or Epic leaves them in place, because the launcher only removes its own files:
 
 - `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your settings and phone chats)
+- `red4ext\plugins\AiNpcCyberpunkCode` (the mod's code, from 0.3.4)
 - `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice and Local AI packs)
 - `red4ext\plugins\AiNpcCyberpunkModNative`
 - `r6\scripts\CyberpunkConvai` (the scripts; internal name), and `r6\audioware\CyberpunkConvai` if an older version left it
@@ -337,7 +338,7 @@ When something in the mod goes wrong, it sends a short error report to the devel
 
 A report holds: the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices and a few other settings (on or off); what kind of PC it is: your graphics card's name and memory, the PC's total RAM and the memory limit Windows sets (RAM plus the paging file), the processor, the Windows edition, build and display language, the security products Windows lists and whether Smart App Control is on, whether the game runs as administrator, the game's drive (kind, free space, whether it is under Program Files), and the screen's size and refresh rate; the names of your installed mods (the folder and file names of Cyber Engine Tweaks mods, RED4ext plugins, redscript mods and archives, never a path); the setup check's lines; and up to 150 log lines from around the error, with access codes, IDs and your Windows user name removed. Your installation is identified only by a random number hashed twice.
 
-A report never holds: access codes or passwords, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. At most one report per kind of error per day is sent, in the background, never while a character is answering. Reports are kept for 30 days.
+A report never holds: access codes or passwords, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. Reports are sent in the background, never while a character is answering. Reports are kept for 30 days.
 
 ## Licence
 
