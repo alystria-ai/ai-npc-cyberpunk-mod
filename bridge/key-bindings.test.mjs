@@ -303,7 +303,7 @@ test('Set: a save that fails is reported and nothing is kept; a Set nobody answe
 
 // ---- the keys at work ---------------------------------------------------------------------------------------------------------------------------
 test('hold actions: down begins the turn, a key repeat is still one down, up ends it; a release with no down does nothing', () => run(fixture + `
-  saved.voice, saved.group_voice = 'IK_F8', 'IK_F10'
+  saved.voice, saved.group_voice = 'IK_F8', 'IK_F2'
   tick()
   player:push('u1'); assert(runList() == '', 'an up with no down')
   player:push('d1'); assert(runList() == 'voice:down')

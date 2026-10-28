@@ -1753,8 +1753,8 @@ test('MCM: Key bindings lists the seven actions with the key set here, starts wi
   ${keyPlayer}
   press('Key bindings')
   assert(managerUi.inspect().view == 'key-bindings' and mcm.config().navigation.pageId == 'key-bindings|1|1')
-  -- The five actions start with their default key (F6 text, F7 voice, F8 group text, F9 group voice, F4 manager); the two Johnny ones have none.
-  local defaults = {voice = 'F7', text = 'F6', group_voice = 'F9', group_text = 'F8', manager = 'F4', johnny_voice = 'Not set', johnny_text = 'Not set'}
+  -- The five actions start with their default key (F6 text, F7 voice, F8 group text, F10 group voice, F4 manager); the two Johnny ones have none.
+  local defaults = {voice = 'F7', text = 'F6', group_voice = 'F10', group_text = 'F8', manager = 'F4', johnny_voice = 'Not set', johnny_text = 'Not set'}
   for _, action in ipairs({'voice', 'text', 'group_voice', 'group_text', 'johnny_voice', 'johnny_text', 'manager'}) do
     -- One look on the page (2026-10-25): the key's own button shows the key and sets it; no text rows and no Cyber Engine Tweaks row (the owner's call).
     local mine = mcm.row('kb:set:' .. action)
@@ -1767,22 +1767,22 @@ test('MCM: Key bindings lists the seven actions with the key set here, starts wi
   frames(4)
   assert(mcm.status() == 'Press the key or controller button for Talk by voice. Esc or B cancels.', mcm.status())
   assert(mcm.row('kb:set:voice').value == 'Cancel' and convaiKeyBinds.capturing() == 'voice')
-  clock = clock + 1; key('kIK_F10'); frames(6)
-  assert(mcm.status() == 'Talk by voice is set to F10.', mcm.status())
-  assert(mcm.row('kb:set:voice').value == 'F10' and mcm.row('kb:clear:voice'), 'the page shows the new key')
-  assert(manager.snapshot(player).settings.keyBindings.voice == 'IK_F10' and keyList == 'IK_F10,IK_F6,IK_F9,IK_F8,IK_F4', 'saved, and registered at once: ' .. keyList)
+  clock = clock + 1; key('kIK_F2'); frames(6)
+  assert(mcm.status() == 'Talk by voice is set to F2.', mcm.status())
+  assert(mcm.row('kb:set:voice').value == 'F2' and mcm.row('kb:clear:voice'), 'the page shows the new key')
+  assert(manager.snapshot(player).settings.keyBindings.voice == 'IK_F2' and keyList == 'IK_F2,IK_F6,IK_F10,IK_F8,IK_F4', 'saved, and registered at once: ' .. keyList)
   -- A controller button for another action.
   press('kb:set:group_text'); clock = clock + 1; key('kIK_Pad_LeftShoulder'); frames(6)
   assert(mcm.row('kb:set:group_text').value == 'Controller LB' and mcm.status() == 'Group text chat is set to Controller LB.', mcm.status())
   -- Talk to Johnny has its own rows and slots: saved, and sent to the redscript after the five.
   press('kb:set:johnny_voice'); clock = clock + 1; key('kIK_F11'); frames(6)
   assert(mcm.status() == 'Talk to Johnny by voice is set to F11.' and manager.snapshot(player).settings.keyBindings.johnny_voice == 'IK_F11', mcm.status())
-  assert(keyList == 'IK_F10,IK_F6,IK_F9,IK_Pad_LeftShoulder,IK_F4,IK_F11', keyList)
+  assert(keyList == 'IK_F2,IK_F6,IK_F10,IK_Pad_LeftShoulder,IK_F4,IK_F11', keyList)
   press('kb:clear:johnny_voice'); frames(4); convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
-  assert(manager.snapshot(player).settings.keyBindings.johnny_voice == nil and keyList == 'IK_F10,IK_F6,IK_F9,IK_Pad_LeftShoulder,IK_F4', keyList)
+  assert(manager.snapshot(player).settings.keyBindings.johnny_voice == nil and keyList == 'IK_F2,IK_F6,IK_F10,IK_Pad_LeftShoulder,IK_F4', keyList)
   -- The same key twice is refused with the name of the action that has it.
-  press('kb:set:text'); clock = clock + 1; key('kIK_F10'); frames(6)
-  assert(mcm.status() == 'F10 is already used for Talk by voice. Choose another.' and manager.snapshot(player).settings.keyBindings.text == 'IK_F6', mcm.status())
+  press('kb:set:text'); clock = clock + 1; key('kIK_F2'); frames(6)
+  assert(mcm.status() == 'F2 is already used for Talk by voice. Choose another.' and manager.snapshot(player).settings.keyBindings.text == 'IK_F6', mcm.status())
   -- Esc cancels, and leaving the page drops a Set that is waiting.
   press('kb:set:text'); clock = clock + 1; key('kIK_Escape'); frames(6)
   assert(mcm.status() == 'Cancelled.' and convaiKeyBinds.capturing() == nil)
@@ -1795,7 +1795,7 @@ test('MCM: Key bindings lists the seven actions with the key set here, starts wi
   assert(mcm.status() == 'Talk by voice cleared.', tostring(mcm.status()))
   assert(mcm.row('kb:set:voice').value == 'Not set' and not mcm.row('kb:clear:voice'), tostring(mcm.row('kb:set:voice').value) .. ' / ' .. tostring(manager.keyBindings().voice))
   convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
-  assert(manager.snapshot(player).settings.keyBindings.voice == nil and keyList == '-,IK_F6,IK_F9,IK_Pad_LeftShoulder,IK_F4', keyList)
+  assert(manager.snapshot(player).settings.keyBindings.voice == nil and keyList == '-,IK_F6,IK_F10,IK_Pad_LeftShoulder,IK_F4', keyList)
 `));
 
 test('MCM: Restore defaults on Key bindings puts the five default keys back (and takes the Johnny ones away), and the Controller talk button is not on the page', () => withScreen(`
@@ -1813,11 +1813,11 @@ test('MCM: Restore defaults on Key bindings puts the five default keys back (and
   press('Defaults'); assert(footerLabels() == 'Confirm | Back', footerLabels())
   press('Defaults'); frames(8)
   local bindings = manager.keyBindings()
-  assert(bindings.voice == 'IK_F7' and bindings.text == 'IK_F6' and bindings.group_voice == 'IK_F9' and bindings.group_text == 'IK_F8' and bindings.manager == 'IK_F4', 'the five default keys are back')
+  assert(bindings.voice == 'IK_F7' and bindings.text == 'IK_F6' and bindings.group_voice == 'IK_F10' and bindings.group_text == 'IK_F8' and bindings.manager == 'IK_F4', 'the five default keys are back')
   assert(bindings.johnny_voice == nil and bindings.johnny_text == nil, 'Johnny has no default key')
   assert(mcm.row('kb:set:text').value == 'F6' and mcm.row('kb:set:voice').value == 'F7' and mcm.row('kb:set:johnny_text').value == 'Not set', 'the page shows them')
   convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
-  assert(keyList == 'IK_F7,IK_F6,IK_F9,IK_F8,IK_F4', 'and the listeners follow: ' .. keyList)
+  assert(keyList == 'IK_F7,IK_F6,IK_F10,IK_F8,IK_F4', 'and the listeners follow: ' .. keyList)
   assert(mcm.status() == 'Defaults restored.', mcm.status())
 `));
 

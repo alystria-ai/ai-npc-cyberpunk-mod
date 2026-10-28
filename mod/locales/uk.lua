@@ -90,7 +90,7 @@ return {
     ["Confirm"] = "Підтвердити",
     ["Confirm memory clear"] = "Підтвердити очищення пам’яті",
     ["Convai voice"] = "Голос Convai",
-    ["Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Задано від початку: F7 Розмова голосом, F6 Розмова текстом, F9 Груповий голосовий чат, F8 Груповий текстовий чат і F4 Менеджер компаньйонів. Клавіша, очищена через Очистити, залишається порожньою. Відновити типові повертає їх.",
+    ["Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Задано від початку: F7 Розмова голосом, F6 Розмова текстом, F10 Груповий голосовий чат, F8 Груповий текстовий чат і F4 Менеджер компаньйонів. Клавіша, очищена через Очистити, залишається порожньою. Відновити типові повертає їх.",
     ["Text only (no voice)"] = "Лише текст (без голосу)",
     ["Convai · Cloud voice"] = "Convai · Хмарний голос",
     ["Conversation interrupted. Your message is in the draft."] = "Розмову перервано. Твоє повідомлення залишилося в чернетці.",

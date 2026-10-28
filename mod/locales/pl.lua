@@ -90,7 +90,7 @@ return {
     ["Confirm"] = "Potwierdź",
     ["Confirm memory clear"] = "Potwierdź wyczyszczenie pamięci",
     ["Convai voice"] = "Głos Convai",
-    ["Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Ustawione od początku: F7 Rozmowa głosowa, F6 Rozmowa tekstowa, F9 Czat grupowy głosowy, F8 Czat grupowy tekstowy i F4 Menedżer towarzyszy. Wyczyszczony klawisz pozostaje pusty. Przywróć domyślne przywraca je.",
+    ["Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Ustawione od początku: F7 Rozmowa głosowa, F6 Rozmowa tekstowa, F10 Czat grupowy głosowy, F8 Czat grupowy tekstowy i F4 Menedżer towarzyszy. Wyczyszczony klawisz pozostaje pusty. Przywróć domyślne przywraca je.",
     ["Text only (no voice)"] = "Tylko tekst (bez głosu)",
     ["Convai · Cloud voice"] = "Convai · Głos w chmurze",
     ["Conversation interrupted. Your message is in the draft."] = "Rozmowa została przerwana. Twoja wiadomość jest w szkicu.",

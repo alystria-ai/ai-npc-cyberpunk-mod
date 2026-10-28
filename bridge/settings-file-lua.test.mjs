@@ -707,7 +707,7 @@ test('Dynamic info: a fresh settings file has the mods kind off and the other el
 });
 
 // Default key bindings (0.3.4): the five actions that have a default get it once, a key another action holds is not taken, a key cleared later stays cleared.
-const defaultKeys = {manager: 'IK_F4', text: 'IK_F6', voice: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F9'};
+const defaultKeys = {manager: 'IK_F4', text: 'IK_F6', voice: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F10'};
 const withoutKeys = () => { const {keyBindings, keyDefaultsGiven, ...rest} = freshSettings; return rest; };
 
 test('default keys: an old file without keyDefaultsGiven is rewritten once with the five defaults; the next start writes nothing', () => {
@@ -722,11 +722,11 @@ test('default keys: an old file without keyDefaultsGiven is rewritten once with 
 });
 
 test('default keys: a key the player set is kept, a key another action holds is skipped, the Johnny actions get none', () => {
-  const kept = loadFile({...withoutKeys(), keyBindings: {voice: 'IK_F10'}});
-  assert.deepEqual(kept.settings.keyBindings, {...defaultKeys, voice: 'IK_F10'});
+  const kept = loadFile({...withoutKeys(), keyBindings: {voice: 'IK_F2'}});
+  assert.deepEqual(kept.settings.keyBindings, {...defaultKeys, voice: 'IK_F2'});
   // text already holds F7, so the default of voice (F7) is skipped; the others still get theirs.
   const taken = loadFile({...withoutKeys(), keyBindings: {text: 'IK_F7'}});
-  assert.deepEqual(taken.settings.keyBindings, {manager: 'IK_F4', text: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F9'});
+  assert.deepEqual(taken.settings.keyBindings, {manager: 'IK_F4', text: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F10'});
   assert.equal(taken.settings.keyBindings.johnny_voice, undefined);
   assert.equal(taken.settings.keyBindings.johnny_text, undefined);
 });
@@ -742,7 +742,7 @@ test('default keys: a key cleared after the defaults were given stays cleared th
     assert(manager.applySettings(player, {keyBindings = manager.defaultKeyBindings()}))
     report('restored', newManager().keyBindings())
   `);
-  assert.deepEqual(out.cleared, {manager: 'IK_F4', text: 'IK_F6', group_text: 'IK_F8', group_voice: 'IK_F9'});
+  assert.deepEqual(out.cleared, {manager: 'IK_F4', text: 'IK_F6', group_text: 'IK_F8', group_voice: 'IK_F10'});
   assert.deepEqual(out.batch, {...defaultKeys, johnny_voice: false, johnny_text: false});
   assert.deepEqual(out.restored, defaultKeys);
 });
@@ -758,8 +758,8 @@ test('the Controller talk button is gone: a saved padTalk true becomes the left 
   assert.equal(JSON.parse(off.text).padTalk, undefined);
   assert.deepEqual(off.settings.keyBindings, defaultKeys);
   // A voice key the player already set is not replaced, and a click another action holds is not taken twice.
-  const set = loadFile({...withoutKeys(), padTalk: true, keyBindings: {voice: 'IK_F10'}});
-  assert.equal(set.settings.keyBindings.voice, 'IK_F10');
+  const set = loadFile({...withoutKeys(), padTalk: true, keyBindings: {voice: 'IK_F2'}});
+  assert.equal(set.settings.keyBindings.voice, 'IK_F2');
   const held = loadFile({...withoutKeys(), padTalk: true, keyBindings: {text: 'IK_Pad_LeftThumb'}});
   assert.equal(held.settings.keyBindings.text, 'IK_Pad_LeftThumb');
   assert.notEqual(held.settings.keyBindings.voice, 'IK_Pad_LeftThumb');

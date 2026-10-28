@@ -4,7 +4,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 
 ## What's new in 0.3.4
 
-- **Default bindings**: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager are set from the start, so a new install works at once. A binding you set before stays yours, the mod only fills actions that had none. Change, clear or restore them on the bindings page of the Companion Manager. The game uses F9 for Quick load, so you may want another binding for group voice chat.
+- **Default bindings**: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager are set from the start, so a new install works at once. A binding you set before stays yours, the mod only fills actions that had none. Change, clear or restore them on the bindings page of the Companion Manager.
 - **Fewer rows in Settings > Voices**: Voice playback is now the first entry of Companion voices (Off keeps the voice you chose, so turning it back on restores it), and Subtitles moved to Voices with Off as its first entry. React to battles and React to collected loot moved to Gameplay.
 - **V's voice for typed and for microphone lines**: two rows of the same kind, each with its own Off, so one can be on while the other is off. V speaks with one voice engine for both.
 - **Controller talk button removed**: give Talk by voice a controller button, such as the left stick click, on the bindings page of the Companion Manager. If you had the button on, Talk by voice is set to the left stick click for you.

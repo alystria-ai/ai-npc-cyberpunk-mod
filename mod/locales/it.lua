@@ -90,7 +90,7 @@ return {
     ["Confirm"] = "Conferma",
     ["Confirm memory clear"] = "Conferma cancellazione dei ricordi",
     ["Convai voice"] = "Voce Convai",
-    ["Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Impostati dall’inizio: F7 Parla a voce, F6 Parla per testo, F9 Chat di gruppo vocale, F8 Chat di gruppo testuale e F4 Gestione compagni. Se ne svuoti una con Svuota, resta vuota. Ripristina predefiniti le riporta indietro.",
+    ["Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Impostati dall’inizio: F7 Parla a voce, F6 Parla per testo, F10 Chat di gruppo vocale, F8 Chat di gruppo testuale e F4 Gestione compagni. Se ne svuoti una con Svuota, resta vuota. Ripristina predefiniti le riporta indietro.",
     ["Text only (no voice)"] = "Solo testo (nessuna voce)",
     ["Convai · Cloud voice"] = "Convai · Voce cloud",
     ["Conversation interrupted. Your message is in the draft."] = "Conversazione interrotta. Il tuo messaggio è nella bozza.",

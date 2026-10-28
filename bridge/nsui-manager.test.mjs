@@ -1110,7 +1110,7 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   assert(table.concat(names, ' | ') == 'Companion Manager | Talk by voice | Talk by text | Group voice chat | Group text chat | Talk to Johnny by voice | Talk to Johnny by text | Companion Manager', table.concat(names, ' | '))
   assert(ns.find('Controller talk button') == nil and section('Controller') == nil, 'the Controller talk button is gone')
   -- The five actions start with their default key (and a Clear beside it); the two Johnny ones have none.
-  local defaultKeys = {['Talk by voice'] = 'F7', ['Talk by text'] = 'F6', ['Group voice chat'] = 'F9', ['Group text chat'] = 'F8'}
+  local defaultKeys = {['Talk by voice'] = 'F7', ['Talk by text'] = 'F6', ['Group voice chat'] = 'F10', ['Group text chat'] = 'F8'}
   for name, keyName in pairs(defaultKeys) do
     local target = section(name)
     assert(target.options[1].label == 'Key or button' and target.options[1].buttonText == keyName, name)
@@ -1124,10 +1124,10 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   ns.interact.press(option('Talk by voice', 'Key or button')); frames(4); ns.verify()
   assert(managerUi.inspect().shown == 'Press the key or controller button for Talk by voice. Esc or B cancels.', tostring(managerUi.inspect().shown))
   assert(option('Talk by voice', 'Key or button').buttonText == 'Cancel')
-  clock = clock + 1; key('kIK_F10')
-  assert(managerUi.inspect().shown == 'Talk by voice is set to F10.', tostring(managerUi.inspect().shown))
-  assert(option('Talk by voice', 'Key or button').buttonText == 'F10' and option('Talk by voice', 'Clear'), 'the key shows, Clear is there')
-  assert(manager.keyBindings().voice == 'IK_F10' and keyList == 'IK_F10,IK_F6,IK_F9,IK_F8,IK_F4', keyList)
+  clock = clock + 1; key('kIK_F2')
+  assert(managerUi.inspect().shown == 'Talk by voice is set to F2.', tostring(managerUi.inspect().shown))
+  assert(option('Talk by voice', 'Key or button').buttonText == 'F2' and option('Talk by voice', 'Clear'), 'the key shows, Clear is there')
+  assert(manager.keyBindings().voice == 'IK_F2' and keyList == 'IK_F2,IK_F6,IK_F10,IK_F8,IK_F4', keyList)
   -- A controller button, Clear, and Restore defaults.
   ns.interact.press(option('Talk by text', 'Key or button')); frames(3)
   clock = clock + 1; key('kIK_Pad_RightTrigger')
@@ -1138,8 +1138,8 @@ test('Native Settings UI: Key bindings sits between Character editor and Setting
   ns.interact.restoreDefaults(); frames(10); ns.verify()
   convaiKeyBinds.tick(player, true)
   local bindings = manager.keyBindings()
-  assert(bindings.voice == 'IK_F7' and bindings.text == 'IK_F6' and bindings.group_voice == 'IK_F9' and bindings.group_text == 'IK_F8' and bindings.manager == 'IK_F4', 'the five default keys are back')
-  assert(keyList == 'IK_F7,IK_F6,IK_F9,IK_F8,IK_F4', 'and the listeners follow: ' .. keyList)
+  assert(bindings.voice == 'IK_F7' and bindings.text == 'IK_F6' and bindings.group_voice == 'IK_F10' and bindings.group_text == 'IK_F8' and bindings.manager == 'IK_F4', 'the five default keys are back')
+  assert(keyList == 'IK_F7,IK_F6,IK_F10,IK_F8,IK_F4', 'and the listeners follow: ' .. keyList)
   assert(option('Talk by voice', 'Key or button').buttonText == 'F7' and option('Talk by text', 'Key or button').buttonText == 'F6')
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
 `));

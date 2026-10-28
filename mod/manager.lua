@@ -692,8 +692,8 @@ end
 -- The mod's own key bindings (mod/key-bindings.lua): the five actions, and a key is stored by the game's name for it ('IK_F7'). Which names the player can
 -- choose is that module's business; here a stored name only has to look like one.
 local keyBindingOrder = {'voice', 'text', 'group_voice', 'group_text', 'manager', 'johnny_voice', 'johnny_text'}
--- The keys given to the actions that have none: F4 the Companion Manager, F6 talk by text, F7 talk by voice, F8 group text chat, F9 group voice chat (owner, 2026-10-28).
-local keyBindingDefaults = {manager = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F9'}
+-- The keys given to the actions that have none: F4 the Companion Manager, F6 talk by text, F7 talk by voice, F8 group text chat, F10 group voice chat (owner, 2026-10-28: F9 is the game's Quick load).
+local keyBindingDefaults = {manager = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F10'}
 local keyBindingActions = {}
 for _, action in ipairs(keyBindingOrder) do keyBindingActions[action] = true end
 local function validKeyName(name)
@@ -892,7 +892,7 @@ local function loadSettings()
     -- Only the bridge reads it, and only on an AMD card.
     if type(settings.amdMiopen) ~= 'boolean' then settings.amdMiopen, settingsNeedSave = true, true end
     -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): F4 the Companion Manager, F6 talk by text, F7 talk by voice, F8 group text
-    -- chat, F9 group voice chat unless the player set a key already (keyBindingDefaults, below). Only an action of the mod with a game key name is kept, and two actions
+    -- chat, F10 group voice chat unless the player set a key already (keyBindingDefaults, below). Only an action of the mod with a game key name is kept, and two actions
     -- never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
     if type(settings.keyBindings) ~= 'table' then settings.keyBindings, settingsNeedSave = {}, true end
     do

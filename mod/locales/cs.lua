@@ -90,7 +90,7 @@ return {
     ["Confirm"] = "Potvrdit",
     ["Confirm memory clear"] = "Potvrdit vymazání paměti",
     ["Convai voice"] = "Hlas Convai",
-    ["Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Od začátku nastaveno: F7 Mluvit hlasem, F6 Mluvit textem, F9 Skupinový hlas, F8 Skupinový text a F4 Správce společníků. Klávesa, kterou smažete tlačítkem Vymazat, zůstane prázdná. Obnovit výchozí je vrátí zpět.",
+    ["Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Od začátku nastaveno: F7 Mluvit hlasem, F6 Mluvit textem, F10 Skupinový hlas, F8 Skupinový text a F4 Správce společníků. Klávesa, kterou smažete tlačítkem Vymazat, zůstane prázdná. Obnovit výchozí je vrátí zpět.",
     ["Text only (no voice)"] = "Jen text (bez hlasu)",
     ["Convai · Cloud voice"] = "Convai · Cloudový hlas",
     ["Conversation interrupted. Your message is in the draft."] = "Konverzace přerušena. Tvoje zpráva je v konceptu.",

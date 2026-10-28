@@ -998,7 +998,7 @@
     "Service not running": "Service not running",
     "Service not running ({reason})": "Service not running ({reason})",
     "Service starting": "Service starting",
-    "Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.": "Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.",
+    "Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.": "Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.",
     "Set up OmniVoice for AMD": "Set up OmniVoice for AMD",
     "Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.": "Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.",
     "Settings": "Settings",
@@ -3068,7 +3068,7 @@
       "Service not running",
       "Service not running ({reason})",
       "Service starting",
-      "Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.",
+      "Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.",
       "Set up OmniVoice for AMD",
       "Shipped: off",
       "Shipped: the mod’s own limit",
@@ -11427,7 +11427,7 @@
         "mod/manager-ui.lua:1069"
       ]
     },
-    "Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.": {
+    "Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.": {
       "contexts": [
         "ui.localized"
       ],

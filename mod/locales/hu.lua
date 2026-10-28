@@ -90,7 +90,7 @@ return {
     ["Confirm"] = "Megerősítés",
     ["Confirm memory clear"] = "Emléktörlés megerősítése",
     ["Convai voice"] = "Convai-hang",
-    ["Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Kezdettől beállítva: F7 Beszélés hangon, F6 Szöveggel beszélés, F9 Csoport: hang, F8 Csoport: szöveg és F4 Társkezelő. Egy gomb ürítése után az üres marad. A Gyári értékek visszaállítása visszaállítja őket.",
+    ["Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Kezdettől beállítva: F7 Beszélés hangon, F6 Szöveggel beszélés, F10 Csoport: hang, F8 Csoport: szöveg és F4 Társkezelő. Egy gomb ürítése után az üres marad. A Gyári értékek visszaállítása visszaállítja őket.",
     ["Text only (no voice)"] = "Csak szöveg (hang nélkül)",
     ["Convai · Cloud voice"] = "Convai · Felhőhang",
     ["Conversation interrupted. Your message is in the draft."] = "A beszélgetés megszakadt. Az üzeneted a vázlatban van.",

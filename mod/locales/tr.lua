@@ -90,7 +90,7 @@ return {
     ["Confirm"] = "Onayla",
     ["Confirm memory clear"] = "Hafıza temizlemeyi onayla",
     ["Convai voice"] = "Convai sesi",
-    ["Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Baştan ayarlı: F7 Sesle konuş, F6 Yazıyla konuş, F9 Grup sesli sohbet, F8 Grup yazılı sohbet ve F4 Yoldaş Yöneticisi. Birini Temizle ile silerseniz silinmiş kalır. Varsayılanları geri yükle onları geri getirir.",
+    ["Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back."] = "Baştan ayarlı: F7 Sesle konuş, F6 Yazıyla konuş, F10 Grup sesli sohbet, F8 Grup yazılı sohbet ve F4 Yoldaş Yöneticisi. Birini Temizle ile silerseniz silinmiş kalır. Varsayılanları geri yükle onları geri getirir.",
     ["Text only (no voice)"] = "Yalnızca metin (ses yok)",
     ["Convai · Cloud voice"] = "Convai · Bulut sesi",
     ["Conversation interrupted. Your message is in the draft."] = "Konuşma kesildi. Mesajın taslakta.",

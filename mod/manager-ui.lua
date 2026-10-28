@@ -2274,7 +2274,7 @@ local function schema()
     return {name = ui.t(LABEL), categories = categories,
         description = view == 'key-bindings'
             and (ui.t('Choose the keys and controller buttons for the mod’s actions. Press Set, then the key or button you want. Esc or B cancels. A change works at once, and the keys you set in Cyber Engine Tweaks keep working. Pick keys the game does not already use.')
-                .. '\n\n' .. ui.t('Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.'))
+                .. '\n\n' .. ui.t('Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager. Clear one and it stays clear. Restore defaults brings them back.'))
             or ui.t('Your companions, character models and conversation settings.')}
 end
 function M.configure(domain, companions, queueFactory, readiness)
@@ -2519,7 +2519,7 @@ function M.defaults()
             if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
         end
     end
-    -- The own key bindings go back to the default keys (F4, F6, F7, F8, F9; none for the Johnny actions): one change for all seven.
+    -- The own key bindings go back to the default keys (F4, F6, F7, F8, F10; none for the Johnny actions): one change for all seven.
     local savedKeys = manager.keyBindings()
     for action, name in pairs(manager.defaultKeyBindings()) do
         if (name or nil) ~= savedKeys[action] then changes[#changes + 1] = {value = true, id = 'keyBindings:reset'}; break end

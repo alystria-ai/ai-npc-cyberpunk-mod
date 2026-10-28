@@ -6493,7 +6493,7 @@ test('Key bindings page: Restore defaults lists one change that puts the default
       table.sort(list)
       return table.concat(list, ',')
     end
-    assert(manager.setKeyBinding(player, 'voice', 'IK_F10'))
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F2'))
     assert(ids() == 'keyBindings:reset', ids())
     local result = core.apply(core.defaults())
     assert(result.ok, tostring(result.error))
@@ -6514,13 +6514,13 @@ test('Key bindings page: Restore defaults lists one change that puts the default
         assert(not tostring(item.description):find('Controller talk button', 1, true), tostring(item.id))
       end
     end
-    assert(core.model().description:find('Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager.', 1, true), 'the page says which keys are set from the start')
+    assert(core.model().description:find('Set from the start: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager.', 1, true), 'the page says which keys are set from the start')
   `);
 });
 
-test('Default key bindings are given once: a fresh file gets F4, F6, F7, F8 and F9, an old file keeps the keys it has and skips a default another action holds, a cleared key stays cleared, and defaultKeyBindings is the Restore defaults batch', () => {
+test('Default key bindings are given once: a fresh file gets F4, F6, F7, F8 and F10, an old file keeps the keys it has and skips a default another action holds, a cleared key stays cleared, and defaultKeyBindings is the Restore defaults batch', () => {
   run(`${managerFixture}
-    local DEFAULTS = {manager = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F9'}
+    local DEFAULTS = {manager = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F10'}
     local function load(extra)
       seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}}
       for key, value in pairs(extra) do seed[key] = value end
@@ -6547,13 +6547,13 @@ test('Default key bindings are given once: a fresh file gets F4, F6, F7, F8 and 
     -- An old file with no keys at all (an empty table, no marker) is rewritten once with the defaults.
     expect(load({keyBindings = {}}), DEFAULTS, 'old empty')
     assert(saved.keyDefaultsGiven == true)
-    -- An old file with one key already set keeps it, and the default another action holds is skipped (F9 is Group voice chat by default, text has it here).
-    keys = load({keyBindings = {text = 'IK_F9'}})
-    expect(keys, {text = 'IK_F9', manager = 'IK_F4', voice = 'IK_F7', group_text = 'IK_F8'}, 'one key set')
+    -- An old file with one key already set keeps it, and the default another action holds is skipped (F10 is Group voice chat by default, text has it here).
+    keys = load({keyBindings = {text = 'IK_F10'}})
+    expect(keys, {text = 'IK_F10', manager = 'IK_F4', voice = 'IK_F7', group_text = 'IK_F8'}, 'one key set')
     assert(keys.group_voice == nil and saved.keyDefaultsGiven == true)
     -- A Johnny action holding F4 keeps it as well: the Manager default is skipped.
     keys = load({keyBindings = {johnny_voice = 'IK_F4'}})
-    expect(keys, {johnny_voice = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F9'}, 'johnny key')
+    expect(keys, {johnny_voice = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F10'}, 'johnny key')
     -- A file that has had the defaults is left alone: an empty table means the player cleared every key.
     expect(load({keyBindings = {}, keyDefaultsGiven = true}), {}, 'marked empty')
     assert(next(saved.keyBindings) == nil and saved.keyDefaultsGiven == true, 'nothing is given to a file that has had the defaults')
@@ -6563,7 +6563,7 @@ test('Default key bindings are given once: a fresh file gets F4, F6, F7, F8 and 
     seed, saved = saved, nil
     files['runtime/settings.json'] = 'seed'
     manager.configure(api, profiles); manager.prepare(player)
-    expect(manager.keyBindings(), {manager = 'IK_F4', text = 'IK_F6', group_text = 'IK_F8', group_voice = 'IK_F9'}, 'cleared stays cleared')
+    expect(manager.keyBindings(), {manager = 'IK_F4', text = 'IK_F6', group_text = 'IK_F8', group_voice = 'IK_F10'}, 'cleared stays cleared')
     -- The batch for Restore defaults: each action's default key, false for the two Johnny actions (the batch clears them).
     local batch = manager.defaultKeyBindings()
     for action, key in pairs(DEFAULTS) do assert(batch[action] == key, action) end
@@ -6587,7 +6587,7 @@ test('The Controller talk button is gone: no setting, getter or snapshot key, an
     -- On, Talk by voice has no key and nobody holds the click: the click becomes its key. The other actions still get their default keys.
     keys = load({padTalk = true})
     assert(keys.voice == 'IK_Pad_LeftThumb' and saved.keyBindings.voice == 'IK_Pad_LeftThumb', tostring(keys.voice))
-    assert(keys.text == 'IK_F6' and keys.group_voice == 'IK_F9' and keys.group_text == 'IK_F8' and keys.manager == 'IK_F4')
+    assert(keys.text == 'IK_F6' and keys.group_voice == 'IK_F10' and keys.group_text == 'IK_F8' and keys.manager == 'IK_F4')
     assert(saved.padTalk == nil and manager.snapshot(player).settings.padTalk == nil and saved.future.keep == 'unchanged', 'the key is removed from the file')
     -- Once: the migrated file loads without another save.
     seed, saved = saved, nil
@@ -6599,8 +6599,8 @@ test('The Controller talk button is gone: no setting, getter or snapshot key, an
     assert(saved.padTalk == nil and keys.voice == 'IK_F7')
     for _, key in pairs(keys) do assert(key ~= 'IK_Pad_LeftThumb') end
     -- Talk by voice already has a key: it keeps that one, and the click is not bound.
-    keys = load({padTalk = true, keyBindings = {voice = 'IK_F10'}})
-    assert(saved.padTalk == nil and keys.voice == 'IK_F10')
+    keys = load({padTalk = true, keyBindings = {voice = 'IK_F2'}})
+    assert(saved.padTalk == nil and keys.voice == 'IK_F2')
     for _, key in pairs(keys) do assert(key ~= 'IK_Pad_LeftThumb') end
     -- Another action holds the click: Talk by voice does not take it (with the defaults already given it stays unbound).
     keys = load({padTalk = true, keyDefaultsGiven = true, keyBindings = {text = 'IK_Pad_LeftThumb'}})
