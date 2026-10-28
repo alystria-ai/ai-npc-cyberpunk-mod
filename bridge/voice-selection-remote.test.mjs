@@ -146,3 +146,40 @@ test('turning remote off, or changing the address, replaces the worker at the ne
   assert.equal(h.workers[1].closes, 1); assert.equal(h.workers[2].remote, null);
   await h.voice.close();
 });
+
+test('remote on: Pocket and every OmniVoice quality are rendered by the server (2026-10-28 report: it only engaged on one entry)', async () => {
+  const entries = [{voiceProvider: 'pocket'},
+    {voiceProvider: 'omni', omniSteps: 16, omniReference: 'short'}, {voiceProvider: 'omni', omniSteps: 16, omniReference: 'long'},
+    {voiceProvider: 'omni', omniSteps: 32, omniReference: 'short'}, {voiceProvider: 'omni', omniSteps: 32, omniReference: 'long'}];
+  for (const entry of entries) {
+    const h = rig();
+    h.voice.update({...entry, remoteOmni: true}, null, false);
+    await h.voice.start();
+    assert.equal(h.voice.requestedProvider, 'omni', JSON.stringify(entry));
+    assert.equal(h.voice.provider, 'omni', JSON.stringify(entry));
+    assert.deepEqual(h.workers.map(worker => worker.backend), ['omni'], 'no Pocket worker beside the server: ' + JSON.stringify(entry));
+    assert.deepEqual(h.workers[0].remote, {host: '192.168.1.20', port: 8765});
+    if (entry.omniSteps) assert.equal(h.voice.requestedOmniSteps, entry.omniSteps);
+    await h.voice.close();
+  }
+});
+
+test('remote on with Pocket chosen: Pocket is used until an address is saved, then the server takes over; remote off puts Pocket back', async () => {
+  const h = rig({address: ''});
+  h.voice.update({voiceProvider: 'pocket', remoteOmni: true}, null, false);
+  assert.equal(h.voice.requestedProvider, 'pocket'); assert.equal(h.voice.provider, 'pocket');
+  h.setAddress('192.168.1.20:8765'); h.voice.update({voiceProvider: 'pocket', remoteOmni: true}, null, false);
+  assert.equal(h.voice.requestedProvider, 'omni'); assert.equal(h.voice.provider, 'omni');
+  h.voice.update({voiceProvider: 'pocket', remoteOmni: false}, null, false);
+  assert.equal(h.voice.requestedProvider, 'pocket');
+  await h.voice.close();
+});
+
+test('remote on does not take a cloud voice or the Convai voice away from the player', async () => {
+  for (const choice of ['voxtral', 'convai']) {
+    const h = rig();
+    h.voice.update({voiceProvider: choice, remoteOmni: true}, null, false);
+    assert.notEqual(h.voice.requestedProvider, 'omni', choice);
+    await h.voice.close();
+  }
+});

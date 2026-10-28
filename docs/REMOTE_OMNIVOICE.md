@@ -31,9 +31,9 @@ address as start options of the server, the reply is **text** when the server ca
 2. Copy the address from the server window, press **Paste address**. (The mod reads the clipboard once; the address is saved on the game PC only.)
 3. Press **Test**: it shows OK with the answer time in milliseconds, the card and the version, or says in words why not (nothing answers, a firewall, it is still
    loading, another version).
-4. Back in Settings > Voices choose an **OmniVoice** entry under Companion voices (the pack is not needed on this PC while Remote OmniVoice is on).
+4. Nothing else to choose (2026-10-28). With Remote OmniVoice on and an address saved, **every Pocket or OmniVoice choice** under Companion voices is rendered by the server, at the quality of the OmniVoice entry that is saved (Quality, the default, unless you picked another; picking an OmniVoice entry changes it). A cloud voice (Voxtral, the Convai voice) is not replaced. The pack is not needed on this PC. Without the pack the voice lists are written at the next game start once an address is saved, so restart the game once after pasting the address.
 
-The status line on the Custom voices page says whether the server is in use (`Connected`, `Not connected`, `On, but no server address is saved`).
+The status line on the Custom voices page says whether the server is in use and which voice it speaks with (`Connected. The server speaks with OmniVoice · Quality.`, `Not connected`, `On, but no server address is saved`, or that a cloud voice is chosen, so the server is not used). The Custom voices row is on the Voices page under Companion voices, whatever voice is chosen.
 
 ### Same PC, second graphics card
 
@@ -49,7 +49,7 @@ Set `LISTEN=127.0.0.1`, `GPU=1`, and `MOD_FOLDER=` to the installed mod's folder
 | Server drops in the middle of a reply | that phrase and the rest of the reply are written | the client is marked failed, then the same retry |
 | Server's worker crashes | nothing (the server starts it again after 2 s, 5 s, 15 s, then every 30 s, puts the last voices back, the client goes on) | the client sees the new server instance and sends its voices again |
 | Server PC has no NVIDIA card that works | Test says the server could not load its voice; the server window says why | not retried by the server (the same on every start) |
-| Remote OmniVoice on, no address saved | OmniVoice cannot speak, replies are written | nothing starts, no Pocket in its place |
+| Remote OmniVoice on, no address saved | OmniVoice chosen: OmniVoice cannot speak, replies are written. Pocket chosen: Pocket keeps speaking until an address is saved | nothing starts, no Pocket in place of a chosen OmniVoice |
 
 Never in any of these cases: a cloud voice, Pocket, or a local OmniVoice. No error report is filed (the player's own network is not a bug of the mod).
 

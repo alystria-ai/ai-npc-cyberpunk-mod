@@ -1394,7 +1394,10 @@ end
 -- `values` is not OmniVoice), or nil when it can.
 function M.vOmniBlock(values)
     if not M.omniPack().installed then return 'pack' end
-    if (values or {}).voiceProvider ~= 'omni' then return 'voice' end
+    local chosen = (values or {}).voiceProvider
+    -- With Remote OmniVoice on, the server speaks for a Pocket choice too (bridge/voice-selection.mjs), so the companions' voice is OmniVoice then.
+    if chosen == 'pocket' and (values or {}).remoteOmni == true then return nil end
+    if chosen ~= 'omni' then return 'voice' end
     return nil
 end
 

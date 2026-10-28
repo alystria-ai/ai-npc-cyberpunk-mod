@@ -282,6 +282,17 @@ test('the adapter reads the clock, the district, V, the vehicle and the people b
   assert(snap.gender == 'male' and snap.vehicle == true)
 `));
 
+test('V’s voice follows the voice tone, and the body when the tone cannot be read (a male V whose tone read failed got no V line)', () => lua$(`
+  local snap = ctx:capture()
+  assert(snap.voice == 'female', 'no tone read: the body decides')
+  state.gender = 'Male'; ctx:reset('test')
+  assert(ctx:capture().voice == 'male', 'a male body')
+  local tone = 'Female'
+  local ctx4 = api.new({native = setmetatable({voice = function() return tone end}, {__index = N}), now = function() return now end,
+    place = function() return state.place end, party = function() return {} end})
+  assert(ctx4:capture().voice == 'female' and ctx4:capture().gender == 'male', 'the tone wins over the body')
+`));
+
 test('a snapshot cached while the volume was not wanted is read again once V’s voice becomes active, so the first line after switching voices has the level', () => lua$(`
   local wanted, reads = false, 0
   local ctx3 = api.new({native = setmetatable({volume = function() reads = reads + 1; return 0.6 end}, {__index = N}), now = function() return now end,

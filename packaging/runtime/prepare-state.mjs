@@ -25,6 +25,8 @@ export const MANAGED_FILES = Object.freeze(['characters.json', 'multilingual-pro
 export const POCKET_CONFIG = 'pocket-voices.autobest.json';
 export const OMNI_CONFIGS = Object.freeze({short: 'local-voices.autobest-short.json', long: 'local-voices.autobest-long.json'});
 const RECORD = 'package-defaults.json';
+// The file Remote OmniVoice keeps the server address in (bridge/remote-omni-control.mjs REMOTE_FILE); this launcher imports nothing from the bridge.
+const REMOTE_ADDRESS_FILE = 'player-remote-omnivoice.txt';
 // The Runtime ships no Convai key from 0.2.9 (the shared account is reached through the sign-in backend, app/defaults/convai-auth.json). Releases
 // before that packed the project's key as one line `convai-key-v1 <base64url>` in app/defaults/service.txt. A plain `api-key=...` file in the data
 // folder is the player's or a developer's own key and is never touched; only a packed line is stale (this launcher imports nothing from the
@@ -193,9 +195,13 @@ export async function prepareState(layout, {log = () => {}} = {}) {
   await writeIfChanged(resolve(layout.state, POCKET_CONFIG),
     Buffer.from(JSON.stringify(pocketConfigFor(pocket, layout), null, 2) + '\n'));
   const omni = await omniPackInstalled(layout);
-  if (omni) {
+  // Remote OmniVoice (docs/REMOTE_OMNIVOICE.md) renders on a server, so a PC with a saved server address needs no pack, but it does need the voice lists to
+  // know the voices to ask the server for. They come from the Runtime's own copy (app/defaults/); a missing one is skipped without a pack.
+  const remote = !omni && await isFile(resolve(layout.state, REMOTE_ADDRESS_FILE));
+  if (omni || remote) {
     for (const name of Object.values(OMNI_CONFIGS)) {
-      const template = await readOmniTemplate(layout, name);
+      let template;
+      try { template = await readOmniTemplate(layout, name); } catch (error) { if (omni || error?.code !== 'ENOENT') throw error; continue; }
       await writeIfChanged(resolve(layout.state, name), Buffer.from(JSON.stringify(omniConfigFor(template), null, 2) + '\n'));
     }
   }
