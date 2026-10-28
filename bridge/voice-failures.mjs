@@ -81,11 +81,11 @@ export function tailLines(tail, count = 8, limit = 200) {
 export const accessViolationFailed = reason => /\b3221225477\b|0xC0000005|access violation/i.test(String(reason ?? ''));
 
 /**
- * Pocket files that are not the ones the runtime pins, or are not there: a source that differs from the pinned revision, an export asset or its
- * receipt that does not match, assets missing, a worker whose attested version or identity is not the expected one. The same on every try, until the
+ * Pocket files that are not the ones the runtime pins (a Pocket folder that is not there at all is missingFilesFailed): a source that differs from the pinned revision, an
+ * export asset or its receipt that does not match, a worker whose attested version or identity is not the expected one. The same on every try, until the
  * Runtime is updated or repaired.
  */
-export const pocketIntegrityFailed = reason => /differs from the pinned|does not match its pinned digest|did not resolve to the pinned|runtime assets are missing|configuration\/receipt is missing|export asset (?:is missing|differs)|needs hashes for every export asset|receipt does not identify|did not attest the selected|did not confirm the configured reference|accepts only the CPU six-layer|inference config is (?:incomplete|oversized)/i.test(String(reason ?? ''));
+export const pocketIntegrityFailed = reason => /differs from the pinned|does not match its pinned digest|did not resolve to the pinned|configuration\/receipt is missing|export asset (?:is missing|differs)|needs hashes for every export asset|receipt does not identify|did not attest the selected|did not confirm the configured reference|accepts only the CPU six-layer|inference config is (?:incomplete|oversized)/i.test(String(reason ?? ''));
 
 /** A file or a Python module the worker needs is not there (an incomplete install): the same on every try. */
 export const missingFilesFailed = reason => /FileNotFoundError|No such file or directory|ModuleNotFoundError|No module named|cannot find the (?:file|path) specified|assets? (?:is|are) missing/i.test(String(reason ?? ''));

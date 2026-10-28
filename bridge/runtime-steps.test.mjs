@@ -61,6 +61,13 @@ test('an older zip applied after a newer one is reported as out of order', async
   assert.deepEqual(await check({base: '0.2.6', steps: [['0.2.6', '0.2.7'], ['0.2.7', '0.2.8']]}, '0.2.7'), {code: 'order'});
 });
 
+test('the full Runtime of this version extracted over a newer one is a rollback, not an order problem, so extracting it again clears the row', async () => {
+  // base 0.2.7 (the full Runtime extracted last), release 0.2.7, and the step file of a newer zip still on disk
+  assert.deepEqual(await check({base: '0.2.7', steps: [['0.2.7', '0.2.8']]}, '0.2.7'), {code: 'ok'});
+  // but a base older than the Runtime is still the older-zip-after-newer case
+  assert.deepEqual(await check({base: '0.2.6', steps: [['0.2.6', '0.2.7'], ['0.2.7', '0.2.8']]}, '0.2.7'), {code: 'order'});
+});
+
 test('a Runtime older than the chain start, or a version that is not numbers, is not called a gap', async () => {
   assert.deepEqual(await check({base: '0.2.9'}, '0.2.8'), {code: 'none'});
   assert.deepEqual(await check({base: '0.2.9', steps: [['0.2.9', '0.3.0']]}, 'dev'), {code: 'none'});

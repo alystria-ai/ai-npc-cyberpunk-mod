@@ -40,11 +40,14 @@ test('the failure classes that repeat are recognised by their words', () => {
   assert.equal(accessViolationFailed('Local voice worker exited (3221225477 = access violation (0xC0000005))'), true);
   assert.equal(accessViolationFailed('Local voice worker exited (1)'), false);
   for (const reason of ['Pocket student runtime is unavailable (Pocket source differs from the pinned official revision (3 files))', 'Pocket export asset differs from its selected identity',
-    'Pocket runtime assets are missing', 'Pocket worker did not attest the selected CPU student', 'Pocket receipt does not identify the selected student export']) assert.equal(pocketIntegrityFailed(reason), true, reason);
+    'Pocket worker did not attest the selected CPU student', 'Pocket receipt does not identify the selected student export']) assert.equal(pocketIntegrityFailed(reason), true, reason);
   for (const reason of ['Pocket student startup timed out', 'Pocket worker exited (1)', 'Pocket generation stopped; restart the local voice service']) assert.equal(pocketIntegrityFailed(reason), false, reason);
   assert.equal(missingFilesFailed('Local voice worker exited (1): FileNotFoundError: [Errno 2] No such file or directory'), true);
   assert.equal(missingFilesFailed('ModuleNotFoundError: No module named torch'), true);
   assert.equal(missingFilesFailed('Local voice startup timed out'), false);
+  // A Pocket folder that is not there (the worker names which) is an incomplete install, not files that differ from the pinned ones.
+  assert.equal(pocketIntegrityFailed('Pocket runtime assets are missing (export)'), false);
+  assert.equal(missingFilesFailed('Pocket student runtime is unavailable (ValueError: Pocket runtime assets are missing (export, reference))'), true);
 });
 
 test('the reason of a worker that died on a native fault names the innermost frames of the crashing thread, not its outermost <module> line', () => {
