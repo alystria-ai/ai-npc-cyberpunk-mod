@@ -120,8 +120,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
   - Gameplay (a section of its own since 2026-10-28; the rows moved here with their saved values untouched, only the page changed): Street reputation (was in Conversations, off by default), NPCs react to threats and commands (was in Conversations, off), Companions change outfits (was in Companion behavior, off), an **Immersive invitations** button (Open, since 2026-10-25) to its own page and a **Housemates** button (Open, since 2026-10-26) to its own page (both were in Companion behavior and still go Back to Settings), and the new Revenge ambushes (off by default, `docs/AMBUSHES.md`). Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
   - Voices (0.3.4): Companion voices (the first entry is Off, the old Voice playback switch: it keeps the voice that was chosen), Voice language, Subtitles (Off, Cinematic subtitles, Above the speaker: the old switch and
-    Subtitle display in one list), Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
-    Follow-up questions (on by default), V's voice for typed lines and V's voice for microphone lines (two rows of one kind: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; typed default Pocket, microphone default Off,
+    Subtitle display in one list), Lip sync delay (Bluetooth), Voice volume (%), V's voice for typed lines and V's voice for microphone lines (two rows of one kind: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; typed default Pocket, microphone default Off,
     one engine for both, `docs/V_VOICE.md`). React to battles and React to collected loot (both on by default since 2026-10-26) moved to Gameplay, and the Subtitles and Automatic reactions sections are gone.
   - One section per installed add-on that has settings
     (see [ADDON_API.md](ADDON_API.md); the add-on wrote its own labels); Development (Developer mode); Help.
@@ -209,13 +208,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     changed, except anything the player changed since (Voxtral only while the Mistral key is saved and the voice is still Pocket); choosing Convai or Mistral
     turns it off the same way; choosing Custom leaves it on. A saved file with Mature content and a Voxtral voice loads as Pocket. The line reads "Also changed: ..."
     and names the provider ("Local AI" or "Custom (OpenAI-compatible)"), the uncensored model and the voices ("Pocket · Performance", "V’s voice for typed lines").
-  - **Cloud voice and Natural speech** (`manager.applySettings`, `honourCloudVoice`; rule changed 2026-10-20): Natural speech and the
-    Convai · Cloud voice exclude each other only where that voice is what speaks: the voice is Convai **and** the provider is Convai (free tier
-    or own key). With Mistral, Local AI or Custom and the Convai voice selection the bridge plays Pocket, so Natural speech works there and
-    stays. An Apply that makes the pairing (it chooses the voice, or chooses a Convai provider while the voice is Convai) keeps the choice and
-    turns Natural speech off with "The Convai cloud voice cannot use Natural speech, so it was turned off." Turning Natural speech on beside an
-    existing pairing moves the voice to Pocket · Performance with the "needs a local voice" notice. An older save with the pairing loads with
-    Natural speech off. No voice is moved or refused for the language of a reply: Pocket keeps speaking English and shows another language as text with the
+  - **Voice and reply language** (Natural speech and Follow-up questions were removed 2026-10-28: their old keys are ignored and dropped from the file once, and the "needs a local voice" notices went with them). No voice is moved or refused for the language of a reply: Pocket keeps speaking English and shows another language as text with the
     one-time voice-language notice.
   - V's voice is one list (2026-10-20): Off, Pocket, Voxtral, OmniVoice. The row writes both stored keys (`vVoice`, `vVoiceEngine`: `pocket`, `voxtral`, `omni`); Off keeps the saved engine. Voxtral is greyed out
     until a Mistral key is saved (a chosen Voxtral without a key is refused with "Requires a Mistral key"), and a saved Voxtral without a key shows and

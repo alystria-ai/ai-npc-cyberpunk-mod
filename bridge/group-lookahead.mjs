@@ -2,7 +2,7 @@ import {validatePrefetch} from './group-prefetch.mjs';
 import {abortable, cancelled} from './transport-pool.mjs';
 import {parseInput} from './protocol.mjs';
 import {HEAD_PROFILE, cleanText, FOLLOW_LIMITS} from './johnny-head.mjs';
-import {displayText} from './natural-speech.mjs';
+import {displayText} from './speech-tags.mjs';
 
 // Look-ahead for ordered group rounds.
 //

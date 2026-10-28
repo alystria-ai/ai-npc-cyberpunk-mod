@@ -13,9 +13,8 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseInput, archetypeContext} from '../bridge/protocol.mjs';
 import {conversationContext, withConversationKnowledge, firstPersonReminder} from '../bridge/quest-context.mjs';
-import {NaturalSpeech} from '../bridge/natural-speech.mjs';
+import {processReply} from '../bridge/speech-tags.mjs';
 import {ExpressiveEmotions} from '../bridge/expressive-emotions.mjs';
-import {FOLLOW_UP_TEXT} from '../bridge/follow-up.mjs';
 import {EMOTION_TAG_BLOCK} from '../bridge/emotion-tags.mjs';
 import {MistralHost} from '../bridge/mistral-host.mjs';
 import {MistralMemory} from '../bridge/mistral-memory.mjs';
@@ -81,7 +80,7 @@ const SCENARIOS = [
 
 // ---- Context, as close to the bridge's as the offline pieces allow ----------------------------------------------------------
 
-function buildContext(scenario, text, turnIndex, naturalSpeech, expressive) {
+function buildContext(scenario, text, turnIndex, expressive) {
   const raw = {requestId: `${100 + turnIndex}-1-11ULL`, generation: 1, entity: '11ULL', profileKey: scenario.profileKey, name: 'NPC',
     bodyType: 'WomanAverage', text, ...(scenario.channel === 'phone' ? {channel: 'phone'} : {}),
     ...(scenario.journal ? {journal: scenario.journal} : {}), ...(scenario.gear ? {gear: scenario.gear} : {}),
@@ -90,12 +89,8 @@ function buildContext(scenario, text, turnIndex, naturalSpeech, expressive) {
   if (!input) throw Error('The sample turn was not accepted by the bridge parser');
   const attached = withConversationKnowledge(input, {knowledgeContext: scenario.world, generation: 1, worldToken: 'sample'});
   const speaking = scenario.spoken && !(scenario.channel === 'phone');
-  // Natural speech is offered on every turn here (random = 0) so the format is exercised; the bridge offers it on a share of turns.
-  const natural = speaking ? naturalSpeech.contextFor({engine: 'pocket', spoken: true, turn: `t${turnIndex}`, trait: 'warm', profile: scenario.profileKey,
-    name: scenario.profileKey, random: () => 0}) : '';
   const emotions = speaking ? expressive.contextFor({engine: 'pocket', spoken: true}) : '';
-  const followUp = turnIndex % 2 === 1 ? FOLLOW_UP_TEXT : '';
-  const context = [archetypeContext(input), conversationContext(attached), followUp, natural, emotions, firstPersonReminder(input)].filter(Boolean).join('\n\n');
+  const context = [archetypeContext(input), conversationContext(attached), emotions, firstPersonReminder(input)].filter(Boolean).join('\n\n');
   return {input, context};
 }
 
@@ -127,8 +122,7 @@ if (!chosen.length) throw Error('No scenario matches --only');
 if (dry) {
   for (const scenario of chosen) {
     const persona = personas.persona(scenario.profileKey);
-    const natural = new NaturalSpeech(); natural.update({naturalSpeech: true});
-    const {context} = buildContext(scenario, scenario.turns[0], 0, natural, new ExpressiveEmotions());
+    const {context} = buildContext(scenario, scenario.turns[0], 0, new ExpressiveEmotions());
     console.log(`${scenario.id.padEnd(9)} system ${String(systemPrompt({persona}).length).padStart(6)} chars, context ${String(context.length).padStart(5)} chars, ${scenario.turns.length} turns`);
   }
   process.exit(0);
@@ -147,13 +141,12 @@ const started = Date.now();
 for (const scenario of chosen) {
   const persona = personas.persona(scenario.profileKey);
   const memory = await MistralMemory.open({path: null});
-  const natural = new NaturalSpeech(); natural.update({naturalSpeech: true});
   const expressive = new ExpressiveEmotions();
   const host = new MistralHost({provider, memory, personas, model: () => model, chat: countingChat,
-    transformReply: result => expressive.process(natural.process(result)), log: message => console.log(`  [host] ${message}`)});
+    transformReply: result => expressive.process(processReply(result)), log: message => console.log(`  [host] ${message}`)});
   const transcript = [];
   for (const [index, text] of scenario.turns.entries()) {
-    const {input, context} = buildContext(scenario, text, index, natural, expressive);
+    const {input, context} = buildContext(scenario, text, index, expressive);
     const local = {profileKey: scenario.profileKey, name: persona.name, channel: scenario.channel === 'phone' ? 'phone' : 'private',
       ...(scenario.ambient ? {ambientKey: `${scenario.profileKey}:test`} : {})};
     const at = Date.now();

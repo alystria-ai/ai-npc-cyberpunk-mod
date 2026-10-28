@@ -3,11 +3,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {EMOTION_NAMES, EMOTION_TAG_BLOCK, EmotionTagStream, emotionSpans, emotionTagsContext, heldFrom, hasEmotionTag,
   normaliseEmotion, parseEmotionText, replaceEmotionTags} from './emotion-tags.mjs';
-import {NaturalSpeech, OMNI_TAGS, displayText, keepSpeechTags, parseTagged, speechPhrases, stripSpeechTags,
-  hasSpeechTags} from './natural-speech.mjs';
+import {OMNI_TAGS, displayText, keepSpeechTags, parseTagged, processReply, stripSpeechTags,
+  hasSpeechTags} from './speech-tags.mjs';
 import {ExpressiveEmotions, EXPRESSIVE_TEXT} from './expressive-emotions.mjs';
-import {FollowUp, FOLLOW_UP_TEXT} from './follow-up.mjs';
-import {splitSpeechText} from './speech-phrases.mjs';
 
 // ---- the grammar ------------------------------------------------------------------------------------------------------
 
@@ -115,7 +113,7 @@ test('tags next to OmniVoice sound tags: the two kinds are independent in both d
   assert.equal(stripSpeechTags(raw), 'Ha! Fine, whatever.');
 });
 
-test('the combined pass of natural-speech.mjs and the emotion parser agree on tags, offsets and clean text', () => {
+test('the combined pass of speech-tags.mjs and the emotion parser agree on tags, offsets and clean text', () => {
   const corpus = [RAW, '{joy}Hello there.', 'No tags at all.', '{warm} A. {fear} B? {anger:strong}C! {calm}D', 'Sure {joy}. Okay {sad}, fine.',
     '{ Joy }Spaces and {ANGRY:Strong}caps.', 'Well... {sadness}it hurts — {calm} — a bit.', '{joy}{warm}Two before one. {calm}', '{surprise}Three million? {joy}Holy! {interest}Tell me.'];
   for (const raw of corpus) {
@@ -211,29 +209,27 @@ test('heldFrom: only something that can still become a tag is held back', () => 
 
 test('every reply path removes emotion tags: display, history, voice text, Omni phrases, the engine\'s last defence', () => {
   const raw = '{interest}Hey V, [sigh] you made it. {sadness:strong}But Jackie is gone, and I miss him. {calm}Let us go {joy}and celebrate.';
-  const speech = new NaturalSpeech();
-  const result = speech.process({text: raw, sessionID: 's'});
+  const result = processReply({text: raw, sessionID: 's'});
   for (const text of [result.text, result.speechText]) assert.ok(!/[{}]/.test(text), text);
   assert.equal(result.text, 'Hey V, you made it. But Jackie is gone, and I miss him. Let us go and celebrate.');
   assert.deepEqual(result.emotionMarks.map(mark => mark.name), ['interest', 'sadness', 'calm', 'joy']);
   // A cloud-voice reply with a tag left over is cleaned the same way.
-  assert.equal(speech.process({text: '{warm}Hi.', sessionID: 'x'}).text, 'Hi.');
+  assert.equal(processReply({text: '{warm}Hi.', sessionID: 'x'}).text, 'Hi.');
   // The strongest check: the display text is the voiced text with every kind of tag removed.
-  const phrases = splitSpeechText(result.text);
-  const voiced = speechPhrases(phrases, raw, OMNI_TAGS);
-  assert.ok(voiced.every(phrase => !/[{}]/.test(phrase)));
-  assert.equal(stripSpeechTags(voiced.join(' ')), result.text);
+  const voiced = keepSpeechTags(raw, OMNI_TAGS);
+  assert.ok(!/[{}]/.test(voiced));
+  assert.equal(stripSpeechTags(voiced), result.text);
   assert.equal(keepSpeechTags(raw, []), 'Hey V, you made it. But Jackie is gone, and I miss him. Let us go and celebrate.');
   assert.equal(hasSpeechTags('only {anger:strong} here'), true);
   // A reply that only carries tags is returned whole, never empty on the way to a subtitle.
   const empty = {text: '{joy}{calm}', sessionID: 'e'};
-  assert.equal(speech.process(empty), empty);
+  assert.equal(processReply(empty), empty);
 });
 
 test('the bridge passes every reply through the cleaner, and the game\'s subtitle code strips the same names', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 4, 'the conversation host, the phone host, the Mistral route and the add-on speakers\' text host');
-  assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
+  assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(processReply\(result\)\)/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   for (const name of EMOTION_NAMES) assert.ok(subtitles.includes(`'${name}'`), `mod/subtitles.lua strips {${name}}`);
   // The continuous (cloud voice) path shows the text through displayText.
@@ -251,7 +247,7 @@ test('the block: every tag, the rules the measurements called for, compact enoug
   }
   assert.ok(EMOTION_TAG_BLOCK.length <= 2200, `${EMOTION_TAG_BLOCK.length} characters`);
   assert.equal(emotionTagsContext({trait: 'warm'}), EMOTION_TAG_BLOCK);
-  // It never tells the model to write a bracketed sound tag, so it cannot collide with Natural speech.
+  // It never tells the model to write a bracketed sound tag, so it cannot collide with a voice sound tag.
   assert.ok(!/\[(?:laughter|sigh)\]/.test(EMOTION_TAG_BLOCK));
   // The examples inside it are themselves clean and valid.
   for (const example of EMOTION_TAG_BLOCK.match(/"\{[^"]+"/g) ?? []) {
@@ -274,22 +270,12 @@ test('gating: the block goes out (Expressive emotions is always on) only when a 
   assert.match(bridge, /expressiveEmotions\.contextFor\(\{engine, spoken: !phone && localVoice\.playbackEnabled !== false\}\)/);
 });
 
-test('it coexists with Natural speech and Follow-up: three blocks in the bridge order, each on its own paragraph', () => {
-  const speech = new NaturalSpeech(), followUp = new FollowUp(), emotions = new ExpressiveEmotions();
-  speech.update({naturalSpeech: true}); followUp.update({followUpInterest: true}); emotions.update({expressiveEmotions: true});
-  const always = () => 0;
-  const natural = speech.contextFor({engine: 'omni', spoken: true, sessionId: 's', turn: 't', trait: 'warm', random: always});
-  const follow = followUp.contextFor({sessionId: 's', turn: 't', trait: 'warm', text: 'Tell me something', random: always});
-  const emotion = emotions.contextFor({engine: 'omni', spoken: true}) ? emotionTagsContext({trait: 'warm'}) : '';
-  assert.ok(natural && follow === FOLLOW_UP_TEXT && emotion);
-  const context = [follow, natural, emotion].join('\n\n');
+test('it coexists with voice sound tags: the block names no bracket tag, and one reply with both kinds of tag is split correctly', () => {
+  const emotion = emotionTagsContext({trait: 'warm'});
   // Voice sounds are square brackets, feelings are braces: the two lists never share a token.
-  assert.ok(!/\{[a-z]+\}/.test(natural) && !/\{[a-z]+\}/.test(follow));
   assert.ok(!/\[[a-z-]+\]/.test(emotion));
-  // Together they stay well inside the dynamic context a turn can carry (the save knowledge alone is up to 12,000 characters).
-  assert.ok(context.length < 9000, `${context.length} characters`);
   // Both kinds of tag written by one reply are both stripped, and each reaches only its own consumer.
-  const reply = speech.process({text: '{warm}Sure. [laughter] {joy}Why not?', sessionID: 's'});
+  const reply = processReply({text: '{warm}Sure. [laughter] {joy}Why not?', sessionID: 's'});
   assert.equal(reply.text, 'Sure. Why not?');
   assert.equal(reply.speechText, 'Sure. [laughter] Why not?');
   assert.deepEqual(reply.emotionMarks.map(mark => mark.name), ['warm', 'joy']);

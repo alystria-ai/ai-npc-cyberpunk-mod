@@ -16,7 +16,7 @@ sits, and the face follows those marks.
 | The syntax (names, aliases, streaming parser, spans) | `bridge/emotion-tags.mjs` |
 | The words of the block | `EMOTION_TAG_BLOCK` in `bridge/emotion-tags.mjs`; `EXPRESSIVE_TEXT` in `bridge/expressive-emotions.mjs` is that same string |
 | Gate (setting, engine, spoken turn) | `ExpressiveEmotions.contextFor` |
-| Stripping and the marks `{at, name, strength}` | `bridge/natural-speech.mjs` `parseTagged` (uses the grammar above) |
+| Stripping and the marks `{at, name, strength}` | `bridge/speech-tags.mjs` `parseTagged` (uses the grammar above) |
 | Marks into the face plan | `bridge/emotion-selector.mjs` `selectEmotion({marks})` |
 | Last-line strip in the subtitles | `mod/subtitles.lua` |
 
@@ -28,7 +28,7 @@ sits, and the face follows those marks.
 ```
 
 A tag stays in force until the next one. Curly braces are feelings for the face; square brackets (`[sigh]`, `[laughter]`) are
-sounds for OmniVoice (Natural speech). OmniVoice only treats `[name]` from its own list and `<|...|>` control tokens as special,
+sounds for OmniVoice (a stray one is stripped from the display text since 2026-10-28, when Natural speech, which wrote them, was removed). OmniVoice only treats `[name]` from its own list and `<|...|>` control tokens as special,
 so braces are inert there and the two syntaxes cannot collide. Angle brackets were rejected for that reason (`<|...|>`).
 The parser is lenient about what a model writes: aliases (`{angry}`, `{Joy}`, `{ anger : 2 }`) and a bracketed emotion word
 (`[surprise]`, which is never a voice sound) are read as feelings; any other braces (`{choomba}`, `{42}`) stay ordinary text.
@@ -39,7 +39,6 @@ The block is sent only when **both** of these hold: the turn is spoken (not phon
 playback), and the voice that will speak it is a local one (OmniVoice or Pocket). With the Convai cloud voice nothing is sent,
 because Convai would read the braces aloud. There is no setting and no pairing rule in the manager since 2026-10-20: the bridge
 decides per turn from the engine that speaks (`contextFor({engine})`), so a fallback to text (or to the cloud voice the player chose) mid-session sends no block.
-(Natural speech, which writes square-bracket sounds, still excludes the Convai cloud voice where Convai is the provider: `docs/MANAGER_UI.md`.)
 
 Mid-session safety (a character that wrote tags for a while, then the voice switches to Convai and the block stops): in a
 test of 3 characters, 12 turns with the block and then 18 without, every one of the 36 turns with the block carried tags and
@@ -83,7 +82,7 @@ otherwise.
 Fresh throwaway Convai end-user per run (never the player), real tier-1 characters (Judy, Panam, Johnny, Jackie, River, Rogue,
 Kerry, Evelyn), 40 player lines in 7 kinds (provocation, sad news, teasing, flirting, surprise, mission, small talk), one
 session per character so the history builds like a chat. The context is assembled the way the bridge does (conversation
-context, Follow-up, Natural speech, then the block), and every reply goes through the real cleaning. 320 replies per condition.
+context, the Follow-up and Natural speech blocks that existed then, then the block), and every reply goes through the real cleaning. 320 replies per condition.
 `scripts/Probe-EmotionTags.mjs` collects; `scripts/Judge-EmotionTags.mjs` audits and builds the blind packets;
 labels for appropriateness come from `Build-EmotionSegmentSet.mjs` (segments exactly as the bridge cuts them for OmniVoice)
 and blind writers who see only the clean text (no tags, no Convai label, not which block wrote it) and the evaluator
@@ -135,7 +134,7 @@ something to commit to). Reply length is unchanged within a word or two.
 
 ### Coexistence
 
-Natural speech and Follow-up questions were on in every run, in the bridge's order (Follow-up, Natural speech, then the emotion
+Natural speech and Follow-up questions (both removed 2026-10-28) were on in every run, in the bridge's order (Follow-up, Natural speech, then the emotion
 block). Bracketed voice tags and brace feeling tags coexisted with no collision (`[sigh]` next to `{sadness}`), zero
 bracket confusion in the final block, whole context 3.3k characters against about 1.9k without the block. Pocket (2
 characters x 20 prompts): 40 of 40 replies tagged.
@@ -166,16 +165,15 @@ the player line, Convai's label, everyday cues), which is why the table above us
 `bridge/emotion-tags.mjs` is pure. `parseEmotionText(raw)` returns the clean text, the tags with the character offset of the
 word they precede, and the spans; `EmotionTagStream` keeps a tag split across chunks (`{sad` + `ness}`) out of the text and its
 state after the last chunk equals the whole-text parse for every split (tested at every split point and with random chunking).
-`natural-speech.mjs` uses the same grammar in its combined pass over voice and emotion tags (a test keeps the two identical).
+`speech-tags.mjs` uses the same grammar in its combined pass over emotion tags and any stray voice tag (a test keeps the two identical).
 Tags are removed from the display text, the text each engine reads, phone chat and memory. A tag with no word after it marks
 nothing. A dangling `{ang` at the end of a reply is dropped, `I {think` stays.
 
 ## Restart
 
-Bridge restart only (`bridge/`: `emotion-tags.mjs`, `expressive-emotions.mjs`, `natural-speech.mjs`). No Lua, no CET reload, no
+Bridge restart only (`bridge/`: `emotion-tags.mjs`, `expressive-emotions.mjs`, `speech-tags.mjs`). No Lua, no CET reload, no
 new setting, no per-frame work: everything is on the reply path in the bridge. Check in game with Expressive emotions on: the
-face changes at the tagged phrase, calm characters show little, no brace text in subtitles or phone chat, with Natural speech
-and Follow-up on together.
+face changes at the tagged phrase, calm characters show little, no brace text in subtitles or phone chat.
 
 ## Reproducing
 

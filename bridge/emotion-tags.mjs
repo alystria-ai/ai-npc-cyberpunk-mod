@@ -5,14 +5,14 @@
 //
 // The character writes a tag right before the words it applies to; the face holds that feeling until the next tag.
 // Curly braces are feelings for the face, square brackets ([laughter]) are sounds for OmniVoice: the two syntaxes cannot
-// collide (bridge/natural-speech.mjs strips both). Tags are removed from every text a player or an engine sees; what
+// collide (bridge/speech-tags.mjs strips both). Tags are removed from every text a player or an engine sees; what
 // stays behind is a list of marks, each with the character offset of the word it precedes in the CLEAN text:
 //   tags:  [{at, name, strength: 'subtle'|'strong', intensity: 1|2}]       (the shape bridge/emotion-selector.mjs already takes)
 //   spans: [{start, end, emotion, intensity}]   the clean text cut at the tags; a stretch before the first tag has
 //          emotion null (nothing was said about it, the text-based picker fills it); {calm} is the explicit resting face.
 //
 // This module is pure (no I/O, no imports): the grammar, a streaming parser that survives a tag split across chunks, and
-// the per-turn instructions. bridge/natural-speech.mjs uses the grammar for its combined pass over both kinds of tag, and a
+// the per-turn instructions. bridge/speech-tags.mjs uses the grammar for its combined pass over both kinds of tag, and a
 // test keeps `parseEmotionText` and that pass identical on the same text.
 
 export const EMOTION_NAMES = Object.freeze(['joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm']);
@@ -90,7 +90,7 @@ const DASH_ONLY = /^(?:—|–|--?)$/;
  * The tags of a (growing) reply and the clean text. `final: false` holds back a tag still being written, so a chunk boundary
  * can fall anywhere inside one; `final: true` (the default) drops a dangling fragment such as "{ang". Whitespace is normalised
  * to single spaces; punctuation the model put right after a tag ("Sure {joy}.") belongs to the word before it. Square-bracket
- * voice tags are not touched (bridge/natural-speech.mjs owns them). A tag with no word after it marks nothing.
+ * voice tags are not touched (bridge/speech-tags.mjs owns them). A tag with no word after it marks nothing.
  */
 export function parseEmotionText(raw, {final = true} = {}) {
   const whole = String(raw ?? '').replaceAll(MARK, '');

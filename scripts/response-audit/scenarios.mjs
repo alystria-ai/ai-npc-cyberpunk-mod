@@ -6,7 +6,6 @@
 //   first      the save says V and the character have not spoken before; history / summary / remembered: the canned earlier talk
 //   dialogue   recent game dialogue lines ({who: 'v'|'npc', text}), oldest first
 //   offer      the companion action the game offers this turn (see ACTION_OFFERS)
-//   ns / fu    the Natural speech note / the follow-up pull is part of this turn's context (the bridge offers them on a share of turns)
 
 const AT = {hour: 15, minute: 20};
 const place = (district, area, extra = {}) => ({district, area, ...extra});
@@ -30,7 +29,7 @@ export const SCENARIOS = [
     history: [{v: 'You ready to head out?', r: 'Always. Dust is not going to move itself.'}, {v: 'How long have you been on the road?', r: 'Since I could walk. The Aldecaldos raised me out here.'}],
     text: 'Tell me about the Aldecaldos. What is the clan actually like?',
     want: 'A lore answer from Panam about the Aldecaldos (Saul, family, the Badlands life) in her own voice, short enough to speak, without reciting the weather or time.'},
-  {id: 'judy-lore-braindance', group: 'lore', char: 'judy-alvarez', party: [{activity: 'standing'}], place: {hour: 22, minute: 10, ...place('Watson', 'Kabuki')}, ongoing: true, ns: true,
+  {id: 'judy-lore-braindance', group: 'lore', char: 'judy-alvarez', party: [{activity: 'standing'}], place: {hour: 22, minute: 10, ...place('Watson', 'Kabuki')}, ongoing: true,
     history: [{v: 'Nice place you have here.', r: 'It gets the job done. The clients keep coming, and the rent keeps being a problem.'}],
     text: 'How did you get into braindance editing?',
     want: 'Judy tells how she got into BD editing in her own words (Mox, Clouds, Lizzy Wizzy, a hobby that became a trade) in one to three sentences, no invented facts.'},
@@ -52,7 +51,7 @@ export const SCENARIOS = [
     text: 'That was close back there, huh?',
     want: 'Jackie picks up the fight that just happened (the recent lines) and V\'s injury in his own voice; does not greet again and does not quote the lines back.'},
   {id: 'johnny-head-next', group: 'named', char: 'johnny-silverhand', head: {stage: 'grudging', milestones: ['alt']}, place: {hour: 19, minute: 10, ...place('CityCenter', 'CorpoPlaza', {weather: 'clear'})},
-    quest: ['Chippin\' In', 'Find a way to meet Rogue'], ongoing: true, fu: true,
+    quest: ['Chippin\' In', 'Find a way to meet Rogue'], ongoing: true,
     history: [{v: 'You still there, Johnny?', r: 'Where else would I be? I am not exactly spoiled for choice.'}],
     text: 'What should we do next?',
     want: 'Johnny, in V\'s head, picks the open job (meet Rogue) and says why, in his own abrasive voice. He has no body and does not claim to be anywhere else.'},
@@ -86,7 +85,7 @@ export const SCENARIOS = [
     text: 'Hi. I am here to see someone on the upper floors.',
     want: 'A corporate receptionist: polite, professional, a little guarded, asks who V is meeting or for a name. Does not invent a specific named person or company.'},
   {id: 'vendor-menu', group: 'ongoing', ambient: true, char: 'npc-food-vendor-male', archetype: {base: 'food-vendor', category: 'vendor', title: 'food and drink vendor', vendorType: 'GrilledFood', district: 'Watson', area: 'Kabuki'},
-    place: {hour: 20, minute: 10, ...place('Watson', 'Kabuki', {weather: 'rain'})}, fu: true,
+    place: {hour: 20, minute: 10, ...place('Watson', 'Kabuki', {weather: 'rain'})},
     text: 'What is good here? I am starving.',
     want: 'A street grill vendor recommends something in a streetwise, salesy way. Does not invent a long specific menu with prices, and does not announce the rain unprompted.'},
   {id: 'vendor-hmm', group: 'short', ambient: true, char: 'npc-food-vendor-male', archetype: {base: 'food-vendor', category: 'vendor', title: 'food and drink vendor', vendorType: 'GrilledFood', district: 'Watson', area: 'Kabuki'},
@@ -110,7 +109,7 @@ export const SCENARIOS = [
     text: 'Can you do something about my arm? It stopped responding after the fight.',
     want: 'A ripperdoc responds professionally in a gruff or pragmatic manner: asks to look, mentions cost or time, no precise medical or price claims invented.'},
   {id: 'bartender-surprise', group: 'ongoing', ambient: true, char: 'npc-bartender-female', archetype: {base: 'bartender', category: 'vendor', title: 'bartender', vendorType: 'Drinks', district: 'Watson', area: 'LittleChina'},
-    place: {hour: 0, minute: 30, ...place('Watson', 'LittleChina', {money: 'rich', indoors: true})}, ns: true,
+    place: {hour: 0, minute: 30, ...place('Watson', 'LittleChina', {money: 'rich', indoors: true})},
     text: 'Rough night. Surprise me.',
     want: 'A bartender in character: pours something, reads V\'s mood with dry humour, short. No long list of cocktails.'},
 

@@ -14,7 +14,6 @@ import {RelationshipRouting, relationshipRegistry, selectRelationshipProfile, pa
 import {PlayerMemory} from './player-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
-import {NaturalSpeech} from './natural-speech.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 
 // ---- Reply-language detection --------------------------------------------------------------------------------
@@ -91,11 +90,11 @@ test('a chosen local voice that cannot run is never replaced by the Convai voice
       assert.equal(planTurnVoice({...options, language, local: CLOUD}).engine, 'convai');
     }
   }
-  // A written turn gets neither Natural speech nor Expressive emotions instructions (no voice would render the tags).
-  const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
-  speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
+  // A written turn gets no Expressive emotions instructions (no voice would render the tags).
+  const emotions = new ExpressiveEmotions();
+  emotions.update({expressiveEmotions: true});
   const plan = planTurnVoice({enabled: false, language: 'en', local: FAILED});
-  assert.deepEqual([speech.contextFor({engine: plan.engine, random: () => 0}), emotions.contextFor({engine: plan.engine})], ['', '']);
+  assert.equal(emotions.contextFor({engine: plan.engine}), '');
 });
 
 test('reply voice: a local turn follows the reply language; a cloud turn stays on Convai', () => {
@@ -116,18 +115,16 @@ test('reply voice: a local turn follows the reply language; a cloud turn stays o
   assert.deepEqual(reply(local(false, 'en'), es), {engine: 'pocket', language: null});
 });
 
-test('the turn plan gates Natural speech and Expressive emotions: the cloud voice never gets tag instructions', () => {
-  const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
-  speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
-  // random 0: this turn is one where Natural speech offers its devices.
-  const blocks = plan => [speech.contextFor({engine: plan.engine, random: () => 0}), emotions.contextFor({engine: plan.engine})];
-  // A cloud-voice turn (chosen, or Pocket handing a Spanish turn over): no blocks at all.
-  assert.deepEqual(blocks(planTurnVoice({enabled: true, language: 'es', local: CLOUD})), ['', '']);
-  assert.deepEqual(blocks(planTurnVoice({enabled: true, language: 'es', local: POCKET})), ['', '']);
-  // An Omni turn in any language keeps the Omni instructions.
-  const omni = blocks(planTurnVoice({enabled: true, language: 'es', local: OMNI}));
-  assert.match(omni[0], /OmniVoice/); assert.ok(omni[1]);
-  assert.match(blocks(planTurnVoice({enabled: true, language: 'en', local: POCKET}))[0], /Pocket TTS/);
+test('the turn plan gates Expressive emotions: the cloud voice never gets tag instructions', () => {
+  const emotions = new ExpressiveEmotions();
+  emotions.update({expressiveEmotions: true});
+  const block = plan => emotions.contextFor({engine: plan.engine});
+  // A cloud-voice turn (chosen, or Pocket handing a Spanish turn over): no block at all.
+  assert.equal(block(planTurnVoice({enabled: true, language: 'es', local: CLOUD})), '');
+  assert.equal(block(planTurnVoice({enabled: true, language: 'es', local: POCKET})), '');
+  // An Omni turn in any language keeps the instructions, and so does a Pocket turn it can speak.
+  assert.ok(block(planTurnVoice({enabled: true, language: 'es', local: OMNI})));
+  assert.ok(block(planTurnVoice({enabled: true, language: 'en', local: POCKET})));
 });
 
 test('the holder remembers the language the conversation was last in, on every route', () => {

@@ -238,9 +238,9 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   mcm.set('Voice volume (%)', 120)
   mcm.revert()
   assert(not next(mcm.drafts()) and mcm.row('Voice volume (%)').value == 100)
-  assert(manager.applySettings(player, {followUpInterest = false, voiceVolume = 150, battleReactions = false}))
+  assert(manager.applySettings(player, {lootReactions = false, voiceVolume = 150, battleReactions = false}))
   frames(10)
-  assert(mcm.row('Follow-up questions').value == false and mcm.row('Voice volume (%)').value == 150, 'an outside change is drawn')
+  assert(mcm.row('React to collected loot').value == false and mcm.row('Voice volume (%)').value == 150, 'an outside change is drawn')
   -- No row has a default, so MCM's own Defaults button and its Modified counter are not there; the manager's own button is.
   local layout = mcm.layout()
   assert(layout.mcmDefaultsButton == false and layout.comparable == 0 and layout.modified == 0)
@@ -254,14 +254,14 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   press('Defaults')
   assert(footerLabels() == 'Confirm | Back', footerLabels())
   assert(mcm.status():find('Confirm', 1, true), mcm.status())
-  assert(manager.snapshot(player).settings.followUpInterest == false and manager.snapshot(player).settings.voiceVolume == 150)
+  assert(manager.snapshot(player).settings.lootReactions == false and manager.snapshot(player).settings.voiceVolume == 150)
   -- Another button drops the first press (a page button; the Settings page has no status button any more).
   press('Memory'); press('Back to settings')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
-  assert(settings.followUpInterest == true and settings.voiceVolume == 100 and settings.battleReactions == true, 'defaults saved')
-  assert(mcm.row('Follow-up questions').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
+  assert(settings.lootReactions == true and settings.voiceVolume == 100 and settings.battleReactions == true, 'defaults saved')
+  assert(mcm.row('React to collected loot').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
   frames(8)   -- the status line follows within a moment
   assert(mcm.status() == 'Defaults restored.', mcm.status())
   assert(footerLabels() == 'Defaults | Back' and not next(mcm.drafts()))
@@ -675,41 +675,41 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
 test('the Settings page has no Multilingual conversations row (the setting was removed 2026-10-21): the language is detected per message', () => withScreen(`
   press('Settings')
   frames(6)
-  assert(mcm.row('Follow-up questions') ~= nil or mcm.row('Talk to ordinary NPCs') ~= nil or mcm.row('Johnny in your head') ~= nil, 'the Conversations rows are on the page')
+  assert(mcm.row('React to collected loot') ~= nil or mcm.row('Talk to ordinary NPCs') ~= nil or mcm.row('Johnny in your head') ~= nil, 'the Conversations rows are on the page')
   assert(mcm.row('Multilingual conversations') == nil, 'the row is gone')
   assert(manager.snapshot(player).settings.multilingualConversations == nil)
   for key in pairs(mcm.drafts()) do assert(not tostring(key):find('multilingual', 1, true), key) end
 `));
 
-test('Apply of one switch saves exactly that switch: Follow-up questions off is saved off, and the rest stays', () => withScreen(`
+test('Apply of one switch saves exactly that switch: React to collected loot off is saved off, and the rest stays', () => withScreen(`
   press('Settings')
   frames(6)
   local core = managerUi._test.core
   local realApply, seen = core.apply, nil
   core.apply = function(batch) seen = batch; return realApply(batch) end
   local before = manager.snapshot(player).settings
-  assert(before.followUpInterest == true and before.multilingualConversations == nil)
-  assert(mcm.row('Follow-up questions').value == true)
-  assert(mcm.set('Follow-up questions', false))
-  assert(mcm.drafts()['cyberpunk-convai:manager:followUpInterest'] == false, 'the draft is on that row')
+  assert(before.lootReactions == true and before.multilingualConversations == nil)
+  assert(mcm.row('React to collected loot').value == true)
+  assert(mcm.set('React to collected loot', false))
+  assert(mcm.drafts()['cyberpunk-convai:manager:lootReactions'] == false, 'the draft is on that row')
   assert(next(mcm.drafts(), next(mcm.drafts())) == nil, 'and on no other')
   local ok, why = mcm.apply()
   assert(ok, tostring(why))
-  assert(seen and #seen == 1 and seen[1].id == 'followUpInterest' and seen[1].value == false, 'the batch is that one switch')
-  assert(saved.followUpInterest == false, 'saved: ' .. tostring(saved.followUpInterest))
-  assert(manager.snapshot(player).settings.followUpInterest == false)
-  assert(mcm.row('Follow-up questions').value == false, 'the page shows what is saved')
+  assert(seen and #seen == 1 and seen[1].id == 'lootReactions' and seen[1].value == false, 'the batch is that one switch')
+  assert(saved.lootReactions == false, 'saved: ' .. tostring(saved.lootReactions))
+  assert(manager.snapshot(player).settings.lootReactions == false)
+  assert(mcm.row('React to collected loot').value == false, 'the page shows what is saved')
   assert(saved.multilingualConversations == nil and saved.subtitles == true, 'the other switches did not move')
   -- And back on.
   core.apply = realApply
-  assert(mcm.set('Follow-up questions', true) and mcm.apply())
-  assert(saved.followUpInterest == true)
+  assert(mcm.set('React to collected loot', true) and mcm.apply())
+  assert(saved.lootReactions == true)
   -- The same while the list jumps on every redraw (the live check): the switch pressed is the one saved.
   mcm.jumpOnLoad = 0.7
   frames(4)
-  assert(mcm.set('Follow-up questions', false) and mcm.apply())
+  assert(mcm.set('React to collected loot', false) and mcm.apply())
   frames(6)
-  assert(saved.followUpInterest == false and saved.multilingualConversations == nil)
+  assert(saved.lootReactions == false and saved.multilingualConversations == nil)
 `));
 
 test('the list keeps its place after Apply and after a reload of the page, leaves a later scroll alone, and starts at the top on another page', () => withScreen(`
@@ -719,7 +719,7 @@ test('the list keeps its place after Apply and after a reload of the page, leave
   assert(math.abs(mcm.scroll() - 0.2) < 1e-9)
   -- MCM redraws the page after Apply and the list jumps far down (as in the live check): the host puts it back.
   mcm.jumpOnLoad = 0.6
-  assert(mcm.set('Follow-up questions', false) and mcm.apply())
+  assert(mcm.set('React to collected loot', false) and mcm.apply())
   assert(mcm.scroll() == 0.6, 'the jump happened, as in the live check')
   frames(1)
   assert(math.abs(mcm.scroll() - 0.2) < 1e-9, 'put back: ' .. mcm.scroll())

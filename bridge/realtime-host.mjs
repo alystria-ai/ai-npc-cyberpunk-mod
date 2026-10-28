@@ -222,7 +222,7 @@ export async function installCompanionActionBinding(page, {isCurrent, onAction})
 }
 
 export class RealtimeHost {
-  // transformReply: optional, applied to every finished reply (Natural speech removes voice tags from the display text).
+  // transformReply: optional, applied to every finished reply (voice tags are removed from the display text).
   // exclusive: {enabled(), limit(), peers(), retryMs}. While enabled the plan caps how many conversation connections may be
   // open at once (a player's own Convai key): limit() of them, one when absent (a free plan; a paid Gamer plan allows six).
   // A request first closes idle connections, here and in the peer hosts, least recently used first, until it fits under

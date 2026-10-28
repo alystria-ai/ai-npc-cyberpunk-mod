@@ -1,5 +1,7 @@
 # Speaking as "I": the third-person leak (October 10, 2026)
 
+> **Update 2026-10-28:** Natural speech and Follow-up questions (and the files `bridge/natural-speech.mjs`, `bridge/natural-speech-talk.mjs` and `bridge/follow-up.mjs` named below) were removed. This is the record of the October 10 fix. The first-person rule itself is unchanged.
+
 ## What the user heard
 
 Evelyn Parker, asked "why blue hair?" (request `1791575306-1-11150607ULL`, OmniVoice, settings: Natural speech, Follow-up

@@ -970,7 +970,7 @@ test('installed 2.31 native sources support animated head projection and owned p
 // by character share of a duration estimate. Cues from bridge/caption-cues.mjs
 // carry the audio second each sentence starts; pages change only there.
 import {captionCues, cueSignature} from './caption-cues.mjs';
-import {displayText} from './natural-speech.mjs';
+import {displayText} from './speech-tags.mjs';
 
 const speechSource = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
 // Five sentences as Pocket Judy spoke them on October 8 (live mouth-timeline
@@ -1031,7 +1031,7 @@ test('caption cues follow the audio: real pauses, not text share, and nothing be
   const estimated = captionCues(TEXT, {duration: TOTAL, complete: true});
   assert.ok(estimated.cues.every((cue, i) => i === 0 || cue.start > estimated.cues[i - 1].start));
   assert.equal(captionCues(TEXT, {duration: 1.2, complete: false}).cues[1].start, null, 'No estimate before the buffered audio passes it');
-  // Natural-speech tags never reach a cue and leave no gap.
+  // Voice and emotion tags never reach a cue and leave no gap.
   const tagged = displayText('Hey [laughter] V. {joy} Good to see you.');
   const cues = captionCues(tagged, {duration: 3, complete: true}).cues;
   assert.equal(cues.map(cue => cue.text).join(''), tagged);

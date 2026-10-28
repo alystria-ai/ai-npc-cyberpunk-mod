@@ -10,7 +10,7 @@ import {priorityEnvironment, priorityGate} from './process-priority.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
-import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
+import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './speech-tags.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
 import {closeConfirmed} from './worker-process.mjs';

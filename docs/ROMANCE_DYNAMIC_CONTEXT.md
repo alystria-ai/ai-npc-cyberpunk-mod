@@ -15,8 +15,8 @@ unrelated memories: what V told the affectionate Judy was unknown to the ordinar
 Judy, and Auto switching between them (when the capture was fresh, or the setting
 changed) made her forget. One profile per character gives one continuous memory.
 The cost is that the affectionate delivery, which the second profile's biography
-supplied, must now come from the per-turn dynamic context, the way Natural speech
-(`bridge/natural-speech*.mjs`) and Follow-up (`bridge/follow-up.mjs`) already do.
+supplied, must now come from the per-turn dynamic context, the way the other per-turn blocks (Expressive emotions, the first-person
+reminder) already do.
 The block replaces the old relationship note in the same slot, so it adds no
 request, timer or Lua work.
 

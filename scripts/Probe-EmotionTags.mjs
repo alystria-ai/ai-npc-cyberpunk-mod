@@ -1,16 +1,16 @@
 // Offline, text-only probe of the inline emotion tags ("Expressive emotions", docs/EMOTION_TAGS.md) against the real Convai
 // characters: no game, no voice, no bridge. Each turn's context is assembled the way the bridge does (bridge/quest-context.mjs,
-// then Follow-up, Natural speech and the emotion block, in the bridge's order), every reply goes through the bridge's cleaning
-// (NaturalSpeech.process, ExpressiveEmotions.process), and ONE Convai session per character keeps the history, as in a chat.
+// then the emotion block), every reply goes through the bridge's cleaning
+// (processReply, ExpressiveEmotions.process), and ONE Convai session per character keeps the history, as in a chat.
 //
 //   node scripts/Probe-EmotionTags.mjs --profiles judy-alvarez,panam-palmer --block off|v0|new|<file> [--prompts 40]
-//        [--no-natural] [--no-followup] [--hangover N] [--seed 1] [--label name] [--clear-memories] --run
-//   --block off     no emotion block (the control); natural and follow-up blocks are still sent
+//        [--hangover N] [--seed 1] [--label name] [--clear-memories] --run
+//   --block off     no emotion block (the control)
 //   --block v0      the October 7 block, before this work (scripts/emotion-block-october7.txt)
 //   --block new     the block now in bridge/emotion-tags.mjs (EMOTION_TAG_BLOCK = EXPRESSIVE_TEXT)
 //   --block <file>  the text in that file (a candidate wording)
 //   --hangover N    the block is sent for the first N turns only, then dropped (does the model keep writing tags?)
-//   --engine omni|pocket  which voice the turn is for (default omni; the Natural speech block differs)
+//   --engine omni|pocket  which voice the turn is for (default omni)
 //
 // Without --run it only prints the plan. Every run uses a FRESH throwaway Convai identity (never the player's); the API key is
 // read from runtime/convai-key.txt and never printed. Output: runtime/emotion-tags-probe/<label>-<profile>.json, one row per
@@ -22,11 +22,9 @@ import {resolve} from 'node:path';
 import {RealtimeHost} from '../bridge/realtime-host.mjs';
 import {conversationContext} from '../bridge/quest-context.mjs';
 import {archetypeContext, isAmbientProfile} from '../bridge/protocol.mjs';
-import {NaturalSpeech} from '../bridge/natural-speech.mjs';
+import {processReply} from '../bridge/speech-tags.mjs';
 import {ExpressiveEmotions} from '../bridge/expressive-emotions.mjs';
-import {FollowUp} from '../bridge/follow-up.mjs';
 import {EMOTION_TAG_BLOCK} from '../bridge/emotion-tags.mjs';
-import {traitFor} from '../bridge/emotion-analysis.mjs';
 import {waitLateEmotion} from '../bridge/emotion-selector.mjs';
 import {ConvaiMemoryAdapter} from '../bridge/convai-memory.mjs';
 
@@ -90,47 +88,37 @@ if (profiles.some(profile => !ids[profile])) throw Error('A requested profile is
 const roster = [...await read('characters/roster.json'), ...await read('characters/archetype-roster.json').catch(() => [])];
 const text = await blockText();
 
-const rng = start => () => { start |= 0; start = start + 0x6D2B79F5 | 0; let t = Math.imul(start ^ start >>> 15, 1 | start); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-const hash = value => [...value].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
-
 const host = new RealtimeHost();
 const folder = resolve(root, 'runtime/emotion-tags-probe');
 await mkdir(folder, {recursive: true});
 try {
   for (const profileKey of profiles) {
     const profile = roster.find(row => row.key === profileKey) ?? {key: profileKey, name: profileKey};
-    const random = rng(seed + hash(profileKey));
-    const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions(), followUp = new FollowUp();
-    if (!args.includes('--no-natural')) speech.update({naturalSpeech: true});
-    if (!args.includes('--no-followup')) followUp.update({followUpInterest: true});
+    const emotions = new ExpressiveEmotions();
     if (blockOption !== 'off') emotions.update({expressiveEmotions: true});
     const rows = [];
     let sessionId;
     for (const [index, [category, line]] of PROMPTS.entries()) {
       const input = {profileKey, name: profile.name, text: line, channel: 'private', requestId: `etp-${profileKey}-${index}`,
         ...(profile.archetype ? {archetype: profile.archetype} : {})};
-      const trait = traitFor(profileKey);
       const withEmotion = text !== null && (!hangover || index < hangover);
-      const follow = followUp.contextFor({sessionId: profileKey, turn: input.requestId, trait, text: line, random});
-      const natural = speech.contextFor({engine, spoken: true, sessionId, turn: input.requestId, trait, profile: profileKey, name: profile.name, random});
       const gate = emotions.contextFor({engine, spoken: true});
       const emotion = withEmotion && gate ? text : '';
-      const context = [conversationContext(input), isAmbientProfile(profileKey) ? archetypeContext(input) : '', follow, natural, emotion]
+      const context = [conversationContext(input), isAmbientProfile(profileKey) ? archetypeContext(input) : '', emotion]
         .filter(Boolean).join('\n\n');
       const config = {key, characterId: ids[profileKey], endUserId, sessionId, scope: 'emotion-tags-probe', ttsEnabled: false, text: line, context};
       const result = await host.reply(config, undefined).catch(error => ({error: String(error?.message ?? error)}));
       if (result.error) { rows.push({n: index, category, player: line, error: result.error}); console.log(JSON.stringify({profile: profileKey, n: index + 1, error: result.error})); continue; }
       sessionId = result.sessionID;
-      const processed = emotions.process(speech.process({...result}));
+      const processed = emotions.process(processReply({...result}));
       let late;
       if (Number.isSafeInteger(result.lateEmotionToken)) {
         late = await waitLateEmotion(() => host.lateEmotion({...config, sessionId}, result.lateEmotionToken)).catch(() => undefined);
       }
-      if (followUp.enabled) followUp.record(profileKey, processed.text);
       rows.push({n: index, category, profile: profileKey, player: line, raw: result.text, clean: processed.text,
         marks: processed.emotionMarks ?? null, speechText: processed.speechText ?? null,
         convai: late ? {emotion: late.emotion, scale: late.scale, basis: late.basis} : null,
-        blocks: {emotion: !!emotion, natural: !!natural, followUp: !!follow}, contextChars: context.length});
+        blocks: {emotion: !!emotion}, contextChars: context.length});
       console.log(JSON.stringify({profile: profileKey, n: index + 1, emotionBlock: !!emotion, tags: (result.text.match(/\{[^}]*\}/g) ?? []).length}));
     }
     await writeFile(resolve(folder, `${label}-${profileKey}.json`), JSON.stringify({label, profile: profileKey, block: blockOption,

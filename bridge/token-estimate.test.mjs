@@ -16,6 +16,9 @@ const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json'
 const book = new PersonaBook(roster);
 const judy = book.persona('judy-alvarez');
 const base = buildPrompt();
+// The counts in token-counts.json were recorded (2026-10-20) with Judy's context carrying the Natural speech note for OmniVoice (2,650 characters). The setting was removed on
+// 2026-10-28 and the fixture prompt no longer has the note, so the note is kept here as recorded text: the prompts below are the ones whose token counts were measured.
+const RECORDED_NOTE = (await readFile(new URL('./fixtures/recorded-natural-speech-block.txt', import.meta.url), 'utf8')).trim();
 
 const ACTION = 'ACTION NOTE: V may be asking you to come along. If you agree, begin your reply with the code [FOLLOW]; if you refuse, no code. Never write the code in any other place.';
 const RULES = 'Nobody in Night City knows V by name unless V says it. Everyone speaks casually, with plenty of slang. Cops are corrupt and slow. Prices are in eddies. Do not mention the real world.';
@@ -26,7 +29,7 @@ const JAPANESE = {text: 'ジュディ、今何してるの？まだあのブレ�
 // The prompts the recorded counts belong to, built with the real builders (the same layout the Local route sends).
 function scenario(name) {
   const make = (persona, options = {}) => {
-    const parts = {...base.contextParts};
+    const parts = {...base.contextParts, volatile: joinBlocks([base.contextParts.volatile, RECORDED_NOTE])};
     if (options.action) parts.volatile = joinBlocks([parts.volatile, ACTION]);
     return buildMessages({persona, memory: MEMORY, history: options.noHistory ? [] : (options.history ?? HISTORY), contextParts: parts, remembered: options.noHistory ? [] : REMEMBERED,
       text: options.text ?? USER_LINES.a, limits: LIMITS, ...(options.mature ? {mature: options.mature} : {})});

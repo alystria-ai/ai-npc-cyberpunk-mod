@@ -285,7 +285,7 @@ test('a companion in a vehicle is never "in the open air", whatever the interior
 test('changing a Dynamic info switch drops the replies the bridge prepared ahead, like the other prompt settings', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /const dynamicInfoChanged = dynamicInfo\.update\(settings\);/);
-  assert.match(bridge, /if \(speechChanged \|\| emotionsChanged \|\| followUpChanged \|\| dynamicInfoChanged\) \{ dropPrefetch\(\); prefetchObserved = ''; \}/);
+  assert.match(bridge, /if \(emotionsChanged \|\| dynamicInfoChanged\) \{ dropPrefetch\(\); prefetchObserved = ''; \}/);
   assert.match(bridge, /\{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicInfo\.off\}/, 'the add-on voice log line follows the switches');
 });
 

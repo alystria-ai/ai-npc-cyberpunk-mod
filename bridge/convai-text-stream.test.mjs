@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {RealtimeHost, TEXT_STREAM_POLL_MS} from './realtime-host.mjs';
 import {ReplyStream, finishedText} from './reply-stream.mjs';
-import {stripSpeechTags} from './natural-speech.mjs';
+import {stripSpeechTags} from './speech-tags.mjs';
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 const config = {key: 'offline-test-key', characterId: 'judy', endUserId: 'offline-player', scope: 'private:offline-world', ttsEnabled: false, text: 'Hello'};

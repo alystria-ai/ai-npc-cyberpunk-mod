@@ -5,7 +5,7 @@
 //   --labels file.json  (a map {id: "self3" | "other" | "ok"}, written by the judge; ids are "<prefix>:<row>" with --prefix P)
 //                       prints the third-person rate per condition and per character ("self3": the speaker describes herself in
 //                       the third person or says "she" about someone unnamed; "other": about a named third party), plus the Expressive
-//                       tag, voiced-sound and Follow-up (ends in a question) rates of the same rows.
+//                       tag, voiced-sound and ends-in-a-question rates of the same rows.
 // A reply the pre-screen did not flag has no pronoun and no own name, so it is counted as "ok".
 //
 //   node scripts/Summarize-ThirdPerson.mjs runtime/third-person-probe/before.json --export runtime/third-person-probe/before-judge.json

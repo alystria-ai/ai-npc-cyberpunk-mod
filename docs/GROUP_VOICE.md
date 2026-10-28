@@ -24,11 +24,10 @@ existing assignments; it is not automatic mod initialization.
   first. Group mode requires at least two distinct enabled profiles and selects
   at most three. With nobody faced the round is the first member of the party plus two picked at random from the rest of it (`docs/TALK_FALLBACK.md`). Duplicate copies do not produce duplicate speakers. A looked-at
   unsupported NPC is reported rather than silently replaced by another person.
-- Starting group voice freezes the participating entities/profiles and follow-up setting.
+- Starting group voice freezes the participating entities/profiles.
   The first request contains microphone input and its group context. Finish
   refreshes quest/battle/world facts without changing the captured audience or
-  player identity. Only the last remaining scheduled speaker may ask a follow-up
-  when the captured option is On.
+  player identity.
 - Convai generates the primary response directly from microphone input. That
   response is played once; it is not regenerated as a text request.
 - The SDK's recognized user transcription is returned as optional `userText`

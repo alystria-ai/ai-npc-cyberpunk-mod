@@ -7,7 +7,7 @@ import {MistralMemory, MEMORY_LIMITS} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook, LIMITS, CONTEXT_PREFIX} from './mistral-prompt.mjs';
 import {errorCodeFor, failureKind, DEFAULT_MODELS, streamChat} from './mistral-client.mjs';
-import {NaturalSpeech} from './natural-speech.mjs';
+import {processReply} from './speech-tags.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
@@ -53,11 +53,10 @@ async function harness(script, options = {}) {
   await provider.load();
   provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
-  const natural = new NaturalSpeech(); natural.update({naturalSpeech: true});
   const expressive = new ExpressiveEmotions();
   const logs = [], failures = [];
   const host = new MistralHost({provider, memory, personas: new PersonaBook(roster), endpoint: server.endpoint, log: line => logs.push(line),
-    transformReply: result => expressive.process(natural.process(result)), onFailure: error => failures.push(error),
+    transformReply: result => expressive.process(processReply(result)), onFailure: error => failures.push(error),
     chat: undefined, gapMs: 0, ...options});
   return {server, provider, memory, host, logs, failures};
 }

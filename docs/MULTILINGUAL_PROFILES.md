@@ -64,7 +64,7 @@ Now there is no setting and no twin: while a text provider answers, the reply-la
   byte-identical to before, no extra tokens), the player's language when the message is in another language, English again when the player
   switches back, and "the language the player is using (so far X)" for a turn with no text of its own (a recording, a reaction) once the
   conversation is in another language. A recording with nothing said yet follows the language the microphone last heard or the one remembered
-  from the last launch (`player-language.json`, docs/LOCAL_STT.md). Natural speech and V's line get the language too (CJK sounds, V skipped);
+  from the last launch (`player-language.json`, docs/LOCAL_STT.md). V's line gets the language too (V skipped);
 - the voice follows the reply: OmniVoice speaks it with the reply's language (as in the Convai twins' path); Voxtral (Mistral cloud, Voxtral TTS 3,
   2026-10-21) speaks it for the languages its model lists (`local.cloud` and `local.speaks` in `planTurnVoice`/`replyVoice`, `bridge/voxtral-languages.mjs`:
   the API has no language field, the model speaks the language of the text, so nothing is passed); Pocket, which speaks English only (and French, Italian, German, Spanish and Portuguese when their PocketTTS model and multilingual pack are installed: `local.pocket`, docs/POCKET_LANGUAGE_MODELS.md), and Voxtral for an
@@ -478,7 +478,7 @@ message and checked against the finished reply (`planTurnVoice`, `replyVoice`; t
   No voice ever hands a reply to a cloud voice it was not chosen for.
 - An OmniVoice choice that cannot run shows the replies as text, never Pocket in its place and never a cloud voice (`VoiceSelection.resolve`, route `text`;
   changed 2026-10-21, before it fell to the cloud voice). A chosen Voxtral voice that cannot be asked (no key, a limit, a refused key) or a language it does not speak is shown as text as well, never given to the Convai voice (changed 2026-10-21, before it fell to the Convai voice, cloud to cloud).
-- A turn the cloud voice speaks gets no Natural speech or Expressive emotions (emotion tag) instructions.
+- A turn the cloud voice speaks gets no Expressive emotions (emotion tag) instructions.
 - The expected language is the player's message (detector above), else the language of the last exchange (reactions, the microphone placeholder, warm
   connections), else English. A reaction's reply does not set the conversation's language.
 - Checked on 2026-10-07 with Judy's reference: en, es, ja, de, zh, ru all render with the Omni worker (16 steps).

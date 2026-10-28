@@ -50,18 +50,10 @@ local MATURE_VOXTRAL = 'Voxtral is not used with Mature content.'
 -- Bumped when a default is switched on for existing installs too: loadSettings moves a file saved before it to the new default, once.
 local DEFAULTS_REVISION = 1
 local RETIRED_SETTINGS = {'autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage',
-    'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks', 'multilingualConversations'}
+    'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks', 'multilingualConversations', 'naturalSpeech', 'followUpInterest'}
 local RETIRED_SET = {}
 for _, key in ipairs(RETIRED_SETTINGS) do RETIRED_SET[key] = true end
--- The Convai cloud voice cannot carry Natural speech's tags (they would be read aloud), and it is only the voice that speaks on the Convai
--- providers: beside Mistral, Local AI or Custom the bridge plays Pocket for it (bridge/convai-bridge.mjs, the settings poll), so the tags work there.
-local function cloudVoiceBlocksTags(settings)
-    return settings.voiceProvider == 'convai' and settings.conversationProvider == 'convai'
-end
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
--- Natural speech needs a local voice (the Convai cloud voice would read its tags aloud). The
--- pending notice, once, after an Apply that switched the voice or turned the setting off.
-local naturalSpeechNotice = nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 -- Lip sync delay (Bluetooth), in ms; 'auto' lets the bridge detect a Bluetooth
 -- output device (bridge/audio-delay.mjs). The bridge reads it from settings.json.
@@ -962,12 +954,6 @@ local function loadSettings()
         if settings.companionSpeakUp == 'rare' then settings.companionSpeakUp = 'normal' end
         settings.speakUpOftenGiven, settingsNeedSave = true, true
     end
-    -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
-    -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
-    if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
-    -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
-    -- setting): characters sometimes show interest in the player. Works with any voice.
-    if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
     -- The retired Companions can see setting (docs/COMPANION_VISION.md): vision is always on with Convai now. An old saved key is
     -- dropped; the bridge ignores it either way.
     if settings.companionVision ~= nil then settings.companionVision, settingsNeedSave = nil, true end
@@ -986,11 +972,6 @@ local function loadSettings()
         if settings.matureContent ~= true then restore = nil end
         if restore == nil and settings.matureRestore ~= nil then settingsNeedSave = true end
         settings.matureRestore = restore
-    end
-    -- A saved cloud voice with Natural speech on, on a Convai provider (an older save): the voice is kept and Natural speech is turned off.
-    -- Apply never writes this pairing.
-    if settings.naturalSpeech and cloudVoiceBlocksTags(settings) then
-        settings.naturalSpeech, settingsNeedSave = false, true
     end
     -- V's voice for typed lines (on by default, key vVoice): the bridge speaks what the player types in V's cloned voice. Only an
     -- explicit false (the player turned it off) is kept off. Which engine speaks it is its own setting (vVoiceEngine: 'pocket', the default,
@@ -1407,14 +1388,6 @@ function M.takeVoiceFallbackNotice()
         requested = M.voiceLabel(pending.from, pending.steps, pending.reference), voice = M.voiceLabel(pending.to)})
 end
 
--- Once, after an Apply that switched the voice (a tag setting was turned on beside the cloud voice) or that turned a tag
--- setting off (the cloud voice was chosen).
-function M.takeNaturalSpeechNotice()
-    local pending = naturalSpeechNotice
-    naturalSpeechNotice = nil
-    return pending
-end
-
 function M.developerMode()
     return settings ~= nil and settings.developerMode == true
 end
@@ -1442,20 +1415,6 @@ end
 -- Asked only when a voice key is pressed.
 function M.speechRecognitionReady()
     return M.mistral().stt == true
-end
-
--- Off by default: companions speak as before. On, the conversation service tells each character which pauses and
--- sounds its voice engine can render and lets it decide, from its personality, when one fits.
-function M.naturalSpeech()
-    loadSettings()
-    return settings.naturalSpeech == true
-end
-
--- On by default. On, the conversation service sometimes asks each character to show interest in you inside the reply it
--- is already giving (a question about what you said, a follow-up, a thought that invites an answer). Any voice works.
-function M.followUpInterest()
-    loadSettings()
-    return settings.followUpInterest == true
 end
 
 -- On by default. On, what the player types is also spoken aloud in V's own voice (male or female V), cloned by V's own voice engine
@@ -1496,19 +1455,6 @@ end
 function M.vVoiceActive()
     loadSettings()
     return settings.vVoice == true or settings.vVoiceMic == true
-end
-
--- Natural speech and the Convai cloud voice exclude each other where that voice is what speaks (cloudVoiceBlocksTags: the Convai voice on a Convai
--- provider; beside Mistral, Local AI or Custom the bridge plays Pocket for it, so the pairing stands there). An Apply that makes the pairing
--- (it chooses the voice, or it chooses a Convai provider while the voice is the cloud voice) keeps the choice it made and turns Natural speech
--- off instead of refusing or moving the voice (`after` is changed in place). If the pairing was already there, Natural speech turned on beside
--- it wins instead (the voice moves to a local one, as before). Returns the one notice to show, or nil. Natural speech is off by default, so
--- on means the player chose it: it always gets a notice.
-local function honourCloudVoice(before, after)
-    if cloudVoiceBlocksTags(before) or not cloudVoiceBlocksTags(after) then return nil end
-    if after.naturalSpeech ~= true then return nil end
-    after.naturalSpeech = false
-    return ui.t('The Convai cloud voice cannot use Natural speech, so it was turned off.')
 end
 
 function M.relationshipChoices()
@@ -2242,8 +2188,6 @@ function M.snapshot(player)
             omniSteps = settings.omniSteps,
             omniReference = settings.omniReference,
             keepPreparedVoices = settings.keepPreparedVoices,
-            naturalSpeech = settings.naturalSpeech,
-            followUpInterest = settings.followUpInterest,
             vVoice = settings.vVoice == true,
             vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or settings.vVoiceEngine == 'omni' and 'omni' or 'pocket',
             vVoiceMic = settings.vVoiceMic == true,
@@ -2315,8 +2259,7 @@ function M.applySettings(player, values)
         if key == 'lootReactions' then nextSettings.lootReactionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
-            or key == 'naturalSpeech' or key == 'errorReports'
-            or key == 'followUpInterest' or key == 'vVoice' or key == 'vVoiceMic' then
+            or key == 'errorReports' or key == 'vVoice' or key == 'vVoiceMic' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'matureContent' then
@@ -2529,14 +2472,6 @@ function M.applySettings(player, values)
         end
     end
     if nextSettings.developerMode ~= settings.developerMode then rulesReload = true end
-    -- Natural speech needs a local voice. It is judged as it will be after this Apply: making the pairing with the Convai cloud voice on a
-    -- Convai provider (choosing the voice, or choosing the provider) keeps the choice and turns Natural speech off (honourCloudVoice, one
-    -- notice), while turning it on beside a saved pairing moves the voice to Pocket TTS with a notice. Natural speech turned on in the same
-    -- Apply that chooses the voice loses to the voice. Beside Mistral, Local AI or Custom the cloud voice selection plays Pocket, so it all works.
-    local cloudNotice = honourCloudVoice(settings, nextSettings)
-    local switchedVoice = nextSettings.naturalSpeech == true
-        and cloudVoiceBlocksTags(nextSettings)
-    if switchedVoice then nextSettings.voiceProvider = 'pocket' end
     -- No model chosen yet (or the value an older version saved, 'auto'): the row showed the default model as selected, so Apply saves its id.
     -- Silent. Without a default (no model installed) the value stays 'auto' and the bridge keeps loading the largest model that fits.
     if nextSettings.localModel == 'auto' then
@@ -2572,17 +2507,6 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice or cloudNotice then
-        local notices = {}
-        if cloudNotice then notices[#notices + 1] = cloudNotice end
-        if switchedVoice then
-            local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
-            notices[#notices + 1] = ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
-        end
-        naturalSpeechNotice = table.concat(notices, ' ')
-        feedback, dirty = clean(naturalSpeechNotice, 800), true
-        return true, nil, naturalSpeechNotice
-    end
     say('Settings saved.')
     -- A quiet turn-off still changes settings the open page shows: ask for a reload without a notice.
     return true, nil, nil, rulesReload
