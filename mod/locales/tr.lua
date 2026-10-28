@@ -1534,4 +1534,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts {other} oyunu için, senin oyunun {game}. {game} için Scripts'i Nexus Mods'tan al.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod {other} oyunu için, senin oyunun {game}. {game} için Scripts ve Runtime'ı al.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime} için. Eşleşmeli: Ayarlar'daki Yardım'a bak.",
+    ["Choose one of the listed microphones."] = "Listelenen mikrofonlardan birini seç.",
+    ["Microphone"] = "Mikrofon",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "Modun ses tuşu, Sesle etkinleştirme ve denetleyici düğmesi için dinlediği giriş.\n\nWindows varsayılanı, Windows'un seçtiği girişi izler. Varsayılan hiç duymuyorsa başka birini seç; örneğin bir karıştırıcı uygulaması mikrofonunu başka yere yönlendiriyorsa.\n\nDeğişiklik mikrofon bir sonraki açıldığında geçerli olur. Eksik giriş varsayılana döner.",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "Ayarlar'da seçtiğin mikrofon ({chosen}) bağlı değil, bu yüzden Windows varsayılan girişi kullanılıyor: {name}.",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "Ayarlar'da seçtiğin mikrofon bağlı değil, bu yüzden Windows varsayılan girişi kullanılıyor.",
+    ["Windows default"] = "Windows varsayılanı",
+    ["not connected"] = "bağlı değil",
+    ["{name}, chosen in Settings > Voices."] = "{name}, Ayarlar > Sesler'de seçildi.",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, Windows varsayılan girişi. Başkasını Ayarlar > Sesler > Mikrofon'dan seçebilirsin.",
 }

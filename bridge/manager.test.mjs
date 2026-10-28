@@ -3107,6 +3107,46 @@ test('the manager shows no invitation progress and keeps reserved copies editabl
   `);
 });
 
+test('Microphone is a Voices select: Windows default first, then the listed inputs, a saved input that is gone follows as not connected; the choice is saved by its name', () => {
+  run(`${nsuiFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    local loaded = registered.loadMod('manager')
+    -- Nothing listed yet: only the default, and the page asked the service for the list (one command, not one per build).
+    local item = assert(row('micDevice'))
+    assert(item.type == 'select' and item.value == 1 and #item.elements == 1 and item.elements[1] == 'Windows default')
+    local ask = jsonFixtures[files['runtime/microphone-devices-command.json']]
+    assert(ask and ask.version == 1 and ask.action == 'list' and ask.id:find(':mic:1', 1, true), 'the page asked for the list')
+    registered.loadMod('manager')
+    assert(jsonFixtures[files['runtime/microphone-devices-command.json']] == ask, 'a rebuilt page does not ask again at once')
+    -- The service answers: the row lists the inputs in its order.
+    jsonFixtures['mics-1'] = {version = 1, state = 'ok', inputs = {'Microphone (Realtek(R) Audio)', 'Headset Mic (USB)', 'Headset Mic (USB)', 'bad' .. string.char(1)}}
+    files['runtime/microphone-devices.json'] = 'mics-1'; clock = clock + 2
+    registered.loadMod('manager')
+    item = assert(row('micDevice'))
+    assert(#item.elements == 3 and item.elements[2] == 'Microphone (Realtek(R) Audio)' and item.elements[3] == 'Headset Mic (USB)', table.concat(item.elements, '|'))
+    assert(manager.snapshot(player).settings.micDevice == nil, 'no choice is no key')
+    -- Choosing an input saves its name; the default clears it; a position that is not listed is refused.
+    assert(registered.applyBatch('manager', {{id = 'micDevice', value = 3}}).ok)
+    assert(manager.snapshot(player).settings.micDevice == 'Headset Mic (USB)')
+    assert(saved.micDevice == 'Headset Mic (USB)', 'saved in settings.json for the bridge')
+    registered.loadMod('manager')
+    assert(row('micDevice').value == 3)
+    assert(not registered.applyBatch('manager', {{id = 'micDevice', value = 9}}).ok)
+    assert(not manager.applySettings(player, {micDevice = 'x' .. string.char(2)}))
+    assert(manager.snapshot(player).settings.micDevice == 'Headset Mic (USB)')
+    -- The saved input is not in the list any more (unplugged): it stays selected and says so.
+    jsonFixtures['mics-2'] = {version = 1, state = 'ok', inputs = {'Microphone (Realtek(R) Audio)'}}
+    files['runtime/microphone-devices.json'] = 'mics-2'; clock = clock + 2
+    registered.loadMod('manager')
+    item = assert(row('micDevice'))
+    assert(#item.elements == 3 and item.elements[3]:find('(not connected)', 1, true) and item.value == 3, table.concat(item.elements, '|'))
+    assert(item.elements[3]:sub(-15) == '(not connected)', 'the marker is kept whole: ' .. item.elements[3])
+    assert(registered.applyBatch('manager', {{id = 'micDevice', value = 1}}).ok)
+    assert(manager.snapshot(player).settings.micDevice == nil and saved.micDevice == nil, 'Windows default removes the choice')
+  `);
+});
+
 test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and milliseconds saved for the bridge', () => {
   run(`${nsuiFixture}
     assert(manager.snapshot(player).settings.audioDelay == 'auto')

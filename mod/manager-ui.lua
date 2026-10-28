@@ -862,6 +862,28 @@ local function customVoicesRows(snapshot)
     return rows
 end
 
+-- Settings > Voices > Microphone: 1 Windows default (stored as no choice), then each input the conversation service listed, by its name. A saved input that is not
+-- listed (unplugged, or the list has not arrived yet) follows as "name (not connected)" so the row never shows a choice that is not the saved one.
+-- Returns the labels, the stored value of each position ('' for the default) and the position of the saved choice.
+local function microphoneChoices(settings)
+    local labels, values, saved, seen = {ui.t('Windows default')}, {''}, settings.micDevice, {}
+    local listed = manager.microphoneInputs()
+    for _, name in ipairs(listed.inputs) do
+        seen[name] = true
+        labels[#labels + 1], values[#values + 1] = name, name
+    end
+    if saved and not seen[saved] then
+        -- The name is cut, not the marker: a long device name would otherwise push "(not connected)" out of the row. Said only once the service has
+        -- listed the inputs (before that, or without a service, the saved name stands alone).
+        local marker = listed.state == 'ok' and ' (' .. ui.t('not connected') .. ')' or ''
+        local name = optionUnits(saved) + optionUnits(marker) <= OPTION_BUDGET and saved or cutToUnits(saved, OPTION_BUDGET - optionUnits(marker))
+        labels[#labels + 1], values[#values + 1] = name .. marker, saved
+    end
+    local index = 1
+    for position, value in ipairs(values) do if value == (saved or '') then index = position end end
+    return labels, values, index
+end
+
 -- What removing the Mistral key changes, as the sentences after "Deletes the saved key." (the row's Remove help): the key powers the text
 -- provider when Mistral is chosen, the companions' Voxtral voice when that is the voice, and V's voice when it is set to Voxtral (V then
 -- speaks with Pocket). Only what is in use now is named; a key nothing depends on says so.
@@ -1261,6 +1283,8 @@ local function pageSignature(snapshot)
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
             tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard), tostring(snapshot.settings.developerMode)}, '|'))
+        -- The Microphone row lists the inputs the service reported (the answer arrives a moment after the page opens).
+        add('mics:' .. table.concat(manager.microphoneInputs().inputs, '\n'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
         modelKey[#modelKey + 1] = 'd:' .. tostring(mistral.localModelDefault) .. ':' .. tostring(mistral.localModelMatureDefault)
@@ -1909,6 +1933,9 @@ local function schema()
             if snapshot.settings.audioDelay == value then delayIndex = index end
         end
         local voiceRange = manager.voiceVolumeRange()
+        -- The microphone list is asked for when this page is built (at most once in 15 s; the answer redraws the page): never per frame, never per turn.
+        pcall(manager.requestMicrophoneInputs)
+        local micLabels, _, micIndex = microphoneChoices(snapshot.settings)
         -- Voice language: English (the default), Automatic, then the mod's other languages, in the bridge's order (manager.replyLanguageChoices).
         local replyCodes, replyLabels, replyIndex = manager.replyLanguageChoices(), {}, 1
         for index, code in ipairs(replyCodes) do
@@ -1943,6 +1970,10 @@ local function schema()
             setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
                 'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
+            -- The input device for every way of talking (key, Voice activation, controller). The list comes from the voice browser's capture page.
+            setting('micDevice', 'Microphone', 'select', micIndex, 1,
+                'The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.',
+                micLabels, {elements = true}),
             -- Off by default: talk with no key (docs/VOICE_INPUT.md). The microphone is closed while it is off.
             setting('voiceActivation', 'Voice activation', 'bool', snapshot.settings.voiceActivation == true, false,
                 'Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.'),
@@ -2338,6 +2369,13 @@ function M.apply(changes)
                 return refused('Choose one of the listed lip sync delays.')
             end
             values.audioDelay = delays[change.value]
+        elseif key == 'micDevice' then
+            -- Order: 1 Windows default (stored as no choice), then the listed inputs (stored by their name).
+            local _, stored = microphoneChoices(snapshot.settings)
+            if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or stored[change.value] == nil then
+                return refused('Choose one of the listed microphones.')
+            end
+            values.micDevice = stored[change.value]
         elseif key == 'conversationProvider' then
             -- Order: 1 Convai free tier (stored 'convai', own key off), 2 Convai API key (stored 'convai', own key on), 3 Mistral
             -- (stored 'mistral'), 4 Local (stored 'local'), 5 Custom (stored 'custom'). The own-key choice only changes with a Convai

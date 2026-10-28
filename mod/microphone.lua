@@ -298,6 +298,9 @@ function M.update(player)
                         if value.note == 'english-only' then
                             -- The language is not English and nothing on this setup recognises it (bridge/speech-language.mjs).
                             convaiNotices.send(player, 'mic-english-only', ui.t('Voice input only understands English for now. Typing works in any language.'))
+                        elseif value.note == 'mic-device-gone' then
+                            -- The input chosen in Settings > Voices > Microphone is not connected: the Windows default input opened instead (bridge/local-stt-capture.mjs).
+                            convaiNotices.send(player, 'mic-device-gone', ui.t('The microphone you chose in Settings is not connected, so the Windows default input is used.'))
                         elseif value.note == 'pack-available' then
                             -- The same, but an optional microphone pack hears this language and is not installed: the notice says where the help is.
                             convaiNotices.send(player, 'mic-english-only', ui.t('Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.'))

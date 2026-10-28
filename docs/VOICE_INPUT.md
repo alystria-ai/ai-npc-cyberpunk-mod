@@ -173,6 +173,28 @@ Known limit: music or a voice from the game's speakers that is *not* a mod line 
 speakers. Headphones avoid it; the setting's description says so. A false start costs one local "no speech" (nothing for local routes; a
 Convai interaction on the Convai route).
 
+## Choosing the microphone (Settings > Voices > Microphone, 2026-10-28)
+
+Windows can send a player's chat microphone somewhere the mod never hears it (the Volume Mixer routes an app to another device, or a mixer such as a GoXLR takes it onto a sampler
+channel). The Microphone row picks the input for every way of talking: the talk key, Voice activation and the controller button, on every route (Convai, Mistral's transcription,
+the local recogniser). They all open the device in one place, the capture page of `bridge/local-stt-capture.mjs`, so the choice is applied there and nowhere else.
+
+- **The setting**: `micDevice` in `runtime/settings.json`, the LABEL of the input as Chromium lists it (`Headset Mic (USB Audio Device)`). No key means the Windows default. It is kept
+  with the other settings, so it is mirrored outside the game folder like them. Labels, not ids: Chromium's device ids are per origin and per browser profile and change.
+- **The list**: when the Voices page is built the game writes `runtime/microphone-devices-command.json` (`{version, id, action: 'list', issuedAt}`, at most once in 15 s); the bridge
+  (`bridge/mic-devices-control.mjs`, polled with the settings) asks the capture page, which grants itself the microphone permission the way a recording does, lists `audioinput`
+  devices (one short probe of the default input only when the labels are still empty), leaves out Windows' virtual `default` and `communications` entries and answers in
+  `runtime/microphone-devices.json`. The page redraws when the list arrives. Nothing lists devices on the way to a recording, per frame or per turn. The capture page opened for the
+  listing is closed 20 s later when nothing records (the hidden browser follows its own idle release).
+- **Opening**: `LocalSttCapture` asks for the choice at each open (a variable read) and the page matches it (`matchInput`: exact label, then the same label without case, spacing or the
+  trailing `(vid:pid)`), then opens `deviceId: {exact}`. An open device is kept for the linger only while the choice is the same; a changed choice reopens on the next press, and a
+  listening Voice-activation tap is released when the choice changes so it reopens on the new input. The open path gets no extra wait: the match is one `enumerateDevices`.
+- **Gone**: when the label is not listed (or the exact id is refused) the default input opens, the recording carries the note `mic-device-gone` (`microphone-state.json`), and the
+  game says it once per session (`mic-device-gone`, mod/notices.lua). The row keeps the saved name and marks it "(not connected)".
+- **Report**: the setup check has a Microphone row (`microphone`: `default`, `chosen`, `missing`) and the report's `bridge.microphone` and setup lines carry the label of the input in
+  use (`device=`), never an id. The log line of each open names the input and whether it was chosen.
+- **Not covered**: the Convai page's own microphone path (the fallback when the relay cannot open) uses the browser default; it is only reached when the relay itself fails.
+
 ## Performance
 
 - Game thread: hold-to-talk adds two small file writes (key down, key up; 1-3 ms each, only at the edges). Voice activation adds one boolean
@@ -189,6 +211,6 @@ Convai interaction on the Convai route).
 Bridge: `mic-tap.mjs` (tap, pre-roll, `TapCapture`), `mic-live.mjs` (the two live signals), `voice-activity.mjs` (detector), `pcm-relay.mjs`
 (page side of the Convai relay), `realtime-host.mjs` (pump, `endCapture`), `realtime-client.mjs` (`beginVoice(config, {relay})`,
 `pushAudio`, `drainAudio`; the page bundle `realtime-client.js` must be rebuilt with `npm run build:voice`), `local-stt-capture.mjs` (chunk size),
-`convai-bridge.mjs` (wiring, `microphone-state.json` carries `vad`). Lua: `microphone.lua`, `init.lua`, `voice-activation.lua`, `manager.lua`,
+`convai-bridge.mjs` (wiring, `microphone-state.json` carries `vad`), `mic-devices-control.mjs` (the input list and the choice). Lua: `microphone.lua`, `init.lua`, `voice-activation.lua`, `manager.lua`,
 `manager-ui.lua`, `notices.lua`. Tests: `mic-tap`, `mic-live`, `mic-wiring`, `voice-activity`, `voice-activation`, `pcm-relay`, `realtime-client`,
-`microphone-adapter`, `knowledge-integration`, `manager`, `ui-catalog`.
+`microphone-adapter`, `knowledge-integration`, `manager`, `ui-catalog`, `mic-devices-control`, `mic-device-browser` (real Edge, fake devices).

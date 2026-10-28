@@ -135,6 +135,7 @@ import {SpeechLanguage, LOCAL_PACKS, planRecording, PLAYER_LANGUAGE_FILE, parseP
 import {VoxtralStt} from './voxtral-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {MicTap, TapCapture, TAP} from './mic-tap.mjs';
+import {MicDevicesControl, MIC_DEVICES_COMMAND, MIC_DEVICES_STATE, settingMicDevice} from './mic-devices-control.mjs';
 import {MicLive} from './mic-live.mjs';
 import {describeThresholds} from './voice-activity.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
@@ -1206,7 +1207,9 @@ const micVadBody = status => status ? {id: BOOT_ID + ':' + status.seq, phase: st
 function publishMicState(options) {
   return atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({...micStateLast, ...(micVad ? {vad: micVad} : {}), ...(micCue ? {cue: micCue} : {}), updated: Date.now()}), options);
 }
-const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime)});
+// The input the player chose in Settings > Voices > Microphone (the label; '' is the Windows default), read from settings.json on the settings poll and asked for at each open.
+let micPreferred = '';
+const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime), preferredDevice: () => micPreferred});
 const micLive = new MicLive({tap: null, read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
   log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
   onListenError: () => { micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {}); }});
@@ -3872,6 +3875,8 @@ async function pollSettings(checkShutdown = true) {
       await mistralControl.poll().catch(() => {});
       await customControl.poll().catch(() => {});
       await remoteOmniControl.poll().catch(() => {});
+      adoptMicDevice(settings);
+      await micDevicesControl.poll().catch(() => {});
       if (Date.now() - speechCheckedAt > 10000) {
         speechCheckedAt = Date.now();
         const stt = mistralSpeech?.available() === true;
@@ -3987,6 +3992,20 @@ mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); vo
 const remoteOmniControl = await new RemoteOmniControl({address: remoteOmniAddress, commandPath: resolve(runtime, 'remote-omni-command.json'),
   publish: value => atomic(resolve(runtime, 'remote-omni-state.json'), JSON.stringify(value)),
   log: message => console.error('[RemoteOmni] ' + message)}).open();
+// Settings > Voices > Microphone: the list of audio inputs, asked for when the page opens (bridge/mic-devices-control.mjs). Idle until the page writes a command.
+const micDevicesControl = await new MicDevicesControl({capture: micCapture, commandPath: resolve(runtime, MIC_DEVICES_COMMAND),
+  publish: value => atomic(resolve(runtime, MIC_DEVICES_STATE), JSON.stringify(value)),
+  // The capture page opened only to list the inputs goes again when nothing records and no device lingers.
+  releaseIdle: () => { if (micTap.state === 'closed' && !micTap.lingering && micCapture.deviceOpen !== true) void micCapture.close().catch(() => {}); },
+  log: message => console.error('[CyberpunkConvai] Microphone: ' + message)}).open();
+// The player's choice, from the settings poll. A change counts from the next open of the device; a tap that is listening (Voice activation) is let go so it reopens on the new input.
+function adoptMicDevice(settings) {
+  const next = settingMicDevice(settings);
+  if (next === micPreferred) return;
+  micPreferred = next;
+  console.error('[CyberpunkConvai] Microphone: ' + (next ? `input chosen in Settings: "${next.slice(0, 80)}"` : 'input is the Windows default'));
+  if (micTap.listening) void micTap.release(undefined, 'the microphone input changed');
+}
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
@@ -3996,7 +4015,7 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
-  bridge: () => ({busy: !!active, microphoneActive: !!mic.current, voiceLanguagePacks: languagePacks.report(), pocketLanguageModels: pocketLanguages.report(),
+  bridge: () => ({busy: !!active, microphoneActive: !!mic.current, microphone: micDevicesControl.summary(micPreferred), voiceLanguagePacks: languagePacks.report(), pocketLanguageModels: pocketLanguages.report(),
     vVoiceMods: {...vVoiceModReport, references: Object.fromEntries(Object.keys(V_VOICE_KEYS).map(gender => [gender, vVoiceReferences.voices[gender] || playerVoices.has(V_VOICE_KEYS[gender]) ? vReferenceLabel(gender) : null]))}})});
 // Help > Setup check (bridge/setup-check.mjs): codes the game turns into text. The first run, at the end of start-up, reads files only (no
 // process, no connection); a request from the Help page runs it in full. The graphics card, browser and mod managers are looked up once.
@@ -4030,6 +4049,8 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     },
     // Whether the Pocket voice (V's voice, the companions') has failed to start: a row of the Help page when it has.
     voice: () => localVoice.voiceProblem(),
+    // The microphone in use (labels only): the input the latest recording opened and the one chosen in Settings; null before any (bridge/mic-devices-control.mjs summary).
+    microphone: () => micDevicesControl.summary(micPreferred),
     // The saved endpoint of the custom provider (host, port), asked for only while that provider is chosen: its host is the one the internet check looks up.
     custom: () => customEndpoint.ready ? {hostname: customEndpoint.address.hostname, host: customEndpoint.host, secure: customEndpoint.secure,
       port: Number(new URL(customEndpoint.origin).port) || (customEndpoint.secure ? 443 : 80)} : null,
@@ -4119,7 +4140,7 @@ async function shutdown() {
   clearInterval(setupTimer); setupCheck.close();
   clearInterval(paidTierTimer); paidTierControl.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
-  clearInterval(timer); clearInterval(micTimer); clearInterval(liveTimer); micLive.stop(); void micTap.release(undefined, 'the service stops'); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
+  clearInterval(timer); clearInterval(micTimer); clearInterval(liveTimer); micLive.stop(); micDevicesControl.close(); void micTap.release(undefined, 'the service stops'); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   if (stockTimer) { clearInterval(stockTimer); stockTimer = null; }
   stockCancel?.();
   await invitations.clear('service-stopped');

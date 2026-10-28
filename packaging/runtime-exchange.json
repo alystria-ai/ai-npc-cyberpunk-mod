@@ -42,6 +42,8 @@
     "memory-command.json",
     "memory-status.json",
     "microphone-command.json",
+    "microphone-devices-command.json",
+    "microphone-devices.json",
     "microphone-heard.json",
     "microphone-live.json",
     "microphone-state.json",

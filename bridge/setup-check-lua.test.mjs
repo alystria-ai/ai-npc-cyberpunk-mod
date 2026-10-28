@@ -399,6 +399,24 @@ test('omni-python: the own Python for OmniVoice names its backend or why it was 
   assert(#check.problems() == 0 and files['runtime/probe.log']:find('omni-python amd-route', 1, true))
 `));
 
+test('the microphone: the input in use, chosen or the Windows default, and a note when the chosen one is not connected', () => run(String.raw`
+  installFiles(); serviceRunning()
+  answer({}); check.run()
+  assert(lineOf('microphone') == nil, 'no row before an input was opened or chosen')
+  answer({microphone = {id = 'microphone', state = 'ok', code = 'default', device = 'Microphone (Realtek(R) Audio)'}}); check.run()
+  assert(lineOf('microphone').state == 'ok' and lineOf('microphone').label == 'Microphone'
+    and lineOf('microphone').description == 'Microphone (Realtek(R) Audio), the Windows default input. Settings > Voices > Microphone chooses another.', tostring(lineOf('microphone').description))
+  answer({microphone = {id = 'microphone', state = 'ok', code = 'chosen', device = 'Headset Mic (USB)', chosen = 'Headset Mic (USB)'}}); check.run()
+  assert(lineOf('microphone').state == 'ok' and lineOf('microphone').description == 'Headset Mic (USB), chosen in Settings > Voices.', tostring(lineOf('microphone').description))
+  local listed = false
+  for _, reported in ipairs(check.reportLines()) do if reported == 'service microphone: ok chosen device=Headset Mic (USB)' then listed = true end end
+  assert(listed, 'the report lists the input in use, by its label')
+  answer({microphone = {id = 'microphone', state = 'note', code = 'missing', device = 'Microphone (Realtek(R) Audio)', chosen = 'Headset Mic (USB)'}}); check.run()
+  assert(lineOf('microphone').state == 'note' and lineOf('microphone').description:find('Headset Mic (USB)', 1, true) and lineOf('microphone').description:find('is not connected', 1, true)
+    and lineOf('microphone').description:find('Microphone (Realtek(R) Audio)', 1, true), tostring(lineOf('microphone').description))
+  assert(#check.problems() == 0, 'a note is not a problem')
+`));
+
 test('the browser, Local AI and the internet: every state has its own line and fix', () => run(String.raw`
   installFiles(); serviceRunning()
   answer({browser = {id = 'browser', state = 'problem', code = 'missing'}}); check.run()

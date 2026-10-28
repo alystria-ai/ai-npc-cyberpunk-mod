@@ -1534,4 +1534,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts jsou pro hru {other}, tvoje je {game}. Stáhni Scripts pro {game} z Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod je pro hru {other}, tvoje je {game}. Stáhni Scripts a Runtime pro {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts pro hru {scripts}, Runtime pro {runtime}. Musí si odpovídat. Viz Nápověda.",
+    ["Choose one of the listed microphones."] = "Vyber jeden z uvedených mikrofonů.",
+    ["Microphone"] = "Mikrofon",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "Vstup, který mod poslouchá pro hlasovou klávesu, hlasovou aktivaci a tlačítko ovladače.\n\nVýchozí ve Windows sleduje vstup, který Windows vybere. Zvol jiný, pokud výchozí nikdy neslyší, například když mixážní aplikace posílá mikrofon jinam.\n\nZměna platí při příštím otevření mikrofonu. Chybějící vstup se přepne na výchozí.",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "Mikrofon, který jsi vybral v Nastavení ({chosen}), není připojen, proto se použije výchozí vstup Windows: {name}.",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "Mikrofon, který jsi vybral v Nastavení, není připojen, proto se použije výchozí vstup Windows.",
+    ["Windows default"] = "Výchozí ve Windows",
+    ["not connected"] = "není připojen",
+    ["{name}, chosen in Settings > Voices."] = "{name}, vybráno v Nastavení > Hlasy.",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, výchozí vstup Windows. Jiný lze vybrat v Nastavení > Hlasy > Mikrofon.",
 }

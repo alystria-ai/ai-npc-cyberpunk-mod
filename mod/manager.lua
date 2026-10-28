@@ -147,6 +147,13 @@ local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
 local render
 
+-- The label of an audio input as the settings hold it (Settings > Voices > Microphone): text of at most 240 bytes without control characters. The bridge matches
+-- the saved label against the inputs the hidden browser lists (bridge/mic-devices-control.mjs), so it is kept exactly as listed.
+local MIC_LABEL_MAX = 240
+local function validMicLabel(value)
+    return type(value) == 'string' and value ~= '' and #value <= MIC_LABEL_MAX and not value:find('[%z\1-\31\127]')
+end
+
 local function readJSON(path)
     local file = io.open(path, 'rb')
     if not file then return nil end
@@ -744,6 +751,9 @@ local function loadSettings()
     if not isChoice(settings.audioDelay, audioDelays) then
         settings.audioDelay, settingsNeedSave = 'auto', settingsNeedSave or settings.audioDelay ~= nil
     end
+    -- Settings > Voices > Microphone: the label of the input the player chose. A file without the key (the Windows default) stays without it; a value that is
+    -- not a usable label (a hand edit) is dropped, so the default input is used.
+    if settings.micDevice ~= nil and not validMicLabel(settings.micDevice) then settings.micDevice, settingsNeedSave = nil, true end
     -- A file without the key (every player before this setting, and a new install) reads as English; the bridge reads a missing key the same way.
     if not isChoice(settings.replyLanguage, replyLanguages) then
         settings.replyLanguage, settingsNeedSave = 'en', settingsNeedSave or settings.replyLanguage ~= nil
@@ -1501,6 +1511,31 @@ function M.gazeSettings()
     return {eyeContactHeight = settings.eyeContactHeight, headFollowStrength = settings.headFollowStrength}
 end
 
+-- Settings > Voices > Microphone: the audio inputs the conversation service lists (runtime/microphone-devices.json, bridge/mic-devices-control.mjs). The page asks
+-- for the list when it is built (requestMicrophoneInputs, at most once in 15 s) and reads the answer at most every 1.5 s; nothing here runs per frame.
+local MIC_LIST, MIC_ASK = 'runtime/microphone-devices.json', 'runtime/microphone-devices-command.json'
+local micInputs, micReadAt, micAskedAt, micAsks = {inputs = {}, state = 'idle'}, nil, nil, 0
+function M.microphoneInputs(force)
+    local now = os.clock()
+    if not force and micReadAt and now >= micReadAt and now - micReadAt < 1.5 then return micInputs end
+    micReadAt = now
+    local value = readJSON(MIC_LIST)
+    local list, seen = {}, {}
+    if value and value.version == 1 and type(value.inputs) == 'table' then
+        for _, label in ipairs(value.inputs) do
+            if validMicLabel(label) and not seen[label] and #list < 32 then seen[label] = true; list[#list + 1] = label end
+        end
+    end
+    micInputs = {inputs = list, state = value and value.state == 'failed' and 'failed' or value and value.state == 'ok' and 'ok' or 'idle'}
+    return micInputs
+end
+function M.requestMicrophoneInputs()
+    local now = os.clock()
+    if micAskedAt and now >= micAskedAt and now - micAskedAt < 15 then return false end
+    micAskedAt, micAsks = now, micAsks + 1
+    return writeCommandFile(MIC_ASK, {version = 1, id = M.commandSession() .. ':mic:' .. tostring(micAsks), action = 'list', issuedAt = os.time() * 1000.0})
+end
+
 function M.audioDelayChoices() return audioDelays end
 function M.replyLanguageChoices() return replyLanguages end
 function M.voiceVolumeRange() return voiceVolume end
@@ -2126,6 +2161,7 @@ function M.snapshot(player)
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
             replyLanguage = settings.replyLanguage,
+            micDevice = validMicLabel(settings.micDevice) and settings.micDevice or nil,
             voiceVolume = settings.voiceVolume,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps,
@@ -2320,6 +2356,10 @@ function M.applySettings(player, values)
         elseif key == 'replyLanguage' then
             if not isChoice(value, replyLanguages) then return false, 'Choose one of the listed reply languages.' end
             nextSettings.replyLanguage = value
+        elseif key == 'micDevice' then
+            -- '' is the Windows default (stored as no key at all); anything else is the label of an input.
+            if value ~= '' and not validMicLabel(value) then return false, 'Choose one of the listed microphones.' end
+            nextSettings.micDevice = value ~= '' and value or nil
         elseif key == 'voiceVolume' then
             local volume = cleanVoiceVolume(value)
             if not volume then return false, 'Choose a voice volume from 50 to 200 percent.' end

@@ -1534,4 +1534,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts はゲーム {other} 用です。お使いは {game}。Nexus Mods から {game} 用を入手してください。",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "この MOD はゲーム {other} 用です。お使いは {game}。{game} 用の Scripts と Runtime を入手してください。",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts は {scripts} 用、Runtime は {runtime} 用です。揃える必要があります。設定のヘルプを参照。",
+    ["Choose one of the listed microphones."] = "一覧のマイクから1つ選んでください。",
+    ["Microphone"] = "マイク",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "モッドが音声キー、音声起動、コントローラーのボタンのために聞き取る入力です。\n\nWindowsの既定は、Windowsが選んだ入力に従います。既定の入力では全く聞き取られない場合は別の入力を選んでください。例えば、ミキサーアプリがマイクを別の場所へ送っている場合などです。\n\n変更は次にマイクが開かれたときに反映されます。接続されていない入力は既定に切り替わります。",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "設定で選んだマイク（{chosen}）が接続されていないため、Windowsの既定の入力を使用します：{name}。",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "設定で選んだマイクが接続されていないため、Windowsの既定の入力を使用します。",
+    ["Windows default"] = "Windowsの既定",
+    ["not connected"] = "未接続",
+    ["{name}, chosen in Settings > Voices."] = "{name}、設定 > 音声 で選択。",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}、Windowsの既定の入力。別のものは設定 > 音声 > マイク で選べます。",
 }

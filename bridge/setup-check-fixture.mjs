@@ -233,6 +233,8 @@ function answer(checks, request)
   if checks and checks.voice then document.checks[#document.checks + 1] = checks.voice end
   -- and the 'omni-python' check only with the player's omni-python.txt
   if checks and checks['omni-python'] then document.checks[#document.checks + 1] = checks['omni-python'] end
+  -- and the 'microphone' check once an input was opened or chosen
+  if checks and checks.microphone then document.checks[#document.checks + 1] = checks.microphone end
   put('runtime/setup-check.json', document)
   return document
 end

@@ -520,6 +520,23 @@ test('voice: a row only when the bridge can say, a problem only while the Pocket
   assert.equal((await collectSetupCheck(options(paths, {voice: () => null}))).checks.length, 9);
 }));
 
+test('microphone: a row only once an input was opened or one is chosen; the label of the input, never an id', async () => temp(async root => {
+  const paths = await install(root);
+  const checks = async over => byId(await collectSetupCheck(options(paths, over)));
+  assert.equal((await checks({})).microphone, undefined, 'a run without the microphone source has no such row');
+  assert.equal((await checks({microphone: () => null})).microphone, undefined, 'nothing opened and nothing chosen: no row');
+  assert.deepEqual((await checks({microphone: () => ({chosen: null, device: 'Microphone (Realtek(R) Audio)', missing: false})})).microphone,
+    {id: 'microphone', state: 'ok', code: 'default', device: 'Microphone (Realtek(R) Audio)'});
+  assert.deepEqual((await checks({microphone: async () => ({chosen: 'Headset Mic (USB)', device: 'Headset Mic (USB)', missing: false})})).microphone,
+    {id: 'microphone', state: 'ok', code: 'chosen', device: 'Headset Mic (USB)', chosen: 'Headset Mic (USB)'});
+  assert.deepEqual((await checks({microphone: () => ({chosen: 'Headset Mic (USB)', device: null, missing: false})})).microphone,
+    {id: 'microphone', state: 'ok', code: 'chosen', device: 'Headset Mic (USB)', chosen: 'Headset Mic (USB)'}, 'chosen but not opened yet: named as chosen');
+  assert.deepEqual((await checks({microphone: () => ({chosen: 'Headset Mic (USB)', device: 'Microphone (Realtek(R) Audio)', missing: true})})).microphone,
+    {id: 'microphone', state: 'note', code: 'missing', device: 'Microphone (Realtek(R) Audio)', chosen: 'Headset Mic (USB)'});
+  const boom = () => { throw Error('detector failed'); };
+  assert.equal((await checks({microphone: boom})).microphone, undefined);
+}));
+
 test('omni-python: a row only with omni-python.txt; the backend it found (CUDA, ROCm) or why it was refused, never a folder', async () => temp(async root => {
   const paths = await install(root);
   const checks = async over => byId(await collectSetupCheck(options(paths, over)));

@@ -1534,4 +1534,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "A Scripts a {other} játékhoz, a tiéd {game}. Töltsd le a {game}-hoz valót Nexus Mods-ról.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "A mod {other} játékhoz való, a tiéd {game}. Szerezd be a {game}-hoz való Scripts-et és Runtime-ot.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime} verzió. Egyezniük kell: Súgó a Beállításokban.",
+    ["Choose one of the listed microphones."] = "Válassz egyet a felsorolt mikrofonok közül.",
+    ["Microphone"] = "Mikrofon",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "A bemenet, amelyet a mod hallgat a hangbillentyűhöz, a Hangaktiváláshoz és a vezérlőgombhoz.\n\nA Windows alapértelmezett a Windows által kiválasztott bemenetet követi. Válassz másikat, ha az alapértelmezett sosem hall, például ha egy keverőprogram máshová irányítja a mikrofonodat.\n\nA módosítás a mikrofon következő megnyitásakor lép életbe. A hiányzó bemenet az alapértelmezettre vált.",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "A Beállításokban kiválasztott mikrofon ({chosen}) nincs csatlakoztatva, ezért a Windows alapértelmezett bemenete lesz használatban: {name}.",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "A Beállításokban kiválasztott mikrofon nincs csatlakoztatva, ezért a Windows alapértelmezett bemenete lesz használatban.",
+    ["Windows default"] = "Windows alapértelmezett",
+    ["not connected"] = "nincs csatlakoztatva",
+    ["{name}, chosen in Settings > Voices."] = "{name}, a Beállítások > Hangok menüben választva.",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, a Windows alapértelmezett bemenete. Másikat a Beállítások > Hangok > Mikrofon menüben lehet választani.",
 }

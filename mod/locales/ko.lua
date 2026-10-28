@@ -1534,4 +1534,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts는 게임 {other}용이고 현재 게임은 {game}입니다. Nexus Mods에서 {game}용을 받으세요.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "이 모드는 게임 {other}용이고 현재 게임은 {game}입니다. {game}용 Scripts와 Runtime을 받으세요.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts는 {scripts}용, Runtime은 {runtime}용입니다. 서로 맞아야 합니다. 설정의 도움말 참조.",
+    ["Choose one of the listed microphones."] = "목록에 있는 마이크 중 하나를 고르세요.",
+    ["Microphone"] = "마이크",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "모드가 음성 키, 음성 활성화, 컨트롤러 버튼을 위해 듣는 입력입니다.\n\nWindows 기본값은 Windows가 고른 입력을 따릅니다. 기본값으로는 전혀 들리지 않을 때 다른 입력을 고르세요. 예를 들어 믹서 앱이 마이크를 다른 곳으로 보내는 경우입니다.\n\n변경 사항은 다음에 마이크가 열릴 때 적용됩니다. 연결되지 않은 입력은 기본값으로 대체됩니다.",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "설정에서 고른 마이크({chosen})가 연결되어 있지 않아 Windows 기본 입력을 사용합니다: {name}.",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "설정에서 고른 마이크가 연결되어 있지 않아 Windows 기본 입력을 사용합니다.",
+    ["Windows default"] = "Windows 기본값",
+    ["not connected"] = "연결 안 됨",
+    ["{name}, chosen in Settings > Voices."] = "{name}, 설정 > 음성에서 선택됨.",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, Windows 기본 입력. 다른 입력은 설정 > 음성 > 마이크에서 고를 수 있습니다.",
 }
