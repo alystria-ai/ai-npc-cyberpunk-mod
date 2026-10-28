@@ -397,7 +397,9 @@ export class VLine {
         if (this.state !== 'dropped' && this.state !== 'done') {
           this.failure = String(error?.message ?? error).split(/\r?\n/)[0].slice(0, 120);
           this.log(`V's line was not spoken (${this.failure})`);
-          this.drop('failed');
+          // Something ended the line on purpose (a voice worker being restarted, the renderer's owner changing, a page closed under it): a cancellation is not a voice failure to
+          // report (reports 47b2f6ce of 28 Oct 2026, 'v-line: Conversation cancelled', two installs; the worker's own failure has its own report). The log line stays.
+          this.drop(error?.name === 'AbortError' ? 'cancelled' : 'failed');
         }
       }
     });

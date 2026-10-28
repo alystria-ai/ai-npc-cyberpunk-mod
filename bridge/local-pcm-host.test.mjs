@@ -364,6 +364,31 @@ test('a cancelled factory cannot donate its late page to a new turn', {timeout: 
   await host.close();
 });
 
+test('a turn dropped while it waits for the warming page, whose own page then fails because the browser went away, leaves no unhandled rejection', {timeout: 120_000}, async () => {
+  // Report 75f3b49b (28 Oct 2026): 'browser.newPage: Target page, context or browser has been closed' ended the bridge (an unhandled rejection of the page factory's
+  // promise, which nobody listened to once the turn was dropped).
+  const unhandled = [], listener = reason => unhandled.push(reason);
+  process.on('unhandledRejection', listener);
+  try {
+    const warming = deferred(), controller = new AbortController(), secondCall = deferred();
+    let calls = 0;
+    const host = new LocalPcmHost({commandTimeoutMs: 60_000, createPage: () => {
+      if (++calls === 1) return warming.promise;
+      secondCall.resolve(); return Promise.reject(Error('browser.newPage: Target page, context or browser has been closed'));
+    }});
+    void host.warm();
+    const pending = host.play({token: 'dropped-while-warming', text: 'Owned'}, () => {}, {signal: controller.signal, onFrame: () => control});
+    pending.catch(() => {});
+    await sleep(20); controller.abort();
+    await assert.rejects(pending, {name: 'AbortError'});
+    await secondCall.promise; await sleep(50);
+    assert.equal(calls, 2, 'the dropped turn asked for a page of its own after the wait');
+    assert.deepEqual(unhandled, [], 'nothing listens to the second factory call any more, and Node must not take it for a crash');
+    warming.reject(Error('late')); await sleep(10);
+    await host.close();
+  } finally { process.off('unhandledRejection', listener); }
+});
+
 test('renderer retirement uses only its own context when page close fails', async () => {
   let pageCloses = 0, contextCloses = 0;
   const host = new LocalPcmHost({createPage: async () => assert.fail('No page admission is needed')});
