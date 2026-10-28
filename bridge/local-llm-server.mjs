@@ -107,8 +107,8 @@ export function unavailableDetail(reason, detail) {
   if (reason === 'low-memory' && detail === TOO_SMALL) return 'this graphics card is too small for the model: choose a smaller model in Settings, or use the Custom provider';
   if (reason === 'start-failed' && detail === LOW_RAM) return 'not enough free system memory to run this model on the processor: close programs, or choose a smaller model or the Custom provider';
   if (reason === 'start-failed' && SERVER_DETAIL_TEXT[detail]) return SERVER_DETAIL_TEXT[detail];
-  // The same advice as the Help rows (mod/setup-check.lua): restarting changes nothing until the player turns Smart App Control off or chooses a cloud provider.
-  if (reason === 'start-failed' && detail === BLOCKED) return 'Windows (Smart App Control or an Application Control policy) blocks a file of the model server, so Local AI cannot run: turn Smart App Control off, or use a cloud provider';
+  // The same advice as the Help rows (mod/setup-check.lua): restarting changes nothing until the player chooses a cloud provider.
+  if (reason === 'start-failed' && detail === BLOCKED) return 'Windows (Smart App Control or an Application Control policy) blocks a file of the model server, so Local AI cannot run: use a cloud provider';
   const text = PLAYER_REASON[reason];
   if (!text) return undefined;
   const word = typeof detail === 'string' && /^[a-z][a-z-]{1,24}$/.test(detail) ? detail : null;
