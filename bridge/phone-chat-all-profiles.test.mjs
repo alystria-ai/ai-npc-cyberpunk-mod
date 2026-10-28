@@ -86,25 +86,25 @@ test('Lua: favorite characters are handed to the game for the Chat list, again o
     end
     NewObject = function() return {} end
     os.time = function() return 100 end
-    -- The favorites module's surface the Chat reads: a revision, the mark, the count and the lookup.
+    -- The favorites module's surface the Chat reads: a revision, the count and the lookup.
     local starred, revision, reads = {}, 1, 0
-    convaiFavorites = {MARK = '* ',
+    convaiFavorites = {
       revision = function() reads = reads + 1; return revision end,
       count = function(scope) local n = 0 for _ in pairs(starred) do n = n + 1 end return n end,
       isFavorite = function(scope, key) return scope == 'characters' and starred[key] == true end}
     local chat = (function() ${adapter} end)()
     chat.configure(${luaValue(rows)}, {profileEnabled = function() return true end}, {captureBinding = function() return {version = 1, status = 'unavailable', generation = 1} end})
-    local favoriteIds, mark, cleared = {}, nil, 0
+    local favoriteIds, cleared = {}, 0
     local player = {ConvaiPhoneChatContact = function() return '' end, ConvaiPhoneChatTick = function() end,
       ConvaiPhoneChatClearContacts = function() end, ConvaiPhoneChatRegisterContact = function() end,
-      ConvaiPhoneChatClearFavorites = function(_, m) cleared = cleared + 1; favoriteIds = {}; mark = m end,
+      ConvaiPhoneChatClearFavorites = function(_, ...) assert(select('#', ...) == 0, 'no mark is handed over'); cleared = cleared + 1; favoriteIds = {} end,
       ConvaiPhoneChatAddFavorite = function(_, id) favoriteIds[id] = true end,
       ConvaiPhoneChatDraft = function() return nil end, ConvaiPhoneChatTakeSubmission = function() return nil end,
       ConvaiPhoneChatTyping = function() return false end, ConvaiPhoneChatPresent = function() end,
       ConvaiRequirements = function() return 'codeware codeware-ui codeware-textinput' end}
     chat.resetPeriod, chat.resetIdlePeriod = 0, 0
     for _ = 1, 8 do chat.update(player, 0) end
-    assert(cleared == 1 and next(favoriteIds) == nil and mark == '* ', 'no favorites: the list is cleared once and holds none')
+    assert(cleared == 1 and next(favoriteIds) == nil, 'no favorites: the list is cleared once and holds none')
     for _ = 1, 8 do chat.update(player, 0) end
     assert(cleared == 1, 'nothing changed, nothing sent')
     -- A shipped contact (its own id, mapped to a profile key) and a profile listed by its key.
@@ -161,7 +161,7 @@ test('Lua: a favorite turned on or off with F on the Chat list is kept in the fa
     os.time = function() return 100 end
     -- The favorites module's surface: set(scope, key, on) keeps the change and moves the revision; a full list refuses it.
     local starred, revision, full, sets = {}, 1, false, {}
-    convaiFavorites = {MARK = '* ',
+    convaiFavorites = {
       revision = function() return revision end,
       count = function() local n = 0 for _ in pairs(starred) do n = n + 1 end return n end,
       isFavorite = function(scope, key) return scope == 'characters' and starred[key] == true end,
@@ -213,6 +213,74 @@ test('Lua: a favorite turned on or off with F on the Chat list is kept in the fa
       ConvaiRequirements = player.ConvaiRequirements}
     for _ = 1, 8 do chat.update(old, 0) end
     assert(chat.favoriteRequestsMissing == true)
+  `;
+  const result = lauxlib.luaL_dostring(state, to_luastring(program));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
+});
+
+test('redscript: a favorite has the row own name (no mark in front, so the game can still resolve it), and the Chat list knows the party', () => {
+  const tabs = read('../r6/scripts/CyberpunkConvai/PhoneChatTabs.reds');
+  const chat = read('../r6/scripts/CyberpunkConvai/PhoneChat.reds');
+  assert.match(tabs, /row\.localizedName = row\.convaiPlainName;/, 'a journal row shows the journal name as it is');
+  assert.match(tabs, /row\.localizedName = name;/, 'a roster row shows its own name');
+  assert.doesNotMatch(tabs + chat, /ConvaiPhoneChatListName|m_convaiChatFavoriteMark/, 'the name is not built with a mark');
+  const contacts = read('../r6/scripts/CyberpunkConvai/PhoneContacts.reds');
+  assert.match(contacts, /this\.m_convaiJoin\.SetVisible\(visible && !inParty\);/, 'Invite only for a character not in the party');
+  assert.match(contacts, /this\.m_convaiLeave\.SetVisible\(visible && inParty\);/, 'Dismiss only for a character in the party');
+  assert.match(contacts, /if Equals\(player\.ConvaiPhoneChatInParty\(key\), join\) \{\s*return false;\s*\};\s*let accepted: Bool = player\.ConvaiPhoneQueue\(key, join\);/, 'J does nothing in the party, L nothing outside it');
+});
+
+test('Lua: the characters in the party are handed to the game while the phone is open, again only when they change', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const rows = roster.map(({key, name, kind}) => ({key, name, kind}));
+  const program = `
+    local files = {}
+    files['phone-contacts.json'] = ${luaValue(contacts)}
+    json = {decode = function(raw) return raw end, encode = function(v) return v end}
+    io.open = function(path, mode)
+      if mode == 'rb' and files[path] then return {read = function() return files[path] end, close = function() end} end
+      return nil
+    end
+    NewObject = function() return {} end
+    os.time = function() return 100 end
+    local chat = (function() ${adapter} end)()
+    chat.configure(${luaValue(rows)}, {profileEnabled = function() return true end}, {captureBinding = function() return {version = 1, status = 'unavailable', generation = 1} end})
+    local inParty, clears, reads = {}, 0, 0
+    chat.partyKeys = function() reads = reads + 1; return inParty end
+    local sent = {}
+    local player = {ConvaiPhoneChatContact = function() return '' end, ConvaiPhoneChatTick = function() end,
+      ConvaiPhoneChatClearContacts = function() end, ConvaiPhoneChatRegisterContact = function() end,
+      ConvaiPhoneChatClearParty = function() clears = clears + 1; sent = {} end,
+      ConvaiPhoneChatAddParty = function(_, id) sent[id] = true end,
+      ConvaiPhoneChatDraft = function() return nil end, ConvaiPhoneChatTakeSubmission = function() return nil end,
+      ConvaiPhoneChatTyping = function() return false end, ConvaiPhoneChatPresent = function() end,
+      ConvaiRequirements = function() return 'codeware codeware-ui codeware-textinput' end}
+    chat.resetPeriod, chat.resetIdlePeriod = 0, 0
+    -- Closed phone: the party is not even read.
+    inParty = {['judy-alvarez'] = true}
+    for _ = 1, 8 do chat.update(player, 0, false) end
+    assert(reads == 0 and clears == 0, 'nothing is read while the phone is closed')
+    -- Open: sent at once, as contact ids (a shipped contact by its own id, a roster profile by its key).
+    inParty = {['judy-alvarez'] = true, ['rita-wheeler'] = true}
+    for _ = 1, 8 do chat.update(player, 0, true) end
+    assert(clears == 1 and sent['judy'] and sent['rita-wheeler'] and not sent['panam'], 'the contact ids of the party')
+    -- Unchanged: not sent again, however long the phone stays open.
+    for _ = 1, 60 do chat.update(player, 0, true) end
+    assert(clears == 1, 'nothing changed, nothing sent')
+    -- A change shows within a second.
+    inParty = {['rita-wheeler'] = true}
+    for _ = 1, 60 do chat.update(player, 0, true) end
+    assert(clears == 2 and not sent['judy'] and sent['rita-wheeler'], 'a dismissed character goes')
+    -- Older scripts without the methods: asked once, then left alone.
+    local old = {ConvaiPhoneChatContact = player.ConvaiPhoneChatContact, ConvaiPhoneChatTick = function() end,
+      ConvaiPhoneChatClearContacts = function() end, ConvaiPhoneChatRegisterContact = function() end,
+      ConvaiPhoneChatDraft = function() return nil end, ConvaiPhoneChatTakeSubmission = function() return nil end,
+      ConvaiPhoneChatTyping = function() return false end, ConvaiPhoneChatPresent = function() end,
+      ConvaiRequirements = player.ConvaiRequirements}
+    inParty = {}
+    for _ = 1, 60 do chat.update(old, 0, true) end
+    assert(chat.partyMissing == true)
   `;
   const result = lauxlib.luaL_dostring(state, to_luastring(program));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));

@@ -281,12 +281,14 @@ private final func ConvaiLayoutActions(selected: Bool) -> Void {
         // action cells, then restore its original width when the row is recycled.
         label.SetWidth(visible ? MaxF(1.0, this.m_convaiLabelWidth - 224.0) : this.m_convaiLabelWidth);
     };
+    // One of the two: Dismiss (L) for a character in the party, Invite (J) for one who is not.
+    let inParty: Bool = IsDefined(player) && player.ConvaiPhoneChatInParty(this.ConvaiContactKey());
     if IsDefined(this.m_convaiJoin) {
-        this.m_convaiJoin.SetVisible(visible);
+        this.m_convaiJoin.SetVisible(visible && !inParty);
         this.m_convaiJoin.SetOpacity(available ? 1.0 : 0.3);
     };
     if IsDefined(this.m_convaiLeave) {
-        this.m_convaiLeave.SetVisible(visible);
+        this.m_convaiLeave.SetVisible(visible && inParty);
         this.m_convaiLeave.SetOpacity(available ? 1.0 : 0.3);
     };
 }
@@ -362,7 +364,16 @@ public final func ConvaiRequestCompanion(join: Bool) -> Bool {
     if !this.m_convaiSelected || StrLen(key) == 0 || !IsDefined(player) || !this.ConvaiIsChatRow() {
         return false;
     };
+    // J does nothing for a character already in the party, and L nothing for one who is not (the row shows only the key that works).
+    if Equals(player.ConvaiPhoneChatInParty(key), join) {
+        return false;
+    };
     let accepted: Bool = player.ConvaiPhoneQueue(key, join);
+    if accepted {
+        // The row shows the other key at once; Lua settles the party list on its next push.
+        player.ConvaiPhoneChatSetParty(key, join);
+        this.ConvaiLayoutActions(true);
+    };
     this.ConvaiShowActionFeedback(accepted
         ? (join ? "INVITE QUEUED - CLOSE PHONE" : "DISMISS QUEUED - CLOSE PHONE")
         : (player.ConvaiPhoneContactAvailable(key) || !player.ConvaiPhoneContactMapped(key) ? "CLOSE PHONE TO CONTINUE" : "COMPANION UNAVAILABLE"));

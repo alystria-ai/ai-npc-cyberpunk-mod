@@ -571,6 +571,18 @@ convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 -- Phone Chat keeps the draft and shows this inline when no service can reply.
 phoneChat.serviceBlocked = function() return (serviceCall('blockedMessage', os.time())) end
+-- The characters in the party (a copy present or an invitation being prepared, not one on her way out), by profile key: the Chat list shows Dismiss for
+-- these and Invite for the others (phone-chat.lua pushParty, asked only while the phone is open).
+phoneChat.partyKeys = function()
+    local queue = managerUi.party and managerUi.party()
+    if not queue then return nil end
+    local keys = {}
+    for _, item in ipairs(queue.list()) do
+        local key = item.profileKey or item.key
+        if key and item.state ~= 'leaving' and item.state ~= 'failed' then keys[key] = true end
+    end
+    return keys
+end
 -- How long a sent phone message waits for its reply (phone-chat.lua asks once per message): the provider's own turn budget plus a margin, so
 -- the bridge's explanation (Local AI 80 s, a custom endpoint up to 120 s, a cold model load included) arrives before the draft is given back.
 -- Convai and Mistral answer or fail well inside the 45 s default.
@@ -7106,7 +7118,7 @@ registerForEvent('onUpdate', function(delta)
     if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
     local styleOk, styleError = pcall(phoneChatStyle.refresh, false, menuPlayer, phoneOpen)
     if not styleOk then phoneChatStyle.lastError = tostring(styleError) end
-    local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta)
+    local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta, phoneOpen)
     if not chatOk then phoneChat.lastError = tostring(chatError) end
     mark('init:expressionContext')
     local expressionContext=convaiExpressionFrame(menuPlayer,worldReady,pending)

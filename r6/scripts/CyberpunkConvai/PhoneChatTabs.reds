@@ -11,7 +11,7 @@ public enum ConvaiPhoneChatState {
 
 @addField(ContactData)
 public let convaiChat: Bool;
-// The name without the favorite mark: the chat page and its title use this one (localizedName carries the mark on the list).
+// The name as the journal or the roster gives it (the same text as localizedName: the list resolves that one itself, a LocKey included).
 @addField(ContactData)
 public let convaiPlainName: String;
 // A favorite Chat row: the list's sort puts these before the others (SortItem below), whatever the names compare like.
@@ -224,7 +224,7 @@ private final func ConvaiShowChatContacts(opt selectId: String) -> Void {
             row.hash = this.m_journalMgr.GetEntryHash(contact);
             row.convaiPlainName = contact.GetLocalizedName(this.m_journalMgr);
             row.convaiFavorite = this.m_player.ConvaiPhoneChatIsFavorite(row.id);
-            row.localizedName = this.m_player.ConvaiPhoneChatListName(row.id, row.convaiPlainName);
+            row.localizedName = row.convaiPlainName;
             row.avatarID = contact.GetAvatarID(this.m_journalMgr);
             // This is a display row. Activation below always opens AI chat.
             row.isCallable = true;
@@ -246,7 +246,7 @@ private final func ConvaiShowChatContacts(opt selectId: String) -> Void {
             row.hash = 0;
             row.convaiPlainName = name;
             row.convaiFavorite = this.m_player.ConvaiPhoneChatIsFavorite(id);
-            row.localizedName = this.m_player.ConvaiPhoneChatListName(id, name);
+            row.localizedName = name;
             row.isCallable = true;
             ArrayPush(contacts, row);
         };
