@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts są dla gry {other}, Twoja to {game}. Pobierz Scripts dla {game} z Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod jest dla gry {other}, Twoja to {game}. Pobierz Scripts i Runtime dla {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts są dla gry {scripts}, Runtime dla {runtime}. Muszą pasować. Pomoc w Ustawieniach.",
+    ["Gameplay"] = "Rozgrywka",
+    ["Revenge ambushes"] = "Zasadzki z zemsty",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Gang, który ciągle zabijasz, może rzadko wysłać mały oddział z krótką groźbą. Po każdym następuje długa przerwa.\n\nNigdy podczas walki, sceny, połączenia, w pojeździe, w budynku, w strefie bezpiecznej ani gdy jesteś poszukiwany. Groźby wymagają „Rozmowy ze zwykłymi NPC”.",
 }

@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts 适用于游戏 {other}，你的是 {game}。请从 Nexus Mods 获取 {game} 版 Scripts。",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "本模组适用于游戏 {other}，你的是 {game}。请获取 {game} 版 Scripts 和 Runtime。",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts 适用于 {scripts}，Runtime 适用于 {runtime}，两者须一致。详见设置中的帮助。",
+    ["Gameplay"] = "游戏玩法",
+    ["Revenge ambushes"] = "复仇伏击",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "你反复杀死的帮派，很少会派一支小队来找你，并喊出一句简短的威胁。每次之后都有较长的等待。\n\n绝不会在战斗、剧情、通话、载具中、室内、安全区或通缉期间出现。威胁需要开启“与普通 NPC 对话”。",
 }

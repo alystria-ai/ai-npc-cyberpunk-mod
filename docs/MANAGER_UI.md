@@ -44,7 +44,7 @@ Mods screen (Esc > Mods)
 | Characters to invite | Home | Characters to invite |
 | Current party | Home | Your group (only while a companion drives), Current party |
 | Model browser | Home | Installed character models |
-| Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
+| Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Gameplay, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
 | Memory | Settings | Memory, Whose memories |
 | Dynamic info | Settings | Dynamic info (twelve switches, `docs/DYNAMIC_INFO.md`) |
 | Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
@@ -117,7 +117,8 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
     one the player muted earlier stays muted, since nothing resets the saved value.
   - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, Custom endpoint (a button that
     opens the Custom page, below), Convai API key, Convai paid tier, Edit characters.
-  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong), an **Immersive invitations** button (Open, since 2026-10-25) to its own page and a **Housemates** button (Open, since 2026-10-26) to its own page. Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
+  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
+  - Gameplay (a section of its own since 2026-10-28; the rows moved here with their saved values untouched, only the page changed): Street reputation (was in Conversations, off by default), NPCs react to threats and commands (was in Conversations, off), Companions change outfits (was in Companion behavior, off), an **Immersive invitations** button (Open, since 2026-10-25) to its own page and a **Housemates** button (Open, since 2026-10-26) to its own page (both were in Companion behavior and still go Back to Settings), and the new Revenge ambushes (off by default, `docs/AMBUSHES.md`). Current party also lists a meeting that is still on its way (no body yet) with a Cancel button.
   - Voices: Voice playback, Companion voices, Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
     Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; default Pocket,
     `docs/V_VOICE.md`).
@@ -838,7 +839,7 @@ hole it leaves in its section list, and checks that the widgets on screen are wh
 Current party lists the characters who live at V's place under the party copies, one row each: "{name} · lives in {apartment} · at home / with you / out"
 with a **Move out** button (MCM and Native Settings UI share the page). Move out ends the housemate arrangement only; she stays as she is otherwise. A
 housemate's body is not a party copy: it is not listed as one and does not count in the party. The page reads the list when it is built. While
-Settings > Companion behavior > Housemates is Off (the default) there are no housemate rows. That setting has a page of its own with six rows and a button, **Housemates**
+Settings > Gameplay > Housemates is Off (the default) there are no housemate rows. That setting has a page of its own with six rows and a button, **Housemates**
 (Off, On), **Move-in apartment** (Ask me, then the apartments V owns), **Housemates talk to each other** (On, Off), **Pause between chats** (1, 2, 5, 10
 minutes, 2), **Housemates in one chat** (2, 3, 4 people, 2) and **Evict all housemates** (a button, enabled while somebody lives there; one status line says how
 many moved out), and is part of Restore defaults.

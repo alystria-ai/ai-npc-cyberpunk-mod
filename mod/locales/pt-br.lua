@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts do jogo {other}, o seu é {game}. Baixe os Scripts para {game} no Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod do jogo {other}, o seu é {game}. Baixe os Scripts e o Runtime para {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime}. Devem coincidir: veja Ajuda em Configurações.",
+    ["Gameplay"] = "Jogabilidade",
+    ["Revenge ambushes"] = "Emboscadas de vingança",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Uma gangue que você continua matando pode raramente mandar um pequeno esquadrão com uma breve ameaça. Cada um é seguido de uma longa espera.\n\nNunca durante luta, cena, ligação, em veículo, em ambientes internos, em zona segura ou enquanto você estiver procurado. As ameaças precisam de «Conversar com NPCs comuns».",
 }

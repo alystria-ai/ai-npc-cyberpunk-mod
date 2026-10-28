@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts — для игры {other}, у вас игра {game}. Получите Scripts для {game} на Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Мод для игры {other}, у вас игра {game}. Получите Scripts и Runtime для {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts — для игры {scripts}, Runtime — для {runtime}. Должны совпадать. См. Справку.",
+    ["Gameplay"] = "Геймплей",
+    ["Revenge ambushes"] = "Засады из мести",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Банда, которую вы продолжаете убивать, изредка может выслать небольшой отряд с короткой угрозой. После каждого следует долгое ожидание.\n\nНикогда во время боя, сцены, звонка, в транспорте, в помещении, в безопасной зоне или когда вас разыскивают. Угрозы требуют «Разговоры с обычными NPC».",
 }

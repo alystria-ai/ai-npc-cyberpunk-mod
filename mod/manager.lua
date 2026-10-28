@@ -125,7 +125,7 @@ local function cleanImmersive(value)
     result.texts = from.texts ~= false
     return result
 end
--- Housemates (Settings > Companion behavior > Housemates, docs/HOUSEMATES.md): one saved table. Off by default; with it Off no housemate module is
+-- Housemates (Settings > Gameplay > Housemates, docs/HOUSEMATES.md): one saved table. Off by default; with it Off no housemate module is
 -- loaded and nothing of the feature runs. chat: the housemates talk to each other; chatCooldown: seconds of pause after a chat; chatSize: how many
 -- housemates join one chat; moveIn: the apartment a character moves into when V names none and stands in none ('ask': she asks which; a flat V no
 -- longer owns counts as 'ask' where it is used, mod/housemates.lua).
@@ -894,6 +894,9 @@ local function loadSettings()
     if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
     -- Off by default: ordinary NPCs react to threats and obey commands (docs/NPC_THREATS_COMMANDS.md).
     if type(settings.npcThreats) ~= 'boolean' then settings.npcThreats, settingsNeedSave = false, true end
+    -- Off by default: Revenge ambushes (Settings > Gameplay, docs/AMBUSHES.md). A gang V keeps killing may send a small squad after V now and then.
+    -- Off, mod/revenge-ambush.lua is not loaded and nothing is watched.
+    if type(settings.revengeAmbushes) ~= 'boolean' then settings.revengeAmbushes, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
@@ -1070,7 +1073,7 @@ function M.voiceActivation()
     return settings.voiceActivation == true
 end
 
--- Companions change outfits (Settings > Companion behavior, docs/COMPANION_OUTFITS.md): off by default. Read on the game's 10 Hz tick (one boolean), never per frame.
+-- Companions change outfits (Settings > Gameplay, docs/COMPANION_OUTFITS.md): off by default. Read on the game's 10 Hz tick (one boolean), never per frame.
 function M.companionOutfits()
     loadSettings()
     return settings.companionOutfits == true
@@ -1107,6 +1110,12 @@ end
 function M.npcThreats()
     loadSettings()
     return settings.npcThreats == true
+end
+
+-- Revenge ambushes (Settings > Gameplay, docs/AMBUSHES.md): off by default. Read on the manager's slow update and by the Street reputation recorder, never per frame.
+function M.revengeAmbushes()
+    loadSettings()
+    return settings.revengeAmbushes == true
 end
 
 -- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
@@ -1446,7 +1455,7 @@ end
 function M.immersiveChoices() return immersiveArrivals, immersiveDelays, immersiveWaits end
 -- Settings > Housemates: the pauses (seconds) and chat sizes the lists offer, in list order.
 function M.housemateChoices() return housemateLists.cooldowns, housemateLists.sizes end
--- Settings > Companion behavior > Housemates. The live table (read every 0.1 s of play by mod/init.lua, On or Off): never changed in place,
+-- Settings > Gameplay > Housemates. The live table (read every 0.1 s of play by mod/init.lua, On or Off): never changed in place,
 -- replaced whole by an Apply.
 function M.housemates()
     loadSettings()
@@ -2149,6 +2158,7 @@ function M.snapshot(player)
             companionOutfits = settings.companionOutfits == true,
             reputation = settings.reputation == true,
             npcThreats = settings.npcThreats == true,
+            revengeAmbushes = settings.revengeAmbushes == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             companionSpeakUp = M.companionSpeakUp(),
@@ -2300,6 +2310,9 @@ function M.applySettings(player, values)
         elseif key == 'npcThreats' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.npcThreats = value
+        elseif key == 'revengeAmbushes' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.revengeAmbushes = value
         elseif key == 'johnnyInHead' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value
@@ -2435,6 +2448,8 @@ function M.applySettings(player, values)
     publishDynamicInfo(settings)
     -- Street reputation turned on: init.lua registers its hooks from the game's update (manager-ui.lua), never in this menu callback.
     if settings.reputation == true and previous.reputation ~= true then convaiReputationPending = true end
+    -- Revenge ambushes turned on: the same recorder watches V's deeds for it, and its own module is built from the game's update, not here.
+    if settings.revengeAmbushes == true and previous.revengeAmbushes ~= true then convaiReputationPending = true end
     if player then
         pcall(function() player:ConvaiManagerSetVoice(settings.voice) end)
         pcall(function() player:ConvaiManagerSetSubtitles(settings.subtitles) end)

@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Die Scripts sind für Spiel {other}, deins ist {game}. Hol sie für {game} bei Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Der Mod ist für Spiel {other}, deins ist {game}. Hol Scripts und Runtime für {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts für Spiel {scripts}, Runtime für {runtime}. Müssen passen. Hilfe in Einstellungen.",
+    ["Gameplay"] = "Spielablauf",
+    ["Revenge ambushes"] = "Rachehinterhalte",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Eine Gang, die du immer wieder tötest, schickt dir selten einen kleinen Trupp mit einer kurzen Drohung. Danach folgt eine lange Wartezeit.\n\nNie im Kampf, in Szenen, bei Anrufen, im Fahrzeug, in Innenräumen, in sicheren Zonen oder solange du gesucht wirst. Die Drohungen brauchen „Mit gewöhnlichen NPCs sprechen“.",
 }

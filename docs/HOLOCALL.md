@@ -225,7 +225,7 @@ refused it was `mod/holocall.lua` (no catalogue entry) and then `ConvaiCallFindC
     `holocall = {version = 1, contact, mode}`.
   - **Live picture:** `npc` is the posed copy.
   - In both modes, `init.lua` skips the gaze focus and the microphone decorate step, and offers no gameplay actions (follow, fight, drive). The one thing a call can
-    ask for, with Settings > Companion behavior > Immersive invitations On, is a meeting: she comes to V (docs/IMMERSIVE_INVITATIONS.md, "Holocalls").
+    ask for, with Settings > Gameplay > Immersive invitations On, is a meeting: she comes to V (docs/IMMERSIVE_INVITATIONS.md, "Holocalls").
 - **Speech.** `speech.lua` and `continuous-speech.lua` play the voice at the player with zero distance,
   so it is a phone voice at full volume. `subtitles.lua` forces dialogue mode and uses
   `scnDialogLineType.Holocall`.

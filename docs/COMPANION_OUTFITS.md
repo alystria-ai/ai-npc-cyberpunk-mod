@@ -1,6 +1,6 @@
 # Companions change outfits
 
-Settings > Companion behavior > **Companions change outfits** (off by default, in Mod Configuration Menu and Native Settings UI alike). Party companions change into
+Settings > Gameplay > **Companions change outfits** (off by default, in Mod Configuration Menu and Native Settings UI alike). Party companions change into
 other looks of their own by the game's time of day, now and then for variety, and into casual clothes at home. Only while nobody is looking, and only for the
 mod's own party copies. Added 2026-10-25 on branch `feat/outfits`; built and unit-tested, **not seen in the game yet** (live checks at the end).
 

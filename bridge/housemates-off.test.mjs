@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {lua} from './housemate-fixture.mjs';
 
-// Settings > Companion behavior > Housemates (docs/HOUSEMATES.md, "The settings page"). mod/init.lua is too large to run in a test, so the housemate block of
+// Settings > Gameplay > Housemates (docs/HOUSEMATES.md, "The settings page"). mod/init.lua is too large to run in a test, so the housemate block of
 // it (from `convaiHousemates = nil` to the speech tick) runs here against fake game globals, with the real housemate modules behind a counting `dofile`.
 const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const start = init.indexOf('convaiHousemates = nil');

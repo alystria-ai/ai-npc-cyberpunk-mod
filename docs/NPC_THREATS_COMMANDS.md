@@ -16,7 +16,7 @@ Reworked again 2026-10-27 on `fix/threats-live7` after live test 7: a "get down"
 reaction is accepted and begun again (`ConvaiBeginFocus`) when it has let go or its hold would run out; and an escalation that stops equipping
 anything: the brawl ends (our fists and put-away commands stopped) and an ordinary fight begins, the plain attack's way.
 Committed, NOT merged, NOT pushed, offline-tested only. The new kinds (cower, fists, the commands) are behind a Companion Manager switch that is
-**off by default**: Settings, Conversations, "NPCs react to threats and commands"; the crowd run and the game's pick among the old kinds are not.
+**off by default**: Settings, Gameplay, "NPCs react to threats and commands"; the crowd run and the game's pick among the old kinds are not.
 
 ## Live test 7 (game 2.31, 2026-10-27) and what changed
 

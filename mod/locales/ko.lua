@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts는 게임 {other}용이고 현재 게임은 {game}입니다. Nexus Mods에서 {game}용을 받으세요.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "이 모드는 게임 {other}용이고 현재 게임은 {game}입니다. {game}용 Scripts와 Runtime을 받으세요.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts는 {scripts}용, Runtime은 {runtime}용입니다. 서로 맞아야 합니다. 설정의 도움말 참조.",
+    ["Gameplay"] = "게임플레이",
+    ["Revenge ambushes"] = "복수 매복",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "계속해서 죽이는 갱단이 드물게 짧은 위협과 함께 소규모 무리를 보낼 수 있어요. 한 번 뒤에는 오랜 대기 시간이 있어요.\n\n전투, 장면, 통화, 차량 안, 실내, 안전 구역, 수배 중에는 절대 나타나지 않아요. 위협에는 “일반 NPC와 대화”가 필요해요.",
 }

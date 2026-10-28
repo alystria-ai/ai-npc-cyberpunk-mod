@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts {other} oyunu için, senin oyunun {game}. {game} için Scripts'i Nexus Mods'tan al.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod {other} oyunu için, senin oyunun {game}. {game} için Scripts ve Runtime'ı al.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime} için. Eşleşmeli: Ayarlar'daki Yardım'a bak.",
+    ["Gameplay"] = "Oynanış",
+    ["Revenge ambushes"] = "İntikam pusuları",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Sürekli öldürdüğün bir çete, nadiren kısa bir tehditle küçük bir ekip gönderebilir. Her birinin ardından uzun bir bekleme gelir.\n\nAsla dövüş, sahne, telefon görüşmesi, araç içi, bina içi, güvenli bölge ya da arananken olmaz. Tehditler için «Sıradan NPC'lerle konuş» gerekir.",
 }

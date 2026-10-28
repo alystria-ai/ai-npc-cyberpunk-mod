@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {run, nsuiHarness, managerFixture, source} from './manager-fixture.mjs';
 
-// Settings > Companion behavior > Housemates: its own page on the Native Settings UI tab, saved as one table, Off by default, validated like every
+// Settings > Gameplay > Housemates: its own page on the Native Settings UI tab, saved as one table, Off by default, validated like every
 // setting, and part of Restore defaults (docs/HOUSEMATES.md).
 const everything = {
   'service-status.lua': source('service-status.lua'), 'character-editor.lua': source('character-editor.lua'),

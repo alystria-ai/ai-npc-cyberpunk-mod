@@ -150,6 +150,14 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/key-bindings.lua"
         },
         {
+          "source": "mod/revenge-ambush.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/revenge-ambush.lua"
+        },
+        {
+          "source": "mod/revenge-ambush-world.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/revenge-ambush-world.lua"
+        },
+        {
           "source": "mod/companion-outfits.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits.lua"
         },

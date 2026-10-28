@@ -2032,15 +2032,22 @@ if convaiNpcReactions then convaiNpcReactions.options.log, convaiNpcReactions.op
 -- on (at start, at the next load, from the game's update after the menu turned it on, or at the next turn). While it is off convaiReputation
 -- stays nil: no file is loaded, no hook registered, nothing written, and requests carry no `reputation`. Globals, so no function here gains
 -- an upvalue.
+-- The deed recorder also feeds Revenge ambushes (Settings > Gameplay, mod/revenge-ambush.lua): it runs when either setting is on, and a request carries
+-- the reputation snapshot only while Street reputation itself is on (convaiReputationAttach).
+function convaiDeedsWanted()
+    if type(manager.reputation) == 'function' and manager.reputation() then return true end
+    return type(manager.revengeAmbushes) == 'function' and manager.revengeAmbushes() == true
+end
 function convaiReputationWanted()
-    if type(manager.reputation) ~= 'function' or not manager.reputation() then return nil end
+    if not convaiDeedsWanted() then return nil end
     if convaiReputation then return convaiReputation end
     local loaded, module = pcall(dofile, 'reputation.lua')
     if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
         log('Street reputation unavailable: ' .. tostring(module)); return nil
     end
     local built, service = pcall(module.new, {
-        enabled = function() return manager.reputation() end,
+        enabled = convaiDeedsWanted,
+        onDeed = function(row, npc) if convaiAmbush then convaiAmbush.deed(row, npc) end end,
         observe = ObserveAfter,
         player = function() return Game.GetPlayer() end,
         gameTime = worldKnowledgeModule.nativeGameTime,
@@ -2062,8 +2069,12 @@ function convaiReputationWanted()
     convaiReputation = service
     service.install()
     if convaiNpcReactions then
-        convaiNpcReactions.options.onReaction = function(kind, who) if convaiReputation then convaiReputation.reaction(kind, who) end end
+        convaiNpcReactions.options.onReaction = function(kind, who)
+            if convaiReputation and manager.reputation() then convaiReputation.reaction(kind, who) end
+        end
     end
+    -- The squad's module exists before the first kill is recorded, or that kill would be lost.
+    if type(manager.revengeAmbushes) == 'function' and manager.revengeAmbushes() then pcall(convaiAmbushModule) end
     return service
 end
 -- An ordinary NPC's private turn carries the reputation snapshot (V's Street Cred, level, clock and the ring of deeds). Never a story,
@@ -2072,6 +2083,7 @@ function convaiReputationAttach(context)
     if convaiReputationPending then convaiReputationPending = nil; pcall(convaiReputationWanted) end
     local service = convaiReputation
     if not service or not service.on() or type(context) ~= 'table' or type(context.archetype) ~= 'table' then return end
+    if type(manager.reputation) ~= 'function' or not manager.reputation() then return end
     local key = context.profileKey
     if type(key) ~= 'string' or not (key:match('^npc%-[a-z0-9%-]+$') or key == 'resident-male' or key == 'resident-female') then return end
     if context.group or context.reaction or context.holocall or context.head or context.voiceOnly then return end
@@ -4067,7 +4079,7 @@ do
 end
 
 -- ---- Housemates (docs/HOUSEMATES.md) -------------------------------------------------------------------------------------------------------
--- Characters V told "you can stay at my place" live in V's flats. Settings > Companion behavior > Housemates (Off by default) switches it all: while it is
+-- Characters V told "you can stay at my place" live in V's flats. Settings > Gameplay > Housemates (Off by default) switches it all: while it is
 -- Off the tick below is one table read, nothing is offered or listed, and no housemate module is loaded. With it On the glue
 -- (mod/housemate-service.lua) is loaded on the first world-ready tick; the controller, the game adapter, the chat scheduler and the spot data only
 -- when somebody lives somewhere or a conversation offer asks. Nothing runs per frame. Globals and one do-block: the main chunk is near Lua's limit
@@ -4106,7 +4118,7 @@ do
         local player = Game.GetPlayer()
         if player and type(text) == 'string' and text ~= '' then convaiNotices.send(player, 'housemate-notice', text) end
     end
-    -- Settings > Companion behavior > Housemates: one table read.
+    -- Settings > Gameplay > Housemates: one table read.
     local function on()
         local options = manager.housemates and manager.housemates()
         return options ~= nil and options.enabled == true
@@ -4520,6 +4532,126 @@ do
             finish('failed')
         end
         return true
+    end
+end
+
+-- ---- Revenge ambushes (docs/AMBUSHES.md) --------------------------------------------------------------------------------------------------
+-- A gang V keeps killing may send a small squad, rarely (mod/revenge-ambush.lua decides; mod/revenge-ambush-world.lua holds the native calls). Built on first use
+-- and not at all while Settings > Gameplay > Revenge ambushes is off: the tick below is one boolean then. The grudge is fed by the Street reputation recorder's
+-- deeds (convaiReputationWanted). Globals and one block, so the main chunk gains no local.
+convaiAmbush, convaiAmbushFailed, convaiAmbushSpeaker = nil, nil, nil
+function convaiAmbushModule()
+    if convaiAmbush then return convaiAmbush end
+    if convaiAmbushFailed then return nil end
+    local loaded, module = pcall(dofile, 'revenge-ambush.lua')
+    local worldLoaded, worldModule = pcall(dofile, 'revenge-ambush-world.lua')
+    if not loaded or type(module) ~= 'table' or not worldLoaded or type(worldModule) ~= 'table' then
+        convaiAmbushFailed = true
+        convaiLogOnce('ambush-load', 'Revenge ambushes are unavailable: ' .. tostring(loaded and worldModule or module))
+        return nil
+    end
+    local world = worldModule.new({companions = companions, groups = module.GROUPS, log = log})
+    -- A fighter a session before this one left (a CET reload keeps the game running) is removed once.
+    local swept = world.sweep()
+    if swept > 0 then log('Revenge ambushes: removed ' .. swept .. ' fighter(s) left by an earlier session') end
+    convaiAmbush = module.new({
+        enabled = function() return manager.revengeAmbushes() end,
+        gameTime = worldKnowledgeModule.nativeGameTime,
+        -- Ordinary play only: no fight, scene, call, vehicle, interior, safe zone or wanted level (the battle observer's read, once per look).
+        world = function()
+            return world.world(battleObserver.sample(Game.GetPlayer()), function()
+                local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
+                if system == nil then error('no prevention system') end
+                local okHeat, value = pcall(function() return system:GetHeatStageAsInt() end)
+                if not okHeat or tonumber(value) == nil then value = EnumInt(system:GetHeatStage()) end
+                return value
+            end)
+        end,
+        recordOf = world.recordOf, verify = world.verify, findSpot = world.findSpot, create = world.create, entity = world.entity,
+        alive = world.alive, playerNear = world.playerNear, arm = world.arm, hidden = world.hidden, delete = world.delete,
+        bark = function(npc, info) return convaiAmbushBark(npc, info) end,
+        log = log,
+    })
+    return convaiAmbush
+end
+function convaiAmbushTick(player, elapsed, ready)
+    if not manager.revengeAmbushes() then
+        if convaiAmbush then convaiAmbush.tick(elapsed, ready) end   -- turned off: the squad that stands is removed, once
+        return
+    end
+    local module = convaiAmbushModule()
+    if module then module.tick(elapsed, ready) end
+end
+-- The request of the taunt: a private automatic turn of an ordinary NPC of the gang (its archetype profile and voice, bridge/ambush-context.mjs). Nil when the
+-- profile or the person cannot be told (the squad then fights without a line).
+function convaiAmbushContext(npc, info)
+    local entity = tostring(npc:GetEntityID().hash)
+    local body = tostring(npc:GetBodyType() or '')
+    local facts = archetypeFacts(npc, entity, body)
+    local female = characterCatalog.gender(facts) == 'FEMALE'
+    local key = 'npc-' .. tostring(info.group) .. (female and '-female' or '-male')
+    if not archetypes.keys[key] then return nil end
+    local archetype = characterCatalog.describe(archetypes, key, facts)
+    if not archetype or archetype.base ~= info.group then return nil end
+    local place = (manager.dynamicInfo == nil or manager.dynamicInfo('location')) and currentDistrict() or nil
+    if place then archetype.district, archetype.area = place.district, place.area end
+    local name = type(characterCatalog.archetypeLabel) == 'function' and characterCatalog.archetypeLabel(archetypes, key) or archetype.title or key
+    local generated = convaiNpcNames and convaiNpcNames.nameFor(npc, 'talk') or nil
+    if generated then name, archetype.npcName = generated, generated end
+    generation = generation + 1
+    local now = os.time()
+    local context = {generation = generation, entity = entity, name = name, bodyType = body, profileKey = key, sentAt = now, archetype = archetype,
+        text = 'You are one of a squad sent after V. Give one brief threat.',
+        reaction = {kind = 'ambush', event = 'taunt', group = info.group, count = info.count, toll = info.toll, expiresAt = math.floor((now + 20) * 1000)}}
+    context.requestId = tostring(now) .. '-' .. generation .. '-' .. entity
+    return context
+end
+-- The line, when the channel is free (the module asks again for twenty seconds): nothing else is being said or written, V is not talking, and the player has
+-- not asked for ordinary people to stay silent (Settings > Conversations > Talk to ordinary NPCs).
+function convaiAmbushBark(npc, info)
+    if automatic ~= nil or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+    if active ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil or (microphone.context ~= nil and microphone.state ~= 'reply') then return false end
+    if type(manager.archetypeConversations) == 'function' and not manager.archetypeConversations() then return false end
+    local player = Game.GetPlayer()
+    if not player then return false end
+    local outputs = battleOutputs or reactionOutputs(player)
+    if not outputs.enabled then return false end
+    local built, context = pcall(convaiAmbushContext, npc, info)
+    if not built or type(context) ~= 'table' then
+        if not built then convaiLogOnce('ambush-context', 'Ambush taunt could not be built: ' .. tostring(context)) end
+        return false
+    end
+    automatic = context
+    captureReactionGuard(true, outputs, nil)
+    if reactionLease(true) and sendRequest(context) then
+        speech.target = npc
+        convaiAmbushSpeaker = {requestId = context.requestId, npc = npc}
+        lastAutomatic = {at = os.time(), requestId = context.requestId, kind = 'ambush'}
+        log('Automatic ambush taunt: speaker=' .. tostring(context.profileKey) .. ' group=' .. tostring(info.group) .. ' count=' .. tostring(info.count))
+        return true
+    end
+    cancelAutomatic('request-write-failed')
+    return false
+end
+function convaiAmbushSpeakerHere(requestId)
+    local speaker = convaiAmbushSpeaker
+    if not speaker or speaker.requestId ~= requestId or speaker.npc == nil then return false end
+    local ok, here = pcall(function() return speaker.npc:IsAttached() and not speaker.npc:IsDeadNoStatPool() end)
+    return ok and here == true
+end
+-- Each tick of the half second while the taunt is in the air: it ends when it was said, when V or the world needs the channel, when it is late, or when
+-- its speaker is gone.
+function convaiAmbushBarkTick(player, now, worldReady, outputs, manual)
+    local reaction = automatic.reaction
+    local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+        or (not automatic.playbackAt and now * 1000 > reaction.expiresAt) and 'expired'
+        or not convaiAmbushSpeakerHere(automatic.requestId) and 'speaker-gone'
+    if reason then
+        cancelAutomatic('ambush-' .. reason)
+    elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
+        cancelAutomatic('completed')
+    elseif not reactionLease(true) then
+        cancelAutomatic('lease-write-failed')
     end
 end
 
@@ -5111,6 +5243,8 @@ local function updateBattles(player, elapsed, worldReady)
         convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual)
     elseif automatic and automatic.reaction.kind == 'speakup' then
         convaiSpeakUpManage(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'ambush' then
+        convaiAmbushBarkTick(player, now, worldReady, outputs, manual)
     elseif automatic then
         local speaker
         for _, person in ipairs(battlePeople) do
@@ -5450,6 +5584,12 @@ local function reactionCanDeliver(context, player)
         local why = head == nil and 'off' or head:refusal(player)
         if why then cancelAutomatic('head-' .. why); return false end
         return true
+    end
+    -- An ambusher's taunt is said in the middle of the fight it belongs to: only its speaker must still be there (mod/revenge-ambush.lua).
+    if context.reaction.kind == 'ambush' then
+        if convaiAmbushSpeakerHere(context.requestId) then return true end
+        cancelAutomatic('ambush-speaker-missing')
+        return false
     end
     -- A reply can become ready between the half-second observer samples. Read
     -- player scene/combat state and the owned speaker before playback.
@@ -6015,7 +6155,7 @@ function convaiTapOnce(action)
     return convaiKeyBinds == nil or convaiKeyBinds.once(action)
 end
 registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', function() if convaiTapOnce('manager') then openManager() end end)
--- Companions change outfits (Settings > Companion behavior, off by default; docs/COMPANION_OUTFITS.md): a party copy of a curated character changes into another
+-- Companions change outfits (Settings > Gameplay, off by default; docs/COMPANION_OUTFITS.md): a party copy of a curated character changes into another
 -- look of its own template by the game's time of day, now and then for variety and into casual clothes at home, only while it is out of V's view. Our own
 -- copies only. The module is loaded on first use and not at all while the setting is off; its 10 Hz tick subtracts the elapsed time from one counter and looks
 -- at the party every 20 s. No per-frame work, no handle kept. Global functions, so onUpdate reaches them without a new upvalue.
@@ -6129,6 +6269,9 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     invalidateKnowledge(reason)
     -- Street reputation: the deeds still waiting are written now, behind the loading screen (a nil check while the setting is off).
     if convaiReputation then convaiReputationReset(reason) end
+    -- Revenge ambushes: the grudge is written and every reference dropped, with no native call (the world may be going away).
+    if convaiAmbush then pcall(convaiAmbush.reset, reason) end
+    convaiAmbushSpeaker = nil
     -- The party's own handles, watched weakly through the collect at the end (world alive only, never on fast travel).
     local watch = (worldAlive == true and preserveTransit ~= true) and convaiWatchParty() or nil
     -- Development probe (mod/face-test.lua): its stage keeps a companion handle (and a look-at event aimed at V) between frames.
@@ -6730,9 +6873,12 @@ registerForEvent('onUpdate', function(delta)
     -- The mod's own key bindings (Companion Manager > Key bindings): one table check per tick while none is saved; the module is not even loaded then.
     local keysOk, keysError = pcall(convaiKeyBindsTick, player, worldReady)
     if not keysOk then convaiLogOnce('Key bindings failed: ' .. tostring(keysError)) end
-    -- Companions change outfits (Settings > Companion behavior, off by default): one boolean per tick while it is off; the module is not even loaded then.
+    -- Companions change outfits (Settings > Gameplay, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local outfitOk, outfitError = pcall(convaiOutfitTick, player, elapsedPoll, worldReady)
     if not outfitOk then convaiLogOnce('Companion outfits failed: ' .. tostring(outfitError)) end
+    -- Revenge ambushes (Settings > Gameplay, off by default): one boolean per tick while it is off; the module is not even loaded then.
+    local ambushOk, ambushError = pcall(convaiAmbushTick, player, elapsedPoll, worldReady)
+    if not ambushOk then convaiLogOnce('ambush-tick', 'Revenge ambushes failed: ' .. tostring(ambushError)) end
     mark('init:tick')
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
@@ -7128,6 +7274,7 @@ registerForEvent('onShutdown', function()
     end
     invalidateKnowledge('shutdown')
     if convaiReputation then convaiReputationReset('shutdown') end
+    if convaiAmbush then pcall(convaiAmbush.reset, 'shutdown') end
     cancelAutomatic('shutdown')
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0

@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "A Scripts a {other} játékhoz, a tiéd {game}. Töltsd le a {game}-hoz valót Nexus Mods-ról.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "A mod {other} játékhoz való, a tiéd {game}. Szerezd be a {game}-hoz való Scripts-et és Runtime-ot.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime} verzió. Egyezniük kell: Súgó a Beállításokban.",
+    ["Gameplay"] = "Játékmenet",
+    ["Revenge ambushes"] = "Bosszúból jövő támadások",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Az a banda, amelyet folyamatosan öldösöl, ritkán küldhet utánad kis osztagot rövid fenyegetéssel. Mindegyik után hosszú várakozás következik.\n\nSoha nem harc, jelenet, hívás, jármű, zárt tér, biztonsági zóna vagy körözés alatt. A fenyegetésekhez a „Beszélgetés hétköznapi NPC-kkel” kell.",
 }

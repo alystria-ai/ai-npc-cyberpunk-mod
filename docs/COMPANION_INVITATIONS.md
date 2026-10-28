@@ -13,7 +13,7 @@ preparation before starting its replacement.
 
 ## Immersive invitations
 
-With Settings > Companion behavior > Immersive invitations On, the Invite button and the Contacts J key do not spawn at once: they make an appointment
+With Settings > Gameplay > Immersive invitations On, the Invite button and the Contacts J key do not spawn at once: they make an appointment
 (`mod/immersive-invitations.lua`). The same queue prepares her (a quiet job whose `gate` holds the spawn), and she is created as a visiting copy away from V.
 See [IMMERSIVE_INVITATIONS.md](IMMERSIVE_INVITATIONS.md). Off, everything below is unchanged.
 

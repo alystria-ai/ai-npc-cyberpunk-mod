@@ -9,7 +9,7 @@ she arrives, wait a while, and leave (remembering it) if V never comes. The owne
 
 ## Rules the owner set
 
-1. A sub-page **Settings > Companion behavior > Immersive invitations**, Off by default. Off: Invite, the Contacts J key and a text behave as before.
+1. A sub-page **Settings > Gameplay > Immersive invitations**, Off by default. Off: Invite, the Contacts J key and a text behave as before.
 2. **Meeting means joining.** When V reaches her she joins the party without a respawn and says a short in-character greeting (spoken and
    subtitled through the normal turn path, with a plain localized notice as fallback).
 3. **Invite button and Contacts J** with the setting On make the same appointment as a text. Off: instant, exactly as before. There is no separate summon.

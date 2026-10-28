@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts はゲーム {other} 用です。お使いは {game}。Nexus Mods から {game} 用を入手してください。",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "この MOD はゲーム {other} 用です。お使いは {game}。{game} 用の Scripts と Runtime を入手してください。",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts は {scripts} 用、Runtime は {runtime} 用です。揃える必要があります。設定のヘルプを参照。",
+    ["Gameplay"] = "ゲームプレイ",
+    ["Revenge ambushes"] = "復讐の待ち伏せ",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "何度も倒すギャングは、まれに少人数の部隊を送り込み、短い脅し文句を叫ばせることがある。1回ごとに長い間隔があく。\n\n戦闘、シーン、通話、乗り物の中、屋内、セーフゾーン、指名手配中には決して起きない。脅しには「一般NPCと会話」が必要。",
 }

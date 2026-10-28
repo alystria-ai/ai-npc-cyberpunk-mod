@@ -1534,4 +1534,7 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts jsou pro hru {other}, tvoje je {game}. Stáhni Scripts pro {game} z Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod je pro hru {other}, tvoje je {game}. Stáhni Scripts a Runtime pro {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts pro hru {scripts}, Runtime pro {runtime}. Musí si odpovídat. Viz Nápověda.",
+    ["Gameplay"] = "Hratelnost",
+    ["Revenge ambushes"] = "Pomstná přepadení",
+    ["A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs."] = "Gang, který pořád zabíjíš, ti vzácně pošle malou skupinu s krátkou výhrůžkou k vykřiknutí. Po každé následuje dlouhé čekání.\n\nNikdy během boje, scény, hovoru, ve vozidle, uvnitř, v bezpečné zóně nebo když tě hledá policie. Výhrůžky vyžadují „Mluvit s běžnými NPC“.",
 }

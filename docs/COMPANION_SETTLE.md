@@ -9,7 +9,7 @@ game-placed character gets talk and face/audio only, as everywhere) stops traili
 spread out, walking there with AI move commands. When V leaves, goes far from them, gets in a car, or a scene or a fight starts, they get up and
 follow as before.
 
-There is no setting: away from V's flats nothing of it exists (see Cost). It does **not** depend on Settings > Companion behavior > Housemates
+There is no setting: away from V's flats nothing of it exists (see Cost). It does **not** depend on Settings > Gameplay > Housemates
 (Off by default): it uses the housemates' *data and helpers* only, never `mod/housemate-service.lua` or the controller.
 
 ## Pieces
