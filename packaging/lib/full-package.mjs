@@ -56,8 +56,8 @@ export const FULL_NOTE = [
   'change the destination to the Cyberpunk 2077 folder itself. If it happened anyway, the mod moves its optional pack files into',
   'place by itself the next time the game starts.',
   '',
-  'Using Vortex or Mod Organizer 2? Do not add this zip as a mod. Add the Update zip as one mod and the Runtime zip as another,',
-  'as the install steps on the mod page say. A new Update zip would replace this whole mod and take the Runtime with it.',
+  'Using Vortex or Mod Organizer 2? Add this zip as ONE mod, and update that mod with each new copy of this zip. Remove older separate',
+  'Scripts and Runtime mods first. Do not add the small Update zip to a mod manager: it is for manual installs only.',
   '',
   'You can delete this text file after installing.',
   ''].join('\r\n');

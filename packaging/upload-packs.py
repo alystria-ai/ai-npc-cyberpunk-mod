@@ -6,7 +6,7 @@ message), the optional packs no product prefix, and there are NO checksum files:
 
     AI-NPC-LLM-Companions.zip   AI-NPC-LLM-Companions-Update.zip        (root: the FULL INSTALL, the main file for a new player, and the UPDATE for an
                                                                          install that already has the Runtime base the update names; owner decision 2026-10-28)
-    runtime/Runtime.zip                                                 (the Runtime base alone, for Vortex and Mod Organizer 2 where the Update is its own mod)
+    runtime/Runtime.zip                                                 (the Runtime base alone: an input of the full install, and for old two-mod setups; not advertised to new installs)
     local-ai/LocalAI-Standard-Gemma-4-E4B.zip   local-ai/LocalAI-Lite-Bonsai-2-4B.zip
     mature/Mature-Standard-Gemma-4-E4B.zip      mature/Mature-Lite-Qwen3.5-4B.zip
     mic/MicPack-European-Parakeet-TDT-0.6B-v3.zip   mic/MicPack-Asian-SenseVoice-Small-234M.zip

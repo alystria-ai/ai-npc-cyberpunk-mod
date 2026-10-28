@@ -215,7 +215,7 @@ You do not need to install anything else. The voice service, its voices and mode
 Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. If Windows asks about files with the same names, choose Replace: it is always safe.
 
 1. **The full install, once**: one zip with the mod and the Runtime (the large parts: Node, Python, the voices and models), so there is nothing else to get. From Nexus Mods, by hand: the main file `AI NPC LLM Companions` for game 2.5, or the optional file `AI NPC LLM Companions - for game 2.31 (older game version)` for 2.31. Or from the mod's Hugging Face page: for game 2.5 https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-LLM-Companions.zip, for the older game 2.31 https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/AI-NPC-LLM-Companions.zip. Extract it into the Cyberpunk 2077 folder.
-2. **Updates**: the **Update** zip (`AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip` on Nexus Mods, or `AI-NPC-LLM-Companions-Update.zip` on the Hugging Face page, `game-2.31/` for 2.31) is small and carries all of the mod's own code. Use it on an install that already has the Runtime of version `<from>` or newer. An older install, or one where Settings > Help says the Runtime is too old, takes the full install again instead.
+2. **Updates by hand**: the **Update** zip (`AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip` on Nexus Mods, or `AI-NPC-LLM-Companions-Update.zip` on the Hugging Face page, `game-2.31/` for 2.31) is small and carries all of the mod's own code. Extract it into the game folder over an install that already has the Runtime of version `<from>` or newer. An older install, or one where Settings > Help says the Runtime is too old, takes the full install again instead. **Vortex and Mod Organizer 2 always take the full install**, as one mod (see their sections below), never the Update.
 
 The optional packs are on the same Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in folders next to the full install (`voice`, `local-ai`, `mic` and `multilingual`). Each pack is one zip file, so there is nothing to join, and each works on its own.
 
@@ -231,18 +231,18 @@ The optional packs are on the same Hugging Face page, https://huggingface.co/aly
 
 ### Vortex
 
-- **Not the full install**: it holds the Runtime too, so every update would replace all of it in Vortex. Use two mods instead.
-- **Update**: use Vortex's download button on the Nexus page (the file named Update), or drop the Update zip onto Vortex's Mods page.
-- **Runtime**: download `runtime/Runtime.zip` from Hugging Face (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/runtime/Runtime.zip, `game-2.31/runtime/Runtime.zip` for 2.31) and drop it onto the Mods page too. Then click Deploy. Every file lands in the right place. Vortex moves only the "HOW TO INSTALL" text file to its mod-extra-files folder, which is harmless. At its first start the mod copies its code from the Scripts into the Runtime's folder, so Vortex may then report "external changes" in the Runtime mod: click Save all changes.
+- **The main file, as one mod**: add the full install (`AI NPC LLM Companions` on the Nexus page, `AI-NPC-LLM-Companions-<version>.zip`) with Vortex's download button, or drop the zip onto Vortex's Mods page. Then click Deploy. It holds everything (the mod and the Runtime), so it is the only mod you need. Vortex moves only the "HOW TO INSTALL" text file to its mod-extra-files folder, which is harmless. At its first start the mod copies its code into the Runtime's folder, so Vortex may then report "external changes" in this mod: click Save all changes.
+- **Not the Update zip**: the small Update zip is for manual installs, extracted into the game folder. With Vortex always take the full install.
+- **Updating**: download the newer full install and add it the same way, like any other mod update (about 1.1 GB, one click). When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The same step fixes "the Runtime is too old" in Settings > Help.
+- **Coming from 0.3.3 or older**, where you have a Scripts mod and a Runtime mod: remove the old Scripts and Runtime mods, then install the full install.
 - **The warning sign in the Version column** only means the mod was added from a file and not downloaded from Nexus. It is harmless.
 - **Local AI packs and the other model packs**: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
 - **The OmniVoice pack**: extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
 - **External changes**: if Vortex shows External Changes ("Mod files were changed outside Vortex") for this mod's files after an update, click Save all changes (or Use newer file for all changes) so it keeps the newer files, never Revert, then Confirm.
-- **Versions**: the Update needs a Runtime of at least the version Settings > Help names (a newer Runtime is fine too), and both must be for the same game. Settings > Help shows both.
 
 ### Mod Organizer 2
 
-Do not use the full install here. Install the Update as one mod and `runtime/Runtime.zip` from the Hugging Face page as another. Put the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
+Install the full install (`AI-NPC-LLM-Companions-<version>.zip`) as one mod. It holds everything. To update, install the newer full install the same way and choose Merge if Mod Organizer 2 asks, so the packs you put in its folder stay. Put the multilingual packs and the PocketTTS models INTO that mod's folder (replace files), not into mods of their own. Coming from 0.3.3 or older, where you have a Scripts mod and a Runtime mod: remove the old Scripts and Runtime mods, then install the full install. The Update zip is for manual installs only, not for Mod Organizer 2. The other packs can be mods of their own.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
@@ -321,7 +321,7 @@ With Mistral or Local AI as the Conversation provider, you can give a person who
 
 ## Update
 
-Close the game and extract the new **Update** zip over your install (`AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip`, on Nexus Mods or Hugging Face). That is all most updates need: the Update carries all of the mod's code, and the first start copies it into the Runtime. It works on any install that has the Runtime of version `<from>` or newer (0.3.3 for this version), so it is the one download for everyone who updated last time. An install older than that, or one where Settings > Help says the Runtime is too old, takes the **full install** instead (`AI-NPC-LLM-Companions-<version>.zip`): extract it over the old one, there is nothing to apply in order. Your conversations, memories and settings are kept.
+**By hand:** close the game and extract the new **Update** zip over your install (`AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip`, on Nexus Mods or Hugging Face). That is all most updates need: the Update carries all of the mod's code, and the first start copies it into the Runtime. It works on any install that has the Runtime of version `<from>` or newer (0.3.3 for this version), so it is the one download for everyone who updated last time. An install older than that, or one where Settings > Help says the Runtime is too old, takes the **full install** instead (`AI-NPC-LLM-Companions-<version>.zip`): extract it over the old one, there is nothing to apply in order. **With Vortex or Mod Organizer 2:** always the newer full install, as the same one mod, never the Update (see their sections below). Coming from 0.3.3 or older with a Scripts mod and a Runtime mod in a manager: remove the old Scripts and Runtime mods, then install the full install. Your conversations, memories and settings are kept.
 
 New in 0.3.4: the full install. One zip with the mod and the Runtime together, for a new install and for any install the Update cannot bring up to date. It replaces the two downloads (Scripts and Runtime) of the older versions.
 
@@ -331,7 +331,7 @@ From 0.3.4 the launcher and the native plugin come with the Scripts too, in `red
 
 **Game 2.31.** Everything above has a build for the older game 2.31, with `-for-2.31` at the end of the file name. A build belongs to its own game only: never extract the 2.31 files over an install for game 2.5, or the other way round. Moved your game from 2.31 to 2.5, or going back? Extract the full install of your game over the old one.
 
-**Updating with Vortex.** Drop the new Update zip onto Vortex's Mods page. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. Only when Settings > Help says the Runtime is too old, drop the Runtime zip (`runtime/Runtime.zip` on the Hugging Face page) again and choose Replace the same way. With Mod Organizer 2, extract the Runtime zip into the Runtime mod's folder.
+**Updating with Vortex or Mod Organizer 2.** Install the newer full install as the same mod, every release: with Vortex choose "Replace the existing mod" (it may first ask to replace the file, say yes) and click Deploy, with Mod Organizer 2 choose Merge. Never the Update zip. If Settings > Help says the Runtime is too old, the newer full install fixes it. Still on a Scripts mod and a Runtime mod from 0.3.3 or older? Remove both, then install the full install.
 
 ## Uninstall
 

@@ -152,8 +152,10 @@ test('the player texts link the files at their folders and new names, say nothin
   const nexus = texts['docs/NEXUS_PAGE.md'];
   assert.doesNotMatch(nexus, /;/, 'no semicolons on Nexus');
   assert.doesNotMatch(nexus, /18\+/, 'no "18+" on Nexus');
-  for (const link of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip', 'runtime/Runtime.zip', 'game-2.31/AI-NPC-LLM-Companions.zip', 'game-2.31/runtime/Runtime.zip', ...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
+  for (const link of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip', 'game-2.31/AI-NPC-LLM-Companions.zip', ...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
   assert(nexus.includes(`${HF}/tree/main/multilingual`), 'the multilingual folder link is the same as before');
+  assert(!nexus.includes('Runtime.zip'), 'managers install the full install as one mod: the Nexus page does not advertise the Runtime alone');
+  assert.match(nexus, /Remove both of the old mods, then install the main file/, 'the one step for a manager coming from 0.3.3');
   assert(!nexus.includes(`${HF}/tree/main/updates`), 'the Runtime update zips are no longer offered: the Nexus page does not link them');
   // Every file name on HF has lost the prefix: the model card lists the new paths.
   const card = texts['packaging/HF_MODEL_CARD.md'];

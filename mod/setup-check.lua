@@ -474,20 +474,29 @@ local function versionText(check)
     return ui.t('Found.')
 end
 
+-- Owner decision 2026-10-28 ("Managers: always full zip"): Vortex and Mod Organizer 2 players install the full install zip as ONE mod and update that mod with
+-- each new full zip. A line that sends a player to the full install zip (the versions rows, the Runtime missing or incomplete) then adds how a manager does it
+-- (docs/PACKAGING.md, "The Full install package"): the old separate Scripts and Runtime mods go first.
+local function managerHint()
+    local manager = bridgeCheck('mod-manager')
+    if manager and (manager.code == 'mo2' or manager.code == 'vortex') then return '\n' .. ui.t('With a mod manager: remove the old Scripts and Runtime mods, then install the full install zip as one mod.') end
+    return ''
+end
+
 -- The conversation service line, for the Help page's existing Conversation service row: nil when its own label and help say it
 -- (running, starting, stopped, no browser, no key); otherwise {value, description} for a service that never started or failed.
 local function lineFor(check)
     if not check then return nil end
     if check.code == 'never' then
-        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page and on its Hugging Face page.')}
+        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page and on its Hugging Face page.') .. managerHint()}
     end
     -- The launcher found no launcher.ini beside its DLL (a 0.2.3 Vortex report; the launcher from 0.2.4 on starts without it, so this is an
     -- older launcher): the generic sentence below would say "download it again" without saying which file or why.
     if check.code == 'incomplete' and check.detail == 'launcher-not-configured' then
-        return {value = ui.t('Not running'), description = ui.t('The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.')}
+        return {value = ui.t('Not running'), description = ui.t('The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.') .. managerHint()}
     end
     if check.code == 'incomplete' then
-        return {value = ui.t('Not running'), description = ui.t('The Runtime is incomplete ({code}). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.', {code = check.detail or '?'})}
+        return {value = ui.t('Not running'), description = ui.t('The Runtime is incomplete ({code}). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.', {code = check.detail or '?'}) .. managerHint()}
     end
     if check.code == 'failed' then
         return {value = ui.t('Not running'), description = ui.t('The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.', {code = check.detail or '?'})}
@@ -624,14 +633,6 @@ local function runtimeIsOlder(versions)
     return nil
 end
 
--- Mod Organizer 2 runs the service from the real folder of the Runtime's own mod, so a Runtime update zip (or a multilingual pack) installed as a
--- separate mod is never read: the lines about versions and update steps then say where the files go (docs/PACKAGING.md, "Mod Organizer 2").
-local function mo2Hint()
-    local manager = bridgeCheck('mod-manager')
-    if manager and manager.code == 'mo2' then return '\n' .. ui.t('Mod Organizer 2: put Runtime.zip from Hugging Face into the Runtime’s own mod folder, not the full install zip.') end
-    return ''
-end
-
 local function bridgeLines(out)
     local versions = bridgeCheck('versions')
     local build = game and game.checks.build
@@ -663,8 +664,8 @@ local function bridgeLines(out)
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.'))
     end
-    -- Under Mod Organizer 2 a problem with the versions or the update steps says to put Runtime.zip in the Runtime's own mod (never the full install).
-    local hint = mo2Hint()
+    -- Under a mod manager a problem with the versions or the update steps says how to install the full install zip as one mod.
+    local hint = managerHint()
     local last = out[#out]
     if hint ~= '' and last and last.id == 'versions' and last.state == 'problem' then last.description = last.description .. hint end
     local packs = bridgeCheck('packs')
@@ -797,8 +798,8 @@ local function bridgeLines(out)
     local manager = bridgeCheck('mod-manager')
     if manager and type(manager.code) == 'string' then
         local label = ui.t('Mod manager')
-        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract multilingual packs into the Runtime’s own mod folder, not as new mods. Never use the full install zip as a mod: use the update zip as one mod and Runtime.zip from Hugging Face as another. Mention Mod Organizer 2 when you send a report.'))
-        elseif manager.code == 'vortex' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Vortex. Install the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say. Use the update zip and Runtime.zip from Hugging Face as two mods, never the full install zip.'))
+        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Install the full install zip as one mod and update that mod with each new full install zip. Extract multilingual packs into that mod’s folder, not as new mods. Mention Mod Organizer 2 when you send a report.'))
+        elseif manager.code == 'vortex' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Vortex. Install the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say. Install the full install zip as one mod and update that mod with each new full install zip.'))
         else out[#out + 1] = line('mod-manager', label, 'ok', ui.t('None found: installed by hand.')) end
     end
 end

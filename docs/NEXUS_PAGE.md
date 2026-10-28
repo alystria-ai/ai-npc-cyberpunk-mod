@@ -127,19 +127,20 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [/list]
 
 [b]Vortex[/b][list]
-[*]Don't add the main file to Vortex. It holds the Runtime too, so every update would replace all of it. Add the [b]Update[/b] file from this page with Vortex's download button, or drop its zip onto Vortex's Mods page. Drop the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/runtime/Runtime.zip]Runtime zip[/url] from Hugging Face onto the Mods page too ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/runtime/Runtime.zip]game 2.31[/url]), then click Deploy. Every file lands in the right place. Vortex moves only the HOW TO INSTALL text file to its mod-extra-files folder, which is harmless.
+[*]Add the main file, [b]AI NPC LLM Companions[/b], with Vortex's download button on this page, or drop its zip onto Vortex's Mods page, then click Deploy. It holds everything, so it is the only mod you need. Vortex moves only the HOW TO INSTALL text file to its mod-extra-files folder, which is harmless. Don't use the Update file with Vortex.
 [*]The warning sign in Vortex's Version column only means the mod was added from a file and not downloaded from Nexus. It is harmless.
 [*]Local AI and Mature packs: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
 [*]The OmniVoice pack (Voice models): extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
-[*]Updating: drop the new Update zip onto the Mods page. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. Drop the Runtime zip again only when Settings > Help says the Runtime is too old.
+[*]Updating: download the newer main file and add it the same way, like any other mod update. It is a big file but it is one click. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy.
+[*]Coming from 0.3.3 or older, with a Scripts mod and a Runtime mod in Vortex? Remove both of the old mods, then install the main file.
 [*]If Vortex shows External Changes ("Mod files were changed outside Vortex") for this mod's files after an update, click Save all changes (or Use newer file for all changes) so it keeps the newer files, never Revert, then Confirm.
 [/list][b]Mod Organizer 2[/b]
-Don't use the main file here. Install the [b]Update[/b] file as one mod and the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/runtime/Runtime.zip]Runtime zip[/url] from Hugging Face as another. Put the multilingual packs and the PocketTTS models INTO the Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
+Install the main file, [b]AI NPC LLM Companions[/b], as one mod. It holds everything. To update, install the newer main file the same way and choose Merge if Mod Organizer 2 asks, so the packs you put in its folder stay. Put the multilingual packs and the PocketTTS models INTO that mod's folder (replace files), not into mods of their own. Coming from 0.3.3 or older, with a Scripts mod and a Runtime mod? Remove both of the old mods, then install the main file. Don't use the Update file with Mod Organizer 2. The other packs can be mods of their own.
 
-[b]Keep both halves matching.[/b] Both must be for your game version (2.5 or 2.31). Settings > Help shows the version of the Scripts and of the Runtime. The Update runs on any Runtime of the version it names or newer. Anything older takes the main file.
+[b]Which file?[/b] The main file for a new install, for Vortex and for Mod Organizer 2. The Update file only for manual installs, extracted into the Cyberpunk 2077 folder over an install that already has the Runtime of the version it names or newer. Both must be for your game version (2.5 or 2.31). Settings > Help shows the version of the Scripts and of the Runtime.
 
 [b]Updating[/b]
-Updating? Download the [b]Update[/b] for your game from this page (the file named Update, then the oldest version it runs on, then the new one, in the Updates section for game 2.5 and in Optional files for 2.31) and extract it over your install. It is also on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-LLM-Companions-Update.zip]game 2.5[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/AI-NPC-LLM-Companions-Update.zip]game 2.31[/url]). Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed, so if you already have them you don't need to download them again. Older than the version the Update names, or Settings > Help says the Runtime is too old? Take the main file, [b]AI NPC LLM Companions[/b], and extract it over your install. There are no steps to apply in order. Moved your game from 2.31 to 2.5? Take the main file for game 2.5 the same way.
+Updating by hand? Download the [b]Update[/b] for your game from this page (the file named Update, then the oldest version it runs on, then the new one, in the Updates section for game 2.5 and in Optional files for 2.31) and extract it over your install. It is also on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-LLM-Companions-Update.zip]game 2.5[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/AI-NPC-LLM-Companions-Update.zip]game 2.31[/url]). Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed, so if you already have them you don't need to download them again. Using Vortex or Mod Organizer 2? Skip the Update and install the newer main file as your one mod. Older than the version the Update names, or Settings > Help says the Runtime is too old? Take the main file, [b]AI NPC LLM Companions[/b], and extract it over your install. There are no steps to apply in order. Moved your game from 2.31 to 2.5? Take the main file for game 2.5 the same way.
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own. Install none, some or all, the same way as the main file.[list]
@@ -231,25 +232,25 @@ Game 2.5 is the default: the full install is the main file and its update sits u
 AI NPC LLM Companions (the main file, game 2.5, zip AI-NPC-LLM-Companions-<version>.zip):
 
 ```text
-Full install for game 2.5, everything in one zip. Extract it into your Cyberpunk 2077 folder. New: content packs, key bindings, car invitations, housemates, outfits, battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
+Full install for game 2.5, everything in one zip. Extract it into your Cyberpunk 2077 folder, or add it as one mod in Vortex or Mod Organizer 2. New: content packs, key bindings, car invitations, housemates, outfits, Music and TV info.
 ```
 
 Update <from> to <version> (an update file, game 2.5, zip AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, for example Update 0.3.3 to 0.3.4):
 
 ```text
-Update for game 2.5. Needs the Runtime <from> or newer, older installs take the main file. New: content packs, key bindings, car invitations, housemates, outfits, battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
+Update for game 2.5, for manual installs only: extract it into the game folder. Not for Vortex or Mod Organizer 2, they use the main file. Needs the Runtime <from> or newer. New: content packs, key bindings, car invitations, housemates.
 ```
 
 AI NPC LLM Companions - for game 2.31 (older game version) (optional file, zip AI-NPC-LLM-Companions-<version>-for-2.31.zip):
 
 ```text
-Full install for older game 2.31, all in one zip. Extract it into your Cyberpunk 2077 folder. New: content packs, key bindings, car invitations, housemates, outfits, battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
+Full install for older game 2.31, all in one zip. Extract it into your Cyberpunk 2077 folder, or add it as one mod in Vortex or Mod Organizer 2. New: content packs, key bindings, car invitations, housemates, outfits, Music and TV info.
 ```
 
 Update <from> to <version> - for game 2.31 (older game version) (optional file, zip AI-NPC-LLM-Companions-Update-<from>-to-<version>-for-2.31.zip):
 
 ```text
-Update for older game 2.31. Needs the Runtime <from> or newer, older installs take the full install. New: content packs, key bindings, car invitations, housemates, outfits, battle and loot reactions on, Music and TV info, Model search, OmniVoice on AMD.
+Update for older game 2.31, for manual installs only: extract it into the game folder. Not for Vortex or Mod Organizer 2. Needs the Runtime <from> or newer. New: content packs, key bindings, car invitations, housemates.
 ```
 
 ## 3. Short summary (brief overview field)

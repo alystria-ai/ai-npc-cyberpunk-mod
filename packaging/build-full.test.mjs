@@ -137,7 +137,9 @@ test('the update is named from the base it needs: <from> is that version when it
 test('the Full note says where to extract, that it holds everything, and that Vortex and Mod Organizer 2 take two mods; it is the only note and is worded for the Full zip', () => {
   assert.match(FULL_NOTE, /Extract this zip INTO your Cyberpunk 2077 folder/);
   assert.match(FULL_NOTE, /holds everything/);
-  assert.match(FULL_NOTE, /Vortex or Mod Organizer 2/);
+  assert.match(FULL_NOTE, /Vortex or Mod Organizer 2\? Add this zip as ONE mod/);
+  assert.match(FULL_NOTE, /Remove older separate\s+Scripts and Runtime mods first/);
+  assert.match(FULL_NOTE, /Do not add the small Update zip to a mod manager/);
   assert.notEqual(FULL_NOTE_NAME, INSTALL_NOTE_PATH, 'the standard note is fixed text and keeps its own file name');
   assert.doesNotMatch(FULL_NOTE, /;/);
 });

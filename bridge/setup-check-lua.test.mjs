@@ -204,6 +204,11 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   local never = check.serviceLine()
   assert(never.value == 'Not running' and never.description:find('full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder', 1, true))
   assert(never.description:find('red4ext/plugins/AiNpcCyberpunkMod', 1, true))
+  assert(not never.description:find('With a mod manager', 1, true), 'no manager, no manager hint')
+  -- under a mod manager the Runtime missing row says how the full install zip goes in: one mod, the old separate mods removed first
+  answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}); check.run()
+  assert(check.serviceLine().description:sub(-#'With a mod manager: remove the old Scripts and Runtime mods, then install the full install zip as one mod.') == 'With a mod manager: remove the old Scripts and Runtime mods, then install the full install zip as one mod.')
+  answer({}); check.run()
   -- the row says why (2026-10-24 triage): this mod's native plugin did not load, or it did and still nothing reported
   assert(check.inspect().game.checks.service.detail == 'plugin-not-loaded', 'no native plugin: the Runtime is missing or not loaded')
   env.native = true; applyEnv(); check.run()
@@ -493,21 +498,23 @@ test('mod managers are a note with the one thing that matters for each', () => r
   installFiles(); serviceRunning()
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}); check.run()
   assert(lineOf('mod-manager').state == 'note' and lineOf('mod-manager').value == 'Note')
-  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract multilingual packs into the Runtime’s own mod folder, not as new mods. Never use the full install zip as a mod: use the update zip as one mod and Runtime.zip from Hugging Face as another. Mention Mod Organizer 2 when you send a report.')
-  -- Mod Organizer 2 runs the service from the Runtime's own mod: a version or update-step problem there says where update zips go; elsewhere it does not
+  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Install the full install zip as one mod and update that mod with each new full install zip. Extract multilingual packs into that mod’s folder, not as new mods. Mention Mod Organizer 2 when you send a report.')
+  -- Under a mod manager (Mod Organizer 2 or Vortex) a version or update-step problem says how to install the full install zip as one mod; elsewhere it does not
   local mo2 = {['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}
-  local hint = 'Mod Organizer 2: put Runtime.zip from Hugging Face into the Runtime’s own mod folder, not the full install zip.'
+  local hint = 'With a mod manager: remove the old Scripts and Runtime mods, then install the full install zip as one mod.'
   for _, versions in ipairs({{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'},
       {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}) do
     answer({versions = versions, ['mod-manager'] = mo2['mod-manager']}); check.run()
     assert(lineOf('versions').description:sub(-#hint - 1) == "\n" .. hint, 'MO2 hint on ' .. versions.code)
+    answer({versions = versions, ['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'vortex', managers = {'vortex'}}}); check.run()
+    assert(lineOf('versions').description:sub(-#hint - 1) == "\n" .. hint, 'the same hint on ' .. versions.code .. ' under Vortex')
     answer({versions = versions}); check.run()
-    assert(not lineOf('versions').description:find('Mod Organizer 2', 1, true), 'no hint without MO2')
+    assert(not lineOf('versions').description:find('With a mod manager', 1, true), 'no hint without a mod manager')
   end
   answer({versions = {id = 'versions', state = 'ok', code = 'match', scripts = '0.2.9', runtime = '0.2.9'}, ['mod-manager'] = mo2['mod-manager']}); check.run()
-  assert(not lineOf('versions').description:find('Mod Organizer 2', 1, true), 'an agreeing version has nothing to say about it')
+  assert(not lineOf('versions').description:find('With a mod manager', 1, true), 'an agreeing version has nothing to say about it')
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'vortex', managers = {'vortex'}}}); check.run()
-  assert(lineOf('mod-manager').description == 'Vortex. Install the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say. Use the update zip and Runtime.zip from Hugging Face as two mods, never the full install zip.')
+  assert(lineOf('mod-manager').description == 'Vortex. Install the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say. Install the full install zip as one mod and update that mod with each new full install zip.')
   assert(check.problemCount() == 0 and #check.problems() == 0, 'a mod manager is never a problem')
 `));
 
