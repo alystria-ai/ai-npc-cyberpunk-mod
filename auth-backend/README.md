@@ -30,7 +30,7 @@ auth-backend/
 | Tokens | One Convai token per warm function instance, given to every install. Re-minted when 5 minutes or less remain (or 15, when a renewal asks for it, see below). | One token per install, kept in Redis for its lifetime. |
 | Convai mints | Roughly one per 45 minutes per instance. | About one per install per hour. Convai documents a mint limit per key by plan and publishes no number, so this mode needs a live test first. |
 | Redis commands per token request | 1 | 1 on a cache hit, 2 on a mint |
-| Daily turn cap | Refuses **new tokens** to an install that reported 100 turns today. Cannot take the token away: it is everyone's token. | Same, and also calls `/user/revoke-token` on that install's cached token (once, best effort). |
+| Daily turn cap | Refuses **new tokens** to an install that reported 500 turns today (the default). Cannot take the token away: it is everyone's token. | Same, and also calls `/user/revoke-token` on that install's cached token (once, best effort). |
 | What the cap really does | Stops an honest or lazy client from renewing. A client holding a valid token keeps working until it expires (up to an hour). | Same, except the revoked token cannot start a **new** connection. |
 
 **Revoking does not end a session already running.** Convai says a token is not checked again once a session has started, so a revoke only stops the token opening new conversations. A modified client that keeps one conversation open indefinitely is not cut off by a revoke.
@@ -51,12 +51,12 @@ The goal is **not** to make abuse impossible. Nothing a client program does can:
 | **Global mints per day** (default 500) | Bounds the worst case: after 500 Convai mints in a UTC day the answer is "busy, try later" and nothing more is minted. In `shared` mode it bounds the effect of a forced-mint flood; in `per-install` mode it bounds how many installs can get tokens. | It is a ceiling, not a filter: an attacker who reaches it also locks out honest players until the next UTC day (`shared` mode still hands out the token already minted). |
 | **Kill switch** (`CONVAI_AUTH_PAUSED=1`) | All new tokens, with a clean "service paused" answer, before any other work. | Tokens already handed out, and sessions already running, until they expire (up to an hour). The bridge obeys a pause; it does not fall back to the embedded key on one. |
 | **Minimum mod version** (`CONVAI_AUTH_MIN_VERSION`) | A compromised or abandoned old client, cut off with an "update the mod" answer. | A modified client that sends a newer version number. |
-| **Daily turn backstop** (default 100 reported turns per install per UTC day, changeable at run time: see "Changing the daily limit") | An install that reports its turns honestly: once its report reaches the cap it gets no new token until the next UTC day, and the bridge shows the same "daily limit reached" notice as the local gate. | **A modified client can report fewer turns than it makes, or none.** Turns happen between the player and Convai directly; this service never sees one. So for a modified client the real bounds are the per-install and per-address token limits, the global mint cap, and the one-hour life of a token, not this cap. |
+| **Daily turn backstop** (default 500 reported turns per install per UTC day, the same number as the bridge's one daily cap, changeable at run time: see "Changing the daily limit") | An install that reports its turns honestly: once its report reaches the cap it gets no new token until the next UTC day, and the bridge shows the same "daily limit reached" notice as the local gate. | **A modified client can report fewer turns than it makes, or none.** Turns happen between the player and Convai directly; this service never sees one. So for a modified client the real bounds are the per-install and per-address token limits, the global mint cap, and the one-hour life of a token, not this cap. |
 | **Blocklist** (`CONVAI_AUTH_BLOCKED_INSTALLS`) | A named install's new tokens. | A fresh install id. |
 | **Admin list** (`/api/admin/turns`) | Nothing by itself. It lets you see heavy reporters (by hash) and block them. | Installs that under-report look quiet. |
 | **Fail closed** | If Redis cannot be reached, nobody gets a token. | Players already holding a token keep going until it expires. |
 
-Two things to know about the 100 a day: the local gate in the bridge (`SharedKeyGuard`) is unchanged and counts per **local** day, while this service counts per **UTC** day, so a player far from UTC can have up to two local days' worth of turns inside one UTC day and be refused early. If that shows up, raise `CONVAI_AUTH_DAILY_TURN_CAP` (the design note suggests 150). The service also cannot tell a shared token's holders apart: in `shared` mode a refused install can still use the token it already has.
+Two things to know about the 500 a day: it is the only usage limit anywhere (the bridge's `SharedKeyGuard` counts every turn the shared key serves, once each, with no sub-pools and no rate limit), and the bridge counts per **local** day while this service counts per **UTC** day, so a player far from UTC can have up to two local days' worth of turns inside one UTC day and be refused early. If that shows up, raise `CONVAI_AUTH_DAILY_TURN_CAP` or the stored limit; the bridge follows whatever number this service reports. The service also cannot tell a shared token's holders apart: in `shared` mode a refused install can still use the token it already has.
 
 What the bridge does with each answer: a daily/rate/paused/busy/outdated/refused answer is **obeyed** (no fallback to the embedded key, turns stop with a notice). An unreachable backend, a 5xx, a 404 or a bad signature setup is treated as "the backend is down", and, while `CYBERPUNK_CONVAI_AUTH_FALLBACK` is not `0`, the embedded key stands in, reported only in `runtime/bridge.stderr.log`. Remove the embedded key in a later release and the fallback disappears with it.
 
@@ -108,7 +108,7 @@ Settings (all optional; defaults shown):
 | `CONVAI_AUTH_IP_PER_HOUR` | 60 | Token requests per address per hour. A deployment that sets this variable keeps its own value. A refused request answers `429 {error: 'rate', limit: 'address' \| 'install', retryAfterSeconds}`; the bridge puts `RATE_ADDRESS` or `RATE_INSTALL` in the error report's `authCause`. |
 | `CONVAI_AUTH_NEW_INSTALLS_PER_IP_PER_DAY` | 5 | New install ids per address per UTC day. |
 | `CONVAI_AUTH_MINTS_PER_DAY` | 500 | Convai mints per UTC day, whole service. Then "busy". |
-| `CONVAI_AUTH_DAILY_TURN_CAP` | 100 | Reported turns per install per UTC day before new tokens are refused (1 to 10000). This is the **default**: a value stored with `POST /api/admin/config` (below) wins over it, so changing the limit needs no redeploy. |
+| `CONVAI_AUTH_DAILY_TURN_CAP` | 500 | Reported turns per install per UTC day before new tokens are refused (1 to 10000). This is the **default**: a value stored with `POST /api/admin/config` (below) wins over it, so changing the limit needs no redeploy. |
 | `CONVAI_AUTH_REMINT_MARGIN_SECONDS` | 300 | Re-mint the cached token when this many seconds or fewer remain. |
 | `CONVAI_AUTH_BLOCKED_INSTALLS` | none | Comma-separated install hashes (from the admin list) to refuse. |
 | `ERROR_REPORTS_OFF` | off | `1` turns the error-report endpoint off: it answers 404 and the bridge stops sending for the session (see "Error reports"). |
@@ -133,7 +133,7 @@ curl -H "Authorization: Bearer $(cat secrets/admin.secret)" https://<address>/ap
 curl -X POST -H "Authorization: Bearer $(cat secrets/admin.secret)" -H "Content-Type: application/json" \
      -d '{"dailyInteractionLimit": 150}' https://<address>/api/admin/config
 
-# remove the stored value: the CONVAI_AUTH_DAILY_TURN_CAP default (100 unless set) applies again
+# remove the stored value: the CONVAI_AUTH_DAILY_TURN_CAP default (500 unless set) applies again
 curl -X POST -H "Authorization: Bearer $(cat secrets/admin.secret)" -H "Content-Type: application/json" \
      -d '{"dailyInteractionLimit": null}' https://<address>/api/admin/config
 ```
@@ -143,9 +143,9 @@ On Windows PowerShell use `curl.exe` (not the `curl` alias) and `(Get-Content -R
 How it takes effect:
 
 - **The server** reads the stored value inside its single admission script (no extra Redis command per request) and compares it with the install's reported turns. The new limit applies from the next token request. A value in the store that is not a whole number in range (edited by hand) is ignored and the environment default applies.
-- **Players' bridges** learn it from the next token answer (`dailyInteractionLimit`, also on a "daily" refusal), within about 50 minutes, and from then on use it for the count and the notice ("{left} of {limit} left today"). A bridge that is blocked for the day asks again every half hour, so raising the limit lets it through within about 30 minutes. The last value is kept in the bridge's state folder (`daily-limit.json`, signed per computer); with no answer yet, or the backend unreachable, the bridge uses the last value it was told, then 100. A value that is missing, not a whole number or outside 1 to 10000 is ignored.
+- **Players' bridges** learn it from the next token answer (`dailyInteractionLimit`, also on a "daily" refusal), within about 50 minutes, and from then on use it for the count and the notice ("{left} of {limit} left today"). A bridge that is blocked for the day asks again every half hour, so raising the limit lets it through within about 30 minutes. The last value is kept in the bridge's state folder (`daily-limit.json`, signed per computer); with no answer yet, or the backend unreachable, the bridge uses the last value it was told, then 500. A value that is missing, not a whole number or outside 1 to 10000 is ignored.
 - **Lowering it** below what a player has already used today blocks that player at the next answer; their count is not reset.
-- **What it does not change:** enforcement is no stronger than before. The server counts only the turns an install reports, and the bridge counts its own turns locally, so a modified client can ignore either number (see the table above). Players who never switched the backend on (`convai-auth.json`) keep the built-in 100 until they do.
+- **What it does not change:** enforcement is no stronger than before. The server counts only the turns an install reports, and the bridge counts its own turns locally, so a modified client can ignore either number (see the table above). Players who never switched the backend on (`convai-auth.json`) keep the built-in 500 until they do.
 
 ## Changing the Convai paid tier's plans (no redeploy, no mod update)
 
@@ -320,7 +320,7 @@ You sign in to the Vercel CLI once with the device code (`vercel login`); everyt
 5. **Optional settings**, for example `CONVAI_AUTH_MIN_VERSION` or a different cap (a plain number piped in; not secret):
 
    ```
-   echo 100 | vercel env add CONVAI_AUTH_DAILY_TURN_CAP production
+   echo 500 | vercel env add CONVAI_AUTH_DAILY_TURN_CAP production
    ```
 
    Error reports (below) need `ERROR_REPORT_SECRET` (a random value of its own, written into the Runtime's `error-reports.json`) and the Redis pair from steps 3 and 4, and are on as soon as the deployment includes `api/errors/report.js`. `ERROR_REPORTS_OFF=1` (same way) turns them off without a code change.

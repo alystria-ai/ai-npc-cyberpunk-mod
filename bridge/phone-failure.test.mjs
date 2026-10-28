@@ -31,7 +31,6 @@ const CAUSES = [
   ['Phone contact is not supported', 'contact-unsupported', coded('Phone contact is not supported', 'CONTACT_UNSUPPORTED')],
   ['The character connection is still releasing. Please try again.', 'connection-busy', Error('The character connection is still releasing. Please try again.')],
   ['daily cap', 'daily-limit', new TurnLimitError('daily')],
-  ['rate limit', 'rate-limit', new TurnLimitError('rate')],
   ['Convai concurrency', 'convai-busy', Error('HTTP 429: Concurrency limit reached')],
   ['Convai interactions', 'convai-quota', Error('Session ended [convai-quota:interaction]')],
   ['Convai memory users', 'convai-speaker-limit', Error('HTTP 429: LTM speaker limit reached')],

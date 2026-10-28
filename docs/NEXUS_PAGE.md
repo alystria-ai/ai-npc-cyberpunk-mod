@@ -39,7 +39,7 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
 [*][b]Send them home.[/b] Tell them to leave, or use Dismiss in Current party.
-[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up. Both are on by default (Settings > Gameplay: React to battles and React to collected loot) and have their own cap on the shared Convai key.
+[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up. Both are on by default (Settings > Gameplay: React to battles and React to collected loot).
 [*][b]Quieter streets in a talk.[/b] The game's own ambient barks of people nearby stay muted for the whole conversation, also in the gaps between turns.
 [*][b]Night City Allies followers talk.[/b] NCA followers who are characters here talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
 [/list][b]Faces and voices[/b][list]

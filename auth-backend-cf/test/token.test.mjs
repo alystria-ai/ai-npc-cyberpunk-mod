@@ -12,8 +12,8 @@ test('a signed request gets a token, the allowance and the server time', async (
   assert.equal(response.status, 200);
   assert.equal(response.json.authToken, 'fake-token-1');
   assert.equal(response.json.allowance.used, 3);
-  assert.equal(response.json.allowance.limit, 100);
-  assert.equal(response.json.dailyInteractionLimit, 100);
+  assert.equal(response.json.allowance.limit, 500);
+  assert.equal(response.json.dailyInteractionLimit, 500);
   assert.equal(response.json.serverTime, Math.floor(world.clock.now / 1000));
   assert.equal(response.json.allowance.resetAt, '2026-10-15T00:00:00.000Z');
   assert.equal(new Date(response.json.expiresAt).getTime(), world.clock.now + HOUR);
@@ -350,7 +350,7 @@ test('admin turns: needs the admin secret, lists the day\'s installs by turns', 
   assert.equal(report.json.day, '2026-10-14');
   assert.equal(report.json.installsReporting, 2);
   assert.equal(report.json.tokenMintsAttempted, 1);
-  assert.equal(report.json.dailyTurnCap, 100);
+  assert.equal(report.json.dailyTurnCap, 500);
   assert.deepEqual(report.json.top.map(row => row.turns), [7, 2]);
   assert.equal(report.json.top[0].install, await pseudonym(PSEUDONYM_SECRET, 'install', heavy));
 });
@@ -373,7 +373,7 @@ test('admin config: validation, the paid plans list, and the public plans endpoi
   assert.equal((await world.call('/api/convai/plans')).json.config.plans[0].priceId, 'price_ABCDEFGH12');
   assert.equal((await post({ paidPlans: null })).json.paidPlans, null);
   const read = await world.call('/api/admin/config', { headers: asAdmin });
-  assert.equal(read.json.environmentDefault, 100);
+  assert.equal(read.json.environmentDefault, 500);
   assert.equal(read.json.min, 1);
   assert.equal(read.json.max, 10000);
 });

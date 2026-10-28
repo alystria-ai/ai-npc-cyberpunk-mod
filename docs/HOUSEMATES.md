@@ -42,7 +42,7 @@ many live there.
 | Seating of companions beside V | `mod/companion-seating.lua`, `docs/COMPANION_SEATING.md` (device entity carrying a vanilla NPC sit workspot, `PlayInDevice` with `PlayAtResourcePosition`, native fast exit, "step out", seat validation rays, walk-up pre-check) | The play/exit/step-out code and the four `convai_sit_*` components. Seats are searched around V there. Here they are fixed table entries |
 | Gesture device and workspot plumbing | `mod/gesture-workspot.lua`, `assets/gestures/gestures.json` `seatWorkspots`, `scripts/Build-GestureAssets.mjs` (forces random lists to 127 clips and `loopInfinitely`) | New components for bed, chair sleep, counter lean, sink |
 | Group chat | `mod/group-chat.lua` (`choose`: at most 3 speakers), `companions.conversationCandidates`, `bridge/companion-actions.mjs` | Residents are candidates; actions cover the whole audience |
-| Automatic spoken lines | `mod/init.lua` automatic reactions (`reaction.kind` `head`, `loot`, `battle`, `addon`), `bridge/shared-key-guard.mjs` `RemarkAllowance` (Johnny's remarks take at most 10 percent of the shared key's day) | New kind `house` for pair chat lines, new allowance |
+| Automatic spoken lines | `mod/init.lua` automatic reactions (`reaction.kind` `head`, `loot`, `battle`, `addon`), `bridge/shared-key-guard.mjs` `SharedKeyGuard` (every line is one of the shared key's 500 turns a day, with no pool of its own) | New kind `house` for pair chat lines, no allowance |
 | Companion speak-up level | `settings.companionSpeakUp` (off, rare, medium, normal) in `mod/manager.lua`, `mod/johnny-remarks.lua` limiter shape (gap plus per hour) | Pair chat obeys the same level, no new setting |
 | Place words and V's apartment records | `bridge/place-names.mjs` `HOME_PLACES`, `mod/init.lua` `currentDistrict()`, `mod/place-words.lua` (immersive branch) | Which apartment V is in |
 | Outfits (branch `feat/outfits`, in progress in another worktree) | `mod/companion-outfits.lua`: `convaiOutfitApi.setHome(key, on)` (true home clothes, false never, nil follows V's whereabouts), `isHome`, `hasHomeOutfit(record)`, `companions.spawnOutfit(record, key)` (a new copy is created in the right clothes), `companions.outfitRows` (the curated copies the tick looks at), changes only when the game's frustum test says nobody sees her | Home clothes, nothing copied |
@@ -491,7 +491,7 @@ Owner, game 2.5: the wait from one line to the next was a little high, and the l
 ### Rate and budget (owner, 2026-10-25)
 
 * **One chat at a time**, at most 8 lines (the speakers aim for 7 or 8; the last line is a closing remark).
-* **A pause from the end of the last chat** (Settings > Housemates > Pause between chats: 1, 2, 5 or 10 minutes, 2 by default), on every provider. There is **no special Convai share**: the idea of a `HouseChatAllowance` beside `RemarkAllowance` was dropped.
+* **A pause from the end of the last chat** (Settings > Housemates > Pause between chats: 1, 2, 5 or 10 minutes, 2 by default), on every provider. There is **no special Convai share**: the idea of a `HouseChatAllowance` was dropped, and since 2026-10-28 there is no `RemarkAllowance` either; every line is one of the shared key's 500 turns a day.
 * The **Companion speak-up** level (Off, rarely, normally, often; the setting is changing names on `feat/dynamic-info-speak-up`) caps the chats per real hour: Off none, rarely 2, normally 4, often 6 (about 2, 4 and 6 an hour as the setting says). Off means no housemate chat. `mod/housemate-chat.lua` accepts the old names (rare, medium, normal) too.
 * The shared arbiter of unprompted lines (Johnny, companions speaking up) is used through `limiter.allow/note` when the speak-up branch provides it (`convaiProactive`); until then only the pause and the level apply.
 * V's own requests come first: a chat never starts while any request of V's is in flight, and a line that is only waiting for the channel is cancelled the moment V talks.
@@ -875,7 +875,7 @@ Everything below is for a **throwaway copy of a save** (never one of the owner's
 2b. **Merge order**: housemates builds on the visiting copies of `feat/immersive-invitations` and the outfit API of `feat/outfits`. Build after both merge, or carry the minimal visiting-copy part here?
 3. **Releasing in the wrong flat**: she lives in Glen, V says "rest" in H10. Default in this design: she leaves and is home virtually. Alternative: she moves to H10. Which?
 4. **A body cap per flat** (10, small flats 6) with the rest rotating "out": acceptable, or a different number?
-5. **Pair chat on the shared Convai key**: the day's share of 8 percent is about one chat a day at a 100 turn cap. Raise it, or let chat run only on Mistral, Local AI and a player's own key?
+5. **Pair chat on the shared Convai key**: since 2026-10-28 a chat line is one of the day's 500 turns like any other, with no share of its own.
 6. **Pair chat setting**: reuse the Companion speak-up level (no new row, recommended), or give chat its own switch?
 7. **Phase 0 measurements**: may an agent teleport V on a throwaway save and set the four purchase facts there to record Glen, Japantown and Northside (and H10 and Corpo Plaza), or will you do the survey in your own saves?
 8. **Manager Move out row** in phase 2, or only the conversation action?

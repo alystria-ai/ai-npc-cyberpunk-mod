@@ -207,8 +207,8 @@ test('the Worker\'s answers are readable by the bridge: allowance, limit and ser
   world.tokens.start();
   await flush();
   assert.equal(world.tokens.lastKind, 'ok');
-  assert.deepEqual(world.tokens.allowance, {used: 2, limit: 100});
-  assert.equal(world.tokens.dailyLimit, 100);
+  assert.deepEqual(world.tokens.allowance, {used: 2, limit: 500});
+  assert.equal(world.tokens.dailyLimit, 500);
   assert.equal(world.tokens.pending, 0, 'the turns were reported to the backend that answered');
 });
 

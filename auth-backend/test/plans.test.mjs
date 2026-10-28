@@ -28,7 +28,7 @@ test('the admin config stores, shows and removes the plan list, and the public e
   const set = await call(admin, { method: 'POST', url: '/api/admin/config', headers: asAdmin, body: JSON.stringify({ paidPlans: PLANS }) });
   assert.equal(set.statusCode, 200);
   assert.deepEqual(set.json.paidPlans, PLANS);
-  assert.equal(set.json.dailyInteractionLimit, 100, 'the daily limit is untouched');
+  assert.equal(set.json.dailyInteractionLimit, 500, 'the daily limit is untouched');
   clock += 61_000; // past the one-minute cache
   const served = await call(plans);
   assert.equal(served.statusCode, 200);

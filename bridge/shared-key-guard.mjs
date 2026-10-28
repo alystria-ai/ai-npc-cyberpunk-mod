@@ -1,13 +1,14 @@
-// Limits on conversation turns that are paid for by the project's shared Convai key (never a player's own key).
+// The one limit on conversation turns that are paid for by the project's shared Convai key (never a player's own key, Local AI,
+// Mistral or Custom, which get no limit from us at all).
 //
-//   * Daily cap: DAILY_LIMIT turns per local calendar day (the day rolls over at local midnight). Counted where a turn
-//     goes to Convai, in RealtimeHost: one per spoken or typed turn, phone message, group speaker (look-ahead turns
-//     included, they are real responses) and automatic reaction. Opening or warming a connection is not a turn.
-//   * Rate limit: a token bucket (RATE_BURST turns at once, refilled at RATE_PER_MINUTE) and a MIN_SPACING_MS gap
-//     between turns, so a script cannot spend the day's turns in seconds.
+//   * Daily cap: DAILY_LIMIT turns per local calendar day per installation (the day rolls over at local midnight). It is the ONLY
+//     limit, and it counts everything that goes to Convai on the shared key, once per provider interaction, in RealtimeHost: a spoken
+//     or typed turn, a phone message, a group speaker (look-ahead turns included, they are real responses), a call, a ride or
+//     threat answer and every automatic reaction (Johnny's remarks, a companion speaking up, battle and loot comments). Opening or
+//     warming a connection is not a turn. There are no shares for kinds of turns and no rate limit between turns.
 //   * The count is kept in two signed copies (the bridge state folder and a second folder under the player's profile)
 //     so deleting one file does not reset it. An unreadable, unsigned or edited copy is ignored: with none left the
-//     count starts at 0 (a damaged file never blocks a player) while the rate limit still applies.
+//     count starts at 0 (a damaged file never blocks a player).
 //
 // Honest limits: the bridge ships as readable source, so someone who edits it, sets CYBERPUNK_CONVAI_DAILY_LIMIT=off in
 // a copy they run themselves, or deletes both counter copies is not stopped. This raises the cost of casual abuse; it
@@ -20,17 +21,13 @@ import {hostname, userInfo} from 'node:os';
 
 export const DAILY_LIMIT = 500;       // turns per local day on the shared key until the sign-in backend says otherwise (auth-backend/ POST /api/admin/config)
 export const LIMIT_MIN = 1, LIMIT_MAX = 10_000;  // the range of a limit the backend may set; the same bounds as auth-backend/api/_lib/config.js
-export const RATE_BURST = 15;         // turns that may follow each other at once
-export const RATE_PER_MINUTE = 12;    // sustained turns per minute
-export const MIN_SPACING_MS = 250;    // shortest gap between two turns
-export const LIMIT_MARKER = /\[convai-quota:(daily|rate)\]/;
+export const LIMIT_MARKER = /\[convai-quota:daily\]/;
 
-/** Thrown before a turn reaches Convai. `kind` is 'daily' or 'rate'; the marker lets convai-quota.mjs classify it. */
+/** Thrown before a turn reaches Convai when the day's turns on the shared key are used up. `kind` is always 'daily'; the marker lets convai-quota.mjs classify it. */
 export class TurnLimitError extends Error {
-  constructor(kind) {
-    super(kind === 'daily' ? 'Daily conversation limit reached [convai-quota:daily]'
-      : 'Conversation turns are coming too quickly [convai-quota:rate]');
-    this.name = 'TurnLimitError'; this.kind = kind;
+  constructor() {
+    super('Daily conversation limit reached [convai-quota:daily]');
+    this.name = 'TurnLimitError'; this.kind = 'daily';
   }
 }
 
@@ -127,11 +124,9 @@ export class LimitStore {
  * `limit` <= 0 turns the whole guard off (development). Methods are synchronous; saving is queued in the background.
  */
 export class SharedKeyGuard {
-  constructor({store, limit = DAILY_LIMIT, applies = () => true, now = Date.now, burst = RATE_BURST,
-    perMinute = RATE_PER_MINUTE, spacingMs = MIN_SPACING_MS, onChange = () => {}, onLimit = () => {}, limitStore, pinned = false} = {}) {
-    Object.assign(this, {store, limit, applies, now, burst, perMinute, spacingMs, onChange, onLimit, limitStore, pinned});
+  constructor({store, limit = DAILY_LIMIT, applies = () => true, now = Date.now, onChange = () => {}, onLimit = () => {}, limitStore, pinned = false} = {}) {
+    Object.assign(this, {store, limit, applies, now, onChange, onLimit, limitStore, pinned});
     this.day = dayOf(now()); this.count = 0; this.seen = now();
-    this.tokens = burst; this.refilled = now(); this.last = -Infinity;
     this.saving = Promise.resolve();
   }
   get enabled() { return this.limit > 0; }
@@ -158,24 +153,17 @@ export class SharedKeyGuard {
     if (today !== this.day && today > this.day) { this.day = today; this.count = 0; }
     this.seen = Math.max(this.seen, now);
   }
-  #refill() {
-    const now = this.now(), elapsed = Math.max(0, now - this.refilled);
-    this.tokens = Math.min(this.burst, this.tokens + elapsed * this.perMinute / 60000);
-    this.refilled = now;
-  }
-  /** Throws TurnLimitError when a turn may not start now. Counts nothing. */
+  /** Throws TurnLimitError when the day's turns are used up. Counts nothing. */
   check() {
     if (!this.enabled || !this.applies()) return;
     this.#roll();
     if (this.count >= this.limit) throw new TurnLimitError('daily');
-    this.#refill();
-    if (this.tokens < 1 || this.now() - this.last < this.spacingMs) throw new TurnLimitError('rate');
   }
   /** Records a turn that is going to Convai. */
   consume() {
     if (!this.enabled || !this.applies()) return;
-    this.#roll(); this.#refill();
-    this.count += 1; this.tokens = Math.max(0, this.tokens - 1); this.last = this.now();
+    this.#roll();
+    this.count += 1;
     this.saving = this.saving.then(() => this.store?.save({day: this.day, count: this.count, seen: this.seen})).catch(() => {});
     try { this.onChange(); } catch { /* an observer never stops a turn */ }
   }
@@ -188,58 +176,6 @@ export class SharedKeyGuard {
     return {limit: this.limit, left: Math.max(0, this.limit - this.count), blocked: this.count >= this.limit};
   }
   /** Resolves when queued saves have finished (tests, shutdown). */
-  flush() { return this.saving; }
-}
-
-// Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): his unprompted remarks are automatic reactions and count as turns like any
-// other, but on the shared key they may use at most REMARK_SHARE of the day's limit (10 of 100), so a chatty Johnny never eats the turns
-// a player wants for talking. Counted in their own signed record (the same format and secret as the turn count, its own files), where a
-// remark goes to Convai; a remark answered by Mistral or Local AI is not a shared-key turn and is not counted.
-// One pool covers every line nobody asked for (docs/COMPANION_SPEAK_UP.md): Johnny's remarks and follow-ons (reaction kind 'head') and a companion's
-// speak-up (kind 'speakup'). A line prepared ahead and then dropped was still a provider interaction and stays counted.
-export const REMARK_SHARE = 0.1;
-export const UNPROMPTED_KINDS = Object.freeze(['head', 'speakup']);
-export const isRemark = config => UNPROMPTED_KINDS.includes(config?.reaction?.kind);
-export const remarkCap = (limit, share = REMARK_SHARE) => Math.max(1, Math.floor(limit * share));
-
-// React to battles and to collected loot are on by default. Each is a turn on the shared key, so together they may use at most REACTION_SHARE of the
-// day's limit (20 of 100), counted apart from the remarks' tenth: a long fight or a looting spree never eats the turns a player wants for talking.
-// The cooldowns in the game (ten minutes between fights and between ordinary pickups, two between Legendary ones) come first; this is the ceiling.
-export const REACTION_SHARE = 0.2;
-export const REACTION_KINDS = Object.freeze(['battle', 'loot']);
-export const isReaction = config => REACTION_KINDS.includes(config?.reaction?.kind);
-
-/** The remarks' share of the shared key. Follows the guard's limit and day; does nothing for a remark that is not on the shared key. */
-export class RemarkAllowance {
-  constructor({guard, store, now = guard.now, applies = isRemark, share = REMARK_SHARE} = {}) {
-    Object.assign(this, {guard, store, now, kind: applies, share});
-    this.day = dayOf(now()); this.count = 0; this.seen = now();
-    this.saving = Promise.resolve();
-  }
-  get cap() { return remarkCap(this.guard.limit, this.share); }
-  #applies(config) { return this.kind(config) && this.guard.enabled && this.guard.applies(); }
-  #roll() {
-    const now = this.now(), today = dayOf(Math.max(now, this.seen));
-    if (today !== this.day && today > this.day) { this.day = today; this.count = 0; }
-    this.seen = Math.max(this.seen, now);
-  }
-  async load() {
-    const record = this.store ? await this.store.load().catch(() => null) : null;
-    if (record) { this.day = record.day; this.count = record.count; this.seen = record.seen; this.#roll(); }
-    return this;
-  }
-  /** Throws TurnLimitError('daily') when the remarks' share of today is used up (the remark just stops; no notice for a reaction). */
-  check(config) {
-    if (!this.#applies(config)) return;
-    this.#roll();
-    if (this.count >= this.cap) throw new TurnLimitError('daily');
-  }
-  consume(config) {
-    if (!this.#applies(config)) return;
-    this.#roll();
-    this.count += 1;
-    this.saving = this.saving.then(() => this.store?.save({day: this.day, count: this.count, seen: this.seen})).catch(() => {});
-  }
   flush() { return this.saving; }
 }
 

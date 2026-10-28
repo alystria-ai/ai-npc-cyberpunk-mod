@@ -194,7 +194,7 @@ bridge does three things with it: one log line (`Phone chat message failed: reas
 `bridge.status["phone-failure-state.json"]`), and the automatic error report for a fault (not for a load or a newer message ending the send).
 Reasons: `route-*` (the world or memory route was not ready: `world-unavailable`, `request-not-prepared`, `memory-route-changed`, `world-changed`, `request-expired`),
 `contact-unsupported`, `invalid-reply` (empty, over 6,000 characters, or a malformed session id), `world-changed`, `memory-route-changed`, `connection-busy`,
-`daily-limit`, `rate-limit`, `convai-signin` (the shared Convai account could not be signed in to), `convai-busy` (the plan's concurrency limit), `convai-quota`, `convai-speaker-limit`, `convai-memory-needed`, `convai-key-rejected`,
+`daily-limit`, `convai-signin` (the shared Convai account could not be signed in to), `convai-busy` (the plan's concurrency limit), `convai-quota`, `convai-speaker-limit`, `convai-memory-needed`, `convai-key-rejected`,
 `mistral-*`, `local-*`, `custom-*` (the kind the provider named), `local-unavailable`, `session-rejected`, `timeout`, `browser`, `network`, `cancelled`, `unknown`.
 
 The UI wait for a reply is 45 s for Convai and Mistral, 95 s for Local AI (its turn budget is 80 s, a cold model load included) and 125 s for a custom endpoint (up to 120 s),

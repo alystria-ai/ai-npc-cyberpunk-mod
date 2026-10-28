@@ -26,7 +26,7 @@ test('the admin list shows per-install daily totals, heaviest first, by hash onl
   assert.deepEqual(body.top.map(row => row.turns), [90, 5]);
   assert.match(body.top[0].install, /^[0-9a-f]{24}$/);
   assert.ok(!response.text.includes(heavy) && !response.text.includes(light), 'raw install ids are never shown');
-  assert.equal(body.dailyTurnCap, 100);
+  assert.equal(body.dailyTurnCap, 500);
   assert.equal(body.tokenMintsAttempted, 1);
   const limited = await call(handler, { url: '/api/admin/turns?limit=1&day=2026-10-14', headers: asAdmin });
   assert.equal(limited.json.top.length, 1);

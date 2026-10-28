@@ -231,7 +231,7 @@ export class RealtimeHost {
   // recover(error, config): may return a changed config for one more attempt (a player's key whose plan has no room for
   // another memory user retries with the account's existing memory user, or without an identity), or nothing. It may be async.
   // guard: {check(), consume()} (bridge/shared-key-guard.mjs), the one place a turn is admitted before it reaches Convai: a
-  // turn that may not run makes check() throw (the daily cap or the rate limit of the shared key). Opening or warming a
+  // turn that may not run makes check() throw (the shared key's one daily cap). Opening or warming a
   // connection is not a turn. A microphone turn is checked when it begins and counted when it is finished.
   // credential(config): optional, may be async. Returns the config as it must be sent to Convai (an `authToken` from the
   // sign-in backend, or the `key`). Asked at the moment a page is called; the token is already in memory (bridge/convai-credential.mjs),

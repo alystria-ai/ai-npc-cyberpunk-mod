@@ -646,7 +646,7 @@ test('a sign-in the backend rate-limits is a sign-in state, never "turns are com
       fetchImpl: async () => Response.json(body, {status}), now: () => 0, setTimer: timers.setTimer, clearTimer: timers.clearTimer});
     const keys = await keysWith(tokens);
     tokens.start(); await flush();
-    // A turn long after the first answer: the guard's own rate limit has nothing to do with it.
+    // A turn long after the first answer.
     const error = await keys.credentialFor(config).then(() => null, failure => failure);
     assert.ok(error, status);
     assert.doesNotMatch(error.message, /coming too quickly|convai-quota/);
@@ -655,8 +655,8 @@ test('a sign-in the backend rate-limits is a sign-in state, never "turns are com
     const watch = new QuotaWatch({keys});
     assert.equal(watch.codeFor(error), 'convai-unavailable', 'the game says Convai could not sign in');
   }
-  // The local guard's own rate limit keeps its message and classification.
-  assert.equal(classifyFailure(new TurnLimitError('rate')), 'rate');
+  // The local guard has the daily cap only: its message and classification.
+  assert.equal(classifyFailure(new TurnLimitError('daily')), 'daily');
 });
 
 /** A source whose fetch answers from a script ('fail' = network error, 'ok' = a token, {status, body} = that answer), on a clock the test moves. */

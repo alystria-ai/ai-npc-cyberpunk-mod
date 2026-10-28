@@ -35,7 +35,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Companions settle in your flat**: while you stay in your own apartment, your companions sit down on seats by themselves instead of trailing you, and on a bar stool they face the counter. No setting.
 - **Revenge ambushes (new, off by default)**: Settings > Gameplay > Revenge ambushes. A gang you keep killing may, rarely, send a small squad after you, and one of them shouts a short threat. Never in a fight, a scene, a call, a vehicle, indoors, in a safe zone or while wanted. The threats are spoken only while Talk to ordinary NPCs is on.
 - **Companions change outfits (new, off by default)**: Settings > Gameplay > Companions change outfits. Companions change into other looks, only while you are not looking. One who stood up to change sits down again within seconds.
-- **Battle and loot reactions are on by default**: React to battles and React to collected loot (Settings > Automatic reactions). Characters comment on fights and on loot you pick up, and they have their own daily cap. Switch either off there.
+- **Battle and loot reactions are on by default**: React to battles and React to collected loot (Settings > Automatic reactions). Characters comment on fights and on loot you pick up. Switch either off there.
 - **Dynamic info has twelve switches**: Settings > Conversations > Dynamic info now also covers Time since last talk and Music and TV (new: the radio station and song playing, and the TV channel), and Other mods' state, which is off by default (it reads Dark Future and the Equipment-EX outfit V wears). The rest are on.
 - **Companions speak up**: Settings > Conversations > Companions speak up (Speaks up rarely by default). Companions sometimes start a remark by themselves at a calm moment. Off turns it off.
 - **Phone Chat** lists every character that has a profile here, not only the game's contacts, and its Chat tab has the same J (invite) and L (dismiss) buttons as the Contacts list.
@@ -152,7 +152,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Faster first replies on slow PCs**: a shorter character description on PCs that read prompts slowly, and prompts are trimmed properly instead of being sent whole.
 - **A tidier settings page**: fewer rows, one row each for Johnny and V's voice, and the Custom endpoint on its own page.
 - **Companions drive from inside your car**: say "you drive" or "swap seats" while sitting in your own car with a destination set.
-- **Convai free tier**: 500 turns a day.
+- **Convai free tier**: 500 turns a day, and that is the only limit: every kind of line counts the same (typed, spoken, group, speaking up, reactions, rides), with no separate share for any of them.
 - **Mod Organizer 2**: packs and microphone packs installed as separate mods are found.
 
 ## What's new in 0.2.4

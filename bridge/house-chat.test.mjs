@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {parseHouseReaction, houseTrigger, awayPhrase, CHAT_LINES, CHAT_WORDS, WELCOME_WORDS} from './house-chat.mjs';
 import {parseInput} from './protocol.mjs';
 import {battleTrigger, battleContext, reactionLeaseProblem} from './battle-context.mjs';
-import {isRemark} from './shared-key-guard.mjs';
+import {SharedKeyGuard} from './shared-key-guard.mjs';
 import {followUpContext} from './conversation-style.mjs';
 
 const chat = (extra = {}) => ({kind: 'house', event: 'chat', partner: 'Panam Palmer', partnerKey: 'panam-palmer', place: 'Corpo Plaza apartment', n: 1, of: 7,
@@ -227,8 +227,10 @@ test('the main pipeline words a house line as its trigger and gives it no battle
   assert.equal(battleTrigger({text: 'hello'}), 'hello');
 });
 
-test('house lines are ordinary turns of the day on the shared key: not a remark, no allowance of their own', () => {
-  assert.equal(isRemark({reaction: {kind: 'house'}}), false);
+test('house lines are ordinary turns of the day on the shared key: they count once each in the one daily cap, with no allowance of their own', () => {
+  const guard = new SharedKeyGuard({limit: 2});
+  guard.admit({reaction: {kind: 'house'}}); guard.admit({reaction: {kind: 'house'}});
+  assert.throws(() => guard.admit({reaction: {kind: 'house'}}), error => error.kind === 'daily');
 });
 
 test('a chat of three or four: the rest of the company is named, an old game sends none, and a bad list is invalid', () => {

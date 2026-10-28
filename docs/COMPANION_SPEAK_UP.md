@@ -85,7 +85,7 @@ Written 2026-10-28 on branch `feat/speak-up-group`. The owner asked that compani
 
 ## Convai budget
 
-Each line is a provider interaction. On the free shared key all unprompted lines share the one pool of a tenth of the day's turns (10 of 100; `docs/JOHNNY_IN_YOUR_HEAD.md`, Quota), so the free key sees at most about ten of them a day, a line refused by the allowance just stops. At Rarely (2 an hour) a two-hour session uses about four single lines. The default since 0.3.4 is Often (about 6 an hour), and with two or more companions near a speak-up is most of the time a round of 3 to 5 lines, each line one interaction, so a calm hour with a full party can use some twenty. A player's own key is not limited by us; its plan's interactions are (Rarely is the setting that uses the fewest).
+Each line is a provider interaction. On the free shared key every line is one of the day's 500 turns, counted in the one daily cap with everything else (no pool of its own since 2026-10-28, so a round of 3 to 5 lines is never starved), and a line refused because the day is used up just stops. At Rarely (2 an hour) a two-hour session uses about four single lines. The default since 0.3.4 is Often (about 6 an hour), and with two or more companions near a speak-up is most of the time a round of 3 to 5 lines, each line one interaction, so a calm hour with a full party can use some twenty. A player's own key is not limited by us; its plan's interactions are (Rarely is the setting that uses the fewest).
 
 ## Tests
 
@@ -122,7 +122,7 @@ Written 2026-10-25. Everything below is offline-verified against a simulated gam
 
 **Memory.** A reaction is never recorded in conversation memory (`TextProviderHost` records only turns that are no reaction; Convai takes a reaction as a trigger message), so neither a companion's speak-up nor Johnny's follow-on is remembered by anyone. His lines are voice-only to V and are in no companion's context: a companion's context is built from that turn's own input, and the follow-on is a head turn of his own that cannot be a group round or a companion's profile. Tests: `bridge/speakup-context.test.mjs` (contexts) and `bridge/speak-up-bridge.test.mjs` (the real bridge: her later prompt and every memory file hold neither line).
 
-**The shared key.** A speak-up and a follow-on are provider interactions: they count in the same pool as Johnny's remarks (`REMARK_SHARE` = a tenth of the day's turns, `RemarkAllowance`, kinds `head` and `speakup`). A player's own key is never limited. A prepared line that is dropped was still sent to the provider and stays counted.
+**The shared key.** A speak-up and a follow-on are provider interactions: each counts once in the shared key's one daily cap of 500 turns, like a typed turn (no pool of a tenth for Johnny's remarks and speak-ups any more). A player's own key is never limited. A prepared line that is dropped was still sent to the provider and stays counted.
 
 ### Preparing a line ahead
 
@@ -182,7 +182,7 @@ What this shows and what it does not. Preparation removes the whole provider req
 | File | What it pins |
 |---|---|
 | `bridge/speakup-context.test.mjs` | the parsers (both reactions, hostile values, ambient / add-on / Johnny refused), the triggers (no question, word limits, data quoting), the context (right-now block, journal, scene scoping, Dynamic info gates), the follow-on is in no companion's context |
-| `bridge/speak-up-lookahead.test.mjs` | `validateFollow` / `validateAhead` (every refusal), the gate matrix, the 90 s hold, the source watch, the shared key's one pool |
+| `bridge/speak-up-lookahead.test.mjs` | `validateFollow` / `validateAhead` (every refusal), the gate matrix, the 90 s hold, the source watch, the shared key's one daily cap |
 | `bridge/speak-up-local-ai.test.mjs` | the Local AI server and route (refusals, stop by a turn, no model load, priority), the host (really aborted, no memory, V's turn not delayed), Mistral's background priority |
 | `bridge/speak-up-bridge.test.mjs` | the real bridge: prepared before the source ends, published only after the game submits, dropped by V's request / the text box / a cancelled source / a withdrawal / the hold, mismatches never started, the after-scene line, who may prepare on Convai, the text provider route |
 
