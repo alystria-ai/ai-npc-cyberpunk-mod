@@ -11,10 +11,14 @@
 //     beyond the one being sent, and never more than `maxLead` seconds of audio beyond what has been heard (a paused game does not let
 //     a long reply render to its end);
 //   - each finished phrase is decoded and handed to `onPcm` in packets of at most 2 s, numbered and offset like Pocket's;
+//   - each rendered phrase is joined to the one before it by bridge/omni-join.mjs: the model's own silence at both ends is cropped, the end is faded, the
+//     level follows the first phrase's and a pause of a speaker's length (sentence or comma) is put between them, so the joins are even and the first word
+//     comes without the half second of padding the model starts with;
 //   - a phrase after the first that fails ends the reply there (`truncated`), the sentence already heard is kept; a first phrase that
 //     fails throws, and the reply is written text.
 import {readPcmWav} from './speech-audio.mjs';
 import {splitSpeechText} from './speech-phrases.mjs';
+import {PhraseJoiner} from './omni-join.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {randomBytes, createHash} from 'node:crypto';
 
@@ -64,9 +68,10 @@ const sleepFor = (ms, signal) => new Promise((resolve, reject) => {
  * retries() -> how many more times a phrase whose render failed is asked for again before the reply ends there (default 0: none). The AMD route (ROCm) asks for one:
  * a stray PyTorch/MIOpen error on one phrase (the worker answers it with an error and keeps running) otherwise cut a reply off mid-sentence. A cancelled reply or a
  * worker that is gone is never retried. onRetry({index, error}) is a diagnostics hook.
+ * join: false sends each phrase exactly as the worker rendered it (no crop, fade, level match or pause: bridge/omni-join.mjs); the default shapes the joins.
  */
 export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => undefined, onPhrase, onRetry, retries = () => 0, ahead = 2, maxLeadSeconds = 14, sleep = sleepFor,
-  pollMs = 75, now = () => performance.now()}) {
+  pollMs = 75, now = () => performance.now(), join = true}) {
   if (typeof synthesize !== 'function') throw Error('OmniVoice synthesis is required');
   let counter = 0;
   return {
@@ -110,6 +115,7 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
       // The worker's one queue: this phrase, and the next one behind it.
       for (let index = 0; index < Math.min(ahead, phrases.length); index++) queue(index);
       let frames = 0, packets = 0, first;
+      const joiner = join ? new PhraseJoiner({rate: OMNI_RATE}) : null;
       try {
         for (let index = 0; index < phrases.length; index++) {
           let generated;
@@ -124,7 +130,8 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
               timing: {...first?.timing, voiceProvider: 'omni', voiceEngine: 'omnivoice', voiceTailFailed: true}};
           }
           jobs.delete(index);
-          const pcm = wavToPcm(generated.audio);
+          const rendered = wavToPcm(generated.audio);
+          const pcm = joiner ? joiner.shape(rendered, {text: phrases[index], first: index === 0, last: index === phrases.length - 1}) : rendered;
           if (frames + pcm.length > MAX_FRAMES) throw Error('Speech exceeded two minutes');
           first ??= generated;
           for (let at = 0; at < pcm.length; at += PACKET_FRAMES) {
