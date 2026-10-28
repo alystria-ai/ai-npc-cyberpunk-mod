@@ -428,8 +428,8 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   press('Characters to invite')
   local function invites() local count = 0; for _, row in ipairs(mcm.rows()) do if row.value == 'Invite' then count = count + 1 end end; return count end
   assert(invites() == 12 and mcm.row('Johnny Silverhand') and not mcm.row('Viktor Vektor'))
-  assert(footerLabels() == 'Previous page | Next page | Add to favorites | Back', footerLabels())
-  assert(mcm.config().footerActions[1] == 'ui:page:previous' and mcm.config().footerActions[3] == 'favorite:toggle' and mcm.config().footerActions[4] == 'characters:back')
+  assert(footerLabels() == 'Previous page | Next page | Back', footerLabels())
+  assert(mcm.config().footerActions[1] == 'ui:page:previous' and mcm.config().footerActions[2] == 'ui:page:next' and mcm.config().footerActions[3] == 'characters:back')
   assert(listed('Previous page') == nil and listed('Next page') == nil, 'not rows of the list')
   assert(headings() == 'Characters to invite · Page 1 / 2', headings())
   assert(mcm.config().navigation.pageId == 'characters|1|1')
@@ -438,11 +438,11 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   assert(mcm.row('Previous page').type == 'action' and mcm.row('Previous page').capabilities.action == true and not mcm.row('Previous page').disabled)
   press('Previous page')
   assert(mcm.config().navigation.pageId == 'characters|1|1' and mcm.loads == loads and invites() == 12, 'Previous on page 1 changes nothing')
-  assert(footerLabels() == 'Previous page | Next page | Add to favorites | Back', 'the footer never changes shape')
+  assert(footerLabels() == 'Previous page | Next page | Back', 'the footer never changes shape')
   press('Next page')
   assert(invites() == 10 and mcm.row('Viktor Vektor') and not mcm.row('Johnny Silverhand'), 'the second page')
   assert(headings() == 'Characters to invite · Page 2 / 2', headings())
-  assert(footerLabels() == 'Previous page | Next page | Add to favorites | Back')
+  assert(footerLabels() == 'Previous page | Next page | Back')
   assert(mcm.config().navigation.pageId == 'characters|2|1', 'a new page id: MCM scrolls to the top of it')
   loads = mcm.loads
   press('Next page')
@@ -454,16 +454,16 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   -- The model browser: the scan reads a batch a frame, then a letter group and pages.
   press('Back to Companion Manager'); press('Model browser')
   frames(140)
-  assert(footerLabels() == 'Starts with: All | Previous page | Next page | Add to favorites | Back', footerLabels())
+  assert(footerLabels() == 'Starts with: All | Previous page | Next page | Back', footerLabels())
   local group = mcm.row('Starts with: All')
   assert(group and group.type == 'action' and group.description ~= '' and listed('Starts with: All') == nil, labels())
   press('Starts with: All')
   assert(mcm.row('Starts with: All') == nil, 'the letter changed')
   assert(mcm.config().navigation.pageId:match('^models|1|2$'), tostring(mcm.config().navigation.pageId))
   -- The first letter is J (Johnny Silverhand under his profile name, one model: no pages), the next M (the 5999 models named from their record id).
-  assert(footerLabels() == 'Starts with: J | Add to favorites | Back', footerLabels())
+  assert(footerLabels() == 'Starts with: J | Back', footerLabels())
   press('Starts with: J')
-  assert(footerLabels():find('^Starts with: M | Previous page | Next page | Add to favorites | Back$'), footerLabels())
+  assert(footerLabels():find('^Starts with: M | Previous page | Next page | Back$'), footerLabels())
 `));
 
 test('every page the manager can show is drawn in one style: buttons are buttons of one size and place, settings are settings, no button is turned into a plain line', () => withScreen(`

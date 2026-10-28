@@ -125,7 +125,8 @@ test('the model browser reads the scan first, then a letter group and a page of 
   assert(ns.find('Page').max == 500, 'twelve models a page over 6000 models')
   local before = #ns.screen.children
   assert(before <= 1 + 1 + 1 + 1 + 1 + 1 + 1 + 12 + 1, 'widgets on screen: ' .. before)
-  -- One row's button changes (an invite is made): only that row is replaced, in its place.
+  -- One row's button changes (an invite is made): that row is replaced, in its place, and gets the Add to favorites row above it (the rows
+  -- below it move down one, so they are drawn again too; the rows above it stay).
   local first
   for _, option in ipairs(ns.sections()[2].options) do if option.buttonText == 'Invite' then first = option; break end end
   local label = first.label
@@ -134,7 +135,10 @@ test('the model browser reads the scan first, then a letter group and a page of 
   ns.interact.press(first); frames(4); ns.verify()
   local survivors = 0
   for _, option in ipairs(ns.sections()[2].options) do if others[option] then survivors = survivors + 1 end end
-  assert(survivors >= #ns.sections()[2].options - 1, 'only the invited model\\'s row was replaced: ' .. survivors .. ' of ' .. #ns.sections()[2].options)
+  local rowsAbove = 0
+  for _, option in ipairs(ns.sections()[2].options) do if option.label == label then break end rowsAbove = rowsAbove + 1 end
+  assert(survivors >= rowsAbove, 'the rows above the invited model\\'s were kept: ' .. survivors .. ' of ' .. rowsAbove)
+  assert(#ns.screen.children <= before + 1, 'one row more at most: ' .. #ns.screen.children .. ' / ' .. before)
 `));
 
 test('the manager opens on its first page: after leaving the tab, after closing the screen and on the shortcut', () => run(`${harness()}

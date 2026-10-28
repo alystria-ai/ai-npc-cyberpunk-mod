@@ -172,6 +172,44 @@ public final func ConvaiPhoneChatListName(contact: String, name: String) -> Stri
     return ArrayContains(this.m_convaiChatFavorites, contact) ? this.m_convaiChatFavoriteMark + name : name;
 }
 
+// The F key on the Chat list turns a contact's favorite on or off. The list shows the change at once from this array; the request goes on
+// to Lua (mod/phone-chat.lua takes it on its 10 Hz tick), which keeps it in favorites.lua and sends the whole list back. A request is one
+// string: "1" (on) or "0" (off), then the contact id. Written only on a key press, never per frame.
+@addField(PlayerPuppet)
+private let m_convaiChatFavoriteRequests: array<String>;
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatSetFavorite(contact: String, on: Bool) -> Void {
+    ArrayRemove(this.m_convaiChatFavorites, contact);
+    if on { ArrayPush(this.m_convaiChatFavorites, contact); };
+    if ArraySize(this.m_convaiChatFavoriteRequests) < 16 { ArrayPush(this.m_convaiChatFavoriteRequests, (on ? "1" : "0") + contact); };
+}
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatTakeFavoriteRequest() -> String {
+    if ArraySize(this.m_convaiChatFavoriteRequests) == 0 { return ""; };
+    let request = this.m_convaiChatFavoriteRequests[0];
+    ArrayErase(this.m_convaiChatFavoriteRequests, 0);
+    return request;
+}
+
+// The F key is also the game's confirm (`click`), which opens a chat. While F is down, and for a moment after it comes up (the game's own click
+// of the release), a click on the Chat list is the favorite key's and opens nothing. Time of the last F event, engine seconds.
+@addField(PlayerPuppet)
+private let m_convaiChatFavoriteKeyAt: Float;
+@addField(PlayerPuppet)
+private let m_convaiChatFavoriteKeyDown: Bool;
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatFavoriteKey(down: Bool) -> Void {
+    this.m_convaiChatFavoriteKeyDown = down;
+    this.m_convaiChatFavoriteKeyAt = EngineTime.ToFloat(GameInstance.GetEngineTime(this.GetGame()));
+}
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatFavoriteKeyActive() -> Bool {
+    if this.m_convaiChatFavoriteKeyDown { return true; };
+    if this.m_convaiChatFavoriteKeyAt <= 0.0 { return false; };
+    let age = EngineTime.ToFloat(GameInstance.GetEngineTime(this.GetGame())) - this.m_convaiChatFavoriteKeyAt;
+    return age >= 0.0 && age < 0.35;
+}
+
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatContact() -> String {
     return IsDefined(this.m_convaiChatView) ? this.m_convaiChatView.ConvaiChatContact() : "";

@@ -99,6 +99,72 @@ public class ConvaiHintBinding {
         if NotEquals(previous, action) { display.SetInputAction(action); };
         return previous;
     }
+    // The key box of a hint drawn as a given key of the game's own keyboard art (the key the mod listens to, T, H or F, which the game has no
+    // action for). The hint's controller keeps its action; Redraw puts its own box back.
+    public static func Glyph(root: ref<inkWidget>, part: CName) -> Void {
+        let icon = ConvaiPhoneChatLayout.Find(root, n"inputIcon", 3) as inkImage;
+        if !IsDefined(icon) { return; };
+        icon.SetAtlasResource(r"base\\gameplay\\gui\\common\\input\\icons_keyboard.inkatlas");
+        icon.SetTexturePart(part);
+    }
+    // The hint's own key box again, for the action it is bound to: setting another action and then this one makes the controller draw it anew.
+    public static func Redraw(root: ref<inkWidget>) -> Void {
+        let display = ConvaiHintBinding.Display(root, 3);
+        if !IsDefined(display) { return; };
+        let action = display.GetInputAction();
+        display.SetInputAction(n"cancel");
+        display.SetInputAction(action);
+    }
+}
+
+// The favorite mark of the hints on the Chat list: the game's own favorite star (the Ripperdoc's, ripperdoc/assets/cw_bars_assets.inkatlas, part
+// fav_star), gold when the contact is a favorite and the hints' blue when not, and the keyboard art's F key.
+public class ConvaiFavoriteArt {
+    public static func Blue() -> HDRColor {
+        let color: HDRColor;
+        color.Red = 0.368627459;
+        color.Green = 0.964705944;
+        color.Blue = 1.0;
+        color.Alpha = 1.0;
+        return color;
+    }
+    public static func Gold() -> HDRColor {
+        let color: HDRColor;
+        color.Red = 1.1192;
+        color.Green = 0.8441;
+        color.Blue = 0.2565;
+        color.Alpha = 1.0;
+        return color;
+    }
+    public static func Star(width: Float, height: Float) -> ref<inkImage> {
+        let star = new inkImage();
+        star.SetName(n"convaiFavoriteStar");
+        star.SetAtlasResource(r"base\\gameplay\\gui\\fullscreen\\ripperdoc\\assets\\cw_bars_assets.inkatlas");
+        star.SetTexturePart(n"fav_star");
+        star.SetFitToContent(false);
+        star.SetSize(new Vector2(width, height));
+        star.SetHAlign(inkEHorizontalAlign.Center);
+        star.SetVAlign(inkEVerticalAlign.Center);
+        star.SetInteractive(false);
+        star.SetTintColor(ConvaiFavoriteArt.Blue());
+        return star;
+    }
+    public static func KeyCap(part: CName) -> ref<inkImage> {
+        let key = new inkImage();
+        key.SetName(n"convaiFavoriteKey");
+        key.SetAtlasResource(r"base\\gameplay\\gui\\common\\input\\icons_keyboard.inkatlas");
+        key.SetTexturePart(part);
+        key.SetFitToContent(false);
+        key.SetSize(new Vector2(64.0, 64.0));
+        key.SetHAlign(inkEHorizontalAlign.Center);
+        key.SetVAlign(inkEVerticalAlign.Center);
+        key.SetInteractive(false);
+        key.SetTintColor(ConvaiFavoriteArt.Blue());
+        return key;
+    }
+    public static func Tint(star: ref<inkImage>, favorite: Bool) -> Void {
+        if IsDefined(star) { star.SetTintColor(favorite ? ConvaiFavoriteArt.Gold() : ConvaiFavoriteArt.Blue()); };
+    }
 }
 
 @addField(NewHudPhoneGameController)
@@ -138,7 +204,7 @@ private final func ConvaiSelectPhoneTab(index: Int32) -> Void {
 }
 
 @addMethod(NewHudPhoneGameController)
-private final func ConvaiShowChatContacts() -> Void {
+private final func ConvaiShowChatContacts(opt selectId: String) -> Void {
     let contacts: array<ref<IScriptable>>;
     let entries: array<wref<JournalEntry>>;
     let context: JournalRequestContext;
@@ -189,6 +255,8 @@ private final func ConvaiShowChatContacts() -> Void {
     this.m_convaiChatState = ConvaiPhoneChatState.List;
     this.m_contactListLogicController.SetSortMethod(ContactsSortMethod.ByName);
     this.m_contactListLogicController.PopulateListData(contacts);
+    // A list built again for one contact (her favorite changed) keeps the selection on her, wherever the new order puts her.
+    if StrLen(selectId) > 0 { this.m_contactListLogicController.ConvaiSelectChatContact(selectId); };
     this.m_contactListLogicController.ConvaiShowChatTab(ArraySize(contacts) == 0);
 }
 
@@ -210,10 +278,18 @@ protected cb func OnContactListAction(action: ListenerAction, consumer: Listener
             return true;
         };
         if Equals(this.m_convaiChatState, ConvaiPhoneChatState.List) {
-            // The Call key of a Chat row (the game's `call` action, V on a keyboard, Triangle on a pad, the key the Call
-            // hint shows). On a pad Triangle is also showAll, which means nothing on this tab.
+            // The Call key of a Chat row on a pad is the game's `call` action (Triangle, the key the Call hint shows); it is also
+            // showAll, which means nothing on this tab. On a keyboard the call key is H (OnConvaiChatListKey): the game's V, which
+            // is the same action, does nothing here.
             if Equals(name, n"call") {
-                this.ConvaiChatListHolocall(this.m_contactListLogicController.GetSelectedContactData());
+                if !this.m_player.PlayerLastUsedKBM() {
+                    this.ConvaiChatListHolocall(this.m_contactListLogicController.GetSelectedContactData());
+                };
+                ListenerActionConsumer.Consume(consumer);
+                return true;
+            };
+            // F is the game's confirm (`click`) as well as the mod's favorite key: the press that turned a favorite on or off opens no chat.
+            if Equals(name, n"click") && this.m_player.ConvaiPhoneChatFavoriteKeyActive() {
                 ListenerActionConsumer.Consume(consumer);
                 return true;
             };
@@ -233,11 +309,128 @@ protected cb func OnContactListAction(action: ListenerAction, consumer: Listener
 public func EnableContactsInput() -> Void {
     wrappedMethod();
     if IsDefined(this.m_player) { this.m_player.RegisterInputListener(this, n"call"); };
+    this.ConvaiChatListKeysStart();
 }
 @wrapMethod(NewHudPhoneGameController)
 public func DisableContactsInput() -> Void {
+    this.ConvaiChatListKeysStop();
     if IsDefined(this.m_player) { this.m_player.UnregisterInputListener(this, n"call"); };
     wrappedMethod();
+}
+@wrapMethod(NewHudPhoneGameController)
+protected cb func OnUninitialize() -> Bool {
+    this.ConvaiChatListKeysStop();
+    return wrappedMethod();
+}
+
+// The Chat list's keys on a keyboard: T opens the text chat, H calls, F turns the favorite on or off. The game has no action for them on this
+// screen (T and H are not bound in the phone's input context, F is its confirm), so they are Codeware key callbacks, registered with the list's
+// own inputs like the J and L keys (PhoneContacts.reds) and acted on only while the Chat list is up: in a conversation they are letters.
+// Without Codeware these scripts still compile and the keys do nothing (Enter, a click and R open the chat as before).
+@addField(NewHudPhoneGameController)
+private let m_convaiChatListKeys: ref<CallbackSystemHandler>;
+@addField(NewHudPhoneGameController)
+private let m_convaiChatKeyDownT: Bool;
+@addField(NewHudPhoneGameController)
+private let m_convaiChatKeyDownH: Bool;
+@addField(NewHudPhoneGameController)
+private let m_convaiChatKeyDownF: Bool;
+
+@if(ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiChatListKeysStart() -> Void {
+    this.ConvaiChatListKeysStop();
+    this.m_convaiChatListKeys = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiChatListKey")
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_T, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_H, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_F, EInputAction.IACT_Press));
+    // A key target of the game 2.31 filters by the action, so the releases (which end a hold, see OnConvaiChatListKey) need targets of their own.
+    if ConvaiKeyTargetsByAction() {
+        this.m_convaiChatListKeys.AddTarget(ConvaiKeyTarget(EInputKey.IK_T, EInputAction.IACT_Release));
+        this.m_convaiChatListKeys.AddTarget(ConvaiKeyTarget(EInputKey.IK_H, EInputAction.IACT_Release));
+        this.m_convaiChatListKeys.AddTarget(ConvaiKeyTarget(EInputKey.IK_F, EInputAction.IACT_Release));
+    };
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiChatListKeysStart() -> Void {
+}
+
+@if(ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiChatListKeysStop() -> Void {
+    if IsDefined(this.m_convaiChatListKeys) {
+        this.m_convaiChatListKeys.Unregister();
+        this.m_convaiChatListKeys = null;
+    };
+    this.m_convaiChatKeyDownT = false;
+    this.m_convaiChatKeyDownH = false;
+    this.m_convaiChatKeyDownF = false;
+    if IsDefined(this.m_player) { this.m_player.ConvaiPhoneChatFavoriteKey(false); };
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiChatListKeysStop() -> Void {
+}
+
+@if(ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private cb func OnConvaiChatListKey(evt: ref<KeyInputEvent>) -> Void {
+    // The key target of the game 2.5 cannot filter by action (GameVariant.reds): only a press and a release count. A held key repeats its press, so a
+    // key that is down acts once, until its release.
+    let key = evt.GetKey();
+    let pressed = Equals(evt.GetAction(), EInputAction.IACT_Press);
+    if !pressed && NotEquals(evt.GetAction(), EInputAction.IACT_Release) { return; };
+    if !pressed {
+        if Equals(key, EInputKey.IK_T) { this.m_convaiChatKeyDownT = false; };
+        if Equals(key, EInputKey.IK_H) { this.m_convaiChatKeyDownH = false; };
+        if Equals(key, EInputKey.IK_F) {
+            this.m_convaiChatKeyDownF = false;
+            if IsDefined(this.m_player) { this.m_player.ConvaiPhoneChatFavoriteKey(false); };
+        };
+        return;
+    };
+    if !IsDefined(this.m_player) || !IsDefined(this.m_contactListLogicController) || evt.IsShiftDown() || evt.IsControlDown() || evt.IsAltDown() { return; };
+    // Only the Chat list: a conversation (or its opening) owns the keyboard, and the other tabs are the game's.
+    if NotEquals(this.m_convaiChatState, ConvaiPhoneChatState.List) { return; };
+    let selected = this.m_contactListLogicController.GetSelectedContactData();
+    if !IsDefined(selected) || !selected.convaiChat { return; };
+    if Equals(key, EInputKey.IK_T) {
+        if !this.m_convaiChatKeyDownT {
+            this.m_convaiChatKeyDownT = true;
+            this.ConvaiOpenChat(selected, true);
+        };
+    } else {
+        if Equals(key, EInputKey.IK_H) {
+            if !this.m_convaiChatKeyDownH {
+                this.m_convaiChatKeyDownH = true;
+                this.ConvaiChatListHolocall(selected);
+            };
+        } else {
+            if Equals(key, EInputKey.IK_F) {
+                // Marked before anything else: the game's own click of this key follows (OnContactListAction) and must open nothing.
+                this.m_player.ConvaiPhoneChatFavoriteKey(true);
+                if !this.m_convaiChatKeyDownF {
+                    this.m_convaiChatKeyDownF = true;
+                    this.ConvaiChatListFavorite(selected);
+                };
+            };
+        };
+    };
+}
+
+// F on a Chat row: the favorite is turned on or off. The list shows it at once (the game's list is built again with the new order and mark, the
+// selection stays on her), and the change is handed to Lua to be kept (PlayerPuppet.ConvaiPhoneChatSetFavorite).
+@addMethod(NewHudPhoneGameController)
+public final func ConvaiChatListFavorite(contact: wref<ContactData>) -> Void {
+    if !IsDefined(contact) || !contact.convaiChat || !IsDefined(this.m_player) { return; };
+    let id = contact.id;
+    let on = !this.m_player.ConvaiPhoneChatIsFavorite(id);
+    this.m_player.ConvaiPhoneChatSetFavorite(id, on);
+    this.m_audioSystem.Play(on ? n"ui_menu_map_pin_created" : n"ui_menu_hover");
+    this.ConvaiShowChatContacts(id);
 }
 
 @wrapMethod(NewHudPhoneGameController)
@@ -402,6 +595,21 @@ protected cb func OnContactListClosed() -> Bool {
     return wrappedMethod();
 }
 
+// After PopulateListData: the list's selection goes to the contact with this id (the data view is already sorted), the first row when she is not there.
+@addMethod(PhoneDialerLogicController)
+public final func ConvaiSelectChatContact(id: String) -> Void {
+    let size = this.m_dataView.Size();
+    let i = 0u;
+    while i < size {
+        let item = this.m_dataView.GetItem(i) as ContactData;
+        if IsDefined(item) && Equals(item.id, id) {
+            this.m_indexToSelect = i;
+            return;
+        };
+        i += 1u;
+    };
+}
+
 @addMethod(PhoneDialerLogicController)
 public final func ConvaiShowChatTab(empty: Bool) -> Void {
     this.SwtichTabs(PhoneDialerTabs.Contacts);
@@ -413,30 +621,88 @@ public final func ConvaiShowChatTab(empty: Bool) -> Void {
 private let m_convaiCallHintBound: Bool;
 @addField(PhoneDialerLogicController)
 private let m_convaiCallHintAction: CName;
+// The bottom hints show the keys of a keyboard (T, H, F) in place of the game's own key boxes: set when they do, so they are drawn again as the
+// game draws them when the hints go back to a pad or to another list.
+@addField(PhoneDialerLogicController)
+private let m_convaiKeyGlyphs: Bool;
+@addField(PhoneDialerLogicController)
+private let m_convaiShowAllText: String;
+@addField(PhoneDialerLogicController)
+private let m_convaiShowAllSaved: Bool;
+@addField(PhoneDialerLogicController)
+private let m_convaiFavoriteStar: wref<inkImage>;
 
 @wrapMethod(PhoneDialerLogicController)
 private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
     wrappedMethod(contactData);
     if IsDefined(contactData) && contactData.convaiChat {
+        let player = GetPlayer(GetGameInstance()) as PlayerPuppet;
+        let keyboard = !IsDefined(player) || player.PlayerLastUsedKBM();
         inkTextRef.SetText(this.m_acceptButtonLabel, "Chat");
         inkWidgetRef.SetVisible(this.m_acceptButtonWidget, true);
         // The second bottom hint (the game's Messages hint, R) is the Call hint here: the game's own key hint rebound to
-        // the `call` action, so it shows the real key (V, Triangle), with the game's own translated Call label. R still
-        // opens the chat too, and the row's envelope shows F, as the Chat hint does.
+        // the `call` action, so it shows the real key (Triangle on a pad), with the game's own translated Call label. R still
+        // opens the chat too, and the row's envelope shows the chat key, as the Chat hint does.
         if !this.m_convaiCallHintBound {
             let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), n"call");
             if NotEquals(previous, n"") { this.m_convaiCallHintAction = previous; this.m_convaiCallHintBound = true; };
         };
         inkTextRef.SetLocalizedTextScript(this.m_action2ButtonLabel, "LocKey#22196");
         inkWidgetRef.SetVisible(this.m_action2ButtonWidget, true);
-        inkWidgetRef.SetVisible(this.m_showAllButtonWidget, false);
+        if keyboard {
+            // On a keyboard: Chat is T, Call is H, and the third hint (the game's Show all hint, which the Chat tab does not use) is the
+            // favorite key, F, with a star. The keys are drawn from the game's keyboard art (ConvaiHintBinding.Glyph); the keys themselves are
+            // listened to in OnConvaiChatListKey.
+            ConvaiHintBinding.Glyph(inkWidgetRef.Get(this.m_acceptButtonWidget), n"kb_t");
+            ConvaiHintBinding.Glyph(inkWidgetRef.Get(this.m_action2ButtonWidget), n"kb_h");
+            if !this.m_convaiShowAllSaved {
+                this.m_convaiShowAllText = inkTextRef.GetText(this.m_showAllLabel);
+                this.m_convaiShowAllSaved = true;
+            };
+            inkTextRef.SetText(this.m_showAllLabel, "Favorite");
+            ConvaiHintBinding.Glyph(inkWidgetRef.Get(this.m_showAllButtonWidget), n"kb_f");
+            this.ConvaiFavoriteStarShow(contactData.convaiFavorite);
+            inkWidgetRef.SetVisible(this.m_showAllButtonWidget, true);
+            this.m_convaiKeyGlyphs = true;
+        } else {
+            this.ConvaiKeyGlyphsRestore();
+            inkWidgetRef.SetVisible(this.m_showAllButtonWidget, false);
+        };
     } else {
         // Anything else on this list: the hint is the game's again, bound to what it was bound to.
         if this.m_convaiCallHintBound {
             ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), this.m_convaiCallHintAction);
             this.m_convaiCallHintBound = false;
         };
+        this.ConvaiKeyGlyphsRestore();
     };
+}
+
+// The three bottom hints as the game draws them (key boxes, the Show all label, no star).
+@addMethod(PhoneDialerLogicController)
+private final func ConvaiKeyGlyphsRestore() -> Void {
+    if !this.m_convaiKeyGlyphs { return; };
+    this.m_convaiKeyGlyphs = false;
+    ConvaiHintBinding.Redraw(inkWidgetRef.Get(this.m_acceptButtonWidget));
+    ConvaiHintBinding.Redraw(inkWidgetRef.Get(this.m_action2ButtonWidget));
+    ConvaiHintBinding.Redraw(inkWidgetRef.Get(this.m_showAllButtonWidget));
+    if this.m_convaiShowAllSaved { inkTextRef.SetText(this.m_showAllLabel, this.m_convaiShowAllText); };
+    if IsDefined(this.m_convaiFavoriteStar) { this.m_convaiFavoriteStar.SetVisible(false); };
+}
+
+// The star between the favorite hint's key and its label, made once.
+@addMethod(PhoneDialerLogicController)
+private final func ConvaiFavoriteStarShow(favorite: Bool) -> Void {
+    if !IsDefined(this.m_convaiFavoriteStar) {
+        let hint = inkWidgetRef.Get(this.m_showAllButtonWidget) as inkCompoundWidget;
+        if !IsDefined(hint) { return; };
+        let star = ConvaiFavoriteArt.Star(44.0, 40.0);
+        star.SetMargin(new inkMargin(4.0, 0.0, 4.0, 0.0));
+        star.Reparent(hint, 1);
+        this.m_convaiFavoriteStar = star;
+    };
+    ConvaiFavoriteArt.Tint(this.m_convaiFavoriteStar, favorite);
+    this.m_convaiFavoriteStar.SetVisible(true);
 }
 
 // Append after the native four children (Messages, Contacts, arrow, thread).
@@ -551,15 +817,25 @@ private let m_convaiCallHintAction: CName;
 private let m_convaiChatHintBound: Bool;
 @addField(PhoneContactItemVirtualController)
 private let m_convaiChatHintAction: CName;
+// The row's chat and call hints show the keys of a keyboard (T, H) in place of the game's key boxes: set when they do.
+@addField(PhoneContactItemVirtualController)
+private let m_convaiRowGlyphs: Bool;
+// The favorite hint of the row (F and the star), before the chat hint's place in the selected row; made once, on the first Chat row.
+@addField(PhoneContactItemVirtualController)
+private let m_convaiFavoriteCell: wref<inkHorizontalPanel>;
+@addField(PhoneContactItemVirtualController)
+private let m_convaiFavoriteCellStar: wref<inkImage>;
 
 @wrapMethod(PhoneContactItemVirtualController)
 protected cb func OnDataChanged(value: Variant) -> Bool {
     let result = wrappedMethod(value);
     if IsDefined(this.m_contactData) && this.m_contactData.convaiChat {
+        let player = GetPlayer(GetGameInstance()) as PlayerPuppet;
+        let keyboard = !IsDefined(player) || player.PlayerLastUsedKBM();
         // A Chat row has two icons on the selected row: the game's own chat hint (the envelope) and the game's own call
         // hint (the phone), each rebound to the key that does it here. The chat hint shows `proceed`, the action the
-        // bottom bar's Chat hint shows (F, Enter, Cross), which opens the chat (its `click` reaches AcceptAction); the game
-        // binds it to `secondaryAction` (R). The call hint shows `call`, the real call key (V, Triangle).
+        // bottom bar's Chat hint shows (Cross on a pad), which opens the chat (its `click` reaches AcceptAction); the game
+        // binds it to `secondaryAction` (R). The call hint shows `call`, the real call key (Triangle on a pad).
         if !this.m_convaiChatHintBound {
             let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_chatInputHint), n"proceed");
             if NotEquals(previous, n"") { this.m_convaiChatHintAction = previous; this.m_convaiChatHintBound = true; };
@@ -568,9 +844,20 @@ protected cb func OnDataChanged(value: Variant) -> Bool {
             let previous = ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_callInputHint), n"call");
             if NotEquals(previous, n"") { this.m_convaiCallHintAction = previous; this.m_convaiCallHintBound = true; };
         };
+        if keyboard {
+            // On a keyboard the chat key is T and the call key is H (OnConvaiChatListKey), drawn from the game's keyboard art; F, the favorite key,
+            // has a hint of its own, with a star.
+            ConvaiHintBinding.Glyph(inkWidgetRef.Get(this.m_chatInputHint), n"kb_t");
+            ConvaiHintBinding.Glyph(inkWidgetRef.Get(this.m_callInputHint), n"kb_h");
+            this.m_convaiRowGlyphs = true;
+            this.ConvaiFavoriteCellMake();
+        } else {
+            this.ConvaiRowGlyphsRestore();
+        };
         inkWidgetRef.SetVisible(this.m_callInputHint, true);
         inkWidgetRef.SetVisible(this.m_chatInputHint, true);
         inkWidgetRef.SetVisible(this.m_separtor, true);
+        this.ConvaiFavoriteCellShow(keyboard && this.IsSelected());
     } else {
         // This row view is recycled by the game's own lists: any other contact gets the game's hints back as they were.
         if this.m_convaiChatHintBound {
@@ -581,7 +868,69 @@ protected cb func OnDataChanged(value: Variant) -> Bool {
             ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_callInputHint), this.m_convaiCallHintAction);
             this.m_convaiCallHintBound = false;
         };
+        this.ConvaiRowGlyphsRestore();
+        this.ConvaiFavoriteCellShow(false);
     };
+    return result;
+}
+
+// The game's own key boxes of the chat and call hints again (the keys were T and H).
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiRowGlyphsRestore() -> Void {
+    if !this.m_convaiRowGlyphs { return; };
+    this.m_convaiRowGlyphs = false;
+    ConvaiHintBinding.Redraw(inkWidgetRef.Get(this.m_chatInputHint));
+    ConvaiHintBinding.Redraw(inkWidgetRef.Get(this.m_callInputHint));
+}
+
+// The favorite hint, in the row's hint holder just before the chat hint: the F key of the keyboard art and the star, in the hints' own size and spacing.
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiFavoriteCellMake() -> Void {
+    if IsDefined(this.m_convaiFavoriteCell) { return; };
+    let chat = inkWidgetRef.Get(this.m_chatInputHint);
+    let holder = IsDefined(chat) ? chat.GetParentWidget() as inkCompoundWidget : null;
+    if !IsDefined(holder) { return; };
+    let cell = new inkHorizontalPanel();
+    cell.SetName(n"convaiFavoriteHint");
+    cell.SetFitToContent(true);
+    cell.SetHAlign(inkEHorizontalAlign.Right);
+    cell.SetVAlign(inkEVerticalAlign.Center);
+    cell.SetChildMargin(new inkMargin(0.0, 0.0, 8.0, 0.0));
+    cell.SetAffectsLayoutWhenHidden(false);
+    cell.SetVisible(false);
+    cell.SetInteractive(false);
+    ConvaiFavoriteArt.KeyCap(n"kb_f").Reparent(cell);
+    let star = ConvaiFavoriteArt.Star(48.0, 44.0);
+    star.Reparent(cell);
+    let at = holder.GetNumChildren();
+    let i = 0;
+    while i < holder.GetNumChildren() {
+        if holder.GetWidgetByIndex(i) == chat { at = i; };
+        i += 1;
+    };
+    cell.Reparent(holder, at);
+    this.m_convaiFavoriteCell = cell;
+    this.m_convaiFavoriteCellStar = star;
+}
+
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiFavoriteCellShow(visible: Bool) -> Void {
+    if !IsDefined(this.m_convaiFavoriteCell) { return; };
+    if visible && IsDefined(this.m_contactData) { ConvaiFavoriteArt.Tint(this.m_convaiFavoriteCellStar, this.m_contactData.convaiFavorite); };
+    this.m_convaiFavoriteCell.SetVisible(visible);
+}
+
+// The favorite hint shows with the selection, like the game's own hints of the row.
+@wrapMethod(PhoneContactItemVirtualController)
+protected cb func OnSelected(itemController: wref<inkVirtualCompoundItemController>, discreteNav: Bool) -> Bool {
+    let result = wrappedMethod(itemController, discreteNav);
+    if this.m_convaiRowGlyphs && IsDefined(this.m_contactData) && this.m_contactData.convaiChat { this.ConvaiFavoriteCellShow(true); };
+    return result;
+}
+@wrapMethod(PhoneContactItemVirtualController)
+protected cb func OnDeselected(itemController: wref<inkVirtualCompoundItemController>) -> Bool {
+    let result = wrappedMethod(itemController);
+    this.ConvaiFavoriteCellShow(false);
     return result;
 }
 
@@ -594,6 +943,12 @@ protected cb func OnInitialize() -> Bool {
 @addMethod(PhoneContactItemVirtualController)
 private cb func OnConvaiChatContactClick(evt: ref<inkPointerEvent>) -> Bool {
     if evt.IsAction(n"click") && IsDefined(this.m_contactData) && this.m_contactData.convaiChat {
+        // The release of the favorite key (F is the game's confirm too) is not a click on the row.
+        let player = GetPlayer(GetGameInstance()) as PlayerPuppet;
+        if IsDefined(player) && player.ConvaiPhoneChatFavoriteKeyActive() {
+            evt.Handle();
+            return true;
+        };
         let open = new ConvaiPhoneChatOpenEvent();
         open.contact = this.m_contactData;
         this.QueueEvent(open);

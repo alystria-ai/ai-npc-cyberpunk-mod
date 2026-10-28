@@ -244,11 +244,26 @@ local function actionLabel(controller)
     return find(find(right, 'inputAccept', 1), 'text', 1)
 end
 
+-- The favorite hint (F and a star) is the game's Show all hint on the bottom bar's left: its label, like the Chat hint's.
+local function favoriteLabel(controller)
+    local reference = controller.m_showAllLabel
+    local label = reference and inkWidgetRef and inkWidgetRef.Get(reference)
+    if label then return label end
+    local ok, root = pcall(function() return controller:GetRootWidget() end)
+    if not ok or not root then return nil end
+    local hints = find(root, 'inputHintsPanel', 4)
+    local left = find(hints, 'leftInputHints', 1)
+    return find(find(left, 'inputAccept', 1), 'text', 1)
+end
+
 function M.action(controller, contact, presentation)
     M.fontDirty = true
     if not presentation or not contact or contact.convaiChat ~= true then return end
     local label = actionLabel(controller)
     if label then label:SetText(text('Chat')) end
+    -- Only when the game (redscript) put its own English label there: a pad has no favorite hint and its label is left alone.
+    local favorite = favoriteLabel(controller)
+    if favorite and favorite:GetText() == 'Favorite' then favorite:SetText(text('Favorite')) end
 end
 
 local function messagePath(controller)

@@ -6,9 +6,11 @@ Use the game's phone control (normally hold **T**) to open the phone. **Chat** i
 Contacts. Use the phone's left/right tab controls to select it, choose a person,
 and press the normal confirm action. The
 conversation opens directly; there is no quest-message thread selector.
-On the Chat list the confirm key (F, Enter) and the secondary action (R, the envelope on the row) open the
-chat; the Call key (V, Triangle; a phone icon beside the envelope and a Call hint in the bottom bar) starts a
-holocall with the selected person (see [HOLOCALL.md](HOLOCALL.md)). An open conversation shows no Call hint (removed
+On the Chat list, on a keyboard (2026-10-28, branch `feat/favorites-2`): **T** opens the chat (the envelope on the row and the bottom bar's Chat
+hint), **H** calls (the phone icon and the bottom bar's Call hint; a holocall with the selected person, see [HOLOCALL.md](HOLOCALL.md)) and **F** turns the
+selected person's favorite on or off (a star: gold for a favorite, with an F key box on the row and in the bottom bar's left hint; see
+"Favorites on the Chat list" below). Enter, a click and R still open the chat; F no longer does. On a pad Cross opens the chat and Triangle calls, as before,
+and there is no favorite key. An open conversation shows no Call hint (removed
 2026-10-15: it spoiled the composer layout); V still calls from there. The game's own Contacts Call is unchanged.
 Pointer callbacks are provided for the tabs and contact rows where a pointer is
 available; the game's ordinary phone navigation remains the primary input.
@@ -32,17 +34,17 @@ counts as a send for 0.5 s after the automatic focus (an engine-time stamp read 
 | State | Enter | Esc | C, V (call), F, J, L, other keys |
 |---|---|---|---|
 | Typing (the state on opening) | sends the text | stops typing, back to the idle page | typed as letters; the game's actions are swallowed, as before |
-| Idle page (after Esc, or when the box could not be focused) | starts typing | closes the chat, back to the list | C closes, V calls, as before |
+| Idle page (after Esc, or when the box could not be focused) | starts typing | closes the chat, back to the list | C closes, V calls (inside a conversation the call key stays V), as before |
 
 So a chat now takes two Escapes to close from a fresh opening (the first stops typing), and V (call) inside an open chat needs the first
-Esc. The call key on the Chat list rows is unchanged.
+Esc. The call key on the Chat list rows is H on a keyboard since 2026-10-28 (Triangle on a pad).
 
 **Opening a chat: F twice (2026-10-27, branch `fix/chat-focus-2`; `PhoneChat.reds` and `PhoneChatTabs.reds`, GAME RESTART; cause not proven offline).**
 Live (game 2.5, after focus-on-open): "if it is a new character i have to press F twice to get inside chat for it"; a chat with a history opens
 on the first press. The probe log of that session shows each chat reaching the typing state once (alex, adam-smasher, anders-hellman, ...), so the
 box focus itself works; what is lost is the first press, or the page's arrival, for a row with no journal contact (no history, no journal entry,
 `hash` 0). Reading the game's scripts and ours found no difference in the code path that depends on history, so two defences and a trace went in:
-- A press (F or R) on a Chat row when the tab's state says Off puts the state back to the list and opens (the state is reset by anything that
+- A press (F or R; since 2026-10-28 T or R, F being the favorite key) on a Chat row when the tab's state says Off puts the state back to the list and opens (the state is reset by anything that
   sets the game's screen type; only a Chat row under the cursor proves the Chat list is up, since only it shows one). Before, that press fell to the
   game's own Contacts action (for F: a call attempt) and was lost.
 - A key press a full second after an opening whose page never reported ready starts the opening again (a new generation; the older attempt's
@@ -70,6 +72,27 @@ unlocked it, so a contact unlocked mid-session is already mapped
 (`bridge/phone-contact-mapping.test.mjs`). Replies use the
 game's sent/received message bubbles. Private/group text and microphone actions
 remain separate in-person conversations, using the player's assigned CET bindings.
+
+## Favorites on the Chat list (2026-10-28, branch `feat/favorites-2`; not yet seen in the game)
+
+Keys on a keyboard (`PhoneChatTabs.reds`): **T** chat, **H** call, **F** favorite. The game has no action for them in the phone's input context (T and H
+are not bound there, and F is its confirm, `click`/`proceed`), so they are Codeware key callbacks (`OnConvaiChatListKey`), registered with the list's
+inputs (`EnableContactsInput`, like the J and L keys of `PhoneContacts.reds`), acted on only while the Chat list is up (state List: in a conversation they are
+letters), once per press (a held key repeats its press). No per-frame work: events only.
+
+F turns the selected contact's favorite on or off. The press sets it in the game's own list at once (`PlayerPuppet.ConvaiPhoneChatSetFavorite`), builds the
+Chat list again with the new order and mark, keeping the selection on her (`ConvaiShowChatContacts(id)`, `ConvaiSelectChatContact`), plays a small sound, and queues
+a request ("1" or "0" and the contact id) that `mod/phone-chat.lua` `takeFavoriteRequests` takes on its 10 Hz tick and keeps with `convaiFavorites.set('characters', key, on)`
+(mod/favorites.lua: the same data as the Companion Manager's stars); the next `pushFavorites` sends the whole list back, which also corrects the game's copy when the change
+could not be kept (a full list). F is also the game's confirm, so while F is down and for 0.35 s after it comes up a `click` on the Chat list opens no chat
+(`ConvaiPhoneChatFavoriteKeyActive`; it relies on the key callback arriving before the game's action of the same press: to confirm live).
+
+Hints: the keys are drawn from the game's own keyboard art (`base\gameplay\gui\common\input\icons_keyboard.inkatlas`, parts `kb_t`, `kb_h`, `kb_f`) on the game's own
+hint widgets (the controller keeps its action, the key box image is replaced; `ConvaiHintBinding.Glyph`, put back by `Redraw`). The row has a third hint (F and a
+star) in the hint holder before the chat hint; the bottom bar's left hint (the game's Show all, unused on this tab) is the favorite hint, labelled "Favorite", with a star between the
+key and the label. The star is the game's own favorite star of the Ripperdoc (`base\gameplay\gui\fullscreen\ripperdoc\assets\cw_bars_assets.inkatlas`, part `fav_star`, also
+`fav_star_small` and `fav_heart`): gold (the phone's own quest gold) for a favorite and the hints' blue for the others. On a pad (last used device) none of this changes: Cross, Triangle, the
+game's key boxes, no favorite hint. The V key no longer calls on a keyboard in the Chat list (the `call` action is read only on a pad); inside an open conversation V still calls.
 
 ## History and memory
 
@@ -283,5 +306,5 @@ against the one-use token it sent (`mod/housemates.lua phoneAction`) and moves h
 
 ## J and L on the Chat tab (2026-10-26)
 
-The Contacts list's J (Invite) and L (Dismiss) marks and keys are on every Chat row too (`PhoneContacts.reds`). A row with no journal contact carries her profile key as
+The J (Invite) and L (Dismiss) marks and keys are on every Chat row (`PhoneContacts.reds`). Since 2026-10-28 (branch `feat/favorites-2`, the owner: they are already on the Chat page) they are on the Chat tab only: the game's own Contacts tab has neither the marks nor the keys (`ConvaiLayoutActions` shows the marks and `ConvaiRequestCompanion` accepts a request only for a Chat row). A row with no journal contact carries her profile key as
 id, which `companions.phoneContactKey` resolves to that profile's copy (the same request path as Contacts). While a conversation is open or opening the keys are ignored, so a typed J or L stays a letter.

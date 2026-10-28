@@ -183,11 +183,6 @@ end
 -- shows while no row is hovered: MCM's own heading has no hover text). Native Settings UI draws the rows as they are.
 -- Each entry names the part of the row the heading says: its value, its label, or both (the label, then the value).
 local STATUS_ROWS = {['needs-save'] = 'value', ['empty-party'] = 'label', ['model-status'] = 'label', ['character-status'] = 'label', ['chauffeur-state'] = 'both'}
--- The page-wide Add to favorites button of Characters to invite and the Model browser (manager-ui.lua): a footer button beside the way back.
--- MCM cannot say which row the player is on (its public context holds the mod, the page, the Search text and the scroll position; the row
--- under the pointer is private to it, and the pointer is on the footer button when this is pressed), so the page acts on the first entry the
--- Search box leaves (core.offerFocus(false) below).
-local FAVORITE_ID = 'favorite:toggle'
 
 -- The rows of manager-ui.lua's page as rows of MCM's schema. A row with no counterpart is dropped (nil); a page control becomes
 -- footer buttons (the second value is 'footer': they go in the footer, beside the way back, and not in the list).
@@ -198,18 +193,16 @@ local function convert(row)
         local page, pages = clamp(row.value, 1, math.max(1, row.max or 1)), math.max(1, row.max or 1)
         controls.page, controls.pages = page, pages
         local where = ui.t('Page {page} / {pages}', {page = page, pages = pages})
-        -- Both buttons are always there; at the first or last page one of them does nothing (MCM cannot draw a button disabled).
-        return {action('ui:page:previous', ui.t('Previous page'), ui.t('Previous page'), where),
-            action('ui:page:next', ui.t('Next page'), ui.t('Next page'), where)}, 'footer'
+        -- Both buttons are always there; at the first or last page one of them does nothing (MCM cannot draw a button disabled). Each says in
+        -- the description panel which page it goes to and what that page holds (the page's own text, manager-ui.lua pageRows).
+        return {action('ui:page:previous', ui.t('Previous page'), ui.t('Previous page'), row.previousHelp or where),
+            action('ui:page:next', ui.t('Next page'), ui.t('Next page'), row.nextHelp or where)}, 'footer'
     elseif id == 'ui:group' then
         local elements = row.elements or {}
         local group = clamp(row.value, 1, math.max(1, #elements))
         controls.group, controls.groups = group, math.max(1, #elements)
         local current = ui.t('Starts with: {letter}', {letter = elements[group] or ''})
         return {action('ui:group:next', current, current, row.description)}, 'footer'
-    elseif id == FAVORITE_ID then
-        -- The footer shows the button's text, so it is the whole name ("Remove from favorites"), not the short word the other host draws.
-        return {action(id, row.label, row.label, row.description)}, 'footer'
     elseif STATUS_ROWS[id] then
         local part = STATUS_ROWS[id]
         local text = part == 'value' and tostring(row.value or '') or tostring(row.label or '')
@@ -247,7 +240,6 @@ local function isBack(id) return id:match(':back$') ~= nil or id == 'memory:sett
 -- The model of manager-ui.lua as MCM's schema, plus what the page tells the UI extension (the way back, the voice entries that
 -- cannot be chosen). Runs in loadMod: MCM asks for it when the screen opens, after an Apply and on reloadMod.
 local function schema()
-    core.offerFocus(false)
     local model = core.model()
     local categories, disabledChoices, disabledReasons, footer = {}, {}, {}, {}
     local pageHelp = {}
@@ -312,7 +304,7 @@ local function schema()
     -- The buttons of the page that are not in the list: the letter group, the previous and next page, and the way back (rightmost).
     local footerIds, byId = {}, {}
     for _, item in ipairs(footer) do byId[item.id] = item end
-    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', FAVORITE_ID, DEFAULTS_ID, HOME_BACK_ID}) do
+    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', DEFAULTS_ID, HOME_BACK_ID}) do
         if byId[id] then footerIds[#footerIds + 1] = id end
     end
     -- The home page has no back action of its own (no backActionId): MCM's own Escape closes the screen, so Escape is Home's Back. With

@@ -14,14 +14,15 @@ has not yet been tested in game; an open chat no longer shows a Call hint (2026-
   video holocall for call as they always did, through the game's quest call. (A first build replaced the game's
   call for those contacts; the live test showed only a portrait where the game would have opened its own call, so
   that wrap, `CallSelectedContact`, is gone.)
-- **Phone > Chat tab (the mod's own tab), two places to call, one key: V (Triangle on a pad), the game's own `call`
-  action, the key the game's message window uses for Call:**
+- **Phone > Chat tab (the mod's own tab), two places to call, one key: H on a keyboard since 2026-10-28 (Triangle on a pad, the game's own `call`
+  action; V, the game's key for it, still calls inside an open conversation, but no longer on the Chat list):**
   - **On the Chat list,** the selected row shows two icons: the chat one (**F** and the envelope) and, beside it, a
     call one (a key box with the call key and a phone). The bottom bar reads **Call** (V), **Chat** (F) and Close.
     These are the game's own key hints, the row's call hint and the bottom bar's second hint rebound to the `call`
     action, and the row's chat hint (the game's is `secondaryAction`, R) rebound to `proceed`, the action the bottom
     bar's Chat hint shows (branch `holocall-polish`, 2026-10-16: the row read R while the bar read F), while a Chat row
-    is shown, and put back, from the action they held, for any other row or tab, so the glyphs always show the real key. V starts a call with the selected character. (On a pad
+    is shown, and put back, from the action they held, for any other row or tab, so the glyphs always show the real key. On a keyboard the key boxes are redrawn as T (chat) and H (call)
+    from the game's keyboard art and H starts a call with the selected character (docs/PHONE_CHAT.md, "Favorites on the Chat list"). (On a pad
     Triangle is also `showAll`, which means nothing on this tab and is swallowed there.)
   - **Inside an open conversation** no Call hint is shown (2026-10-15, branch `holocall-light`: the user's live test
     found the spawned "V  Call" hint beside the Enter/Esc line spoiled the composer layout, so it and its plain-text

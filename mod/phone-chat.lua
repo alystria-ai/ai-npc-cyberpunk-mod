@@ -599,6 +599,25 @@ function M.pushFavorites(player)
     if ok then M.favoritesSeen = revision else M.favoritesMissing = true end
 end
 
+-- F on a Chat row turns a favorite on or off: the list already shows it (the game keeps its own copy until the next push), and the request waits
+-- in the game for this tick ("1" or "0", then the contact id). It is kept in favorites.lua, the same data the Companion Manager's stars use, and the
+-- next push (pushFavorites) sends the whole list back, which also settles a request that could not be kept (a full list). Older scripts without the
+-- method are asked once.
+function M.takeFavoriteRequests(player)
+    if M.favoriteRequestsMissing then return end
+    for _ = 1, 8 do
+        local asked, line = pcall(function() return player:ConvaiPhoneChatTakeFavoriteRequest() end)
+        if not asked then M.favoriteRequestsMissing = true; return end
+        if type(line) ~= 'string' or line == '' then return end
+        local key = M.catalog[line:sub(2)]
+        local favorites = convaiFavorites
+        if key and type(favorites) == 'table' and type(favorites.set) == 'function' then
+            pcall(favorites.set, 'characters', key, line:sub(1, 1) == '1')
+        end
+        M.favoritesSeen = nil
+    end
+end
+
 function M.update(player, delta)
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
@@ -673,6 +692,7 @@ function M.update(player, delta)
     end
     -- Favorites first on the Chat list (mod/favorites.lua): the game gets the favorite contact ids when they change (one number compared on this
     -- tick), and the list puts them first when it is built (PhoneChatTabs.reds), so there is no work while the list is open.
+    M.takeFavoriteRequests(player)
     M.pushFavorites(player)
     contact = tostring(contact or '')
     -- One evidence hook per typing session, on its rising edge. The native read is

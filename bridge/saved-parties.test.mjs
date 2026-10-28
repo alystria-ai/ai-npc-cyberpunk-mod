@@ -108,8 +108,17 @@ const harness = (options = {}) => nsuiHarness({modules: everything, ...options})
     for _ = 1, count or 6 do clock = clock + (step or 0.1); managerUi.update(player, true) end
     loaded = registered.loadMod('manager')
   end
-  local function press(label)
-    ns.interact.press(assert(ns.find(label), 'no row: ' .. label)); frames(3); ns.verify()
+  -- A row by its label, and by its button text when one character has two rows (Add to favorites, then Add copy).
+  local function button(label, text)
+    for _, key in pairs(ns.data[ns.currentTab].keys) do
+      for _, option in pairs(ns.data[ns.currentTab].subcategories[key].options) do
+        if option.label == label and (option.buttonText == text or (option.buttonText or ''):sub(1, #text + 1) == text .. ' ') then return option end
+      end
+    end
+  end
+  local function press(label, text)
+    local row = text and button(label, text) or ns.find(label)
+    ns.interact.press(assert(row, 'no row: ' .. label .. ' / ' .. tostring(text))); frames(3); ns.verify()
   end
   local function shownOutline() return table.concat(ns.outline(), ' | ') end
   -- Everybody who was invited arrives (the fake game leaves a new copy 'spawning').
@@ -123,7 +132,7 @@ const withSavedParty = `
   press('Characters to invite')
   press('Person 01'); frames(8)
   press('Johnny Silverhand'); frames(8)
-  press('Person 01'); frames(8)
+  press('Person 01', 'Add copy'); frames(8)
   arrive()
   assert(spawnedKeys() == 'person-1,johnny-silverhand,person-1', spawnedKeys())
   press('Back to Companion Manager')
