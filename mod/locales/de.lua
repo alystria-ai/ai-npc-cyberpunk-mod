@@ -293,7 +293,6 @@ return {
     ["{name}: preparation failed. Cancel and invite again."] = "{name}: Vorbereitung fehlgeschlagen. Abbrechen und erneut einladen.",
     ["Choose an interface language."] = "Wähle eine Oberflächensprache.",
     ["Interface"] = "Oberfläche",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "Für den Gruppenchat müssen zwei Charaktere in der Nähe sein. Nutze den privaten Chat für eine Person.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "Für den Gruppenchat müssen zwei Charaktere in der Nähe sein. Verwende {key} für eine Person.",
     ["Back to Companion Manager"] = "Zurück zur Begleiterverwaltung",
     ["Return to Companion Manager."] = "Zur Begleiterverwaltung zurückkehren.",

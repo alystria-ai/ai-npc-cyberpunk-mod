@@ -388,6 +388,33 @@ test('an NPC archetype is ambient: one session per physical NPC, never without i
   assert.equal(missing.sendAllowed, false); assert.equal(missing.memoryReason, 'ambient-entity-unavailable');
 });
 
+// Group chat takes anyone nearby (2026-10-28): two strangers of one profile and a named character are one audience, and every stranger keeps its own
+// session (its own history and Convai page) per physical entity, while the player ID and the provider's memory rule stay the ambient ones.
+test('a group round of strangers: one session per physical stranger even on one profile, long-term memory off, a named speaker unaffected', async () => {
+  const f = fixture(), members = ['judy-alvarez', 'resident-female'];
+  const first = forProfile(f.input, 'resident-female', 'group', members);
+  first.entity = '21ULL'; first.group.total = 3;
+  const second = clone(first); second.entity = '22ULL'; second.group.index = 2;
+  const named = forProfile(f.input, 'judy-alvarez', 'group', members); named.group.index = 3; named.group.total = 3;
+  const [a, b, again, judy] = [await f.router.prepare(first), await f.router.prepare(second), await f.router.prepare(first), await f.router.prepare(named)];
+  for (const prepared of [a, b, judy]) {
+    assert.equal(prepared.sendAllowed, true); assert.equal(prepared.route.channel, 'group');
+    assert.deepEqual(prepared.route.audience, ['judy-alvarez', 'resident-female']);
+    assert.equal(prepared.remoteConfig.endUserId, USER);
+  }
+  assert.notEqual(a.sessionKey, b.sessionKey); assert.notEqual(a.scope, b.scope);
+  assert.equal(a.sessionKey, again.sessionKey, 'the same stranger keeps its session');
+  assert.equal(a.providerMemory, 'session-only'); assert.equal(b.providerMemory, 'session-only');
+  assert.equal(judy.providerMemory, undefined, 'a named character keeps its memory rule in the same round');
+  // A round of the same stranger with another set of people is another conversation.
+  const other = forProfile(f.input, 'resident-female', 'group', ['panam-palmer', 'resident-female']); other.entity = '21ULL';
+  assert.notEqual((await f.router.prepare(other)).sessionKey, a.sessionKey);
+  // The look-ahead and warm paths never open a stranger's page without its entity.
+  assert.equal(f.router.configFor('resident-female', 'group:judy-alvarez,resident-female'), null);
+  assert.equal(f.router.configFor('resident-female', 'group:judy-alvarez,resident-female', {...f.getBoundary(), entity: '21ULL'}).sessionKey, a.sessionKey);
+  assert.deepEqual(f.forbidden, []);
+});
+
 test('unknown profiles and pending clears never warm or proceed as anonymous', async () => {
   const f = fixture(), input = clone(f.input); input.profileKey = 'unconfigured-character';
   const unknown = await f.router.prepare(input, f.getBoundary());

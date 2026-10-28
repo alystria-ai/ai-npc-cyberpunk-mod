@@ -154,7 +154,6 @@ return {
     ["Generate report"] = "Rapor oluştur",
     ["Generated reports are saved in {path}. The five newest are kept."] = "Oluşturulan raporlar şuraya kaydedilir: {path}. En yeni beşi saklanır.",
     ["Gentle (default)"] = "Yumuşak (varsayılan)",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "Grup sohbeti için yakında iki karakter olmalı. Tek kişi için özel sohbeti kullan.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "Grup sohbeti için yakında iki karakter olmalı. Tek kişi için {key} tuşunu kullan.",
     ["Head tracking strength"] = "Baş takip gücü",
     ["Help"] = "Yardım",

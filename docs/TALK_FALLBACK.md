@@ -13,7 +13,7 @@ The only thing in the way was Johnny: with Johnny in your head turned on, the ta
 | Key | Someone faced or under the crosshair | Nobody faced |
 |---|---|---|
 | **Talk by voice** / **Talk by text** | that person, as before | the **first member of the party** |
-| **Group voice chat** / **Group text chat** | that person leads the round, the others by distance, as before | the **first member of the party plus two others picked at random** from the rest of the party (fewer when the party is smaller) |
+| **Group voice chat** / **Group text chat** | that person leads the round (anyone V can talk to, a stranger on the street too), then V's companions and the nearest others, up to three (docs/GROUP_VOICE.md "Anyone nearby") | the **first member of the party plus two others picked at random** from the rest of the party (fewer when the party is smaller) |
 | **Talk to Johnny by voice** (hold) / **Talk to Johnny by text** (tap) | Johnny, whoever is faced | Johnny |
 
 - "First" is the order of **Companion Manager > Current party**, the order the copies joined, not the nearest. Only ready party members count (a copy still preparing, leaving or failed does not), and only within the talk range of eight metres, the same range the group round uses. A first member who is out of range, switched off in the manager or without a conversation profile is skipped and the next one in the list answers.

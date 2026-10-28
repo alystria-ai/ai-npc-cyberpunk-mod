@@ -154,7 +154,6 @@ return {
     ["Generate report"] = "Jelentés létrehozása",
     ["Generated reports are saved in {path}. The five newest are kept."] = "A létrehozott jelentések ide kerülnek: {path}. A legutóbbi öt marad meg.",
     ["Gentle (default)"] = "Finom (alapértelmezett)",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "A csoportos csevegéshez két közeli karakter kell. Egy személyhez használd a privát csevegést.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "A csoportos csevegéshez két közeli karakter kell. Egy személyhez használd ezt: {key}.",
     ["Head tracking strength"] = "Fejkövetés erőssége",
     ["Help"] = "Súgó",

@@ -293,7 +293,6 @@ return {
     ["{name}: invitation cancelled."] = "{name}: invitación cancelada.",
     ["{name}: invite queued."] = "{name}: invitación en cola.",
     ["{name}: preparation failed. Cancel and invite again."] = "{name}: error de preparación. Cancela y vuelve a invitar.",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "El chat de grupo necesita dos personajes cerca. Usa el chat privado para una sola persona.",
     ["Group chat needs two characters nearby. Use {key} for one person."] = "El chat de grupo necesita dos personajes cerca. Usa {key} para hablar con una sola persona.",
     ["Back to Companion Manager"] = "Volver al gestor de compañeros",
     ["Return to Companion Manager."] = "Vuelve al gestor de compañeros.",

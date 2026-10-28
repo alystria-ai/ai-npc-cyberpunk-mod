@@ -293,7 +293,6 @@ return {
   ["{name}: preparation failed. Cancel and invite again."] = "{name}：準備に失敗しました。キャンセルして再び招待してください。",
   ["Interface"] = "インターフェース",
   ["Choose an interface language."] = "インターフェースの言語を選択してください。",
-    ["Group chat needs two characters nearby. Use private chat for one person."] = "グループチャットには近くに2人のキャラクターが必要です。1人と話すには個別チャットを使ってください。",
   ["Group chat needs two characters nearby. Use {key} for one person."] = "グループチャットには近くに2人のキャラクターが必要です。1人と話すには{key}を使ってください。",
     ["Back to Companion Manager"] = "コンパニオン管理に戻る",
     ["Return to Companion Manager."] = "コンパニオン管理に戻ります。",

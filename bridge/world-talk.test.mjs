@@ -441,7 +441,9 @@ test('the speech guard ends a story reply and says nothing for anyone else', () 
 
 test('wiring: refusal on the key press, private talk only, no gaze, the guard on the recording and the reply', () => {
   const select = between('local function selectConversation(', 'local function voiceTargetValid');
-  assert.match(select, /convaiWorldPolicy\.story\(npc\) == true then\s+npc, reason = nil,/, 'a group key on a story character builds the round without it');
+  // A group key on a story character takes it into the round (2026-10-28); only while the game is in charge of it ("busy") is it left out.
+  assert.doesNotMatch(select, /convaiWorldPolicy\.story\(npc\) == true then\s+npc, reason = nil,/, 'a story character is no longer kept out of a group round');
+  assert.match(select, /convaiWorldTalk:refusal\(npc, player, nil, faced, not story or nil\)[\s\S]{0,200}npc, reason = nil, 'Face a nearby character to talk\.'/, 'a faced character the game is in charge of builds the round without it');
   assert.match(select, /primary\.story = convaiWorldPolicy ~= nil and convaiWorldPolicy\.story\(npc\) == true or nil/);
   assert.match(select, /convaiWorldTalk:refusal\(npc, player, nil, key\)/, 'a fresh read on the key press, with the profile key');
   assert.match(select, /convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.'/);
@@ -452,7 +454,7 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
   // No actions: neither the typed nor the spoken path offers or even mentions follow, fight, drive or leave for a story character.
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
-  assert.match(init, /elseif convaiStory and convaiStory\.entity == context\.entity and not context\.group then\s+-- A game-placed story character gets no action offers or advisories[^\r\n]*\s+elseif not context\.group and not context\.reaction then gameplayActions\.capture\(context, 'private-text'\)/);
+  assert.match(init, /elseif convaiStory and convaiStory\.entity == context\.entity then\s+-- A game-placed story character gets no action offers or advisories[^\r\n]*\s+elseif not context\.group and not context\.reaction then gameplayActions\.capture\(context, 'private-text'\)/);
   // The speech hooks.
   const speech = read('../mod/speech.lua');
   assert.match(speech, /local storyGuard = M\.storyGuard\s+if storyGuard and storyGuard\(M\.target, context, true\) == true then return false end/);

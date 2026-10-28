@@ -46,6 +46,11 @@ local function startRound(id, participants, text)
         -- A character another mod or a spawner created (docs/SPAWNED_CHARACTERS.md); nothing else reads it but the adapter.
         row.spawned = person.spawned
         row.generic = person.generic
+        -- An ordinary person or a game-placed character that joined by being nearby (init.lua convaiTalkNearbyPeople): `story` and
+        -- `guarded` say the game's own checks apply to it before it speaks (a scene, a fight, an injury, a ride).
+        row.stranger = person.stranger
+        row.story = person.story
+        row.guarded = person.guarded
         frozen[#frozen + 1] = row
     end
     M.round = {id = id, participants = frozen, text = text, index = 0, stage = 'next', heard = {},
@@ -90,12 +95,23 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     end
     for _, utterance in ipairs(r.heard) do addHeard(utterance) end
     if includePlaying and r.reply then addHeard(r.reply) end
+    -- Who is in the round, by name, in speaking order, when anybody in it is a person of the street, a game character that is nearby or a
+    -- stranger by profile: the profile keys of the audience name a kind of person ("resident-female"), not these people, and two strangers
+    -- can share one. The first speaker has not heard anybody yet, so this is how it learns who else is there. Only such a round carries it.
+    local people, anyStranger = {}, false
+    for _, participant in ipairs(r.participants) do
+        if participant.stranger or participant.generic then anyStranger = true end
+        if live[participant.entity] and not participant.voiceOnly and type(participant.name) == 'string' and participant.name ~= '' then
+            people[#people + 1] = participant.name
+        end
+    end
     local input = {requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. speaker.entity,
         generation = generation, entity = speaker.entity, name = speaker.name, bodyType = speaker.bodyType,
         profileKey = speaker.profileKey, archetype = speaker.archetype, voiceOnly = speaker.voiceOnly,
         text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
         gameDialogue = r.gameDialogue, gear = r.gear,
         group = {id = r.id, index = index, total = total, audience = audience, heard = heard}}
+    if anyStranger and #people > 1 then input.group.people = people end
     return input
 end
 
