@@ -161,6 +161,15 @@ touched.
 
 V's Pocket helper (the Pocket worker V uses when the companions are on OmniVoice, a cloud voice or the Convai voice) is a separate Python process that imports torch: about 7 s of CPU on a quiet PC with its bytecode cache warm and 13 s without, 30 to 80 s of wall time while the game is loading a save. It does not load during the title screen (a stalled frame there loses the Space press). It starts when the game's lease says a save is loading (`loading`, about 15 s before the world), at normal priority, and rises to High with the rest when the world exists (docs/PROCESS_PRIORITY.md, "Start-up"). Its Python keeps compiled bytecode in `<data folder>/python-cache` (`-X pycache_prefix`, the Runtime itself is never written): the Runtime ships no `.pyc` files, so before this every start compiled about 2000 torch source files again; the first start writes about 53 MB and takes about 6 s longer, every later one is about 6 s shorter. A typed line that finds the helper in its last steps (`loading-student`) waits for it, 5 s at most, and is dropped like any V line if it is not audible by the time the companion's reply is; a line that finds it earlier in the load is skipped as before (`V's line skipped: the Pocket voice for V is not loaded yet`; `this session: ... not started (voice-not-loaded=N)`), with no notice in the game (a player-facing notice would need a sentence in 14 languages). The log says when: `[Timeline] ... a save is loading`, `[VHelper] loading starts at <UTC>`, `[VHelper] V's helper voice is ready at <UTC>, N s after loading started`.
 
+## End marks for the voice (28 Oct 2026, branch `feat/voice-034`)
+
+Players type "hey whats up" and the recogniser may return a line with no mark at the end; a TTS model (Pocket, OmniVoice, Voxtral) ends such a line poorly.
+`bridge/speech-punctuation.mjs` `punctuateForSpeech(text, {language})` puts the missing mark on the copy of the line that goes to the voice, in `VVoice.start`
+(typed lines and microphone lines both pass there): the history, the model's input and the subtitle keep `input.text` as it was. "?" for a question (the question words
+and verb-first forms of the 15 languages, a trailing "right", "ok" or "yeah" tag after a comma), else "."; full-width marks for Japanese and Chinese; a capital for the
+first letter (Turkish i included); a comma after a leading "hey", "hi", "hello", "yo", "oh", "ok", "okay" or "hmm" when the line has no other punctuation. Emoticons, emoji,
+links, ellipses and existing marks are left alone, and a finished line comes back unchanged. No model call: about 2 microseconds a line. Tests: `bridge/speech-punctuation.test.mjs`.
+
 ## V's subtitle (2026-10-15)
 
 What V says is also on screen, in the same cinematic subtitles the companions' replies use. When you send a typed line, `mod/init.lua`

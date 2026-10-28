@@ -7,6 +7,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {createOmniPcmVoice, wavToPcm, PACKET_FRAMES, OMNI_RATE} from './omni-pcm.mjs';
 import {splitSpeechText} from './speech-phrases.mjs';
+import {measureSpeech} from './omni-join.mjs';
 import {encodePcmWav} from './convai-audio-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
@@ -33,7 +34,7 @@ function fakeWorker({seconds = () => 1, fail = () => false, delay = () => null} 
   return {calls, synthesize};
 }
 const LONG = Array.from({length: 14}, (_, n) => 'This is sentence number ' + n + ' of a long reply that keeps going for a while, with a few more words to fill the phrase.').join(' ');
-const REPLY = 'Hey V, I have been thinking about what happened last night and none of it adds up. We could head down to the market together, pick up some food and talk about the next move before anyone notices. Do not tell anybody else about this.';
+const REPLY = 'Hey V, I have been thinking about what happened last night and none of it adds up. We could head down to the market together, pick up some food and talk about the next move before anyone notices. Do not tell anybody else about this, because the less they know the safer we are. Let us keep it between the two of us for now and see what turns up in the next few days. Agreed?';
 
 test('a phrase WAV becomes mono 24 kHz float samples without any other change, and other rates are converted', () => {
   const pcm = Float32Array.from({length: 2400}, (_, at) => [-.5, -.25, 0, .25, .5, .75, 0, -.75][at % 8]);
@@ -47,7 +48,7 @@ test('a phrase WAV becomes mono 24 kHz float samples without any other change, a
 
 test('packets are numbered from 1, offset by frame, at most 2 s each, one owner, and carry the phrase audio exactly in order', async () => {
   const worker = fakeWorker({seconds: call => call.index === 0 ? 5 : 1.5});
-  const voice = createOmniPcmVoice({synthesize: worker.synthesize, steps: () => 16});
+  const voice = createOmniPcmVoice({synthesize: worker.synthesize, steps: () => 16, join: false});
   const packets = [], utterance = {decided: [], decide(name) { this.decided.push(name); }};
   const response = await voice.synthesizeStream('judy-alvarez', REPLY, {onPcm: packet => packets.push(packet), utterance, role: 'head', language: 'de'});
   assert.ok(worker.calls.length >= 2, 'the reply is rendered in several phrases');
@@ -252,4 +253,109 @@ test('the bridge no longer writes an Audioware depot, slots or a stream manifest
   assert.match(fallback, /state\.continuousAvailable !== true\)[\s\S]*?ttsEnabled: false[\s\S]*?audioError: 'Local streaming is unavailable/);
   assert.match(bridge, /\['pocket', 'omni'\]\.includes\(turnVoice\(input\)\.engine\)/, 'the renderer page is warmed for OmniVoice too');
   assert.match(bridge, /voice: engineVoice/, 'OmniVoice is delivered by the same function as Pocket');
+});
+
+// A phrase the way OmniVoice renders it: silence of its own, the speech, silence again.
+const padded = (seconds, {lead = 0.5, tail = 0.2, level = 1, hertz = 220} = {}) => {
+  const body = tone(seconds, hertz).map(value => value * level), out = new Float32Array(Math.round((lead + tail) * OMNI_RATE) + body.length);
+  out.set(body, Math.round(lead * OMNI_RATE));
+  return out;
+};
+
+test('the joins are shaped: the model padding is cropped, a pause of a speaker length follows each phrase, the end is faded and the level follows the first phrase', async () => {
+  const quiet = new Set([2]);
+  const synthesize = async (profile, text, options) => ({audio: wavOf(padded(2, {lead: 0.6, tail: 0.25, level: quiet.has(synthesize.calls++) ? 0.75 : 1})), timing: {}});
+  synthesize.calls = 0;
+  const voice = createOmniPcmVoice({synthesize});
+  const packets = [];
+  const text = 'Hey V, I have been thinking about what happened last night. ' + 'We could head down to the market together, pick up some food and talk about the next job, and then ' + 'we think about it, and that is the plan we have for today. '.repeat(3) + 'That sounds good to me.';
+  const response = await voice.synthesizeStream('judy', text, {onPcm: packet => packets.push(packet)});
+  assert.equal(response.truncated, false);
+  const heard = Float32Array.from(packets.flatMap(packet => [...packet.pcm]));
+  assert.equal(heard.length, response.frames);
+  const first = heard.subarray(0, 2 * OMNI_RATE);
+  const speech = measureSpeech(first);
+  // The first word is at 30 ms, not at the 600 ms the model left before it.
+  assert.ok(speech.start < 0.04 * OMNI_RATE + 480, `speech starts at ${(speech.start / OMNI_RATE).toFixed(3)} s`);
+  // The reply ends faded to zero.
+  assert.equal(heard[heard.length - 1], 0);
+  assert.ok(Math.abs(heard[heard.length - 2]) < 0.01);
+  // Between the first phrase and the second: a sentence pause (about 320 ms of silence from the end of the sound to the next sound).
+  const gaps = [];
+  let run = 0;
+  for (let at = 0; at < heard.length; at++) {
+    if (Math.abs(heard[at]) < 1e-4) run++;
+    else { if (run > 0.05 * OMNI_RATE && at > OMNI_RATE) gaps.push(run / OMNI_RATE); run = 0; }
+  }
+  assert.ok(gaps.length >= 1, 'a pause between phrases');
+  assert.ok(gaps.every(gap => gap > 0.25 && gap < 0.45), gaps.join(', '));
+  // The phrase rendered quieter is brought to the first phrase's level (within the 3 dB the joiner allows).
+  assert.ok(worstLevelSpread(heard) < 1.2, `levels differ by ${worstLevelSpread(heard).toFixed(2)}x`);
+});
+
+function worstLevelSpread(heard) {
+  // Loudness of each stretch of sound between pauses.
+  const levels = [];
+  let from = -1, silent = 0;
+  for (let at = 0; at <= heard.length; at++) {
+    const quietNow = at === heard.length || Math.abs(heard[at]) < 1e-4;
+    if (!quietNow) { if (from < 0) from = at; silent = 0; }
+    else if (from >= 0 && ++silent > 0.05 * OMNI_RATE) {
+      const end = at - silent + 1, part = heard.subarray(from, end);
+      let sum = 0; for (const value of part) sum += value * value;
+      levels.push(Math.sqrt(sum / part.length)); from = -1;
+    }
+  }
+  return Math.max(...levels) / Math.min(...levels);
+}
+
+test('join: false sends every phrase exactly as rendered, and a phrase that is only silence is not lost', async () => {
+  const silent = async () => ({audio: wavOf(new Float32Array(24000)), timing: {}});
+  const raw = createOmniPcmVoice({synthesize: silent, join: false}), shaped = createOmniPcmVoice({synthesize: silent});
+  const a = [], b = [];
+  await raw.synthesizeStream('judy', 'Hello there V.', {onPcm: packet => a.push(packet)});
+  await shaped.synthesizeStream('judy', 'Hello there V.', {onPcm: packet => b.push(packet)});
+  assert.equal(a.reduce((n, packet) => n + packet.frames, 0), 24000);
+  assert.equal(b.reduce((n, packet) => n + packet.frames, 0), 24000, 'an unmeasurable phrase comes back whole');
+});
+
+test('a streamed reply tail goes on from the head: a sentence pause between them, the level of the head, and the head ends only when no tail follows', async () => {
+  const sound = (level, seconds = 1.5) => padded(seconds, {lead: 0.6, tail: 0.25, level});
+  let calls = 0;
+  const synthesize = async () => ({audio: wavOf(sound(calls++ === 0 ? 0.6 : 0.5)), timing: {voiceGenerationMs: 900}});
+  const voice = createOmniPcmVoice({synthesize});
+  const head = [], tail = [];
+  await voice.synthesizeStream('judy', 'The air is still here.', {role: 'head', onPcm: packet => head.push(packet), progress: {emitted: 0, heard: 0, upcoming: () => 'Just wait for me to speak again.'}});
+  await voice.synthesizeStream('judy', 'Just wait for me to speak again.', {role: 'tail', onPcm: packet => tail.push(packet)});
+  const headPcm = Float32Array.from(head.flatMap(packet => [...packet.pcm])), tailPcm = Float32Array.from(tail.flatMap(packet => [...packet.pcm]));
+  // The head keeps 80 ms after its speech (it is not the end of the reply) and the tail opens with the rest of a 320 ms sentence pause, then its speech.
+  const headEnd = measureSpeech(headPcm).end, tailStart = measureSpeech(tailPcm).start;
+  const gap = (headPcm.length - headEnd + tailStart) / OMNI_RATE;
+  assert.ok(Math.abs(gap - 0.32) < 0.02, `${gap.toFixed(3)} s between the last word of the head and the first of the tail`);
+  // The tail (0.5) is brought up to the head's level (0.6), within the 3 dB allowed.
+  assert.ok(Math.abs(measureSpeech(tailPcm).level / measureSpeech(headPcm).level - 1) < 0.03);
+  // A head that nothing follows is the end of the reply: it keeps the longer 120 ms tail.
+  calls = 0;
+  const whole = [];
+  await createOmniPcmVoice({synthesize}).synthesizeStream('judy', 'The air is still here.', {role: 'head', onPcm: packet => whole.push(packet), progress: {emitted: 0, heard: 0, upcoming: () => ''}});
+  const wholePcm = Float32Array.from(whole.flatMap(packet => [...packet.pcm]));
+  assert.ok(Math.abs((wholePcm.length - measureSpeech(wholePcm).end) / OMNI_RATE - 0.12) < 0.01);
+});
+
+test('the first phrase tells how long the first sound should wait for the rest: onRunway is told 0 at the start and then the hold, and the reply carries it', async () => {
+  const told = [];
+  // A short first phrase made in 1.7 s, a long rest: the rest cannot be ready when the first part has played.
+  const synthesize = async (profile, text) => ({audio: wavOf(padded(text.length < 30 ? 1.2 : 6, {lead: 0.5, tail: 0.2})), timing: {voiceGenerationMs: 1700}});
+  const voice = createOmniPcmVoice({synthesize, onRunway: ms => told.push(ms)});
+  const response = await voice.synthesizeStream('judy', 'Hey V, wait a moment please. ' + 'This is the rest of what I have to tell you about the market and the food and the next job. '.repeat(2), {role: 'head', onPcm: () => {}});
+  assert.equal(told[0], 0);
+  assert.ok(told[1] > 0 && told[1] <= 1200, `hold ${told[1]}`);
+  assert.equal(response.timing.voiceRunwayMs, told[1]);
+  // A tail call does not touch it; a whole reply that cannot run dry is told 0.
+  told.length = 0;
+  await voice.synthesizeStream('judy', 'The rest.', {role: 'tail', onPcm: () => {}});
+  assert.deepEqual(told, []);
+  const quick = createOmniPcmVoice({synthesize: async () => ({audio: wavOf(padded(4)), timing: {voiceGenerationMs: 1000}}), onRunway: ms => told.push(ms)});
+  await quick.synthesizeStream('judy', 'Hello there V.', {onPcm: () => {}});
+  assert.deepEqual(told, [0, 0]);
 });

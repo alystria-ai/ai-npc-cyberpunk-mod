@@ -44,6 +44,8 @@ import {readFile as readFileDefault} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {inspectReference} from './addons.mjs';
 import {PcmEdges} from './pcm-edges.mjs';
+import {PhraseJoiner} from './omni-join.mjs';
+import {punctuateForSpeech} from './speech-punctuation.mjs';
 import {readPcmWav} from './speech-audio.mjs';
 import {voiceVolumeDb} from './dialogue-level.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
@@ -201,6 +203,24 @@ export function wavToPackets(bytes, {profile, owner = randomBytes(16).toString('
       format: 'f32le', index, offsetFrames: offset, frames: part.length, pcm: part});
   }
   return {packets, frames: pcm.length};
+}
+
+/**
+ * The packets of an OmniVoice render with the model's own silence cropped (bridge/omni-join.mjs: 30 ms of air before the first word, 120 ms after the last, long
+ * silences between words shortened, a 30 ms fade-out), as new packets of the same owner and profile. OmniVoice pads a render with 150 to 900 ms before the first word;
+ * V's line is waited for by the companion's reply, so that padding was pure delay. A render with no measurable speech comes back as it was.
+ */
+export function cropOmniPackets(packets, text = '') {
+  if (!packets.length) return packets;
+  const total = packets.reduce((sum, packet) => sum + packet.pcm.length, 0), whole = new Float32Array(total);
+  for (let at = 0, n = 0; n < packets.length; at += packets[n].pcm.length, n++) whole.set(packets[n].pcm, at);
+  const pcm = new PhraseJoiner({rate: SAMPLE_RATE}).shape(whole, {text, first: true, last: true});
+  const head = packets[0], out = [];
+  for (let offset = 0, index = 1; offset < pcm.length; offset += PACKET_FRAMES, index++) {
+    const part = pcm.slice(offset, offset + PACKET_FRAMES);
+    out.push({...head, index, offsetFrames: offset, frames: part.length, pcm: part});
+  }
+  return out;
 }
 
 // ---- One line --------------------------------------------------------------------------------------------------------------
@@ -406,7 +426,7 @@ export class VLine {
   }
 
   /**
-   * V's line on OmniVoice: one render of the whole line on the GPU worker (no streaming), then its packets, with the same air at both
+   * V's line on OmniVoice: one render of the whole line on the GPU worker (no streaming), then its packets cropped to the speech (cropOmniPackets), with the same air at both
    * ends as a streamed line. The render is asked for here, when the line is built, not when the renderer page is ready (a cold browser
    * would otherwise start it up to a second late): it is queued on the worker at once, behind what the worker is doing and ahead of the
    * companion's. `signal` ends a job that has not started yet; one that has started finishes on the worker and is discarded.
@@ -420,7 +440,8 @@ export class VLine {
       const generated = await rendering;
       this.clock.mark('firstPcm');
       if (typeof generated?.audio !== 'string') throw Error('OmniVoice returned no audio');
-      const {packets} = wavToPackets(Buffer.from(generated.audio, 'base64'), {profile: this.key});
+      const {packets: rendered} = wavToPackets(Buffer.from(generated.audio, 'base64'), {profile: this.key});
+      const packets = cropOmniPackets(rendered, this.text);
       const edges = new PcmEdges(emit, this.edges);
       for (const packet of packets) await edges.push(packet);
       await edges.finish();
@@ -579,10 +600,13 @@ export class VVoice {
         return null;
       }
       this.know(gender);
-      const text = vLineText(input.text);
-      if (!text) return null;
+      const typed = vLineText(input.text);
+      if (!typed) return null;
       const plan = this.planFor(input, voice.key);
       if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'voxtral' && plan.engine !== 'omni')) return null;
+      // The voice gets the line with its missing end mark put on (bridge/speech-punctuation.mjs: "hey whats up" -> "Hey, whats up?"): a TTS model gives a line
+      // with no final mark a hanging, poorer ending. Only this copy changes; the typed text (history, the model's input, the subtitle) is `input.text` as typed.
+      const text = punctuateForSpeech(typed, {language: plan.language});
       // Pocket has no language but English. The Voxtral voice speaks the language the line is written in, for the languages its model lists
       // (Voxtral TTS 3: bridge/voxtral-languages.mjs): a line in another language is spoken by it, and skipped when the model does not list it.
       // OmniVoice clones the English reference into any language (the worker takes any ISO code, as for a companion's reply), so it skips none.

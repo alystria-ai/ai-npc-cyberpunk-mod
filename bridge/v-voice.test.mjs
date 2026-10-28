@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, V_HANDOFF_LEAD_MS, V_GRACE_MS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText, wavToPackets, vSettingsFor} from './v-voice.mjs';
+import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, V_HANDOFF_LEAD_MS, V_GRACE_MS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText, wavToPackets, vSettingsFor, cropOmniPackets} from './v-voice.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 import {PcmEdges, fadeGain} from './pcm-edges.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
@@ -681,6 +681,22 @@ test('Pocket with a worker of its own (companions on OmniVoice, a cloud voice or
   assert.equal(host.state.played, true);
 });
 
+test('the voice gets the line with its missing end mark; the typed text itself (history, model input, subtitle) is left as typed', async () => {
+  for (const [text, spoken] of [['hey whats up', 'Hey, whats up?'], ['where are we going', 'Where are we going?'], ['Already done.', 'Already done.']]) {
+    const {voice, seen} = engineFeature({own: true});
+    const input = typed({text});
+    const made = voice.start(input);
+    assert.ok(made, text); await made.finished;
+    assert.deepEqual(seen.own, [['v-male', spoken]], text);
+    assert.equal(input.text, text, 'the input the rest of the turn reads is untouched');
+  }
+  // The line's language comes from the turn's plan: a German line is read by the German rules.
+  const {voice, seen} = engineFeature({engine: 'voxtral', language: 'de', cloudLanguages: ['de']});
+  const made = voice.start(typed({text: 'kannst du mir helfen'}));
+  await made.finished;
+  assert.deepEqual(seen.cloud, [['v-male', 'Kannst du mir helfen?']]);
+});
+
 test('with its own worker V is first and the companion second, in order, never overlapping: held while V is audible, released after it ends', async () => {
   const order = [];
   const {voice} = engineFeature({own: true, endAfter: 40});
@@ -915,6 +931,35 @@ test('OmniVoice for V: the render is queued on the worker the moment the line is
   assert.equal(calls.reports.length, 1);
   assert.equal(calls.reports[0].engine, 'omni'); assert.equal(calls.reports[0].result, 'played');
   for (const name of ['voiceStart', 'ttsSent', 'firstPcm', 'synthDone', 'audible', 'ended']) assert.ok(name in calls.reports[0].marks, name);
+});
+
+// A render the way OmniVoice makes it: 500 ms of silence, a second of voice, 250 ms of silence.
+const paddedWav = () => {
+  const rate = 24000, body = new Int16Array(Math.round(1.75 * rate));
+  for (let n = 0; n < rate; n++) body[Math.round(0.5 * rate) + n] = Math.round(8000 * Math.sin(n / 20));
+  const bytes = Buffer.alloc(44 + body.length * 2);
+  bytes.write('RIFF'); bytes.writeUInt32LE(36 + body.length * 2, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 2, 28); bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34); bytes.write('data', 36); bytes.writeUInt32LE(body.length * 2, 40);
+  Buffer.from(body.buffer).copy(bytes, 44);
+  return bytes;
+};
+const firstSound = emitted => { let at = 0; for (const item of emitted) for (const value of item.pcm) { if (Math.abs(value) > 0.01) return at; at++; } return -1; };
+
+test('OmniVoice for V: the model silence before the first word is cropped, so the line (and the companion reply behind it) does not wait for it', async () => {
+  const packets = [packet({pcm: (() => { const raw = wavToPackets(paddedWav(), {profile: 'v-male'}); return raw.packets[0].pcm; })(), frames: 42000, offsetFrames: 0})];
+  const cropped = cropOmniPackets(packets, 'Hey Judy.');
+  assert.ok(cropped.length >= 1 && cropped.every((p, i) => p.index === i + 1 && p.owner === packets[0].owner && p.profile === packets[0].profile && p.frames === p.pcm.length));
+  const total = cropped.reduce((n, p) => n + p.frames, 0);
+  assert.ok(total <= 42000 - 0.5 * 24000 + 30 * 24 + 1, `cropped ${total} of 42000`);
+  assert.ok(firstSound(cropped) < 0.06 * 24000, 'the voice starts within a few tens of ms');
+  assert.equal(cropped.at(-1).pcm.at(-1), 0, 'faded to zero');
+  assert.deepEqual(cropOmniPackets([]), []);
+  // End to end through the line: V's first audio is not 500 ms of silence.
+  const {voice, host: played} = (() => { const h = renderer({endAfter: 3}); const f = omniFeature({play: h.play, render: async () => ({audio: paddedWav().toString('base64')})}); return {voice: f.voice, host: h}; })();
+  const made = voice.start(typed());
+  await made.waitClear(); await made.finished;
+  assert.ok(firstSound(played.state.emitted) < 0.2 * 24000 + 0.06 * 24000, `first sound at ${firstSound(played.state.emitted)} frames`);
+  assert.ok(firstSound(played.state.emitted) >= 0, 'the voice is there');
 });
 
 test('OmniVoice for V loads nothing of its own: no Pocket worker, no helper, no companion worker call', async () => {

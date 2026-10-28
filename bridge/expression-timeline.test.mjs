@@ -158,7 +158,8 @@ class OfflinePlayer {
   async end() { this.sealed = true; }
   async stop() {}
 }
-const OMNI_TEXT = 'Haha, that was preem, we really pulled it off! But honestly, I am worried about what comes next for all of us. I miss him so much.';
+// (The second sentence is long enough that the third cannot join it in one 40-word phrase: three phrases.)
+const OMNI_TEXT = 'Haha, that was preem, we really pulled it off! But honestly, I am worried about what comes next for all of us because nobody is telling us anything and the streets get quieter every night and the whole city feels like it is holding its breath. I miss him so much.';
 async function omniReply({reply = OMNI_TEXT, expressionSignal, request = 'omni-expr'} = {}) {
   const input = {requestId: request, entity: '17ULL', generation: 4, profileKey: 'some-fixer', source: 'typed'};
   const profile = {key: input.profileKey}, documents = [];
@@ -180,7 +181,7 @@ async function omniReply({reply = OMNI_TEXT, expressionSignal, request = 'omni-e
     starts.push(spoken.reduce((total, seconds) => total + seconds, 0)); spoken.push(phrase.length * .06 + .7);
     const tone = Float32Array.from({length: Math.round(phrase.length * .06 * OMNI_RATE)}, (_, at) => .3 * Math.sin(at / 9) * (.6 + .4 * Math.sin(at / 700)));
     return {audio: encodePcmWav(Float32Array.from([...tone, ...new Float32Array(16800)]), OMNI_RATE), timing: {}};
-  }});
+  }, join: false});
   try {
     const result = {text: reply, sessionID: 's', timing: {}, ...(expressionSignal ? {expressionSignal} : {})};
     const out = await deliverPocketSpeech({input, profile, result, current, signal: undefined, voice, host: {playLocalPcm: (...args) => host.play(...args)}, speech});

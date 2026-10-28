@@ -2175,6 +2175,8 @@ function omniVoiceFor({input, result, streamed, language, capture}) {
   const voice = createOmniPcmVoice({
     steps: () => localVoice.steps,
     // The AMD route (ROCm, the player's own Python) asks once more for a phrase that failed instead of ending the reply there (docs/OMNIVOICE_AMD.md); NVIDIA is unchanged.
+    // How long this reply's first sound waits so its rest is rendered in time (bridge/omni-runway.mjs): the engine's pace holds it (bridge/speech-pace.mjs).
+    onRunway: ms => { omniPace.runwayMs = ms; },
     retries: () => omniOwnPython?.used && omniOwnPython.backend === 'rocm' ? 1 : 0,
     onRetry: ({index, error}) => process.stderr.write(`[LocalVoice] [OmniPython] phrase ${index + 1} failed (${String(error?.message ?? error).slice(0, 100)}), asking again\n`),
     synthesize: async (key, text, options) => {
