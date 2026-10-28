@@ -61,7 +61,7 @@ test('offered and not installed: Install with the size, the disk space and the e
   local setup = rows['omni-amd-setup']
   assert(setup.label == 'Set up OmniVoice for AMD' and setup.value == 'Install' and setup.action == 'install' and setup.enabled == true)
   assert(rows['omni-amd-remove'] == nil)
-  assert(setup.help:find('One download from AMD of about 1.4 GB.', 1, true), setup.help)
+  assert(setup.help:find('One download of about 1.4 GB.', 1, true), setup.help)
   assert(setup.help:find('It takes about 4.0 GB on drive C: in the mod’s data folder.', 1, true), setup.help)
   assert(setup.help:find('It runs in the background while you play. The game keeps running and nothing else changes.', 1, true))
   assert(setup.help:find('Experimental. Pocket speaks until it is ready. A local voice never switches to a cloud voice.', 1, true))
@@ -69,7 +69,7 @@ test('offered and not installed: Install with the size, the disk space and the e
   -- no sizes known: the sentences still read well
   publish(with({downloadMiB = false, diskMiB = false}))
   setup = rowsOf(provider)['omni-amd-setup']
-  assert(setup.help:find('One download from AMD.', 1, true) and setup.help:find('kept in the mod’s data folder on drive C:', 1, true), setup.help)
+  assert(setup.help:find('One download.', 1, true) and setup.help:find('kept in the mod’s data folder on drive C:', 1, true), setup.help)
   -- a PC that is not offered it
   publish({version = 1, offered = false, installed = false})
   setup = rowsOf(provider)['omni-amd-setup']

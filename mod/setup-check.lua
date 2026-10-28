@@ -727,7 +727,7 @@ local function bridgeLines(out)
                 out[#out + 1] = line('omni-python', label, 'problem', ui.t('Your own Python (omni-python.txt) was not used: {reason}. OmniVoice uses the Runtime’s Python, which needs an NVIDIA card.', {reason = why}))
             end
         elseif ownPython.code == 'amd-route' then
-            out[#out + 1] = line('omni-python', label, 'note', ui.t('Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself.',
+            out[#out + 1] = line('omni-python', label, 'note', ui.t('Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.',
                 {card = text(ownPython.device, 80) or 'AMD Radeon'}))
         elseif ownPython.code == 'testing' then
             out[#out + 1] = line('omni-python', label, 'note', ui.t('Your own Python (omni-python.txt) is being tested. Open this page again in a minute.'))

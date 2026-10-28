@@ -7,8 +7,10 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createZip} from './zip-writer.mjs';
-import {CARD_DELAY_MS, OmniAmdSetup, amdArch, amdCard, checksumOk, downloadFile, loadManifest, parseAmdCommand, planFor, tarExtract, unpackInto} from './omni-amd-setup.mjs';
-import {amdPaths, prepareInterpreter, pthText, readAmdSetup, syncAmdPython} from './omni-amd-layout.mjs';
+import {CARD_DELAY_MS, OmniAmdSetup, amdArch, amdCard, checksumOk, downloadFile, loadManifest, packFor, parseAmdCommand, planFor, spaceNeeded, tarExtract, unpackInto} from './omni-amd-setup.mjs';
+import {amdPackName, amdPackUrl, amdPaths, prepareInterpreter, pthText, readAmdSetup, syncAmdPython} from './omni-amd-layout.mjs';
+import PACKS from './omni-amd-packs.mjs';
+import {buildPack} from '../packaging/build-omni-amd-packs.mjs';
 import {readOwnPythonSetting, resolveOwnPython} from './omni-own-python.mjs';
 
 // Settings > Voices > OmniVoice for AMD, the service side (docs/OMNIVOICE_AMD.md): the pinned AMD files, the card families, the checks of a download, the
@@ -257,19 +259,33 @@ test('unpackInto with Windows\' tar: a wheel whole (its .data/platlib merged), t
   } finally { await rm(folder, {recursive: true, force: true}); }
 });
 
+// Our pack of gfx1201 as the builder makes it from the fake AMD files: {packs (the list), bytes, url}.
+async function hostedPack(folder, manifest, served) {
+  const built = await buildPack({manifest, target: 'gfx1201', downloads: join(folder, 'builder'), out: join(folder, 'packs'), fetchImpl: fakeServer(served).fetchImpl});
+  return {packs: {version: 1, packs: {gfx1201: {name: built.name, size: built.size, sha256: built.sha256, files: built.files}}}, bytes: await readFile(built.path), url: amdPackUrl(built.name)};
+}
+
 // The whole job against fakes. `recheck` plays the Python test the bridge runs (resolveOwnPython): it reads what is on disk.
-async function fixture({cards = [RX9070], free = () => 50 * 2 ** 30, test = 'rocm', pack = true, server, hold = false} = {}) {
+async function fixture({cards = [RX9070], free = () => 50 * 2 ** 30, test = 'rocm', pack = true, server, hold = false, hosted = false} = {}) {
   const folder = await temporary();
   const stateDirectory = join(folder, 'state');
   await mkdir(join(stateDirectory), {recursive: true});
   const runtimePython = await fakePack(folder);
   const {manifest, served} = await fakeAmdFiles(folder);
-  const fake = fakeServer(server ?? served, {hold});
+  // hosted: our pack of the family on Hugging Face, built by the real pack builder from the fake AMD files ('missing': listed but not there; 'corrupt': other bytes).
+  let packs;
+  const everything = {...served};
+  if (hosted) {
+    const mine = await hostedPack(folder, manifest, served);
+    packs = mine.packs;
+    if (hosted !== 'missing') everything[mine.url] = hosted === 'corrupt' ? Buffer.concat([mine.bytes.subarray(0, 100), Buffer.from([mine.bytes[100] ^ 0xff]), mine.bytes.subarray(101)]) : mine.bytes;
+  }
+  const fake = fakeServer(server ?? everything, {hold});
   const published = [], logs = [];
   let clock = 1_000_000, own = null, released = 0, extracted = [];
   const commandPath = join(folder, 'omni-amd-command.json');
   await writeFile(commandPath, '');
-  const setup = new OmniAmdSetup({stateDirectory, commandPath, manifest, publish: value => { published.push(structuredClone(value)); },
+  const setup = new OmniAmdSetup({stateDirectory, commandPath, manifest, packs, publish: value => { published.push(structuredClone(value)); },
     runtimePython: () => pack ? runtimePython : null, packInstalled: () => pack, cards: async () => cards, ownPython: () => own, ownFile: async () => false,
     recheck: async () => {
       const installed = await readAmdSetup({stateDirectory});
@@ -411,4 +427,109 @@ test('the status names the test of the AMD Python and the player\'s own file; a 
     assert.equal(setup.running, null, 'the old command is not run');
     assert.throws(() => new OmniAmdSetup({}), /Invalid/);
   } finally { await rm(folder, {recursive: true, force: true}); }
+});
+
+test('the pack of a family: named by runtime, family and versions, found on our Hugging Face voice/amd/ folder, accepted only with the pinned files and a SHA-256', () => {
+  const roots = {torch: '2.14.0+rocm10.1.0'};
+  assert.equal(amdPackName(roots, 'gfx1201'), 'OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip');
+  assert.equal(amdPackUrl('OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip'), 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/resolve/main/voice/amd/OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip');
+  assert.equal(amdPackName({torch: 'x'}, 'gfx1201'), null); assert.equal(amdPackName(roots, '../x'), null); assert.equal(amdPackName(null, 'gfx1201'), null);
+  const manifest = {roots, targets: {gfx1201: ['b.whl', 'a.whl']}, files: {'a.whl': {url: 'https://x/a', size: 10, unpacked: 30}, 'b.whl': {url: 'https://x/b', size: 20, unpacked: 60}}};
+  const entry = {name: amdPackName(roots, 'gfx1201'), size: 1234, sha256: 'a'.repeat(64), files: ['a.whl', 'b.whl']};
+  const found = packFor(manifest, {packs: {gfx1201: entry}}, 'gfx1201', manifest.targets.gfx1201);
+  assert.deepEqual(found, {name: entry.name, url: amdPackUrl(entry.name), size: 1234, sha256: 'a'.repeat(64)});
+  for (const bad of [{...entry, name: 'OmniAMD-gfx1201-PyTorch-2.15-ROCm-10.1.zip'}, {...entry, sha256: 'A'.repeat(64)}, {...entry, sha256: null}, {...entry, size: 0}, {...entry, files: ['a.whl']},
+    {...entry, files: ['a.whl', 'b.whl', 'c.whl']}]) assert.equal(packFor(manifest, {packs: {gfx1201: bad}}, 'gfx1201', manifest.targets.gfx1201), null, JSON.stringify(bad).slice(0, 80));
+  assert.equal(packFor(manifest, {packs: {}}, 'gfx1201', manifest.targets.gfx1201), null); assert.equal(packFor(manifest, null, 'gfx1201', manifest.targets.gfx1201), null);
+  // The plan downloads the pack when there is one (the page shows its size), else the sum of AMD's files.
+  const withPack = planFor(manifest, 'gfx1201', {packs: {gfx1201: entry}}), without = planFor(manifest, 'gfx1201', {packs: {}});
+  assert.equal(withPack.downloadBytes, 1234); assert.equal(withPack.filesBytes, 30); assert.equal(withPack.pack.name, entry.name);
+  assert.equal(without.downloadBytes, 30); assert.equal(without.pack, null); assert.equal(without.unpackedBytes, 90);
+  // The room: the zip and the wheels it holds together, then the unpacked files; what an earlier try left is not counted twice.
+  const margin = 512 * 2 ** 20, big = {...withPack, pack: {...withPack.pack, size: 1000}, filesBytes: 800, unpackedBytes: 3000};
+  assert.equal(spaceNeeded(big), 800 + 3000 + margin);
+  assert.equal(spaceNeeded({...big, unpackedBytes: 100}), 800 + 1000 + margin, 'the zip and the wheels are on the drive together');
+  assert.equal(spaceNeeded(big, {packBytes: 400, fileBytes: 100}), 700 + 3000 + margin);
+  assert.equal(spaceNeeded(big, {extracted: true}), 3000 + margin);
+  assert.equal(spaceNeeded({...big, pack: null}, {fileBytes: 300}), 500 + 3000 + margin, 'from AMD: the wheels and the unpacked files');
+});
+
+test('the committed pack list names, for every family it lists, the files of the pinned list and a SHA-256 (an empty list: AMD\'s files are downloaded)', () => {
+  const manifest = loadManifest();
+  assert.equal(PACKS.version, 1);
+  for (const target of Object.keys(PACKS.packs)) {
+    const plan = planFor(manifest, target, PACKS);
+    assert.ok(plan?.pack, `${target}: the list is stale (run packaging/build-omni-amd-packs.mjs again)`);
+    assert.match(plan.pack.url, /^https:\/\/huggingface\.co\/alystria-ai\/ai-npc-cyberpunk-mod-packs\/resolve\/main\/voice\/amd\/OmniAMD-gfx\d+-PyTorch-/);
+  }
+  if (!Object.keys(PACKS.packs).length) assert.equal(planFor(manifest, 'gfx1201').pack, null);
+});
+
+test('install through our pack: one download from voice/amd/, unpacked, the zip deleted, nothing fetched from AMD; setup.json says where it came from', {skip: !haveTar}, async () => {
+  const h = await fixture({hosted: true});
+  try {
+    h.advance(CARD_DELAY_MS); await h.setup.poll();
+    const plan = h.setup.plan();
+    assert.ok(plan.pack); assert.equal(h.published.at(-1).downloadMiB, Math.round(plan.pack.size / 2 ** 20));
+    const id = await h.send('install');
+    const status = await h.finished();
+    assert.equal(status.job.state, 'done', JSON.stringify(status.job));
+    const states = h.published.filter(value => value.job?.id === id).map(value => value.job.state);
+    assert.deepEqual([...new Set(states)], ['checking', 'downloading', 'unpacking', 'testing', 'done'], states.join(','));
+    assert.deepEqual([...new Set(h.fake.requests.map(request => request.url))], [plan.pack.url], 'only our file was asked for');
+    const paths = amdPaths(h.stateDirectory);
+    assert.equal((await readAmdSetup({stateDirectory: h.stateDirectory})).source, 'huggingface');
+    assert.equal(existsSync(join(paths.site, 'torch', '__init__.py')), true); assert.equal(existsSync(join(paths.site, 'rocm_sdk', '__init__.py')), true);
+    assert.equal(existsSync(paths.downloads), false);
+  } finally { await h.close(); }
+});
+
+test('our pack missing or not right: the job goes on with AMD\'s files, checked one by one; any other failure of ours ends the job as before', {skip: !haveTar}, async () => {
+  for (const hosted of ['missing', 'corrupt']) {
+    const h = await fixture({hosted});
+    try {
+      await h.send('install');
+      const status = await h.finished();
+      assert.equal(status.job.state, 'done', `${hosted}: ${JSON.stringify(status.job)}`);
+      assert.ok(h.fake.requests.some(request => request.url.startsWith('https://stable.repo.amd.com/')), hosted);
+      assert.equal((await readAmdSetup({stateDirectory: h.stateDirectory})).source, 'amd', hosted);
+      assert.ok(h.logs.some(line => line.startsWith('our pack OmniAMD-gfx1201-')), h.logs.join('\n'));
+    } finally { await h.close(); }
+  }
+  // A server error of ours (not "missing") is a failed download: no silent switch to AMD.
+  const h = await fixture({hosted: true});
+  try {
+    const url = amdPackUrl('OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip');
+    h.setup.options.fetchImpl = async (target, init) => target === url ? new Response('no', {status: 503}) : h.fake.fetchImpl(target, init);
+    await h.send('install');
+    const status = await h.finished();
+    assert.deepEqual(status.job.code, 'download-failed');
+    assert.equal(h.fake.requests.some(request => request.url.startsWith('https://stable.repo.amd.com/')), false);
+  } finally { await h.close(); }
+});
+
+test('after a failed unpack the zip is kept and not downloaded again; once unpacked a marker lets the next try skip the download and the unpack', {skip: !haveTar}, async () => {
+  const h = await fixture({hosted: true});
+  try {
+    const good = h.setup.options.extract;
+    h.setup.options.extract = async () => { throw Object.assign(Error('x'), {code: 'unpack-failed'}); };
+    await h.send('install');
+    assert.equal((await h.finished()).job.code, 'unpack-failed');
+    const downloads = amdPaths(h.stateDirectory).downloads;
+    assert.ok((await readdir(downloads)).some(name => name.startsWith('OmniAMD-')), 'the zip stays for the next try');
+    const asked = h.fake.requests.length;
+    // The zip is unpacked, then a later step fails (the pack's Python is not there): the marker is written and the wheels stay.
+    h.setup.options.extract = good;
+    const python = h.setup.options.runtimePython;
+    h.setup.options.runtimePython = () => join(h.folder, 'nowhere', 'python.exe');
+    await h.send('install', 's:amd:second');
+    assert.notEqual((await h.finished()).job.state, 'done');
+    assert.equal(h.fake.requests.length, asked, 'the kept zip was verified, not downloaded again');
+    const names = await readdir(downloads);
+    assert.ok(names.some(name => name.endsWith('.done')) && !names.some(name => name.endsWith('.zip')), names.join(','));
+    h.setup.options.runtimePython = python;
+    await h.send('install', 's:amd:third');
+    assert.equal((await h.finished()).job.state, 'done');
+    assert.equal(h.fake.requests.length, asked, 'nothing downloaded at all the third time');
+  } finally { await h.close(); }
 });

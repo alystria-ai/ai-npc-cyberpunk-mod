@@ -2020,7 +2020,7 @@ local function schema()
             if asked and visible == true then
                 local at = 1
                 for index, voiceRow in ipairs(voicesCategory.settings) do if voiceRow.id == 'voiceProvider' then at = index + 1 end end
-                table.insert(voicesCategory.settings, at, action('omni-amd', 'OmniVoice for AMD', 'Open', 'Set up OmniVoice on your AMD Radeon card with one download from AMD, and choose how it runs.',
+                table.insert(voicesCategory.settings, at, action('omni-amd', 'OmniVoice for AMD', 'Open', 'Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.',
                     function()
                         -- The page reads the bridge's answer again at once, not at the next poll.
                         pcall(omniAmd.instance.state, true)
@@ -2034,7 +2034,7 @@ local function schema()
             end
             -- First paragraph, so a long description that is cut keeps it.
             if voiceRow.id == 'voiceProvider' and pack.amdRoute then
-                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself. Until then Pocket speaks.')
+                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.')
                     .. '\n\n' .. voiceRow.description
             elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
                 voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')

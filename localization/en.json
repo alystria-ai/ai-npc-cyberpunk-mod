@@ -782,8 +782,8 @@
     "On. Waiting for the conversation service.": "On. Waiting for the conversation service.",
     "On: AMD’s MIOpen runs the convolutions, with MIOPEN_FIND_MODE=2 and MIOPEN_FIND_ENFORCE=1. Off: PyTorch’s own convolutions. Which is faster depends on your card and driver: if voices are slow or stop part-way, try the other one. AMD cards only. OmniVoice restarts with the new choice when it is idle.": "On: AMD’s MIOpen runs the convolutions, with MIOPEN_FIND_MODE=2 and MIOPEN_FIND_ENFORCE=1. Off: PyTorch’s own convolutions. Which is faster depends on your card and driver: if voices are slow or stop part-way, try the other one. AMD cards only. OmniVoice restarts with the new choice when it is idle.",
     "On: characters you tell they can stay at your place move into your apartments and live there, and you can call them along.\n\nOff: nothing of this runs. Turning it off removes them from your apartments but remembers who lived there, so turning it on brings them back.": "On: characters you tell they can stay at your place move into your apartments and live there, and you can call them along.\n\nOff: nothing of this runs. Turning it off removes them from your apartments but remembers who lived there, so turning it on brings them back.",
-    "One download from AMD of about {size} GB.": "One download from AMD of about {size} GB.",
-    "One download from AMD.": "One download from AMD.",
+    "One download of about {size} GB.": "One download of about {size} GB.",
+    "One download.": "One download.",
     "One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.": "One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.",
     "Only Mature models found. Turn on Mature content to use them.": "Only Mature models found. Turn on Mature content to use them.",
     "Only https:// works outside this computer and your home network.": "Only https:// works outside this computer and your home network.",
@@ -983,7 +983,7 @@
     "Service not running ({reason})": "Service not running ({reason})",
     "Service starting": "Service starting",
     "Set up OmniVoice for AMD": "Set up OmniVoice for AMD",
-    "Set up OmniVoice on your AMD Radeon card with one download from AMD, and choose how it runs.": "Set up OmniVoice on your AMD Radeon card with one download from AMD, and choose how it runs.",
+    "Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.": "Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.",
     "Settings": "Settings",
     "Settings are active, but could not be saved for next time.": "Settings are active, but could not be saved for next time.",
     "Settings saved.": "Settings saved.",
@@ -1483,8 +1483,8 @@
     "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).": "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
     "You moved away from the car. The trip was cancelled.": "You moved away from the car. The trip was cancelled.",
     "You: {text}": "You: {text}",
-    "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself.": "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself.",
-    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself. Until then Pocket speaks.": "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself. Until then Pocket speaks.",
+    "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.": "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.",
+    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.": "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.",
     "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.": "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.",
     "Your Convai plan": "Your Convai plan",
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.",
@@ -1937,7 +1937,7 @@
       "Saves a report file you can send to the developer.\n\nAPI keys, tokens, IDs, microphone audio and conversation text are left out. Without the conversation service, a shorter report is made from the files the game can read.",
       "See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves.",
       "Select {name} for memory controls. This does not invite them or change their conversation settings.",
-      "Set up OmniVoice on your AMD Radeon card with one download from AMD, and choose how it runs.",
+      "Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.",
       "Sign in",
       "Sign in with Convai",
       "Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.",
@@ -2889,8 +2889,8 @@
       "On, but no server address is saved. OmniVoice cannot speak yet.",
       "On. It is used when Companion voices is an OmniVoice entry.",
       "On. Waiting for the conversation service.",
-      "One download from AMD of about {size} GB.",
-      "One download from AMD.",
+      "One download of about {size} GB.",
+      "One download.",
       "Only Mature models found. Turn on Mature content to use them.",
       "Only https:// works outside this computer and your home network.",
       "Open AI NPC Cyberpunk Mod in the Mods list.",
@@ -3337,8 +3337,8 @@
       "You have made as many characters as the editor keeps ({max}). Delete one first.",
       "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
       "You: {text}",
-      "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself.",
-      "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself. Until then Pocket speaks.",
+      "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.",
+      "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.",
       "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.",
       "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.",
       "Your Convai plan has no room for conversation memory, so companions will not remember past talks.",
@@ -9544,7 +9544,7 @@
         "mod/manager-ui.lua:1532"
       ]
     },
-    "One download from AMD of about {size} GB.": {
+    "One download of about {size} GB.": {
       "contexts": [
         "ui.localized"
       ],
@@ -9552,7 +9552,7 @@
         "mod/omni-amd.lua:233"
       ]
     },
-    "One download from AMD.": {
+    "One download.": {
       "contexts": [
         "ui.localized"
       ],
@@ -11226,7 +11226,7 @@
         "mod/omni-amd.lua:256"
       ]
     },
-    "Set up OmniVoice on your AMD Radeon card with one download from AMD, and choose how it runs.": {
+    "Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.": {
       "contexts": [
         "page.action"
       ],
@@ -15437,7 +15437,7 @@
         "mod/microphone.lua:247"
       ]
     },
-    "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself.": {
+    "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.": {
       "contexts": [
         "ui.localized"
       ],
@@ -15445,7 +15445,7 @@
         "mod/setup-check.lua:730"
       ]
     },
-    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself. Until then Pocket speaks.": {
+    "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.": {
       "contexts": [
         "ui.localized"
       ],

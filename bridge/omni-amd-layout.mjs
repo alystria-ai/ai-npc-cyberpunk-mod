@@ -109,3 +109,22 @@ export async function writeAmdSetup(path, value) {
 
 /** Wheel folders named <name>.data/ (purelib, platlib) belong in the site folder itself; their other parts (scripts, headers, data) are not used. */
 export const wheelDataFolder = name => /^[^/\\]+\.data$/i.test(basename(name));
+
+// The packs of AMD's files on our Hugging Face repository (docs/OMNIVOICE_AMD.md, "Where the files come from"): one zip per card family in voice/amd/,
+// built by packaging/build-omni-amd-packs.mjs from AMD's own wheels, listed with their SHA-256 in bridge/omni-amd-packs.mjs.
+export const AMD_PACK_REPOSITORY = 'alystria-ai/ai-npc-cyberpunk-mod-packs';
+export const AMD_PACK_FOLDER = 'voice/amd';
+/** The manifest inside a pack zip, beside the wheels. */
+export const AMD_PACK_MANIFEST = 'omni-amd-pack.json';
+
+/**
+ * The file name of a family's pack: model/runtime name, family, then the PyTorch and ROCm versions that are inside:
+ * OmniAMD-gfx1201-PyTorch-2.14-ROCm-10.1.zip. `roots.torch` is the pinned torch ("2.14.0+rocm10.1.0"). Null when the versions cannot be read. Pure.
+ */
+export function amdPackName(roots, target) {
+  const found = /^(\d+\.\d+)(?:\.\d+)*[^+]*\+rocm(\d+\.\d+)/.exec(String(roots?.torch ?? ''));
+  if (!found || !/^gfx[0-9a-f]{3,5}$/.test(String(target ?? ''))) return null;
+  return `OmniAMD-${target}-PyTorch-${found[1]}-ROCm-${found[2]}.zip`;
+}
+/** Where a pack is downloaded from. Pure. */
+export const amdPackUrl = name => `https://huggingface.co/${AMD_PACK_REPOSITORY}/resolve/main/${AMD_PACK_FOLDER}/${name}`;

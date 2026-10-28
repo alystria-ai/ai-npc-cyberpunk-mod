@@ -1300,7 +1300,7 @@ test('a PC the bridge knows has no NVIDIA card gets a note on the OmniVoice entr
     assert(manager.omniPack().amdRoute == true)
     assert(row('voiceProvider').label == 'Companion voices (OmniVoice on AMD: set up first)', row('voiceProvider').label)
     description = row('voiceProvider').description
-    assert(description:find('^Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself. Until then Pocket speaks.'), description)
+    assert(description:find('^Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.'), description)
     assert(not description:find('OMNIVOICE_AMD', 1, true) and description:find('Pocket: the lightest', 1, true))
     show('amd-route-integrated', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, omniAmdRoute = false, gpuVendors = {'intel'}})
     assert(manager.omniPack().amdRoute == false and row('voiceProvider').label == 'Companion voices (OmniVoice needs NVIDIA)')

@@ -130,6 +130,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/natural-speech.mjs',
   'bridge/nearby-warm.mjs',
   'bridge/omni-amd-layout.mjs',
+  'bridge/omni-amd-packs.mjs',
   'bridge/omni-amd-setup.mjs',
   'bridge/omni-amd-wheels.mjs',
   'bridge/omni-own-python.mjs',

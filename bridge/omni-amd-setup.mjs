@@ -1,9 +1,11 @@
 // Settings > Voices > OmniVoice for AMD (docs/OMNIVOICE_AMD.md): the one-button setup of OmniVoice on an AMD Radeon card.
 //
 // The OmniVoice pack's PyTorch is a CUDA build: it sees NVIDIA cards only. On a PC with a discrete AMD Radeon card and no NVIDIA one, the page offers one
-// download from AMD itself: the ROCm PyTorch files of bridge/omni-amd-wheels.mjs for the card's family (packaging/resolve-omni-amd.mjs pins them), straight
-// from AMD's own package index (https://stable.repo.amd.com/rocm/whl-next/). Nothing of AMD's is shipped or rehosted by the mod. They are unpacked into the
-// mod's data folder beside a copy of the pack's interpreter (bridge/omni-amd-layout.mjs), and that Python is then tested exactly like a player's own
+// download: the ROCm PyTorch files of bridge/omni-amd-wheels.mjs for the card's family (packaging/resolve-omni-amd.mjs pins them). They come as ONE pack zip
+// of that family from our Hugging Face repository (voice/amd/OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip, built from AMD's own wheels by
+// packaging/build-omni-amd-packs.mjs and listed with its SHA-256 in bridge/omni-amd-packs.mjs). Only when our pack is missing or does not check out, or no pack
+// is listed for the family yet, the files are downloaded one by one from AMD's own package index (https://stable.repo.amd.com/rocm/whl-next/) instead. They are
+// unpacked into the mod's data folder beside a copy of the pack's interpreter (bridge/omni-amd-layout.mjs), and that Python is then tested exactly like a player's own
 // omni-python.txt (bridge/omni-own-python.mjs): only a Python whose test passed on the card is used, so a failure ends as before (Pocket or text, never a
 // cloud voice). A player's own omni-python.txt always wins.
 //
@@ -13,14 +15,15 @@
 // whether to offer the setup. The job runs in the background, off the game's thread, and it never blocks the settings poll.
 import {createHash} from 'node:crypto';
 import {createReadStream, createWriteStream} from 'node:fs';
-import {cp, mkdir, readdir, rename, rm, stat, statfs, writeFile} from 'node:fs/promises';
+import {cp, mkdir, readdir, readFile, rename, rm, stat, statfs, writeFile} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {join, resolve} from 'node:path';
 import {Readable, Transform} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {gpuVendors, amdRoute} from './gpu-vendors.mjs';
-import {amdPaths, prepareInterpreter, readAmdSetup, wheelDataFolder, writeAmdSetup} from './omni-amd-layout.mjs';
+import {amdPackName, amdPackUrl, amdPaths, prepareInterpreter, readAmdSetup, wheelDataFolder, writeAmdSetup} from './omni-amd-layout.mjs';
 import PINNED from './omni-amd-wheels.mjs';
+import PACKS from './omni-amd-packs.mjs';
 
 export const COMMANDS = Object.freeze(['install', 'cancel', 'remove']);
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
@@ -59,13 +62,40 @@ export function amdCard(cards) {
   return card ? {name: String(card.name).slice(0, 80), arch: amdArch(card.name), memoryMiB: Number.isFinite(card.memoryMiB) ? Math.round(card.memoryMiB) : null} : null;
 }
 
-/** What one card family needs: {target, files: [{name, ...}], downloadBytes, unpackedBytes}, or null when the manifest has no such family. Pure. */
-export function planFor(manifest, target) {
+/**
+ * Our pack of a family ({name, url, size, sha256}) when bridge/omni-amd-packs.mjs lists one that holds exactly the files of the pinned list, else null (then AMD's
+ * files are downloaded one by one). The URL is built here from the name, never read from the list. Pure.
+ */
+export function packFor(manifest, packs, target, names) {
+  const entry = packs?.packs?.[target];
+  const name = amdPackName(manifest?.roots, target);
+  if (!entry || !name || entry.name !== name || !Number.isSafeInteger(entry.size) || entry.size <= 0 || !/^[0-9a-f]{64}$/.test(entry.sha256 ?? '')
+    || !Array.isArray(entry.files) || [...entry.files].sort().join('|') !== [...names].sort().join('|')) return null;
+  return {name, url: amdPackUrl(name), size: entry.size, sha256: entry.sha256};
+}
+
+/**
+ * What one card family needs: {target, files: [{name, ...}], pack, filesBytes, downloadBytes, unpackedBytes}, or null when the manifest has no such family.
+ * downloadBytes is what the player downloads: our pack when there is one, else the sum of AMD's files. Pure.
+ */
+export function planFor(manifest, target, packs = PACKS) {
   const names = target && manifest?.targets?.[target];
   if (!Array.isArray(names) || !names.length) return null;
   const files = names.map(name => ({name, ...manifest.files?.[name]}));
   if (files.some(file => !/^https:\/\//.test(file.url ?? '') || !Number.isSafeInteger(file.size) || file.size <= 0)) return null;
-  return {target, files, downloadBytes: files.reduce((sum, file) => sum + file.size, 0), unpackedBytes: files.reduce((sum, file) => sum + (file.unpacked || file.size), 0)};
+  const filesBytes = files.reduce((sum, file) => sum + file.size, 0);
+  const pack = packFor(manifest, packs, target, names);
+  return {target, files, pack, filesBytes, downloadBytes: pack ? pack.size : filesBytes, unpackedBytes: files.reduce((sum, file) => sum + (file.unpacked || file.size), 0)};
+}
+
+/**
+ * The free space a setup needs, margin included. Through our pack the zip and the wheels it holds are on the drive together, then the zip is deleted and the
+ * unpacked files come; from AMD only the wheels and the unpacked files. What is already there from an earlier try (`present`) is not counted again. Pure.
+ */
+export function spaceNeeded(plan, {extracted = false, packBytes = 0, fileBytes = 0} = {}) {
+  const files = extracted ? 0 : Math.max(0, plan.filesBytes - fileBytes);
+  const pack = plan.pack && !extracted ? Math.max(0, plan.pack.size - packBytes) : 0;
+  return files + Math.max(pack, plan.unpackedBytes) + SPACE_MARGIN_BYTES;
 }
 
 /**
@@ -114,7 +144,7 @@ export async function downloadFile(file, path, {fetchImpl = fetch, signal, onByt
     response = await fetchImpl(file.url, {signal, redirect: 'follow', headers: have ? {Range: `bytes=${have}-`} : {}});
   } catch (error) { if (signal?.aborted) throw new Cancelled(); throw failure('download-failed'); }
   if (have && response.status === 200) have = 0;
-  else if (!(response.ok || response.status === 206)) throw failure('download-failed');
+  else if (!(response.ok || response.status === 206)) throw Object.assign(failure('download-failed'), {missing: [401, 403, 404, 410].includes(response.status)});
   onBytes(have);
   const counter = new Transform({transform(chunk, encoding, next) { onBytes(chunk.length); next(null, chunk); }});
   try {
@@ -201,6 +231,7 @@ export class OmniAmdSetup {
     this.options = options;
     this.paths = amdPaths(options.stateDirectory);
     this.manifest = options.manifest === undefined ? loadManifest() : options.manifest;
+    this.packs = options.packs === undefined ? PACKS : options.packs;
     this.now = options.now ?? Date.now;
     this.log = options.log ?? (() => {});
     this.read = options.read ?? (file => import('node:fs/promises').then(fs => fs.readFile(file, 'utf8')));
@@ -225,7 +256,7 @@ export class OmniAmdSetup {
     return this.cardsAsked;
   }
   packInstalled() { try { return this.options.packInstalled?.() === true; } catch { return false; } }
-  plan() { return planFor(this.manifest, this.card?.arch); }
+  plan() { return planFor(this.manifest, this.card?.arch, this.packs); }
   status() {
     const plan = this.plan();
     const own = this.options.ownPython?.() ?? null;
@@ -288,31 +319,18 @@ export class OmniAmdSetup {
       if (!plan) throw failure(this.manifest ? 'unsupported-card' : 'not-ready');
       await mkdir(this.paths.downloads, {recursive: true});
       // Room for what is still to download, the unpacked files and a margin; a setup already there is replaced, so its room counts as free.
-      let present = 0;
-      for (const file of plan.files) {
-        const sizeOf = async name => (await stat(join(this.paths.downloads, name)).catch(() => null))?.size ?? 0;
-        present += Math.min(file.size, Math.max(await sizeOf(file.name), await sizeOf(`${file.name}.part`)));
-      }
+      const sizeOf = async name => (await stat(join(this.paths.downloads, name)).catch(() => null))?.size ?? 0;
+      let fileBytes = 0;
+      for (const file of plan.files) fileBytes += Math.min(file.size, Math.max(await sizeOf(file.name), await sizeOf(`${file.name}.part`)));
+      const extracted = !!plan.pack && await this.packExtracted(plan);
+      const packBytes = plan.pack ? Math.min(plan.pack.size, Math.max(await sizeOf(plan.pack.name), await sizeOf(`${plan.pack.name}.part`))) : 0;
       const free = await (this.options.free ?? freeBytes)(this.paths.root);
       const old = this.installed ? plan.unpackedBytes : 0;
-      if (Number.isFinite(free) && free + old < plan.downloadBytes - present + plan.unpackedBytes + SPACE_MARGIN_BYTES) throw failure('no-space');
-      // Download, file by file, with progress.
-      const total = plan.downloadBytes;
-      let done = 0;
-      await this.setJob(id, 'install', 'downloading', {doneMiB: 0, totalMiB: Math.round(total / MIB)});
-      for (const file of plan.files) {
-        let counted = 0;
-        await downloadFile(file, join(this.paths.downloads, file.name), {fetchImpl: this.options.fetchImpl ?? fetch, signal, onBytes: bytes => {
-          counted += bytes; const now = this.now();
-          if (now - this.lastProgressAt >= PROGRESS_EVERY_MS) {
-            this.lastProgressAt = now;
-            this.job.public = {id, action: 'install', state: 'downloading', doneMiB: Math.floor((done + counted) / MIB), totalMiB: Math.round(total / MIB)};
-            void this.publishStatus().catch(() => {});
-          }
-        }});
-        done += file.size;
-        this.log(`downloaded ${file.name}`);
-      }
+      if (Number.isFinite(free) && free + old < spaceNeeded(plan, {extracted, packBytes, fileBytes})) throw failure('no-space');
+      // Download: our pack of the family (unpacked here into downloads/), else AMD's files one by one, with progress.
+      let source = 'amd';
+      if (plan.pack && await this.getPack(id, plan, signal)) source = 'huggingface';
+      else await this.getFiles(id, plan, signal);
       // Unpack into st/ beside the interpreter copy; the old setup is let go and replaced only now.
       await this.setJob(id, 'install', 'unpacking');
       await rm(this.paths.staging, {recursive: true, force: true});
@@ -320,7 +338,7 @@ export class OmniAmdSetup {
       await unpackInto(join(this.paths.staging, 'sp'), plan, this.paths.downloads, {extract: this.options.extract ?? tarExtract, signal});
       if (signal.aborted) throw new Cancelled();
       await writeAmdSetup(join(this.paths.staging, 'setup.json'), {version: 1, target: plan.target, card: card.name, installedAt: new Date(this.now()).toISOString(),
-        torch: this.manifest.roots?.torch ?? null, files: plan.files.map(file => file.name), diskBytes: plan.unpackedBytes});
+        torch: this.manifest.roots?.torch ?? null, source, files: plan.files.map(file => file.name), diskBytes: plan.unpackedBytes});
       await this.letGo();
       await rm(this.paths.home, {recursive: true, force: true, maxRetries: 10, retryDelay: 500});
       await rename(this.paths.staging, this.paths.home);
@@ -351,6 +369,61 @@ export class OmniAmdSetup {
       }
     }
     await this.publishStatus();
+  }
+  /** One download with the progress of the whole job: `before` bytes of `total` were done by earlier files. */
+  async download(file, path, {id, before, total, signal}) {
+    let counted = 0;
+    await downloadFile(file, path, {fetchImpl: this.options.fetchImpl ?? fetch, signal, onBytes: bytes => {
+      counted += bytes; const now = this.now();
+      if (now - this.lastProgressAt >= PROGRESS_EVERY_MS) {
+        this.lastProgressAt = now;
+        this.job.public = {id, action: 'install', state: 'downloading', doneMiB: Math.floor((before + counted) / MIB), totalMiB: Math.round(total / MIB)};
+        void this.publishStatus().catch(() => {});
+      }
+    }});
+  }
+  /** AMD's files, one by one from AMD's own index. */
+  async getFiles(id, plan, signal) {
+    let done = 0;
+    await this.setJob(id, 'install', 'downloading', {doneMiB: 0, totalMiB: Math.round(plan.filesBytes / MIB)});
+    for (const file of plan.files) {
+      await this.download(file, join(this.paths.downloads, file.name), {id, before: done, total: plan.filesBytes, signal});
+      done += file.size;
+      this.log(`downloaded ${file.name}`);
+    }
+  }
+  /** Whether the pack was downloaded and unpacked in an earlier try: its marker is there and every file has its size. */
+  async packExtracted(plan) {
+    try {
+      if ((await readFile(join(this.paths.downloads, `${plan.pack.name}.done`), 'utf8')).trim() !== plan.pack.sha256) return false;
+      for (const file of plan.files) if ((await stat(join(this.paths.downloads, file.name))).size !== file.size) return false;
+      return true;
+    } catch { return false; }
+  }
+  /**
+   * Our pack: downloaded (SHA-256 checked, resumed after a cancel), unpacked into downloads/ beside nothing else, then deleted. Returns false when our copy is
+   * missing or does not check out, so the caller downloads AMD's files instead; any other failure ends the job as before.
+   */
+  async getPack(id, plan, signal) {
+    const {pack} = plan, archive = join(this.paths.downloads, pack.name), marker = join(this.paths.downloads, `${pack.name}.done`);
+    if (await this.packExtracted(plan)) return true;
+    await rm(marker, {force: true});
+    await this.setJob(id, 'install', 'downloading', {doneMiB: 0, totalMiB: Math.round(pack.size / MIB)});
+    try {
+      await this.download({url: pack.url, size: pack.size, sha256: pack.sha256}, archive, {id, before: 0, total: pack.size, signal});
+    } catch (error) {
+      if (error?.missing || error?.code === 'checksum') { this.log(`our pack ${pack.name} is ${error.missing ? 'missing' : 'not right'}: AMD's files are downloaded instead`); return false; }
+      throw error;
+    }
+    this.log(`downloaded ${pack.name}`);
+    await this.setJob(id, 'install', 'unpacking');
+    await (this.options.extract ?? tarExtract)({archive, destination: this.paths.downloads, signal});
+    for (const file of plan.files) {
+      if ((await stat(join(this.paths.downloads, file.name)).catch(() => null))?.size !== file.size) throw failure('checksum');
+    }
+    await writeFile(marker, pack.sha256);
+    await rm(archive, {force: true});
+    return true;
   }
   /** The AMD Python is let go: the bridge stops using it (the worker that runs from it exits) before its files are replaced or removed. */
   async letGo() {

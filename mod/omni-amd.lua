@@ -230,7 +230,7 @@ function M.new(options)
         -- What the download is and what it needs: the same under every status.
         local size, disk = gigabytes(state.downloadMiB), gigabytes(state.diskMiB)
         local explanation = {}
-        explanation[#explanation + 1] = size and ui.t('One download from AMD of about {size} GB.', {size = size}) or ui.t('One download from AMD.')
+        explanation[#explanation + 1] = size and ui.t('One download of about {size} GB.', {size = size}) or ui.t('One download.')
         explanation[#explanation + 1] = disk and ui.t('It takes about {disk} GB on drive C: in the mod’s data folder.', {disk = disk})
             or ui.t('It is kept in the mod’s data folder on drive C:.')
         explanation[#explanation + 1] = ui.t('It runs in the background while you play. The game keeps running and nothing else changes.')
