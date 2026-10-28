@@ -45,7 +45,7 @@ const HEARD_WITHOUT_FINAL_MS = 4000;
 // longer transcripts keep the 60 s rule.
 const TINY_TRANSCRIPT_CHARACTERS = 3;
 const NO_SPEECH_ERROR = 'No speech was heard';
-// A microphone turn that has a final transcript (more than TINY_TRANSCRIPT_CHARACTERS characters) and no reply text this long after the transcript last changed: Convai took the audio and
+// A microphone turn that has a final transcript (more than TINY_TRANSCRIPT_CHARACTERS characters) and shows no sign of a reply (no reply text, Convai not thinking) this long after the transcript last changed or Convai last thought: Convai took the audio and
 // answered nothing (error signature cbb775b3: 37 reports, "transcript=true text=false"). The same transcript is sent once to the same character as a typed line, instead of waiting for
 // the 60 s ceiling and failing. A normal reply comes in a few seconds, so nothing waits longer for it. The resend gets RESEND_WAIT_MS for a reply of its own; only when that
 // passes too does the turn fail with the usual error (and so the one report), now saying `resent=true`.
@@ -719,14 +719,17 @@ async function collect(current) {
           && performance.now() - Math.max(started, current.userTextAtMs ?? started) > NO_SPEECH_AFTER_MS) throw Error(NO_SPEECH_ERROR);
       if (current.microphone && current.userText && !current.text) {
         const now = performance.now();
+        // Any sign of a reply (Convai thinking/generating, or reply text started, which the condition above already excludes) restarts the 15 s: it is not resent while the character is working on it.
+        if (client.state.isThinking) current.thinkingSeenAtMs = now;
         if (current.resentAtMs === undefined) {
-          if (now - Math.max(started, current.userTextAtMs ?? started) > RESEND_AFTER_MS && [...current.userText].length > TINY_TRANSCRIPT_CHARACTERS) {
+          if (now - Math.max(started, current.userTextAtMs ?? started, current.thinkingSeenAtMs ?? 0) > RESEND_AFTER_MS && !client.state.isThinking
+              && [...current.userText].length > TINY_TRANSCRIPT_CHARACTERS) {
             // Once. A send that throws is the turn's failure, as for a typed line.
             current.resentAtMs = now;
             client.sendUserTextMessage(current.userText.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, USER_TRANSCRIPT_LIMIT));
           }
         }
-        else if (now - current.resentAtMs > RESEND_WAIT_MS) throw Error(COLLECT_TIMEOUT_ERROR);
+        else if (now - current.resentAtMs > RESEND_WAIT_MS && !client.state.isThinking) throw Error(COLLECT_TIMEOUT_ERROR); // thinking: the 60 s ceiling decides
       }
       if (current.live) {
         const state = current.live.player.snapshot();
