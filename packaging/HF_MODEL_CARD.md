@@ -23,7 +23,6 @@ Downloads for **AI NPC Cyberpunk Mod**, a Cyberpunk 2077 mod that lets you talk 
 |---|---|
 | top of the repository | The two files for **game version 2.5** (the current game): the **full install** (`AI-NPC-LLM-Companions.zip`, everything in one zip, for a new install) and the **update** (`AI-NPC-LLM-Companions-Update.zip`, for an install that already has the Runtime). |
 | [`game-2.31/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31) | The same two files for the **older game version 2.31** (`game-2.31/AI-NPC-LLM-Companions.zip` and `game-2.31/AI-NPC-LLM-Companions-Update.zip`). Only for players who stay on 2.31. |
-| [`runtime/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/runtime) | The Runtime alone (`runtime/Runtime.zip`, and `game-2.31/runtime/Runtime.zip` for 2.31). Not for new installs: the full install already holds it. Kept for old two-mod setups and as an input of the builder. |
 | [`local-ai/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/local-ai) | The Local AI packs, standard and lite. |
 | [`mature/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mature) | The Mature packs, lite and standard (adults only). |
 | [`mic/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mic) | The microphone packs, European and Asian languages. |
@@ -43,8 +42,6 @@ The mod comes in two builds, one for game version 2.5 (the current game, and the
 | `game-2.31/AI-NPC-LLM-Companions.zip` | 1.1 GB | The full install for the older game 2.31. Also on Nexus Mods, as the optional file for game 2.31. | **Yes** for a new install (game 2.31, instead of the one above) |
 | `AI-NPC-LLM-Companions-Update.zip` | 8 MB | **The update** for game 2.5: the mod and all of its code, for a manual install (extracted into the game folder) that already has the Runtime of version 0.3.3 or newer. Not for Vortex or Mod Organizer 2. Also on Nexus Mods (named `AI-NPC-LLM-Companions-Update-<from>-to-<version>`, where `<from>` is the oldest Runtime it runs on, or `any`). An older install takes the full install. | Get it at every update |
 | `game-2.31/AI-NPC-LLM-Companions-Update.zip` | 8 MB | The update for the older game 2.31. Also on Nexus Mods, as an optional file. | Get it at every update (game 2.31) |
-| `runtime/Runtime.zip` | 1.1 GB | The Runtime alone, without the mod. Not for new installs: the full install holds it. Kept for old two-mod setups (Vortex or Mod Organizer 2 with a Scripts mod and a Runtime mod) that still update their Runtime. | No |
-| `game-2.31/runtime/Runtime.zip` | 1.1 GB | The same for the older game 2.31. | No |
 | `updates/` (folder) | 1.6 MB for the newest | The old Runtime update zips (up to 0.3.3). **No longer needed**: the update brings the code, and a Runtime older than 0.3.3 takes the full install. Kept here for old links. | No |
 | `local-ai/LocalAI-Standard-Gemma-4-E4B.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `local-ai/LocalAI-Lite-Bonsai-2-4B.zip` | 1.3 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. Needs the Runtime of version 0.2.7 or newer. | Optional |
