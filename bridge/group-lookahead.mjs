@@ -42,7 +42,8 @@ export function validateLookahead(command, source) {
 //             heard right after it, when the game submits the identical turn.
 //   'ahead'   A companion's after-scene line, `{kind: 'ahead', input}`: there is no source turn of ours (the scene is game audio), the line is prepared while the
 //             scene's last line plays and said once the scene is over. The next line of a housemates' chat is the same command (reaction kind `house`, event
-//             `chat`): prepared while the line before it plays and said the moment that line has been heard.
+//             `chat`): prepared while the line before it plays and said the moment that line has been heard. A party round's next line (reaction kind `speakup`,
+//             event `party`) is the same.
 // Both are lowest-priority work: they never delay a turn of V's (a prepared turn is dropped the moment V's own request arrives, a recording or the text box
 // opens), and they are held for at most PREPARED_HOLD_MS.
 export const PREPARED_HOLD_MS = 90_000;
@@ -99,7 +100,9 @@ export function validateAhead(command, now = Date.now()) {
   if (!plain(command) || command.kind !== 'ahead' || command.sourceRequestId !== undefined) return null;
   const input = parseInput(JSON.stringify(command.input)), reaction = input?.reaction;
   const scene = reaction?.kind === 'speakup' && reaction.event === 'scene', chat = reaction?.kind === 'house' && reaction.event === 'chat';
-  if (!input || !(scene || chat) || input.group || !alive(reaction, now)) return null;
+  // The next line of a party round (the group speak-up) is prepared the same way as the next line of a housemates' chat.
+  const party = reaction?.kind === 'speakup' && reaction.event === 'party';
+  if (!input || !(scene || chat || party) || input.group || !alive(reaction, now)) return null;
   return input;
 }
 

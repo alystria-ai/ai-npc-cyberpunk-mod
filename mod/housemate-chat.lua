@@ -12,6 +12,10 @@
 --
 -- Nothing runs unless the controller calls update() (only while V is in the flat with two or more housemates settled), so there is no cost
 -- elsewhere, and no request, no connection and no line is made when V is not at home.
+--
+-- The same engine runs the short chat of the party companions that speak up together (docs/COMPANION_SPEAK_UP.md, "Group speak-up"; mod/init.lua
+-- convaiParty*): there the owner starts it with start() (env.startOnly: update() never starts one itself), caps it with env.maxLines, names it with
+-- env.label for the log and hears of its end, with the number of lines said, through env.ended(reason, spoken).
 local M = {}
 
 M.COOLDOWN = 120        -- seconds after a chat ends before the next may start unless env.cooldown says otherwise (owner, 2026-10-25: about two minutes)
@@ -58,6 +62,14 @@ function M.new(env)
         return math.max(2, math.min(M.MAX_PEOPLE, value))
     end
 
+    -- The most lines of this chat: the engine's own hard stop, or the lower cap its owner asks for (a party round is shorter than a housemates' chat).
+    local function maxLines()
+        local value = env.maxLines
+        if type(value) ~= 'number' or value ~= value then return M.MAX_LINES end
+        return math.max(2, math.min(M.MAX_LINES, math.floor(value)))
+    end
+    local function label() return type(env.label) == 'string' and env.label or 'Housemate chat' end
+
     local function levelName()
         local ok, value = pcall(env.level)
         value = ok and value or 'rare'
@@ -85,8 +97,8 @@ function M.new(env)
             while #state.recent > 6 do table.remove(state.recent, 1) end
         end
         state.nextAt = clock + cooldown() + (reason == 'failed' and M.FAIL_COOLDOWN or 0)
-        if not quiet then log('Housemate chat ended: ' .. reason .. ' lines=' .. tostring(spoken)) end
-        if env.ended then pcall(env.ended, reason) end
+        if not quiet then log(label() .. ' ended: ' .. reason .. ' lines=' .. tostring(spoken)) end
+        if env.ended then pcall(env.ended, reason, spoken) end
         chat, state.phase = nil, 'idle'
     end
 
@@ -195,6 +207,7 @@ function M.new(env)
     function C.update(dt)
         clock = clock + (tonumber(dt) or 0)
         if state.phase == 'idle' then
+            if env.startOnly == true then return end
             if clock < state.nextAt then return end
             local level = levelName()
             if M.LEVELS[level] == 0 then return end
@@ -202,7 +215,7 @@ function M.new(env)
             local ok, may = pcall(env.mayStart)
             if not ok or may ~= true then return end
             if env.limiter and env.limiter.allow then
-                local asked, allowed = pcall(env.limiter.allow, 'house', M.MAX_LINES)
+                local asked, allowed = pcall(env.limiter.allow, 'house', maxLines())
                 -- A limiter that fails (a different version of the arbiter) is ignored: the pause and the level still apply.
                 if asked and allowed == false then return end
             end
@@ -232,7 +245,7 @@ function M.new(env)
             chat.pendingLine = false
             chat.spoken = chat.spoken + 1
             chat.lines[#chat.lines + 1] = {speaker = chat.speaker.name, text = tostring(text or ''):sub(1, 300)}
-            if chat.n >= M.MAX_LINES or chat.n >= chat.of then return finish('done') end
+            if chat.n >= maxLines() or chat.n >= chat.of then return finish('done') end
             if chat.stopAfterLine then return finish(chat.stopReason or 'interrupted') end
             local may
             ok, may = pcall(env.mayStart)
@@ -244,10 +257,25 @@ function M.new(env)
             return finish(status == 'cancelled' and 'interrupted' or 'failed')
         elseif clock - chat.requestedAt > M.LINE_TIMEOUT then
             return finish('failed')
-        elseif env.prepare and status == 'busy' and chat.preparedFor ~= chat.n and not chat.stopAfterLine and chat.n < chat.of and chat.n < M.MAX_LINES
+        elseif env.prepare and status == 'busy' and chat.preparedFor ~= chat.n and not chat.stopAfterLine and chat.n < chat.of and chat.n < maxLines()
             and type(text) == 'string' and text ~= '' then
             prepare(text)
         end
+    end
+
+    -- Start a chat of the given people (two to MAX_PEOPLE, the first speaks first) now, by its owner: a party round. options.of: the lines it is planned for
+    -- (2 to maxLines; the closing remark is the last one). false when one is in progress or the people are too few; the first line is requested at once.
+    function C.start(group, options)
+        if chat or state.phase ~= 'idle' or type(group) ~= 'table' or #group < 2 or #group > M.MAX_PEOPLE then return false end
+        local planned = type(options) == 'table' and tonumber(options.of) or nil
+        planned = planned and math.max(2, math.min(maxLines(), math.floor(planned))) or math.min(maxLines(), M.PLAN_LINES)
+        state.started[#state.started + 1] = clock
+        chat = {people = group, n = 0, of = planned, lines = {}, spoken = 0, topic = type(options) == 'table' and options.topic or nil, startedAt = clock}
+        local keys = {}
+        for _, person in ipairs(group) do keys[#keys + 1] = tostring(person.key) end
+        log(label() .. ' started: ' .. table.concat(keys, ' and '))
+        request()
+        return chat ~= nil
     end
 
     -- V talks to one of them, a scene starts, someone leaves. hard: stop now; otherwise the line in the air is finished first.

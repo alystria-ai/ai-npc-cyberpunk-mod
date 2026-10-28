@@ -427,7 +427,7 @@ test('one unprompted speaker at a time: a housemate line or chat, or an arrival 
 `));
 
 test('the init.lua tick hands the speak-up offer and the eligibility the housemate and greeting busy test, and housemates expose a pair-chat flag', () => {
-  assert.match(init, /function convaiUnpromptedBusy\(\)\s+if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end/);
+  assert.match(init, /function convaiUnpromptedBusy\(\)\s+if convaiPartyState and convaiPartyState\.chat then return true end\s+if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end/);
   assert.match(init, /if convaiUnpromptedBusy and convaiUnpromptedBusy\(\) then return false end/);
   assert.match(init, /convaiSpeakUpOffer\(player, now, worldReady, outputs, manual, busy or \(convaiUnpromptedBusy ~= nil and convaiUnpromptedBusy\(\)\), mayFollow\)/);
   assert.match(read('../mod/housemates.lua'), /function C\.chatActive\(\) return chat ~= nil and chat\.active ~= nil and chat\.active\(\) == true end/);

@@ -107,7 +107,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
     player talks in are separate, and that the microphone uses this language as a hint for non-English speech (the bridge reads it, `bridge/speech-language.mjs`).
   - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (one list: Off, On, Speaks up
     rarely, Speaks up normally, Speaks up often; default Off), Companions speak up (one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; default Speaks up
-    rarely, 2026-10-25, `docs/COMPANION_SPEAK_UP.md`). (The Multilingual conversations row was removed on 2026-10-21: the language is detected per message.)
+    often since 0.3.4, rarely before, `docs/COMPANION_SPEAK_UP.md`). (The Multilingual conversations row was removed on 2026-10-21: the language is detected per message.)
   - Dynamic info (a page of its own, opened by the Dynamic info row of Conversations; view `dynamic-info`, back to Settings): twelve switches, one per kind of live game info a turn's
     context can carry (Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, Recent game
     dialogue, and since 2026-10-25 Time since last talk (`lastTalk`), Music and TV (`media`) and Other mods' state (`mods`)), all on by default except Other mods' state (`mods`). Row ids `dynamic:<kind>`; saved as `dynamicInfo.<kind>`; the rows apply through `M.apply` as one `dynamicInfo` table (`manager.applySettings`).
@@ -236,8 +236,9 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     they take turns, never closer than 2.5 minutes (except Johnny's follow-on to a companion's line, which is one exchange). The row writes both stored keys (`johnnyInHead`,
     `johnnyRemarks`): Off means no remarks, and an old file with `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up
     rarely, `medium` (new) to Speaks up normally, `normal` to Speaks up often. The read-only "Johnny's standing" line was removed.
-  - Companions speak up (2026-10-25, one list right after Johnny's): Off, Speaks up rarely (default), Speaks up normally, Speaks up often; stored `companionSpeakUp` = `off` / `rare` /
-    `medium` / `normal`; the help says "Rarely: about 2 an hour. Normally: about 4. Often: about 6." and that with Johnny speaking up too the rates add up and they take turns. One scheduler
+  - Companions speak up (2026-10-25, one list right after Johnny's): Off, Speaks up rarely, Speaks up normally, Speaks up often (default since 0.3.4, before it Speaks up rarely); stored `companionSpeakUp` = `off` / `rare` /
+    `medium` / `normal`; the help says "Rarely: about 2 an hour. Normally: about 4. Often: about 6." and that with Johnny speaking up too the rates add up and they take turns. The help also says that with two or more companions near a speak-up is often a short chat
+    among up to three of them that stops when you talk. One scheduler
     (`mod/speak-up.lua`) paces both lists; see `docs/COMPANION_SPEAK_UP.md`.
 - **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
   page, the Relationships page, the Dynamic info page and the Key bindings page it applies every saved row of all four pages that is not at

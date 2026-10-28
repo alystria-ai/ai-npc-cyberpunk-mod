@@ -4015,6 +4015,8 @@ cancelAutomatic = function(reason, abandoning)
         convaiSpeakUpState.hold = nil
         if convaiSpeakUp then pcall(convaiSpeakUp.release, convaiSpeakUp, hold.who, automatic.playbackAt ~= nil) end
     end
+    -- A line of a party round tells the round how it ended (convaiPartyLineEnded).
+    if automatic.party and convaiPartyLineEnded then pcall(convaiPartyLineEnded, automatic, reason) end
     automatic, reactionGuard = nil, nil
 end
 
@@ -4624,6 +4626,7 @@ do
     -- that is waiting for the channel or being said count as the floor being held, for the speak-up arbiter. Global reads and one call, only asked
     -- while a speak-up list is on.
     function convaiUnpromptedBusy()
+        if convaiPartyState and convaiPartyState.chat then return true end
         if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end
         local glue = convaiHousemates
         local controller = glue and glue.controller
@@ -5004,6 +5007,7 @@ end
 -- A world change, a save load or both lists turned Off: nothing is kept.
 function convaiSpeakUpReset(reason)
     local st = convaiSpeakUpState
+    if convaiPartyState and convaiPartyState.chat then convaiPartyAbort('reset-' .. tostring(reason)) end
     pcall(convaiSpeakUpWithdraw, reason)
     st.hold, st.scene, st.lastManual, st.calmFor, st.withFor, st.decided, st.decidedCount = nil, nil, nil, 0, 0, {}, 0
     if convaiSpeakUp then pcall(convaiSpeakUp.reset, convaiSpeakUp) end
@@ -5047,6 +5051,7 @@ function convaiSpeakUpEligible(now, worldReady, manual, outputs)
     if convaiUnpromptedBusy and convaiUnpromptedBusy() then return false end
     if convaiHolocall ~= nil and convaiHolocall.call ~= nil then return false end
     if battles.fighting() then return false end
+    if convaiPartyState.chat then return false end
     return now - convaiSpeakUpState.lastManualAt >= convaiSpeakUpConfig.QUIET
 end
 
@@ -5125,19 +5130,20 @@ function convaiSpeakUpBuild(person, event, now)
 end
 
 -- Send an unprompted request now: the floor is already claimed by `who`. person is nil for Johnny.
-function convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, who, label)
+-- keepFloor: a line of a party round (convaiParty*): the round holds the floor, not the line.
+function convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, who, label, keepFloor)
     local st, sched = convaiSpeakUpState, convaiSpeakUp
     automatic = context
     captureReactionGuard(worldReady, outputs, person)
     if reactionLease(true) and sendRequest(context) then
         speech.target = person and person.npc or player
-        st.hold = {who = who, requestId = context.requestId}
+        if not keepFloor then st.hold = {who = who, requestId = context.requestId} end
         lastAutomatic = {at = now, requestId = context.requestId, kind = context.reaction.kind == 'head' and 'head' or 'speakup'}
         log('Speak up: ' .. label)
         return true
     end
     cancelAutomatic('request-write-failed')
-    if sched then pcall(sched.release, sched, who, false) end
+    if sched and not keepFloor then pcall(sched.release, sched, who, false) end
     return false
 end
 
@@ -5182,8 +5188,10 @@ function convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy, mayF
         end
     elseif who == 'companion' then
         if not mayFollow(true, 'speakup') or not sched:claim('companion') then return end
-        local context = convaiSpeakUpBuild(person, event, now)
         st.lastPerson = person.profileKey
+        -- Two or more party companions near: most of the time a short chat among up to three of them (convaiPartyStart); else her single line.
+        if event == 'calm' and convaiPartyStart(person) then return end
+        local context = convaiSpeakUpBuild(person, event, now)
         if event == 'scene' and quiet < convaiSpeakUpConfig.SCENE_QUIET then
             -- The scene's last line may still be playing: write and voice her line now, say it once the scene is over (or drop it).
             st.hold = {who = 'companion', requestId = context.requestId}
@@ -5298,6 +5306,7 @@ end
 -- V sent a line of their own: it cancels anything prepared, and a reply to it may get a follow-on from Johnny.
 function convaiSpeakUpManualSent(context)
     local st = convaiSpeakUpState
+    if convaiPartyState.chat then convaiPartyAbort('talk') end
     st.lastManualAt = os.time()
     st.calmFor = 0
     if st.plan then convaiSpeakUpWithdraw('manual') end
@@ -5346,6 +5355,224 @@ function convaiSpeakUpPlanTick(player, now, worldReady, outputs, manual)
         if why and scene then scene.failed = true end
     end
     if why then convaiSpeakUpWithdraw(why) end
+end
+
+-- Companions speak up together (docs/COMPANION_SPEAK_UP.md, "Group speak-up"). When a calm speak-up comes due and two or more party companions (our own
+-- copies, ready, within RANGE metres of V) could speak, most of the time it becomes a short chat among up to three of them instead of one line: the first
+-- speaks, the others answer in turn (3 to 5 lines in all), one voice at a time, then nothing until the next speak-up. The turn order, the beat between
+-- lines, the line written while the one before it plays and the ending are the engine of the housemates' chat (mod/housemate-chat.lua, started by its owner:
+-- env.startOnly); this block is the game side of it for the party: the people, the request of a line (reaction kind 'speakup', event 'party') and the lines
+-- in the air. A line is an ordinary speak-up line for everything else (convaiSpeakUpManage ends it for combat, a scene, V talking, a missing speaker...).
+-- Nothing runs while no round is on: one nil check on the 0.1 s tick. The engine is made when a round starts and dropped when it ends.
+convaiPartyState = {chat = nil, opening = false, waiting = nil, current = nil, result = nil, text = nil, prepared = nil, gateOk = false, cancelling = false}
+-- RANGE: metres from V at which a companion can start or join a round; STAY: how far she may wander before she drops out. CHANCE: how often a speak-up
+-- that could be a group one is. WAIT: seconds a line may wait for the channel or its speaker. SEND / AHEAD: seconds a line has to be heard once sent / when
+-- it was written ahead. LINES: the planned length for two and for three people (one of the two numbers, at random); MAX: the engine's hard stop.
+convaiPartyConfig = {RANGE = 15, STAY = 25, CHANCE = 0.75, WAIT = 15, SEND = 45, AHEAD = 90, MAX = 5, LINES = {[2] = {3, 4}, [3] = {4, 5}}}
+convaiPartyModule = nil
+
+-- The party members who are still part of the round, as the engine's rows ({key, name, entity, bodyType}): ready party copies near V.
+function convaiPartyRows()
+    local list = {}
+    for _, person in ipairs(convaiSpeakUpPeople()) do
+        if person.party == true and person.distance <= convaiPartyConfig.STAY then
+            list[#list + 1] = {key = person.profileKey, name = person.name, entity = person.entity, bodyType = person.bodyType}
+        end
+    end
+    return list
+end
+
+-- The context of one line as the bridge is given it. A line written ahead is this very table, made while the line before it was in the air.
+function convaiPartyContext(request, now, seconds)
+    generation = generation + 1
+    local speaker = request.speaker
+    local reaction = {kind = 'speakup', event = 'party', facts = {v = 1}, partner = request.partner.name, partnerKey = request.partner.key,
+        others = request.others or {}, n = request.n, of = request.of, lines = request.lines or {}, expiresAt = math.floor((now + seconds) * 1000)}
+    local context = {generation = generation, entity = speaker.entity, name = speaker.name, bodyType = speaker.bodyType or '', profileKey = speaker.key,
+        sentAt = now, reaction = reaction, text = 'You are chatting with your fellow companions while out with V. Say your next line.'}
+    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+    -- Captured here so a line prepared ahead is the very request that is sent later (the bridge compares them).
+    context.journal = questContext.capture()
+    if convaiTurnContext then context.turnContext = convaiTurnContext:capture() end
+    return context
+end
+
+-- The engine's seams. A line: 'waiting' (queued, nothing sent), 'busy' (sent, being written or said; the text once known), 'done', 'failed' or 'cancelled'.
+function convaiPartySpeak(request)
+    local st = convaiPartyState
+    if st.waiting or st.current or type(request) ~= 'table' then return false end
+    local waiting = {request = request, at = os.time()}
+    -- Written ahead (convaiPartyPrepare) and still the line that was meant: it goes out as it is, after the beat the chat asked for.
+    local held = st.prepared
+    if held then
+        st.prepared = nil
+        if request.prepared == true and held.request.speaker.key == request.speaker.key and held.request.n == request.n then
+            waiting.context = held.context
+            waiting.notBefore = os.clock() + (tonumber(request.gap) or 0.3)
+        else
+            pcall(convaiSpeakUpPublish, nil)
+        end
+    end
+    st.waiting, st.text, st.result = waiting, nil, {status = 'waiting'}
+    return true
+end
+
+function convaiPartyStatus()
+    local st = convaiPartyState
+    local result = st.result
+    if not result then return nil end
+    if result.status == 'busy' then return 'busy', st.text end
+    return result.status, result.text
+end
+
+-- The next line is written while the one in the air is still being said: published for the bridge to run now and hold back (the same hold-and-claim as the
+-- housemates' chat), sent as it is when the line has been heard. A plan or provider that cannot run two lines at once takes it as an ordinary request then.
+function convaiPartyPrepare(request)
+    local st = convaiPartyState
+    if st.prepared or type(request) ~= 'table' or not st.current or not (automatic and automatic.party) or convaiSpeakUpState.plan then return false end
+    local context = convaiPartyContext(request, os.time(), convaiPartyConfig.AHEAD)
+    if not convaiSpeakUpPublish({kind = 'ahead', input = context}) then return false end
+    st.prepared = {request = request, context = context}
+    return true
+end
+
+-- Withdrawn: the round stopped, V talks, or the line it was written for did not turn out as expected (the bridge drops the held line).
+function convaiPartyUnprepare()
+    local st = convaiPartyState
+    if not st.prepared then return end
+    st.prepared = nil
+    pcall(convaiSpeakUpPublish, nil)
+end
+
+function convaiPartyCancel()
+    local st = convaiPartyState
+    st.cancelling = true
+    if automatic and automatic.party then cancelAutomatic('party-cancelled') end
+    if st.waiting and st.waiting.context then pcall(convaiSpeakUpPublish, nil) end
+    st.waiting, st.current, st.result = nil, nil, {status = 'cancelled'}
+    st.cancelling = false
+end
+
+-- The reply text of a line, as soon as it is known (the next speaker's context).
+function convaiPartyReplyText(replyPending, text)
+    local reaction = replyPending and replyPending.reaction
+    if reaction and reaction.kind == 'speakup' and reaction.event == 'party' then convaiPartyState.text = text end
+end
+
+-- cancelAutomatic ends every automatic line; a party line's end is the engine's answer for it.
+function convaiPartyLineEnded(line, reason)
+    local st = convaiPartyState
+    if not st.chat or st.cancelling then return end
+    st.current = nil
+    if (reason == 'finished' or reason == 'completed') and line.shown == true then
+        st.result = {status = 'done', text = st.text}
+        -- The next line is requested now, not at the engine's next step.
+        pcall(st.chat.poke)
+    elseif reason == 'manual-priority' or reason == 'manual-text' or reason == 'microphone' then
+        st.result = {status = 'cancelled'}
+    else
+        st.result = {status = 'failed'}
+    end
+end
+
+-- The round is over (the engine's `ended`): the floor goes back to the scheduler, heard if any line was.
+function convaiPartyEnded(reason, spoken)
+    local st = convaiPartyState
+    if st.opening then return end
+    if st.waiting and st.waiting.context or st.prepared then pcall(convaiSpeakUpPublish, nil) end
+    st.chat, st.waiting, st.current, st.result, st.text, st.prepared = nil, nil, nil, nil, nil, nil
+    local sched = convaiSpeakUp
+    if sched then pcall(sched.release, sched, 'companion', (tonumber(spoken) or 0) > 0) end
+    log('Speak up: party round ended (' .. tostring(reason) .. ') lines=' .. tostring(spoken))
+end
+
+function convaiPartyMayGo() return convaiPartyState.gateOk == true end
+
+-- Stop a round now (V talks, the world changes, the list is turned Off): the line in the air is cut the way a single speak-up is.
+function convaiPartyAbort(reason)
+    local chat = convaiPartyState.chat
+    if chat then pcall(chat.interrupt, reason, true) end
+end
+
+-- A calm speak-up is due and `first` (a party companion) was chosen to speak: make it a round when two or more party companions are near, most of the
+-- time. false: the caller says the single line as before.
+function convaiPartyStart(first)
+    local st, cfg = convaiPartyState, convaiPartyConfig
+    if st.chat or first.party ~= true or first.distance > cfg.RANGE or math.random() >= cfg.CHANCE then return false end
+    local group = {{key = first.profileKey, name = first.name, entity = first.entity, bodyType = first.bodyType}}
+    -- The people come nearest first (companions.conversationCandidates).
+    for _, person in ipairs(convaiSpeakUpPeople()) do
+        if #group >= 3 then break end
+        if person.party == true and person.entity ~= first.entity and person.available == true and person.voiceBusy ~= true and person.distance <= cfg.RANGE then
+            group[#group + 1] = {key = person.profileKey, name = person.name, entity = person.entity, bodyType = person.bodyType}
+        end
+    end
+    if #group < 2 then return false end
+    if not convaiPartyModule then
+        local loaded, module = pcall(dofile, 'housemate-chat.lua')
+        if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
+            print('[CyberpunkConvai] housemate-chat.lua unavailable: ' .. tostring(module))
+            return false
+        end
+        convaiPartyModule = module
+    end
+    local sized = cfg.LINES[#group]
+    local chat = convaiPartyModule.new({startOnly = true, label = 'Party chat', maxLines = cfg.MAX, random = math.random,
+        people = convaiPartyRows, mayStart = convaiPartyMayGo, level = function() return 'normal' end,
+        speak = convaiPartySpeak, status = convaiPartyStatus, cancelSpeak = convaiPartyCancel,
+        prepare = convaiPartyPrepare, unprepare = convaiPartyUnprepare, ended = convaiPartyEnded, log = log})
+    st.chat, st.opening, st.gateOk = chat, true, true
+    st.waiting, st.current, st.result, st.text, st.prepared = nil, nil, nil, nil, nil
+    local started = chat.start(group, {of = sized[math.random(#sized)]})
+    st.opening = false
+    if not started then
+        st.chat, st.waiting, st.current, st.result = nil, nil, nil, nil
+        return false
+    end
+    log('Speak up: companion party round speakers=' .. #group)
+    return true
+end
+
+-- Once per tick while a round is on: the gates of a speak-up, the next line sent when the channel and its speaker are free, and the engine's step.
+function convaiPartyTick(player, now, worldReady, outputs, manual, elapsed)
+    local st, cfg = convaiPartyState, convaiPartyConfig
+    local chat = st.chat
+    if not chat then return end
+    local sample = battleSample or {}
+    local why = not worldReady and 'world-not-ready' or manual and 'manual' or not outputs.enabled and 'outputs-disabled'
+        or sample.available ~= true and 'unavailable' or sample.blocked and 'scene-blocked' or sample.combat and 'combat'
+        or battles.fighting() and 'combat' or (convaiHolocall ~= nil and convaiHolocall.call ~= nil) and 'call'
+        or (manager.companionSpeakUp and manager.companionSpeakUp() or 'off') == 'off' and 'off' or nil
+    st.gateOk = why == nil
+    if why then return convaiPartyAbort(why) end
+    local waiting = st.waiting
+    if waiting and not automatic then
+        if os.time() - waiting.at > cfg.WAIT then
+            st.waiting, st.result = nil, {status = 'failed'}
+            if waiting.context then pcall(convaiSpeakUpPublish, nil) end
+        elseif pending == nil and speech.requestId == nil and not subtitles.ownsUtterance()
+            and not (waiting.notBefore and os.clock() < waiting.notBefore) then
+            local request, person = waiting.request, nil
+            for _, candidate in ipairs(battlePeople) do
+                if candidate.entity == request.speaker.entity and candidate.profileKey == request.speaker.key then person = candidate; break end
+            end
+            if not person then
+                st.waiting, st.result = nil, {status = 'failed'}
+                if waiting.context then pcall(convaiSpeakUpPublish, nil) end
+            elseif person.available == true and person.voiceBusy ~= true then
+                st.waiting = nil
+                local context = waiting.context or convaiPartyContext(request, now, cfg.SEND)
+                if convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, 'companion',
+                    'companion party line ' .. tostring(request.n) .. ' speaker=' .. person.profileKey .. (waiting.context and ' (written ahead)' or ''), true) then
+                    automatic.party = true
+                    st.current, st.result = request, {status = 'busy'}
+                else
+                    st.result = {status = 'failed'}
+                end
+            end
+        end
+    end
+    if st.chat then pcall(st.chat.update, elapsed) end
 end
 
 -- Other features' proactive exchanges (the housemates' chat and welcome) share the pace and the gaps. Always present; with both speak-up
@@ -5405,6 +5632,7 @@ local function updateBattles(player, elapsed, worldReady)
     local speakUpOn = convaiSpeakUpAdvance(now, elapsed, worldReady, manual, outputs)
     if convaiSpeakUpState.plan then convaiSpeakUpPlanTick(player, now, worldReady, outputs, manual) end
     if speakUpOn and not convaiSpeakUpState.plan then convaiSpeakUpPlanFollow(player, now) end
+    if convaiPartyState.chat then convaiPartyTick(player, now, worldReady, outputs, manual, elapsed) end
     if convaiPerfMark then convaiPerfMark('init:battles') end
     if automatic and automatic.reaction.kind == 'meet' then
         convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
@@ -7467,6 +7695,10 @@ registerForEvent('onUpdate', function(delta)
                         -- A housemate's chat line: its text is the next speaker's context (mod/housemate-chat.lua).
                         if pending.reaction and pending.reaction.kind == 'house' and convaiHouseReplyText then
                             pcall(convaiHouseReplyText, pending, reply.text)
+                        end
+                        -- A party round's line (the group speak-up): its text is the next speaker's context.
+                        if pending.reaction and pending.reaction.kind == 'speakup' and pending.reaction.event == 'party' and convaiPartyReplyText then
+                            pcall(convaiPartyReplyText, pending, reply.text)
                         end
                         speech.start(pending, reply)
                     end

@@ -9,6 +9,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **V's voice for typed and for microphone lines**: two rows of the same kind, each with its own Off, so one can be on while the other is off. V speaks with one voice engine for both.
 - **Controller talk button removed**: give Talk by voice a controller button, such as the left stick click, on the bindings page of the Companion Manager. If you had the button on, Talk by voice is set to the left stick click for you.
 - **Generate report**: the button reads Creating… while the report is made and ignores further clicks until it is done.
+- **Companions speak up often, and together**: Settings > Conversations > Companions speak up now starts at Speaks up often. With two or more companions near, a speak-up is most of the time a short chat among up to three of them, a few lines in all, and it stops at once when you talk. Never during fights, scenes, calls or menus. A file still on the old default (Speaks up rarely) moves to Speaks up often once, so pick Speaks up rarely again if you prefer it.
 
 ## What's new in 0.3.3
 

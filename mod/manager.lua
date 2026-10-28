@@ -953,8 +953,15 @@ local function loadSettings()
         settings.johnnyRemarks, settingsNeedSave = 'off', true
     end
     if settings.johnnyInHead ~= true and settings.johnnyRemarks ~= 'off' then settings.johnnyRemarks, settingsNeedSave = 'off', true end
-    -- On by default (Rarely): party companions start a conversation on their own now and then (docs/COMPANION_SPEAK_UP.md). Same values as Johnny's.
-    if not SPEAK_UP_LEVELS[settings.companionSpeakUp] then settings.companionSpeakUp, settingsNeedSave = 'rare', true end
+    -- On by default (Often since 0.3.4, Rarely before): party companions start a conversation on their own now and then, and a group of them a short chat
+    -- (docs/COMPANION_SPEAK_UP.md). Same values as Johnny's. The old default was saved as 'rare' and cannot be told from a choice of Rarely, so a file that has
+    -- not been through this (speakUpOftenGiven) and holds 'rare' moves to 'normal' (Often) once; Off, Normally and Often are always a choice and stay.
+    -- Afterwards the marker is set and a later choice of Rarely is kept.
+    if not SPEAK_UP_LEVELS[settings.companionSpeakUp] then settings.companionSpeakUp, settingsNeedSave = 'normal', true end
+    if settings.speakUpOftenGiven ~= true then
+        if settings.companionSpeakUp == 'rare' then settings.companionSpeakUp = 'normal' end
+        settings.speakUpOftenGiven, settingsNeedSave = true, true
+    end
     -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end

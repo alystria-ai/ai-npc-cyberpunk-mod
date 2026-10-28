@@ -27,6 +27,33 @@ const sequence = (value, limit) => Array.isArray(value) ? (value.length <= limit
   : plain(value) && Object.keys(value).length === 0 ? [] : null;
 
 /**
+ * The fields of a chat line that a party round shares with a housemates' chat (docs/COMPANION_SPEAK_UP.md, "Group speak-up"): who she answers, who else is in it,
+ * which line it is of how many and what was said so far -> {partner, partnerKey, others, n, of, lines}, or null (the same bounds and cleaning as a house line;
+ * `maxLines` is the longest chat the caller allows). Strict: any field out of its bounds invalidates the whole thing.
+ */
+export function parseChatParts(value, maxLines = CHAT_LINES) {
+  if (!plain(value)) return null;
+  const partner = words(value.partner, NAME);
+  if (!partner || typeof value.partnerKey !== 'string' || !/^[a-z0-9-]+$/.test(value.partnerKey) || value.partnerKey.length > 80) return null;
+  const limit = Math.min(maxLines, CHAT_LINES);
+  if (!Number.isInteger(value.n) || value.n < 1 || value.n > limit || !Number.isInteger(value.of) || value.of < 2 || value.of > limit) return null;
+  const company = value.others === undefined ? [] : sequence(value.others, COMPANY);
+  if (!company) return null;
+  const others = [];
+  for (const row of company) { const name = words(row, NAME); if (!name) return null; others.push(name); }
+  const rows = sequence(value.lines, SAID);
+  if (!rows) return null;
+  const lines = [];
+  for (const row of rows) {
+    if (!plain(row)) return null;
+    const speaker = words(row.speaker, NAME), text = said(row.text);
+    if (!speaker || !text) return null;
+    lines.push({speaker, text});
+  }
+  return {partner, partnerKey: value.partnerKey, others, n: value.n, of: value.of, lines};
+}
+
+/**
  * The reaction of a house line -> {kind: 'house', event: 'chat', partner, partnerKey, others: [name], place, n, of, lines: [{speaker, text}], topic?, hour?, expiresAt, maxWords}
  * or {kind: 'house', event: 'welcome', place, awayHours, others: [name], hour?, expiresAt, maxWords}, or null (the request is then invalid, as for any malformed
  * reaction). Private turns only: `group` truthy is invalid. Strict: any field of the wire format that is out of its bounds invalidates the whole reaction.

@@ -986,11 +986,11 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up norm
   assert(ns.find('Johnny in your head').selectedElementIndex == 3)
 `));
 
-test('Companions speak up is one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; Rarely by default, stored as off, rare, medium, normal', () => run(`${harness()}
+test('Companions speak up is one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; Often by default, stored as off, rare, medium, normal', () => run(`${harness()}
   press('Settings')
   local row = ns.find('Companions speak up')
-  assert(row.selectedElementIndex == 2 and table.concat(row.elements, ' | ') == 'Off | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
-  assert(saved.companionSpeakUp == 'rare', tostring(saved.companionSpeakUp))
+  assert(row.selectedElementIndex == 4 and table.concat(row.elements, ' | ') == 'Off | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
+  assert(saved.companionSpeakUp == 'normal' and saved.speakUpOftenGiven == true, tostring(saved.companionSpeakUp))
   for _, case in ipairs({{1, 'off'}, {3, 'medium'}, {4, 'normal'}, {2, 'rare'}}) do
     ns.interact.select(ns.find('Companions speak up'), case[1]); frames(8); ns.verify()
     assert(saved.companionSpeakUp == case[2] and ns.find('Companions speak up').selectedElementIndex == case[1], case[2])
@@ -1042,7 +1042,7 @@ test('React to battles and to collected loot are on by default, and Restore defa
   local settings = manager.snapshot(player).settings
   assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
-  assert(settings.companionSpeakUp == 'rare' and ns.find('Companions speak up').selectedElementIndex == 2, 'companions are back to Rarely')
+  assert(settings.companionSpeakUp == 'normal' and ns.find('Companions speak up').selectedElementIndex == 4, 'companions are back to Often')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
   assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
