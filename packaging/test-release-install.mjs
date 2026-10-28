@@ -56,7 +56,6 @@ import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs';
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {packTitles} from './lib/pack-names.mjs';
-import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {CODE_FOLDER, INSTALLER, isCodeGamePath} from './lib/code-payload.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
@@ -410,9 +409,8 @@ async function main() {
     // A clean install has no folder under the mod's first name, and the first start finds no old installation to move.
     check('no old-name folders on a clean install', summary.legacy === null
       && !existsSync(join(plugins, 'CyberpunkConvai')) && !existsSync(join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai')), JSON.stringify(summary.legacy));
-    // Mod Organizer 2: the files the game and the service exchange exist from the start, and so does launcher.log, so nothing creates them new.
-    const placeholders = (await loadRuntimeExchange(project)).exchange.filter(name => !existsSync(join(mod, 'runtime', name)));
-    check('runtime/ exchange placeholders are installed', placeholders.length === 0, placeholders.slice(0, 8).join(', '));
+    // No package ships a file the game or the service rewrites (Vortex would report it as changed), so runtime/ exists only through its static note.
+    check('runtime/ is in place through its static note', existsSync(join(mod, 'runtime', 'README.txt')));
     // The code the Scripts carry is installed into the Runtime's app/, listed as the Scripts' release.
     const installedCode = (() => { try { return JSON.parse(readFileSync(join(app, 'defaults/scripts-code.json'), 'utf8')); } catch { return null; } })();
     check('the Scripts\' code is installed in the Runtime (defaults/scripts-code.json names this release)', installedCode?.release === version
