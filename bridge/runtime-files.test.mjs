@@ -36,7 +36,7 @@ test('a required file that is not there is a RuntimeIncomplete that names the fi
   await assert.rejects(readRequiredJson(root, 'research/cyberpunk/generated/quest-catalog.json'), error => {
     assert(error instanceof RuntimeIncomplete);
     assert.equal(error.code, 'RUNTIME_INCOMPLETE');
-    assert.match(error.message, /^The Runtime is incomplete: research\/cyberpunk\/generated\/quest-catalog\.json is missing\. Download the Runtime again/);
+    assert.match(error.message, /^The Runtime is incomplete: research\/cyberpunk\/generated\/quest-catalog\.json is missing\. Extract the full install zip/);
     assert(!error.message.includes(root), 'no folder (it can hold the Windows user name)');
     return true;
   });
@@ -143,7 +143,7 @@ test('Node\'s "does not provide an export named" (files of two versions) is read
   assert.equal(missingModuleInLog(`SyntaxError: The requested module './lone.mjs' does not provide an export named 'q'`, project), 'lone.mjs');
   for (const name of ['bridge/runtime-files.mjs', 'node_modules/fakepkg-core']) {
     const message = mismatchMessage(name);
-    assert.match(message, /full Runtime again, or apply the Runtime update zips from the updates folder on the Hugging Face page of the mod one by one, starting from your version/);
+    assert.match(message, /full install zip \(AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face\) into the Cyberpunk 2077 folder again/);
     assert(!/\d+\.\d+/.test(message.replace(name, '')), 'no version number in the instruction');
     assert(message.includes(name) && !/Made Up|Some Game|D:/.test(message));
   }

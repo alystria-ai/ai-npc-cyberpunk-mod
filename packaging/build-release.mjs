@@ -4,10 +4,13 @@
 //   node packaging/build-release.mjs --version 0.2 --models hf   (CI: CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET in the environment)
 //
 // Packages (dist/release/packages/):
-//   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        CET Lua, redscript, JSON catalogs (text only), and from 0.3.4 ALL of the mod's code in
+//   AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip  the UPDATE (package id "scripts", the former Scripts zip; <from> = runtimeBase.required, the oldest Runtime base it
+//                                               runs on): CET Lua, redscript, JSON catalogs (text only), and from 0.3.4 ALL of the mod's code in
 //                                               red4ext/plugins/AiNpcCyberpunkCode/: the launcher and native DLLs, install-code.mjs and app/ (Nexus Mods)
 //   Runtime-<v>[...].zip                        the Runtime BASE: bundled Node/Python, llama.cpp, vgmstream, Playwright, models, voices,
-//                                               game archives (Hugging Face root; GitHub)
+//                                               game archives (Hugging Face runtime/; GitHub). It is an input of the Full install zip, not a download of its own
+//                                               for most players. The FULL INSTALL zip (AI-NPC-LLM-Companions-<v>.zip, Update + Runtime in one) is made
+//                                               from these two by packaging/build-full.mjs, after this build.
 //   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, each in its own folder; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB). Every package except the Scripts drops
 //   the product prefix, and the version stays in the build folder only (the uploader publishes them under the unversioned name). Since 0.3.4 every
@@ -64,7 +67,7 @@ import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
 import {RUNTIME_FOLDER_NOTE} from './lib/runtime-exchange.mjs';
 import {shippedButWritten} from './lib/package-writes.mjs';
-import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
+import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
@@ -75,10 +78,11 @@ import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-
 import {nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
+import {BASE_MARKER, forbiddenEntry} from './lib/package-guards.mjs';
+import {updateBaseNameFor} from './lib/full-package.mjs';
 import {CODE_APP, CODE_FOLDER, CODE_MANIFEST, INSTALLER, RUNTIME_APP, isCodePath, isCodeGamePath, manifestOf} from './lib/code-payload.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BASE_MARKER = 'CyberpunkConvaiBase.dll';
 const started = Date.now();
 
 // ---------------------------------------------------------------- arguments
@@ -408,8 +412,8 @@ async function addCodePayload(pkg, source, config) {
       + ' and the RED4ext.SDK headers (MIT, Copyright (c) 2020 - present Octavian Dima); the licence texts are in this folder.');
   }
   pkg.file(`${CODE_FOLDER}/${INSTALLER}`, resolve(source.root, 'packaging/runtime/install-code.mjs'));
-  pkg.text(`${CODE_FOLDER}/README.txt`, 'AI NPC Cyberpunk Mod: the mod\'s own code, loaded by RED4ext (part of the Scripts download).\r\n'
-    + 'CyberpunkConvai.dll starts the conversation service with the Node of the Runtime (red4ext\\plugins\\AiNpcCyberpunkMod, from Hugging Face);\r\n'
+  pkg.text(`${CODE_FOLDER}/README.txt`, 'AI NPC Cyberpunk Mod: the mod\'s own code, loaded by RED4ext (part of the update zip and of the full install).\r\n'
+    + 'CyberpunkConvai.dll starts the conversation service with the Node of the Runtime (red4ext\\plugins\\AiNpcCyberpunkMod, part of the full install);\r\n'
     + 'install-code.mjs first copies the code in app\\ into the Runtime. CyberpunkConvaiNative.dll is the optional native plugin: the mod\r\n'
     + 'works the same without it. To switch one native system off, put its name on a line of runtime\\native-off.txt in the CET mod folder.\r\n');
   pkg.text(`${CODE_FOLDER}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
@@ -1191,8 +1195,9 @@ async function main() {
     pkg.text(INSTALL_NOTE_NAME, INSTALL_NOTE);
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
-    // The Scripts keep the long name (the file the owner uploads to Nexus Mods); the others have no product prefix.
-    const archiveBase = (id === 'scripts' ? `${config.product}-Scripts-${version}` : `${titles[id]}-${version}`) + variant.suffix;
+    // The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> being the oldest
+    // Runtime base it runs on (packaging/lib/full-package.mjs). The others have no product prefix.
+    const archiveBase = id === 'scripts' ? updateBaseNameFor(config, version, game) : `${titles[id]}-${version}${variant.suffix}`;
     const result = await writeArchives(pkg, archiveBase, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});
     report.packages[id] = {archives: result.archives, fileCount: result.files.length,
       uncompressedBytes: result.files.reduce((sum, file) => sum + file.bytes, 0)};
@@ -1203,18 +1208,8 @@ async function main() {
   // Final guard: no archive may carry an obvious credential file or development state.
   for (const item of Object.values(report.packages).flatMap(entry => entry.archives)) {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
-      if (/^misc\//.test(entry.name)) throw Error(`${item.file} contains developer-only material: ${entry.name}`);
-      // Only the shipped launcher and the native plugin (both in the Scripts' code folder from 0.3.4) may install a RED4ext plugin. The development launcher
-      // (red4ext/plugins/CyberpunkConvaiLauncher) must never ship: with it, two services start.
-      if (/^red4ext\//i.test(entry.name) && /\.(?:dll|ini)$/i.test(entry.name)
-          && !entry.name.startsWith(`${CODE_FOLDER}/`) && entry.name !== `${config.layout.pluginDirectory}/${BASE_MARKER}`) {
-        throw Error(`${item.file} installs an unexpected RED4ext plugin file: ${entry.name}`);
-      }
-      if (/(?:^|\/)CyberpunkConvaiLauncher[^/]*$/i.test(entry.name)) throw Error(`${item.file} contains the development launcher: ${entry.name}`);
-      if (SHIPPED_KEY_FILE.test(entry.name)) throw Error(`${item.file} would ship a Convai key file: ${entry.name}`);
-      if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|(?:player|vendor)-memory[^/]*\.(?:json|bak|tmp|corrupt)|phone-sessions\.json|characters-verified\.json)$/i.test(entry.name)) {
-        throw Error(`${item.file} contains a forbidden file: ${entry.name}`);
-      }
+      const why = forbiddenEntry(entry.name, config.layout);
+      if (why) throw Error(`${item.file} ${why}: ${entry.name}`);
     }
   }
   if (!useWorktree) await rm(source.root, {recursive: true, force: true});

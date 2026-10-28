@@ -530,7 +530,7 @@ export class BridgeSupervisor {
     // The bridge died on a file or package of its own that is not there (a Runtime extracted only partly, a file an antivirus removed) and said
     // so on its stderr, in Node's own words. Starting it again would end the same way, so this is `install-incomplete` too, named by the file.
     // The same when its files are of two versions (Node: "does not provide an export named", 0.2.5 report: Scripts 0.2.5 over a Runtime 0.2.2): the bridge ends at its first import,
-    // every time, so this is not a crash loop either; the line says to take the full Runtime or the update zips in order.
+    // every time, so this is not a crash loop either; the line says to take the full install zip.
     const errorText = typeof exit?.code === 'number' && exit.code !== 0 ? this.bridgeErrorText() : '';
     const missingModule = errorText ? missingModuleInLog(errorText, this.project) : null;
     if (missingModule) {

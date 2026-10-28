@@ -1,10 +1,12 @@
 """Upload the packs of a release to the Hugging Face model repository that hosts them.
 
-Run by .github/workflows/release.yml (the omni, localai, mature and micpacks jobs), and by hand for the Scripts and Runtime. Each pack is ONE
-zip, with no parts. The repository is organised in folders by kind, the files carry no product prefix and no version (the version goes in the
-commit message), and there are NO checksum files:
+Run by .github/workflows/release.yml (the omni, localai, mature and micpacks jobs), and by hand for the Full install, the Update and the Runtime.
+Each pack is ONE zip, with no parts. The repository is organised in folders by kind, the files carry no version (the version goes in the commit
+message), the optional packs no product prefix, and there are NO checksum files:
 
-    Scripts.zip   Runtime.zip                                           (root)
+    AI-NPC-LLM-Companions.zip   AI-NPC-LLM-Companions-Update.zip        (root: the FULL INSTALL, the main file for a new player, and the UPDATE for an
+                                                                         install that already has the Runtime base the update names; owner decision 2026-10-28)
+    runtime/Runtime.zip                                                 (the Runtime base alone, for Vortex and Mod Organizer 2 where the Update is its own mod)
     local-ai/LocalAI-Standard-Gemma-4-E4B.zip   local-ai/LocalAI-Lite-Bonsai-2-4B.zip
     mature/Mature-Standard-Gemma-4-E4B.zip      mature/Mature-Lite-Qwen3.5-4B.zip
     mic/MicPack-European-Parakeet-TDT-0.6B-v3.zip   mic/MicPack-Asian-SenseVoice-Small-234M.zip
@@ -18,15 +20,22 @@ LocalAI-Standard.zip, LocalAI-Lite.zip, Mature-Standard.zip, Mature-Lite.zip, Mi
 multilingual/PocketTTS-Model-<Language>.zip (docs/PACKAGING.md, "Pack file names"). A build folder that still holds a zip under an old name is accepted and published
 under the new name; --also-old-name additionally publishes the same file at the old path (Hugging Face stores identical content once), so links to the old
 names keep working for a while.
-    game-2.31/Scripts.zip   game-2.31/Runtime.zip   game-2.31/updates/Runtime-Update-<from>-to-<to>-for-2.31.zip    (the build for the older game 2.31, --game 2.31; docs/GAME_VERSIONS.md)
+    game-2.31/AI-NPC-LLM-Companions.zip   game-2.31/AI-NPC-LLM-Companions-Update.zip   game-2.31/runtime/Runtime.zip   game-2.31/updates/...    (the build for the older
+    game 2.31, --game 2.31; docs/GAME_VERSIONS.md)
 
-The files at the top (Scripts.zip, Runtime.zip, updates/) are the build for game 2.5, the default game.
+The files at the top (the Full install, the Update, runtime/, updates/) are the build for game 2.5, the default game. updates/ (the Runtime update zips,
+Runtime-Update-<from>-to-<to>.zip) is no longer offered to players since 0.3.4 and nothing here uploads to it; what is in it stays.
 
-The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs; the Scripts are AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip).
+The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs). The Full install is AI-NPC-LLM-Companions-<version>.zip (packaging/build-full.mjs)
+and the Update AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, <from> being the Runtime base it needs or "any" (packaging/lib/full-package.mjs); both
+have -for-2.31 after the version for game 2.31. Before 0.3.4 the update was AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip, published as Scripts.zip: --also-old-name
+additionally publishes the Update at Scripts.zip and the Runtime at Runtime.zip (the root, where it was), so the links of older texts keep working for a while.
 
     python packaging/upload-packs.py --check                                   (can the token write to the repository?)
     python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR   (upload the pack's zip from DIR to its folder)
     python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR --dry-run   (list what would be uploaded)
+    python packaging/upload-packs.py --version 0.3.4 --pack full --packages DIR [--game 2.31]     (the Full install: AI-NPC-LLM-Companions.zip)
+    python packaging/upload-packs.py --version 0.3.4 --pack update --packages DIR [--game 2.31]   (the Update: AI-NPC-LLM-Companions-Update.zip)
     python packaging/upload-packs.py --version 0.3.4 --pack omni-amd --packages DIR        (upload every OmniAMD-*.zip in DIR to voice/amd/; the names carry no release version)
 
 The token comes from the HF_PACKS_TOKEN environment variable (the GitHub Actions secret of the account that owns the pack
@@ -47,10 +56,14 @@ REPOSITORY = "alystria-ai/ai-npc-cyberpunk-mod-packs"
 # The file names of the packs: the "packFiles" block of release.config.json (a model pack's name carries the model and its parameter count).
 PACK_FILES = json.loads((Path(__file__).with_name("release.config.json")).read_text(encoding="utf-8"))["packFiles"]
 # pack id -> (folder in the repository, title). The zip a build writes is <title>-<version>.zip and is published as <folder>/<title>.zip.
-# The Scripts zip of a build is AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip (the name for Nexus Mods) and sits at the root as Scripts.zip.
+# The Full install and the Update sit at the root (a build names them AI-NPC-LLM-Companions-<version>.zip and
+# AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, the names for Nexus Mods), the Runtime base alone in runtime/.
+FULL_TITLE = "AI-NPC-LLM-Companions"
+UPDATE_TITLE = f"{FULL_TITLE}-Update"
 LAYOUT = {
-    "scripts": ("", "Scripts"),
-    "runtime": ("", "Runtime"),
+    "full": ("", FULL_TITLE),
+    "update": ("", UPDATE_TITLE),
+    "runtime": ("runtime", "Runtime"),
     **{pack: (entry["folder"], entry["title"]) for pack, entry in PACK_FILES["packs"].items()},
 }
 # pack id -> the title before 0.3.4 (OmniPack, LocalAI-Lite ...): still accepted in a build folder, and the old path of --also-old-name.
@@ -64,7 +77,11 @@ PRODUCT = "AI-NPC-Cyberpunk-Mod"
 # The game versions the mod is built for (packaging/game-variants.json, docs/GAME_VERSIONS.md): the Scripts and Runtime of a game other than
 # the default (2.5) carry a suffix in the file name of a build and sit in a folder of their own, game-<version>/. The other packs are shared.
 GAME_VARIANTS = json.loads((Path(__file__).with_name("game-variants.json")).read_text(encoding="utf-8"))["variants"]
-GAME_PACKS = ("scripts", "runtime")
+GAME_PACKS = ("full", "update", "runtime")
+# Where the pack lived before 0.3.4, for --also-old-name: the Update was Scripts.zip and the Runtime sat at the root.
+LEGACY_REMOTE = {"update": "Scripts.zip", "runtime": "Runtime.zip"}
+# The zip a build before 0.3.4 wrote for the update.
+LEGACY_UPDATE_BUILD = "AI-NPC-Cyberpunk-Mod-Scripts"
 
 
 def no_write_message(repository: str, detail: str = "") -> str:
@@ -132,20 +149,38 @@ def variant_of(game: str, pack: str) -> dict:
 
 
 def built_name(pack: str, version: str, game: str = "2.5") -> str:
-    """The name of the zip a build writes for the pack (packaging/build-release.mjs)."""
-    title = LAYOUT[pack][1]
-    name = f"{PRODUCT}-{title}-{version}" if pack == "scripts" else f"{title}-{version}"
-    return f"{name}{variant_of(game, pack)['suffix']}.zip"
+    """The name of the zip a build writes for the pack (packaging/build-release.mjs, packaging/build-full.mjs). The Update's name carries the Runtime base it needs
+    (Update-0.3.3-to-0.3.4, or Update-any-to-0.3.5): update_zip finds it, this returns the pattern with <from> in it."""
+    suffix = variant_of(game, pack)["suffix"]
+    if pack == "update":
+        return f"{UPDATE_TITLE}-<from>-to-{version}{suffix}.zip"
+    return f"{LAYOUT[pack][1]}-{version}{suffix}.zip"
+
+
+def update_zip(packages: Path, version: str, game: str = "2.5") -> Path | None:
+    """The one Update zip of this version and game in the folder: AI-NPC-LLM-Companions-Update-<from>-to-<version>[-for-2.31].zip, <from> a version or "any"."""
+    suffix = variant_of(game, "update")["suffix"]
+    pattern = re.compile(rf"{re.escape(UPDATE_TITLE)}-(?:any|\d+(?:\.\d+){{1,3}})-to-{re.escape(version)}{re.escape(suffix)}\.zip")
+    found = sorted(path for path in packages.iterdir() if path.is_file() and pattern.fullmatch(path.name))
+    if len(found) > 1:
+        raise SystemExit(f"More than one Update zip for {version} in {packages}: {', '.join(path.name for path in found)}.")
+    return found[0] if found else None
 
 
 def legacy_built_name(pack: str, version: str, game: str = "2.5") -> str | None:
-    """The name a build before 0.3.4 gave the zip (OmniPack-<version>.zip), or None for a pack whose name never changed."""
+    """The name a build before 0.3.4 gave the zip (OmniPack-<version>.zip, AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip), or None for a pack whose name never changed."""
+    suffix = variant_of(game, pack)["suffix"]
+    if pack == "update":
+        return f"{LEGACY_UPDATE_BUILD}-{version}{suffix}.zip"
     title = LEGACY_TITLES.get(pack)
-    return f"{title}-{version}{variant_of(game, pack)['suffix']}.zip" if title else None
+    return f"{title}-{version}{suffix}.zip" if title else None
 
 
-def legacy_remote_path(pack: str) -> str | None:
-    """Where the pack lived before 0.3.4: <folder>/<old title>.zip."""
+def legacy_remote_path(pack: str, game: str = "2.5") -> str | None:
+    """Where the pack lived before 0.3.4: <folder>/<old title>.zip (the Update was Scripts.zip and the Runtime sat at the root, in the game's folder for another game)."""
+    if pack in LEGACY_REMOTE:
+        game_folder = variant_of(game, pack)["hfFolder"]
+        return f"{game_folder}/{LEGACY_REMOTE[pack]}" if game_folder else LEGACY_REMOTE[pack]
     title = LEGACY_TITLES.get(pack)
     return f"{LAYOUT[pack][0]}/{title}.zip" if title else None
 
@@ -176,18 +211,18 @@ def plan(version: str, pack: str, packages: Path, game: str = "2.5", also_old_na
             raise SystemExit(f"No OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip in {packages} (packaging/build-omni-amd-packs.mjs writes them).")
         return [(path, f"{AMD_FOLDER}/{path.name}") for path in found]
     name = built_name(pack, version, game)
-    parts = sorted(packages.glob(f"{name[:-4]}-part*of*.zip"))
+    parts = sorted(packages.glob(f"{name[:-4].replace('<from>', '*')}-part*of*.zip"))
     if parts:
         raise SystemExit(f"{parts[0].name} is a multi-part zip; a pack is uploaded as one zip.")
-    zip_path = packages / name
+    zip_path = update_zip(packages, version, game) if pack == "update" else packages / name
     old = legacy_built_name(pack, version, game)
-    if not zip_path.is_file() and old and (packages / old).is_file():
+    if (zip_path is None or not zip_path.is_file()) and old and (packages / old).is_file():
         zip_path = packages / old
-    if not zip_path.is_file():
+    if zip_path is None or not zip_path.is_file():
         raise SystemExit(f"Expected exactly one zip for the {pack} pack in {packages}: {name} is missing. A pack is a single zip, never parts.")
     items = [(zip_path, remote_path(pack, game))]
-    if also_old_name and legacy_remote_path(pack):
-        items.append((zip_path, legacy_remote_path(pack)))
+    if also_old_name and legacy_remote_path(pack, game):
+        items.append((zip_path, legacy_remote_path(pack, game)))
     return items
 
 
@@ -229,8 +264,8 @@ def main() -> int:
     parser.add_argument("--version")
     parser.add_argument("--pack", choices=PACKS)
     parser.add_argument("--packages", type=Path, help="folder with the built zip")
-    parser.add_argument("--game", default="2.5", help="the game version a Scripts or Runtime zip is built for (2.5 is the default and goes to the top, 2.31 is uploaded to game-2.31/)")
-    parser.add_argument("--also-old-name", action="store_true", help="also publish the pack at its path before 0.3.4 (OmniPack.zip, LocalAI-Lite.zip ...), so links to the old names keep working")
+    parser.add_argument("--game", default="2.5", help="the game version a Full install, Update or Runtime zip is built for (2.5 is the default and goes to the top, 2.31 is uploaded to game-2.31/)")
+    parser.add_argument("--also-old-name", action="store_true", help="also publish the pack at its path before 0.3.4 (OmniPack.zip, LocalAI-Lite.zip, Scripts.zip, the root Runtime.zip ...), so links to the old names keep working")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.check:

@@ -162,12 +162,17 @@ jobs:
         shell: pwsh
         run: node packaging/test-release-install.mjs --packages "$env:OUT\packages" --version "${{ steps.version.outputs.version }}" --host "$env:OUT\native\test-host.exe"
 
-      - name: Keep the Scripts package for Nexus Mods
+      # The Full install zip: the update and the Runtime base in one (packaging/build-full.mjs; it stops when the two overlap).
+      - name: Build the Full install zip
+        shell: pwsh
+        run: node packaging/build-full.mjs --version "${{ steps.version.outputs.version }}" --packages "$env:OUT\packages"
+
+      - name: Keep the Full install and Update zips for Nexus Mods
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: AI-NPC-Cyberpunk-Mod-Scripts-${{ steps.version.outputs.version }}
+          name: AI-NPC-LLM-Companions-${{ steps.version.outputs.version }}
           path: |
-            ${{ env.OUT }}\packages\AI-NPC-Cyberpunk-Mod-Scripts-*.zip
+            ${{ env.OUT }}\packages\AI-NPC-LLM-Companions-*.zip
             ${{ env.OUT }}\packages\release-manifest.json
           retention-days: 30
 
@@ -186,7 +191,9 @@ jobs:
           # The release page is long and its files sit at the very bottom under Assets, so the notes start by saying so, with direct links.
           # This note is only on the release page, not in the README.txt inside the zips.
           $base = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag"
-          $download = "> **The download files are at the very bottom of this page, under Assets.** Scroll all the way down, or use these links:`n>`n> - [AI-NPC-Cyberpunk-Mod-Scripts-$version.zip]($base/AI-NPC-Cyberpunk-Mod-Scripts-$version.zip): the mod itself (also on Nexus Mods)`n> - [Runtime-$version.zip]($base/Runtime-$version.zip): the Runtime, with the Pocket TTS voices`n>`n> Then follow **Install** below.`n`n"
+          $from = (Get-Content packaging/release.config.json -Raw | ConvertFrom-Json).runtimeBase.required
+          $update = "AI-NPC-LLM-Companions-Update-$from-to-$version.zip"
+          $download = "> **The download files are at the very bottom of this page, under Assets.** Scroll all the way down, or use these links:`n>`n> - [AI-NPC-LLM-Companions-$version.zip]($base/AI-NPC-LLM-Companions-$version.zip): the full install, everything in one zip (also on Nexus Mods)`n> - [$update]($base/$update): the update for an install that already has the Runtime $from or newer (also on Nexus Mods)`n> - [Runtime-$version.zip]($base/Runtime-$version.zip): the Runtime alone, for Vortex and Mod Organizer 2`n>`n> Then follow **Install** below.`n`n"
           $download + (Get-Content packaging/PLAYER_README.md -Raw) | Set-Content $notes -Encoding utf8
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {

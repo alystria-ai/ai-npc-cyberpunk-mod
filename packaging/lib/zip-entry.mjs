@@ -18,7 +18,7 @@ async function dataStart(zip, entry) {
 }
 
 // The entry's bytes, checked against the size and CRC-32 of its directory record, as a stream of chunks.
-async function* entryChunks(zip, entry) {
+export async function* entryChunks(zip, entry) {
   if (entry.method !== 0 && entry.method !== 8) throw Error(`${entry.name}: unsupported compression method ${entry.method}.`);
   const start = await dataStart(zip, entry);
   let source = [];

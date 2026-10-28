@@ -13,6 +13,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes} from 'node:crypto';
 import {ZipWriter, listZip} from './lib/zip.mjs';
+import {updateFrom} from './lib/full-package.mjs';
 import {PACK_OMNI_LISTS_FOLDER, PACK_OWN_TREES, PACK_PREPARED_FOLDER, PLUGIN, RUNTIME_DROPS, RUNTIME_OMNI_LISTS_FOLDER, RUNTIME_PREPARED_FOLDER,
   compareWithPacks, countByFolder, duplicatePaths, runtimePathFor, validateListing, zipFiles} from './lib/pack-overlap.mjs';
 import {checkZips, makeListing} from './check-pack-overlap.mjs';
@@ -135,7 +136,7 @@ async function buildScripts(root) {
     '--out', join(root, 'out'), '--cache', join(root, 'cache'), '--launcher', join(root, 'launcher.dll'), '--no-native', '--no-vision'],
     {cwd: project, encoding: 'utf8', timeout: 180_000, env: {...process.env, GITHUB_ACTIONS: ''}});
   assert.equal(run.status, 0, run.stderr);
-  return join(root, 'out/packages/AI-NPC-Cyberpunk-Mod-Scripts-0.0.1.zip');
+  return join(root, `out/packages/AI-NPC-LLM-Companions-Update-${updateFrom(JSON.parse(await readFile(resolve(project, 'packaging/release.config.json'), 'utf8')))}-to-0.0.1.zip`);
 }
 
 test('the Scripts package the builder makes shares only identical files with the packs, and its install note is the packs\' copy', async () => {

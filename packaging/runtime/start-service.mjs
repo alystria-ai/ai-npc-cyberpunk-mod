@@ -377,7 +377,7 @@ try {
     const parts = value => String(value ?? '').split(/[-+]/)[0].split('.').map(part => Number.parseInt(part, 10) || 0);
     const older = (a, b) => { const x = parts(a), y = parts(b); for (let i = 0; i < Math.max(x.length, y.length); i += 1) { if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0); } return false; };
     if (runtimeVersion && older(runtimeVersion, scriptsRelease.runtimeBase)) {
-      log(`Warning: the Scripts ${scriptsVersion} need the Runtime base ${scriptsRelease.runtimeBase} or newer, and this Runtime is ${runtimeVersion}. Apply the Runtime update zips from ${runtimeVersion} on, or install the full Runtime.`);
+      log(`Warning: the Scripts ${scriptsVersion} need the Runtime base ${scriptsRelease.runtimeBase} or newer, and this Runtime is ${runtimeVersion}. Install the full install zip (AI-NPC-LLM-Companions).`);
     }
   } else if (scriptsVersion && runtimeVersion && scriptsVersion !== runtimeVersion) {
     log(`Warning: the Scripts package is ${scriptsVersion} but the Runtime package is ${runtimeVersion}. Install matching versions.`);

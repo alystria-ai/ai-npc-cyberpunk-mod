@@ -173,11 +173,11 @@ test('two builds, one per game: the 2.5 build accepts 2.5 and names the Native S
   -- the 2.5 build on a 2.31 game: a Problem that names both games
   env.gameVersion = '2.31'; applyEnv(); check.run()
   local wrong = lineOf('game')
-  assert(wrong.state == 'problem' and wrong.description:find('mod build for game 2.5', 1, true) and wrong.description:find('build made for game 2.31', 1, true), wrong.description)
+  assert(wrong.state == 'problem' and wrong.description:find('mod build for game 2.5', 1, true) and wrong.description:find('install zip made for game 2.31', 1, true), wrong.description)
   -- the 2.31 build on a 2.5 game, with and without the game field
   put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.1', game = '2.31'})
   env.gameVersion = '2.5'; applyEnv(); check.run()
-  assert(lineOf('game').state == 'problem' and lineOf('game').description:find('mod build for game 2.31', 1, true) and lineOf('game').description:find('build made for game 2.5', 1, true))
+  assert(lineOf('game').state == 'problem' and lineOf('game').description:find('mod build for game 2.31', 1, true) and lineOf('game').description:find('install zip made for game 2.5', 1, true))
   put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.2.1'})
   check.run()
   assert(lineOf('game').state == 'problem' and lineOf('game').description:find('mod build for game 2.31', 1, true), 'no game field is the 2.31 build')
@@ -202,7 +202,7 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   check.run()
   assert(table.concat(check.problems(), ',') == 'service')
   local never = check.serviceLine()
-  assert(never.value == 'Not running' and never.description:find('Runtime zip straight into the Cyberpunk 2077 folder', 1, true))
+  assert(never.value == 'Not running' and never.description:find('full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder', 1, true))
   assert(never.description:find('red4ext/plugins/AiNpcCyberpunkMod', 1, true))
   -- the row says why (2026-10-24 triage): this mod's native plugin did not load, or it did and still nothing reported
   assert(check.inspect().game.checks.service.detail == 'plugin-not-loaded', 'no native plugin: the Runtime is missing or not loaded')
@@ -219,7 +219,7 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
     advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = code, updated = ms()})
     check.run()
     local line = check.serviceLine()
-    assert(line and line.value == 'Not running' and line.description == 'The Runtime is incomplete (' .. code .. '). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.', code)
+    assert(line and line.value == 'Not running' and line.description == 'The Runtime is incomplete (' .. code .. '). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.', code)
     assert(#check.problems() == 0, 'a failed service has its own notice (service-down), the first-load notice leaves it alone')
     assert(check.problemCount() == 1, 'but it counts on the page')
   end
@@ -227,7 +227,7 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-not-configured', updated = ms()})
   check.run()
   local launcherLine = check.serviceLine()
-  assert(launcherLine and launcherLine.value == 'Not running' and launcherLine.description == 'The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the Runtime zip straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.', launcherLine and launcherLine.description)
+  assert(launcherLine and launcherLine.value == 'Not running' and launcherLine.description == 'The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.', launcherLine and launcherLine.description)
   assert(#check.problems() == 0 and check.problemCount() == 1)
   -- any other failure: restart, then send a report; the code is kept short and plain
   advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'bridge-crashed', updated = ms()})
@@ -262,7 +262,7 @@ test('serviceWhy: a service that is down says why on the Local AI model row, and
   -- no trace of this session: the Runtime's plugin did not load, then the plugin is there and still nothing reported
   local why = check.serviceWhy()
   assert(why and why.label == 'Service not running (Runtime not loaded)', why and why.label)
-  assert(why.description:find('Extract the Runtime zip straight into the Cyberpunk 2077 folder', 1, true) and why.description:find('newest log in red4ext/logs', 1, true))
+  assert(why.description:find('Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder', 1, true) and why.description:find('newest log in red4ext/logs', 1, true))
   env.native = true; applyEnv()
   why = check.serviceWhy()
   assert(why.label == 'Service not running (Did not start)' and why.description:find('launcher.log in red4ext/plugins/AiNpcCyberpunkCode', 1, true), why.label)
@@ -323,11 +323,11 @@ test('the service answer is shown only from this game session and every check be
   -- Scripts and Runtime of different versions
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   -- the Scripts are the older one: update whichever is older, the Scripts from Nexus Mods
-  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'Scripts 0.2 and Runtime 0.2.1 do not match. Update whichever is older: the Scripts from Nexus Mods, or the Runtime from the mod’s Hugging Face page (its update zips one by one, or the full Runtime). Extract into the Cyberpunk 2077 folder, then restart the game.')
-  -- the Runtime is the older one (nearly every report): its update zips from the Hugging Face updates folder one by one, starting from the version the player has, or the full Runtime. No version number in the instruction.
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'Scripts 0.2 and Runtime 0.2.1 do not match. If the Scripts are older, install the update zip from Nexus Mods or Hugging Face. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.')
+  -- the Runtime is the older one (nearly every report): the full install zip, no steps to apply in order. No version number in the instruction.
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}}); check.run()
   local older = lineOf('versions').description
-  assert(older == 'Scripts 0.2.8 and Runtime 0.2.4 do not match: the Runtime is out of date. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version, or download the full Runtime. Extract each into the Cyberpunk 2077 folder, then restart the game.', older)
+  assert(older == 'Scripts 0.2.8 and Runtime 0.2.4 do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', older)
   assert(not older:sub(older:find('out of date')):find('%d%.%d'), 'no version number after the status')
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.10', runtime = '0.2.9'}}); check.run()
   assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
@@ -343,11 +343,11 @@ test('the service answer is shown only from this game session and every check be
   -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
   local gap = lineOf('versions').description
-  assert(lineOf('versions').state == 'problem' and gap == 'The Runtime update from 0.2.7 to 0.2.8 was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.', gap)
+  assert(lineOf('versions').state == 'problem' and gap == 'The Runtime update from 0.2.7 to 0.2.8 was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', gap)
   assert(not gap:sub(gap:find('never applied')):find('%d%.%d'), 'no version number after the naming')
   assert(table.concat(check.problems(), ',') == 'versions')
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.8', runtime = '0.2.8'}}); check.run()
-  assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('one by one, in order, starting from your version', 1, true))
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again', 1, true))
   -- from 0.3.4 the code is in the Scripts and the Runtime is the base: the row names the base, and an older base the base needed
   answer({versions = {id = 'versions', state = 'ok', code = 'match', scripts = '0.3.4', runtime = '0.3.3', required = '0.3.3', base = true}}); check.run()
   assert(lineOf('versions').state == 'ok' and lineOf('versions').description == 'Scripts 0.3.4 on Runtime base 0.3.3.', lineOf('versions').description)
@@ -493,10 +493,10 @@ test('mod managers are a note with the one thing that matters for each', () => r
   installFiles(); serviceRunning()
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}); check.run()
   assert(lineOf('mod-manager').state == 'note' and lineOf('mod-manager').value == 'Note')
-  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and multilingual packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.')
+  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract multilingual packs into the Runtime’s own mod folder, not as new mods. Never use the full install zip as a mod: use the update zip as one mod and Runtime.zip from Hugging Face as another. Mention Mod Organizer 2 when you send a report.')
   -- Mod Organizer 2 runs the service from the Runtime's own mod: a version or update-step problem there says where update zips go; elsewhere it does not
   local mo2 = {['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}
-  local hint = 'Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.'
+  local hint = 'Mod Organizer 2: put Runtime.zip from Hugging Face into the Runtime’s own mod folder, not the full install zip.'
   for _, versions in ipairs({{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'},
       {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}) do
     answer({versions = versions, ['mod-manager'] = mo2['mod-manager']}); check.run()
@@ -507,7 +507,7 @@ test('mod managers are a note with the one thing that matters for each', () => r
   answer({versions = {id = 'versions', state = 'ok', code = 'match', scripts = '0.2.9', runtime = '0.2.9'}, ['mod-manager'] = mo2['mod-manager']}); check.run()
   assert(not lineOf('versions').description:find('Mod Organizer 2', 1, true), 'an agreeing version has nothing to say about it')
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'vortex', managers = {'vortex'}}}); check.run()
-  assert(lineOf('mod-manager').description == 'Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.')
+  assert(lineOf('mod-manager').description == 'Vortex. Install the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say. Use the update zip and Runtime.zip from Hugging Face as two mods, never the full install zip.')
   assert(check.problemCount() == 0 and #check.problems() == 0, 'a mod manager is never a problem')
 `));
 
@@ -699,18 +699,18 @@ test('the first load names Scripts and Runtime of different versions, a pack one
     ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}`,
       'The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}`,
-      'The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.'],
+      'The Runtime is out of date. Get the full install zip.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'base-old', scripts = '0.3.4', runtime = '0.3.2', required = '0.3.3', base = true}`,
-      'Update the Runtime to base 0.3.3 or newer. See Help in Settings.'],
+      'The Runtime is older than 0.3.3. Get the full install zip.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}`,
-      'A Runtime update step is missing. Apply its update zips one by one from the updates folder.'],
+      'Runtime files are old. Get the full install zip.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.9', runtime = '0.2.9'}`,
-      'A Runtime update step is missing. Apply its update zips one by one from the updates folder.'],
+      'Runtime files are old. Get the full install zip.'],
     ['packs', `{id = 'packs', state = 'problem', code = 'nested', found = {}, nested = {{pack = 'OmniVoice', folder = 'x'}}, moved = {}}`,
       'A pack is one folder too deep. See Help in Settings.'],
     ['internet', `{id = 'internet', state = 'problem', code = 'blocked', service = 'convai', host = 'api.convai.com'}`,
       'The conversation service cannot reach the internet. See Help in Settings.'],
-    ['files', null, 'Some mod files are missing. Extract the Scripts zip again. See Help in Settings.'],
+    ['files', null, 'Some mod files are missing. Extract the update zip again. See Help in Settings.'],
   ];
   for (const [id, document, expected] of cases) {
     run(String.raw`

@@ -20,7 +20,9 @@ const config = JSON.parse(await readFile(resolve(project, 'packaging/release.con
 const exchange = await loadRuntimeExchange(project);
 const MOD = config.layout.modDirectory;
 const VERSION = '0.0.1';
-const ZIP_NAME = `${config.product}-Scripts-${VERSION}.zip`;
+// The Scripts package is the Update zip of the mod page (owner decision 2026-10-28): AI-NPC-LLM-Companions-Update-<from>-to-<version>, <from> = runtimeBase.required.
+const UPDATE_BASE = `AI-NPC-LLM-Companions-Update-${config.runtimeBase.required === config.runtimeBase.previousRelease ? config.runtimeBase.required : 'any'}-to-${VERSION}`;
+const ZIP_NAME = `${UPDATE_BASE}.zip`;
 const INSTALL_NOTE = 'HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt';
 const tar = process.platform === 'win32' ? resolve(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
 
@@ -57,7 +59,7 @@ after(async () => { if (root) await rm(root, {recursive: true, force: true}); aw
 
 test('a Scripts-only dry run builds with no download, model or key, and writes the zip, its file list and the manifest (no checksum file)', async () => {
   assert.equal(built.status, 0, built.stderr + built.stdout);
-  assert.deepEqual((await readdir(packages)).sort(), [`${config.product}-Scripts-${VERSION}.files.json`, ZIP_NAME, 'release-manifest.json'].sort());
+  assert.deepEqual((await readdir(packages)).sort(), [`${UPDATE_BASE}.files.json`, ZIP_NAME, 'release-manifest.json'].sort());
   // Nothing but the Scripts package was staged: no Runtime or pack zip, and no stage/native working folders left behind.
   assert.deepEqual((await readdir(out)).filter(name => name !== 'packages'), []);
   assert.match(built.stdout, /Staging the Scripts package/);
@@ -75,7 +77,7 @@ test('the manifest and the file list agree with the zip, byte for byte', async (
   assert.equal(archive[0].file, ZIP_NAME);
   assert.equal(archive[0].sha256, zipSha);
   assert.equal(archive[0].entries, entries.length);
-  const list = JSON.parse(await readFile(join(packages, `${config.product}-Scripts-${VERSION}.files.json`), 'utf8'));
+  const list = JSON.parse(await readFile(join(packages, `${UPDATE_BASE}.files.json`), 'utf8'));
   assert.equal(list.length, entries.length);
   assert.equal(manifest.packages.scripts.fileCount, entries.length);
   assert.equal(manifest.packages.scripts.uncompressedBytes, list.reduce((sum, file) => sum + file.bytes, 0));
@@ -291,10 +293,10 @@ test('a rebuild into the same output folder replaces the packages: a stale zip o
     const args = buildArgs(join(again, 'out'), join(again, 'cache'));
     assert.equal(build(args).status, 0);
     const packagesDir = join(again, 'out/packages');
-    await writeFile(join(packagesDir, 'AI-NPC-Cyberpunk-Mod-Scripts-0.0.0.zip'), 'stale');
+    await writeFile(join(packagesDir, 'AI-NPC-LLM-Companions-Update-0.0.0-to-0.0.0.zip'), 'stale');
     await writeFile(join(packagesDir, 'SHA256SUMS.txt'), 'stale'); // an old build's checksum file is cleared too
     assert.equal(build(args).status, 0);
-    assert.deepEqual((await readdir(packagesDir)).sort(), [`${config.product}-Scripts-${VERSION}.files.json`, ZIP_NAME, 'release-manifest.json'].sort());
+    assert.deepEqual((await readdir(packagesDir)).sort(), [`${UPDATE_BASE}.files.json`, ZIP_NAME, 'release-manifest.json'].sort());
   } finally { await rm(again, {recursive: true, force: true}); }
 });
 
@@ -326,8 +328,8 @@ test('the 2.31 build: suffixed file name, game 2.31 in release.json, only GameVa
   const out231 = join(root, 'out231');
   const result = build(buildArgs(out231, join(root, 'cache231'), ['--game', '2.31']));
   assert.equal(result.status, 0, result.stderr + result.stdout);
-  const zip231 = join(out231, 'packages', `${config.product}-Scripts-${VERSION}-for-2.31.zip`);
-  assert.deepEqual((await readdir(join(out231, 'packages'))).sort(), [`${config.product}-Scripts-${VERSION}-for-2.31.files.json`, `${config.product}-Scripts-${VERSION}-for-2.31.zip`, 'release-manifest.json'].sort());
+  const zip231 = join(out231, 'packages', `${UPDATE_BASE}-for-2.31.zip`);
+  assert.deepEqual((await readdir(join(out231, 'packages'))).sort(), [`${UPDATE_BASE}-for-2.31.files.json`, `${UPDATE_BASE}-for-2.31.zip`, 'release-manifest.json'].sort());
   const entries231 = await listZip(zip231);
   assert.deepEqual(entries231.map(entry => entry.name).sort(), names().sort(), 'the same files in both builds');
   const dir231 = join(root, 'extracted231');
