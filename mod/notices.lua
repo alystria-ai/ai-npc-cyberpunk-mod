@@ -109,6 +109,7 @@ M.catalog = {
     ['mic-connection'] = {class = PLAYER, repeatS = 15},
     ['mic-no-speech'] = {class = PLAYER, repeatS = 15},
     ['mic-silent'] = {class = PLAYER, repeatS = 15},
+    ['mic-device-gone'] = {class = PLAYER, repeatS = 86400}, -- the input chosen in Settings > Voices > Microphone is not connected and the Windows default is used: once per game session
     ['mic-vad-error'] = {class = PLAYER, repeatS = 120}, -- Voice activation could not open the microphone (mod/voice-activation.lua)
     ['mic-english-only'] = {class = PLAYER, repeatS = 86400}, -- voice input in another language that nothing on this setup recognises (Mistral transcription refused or not used, no multilingual pack): once per game session
     ['mic-heard'] = {class = PLAYER},

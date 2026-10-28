@@ -1535,4 +1535,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts — для гри {other}, у тебе {game}. Візьми Scripts для {game} на Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Мод для гри {other}, у тебе {game}. Візьми Scripts і Runtime для {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts — для гри {scripts}, Runtime — для {runtime}. Вони мають збігатися. Див. Довідку.",
+    ["Choose one of the listed microphones."] = "Оберіть один із наведених мікрофонів.",
+    ["Microphone"] = "Мікрофон",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "Вхід, який мод слухає для клавіші голосу, Голосової активації та кнопки геймпада.\n\nСтандартний у Windows слідує за входом, який обирає Windows. Обери інший, якщо стандартний тебе ніколи не чує, наприклад коли мікшерна програма надсилає мікрофон деінде.\n\nЗміна діє під час наступного відкриття мікрофона. Відсутній вхід замінюється стандартним.",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "Мікрофон, обраний у Налаштуваннях ({chosen}), не підключено, тому використовується стандартний вхід Windows: {name}.",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "Мікрофон, обраний у Налаштуваннях, не підключено, тому використовується стандартний вхід Windows.",
+    ["Windows default"] = "Стандартний у Windows",
+    ["not connected"] = "не підключено",
+    ["{name}, chosen in Settings > Voices."] = "{name}, обрано в Налаштування > Голоси.",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, стандартний вхід Windows. Інший обирається в Налаштування > Голоси > Мікрофон.",
 }

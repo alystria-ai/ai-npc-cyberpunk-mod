@@ -697,6 +697,18 @@ local function bridgeLines(out)
     elseif voice and voice.code == 'pocket-failed' then
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.'))
     end
+    -- The microphone in use (Settings > Voices > Microphone): a row once an input has been opened this session or one is chosen. The input's name only, never an id.
+    local microphone = bridgeCheck('microphone')
+    if microphone and type(microphone.code) == 'string' then
+        local label, name = ui.t('Microphone'), text(microphone.device, 100) or '?'
+        if microphone.code == 'missing' then
+            out[#out + 1] = line('microphone', label, 'note', ui.t('The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}.', {chosen = text(microphone.chosen, 100) or '?', name = name}))
+        elseif microphone.code == 'chosen' then
+            out[#out + 1] = line('microphone', label, 'ok', ui.t('{name}, chosen in Settings > Voices.', {name = name}))
+        elseif microphone.code == 'default' then
+            out[#out + 1] = line('microphone', label, 'ok', ui.t('{name}, the Windows default input. Settings > Voices > Microphone chooses another.', {name = name}))
+        end
+    end
     -- The player's own Python for OmniVoice (omni-python.txt, docs/OMNIVOICE_AMD.md): a row only when the file names one. Experimental: untested on AMD cards.
     local ownPython = bridgeCheck('omni-python')
     if ownPython and type(ownPython.code) == 'string' then
@@ -1071,7 +1083,7 @@ function M.reportLines()
         for _, check in ipairs(bridge.checks) do
             if type(check) == 'table' and type(check.id) == 'string' then
                 local extra = {}
-                for _, field in ipairs({'scripts', 'runtime', 'name', 'host', 'service'}) do
+                for _, field in ipairs({'scripts', 'runtime', 'name', 'host', 'service', 'device'}) do
                     if text(check[field], 80) then extra[#extra + 1] = field .. '=' .. text(check[field], 80) end
                 end
                 if type(check.memoryMiB) == 'number' then extra[#extra + 1] = 'memoryMiB=' .. math.floor(check.memoryMiB) end

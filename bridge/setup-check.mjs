@@ -593,8 +593,23 @@ export async function collectSetupCheck(options = {}) {
     return {id: 'omni-python', state: 'unknown', code: found.testing === true ? 'testing' : 'untested'};
   };
 
+  // The microphone in use (Settings > Voices > Microphone): a row once an input has been opened this session or one is chosen, with the input's label (never its id).
+  // microphone() -> null | {chosen, device, missing} (bridge/mic-devices-control.mjs summary). 'chosen': the input the player chose is the one in use; 'missing': it was not
+  // found and the Windows default is in use; 'default': the Windows default. A chosen input not opened yet is named as chosen.
+  const microphone = async () => {
+    let found;
+    try { found = await call('microphone'); } catch { return null; }
+    if (!found || typeof found !== 'object') return null;
+    const chosen = clip(found.chosen, 160), device = clip(found.device, 160);
+    if (found.missing === true && chosen) return {id: 'microphone', state: 'note', code: 'missing', device, chosen};
+    if (chosen) return {id: 'microphone', state: 'ok', code: 'chosen', device: device ?? chosen, chosen};
+    if (device) return {id: 'microphone', state: 'ok', code: 'default', device};
+    return null;
+  };
+
   const checks = (await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),
-    ...(typeof options.voice === 'function' ? [voice()] : []), ...(typeof options.omniPython === 'function' ? [omniPython()] : [])])).filter(Boolean);
+    ...(typeof options.voice === 'function' ? [voice()] : []), ...(typeof options.omniPython === 'function' ? [omniPython()] : []),
+    ...(typeof options.microphone === 'function' ? [microphone()] : [])])).filter(Boolean);
   return {version: 1, updated: now(), bridgePid: process.pid, request, checks};
 }
 

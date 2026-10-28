@@ -22,6 +22,8 @@ export const SILENT_INPUT_CODE = 'MIC_SILENT';
 export const STT_UNAVAILABLE_CODE = 'local-stt-unavailable';
 // A recording in another language that no engine could recognise (Mistral's transcription failed and no local pack or English recogniser took over).
 export const STT_LANGUAGE_CODE = 'STT_LANGUAGE';
+// The note a recording carries when the input the player chose in Settings > Voices was not there and the Windows default was used (the game says so once).
+export const MIC_DEVICE_NOTE = 'mic-device-gone';
 const MAX_REMOTE_BYTES = 45 * 16000 * 2;   // a recording kept for Mistral's transcription ends here (the local recogniser's own 45 s cap)
 const CAPTURE_PATH = '/local-stt';
 const SAMPLE_RATE = 16000;
@@ -67,8 +69,24 @@ class LocalSttCapture extends AudioWorkletProcessor {
 registerProcessor('local-stt-capture', LocalSttCapture);
 `;
 
+// The input a saved name stands for. Chromium's device ids are per origin and per browser profile, so the player's choice is kept as the device's LABEL and matched
+// here against what the page lists now: the exact label first, then the same label without case, spacing or the trailing (vid:pid) hardware id (Windows renumbers
+// "2- USB Audio Device" when the ports change). Windows' virtual 'default' and 'communications' entries never count: "Windows default" is the absence of a choice.
+// Runs in the capture page too (this function's source is embedded there), so it uses nothing from this module.
+export function matchInput(devices, wanted) {
+  const want = String(wanted ?? '');
+  if (!want) return null;
+  const list = (Array.isArray(devices) ? devices : []).filter(d => d && d.label && d.deviceId !== 'default' && d.deviceId !== 'communications');
+  const exact = list.find(d => d.label === want);
+  if (exact) return exact;
+  const norm = label => String(label).toLowerCase().replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/, '').replace(/\s+/g, ' ').trim();
+  const key = norm(want);
+  return list.find(d => norm(d.label) === key) || null;
+}
+
 const PAGE_SOURCE = `
-let stream, context, node, source, size = 0, info = null, queue = Promise.resolve(), failure = null;
+let stream, context, node, source, size = 0, info = null, queue = Promise.resolve(), failure = null, openedFor = '';
+${matchInput.toString()}
 const toBase64 = buffer => {
   const bytes = new Uint8Array(buffer); let text = '';
   for (let i = 0; i < bytes.length; i += 0x2000) text += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x2000));
@@ -78,17 +96,35 @@ async function release() {
   try { node?.disconnect(); source?.disconnect(); } catch {}
   for (const track of stream?.getTracks() ?? []) track.stop();
   try { await context?.close(); } catch {}
-  stream = context = node = source = info = undefined; size = 0;
+  stream = context = node = source = info = undefined; size = 0; openedFor = '';
+}
+// The audio inputs the browser lists. Labels are empty until the page has the microphone permission (the bridge grants it before any call here); when they are still
+// empty and no device is open, one short probe of the default device unlocks them. Never called on the way to a recording unless a named input is wanted.
+async function audioInputs(probe) {
+  let list = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+  if (probe && !stream && list.length && list.some(d => !d.label)) {
+    const unlock = await navigator.mediaDevices.getUserMedia({audio: true}); unlock.getTracks().forEach(t => t.stop());
+    list = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+  }
+  return list;
 }
 // Opens the device and builds the graph: the device (the slow part: 0.35 s on a headset that was just used, about 1.4 s when its Bluetooth link has to go to
 // call mode first, 0.45 s on a built-in microphone) and, IN PARALLEL with it, the AudioContext and the worklet (about 30-100 ms), which no longer wait their turn
 // behind it. The worklet stays idle (it throws the samples away unconverted) until begin() starts it. Kept as it is when it is already open for this chunk size.
-async function open(chunkSamples, deviceLabel) {
-  const wanted = chunkSamples || 0;
+// deviceLabel: a named input that must exist (the measurement scripts). preferred: the player's choice (Settings > Voices > Microphone): used when it is there,
+// the browser's default input otherwise (info.missing names it). Neither: the default input.
+async function open(chunkSamples, deviceLabel, preferred) {
+  const wanted = chunkSamples || 0, named = deviceLabel || preferred || '';
   const track = stream?.getAudioTracks()[0];
-  if (stream && track && track.readyState === 'live' && context && context.state !== 'closed' && size === wanted && (!deviceLabel || track.label === deviceLabel)) return info;
+  if (stream && track && track.readyState === 'live' && context && context.state !== 'closed' && size === wanted && openedFor === named && (!deviceLabel || track.label === deviceLabel)) return info;
   await release();
   const constraints = {audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true}};
+  let missing = null;
+  if (!deviceLabel && preferred) {
+    // The id is only known from the listing: the labels are there when the page has the permission (no probe), and one probe of the default unlocks them otherwise.
+    let found = matchInput(await audioInputs(false), preferred) || matchInput(await audioInputs(true), preferred);
+    if (found) constraints.audio.deviceId = {exact: found.deviceId}; else missing = preferred;
+  }
   if (deviceLabel) {
     // A named input (a measurement, never the product's own choice): its id is only known once the page has the permission, so ask for the default first.
     let found = (await navigator.mediaDevices.enumerateDevices()).find(d => d.kind === 'audioinput' && d.label === deviceLabel);
@@ -113,18 +149,25 @@ async function open(chunkSamples, deviceLabel) {
   })();
   building.catch(() => {});
   try { stream = await navigator.mediaDevices.getUserMedia(constraints); }
-  catch (error) { await building.catch(() => {}); await release(); throw error; }
+  catch (error) {
+    // The chosen input went away between the listing and now: the default one opens instead (and the player is told once).
+    if (constraints.audio.deviceId && !deviceLabel && (error?.name === 'OverconstrainedError' || error?.name === 'NotFoundError')) {
+      missing = preferred; delete constraints.audio.deviceId;
+      try { stream = await navigator.mediaDevices.getUserMedia(constraints); }
+      catch (again) { await building.catch(() => {}); await release(); throw again; }
+    } else { await building.catch(() => {}); await release(); throw error; }
+  }
   const live = stream.getAudioTracks()[0];
   if (!live || live.readyState !== 'live') { await release(); throw Error('No live microphone track'); }
   await building;
   source = context.createMediaStreamSource(stream);
   source.connect(node);
-  size = wanted;
+  size = wanted; openedFor = named;
   // Which input the browser chose (its default) and what else there was, for the bridge's log: a wrong device shows here.
   let inputs = [];
   try { inputs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput').map(d => d.label || d.deviceId); } catch {}
   const settings = live.getSettings ? live.getSettings() : {};
-  info = {device: live.label, sampleRate: context.sampleRate, inputs,
+  info = {device: live.label, sampleRate: context.sampleRate, inputs, requested: named || null, missing,
     settings: {echoCancellation: settings.echoCancellation, noiseSuppression: settings.noiseSuppression,
       autoGainControl: settings.autoGainControl, channelCount: settings.channelCount}};
   return info;
@@ -137,11 +180,20 @@ async function stopCapture() {
 window.localStt = {
   async cool() { await release(); },
   isOpen() { return !!stream && stream.getAudioTracks()[0]?.readyState === 'live'; },
-  async begin(chunkSamples, deviceLabel) {
+  // The inputs a player can choose, by label (Windows' virtual default and communications entries left out), each name once.
+  async listInputs() {
+    const seen = new Set(), out = [];
+    for (const device of await audioInputs(true)) {
+      if (!device.label || device.deviceId === 'default' || device.deviceId === 'communications' || seen.has(device.label)) continue;
+      seen.add(device.label); out.push(device.label);
+    }
+    return {inputs: out, current: stream?.getAudioTracks()[0]?.readyState === 'live' ? stream.getAudioTracks()[0].label : null};
+  },
+  async begin(chunkSamples, deviceLabel, preferred) {
     queue = Promise.resolve(); failure = null;
-    const ready = !!stream && size === (chunkSamples || 0) && stream.getAudioTracks()[0]?.readyState === 'live';
+    const ready = !!stream && size === (chunkSamples || 0) && stream.getAudioTracks()[0]?.readyState === 'live' && openedFor === (deviceLabel || preferred || '');
     const started = performance.now();
-    const opened = await open(chunkSamples, deviceLabel);
+    const opened = await open(chunkSamples, deviceLabel, preferred);
     node.port.postMessage('reset');
     if (context.state !== 'running') await context.resume();
     return {...opened, reused: ready, openMs: Math.round(performance.now() - started)};
@@ -168,10 +220,15 @@ export const hostBrowser = host => async () => { await host.start(); return host
 // unread (the linger) until cool(): the tap (bridge/mic-tap.mjs) lets it go about 15 s after a voice turn, so the next press of a conversation starts at once.
 export class LocalSttCapture {
   // deviceLabel: a named input instead of the default (the measurement scripts only).
-  constructor({getBrowser, deviceLabel}) {
+  // preferredDevice: () => the label of the input the player chose in Settings > Voices ('' for the Windows default), asked at each open (a variable read, nothing more).
+  constructor({getBrowser, deviceLabel, preferredDevice}) {
     this.getBrowser = getBrowser;
     this.page = null; this.opening = null; this.target = null; this.deviceOpen = false; this.deviceLabel = deviceLabel ?? null;
+    this.preferredDevice = typeof preferredDevice === 'function' ? preferredDevice : () => '';
+    // The input of the latest open: {device, requested, missing} (labels only), for the setup check and the report.
+    this.lastInput = null;
   }
+  preferred() { try { const label = this.preferredDevice(); return typeof label === 'string' ? label : ''; } catch { return ''; } }
   async ensurePage() {
     if (this.page && !this.page.isClosed()) return this.page;
     if (this.opening) return this.opening;
@@ -205,11 +262,19 @@ export class LocalSttCapture {
     const page = await this.ensurePage();
     this.target = encoded => { try { onChunk(Buffer.from(encoded, 'base64')); } catch { /* a consumer fault never stops the capture */ } };
     if (!this.deviceOpen) await page.context().grantPermissions(['microphone'], {origin: this.origin});
-    const info = await page.evaluate(([size, label]) => window.localStt.begin(size, label), [this.samplesFor(chunkMs), this.deviceLabel]);
+    const info = await page.evaluate(([size, label, preferred]) => window.localStt.begin(size, label, preferred), [this.samplesFor(chunkMs), this.deviceLabel, this.preferred()]);
     this.deviceOpen = true;
+    this.lastInput = {device: info?.device ?? null, requested: info?.requested ?? null, missing: info?.missing ?? null};
     return info;
   }
   samplesFor(chunkMs) { return Number.isFinite(chunkMs) && chunkMs >= 10 && chunkMs <= 200 ? Math.round(chunkMs * SAMPLE_RATE / 1000) : 0; }
+  // The inputs a player can choose, by label: {inputs: [label], current: the label of the device that is open now or null}. Only when the settings page asks (bridge/mic-devices-control.mjs),
+  // never on the way to a recording. The page and the permission are made if needed; the permission stays (it belongs to this blank page and goes with it or at the next cool()).
+  async listDevices() {
+    const page = await this.ensurePage();
+    if (!this.deviceOpen) await page.context().grantPermissions(['microphone'], {origin: this.origin});
+    return page.evaluate(() => window.localStt.listInputs());
+  }
   // Lets the device go (the permission too).
   async cool() {
     this.deviceOpen = false;
@@ -242,7 +307,8 @@ export function describeInput(info) {
   const inputs = Array.isArray(info?.inputs) ? info.inputs : [];
   const settings = info?.settings ? ' echoCancellation=' + info.settings.echoCancellation + ' noiseSuppression=' + info.settings.noiseSuppression
     + ' autoGainControl=' + info.settings.autoGainControl : '';
-  return 'input "' + clip(info?.device || 'unknown', 120) + '"' + (info?.sampleRate ? ' at ' + info.sampleRate + ' Hz' : '')
+  const chosen = typeof info?.requested === 'string' && info.requested ? (info.missing ? ', chosen "' + clip(info.requested, 80) + '" not found, default used' : ', chosen in Settings') : '';
+  return 'input "' + clip(info?.device || 'unknown', 120) + '"' + chosen + (info?.sampleRate ? ' at ' + info.sampleRate + ' Hz' : '')
     + (inputs.length ? ', ' + inputs.length + ' available [' + inputs.map(name => clip(name, 80)).join(' | ') + ']' : '') + settings;
 }
 // One line when a recording ends: how long it was, how loud and how voiced the sound was, which input it came from, and what was made of it.
@@ -406,7 +472,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
             log('speech language ' + (plan.language ?? '?') + ' (' + (plan.source ?? '?') + '): kept for Mistral transcription' + (plan.hint ? ' with the language hint' : ', language detected by Mistral'));
           } catch { /* a log line never breaks a recording */ }
           if (closed) { await capture.abort(); kept = []; throw Error('Microphone startup cancelled'); }
-          return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : {})};
+          return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : info?.missing ? {note: MIC_DEVICE_NOTE} : {})};
         }
         engine = plan.mode === 'pack' && plan.stt ? plan.stt : stt;
         const availability = engine.availability();
@@ -429,7 +495,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
           else if (plan.note) log('speech language ' + (plan.language ?? '?') + ' (' + (plan.source ?? '?') + '): nothing here recognises it, English recogniser used (' + plan.note + ')');
         } catch { /* a log line never breaks a recording */ }
         if (closed) { await capture.abort(); await engine.cancel(requestId); throw Error('Microphone startup cancelled'); }
-        return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : {})};
+        return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : info?.missing ? {note: MIC_DEVICE_NOTE} : {})};
       },
       async finishVoice(config, options = {}) {
         if (!begun || closed) throw Error('Microphone connection is not running');

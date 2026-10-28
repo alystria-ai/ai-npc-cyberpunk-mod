@@ -1535,4 +1535,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts 适用于游戏 {other}，你的是 {game}。请从 Nexus Mods 获取 {game} 版 Scripts。",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "本模组适用于游戏 {other}，你的是 {game}。请获取 {game} 版 Scripts 和 Runtime。",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts 适用于 {scripts}，Runtime 适用于 {runtime}，两者须一致。详见设置中的帮助。",
+    ["Choose one of the listed microphones."] = "从列表中选择一个麦克风。",
+    ["Microphone"] = "麦克风",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "模组为语音键、语音激活和手柄按钮监听的输入设备。\n\nWindows 默认会跟随 Windows 选定的输入设备。如果默认设备始终听不到你，请选择其他设备，例如混音类应用把麦克风转到了别处。\n\n更改会在下次麦克风打开时生效。已断开的输入设备将回退到默认设备。",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "你在设置中选择的麦克风（{chosen}）未连接，因此使用 Windows 默认输入：{name}。",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "你在设置中选择的麦克风未连接，因此使用 Windows 默认输入。",
+    ["Windows default"] = "Windows 默认",
+    ["not connected"] = "未连接",
+    ["{name}, chosen in Settings > Voices."] = "{name}，在 设置 > 语音 中选择。",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}，Windows 默认输入。在 设置 > 语音 > 麦克风 中可以选择其他输入。",
 }

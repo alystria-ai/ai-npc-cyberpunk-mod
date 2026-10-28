@@ -961,6 +961,8 @@ export class RealtimeHost {
           const info = await tap.whenReady(tapOwner);
           throwIfCancelled(signal);
           if (info?.device) result.device = info.device;
+          // The input the player chose was not there and the default opened: the game tells them once (bridge/local-stt-capture.mjs MIC_DEVICE_NOTE).
+          if (info?.missing && !result.note) result.note = 'mic-device-gone';
         }
       }
       this.sessions.accept(config);

@@ -1534,4 +1534,13 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts pour le jeu {other}, le vôtre est {game}. Récupérez-les pour {game} sur Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod pour le jeu {other}, le vôtre est {game}. Scripts et Runtime pour {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime}. Doivent correspondre : voir Aide dans Paramètres.",
+    ["Choose one of the listed microphones."] = "Choisissez l'un des microphones de la liste.",
+    ["Microphone"] = "Microphone",
+    ["The input the mod listens to for the talk key, Voice activation and the controller button.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default."] = "Entrée que le mod écoute pour la touche vocale, l'activation vocale et le bouton de manette.\n\nPar défaut (Windows) suit l'entrée choisie par Windows. Choisissez-en une autre si le défaut ne vous entend jamais, par exemple quand une application de mixage envoie votre microphone ailleurs.\n\nUn changement prend effet à la prochaine ouverture du microphone. Une entrée absente revient au défaut.",
+    ["The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}."] = "Le microphone choisi dans les Paramètres ({chosen}) n'est pas connecté, l'entrée par défaut de Windows est donc utilisée : {name}.",
+    ["The microphone you chose in Settings is not connected, so the Windows default input is used."] = "Le microphone choisi dans les Paramètres n'est pas connecté, l'entrée par défaut de Windows est donc utilisée.",
+    ["Windows default"] = "Par défaut (Windows)",
+    ["not connected"] = "non connecté",
+    ["{name}, chosen in Settings > Voices."] = "{name}, choisi dans Paramètres > Voix.",
+    ["{name}, the Windows default input. Settings > Voices > Microphone chooses another."] = "{name}, l'entrée par défaut de Windows. Paramètres > Voix > Microphone permet d'en choisir une autre.",
 }
