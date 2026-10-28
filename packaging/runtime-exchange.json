@@ -9,6 +9,7 @@
     "bridge-service.json",
     "bridge-status.json",
     "call-off.json",
+    "character-options.json",
     "choice-hub.json",
     "choice-result.json",
     "clipboard-request.json",

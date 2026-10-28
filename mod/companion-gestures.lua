@@ -89,6 +89,9 @@ function M.new(options)
         -- Group round membership: entity -> nil | 'recording' | 'reply', speaker entity | 'between' (group-chat.roleOf).
         group = options.group or function() return nil end,
         thinking = options.thinking or function() return nil end,
+        -- The player's choices for a character (mod/character-options.lua, the character editor's "Look and moves"): entry -> nil | {talk, nods, idle}. A table lookup;
+        -- nil is today's behaviour. talk: calm, lively or none (selection.styles); nods: false; idle: plain (no prop idles) or none (no idle moves).
+        prefs = options.prefs or function() return nil end,
         allowed = options.allowed or nativeAllowed, native = options.native or workspot,
         random = options.random, log = options.log or function() end, errors = {}, cleanups = {}, cleanupSerial = 0, propMisses = {}, propOff = {}}
     local native, policy = self.native, M.policy
@@ -463,7 +466,9 @@ function M.new(options)
     local function begin(s, known, family, recovery, flavour, familyKey)
         s.phase, s.since = recovery and 'recovering' or 'spawning', self.clock
         s.flavour = flavour == true
-        s.idleKey = flavour and pickIdle(s, known, propUsable) or nil
+        local chosen = self.prefs(s.entry)
+        local plainIdles = chosen and chosen.idle == 'plain'
+        s.idleKey = flavour and pickIdle(s, known, plainIdles and function(key) return not propOf(key) and propUsable(key) end or propUsable) or nil
         s.prop = nil
         if s.idleKey and propOf(s.idleKey) then
             if propSlotsFree(s.entry.npc, propOf(s.idleKey)) then s.prop = {items = propOf(s.idleKey).items}
@@ -643,7 +648,9 @@ function M.new(options)
             s.clip = nil
         end
         if not s.clip and (mode == 'speaking' or mode == 'listening') then
+            local chosen = self.prefs(s.entry)
             local pick = selection.next(s.sel, {now = self.clock, mode = mode, rig = s.rig, character = s.character,
+                style = chosen and chosen.talk or nil, nods = chosen and chosen.nods,
                 family = info and info.family, scale = info and info.scale, remaining = info and info.remaining,
                 total = info and info.total, reply = info and info.requestId, phraseAt = info and info.phraseAt,
                 phraseAge = info and info.phraseAge, clips = s.family.clips, group = info and info.group,
@@ -718,10 +725,23 @@ function M.new(options)
                 -- Thinking counts: the stance is entered while V waits for the reply, so the
                 -- entry shuffle is over before the first word.
                 local talking = mode == 'speaking' or mode == 'listening' or mode == 'thinking'
+                local chosen = self.prefs(entry)
+                if talking and chosen then
+                    -- The player switched the talking gestures or the nods off for this character: the stance is only entered for what is left on.
+                    local speaks, nods = chosen.talk ~= 'none', chosen.nods ~= false
+                    if (mode == 'speaking' and not speaks) or (mode == 'listening' and not nods) or (mode == 'thinking' and not speaks and not nods) then return end
+                end
                 if not talking then
                     local known = characterOf(entry)
                     if mode ~= nil or not known or not known.flavour or not s.settledSince
                         or #flavourPool(known) == 0 then return end
+                    -- Idle moves: none at the player's choice, or only the ones without a prop.
+                    if chosen and chosen.idle == 'none' then return end
+                    if chosen and chosen.idle == 'plain' then
+                        local plain = false
+                        for _, key in ipairs(flavourPool(known)) do if not propOf(key) then plain = true; break end end
+                        if not plain then return end
+                    end
                     -- Not in the middle of a conversation: only after it has been quiet for the hold plus a short grace.
                     if s.talkedAt and self.clock - s.talkedAt < policy.conversationHold + policy.flavourAfterTalk then return end
                     s.nextFlavourAt = s.nextFlavourAt or self.clock + between(policy.flavourFirst)

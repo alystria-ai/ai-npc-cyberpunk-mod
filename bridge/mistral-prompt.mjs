@@ -94,12 +94,14 @@ export class PersonaBook {
    * `custom` (bridge/custom-characters.mjs, optional): the characters the player made; their persona is theirs alone and a roster key never reaches it.
    * `worldRules` (bridge/world-rules.mjs, optional): the player's rules for the whole world; every persona carries them as `worldRules` (a text, absent when empty).
    */
-  constructor(rows = [], {overrides = null, custom = null, worldRules = null, lean = false} = {}) {
+  constructor(rows = [], {overrides = null, custom = null, worldRules = null, options = null, lean = false} = {}) {
     // `lean`: the shipped text without the reviewer notes and the paragraphs that repeat the output rules (leanBackstory, leanStyle). The bridge sets it; a test of the machinery sees the roster text as it is.
     this.lean = lean === true;
     this.overrides = overrides;
     this.custom = custom;
     this.worldRules = worldRules;
+    // The player's choices per character (bridge/character-options.mjs): only the reply length is read here, as a map lookup per turn.
+    this.options = options;
     this.rows = new Map();
     for (const row of rows) if (row && typeof row.key === 'string' && !this.rows.has(row.key)) this.rows.set(row.key, row);
   }
@@ -109,7 +111,11 @@ export class PersonaBook {
    * rules of the whole world (a plain property read per turn). A persona without world rules has no `worldRules` field at all.
    */
   persona(profileKey, fallbackName) {
-    const persona = this.#personaOf(profileKey, fallbackName), rules = this.worldRules?.get() ?? '';
+    let persona = this.#personaOf(profileKey, fallbackName);
+    const rules = this.worldRules?.get() ?? '';
+    // A reply length the player chose for this character (the editor's "Look and moves"): the add-on speakers' own mechanism (persona.talkWords). A speaker that has its own wins.
+    const words = this.options?.talkWords?.(profileKey) ?? 0;
+    if (words && persona.known && !persona.talkWords) persona = {...persona, talkWords: words};
     return rules ? {...persona, worldRules: rules} : persona;
   }
   #personaOf(profileKey, fallbackName) {

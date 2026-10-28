@@ -211,6 +211,13 @@ export class EditorServer {
     } else if (rest[0] === 'reset' && rest.length === 1 && method === 'POST') {
       const body = await this.#body(request);
       return this.editor.reset(key, body?.fields);
+    } else if (rest[0] === 'options' && rest.length === 1 && method === 'PUT') {
+      this.editor.optionsForPage ?? (() => { throw new EditorError(404, 'not-found'); })();
+      return this.editor.saveOptions(key, await this.#body(request));
+    } else if (rest[0] === 'options' && rest[1] === 'reset' && rest.length === 2 && method === 'POST') {
+      this.editor.optionsForPage ?? (() => { throw new EditorError(404, 'not-found'); })();
+      const body = await this.#body(request);
+      return this.editor.resetOptions(key, body?.fields);
     } else if (rest[0] === 'summary' && rest.length === 1 && method === 'PUT') {
       return this.editor.setSummary(key, (await this.#body(request))?.text);
     } else if (rest[0] === 'memory' && rest.length === 2) {

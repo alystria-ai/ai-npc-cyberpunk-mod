@@ -27,6 +27,8 @@ local M = {}
 --   frustum(npc)           the game's own test: true when the copy may be seen by the camera, false when not, nil when it cannot say
 --   angle(npc, player)     degrees between the camera's direction and the copy, or nil
 --   random()               a number in [0, 1) (optional: the module's own generator is used without it)
+--   pinned(key)            the look the player chose for a profile key in the character editor (docs/CHARACTER_EDITOR.md, "Look and moves"), or nil (optional)
+--   anyPinned()            true while any character has such a look (optional); the module then runs even with the setting off, for those characters only
 --   log(line)
 M.deps = nil
 M.data = nil
@@ -49,6 +51,7 @@ local FAR_OFF_DEG = 85      -- a copy this far off the camera's direction is out
 M.HOME_PLACES = {LittleChina_VApartment = true, Northside_Apartment = true, JapanTown_Apartment = true, Glen_Apartment = true, CorpoPlaza_Apartment = true}
 
 local state = {members = {}, home = {}, wait = 0, lastHour = nil}
+local kindOf   -- defined below, with the list helpers
 
 -- The module's own small generator (a Lehmer sequence): the game's shared math.random is never seeded or consumed here. Seeded from the clocks when the module loads.
 local seed = (os.time() + math.floor(os.clock() * 1000)) % 2147483646 + 1
@@ -69,6 +72,26 @@ local function wanted()
     return ok and on == true
 end
 
+-- The player's own pick for a character (mod/character-options.lua), when it is one of that character's looks in the curated list; nil otherwise.
+local function pinnedLook(key, record)
+    local deps = M.deps
+    if not deps or type(deps.pinned) ~= 'function' or key == nil then return nil end
+    local ok, name = pcall(deps.pinned, key)
+    if not ok or type(name) ~= 'string' or name == '' then return nil end
+    local character = M.character(record)
+    if character and kindOf(character, name) ~= nil then return name end
+    return nil
+end
+
+-- True while some character has a look chosen by the player. A page of choices may call this at any time; it is a boolean from a table.
+local function anyPinned()
+    local deps = M.deps
+    if not deps or type(deps.anyPinned) ~= 'function' then return false end
+    local ok, any = pcall(deps.anyPinned)
+    return ok and any == true
+end
+M.anyPinned = anyPinned
+
 local function data()
     if M.data == nil then
         local ok, loaded = pcall(dofile, 'companion-outfits-data.lua')
@@ -86,7 +109,7 @@ end
 
 function M.known(record) return M.character(record) ~= nil end
 
-local function kindOf(character, name)
+function kindOf(character, name)
     for _, row in ipairs(character.outfits) do
         if row[1] == name then return row[2] end
     end
@@ -134,6 +157,11 @@ end
 -- Returns the name to change into and why ('required': the look worn is not allowed now; 'variety'), or nil.
 function M.choose(character, current, ctx)
     if type(character) ~= 'table' or type(current) ~= 'string' then return nil end
+    -- A look the player chose in the character editor is worn all the time: no time of day, no variety, no home clothes. (A look that did not show once is not tried again.)
+    if ctx.pinned ~= nil then
+        if current == ctx.pinned or (ctx.bad and ctx.bad[ctx.pinned]) then return nil end
+        return ctx.pinned, 'chosen'
+    end
     -- A look the list does not hold (a world character's copy in the clothes the original wore, a look another mod set) is left alone.
     if kindOf(character, current) == nil then return nil end
     local home = ctx.home == true and hasHome(character)
@@ -306,11 +334,16 @@ local function step(row, player, ctx)
 
     local home = M.isHome(m.key, m.record)
     if home == nil then home = ctx.atHome == true end
-    local target, why = M.choose(character, m.current, {
-        period = ctx.period, home = home, hours = ctx.hours, changedAt = m.changedAt,
-        hourChanged = ctx.hourChanged, bad = m.bad, random = deps.random or M.random})
+    local pin = pinnedLook(m.key, m.record)
+    local target, why
+    -- With the setting off only a look the player chose is ever put on.
+    if pin or wanted() then
+        target, why = M.choose(character, m.current, {
+            period = ctx.period, home = home, hours = ctx.hours, changedAt = m.changedAt,
+            hourChanged = ctx.hourChanged, bad = m.bad, random = deps.random or M.random, pinned = pin})
+    end
     -- A variety look is rolled once, at the hour change: it stays wanted while she waits for the camera to look away.
-    if not target and m.wanted and m.wanted.from == m.current and now - m.wanted.at < WANT_S then target, why = m.wanted.name, m.wanted.why end
+    if not target and not pin and m.wanted and m.wanted.from == m.current and now - m.wanted.at < WANT_S then target, why = m.wanted.name, m.wanted.why end
     if not target then
         m.waiting, m.wanted, m.unseenSince, m.seenWhy = nil, nil, nil, nil
         sitAgain(m, row, 'no change wanted')
@@ -372,7 +405,7 @@ end
 
 -- Called on the game's 10 Hz tick. elapsed: seconds since the previous call. ready: ordinary gameplay (a world, V attached).
 function M.tick(player, elapsed, ready)
-    if ready ~= true or not wanted() then return end
+    if ready ~= true or not (wanted() or anyPinned()) then return end
     state.wait = state.wait - (tonumber(elapsed) or 0)
     if state.wait > 0 then return end
     local deps = M.deps
@@ -401,11 +434,16 @@ function M.tick(player, elapsed, ready)
         return reason
     end
     local follow = false
+    local all = wanted()
     for _, row in ipairs(rows) do
-        local ok, err = pcall(step, row, player, ctx)
-        if not ok then say('Companion outfits: ' .. tostring(err):sub(1, 160)) end
-        local m = state.members[row.serial]
-        if m and (m.stage or m.pending) then follow = true end
+        -- With the setting off only the copies of characters with a chosen look (and a change already under way) are looked at.
+        local held = state.members[row.serial]
+        if all or pinnedLook(row.key, row.record) or (held and (held.stage or held.pending)) then
+            local ok, err = pcall(step, row, player, ctx)
+            if not ok then say('Companion outfits: ' .. tostring(err):sub(1, 160)) end
+            local m = state.members[row.serial]
+            if m and (m.stage or m.pending) then follow = true end
+        end
     end
     -- A started change is followed up quickly; a copy that waits for the camera to look away is looked at again in LOOK_S.
     if follow then state.wait = STAGE_S elseif ctx.looking then state.wait = LOOK_S end
@@ -414,6 +452,9 @@ end
 -- A new copy, at creation (key: its profile key, for a home setting made by name): the appearance to create it with, or nil to leave it as the game and companion-records.lua make it. The copy appears in
 -- front of V, so nothing is changed in view: it simply comes in the right clothes (casual at home, the night look at night).
 function M.spawnAppearance(record, key)
+    -- A look the player chose in the character editor is the look a new copy is made in, whatever the setting says.
+    local pin = pinnedLook(key, record)
+    if pin then return pin end
     if not wanted() then return nil end
     local character = M.character(record)
     if not character then return nil end
@@ -439,6 +480,9 @@ function M.created(serial, key, record, name)
 end
 
 function M.forget(serial) state.members[serial] = nil end
+
+-- A choice was saved in the character editor: the next look at the party is soon, not at the next 20 s check.
+function M.nudge() state.wait = math.min(state.wait, STAGE_S) end
 
 -- A new session (a load, a death, the main menu): nothing carries over. Fast travel keeps the members (init.lua abandonSession).
 function M.reset()

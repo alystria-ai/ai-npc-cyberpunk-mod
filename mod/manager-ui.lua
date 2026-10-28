@@ -2532,7 +2532,10 @@ function M.configure(domain, companions, queueFactory, readiness)
             serviceState = function() return support and support.serviceState() or 'unknown' end,
             -- The character V faces and the list of the player's own characters live in init.lua (globals): asked once, when Open is chosen.
             facing = function() return type(convaiFacingCharacter) == 'function' and convaiFacingCharacter() or nil end,
-            watch = function() if convaiCustomCharacters then convaiCustomCharacters.watch() end end})
+            watch = function()
+                if convaiCustomCharacters then convaiCustomCharacters.watch() end
+                if convaiCharacterOptions then convaiCharacterOptions.watch() end
+            end})
         if created and type(instance) == 'table' then editor = instance end
     end
     if paidTierLoaded and type(paidTierFactory) == 'table' and type(paidTierFactory.new) == 'function' then
