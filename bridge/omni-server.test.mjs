@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {createServer, request as httpRequest} from 'node:http';
 import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ResidentVoice} from './resident-voice.mjs';
 import {OmniServer} from './omni-server.mjs';
@@ -19,7 +19,7 @@ const clipBytes = tag => { const bytes = silentWav(); bytes.write(tag.slice(0, 8
 const wait = ms => new Promise(done => setTimeout(done, ms));
 
 // A server folder in a temp dir with the fake worker, two shipped clips on the server and a client that has those two plus a clip of its own and V's.
-async function rig({loadMs = 0, restartDelays = [20], serverOptions = {}, clientLimits = {}, clientVoices = true, exitCode = ''} = {}) {
+async function rig({loadMs = 0, restartDelays = [20], serverOptions = {}, clientLimits = {}, clientVoices = true, exitCode = '', vPath = 'v-voice/v-male.wav'} = {}) {
   const root = mkdtempSync(join(tmpdir(), 'omni-server-test-'));
   const project = join(root, 'app'), serverRefs = join(root, 'voices'), serverPlayers = join(root, 'data', 'player-voices'), clientRefs = join(root, 'client-voices'), clientPlayers = join(root, 'client-players');
   for (const folder of [join(project, 'bridge'), serverRefs, serverPlayers, clientRefs, clientPlayers]) mkdirSync(folder, {recursive: true});
@@ -31,15 +31,15 @@ async function rig({loadMs = 0, restartDelays = [20], serverOptions = {}, client
     voices[key] = {reference: `runtime/voice-references/${key}.wav`, sha256: sha(bytes), transcript: `Words of ${key}.`};
   }
   const own = clipBytes('own'), vClip = clipBytes('vvoice');
-  mkdirSync(join(clientRefs, 'v-voice'), {recursive: true});
-  writeFileSync(join(clientPlayers, 'my-friend.wav'), own); writeFileSync(join(clientRefs, 'v-voice', 'v-male.wav'), vClip);
+  mkdirSync(join(clientRefs, dirname(vPath)), {recursive: true});
+  writeFileSync(join(clientPlayers, 'my-friend.wav'), own); writeFileSync(join(clientRefs, ...vPath.split('/')), vClip);
   const serverConfig = {version: 2, provider: 'hybrid', engine: 'omnivoice', steps: 16, voices, playerVoiceDirectory: serverPlayers,
     preparation: {mode: 'lazy', startupProfiles: ['johnny-silverhand'], maxCachedProfiles: 8}};
   const configPath = join(root, 'local-voices.json');
   writeFileSync(configPath, JSON.stringify(serverConfig));
   const clientTable = {...voices, ...(clientVoices ? {
     'my-friend': {reference: 'runtime/player-voices/my-friend.wav', sha256: sha(own), transcript: 'My friend speaks here.'},
-    'v-male': {reference: 'runtime/voice-references/v-voice/v-male.wav', sha256: sha(vClip), transcript: 'V speaks here.'},
+    'v-male': {reference: `runtime/voice-references/${vPath}`, sha256: sha(vClip), transcript: 'V speaks here.'},
     'not-there': {reference: 'runtime/voice-references/picked/none.wav', sha256: 'f'.repeat(64), transcript: 'No clip anywhere.'}} : {})};
   const logs = [];
   const server = new OmniServer({playerDirectory: serverPlayers, port: 0, version: '9.9.9-test', restartDelays, log: line => logs.push(line), ...serverOptions,
@@ -97,6 +97,15 @@ test('a client starts against the server, sends the clips it lacks, and speaks a
     assert.equal(r.client.profileReady('judy-alvarez'), true);   // the phrase prepared it on the server
     const mine = await r.client.synthesize('my-friend', 'A clip I sent.');
     assert.ok(mine.wav.duration > 0.2);
+  } finally { await r.done(); }
+});
+
+test('Vs voice, merged in as addons/v-male.wav, is sent before the first phrase, not in the background', async () => {
+  const r = await rig({vPath: 'addons/v-male.wav'}); await r.ready();
+  try {
+    await r.client.start();
+    assert.equal(r.client.hasProfile('v-male'), true, 'Vs clip is on the server when the client is ready');
+    assert.ok(readdirSync(r.serverPlayers).includes('v-male.wav'));
   } finally { await r.done(); }
 });
 

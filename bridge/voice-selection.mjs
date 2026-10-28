@@ -490,7 +490,11 @@ export class VoiceSelection {
     }
     // A cloud voice is never wanted while it is barred (Mature content on): the saved Voxtral choice is read as Pocket, the local default.
     const saved=this.cloudBarred()&&cloudVoiceChoice(settings?.voiceProvider)?'pocket':settings?.voiceProvider;
-    const chosen=canonicalVoiceProvider(saved);
+    // Remote OmniVoice is read first: with it on (and a server address saved) a local voice choice is rendered by the server, whichever of the entries is chosen
+    // (Pocket as well as the four OmniVoice qualities, 2026-10-28: a player had to pick the right entry before the server was used). A cloud voice stays what the player chose.
+    if(typeof settings?.remoteOmni==='boolean')this.remoteWanted=settings.remoteOmni;
+    let chosen=canonicalVoiceProvider(saved);
+    if(typeof saved==='string'&&chosen==='pocket'&&!cloudVoiceChoice(saved)&&this.remoteWanted&&this.omniRemote!==null)chosen='omni';
     if(typeof saved==='string')this.requestedCloud=cloudVoiceChoice(saved);
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
@@ -507,7 +511,6 @@ export class VoiceSelection {
       }
       this.requestedProvider=chosen;
     }
-    if(typeof settings?.remoteOmni==='boolean')this.remoteWanted=settings.remoteOmni;
     if ([16,32].includes(settings?.omniSteps))this.requestedOmniSteps=settings.omniSteps;
     const reference=canonicalOmniReference(settings?.omniReference);
     if(reference)this.requestedOmniReference=reference;

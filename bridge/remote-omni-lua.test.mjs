@@ -229,14 +229,24 @@ test('the switch is a saved setting: off by default, applied with the rest, surv
 test('the status line follows the setting, the saved address and the voice service\'s own report', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok and invoke('custom-voices').ok)
   assert(registered.applyBatch('manager', {{id = 'remoteOmni', value = true}}).ok); loaded = registered.loadMod('manager')
-  assert(row('remote-status').value == 'On, but no server address is saved. OmniVoice cannot speak yet.', row('remote-status').value)
+  -- Pocket is the saved voice: it keeps speaking until an address is saved, and the status says so.
+  assert(row('remote-status').value == 'On, but no server address is saved. Pocket is used until you add one.', row('remote-status').value)
   service('a', {version = 1, set = true, address = '192.168.1.20:8765'})
-  voiceState('a', {provider = 'pocket', requestedProvider = 'pocket', omniRemote = {set = true, connected = false}})
-  assert(row('remote-status').value == 'On. It is used when Companion voices is an OmniVoice entry.', row('remote-status').value)
+  -- Not heard from the voice service yet: waiting, never a wrong claim about the voice.
+  assert(row('remote-status').value == 'On. Waiting for the conversation service.', row('remote-status').value)
+  -- The server is used with Pocket saved too (the service asks for OmniVoice then): the status names the voice it speaks with.
   voiceState('b', {provider = 'text', requestedProvider = 'omni', omniRemote = {set = true, connected = false}})
   assert(row('remote-status').value == 'Not connected. Replies show as text until the server answers.', row('remote-status').value)
   voiceState('c', {provider = 'omni', requestedProvider = 'omni', omniRemote = {set = true, connected = true}})
-  assert(row('remote-status').value == 'Connected. OmniVoice is rendered on the server.', row('remote-status').value)
+  assert(row('remote-status').value == 'Connected. The server speaks with OmniVoice · Quality.', row('remote-status').value)
+  -- OmniVoice saved and no address: the old sentence.
+  service('none', {version = 1, set = false})
+  voiceState('e', {provider = 'text', requestedProvider = 'omni', omniRemote = {set = false, connected = false}})
+  assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok); loaded = registered.loadMod('manager')
+  assert(row('remote-status').value == 'On, but no server address is saved. OmniVoice cannot speak yet.', row('remote-status').value)
+  service('a2', {version = 1, set = true, address = '192.168.1.20:8765'})
+  voiceState('d', {provider = 'omni', requestedProvider = 'omni', omniRemote = {set = true, connected = true}})
+  assert(row('remote-status').value == 'Connected. The server speaks with OmniVoice · Ultra Quality.', row('remote-status').value)
   assert(row('remote-address').label == 'Server address (192.168.1.20:8765)' and row('remote-address').value == 'Remove')
 `));
 

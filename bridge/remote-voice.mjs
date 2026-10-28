@@ -270,7 +270,10 @@ export class RemoteVoice {
     const table = this.currentTable(), signature = JSON.stringify(table);
     if (!first && signature === this.synced) return false;
     let answer = await this.sendVoices(table);
-    const urgent = item => isPlayerReference(table[item.key]?.reference) || /^runtime\/voice-references\/v-voice\//.test(table[item.key]?.reference ?? '');
+    // V's two voices are urgent too: they are merged in as runtime/voice-references/addons/v-male.wav and v-female.wav (bridge/addons.mjs), which the server never
+    // holds, and V's typed or spoken line is skipped until the clip is there (2026-10-28: the background send came after every other missing clip).
+    const urgent = item => isPlayerReference(table[item.key]?.reference) || item.key === 'v-male' || item.key === 'v-female'
+      || /^runtime\/voice-references\/v-voice\//.test(table[item.key]?.reference ?? '');
     const send = async items => {
       const sent = [];
       for (const item of items) {

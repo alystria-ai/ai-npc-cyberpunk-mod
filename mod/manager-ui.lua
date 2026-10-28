@@ -841,15 +841,21 @@ local function customVoicesRows(snapshot)
     local remote = manager.remoteOmniVoice()
     local on = snapshot.settings.remoteOmni == true
     rows[#rows + 1] = setting('remoteOmni', 'Remote OmniVoice', 'bool', on, false,
-        'Render the OmniVoice voices on another PC or graphics card that runs the OmniVoice server, so this PC keeps its frames.\n\nTurn it on, press Apply, add the server address below and pick an OmniVoice entry under Companion voices. If the server cannot be reached, replies show as text and the mod retries every few seconds.')
+        'Render the voices on another PC or graphics card that runs the OmniVoice server, so this PC keeps its frames.\n\nTurn it on, press Apply and add the server address below. The server then speaks for every Pocket or OmniVoice choice under Companion voices; a cloud voice stays as chosen. If it cannot be reached, replies show as text and the mod retries every few seconds.')
     -- What it is doing now, from the saved setting and the voice service's own report.
     local status
+    -- The voice the server speaks with: the saved OmniVoice quality (Pocket counts as it too; Quality by default).
+    local voiceName = manager.voiceLabel('omni', snapshot.settings.omniSteps, snapshot.settings.omniReference)
+    local chosen = snapshot.settings.voiceProvider
     if not on then status = ui.t('Off. OmniVoice runs on this PC.')
-    elseif not remote.set and not (remoteOmni.instance.state().address) then status = ui.t('On, but no server address is saved. OmniVoice cannot speak yet.')
-    elseif remote.connected then status = ui.t('Connected. OmniVoice is rendered on the server.')
-    elseif remote.requested ~= 'omni' then status = ui.t('On. It is used when Companion voices is an OmniVoice entry.')
-    elseif remote.fresh then status = ui.t('Not connected. Replies show as text until the server answers.')
-    else status = ui.t('On. Waiting for the conversation service.') end
+    elseif not remote.set and not (remoteOmni.instance.state().address) then
+        if chosen == 'omni' then status = ui.t('On, but no server address is saved. OmniVoice cannot speak yet.')
+        elseif chosen == 'pocket' then status = ui.t('On, but no server address is saved. Pocket is used until you add one.')
+        else status = ui.t('On, but no server address is saved. The server is not used yet.') end
+    elseif chosen ~= 'pocket' and chosen ~= 'omni' then status = ui.t('On, but a cloud voice is chosen under Companion voices, so the server is not used.')
+    elseif not remote.fresh then status = ui.t('On. Waiting for the conversation service.')
+    elseif remote.connected then status = ui.t('Connected. The server speaks with {voice}.', {voice = voiceName})
+    else status = ui.t('Not connected. Replies show as text until the server answers.') end
     rows[#rows + 1] = readonly('remote-status', 'Status', status, 'Whether the server is in use right now. It is checked when a voice is needed and again every few seconds after a failure, never while you play.', {value = true})
     local made, items = pcall(remoteOmni.instance.rows)
     if made and type(items) == 'table' then
@@ -1854,7 +1860,7 @@ local function schema()
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
                     or snapshot.settings.johnnyRemarks == 'medium' and 4 or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
-                'Johnny Silverhand answers the Talk to Johnny keys, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
+                'Johnny Silverhand answers the Talk to Johnny keys, as the voice in V’s head, once the story has him there. Give Talk to Johnny a key on the Key bindings page: none is set by default.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
                 {'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
             -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
             setting('companionSpeakUp', 'Companions speak up', 'select',
@@ -1974,7 +1980,7 @@ local function schema()
         if remoteOmni.instance then
             local at = 1
             for index, voiceRow in ipairs(voicesCategory.settings) do if voiceRow.id == 'voiceProvider' then at = index + 1 end end
-            table.insert(voicesCategory.settings, at, action('custom-voices', 'Custom voices', 'Open', 'Render the OmniVoice voices on another PC or graphics card: the on/off switch, the server address and a connection test.',
+            table.insert(voicesCategory.settings, at, action('custom-voices', 'Custom voices', 'Open', 'Render Pocket and OmniVoice voices on another PC or graphics card: the on/off switch, the server address and a connection test. It works whichever of those voices is chosen above.',
                 function()
                     -- The page reads the bridge's answer again at once, not at the next poll.
                     pcall(remoteOmni.instance.state, true)
@@ -2463,7 +2469,7 @@ function M.apply(changes)
     end
     -- V on OmniVoice needs the pack (named first) and the companion voice as this batch leaves it to be OmniVoice: otherwise it is refused, nothing is saved.
     if values.vVoiceEngine == 'omni' then
-        local block = manager.vOmniBlock({voiceProvider = values.voiceProvider or snapshot.settings.voiceProvider})
+        local block = manager.vOmniBlock({voiceProvider = values.voiceProvider or snapshot.settings.voiceProvider, remoteOmni = (values.remoteOmni ~= nil) and values.remoteOmni or snapshot.settings.remoteOmni})
         if block == 'pack' then return refused('Requires the optional OmniVoice pack (GPU)') end
         if block == 'voice' then return refused('Requires the Companion voices to be an OmniVoice choice') end
     end

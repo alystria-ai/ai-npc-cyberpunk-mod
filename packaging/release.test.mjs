@@ -149,6 +149,15 @@ test("the OmniVoice lists come from the Runtime's app/defaults first, the pack's
     for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'runtime', proposal: {x: 1}});
     assert.equal((await prepareState(f.layout)).omni, false);
     assert.deepEqual((await readdir(f.layout.state)).filter(name => name.startsWith('local-voices')), []);
+    // A saved Remote OmniVoice address needs the lists without a pack (the voices to ask the server for); the pack stays absent.
+    const address = join(f.layout.state, 'player-remote-omnivoice.txt');
+    await writeFile(address, '192.168.1.20:8765');
+    assert.equal((await prepareState(f.layout)).omni, false);
+    assert.deepEqual((await readdir(f.layout.state)).filter(name => name.startsWith('local-voices')).sort(), Object.values(OMNI_CONFIGS).sort());
+    assert.equal((await live(OMNI_CONFIGS.long)).from, 'runtime');
+    assert.equal((await live(OMNI_CONFIGS.long)).proposal, undefined);
+    for (const name of Object.values(OMNI_CONFIGS)) await rm(join(f.layout.state, name));
+    await rm(address);
     // The pack, older than the Runtime (it was reused unchanged from an earlier version): its lists are in app/omni/defaults and the Runtime's win.
     await put(join(f.layout.omni, 'python'), 'python.exe', {});
     await writeFile(join(f.layout.omni, 'omni-pack.json'), '{}');

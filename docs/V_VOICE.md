@@ -275,8 +275,8 @@ Nexus has mods that replace V's English voice-over completely. V's typed-line vo
 
 V's voice follows **V's voice tone** from the character creator (the "brain gender"), not V's body: a V built with a male voice
 speaks with `v-male` whatever the body, as the game's own V lines do. `mod/turn-context.lua` reads it from the character
-customization state (`IsBrainGenderMale`) and sends it as `voice`; only when that read fails does it fall back to the resolved
-gender (`gender`). `voice` is never written into the model's context.
+customization state (`IsBrainGenderMale`) and sends it as `voice`; only when that read fails does it fall back to the body (the resolved
+gender, read for this whatever Dynamic info says about V, 2026-10-28; before that a failed tone read plus "about V" off left V's gender unknown and the line was skipped). `voice` is never written into the model's context.
 
 Until 2026-10-17 the voice was the one **you had chosen** for companions:
 

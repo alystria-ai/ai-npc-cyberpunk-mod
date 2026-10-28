@@ -466,10 +466,14 @@ function Instance:read()
             count = count + 1
         end
     end
-    local sex = wantAbout and gender(call(N.gender, player)) or nil
+    -- The body is read for V's voice too while V's voice is on, whatever Dynamic info says about V (2026-10-28: a male V whose voice tone could not be read got no
+    -- V line, because the body was only read while the "about V" kind was on). With V's voice off and the kind off nothing is read.
+    local voiceOn = call(self.options.wantVolume) == true
+    local body = (wantAbout or voiceOn) and gender(call(N.gender, player)) or nil
+    local sex = wantAbout and body or nil
     if sex then snapshot.gender = sex; count = count + 1 end
-    -- Not counted as something read: only V's voice for typed lines uses it, never the words the bridge writes.
-    local tone = gender(call(N.voice, player))
+    -- Not counted as something read: only V's voice for typed lines uses it, never the words the bridge writes. The voice tone, else the body.
+    local tone = gender(call(N.voice, player)) or body
     if tone then snapshot.voice = tone end
     -- The game's dialogue loudness, for V's voice for typed lines only (options.wantVolume). Not counted as something read: it
     -- is no part of the words the bridge writes, and a snapshot that holds only it is no snapshot.
