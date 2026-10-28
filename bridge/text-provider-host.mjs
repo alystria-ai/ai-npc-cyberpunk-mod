@@ -12,7 +12,8 @@
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS, freshNote} from './mistral-prompt.mjs';
-import {reactionTraceLine} from './companion-actions.mjs';
+import {reactionTraceLine, claimsToDrive, DRIVE_HONEST, DRIVE_LIMIT} from './companion-actions.mjs';
+import {explicitRequest} from './text-action-words.mjs';
 import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
@@ -716,6 +717,10 @@ export class TextProviderHost {
     // An ordinary NPC's reaction (docs/NPC_REACTIONS.md): the reply itself decides, so its note is only one more sentence of the prompt.
     const withReactions = notes => [notes, reactions?.notes].filter(Boolean).join('\n');
     const actionNotes = withReactions(menu ? menu.notes(guess ? (guess === 'NONE' ? null : guess) : chosen(decision)) : '');
+    // The game offers no ride and V plainly asks for one: the reply is held back from the voice until it is checked for a false yes (#replyOn).
+    const driveGuard = menu?.driveBlocked && DRIVE_HONEST[menu.driveBlocked] && explicitRequest(text, {codes: ['DRIVE']}) === 'DRIVE'
+      ? {code: menu.driveBlocked, line: DRIVE_HONEST[menu.driveBlocked],
+        nudge: `\n\n(The game cannot let you drive V right now: ${DRIVE_LIMIT[menu.driveBlocked]}. Answer again in your own words as yourself, without agreeing to drive or offering a ride, and say briefly what is needed.)`} : null;
     const speculation = guess ? {guess, deciding, confirms: decided => (chosen(decided) ?? 'NONE') === guess, notesFor: decided => withReactions(menu.notes(chosen(decided)))} : null;
     markStage('recalled');
     const candidates = this.#candidates();
@@ -735,7 +740,7 @@ export class TextProviderHost {
             deadlineAt = Math.max(deadlineAt, Math.min(readyAt + room, started + route.turnBudgetMs + LOCAL_TURN_STRETCH_MS));
           }
         }
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: reactions?.kinds.length ? reactions : null});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: reactions?.kinds.length ? reactions : null, driveGuard});
         if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
@@ -1034,7 +1039,7 @@ export class TextProviderHost {
     this.log(`[PromptProfile] turn uses ${id} (${profileSignature(profile)})`);
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = null}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = null, driveGuard = null}) {
     // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
     const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
     const guard = mature ? true : await this.#guardOn(route, signal);
@@ -1057,7 +1062,7 @@ export class TextProviderHost {
     const spec = speculation ? {controller: new AbortController(), open: false, latest: '', missed: false, over: false} : null;
     speculation?.deciding.then(decided => {
       if (spec.over) return;
-      if (speculation.confirms(decided)) { spec.open = true; try { feed.update(spec.latest); } catch { /* the voice's view never breaks the reply */ } }
+      if (speculation.confirms(decided)) { spec.open = true; if (!driveGuard) { try { feed.update(spec.latest); } catch { /* the voice's view never breaks the reply */ } } }
       else { spec.missed = true; notes = speculation.notesFor(decided); spec.controller.abort(); }
     });
     // An action code ("[DRIVE]") is never part of the reply: the voice, the subtitles and the memory see the text without it.
@@ -1098,6 +1103,8 @@ export class TextProviderHost {
       if (!reaction) { try { const note = freshNote(messages, {quiet: true}); if (note) this.log(`[FreshFacts] profile=${profileKey ?? persona.name} ${note}`); } catch { /* a log line never affects a reply */ } }
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
       const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(config?.prepared === true ? {prepared: true, priority: 'background'} : {}), ...(sampling ? {sampling} : {}), ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
+        // A reply on trial for a false yes to a ride is shown to the voice only once it has passed (the finished reply is spoken whole).
+        if (driveGuard) return;
         const shown = visible(soFar);
         if (spec && !spec.over) { spec.latest = shown; if (!spec.open) return; }
         try { feed.update(shown); } catch { /* the voice's view of the reply never breaks the reply */ }
@@ -1179,6 +1186,16 @@ export class TextProviderHost {
       } else {
         this.log(repeated ? 'reply repeated a line; asking once more' : 'reply broke character; asking once more');
         try { outcome = await run(repeated ? FRESH_WORDS_NUDGE : echoed && !breaksCharacter(outcome.reply) ? PROVOKED_NUDGE : IN_CHARACTER_NUDGE); } catch (error) { if (signal?.aborted) throw error; /* keep the first */ }
+      }
+    }
+    // The game cannot give the ride V asked for, and the reply says yes anyway (the character is told the limit before it speaks, and a small model still
+    // plays along): one more try with the limit said again, and if that agrees too the character says the plain honest line. Nothing was spoken yet.
+    if (driveGuard && !signal?.aborted && claimsToDrive(outcome.reply)) {
+      this.log(`reply agreed to drive although the game cannot (${driveGuard.code}); asking once more`);
+      try { outcome = await run(driveGuard.nudge); } catch (error) { if (signal?.aborted) throw error; /* the first reply is judged below */ }
+      if (claimsToDrive(outcome.reply)) {
+        this.log('reply agreed to drive again; the character says the honest line');
+        outcome = {...outcome, reply: driveGuard.line};
       }
     }
     if (leaksReasoning(outcome.reply) || looksCut(outcome.reply) && outcome.reply.split(/\s+/).length < 4) throw new MistralError('empty', 'answered with its reasoning or a cut-off line', {provider: route.provider});

@@ -23,7 +23,7 @@ local DRIVE_UNAVAILABLE = {['player-driving'] = 'player-driving', ['player-seate
     ['car-distant'] = 'no-car', ['car-arriving'] = 'no-car', ['car-moving'] = 'car-moving', combat = 'combat',
     ['transport-busy'] = 'busy', ['autodrive-active'] = 'busy', ['driver-occupied'] = 'busy',
     ['no-passenger-seat'] = 'busy', ['actor-seated'] = 'busy', ['actor-unavailable'] = 'busy',
-    ['driving-unavailable'] = 'busy', ['world-unavailable'] = 'busy'}
+    ['driving-unavailable'] = 'busy', ['world-unavailable'] = 'busy', ['not-companion'] = 'not-driver'}
 M.DRIVE_UNAVAILABLE = DRIVE_UNAVAILABLE
 
 local function copy(value, depth)

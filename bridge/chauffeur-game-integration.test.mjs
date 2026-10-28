@@ -44,6 +44,8 @@ assert(companions.setProfile(firstRow.serial,'panam-palmer','Panam'))
 local offer=companions.chauffeurOffer(firstRow.entityID)
 assert(offer.available and offer.actor.key=='panam-palmer' and firstRow.key=='judy-alvarez')
 assert(not companions.chauffeurOffer('quest-actor').available)
+local placed=companions.chauffeurOffer('quest-actor')
+assert(placed.available==false and placed.code=='not-companion','a character the game placed gets its own code, so the character is told it does not drive')
 local before=reads
 assert(not companions.queueChauffeur(secondRow.serial,offer,firstRow.entityID))
 assert(not companions.queueChauffeur(nil,offer,firstRow.entityID))

@@ -92,3 +92,13 @@ test('archetype facts pass through as fixed vocabulary only; ambient covers resi
   assert.match(archetypeContext({...turn, profileKey: 'resident-male', name: 'Pedestrian', archetype: {category: 'resident'}}),
     /not a story character/);
 });
+
+test('the ride advisory not-driver (a person who is not a party companion) travels with a typed ride request, a named character on a spoken turn, never small talk with a crowd person', () => {
+  const line = (profileKey, text, code = 'not-driver') => parseInput(JSON.stringify({requestId: '1-1-1ULL', generation: 1, entity: '1ULL', name: 'Jackie', bodyType: 'Male', profileKey, text, channel: 'private', driveUnavailable: code})).driveUnavailable;
+  assert.equal(line('jackie-welles', 'you drive'), 'not-driver');
+  assert.equal(line('jackie-welles', 'How are you?'), undefined);
+  assert.equal(line('jackie-welles', '[Microphone]'), 'not-driver');
+  assert.equal(line('npc-street-vendor', '[Microphone]'), undefined);
+  assert.equal(line('resident-male', 'give me a ride'), 'not-driver');
+  assert.equal(line('jackie-welles', 'How are you?', 'no-waypoint'), 'no-waypoint');
+});

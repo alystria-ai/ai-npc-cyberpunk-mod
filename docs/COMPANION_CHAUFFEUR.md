@@ -64,6 +64,23 @@ Native: with V mounted, the sample's car is exactly the vehicle V sits in when i
 summon or a nearby search result. While V holds the wheel the offer does not require `CommandsFromDriverEnabled` (it is checked again at
 departure, with V as a passenger).
 
+## A ride is never promised that cannot happen
+
+2026-10-28 report: "Yeah, bro, I'll drive", then nothing, and V entering the passenger side was moved to the driver seat. What the character knows before it
+answers, and what happens after, per case:
+
+| Case | Told before the reply | After the reply |
+| --- | --- | --- |
+| No waypoint (and every other refusal: car not near, car moving, V in another vehicle, combat, busy) | The game's code (`driveUnavailable`) becomes one limit sentence: `DRIVE_LIMIT` in `bridge/companion-actions.mjs`. For no waypoint it says to ask V to open the map and set one, then ask again. Convai: `driveLimitNote`; text routes: the action notes | Text routes only: when V plainly asks for a ride (`explicitRequest`) the reply is held back from the voice and judged by `claimsToDrive` (English). A yes gets one more try with the limit said again, and a second yes is replaced by the plain line `DRIVE_HONEST[code]`. Nothing was spoken before, nothing false is remembered. A Convai reply cannot be held back (its audio is the service's), so it has the note only |
+| Not a party companion: a character the game placed (story people such as Jackie in Act 1 included) or a stranger | `companions.chauffeurOffer` answers `code='not-companion'`, sent as `not-driver`: "you are not one of V's party companions, so you do not take the wheel for V". A typed line carries it only when its words can be about a ride; a spoken turn carries it for a named character, not for a crowd person (`driveAdvisoryFor`) | The same guard as above, with the line "I can't take the wheel for you, V." |
+| The ride is offered | The setup, and one sentence: V lets the character get behind the wheel first, then gets in on the passenger side | The trip runs as described above |
+
+**V in the passenger seat before the driver is seated.** The game moves a passenger of `seat_front_right` to the free driver seat after 0.2 s
+(`PassangerSwitchSeatsCondition`), so V cannot sit in the passenger seat while the companion is still walking round. The mod does not fight
+that (no forced mount, eject or seat switch for V, see above). The trip pauses (`waiting-for-driver-seat`, "Step out of the driver seat so your
+companion can get in", 45 s), and the character now tells V to let it in first. No per-frame work was added: the codes ride the existing
+offer capture once per turn, and the guard runs only on a turn on which V asked for a ride that is not possible.
+
 ## Native NPC driving
 
 The lead car uses Cyberpunk 2.31's `AIVehicleDriveToPointAutonomousCommand` on its vehicle AI component. It does not enable AutoDrive, simulate the game's AutoDrive key, or use Delamain mode.

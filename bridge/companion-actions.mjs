@@ -78,18 +78,55 @@ export const TACTIC_UNAVAILABLE = Object.freeze({
 export const parseTacticUnavailable = value => typeof value === 'string' && Object.hasOwn(TACTIC_UNAVAILABLE, value) ? value : null;
 // Why the game offers no ride: the codes mod/gameplay-actions.lua sends (DRIVE_UNAVAILABLE). A text-route character (Mistral, the local AI;
 // bridge/text-actions.mjs) says it in its action notes; a Convai character gets driveLimitNote below, on the turns where V asks about a ride.
-export const DRIVE_UNAVAILABLE_CODES = Object.freeze(['player-driving', 'player-seated', 'no-waypoint', 'no-car', 'car-moving', 'combat', 'busy']);
+export const DRIVE_UNAVAILABLE_CODES = Object.freeze(['player-driving', 'player-seated', 'no-waypoint', 'no-car', 'car-moving', 'combat', 'busy', 'not-driver']);
 export const parseDriveUnavailable = value => typeof value === 'string' && DRIVE_UNAVAILABLE_CODES.includes(value) ? value : null;
 // Each becomes one short sentence of what V has to do first.
 export const DRIVE_LIMIT = Object.freeze({
   'player-driving': "V is driving a vehicle that is not V's own car; V would have to get out of it first, then ask",
   'player-seated': "V is sitting in a vehicle that is not V's own car; V would have to get out first, then ask",
-  'no-waypoint': 'no destination is marked on the map; V has to mark one first',
+  'no-waypoint': 'no destination is marked on the map (V has not set a waypoint), so you do not know where to go; ask V to open the map and set one, then ask again',
+  'not-driver': "you are not one of V's party companions, so you do not take the wheel for V",
   'no-car': "V's own car is not standing close by; V has to stand next to it or call it first",
   'car-moving': "V's car has to stand still first",
   combat: 'there is fighting going on; it has to be over first',
   busy: 'it is not possible right now',
 });
+// The plain line a character says when it agreed to drive although the game cannot (the text routes' guard, bridge/text-provider-host.mjs): the
+// reply is replaced by it only when a second try also agreed. Written for the case, in the way companions speak to V.
+export const DRIVE_HONEST = Object.freeze({
+  'player-driving': 'Get out of that ride first, V, then ask me again.',
+  'player-seated': 'Get out of that ride first, V, then ask me again.',
+  'no-waypoint': "Hold on, V, you haven't set a waypoint. Mark where we're going on the map first, then ask me again.",
+  'no-car': "Your car isn't close enough, V. Stand next to it or call it, then ask me again.",
+  'car-moving': 'Stop the car first, V, then ask me again.',
+  combat: "Not now, V. Let's get through this fight first.",
+  busy: 'Not right now, V.',
+  'not-driver': "I can't take the wheel for you, V.",
+});
+// Does an English reply say yes to a ride (or to taking the wheel)? A sentence with a driving word that agrees or promises, in a reply where
+// no sentence names what is missing or refuses. The text routes use it after a turn on which the game offered no ride and V plainly asked for
+// one; another language is not judged (the limit note in the prompt is all it gets).
+const DRIVE_WORDS = /\b(?:drive|driving|driver|wheel|ride|get in|hop in|jump in|climb in|buckle|seat ?belt|take (?:us|you)|get (?:you|us) there)\b/i;
+const DRIVE_AGREES = /^\W*(?:yeah|yep|yes|sure|okay|ok|alright|all right|of course|absolutely|you got it|got it|on it|will do|no problem|why not)\b|\b(?:i(?:'ll| will|'m gonna|'m going to| am going to| can| got)|let me|gonna|leave it to me|you got it|on it|buckle up|hop in|get in|climb in|jump in)\b/i;
+const DRIVE_REFUSES = /\b(?:can'?t|cannot|can not|won'?t|unable|not (?:able|yet|now|right now|here|close|near)|no (?:waypoint|destination|marker|car)|haven'?t|hasn'?t|first|before|waypoint|marker|map|mark (?:a|the|it|where|one)|set (?:a|the|one|it|your)|where (?:to|are we|we)|need(?:s)? (?:to|you)|too far|isn'?t|aren'?t|not one of|but)\b/i;
+export function claimsToDrive(reply) {
+  const text = String(reply ?? '').replace(/\s+/g, ' ').trim();
+  if (!text) return false;
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  if (sentences.some(sentence => DRIVE_REFUSES.test(sentence))) return false;
+  return sentences.some(sentence => DRIVE_WORDS.test(sentence) && DRIVE_AGREES.test(sentence));
+}
+/**
+ * The ride advisory a turn carries (bridge/protocol.mjs). 'not-driver' (the speaker is not one of V's party: a character the game placed, a stranger)
+ * is sent for every person the game says it for, but a typed line carries it only when its words can be about a ride, and a spoken turn only for a
+ * named character (a crowd person says it for every sentence of small talk otherwise). Every other code stays as the game wrote it.
+ */
+export function driveAdvisoryFor(code, text, {ambient = false} = {}) {
+  const advisory = parseDriveUnavailable(code);
+  if (advisory !== 'not-driver') return advisory;
+  const typed = typeof text === 'string' && text.trim() !== '' && text.trim() !== MIC_PLACEHOLDER;
+  return typed ? (mentions('DRIVE', text) ? advisory : null) : (ambient ? null : advisory);
+}
 /**
  * The note a Convai character reads when the game offers no ride (`reason`, a code of DRIVE_UNAVAILABLE_CODES) and V's words may be about one, else ''.
  * Convai gets no action it cannot take, so without this note a character asked to take the wheel plays along ("I'm already sitting down") and nothing
@@ -101,7 +138,7 @@ export function driveLimitNote(reason, userText) {
   const typed = typeof userText === 'string' && userText.trim() !== '' && userText.trim() !== MIC_PLACEHOLDER;
   if (typed && !mentions('DRIVE', userText)) return '';
   return '\nCurrent game-verified limit: you cannot drive V anywhere right now (' + DRIVE_LIMIT[reason] + '). '
-    + 'If V asks you to drive them, take the wheel, give them a ride or get in the car, say briefly in character what is needed first; '
+    + 'If V asks you to drive them, take the wheel, give them a ride or get in the car, ' + (reason === 'not-driver' ? 'decline briefly in character; ' : 'say briefly in character what is needed first; ')
     + 'do not agree, and do not say or act as if you are already sitting in the car or driving. Do not bring this up unless V asks.';
 }
 export const followActionName = offer => token(offer?.token) ? `${FOLLOW_ACTION} ${offer.token}` : null;
@@ -1019,6 +1056,7 @@ function chauffeurContextText(offered) {
     + 'Only the new user message in this turn can authorize that action. Previous driving requests do not authorize it. '
     + 'For a greeting, ordinary question, or discussion of driving, emit no action even if an earlier request was not carried out. '
     + 'You take the driver seat and wait for V to get into a passenger seat themselves before departing. '
+    + (seated ? '' : 'Say so in a few words: V lets you get behind the wheel first and then gets in on the passenger side. ')
     + (seated ? '"You drive", "swap seats", "switch places" and "take over" are this same request. ' : '')
     + 'Do not request it for hypothetical discussion, quoted speech, or an automatic event. '
     + 'The game must confirm boarding, driving, and arrival; never claim success before confirmation.';

@@ -607,3 +607,74 @@ test('live 2026-10-13: whichever way a wrong guess falls, the voice and the fini
     } finally { await close(); }
   }
 });
+
+// ---- A character must not say yes to a ride the game cannot give (2026-10-28 report: "Yeah, bro, I'll drive" and nothing happened) -------------
+
+test('V asks for a ride with no waypoint and the first reply says yes: the voice hears none of it, the limit is said again, and the second reply is spoken', async () => {
+  const replies = ["Yeah, bro, I'll drive.", 'Where to, choom? Open the map and set a waypoint first, then ask me again.'];
+  let count = 0;
+  const {server, host, delivered, logs, close} = await harness(script(() => 'NONE', () => replies[count++]));
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const heard = [];
+    stream.onChange(() => heard.push(stream.head));
+    const result = await host.reply(turn('drive me there', {companionAction: noRide({driveUnavailable: 'no-waypoint'})}), {stream});
+    await settle();
+    assert.equal(result.text, replies[1]);
+    assert.ok(heard.every(head => !/drive/i.test(head)), 'the first yes was never fed to the voice: ' + heard.join('|'));
+    const asked = server.requests.filter(body => !isDecision(body));
+    assert.equal(asked.length, 2, 'one more try, no more');
+    assert.match(asked[1].messages.at(-1).content, /cannot let you drive V right now: no destination is marked on the map[\s\S]*without agreeing to drive/);
+    assert.ok(logs.some(line => /agreed to drive although the game cannot \(no-waypoint\)/.test(line)));
+    assert.equal(delivered.length, 0, 'no action is delivered for a ride that cannot happen');
+  } finally { await close(); }
+});
+
+test('both replies say yes: the character says the plain honest line that asks V for a waypoint, and that line is what is remembered', async () => {
+  const {server, host, memory, close} = await harness(script(() => 'NONE', () => "Sure thing, I'll drive. Hop in."));
+  try {
+    const result = await host.reply(turn('you drive', {companionAction: noRide({driveUnavailable: 'no-waypoint'})}));
+    await settle();
+    assert.match(result.text, /haven't set a waypoint/);
+    assert.match(result.text, /Mark where we're going on the map/);
+    assert.equal(server.requests.filter(body => !isDecision(body)).length, 2);
+    const recalled = memory.recall({profileKey: 'judy-alvarez', channel: 'private'});
+    assert.ok(recalled.turns.every(item => !/Hop in/.test(item.r)), 'the false yes is not remembered');
+  } finally { await close(); }
+});
+
+test('a game-placed or story character (not-driver) does not promise to drive either, and its limit is a refusal, not a task for V', async () => {
+  const menu = actionMenu(noRide({driveUnavailable: 'not-driver'}));
+  assert.equal(menu.driveBlocked, 'not-driver');
+  assert.match(menu.notes(null), /not one of V's party companions, so you do not take the wheel/);
+  const {server, host, close} = await harness(script(() => 'NONE', () => 'Alright, I will drive, get in the car.'));
+  try {
+    const result = await host.reply(turn('can you drive me to the waypoint?', {companionAction: noRide({driveUnavailable: 'not-driver'})}));
+    await settle();
+    assert.equal(result.text, "I can't take the wheel for you, V.");
+    assert.equal(server.requests.filter(body => !isDecision(body)).length, 2);
+  } finally { await close(); }
+});
+
+test('an honest reply, plain talk and a ride that is offered are not touched by the guard (one request, streamed as before)', async () => {
+  const honest = await harness(script(() => 'NONE', "I can't drive you anywhere yet, V. Set a waypoint on the map first."));
+  const talk = await harness(script(() => 'NONE', 'I used to drive a delivery van, back in the day.'));
+  const offered = await harness(script(() => 'DRIVE', 'Sure, get in. I will drive.'));
+  try {
+    const a = await honest.host.reply(turn('drive me', {companionAction: noRide({driveUnavailable: 'no-waypoint'})}));
+    assert.match(a.text, /Set a waypoint/);
+    assert.equal(honest.server.requests.filter(body => !isDecision(body)).length, 1);
+    // V is not asking for a ride (a question about the character): nothing is held back, whatever the character says.
+    const b = await talk.host.reply(turn('Did you ever drive a van?', {companionAction: noRide({driveUnavailable: 'no-waypoint'})}));
+    assert.match(b.text, /delivery van/);
+    assert.equal(talk.server.requests.filter(body => !isDecision(body)).length, 1);
+    const c = await offered.host.reply(turn('drive for me', {companionAction: ride()}));
+    assert.equal(c.text, 'Sure, get in. I will drive.');
+    assert.equal(offered.server.requests.filter(body => !isDecision(body)).length, 1);
+  } finally { await honest.close(); await talk.close(); await offered.close(); }
+});
+
+test('the offered ride tells the character to let it take the wheel first, then V gets in on the passenger side', () => {
+  assert.match(actionMenu(ride()).notes('DRIVE'), /let you get behind the wheel first and then get in on the passenger side/);
+  assert.doesNotMatch(actionMenu(ride({seated: 'passenger'})).notes('DRIVE'), /get in on the passenger side/, 'V already sits: nothing to say about doors');
+});

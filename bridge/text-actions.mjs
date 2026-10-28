@@ -66,7 +66,7 @@ export function actionMenu(offer) {
           + (offer.seated === 'driver'
             ? `V has the driver seat: tell V to step out of it so you can take the wheel, then you get out and take the driver seat, and V gets into a passenger seat. The game starts it right after your reply`
             : `You take the driver seat if you do not have it yet and drive. The game starts it right after your reply`)
-        : `V is asking you to drive them in their car ${data(offer.carName ?? "V's car")} to the map destination ${data(offer.destinationName)}. You take the wheel and the game starts it right after your reply`,
+        : `V is asking you to drive them in their car ${data(offer.carName ?? "V's car")} to the map destination ${data(offer.destinationName)}. You take the wheel and the game starts it right after your reply. Tell V in a few words to let you get behind the wheel first and then get in on the passenger side`,
       resolve: () => ({...base})});
   } else if (!offer.group && parseDriveUnavailable(offer.driveUnavailable)) {
     limits.push(`you cannot drive V anywhere (${DRIVE_LIMIT[offer.driveUnavailable]})`);
@@ -123,6 +123,8 @@ export function actionMenu(offer) {
   const named = rows.find(row => row.code === 'LEAVE' && /DISMISSED followed/.test(row.what));
   return {
     codes: rows.map(row => row.code), rows, limits,
+    /** The code (bridge/companion-actions.mjs DRIVE_UNAVAILABLE_CODES) of why the game offers no ride this turn, else null: the guard on a reply that agrees to one anyway. */
+    driveBlocked: !rows.some(row => row.code === 'DRIVE') && !offer.group ? parseDriveUnavailable(offer.driveUnavailable) : null,
     /** The offered codes V's words could be about (bridge/text-action-words.mjs); [] means no decision request is worth sending. */
     screen: (text, last) => home.screen(text, screenWords(text, {codes: rows.map(row => row.code), last}), rows),
     /**
