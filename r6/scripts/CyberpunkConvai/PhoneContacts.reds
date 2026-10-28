@@ -266,7 +266,8 @@ private final func ConvaiLayoutActions(selected: Bool) -> Void {
     if IsDefined(this.m_convaiFeedback) {
         this.m_convaiFeedback.SetVisible(false);
     };
-    let visible: Bool = selected && StrLen(this.ConvaiContactKey()) > 0;
+    // Invite and Dismiss (J and L) are keys of the Chat tab only: the game's own Contacts tab has neither the marks nor the keys.
+    let visible: Bool = selected && StrLen(this.ConvaiContactKey()) > 0 && this.ConvaiIsChatRow();
     let player: ref<PlayerPuppet> = GetPlayer(GetGameInstance()) as PlayerPuppet;
     // A Chat row of a character with no phone-contact mapping is shown as available: the request is answered on the Lua side.
     let available: Bool = IsDefined(player) && (player.ConvaiPhoneContactAvailable(this.ConvaiContactKey())
@@ -358,7 +359,7 @@ protected cb func OnDeselected(itemController: wref<inkVirtualCompoundItemContro
 public final func ConvaiRequestCompanion(join: Bool) -> Bool {
     let key: String = this.ConvaiContactKey();
     let player: ref<PlayerPuppet> = GetPlayer(GetGameInstance()) as PlayerPuppet;
-    if !this.m_convaiSelected || StrLen(key) == 0 || !IsDefined(player) {
+    if !this.m_convaiSelected || StrLen(key) == 0 || !IsDefined(player) || !this.ConvaiIsChatRow() {
         return false;
     };
     let accepted: Bool = player.ConvaiPhoneQueue(key, join);

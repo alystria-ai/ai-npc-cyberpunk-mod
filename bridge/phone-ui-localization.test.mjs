@@ -20,7 +20,7 @@ local language, generation, calls = 'fr', 1, {}
 local translations = {
   fr={['TALK TO {character}']='PARLER À {character}',
     ['Type your message to the character.']='Écrivez votre message au personnage.',
-    ['CHAT']='DISCUSSION',['Chat']='Discuter',
+    ['CHAT']='DISCUSSION',['Chat']='Discuter',['Favorite']='Favori',
     ['Press Enter to write  /  Esc to close']='Entrée : écrire / Échap : fermer',
     ['Write a message...  /  Enter to send  /  Esc to stop typing']='Écrire... / Entrée : envoyer / Échap : arrêter',
     ['Message sent. Waiting for reply.']='Message envoyé. En attente de réponse.',
@@ -374,6 +374,22 @@ assert(hint.text==external and hint.visible and m.statusSource==nil)
 for _,key in ipairs(calls)do assert(key~=external and key~=c.draft and key~='judy')end
 local before=#calls;n.contact='';m.composer(n,status)
 assert(#calls==before and hint.text==external)
+`));
+
+test('the favorite hint label of the Chat list (the game\'s Show all label, drawn by the scripts in English) is translated only while it holds that text', () => runLua(setup + `
+local m=(function()${phone}end)();m.install()
+local action={m_acceptButtonLabel=widget('acceptLabel'),m_showAllLabel=widget('showAllLabel')}
+action.m_showAllLabel.text='Favorite'
+m.action(action,{convaiChat=false},true);assert(action.m_showAllLabel.text=='Favorite','not a Chat row: label left alone')
+m.action(action,{convaiChat=true},true);assert(action.m_showAllLabel.text=='Favori')
+-- A pad has no favorite hint: the label there is the game's own and stays.
+action.m_showAllLabel.text='Show all';m.action(action,{convaiChat=true},true);assert(action.m_showAllLabel.text=='Show all')
+-- Without the label reference the left hint of the bottom bar is found by name.
+local nested={m_acceptButtonLabel=widget('acceptLabel'),GetRootWidget=function(self)return self.root end}
+local root=widget('Root');local hints=widget('inputHintsPanel');hints:Reparent(root)
+local left=widget('leftInputHints');left:Reparent(hints);local accept=widget('inputAccept');accept:Reparent(left)
+local label=widget('text');label:Reparent(accept);label.text='Favorite';nested.root=root
+m.action(nested,{convaiChat=true},true);assert(label.text=='Favori')
 `));
 
 test('Chat action and breadcrumb translation are gated by native ownership and restore through the game', () => runLua(setup + `

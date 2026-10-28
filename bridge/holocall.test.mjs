@@ -111,11 +111,12 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   const tabs = read('../r6/scripts/CyberpunkConvai/PhoneChatTabs.reds');
   // R (the secondary action) opens the chat on the list, as it always did; it never calls.
   assert.match(tabs, /public func AlternativeAcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \|\| this\.ConvaiSelectedIsChatRow\(\) \{\s*this\.ConvaiOpenChat[^]*?wrappedMethod\(\);\s*\}/);
-  // The call has its own key on the list: the game's `call` action (V, Triangle), listened for with the list's inputs
-  // and acted on only on the Chat list; Triangle's showAll means nothing there and is swallowed.
+  // The call has its own key on the list: on a pad the game's `call` action (Triangle), listened for with the list's inputs and
+  // acted on only on the Chat list; Triangle's showAll means nothing there and is swallowed. On a keyboard the call key is H (a key
+  // callback, OnConvaiChatListKey), and the game's V, the same action, calls nothing there.
   assert.match(tabs, /public func EnableContactsInput\(\) -> Void \{\s*wrappedMethod\(\);\s*if IsDefined\(this\.m_player\) \{ this\.m_player\.RegisterInputListener\(this, n"call"\); \};/);
-  assert.match(tabs, /public func DisableContactsInput\(\) -> Void \{\s*if IsDefined\(this\.m_player\) \{ this\.m_player\.UnregisterInputListener\(this, n"call"\); \};\s*wrappedMethod\(\);/);
-  assert.match(tabs, /if Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) \{[^]*?Equals\(name, n"call"\)[^]*?ConvaiChatListHolocall\([^;]*\);[^]*?Equals\(name, n"showAll"\)/);
+  assert.match(tabs, /public func DisableContactsInput\(\) -> Void \{\s*this\.ConvaiChatListKeysStop\(\);\s*if IsDefined\(this\.m_player\) \{ this\.m_player\.UnregisterInputListener\(this, n"call"\); \};\s*wrappedMethod\(\);/);
+  assert.match(tabs, /if Equals\(this\.m_convaiChatState, ConvaiPhoneChatState\.List\) \{[^]*?Equals\(name, n"call"\)[^]*?!this\.m_player\.PlayerLastUsedKBM\(\)[^]*?ConvaiChatListHolocall\([^;]*\);[^]*?Equals\(name, n"showAll"\)/);
   // The game's own hints are rebound to `call` on Chat rows and bottom bar only, and put back from what they showed.
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_action2ButtonWidget\), n"call"\)/);
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_action2ButtonWidget\), this\.m_convaiCallHintAction\)/);
@@ -126,7 +127,8 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   // goes back to the game's action on any other row.
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_chatInputHint\), n"proceed"\)/);
   assert.match(tabs, /ConvaiHintBinding\.Rebind\(inkWidgetRef\.Get\(this\.m_chatInputHint\), this\.m_convaiChatHintAction\)/);
-  // F opens the chat on the list: its `click` reaches AcceptAction, which opens the chat while the Chat tab shows.
+  // Enter, a click and the pad's Cross open the chat on the list: their `click` reaches AcceptAction, which opens the chat while the Chat tab shows
+  // (F's `click` is the favorite key's, and opens nothing: OnContactListAction).
   assert.match(tabs, /public func AcceptAction\(\) -> Void \{\s*if NotEquals\(this\.m_convaiChatState, ConvaiPhoneChatState\.Off\) \|\| this\.ConvaiSelectedIsChatRow\(\) \{\s*this\.ConvaiOpenChat/);
   // The row shows both icons: call and chat (the envelope), with the separator.
   assert.match(tabs, /SetVisible\(this\.m_callInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_chatInputHint, true\);\s*inkWidgetRef\.SetVisible\(this\.m_separtor, true\);/);
