@@ -224,7 +224,7 @@ test('the Update is found whatever its <from> is (a version, or "any"), exactly 
 
 test('the model card and both updates READMEs make game 2.5 the default and 2.31 the older option in game-2.31/, with the 2_31_old note, and no text names the game-2.5 folder', async () => {
   const card = await read('packaging/HF_MODEL_CARD.md');
-  for (const needle of ['game-2.31/updates/', 'nexusmods.com/cyberpunk2077/mods/35436?tab=files', 'older game 2.31']) assert(card.includes(needle), `the model card has ${needle}`);
+  for (const needle of ['updates/game-2.31/', 'nexusmods.com/cyberpunk2077/mods/35436?tab=files', 'older game 2.31']) assert(card.includes(needle), `the model card has ${needle}`);
   assert.match(await read('packaging/HF_UPDATES_README.md'), /Runtime-Update-0\.3\.0-to-0\.3\.1-for-2\.5\.zip/);
   assert.match(await read('packaging/HF_UPDATES_README_2_31.md'), /Runtime-Update-0\.2\.2-to-0\.2\.3\.zip/);
   for (const rel of ['README.md', 'packaging/PLAYER_README.md', 'packaging/HF_MODEL_CARD.md', 'packaging/HF_UPDATES_README.md', 'packaging/HF_UPDATES_README_2_31.md', 'docs/NEXUS_PAGE.md']) {

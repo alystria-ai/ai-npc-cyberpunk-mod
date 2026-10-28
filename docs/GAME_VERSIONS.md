@@ -74,7 +74,7 @@ Hugging Face (`alystria-ai/ai-npc-cyberpunk-mod-packs`): the root is the 2.5 bui
 ```
 AI-NPC-LLM-Companions.zip   AI-NPC-LLM-Companions-Update.zip   runtime/Runtime.zip        2.5 (the default): the full install, the update (manual installs only), the Runtime alone (old two-mod setups, not advertised)
 game-2.31/AI-NPC-LLM-Companions.zip   game-2.31/AI-NPC-LLM-Companions-Update.zip   game-2.31/runtime/Runtime.zip      2.31
-updates/  game-2.31/updates/                                                   the Runtime update zips up to 0.3.3: no longer offered since 0.3.4, left as they are (nothing deleted)
+updates/  updates/game-2.31/                                                   the Runtime update zips up to 0.3.3: no longer offered since 0.3.4, left as they are (nothing deleted)
 local-ai/  mature/  mic/  voice/  multilingual/                                 shared by both
 ```
 Nexus Mods (one page, titled "AI NPC LLM Companions" since 0.3.4): the Main file is the 2.5 full install, `AI NPC LLM Companions` (`AI-NPC-LLM-Companions-<v>.zip`), and its update is an Update file, `Update <from> to <v>`

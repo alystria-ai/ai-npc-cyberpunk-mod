@@ -20,7 +20,7 @@ LocalAI-Standard.zip, LocalAI-Lite.zip, Mature-Standard.zip, Mature-Lite.zip, Mi
 multilingual/PocketTTS-Model-<Language>.zip (docs/PACKAGING.md, "Pack file names"). A build folder that still holds a zip under an old name is accepted and published
 under the new name; --also-old-name additionally publishes the same file at the old path (Hugging Face stores identical content once), so links to the old
 names keep working for a while.
-    game-2.31/AI-NPC-LLM-Companions.zip   game-2.31/AI-NPC-LLM-Companions-Update.zip   game-2.31/runtime/Runtime.zip   game-2.31/updates/...    (the build for the older
+    game-2.31/AI-NPC-LLM-Companions.zip   game-2.31/AI-NPC-LLM-Companions-Update.zip   game-2.31/runtime/Runtime.zip   updates/game-2.31/...    (the build for the older
     game 2.31, --game 2.31; docs/GAME_VERSIONS.md)
 
 The files at the top (the Full install, the Update, runtime/, updates/) are the build for game 2.5, the default game. updates/ (the Runtime update zips,

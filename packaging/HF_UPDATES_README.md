@@ -6,9 +6,9 @@ This is the text for `updates/README.md` in `alystria-ai/ai-npc-cyberpunk-mod-pa
 
 # Runtime updates (old)
 
-**You do not need these any more.** Since 0.3.4 the update (`AI-NPC-LLM-Companions-Update.zip`, at the top of this repository) carries all of the mod's code, and it runs on any Runtime of version 0.3.3 or newer. If your install is older than 0.3.3, or Settings > Help says the Runtime is too old, install the full install (`AI-NPC-LLM-Companions.zip`) over it: one zip, no steps, nothing to apply in order. Your settings and memories are kept.
+**You do not need these any more.** Since 0.3.4 the update on [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/35436?tab=files) carries all of the mod's code, and it runs on any Runtime of version 0.3.3 or newer. If your install is older than 0.3.3, or Settings > Help says the Runtime is too old, install the full install from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/35436?tab=files) over it: one zip, no steps, nothing to apply in order. Your settings and memories are kept.
 
-These are the small zips that brought a Runtime up to date step by step, up to 0.3.3, for game **2.5**. If you stay on the older game 2.31, the old steps are in [`game-2.31/updates/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31/updates) and the same applies to you with `game-2.31/AI-NPC-LLM-Companions.zip`.
+These are the small zips that brought a Runtime up to date step by step, up to 0.3.3, for game **2.5**. If you stay on the older game 2.31, the old steps are in [`updates/game-2.31/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates/game-2.31) and the same applies to you with the full install for game 2.31.
 
 If you still want to use them (a Runtime of 0.3.0 or newer, or on a slow connection): **apply the update zips from this folder one by one, starting from your version.** Extract each one into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime, then the next one, until you reach the newest. If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself: files a version no longer needs are removed by the mod the next time the game starts. The update zip and any optional packs are downloaded as usual.
 

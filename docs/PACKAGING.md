@@ -80,7 +80,7 @@ installs. (The standalone Runtime keeps `Runtime-<v>.zip` for the GitHub release
 removal of the two old mods.
 
 **Hugging Face layout.** Before 0.3.4: `Scripts.zip`, `Runtime.zip`, `updates/` at the root and the same in `game-2.31/`. From 0.3.4: `AI-NPC-LLM-Companions.zip` and `AI-NPC-LLM-Companions-Update.zip` at the root, `runtime/Runtime.zip`,
-`game-2.31/` the same three; `updates/` and `game-2.31/updates/` are left as they are (nothing is deleted) and no longer offered. `packaging/upload-packs.py --pack full|update|runtime [--game 2.31]` uploads them; `--also-old-name`
+`game-2.31/` the same three; `updates/` and `updates/game-2.31/` are left as they are (nothing is deleted) and no longer offered. `packaging/upload-packs.py --pack full|update|runtime [--game 2.31]` uploads them; `--also-old-name`
 also publishes the update at `Scripts.zip` and the Runtime at the root `Runtime.zip`, so the links of 0.3.3 and older texts keep working for a while (the same server-side copy trick as for the pack names). `packaging/hf-layout.test.mjs` and
 `packaging/build-full.test.mjs` guard all of it.
 
