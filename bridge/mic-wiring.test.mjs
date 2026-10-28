@@ -27,7 +27,7 @@ test('the local recogniser, Mistral transcription and Convai\'s page all take th
   assert.match(bridge, /realtime\.micTap = micTap;/);
   assert.match(bridge, /realtime\.onClosed = \(\) => \{ void micTap\.release\(undefined, 'the voice browser closed'\); micLive\.afterRelease\(\); \};/);
   assert.match(bridge, /realtime\.onStarted = \(\) => \{ void micCapture\.ensurePage\(\)\.catch\(\(\) => \{\}\); \};/);
-  assert.match(bridge, /const micCapture = new LocalSttCapture\(\{getBrowser: hostBrowser\(realtime\)\}\);/);
+  assert.match(bridge, /const micCapture = new LocalSttCapture\(\{getBrowser: hostBrowser\(realtime\)(?:, preferredDevice: \(\) => micPreferred)?\}\);/);
 });
 
 test('Voice activation is read from the settings file, honoured only while on, and the detector state rides on the microphone state file', () => {
