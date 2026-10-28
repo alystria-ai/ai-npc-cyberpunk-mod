@@ -38,12 +38,13 @@ Script classes declared by the mod: all `Convai…` (`ConvaiFaceService`, `Conva
 `ConvaiServiceContainer`, `ConvaiHasCodeware`, `ConvaiHasCodewareUi`, `ConvaiHasCodewareTextInput`. Files with a `module` line use `module CyberpunkConvai`.
 `Face.reds`, `FaceFeature.reds`, `GameVariant.reds` and `Speech.reds` have none (global module); their names are `Convai…` as well.
 
-Wrapped game methods (41). Each wrapper runs `wrappedMethod` (the original and every other mod's wrapper beneath ours), with two kinds of exception listed
+Wrapped game methods (42). Each wrapper runs `wrappedMethod` (the original and every other mod's wrapper beneath ours), with two kinds of exception listed
 below the table: calls skipped only while the mod's own AI chat page is open, and `NewHudPhoneGameController.SelectOtherTab`, which never runs it.
 
 <!-- wrapped-methods:start -->
 ```
 AIMoveToCommandHandler.UpdateCommand
+DialerContactDataView.SortItem
 GameObject.PlayVoiceOver
 JournalEntryListItemController.OnDataChanged
 MessengerDialogViewController.OnDelayedJournalUpdate

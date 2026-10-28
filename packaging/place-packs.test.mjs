@@ -433,7 +433,8 @@ const moonshine = (base, text) => put(join(base, APP, RUNTIME_MOONSHINE, 'encode
 test('the voice-input pack ids and marker are the ones the build writes and the bridge looks for', async () => {
   const config = JSON.parse(await read(join(project, 'packaging/release.config.json')));
   const {MIC_PACKS} = await import('./runtime/place-packs.mjs');
-  assert.deepEqual(Object.fromEntries(Object.values(config.micPacks.packs).map(pack => [pack.id, pack.title])), MIC_PACKS);
+  // The zip names carry the model and its size (pack-names rule, 2026-10-28); the short names here are only what the placement log says.
+  assert.deepEqual(Object.fromEntries(Object.values(config.micPacks.packs).map(pack => [pack.id, pack.title.split('-').slice(0, 2).join('-')])), MIC_PACKS);
   assert.equal(config.micPacks.markerFile, 'mic-pack.json');
   assert.equal(config.micPacks.directory, 'app/models/stt');
   const {LOCAL_PACKS} = await import('../bridge/speech-language.mjs');

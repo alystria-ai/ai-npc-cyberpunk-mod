@@ -554,6 +554,14 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/remote-omni.lua"
         },
         {
+          "source": "mod/omni-amd.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/omni-amd.lua"
+        },
+        {
+          "source": "mod/favorites.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/favorites.lua"
+        },
+        {
           "source": "mod/movement-log.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/movement-log.lua"
         },
@@ -751,6 +759,7 @@
             "bridge/addon-stock.mjs",
             "bridge/addon-voice.mjs",
             "bridge/addons.mjs",
+            "bridge/ambush-context.mjs",
             "bridge/analysis-pcm.mjs",
             "bridge/appointment-events.mjs",
             "bridge/ascii-temp.mjs",
@@ -792,6 +801,22 @@
             "bridge/dialogue-level.mjs",
             "bridge/dynamic-info.mjs",
             "bridge/eddies-finances.mjs",
+            "bridge/eddies-languages.mjs",
+            "bridge/eddies-languages/cs.mjs",
+            "bridge/eddies-languages/de.mjs",
+            "bridge/eddies-languages/es.mjs",
+            "bridge/eddies-languages/fr.mjs",
+            "bridge/eddies-languages/hu.mjs",
+            "bridge/eddies-languages/it.mjs",
+            "bridge/eddies-languages/ja.mjs",
+            "bridge/eddies-languages/ko.mjs",
+            "bridge/eddies-languages/pl.mjs",
+            "bridge/eddies-languages/pt.mjs",
+            "bridge/eddies-languages/ru.mjs",
+            "bridge/eddies-languages/tr.mjs",
+            "bridge/eddies-languages/uk.mjs",
+            "bridge/eddies-languages/zh.mjs",
+            "bridge/eddies-regex.mjs",
             "bridge/eddies.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
@@ -993,6 +1018,7 @@
             "bridge/audio-output-probe.ps1",
             "bridge/error-reports.mjs",
             "bridge/report-secrets.mjs",
+            "bridge/system-facts.mjs",
             "bridge/log-cap.mjs"
           ]
         },

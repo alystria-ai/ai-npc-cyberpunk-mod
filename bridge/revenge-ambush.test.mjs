@@ -283,7 +283,7 @@ test('the game side asks for nothing it should not: new tagged copies only, no p
 });
 
 test('init.lua: one boolean while off, the tick is the mod\'s own, the recorder is shared with Street reputation, the world keeps no handle', () => {
-  assert.match(initSource, /function convaiAmbushTick\(player, elapsed, ready\)\s*\n\s*if not manager\.revengeAmbushes\(\) then/);
+  assert.match(initSource, /function convaiAmbushTick\(player, elapsed, ready\)\s*\n\s*if type\(manager\.revengeAmbushes\) ~= 'function' or not manager\.revengeAmbushes\(\) then/);
   assert.match(initSource, /pcall\(convaiAmbushTick, player, elapsedPoll, worldReady\)/);
   assert.match(initSource, /onDeed = function\(row, npc\) if convaiAmbush then convaiAmbush\.deed\(row, npc\) end end/);
   assert.match(initSource, /if convaiAmbush then pcall\(convaiAmbush\.reset, reason\) end/);

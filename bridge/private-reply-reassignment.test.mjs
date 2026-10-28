@@ -29,6 +29,7 @@ const profileHook = sliceBetween('companions.onProfileChanged = ', "registerHotk
 function run(code) {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
   const program = uiLocaleBootstrap + 'convaiUiLocale=uiLocaleFixture\n' + companionEngine + `
+    convaiEddiesAttach = function() end  -- Eddies with characters (mod/eddies.lua) is not part of this slice
     -- Virtual runtime folder: only what the bridge would see.
     local files, registry, nextId = {}, {}, 0
     json={encode=function(value) nextId=nextId+1; registry[tostring(nextId)]=value; return tostring(nextId) end,

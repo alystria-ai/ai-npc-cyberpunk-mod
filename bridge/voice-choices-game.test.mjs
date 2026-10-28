@@ -134,7 +134,7 @@ assert(#notices == 2 and notices[2] == 'unclear')
 });
 
 test('wiring: init.lua reads the setting as one boolean per tick and loads the module only when on', () => {
-  assert.match(initSource, /function convaiVoiceChoicesTick\(\)\n\s+if not manager\.voiceChoices\(\) then/);
+  assert.match(initSource, /function convaiVoiceChoicesTick\(\)\n\s+if type\(manager\.voiceChoices\) ~= 'function' or not manager\.voiceChoices\(\) then/);
   assert.match(initSource, /pcall\(convaiVoiceChoicesTick\)/);
   assert.match(initSource, /convaiVoiceChoices = dofile\('voice-choices\.lua'\)/);
 });

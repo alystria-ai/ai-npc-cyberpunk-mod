@@ -91,7 +91,7 @@ function fixture({local = false, available = true, continuous = false, voiceSele
     measure: async () => {}, status: async () => {}, Date, AbortController, console: {error() {}},
     knowledgeRouter: {activity: async (prepared, event, detail) => calls.push(['knowledge', prepared, event, detail])},
     stagedKnowledgeTurn: prepared => calls.push(['staged', prepared]),
-    publishCallOff: () => {},
+    publishCallOff: () => {}, publishEddies: () => {},
   };
   runInNewContext(code + ';globalThis.api={respond,publishResult,continuousSpeech,synthesizeReply};', sandbox);
   return {...sandbox, input: {requestId: 'r1', generation: 1, entity: 'e1', profileKey: 'judy', text: 'Hello'},

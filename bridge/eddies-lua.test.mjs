@@ -215,7 +215,7 @@ test('the ledger survives a reload and drops what is malformed', () => withGame(
 test('init.lua wires it once per private turn with one boolean while off, and the tick with one nil check', () => {
   assert.match(init, /microphone\.captureActions = function\(context\)\n[^\n]*\n\s*if not context\.reaction and not context\.group then convaiEddiesAttach\(context\) end/);
   assert.match(init, /if not context\.reaction and not context\.group then convaiEddiesAttach\(context\) end\n\s*local encodedOk, encoded = pcall\(json\.encode, context\)/);
-  assert.match(init, /function convaiEddiesAttach\(context\)\n\s*if type\(context\) ~= 'table' or not manager\.characterEddies\(\) then return end/);
+  assert.match(init, /function convaiEddiesAttach\(context\)\n\s*if type\(context\) ~= 'table' or type\(manager\.characterEddies\) ~= 'function' or not manager\.characterEddies\(\) then return end/);
   assert.match(init, /if convaiEddies and worldReady then convaiEddiesTick\(player\) end/);
   assert.match(init, /gameTime = function\(\) return worldKnowledgeModule\.nativeGameTime/);
   assert.match(init, /convaiNotices\.send\(player, 'eddies-transfer', text\)/);

@@ -120,6 +120,7 @@ M.catalog = {
     ['party-stop-trip'] = {class = PLAYER, repeatS = 15},
     ['trip-failed'] = {class = PLAYER, repeatS = 15},
     ['eddies-transfer'] = {class = PLAYER, repeatS = 10}, -- Eddies with characters (mod/eddies.lua): a transfer V confirmed could not be made
+    ['voice-choice'] = {class = PLAYER, repeatS = 5}, -- Speak dialogue choices (mod/voice-choices.lua): nothing matched, two options fit, or speech recognition is missing
     -- A slow component loading (the loading board below): one notice that stays up until the outcome replaces it, no repeat window
     ['load-progress'] = {class = PLAYER},              -- "Loading the OmniVoice voice…", "Local AI is warming up…", and a companion still being prepared: "Preparing Evelyn: waiting for the voice model to load…"
     ['load-ready'] = {class = PLAYER},                 -- the matching "… is ready." (only when the loading line was shown)

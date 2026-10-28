@@ -19,6 +19,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/addon-stock.mjs',
   'bridge/addon-voice.mjs',
   'bridge/addons.mjs',
+  'bridge/ambush-context.mjs',
   'bridge/analysis-pcm.mjs',
   'bridge/appointment-events.mjs',
   'bridge/ascii-temp.mjs',
@@ -60,6 +61,22 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/dialogue-level.mjs',
   'bridge/dynamic-info.mjs',
   'bridge/eddies-finances.mjs',
+  'bridge/eddies-languages.mjs',
+  'bridge/eddies-languages/cs.mjs',
+  'bridge/eddies-languages/de.mjs',
+  'bridge/eddies-languages/es.mjs',
+  'bridge/eddies-languages/fr.mjs',
+  'bridge/eddies-languages/hu.mjs',
+  'bridge/eddies-languages/it.mjs',
+  'bridge/eddies-languages/ja.mjs',
+  'bridge/eddies-languages/ko.mjs',
+  'bridge/eddies-languages/pl.mjs',
+  'bridge/eddies-languages/pt.mjs',
+  'bridge/eddies-languages/ru.mjs',
+  'bridge/eddies-languages/tr.mjs',
+  'bridge/eddies-languages/uk.mjs',
+  'bridge/eddies-languages/zh.mjs',
+  'bridge/eddies-regex.mjs',
   'bridge/eddies.mjs',
   'bridge/emotion-analysis.mjs',
   'bridge/emotion-lexicon.mjs',
@@ -272,6 +289,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   // values to scrub and the RED4ext plugin versions is loaded the same way.
   'bridge/error-reports.mjs',
   'bridge/report-secrets.mjs',
+  'bridge/system-facts.mjs',
   'bridge/log-cap.mjs', // the supervisor's log size caps (bridge/bridge-supervisor.mjs); not in the bridge's import closure
 ]);
 // These are the pinned external package entry points, not a replacement for the

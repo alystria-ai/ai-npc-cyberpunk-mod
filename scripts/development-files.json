@@ -639,6 +639,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/remote-omni.lua"
     },
     {
+      "source": "mod/favorites.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/favorites.lua"
+    },
+    {
       "source": "mod/omni-amd.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/omni-amd.lua"
     },

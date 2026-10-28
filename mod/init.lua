@@ -4715,7 +4715,7 @@ function convaiAmbushModule()
     return convaiAmbush
 end
 function convaiAmbushTick(player, elapsed, ready)
-    if not manager.revengeAmbushes() then
+    if type(manager.revengeAmbushes) ~= 'function' or not manager.revengeAmbushes() then
         if convaiAmbush then convaiAmbush.tick(elapsed, ready) end   -- turned off: the squad that stands is removed, once
         return
     end
@@ -6279,7 +6279,7 @@ function convaiVoiceChoicesModule()
 end
 
 function convaiVoiceChoicesTick()
-    if not manager.voiceChoices() then
+    if type(manager.voiceChoices) ~= 'function' or not manager.voiceChoices() then
         -- Turned off after being on: the list is forgotten and the bridge releases the microphone (once; the module's tick returns at its first line otherwise).
         if convaiVoiceChoices then convaiVoiceChoices.tick() end
         return
@@ -6512,7 +6512,7 @@ do
     end
     -- A private turn to a named character (typed or spoken): its `eddies` block, while the setting is On (bridge/eddies.mjs parseEddies).
     function convaiEddiesAttach(context)
-        if type(context) ~= 'table' or not manager.characterEddies() then return end
+        if type(context) ~= 'table' or type(manager.characterEddies) ~= 'function' or not manager.characterEddies() then return end
         local eddies = service()
         if not eddies then return end
         local ok, block = pcall(eddies.block, context)
