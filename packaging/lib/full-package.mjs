@@ -9,7 +9,7 @@
 import {CODE_FOLDER, compareVersions, isCodeGamePath} from './code-payload.mjs';
 import {INSTALL_NOTE_PATH} from './pack-overlap.mjs';
 import {GAME_VARIANTS, LEGACY_GAME} from './game-variants.mjs';
-import {forbiddenEntry} from './package-guards.mjs';
+import {BASE_MARKER, forbiddenEntry} from './package-guards.mjs';
 import {shippedButWritten} from './package-writes.mjs';
 
 // The names are the mod page's name on Nexus Mods (owner decision 2026-10-28).
@@ -113,9 +113,13 @@ export function planFull({update, runtime, config, game, version}) {
   const written = shippedButWritten(union.map(entry => entry.name), {layout, game, codeRemoves: update.extra?.removes ?? [], removes: runtime.extra?.removes ?? []});
   if (written.length) problems.push(`The Full package would ship files our own code writes or deletes (the Vortex rule): ${written.slice(0, 5).map(item => `${item.name} (${item.why})`).join('; ')}.`);
 
+  // The Runtime base's do-nothing marker plugin is left out: it exists only so Vortex accepts the base installed on its own, and the Full zip
+  // already carries the launcher plugin. Two machine-learning scanners flagged the marker (Cynet, Deep Instinct on VirusTotal) and Nexus Mods
+  // quarantined the 0.3.4 Full zips that carried it (2026-10-28), while the update zip (launcher and native plugin, no marker) passed.
+  const marker = `${layout.pluginDirectory}/${BASE_MARKER}`.toLowerCase();
   const entries = [
     ...update.entries.filter(entry => entry.name !== INSTALL_NOTE_PATH).map(entry => ({from: 'update', entry})),
-    ...runtime.entries.filter(entry => entry.name !== INSTALL_NOTE_PATH).map(entry => ({from: 'runtime', entry})),
+    ...runtime.entries.filter(entry => entry.name !== INSTALL_NOTE_PATH && entry.name.toLowerCase() !== marker).map(entry => ({from: 'runtime', entry})),
     {from: null, note: FULL_NOTE_NAME},
   ].sort((a, b) => byName(a.entry?.name ?? a.note, b.entry?.name ?? b.note));
   return {entries, problems};

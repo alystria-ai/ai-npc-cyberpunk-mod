@@ -93,13 +93,15 @@ for (const game of ['2.5', '2.31']) {
     assert.deepEqual((await readdir(f.outDir)).sort(), [`AI-NPC-LLM-Companions-${VERSION}${suffix}.files.json`, result.file].sort(), 'the zip and its files.json, nothing else');
     const entries = await listZip(result.path);
     const names = entries.map(entry => entry.name).sort();
-    const union = [...Object.keys(f.updateSet), ...Object.keys(f.runtimeSet)].filter(name => name !== INSTALL_NOTE_PATH);
+    const MARKER = `${PLUGIN}/CyberpunkConvaiBase.dll`;
+    const union = [...Object.keys(f.updateSet), ...Object.keys(f.runtimeSet)].filter(name => name !== INSTALL_NOTE_PATH && name !== MARKER);
     assert.deepEqual(names, [...union, FULL_NOTE_NAME].sort(), 'the union of both, the standard note replaced by the Full note');
+    assert.equal(names.includes(MARKER), false, 'the do-nothing marker plugin of the base is left out (scanners flagged it, the launcher plugin is there)');
     assert.equal(new Set(names.map(name => name.toLowerCase())).size, names.length);
     assert.equal(names.includes(INSTALL_NOTE_PATH), false, 'the install text exists once, and it is the Full one');
     // Every file has the bytes it has in its package.
     for (const [name, text] of Object.entries({...f.updateSet, ...f.runtimeSet})) {
-      if (name === INSTALL_NOTE_PATH) continue;
+      if (name === INSTALL_NOTE_PATH || name === MARKER) continue;
       assert.equal((await readEntry(result.path, entries.find(entry => entry.name === name))).toString(), text, name);
     }
     assert.equal((await readEntry(result.path, entries.find(entry => entry.name === FULL_NOTE_NAME))).toString(), FULL_NOTE);
