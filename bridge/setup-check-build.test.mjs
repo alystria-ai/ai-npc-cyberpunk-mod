@@ -81,12 +81,12 @@ test('with no answer from the service this session nothing is read from the Runt
 
 // The first-load notice: [Scripts game, Runtime game, running game, exact notice]. One short sentence naming what to download.
 const NOTICES = [
-  ['2.5', '2.31', '2.5', 'The Runtime is for game 2.31, yours is 2.5. Get the Runtime for 2.5 from Hugging Face.'],
-  ['2.31', '2.5', '2.31', 'The Runtime is for game 2.5, yours is 2.31. Get the Runtime for 2.31 from Hugging Face.'],
-  ['2.5', '2.31', '2.31', 'The Scripts are for game 2.5, yours is 2.31. Get the Scripts for 2.31 from Nexus Mods.'],
-  ['2.31', '2.5', '2.5', 'The Scripts are for game 2.31, yours is 2.5. Get the Scripts for 2.5 from Nexus Mods.'],
-  ['2.5', '2.5', '2.31', 'This mod is for game 2.5, yours is 2.31. Get the Scripts and Runtime for 2.31.'],
-  ['2.31', '2.31', '2.5', 'This mod is for game 2.31, yours is 2.5. Get the Scripts and Runtime for 2.5.'],
+  ['2.5', '2.31', '2.5', 'The Runtime is for game 2.31, yours is 2.5. Get the full install zip for 2.5.'],
+  ['2.31', '2.5', '2.31', 'The Runtime is for game 2.5, yours is 2.31. Get the full install zip for 2.31.'],
+  ['2.5', '2.31', '2.31', 'The Scripts are for game 2.5, yours is 2.31. Get the update zip for 2.31.'],
+  ['2.31', '2.5', '2.5', 'The Scripts are for game 2.31, yours is 2.5. Get the update zip for 2.5.'],
+  ['2.5', '2.5', '2.31', 'This mod is for game 2.5, yours is 2.31. Get the full install zip for 2.31.'],
+  ['2.31', '2.31', '2.5', 'This mod is for game 2.31, yours is 2.5. Get the full install zip for 2.5.'],
   ['2.5', '2.31', '2.51', 'Scripts are for game 2.5, Runtime for 2.31. They must match. See Help in Settings.'],
 ];
 
@@ -122,9 +122,9 @@ test('the first load names the half to replace in one notice, once, and the cons
 
 test('the Help page row names both games and where to get the right half, for each combination', () => {
   const cases = [
-    ['2.5', '2.31', '2.5', ['Your game is 2.5 but the Runtime is the one for game 2.31.', 'Download the Runtime for game 2.5 from the mod’s Hugging Face page', 'game-2.31 folder']],
-    ['2.5', '2.31', '2.31', ['Your game is 2.31 but the Scripts are the build for game 2.5.', 'Download the Scripts for game 2.31 from the mod’s Nexus Mods page', 'optional file']],
-    ['2.5', '2.5', '2.31', ['Your game is 2.31 but the Scripts and the Runtime are the build for game 2.5.', 'Download both for game 2.31']],
+    ['2.5', '2.31', '2.5', ['Your game is 2.5 but the Runtime is the one for game 2.31.', 'Get the full install zip for game 2.5 from the mod’s Nexus Mods page', 'game-2.31 folder']],
+    ['2.5', '2.31', '2.31', ['Your game is 2.31 but the Scripts are the build for game 2.5.', 'Get the update zip for game 2.31 from the mod’s Nexus Mods page', 'optional update file']],
+    ['2.5', '2.5', '2.31', ['Your game is 2.31 but the Scripts and the Runtime are the build for game 2.5.', 'Get the full install zip for game 2.31']],
     ['2.5', '2.31', null, ['The Scripts are the build for game 2.5 but the Runtime is the build for game 2.31, and the game version matches neither.']],
   ];
   for (const [scripts, runtime, game, parts] of cases) {
@@ -164,7 +164,7 @@ test('a notice that falls due in a menu or on a loading screen waits until gamep
   installFiles(); serviceRunning()
   put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.2', game = '2.5'})
   env.gameVersion = '2.31'; applyEnv()
-  local expected = 'The Scripts are for game 2.5, yours is 2.31. Get the Scripts for 2.31 from Nexus Mods.'
+  local expected = 'The Scripts are for game 2.5, yours is 2.31. Get the update zip for 2.31.'
   -- the reload happens with the pause menu open: in the session, the world never ready
   env.paused = true
   check.tick(false, true); advance(12); check.tick(false, true)
@@ -200,7 +200,7 @@ test('on a first load in gameplay the notice still shows 12 seconds after the wo
   answer({versions = {id = 'versions', state = 'problem', code = 'game-mismatch', scripts = '0.3.2', runtime = '0.3.2', scriptsGame = '2.5', runtimeGame = '2.31'}},
     json.decode(files['runtime/setup-check-request.json']).id)
   advance(1)
-  assert(check.tick(true, true) == 'The Scripts are for game 2.5, yours is 2.31. Get the Scripts for 2.31 from Nexus Mods.')
+  assert(check.tick(true, true) == 'The Scripts are for game 2.5, yours is 2.31. Get the update zip for 2.31.')
 `));
 
 test('versions that differ while the Runtime is also for the other game are one problem (the full Runtime of the right game fixes both)', () => run(String.raw`

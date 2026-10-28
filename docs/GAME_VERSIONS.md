@@ -55,7 +55,8 @@ built per game: the two differ in `app/release.json` and, with `fix/driver-guard
 ```
 node packaging/build-release.mjs --version 0.3.1 --packages scripts,runtime,omni,...        (2.5, the default)
 node packaging/build-release.mjs --version 0.3.1 --game 2.31 --packages scripts,runtime     (2.31, the older game)
-python packaging/upload-packs.py --version 0.3.1 --pack runtime --packages DIR --game 2.31  (uploads to game-2.31/Runtime.zip, the default goes to Runtime.zip)
+node packaging/build-full.mjs --version 0.3.4 [--game 2.31]                                 (the full install: the update and the Runtime of that game in one zip, AI-NPC-LLM-Companions-0.3.4[-for-2.31].zip)
+python packaging/upload-packs.py --version 0.3.4 --pack full|update|runtime --packages DIR --game 2.31  (uploads to game-2.31/, the default goes to the root; runtime goes to runtime/Runtime.zip)
 node packaging/build-runtime-update.mjs --old <2.31 Runtime> --new <2.31 Runtime> --out DIR (-> Runtime-Update-<a>-to-<b>-for-2.31.zip, a 2.5 step has no suffix)
 powershell scripts/Build-NativeCore.ps1 -Game 2.5 -SdkDirectory <RED4ext.SDK checkout at b139fcbd>     (the script's own default is still 2.31)
 powershell scripts/Install-DevelopmentMod.ps1 -GameVersion 2.31 / scripts/Compile-Redscript.ps1 -GameVersion 2.31     (both default to 2.5)
@@ -71,15 +72,17 @@ keep working.
 
 Hugging Face (`alystria-ai/ai-npc-cyberpunk-mod-packs`): the root is the 2.5 build (the default), the older 2.31 build has its own folder.
 ```
-Scripts.zip   Runtime.zip   updates/Runtime-Update-<a>-to-<b>.zip              2.5 (the default). updates/ holds Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip, the switch step
-game-2.31/Scripts.zip   game-2.31/Runtime.zip   game-2.31/updates/Runtime-Update-<a>-to-<b>.zip    2.31: the whole chain 0.2.2 to 0.3.1 as it was published (no suffix),
-                                                                                                   later 2.31 steps are named ...-for-2.31.zip
+AI-NPC-LLM-Companions.zip   AI-NPC-LLM-Companions-Update.zip   runtime/Runtime.zip        2.5 (the default): the full install, the update (manual installs only), the Runtime alone (old two-mod setups, not advertised)
+game-2.31/AI-NPC-LLM-Companions.zip   game-2.31/AI-NPC-LLM-Companions-Update.zip   game-2.31/runtime/Runtime.zip      2.31
+updates/  game-2.31/updates/                                                   the Runtime update zips up to 0.3.3: no longer offered since 0.3.4, left as they are (nothing deleted)
 local-ai/  mature/  mic/  voice/  multilingual/                                 shared by both
 ```
-Nexus Mods (one page): the Main file is the 2.5 build, `AI NPC Cyberpunk Mod - Scripts` (`Scripts.zip`). The 2.31 build is an Optional file,
-`AI NPC Cyberpunk Mod - Scripts - for game 2.31 (older game version)` (`Scripts-for-game-2.31.zip`), and the description lists the requirements of 2.5 first and those of 2.31 as the alternative.
+Nexus Mods (one page, titled "AI NPC LLM Companions" since 0.3.4): the Main file is the 2.5 full install, `AI NPC LLM Companions` (`AI-NPC-LLM-Companions-<v>.zip`), and its update is an Update file, `Update <from> to <v>`
+(`AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip`; `<from>` is `any` when it covers several releases, docs/PACKAGING.md, "The Full install package"). The 2.31 build is two Optional files,
+`AI NPC LLM Companions - for game 2.31 (older game version)` (`AI-NPC-LLM-Companions-<v>-for-2.31.zip`) and `Update <from> to <v> - for game 2.31 (older game version)` (`...-for-2.31.zip`), and the description lists the requirements of 2.5 first and those of 2.31 as the alternative.
+Before 0.3.4 the two files were `Scripts` (`Scripts.zip`) and `Scripts - for game 2.31` (`Scripts-for-game-2.31.zip`), with the Runtime on Hugging Face.
 
-A player who moves from 2.31 to 2.5 downloads the 2.5 Scripts and Runtime (the 2.5 Runtime is a full zip), or on 0.3.0 applies the one switch zip (below).
+A player who moves from 2.31 to 2.5 extracts the 2.5 full install over the old one (from 0.3.4 there is no switch zip to apply: the full install replaces the Runtime in one step). The switch zip of 0.3.1 stays in `updates/` for those who still use it.
 
 ## Release 0.3.2 on both games
 

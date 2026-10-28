@@ -67,13 +67,15 @@ export class ZipWriter {
     this.names.add(key);
   }
 
-  // Adds `name` from `source` (a file path) or from `buffer`. `start`/`length` select a byte range.
-  async add(name, {source, buffer, start = 0, length, store} = {}) {
+  // Adds `name` from `source` (a file path), from `buffer`, or from `chunks` (an async iterable of Buffers whose total size is `length`, which is then
+  // required: another zip's entry, packaging/lib/zip-entry.mjs entryChunks). `start`/`length` select a byte range of a file or buffer.
+  async add(name, {source, buffer, chunks: given, start = 0, length, store} = {}) {
+    if (given && length === undefined) throw Error(`${name}: an entry added from chunks needs its length`);
     this.checkName(name);
     const nameBytes = Buffer.from(name, 'utf8');
     const method = (store ?? STORED.test(name)) ? 0 : 8;
     const headerOffset = this.offset;
-    const knownSize = buffer !== undefined ? (length ?? buffer.length - start) : length ?? (await stat(source)).size - start;
+    const knownSize = given ? length : buffer !== undefined ? (length ?? buffer.length - start) : length ?? (await stat(source)).size - start;
     const zip64 = knownSize >= this.zip64Entry;
     const header = Buffer.alloc(30);
     header.writeUInt32LE(0x04034b50, 0);
@@ -89,7 +91,7 @@ export class ZipWriter {
     let crc = 0, uncompressed = 0;
     const hash = createHash('sha256');
     const dataStart = this.offset;
-    const chunks = buffer !== undefined
+    const chunks = given ? given : buffer !== undefined
       ? [buffer.subarray(start, length === undefined ? undefined : start + length)]
       : createReadStream(source, {start, ...(length === undefined ? {} : {end: start + length - 1}),
         highWaterMark: 4 * 1024 * 1024});

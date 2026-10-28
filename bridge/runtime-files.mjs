@@ -107,11 +107,11 @@ export async function missingRuntimeFiles(project, files = RUNTIME_DATA_FILES, {
 
 /** What a missing Runtime file is called in the log: the one line the player and the support report read. */
 export const incompleteMessage = names => `The Runtime is incomplete: ${[].concat(names).join(', ')} ${[].concat(names).length === 1 ? 'is' : 'are'} missing. `
-  + 'Download the Runtime again and extract it into the Cyberpunk 2077 folder, then restart the game.';
+  + 'Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again, then restart the game.';
 
-/** The line for files of two versions (versionMismatchInLog): the full Runtime again, or the update zips of the updates folder on Hugging Face one by one from the version the player has (no version number in it). */
+/** The line for files of two versions (versionMismatchInLog): the full install zip again (it holds the Runtime and the code of one version). */
 export const mismatchMessage = name => `The Runtime does not match the mod's Scripts: ${name} comes from a different version. `
-  + 'Download the full Runtime again, or apply the Runtime update zips from the updates folder on the Hugging Face page of the mod one by one, starting from your version, extracting each into the Cyberpunk 2077 folder, then restart the game.';
+  + 'Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again, then restart the game.';
 
 export class RuntimeIncomplete extends Error {
   constructor(file) {

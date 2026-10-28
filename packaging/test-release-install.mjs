@@ -40,7 +40,7 @@ import {childEnv, sha256File, walk} from './lib/files.mjs';
 import {listZip} from './lib/zip.mjs';
 import {readEntry} from './lib/zip-entry.mjs';
 
-// The names the build gives its packages (build-release.mjs): the Scripts keep the long name (the file for Nexus Mods), the others have no product prefix.
+// The names the build gives its packages (build-release.mjs): the Scripts package is the Update zip of the mod page, the others have no product prefix.
 // --game 2.31 tests the build for that game (default 2.5): its Scripts and Runtime (and the update zip) carry the variant's suffix (packaging/game-variants.json).
 const gameArgument = process.argv.slice(2).indexOf('--game');
 const gameId = gameArgument >= 0 && process.argv.slice(2)[gameArgument + 1] ? process.argv.slice(2)[gameArgument + 1] : DEFAULT_GAME;
@@ -49,13 +49,15 @@ const gameSuffix = GAME_VARIANTS[gameId].suffix;
 // The optional packs are named by pack id ('omni', 'localai-standard', 'localai-lite'; the file name carries the model, packaging/lib/pack-names.mjs). A build
 // folder made before 0.3.4 holds the old titles (OmniPack-<v>.zip), which are accepted too: titlesOf(id) lists the new title first.
 const releaseConfig = JSON.parse(readFileSync(new URL('./release.config.json', import.meta.url), 'utf8'));
-const titlesOf = id => id === 'Scripts' ? ['AI-NPC-Cyberpunk-Mod-Scripts'] : id === 'Runtime' ? ['Runtime'] : packTitles(releaseConfig, id);
-const packageBase = (id, version, title = titlesOf(id)[0]) => id === 'Scripts' || id === 'Runtime' ? `${title}-${version}${gameSuffix}` : `${title}-${version}`;
+// The Scripts package is the Update zip of the mod page: AI-NPC-LLM-Companions-Update-<from>-to-<version> (packaging/lib/full-package.mjs).
+const titlesOf = id => id === 'Scripts' ? ['Update'] : id === 'Runtime' ? ['Runtime'] : packTitles(releaseConfig, id);
+const packageBase = (id, version, title = titlesOf(id)[0]) => id === 'Scripts' ? updateBaseNameFor(releaseConfig, version, gameId) : id === 'Runtime' ? `${title}-${version}${gameSuffix}` : `${title}-${version}`;
 import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs';
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {packTitles} from './lib/pack-names.mjs';
+import {updateBaseNameFor} from './lib/full-package.mjs';
 import {CODE_FOLDER, INSTALLER, isCodeGamePath} from './lib/code-payload.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 

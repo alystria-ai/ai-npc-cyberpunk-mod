@@ -17,8 +17,9 @@ const py = (args, options = {}) => spawnSync(python, ['-I', ...args], {encoding:
 
 // pack id -> [zip a build writes, path in the repository]
 const UPLOADS = {
-  scripts: ['AI-NPC-Cyberpunk-Mod-Scripts-0.2.9.zip', 'Scripts.zip'],
-  runtime: ['Runtime-0.2.9.zip', 'Runtime.zip'],
+  full: ['AI-NPC-LLM-Companions-0.2.9.zip', 'AI-NPC-LLM-Companions.zip'],
+  update: ['AI-NPC-LLM-Companions-Update-0.2.8-to-0.2.9.zip', 'AI-NPC-LLM-Companions-Update.zip'],
+  runtime: ['Runtime-0.2.9.zip', 'runtime/Runtime.zip'],
   omni: ['OmniPack-OmniVoice-0.6B-0.2.9.zip', 'voice/OmniPack-OmniVoice-0.6B.zip'],
   'localai-standard': ['LocalAI-Standard-Gemma-4-E4B-0.2.9.zip', 'local-ai/LocalAI-Standard-Gemma-4-E4B.zip'],
   'localai-lite': ['LocalAI-Lite-Bonsai-2-4B-0.2.9.zip', 'local-ai/LocalAI-Lite-Bonsai-2-4B.zip'],
@@ -132,7 +133,8 @@ test('no tool writes, uploads or mentions a loose checksum file, and the builder
     assert.doesNotMatch(await read(rel), /SHA256SUMS/i, rel);
   }
   const builder = await read('packaging/build-release.mjs');
-  assert.match(builder, /id === 'scripts' \? `\$\{config\.product\}-Scripts-\$\{version\}` : `\$\{titles\[id\]\}-\$\{version\}`/);
+  assert.match(builder, /id === 'scripts' \? updateBaseNameFor\(config, version, game\) : `\$\{titles\[id\]\}-\$\{version\}\$\{variant\.suffix\}`/);
+  assert.match(await read('packaging/build-full.mjs'), /fullBaseName\(version, game\)/);
   assert.match(await read('packaging/build-runtime-update.mjs'), /const base = `Runtime-Update-\$\{from\}-to-\$\{to\}\$\{GAME_VARIANTS\[game\]\.suffix\}`/);
   assert.match(await read('packaging/build-pocket-models.mjs'), /pocketModelTitle\(RELEASE_CONFIG, languageInfo\(lang\)\.title\)/);
   assert.match(await read('scripts/voice-packs/package_pack.mjs'), /`Voices-\$\{LANGUAGE_NAMES\[language\]\}`/);
@@ -150,11 +152,14 @@ test('the player texts link the files at their folders and new names, say nothin
   const nexus = texts['docs/NEXUS_PAGE.md'];
   assert.doesNotMatch(nexus, /;/, 'no semicolons on Nexus');
   assert.doesNotMatch(nexus, /18\+/, 'no "18+" on Nexus');
-  for (const link of ['Runtime.zip', ...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
-  assert(nexus.includes(`${HF}/tree/main/updates`) && nexus.includes(`${HF}/tree/main/multilingual`), 'the updates and multilingual folder links are the same as before');
+  for (const link of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip', 'game-2.31/AI-NPC-LLM-Companions.zip', ...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
+  assert(nexus.includes(`${HF}/tree/main/multilingual`), 'the multilingual folder link is the same as before');
+  assert(!nexus.includes('Runtime.zip'), 'managers install the full install as one mod: the Nexus page does not advertise the Runtime alone');
+  assert.match(nexus, /Remove both of the old mods, then install the main file/, 'the one step for a manager coming from 0.3.3');
+  assert(!nexus.includes(`${HF}/tree/main/updates`), 'the Runtime update zips are no longer offered: the Nexus page does not link them');
   // Every file name on HF has lost the prefix: the model card lists the new paths.
   const card = texts['packaging/HF_MODEL_CARD.md'];
-  for (const path of ['Scripts.zip', 'Runtime.zip', 'local-ai/', 'mature/', 'mic/', 'voice/', 'updates/', 'multilingual/']) assert(card.includes(path), `the model card lists ${path}`);
+  for (const path of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip', 'runtime/Runtime.zip', 'local-ai/', 'mature/', 'mic/', 'voice/', 'updates/', 'multilingual/']) assert(card.includes(path), `the model card lists ${path}`);
   assert.doesNotMatch(card, /Pocket language model/i, 'the Pocket language models are PocketTTS models in the texts players read');
 });
 
@@ -164,25 +169,57 @@ test('game 2.5 is the default and sits at the top of the repository, game 2.31 i
   assert.deepEqual([variants['2.31'].suffix, variants['2.31'].hfFolder], ['-for-2.31', 'game-2.31']);
   const directory = await mkdtemp(join(tmpdir(), 'hf games '));
   try {
-    for (const name of ['AI-NPC-Cyberpunk-Mod-Scripts-0.3.1.zip', 'Runtime-0.3.1.zip', 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.1-for-2.31.zip', 'Runtime-0.3.1-for-2.31.zip']) await writeFile(join(directory, name), 'x');
-    const plan = (pack, ...game) => py(['packaging/upload-packs.py', '--version', '0.3.1', '--pack', pack, '--packages', directory, '--dry-run', ...game]);
-    for (const [pack, zip, remote] of [['scripts', 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.1.zip', 'Scripts.zip'], ['runtime', 'Runtime-0.3.1.zip', 'Runtime.zip']]) {
+    for (const name of ['AI-NPC-LLM-Companions-0.3.4.zip', 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip', 'Runtime-0.3.4.zip', 'AI-NPC-LLM-Companions-0.3.4-for-2.31.zip',
+      'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4-for-2.31.zip', 'Runtime-0.3.4-for-2.31.zip']) await writeFile(join(directory, name), 'x');
+    const plan = (pack, ...game) => py(['packaging/upload-packs.py', '--version', '0.3.4', '--pack', pack, '--packages', directory, '--dry-run', ...game]);
+    const HFR = 'alystria-ai/ai-npc-cyberpunk-mod-packs';
+    for (const [pack, zip, remote] of [['full', 'AI-NPC-LLM-Companions-0.3.4.zip', 'AI-NPC-LLM-Companions.zip'],
+      ['update', 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip', 'AI-NPC-LLM-Companions-Update.zip'], ['runtime', 'Runtime-0.3.4.zip', 'runtime/Runtime.zip']]) {
       const byDefault = plan(pack), explicit = plan(pack, '--game', '2.5');
       assert.equal(byDefault.status, 0, byDefault.stderr);
-      assert.equal(byDefault.stdout.trim(), `${join(directory, zip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${remote}`);
+      assert.equal(byDefault.stdout.trim(), `${join(directory, zip)} -> ${HFR}/${remote}`);
       assert.equal(explicit.stdout, byDefault.stdout, 'no --game means 2.5');
+      const older = plan(pack, '--game', '2.31');
+      assert.equal(older.status, 0, older.stderr);
+      assert.equal(older.stdout.trim(), `${join(directory, zip.replace('.zip', '-for-2.31.zip'))} -> ${HFR}/game-2.31/${remote}`);
     }
-    const older = plan('runtime', '--game', '2.31');
-    assert.equal(older.status, 0, older.stderr);
-    assert.equal(older.stdout.trim(), `${join(directory, 'Runtime-0.3.1-for-2.31.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/Runtime.zip`);
-    assert.equal(plan('scripts', '--game', '2.31').stdout.trim(), `${join(directory, 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.1-for-2.31.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/Scripts.zip`);
     assert.notEqual(plan('omni', '--game', '2.31').status, 0, 'a shared pack is never uploaded for a game');
+    assert.notEqual(plan('scripts').status, 0, 'the Scripts zip is the Update now: there is no scripts pack');
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
+test('the Update is found whatever its <from> is (a version, or "any"), exactly one of them, and a pre-0.3.4 Scripts zip is still accepted', {skip: !python && 'no Python'}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'hf update '));
+  try {
+    const plan = (...more) => py(['packaging/upload-packs.py', '--version', '0.3.5', '--pack', 'update', '--packages', directory, '--dry-run', ...more]);
+    assert.notEqual(plan().status, 0, 'no Update zip');
+    await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5.zip'), 'x');
+    await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5-for-2.31.zip'), 'x');
+    assert.equal(plan().stdout.trim(), `${join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/AI-NPC-LLM-Companions-Update.zip`);
+    assert.equal(plan('--game', '2.31').stdout.trim(), `${join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5-for-2.31.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/AI-NPC-LLM-Companions-Update.zip`);
+    await writeFile(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.4-to-0.3.5.zip'), 'x');
+    const two = plan();
+    assert.notEqual(two.status, 0, 'two Update zips of one version are ambiguous');
+    assert.match(two.stderr, /More than one Update zip/);
+    // The old links: --also-old-name puts the Update at Scripts.zip and the Runtime at the root again.
+    await rm(join(directory, 'AI-NPC-LLM-Companions-Update-0.3.4-to-0.3.5.zip'));
+    assert.deepEqual(plan('--also-old-name').stdout.trim().split(/\r?\n/).map(line => line.split(' -> ')[1]),
+      ['alystria-ai/ai-npc-cyberpunk-mod-packs/AI-NPC-LLM-Companions-Update.zip', 'alystria-ai/ai-npc-cyberpunk-mod-packs/Scripts.zip']);
+    assert.deepEqual(plan('--also-old-name', '--game', '2.31').stdout.trim().split(/\r?\n/).map(line => line.split(' -> ')[1]),
+      ['alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/AI-NPC-LLM-Companions-Update.zip', 'alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/Scripts.zip']);
+    await writeFile(join(directory, 'Runtime-0.3.5.zip'), 'x');
+    const runtime = py(['packaging/upload-packs.py', '--version', '0.3.5', '--pack', 'runtime', '--packages', directory, '--dry-run', '--also-old-name']);
+    assert.deepEqual(runtime.stdout.trim().split(/\r?\n/).map(line => line.split(' -> ')[1]), ['alystria-ai/ai-npc-cyberpunk-mod-packs/runtime/Runtime.zip', 'alystria-ai/ai-npc-cyberpunk-mod-packs/Runtime.zip']);
+    // A zip a build before 0.3.4 wrote is accepted for the Update.
+    await rm(join(directory, 'AI-NPC-LLM-Companions-Update-any-to-0.3.5.zip'));
+    await writeFile(join(directory, 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.5.zip'), 'x');
+    assert.equal(plan().stdout.trim(), `${join(directory, 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.5.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/AI-NPC-LLM-Companions-Update.zip`);
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
 
 test('the model card and both updates READMEs make game 2.5 the default and 2.31 the older option in game-2.31/, with the 2_31_old note, and no text names the game-2.5 folder', async () => {
   const card = await read('packaging/HF_MODEL_CARD.md');
-  for (const needle of ['game-2.31/Scripts.zip', 'game-2.31/Runtime.zip', '2_31_old', 'older game version 2.31']) assert(card.includes(needle), `the model card has ${needle}`);
+  for (const needle of ['game-2.31/AI-NPC-LLM-Companions.zip', 'game-2.31/AI-NPC-LLM-Companions-Update.zip', 'game-2.31/runtime/Runtime.zip', '2_31_old', 'older game version 2.31']) assert(card.includes(needle), `the model card has ${needle}`);
   assert.match(await read('packaging/HF_UPDATES_README.md'), /Runtime-Update-0\.3\.0-to-0\.3\.1-for-2\.5\.zip/);
   assert.match(await read('packaging/HF_UPDATES_README_2_31.md'), /Runtime-Update-0\.2\.2-to-0\.2\.3\.zip/);
   for (const rel of ['README.md', 'packaging/PLAYER_README.md', 'packaging/HF_MODEL_CARD.md', 'packaging/HF_UPDATES_README.md', 'packaging/HF_UPDATES_README_2_31.md', 'docs/NEXUS_PAGE.md']) {

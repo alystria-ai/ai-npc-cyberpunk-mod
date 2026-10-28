@@ -247,7 +247,7 @@ async function main() {
     process.exit(1);
   }
   if (!existsSync(resolve(runtimeApp, 'release.json')) && !existsSync(resolve(runtimeApp, 'node'))) {
-    publishFailure(gameRoot, 'install-incomplete', 'the Runtime base is not installed; get it from the mod\'s Hugging Face page');
+    publishFailure(gameRoot, 'install-incomplete', 'the Runtime base is not installed; extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face)');
     process.exit(1);
   }
   // First, before the game mounts its archives: the files an older base shipped that this game must not have (GAME_REMOVALS).

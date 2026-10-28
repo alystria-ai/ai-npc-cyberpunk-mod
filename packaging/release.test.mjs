@@ -335,7 +335,7 @@ test('the Runtime package carries convai-auth.json (on, no key fallback) and no 
   assert.match(builder, /--key-env and --key-file are refused/);
   assert.doesNotMatch(builder, /service\.txt['`]/, 'the build writes no service.txt');
   assert.doesNotMatch(builder, /packagedKeyText|packaged-key|key-codec/);
-  assert.match(builder, /SHIPPED_KEY_FILE\.test\(entry\.name\)/, 'the final guard refuses a key file in any archive');
+  assert.match(await readFile(resolve(project, 'packaging/lib/package-guards.mjs'), 'utf8'), /SHIPPED_KEY_FILE\.test\(name\)/, 'the final guard refuses a key file in any archive');
 });
 
 test('the release workflow builds the Runtime with the token backend settings and no Convai key', async () => {
@@ -914,7 +914,7 @@ test('the README and the release notes send players to Hugging Face for every op
   assert(heading('Install') > 0 && heading('Install') < heading('What you can do') && heading('What you can do') < heading('Requirements'), 'Install comes first');
   assert(heading('Install') < 6000, 'near the top of the page');
   const install = readme.slice(heading('Install'), heading('What you can do'));
-  assert.match(install, /Scripts come from Nexus Mods \(the same file is on Hugging Face too\)\. The Runtime and the optional packs are on the mod's/);
+  assert.match(install, /The full install and the update come from Nexus Mods \(the same files are on Hugging Face too\)\. The optional packs are on the mod's/);
   assert.match(install, /Each pack is one zip file/);
   // No parts, anywhere in what players read.
   for (const [name, text] of [['README', readme], ['PLAYER_README', player]]) {
@@ -941,8 +941,10 @@ test('the README and the release notes send players to Hugging Face for every op
 
 test('the release guard refuses a package that would install the development launcher', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /CyberpunkConvaiLauncher/);
-  assert.match(builder, /unexpected RED4ext plugin file/);
+  const guards = await readFile(resolve(project, 'packaging/lib/package-guards.mjs'), 'utf8');
+  assert.match(builder, /forbiddenEntry\(entry\.name, config\.layout\)/, 'the builder runs the shared entry guard');
+  assert.match(guards, /CyberpunkConvaiLauncher/);
+  assert.match(guards, /unexpected RED4ext plugin file/);
   // The shipped DLL keeps the name CyberpunkConvai.dll, in its own plugin folder.
   assert.equal(config.layout.pluginDll, 'CyberpunkConvai.dll');
   assert.equal(config.layout.pluginDirectory, 'red4ext/plugins/AiNpcCyberpunkMod');
@@ -996,7 +998,9 @@ test('the release notes open with where the download files are, and a rebuild re
   const workflow = await workflowText();
   assert.match(workflow, /very bottom of this page, under Assets/);
   assert.match(workflow, /releases\/download\/\$tag/);
-  assert.match(workflow, /AI-NPC-Cyberpunk-Mod-Scripts-\$version\.zip/);
+  assert.match(workflow, /AI-NPC-LLM-Companions-\$version\.zip/);
+  assert.match(workflow, /AI-NPC-LLM-Companions-Update-\$from-to-\$version\.zip/);
+  assert.match(workflow, /node packaging\/build-full\.mjs --version/);
   assert.match(workflow, /\[Runtime-\$version\.zip\]\(\$base\/Runtime-\$version\.zip\)/);
   assert.doesNotMatch(workflow, /sha256sums|## Checksums/i, 'no checksum file is attached to the release or mentioned on its page');
   assert.match(workflow, /\$download \+ \(Get-Content packaging\/PLAYER_README\.md -Raw\)/);
