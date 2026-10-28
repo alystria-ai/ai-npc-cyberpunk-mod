@@ -241,6 +241,9 @@ export function systemBrowserAvailable(options = {}) {
   return !systemBrowserCandidates({...options, env}).next().done;
 }
 
+/** Is this failure text (a V line's or a voice's) the hidden browser that would not start, or is not there? */
+export const browserStartFailed = reason => /was found but would not start|is set as the browser but its program is not there|^No browser to run the conversation page/i.test(String(reason ?? ''));
+
 export const browserMissing = error => /is not found|doesn't exist|does not exist|ENOENT/i.test(String(error?.message ?? error));
 
 // ------------------------------------------------------------------------------------------ the player's browser.txt
@@ -297,21 +300,63 @@ export function readBrowserOverride(folders, {read = readFileSync, stat = statSy
 // ----------------------------------------------------------------------------------------------------------- launching
 
 // A short plain reason for a failed launch: the first line of the error, a path cut to its file name, no Playwright prefix.
-const startReason = error => String(error?.message ?? error ?? '').split('\n')[0].replace(/^browserType\.launch:\s*/i, '')
-  .replace(/(?:[A-Za-z]:[\\/]|\\\\)(?:[^'"\r\n]*?\.[A-Za-z0-9]{2,4}(?=[\s'",;:)]|$)|[^\s'"]*)/g, path => win32.basename(path.replace(/\//g, '\\'))).replace(/\s+/g, ' ').trim().slice(0, 120) || 'unknown error';
+const fileNamesOnly = text => text.replace(/(?:[A-Za-z]:[\\/]|\\\\)(?:[^'"\r\n]*?\.[A-Za-z0-9]{2,4}(?=[\s'",;:)]|$)|[^\s'"]*)/g, path => win32.basename(path.replace(/\//g, '\\')));
+// The code a browser process ended with, from Playwright's browser log ("<process did exit: exitCode=21, signal=null>"), or null.
+const exitCodeOf = error => {
+  const found = /<process did exit:\s*exitCode=(-?\d+)/i.exec(String(error?.message ?? ''));
+  return found ? Number(found[1]) : null;
+};
+const startReason = error => {
+  const reason = fileNamesOnly(String(error?.message ?? error ?? '').split('\n')[0].replace(/^browserType\.launch:\s*/i, '')).replace(/\s+/g, ' ').trim().slice(0, 120) || 'unknown error';
+  const code = exitCodeOf(error);
+  return code === null ? reason : `${reason} (exit code ${code})`;
+};
+
+/**
+ * What the browser itself said when it would not start, as a few short lines for the log and the error report: Playwright puts the browser's own output and the way its
+ * process ended below the first line of the error ("Target page, context or browser has been closed" alone says nothing), and the earlier tries of the same start
+ * (`error.earlier`, `error.rescue`: set by RealtimeHost.launchWithSandbox) say what was attempted. Paths are cut to file names; at most 8 lines of 200 characters.
+ */
+export function launchDiagnostics(error) {
+  const lines = [];
+  const add = text => {
+    const line = fileNamesOnly(String(text ?? '')).replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (line && lines.length < 8 && !lines.includes(line)) lines.push(line);
+  };
+  if (typeof error?.earlier === 'string') add(`first try, with the sandbox: ${error.earlier}`);
+  if (typeof error?.rescue === 'string') add(`last try, without the graphics process: ${error.rescue}`);
+  for (const raw of String(error?.message ?? '').split(/\r?\n/).slice(1)) {
+    const line = raw.replace(/^\s*-\s*/, '').trim();
+    const output = /^\[pid=\d+\]\[(?:err|out)\]\s*(.*)$/i.exec(line);
+    if (output) add(output[1]);
+    else if (/^<process did exit:/i.test(line) || /^(?:error|fatal|failed)\b/i.test(line)) add(line);
+  }
+  return lines;
+}
 
 // Said once per process for each distinct message: every turn asks for the browser again, and a browser that cannot start would
 // otherwise fill the log.
 const saidAlready = new Set();
+let lastStartFailure = null;
 /** For tests: forget which launch failures were logged. */
-export function resetBrowserFailureLog() { saidAlready.clear(); }
+export function resetBrowserFailureLog() { saidAlready.clear(); lastStartFailure = null; }
+/** The last browser start that failed in this process: {message, diagnostic: [short lines]}, or null. Read by the error reports. */
+export const lastBrowserStartFailure = () => lastStartFailure;
+/** The browser's own lines for a failure whose first line is `reason` (what a V line or a voice report carries), or undefined. */
+export const browserFailureTail = reason => (lastStartFailure && lastStartFailure.diagnostic.length && typeof reason === 'string'
+  && reason.startsWith(lastStartFailure.message.slice(0, 60)) ? lastStartFailure.diagnostic : undefined);
 
 // The error for a browser that was found (or named) and would not start: it names the browser, so the log and the game say that and not "no
 // browser". Its code, BROWSER_START_FAILED, is read by the bridge, which tells the game.
 function startFailure(error, name, log) {
   const message = browserMissing(error) ? `${name} is set as the browser but its program is not there` : `${name} was found but would not start: ${startReason(error)}`;
-  if (!saidAlready.has(message)) { saidAlready.add(message); log(message + '.'); }
-  return Object.assign(Error(message), {code: 'BROWSER_START_FAILED', browser: name, cause: error});
+  const diagnostic = launchDiagnostics(error);
+  lastStartFailure = {message, diagnostic};
+  if (!saidAlready.has(message)) {
+    saidAlready.add(message); log(message + '.');
+    if (diagnostic.length) log(`The browser said: ${diagnostic.join(' | ')}`);
+  }
+  return Object.assign(Error(message), {code: 'BROWSER_START_FAILED', browser: name, cause: error, diagnostic});
 }
 
 // What to try, in order and lazily: the installed browsers, then the Edge and Chrome channels not already offered (Playwright may

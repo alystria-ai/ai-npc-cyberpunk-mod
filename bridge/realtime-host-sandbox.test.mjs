@@ -173,6 +173,65 @@ test('a browser that is not there is not retried without the sandbox, and a fail
   assert.deepEqual(again, [true], 'a failed start remembers nothing');
 });
 
+// 27 Oct 2026, install 0d0750: Edge on an AMD RX 9070 XT quit at once with and without the sandbox ("Target page, context or browser has been closed"), so no voice played at all.
+test('a browser that goes away at once even without the sandbox is started once more without its graphics process, and that is remembered', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const folder = await mkdtemp(join(tmpdir(), 'host-sandbox-state-'));
+  t.after(() => rm(folder, {recursive: true, force: true}));
+  const statePath = join(folder, SANDBOX_STATE_FILE);
+  const closed = () => Error('browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launched> pid=1\n<process did exit: exitCode=21, signal=null>');
+  const tried = [];
+  const launch = async options => {
+    const noGraphics = (options.args ?? []).includes('--disable-gpu');
+    tried.push(`${options.chromiumSandbox}:${noGraphics}`);
+    if (!noGraphics) throw closed();
+    return fakeBrowser();
+  };
+  const first = await hostWith(launch, {sandboxStatePath: statePath});
+  await first.host.start();
+  assert.deepEqual(tried, ['true:false', 'false:false', 'false:true']);
+  assert.match(first.logs.join('\n'), /went away at once .*; it runs without its graphics process/);
+  const saved = JSON.parse(await readFile(statePath, 'utf8'));
+  assert.ok(Number.isFinite(saved.graphicsOff[EXE]) && Number.isFinite(saved.refused[EXE]));
+  // The next start, in this process or a new one, goes straight to the way that works.
+  tried.length = 0;
+  const second = await hostWith(launch, {sandboxStatePath: statePath});
+  await second.host.start();
+  assert.deepEqual(tried, ['false:true']);
+  resetSandboxMemory(); tried.length = 0;
+  const later = await hostWith(launch, {sandboxStatePath: statePath});
+  await later.host.start();
+  assert.deepEqual(tried, ['false:true'], 'read from the file');
+});
+
+test('a browser that goes away at once every way carries every earlier reason, and a browser that is not there or fails otherwise gets no graphics retry', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const tried = [];
+  const both = await hostWith(async options => {
+    tried.push(`${options.chromiumSandbox}:${(options.args ?? []).includes('--disable-gpu')}`);
+    throw Error(options.chromiumSandbox ? 'browserType.launch: Browser closed unexpectedly' : 'browserType.launch: Target page, context or browser has been closed');
+  });
+  await assert.rejects(both.host.start(), error => {
+    assert.match(error.message, /would not start: Target page, context or browser has been closed/);
+    const lines = error.diagnostic.join('\n');
+    assert.match(lines, /first try, with the sandbox: browserType\.launch: Browser closed unexpectedly/);
+    assert.match(lines, /last try, without the graphics process: browserType\.launch: Target page, context or browser has been closed/);
+    return true;
+  });
+  assert.deepEqual(tried, ['true:false', 'false:false', 'false:true']);
+  // Nothing was learned from a start that failed every way.
+  const again = [];
+  const next = await hostWith(async options => { again.push(`${options.chromiumSandbox}:${(options.args ?? []).includes('--disable-gpu')}`); return fakeBrowser(); });
+  await next.host.start();
+  assert.deepEqual(again, ['true:false']);
+
+  resetSandboxMemory();
+  const other = [];
+  const odd = await hostWith(async options => { other.push(options.chromiumSandbox); throw Error(options.chromiumSandbox ? 'sandbox failure' : 'still broken'); });
+  await assert.rejects(odd.host.start(), /still broken/);
+  assert.deepEqual(other, [true, false], 'a failure that is not a vanished browser is not retried');
+});
+
 test('CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1 starts the browser without the sandbox, without a probe', async t => {
   resetSandboxMemory(); t.after(cleanUp);
   const before = process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX;

@@ -133,6 +133,26 @@ test('"the voice never played" is one voice-failed report with the counts and th
   } finally { await f.cleanup(); }
 });
 
+test('"the voice never played" in a run whose hidden browser would not start says that, with the browser\'s own lines (install 0d0750, 27 Oct 2026)', async () => {
+  const f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceSilent({engine: 'pocket', requested: 'pocket', active: 'pocket', fellBackTo: 'pocket', turns: 3, silentTurns: 3, playedTurns: 0, lastStage: 'published', reasons: ['pocket'],
+      browser: {message: 'Microsoft Edge was found but would not start: Target page, context or browser has been closed (exit code 21)', diagnostic: ['GPU process isn\'t usable. Goodbye.', '<process did exit: exitCode=21, signal=null>']}});
+    await untilQueued(f, 1);
+    const [record] = await readQueue(f.state, {now: START});
+    assert.equal(record.message, 'voice never played this session: the hidden browser would not start');
+    assert.equal(record.voice.cause, 'browser-failed');
+    assert.deepEqual(record.voice.tail, ['Microsoft Edge was found but would not start: Target page, context or browser has been closed (exit code 21)', 'GPU process isn\'t usable. Goodbye.', '<process did exit: exitCode=21, signal=null>']);
+  } finally { await f.cleanup(); }
+});
+
+test('a failure of the hidden browser is its own cause for a V line or a voice report', () => {
+  assert.equal(voiceFailureCause('Microsoft Edge was found but would not start: Target page, context or browser has been closed'), 'browser-failed');
+  assert.equal(voiceFailureCause('Brave is set as the browser but its program is not there'), 'browser-failed');
+  assert.equal(voiceFailureCause('Local voice preparation timed out'), 'timeout');
+});
+
 test('the bridge asks the card for a failed voice only, and V\'s line that failed or finished without any sound is reported by its summary', async () => {
   const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /new ErrorEvents\(\{stateDirectory, runtime, voiceHardware\}\)/);
