@@ -176,7 +176,7 @@ Convai interaction on the Convai route).
 ## Choosing the microphone (Settings > Voices > Microphone, 2026-10-28)
 
 Windows can send a player's chat microphone somewhere the mod never hears it (the Volume Mixer routes an app to another device, or a mixer such as a GoXLR takes it onto a sampler
-channel). The Microphone row picks the input for every way of talking: the talk key, Voice activation and the controller button, on every route (Convai, Mistral's transcription,
+channel). The Microphone row picks the input for every way of talking: the talk keys (a controller button too) and Voice activation, on every route (Convai, Mistral's transcription,
 the local recogniser). They all open the device in one place, the capture page of `bridge/local-stt-capture.mjs`, so the choice is applied there and nowhere else.
 
 - **The setting**: `micDevice` in `runtime/settings.json`, the LABEL of the input as Chromium lists it (`Headset Mic (USB Audio Device)`). No key means the Windows default. It is kept

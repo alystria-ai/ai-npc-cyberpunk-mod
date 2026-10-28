@@ -73,7 +73,7 @@ for digit = 0, 9 do KEYBOARD['IK_' .. digit] = tostring(digit); KEYBOARD['IK_Num
 for number = 1, 24 do KEYBOARD['IK_F' .. number] = 'F' .. number end
 
 -- Controller buttons by the game's names. The face buttons carry the Xbox letters (the game names them after both makers); the triggers are buttons here
--- (they report a press), the sticks' directions are not offered. The Controller talk button (L3 held) is a different setting and keeps working.
+-- (they report a press), the sticks' directions are not offered. L3 is one of them: it is how a controller talks by voice (hold it), the job the Controller talk button used to do.
 local PAD = {
     IK_Pad_A_CROSS = 'A', IK_Pad_B_CIRCLE = 'B', IK_Pad_X_SQUARE = 'X', IK_Pad_Y_TRIANGLE = 'Y',
     IK_Pad_LeftShoulder = 'LB', IK_Pad_RightShoulder = 'RB', IK_Pad_LeftTrigger = 'LT', IK_Pad_RightTrigger = 'RT',

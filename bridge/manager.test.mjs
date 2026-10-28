@@ -549,15 +549,15 @@ test('the Voice language row: English by default, then Automatic and the mod lan
     assert(#language.elements==#expected)
     for i,name in ipairs(expected) do assert(language.elements[i]==name, i..' '..tostring(language.elements[i])) end
     assert(manager.snapshot(player).settings.replyLanguage=='en')
-    -- It sits in Voices, right after the companion voice: shown with Voice playback off as well, its description says it only counts while voices are on.
-    assert(language.description:find('Counts only while Voice playback is on',1,true))
+    -- It sits in Voices, right after the companion voice: shown with Companion voices Off as well, its description says it only counts while voices are on.
+    assert(language.description:find('Counts only while Companion voices is not Off',1,true))
     assert(registered.applyBatch('manager',{{id='replyLanguage',value=2}}).ok)
     assert(saved.replyLanguage=='auto')
     assert(registered.applyBatch('manager',{{id='replyLanguage',value=14}}).ok)
     assert(saved.replyLanguage=='ja')
     loaded=registered.loadMod('manager')
     assert(row('replyLanguage').value==14, 'the saved choice is the one shown')
-    assert(registered.applyBatch('manager',{{id='voice',value=false}}).ok)
+    assert(registered.applyBatch('manager',{{id='voiceProvider',value=1}}).ok and saved.voice==false)
     assert(row('replyLanguage') and saved.replyLanguage=='ja', 'the choice stays while voices are off')
     assert(not registered.applyBatch('manager',{{id='replyLanguage',value=99}}).ok and saved.replyLanguage=='ja')
     assert(not manager.applySettings(player,{replyLanguage='klingon'}) and not manager.applySettings(player,{replyLanguage=3}))
@@ -1235,27 +1235,27 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[1] == 'Pocket · Performance' and elements[7] == 'Convai · Cloud voice')
+    assert(#elements == 8 and elements[1] == 'Off' and elements[2] == 'Pocket · Performance' and elements[8] == 'Convai · Cloud voice')
     -- Voxtral follows Pocket and is the one entry that says recommended (the owner's rule for the voice list).
-    assert(elements[2] == 'Voxtral · needs Mistral key' or elements[2] == 'Voxtral (recommended)', elements[2])
+    assert(elements[3] == 'Voxtral · needs Mistral key' or elements[3] == 'Voxtral (recommended)', elements[3])
     -- The entries keep plain labels (greyed out by the page, see the stepper test); the row's name says why.
-    assert(elements[3] == 'OmniVoice · Balanced', elements[3])
-    for index = 3, 6 do
+    assert(elements[4] == 'OmniVoice · Balanced', elements[4])
+    for index = 4, 7 do
       assert(elements[index]:find('OmniVoice', 1, true) and not elements[index]:find('needs pack', 1, true), 'entry ' .. index)
       assert(core.optionUnits(elements[index]) <= core.OPTION_BUDGET, 'entry ' .. index .. ' must stay short enough not to run over the arrows')
     end
     assert(row('voiceProvider').label == 'Companion voices (no Omni pack)', row('voiceProvider').label)
     assert(row('voice-pack') == nil, 'the OmniVoice pack has no row of its own')
     local before = saved.voiceProvider
-    for index = 3, 6 do
+    for index = 4, 7 do
       local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = index}})
       assert(result.ok == false and result.error == 'Requires the optional OmniVoice pack (GPU)', 'entry ' .. index)
       assert(saved.voiceProvider == before)
     end
     assert(not manager.applySettings(player, {voiceProvider = 'omni'}))
     -- Pocket and Convai stay selectable.
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok and saved.voiceProvider == 'convai')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}}).ok and saved.voiceProvider == 'pocket')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok and saved.voiceProvider == 'pocket')
     -- The pack appears (installed while the game runs): the entries become plain labels and can be applied.
     clock = clock + 20
     -- Identical file text is one state (the manager decodes it once), so a changed state is a changed text.
@@ -1264,10 +1264,10 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     files['runtime/local-voice-state.json'] = 'voice-runtime-pack'
     manager.snapshot(player)
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[3] == 'OmniVoice · Balanced')
+    assert(row('voiceProvider').elements[4] == 'OmniVoice · Balanced')
     assert(row('voiceProvider').label == 'Companion voices', 'the pack is installed: the row is plain again')
     assert(row('voice-pack') == nil)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short')
   `);
 });
@@ -1296,9 +1296,9 @@ test('a PC the bridge knows has no NVIDIA card gets a note on the OmniVoice entr
     assert(description:find('^This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.'), description)
     assert(description:find('Pocket: the lightest', 1, true), 'the usual help follows the note')
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[3] == 'OmniVoice · Balanced', 'the entries are not renamed (they must fit the box)')
+    assert(#elements == 8 and elements[4] == 'OmniVoice · Balanced', 'the entries are not renamed (they must fit the box)')
     assert(row('voiceProvider').disabledElements == nil, 'no entry is greyed out or removed: a card the list does not show may still work')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok and saved.voiceProvider == 'omni')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok and saved.voiceProvider == 'omni')
     -- An AMD Radeon card without an NVIDIA one, OmniVoice not set up on it yet: the row points to the in-game setup instead of 'needs NVIDIA'.
     show('amd-route', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, omniAmdRoute = true, gpuVendors = {'amd'}})
     assert(manager.omniPack().amdRoute == true)
@@ -1370,7 +1370,7 @@ test('a card the bridge knows has under 12 GB gets "OmniVoice needs 12 GB" on th
     assert(description:find('^The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game.'), description)
     assert(description:find('Pocket: the lightest', 1, true), 'the usual help follows the note')
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[3] == 'OmniVoice · Balanced', 'the entries are not renamed')
+    assert(#elements == 8 and elements[4] == 'OmniVoice · Balanced', 'the entries are not renamed')
     assert(row('voiceProvider').disabledElements == nil, 'no entry is greyed out')
     show('both', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, omniSmallCard = true})
     assert(row('voiceProvider').label == 'Companion voices (OmniVoice needs NVIDIA)', row('voiceProvider').label)
@@ -1451,27 +1451,27 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[2] == NEEDS and elements[7] == 'Convai · Cloud voice', elements[2])
+    assert(#elements == 8 and elements[3] == NEEDS and elements[8] == 'Convai · Cloud voice', elements[3])
     assert(manager.voiceLabel('voxtral') == 'Mistral cloud voice (Voxtral)')
     local before = saved.voiceProvider
-    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}})
+    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}})
     assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', result.error)
     assert(saved.voiceProvider == before)
     assert(not manager.applySettings(player, {voiceProvider = 'voxtral'}))
     -- A key is saved (the Conversation provider stays Convai, the default): the entry is a plain label and can be applied.
     key('a', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[2] == 'Voxtral (recommended)', row('voiceProvider').elements[2])
+    assert(row('voiceProvider').elements[3] == 'Voxtral (recommended)', row('voiceProvider').elements[3])
     assert(manager.snapshot(player).settings.conversationProvider == 'convai')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
     assert(saved.voiceProvider == 'voxtral' and manager.snapshot(player).settings.voiceProvider == 'voxtral')
     -- It rides on Pocket, so Natural speech is not turned off by choosing it.
     assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}}).ok and manager.naturalSpeech() == true)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
     assert(manager.naturalSpeech() == true and manager.snapshot(player).settings.voiceProvider == 'voxtral')
     assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = false}}).ok)
     -- Convai stays selectable, and the saved voice is found again in the list.
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'convai')
     -- What is saved is the provider (and for OmniVoice the steps and reference), never a list position: each saved choice finds its own
     -- entry in the reordered list (Voxtral directly after Pocket), so no one's voice changes with the order.
     local choices = dofile('voice-preview.lua')
@@ -1624,7 +1624,7 @@ test('select option width: every option of every select fits the focused budget 
           assert(manager.applySettings(player, {developerMode = developer}))
           manager.snapshot(player)
           loaded = registered.loadMod('manager')
-          assert(#row('voiceProvider').elements == 7, tag .. ': ' .. #row('voiceProvider').elements .. ' voices')
+          assert(#row('voiceProvider').elements == 8, tag .. ': ' .. #row('voiceProvider').elements .. ' voices')
           scan(tag)
         end
       end
@@ -1651,12 +1651,12 @@ test('the removed Inworld voice: the list has seven entries with or without Deve
     for _, developer in ipairs({false, true}) do
       assert(manager.applySettings(player, {developerMode = developer}))
       loaded = registered.loadMod('manager')
-      assert(#menu() == 7 and menu()[7] == 'Convai · Cloud voice', table.concat(menu(), '|'))
+      assert(#menu() == 8 and menu()[1] == 'Off' and menu()[8] == 'Convai · Cloud voice', table.concat(menu(), '|'))
       for _, label in ipairs(menu()) do assert(not label:find('Inworld', 1, true), label) end
       assert(row('inworld-key') == nil and ids('development') == 'developerMode', ids('development'))
       assert(not row('voiceProvider').description:find('Inworld', 1, true))
       -- A stale draft index past the end saves nothing, and the removed name is not a voice to choose.
-      local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}})
+      local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}})
       assert(result.ok == false and saved.voiceProvider == 'pocket', 'there is no eighth voice')
       assert(manager.applySettings(player, {voiceProvider = 'inworld'}) == false and saved.voiceProvider == 'pocket')
     end
@@ -1673,7 +1673,7 @@ test('the removed Inworld voice: the list has seven entries with or without Deve
       manager.configure(api, profiles); manager.prepare(player)
       assert(saved == nil, 'the corrected file is saved again')
       loaded = registered.loadMod('manager')
-      assert(row('voiceProvider').value == 1 and row('voiceProvider').defaultValue == 1 and #menu() == 7)
+      assert(row('voiceProvider').value == 2 and row('voiceProvider').defaultValue == 2 and #menu() == 8)
     end
     -- A retired Multilingual value beside it changes nothing: the removed name still ends at the default voice.
     seed = {version = 2, voiceProvider = 'inworld', multilingualConversations = true, enabledByKey = {}}
@@ -2742,13 +2742,13 @@ test('the manager page uses real controls, operates on current copies while paus
     assert(not row('assign:queued:1'), 'a per-copy conversation entry remained on Current party')
     assert(managerUi.party().assign('queued:1', 'person-1', 'Person 01'))
     assert(invoke('party:back').ok and invoke('tab:settings').ok)
-    assert(row('voice').type == 'bool' and row('omniSteps') == nil)
-    assert(row('subtitles').type == 'bool' and row('subtitles').value == true)
-    -- Order: 1 Cinematic subtitles (stored dialogue, the default), 2 Above the speaker (stored overhead).
-    assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 1)
-    assert(row('subtitleStyle').defaultValue == 1 and row('subtitleStyle').type == 'select')
-    assert(row('subtitleStyle').elements[1] == 'Cinematic subtitles' and row('subtitleStyle').elements[2] == 'Above the speaker')
-    assert(row('voiceProvider').type == 'select' and row('voiceProvider').value == 1)
+    assert(row('voice') == nil and row('omniSteps') == nil, 'the playback switch is the Off entry of Companion voices')
+    assert(row('subtitles') == nil, 'the Subtitles switch is the Off entry of the Subtitles list')
+    -- Order: 1 Off (stored subtitles false), 2 Cinematic subtitles (stored dialogue, the default), 3 Above the speaker (stored overhead).
+    assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 2)
+    assert(row('subtitleStyle').defaultValue == 2 and row('subtitleStyle').type == 'select')
+    assert(row('subtitleStyle').elements[1] == 'Off' and row('subtitleStyle').elements[2] == 'Cinematic subtitles' and row('subtitleStyle').elements[3] == 'Above the speaker')
+    assert(row('voiceProvider').type == 'select' and row('voiceProvider').value == 2)
     assert(row('keepPreparedVoices') == nil)
     assert(row('voice-pack') == nil, 'the OmniVoice pack has no row of its own')
     assert(row('disappearingMessages') == nil)
@@ -2760,32 +2760,32 @@ test('the manager page uses real controls, operates on current copies while paus
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 7}, {id = 'subtitleStyle', value = 2}})
-    assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 16)
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 8}, {id = 'subtitleStyle', value = 3}})
+    assert(applied.ok and applied.atomic and #applied.appliedIds == 4 and saved.omniSteps == 16)
     local retired = registered.applyBatch('manager', {{id = 'expressiveEmotions', value = false}})
     assert(retired.ok == false and retired.error == 'That setting is read-only.', 'a setting that is gone has no Apply branch')
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
-    assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 2)
-    for _, invalid in ipairs({0, 3, '1', 'overhead', false}) do
+    assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 3)
+    for _, invalid in ipairs({0, 4, '1', 'overhead', false}) do
       assert(not registered.applyBatch('manager', {{id = 'subtitles', value = false}, {id = 'subtitleStyle', value = invalid}}).ok)
       assert(manager.subtitleStyle() == 'overhead' and player.subtitles)
     end
-    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 2}}).ok)
     assert(manager.subtitleStyle() == 'dialogue' and saved.voiceProvider == 'convai')
-    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok)
-    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok, 'there are seven voices')
+    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 10}}).ok)
+    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok, 'there are seven voices and Off')
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 0}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = '1'}}).ok)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
-    assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'long')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 5}}).ok)
+    assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'long')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 32 and saved.omniReference == 'short')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok and saved.voiceProvider == 'convai')
-    assert(not registered.applyBatch('manager', {{id = 'voice', value = true}, {id = 'omniSteps', value = 1}}).ok)
-    assert(saved.voice == false and saved.voiceProvider == 'convai', 'retired quality changes partially applied')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'convai')
+    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}, {id = 'omniSteps', value = 1}}).ok)
+    assert(saved.voice == true and saved.voiceProvider == 'convai', 'retired quality changes partially applied')
     assert(not registered.applyBatch('manager', {{id = 'disappearingMessages', value = true}}).ok)
-    assert(player.voice == false)
+    assert(player.voice == true)
     managerUi.update(player, true)
     assert(#spawned == 1 and members[1].profileKey == 'person-1')
     assert(invoke('settings:back').ok and invoke('tab:party').ok and row('dismiss:live:1'))
@@ -2800,16 +2800,16 @@ test('settings review wording: short voice description, no Body gestures or Auto
     assert(home.description:find('without conversation support', 1, true) and home.description:find('do not talk', 1, true))
     assert(invoke('tab:settings').ok)
     local voices = row('voiceProvider')
-    assert(voices.defaultValue == 1 and voices.value == 1)
+    assert(voices.defaultValue == 2 and voices.value == 2)
     assert(voices.description:find('about 0.2 s', 1, true) and voices.description:find('1 to 2.5 s', 1, true))
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
     assert(utf8.len(voices.description) < 700 and select(2, voices.description:gsub(string.char(10) .. string.char(10), '')) >= 2, 'the voice description stays short and is split into blocks')
     assert(not voices.description:lower():find('recommended', 1, true), 'the voice description does not call a voice recommended; the Voxtral entry does')
     -- Only the Voxtral entry says recommended, directly after Pocket (with a Mistral key saved); every other voice entry stays plain.
     for index, label in ipairs(voices.elements) do
-      assert((label:lower():find('recommended', 1, true) ~= nil) == (index == 2 and label == 'Voxtral (recommended)'), 'entry ' .. index .. ': ' .. label)
+      assert((label:lower():find('recommended', 1, true) ~= nil) == (index == 3 and label == 'Voxtral (recommended)'), 'entry ' .. index .. ': ' .. label)
     end
-    assert(voices.elements[1] == 'Pocket · Performance' and voices.elements[2]:find('Voxtral', 1, true) == 1, voices.elements[2])
+    assert(voices.elements[1] == 'Off' and voices.elements[2] == 'Pocket · Performance' and voices.elements[3]:find('Voxtral', 1, true) == 1, voices.elements[3])
     assert(row('bodyGestures') == nil, 'body gestures are always on: there is no row')
     assert(row('sitWithYou') == nil, 'companions always sit with V: there is no Sit with you setting')
     assert(row('autoConnectNearby') == nil and row('keepPreparedVoices') == nil)
@@ -3766,12 +3766,12 @@ test('Natural speech and the cloud voice: choosing the cloud voice keeps it and 
     assert(entry and entry.type == 'bool' and entry.value == false and entry.defaultValue == false, 'off by default')
     local NOTICE = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
     local OFF = 'The Convai cloud voice cannot use Natural speech, so it was turned off.'
-    -- The menu positions of the cloud voice, of Pocket and of the first OmniVoice entry, wherever the list puts them.
+    -- The row positions of the cloud voice, of Pocket and of the first OmniVoice entry, wherever the list puts them (entry 1 of the row is Off, so one after the list position).
     local CLOUD, OMNI, POCKET
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
-      if choice.provider == 'convai' then CLOUD = index end
-      if choice.provider == 'pocket' then POCKET = index end
-      if choice.provider == 'omni' and not OMNI then OMNI = index end
+      if choice.provider == 'convai' then CLOUD = index + 1 end
+      if choice.provider == 'pocket' then POCKET = index + 1 end
+      if choice.provider == 'omni' and not OMNI then OMNI = index + 1 end
     end
     assert(CLOUD and OMNI and POCKET)
     local function apply(...)
@@ -4098,8 +4098,8 @@ test('V’s voice on OmniVoice (fourth entry): it needs the OmniVoice pack (name
     end
     local POCKET, BALANCED
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
-      if choice.provider == 'pocket' then POCKET = index end
-      if choice.provider == 'omni' and choice.steps == 16 and choice.reference == 'short' then BALANCED = index end
+      if choice.provider == 'pocket' then POCKET = index + 1 end
+      if choice.provider == 'omni' and choice.steps == 16 and choice.reference == 'short' then BALANCED = index + 1 end
     end
     assert(POCKET and BALANCED)
     assert(invoke('tab:settings').ok)
@@ -4229,7 +4229,7 @@ test('Multilingual conversations is a retired setting (2026-10-21): any saved va
   `);
 });
 
-// Shared by the staged-Apply cases: the voice menu positions and a batch helper (each Apply after the Auto Apply window).
+// Shared by the staged-Apply cases: the voice row positions (entry 1 is Off, so one after the list position) and a batch helper (each Apply after the Auto Apply window).
 const voiceApplyFixture = `
     local clock, wall = 5000, 1000
     os.clock = function() return clock end
@@ -4239,10 +4239,10 @@ const voiceApplyFixture = `
     convaiNotices.configure(function() return true end) -- this popup is Developer-only (docs/NOTIFICATIONS.md)
     local POCKET, BALANCED, ULTRA, CLOUD
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
-      if choice.provider == 'pocket' then POCKET = index end
-      if choice.provider == 'convai' then CLOUD = index end
-      if choice.provider == 'omni' and choice.steps == 16 and choice.reference == 'short' then BALANCED = index end
-      if choice.provider == 'omni' and choice.steps == 32 and choice.reference == 'long' then ULTRA = index end
+      if choice.provider == 'pocket' then POCKET = index + 1 end
+      if choice.provider == 'convai' then CLOUD = index + 1 end
+      if choice.provider == 'omni' and choice.steps == 16 and choice.reference == 'short' then BALANCED = index + 1 end
+      if choice.provider == 'omni' and choice.steps == 32 and choice.reference == 'long' then ULTRA = index + 1 end
     end
     assert(POCKET and BALANCED and ULTRA and CLOUD)
     local function apply(...)
@@ -4469,7 +4469,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
-    assert(voices[1] == 'voice' and voices[2] == 'voiceProvider' and voices[3] == 'replyLanguage' and voices[4] == 'audioDelay', table.concat(voices, ','))
+    assert(voices[1] == 'voiceProvider' and voices[2] == 'replyLanguage' and voices[3] == 'subtitleStyle' and voices[4] == 'audioDelay', table.concat(voices, ','))
     for _, id in ipairs(voices) do assert(id ~= 'voice-pack' and id ~= 'voice-status', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements
@@ -5568,7 +5568,7 @@ test('Mature content and Voxtral: turning it on moves a companion voice and V fr
     result = core.apply({{id = 'matureContent', value = false}})
     assert(result.ok and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'voxtral', 'the companion voice stays on what the player chose; V goes back')
     local OMNI
-    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'convai' then OMNI = index end end
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'convai' then OMNI = index + 1 end end
     assert(manager.applySettings(player, {conversationProvider = 'local', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
     assert(core.apply({{id = 'matureContent', value = true}}).ok)
     result = core.apply({{id = 'matureContent', value = false}, {id = 'voiceProvider', value = OMNI}, {id = 'vVoice', value = 2}})
@@ -5581,13 +5581,13 @@ test('Mature content refuses a Voxtral choice (companions and V), greys the entr
     withLocalAi(true)
     assert(invoke('tab:settings').ok); loaded = registered.loadMod('manager')
     local VOXTRAL
-    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'voxtral' then VOXTRAL = index end end
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'voxtral' then VOXTRAL = index + 1 end end
     -- Off: Voxtral is a plain, enabled entry (the key is saved).
     assert(row('voiceProvider').elements[VOXTRAL] == 'Voxtral (recommended)' and (row('voiceProvider').disabledElements == nil or row('voiceProvider').disabledElements[VOXTRAL] == nil))
     assert(row('vVoice').elements[3] == 'Voxtral · Mistral cloud' and (row('vVoice').disabledElements or {})[3] == nil)
     assert(core.apply({{id = 'voiceProvider', value = VOXTRAL}}).ok and saved.voiceProvider == 'voxtral')
     assert(core.apply({{id = 'vVoice', value = 3}}).ok and saved.vVoiceEngine == 'voxtral')
-    assert(core.apply({{id = 'voiceProvider', value = 1}, {id = 'vVoice', value = 2}}).ok)
+    assert(core.apply({{id = 'voiceProvider', value = 2}, {id = 'vVoice', value = 2}}).ok)
     -- On (Local AI): both entries are greyed out with the reason, and their labels say so, whatever the key.
     assert(core.apply({{id = 'matureContent', value = true}}).ok and saved.matureContent == true)
     loaded = registered.loadMod('manager')
@@ -5726,7 +5726,7 @@ test('Mature content and the way back: an old saved record keeps its voice parts
     local at = {}
     for index, change in ipairs(changes) do at[change.id] = index end
     assert(at.matureContent and at.conversationProvider and at.voiceProvider and at.vVoice, 'the rows the way back would put back are named at their default')
-    assert(changes[at.matureContent].value == false and changes[at.conversationProvider].value == 1 and changes[at.voiceProvider].value == 1 and changes[at.vVoice].value == 2)
+    assert(changes[at.matureContent].value == false and changes[at.conversationProvider].value == 1 and changes[at.voiceProvider].value == 2 and changes[at.vVoice].value == 2)
     assert(core.apply(changes).ok)
     assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
     local ids = {}
@@ -5964,8 +5964,8 @@ test('Natural speech and the provider: the Convai voice beside Mistral, Local AI
     local SWITCHED = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
     local CLOUD, POCKET
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
-      if choice.provider == 'convai' then CLOUD = index end
-      if choice.provider == 'pocket' then POCKET = index end
+      if choice.provider == 'convai' then CLOUD = index + 1 end
+      if choice.provider == 'pocket' then POCKET = index + 1 end
     end
     local FREE, OWN, MISTRAL, LOCAL, CUSTOM = 1, 2, 3, 4, 5
     local function apply(...)
@@ -6095,8 +6095,8 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
       assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength')
       local gameplay
       for _, category in ipairs(loaded.categories) do if category.id == 'gameplay' then gameplay = category end end
-      assert(gameplay and gameplay.name == 'Gameplay' and #gameplay.settings == 8, 'Gameplay: eight rows')
-      local want = {'reputation', 'npcThreats', 'companionOutfits', 'characterEddies', 'immersive-invitations', 'housemates', 'revengeAmbushes', 'voiceChoices'}
+      assert(gameplay and gameplay.name == 'Gameplay' and #gameplay.settings == 10, 'Gameplay: ten rows')
+      local want = {'reputation', 'npcThreats', 'companionOutfits', 'characterEddies', 'immersive-invitations', 'housemates', 'revengeAmbushes', 'voiceChoices', 'battleReactions', 'lootReactions'}
       for index, id in ipairs(want) do assert(gameplay.settings[index].id == id, 'Gameplay row ' .. index .. ': ' .. tostring(gameplay.settings[index].id)) end
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.
@@ -6384,7 +6384,7 @@ test('Home has no Character editor row without the editor module, and the other 
   `);
 });
 
-test('V speaks your microphone lines is off by default, only a boolean is kept, an Apply stores it, and the row sits under V’s voice with the reason for the default', () => {
+test('V’s voice for microphone lines is off by default, only a boolean is kept, an Apply stores it, and the select sits under V’s voice with the reason for the default', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     assert(saved.vVoiceMic == false and manager.vVoiceMic() == false and manager.snapshot(player).settings.vVoiceMic == false, 'off by default, and saved so')
@@ -6404,10 +6404,10 @@ test('V speaks your microphone lines is off by default, only a boolean is kept, 
     assert(manager.applySettings(player, {vVoiceMic = true}) and manager.vVoiceMic() and saved.vVoiceMic == true)
     assert(saved.vVoice == true and saved.vVoiceChosen ~= true, 'V’s voice itself is untouched by this key')
     assert(manager.applySettings(player, {vVoiceMic = 'yes'}) == false and manager.vVoiceMic(), 'a non-boolean is refused')
-    -- It survives other changes, and V’s voice going off keeps the choice (it only means something while V’s voice is on).
+    -- It survives other changes, and typed lines going off keeps the choice: the two are independent, so microphone lines alone keep V’s voice active.
     assert(manager.applySettings(player, {followUpInterest = false}) and manager.vVoiceMic())
-    assert(manager.applySettings(player, {vVoice = false}) and manager.vVoiceMic() and saved.vVoiceMic == true)
-    assert(manager.applySettings(player, {vVoiceMic = false}) and not manager.vVoiceMic() and saved.vVoiceMic == false)
+    assert(manager.applySettings(player, {vVoice = false}) and manager.vVoiceMic() and saved.vVoiceMic == true and not manager.vVoice() and manager.vVoiceActive())
+    assert(manager.applySettings(player, {vVoiceMic = false}) and not manager.vVoiceMic() and saved.vVoiceMic == false and not manager.vVoiceActive(), 'both off: V is not active')
   `);
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
@@ -6420,25 +6420,26 @@ test('V speaks your microphone lines is off by default, only a boolean is kept, 
     for index, id in ipairs(order) do at[id] = index end
     assert(at.vVoiceMic and at.vVoiceMic == at.vVoice + 1, 'right under V’s voice')
     local item = row('vVoiceMic')
-    assert(item.label == 'V speaks your microphone lines' and item.type == 'bool' and item.value == false and item.defaultValue == false)
-    assert(item.description:find('Needs V’s voice on', 1, true) and item.description:find('Off by default, because you just said it yourself', 1, true)
+    assert(item.label == 'V’s voice for microphone lines' and item.type == 'select' and item.value == 1 and item.defaultValue == 1)
+    assert(#item.elements == 4 and item.elements[1] == 'Off' and item.elements[2] == 'Pocket · On your PC' and table.concat(item.elements, '|') == table.concat(row('vVoice').elements, '|'), 'the same four choices as typed lines')
+    assert(item.description:find('works on its own', 1, true) and not item.description:find('Needs V’s voice on', 1, true) and item.description:find('Off by default, because you just said it yourself', 1, true)
         and item.description:find('the reply follows V’s line', 1, true) and not item.description:find('never waits', 1, true)
         and not item.description:find('cut short', 1, true) and not item.description:find('OmniVoice', 1, true))
     -- Stored through the settings page like any switch, and shown as on afterwards.
-    assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = true}}).ok and saved.vVoiceMic == true)
+    assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = 2}}).ok and saved.vVoiceMic == true and saved.vVoiceEngine == 'pocket')
     loaded = registered.loadMod('manager')
-    assert(row('vVoiceMic').value == true)
-    assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = false}}).ok and saved.vVoiceMic == false)
+    assert(row('vVoiceMic').value == 2)
+    assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = 1}}).ok and saved.vVoiceMic == false)
   `);
 });
 
-test('own key bindings: none by default, only game key names of the seven actions are kept, no key twice, and a binding is set and cleared in one validated save', () => {
+test('own key bindings: only game key names of the seven actions are kept, no key twice, and a binding is set and cleared in one validated save', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    assert(type(saved.keyBindings) == 'table' and next(saved.keyBindings) == nil and next(manager.keyBindings()) == nil, 'none by default, and saved so')
-    assert(next(manager.snapshot(player).settings.keyBindings) == nil)
-    -- A saved file is cleaned up: an unknown action, a value that is no game key name and a key another action already has are dropped; the rest is kept.
-    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'},
+    assert(type(saved.keyBindings) == 'table' and saved.keyDefaultsGiven == true and saved.keyBindings.voice == 'IK_F7' and manager.keyBindings().voice == 'IK_F7', 'the default keys, and saved so')
+    assert(manager.snapshot(player).settings.keyBindings.manager == 'IK_F4')
+    -- The cleaning below is judged without the defaults (keyDefaultsGiven marks a file that has had them). A saved file is cleaned up: an unknown action, a value that is no game key name and a key another action already has are dropped; the rest is kept.
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}, keyDefaultsGiven = true,
       keyBindings = {voice = 'IK_F7', text = 'IK_F7', group_voice = 'IK_Pad_Start', group_text = 5, manager = 'not a key', nonsense = 'IK_A', johnny_voice = 'IK_J', johnny_text = 'IK_J'}}
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
@@ -6448,12 +6449,12 @@ test('own key bindings: none by default, only game key names of the seven action
     assert(saved.keyBindings.voice == 'IK_F7' and saved.keyBindings.nonsense == nil and saved.future.keep == 'unchanged', 'the cleaned table was saved, the rest untouched')
     -- A file that holds something else than a table gets the default.
     for _, wrong in ipairs({'IK_F7', 5, true}) do
-      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, keyBindings = wrong}
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, keyDefaultsGiven = true, keyBindings = wrong}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
       assert(next(manager.keyBindings()) == nil and type(saved.keyBindings) == 'table', tostring(wrong))
     end
-    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, keyDefaultsGiven = true}
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
     -- One save sets a binding; another action keeps its own; setKeyBinding clears with nil.
@@ -6475,22 +6476,368 @@ test('own key bindings: none by default, only game key names of the seven action
     -- Every action at once, as Restore defaults clears them.
     assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and manager.setKeyBinding(player, 'manager', 'IK_F4'))
     assert(manager.applySettings(player, {keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false}}))
-    assert(next(manager.keyBindings()) == nil and next(saved.keyBindings) == nil)
+    assert(next(manager.keyBindings()) == nil and next(saved.keyBindings) == nil and saved.keyDefaultsGiven == true, 'a cleared key stays cleared')
+    -- Restore defaults is one batch: the default key for the five actions, and none (false) for the two Johnny actions.
+    assert(manager.setKeyBinding(player, 'johnny_voice', 'IK_J'))
+    assert(manager.applySettings(player, {keyBindings = manager.defaultKeyBindings()}))
+    assert(manager.keyBindings().voice == 'IK_F7' and manager.keyBindings().text == 'IK_F6' and manager.keyBindings().johnny_voice == nil and manager.keyBindings().johnny_text == nil)
   `);
 });
 
-test('Key bindings page: Restore defaults lists one clearing change for the keys and the Controller talk button once, and nothing when both are at their defaults', () => {
+test('Key bindings page: Restore defaults lists one change that puts the default keys back, and nothing when the keys are the defaults; the Controller talk button is gone from the page', () => {
   run(`${nsuiFixture}
-    assert(next(core.defaults()) == nil, 'nothing to restore')
-    assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and manager.applySettings(player, {padTalk = true}))
-    local changes = core.defaults()
-    local ids = {}
-    for _, change in ipairs(changes) do ids[#ids + 1] = change.id end
-    table.sort(ids)
-    assert(table.concat(ids, ',') == 'keyBindings:clear,padTalk', table.concat(ids, ','))
-    local result = core.apply(changes)
+    assert(next(core.defaults()) == nil, 'nothing to restore: a fresh file holds the default keys')
+    local function ids()
+      local list = {}
+      for _, change in ipairs(core.defaults()) do list[#list + 1] = change.id end
+      table.sort(list)
+      return table.concat(list, ',')
+    end
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F10'))
+    assert(ids() == 'keyBindings:reset', ids())
+    local result = core.apply(core.defaults())
     assert(result.ok, tostring(result.error))
-    assert(next(manager.keyBindings()) == nil and manager.padTalk() == false)
-    assert(next(core.defaults()) == nil)
+    assert(manager.keyBindings().voice == 'IK_F7' and manager.keyBindings().manager == 'IK_F4' and ids() == '')
+    -- A key cleared on purpose differs from the defaults too, and so does a key on a Johnny action (they have none).
+    assert(manager.setKeyBinding(player, 'manager', nil) and ids() == 'keyBindings:reset')
+    assert(core.apply(core.defaults()).ok and manager.keyBindings().manager == 'IK_F4' and ids() == '')
+    assert(manager.setKeyBinding(player, 'johnny_text', 'IK_J') and ids() == 'keyBindings:reset')
+    assert(core.apply(core.defaults()).ok and manager.keyBindings().johnny_text == nil and ids() == '')
+    -- The old id is gone, and so is the Controller category with its setting.
+    local old = core.apply({{id = 'keyBindings:clear', value = true}})
+    assert(old.ok == false and old.error == 'That setting is read-only.', tostring(old.error))
+    assert(invoke('tab:key-bindings').ok)
+    for _, category in ipairs(loaded.categories) do
+      assert(category.id ~= 'kb:controller' and category.name ~= 'Controller', tostring(category.id))
+      for _, item in ipairs(category.settings) do
+        assert(item.id ~= 'padTalk' and item.label ~= 'Controller talk button', tostring(item.id))
+        assert(not tostring(item.description):find('Controller talk button', 1, true), tostring(item.id))
+      end
+    end
+    assert(core.model().description:find('Set from the start: F7 talk by voice, F6 talk by text, F9 group voice chat, F8 group text chat and F4 the Companion Manager.', 1, true), 'the page says which keys are set from the start')
+  `);
+});
+
+test('Default key bindings are given once: a fresh file gets F4, F6, F7, F8 and F9, an old file keeps the keys it has and skips a default another action holds, a cleared key stays cleared, and defaultKeyBindings is the Restore defaults batch', () => {
+  run(`${managerFixture}
+    local DEFAULTS = {manager = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F9'}
+    local function load(extra)
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}}
+      for key, value in pairs(extra) do seed[key] = value end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      return manager.keyBindings()
+    end
+    local function expect(keys, expected, label)
+      for action, key in pairs(expected) do assert(keys[action] == key, label .. ': ' .. action .. ' ' .. tostring(keys[action])) end
+      for action, key in pairs(keys) do assert(expected[action] == key, label .. ': unexpected ' .. action .. ' ' .. tostring(key)) end
+    end
+    -- A fresh file: the five defaults, the Johnny actions have none, and the file says they were given.
+    local keys = load({})
+    expect(keys, DEFAULTS, 'fresh')
+    assert(saved.keyDefaultsGiven == true and saved.future.keep == 'unchanged')
+    expect(saved.keyBindings, DEFAULTS, 'saved')
+    expect(manager.snapshot(player).settings.keyBindings, DEFAULTS, 'snapshot')
+    -- Once: the file that was just written loads without another save.
+    seed, saved = saved, nil
+    files['runtime/settings.json'] = 'seed'
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved == nil, 'the second load saved again')
+    expect(manager.keyBindings(), DEFAULTS, 'second load')
+    -- An old file with no keys at all (an empty table, no marker) is rewritten once with the defaults.
+    expect(load({keyBindings = {}}), DEFAULTS, 'old empty')
+    assert(saved.keyDefaultsGiven == true)
+    -- An old file with one key already set keeps it, and the default another action holds is skipped (F9 is Group voice chat by default, text has it here).
+    keys = load({keyBindings = {text = 'IK_F9'}})
+    expect(keys, {text = 'IK_F9', manager = 'IK_F4', voice = 'IK_F7', group_text = 'IK_F8'}, 'one key set')
+    assert(keys.group_voice == nil and saved.keyDefaultsGiven == true)
+    -- A Johnny action holding F4 keeps it as well: the Manager default is skipped.
+    keys = load({keyBindings = {johnny_voice = 'IK_F4'}})
+    expect(keys, {johnny_voice = 'IK_F4', text = 'IK_F6', voice = 'IK_F7', group_text = 'IK_F8', group_voice = 'IK_F9'}, 'johnny key')
+    -- A file that has had the defaults is left alone: an empty table means the player cleared every key.
+    expect(load({keyBindings = {}, keyDefaultsGiven = true}), {}, 'marked empty')
+    assert(next(saved.keyBindings) == nil and saved.keyDefaultsGiven == true, 'nothing is given to a file that has had the defaults')
+    -- A key cleared later stays cleared, through a reload.
+    load({})
+    assert(manager.setKeyBinding(player, 'voice', nil) and saved.keyBindings.voice == nil and saved.keyDefaultsGiven == true)
+    seed, saved = saved, nil
+    files['runtime/settings.json'] = 'seed'
+    manager.configure(api, profiles); manager.prepare(player)
+    expect(manager.keyBindings(), {manager = 'IK_F4', text = 'IK_F6', group_text = 'IK_F8', group_voice = 'IK_F9'}, 'cleared stays cleared')
+    -- The batch for Restore defaults: each action's default key, false for the two Johnny actions (the batch clears them).
+    local batch = manager.defaultKeyBindings()
+    for action, key in pairs(DEFAULTS) do assert(batch[action] == key, action) end
+    assert(batch.johnny_voice == false and batch.johnny_text == false)
+    assert(manager.applySettings(player, {keyBindings = batch}))
+    expect(manager.keyBindings(), DEFAULTS, 'restored')
+  `);
+});
+
+test('The Controller talk button is gone: no setting, getter or snapshot key, and a saved padTalk = true quietly becomes the Talk by voice binding on the left stick click; the key is removed from the file either way', () => {
+  run(`${managerFixture}
+    local function load(extra)
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}}
+      for key, value in pairs(extra) do seed[key] = value end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      return manager.keyBindings()
+    end
+    local keys = load({})
+    assert(manager.padTalk == nil and manager.snapshot(player).settings.padTalk == nil and saved.padTalk == nil, 'no getter, no snapshot key, nothing saved')
+    -- On, Talk by voice has no key and nobody holds the click: the click becomes its key. The other actions still get their default keys.
+    keys = load({padTalk = true})
+    assert(keys.voice == 'IK_Pad_LeftThumb' and saved.keyBindings.voice == 'IK_Pad_LeftThumb', tostring(keys.voice))
+    assert(keys.text == 'IK_F6' and keys.group_voice == 'IK_F9' and keys.group_text == 'IK_F8' and keys.manager == 'IK_F4')
+    assert(saved.padTalk == nil and manager.snapshot(player).settings.padTalk == nil and saved.future.keep == 'unchanged', 'the key is removed from the file')
+    -- Once: the migrated file loads without another save.
+    seed, saved = saved, nil
+    files['runtime/settings.json'] = 'seed'
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved == nil and manager.keyBindings().voice == 'IK_Pad_LeftThumb', 'the second load saved again')
+    -- Off: the key is removed, nothing is bound to the click, and Talk by voice gets its default key.
+    keys = load({padTalk = false})
+    assert(saved.padTalk == nil and keys.voice == 'IK_F7')
+    for _, key in pairs(keys) do assert(key ~= 'IK_Pad_LeftThumb') end
+    -- Talk by voice already has a key: it keeps that one, and the click is not bound.
+    keys = load({padTalk = true, keyBindings = {voice = 'IK_F10'}})
+    assert(saved.padTalk == nil and keys.voice == 'IK_F10')
+    for _, key in pairs(keys) do assert(key ~= 'IK_Pad_LeftThumb') end
+    -- Another action holds the click: Talk by voice does not take it (with the defaults already given it stays unbound).
+    keys = load({padTalk = true, keyDefaultsGiven = true, keyBindings = {text = 'IK_Pad_LeftThumb'}})
+    assert(saved.padTalk == nil and keys.text == 'IK_Pad_LeftThumb' and keys.voice == nil)
+    -- An Apply from an old caller that still carries it saves nothing for it.
+    manager.applySettings(player, {padTalk = true})
+    assert(saved.padTalk == nil and manager.snapshot(player).settings.padTalk == nil)
+  `);
+  run(`${nsuiFixture}
+    local function check(page)
+      for _, category in ipairs(loaded.categories) do
+        assert(category.id ~= 'kb:controller' and category.name ~= 'Controller', page .. ': ' .. tostring(category.id))
+        for _, item in ipairs(category.settings) do
+          assert(item.id ~= 'padTalk' and item.label ~= 'Controller talk button', page .. ': ' .. tostring(item.id))
+          assert(not tostring(item.description):find('Controller talk button', 1, true), page .. ': ' .. tostring(item.id))
+        end
+      end
+    end
+    assert(invoke('tab:settings').ok)
+    assert(row('padTalk') == nil)
+    check('settings')
+    assert(invoke('settings:back').ok and invoke('tab:key-bindings').ok)
+    check('key bindings')
+  `);
+});
+
+test('Companion voices: the first entry is Off (the old playback switch), it saves voice = false and keeps the saved voice, choosing a voice turns voices back on, and there is no Voice playback row', () => {
+  run(`${nsuiFixture}
+    assert(invoke('tab:settings').ok)
+    assert(row('voice') == nil, 'the playback switch has no row of its own')
+    local entry = row('voiceProvider')
+    assert(#entry.elements == 8 and entry.elements[1] == 'Off' and entry.elements[2] == 'Pocket · Performance' and entry.elements[8] == 'Convai · Cloud voice')
+    assert(entry.value == 2 and entry.defaultValue == 2 and manager.snapshot(player).settings.voice == true)
+    assert(entry.description:find('^Off: replies are text only and no voice is generated.') and entry.description:find('Pocket: the lightest', 1, true), 'Off is explained first')
+    -- Choose the Convai voice, then Off: voice is false, the saved voice stays, and the row reads Off after a reload.
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'convai' and saved.voice == true)
+    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}})
+    assert(result.ok and saved.voice == false and saved.voiceProvider == 'convai' and manager.snapshot(player).settings.voice == false)
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').value == 1 and row('replyLanguage') ~= nil and row('voice') == nil)
+    -- The same voice again turns voices back on; Off keeps the voice every time.
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voice == true and saved.voiceProvider == 'convai')
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').value == 8)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}}).ok and saved.voice == false and saved.voiceProvider == 'convai')
+    -- A different voice turns voices on and is saved.
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok and saved.voice == true and saved.voiceProvider == 'pocket')
+    -- The stored switch still applies under its own id, and a batch that carries it decides it.
+    assert(registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 8}}).ok and saved.voice == false and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'voice', value = true}}).ok and saved.voice == true and saved.voiceProvider == 'convai')
+    assert(manager.applySettings(player, {voice = false}) and saved.voice == false and saved.voiceProvider == 'convai')
+    -- Entries that are not in the list are refused and nothing is saved.
+    for _, invalid in ipairs({0, 9, 1.5, '2', false}) do
+      assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = invalid}}).ok and saved.voice == false and saved.voiceProvider == 'convai', tostring(invalid))
+    end
+  `);
+  // Entries that cannot be chosen are keyed by the shifted entry number: without the OmniVoice pack the four OmniVoice entries (4 to 7) are greyed out.
+  run(`${nsuiFixture}
+    local clock = 1000
+    os.time = function() return clock end
+    jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}}, updated = clock * 1000}
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    local entry = row('voiceProvider')
+    local disabled = entry.disabledElements or {}
+    for index = 4, 7 do assert(disabled[index] ~= nil, 'entry ' .. index .. ' is greyed out') end
+    for _, index in ipairs({1, 2, 8}) do assert(disabled[index] == nil, 'entry ' .. index .. ' stays choosable') end
+  `);
+});
+
+test('Subtitles: one select in Voices right after Voice language (Off, Cinematic subtitles, Above the speaker); Off saves subtitles = false and keeps the saved style, choosing a style turns subtitles back on', () => {
+  run(`${nsuiFixture}
+    assert(invoke('tab:settings').ok)
+    assert(row('subtitles') == nil, 'the Subtitles switch has no row of its own')
+    local voices = {}
+    for _, category in ipairs(loaded.categories) do
+      assert(category.id ~= 'subtitles' and category.id ~= 'reactions' and category.name ~= 'Subtitles' and category.name ~= 'Automatic reactions', tostring(category.id))
+      if category.id == 'voices' then for _, item in ipairs(category.settings) do voices[#voices + 1] = item.id end end
+    end
+    local at = {}
+    for index, id in ipairs(voices) do at[id] = index end
+    assert(at.replyLanguage and at.subtitleStyle == at.replyLanguage + 1, 'right after Voice language: ' .. table.concat(voices, ','))
+    local entry = row('subtitleStyle')
+    assert(entry.label == 'Subtitles' and entry.type == 'select' and entry.value == 2 and entry.defaultValue == 2)
+    assert(#entry.elements == 3 and entry.elements[1] == 'Off' and entry.elements[2] == 'Cinematic subtitles' and entry.elements[3] == 'Above the speaker')
+    assert(not entry.description:find('Subtitle display', 1, true))
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do assert(item.label ~= 'Subtitle display', tostring(item.id)) end
+    end
+    local snapshot = manager.snapshot(player).settings
+    assert(snapshot.subtitles == true and snapshot.subtitleStyle == 'dialogue')
+    -- Above the speaker: the style is saved and subtitles are on.
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 3}}).ok and saved.subtitleStyle == 'overhead' and saved.subtitles == true)
+    -- Off: subtitles false, the saved style untouched, and the row reads Off after a reload.
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok and saved.subtitles == false and saved.subtitleStyle == 'overhead')
+    loaded = registered.loadMod('manager')
+    assert(row('subtitleStyle').value == 1 and manager.subtitleStyle() == 'overhead')
+    -- Choosing a style turns subtitles back on: the saved one comes back, or another is saved.
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 3}}).ok and saved.subtitles == true and saved.subtitleStyle == 'overhead')
+    loaded = registered.loadMod('manager')
+    assert(row('subtitleStyle').value == 3)
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok and registered.applyBatch('manager', {{id = 'subtitleStyle', value = 2}}).ok)
+    assert(saved.subtitles == true and saved.subtitleStyle == 'dialogue')
+    -- The stored switch still applies under its own id, and a batch that carries it decides it.
+    assert(registered.applyBatch('manager', {{id = 'subtitles', value = false}, {id = 'subtitleStyle', value = 3}}).ok and saved.subtitles == false and saved.subtitleStyle == 'overhead')
+    -- Entries that are not in the list are refused and nothing is saved.
+    for _, invalid in ipairs({0, 4, 1.5, '2', false}) do
+      assert(not registered.applyBatch('manager', {{id = 'subtitleStyle', value = invalid}}).ok and saved.subtitles == false and saved.subtitleStyle == 'overhead', tostring(invalid))
+    end
+  `);
+});
+
+test('React to battles and React to collected loot are the last two rows of Gameplay, on by default, apply on their own and are listed by Restore defaults; there is no Automatic reactions category', () => {
+  run(`${nsuiFixture}
+    assert(invoke('tab:settings').ok)
+    local gameplay
+    for _, category in ipairs(loaded.categories) do
+      assert(category.id ~= 'reactions' and category.name ~= 'Automatic reactions', tostring(category.id))
+      if category.id == 'gameplay' then gameplay = category end
+    end
+    assert(gameplay and #gameplay.settings >= 3)
+    local battle, loot = gameplay.settings[#gameplay.settings - 1], gameplay.settings[#gameplay.settings]
+    assert(battle.id == 'battleReactions' and battle.label == 'React to battles' and battle.type == 'bool' and battle.value == true and battle.defaultValue == true)
+    assert(loot.id == 'lootReactions' and loot.label == 'React to collected loot' and loot.type == 'bool' and loot.value == true and loot.defaultValue == true)
+    assert(battle.description:find('Ten-minute cooldown after a fight', 1, true) and loot.description:find('Storage transfers stay silent', 1, true))
+    assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok and saved.battleReactions == false and saved.lootReactions == true)
+    assert(registered.applyBatch('manager', {{id = 'lootReactions', value = false}}).ok and saved.lootReactions == false and saved.battleReactions == false)
+    local at = {}
+    for _, change in ipairs(core.defaults()) do at[change.id] = change.value end
+    assert(at.battleReactions == true and at.lootReactions == true, 'Restore defaults names both')
+    assert(core.apply(core.defaults()).ok and saved.battleReactions == true and saved.lootReactions == true)
+  `);
+});
+
+test('V’s voice for microphone lines is a select beside typed lines: all four typed/microphone on/off pairs are saved by one Apply, V has one engine (two different ones are refused, a choice names the other row), and each row reads its own value', () => {
+  run(`${nsuiFixture}
+    local clock = 1000
+    os.clock = function() return clock end
+    jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
+    files['runtime/mistral-state.json'] = 'mistral-key'
+    clock = clock + 2
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    local SAME = 'V’s typed and microphone lines use the same voice. Choose the same one for both, or Off for one.'
+    local function apply(...)
+      clock = clock + 2
+      local changes = {}
+      for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
+      return core.apply(changes)
+    end
+    -- Every pair of Off / Pocket, typed and microphone.
+    for typed = 1, 2 do
+      for mic = 1, 2 do
+        local tag = 'typed ' .. typed .. ' mic ' .. mic
+        local result = apply({'vVoice', typed}, {'vVoiceMic', mic})
+        assert(result.ok, tag .. ': ' .. tostring(result.error))
+        assert(saved.vVoice == (typed ~= 1) and saved.vVoiceMic == (mic ~= 1), tag)
+        assert(manager.vVoice() == (typed ~= 1) and manager.vVoiceMic() == (mic ~= 1) and manager.vVoiceActive() == (typed ~= 1 or mic ~= 1), tag)
+        loaded = registered.loadMod('manager')
+        assert(row('vVoice').value == typed and row('vVoiceMic').value == mic, tag .. ': each row reads its own value')
+      end
+    end
+    -- One engine: two different engines in one Apply are refused and nothing is saved, whichever row comes first.
+    assert(apply({'vVoice', 2}, {'vVoiceMic', 2}).ok)
+    for _, pair in ipairs({{2, 3}, {3, 2}}) do
+      local result = apply({'vVoice', pair[1]}, {'vVoiceMic', pair[2]})
+      assert(result.ok == false and result.error == SAME and saved.vVoiceEngine == 'pocket', tostring(result.error))
+    end
+    -- The same engine for both is one save; Off for one and an engine for the other is fine.
+    assert(apply({'vVoice', 3}, {'vVoiceMic', 3}).ok and saved.vVoiceEngine == 'voxtral' and saved.vVoice == true and saved.vVoiceMic == true)
+    assert(apply({'vVoice', 1}, {'vVoiceMic', 2}).ok and saved.vVoiceEngine == 'pocket' and saved.vVoice == false and saved.vVoiceMic == true)
+    assert(apply({'vVoice', 3}, {'vVoiceMic', 1}).ok and saved.vVoiceEngine == 'voxtral' and saved.vVoice == true and saved.vVoiceMic == false)
+    -- Off on one row leaves the engine and the other row as they are.
+    assert(apply({'vVoice', 3}, {'vVoiceMic', 3}).ok and apply({'vVoiceMic', 1}).ok)
+    assert(saved.vVoiceEngine == 'voxtral' and saved.vVoice == true and saved.vVoiceMic == false)
+    -- An engine chosen on one row while the other row is on moves the other, and the line names it; with the other Off nothing is named.
+    assert(apply({'vVoice', 2}, {'vVoiceMic', 2}).ok)
+    local result = apply({'vVoiceMic', 3})
+    assert(result.ok and saved.vVoiceEngine == 'voxtral' and saved.vVoice == true and saved.vVoiceMic == true, tostring(result.error))
+    assert(table.concat(result.names, ', ') == 'V’s voice for typed lines', table.concat(result.names, ', '))
+    result = apply({'vVoice', 3})
+    assert(result.ok and #result.names == 0, 'the same engine again changes nothing else')
+    result = apply({'vVoice', 2})
+    assert(result.ok and saved.vVoiceEngine == 'pocket' and table.concat(result.names, ', ') == 'V’s voice for microphone lines', table.concat(result.names, ', '))
+    assert(apply({'vVoiceMic', 1}).ok)
+    result = apply({'vVoice', 3})
+    assert(result.ok and saved.vVoiceEngine == 'voxtral' and saved.vVoiceMic == false and #result.names == 0, 'the microphone row is Off: nothing is named')
+    -- Voxtral needs the key on this row too, and a value that is not in the list is refused.
+    jsonFixtures['mistral-none'] = {provider = 'convai', effective = 'convai', saved = false}
+    files['runtime/mistral-state.json'] = 'mistral-none'
+    clock = clock + 2
+    manager.snapshot(player)
+    result = apply({'vVoiceMic', 3})
+    assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(result.error))
+    for _, invalid in ipairs({0, 5, 1.5, '2', true, false}) do
+      result = apply({'vVoiceMic', invalid})
+      assert(result.ok == false and result.error == 'Choose one of the listed voices for V.', tostring(invalid) .. ' ' .. tostring(result.error))
+    end
+  `);
+});
+
+test('V’s voice for microphone lines is migrated once: a file saved before it was a setting of its own keeps what the player heard (typed lines Off made microphone lines silent), and vVoiceMicOwn marks the file', () => {
+  run(`${managerFixture}
+    local function load(extra)
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}}
+      for key, value in pairs(extra) do seed[key] = value end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      return manager.snapshot(player).settings
+    end
+    -- Typed lines Off with microphone lines on, no marker: that was silent, so it becomes off, once.
+    local state = load({vVoice = false, vVoiceChosen = true, vVoiceMic = true})
+    assert(state.vVoice == false and state.vVoiceMic == false and saved.vVoiceMic == false and saved.vVoiceMicOwn == true, 'migrated')
+    assert(not manager.vVoiceMic() and not manager.vVoiceActive() and saved.future.keep == 'unchanged')
+    -- Once: the migrated file loads without another save, and the choice made afterwards stays.
+    seed, saved = saved, nil
+    files['runtime/settings.json'] = 'seed'
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved == nil and not manager.vVoiceMic(), 'the second load saved again')
+    assert(manager.applySettings(player, {vVoiceMic = true}) and manager.vVoiceMic() and manager.vVoiceActive() and not manager.vVoice())
+    seed, saved = saved, nil
+    files['runtime/settings.json'] = 'seed'
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(manager.vVoiceMic() and not manager.vVoice() and saved == nil, 'with the marker nothing is forced')
+    -- With the marker in the file nothing is forced either.
+    state = load({vVoice = false, vVoiceChosen = true, vVoiceMic = true, vVoiceMicOwn = true})
+    assert(state.vVoice == false and state.vVoiceMic == true and saved.vVoiceMicOwn == true and saved.vVoiceMic == true)
+    -- Typed lines on keep microphone lines as saved; the marker is added.
+    state = load({vVoice = true, vVoiceMic = true})
+    assert(state.vVoiceMic == true and saved.vVoiceMicOwn == true)
+    state = load({vVoice = true, vVoiceMic = false})
+    assert(state.vVoiceMic == false and saved.vVoiceMicOwn == true)
+    state = load({vVoice = false, vVoiceChosen = true, vVoiceMic = false})
+    assert(state.vVoiceMic == false and saved.vVoiceMicOwn == true)
+    -- A file without either key: typed lines on by default, microphone lines off.
+    state = load({})
+    assert(state.vVoice == true and state.vVoiceMic == false and saved.vVoiceMicOwn == true)
   `);
 });

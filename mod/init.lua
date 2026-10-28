@@ -6287,35 +6287,6 @@ function convaiVoiceChoicesTick()
     convaiVoiceChoicesModule().tick()
 end
 
--- Controller talk button (Settings > Voices, off by default; docs/CONTROLLER_BINDING.md): hold the left stick click (L3) to talk, let go to send. The
--- redscript half (PadTalk.reds) listens to the game's walking action for that click and times the hold; mod/pad-binding.lua decides whether the moment is
--- allowed and runs the talk key's own code path (voiceKeyEdge, under its own key id so a keyboard hold and a controller hold never end each other).
--- Event driven: nothing here runs per frame, and while the setting is off the module is not even loaded. Global functions, so onUpdate reaches them without
--- a new upvalue.
-function convaiPadBindingModule()
-    if convaiPadBinding then return convaiPadBinding end
-    convaiPadBinding = dofile('pad-binding.lua')
-    convaiPadBinding.deps = {
-        enabled = function() return manager.padTalk() end,
-        -- A menu, a loading screen or the text box: the same test the talk key itself makes.
-        menu = function(who) return not gameplayCanAcquire(who) end,
-        sample = function(who) return battleObserver.sample(who) end,
-        press = function() voiceKeyEdge('pad_voice', false, true) end,
-        release = function() voiceKeyEdge('pad_voice', false, false) end,
-        observe = function(fn) Observe('PlayerPuppet', 'ConvaiPadNotify', function(this) fn(this) end) end,
-        log = log,
-    }
-    return convaiPadBinding
-end
-
-function convaiPadBindingTick(player, ready)
-    if not manager.padTalk() then
-        -- Turned off after being on: the hold ends and the redscript listener stops (once; the module's tick returns at its first line otherwise).
-        if convaiPadBinding then convaiPadBinding.tick(player, ready) end
-        return
-    end
-    convaiPadBindingModule().tick(player, ready)
-end
 -- A typed line was handed to the service (convaiTalkReceipt, set where the composer's submission is sent): 2 s later one probe.log line says whether the
 -- service took it, from the bridge's own status (mod/service-status.lua receipt), so a request that is never read shows in a report (game 2.31, 25 Oct: a
 -- typed line had no reply and nothing said where it stopped). Not yet taken: one more look at 6 s, then the line says what the service last wrote.
@@ -7176,9 +7147,6 @@ registerForEvent('onUpdate', function(delta)
     -- Speak dialogue choices (Settings > Gameplay, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local vcOk, vcError = pcall(convaiVoiceChoicesTick)
     if not vcOk then convaiLogOnce('Speak dialogue choices failed: ' .. tostring(vcError)) end
-    -- Controller talk button (Settings > Voices, off by default): one boolean per tick while it is off; the module is not even loaded then.
-    local padOk, padError = pcall(convaiPadBindingTick, player, worldReady)
-    if not padOk then convaiLogOnce('Controller talk button failed: ' .. tostring(padError)) end
     -- Developer mode: the next two features (keys, outfits) are their own 'init:features' row in perf-probe.json, the rest of the tick goes back to 'init:tick'.
     mark('init:features')
     -- The mod's own key bindings (Companion Manager > Key bindings): one table check per tick while none is saved; the module is not even loaded then.
@@ -7602,7 +7570,6 @@ registerForEvent('onShutdown', function()
     if autoConnect then pcall(autoConnect.reset) end
     microphone.cancel()
     if convaiVoiceActivation then pcall(convaiVoiceActivation.off) end
-    if convaiPadBinding then pcall(convaiPadBinding.stop, liveWorld and Game.GetPlayer() or nil) end
     if convaiKeyBinds then pcall(convaiKeyBinds.stop, liveWorld and Game.GetPlayer() or nil) end
     if liveWorld then speech.stop('shutdown'); subtitles.clear()
     else speech.abandon(); subtitles.abandon() end

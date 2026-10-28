@@ -107,7 +107,7 @@ test('V on OmniVoice (voiceProvider x vVoiceEngine x pack): Mature content leave
   files['runtime/local-voice-state.json'] = 'voice-state-back'
   manager.snapshot(player); frames(8)
   assert(ns.find('V’s voice for typed lines').selectedElementIndex == 4)
-  ns.interact.select(ns.find('Companion voices'), 1); frames(8); ns.verify()
+  ns.interact.select(ns.find('Companion voices'), 2); frames(8); ns.verify()
   assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(saved.vVoiceEngine))
   assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
   assert(ns.find('V’s voice for typed lines').selectedElementIndex == 2)

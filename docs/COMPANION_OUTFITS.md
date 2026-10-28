@@ -127,7 +127,7 @@ A visiting copy owned by the housemates module (`entry.owner == 'housemates'`, s
 
 ## Cost
 
-Nothing per frame. `init.lua` calls `convaiOutfitTick` from the 10 Hz branch of `onUpdate` (after the 0.1 s gate, with `padTalk` and `voiceActivation`): with the setting
+Nothing per frame. `init.lua` calls `convaiOutfitTick` from the 10 Hz branch of `onUpdate` (after the 0.1 s gate, with `voiceActivation`): with the setting
 off that is one boolean and the module is not loaded; on, the module subtracts the elapsed time from one counter and returns. Every 20 s (every 5 s while a copy waits to be unseen) it reads the ready copies the
 list knows (usually none or two), the game clock (one native read) and, only when a copy wants to change, the world (the battle observer's read) and the copy's view
 (`GameInstance.GetCameraSystem():IsInCameraFrustum(npc, 2.0, 0.75)`, the margins the game's own reaction and vehicle code uses for "could be seen"; the camera

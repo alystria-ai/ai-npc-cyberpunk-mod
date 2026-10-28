@@ -29,8 +29,8 @@ never touches the conversation.
 
 ## Microphone lines (2026-10-24, setting `vVoiceMic`, off by default; reworked the same day to behave like a typed line)
 
-A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voices > V speaks your microphone lines**, right under
-V's voice, off by default, only meaningful while V's voice is on (the saved choice is kept when V's voice goes off).
+A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voices > V's voice for microphone lines**, right under
+V's voice for typed lines, off by default. Since 0.3.4 it is a row of its own, the same list as the typed one (Off, Pocket, Voxtral, OmniVoice), and independent of it: typed on and microphone off, the reverse, both or neither all work. Both rows use one engine (`vVoiceEngine`): choosing an engine on one moves the other when it is on. Before 0.3.4 a microphone line was repeated only beside typed lines, so a settings file without `vVoiceMicOwn` that has microphone lines on and typed lines off is turned to microphone Off once (what the player heard stays the same). The bridge applies the same rule to a file the mod has not rewritten yet (`bridge/v-voice.mjs` `update`).
 
 **Why push-to-talk never replayed V (found 2026-10-24).** The first version of the feature (29234fb4, 2026-10-14) wrote it into the setting's description and the docs
 in one phrase: "push-to-talk is never replayed (you already spoke it)". There is no other written reason. The reasoning that follows from it: a typed line is silent,

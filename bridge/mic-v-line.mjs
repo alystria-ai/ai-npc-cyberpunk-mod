@@ -10,7 +10,7 @@
 //     TRANSCRIPT_WAIT_MS (convai-continuous-speech.mjs) after its first audio, then the reply goes on without V), starts the line from `onTranscript`, and holds the buffered reply
 //     behind it exactly as it does for a typed line.
 // An empty recording never reaches the callback (the channel fails with "no speech" first). A cancelled or superseded turn aborts its signal (the microphone
-// session's), and a new turn ends the line of the previous one (dropAll). Nothing here runs unless V's voice and the setting are both on.
+// session's), and a new turn ends the line of the previous one (dropAll). Nothing here runs unless the microphone-line setting is on (it does not depend on the typed-line setting since 0.3.4).
 
 export class MicVLines {
   /**

@@ -66,7 +66,7 @@ const micOn = {vVoiceMic: true};
 
 // ---- the setting --------------------------------------------------------------------------------------------------------
 
-test('the setting is off by default and only an explicit true turns it on; it means nothing while V\'s voice is off', () => {
+test('the setting is off by default and only an explicit true turns it on; it is independent of V\'s voice for typed lines', () => {
   const voice = new VVoice({voices: {male: {key: 'v-male'}}});
   assert.equal(voice.micEnabled, false, 'until the settings are read');
   voice.update({});
@@ -75,8 +75,10 @@ test('the setting is off by default and only an explicit true turns it on; it me
   assert.equal(voice.update({vVoiceMic: true}), true, 'a change is reported'); assert.equal(voice.micEnabled, true);
   assert.equal(voice.update({vVoiceMic: true}), false);
   assert.equal(voice.micWanted, true);
-  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true});
-  assert.equal(voice.micEnabled, true, 'the saved choice is kept'); assert.equal(voice.micWanted, false, 'but V\'s voice is off: nothing is wanted');
+  voice.update({vVoice: false, vVoiceChosen: true, vVoiceMic: true, vVoiceMicOwn: true});
+  assert.equal(voice.enabled, false);
+  assert.equal(voice.micEnabled, true, 'the saved choice is kept'); assert.equal(voice.micWanted, true, 'typed lines Off does not stop microphone lines');
+  assert.equal(voice.active, true);
   voice.update({vVoice: true, vVoiceMic: false});
   assert.equal(voice.micWanted, false);
   const bare = new VVoice({voices: {}});
@@ -84,23 +86,24 @@ test('the setting is off by default and only an explicit true turns it on; it me
   assert.equal(bare.micWanted, false, 'no clips: nothing to say');
 });
 
-test('Settings > Voices carries the setting under V\'s voice, off by default, with the reason push-to-talk never replayed V and the reply following V\'s line, in all 15 languages', () => {
+test('Settings > Voices carries the setting under V\'s voice for typed lines as the same four-choice list, off by default, with the reason push-to-talk never replayed V and the reply following V\'s line, in all 15 languages', () => {
   const ui = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
-  const row = /setting\('vVoiceMic', 'V speaks your microphone lines', 'bool', snapshot\.settings\.vVoiceMic == true, false,\s*\r?\n\s*'([^\r\n]*)'\)/.exec(ui);
-  assert(row, 'the row exists, default false');
+  const row = /setting\('vVoiceMic', 'V’s voice for microphone lines', 'select', vRowIndex\(snapshot\.settings\.vVoiceMic == true\), 1,\s*\r?\n\s*'([^\r\n]*)',\s*\r?\n\s*vRowElements, \{elements = true\}\)/.exec(ui);
+  assert(row, 'the row exists, a select over the same elements as the typed row, default 1 (Off)');
   assert(ui.indexOf("setting('vVoice', ") < ui.indexOf("setting('vVoiceMic', "), 'under V\'s voice');
-  const NEW = 'After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself.';
+  const NEW = 'After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Off by default, because you just said it yourself.\\n\\nThis works on its own, whether or not typed lines are spoken. The choices are the same as for typed lines, and V speaks with one engine: choosing one here changes it for typed lines too, unless those are Off.';
   assert.equal(row[1], NEW);
-  assert.match(row[1], /Needs V’s voice on/);
   assert.match(row[1], /Off by default, because you just said it yourself/, 'the reason for the default');
   assert.match(row[1], /the reply follows V’s line/);
-  for (const dropped of [/never waits/i, /cut short/i, /OmniVoice/, /Convai/, /Not available/]) assert.doesNotMatch(row[1], dropped, 'the old promise and exclusions are gone: ' + dropped);
-  assert(row[1].length < 420, 'fits the description area without being cut');
+  assert.match(row[1], /works on its own, whether or not typed lines are spoken/, 'independent of the typed row');
+  assert.doesNotMatch(row[1], /Needs V’s voice on/, 'the old dependency is gone');
+  for (const dropped of [/never waits/i, /cut short/i, /Convai/, /Not available/]) assert.doesNotMatch(row[1], dropped, 'the old promise and exclusions are gone: ' + dropped);
+  assert(row[1].length < 520, 'fits the description area without being cut');
   for (const code of ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko']) {
     const file = readFileSync(new URL(`../mod/locales/${code}.lua`, import.meta.url), 'utf8');
-    assert(file.includes('["V speaks your microphone lines"] = "'), code + ' label');
+    assert(file.includes('["V’s voice for microphone lines"] = "'), code + ' label');
     assert(file.includes('["' + NEW + '"] = "'), code + ' description');
-    assert(!file.includes('V repeats your words out loud'), code + ': no old description left');
+    assert(!file.includes('V speaks your microphone lines'), code + ': no old label left');
   }
   const lua = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
   assert.match(lua, /if type\(settings\.vVoiceMic\) ~= 'boolean' then settings\.vVoiceMic, settingsNeedSave = false, true end/, 'saved off by default');

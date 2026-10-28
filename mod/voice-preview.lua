@@ -7,7 +7,7 @@ local INTERVAL = 1000
 -- so cycling through the voices never loads or unloads a worker per step.
 local DEFAULT_SETTLE = 0
 
--- The Companion voices list in menu order; the select's value is the index here (it is never saved: the settings keep the provider,
+-- The Companion voices list in menu order; the select's value is the index here plus one (the row's first entry is Off) (it is never saved: the settings keep the provider,
 -- omniSteps and omniReference, and indexOf() finds the entry, so reordering the list changes no one's choice). Pocket TTS is the default;
 -- the Mistral cloud voice (Voxtral, labelled recommended) follows it.
 -- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s). The Mistral cloud voice
@@ -129,7 +129,8 @@ function M.new(options)
         if not pendingOk or not pending then staged = nil; cancel(stamp); return end
         local providerOk, provider, providerError = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
         local savedOk, saved = pcall(readCommitted)
-        local choice = providerOk and not providerError and M.CHOICES[provider] or nil
+        -- The row's entry 1 is Off (nothing to prepare); a voice sits one place after its position in M.CHOICES.
+        local choice = providerOk and not providerError and type(provider) == 'number' and M.CHOICES[provider - 1] or nil
         if not choice
             or not savedOk or type(saved) ~= 'table'
             or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni' and saved.voiceProvider ~= 'voxtral'

@@ -325,7 +325,7 @@ test('the bridge releases what settings stop using: facial model, renderer pages
   assert.match(bridge, /const BROWSER_IDLE_MS = 300_000;/);
   assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.wantsPocket\);\s*void releaseUnused\(\)/, 'due-checked from the settings poll');
   assert.match(bridge, /if \(muted\) await jaliFace\.suspend\(\); else if \(!jaliFace\.active\) void jaliFace\.resume\(\);/);
-  assert.match(bridge, /realtime\.releaseRendererPages\(\{line: !vVoice\.enabled \|\| !vVoice\.available, companion: muted\}\)/);
+  assert.match(bridge, /realtime\.releaseRendererPages\(\{line: !vVoice\.active \|\| !vVoice\.available, companion: muted\}\)/);
   assert.match(bridge, /releaseIfIdle\(\{idleMs: BROWSER_IDLE_MS, keepRenderer\}\)/);
   assert.match(bridge, /phoneRealtime\.releaseIfIdle\(\{idleMs: BROWSER_IDLE_MS\}\)/);
   assert.match(bridge, /if \(voiceBoundaryBusy\(\) \|\| voiceRouteReservation \|\| keySwitching \|\| providerSwitching\) return;/, 'pages only between turns');

@@ -448,7 +448,7 @@ local function restoreScroll(before)
 end
 
 -- Restore defaults: the first press asks for a second one (the button says so), the second puts every row on Settings and
--- Relationships and Dynamic info back to its default, and clears the own key bindings, in ONE saved transaction, as MCM's own Defaults button did (that button is gone with the defaults).
+-- Relationships and Dynamic info back to its default, and puts the default key bindings back, in ONE saved transaction, as MCM's own Defaults button did (that button is gone with the defaults).
 local function restoreDefaults()
     if not restoreArmed then
         restoreArmed, restorePage = true, core.pageId()

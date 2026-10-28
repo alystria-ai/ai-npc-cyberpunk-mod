@@ -242,7 +242,7 @@ test('the status line follows the setting, the saved address and the voice servi
   -- OmniVoice saved and no address: the old sentence.
   service('none', {version = 1, set = false})
   voiceState('e', {provider = 'text', requestedProvider = 'omni', omniRemote = {set = false, connected = false}})
-  assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok); loaded = registered.loadMod('manager')
+  assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok); loaded = registered.loadMod('manager')
   assert(row('remote-status').value == 'On, but no server address is saved. OmniVoice cannot speak yet.', row('remote-status').value)
   service('a2', {version = 1, set = true, address = '192.168.1.20:8765'})
   voiceState('d', {provider = 'omni', requestedProvider = 'omni', omniRemote = {set = true, connected = true}})
@@ -276,16 +276,16 @@ test('the rows send their commands on their own channel, in place; the page foll
 test('OmniVoice can be chosen without the pack while Remote OmniVoice is on (saved or in the same save), and not otherwise', () => run(`${pageFixture()}${stateFixture}
   voiceState('nopack', {provider = 'pocket', requestedProvider = 'pocket', omniPack = {installed = false, missing = {'python'}}})
   assert(manager.omniPack().installed == false)
-  local refused = registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}})
+  local refused = registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}})
   assert(refused.ok == false, 'OmniVoice needs the pack when remote is off')
   assert(manager.snapshot(player).settings.voiceProvider == 'pocket')
   -- on in the same save: no pack needed
-  local both = registered.applyBatch('manager', {{id = 'remoteOmni', value = true}, {id = 'voiceProvider', value = 3}})
+  local both = registered.applyBatch('manager', {{id = 'remoteOmni', value = true}, {id = 'voiceProvider', value = 4}})
   assert(both.ok, tostring(both.error))
   assert(manager.snapshot(player).settings.remoteOmni == true and manager.snapshot(player).settings.voiceProvider == 'omni')
   -- the bridge says the pack is not needed now (remote): the entry is choosable in a later save as well
-  assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}}).ok)
-  assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok, 'saved remote counts')
+  assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
+  assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok, 'saved remote counts')
 `));
 
 test('the failed-server notice is its own sentence, once', () => run(`${pageFixture()}${stateFixture}

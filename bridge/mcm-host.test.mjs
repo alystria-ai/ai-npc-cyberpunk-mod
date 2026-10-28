@@ -209,9 +209,9 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
   local before = manager.snapshot(player).settings
   assert(before.subtitles == true and before.voiceVolume == 100)
   local loads = mcm.loads
-  assert(mcm.set('Subtitles', false) and mcm.set('Voice volume (%)', 150) and mcm.set('Subtitle display', 2))
+  assert(mcm.set('Subtitles', 3) and mcm.set('Voice volume (%)', 150))
   frames(6)
-  assert(manager.snapshot(player).settings.subtitles == true, 'nothing is saved before Apply')
+  assert(manager.snapshot(player).settings.subtitleStyle == 'dialogue', 'nothing is saved before Apply')
   assert(mcm.loads == loads, 'the page is not drawn again under pending changes')
   -- A button is refused while changes are pending (MCM's own rule), with its own words.
   local ok, why = mcm.press('Memory')
@@ -219,13 +219,17 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
   local ok2, why2 = mcm.apply()
   assert(ok2, tostring(why2))
   local after = manager.snapshot(player).settings
-  assert(after.subtitles == false and after.voiceVolume == 150 and after.subtitleStyle == 'overhead', 'saved: ' .. tostring(after.subtitles))
-  assert(mcm.row('Subtitles').value == false and mcm.row('Voice volume (%)').value == 150, 'the page shows what is saved')
+  assert(after.subtitles == true and after.voiceVolume == 150 and after.subtitleStyle == 'overhead', 'saved: ' .. tostring(after.subtitleStyle))
+  assert(mcm.row('Subtitles').value == 3 and mcm.row('Voice volume (%)').value == 150, 'the page shows what is saved')
   assert(not next(mcm.drafts()), 'no draft is left')
   -- An invalid value is refused by the rules, MCM keeps the drafts and says why.
-  local bad = mcm.set('Subtitle display', 2)
+  local bad = mcm.set('Subtitles', 2)
   assert(bad == true)
   mcm.revert()
+  -- Off: subtitles are off and the chosen display is kept; the row shows Off again after the page loads.
+  assert(mcm.set('Subtitles', 1) and mcm.apply())
+  local off = manager.snapshot(player).settings
+  assert(off.subtitles == false and off.subtitleStyle == 'overhead' and mcm.row('Subtitles').value == 1, tostring(off.subtitleStyle))
 `));
 
 test('Revert and Restore defaults: Revert drops the drafts; the footer button, pressed twice, puts every row back through the rules (the Local AI model included)', () => withScreen(`
@@ -242,7 +246,7 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   assert(layout.mcmDefaultsButton == false and layout.comparable == 0 and layout.modified == 0)
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   -- Pending changes: MCM refuses the button (its rule for every action), and nothing is reset.
-  mcm.set('Subtitles', false)
+  mcm.set('Subtitles', 1)
   local refused, why = mcm.press('Defaults')
   assert(refused == false and why:find('pending changes', 1, true), tostring(why))
   mcm.revert()
@@ -271,7 +275,7 @@ test('the footer never cuts a label: with changes pending five buttons share the
   press('Settings')
   -- The mod cannot hide MCM's Add to favorites (a setting of the player in MCM, with no public option for a mod), so the row is counted
   -- with it: Revert, Apply, Add to favorites, ours, Back.
-  mcm.set('Subtitles', false)
+  mcm.set('Subtitles', 1)
   local layout = mcm.layout()
   local labels = {}
   for _, button in ipairs(layout.footerRow) do labels[#labels + 1] = button.label end
@@ -284,7 +288,7 @@ test('the footer never cuts a label: with changes pending five buttons share the
   -- The first press of Defaults changes the label, and it still fits (the player may edit a row after pressing it).
   mcm.revert()
   press('Defaults')
-  mcm.set('Subtitles', false)
+  mcm.set('Subtitles', 1)
   layout = mcm.layout()
   for _, button in ipairs(layout.footerRow) do
     if not button.mcm then assert(core.optionUnits(button.label) <= layout.footerShare, button.label .. ' is cut') end
@@ -352,7 +356,7 @@ test('the page is drawn again when what it shows changes (not while changes are 
   assert(mcm.loads > loads, 'the page followed the change')
   -- A change while the player has a pending draft waits for Apply or Revert.
   press('Back to Companion Manager'); press('Settings')
-  assert(mcm.set('Subtitles', false))
+  assert(mcm.set('Subtitles', 1))
   loads = mcm.loads
   managerUi._test.core.refresh()
   frames(20)
@@ -565,7 +569,7 @@ test('no row is ever drawn as changed (purple): MCM needs a default for that mar
   end
   nothingPurple('fresh install')
   -- A saved change, a draft and a value away from the manager's default stay red as well.
-  assert(mcm.set('Subtitles', false) and mcm.apply())
+  assert(mcm.set('Subtitles', 1) and mcm.apply())
   frames(4)
   nothingPurple('after Apply')
   assert(mcm.set('Voice volume (%)', 170))
@@ -737,7 +741,7 @@ test('the list keeps its place after Apply and after a reload of the page, leave
   -- Without the scroll calls (an MCM that lacks them) nothing breaks.
   mcm.api.ui.getScrollPosition, mcm.api.ui.setScrollPosition = nil, nil
   press('Back to Companion Manager'); press('Settings')
-  assert(mcm.set('Subtitles', false) and mcm.apply())
+  assert(mcm.set('Subtitles', 1) and mcm.apply())
 `));
 
 test('the OmniVoice entries are disabled choices while its pack is missing: MCM refuses them as drafts, with the reason', () => withScreen(`
@@ -755,9 +759,13 @@ test('the OmniVoice entries are disabled choices while its pack is missing: MCM 
     if state.enabled == false then disabled = disabled + 1; assert(state.reason == 'Requires the optional OmniVoice pack (GPU)', tostring(state.reason)) end
   end
   assert(disabled == 4, 'the four OmniVoice entries: ' .. disabled)
-  local ok, why = mcm.set('Companion voices (no Omni pack)', 3)
+  -- The row's first entry is Off: always a free choice, and the voices follow it.
+  assert(mcm.row('Companion voices (no Omni pack)').elements[1] == 'Off' and states.states[1].enabled ~= false)
+  local ok, why = mcm.set('Companion voices (no Omni pack)', 4)
   assert(ok == false and why:find('OmniVoice', 1, true), tostring(why))
-  assert(mcm.set('Companion voices (no Omni pack)', 2) == true, 'a cloud voice entry is a normal draft')
+  assert(mcm.set('Companion voices (no Omni pack)', 3) == true, 'a cloud voice entry is a normal draft')
+  mcm.revert()
+  assert(mcm.set('Companion voices (no Omni pack)', 1) == true, 'Off is a normal draft')
   mcm.revert()
 `));
 
@@ -1215,7 +1223,7 @@ test('MCM 0.10.5 keeps working exactly as today: the base presentation only, no 
   assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Current party | Model browser | Character editor | Key bindings | Settings')
   press('Settings')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
-  assert(mcm.set('Subtitles', false))
+  assert(mcm.set('Subtitles', 1))
   local row = {}
   for _, button in ipairs(mcm.layout().footerRow) do row[#row + 1] = button.label end
   assert(table.concat(row, ' | ') == 'REVERT | APPLY | ADD TO FAVORITES | Defaults | Back', table.concat(row, ' | '))
@@ -1245,7 +1253,7 @@ test('MCM 0.10.6: the presentation gets labelIndent 20, highlightModifiedValues 
     if row.kind == 'action' then assert(row.x == 20 and row.size == 22, row.label) end
   end
   assert(footerLabels() == 'Restore defaults | Back', footerLabels())
-  assert(mcm.set('Subtitles', false))
+  assert(mcm.set('Subtitles', 1))
   local row = {}
   for _, button in ipairs(mcm.layout().footerRow) do row[#row + 1] = button.label end
   assert(table.concat(row, ' | ') == 'REVERT | APPLY | Restore defaults | Back', table.concat(row, ' | '))
@@ -1506,7 +1514,7 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
 test('Custom endpoint with changes pending: MCM refuses the button until Apply, the change is saved by Apply, and the page then opens', () => withScreen(`
   ${footer}
   press('Settings')
-  assert(mcm.set('Subtitles', false))
+  assert(mcm.set('Subtitles', 1))
   local ok, why = mcm.press('Custom endpoint')
   assert(ok == false and why:find('pending changes', 1, true), tostring(why))
   assert(mcm.config().navigation.pageId == 'settings|1|1', 'the page did not change')
@@ -1517,7 +1525,7 @@ test('Custom endpoint with changes pending: MCM refuses the button until Apply, 
   assert(next(mcm.drafts()) == nil, 'the page has no draft')
   -- The way back is a button, and Revert/Apply have nothing to do on this page.
   press('Back to settings')
-  assert(mcm.row('Subtitles').value == false, 'the saved change is on the page')
+  assert(mcm.row('Subtitles').value == 1, 'the saved change is on the page')
 `));
 
 test('Custom endpoint is not offered without the provider module: no button on Settings, nothing to open', () => run(`${harness({modules: withoutCustomModule})}
@@ -1629,7 +1637,7 @@ test('the OmniVoice entry of V’s voice is a normal choice with the pack instal
   assert(mcm.set(name, 4) and mcm.apply())
   assert(saved.vVoice == true and saved.vVoiceEngine == 'omni' and manager.vVoiceEngine() == 'omni' and mcm.row(name).value == 4)
   -- The companions move to Pocket: V goes to Pocket in the same save, and the line says so.
-  assert(mcm.set('Companion voices', 1) and mcm.apply())
+  assert(mcm.set('Companion voices', 2) and mcm.apply())
   frames(6)
   assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(saved.vVoiceEngine))
   assert(mcm.row(name).value == 2)
@@ -1730,8 +1738,7 @@ test('MCM: the Character editor row says the service is not running and writes n
 
 // ---------------------------------------------------------------------------------------------------- Key bindings (docs/KEY_BINDINGS.md)
 // A page of its own, opened from Home between the Character editor and Settings. The five actions show the key the player set and the key they set in Cyber
-// Engine Tweaks; Set waits for the game's next key (the redscript half is a fake player here), Clear removes it; the Controller talk button is the same setting
-// as on Settings; Restore defaults clears the keys.
+// Engine Tweaks; Set waits for the game's next key (the redscript half is a fake player here), Clear removes it; Restore defaults puts the five default keys back.
 const keyPlayer = `
   local keyQueue, keyList = {}, ''
   function player:ConvaiKeyBindsReady() return true end
@@ -1742,38 +1749,40 @@ const keyPlayer = `
   local function key(token) keyQueue[#keyQueue + 1] = token; convaiKeyBinds.take(player) end
 `;
 
-test('MCM: Key bindings lists the seven actions with the key set here and the key set in Cyber Engine Tweaks, sets one from a key event and clears it', () => withScreen(`
+test('MCM: Key bindings lists the seven actions with the key set here, starts with the five default keys, sets one from a key event and clears it', () => withScreen(`
   ${keyPlayer}
   press('Key bindings')
   assert(managerUi.inspect().view == 'key-bindings' and mcm.config().navigation.pageId == 'key-bindings|1|1')
+  -- The five actions start with their default key (F6 text, F7 voice, F8 group text, F9 group voice, F4 manager); the two Johnny ones have none.
+  local defaults = {voice = 'F7', text = 'F6', group_voice = 'F9', group_text = 'F8', manager = 'F4', johnny_voice = 'Not set', johnny_text = 'Not set'}
   for _, action in ipairs({'voice', 'text', 'group_voice', 'group_text', 'johnny_voice', 'johnny_text', 'manager'}) do
     -- One look on the page (2026-10-25): the key's own button shows the key and sets it; no text rows and no Cyber Engine Tweaks row (the owner's call).
     local mine = mcm.row('kb:set:' .. action)
-    assert(mine and mine.type == 'action' and mine.label == 'Key or button' and mine.value == 'Not set', action)
-    assert(not mcm.row('kb:cet:' .. action) and not mcm.row('kb:key:' .. action) and not mcm.row('kb:clear:' .. action), action)
+    assert(mine and mine.type == 'action' and mine.label == 'Key or button' and mine.value == defaults[action], action .. ' ' .. tostring(mine and mine.value))
+    assert(not mcm.row('kb:cet:' .. action) and not mcm.row('kb:key:' .. action), action)
   end
-  assert(mcm.row('padTalk').type == 'bool' and mcm.row('padTalk').label == 'Controller talk button')
+  assert(not mcm.row('padTalk') and not mcm.row('Controller talk button'), 'the Controller talk button is gone')
   -- Set waits for a key: the line under the way back says so, and the button turns into Cancel.
   press('kb:set:voice')
   frames(4)
   assert(mcm.status() == 'Press the key or controller button for Talk by voice. Esc or B cancels.', mcm.status())
   assert(mcm.row('kb:set:voice').value == 'Cancel' and convaiKeyBinds.capturing() == 'voice')
-  clock = clock + 1; key('kIK_F7'); frames(6)
-  assert(mcm.status() == 'Talk by voice is set to F7.', mcm.status())
-  assert(mcm.row('kb:set:voice').value == 'F7' and mcm.row('kb:clear:voice'), 'the page shows the new key')
-  assert(manager.snapshot(player).settings.keyBindings.voice == 'IK_F7' and keyList == 'IK_F7,-,-,-,-', 'saved, and registered at once')
-  -- A controller button for another action; the key set in CET shows beside it.
+  clock = clock + 1; key('kIK_F10'); frames(6)
+  assert(mcm.status() == 'Talk by voice is set to F10.', mcm.status())
+  assert(mcm.row('kb:set:voice').value == 'F10' and mcm.row('kb:clear:voice'), 'the page shows the new key')
+  assert(manager.snapshot(player).settings.keyBindings.voice == 'IK_F10' and keyList == 'IK_F10,IK_F6,IK_F9,IK_F8,IK_F4', 'saved, and registered at once: ' .. keyList)
+  -- A controller button for another action.
   press('kb:set:group_text'); clock = clock + 1; key('kIK_Pad_LeftShoulder'); frames(6)
   assert(mcm.row('kb:set:group_text').value == 'Controller LB' and mcm.status() == 'Group text chat is set to Controller LB.', mcm.status())
   -- Talk to Johnny has its own rows and slots: saved, and sent to the redscript after the five.
-  press('kb:set:johnny_voice'); clock = clock + 1; key('kIK_F9'); frames(6)
-  assert(mcm.status() == 'Talk to Johnny by voice is set to F9.' and manager.snapshot(player).settings.keyBindings.johnny_voice == 'IK_F9', mcm.status())
-  assert(keyList == 'IK_F7,-,-,IK_Pad_LeftShoulder,-,IK_F9', keyList)
+  press('kb:set:johnny_voice'); clock = clock + 1; key('kIK_F11'); frames(6)
+  assert(mcm.status() == 'Talk to Johnny by voice is set to F11.' and manager.snapshot(player).settings.keyBindings.johnny_voice == 'IK_F11', mcm.status())
+  assert(keyList == 'IK_F10,IK_F6,IK_F9,IK_Pad_LeftShoulder,IK_F4,IK_F11', keyList)
   press('kb:clear:johnny_voice'); frames(4); convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
-  assert(manager.snapshot(player).settings.keyBindings.johnny_voice == nil and keyList == 'IK_F7,-,-,IK_Pad_LeftShoulder,-', keyList)
+  assert(manager.snapshot(player).settings.keyBindings.johnny_voice == nil and keyList == 'IK_F10,IK_F6,IK_F9,IK_Pad_LeftShoulder,IK_F4', keyList)
   -- The same key twice is refused with the name of the action that has it.
-  press('kb:set:text'); clock = clock + 1; key('kIK_F7'); frames(6)
-  assert(mcm.status() == 'F7 is already used for Talk by voice. Choose another.' and not manager.snapshot(player).settings.keyBindings.text, mcm.status())
+  press('kb:set:text'); clock = clock + 1; key('kIK_F10'); frames(6)
+  assert(mcm.status() == 'F10 is already used for Talk by voice. Choose another.' and manager.snapshot(player).settings.keyBindings.text == 'IK_F6', mcm.status())
   -- Esc cancels, and leaving the page drops a Set that is waiting.
   press('kb:set:text'); clock = clock + 1; key('kIK_Escape'); frames(6)
   assert(mcm.status() == 'Cancelled.' and convaiKeyBinds.capturing() == nil)
@@ -1781,33 +1790,34 @@ test('MCM: Key bindings lists the seven actions with the key set here and the ke
   press('key-bindings:back'); frames(4)
   assert(convaiKeyBinds.capturing() == nil and managerUi.inspect().view == 'home', 'the Set did not outlive the page')
   press('Key bindings')
-  -- Clear removes it.
+  -- Clear removes it, and a key cleared stays cleared.
   press('kb:clear:voice'); frames(4)
   assert(mcm.status() == 'Talk by voice cleared.', tostring(mcm.status()))
   assert(mcm.row('kb:set:voice').value == 'Not set' and not mcm.row('kb:clear:voice'), tostring(mcm.row('kb:set:voice').value) .. ' / ' .. tostring(manager.keyBindings().voice))
   convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
-  assert(manager.snapshot(player).settings.keyBindings.voice == nil and keyList == '-,-,-,IK_Pad_LeftShoulder,-', keyList)
+  assert(manager.snapshot(player).settings.keyBindings.voice == nil and keyList == '-,IK_F6,IK_F9,IK_Pad_LeftShoulder,IK_F4', keyList)
 `));
 
-test('MCM: the Controller talk button on Key bindings is the Settings row, and Restore defaults on the page clears the keys and the button together', () => withScreen(`
+test('MCM: Restore defaults on Key bindings puts the five default keys back (and takes the Johnny ones away), and the Controller talk button is not on the page', () => withScreen(`
   ${footer}
   ${keyPlayer}
   press('Key bindings')
-  assert(footerLabels() == 'Defaults | Back', footerLabels())
-  assert(mcm.set('Controller talk button', true) and mcm.apply())
-  assert(manager.padTalk() == true, 'applied from this page')
-  press('key-bindings:back'); press('Settings')
-  assert(mcm.row('padTalk').value == true, 'the Settings row shows it')
-  press('settings:back'); press('Key bindings')
+  assert(not mcm.row('padTalk') and not mcm.row('Controller talk button'), 'no Controller talk button')
+  assert(mcm.row('kb:set:voice').value == 'F7')
   press('kb:set:text'); clock = clock + 1; key('kIK_T'); frames(4)
   press('kb:set:manager'); clock = clock + 1; key('kIK_Pad_Start'); frames(4)
-  assert(manager.keyBindings().text == 'IK_T' and manager.keyBindings().manager == 'IK_Pad_Start')
+  press('kb:clear:voice'); frames(4)
+  press('kb:set:johnny_text'); clock = clock + 1; key('kIK_F11'); frames(4)
+  assert(manager.keyBindings().text == 'IK_T' and manager.keyBindings().manager == 'IK_Pad_Start' and manager.keyBindings().voice == nil and manager.keyBindings().johnny_text == 'IK_F11')
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); assert(footerLabels() == 'Confirm | Back', footerLabels())
   press('Defaults'); frames(8)
-  assert(next(manager.keyBindings()) == nil and manager.padTalk() == false, 'both back to the defaults')
-  assert(mcm.row('kb:set:text').value == 'Not set' and mcm.row('padTalk').value == false, 'the page shows them')
+  local bindings = manager.keyBindings()
+  assert(bindings.voice == 'IK_F7' and bindings.text == 'IK_F6' and bindings.group_voice == 'IK_F9' and bindings.group_text == 'IK_F8' and bindings.manager == 'IK_F4', 'the five default keys are back')
+  assert(bindings.johnny_voice == nil and bindings.johnny_text == nil, 'Johnny has no default key')
+  assert(mcm.row('kb:set:text').value == 'F6' and mcm.row('kb:set:voice').value == 'F7' and mcm.row('kb:set:johnny_text').value == 'Not set', 'the page shows them')
   convaiKeyBinds.tick(player, true)   -- the game's 10 Hz tick
-  assert(keyList == '', 'and the listeners stop')
+  assert(keyList == 'IK_F7,IK_F6,IK_F9,IK_F8,IK_F4', 'and the listeners follow: ' .. keyList)
   assert(mcm.status() == 'Defaults restored.', mcm.status())
 `));
 
