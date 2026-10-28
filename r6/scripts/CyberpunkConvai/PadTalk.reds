@@ -15,6 +15,16 @@ module CyberpunkConvai
 // (the same action) or while the stick is pushed (a click made to sprint). Lua decides whether the moment is allowed (menus, scenes,
 // combat, vehicles) when it takes the 1.
 
+// Whether an edge may call into Lua while the game is delivering it (the input listener's OnAction, the delay system's callback), through
+// ConvaiPadNotify, which Lua observes. NO, on both game versions (player report on 0.3.3: the game froze, sometimes, on the first hold of the
+// left stick click after a load). A hold's Lua is the whole talk path (target choice, party and spawned-character scans, a warm connection,
+// the face request, the focus), which then ran inside the game's own event dispatch, the class of call that froze game 2.31 while a key was
+// being set (GameVariant.reds ConvaiKeyNotifyInEvent, 25 Oct). The pad has never been live-tested with that call in the event. Lua reads the
+// queue on its 10 Hz tick instead (at most 0.1 s later, after a 0.3 s hold that is already waited), outside every game event.
+public func ConvaiPadNotifyInEvent() -> Bool {
+    return false;
+}
+
 public class ConvaiPadTalkHold extends DelayCallback {
     public let player: wref<PlayerPuppet>;
     public let generation: Int32;
@@ -61,6 +71,11 @@ private let m_convaiPadGeneration: Int32;
 @addField(PlayerPuppet)
 private let m_convaiPadEvents: array<Int32>;
 
+// An edge is being handled (a click, a hold timer, a push). Nothing the handlers call can start another one, and a second one that arrives
+// anyway is dropped (a press) or only recorded (a release), so no handler is ever entered from inside itself.
+@addField(PlayerPuppet)
+private let m_convaiPadBusy: Bool;
+
 @addMethod(PlayerPuppet)
 public final func ConvaiPadIsOn() -> Bool {
     return this.m_convaiPadOn;
@@ -80,8 +95,14 @@ public final func ConvaiPadTake() -> Int32 {
     return value;
 }
 
-// Called after each event is queued, and observed by Lua (Observe on this method) so a press and a release are handled at the moment
-// they happen. It does nothing itself. Lua also drains the queue on its 10 Hz tick when the observer could not be installed.
+// Whether Lua may observe ConvaiPadNotify (ConvaiPadNotifyInEvent above: no). Lua asks once and reads the queue on its tick when this says no.
+@addMethod(PlayerPuppet)
+public final func ConvaiPadObservable() -> Bool {
+    return ConvaiPadNotifyInEvent();
+}
+
+// Called after an event is queued when ConvaiPadNotifyInEvent says so, and observed by Lua (Observe on this method) so a press and a release
+// are handled at the moment they happen. It does nothing itself. Lua otherwise drains the queue on its 10 Hz tick.
 @addMethod(PlayerPuppet)
 public final func ConvaiPadNotify() -> Void {
 }
@@ -90,7 +111,11 @@ public final func ConvaiPadNotify() -> Void {
 private final func ConvaiPadPush(value: Int32) -> Void {
     if ArraySize(this.m_convaiPadEvents) >= 8 { ArrayErase(this.m_convaiPadEvents, 0); };
     ArrayPush(this.m_convaiPadEvents, value);
-    this.ConvaiPadNotify();
+    if ConvaiPadNotifyInEvent() && !this.m_convaiPadBusy {
+        this.m_convaiPadBusy = true;
+        this.ConvaiPadNotify();
+        this.m_convaiPadBusy = false;
+    };
 }
 
 // Switch the binding on or off. On: the listener starts hearing the click. Off: it stops, a click in progress is forgotten, and a
@@ -129,6 +154,8 @@ private final func ConvaiPadStop() -> Void {
 @addMethod(PlayerPuppet)
 public final func ConvaiPadClick(down: Bool) -> Void {
     if !this.m_convaiPadOn { return; };
+    // Never entered from inside itself: a press that arrives while a handler runs is dropped, a release is still honoured below.
+    if down && this.m_convaiPadBusy { return; };
     this.m_convaiPadGeneration += 1;
     if down {
         // The keyboard's sprint key is the same action: only a click made on the controller counts.
@@ -149,7 +176,7 @@ public final func ConvaiPadClick(down: Bool) -> Void {
 
 @addMethod(PlayerPuppet)
 public final func ConvaiPadHoldElapsed(generation: Int32) -> Void {
-    if !this.m_convaiPadOn || !this.m_convaiPadDown || generation != this.m_convaiPadGeneration { return; };
+    if !this.m_convaiPadOn || !this.m_convaiPadDown || generation != this.m_convaiPadGeneration || this.m_convaiPadBusy { return; };
     // A click made while pushing the stick is a sprint click; a controller that is no longer the last device used is not a hold.
     if this.ConvaiMoveHeld() || !this.PlayerLastUsedPad() { return; };
     this.m_convaiPadTalking = true;

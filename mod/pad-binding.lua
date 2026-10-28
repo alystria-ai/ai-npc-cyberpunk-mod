@@ -3,17 +3,24 @@
 -- (ToggleSprint, which the game delivers only while V is walking: no menu, scene, choice, call or vehicle) and times the hold; this half decides whether the
 -- moment is allowed and presses and releases the talk key's own code path (init.lua voiceKeyEdge).
 --
--- Nothing here runs per frame. The redscript half calls ConvaiPadNotify when a hold begins or ends, and this module observes it (CET Observe), so an edge is
--- handled at the moment it happens. The game's 10 Hz tick also drains the same queue (one call returning -1 when empty) in case the observer was not
--- installed or did not fire, and while a hold lasts it checks that the moment is still allowed: a menu that opened under a held click swallows the release,
--- and the tick ends the turn then. Off, the tick costs one boolean and the redscript listener is not registered.
+-- Nothing here runs per frame. The game's 10 Hz tick drains the redscript's queue (one call returning -1 when empty), and while a hold lasts it checks that
+-- the moment is still allowed: a menu that opened under a held click swallows the release, and the tick ends the turn then. Off, the tick costs one
+-- boolean and the redscript listener is not registered.
+--
+-- No Lua runs inside a game event (player report on 0.3.3: the game froze, sometimes, on the first hold after a load). The redscript half answers
+-- ConvaiPadObservable() with no, so the CET Observe on ConvaiPadNotify (which would run the whole talk path inside the game's input listener or delay
+-- callback) is not installed; it is kept for a build that proves it safe. If it is ever installed, handling is never re-entered (state.inside) and a
+-- run of hold starts is capped (CHATTER_MAX in CHATTER_S), so a loop through the game's events cannot spin the talk path.
 local M = {}
 M.clock = os.clock
 
 local MISSING_RETRY_S = 30   -- a game whose scripts do not have the pad methods (the redscript did not compile) is asked again this seldom
 local WATCH_S = 0.25         -- how often the held-click check asks the game whether the moment is still allowed
 
-local state = {configured = false, observed = nil, talking = false, missingAt = nil, missingLogged = false, watchedAt = -100,
+local CHATTER_S = 5      -- a run of hold starts is counted over this long ...
+local CHATTER_MAX = 8    -- ... and more than this many is not a person holding a button: the rest are ignored until the run is over
+
+local state = {inside = false, starts = {}, chatterLogged = false, configured = false, observed = nil, talking = false, missingAt = nil, missingLogged = false, watchedAt = -100,
     firstSource = nil}
 
 -- deps (set by init.lua once):
@@ -58,9 +65,28 @@ local function endHold(why)
     pcall(M.deps.release)
 end
 
+-- True when a hold start now would be the ninth within CHATTER_S seconds (and records it otherwise).
+local function chatter()
+    local now = M.clock()
+    local kept = {}
+    for _, at in ipairs(state.starts) do if now - at < CHATTER_S then kept[#kept + 1] = at end end
+    state.starts = kept
+    if #kept >= CHATTER_MAX then return true end
+    kept[#kept + 1] = now
+    return false
+end
+
 local function handle(player, value, source)
     if value == 1 then
         if state.talking then return end
+        if chatter() then
+            if not state.chatterLogged then
+                state.chatterLogged = true
+                say('Controller talk button: hold ignored (more than ' .. CHATTER_MAX .. ' in ' .. CHATTER_S .. ' s)')
+            end
+            return
+        end
+        state.chatterLogged = false
         state.firstSource = state.firstSource or source
         local reason = M.blocked(player)
         if reason then say('Controller talk button: hold ignored (' .. reason .. ')'); return end
@@ -76,20 +102,34 @@ local function handle(player, value, source)
 end
 
 -- Drain the redscript's queue (bounded). Called by the observer and by the tick.
+-- Never entered from inside itself: an edge that arrives while one is handled stays in the queue, and the loop that is already running takes it.
 function M.take(player, source)
-    if not M.deps or not player then return end
-    for _ = 1, 8 do
-        local ok, value = pcall(function() return player:ConvaiPadTake() end)
-        if not ok or type(value) ~= 'number' or value < 0 then return end
-        handle(player, value, source or 'tick')
-    end
+    if not M.deps or not player or state.inside then return end
+    state.inside = true
+    local ok, err = pcall(function()
+        for _ = 1, 8 do
+            local taken, value = pcall(function() return player:ConvaiPadTake() end)
+            if not taken or type(value) ~= 'number' or value < 0 then return end
+            handle(player, value, source or 'tick')
+        end
+    end)
+    state.inside = false
+    if not ok then say('Controller talk button: edge failed (' .. tostring(err) .. ')') end
 end
 
-local function install()
+-- The observer only where the redscript says an edge may call into Lua inside the game's event (it says no on every build today, PadTalk.reds
+-- ConvaiPadNotifyInEvent): the tick reads the queue then, outside every game event.
+local function install(player)
     if state.observed ~= nil then return end
-    local ok = pcall(M.deps.observe, function(player) M.take(player, 'observer') end)
-    state.observed = ok == true
-    say('Controller talk button: observer ' .. (ok and 'installed' or 'not installed, the tick reads the queue'))
+    local asked, observable = pcall(function() return player:ConvaiPadObservable() end)
+    if asked and observable == true then
+        local ok = pcall(M.deps.observe, function(who) M.take(who, 'observer') end)
+        state.observed = ok == true
+        say('Controller talk button: observer ' .. (ok and 'installed' or 'not installed, the tick reads the queue'))
+    else
+        state.observed = false
+        say('Controller talk button: the tick reads the queue (no Lua runs inside the game events)')
+    end
 end
 
 -- The configuration is gone with the player (a load makes a new one): ask the redscript, switch it on again if needed.
@@ -127,7 +167,7 @@ function M.tick(player, ready)
     local now = M.clock()
     if state.missingAt and now - state.missingAt < MISSING_RETRY_S then return end
     if not configure(player, now) then return end
-    install()
+    install(player)
     M.take(player, 'tick')
     if not state.talking or now - state.watchedAt < WATCH_S then return end
     state.watchedAt = now
