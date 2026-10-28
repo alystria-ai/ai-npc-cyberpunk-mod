@@ -3,18 +3,22 @@
 // the drive of the game (kind, free space, under Program Files or not), the display, and the NAMES of the installed mods (CET mods, RED4ext plugins, r6/scripts folders, archive
 // files, REDmod mods) so a conflict is visible. No user name, no folder (a name is a file or folder name, one level, never a path), no key.
 //
-// Read ONCE per process (cachedSystemFacts), by the error reporter when it builds its first report: three PowerShell calls side by side (the quick facts, then two slow reads
-// of their own, Defender's folder protection and the drive's SSD/HDD kind: 3 to 8 s on a PC, so one that is late loses only its own field) and a few directory listings. Never on a turn's path, never per frame. Never throws: a field that cannot be read is null.
+// FPS first. The PowerShell reads (the quick facts, Defender's folder protection and the drive's SSD/HDD kind: 3 to 8 s each on a busy PC) are CPU work, so they are kept off the
+// player's time: the answer is saved in the state folder (system-facts.json, with its time) and used for 7 days; only an install with no fresh copy reads again, in the
+// background, one read at a time, each PowerShell child at idle priority and never waited for. A report is built from whatever is there at that moment (the saved copy, or none
+// on the very first run) and later reports carry what the read found. The mod names are a few directory listings and are read once per process. Never on a turn's path, never
+// per frame. Never throws: a field that cannot be read is null.
 import {execFile} from 'node:child_process';
-import {readdir as realReaddir} from 'node:fs/promises';
+import {readFile as realReadFile, readdir as realReaddir, writeFile as realWriteFile} from 'node:fs/promises';
 import {constants as osConstants, cpus as osCpus, setPriority} from 'node:os';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
 
-// The reads run below normal priority: they are a few seconds of PowerShell next to a running game (FPS first).
+// The reads run at idle priority (Windows IDLE_PRIORITY_CLASS, never above below-normal) and do not keep the process alive.
 const defaultRun = (file, args, options) => {
   const call = promisify(execFile)(file, args, options);
-  try { if (call.child?.pid) setPriority(call.child.pid, osConstants.priority.PRIORITY_BELOW_NORMAL); } catch { /* the priority stays */ }
+  try { if (call.child?.pid) setPriority(call.child.pid, osConstants.priority.PRIORITY_LOW); } catch { /* the priority stays */ }
+  try { call.child?.unref?.(); } catch { /* ignore */ }
   return call;
 };
 const POWERSHELL_TIMEOUT_MS = 40_000;
@@ -138,36 +142,97 @@ export async function detectModNames({game, readdir = realReaddir} = {}) {
   return out;
 }
 
-/**
- * Everything above in one object, or null off Windows for the Windows parts: {cpu, os, antivirus, smartAppControl, controlledFolderAccess, elevated, drive, display, mods}.
- * `run` is a promisified execFile and `readdir` the listing function (tests). The processor's name and thread count come from Node when PowerShell does not answer.
- */
-export async function detectSystemFacts({game, run = defaultRun, platform = process.platform, env = process.env, readdir = realReaddir, cpus = osCpus} = {}) {
-  let windows = null;
-  if (platform === 'win32') {
-    const shell = join(env.SystemRoot || env.windir || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    const letter = driveLetter(game);
-    const options = {timeout: POWERSHELL_TIMEOUT_MS, windowsHide: true, encoding: 'utf8', maxBuffer: 1 << 18, env: {...env, ...(letter ? {FACT_DRIVE: letter} : {})}};
-    const read = async script => {
-      try {
-        const result = await run(shell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], options);
-        return JSON.parse(String(result?.stdout ?? '').trim().split(/\r?\n/).filter(Boolean).at(-1));
-      } catch { return null; }
-    };
-    const [core, defender, disk] = await Promise.all([read(FACTS_SCRIPT), read(DEFENDER_SCRIPT), letter ? read(DISK_SCRIPT) : null]);
-    windows = core ? shapeWindowsFacts(core, {game, env, defender, disk}) : null;
-  }
+/** The Windows reads, ONE AT A TIME (never side by side): the shaped facts, or null when the quick read gives nothing. `run` is a promisified execFile (tests). */
+export async function readWindowsFacts({game, run = defaultRun, platform = process.platform, env = process.env} = {}) {
+  if (platform !== 'win32') return null;
+  const shell = join(env.SystemRoot || env.windir || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+  const letter = driveLetter(game);
+  const options = {timeout: POWERSHELL_TIMEOUT_MS, windowsHide: true, encoding: 'utf8', maxBuffer: 1 << 18, env: {...env, ...(letter ? {FACT_DRIVE: letter} : {})}};
+  const read = async script => {
+    try {
+      const result = await run(shell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], options);
+      return JSON.parse(String(result?.stdout ?? '').trim().split(/\r?\n/).filter(Boolean).at(-1));
+    } catch { return null; }
+  };
+  const core = await read(FACTS_SCRIPT);
+  if (!core) return null;
+  const defender = await read(DEFENDER_SCRIPT);
+  const disk = letter ? await read(DISK_SCRIPT) : null;
+  return shapeWindowsFacts(core, {game, env, defender, disk});
+}
+
+// The shaped facts with the processor's name and thread count from Node when PowerShell has not given them (free, no process).
+function withNodeCpu(windows, {game, env, cpus}) {
   const shaped = windows ?? shapeWindowsFacts({}, {game, env});
   try {
     const list = cpus();
     if (shaped.cpu.name === null && list?.[0]?.model) shaped.cpu.name = clip(list[0].model, 120);
     if (shaped.cpu.threads === null && list?.length) shaped.cpu.threads = list.length;
   } catch { /* the processor stays unknown */ }
-  return {...shaped, mods: await detectModNames({game, readdir}).catch(() => null)};
+  return shaped;
 }
 
-let cached = null;
-/** detectSystemFacts once per process (the first report builds it; the rest reuse it). */
-export function cachedSystemFacts(options) { return cached ??= detectSystemFacts(options); }
-/** For tests: forget what the cache holds. */
-export function resetSystemFactsCache() { cached = null; }
+/**
+ * Everything in one object, WAITING for the PowerShell reads (tests and tools; the error reporter uses systemFactsNow): {cpu, os, antivirus, smartAppControl,
+ * controlledFolderAccess, elevated, drive, display, mods}. `readdir` is the listing function (tests).
+ */
+export async function detectSystemFacts({game, run = defaultRun, platform = process.platform, env = process.env, readdir = realReaddir, cpus = osCpus} = {}) {
+  const windows = await readWindowsFacts({game, run, platform, env});
+  return {...withNodeCpu(windows, {game, env, cpus}), mods: await detectModNames({game, readdir}).catch(() => null)};
+}
+
+export const FACTS_CACHE_FILE = 'system-facts.json';
+export const FACTS_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+const CACHE_VERSION = 1;
+
+// The saved copy: {at, facts} when it is this version's, for the same game drive, and shaped like facts; else null. Any age (a stale copy is still better than nothing while a read runs).
+async function loadFactsCache({stateDirectory, game, readFile}) {
+  if (!stateDirectory) return null;
+  try {
+    const saved = JSON.parse(await readFile(join(stateDirectory, FACTS_CACHE_FILE), 'utf8'));
+    if (saved?.version !== CACHE_VERSION || !Number.isFinite(saved.at) || (saved.drive ?? null) !== driveLetter(game)) return null;
+    const facts = saved.facts;
+    if (!facts || typeof facts !== 'object' || !facts.cpu || !facts.os) return null;
+    return {at: saved.at, facts: shapeWindowsFacts(facts, {game})};
+  } catch { return null; }
+}
+
+let session = null;
+
+async function startSession(options) {
+  const {game, stateDirectory, refresh, now, platform, readFile, writeFile} = options;
+  const state = {windows: null, refreshing: null, mods: null};
+  const saved = await loadFactsCache({stateDirectory, game, readFile});
+  if (saved) state.windows = saved.facts;
+  const fresh = saved && now() - saved.at < FACTS_MAX_AGE_MS && saved.at <= now() + 3600_000;
+  if (!fresh && refresh && platform === 'win32') {
+    // Not awaited: the caller goes on with what it has. Only one read runs, and none is started again in this process whether it worked or not.
+    state.refreshing = (async () => {
+      try {
+        const windows = await readWindowsFacts(options);
+        if (!windows) return;
+        state.windows = windows;
+        if (stateDirectory) await writeFile(join(stateDirectory, FACTS_CACHE_FILE), JSON.stringify({version: CACHE_VERSION, at: now(), drive: driveLetter(game), facts: windows})).catch(() => {});
+      } catch { /* the facts stay as they were */ }
+    })();
+  }
+  return state;
+}
+
+/**
+ * The facts for a report, NOW, without waiting for any PowerShell: the saved copy (7 days) or nothing yet for the Windows parts (the processor then comes from Node), plus the
+ * mod names (directory listings, once per process). A saved copy older than 7 days, or none, starts ONE background refresh (one PowerShell read at a time at idle priority)
+ * whose answer is saved and used by the reports built after it. `refresh: false` never starts one (the default under the test runner, where nothing may burn CPU).
+ */
+export async function systemFactsNow({game, stateDirectory, run = defaultRun, platform = process.platform, env = process.env, readdir = realReaddir, cpus = osCpus,
+  readFile = realReadFile, writeFile = realWriteFile, now = Date.now, refresh = !process.env.NODE_TEST_CONTEXT} = {}) {
+  const options = {game, stateDirectory, run, platform, env, readdir, cpus, readFile, writeFile, now, refresh};
+  const state = await (session ??= startSession(options));
+  state.mods ??= detectModNames({game, readdir}).catch(() => null);
+  return {...withNodeCpu(state.windows ? structuredClone(state.windows) : null, {game, env, cpus}), mods: await state.mods};
+}
+
+/** The background refresh in flight (or none), for tests that want to wait for it. */
+export async function systemFactsRefresh() { const state = session ? await session : null; await state?.refreshing; }
+/** For tests: forget what this process holds. */
+export function resetSystemFactsCache() { session = null; }

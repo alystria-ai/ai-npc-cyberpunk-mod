@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
+import {mkdtemp, mkdir, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {DEFENDER_SCRIPT, DISK_SCRIPT, FACTS_SCRIPT, MOD_LIST_LIMITS, cachedSystemFacts, detectModNames, detectSystemFacts, driveLetter, resetSystemFactsCache,
-  shapeWindowsFacts, underProgramFiles} from './system-facts.mjs';
+import {DEFENDER_SCRIPT, DISK_SCRIPT, FACTS_CACHE_FILE, FACTS_SCRIPT, MOD_LIST_LIMITS, detectModNames, detectSystemFacts, driveLetter, readWindowsFacts, resetSystemFactsCache,
+  shapeWindowsFacts, systemFactsNow, systemFactsRefresh, underProgramFiles} from './system-facts.mjs';
 
 const CORE = {cpu: {name: 'Test CPU 9000 @ 4.0GHz', cores: 8, threads: 16},
   os: {caption: 'Microsoft Windows 11 Home', edition: 'Core', displayVersion: '25H2', build: '26200', revision: 9711, uiLanguage: 'de-DE', installLanguage: 'en-US', region: 'de-DE'},
@@ -106,7 +106,7 @@ function fakeRun(answers, calls = []) {
   };
 }
 
-test('detectSystemFacts merges the three reads and runs PowerShell hidden, with a timeout and the drive in the environment', async () => {
+test('detectSystemFacts merges the three reads (one after the other) and runs PowerShell hidden, with a timeout and the drive in the environment', async () => {
   const calls = [];
   const game = await modFolder([['red4ext/plugins/Codeware', 'dir']]);
   try {
@@ -152,14 +152,127 @@ test('a slow read that fails loses only its own field; every read failing still 
   } finally { await rm(game, {recursive: true, force: true}); }
 });
 
-test('cachedSystemFacts reads once per process', async () => {
+test('the reads run one at a time, never side by side', async () => {
+  let running = 0, most = 0, total = 0;
+  const run = async (file, args) => {
+    running += 1; total += 1; most = Math.max(most, running);
+    await new Promise(done => setTimeout(done, 15));
+    running -= 1;
+    const script = args.at(-1);
+    return {stdout: JSON.stringify(script === FACTS_SCRIPT ? CORE : script === DEFENDER_SCRIPT ? {controlledFolderAccess: 0} : {media: 'SSD', bus: 'NVMe'})};
+  };
+  const windows = await readWindowsFacts({game: 'D:/Games/Cyberpunk 2077', run, platform: 'win32', env: {}});
+  assert.equal(total, 3);
+  assert.equal(most, 1, 'one PowerShell child at a time');
+  assert.equal(windows.drive.media, 'SSD');
+  // The quick read failing stops the others (nothing else is worth another process).
+  total = 0;
+  assert.equal(await readWindowsFacts({game: 'D:/Games', run: async () => { total += 1; throw Error('x'); }, platform: 'win32', env: {}}), null);
+  assert.equal(total, 1);
+});
+
+test('the children are started at idle priority and are never given a high one', async () => {
+  const source = await readFile(new URL('./system-facts.mjs', import.meta.url), 'utf8');
+  assert.match(source, /setPriority\(call\.child\.pid, osConstants\.priority\.PRIORITY_LOW\)/);
+  assert.ok(!/PRIORITY_(?:HIGH|ABOVE_NORMAL|HIGHEST)/.test(source));
+  assert.match(source, /child\?\.unref/, 'a pending read never keeps the process alive');
+});
+
+async function stateFolder() { return mkdtemp(join(tmpdir(), 'sysfacts-state-')); }
+const GAME = 'D:/Games/Cyberpunk 2077';
+
+test('the first report does not wait: no saved copy gives the processor from Node and the mod names at once, and the read runs in the background and is saved', async () => {
   resetSystemFactsCache();
-  let reads = 0;
-  const run = async () => { reads += 1; return {stdout: JSON.stringify(CORE)}; };
-  const options = {game: undefined, platform: 'win32', env: {}, cpus: () => [], run};
-  const first = await cachedSystemFacts(options);
-  const second = await cachedSystemFacts(options);
-  assert.equal(first, second);
-  assert.equal(reads, 2, 'the quick read and the Defender read; no game drive, so no disk read');
-  resetSystemFactsCache();
+  const state = await stateFolder();
+  const game = await modFolder([['red4ext/plugins/Codeware', 'dir']]);
+  let release; const gate = new Promise(done => { release = done; });
+  let calls = 0;
+  const run = async (file, args) => {
+    calls += 1; await gate;
+    const script = args.at(-1);
+    return {stdout: JSON.stringify(script === FACTS_SCRIPT ? CORE : script === DEFENDER_SCRIPT ? {controlledFolderAccess: 0} : {media: 'SSD', bus: 'NVMe'})};
+  };
+  const options = {game, stateDirectory: state, platform: 'win32', env: {}, cpus: () => [{model: 'Node CPU'}], run, refresh: true};
+  try {
+    const first = await systemFactsNow(options);   // resolves while the read is still held at the gate
+    assert.equal(first.os.build, null, 'nothing is known of Windows yet');
+    assert.deepEqual([first.cpu.name, first.mods.red4ext], ['Node CPU', ['Codeware']]);
+    assert.equal(calls, 1, 'the background read has started and is waiting');
+    release();
+    await systemFactsRefresh();
+    assert.equal(calls, 3);
+    const later = await systemFactsNow(options);
+    assert.deepEqual([later.os.build, later.cpu.threads, later.drive.media], [26200, 16, 'SSD']);
+    const saved = JSON.parse(await readFile(join(state, FACTS_CACHE_FILE), 'utf8'));
+    assert.equal(saved.version, 1);
+    assert.equal(saved.facts.os.build, 26200);
+    assert.ok(!JSON.stringify(saved).includes('sysfacts'), 'no folder in the saved copy');
+    // A new process (a reset session) reads the saved copy and runs nothing.
+    resetSystemFactsCache(); calls = 0;
+    const again = await systemFactsNow(options);
+    await systemFactsRefresh();
+    assert.deepEqual([again.os.build, calls], [26200, 0]);
+  } finally { release(); resetSystemFactsCache(); await rm(state, {recursive: true, force: true}); await rm(game, {recursive: true, force: true}); }
+});
+
+test('a saved copy is used for 7 days; an older one is still shown while one refresh runs; another game drive or a broken file is ignored', async () => {
+  const state = await stateFolder();
+  const T0 = Date.UTC(2026, 9, 28);
+  let calls = 0;
+  const run = async () => { calls += 1; return {stdout: JSON.stringify(CORE)}; };
+  const write = (at, drive = 'D', extra = {}) => writeFile(join(state, FACTS_CACHE_FILE), JSON.stringify({version: 1, at, drive,
+    facts: {cpu: {name: 'Saved CPU', cores: 4, threads: 8}, os: {build: 1}, ...extra}}));
+  const options = (now, game = GAME) => ({game, stateDirectory: state, platform: 'win32', env: {}, cpus: () => [], run, refresh: true, readdir: async () => [], now: () => now});
+  try {
+    resetSystemFactsCache(); await write(T0 - 6 * 24 * 3600 * 1000);
+    const fresh = await systemFactsNow(options(T0));
+    await systemFactsRefresh();
+    assert.deepEqual([fresh.cpu.name, calls], ['Saved CPU', 0], 'six days old: used, nothing runs');
+    resetSystemFactsCache(); await write(T0 - 8 * 24 * 3600 * 1000);
+    const stale = await systemFactsNow(options(T0));
+    assert.equal(stale.cpu.name, 'Saved CPU', 'eight days old: still shown at once');
+    await systemFactsRefresh();
+    assert.equal(calls, 3, 'and one refresh ran');
+    assert.equal(JSON.parse(await readFile(join(state, FACTS_CACHE_FILE), 'utf8')).at, T0, 'the refresh is saved with its time');
+    // Asked again in the same process: no second refresh.
+    await systemFactsNow(options(T0 + 1000)); await systemFactsRefresh();
+    assert.equal(calls, 3);
+    // The game on another drive: the saved copy is not about it.
+    resetSystemFactsCache(); calls = 0; await write(T0, 'C');
+    const other = await systemFactsNow(options(T0));
+    await systemFactsRefresh();
+    assert.deepEqual([other.cpu.name, calls], [null, 3]);
+    // A broken file, a copy dated far in the future and a refresh that fails.
+    resetSystemFactsCache(); calls = 0; await writeFile(join(state, FACTS_CACHE_FILE), '{not json');
+    assert.equal((await systemFactsNow(options(T0))).cpu.name, null);
+    await systemFactsRefresh();
+    resetSystemFactsCache(); calls = 0; await write(T0 + 30 * 24 * 3600 * 1000);
+    await systemFactsNow(options(T0)); await systemFactsRefresh();
+    assert.equal(calls, 3, 'a clock that was wrong when it was saved does not make it fresh for ever');
+    resetSystemFactsCache(); await rm(join(state, FACTS_CACHE_FILE), {force: true});
+    const failing = await systemFactsNow({...options(T0), run: async () => { throw Error('powershell is missing'); }});
+    await systemFactsRefresh();
+    assert.equal(failing.os.build, null);
+    await assert.rejects(readFile(join(state, FACTS_CACHE_FILE), 'utf8'), {code: 'ENOENT'}, 'a failed read saves nothing');
+  } finally { resetSystemFactsCache(); await rm(state, {recursive: true, force: true}); }
+});
+
+test('refresh: false (the test runner\'s default) and a PC that is not Windows start no process', async () => {
+  const state = await stateFolder();
+  let calls = 0;
+  const run = async () => { calls += 1; return {stdout: '{}'}; };
+  try {
+    resetSystemFactsCache();
+    await systemFactsNow({game: GAME, stateDirectory: state, platform: 'win32', env: {}, cpus: () => [], run, refresh: false, readdir: async () => []});
+    resetSystemFactsCache();
+    await systemFactsNow({game: GAME, stateDirectory: state, platform: 'linux', env: {}, cpus: () => [], run, refresh: true, readdir: async () => []});
+    await systemFactsRefresh();
+    assert.equal(calls, 0);
+    // Under `node --test` the default is off as well.
+    resetSystemFactsCache();
+    if (process.env.NODE_TEST_CONTEXT) {
+      await systemFactsNow({game: GAME, stateDirectory: state, platform: 'win32', env: {}, cpus: () => [], run, readdir: async () => []});
+      assert.equal(calls, 0);
+    }
+  } finally { resetSystemFactsCache(); await rm(state, {recursive: true, force: true}); }
 });
