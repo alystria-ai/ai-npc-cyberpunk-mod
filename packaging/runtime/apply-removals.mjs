@@ -65,7 +65,21 @@ export function refusalFor(rel) {
   if (!root) return 'outside the folders a Runtime installs into';
   if (root.name && !root.name.test(rel.slice(root.prefix.length))) return 'not one of our file names';
   if (PROTECTED.some(item => (item.endsWith('/') ? lower.startsWith(item.toLowerCase()) : lower === item.toLowerCase()))) return 'protected';
+  if (isScriptsCode(rel)) return 'code the Scripts install';
   return null;
+}
+
+// From 0.3.4 the mod's code comes with the Scripts: install-code.mjs copies it into app/ at every start and lists it in defaults/scripts-code.json
+// (docs/PACKAGING.md, "Code in the Scripts"). A removal list (an older Runtime's, or an update zip's comparison of a Runtime that still carried the
+// code with one that does not) must never delete it: the next start would copy it back and this step delete it again. Held equal to
+// packaging/lib/code-payload.mjs by packaging/code-payload.test.mjs.
+const CODE_PREFIXES = ['bridge/', 'launcher/', 'assets/', 'characters/', 'research/', 'vision/', 'licenses/client/'];
+const CODE_FILES = ['package.json', 'defaults/characters.json', 'defaults/multilingual-profiles.json', 'defaults/runtime-code-files.json', 'defaults/scripts-code.json'];
+export function isScriptsCode(rel) {
+  const lower = String(rel).toLowerCase(), app = `${PLUGIN}/app/`.toLowerCase();
+  if (!lower.startsWith(app)) return false;
+  const inner = lower.slice(app.length);
+  return CODE_FILES.includes(inner) || CODE_PREFIXES.some(prefix => inner.startsWith(prefix));
 }
 
 // The folder the Runtime was extracted into, from where its app/ folder is (the real place under Mod Organizer 2), or null.

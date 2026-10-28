@@ -205,8 +205,8 @@ You do not need to install anything else. The voice service, its voices and mode
 
 Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. If Windows asks about files with the same names, choose Replace: it is always safe.
 
-1. **Scripts**: from Nexus Mods, with Vortex or by hand. Pick the file for your game version: the main file for 2.5, or the optional file "Scripts - for game 2.31 (older game version)" for 2.31.
-2. **Runtime**: for game 2.5 https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip (the mod's Hugging Face page), for the older game 2.31 https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip. Use the same version and the same game as the Scripts.
+1. **Runtime, once**: for game 2.5 https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip (the mod's Hugging Face page), for the older game 2.31 https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip. This is the Runtime base: the large parts (Node, Python, the voices and models). You install it once, and get it again only when Settings > Help says the Runtime base is too old (it names the version it needs).
+2. **Scripts, at every update**: from Nexus Mods, with Vortex or by hand. Pick the file for your game version: the main file for 2.5, or the optional file "Scripts - for game 2.31 (older game version)" for 2.31. The Scripts carry all of the mod's own code, so a new version of the mod is usually just new Scripts.
 
 The optional packs are on the same Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in folders next to the Runtime (`voice`, `local-ai`, `mic` and `multilingual`). Each pack is one zip file, so there is nothing to join, and each works on its own.
 
@@ -223,16 +223,16 @@ The optional packs are on the same Hugging Face page, https://huggingface.co/aly
 ### Vortex
 
 - **Scripts**: use Vortex's download button on the Nexus page, or drop the Scripts zip onto Vortex's Mods page.
-- **Runtime**: download the zip from Hugging Face and drop it onto the Mods page too. Then click Deploy. Every file lands in the right place. Vortex moves only the "HOW TO INSTALL" text file to its mod-extra-files folder, which is harmless.
+- **Runtime**: download the zip from Hugging Face and drop it onto the Mods page too. Then click Deploy. Every file lands in the right place. Vortex moves only the "HOW TO INSTALL" text file to its mod-extra-files folder, which is harmless. At its first start the mod copies its code from the Scripts into the Runtime's folder, so Vortex may then report "external changes" in the Runtime mod: keep the changes.
 - **The warning sign in the Version column** only means the mod was added from a file and not downloaded from Nexus. It is harmless.
 - **Local AI packs and the other model packs**: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
 - **The OmniVoice pack**: extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
 - **External changes**: the mod writes its state files inside its own folders, so Vortex may report "external changes" at the next deploy. Keeping the changes is fine.
-- **Same version for both**: the Scripts and the Runtime must be the same version, and the same game. Settings > Help shows both. A mix of versions gives odd errors.
+- **Versions**: the Scripts need a Runtime base of at least the version Settings > Help names (a newer Runtime is fine too), and both must be for the same game. Settings > Help shows both.
 
 ### Mod Organizer 2
 
-Install the Runtime as one mod. Put the Runtime update zips, the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
+Install the Scripts as one mod and the Runtime as another. Put the Runtime update zips, the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
@@ -308,13 +308,15 @@ With Mistral or Local AI as the Conversation provider, you can give a person who
 
 ## Update
 
-Close the game and extract the new Scripts and Runtime over the old ones (the same version for both), then any optional packs you use, in that order: the OmniVoice pack goes after the Runtime. Your conversations, memories and settings are kept. The first start after updating moves your memories, conversation history and logs out of the game folder into `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.
+Close the game and install the new Scripts over the old ones (Nexus Mods, with Vortex or by hand). That is all most updates need: the Scripts carry the mod's code, and the first start copies it into the Runtime. Get a newer Runtime only when Settings > Help says the Runtime base is too old: it names the version needed, and the update zips below bring you there. Your conversations, memories and settings are kept.
 
-**A smaller download for the Runtime.** If you already have a Runtime installed, you can skip the full Runtime and download the small **Runtime update** zips instead, from the updates folder on the Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates): `Runtime-Update-<from version>-to-<to version>.zip`. Each one holds only the files that changed. The folder keeps every update: apply the update zips one by one, starting from your version. Extract each into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime (the Scripts and any optional packs are extracted as usual). If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself (never delete the mod's folders to update: the optional packs live inside them): files that the new version no longer needs are removed by the mod the next time the game starts. If you do not have a Runtime yet, or are not sure which version you have, use the full Runtime; it works for new installs and for any update.
+From 0.3.4 the launcher and the native plugin come with the Scripts too, in `red4ext\plugins\AiNpcCyberpunkCode`. An older Runtime's copies of them are renamed at the first start (to `.retired`) and removed later; you do not delete anything.
+
+**When the Runtime base must be updated.** If you already have a Runtime installed, you can skip the full Runtime and download the small **Runtime update** zips instead, from the updates folder on the Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates): `Runtime-Update-<from version>-to-<to version>.zip`. Each one holds only the files that changed. The folder keeps every update: apply the update zips one by one, starting from your version. Extract each into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime (the Scripts and any optional packs are extracted as usual). If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself (never delete the mod's folders to update: the optional packs live inside them): files that the new version no longer needs are removed by the mod the next time the game starts. If you do not have a Runtime yet, or are not sure which version you have, use the full Runtime; it works for new installs and for any update.
 
 **Game 2.31.** The update zips above are for game 2.5, the default. The update zips for the older game 2.31 are in their own folder, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31/updates, with every step since 0.2.2 (the steps after 0.3.1 end in `-for-2.31`). They belong to the 2.31 build only: never extract them over a Runtime for game 2.5, or the other way round. Already on 0.3.0 and moved your game to 2.5? `Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip` in the updates folder of the Hugging Face page brings your Runtime to 0.3.1 for game 2.5 in one step, then apply the later steps one by one as usual, together with the 2.5 Scripts. Any other version, or going back to 2.31, needs the full Runtime of your game.
 
-**Updating with Vortex.** Drop the new Scripts zip onto Vortex's Mods page, then the Runtime update zips one by one, oldest first. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The full Runtime works the same way: choose Replace. The switch zip for game 2.5 uses the same steps. With Mod Organizer 2, extract each update zip into the Runtime mod's folder.
+**Updating with Vortex.** Drop the new Scripts zip onto Vortex's Mods page, and only when Settings > Help asks for a newer Runtime base, the Runtime update zips one by one, oldest first. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The full Runtime works the same way: choose Replace. The switch zip for game 2.5 uses the same steps. With Mod Organizer 2, extract each update zip into the Runtime mod's folder.
 
 ## Uninstall
 

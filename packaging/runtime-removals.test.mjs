@@ -31,7 +31,7 @@ async function tree(path, rel = '') {
 // A Runtime in `root` (the game folder, or an MO2 mod folder): some files to keep and some to remove, and a list that names the second kind.
 async function runtime(root, removes, {version = '0.2.3'} = {}) {
   const app = join(root, APP);
-  for (const rel of ['voices/keep/a.wav', 'voices/old/b.wav', 'voices/old/deeper/c.wav', 'app/bridge/old-module.mjs', 'app/bridge/convai-bridge.mjs', 'launcher.ini', 'launcher.log',
+  for (const rel of ['voices/keep/a.wav', 'voices/old/b.wav', 'voices/old/deeper/c.wav', 'app/models/old-model.bin', 'app/bridge/convai-bridge.mjs', 'launcher.ini', 'launcher.log',
     'app/omni/model/weights.bin', 'app/local-ai/models/chat.gguf', 'app/release.json']) await put(join(root, PLUGIN, rel), rel);
   await put(join(root, 'archive/pc/mod/convai_old.archive'), 'a');
   await put(join(root, 'archive/pc/mod/another_mod.archive'), 'b');
@@ -41,7 +41,7 @@ async function runtime(root, removes, {version = '0.2.3'} = {}) {
 }
 
 test('a path is removable only as a relative forward-slash file under a folder a Runtime installs into, and never a protected one', () => {
-  const ok = [`${PLUGIN}/voices/old/b.wav`, `${PLUGIN}/app/bridge/x.mjs`, 'red4ext/plugins/AiNpcCyberpunkModNative/README.txt', 'r6/audioware/CyberpunkConvai/reply-9.wav',
+  const ok = [`${PLUGIN}/voices/old/b.wav`, `${PLUGIN}/app/models/x.bin`, 'red4ext/plugins/AiNpcCyberpunkModNative/README.txt', 'r6/audioware/CyberpunkConvai/reply-9.wav',
     'archive/pc/mod/convai_facial.archive', 'archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive', `${PLUGIN.toUpperCase()}/voices/a.wav`];
   for (const path of ok) assert.equal(refusalFor(path), null, path);
   const refused = {
@@ -52,6 +52,7 @@ test('a path is removable only as a relative forward-slash file under a folder a
     'bin/x64/Cyberpunk2077.exe': /outside/, [`${MOD}/runtime/settings.json`]: /outside/, [`${MOD}/init.lua`]: /outside/, 'archive/pc/mod/another_mod.archive': /our file names/,
     'archive/pc/mod/sub/convai_x.archive': /our file names/, 'red4ext/plugins/OtherMod/x.dll': /outside/, 'r6/scripts/x.reds': /outside/,
     [`${PLUGIN}/launcher.ini`]: /protected/, [`${PLUGIN}/launcher.log`]: /protected/, [`${PLUGIN}/browser.txt`]: /protected/, [`${APP}/release.json`]: /protected/, [`${APP}/${REMOVALS_FILE}`]: /protected/,
+    [`${APP}/bridge/x.mjs`]: /code the Scripts install/, [`${APP}/launcher/start-service.mjs`]: /code the Scripts install/, [`${APP}/defaults/scripts-code.json`]: /code the Scripts install/,
     [`${APP}/omni/model/weights.bin`]: /protected/, [`${APP}/local-ai/models/chat.gguf`]: /protected/, [`${PLUGIN}/data/memories.json`]: /protected/,
   };
   for (const bad of ['', 5, null, undefined, {}]) assert.match(refusalFor(bad), /not a path/);
@@ -70,7 +71,7 @@ test('the install folder comes from where app/ is, and only a standard Runtime f
 test('removes the listed files, empties the folders they leave, keeps everything else, and is the same the second time', async () => {
   const root = await mkdtemp(join(tmpdir(), 'runtime removals Ünï '));
   try {
-    const removes = [`${PLUGIN}/voices/old/b.wav`, `${PLUGIN}/voices/old/deeper/c.wav`, `${APP}/bridge/old-module.mjs`, 'archive/pc/mod/convai_old.archive',
+    const removes = [`${PLUGIN}/voices/old/b.wav`, `${PLUGIN}/voices/old/deeper/c.wav`, `${APP}/models/old-model.bin`, 'archive/pc/mod/convai_old.archive',
       'r6/audioware/CyberpunkConvai/reply-9.wav', `${PLUGIN}/voices/never-existed.wav`];
     const app = await runtime(root, removes);
     const log = lines();
@@ -242,15 +243,16 @@ test('the build side: the list text is sorted and stable, and a list may not nam
   assert.deepEqual(checked.refused.map(item => item.why), ['the new Runtime ships it', 'outside the folders a Runtime installs into', 'protected']);
 });
 
-test('the declared removals file is valid and every path in it is one the start step may delete', async () => {
+test('the declared removals file is valid and every path in it is one the start step may delete, or code the Scripts delete (code.json "removes")', async () => {
   const declared = JSON.parse(await readFile(resolve(project, DECLARED_REMOVALS), 'utf8'));
   assert.ok(Array.isArray(declared.removes));
-  assert.deepEqual(checkRemovals(declared.removes).refused, []);
+  assert.deepEqual(checkRemovals(declared.removes).refused.filter(item => item.why !== 'code the Scripts install'), []);
 });
 
 test('the Runtime build ships the removal step and the list; the start script runs the step inside its own guard', async () => {
   const build = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(build, /'usvfs-compat\.mjs', 'apply-removals\.mjs'\]\) pkg\.file\(`\$\{app\}\/launcher\//);
+  // From 0.3.4 the launcher scripts are code the Scripts carry (addCodePayload), copied into the Runtime's app/launcher/ at the start.
+  assert.match(build, /'usvfs-compat\.mjs', 'apply-removals\.mjs'\]\) \{\s*put\(`launcher\/\$\{name\}`/);
   assert.match(build, /pkg\.text\(REMOVALS_ENTRY, removalListText\(version, checked\.ok\)\)/);
   const start = await readFile(resolve(project, 'packaging/runtime/start-service.mjs'), 'utf8');
   assert.match(start, /try \{\r?\n  const \{applyRuntimeRemovals\} = await import\('\.\/apply-removals\.mjs'\);\r?\n  removals = applyRuntimeRemovals\(\{appDirectory, log\}\);\r?\n\} catch/);

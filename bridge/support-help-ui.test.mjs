@@ -169,7 +169,7 @@ test('before the service has published its folders the page says where the data 
   assert(invoke('tab:settings').ok and invoke('help').ok)
   assert(row('help-log-bridge').description:find('%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\data', 1, true), row('help-log-bridge').description)
   assert(row('help-log-reports').description:find('%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\reports', 1, true), row('help-log-reports').description)
-  assert(row('help-log-launcher').description:find('red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log', 1, true), row('help-log-launcher').description)
+  assert(row('help-log-launcher').description:find('red4ext\\\\plugins\\\\AiNpcCyberpunkCode\\\\launcher.log', 1, true), row('help-log-launcher').description)
   assert(not row('help-log-bridge').description:find('mod folder', 1, true) and not row('help-log-launcher').description:find('CyberpunkConvaiLauncher', 1, true))
 `));
 

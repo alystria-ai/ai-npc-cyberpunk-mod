@@ -30,7 +30,7 @@
 //   - pinPythonPaths(): the bundled Pythons' ._pth search paths made absolute and real (see there), for the same stat call.
 // A path that is really missing still says ENOENT (the fallback cannot open it either), at the cost of one more failed open.
 import fs from 'node:fs';
-import {syncBuiltinESMExports} from 'node:module';
+import moduleApi, {syncBuiltinESMExports} from 'node:module';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -238,8 +238,28 @@ export function installUsvfsCompat({target = fs} = {}) {
   Object.assign(target, sync, callbacks);
   if (promises && target.promises) Object.assign(target.promises, promises);
   Object.defineProperty(target, INSTALLED, {value: true, enumerable: false});
-  if (target === fs) syncBuiltinESMExports();
+  if (target === fs) { syncBuiltinESMExports(); installModuleFallback(); }
   return true;
+}
+
+// Node's module resolution checks a file with its own internal stat, which the fallbacks above cannot reach. From 0.3.4 the Scripts copy the
+// code into the Runtime's app/ at the start (packaging/runtime/install-code.mjs), and under Mod Organizer 2 with the Runtime in the game folder a
+// code file that is NEW in a release lands in MO2's Overwrite: it opens and reads, but resolution says ERR_MODULE_NOT_FOUND. This resolve hook
+// (module.registerHooks, Node 22.15 and later; the bundled Node is 24) answers such an import with the same file URL when the file can be
+// opened, and the default loader then reads it (reading works). Anything else fails as before. Only under usvfs.
+export function moduleFallback(specifier, context, nextResolve, open = path => { fs.closeSync(fs.openSync(path, 'r')); }) {
+  try { return nextResolve(specifier, context); } catch (error) {
+    if (error?.code !== 'ERR_MODULE_NOT_FOUND' || !/^(?:\.{1,2}\/|file:)/.test(specifier) || !context?.parentURL?.startsWith('file:')) throw error;
+    const url = new URL(specifier, context.parentURL);
+    try { open(fileURLToPath(url)); } catch { throw error; }
+    return {url: url.href, shortCircuit: true, ...(/\.mjs$/i.test(url.pathname) ? {format: 'module'} : {})};
+  }
+}
+let moduleHooked = false;
+function installModuleFallback() {
+  if (moduleHooked) return;
+  moduleHooked = true;
+  try { if (typeof moduleApi.registerHooks === 'function') moduleApi.registerHooks({resolve: (specifier, context, next) => moduleFallback(specifier, context, next)}); } catch {}
 }
 
 // Python under USVFS. USVFS also answers GetModuleFileNameW with the virtual path, so a bundled Python started from its real place still

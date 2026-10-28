@@ -265,7 +265,7 @@ test('serviceWhy: a service that is down says why on the Local AI model row, and
   assert(why.description:find('Extract the Runtime zip straight into the Cyberpunk 2077 folder', 1, true) and why.description:find('newest log in red4ext/logs', 1, true))
   env.native = true; applyEnv()
   why = check.serviceWhy()
-  assert(why.label == 'Service not running (Did not start)' and why.description:find('launcher.log in red4ext/plugins/AiNpcCyberpunkMod', 1, true), why.label)
+  assert(why.label == 'Service not running (Did not start)' and why.description:find('launcher.log in red4ext/plugins/AiNpcCyberpunkCode', 1, true), why.label)
   assert(why.key ~= check.serviceWhy().label, 'a key the page compares')
   env.native = false; applyEnv()
   -- the Runtime incomplete: its own sentence (the same as the Help page's)
@@ -348,6 +348,12 @@ test('the service answer is shown only from this game session and every check be
   assert(table.concat(check.problems(), ',') == 'versions')
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.8', runtime = '0.2.8'}}); check.run()
   assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('one by one, in order, starting from your version', 1, true))
+  -- from 0.3.4 the code is in the Scripts and the Runtime is the base: the row names the base, and an older base the base needed
+  answer({versions = {id = 'versions', state = 'ok', code = 'match', scripts = '0.3.4', runtime = '0.3.3', required = '0.3.3', base = true}}); check.run()
+  assert(lineOf('versions').state == 'ok' and lineOf('versions').description == 'Scripts 0.3.4 on Runtime base 0.3.3.', lineOf('versions').description)
+  answer({versions = {id = 'versions', state = 'problem', code = 'base-old', scripts = '0.3.4', runtime = '0.3.2', required = '0.3.3', base = true}}); check.run()
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('need the Runtime base 0.3.3 or newer, and your Runtime is 0.3.2', 1, true))
+  assert(table.concat(check.problems(), ',') == 'versions')
   -- a version check that could not be made shows no line
   answer({versions = {id = 'versions', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('versions') == nil)
@@ -694,6 +700,8 @@ test('the first load names Scripts and Runtime of different versions, a pack one
       'The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}`,
       'The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.'],
+    ['versions', `{id = 'versions', state = 'problem', code = 'base-old', scripts = '0.3.4', runtime = '0.3.2', required = '0.3.3', base = true}`,
+      'Update the Runtime to base 0.3.3 or newer. See Help in Settings.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}`,
       'A Runtime update step is missing. Apply its update zips one by one from the updates folder.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.9', runtime = '0.2.9'}`,

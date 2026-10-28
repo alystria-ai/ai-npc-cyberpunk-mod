@@ -27,8 +27,13 @@ $objects = Join-Path $output 'obj'
 [IO.Directory]::CreateDirectory($objects) | Out-Null
 $dll = Join-Path $output 'CyberpunkConvaiLauncher.dll'
 $common = '/nologo /std:c11 /W4 /WX /O2 /GS /guard:cf /MT /Brepro'
+# The Runtime base's marker plugin: the same source with CONVAI_BASE_MARKER, a RED4ext plugin that does nothing (see Main in the source).
+$baseDll = Join-Path $output 'CyberpunkConvaiBase.dll'
+$baseObjects = Join-Path $output 'obj-base'
+[IO.Directory]::CreateDirectory($baseObjects) | Out-Null
 $commands = @(
-    "cl $common /LD /Fo`"$objects\\`" /Fe`"$dll`" `"$source`" /link /DLL /NXCOMPAT /DYNAMICBASE /guard:cf /Brepro kernel32.lib"
+    "cl $common /LD /Fo`"$objects\\`" /Fe`"$dll`" `"$source`" /link /DLL /NXCOMPAT /DYNAMICBASE /guard:cf /Brepro kernel32.lib",
+    "cl $common /DCONVAI_BASE_MARKER /LD /Fo`"$baseObjects\\`" /Fe`"$baseDll`" `"$source`" /link /DLL /NXCOMPAT /DYNAMICBASE /guard:cf /Brepro kernel32.lib"
 )
 if ($TestHost) {
     $hostExe = Join-Path $output 'test-host.exe'

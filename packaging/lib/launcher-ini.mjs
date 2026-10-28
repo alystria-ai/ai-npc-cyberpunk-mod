@@ -1,5 +1,8 @@
-// launcher.ini for the Runtime package: what the RED4ext launcher (red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvai.dll,
-// native/autostart/CyberpunkConvaiLauncher.c) starts when the game starts. Used by packaging/build-release.mjs and the tests.
+// What the RED4ext launcher (red4ext/plugins/AiNpcCyberpunkCode/CyberpunkConvai.dll, native/autostart/CyberpunkConvaiLauncher.c, shipped in the
+// Scripts from 0.3.4) starts when the game starts: its built-in settings (DEFAULT_* in the C source, held equal to these lines by
+// bridge/autostart-plugin.test.mjs). No package ships a launcher.ini any more; one a player writes beside the DLL in this format overrides them.
+// Node is the Runtime base's (red4ext/plugins/AiNpcCyberpunkMod/app/node/node.exe); the script is the Scripts' install-code.mjs, which brings the
+// Runtime's copy of the code up to the Scripts' version and then runs app/launcher/start-service.mjs (docs/PACKAGING.md, "Code in the Scripts").
 //
 // The launcher runs: program arg1 arg2 ... --game-pid <pid> --game-root <root> --lifeline stdin, with %PLUGIN% expanded to the folder
 // of its DLL. Node is not given start-service.mjs as its entry script directly: under Mod Organizer 2 with the Runtime installed as an
@@ -16,11 +19,11 @@ export function launcherIniLines() {
     '; AI NPC Cyberpunk Mod: starts the conversation service with the game and stops it when the game exits.',
     '; Set enabled=0 to start it yourself instead.',
     '[launch]', 'enabled=1',
-    'program=%PLUGIN%\\app\\node\\node.exe',
+    'program=%GAME%\\red4ext\\plugins\\AiNpcCyberpunkMod\\app\\node\\node.exe',
     'arg1=--eval',
     `arg2=${LAUNCHER_BOOTSTRAP}`,
-    'arg3=%PLUGIN%\\app\\launcher\\start-service.mjs',
-    'working_directory=%PLUGIN%\\app',
+    'arg3=%PLUGIN%\\install-code.mjs',
+    'working_directory=%PLUGIN%',
   ];
 }
 

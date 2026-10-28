@@ -4,9 +4,10 @@
 //   node packaging/build-release.mjs --version 0.2 --models hf   (CI: CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET in the environment)
 //
 // Packages (dist/release/packages/):
-//   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods; the name the owner uploads there)
-//   Runtime-<v>[...].zip                        launcher, bundled Node/Python, bridge, models, voices,
-//                                               game archives (GitHub)
+//   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        CET Lua, redscript, JSON catalogs (text only), and from 0.3.4 ALL of the mod's code in
+//                                               red4ext/plugins/AiNpcCyberpunkCode/: the launcher and native DLLs, install-code.mjs and app/ (Nexus Mods)
+//   Runtime-<v>[...].zip                        the Runtime BASE: bundled Node/Python, llama.cpp, vgmstream, Playwright, models, voices,
+//                                               game archives (Hugging Face root; GitHub)
 //   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, each in its own folder; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB). Every package except the Scripts drops
 //   the product prefix, and the version stays in the build folder only (the uploader publishes them under the unversioned name). Since 0.3.4 every
@@ -21,8 +22,8 @@
 //   MicPack-Asian-SenseVoice-Small-234M-<v>.zip optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian (mic/)
 //                                               (neither is in the default set or on Nexus; the model files come from the pinned sherpa-onnx archive, or --mic-pack-source)
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
-// plus release-manifest.json (no loose checksum files: nothing reads them). The Runtime package also carries the native plugin
-// (red4ext/plugins/AiNpcCyberpunkModNative) and runtime/native-off.txt. See docs/PACKAGING.md.
+// plus release-manifest.json (no loose checksum files: nothing reads them). The native plugin is in the Scripts from 0.3.4 (it was in the
+// Runtime's red4ext/plugins/AiNpcCyberpunkModNative before). See docs/PACKAGING.md, "Code in the Scripts".
 //
 // Options:
 //   --version V        release version, 2077.N or 2077.N.M (required)
@@ -67,16 +68,16 @@ import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sh
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
-import {launcherIni} from './lib/launcher-ini.mjs';
 import {packFiles, packTitle} from './lib/pack-names.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, forGame, gameOverlay} from './lib/game-variants.mjs';
-import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
+import {CODE_APP, CODE_FOLDER, CODE_MANIFEST, INSTALLER, RUNTIME_APP, isCodePath, isCodeGamePath, manifestOf} from './lib/code-payload.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const BASE_MARKER = 'CyberpunkConvaiBase.dll';
 const started = Date.now();
 
 // ---------------------------------------------------------------- arguments
@@ -259,7 +260,11 @@ async function buildClient(source, stageDir) {
   return [...packagesUsed].sort();
 }
 
-async function buildLauncher(source) {
+// Built once per run: the Scripts carry the launcher and the Runtime base the marker plugin built beside it (and a second build would remove the
+// plugin inspector the native build put in the same output folder).
+let launcherBuild = null;
+function buildLauncher(source) { return (launcherBuild ??= compileLauncher(source)); }
+async function compileLauncher(source) {
   const prebuilt = value('--launcher');
   if (prebuilt) return resolve(prebuilt);
   const output = resolve(out, 'native');
@@ -353,18 +358,125 @@ async function scriptsPackage(source, config) {
     if (!pkg.entries.has(target)) throw Error(`The ${game} overlay file ${target} replaces nothing in the Scripts package.`);
     pkg.entries.set(target, {source: from});
   }
-  pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, game, commit: source.commit});
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
   // The runtime/ files the Lua and the bridge exchange, as empty placeholders: under Mod Organizer 2 a file created in the game
   // folder lands in Overwrite and is gone at the next launch, while an existing one is only ever modified or replaced
   // (packaging/lib/runtime-exchange.mjs). An update that extracts over a running install only empties transient files.
   for (const name of (await loadRuntimeExchange(source.root)).exchange) pkg.text(`${mod}/runtime/${name}`, '');
+  // The game-side part (the CET mod, redscript) stays text only; the code folder (below) is the one place with programs.
   for (const name of pkg.entries.keys()) {
-    if (!/\.(?:lua|reds|json|txt|log|ndjson)$/.test(name)) throw Error(`Scripts package must stay text-only: ${name}`);
+    if (!/\.(?:lua|reds|json|txt|log|ndjson)$/.test(name)) throw Error(`Scripts package must stay text-only outside ${CODE_FOLDER}: ${name}`);
   }
-  return {pkg, devOnlyExcluded: excluded};
+  // From 0.3.4 the Scripts carry ALL of the mod's own code (docs/PACKAGING.md, "Code in the Scripts"): the launcher and the native plugin (RED4ext
+  // plugins in red4ext/plugins/AiNpcCyberpunkCode/), install-code.mjs and one complete copy of the code in app/ (listed in code.json), which
+  // install-code.mjs copies into the Runtime base's app/ at every start where it differs. The Runtime base carries none of it.
+  const code = await addCodePayload(pkg, source, config);
+  pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, game, commit: source.commit, runtimeBase: config.runtimeBase.required});
+  return {pkg, devOnlyExcluded: excluded, code};
 }
+
+// The code folder of the Scripts (packaging/lib/code-payload.mjs). Returns {files, bytes}.
+async function addCodePayload(pkg, source, config) {
+  const notices = [];
+  const payload = new Map(); // app-relative path -> {source} | {buffer}
+  const put = (rel, entry) => {
+    if (!isCodePath(rel)) throw Error(`${rel} is not a code path (packaging/lib/code-payload.mjs): the Runtime base would have to carry it.`);
+    if (payload.has(rel)) throw Error(`code payload: duplicate ${rel}`);
+    payload.set(rel, entry);
+  };
+  const stage = resolve(out, 'stage/scripts-code');
+  await rm(stage, {recursive: true, force: true});
+
+  // The two RED4ext plugins, beside each other: the launcher (compiled from native/autostart) and the native plugin (native/core, for this game).
+  pkg.file(`${CODE_FOLDER}/${config.layout.pluginDll}`, await buildLauncher(source));
+  const nativeDll = await buildNative(source);
+  // runtime/native-off.txt (the kill switch) is not shipped from 0.3.4: native.off is empty, and a missing file means every system is on. A system
+  // shipped off again needs the file back, in the Scripts beside the DLL (and the runtime/ placeholder rules of scripts-package-layout.test.mjs).
+  if (config.native.off.length) throw Error(`native.off lists ${config.native.off.join(', ')}, but no package ships runtime/native-off.txt any more (docs/PACKAGING.md, "Code in the Scripts").`);
+  if (nativeDll) {
+    pkg.file(`${CODE_FOLDER}/${config.layout.nativeDll}`, nativeDll);
+    for (const [name, rel] of Object.entries(config.native.licences)) pkg.file(`${CODE_FOLDER}/${name}`, resolve(source.root, rel));
+    notices.push(`Native plugin (${CODE_FOLDER}/${config.layout.nativeDll}, built from native/core in this release for game ${game}): yyjson 0.12.0 (MIT, Copyright (c) 2020 YaoYuan)`
+      + ' and the RED4ext.SDK headers (MIT, Copyright (c) 2020 - present Octavian Dima); the licence texts are in this folder.');
+  }
+  pkg.file(`${CODE_FOLDER}/${INSTALLER}`, resolve(source.root, 'packaging/runtime/install-code.mjs'));
+  pkg.text(`${CODE_FOLDER}/README.txt`, 'AI NPC Cyberpunk Mod: the mod\'s own code, loaded by RED4ext (part of the Scripts download).\r\n'
+    + 'CyberpunkConvai.dll starts the conversation service with the Node of the Runtime (red4ext\\plugins\\AiNpcCyberpunkMod, from Hugging Face);\r\n'
+    + 'install-code.mjs first copies the code in app\\ into the Runtime. CyberpunkConvaiNative.dll is the optional native plugin: the mod\r\n'
+    + 'works the same without it. To switch one native system off, put its name on a line of runtime\\native-off.txt in the CET mod folder.\r\n');
+  pkg.text(`${CODE_FOLDER}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+
+  // The "Companions can see" picture helper sits beside the bridge (bridge/vision-capture.mjs looks for app/vision/CyberpunkConvaiVision.exe).
+  const visionExe = await buildVision(source);
+  if (visionExe) put('vision/CyberpunkConvaiVision.exe', {source: visionExe});
+
+  // Bridge: the production import closure plus the worker scripts it starts by path.
+  const closure = await importClosure(source.root, config.bridgeEntries);
+  for (const rel of [...new Set([...closure, ...config.bridgeWorkers])].sort()) put(rel, {source: resolve(source.root, rel)});
+
+  // Browser client: a fresh bundle of bridge/realtime-client.mjs and the PCM player modules.
+  const assetsDir = resolve(stage, 'assets');
+  const bundled = await buildClient(source, assetsDir);
+  put('assets/realtime-client.js', {source: resolve(assetsDir, 'realtime-client.js')});
+  for (const name of config.clientModules) put(`assets/${name}`, {source: resolve(source.root, 'bridge', name)});
+  for (const name of bundled) {
+    const directory = resolve(project, 'node_modules', name);
+    const info = existsSync(resolve(directory, 'package.json')) ? await readJson(resolve(directory, 'package.json')) : {};
+    const licences = (await readdir(directory).catch(() => [])).filter(file => /^(?:licen[cs]e|notice|copying)/i.test(file)).sort();
+    for (const file of licences) put(`licenses/client/${name.replace('/', '__')}/${file}`, {source: resolve(directory, file)});
+    notices.push(`${name} ${info.version ?? ''} - ${typeof info.license === 'string' ? info.license : 'see package'} (compiled into app/assets/realtime-client.js; licence text in app/licenses/client/)`);
+  }
+
+  // Data the bridge reads from the application directory. A literal data path in the closure that is missing from appData would fail at
+  // start-up, so refuse to build without it.
+  for (const rel of closure) {
+    const text = await readFile(resolve(source.root, rel), 'utf8');
+    for (const match of text.matchAll(/resolve\(project, '((?:characters|research)\/[^']+\.json)'\)/g)) {
+      if (!config.appData.includes(match[1])) throw Error(`${rel} reads ${match[1]}, which appData in release.config.json does not ship.`);
+    }
+  }
+  for (const rel of config.appData) put(rel, {source: resolve(source.root, rel)});
+  const intrinsic = await import(pathToFileURL(resolve(source.root, 'bridge/intrinsic-character-context.mjs')).href);
+  for (const descriptor of intrinsic.REVIEWED_INTRINSIC_PACKS) put(descriptor.file, {source: resolve(source.root, descriptor.file)});
+  // The character-ID mappings (managed defaults: prepare-state.mjs copies them into the data folder until the player edits one).
+  for (const name of config.releaseData.managed) put(`defaults/${name}`, {source: resolve(source.root, 'packaging/release-data', name)});
+
+  // Launcher scripts and application metadata.
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs', 'apply-removals.mjs']) {
+    put(`launcher/${name}`, {source: resolve(source.root, 'packaging/runtime', name)});
+  }
+  put('package.json', {buffer: Buffer.from(JSON.stringify({name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'}, null, 2) + '\n')});
+
+  // The list of the code files and their hashes (bridge/runtime-integrity.mjs): the error reports say whether the installed files still match
+  // it. Made from exactly the bytes this package ships, and installed into the Runtime with the rest.
+  const integrity = await import(pathToFileURL(resolve(source.root, 'bridge/runtime-integrity.mjs')).href);
+  const codeRows = [];
+  for (const [rel, entry] of payload) if (integrity.isCodePath(rel)) codeRows.push({path: rel, hash: integrity.hashBytes(entry.buffer ?? await readFile(entry.source))});
+  if (!codeRows.length) throw Error('The Scripts have no code files to list (bridge/runtime-integrity.mjs).');
+  put(integrity.CODE_LIST, {buffer: Buffer.from(integrity.codeListText({version, rows: codeRows}), 'utf8')});
+
+  const files = [];
+  let bytes = 0;
+  for (const [rel, entry] of [...payload].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    const content = entry.buffer ?? await readFile(entry.source);
+    files.push({path: rel, size: content.length, sha256: sha256Buffer(content)});
+    bytes += content.length;
+    pkg.add(`${CODE_APP}/${rel}`, entry);
+  }
+  // Code files an earlier Runtime shipped that no release has any more (packaging/runtime-removals.json): install-code.mjs deletes them from the
+  // Runtime's app/ (the Runtime's own removal step never deletes code since 0.3.4).
+  const declared = (await readJson(resolve(source.root, DECLARED_REMOVALS))).removes ?? [];
+  const removes = declared.filter(path => isCodeGamePath(path)).map(path => path.slice(RUNTIME_APP.length + 1)).filter(rel => !payload.has(rel)).sort();
+  pkg.json(`${CODE_FOLDER}/${CODE_MANIFEST}`, {...manifestOf({product: config.product, release: version, game, commit: source.commit,
+    runtimeBase: config.runtimeBase.required, files}), removes});
+  pkg.text(`${CODE_FOLDER}/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod code (Scripts) - third-party components', '',
+    ...notices.map(line => `- ${line}`), '- Convai Web SDK (@convai/web-sdk) - Apache-2.0 (compiled into app/assets/realtime-client.js)',
+    '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.', ''].join('\r\n'));
+  log(`Code in the Scripts: ${files.length} files, ${(bytes / 1024 ** 2).toFixed(1)} MiB (the Runtime base needs ${config.runtimeBase.required} or newer).`);
+  return {files: files.length, bytes};
+}
+
 
 async function runtimePackage(source, config, models, auth) {
   const pkg = new Package('runtime');
@@ -374,34 +486,16 @@ async function runtimePackage(source, config, models, auth) {
   const tool = config.toolchain;
   const notices = [];
 
-  // Launcher (compiled from native/autostart in this build) and its configuration.
-  const dll = await buildLauncher(source);
-  pkg.file(`${plugin}/${config.layout.pluginDll}`, dll);
-  pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
-  // The launcher opens launcher.log in the game process with CREATE_ALWAYS. Under Mod Organizer 2 that is a new file in Overwrite
-  // unless one exists; an existing real file opened for writing stays in place, so it ships empty.
-  pkg.text(`${plugin}/launcher.log`, '');
+  // From 0.3.4 the Runtime is the BASE: the large, rarely changing parts. The launcher, the native plugin, the picture helper and all of the
+  // mod's code ship in the Scripts (addCodePayload; docs/PACKAGING.md, "Code in the Scripts"), which install the code into this app/ folder at
+  // the start. No launcher.ini, no launcher.log and no native-off.txt either (the kill switch: a missing file means every system is on).
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
-
-  // The vision helper sits beside the bridge (bridge/vision-capture.mjs looks for app/vision/CyberpunkConvaiVision.exe).
-  const visionExe = await buildVision(source);
-  if (visionExe) pkg.file(`${app}/vision/CyberpunkConvaiVision.exe`, visionExe);
-
-  // The optional native plugin: RED4ext loads it from red4ext/plugins/<name>/, and runtime/native-off.txt (the kill switch, always
-  // shipped; native.off in release.config.json lists the systems that start off, none at present) keeps those on their script path.
-  const nativeDll = await buildNative(source);
-  if (nativeDll) {
-    const native = config.layout.nativeDirectory;
-    pkg.file(`${native}/${config.layout.nativeDll}`, nativeDll);
-    for (const [name, rel] of Object.entries(config.native.licences)) pkg.file(`${native}/${name}`, resolve(source.root, rel));
-    pkg.text(`${native}/README.txt`, 'Optional speed-up plugin for AI NPC Cyberpunk Mod, loaded by RED4ext.\r\n'
-      + 'AI NPC Cyberpunk Mod works the same without it: delete this folder and the mod runs entirely from its scripts.\r\n'
-      + 'To switch one native system off, put its name on a line of runtime\\native-off.txt in the mod folder.\r\n');
-    pkg.text(config.native.offFile, nativeOffText(config.native.off));
-    notices.push('Native plugin (red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll, built from native/core in this release): yyjson 0.12.0 (MIT, Copyright (c) 2020 YaoYuan)'
-      + ' and the RED4ext.SDK headers (MIT, Copyright (c) 2020 - present Octavian Dima); the licence texts are in that folder.');
-  }
+  // The base's marker plugin (native/autostart built with CONVAI_BASE_MARKER): a RED4ext plugin that does nothing. Vortex's Cyberpunk extension
+  // refuses a zip whose DLLs all lie deeper than red4ext/plugins/<name>/ (Python, llama.cpp), so the base keeps one in that place.
+  const marker = resolve(dirname(await buildLauncher(source)), BASE_MARKER);
+  if (!existsSync(marker)) throw Error(`${BASE_MARKER} was not built beside the launcher (scripts/Build-AutostartPlugin.ps1 builds both; with --launcher, put it beside that DLL).`);
+  pkg.file(`${plugin}/${BASE_MARKER}`, marker);
 
   // Node.js: the official Windows build, node.exe and its licence only.
   const nodeZip = await download(tool.node.url, resolve(cache, 'downloads', basename(tool.node.url)), tool.node.sha256, log);
@@ -437,10 +531,7 @@ async function runtimePackage(source, config, models, auth) {
   log(`Pocket TTS source: ${pocketShipping.length} of ${pocketFiles.length} upstream files shipped (the package and the licence).`);
   notices.push(`Pocket TTS (Kyutai) ${tool.pocketTts.revision} - ${tool.pocketTts.license}: app/pocket-tts/LICENSE - ${tool.pocketTts.repository}`);
 
-  // Bridge: the production import closure plus the worker scripts it starts by path.
-  const closure = await importClosure(source.root, config.bridgeEntries);
-  for (const rel of [...new Set([...closure, ...config.bridgeWorkers])].sort()) pkg.file(`${app}/${rel}`, resolve(source.root, rel));
-  // Node packages the bridge imports at run time (the Convai SDK is compiled into the client bundle).
+  // Node packages the bridge imports at run time (the Convai SDK is compiled into the client bundle). Third-party and rarely changed: in the base.
   for (const name of config.nodePackages) {
     const directory = resolve(project, 'node_modules', name);
     if (!existsSync(directory)) throw Error(`node_modules/${name} is missing: run npm ci first.`);
@@ -448,31 +539,6 @@ async function runtimePackage(source, config, models, auth) {
     const info = await readJson(resolve(directory, 'package.json'));
     notices.push(`${name} ${info.version} - ${info.license}: app/node_modules/${name}/LICENSE`);
   }
-
-  // Browser client: a fresh bundle of bridge/realtime-client.mjs and the PCM player modules.
-  const assetsDir = resolve(stage, 'assets');
-  const bundled = await buildClient(source, assetsDir);
-  pkg.file(`${app}/assets/realtime-client.js`, resolve(assetsDir, 'realtime-client.js'));
-  for (const name of config.clientModules) pkg.file(`${app}/assets/${name}`, resolve(source.root, 'bridge', name));
-  for (const name of bundled) {
-    const directory = resolve(project, 'node_modules', name);
-    const info = existsSync(resolve(directory, 'package.json')) ? await readJson(resolve(directory, 'package.json')) : {};
-    const licences = (await readdir(directory).catch(() => [])).filter(file => /^(?:licen[cs]e|notice|copying)/i.test(file)).sort();
-    for (const file of licences) pkg.file(`${app}/licenses/client/${name.replace('/', '__')}/${file}`, resolve(directory, file));
-    notices.push(`${name} ${info.version ?? ''} - ${typeof info.license === 'string' ? info.license : 'see package'} (compiled into app/assets/realtime-client.js)`);
-  }
-
-  // Data the bridge reads from the application directory. A literal data path in the closure
-  // that is missing from appData would fail at start-up, so refuse to build without it.
-  for (const rel of closure) {
-    const text = await readFile(resolve(source.root, rel), 'utf8');
-    for (const match of text.matchAll(/resolve\(project, '((?:characters|research)\/[^']+\.json)'\)/g)) {
-      if (!config.appData.includes(match[1])) throw Error(`${rel} reads ${match[1]}, which appData in release.config.json does not ship.`);
-    }
-  }
-  for (const rel of config.appData) pkg.file(`${app}/${rel}`, resolve(source.root, rel));
-  const intrinsic = await import(pathToFileURL(resolve(source.root, 'bridge/intrinsic-character-context.mjs')).href);
-  for (const descriptor of intrinsic.REVIEWED_INTRINSIC_PACKS) pkg.file(`${app}/${descriptor.file}`, resolve(source.root, descriptor.file));
 
   // Trained models (Pocket voice, lip sync) and the default state templates.
   const group = prefix => config.models.groups.find(item => item.target === prefix);
@@ -488,7 +554,6 @@ async function runtimePackage(source, config, models, auth) {
   // Every Runtime carries them, because nothing deletes an earlier version's files: a list an older Runtime left in app/defaults would
   // otherwise win over a newer pack's at every start (docs/PACKAGING.md, "Packs reused unchanged"). Without the pack they are not used.
   for (const name of OMNI_LIST_NAMES) pkg.json(`${app}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, config.toolchain.omniModel));
-  for (const name of config.releaseData.managed) pkg.file(`${app}/defaults/${name}`, resolve(source.root, 'packaging/release-data', name));
   // No Convai key: the Runtime signs in through the token backend (bridge/convai-credential.mjs reads this file as its lowest-priority source;
   // the daily limit applies to that sign-in). Not the error reports' file: app/defaults/error-reports.json has its own secret and is not written here.
   if (auth) addPackagedAuth(pkg, app, auth);
@@ -515,14 +580,12 @@ async function runtimePackage(source, config, models, auth) {
   // vgmstream-cli and its libraries: the decoder of a player's V voice mod (docs/PACKAGING.md, "vgmstream in the Runtime").
   log(`vgmstream ${tool.vgmstream.version}: ${await addRuntimeVgmstream(pkg, source, config, app, notices)} files in app/${tool.vgmstream.runtimeFolder}/.`);
 
-  // Launcher scripts, application metadata and notices.
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs', 'apply-removals.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
-  pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'});
   // Files an earlier Runtime shipped that this one does not: the service deletes them at its next start (packaging/runtime/apply-removals.mjs).
   // The list is in every Runtime, the full one too; a Runtime update zip replaces it with what it finds by comparing two Runtimes
   // (packaging/build-runtime-update.mjs). Here it carries the paths declared in packaging/runtime-removals.json, which must be paths the
   // start step may delete and none that this same Runtime ships.
-  const declared = (await readJson(resolve(source.root, DECLARED_REMOVALS))).removes ?? [];
+  // Code paths in the declared list are the Scripts' to delete since 0.3.4 (install-code.mjs, code.json "removes"); the Runtime's own step never deletes code.
+  const declared = ((await readJson(resolve(source.root, DECLARED_REMOVALS))).removes ?? []).filter(path => !isCodeGamePath(path));
   const checked = checkRemovals(declared, new Set(pkg.entries.keys()));
   if (checked.refused.length) throw Error(`${DECLARED_REMOVALS}: ${checked.refused.map(item => `${item.path} (${item.why})`).join('; ')}`);
   pkg.text(REMOVALS_ENTRY, removalListText(version, checked.ok));
@@ -534,7 +597,8 @@ async function runtimePackage(source, config, models, auth) {
   // An archive with "games" ships only in those games' Runtimes (the driver guard: 2.31 only).
   for (const item of forGame(config.releaseData.archives, game)) pkg.file(item.target, resolve(source.root, item.source));
 
-  notices.push('Convai Web SDK (@convai/web-sdk) - Apache-2.0 (compiled into app/assets/realtime-client.js; licence text in app/licenses/client/)');
+  notices.push('The mod\'s own code (app/bridge, app/launcher, app/assets and the character data) is copied into this app/ folder from the Scripts'
+    + ` (${CODE_FOLDER}), whose THIRD-PARTY-NOTICES.txt lists what is compiled into it (the Convai Web SDK, Apache-2.0) and the native plugin's licences.`);
   notices.push('Lip-sync pronunciation table (app/models/lipsync/face-lexicon.txt.gz): CMU Pronouncing Dictionary, BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University,'
     + ' plus 6553 game-vocabulary pronunciations generated with espeak-ng (espeak-ng is not shipped); see app/models/lipsync/face-lexicon-NOTICE.txt');
   notices.push('Pocket voice model (app/models/pocket/): adapted from Kyutai Pocket TTS (kyutai/pocket-tts), weights CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), code MIT.'
@@ -546,21 +610,13 @@ async function runtimePackage(source, config, models, auth) {
   notices.push('AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in the plugin folder.');
   pkg.text(`${app}/licenses/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod runtime - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.text(`${app}/licenses/THIRD_PARTY_NOTICES.md`, await readFile(resolve(source.root, 'THIRD_PARTY_NOTICES.md'), 'utf8'));
-  // The list of the Runtime's own code files and their hashes (bridge/runtime-integrity.mjs): the error reports say whether the
-  // installed files still match it, so a Runtime that someone else edited is seen. Made last, from exactly the bytes this package ships; a Runtime update zip
-  // carries the new list (it differs from the old one at every release), so the list always belongs to the newest Runtime applied.
-  const integrity = await import(pathToFileURL(resolve(source.root, 'bridge/runtime-integrity.mjs')).href);
-  const codeRows = [];
-  for (const [name, entry] of pkg.entries) {
-    const rel = name.startsWith(`${app}/`) ? name.slice(app.length + 1) : null;
-    if (rel && integrity.isCodePath(rel)) codeRows.push({path: rel, hash: integrity.hashBytes(entry.buffer ?? await readFile(entry.source))});
-  }
-  if (!codeRows.length) throw Error('The Runtime has no code files to list (bridge/runtime-integrity.mjs).');
-  pkg.text(`${app}/${integrity.CODE_LIST}`, integrity.codeListText({version, rows: codeRows}));
-  pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, game, commit: source.commit,
+  // The base carries no code (the code list, runtime-code-files.json, comes with the Scripts' code). Nothing under app/ may be a code path.
+  const stray = [...pkg.entries.keys()].filter(name => isCodeGamePath(name));
+  if (stray.length) throw Error(`The Runtime base would ship code the Scripts carry: ${stray.slice(0, 5).join(', ')}`);
+  // kind "base": from 0.3.4 this version is the Runtime base's (the Scripts' release.json names the oldest base they run on, runtimeBase).
+  pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', kind: 'base', version, game, commit: source.commit,
     node: tool.node.version, python: tool.python.version,
-    pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: 'none', convaiSignIn: auth ? 'backend' : 'none',
-    nativePlugin: nativeDll ? await sha256File(nativeDll) : 'none'});
+    pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: 'none', convaiSignIn: auth ? 'backend' : 'none'});
   return pkg;
 }
 
@@ -1138,10 +1194,10 @@ async function main() {
   for (const item of Object.values(report.packages).flatMap(entry => entry.archives)) {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
       if (/^misc\//.test(entry.name)) throw Error(`${item.file} contains developer-only material: ${entry.name}`);
-      // Only the shipped launcher and the native plugin may install a RED4ext plugin. The development launcher
+      // Only the shipped launcher and the native plugin (both in the Scripts' code folder from 0.3.4) may install a RED4ext plugin. The development launcher
       // (red4ext/plugins/CyberpunkConvaiLauncher) must never ship: with it, two services start.
       if (/^red4ext\//i.test(entry.name) && /\.(?:dll|ini)$/i.test(entry.name)
-          && !entry.name.startsWith(`${config.layout.pluginDirectory}/`) && !entry.name.startsWith(`${config.layout.nativeDirectory}/`)) {
+          && !entry.name.startsWith(`${CODE_FOLDER}/`) && entry.name !== `${config.layout.pluginDirectory}/${BASE_MARKER}`) {
         throw Error(`${item.file} installs an unexpected RED4ext plugin file: ${entry.name}`);
       }
       if (/(?:^|\/)CyberpunkConvaiLauncher[^/]*$/i.test(entry.name)) throw Error(`${item.file} contains the development launcher: ${entry.name}`);
@@ -1152,6 +1208,8 @@ async function main() {
     }
   }
   if (!useWorktree) await rm(source.root, {recursive: true, force: true});
+  // The staging folder (the client bundle of the Scripts' code, the Runtime's Python) is not needed once every zip is written.
+  await rm(resolve(out, 'stage'), {recursive: true, force: true});
   log(`Done: ${resolve(out, 'packages')}`);
 }
 

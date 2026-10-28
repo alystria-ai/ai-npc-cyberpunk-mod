@@ -130,9 +130,53 @@ void ControlFileChanged(std::string_view aContent)
     convai::GlobalSwitches().ParseFile(aContent);
 }
 
+// From 0.3.4 this DLL ships in the Scripts (red4ext/plugins/AiNpcCyberpunkCode/); a Runtime of 0.3.3 or older still has its own copy in
+// red4ext/plugins/AiNpcCyberpunkModNative/. The launcher beside this DLL renames that copy before RED4ext reaches it (docs/PACKAGING.md,
+// "Code in the Scripts"), so normally only this one loads. When it could not (the old copy was loaded first, or the rename failed and the
+// old copy loads after this one), exactly one copy must run: this one stands down and the other serves this session.
+bool AnotherCopyServes() noexcept
+{
+    HMODULE self = nullptr;
+    if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCWSTR>(&AnotherCopyServes), &self))
+    {
+        return false;
+    }
+    const HMODULE first = GetModuleHandleW(L"CyberpunkConvaiNative.dll");
+    if (first && first != self)
+    {
+        return true;
+    }
+    const std::wstring root = convai::paths::GameRootFromExecutable();
+    if (root.empty())
+    {
+        return false;
+    }
+    const std::wstring old = root + L"\\red4ext\\plugins\\AiNpcCyberpunkModNative\\CyberpunkConvaiNative.dll";
+    wchar_t own[MAX_PATH * 4];
+    const DWORD length = GetModuleFileNameW(self, own, static_cast<DWORD>(std::size(own)));
+    if (length > 0 && length < std::size(own) && _wcsicmp(own, old.c_str()) == 0)
+    {
+        return false; // this IS the old place (a development install)
+    }
+    const HMODULE oldLoaded = GetModuleHandleW(old.c_str());
+    if (oldLoaded && oldLoaded != self)
+    {
+        return true;
+    }
+    return GetFileAttributesW(old.c_str()) != INVALID_FILE_ATTRIBUTES;
+}
+
 bool Load()
 {
     convai::log::SetSink(&LogSink);
+
+    if (AnotherCopyServes())
+    {
+        CONVAI_ERROR("An older Runtime's copy of this plugin (red4ext\\plugins\\AiNpcCyberpunkModNative) is loaded or still in place; "
+                     "this copy stands down for this session and the launcher retires the old one");
+        return false;
+    }
 
     const auto* runtime = g_sdk ? g_sdk->runtime : nullptr;
     const convai::GameVersion game =
