@@ -57,7 +57,7 @@
     ]
   },
   "counts": {
-    "strings": 1632,
+    "strings": 1624,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -170,7 +170,7 @@
     "Billed once a year.": "Billed once a year.",
     "Bio": "Bio",
     "Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.": "Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.",
-    "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nNothing moves without your Yes on a pop-up. Eddies move only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.": "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nNothing moves without your Yes on a pop-up. Eddies move only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.",
+    "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.": "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.",
     "Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.": "Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.",
     "Browse your characters, discover a game model, or manage your current party.": "Browse your characters, discover a game model, or manage your current party.",
     "Browse {section}. {query}": "Browse {section}. {query}",
@@ -425,7 +425,6 @@
     "Driver leaving the car": "Driver leaving the car",
     "Driving": "Driving",
     "Dynamic info": "Dynamic info",
-    "EDDIES": "EDDIES",
     "ENTER  Write / Send   /   ESC  Stop typing": "ENTER  Write / Send   /   ESC  Stop typing",
     "ENTER  Write message   /   ESC  Close": "ENTER  Write message   /   ESC  Close",
     "Earlier turns kept": "Earlier turns kept",
@@ -503,7 +502,6 @@
     "German": "German",
     "Get your Convai API key": "Get your Convai API key",
     "Give the character a name.": "Give the character a name.",
-    "Give {name} {amount} eddies?": "Give {name} {amount} eddies?",
     "Go back to the shipped prompting for {name}? All your changes to it are removed.": "Go back to the shipped prompting for {name}? All your changes to it are removed.",
     "Go back to the shipped prompting for {name}? Your changes to this part are removed.": "Go back to the shipped prompting for {name}? Your changes to this part are removed.",
     "Go back to the shipped text for {name}? All your changes to this character are removed.": "Go back to the shipped text for {name}? All your changes to this character are removed.",
@@ -604,7 +602,6 @@
     "Layout": "Layout",
     "Leave a version empty to use the rule text.": "Leave a version empty to use the rule text.",
     "Left arrow": "Left arrow",
-    "Lend {name} {amount} eddies?": "Lend {name} {amount} eddies?",
     "Length limits": "Length limits",
     "Lines in their voice. They show the tone only and are never said back word for word.": "Lines in their voice. They show the tone only and are never said back word for word.",
     "Lip sync delay (Bluetooth)": "Lip sync delay (Bluetooth)",
@@ -845,7 +842,6 @@
     "Paste model ID": "Paste model ID",
     "Pause": "Pause",
     "Pause between chats": "Pause between chats",
-    "Pay {name} back {amount} eddies?": "Pay {name} back {amount} eddies?",
     "Pending departure lost its vehicle binding.": "Pending departure lost its vehicle binding.",
     "Phone Chat messages": "Phone Chat messages",
     "Picked up in your talks": "Picked up in your talks",
@@ -1618,7 +1614,6 @@
     "{name} (custom, {size} GB, too large for this card)": "{name} (custom, {size} GB, too large for this card)",
     "{name} answers typed messages only for now.": "{name} answers typed messages only for now.",
     "{name} answers typed messages only for now. Use {key}.": "{name} answers typed messages only for now. Use {key}.",
-    "{name} asks to borrow {amount} eddies. Lend them?": "{name} asks to borrow {amount} eddies. Lend them?",
     "{name} can't come along right now.": "{name} can't come along right now.",
     "{name} cannot be talked to: the mod cannot tell which voice fits.": "{name} cannot be talked to: the mod cannot tell which voice fits.",
     "{name} could not join: {reason}": "{name} could not join: {reason}",
@@ -1652,9 +1647,6 @@
     "{name} joins you.": "{name} joins you.",
     "{name} moves into {apartment}.": "{name} moves into {apartment}.",
     "{name} now lives in {apartment} and stays in your party until sent home.": "{name} now lives in {apartment} and stays in your party until sent home.",
-    "{name} offers to lend you {amount} eddies. Take the loan?": "{name} offers to lend you {amount} eddies. Take the loan?",
-    "{name} offers you {amount} eddies. Take them?": "{name} offers you {amount} eddies. Take them?",
-    "{name} pays you back {amount} eddies. Take them?": "{name} pays you back {amount} eddies. Take them?",
     "{name} selected for memory controls.": "{name} selected for memory controls.",
     "{name} stops living at your place. She stays as she is otherwise.": "{name} stops living at your place. She stays as she is otherwise.",
     "{name} unselected.": "{name} unselected.",
@@ -2313,7 +2305,7 @@
       "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.",
       "After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself.",
       "Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.",
-      "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nNothing moves without your Yes on a pop-up. Eddies move only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.",
+      "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.",
       "Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.",
       "Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.",
       "Cinematic: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nThe Subtitles switch turns both off.",
@@ -2722,7 +2714,6 @@
       "Display names",
       "Downloading {done} of {total} MB ({percent}%)",
       "Downloading…",
-      "EDDIES",
       "Earlier turns kept",
       "Edited",
       "Error reports go to the developer automatically. Turn them off in Settings > Privacy.",
@@ -2768,7 +2759,6 @@
       "Generated reports are saved in {path}. The five newest are kept.",
       "German",
       "Give the character a name.",
-      "Give {name} {amount} eddies?",
       "Go back to the shipped prompting for {name}? All your changes to it are removed.",
       "Go back to the shipped prompting for {name}? Your changes to this part are removed.",
       "Go back to the shipped text for {name}? All your changes to this character are removed.",
@@ -2818,7 +2808,6 @@
       "Key bindings need Codeware, and this game does not have it. Open Help for what is missing.",
       "Layout",
       "Leave a version empty to use the rule text.",
-      "Lend {name} {amount} eddies?",
       "Length limits",
       "Lines in their voice. They show the tone only and are never said back word for word.",
       "Lite and Standard are the two Local AI model sizes. “Mature on” is used while Mature content is on.",
@@ -2993,7 +2982,6 @@
       "Paste address",
       "Paste endpoint URL",
       "Paste model ID",
-      "Pay {name} back {amount} eddies?",
       "Picked up in your talks",
       "Play saved clip",
       "Pocket could not load. See Help in Settings.",
@@ -3514,7 +3502,6 @@
       "{name} (custom, {size} GB, too large for this card)",
       "{name} answers typed messages only for now.",
       "{name} answers typed messages only for now. Use {key}.",
-      "{name} asks to borrow {amount} eddies. Lend them?",
       "{name} can't come along right now.",
       "{name} cannot be talked to: the mod cannot tell which voice fits.",
       "{name} could not join: {reason}",
@@ -3546,9 +3533,6 @@
       "{name} joins you.",
       "{name} moves into {apartment}.",
       "{name} now lives in {apartment} and stays in your party until sent home.",
-      "{name} offers to lend you {amount} eddies. Take the loan?",
-      "{name} offers you {amount} eddies. Take them?",
-      "{name} pays you back {amount} eddies. Take them?",
       "{name} selected for memory controls.",
       "{name} stops living at your place. She stays as she is otherwise.",
       "{name} unselected.",
@@ -4488,7 +4472,7 @@
         "mod/manager-ui.lua:2102"
       ]
     },
-    "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nNothing moves without your Yes on a pop-up. Eddies move only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.": {
+    "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.": {
       "contexts": [
         "page.setting"
       ],
@@ -6674,14 +6658,6 @@
         "mod/manager-ui.lua:2009"
       ]
     },
-    "EDDIES": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:302"
-      ]
-    },
     "ENTER  Write / Send   /   ESC  Stop typing": {
       "contexts": [
         "phone.native-feedback"
@@ -7314,14 +7290,6 @@
       ],
       "references": [
         "mod/character-editor.lua:36"
-      ]
-    },
-    "Give {name} {amount} eddies?": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:269"
       ]
     },
     "Go back to the shipped prompting for {name}? All your changes to it are removed.": {
@@ -8153,14 +8121,6 @@
       "references": [
         "mod/key-bindings.lua:143",
         "mod/key-bindings.lua:65"
-      ]
-    },
-    "Lend {name} {amount} eddies?": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:268"
       ]
     },
     "Length limits": {
@@ -9261,7 +9221,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:7348"
+        "mod/init.lua:7340"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -10168,14 +10128,6 @@
       ],
       "references": [
         "mod/manager-ui.lua:1638"
-      ]
-    },
-    "Pay {name} back {amount} eddies?": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:270"
       ]
     },
     "Pending departure lost its vehicle binding.": {
@@ -13331,10 +13283,10 @@
         "ui.localized"
       ],
       "references": [
-        "mod/eddies.lua:245",
-        "mod/eddies.lua:249",
-        "mod/eddies.lua:253",
-        "mod/eddies.lua:260"
+        "mod/eddies.lua:246",
+        "mod/eddies.lua:250",
+        "mod/eddies.lua:254",
+        "mod/eddies.lua:261"
       ]
     },
     "The editor could not be opened. Try again.": {
@@ -15784,7 +15736,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/eddies.lua:251"
+        "mod/eddies.lua:252"
       ]
     },
     "You do not have that apartment.": {
@@ -16654,14 +16606,6 @@
         "mod/init.lua:3141"
       ]
     },
-    "{name} asks to borrow {amount} eddies. Lend them?": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:267"
-      ]
-    },
     "{name} can't come along right now.": {
       "contexts": [
         "ui.localized"
@@ -16831,7 +16775,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/eddies.lua:242"
+        "mod/eddies.lua:243"
       ]
     },
     "{name} is not a person and cannot be talked to.": {
@@ -16941,30 +16885,6 @@
       ],
       "references": [
         "mod/housemates.lua:769"
-      ]
-    },
-    "{name} offers to lend you {amount} eddies. Take the loan?": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:266"
-      ]
-    },
-    "{name} offers you {amount} eddies. Take them?": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:272"
-      ]
-    },
-    "{name} pays you back {amount} eddies. Take them?": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/eddies.lua:271"
       ]
     },
     "{name} selected for memory controls.": {

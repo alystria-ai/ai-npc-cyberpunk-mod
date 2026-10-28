@@ -4,8 +4,8 @@ Branch `feat/eddies` (2026-10-28). **Settings > Gameplay > Eddies with character
 (another branch adds it); the setting key `characterEddies` stays the same.
 
 Money between V and the characters, the lore-friendly way: every character has money of their own as their story has it, V can borrow from them and lend
-to them both ways, pay back and be paid back, by voice or by text, and every transfer asks V first with the game's own Yes/No pop-up. What a character does
-follows their lore and how V stands with them now.
+to them both ways, pay back and be paid back, by voice or by text, and the eddies move at once when the character agrees in their reply (no question asked,
+2026-10-28 on the owner's word after the live test). What a character does follows their lore and how V stands with them now.
 
 ## Why this is not "Pay characters in eddies" again
 
@@ -13,15 +13,17 @@ follows their lore and how V stands with them now.
 left no trace at all. Its design made that hard to see and easy to break:
 
 * one direction only (V pays), typed lines only, and the amount had to pass a 15-language grammar before anything happened;
-* the money moved **without asking**, so every rule had to be a hard gate (the lease, the mailbox shared with the drive and follow actions, the offer
+* the money moved **without any check by the game**, so every rule had to be a hard gate (the lease, the mailbox shared with the drive and follow actions, the offer
   echoed exactly), and any gate that said no said nothing;
 * nothing on screen showed that the feature had even looked at the line.
 
 This design keeps what was right (the amount never comes from the model; the game checks the balance, the cap and ownership again, and reads the balance
 back) and changes the rest:
 
-* **V always confirms.** The bridge only proposes; the game shows a pop-up and moves nothing without Yes. That makes a voice turn safe too, and a
-  wrong reading of V's words costs one "No", not money.
+* **The game checks before it moves anything.** The bridge only proposes (its reading of V's words, never the model); the game re-checks the setting,
+  the character, the sum, V's balance and the debt, and reads the balance back. A first design also asked V on a Yes/No pop-up; the owner dropped that
+  step after the live test (it was one more thing to click per transfer), so a wrong reading of V's words now costs money where it used to cost one "No".
+  The guards below are what stands between a misread line and V's wallet.
 * **Its own small file and its own short watch** (`runtime/eddies-offer.json`), not the action mailbox and its lease.
 * **A log line at every step**: the bridge's `[Eddies] profile=... own=... trust=... words:borrow:500 propose=loanToV:500` (or `unheard`, `about`,
   `heard=...`), the game's `Eddies: proposal person=... flow=... amount=...` and `Eddies: person=... flow=... amount=... result=done|declined|missed|failed`.
@@ -30,11 +32,11 @@ back) and changes the rest:
 
 * Talk about money with one of your own characters (party member, invited visitor, housemate): "can you lend me 500?", "here, take 300 eddies",
   "I'll lend you a grand", "here's the 500 I owe you", "pay me back". The character answers in their own way, and when the reply is over and you are
-  free (no menu, scene, fight or text box), the pop-up asks: "Judy offers to lend you 500 eddies. Take the loan?" Yes moves the eddies with the game's
-  own eddies notification; No moves nothing, and the character remembers it.
+  free (no menu, scene, fight or text box), the eddies move: Judy lends you 500 and the game shows its own eddies notification. Nothing asks first. A
+  refusal in the reply moves nothing.
 * Characters remember what is owed, both ways, and say so ("V owes you 600 eddies"). They will not lend more while V owes them much.
 * Now and then a character with needs in their story asks **you** for a loan, briefly ("You need 300 eddies for motorcycle repairs"), at most once per
-  session and once every three days.
+  session and once every three days. It only asks: nothing leaves your wallet until you say so in your own words ("sure, here's 300").
 * A character the game placed (story Judy in her flat) and ordinary NPCs only **talk** about money: nothing moves with them.
 
 ## The money data (`bridge/eddies-finances.mjs`)
@@ -52,7 +54,7 @@ they paid out, which fades back to their usual means with a half-life of 7 days.
 
 Trust, 0 to 1: 0.3, plus how V stands with them in the game (housemate +0.2, party +0.15, invited visitor +0.1), the relationship the save confirms or
 the player turned on (bridge/relationship-routing.mjs: partner +0.3, casual +0.1), how long they have known V in this feature (+0.005 a day, at most +0.15),
-and V's record (paid back before +0.1, owes now -0.15, said no to their ask -0.05).
+and V's record (paid back before +0.1, owes now -0.15; a "declined" row left by the pop-up build still counts as -0.05).
 
 * **V asks to borrow**: the most they lend is 60% of their purse times generosity times (0.5 + trust), at most 100,000. Within it: yes. Above it: they
   offer what they can (when that is at least a quarter of what V asked). No wallet, broke, no trust, or V owes them more than 30% of their purse: no,
@@ -66,7 +68,8 @@ and V's record (paid back before +0.1, owes now -0.15, said no to their ask -0.0
   V owes them, cooldown 3 days, once per bridge session).
 
 The decision is told to the character in **one volatile note** (every provider: Convai's dynamic info, Mistral, Local AI, Custom), with the rule that
-eddies only change hands through the pop-up after the reply, so they never say the money already moved, and never another sum. With the setting on, the
+eddies change hands the moment the character agrees in the reply, so they agree only to what they really mean to do, never say money moved when they refused, and never
+name another sum. With the setting on, the
 old words-only `MONEY_NOTE` ("V is the one paying you") stays out of a named character's turn (`input.eddies.decides`), because V may borrow now;
 ordinary NPCs keep it.
 
@@ -145,7 +148,7 @@ Known limits: a give or borrow clause before a debt clause wins ("Tady máš tě
 not a give cue (too many false offers); a sum over 100,000 is not read (a million); "half" and "two and a half thousand" are not sums; a negation anywhere in
 the clause refuses it ("take 150 and don't whine").
 
-## The game half (`mod/eddies.lua`, `r6/scripts/CyberpunkConvai/Eddies.reds`)
+## The game half (`mod/eddies.lua`)
 
 * `block(context)`: once per private turn V sends to a named character (typed: `sendRequest`; spoken: `microphone.captureActions`), never a group
   round, a reaction, a call or Johnny in V's head. Asks `companions.ownCopy(entity, profileKey)`: `party`, `housemate`, `visitor` or nil (a
@@ -153,11 +156,15 @@ the clause refuses it ("take 150 and don't whine").
   `Items.money`) and arms the watch for this request id.
 * The proposal (`runtime/eddies-offer.json`, written by the bridge after the reply was published) must match the watched request id, entity and
   profile, a known flow and a whole sum of 1 to 100,000. It waits until the reply is over and V is free (no reply due or playing, no combat, scene,
-  dialogue choice, pause, menu, text box or phone), at most 45 s, then opens `GenericMessageNotification.Show(..., YesNo)` (the box the game uses for its
-  own questions; redscript only reports the answer, it moves nothing).
-* On Yes, everything is checked again: the setting, the character still one of V's copies, the debt a payback settles, V's live balance for money
-  leaving V; then `TransactionSystem:GiveItem` / `RemoveItem` with `Items.money` (what vendors, the taxi and quest payments use, so the game shows its own
-  eddies notification), and the balance is read back. A refusal shows one notice (`eddies-transfer`).
+  dialogue choice, pause, menu, text box or phone), at most 45 s, then the transfer happens at once, in `mod/eddies.lua` `update`. There is no redscript half
+  and no question: the character's agreement in the reply is the go-ahead. The offer is cleared before anything moves (one transfer per proposal), and
+  the file read again is ignored (`lastRaw`, and the watch is over after the first match).
+* Everything is checked first: the setting, the character still one of V's copies, the debt a payback settles, V's live balance for money leaving V,
+  the sum (whole, 1 to 100,000). Then `TransactionSystem:GiveItem` / `RemoveItem` with `Items.money` (what vendors, the taxi and quest payments use), and the
+  balance is read back. **The eddies notification on screen is the game's own**: the mod draws nothing for a transfer, the game's HUD reacts to the
+  money item being added or removed, exactly as for a vendor or a quest reward. The mod shows only a refusal (one notice, `eddies-transfer`).
+* A character that only **asks** V for a loan (its own move, proposal origin `asked`, flow `loanFromV`) moves nothing: V has agreed to nothing. The game keeps
+  the time of the ask (the three-day cooldown) and no ledger entry. When V lends in a later turn, that is an ordinary proposal.
 * **The ledger** (`runtime/eddies-ledger.json`, version 2): per character a seed, the first-contact time, the last ask and up to 40 entries
   `{flow, amount, real time, result, origin, game clock}`. It is written only when something happened. **Rollback guard**: an entry stamped later than
   the game clock of the save now loaded is forgotten for good (a load of an earlier save took those eddies back), like Street reputation's guard. The
@@ -172,32 +179,32 @@ favours paid in quests), so it stays off until a story pack defines exactly when
 
 ### What only the game can confirm (live check list)
 
-1. The pop-up opens with the right text after the reply, not during it, and not over a menu or scene.
-2. Yes on a loan to V: the game's `+300` eddies notification and the balance up by 300 (`Eddies: person=judy-alvarez flow=loanToV amount=300 result=done`).
-3. Yes on a gift or a loan from V: `-200` notification, balance down by exactly 200.
-4. No: nothing moves, and on the next money talk the character remembers ("V said no when you asked to borrow ...").
+1. The eddies move after the reply, not during it, and not over a menu or scene (the proposal waits until V is free).
+2. A loan to V: the game's own `+300` eddies notification and the balance up by 300 (`Eddies: person=judy-alvarez flow=loanToV amount=300 result=done`).
+3. A gift or a loan from V: `-200` notification, balance down by exactly 200. More than V has: nothing moves and one notice says so.
+4. A character refuses in its reply (no proposal): nothing moves. A character asks V for a loan: nothing moves until V offers (`... asked (nothing moves)`).
 5. `companions.ownCopy` is `party` for a party member, `visitor` for an invited visitor, `housemate` for a housemate, and nil for the game's own Judy (her
    note says no eddies can change hands).
 6. A load of a save from before a loan: the next money talk with that character no longer mentions it (`Eddies: person=... forgot=1`).
-7. A spoken "can you lend me 200 eddies?" (and the same in German, Spanish, Japanese ...) to a party member: a pop-up for the sum the character agreed to.
+7. A spoken "can you lend me 200 eddies?" (and the same in German, Spanish, Japanese ...) to a party member: the sum the character agreed to moves, once.
 8. No FPS change with the setting on and off (nothing runs per frame; the proposal read is 2 Hz for 150 s after a turn to an own copy).
 
 ## Safety rules
 
 1. Off by default; off sends nothing, reads nothing, runs nothing.
-2. The model decides nothing: the bridge decides from the money data, the ledger and V's words; the game re-checks everything; V confirms every transfer.
+2. The model decides nothing: the bridge decides from the money data, the ledger and V's words; the game re-checks everything and moves the money only once the character has agreed in its reply.
 3. A whole sum of 1 to 100,000 (`EDDIES_CAP`, `M.CAP`), at most V's live balance for money leaving V, at most the debt for a payback.
 4. One proposal per turn, matched to the turn's request id; a proposal file read again is not a second transfer.
 5. Only V's own copies move money.
 
 ## Phases
 
-1. **Built (this branch):** money data for every character and NPC group; borrow and lend both ways, gifts, paybacks; confirm pop-up; ledger per
+1. **Built (this branch):** money data for every character and NPC group; borrow and lend both ways, gifts, paybacks; the eddies move when the character agrees, no pop-up; ledger per
    character in their prompt with the rollback guard; intent screen with no added latency; game-placed characters talk only; setting off by default.
 2. **Story packs (designed, not built):** a content pack (docs/ADDON_API.md) may ship `eddies-stories.json`: per character a short arc that a character
    at a trust threshold brings up, unlocked only after that character's own quests are finished (journal state the game already sends, e.g. Panam after
-   `sq027`), for example "Panam's car is held for ransom": stage 1 she asks for N eddies with the backstory; V's Yes/No moves the story (paid: stage 2,
-   she pays back over time; refused: she finds another way, stage 2b); stage notes go in the same volatile note, the proposals through the same pop-up,
+   `sq027`), for example "Panam's car is held for ransom": stage 1 she asks for N eddies with the backstory; V's answer in the talk moves the story (paid: stage 2,
+   she pays back over time; refused: she finds another way, stage 2b); stage notes go in the same volatile note, the proposals through the same file,
    and each stage is one ledger entry with a story id. The loader would validate the file (character keys, stage ids, sums within the cap, a quest-done
    condition) and offer at most one active story per character. Not built yet.
 3. **Later:** deciding a spoken turn's words before the reply on the text providers (their host has the transcript when it calls
@@ -208,8 +215,8 @@ favours paid in quests), so it stays off until a story pack defines exactly when
 `bridge/eddies.mjs` (screen, decisions, notes, proposal), `bridge/eddies-finances.mjs` (data), `bridge/protocol.mjs` (`eddies` on a private turn),
 `bridge/turn-context.mjs` (`moneyNote` stays out when the eddies note decides), `bridge/convai-bridge.mjs` (the note in the context blocks, the proposal in
 `publishResult`), `mod/eddies.lua`, `mod/companions.lua` (`ownCopy`), `mod/init.lua` (wiring), `mod/manager.lua` and `mod/manager-ui.lua` (the setting),
-`mod/notices.lua` (`eddies-transfer`), `r6/scripts/CyberpunkConvai/Eddies.reds` (the pop-up), packaging lists, `localization/en.json`.
+`mod/notices.lua` (`eddies-transfer`), `localization/en.json`. (`r6/scripts/CyberpunkConvai/Eddies.reds`, the pop-up, was removed on 2026-10-28.)
 
 Tests: `bridge/eddies.test.mjs` (data coverage, the block, protocol, money note, amounts, the screen, means, trust, every decision, the ledger line, typed
-and spoken turns, game-placed and ordinary NPCs, initiative, the cap), `bridge/eddies-lua.test.mjs` (off, the block, the pop-up flow, No, missed,
-every re-check after Yes, paybacks, the rollback guard, a reload and a damaged ledger, the init wiring).
+and spoken turns, game-placed and ordinary NPCs, initiative, the cap), `bridge/eddies-lua.test.mjs` (off, the block, the transfer at once, a character that only asks, missed,
+every re-check before the eddies move, paybacks, the rollback guard, a reload and a damaged ledger, the init wiring).

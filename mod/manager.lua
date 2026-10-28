@@ -913,7 +913,7 @@ local function loadSettings()
     -- Off by default: Revenge ambushes (Settings > Gameplay, docs/AMBUSHES.md). A gang V keeps killing may send a small squad after V now and then.
     -- Off, mod/revenge-ambush.lua is not loaded and nothing is watched.
     if type(settings.revengeAmbushes) ~= 'boolean' then settings.revengeAmbushes, settingsNeedSave = false, true end
-    -- Off by default: eddies between V and the characters, borrowed, lent and paid back with a confirmation pop-up (docs/EDDIES.md).
+    -- Off by default: eddies between V and the characters, borrowed, lent and paid back when the character agrees (docs/EDDIES.md).
     if type(settings.characterEddies) ~= 'boolean' then settings.characterEddies, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end

@@ -1,14 +1,16 @@
 -- Eddies between V and the characters (docs/EDDIES.md, bridge/eddies.mjs). Settings > Gameplay > Eddies with characters, Off by default.
 --
--- The game half. It owns the money and the ledger; the bridge only proposes, and V always confirms:
+-- The game half. It owns the money and the ledger; the bridge only proposes, and the game moves the money when the character has agreed:
 --   block(context)   once per private turn V sends to a named character, while the setting is On: whether the character is one of V's own copies
 --                    (party, invited visitor, housemate), V's balance (own copies only), the clock and the character's ledger row. A game-placed
 --                    character gets the row only (talk only: nothing can move). Arms a short watch for the bridge's proposal of this turn.
 --   update(player)   from the 10 Hz tick. Nothing at all unless a watch or a proposal is open: the proposal file is read at most twice a second while
 --                    a watch is armed (at most 150 s after a turn to an own copy). A proposal for that turn waits until the reply is spoken and V is
---                    free (no menu, scene or text box), then opens the game's own Yes/No pop-up (Eddies.reds). On Yes everything is checked again
---                    (the setting, the character still one of V's copies, a whole sum from 1 to the cap, V's live balance, the debt a payback settles)
---                    and the eddies move with the game's transaction calls (the vendors' and the taxi's), read back from the balance. The ledger
+--                    free (no menu, scene or text box), then the eddies move at once, no question asked: the character's reply was the agreement.
+--                    First everything is checked (the setting, the character still one of V's copies, a whole sum from 1 to the cap, V's live
+--                    balance, the debt a payback settles); the eddies move with the game's transaction calls (the vendors' and the taxi's, so the game
+--                    shows its own eddies notification), read back from the balance. A character that only ASKS V for a loan moves nothing: V's
+--                    money leaves only on V's own words in a later turn. The ledger
 --                    (runtime/eddies-ledger.json) is written only when something happened: once per transfer or refusal, once when a character
 --                    first deals with V, and once when a load went back before some of it.
 -- The ledger is a list of entries per character, each stamped with V's game clock: an entry from later than the clock of the save now loaded (a load of
@@ -23,7 +25,7 @@ M.TO_V = {loanToV = true, repayToV = true, giftToV = true}
 M.LEDGER = 'runtime/eddies-ledger.json'
 M.OFFER = 'runtime/eddies-offer.json'
 local DAY = 86400
-local WATCH_SECONDS, POLL_SECONDS, WAIT_SECONDS, OPEN_SECONDS = 150, 0.5, 45, 600
+local WATCH_SECONDS, POLL_SECONDS, WAIT_SECONDS = 150, 0.5, 45
 local MAX_CHARACTERS, MAX_ENTRIES, MAX_FILE = 400, 40, 524288
 -- Game seconds of slack before an entry counts as later than the loaded save (the clock read and the stamp are a moment apart).
 local ROLLBACK_SLACK = 120
@@ -61,8 +63,7 @@ end
 -- gameTime() -> V's game clock in seconds or nil (world-knowledge.lua nativeGameTime: entries are stamped with it, and a load before them forgets them);
 -- clock() -> seconds (os.clock); read(path) -> text | nil; write(path, text) -> bool; encode / decode (json); random(n) -> 0..n-1;
 -- balance(player), give(player, amount), remove(player, amount) (the game's transaction calls by default);
--- ask(player, title, message) -> bool (opens the pop-up), answer(player) -> 'yes' | 'no' | nil (nil while it is open; the box is modal, V answers it);
--- busy(player) -> bool (a reply still playing, a menu, a scene, the text box: the pop-up waits); notice(player, text); t(text, vars); log(line).
+-- busy(player) -> bool (a reply still playing, a menu, a scene, the text box: the transfer waits); notice(player, text); t(text, vars); log(line).
 function M.new(options)
     options = options or {}
     local P = {}
@@ -225,7 +226,7 @@ function M.new(options)
         local row = rows[p.profileKey] or cleanRow({seed = random(1000), met = now()})
         local at = now()
         row.entries[#row.entries + 1] = {f = p.flow, n = p.amount, at = at, r = result, o = p.origin == 'asked' and 'asked' or 'offered', g = gameTime()}
-        -- The oldest go first. Every entry needed V's Yes or a proposal, so 40 is a long stretch of play.
+        -- The oldest go first. Every entry was a proposal of a turn, so 40 is a long stretch of play.
         while #row.entries > MAX_ENTRIES do table.remove(row.entries, 1) end
         if p.origin == 'asked' then row.asked = at end
         rows[p.profileKey] = row
@@ -235,7 +236,7 @@ function M.new(options)
 
     local function notice(player, text) if type(options.notice) == 'function' then pcall(options.notice, player, text) end end
 
-    -- The transfer, after V said Yes. Returns 'done' or 'failed' plus a notice.
+    -- The transfer, once the character has agreed. Returns 'done' or 'failed' plus a notice.
     local function transfer(player, p)
         if not enabled() then return 'failed', nil end
         local okOwn, copy = call(options.ownCopy, p.entity, p.profileKey)
@@ -260,16 +261,15 @@ function M.new(options)
         return 'failed', ui.t('The eddies could not be moved.')
     end
 
-    -- The pop-up's question for a proposal.
-    local function message(p)
-        local vars = {name = p.name ~= '' and p.name or p.profileKey, amount = p.amount}
-        if p.flow == 'loanToV' then return ui.t('{name} offers to lend you {amount} eddies. Take the loan?', vars) end
-        if p.flow == 'loanFromV' and p.origin == 'asked' then return ui.t('{name} asks to borrow {amount} eddies. Lend them?', vars) end
-        if p.flow == 'loanFromV' then return ui.t('Lend {name} {amount} eddies?', vars) end
-        if p.flow == 'giftFromV' then return ui.t('Give {name} {amount} eddies?', vars) end
-        if p.flow == 'repayByV' then return ui.t('Pay {name} back {amount} eddies?', vars) end
-        if p.flow == 'repayToV' then return ui.t('{name} pays you back {amount} eddies. Take them?', vars) end
-        return ui.t('{name} offers you {amount} eddies. Take them?', vars)
+    -- A character that only asks V for a loan (its own move): V has not agreed to anything, so nothing leaves V's wallet. Only the time of the ask is
+    -- kept (the cooldown between asks); V lends in a later turn in V's own words, which is then an ordinary proposal.
+    local function markAsked(p)
+        local rows = load()
+        local row = rows[p.profileKey] or cleanRow({seed = random(1000), met = now()})
+        row.asked = now()
+        rows[p.profileKey] = row
+        save()
+        log(string.format('person=%s flow=%s amount=%d asked (nothing moves)', p.profileKey, p.flow, p.amount))
     end
 
     function P.update(player)
@@ -285,7 +285,7 @@ function M.new(options)
                     local p = decode(raw)
                     if valid(p) and p.requestId == watch.requestId and p.profileKey == watch.profileKey and p.entity == watch.entity then
                         p.name = type(p.name) == 'string' and p.name:sub(1, 80) or ''
-                        offer = {p = p, readyAt = at + 1, expiresAt = at + WAIT_SECONDS, state = 'waiting'}
+                        offer = {p = p, readyAt = at + 1, expiresAt = at + WAIT_SECONDS}
                         watch = nil
                         log(string.format('proposal person=%s flow=%s amount=%d origin=%s', p.profileKey, p.flow, p.amount, tostring(p.origin)))
                     end
@@ -293,34 +293,21 @@ function M.new(options)
             end
         end
         if not offer then return end
-        if offer.state == 'waiting' then
-            if not enabled() then offer = nil; return end
-            if at > offer.expiresAt then record(offer.p, 'missed'); offer = nil; return end
-            if at < offer.readyAt then return end
-            local okBusy, busy = call(options.busy, player)
-            if okBusy and busy then return end
-            local okAsk, opened = call(options.ask, player, ui.t('EDDIES'), message(offer.p))
-            if not okAsk or opened ~= true then record(offer.p, 'failed'); offer = nil; return end
-            offer.state, offer.openedAt = 'open', at
-            return
-        end
-        -- The pop-up is open: its answer, checked on the tick (one native call).
-        local okAnswer, answer = call(options.answer, player)
-        if not okAnswer then answer = 'no' end
-        if answer == nil then
-            if at - offer.openedAt > OPEN_SECONDS then record(offer.p, 'missed'); offer = nil end
-            return
-        end
+        if not enabled() then offer = nil; return end
+        if at > offer.expiresAt then record(offer.p, 'missed'); offer = nil; return end
+        if at < offer.readyAt then return end
+        local okBusy, busy = call(options.busy, player)
+        if okBusy and busy then return end
+        -- The reply is over and V is free: the character agreed in it, so the eddies move now. The offer is cleared first: one transfer per proposal.
         local p = offer.p
         offer = nil
-        if answer ~= 'yes' then record(p, 'declined'); return end
+        if p.flow == 'loanFromV' and p.origin == 'asked' then markAsked(p); return end
         local result, text = transfer(player, p)
         record(p, result)
         if text then notice(player, text) end
     end
 
-    -- A load needs no reset: a proposal waits at most 45 s and must match the request id of the turn it answers; an open pop-up the load closed
-    -- answers No (init.lua `answer`).
+    -- A load needs no reset: a proposal waits at most 45 s and must match the request id of the turn it answers.
     P.pending = function() return watch ~= nil or offer ~= nil end
     return P
 end

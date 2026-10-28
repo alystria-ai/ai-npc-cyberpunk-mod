@@ -726,10 +726,6 @@
           "target": "r6/scripts/CyberpunkConvai/Composer.reds"
         },
         {
-          "source": "r6/scripts/CyberpunkConvai/Eddies.reds",
-          "target": "r6/scripts/CyberpunkConvai/Eddies.reds"
-        },
-        {
           "source": "r6/scripts/CyberpunkConvai/Engagement.reds",
           "target": "r6/scripts/CyberpunkConvai/Engagement.reds"
         },

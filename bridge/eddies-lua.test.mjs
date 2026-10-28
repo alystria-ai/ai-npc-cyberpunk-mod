@@ -1,10 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, existsSync} from 'node:fs';
 import fengari from 'fengari';
 
 // Eddies with characters (docs/EDDIES.md), the game half: the block a turn carries, the ledger and its rollback guard, the proposal the bridge
-// writes, the Yes/No pop-up and the transfer with every re-check. Run on a fake game (a wallet, a clock, files in memory); nothing here starts the
+// writes, the transfer at once when the character has agreed, with every re-check. Run on a fake game (a wallet, a clock, files in memory); nothing here starts the
 // game. The bridge half is bridge/eddies.test.mjs.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -18,7 +18,7 @@ function run(code) {
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 }
 
-// The fake game: V's wallet, the clocks, the files, the pop-up. `serialize` stands in for json (a Lua table literal).
+// The fake game: V's wallet, the clocks, the files. `serialize` stands in for json (a Lua table literal).
 const harness = `
 local M = (function() ${moduleSource} end)()
 local function serialize(value)
@@ -29,8 +29,8 @@ local function serialize(value)
   elseif type(value) == 'string' then return string.format('%q', value)
   else return tostring(value) end
 end
-local files, writes, notices, logs, asked = {}, 0, {}, {}, {}
-local state = {on = true, copy = 'party', balance = 1000, now = 1800000000, clock = 100, game = 50000, busy = false, answer = nil, open = false,
+local files, writes, notices, logs = {}, 0, {}, {}
+local state = {on = true, copy = 'party', balance = 1000, now = 1800000000, clock = 100, game = 50000, busy = false,
   giveFails = false, moved = 0}
 local options = {
   enabled = function() return state.on end,
@@ -47,8 +47,6 @@ local options = {
   balance = function() return state.balance end,
   give = function(player, amount) if state.giveFails then error('no money item') end; state.balance = state.balance + amount; state.moved = state.moved + amount end,
   remove = function(player, amount) state.balance = state.balance - amount; state.moved = state.moved - amount end,
-  ask = function(player, title, message) asked[#asked + 1] = message; state.open = true; return true end,
-  answer = function() if state.answer then local a = state.answer; state.answer = nil; state.open = false; return a end; return nil end,
   busy = function() return state.busy end,
   notice = function(player, text) notices[#notices + 1] = text end,
   log = function(line) logs[#logs + 1] = line end,
@@ -91,20 +89,15 @@ test("one of V's own copies: the balance, the copy, a ledger row made once; a ga
   end
 `));
 
-test('a loan V takes: the pop-up waits for the reply and V, opens once, and only Yes moves the eddies, read back from the balance', () => withGame(`
+test('a loan to V: the transfer waits for the reply and V, then moves at once with no question, read back from the balance', () => withGame(`
   E.block(context())
   propose()
   state.busy = true
   tick(5)
-  assert(#asked == 0, 'busy: the pop-up waits')
+  assert(state.balance == 1000 and E.pending(), 'busy: the transfer waits')
   state.busy = false
   tick(2)
-  assert(#asked == 1 and asked[1] == 'Judy offers to lend you 300 eddies. Take the loan?', tostring(asked[1]))
-  tick(3)
-  assert(#asked == 1 and state.balance == 1000, 'open: no second box, nothing moved')
-  state.answer = 'yes'
-  tick()
-  assert(state.balance == 1300 and state.moved == 300)
+  assert(state.balance == 1300 and state.moved == 300, 'the character agreed: the eddies moved without any answer from V')
   assert(not E.pending())
   local row = ledger().characters['judy-alvarez']
   assert(#row.entries == 1 and row.entries[1].f == 'loanToV' and row.entries[1].n == 300 and row.entries[1].r == 'done' and row.entries[1].g == 50000)
@@ -113,40 +106,52 @@ test('a loan V takes: the pop-up waits for the reply and V, opens once, and only
   assert(block.balance == 1300)
   -- The same proposal file again is not a second transfer.
   tick(5)
-  assert(state.balance == 1300 and #asked == 1)
+  assert(state.balance == 1300 and state.moved == 300 and #ledger().characters['judy-alvarez'].entries == 1)
 `));
 
-test('No, a proposal for another turn, and a proposal nobody answered move nothing', () => withGame(`
+test('V pays the character: a gift or a loan from V moves at once, and never more than V has', () => withGame(`
+  E.block(context())
+  propose({id = 'ed-2', flow = 'giftFromV', amount = 200})
+  tick(3)
+  assert(state.balance == 800 and state.moved == -200 and not E.pending())
+  assert(ledger().characters['judy-alvarez'].entries[1].f == 'giftFromV')
+  E.block(context('req-2'))
+  propose({id = 'ed-3', requestId = 'req-2', flow = 'loanFromV', amount = 5000, origin = 'offered'})
+  tick(3)
+  assert(state.balance == 800 and notices[#notices] == 'You do not have enough eddies for that.')
+  local entries = ledger().characters['judy-alvarez'].entries
+  assert(entries[#entries].r == 'failed')
+`));
+
+test('a proposal for another turn, a character that only asks, and one V was too busy for move nothing', () => withGame(`
   E.block(context())
   propose({requestId = 'req-other'})
   tick(3)
-  assert(#asked == 0, 'another turn: ignored')
-  propose({id = 'ed-2', flow = 'giftFromV', amount = 200})
+  assert(state.balance == 1000 and ledger().characters['judy-alvarez'].entries[1] == nil, 'another turn: ignored')
+  -- The character asks V for a loan on its own: V has agreed to nothing, so nothing leaves V, but the ask is remembered for the cooldown.
+  E.block(context('req-2'))
+  propose({id = 'ed-2', requestId = 'req-2', flow = 'loanFromV', amount = 300, origin = 'asked'})
   tick(3)
-  assert(#asked == 1 and asked[1] == 'Give Judy 200 eddies?')
-  state.answer = 'no'
-  tick()
-  assert(state.balance == 1000)
-  assert(ledger().characters['judy-alvarez'].entries[1].r == 'declined')
+  assert(state.balance == 1000 and state.moved == 0 and not E.pending(), 'an ask moves nothing')
+  local row = ledger().characters['judy-alvarez']
+  assert(#row.entries == 0 and row.asked == state.now, 'no ledger entry, the ask time kept')
   -- A proposal that waits too long (V busy for 45 s) is missed.
   E.block(context('req-3'))
   propose({id = 'ed-3', requestId = 'req-3', flow = 'giftFromV', amount = 100})
   state.busy = true
   tick(100)
-  assert(#asked == 1 and not E.pending())
+  assert(state.balance == 1000 and not E.pending())
   local entries = ledger().characters['judy-alvarez'].entries
   assert(entries[#entries].r == 'missed')
 `));
 
-test('every re-check after Yes: the balance, the debt a payback settles, the character still with V, the setting, a give that fails', () => withGame(`
+test('every re-check before the eddies move: the balance, the debt a payback settles, the character still with V, the setting, a give that fails', () => withGame(`
   local function attempt(id, fields, setup)
     E.block(context(id))
     fields.requestId, fields.id = id, 'ed-' .. id
     propose(fields)
-    tick(3)
     if setup then setup() end
-    state.answer = 'yes'
-    tick()
+    tick(3)
   end
   attempt('a', {flow = 'giftFromV', amount = 5000})
   assert(state.balance == 1000 and notices[#notices] == 'You do not have enough eddies for that.')
@@ -161,20 +166,19 @@ test('every re-check after Yes: the balance, the debt a payback settles, the cha
   attempt('e', {flow = 'loanToV', amount = 100}, function() state.on = false end)
   assert(state.balance == 1000)
   state.on = true
-  -- Out of range proposals never even wait: a sum above the cap, a fraction, an unknown flow.
+  -- Out of range proposals are never taken: a sum above the cap, a fraction, an unknown flow.
   for i, fields in ipairs({{amount = 100001}, {amount = 12.5}, {flow = 'steal'}, {amount = 0}}) do
     E.block(context('bad' .. i)); fields.requestId = 'bad' .. i; propose(fields); tick(3)
   end
-  local opened = #asked
-  assert(opened == 5, 'five attempts opened the box, no bad proposal did: ' .. opened)
+  assert(state.balance == 1000 and state.moved == 0, 'no bad proposal moved anything')
   local entries = ledger().characters['judy-alvarez'].entries
   for _, entry in ipairs(entries) do assert(entry.r ~= 'done', 'nothing was done') end
 `));
 
 test('paying back settles the debt both ways, never more than it', () => withGame(`
-  E.block(context('a')); propose({requestId = 'a', flow = 'loanFromV', amount = 400}); tick(3); state.answer = 'yes'; tick()
+  E.block(context('a')); propose({requestId = 'a', flow = 'loanFromV', amount = 400}); tick(3)
   assert(state.balance == 600)
-  E.block(context('b')); propose({requestId = 'b', id = 'b', flow = 'repayToV', amount = 400}); tick(3); state.answer = 'yes'; tick()
+  E.block(context('b')); propose({requestId = 'b', id = 'b', flow = 'repayToV', amount = 400}); tick(3)
   assert(state.balance == 1000)
   local block = E.block(context('c'))
   assert(block.row.totals.loanFromV == 400 and block.row.totals.repayToV == 400)
@@ -183,7 +187,7 @@ test('paying back settles the debt both ways, never more than it', () => withGam
 `));
 
 test('the rollback guard: a load of an earlier save forgets the entries made after it, for good', () => withGame(`
-  E.block(context('a')); propose({requestId = 'a', flow = 'loanToV', amount = 300}); tick(3); state.answer = 'yes'; tick()
+  E.block(context('a')); propose({requestId = 'a', flow = 'loanToV', amount = 300}); tick(3)
   assert(ledger().characters['judy-alvarez'].entries[1].g == 50000)
   state.game = 40000          -- an earlier save of this playthrough
   local block = E.block(context('b'))
@@ -193,13 +197,13 @@ test('the rollback guard: a load of an earlier save forgets the entries made aft
   assert(E.block(context('c')).row.totals.loanToV == 0)
   -- Within the slack of a clock read: kept.
   state.game = 70000
-  E.block(context('d')); propose({requestId = 'd', id = 'd', flow = 'loanToV', amount = 100}); tick(3); state.answer = 'yes'; tick()
+  E.block(context('d')); propose({requestId = 'd', id = 'd', flow = 'loanToV', amount = 100}); tick(3)
   state.game = 69950
   assert(E.block(context('e')).row.totals.loanToV == 100)
 `));
 
 test('the ledger survives a reload and drops what is malformed', () => withGame(`
-  E.block(context('a')); propose({requestId = 'a', flow = 'loanToV', amount = 300}); tick(3); state.answer = 'yes'; tick()
+  E.block(context('a')); propose({requestId = 'a', flow = 'loanToV', amount = 300}); tick(3)
   local again = M.new(options)
   assert(again.block(context('b')).row.totals.loanToV == 300)
   files[M.LEDGER] = serialize({version = 2, characters = {['judy-alvarez'] = {seed = 3, met = 5, entries = {{f = 'loanToV', n = -5, at = 1, r = 'done'},
@@ -219,7 +223,7 @@ test('init.lua wires it once per private turn with one boolean while off, and th
   assert.match(init, /if convaiEddies and worldReady then convaiEddiesTick\(player\) end/);
   assert.match(init, /gameTime = function\(\) return worldKnowledgeModule\.nativeGameTime/);
   assert.match(init, /convaiNotices\.send\(player, 'eddies-transfer', text\)/);
-  const reds = read('../r6/scripts/CyberpunkConvai/Eddies.reds');
-  assert.match(reds, /GenericMessageNotification\.Show\(controller, title, message, GenericMessageNotificationType\.YesNo\)/);
-  assert.doesNotMatch(reds, /GiveItem|RemoveItem/, 'no eddies move in redscript');
+  assert.doesNotMatch(init, /ConvaiEddies(?:Ask|Answer|Open)/, 'no pop-up: nothing in redscript is asked');
+  assert.equal(existsSync(new URL('../r6/scripts/CyberpunkConvai/Eddies.reds', import.meta.url)), false, 'no redscript half: the game reacts to the transaction');
+  assert.doesNotMatch(moduleSource, /options\.ask|options\.answer|GenericMessage/);
 });

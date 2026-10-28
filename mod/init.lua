@@ -6480,15 +6480,7 @@ do
                 player = function() return Game.GetPlayer() end,
                 -- V's game clock stamps each ledger entry; a load from before an entry forgets it (the game took those eddies back).
                 gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
-                ask = function(player, title, message) return player:ConvaiEddiesAsk(title, message) == true end,
-                -- 1 Yes, 2 No (Eddies.reds); 0 while the box is open, or when it went away without an answer (a load): No.
-                answer = function(player)
-                    local answer = player:ConvaiEddiesAnswer()
-                    if answer == 1 then return 'yes' elseif answer == 2 then return 'no' end
-                    if player:ConvaiEddiesOpen() then return nil end
-                    return 'no'
-                end,
-                -- The pop-up waits for the reply to be over and for V to be free: no reply due or playing, no fight, scene or choice, no pause,
+                -- The transfer waits for the reply to be over and for V to be free: no reply due or playing, no fight, scene or choice, no pause,
                 -- menu, text box or phone (Composer.reds ConvaiFrameFlags bits 8, 16, 32 and 64).
                 busy = function(player)
                     if pending or speech.requestId ~= nil or subtitles.ownsUtterance() then return true end
