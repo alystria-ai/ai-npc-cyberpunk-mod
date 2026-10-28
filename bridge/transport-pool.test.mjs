@@ -1,10 +1,25 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {TransportPool, transportKey, SessionBindings} from './transport-pool.mjs';
+import {TransportPool, transportKey, SessionBindings, abortable, cancelled} from './transport-pool.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {promise, resolve}; };
+const deferred2 = () => { let reject; const promise = new Promise((_, fail) => { reject = fail; }); return {promise, reject}; };
 const flush = () => new Promise(done => setImmediate(done));
+
+test('a promise given up because the signal had already aborted does not become an unhandled rejection when it fails later', async () => {
+  const seen = [];
+  const listener = error => seen.push(error);
+  process.on('unhandledRejection', listener);
+  try {
+    const late = deferred2();
+    const controller = new AbortController(); controller.abort();
+    await assert.rejects(abortable(late.promise, controller.signal), /Conversation cancelled/);
+    late.reject(cancelled());
+    await flush(); await flush();
+    assert.deepEqual(seen, []);
+  } finally { process.off('unhandledRejection', listener); }
+});
 
 test('session preflight validates existing ownership without recording an unverified new owner', () => {
   const sessions = new SessionBindings();

@@ -745,6 +745,8 @@ export class RealtimeHost {
     const epoch = this.epoch, host = this.vPcm;
     if (!host || this.closing) throw cancelled();
     if (host.closing) await abortable(host.closing.catch(() => {}), signal);
+    // The line before this one may still be releasing its page (a dropped line is cut off at once, its device drain and retirement take a moment): the next line waits for it.
+    if (host.active) await abortable(host.whenFree(8000, signal), signal);
     try {
       return await host.play(config, producer, {...options,
         current: async () => epoch === this.epoch && host === this.vPcm && !this.closing && await current()});
