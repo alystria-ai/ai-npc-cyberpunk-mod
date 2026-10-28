@@ -17,7 +17,7 @@ const luaString = text => `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").r
 const customised = {
   ...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 150,
   voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyInHead: true, johnnyRemarks: 'rare', subtitleStyle: 'overhead',
-  naturalSpeech: true, followUpInterest: false, replyLanguage: 'ja',
+  replyLanguage: 'ja',
 };
 
 test('a first start writes exactly the documented defaults, once; a second start from that file writes nothing', () => {
@@ -82,7 +82,7 @@ for (const [label, text] of Object.entries(unreadable)) {
       report('writes', writes('runtime/settings.json.tmp'))
     `);
     for (const key of ['voice', 'conversationProvider', 'matureContent', 'localModel', 'voiceVolume', 'voiceProvider', 'omniSteps',
-      'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'followUpInterest', 'replyLanguage']) {
+      'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'replyLanguage']) {
       assert.deepEqual(out.settings[key], customised[key], `${key} came back from the backup`);
     }
     assert.equal(out.writes, 0, 'a normalized backup needs no rewrite just to be loaded');
@@ -233,7 +233,7 @@ const oldFiles = {
   'Mature content beside a cloud provider': {version: 2, conversationProvider: 'mistral', matureContent: true,
     matureRestore: {conversationProvider: {before: 'convai', set: 'local'}}},
   'the removed Multilingual switch on with Pocket TTS and Natural speech': {version: 2, multilingualConversations: true, voiceProvider: 'pocket', naturalSpeech: true},
-  'a tag setting beside the Convai cloud voice': {version: 2, voiceProvider: 'convai', naturalSpeech: true, expressiveEmotions: true},
+  'the removed Natural speech and Follow-up questions beside the Convai cloud voice': {version: 2, voiceProvider: 'convai', naturalSpeech: true, followUpInterest: false, expressiveEmotions: true},
   'the removed Inworld voice': {version: 2, voiceProvider: 'inworld'},
   'the removed Groq provider': {version: 2, conversationProvider: 'groq'},
   'the first version defaults saved as false': {version: 2, holocallLiveImage: false, vVoice: false},
@@ -299,7 +299,7 @@ test('reading the setting of the moment each frame reads the file once, and agai
     report('beforeReads', (readCounts['runtime/settings.json'] or 0) + (readCounts['runtime/settings.json.previous'] or 0))
     for _ = 1, 500 do
       manager.interfaceLanguage(); manager.developerMode(); manager.battleReactions(); manager.lootReactions(); manager.subtitleStyle()
-      manager.naturalSpeech(); manager.vVoice(); manager.vVoiceEngine(); manager.johnnyInHead(); manager.johnnyRemarks()
+      manager.vVoice(); manager.vVoiceEngine(); manager.johnnyInHead(); manager.johnnyRemarks()
       manager.storyConversations(); manager.archetypeConversations()
     end
     report('reads', readCounts['runtime/settings.json'])
@@ -505,7 +505,7 @@ test('a start with the settings file missing but its backup present (a crash bet
 // ---------------------------------------------------------------------------------------------------- settings of 2026-10-20
 // Settings the page no longer has, and the ones whose default changed. An old file keeps working: nothing it carries changes a behaviour.
 const RETIRED = ['autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage',
-  'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks', 'multilingualConversations'];
+  'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks', 'multilingualConversations', 'naturalSpeech', 'followUpInterest'];
 
 // Loads a file text, lets one update save what a load changed, and reports the loaded settings, the written file and the write count.
 const loadFile = content => run(`${managerLua}
@@ -544,6 +544,41 @@ test('a settings.json that still has multilingualConversations: true loads clean
   assert.equal(again.writes, 0, 'a start from the written file writes nothing');
 });
 
+test('an old file with Natural speech and Follow-up questions (each on and off) loads quietly: no error, no notice, every other value untouched, both keys gone on the next save', () => {
+  for (const [natural, followUp] of [[true, true], [true, false], [false, true], [false, false]]) {
+    for (const provider of ['convai', 'local']) {
+      const label = `naturalSpeech ${natural}, followUpInterest ${followUp}, ${provider}`;
+      // The cloud voice beside Natural speech was a pairing the manager used to move or refuse; it is now just saved as the file says.
+      const content = {...customised, conversationProvider: provider, voiceProvider: 'convai', matureContent: false, localModel: 'auto', naturalSpeech: natural, followUpInterest: followUp};
+      const out = run(`${managerLua}
+        files['runtime/settings.json'] = ${luaString(JSON.stringify(content))}
+        local player = newPlayer()
+        local manager = newManager()
+        local ok, problem = pcall(manager.update, player, 0.1)
+        report('ok', ok); report('problem', tostring(problem))
+        report('settings', manager.snapshot(player).settings)
+        report('notice', tostring(manager.takeVoiceFallbackNotice())); report('speechNotice', tostring(manager.takeNaturalSpeechNotice))
+        report('writes', writes('runtime/settings.json.tmp'))
+        report('text', settingsText())
+        for _ = 1, 20 do manager.update(player, 0.1) end
+        report('laterWrites', writes('runtime/settings.json.tmp'))
+      `);
+      assert.equal(out.ok, true, label + ': ' + out.problem);
+      assert.equal(out.notice, 'nil', label + ': no notice');
+      assert.equal(out.speechNotice, 'nil', label + ': there is no Natural speech notice any more');
+      for (const key of ['naturalSpeech', 'followUpInterest']) {
+        assert.equal(out.settings[key], undefined, `${label}: ${key} is not in the snapshot`);
+        assert.equal(JSON.parse(out.text)[key], undefined, `${label}: ${key} is dropped from the file`);
+      }
+      assert.equal(out.writes, 1, label + ': one save drops the keys');
+      assert.equal(out.laterWrites, 1, label + ': and nothing more is written');
+      const {naturalSpeech, followUpInterest, ...kept} = content;
+      assert.deepEqual(JSON.parse(out.text), {...freshSettings, ...kept}, label + ': every other value is as it was');
+      assert.equal(out.settings.voiceProvider, 'convai', label + ': the Convai cloud voice is kept, not moved to Pocket');
+    }
+  }
+});
+
 test('a settings.json that still has payCharacters (the removed eddies payment) loads cleanly: the key is ignored (unknown keys stay in the file)', () => {
   const out = loadFile({...freshSettings, payCharacters: true});
   assert.equal(out.settings.payCharacters, undefined, 'not in the snapshot');
@@ -555,9 +590,9 @@ test('the removed settings have no getter any more, and an Apply that still carr
     local player, manager = newPlayer(), newManager()
     manager.update(player, 0.1)
     local names = {'autoConnectNearby', 'expressiveEmotions', 'gameDialogueContext', 'holocallLiveImage', 'bodyGestures', 'johnnyHologram', 'vTalks',
-      'multilingualConversations'}
+      'multilingualConversations', 'naturalSpeech', 'followUpInterest'}
     local getters = {}
-    for _, name in ipairs({'multilingualActive', 'resolveMultilingualVoice'}) do
+    for _, name in ipairs({'multilingualActive', 'resolveMultilingualVoice', 'takeNaturalSpeechNotice'}) do
       if manager[name] ~= nil then getters[#getters + 1] = name end
     end
     for _, name in ipairs(names) do
@@ -568,6 +603,8 @@ test('the removed settings have no getter any more, and an Apply that still carr
     local applied = {}
     for _, key in ipairs(names) do
       local ok, refusal = manager.applySettings(player, {[key] = false})
+      applied[#applied + 1] = tostring(ok) .. ':' .. tostring(refusal)
+      ok, refusal = manager.applySettings(player, {[key] = true})
       applied[#applied + 1] = tostring(ok) .. ':' .. tostring(refusal)
     end
     report('applied', applied); report('text', settingsText())
@@ -641,7 +678,7 @@ test('React to battles and to loot: on by default; an unchosen saved false moves
 });
 
 
-test('a fresh file has the defaults: reactions on, Johnny Off, V’s voice on with Pocket, Natural speech off, no removed key', () => {
+test('a fresh file has the defaults: reactions on, Johnny Off, V’s voice on with Pocket, no removed key', () => {
   const out = run(`${managerLua}
     local player, manager = newPlayer(), newManager()
     manager.update(player, 0.1)
@@ -649,8 +686,8 @@ test('a fresh file has the defaults: reactions on, Johnny Off, V’s voice on wi
   `);
   const saved = JSON.parse(out.text);
   assert.deepEqual([saved.battleReactions, saved.lootReactions, saved.johnnyInHead, saved.johnnyRemarks, saved.vVoice, saved.vVoiceEngine,
-    saved.naturalSpeech, saved.followUpInterest, saved.matureContent, saved.conversationProvider],
-  [true, true, false, 'off', true, 'pocket', false, true, false, 'convai']);
+    saved.matureContent, saved.conversationProvider],
+  [true, true, false, 'off', true, 'pocket', false, 'convai']);
   for (const key of RETIRED) assert.equal(saved[key], undefined, key);
 });
 

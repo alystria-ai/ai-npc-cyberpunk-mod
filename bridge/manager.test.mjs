@@ -1461,11 +1461,6 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(manager.snapshot(player).settings.conversationProvider == 'convai')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
     assert(saved.voiceProvider == 'voxtral' and manager.snapshot(player).settings.voiceProvider == 'voxtral')
-    -- It rides on Pocket, so Natural speech is not turned off by choosing it.
-    assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}}).ok and manager.naturalSpeech() == true)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
-    assert(manager.naturalSpeech() == true and manager.snapshot(player).settings.voiceProvider == 'voxtral')
-    assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = false}}).ok)
     -- Convai stays selectable, and the saved voice is found again in the list.
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'convai')
     -- What is saved is the provider (and for OmniVoice the steps and reference), never a list position: each saved choice finds its own
@@ -1663,7 +1658,7 @@ test('the removed Inworld voice: the list has seven entries with or without Deve
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
       assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket', tostring(developer))
-      assert(saved.future.keep == 'unchanged' and manager.takeNaturalSpeechNotice() == nil)
+      assert(saved.future.keep == 'unchanged')
       seed, saved = saved, nil
       files['runtime/settings.json'] = 'seed'
       manager.configure(api, profiles); manager.prepare(player)
@@ -1788,7 +1783,7 @@ test('Local AI model: a row with each installed model by its name from the small
     assert(not tostring(bare.description):lower():find('recommended', 1, true), 'no option is ever called recommended')
     assert(#manager.localModelChoices() == 0 and manager.localModelDefaultId() == nil and manager.localModelMatureId() == nil)
     -- With no model installed an Apply leaves 'auto' as it is (there is no default model to save).
-    assert(manager.applySettings(player, {followUpInterest = true}) and saved.localModel == 'auto', tostring(saved.localModel))
+    assert(manager.applySettings(player, {witnessReceipts = true}) and saved.localModel == 'auto', tostring(saved.localModel))
     -- Three installed models, as the bridge reports them, NOT in size order (a malformed entry is dropped): the row sorts them small to large.
     state('three', {provider = 'local', effective = 'local', saved = false, maturePack = true,
       localModelDefault = 'standard', localModelMatureDefault = 'mature:big', localModels = {
@@ -1819,7 +1814,7 @@ test('Local AI model: a row with each installed model by its name from the small
     assert(manager.applySettings(player, {localModel = 'custom:gone-model'}) and saved.localModel == 'custom:gone-model')
     loaded = registered.loadMod('manager')
     assert(row('localModel').value == 2, 'the default is selected when the saved model is gone')
-    assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'custom:gone-model', 'an Apply of something else must not change a model that is only missing')
+    assert(manager.applySettings(player, {witnessReceipts = false}) and saved.localModel == 'custom:gone-model', 'an Apply of something else must not change a model that is only missing')
     -- A saved model that left its pack is replaced and saved silently: a Mature id by the model the bridge names for Mature content, any other by the default.
     assert(manager.applySettings(player, {localModel = 'mature:qwen3.5-9b-uncensored-hauhaucs-aggressive-q4_k_m'}))
     assert(saved.localModel == 'mature:big', 'the Apply saved the model the bridge maps a gone Mature model to: ' .. tostring(saved.localModel))
@@ -1848,7 +1843,7 @@ test('Local AI model: a row with each installed model by its name from the small
     -- A saved 'auto' (an older version, or nothing chosen) is replaced by the default model's id on any Apply, silently.
     saved.localModel = 'auto'
     assert(manager.snapshot(player).settings.localModel == 'auto')
-    local ok, err, notice = manager.applySettings(player, {followUpInterest = true})
+    local ok, err, notice = manager.applySettings(player, {witnessReceipts = true})
     assert(ok and err == nil and notice == nil, 'the replacement is silent: ' .. tostring(err) .. ' ' .. tostring(notice))
     assert(saved.localModel == 'standard', tostring(saved.localModel))
     assert(manager.applySettings(player, {localModel = 'lite'}) and saved.localModel == 'lite')
@@ -1869,7 +1864,7 @@ test('Local AI model: a row with each installed model by its name from the small
       assert(manager.localModelDefaultId() == nil and manager.localModelMatureId() == nil, tostring(default))
       local shown = row('localModel')
       assert(shown.elements[1] == 'Qwen3.5-2B' and shown.value == 1, tostring(default) .. ' ' .. tostring(shown.value))
-      assert(manager.applySettings(player, {followUpInterest = false}) and saved.localModel == 'auto', tostring(default) .. ' ' .. tostring(saved.localModel))
+      assert(manager.applySettings(player, {witnessReceipts = false}) and saved.localModel == 'auto', tostring(default) .. ' ' .. tostring(saved.localModel))
     end
     -- Equal sizes sort by name.
     state('ties', {provider = 'local', effective = 'local', saved = false, localModels = {
@@ -2389,17 +2384,17 @@ test('the Characters sidebar shows the settings in effect for each character, no
   local function reload() core.setUi('ui:page', 1); loaded = registered.loadMod('manager') end
   assert(invoke('tab:characters').ok)
   reload()
-  -- Nothing is on (Follow-up questions, V’s voice and both reactions are on by default, so they are switched off first)
+  -- Nothing is on (V’s voice and both reactions are on by default, so they are switched off first)
   -- and nobody is in the party: the description, the voice and the conversation, and no advice text.
-  assert(manager.applySettings(player, {followUpInterest = false, vVoice = false, battleReactions = false, lootReactions = false})); reload()
+  assert(manager.applySettings(player, {vVoice = false, battleReactions = false, lootReactions = false})); reload()
   local plain = description('viktor-vektor')
   -- The default voice is Pocket and the bridge has not answered: the settings predict it (the Convai voice is named only when it speaks).
   assert(plain == 'A ripperdoc.\\n\\nVoice: Pocket · Performance\\nConversation: On', plain)
   assert(not plain:find('Invitations create', 1, true) and not plain:find('phone contacts', 1, true) and not plain:find('Memory and connection', 1, true))
   assert(description('judy-alvarez'):find('Relationship: Auto', 1, true), 'Judy has a relationship line')
   -- Judy in the party on OmniVoice, with the speech settings and a memory of the player.
-  assert(manager.applySettings(player, {voiceProvider = 'omni', omniSteps = 16, omniReference = 'short', naturalSpeech = true,
-    followUpInterest = true, relationshipModes = {['judy-alvarez'] = 'on'},
+  assert(manager.applySettings(player, {voiceProvider = 'omni', omniSteps = 16, omniReference = 'short',
+    relationshipModes = {['judy-alvarez'] = 'on'},
     battleReactions = true, lootReactions = true}))
   jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'omni', omniSteps = 16, omniReference = 'short',
     routedProfiles = {'judy-alvarez'}, updated = memoryClock * 1000.0}
@@ -2409,12 +2404,11 @@ test('the Characters sidebar shows the settings in effect for each character, no
   reload()
   local judy = description('judy-alvarez')
   assert(judy == table.concat({'A braindance editor.', '', 'Voice: OmniVoice · Balanced', 'Conversation: On', 'Relationship: Romantic',
-    'Speech: Natural speech · Follow-up questions',
     'Memory: remembers your conversations', 'In your party: 1',
     'Behavior: React to battles · React to collected loot'}, '\\n'), judy)
   -- A character who is not in the party keeps the speech lines, not the party ones; with no memory there is no memory line.
   local viktor = description('viktor-vektor')
-  assert(viktor:find('Speech: Natural speech · Follow-up questions', 1, true) and not viktor:find('Multilingual', 1, true), 'no Multilingual line: the language is automatic')
+  assert(not viktor:find('Speech', 1, true) and not viktor:find('Multilingual', 1, true), 'no Speech or Multilingual line: the language is automatic')
   assert(not viktor:find('Expressive emotions', 1, true) and not viktor:find('Body gestures', 1, true), 'the retired settings are never named')
   assert(not viktor:find('Memory:', 1, true) and not viktor:find('In your party', 1, true) and not viktor:find('Behavior', 1, true)
     and not viktor:find('Relationship', 1, true), viktor)
@@ -3734,183 +3728,6 @@ test('a temporary fallback is announced once as not ready yet, the return to Omn
   `);
 });
 
-test('Natural speech is off by default and a saved pairing with the Convai cloud voice keeps the voice and turns it off', () => {
-  run(`${managerFixture}
-    manager.configure(api, profiles); manager.prepare(player)
-    assert(saved.naturalSpeech == false and manager.naturalSpeech() == false)
-    assert(manager.snapshot(player).settings.naturalSpeech == false)
-    for _, case in ipairs({{'missing', 'convai'}, {true, 'convai'}, {true, 'pocket'}, {true, 'omni'}, {false, 'convai'}, {'yes', 'convai'}}) do
-      seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
-      if case[1] ~= 'missing' then seed.naturalSpeech = case[1] end
-      files['runtime/settings.json'], saved = 'seed', nil
-      manager.configure(api, profiles); manager.prepare(player)
-      -- Natural speech needs a local voice: beside the cloud voice it is turned off and the voice is kept (2026-10-11).
-      local on = case[1] == true and case[2] ~= 'convai'
-      assert(manager.naturalSpeech() == on and saved.naturalSpeech == on, tostring(case[1]))
-      assert(saved.voiceProvider == case[2] and manager.snapshot(player).settings.voiceProvider == case[2])
-      assert(saved.future.keep == 'unchanged')
-    end
-  `);
-});
-
-test('Natural speech and the cloud voice: choosing the cloud voice keeps it and turns Natural speech off with one notice; turning it on beside the saved cloud voice moves the voice to Pocket TTS', () => {
-  run(`${nsuiFixture}
-    local clock = 5000
-    os.clock = function() return clock end
-    local sent = {}
-    function player:ConvaiPhoneFeedback(text) sent[#sent + 1] = text end
-    assert(invoke('tab:settings').ok)
-    local entry = row('naturalSpeech')
-    assert(entry and entry.type == 'bool' and entry.value == false and entry.defaultValue == false, 'off by default')
-    local NOTICE = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
-    local OFF = 'The Convai cloud voice cannot use Natural speech, so it was turned off.'
-    -- The row positions of the cloud voice, of Pocket and of the first OmniVoice entry, wherever the list puts them (entry 1 of the row is Off, so one after the list position).
-    local CLOUD, OMNI, POCKET
-    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
-      if choice.provider == 'convai' then CLOUD = index + 1 end
-      if choice.provider == 'pocket' then POCKET = index + 1 end
-      if choice.provider == 'omni' and not OMNI then OMNI = index + 1 end
-    end
-    assert(CLOUD and OMNI and POCKET)
-    local function apply(...)
-      clock = clock + 2
-      local changes = {}
-      for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
-      return registered.applyBatch('manager', changes)
-    end
-    -- On with a local voice: nothing else changes and nothing is announced.
-    local result = apply({'naturalSpeech', true})
-    assert(result.ok and manager.naturalSpeech() and saved.naturalSpeech == true and saved.voiceProvider == 'pocket')
-    assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil)
-    -- Choosing the cloud voice while it is on keeps the voice, turns Natural speech off, and says so once.
-    result = apply({'voiceProvider', CLOUD})
-    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false and not manager.naturalSpeech())
-    assert(manager.snapshot(player).settings.voiceProvider == 'convai' and manager.snapshot(player).settings.naturalSpeech == false)
-    assert(result.schemaChanged == true, 'the page reloads so the toggle shows off')
-    assert(manager.snapshot(player).feedback == OFF, manager.snapshot(player).feedback)
-    managerUi.update(player, true)
-    assert(#sent == 0, 'the popup is Developer-only: the Settings status line already says it')
-    managerUi.update(player, true); assert(#sent == 0)
-    -- Turning it on while the cloud voice is saved is the player asking for the tags: the voice moves to Pocket, with a notice.
-    -- Developer mode shows it once, in gameplay.
-    convaiNotices.configure(function() return true end)
-    result = apply({'naturalSpeech', true})
-    assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true and result.schemaChanged == true)
-    managerUi.update(player, true)
-    assert(#sent == 1 and sent[1] == NOTICE, 'the notice reaches a developer in gameplay: ' .. tostring(sent[1]))
-    managerUi.update(player, true); assert(#sent == 1, 'announced once')
-    convaiNotices.configure(function() return false end)
-    -- Natural speech off: the cloud voice is chosen with nothing to turn off, so there is no notice.
-    assert(apply({'naturalSpeech', false}).ok and not manager.naturalSpeech())
-    assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
-    -- Turning it on while the cloud voice is saved switches the voice in the same Apply.
-    result = apply({'naturalSpeech', true})
-    assert(result.ok and saved.naturalSpeech == true and saved.voiceProvider == 'pocket' and result.schemaChanged == true)
-    assert(manager.takeNaturalSpeechNotice() == NOTICE and manager.takeNaturalSpeechNotice() == nil)
-    -- Both staged together while the cloud voice is already saved: the voice is not being changed, so the setting wins.
-    assert(apply({'naturalSpeech', false}).ok)
-    assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai')
-    result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
-    assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true)
-    assert(manager.takeNaturalSpeechNotice() == NOTICE)
-    -- Both staged together while the voice changes to the cloud voice: the voice choice wins and Natural speech is turned off.
-    assert(apply({'naturalSpeech', false}).ok and saved.voiceProvider == 'pocket')
-    result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
-    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false and result.schemaChanged == true)
-    assert(manager.takeNaturalSpeechNotice() == OFF and manager.takeNaturalSpeechNotice() == nil)
-    -- Both staged together, but the voice moves to an OmniVoice choice instead: it is kept.
-    result = apply({'voiceProvider', OMNI}, {'naturalSpeech', true})
-    assert(result.ok and saved.voiceProvider == 'omni' and saved.naturalSpeech == true)
-    assert(manager.takeNaturalSpeechNotice() == nil and result.schemaChanged == false)
-    -- A failed save changes nothing and sends no notice, in either direction.
-    assert(apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
-    failSave = true
-    result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
-    assert(result.ok == false and saved.voiceProvider == 'convai' and not manager.naturalSpeech())
-    assert(manager.takeNaturalSpeechNotice() == nil)
-    failSave = false
-    assert(apply({'voiceProvider', POCKET}, {'naturalSpeech', true}).ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech)
-    failSave = true
-    result = apply({'voiceProvider', CLOUD})
-    assert(result.ok == false and saved.voiceProvider == 'pocket' and manager.naturalSpeech())
-    assert(manager.takeNaturalSpeechNotice() == nil)
-    failSave = false
-    assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = 'yes'}}).ok == false)
-  `);
-});
-
-test('Natural speech sits in the Voices category and applies on its own', () => {
-  run(`${nsuiFixture}
-    assert(invoke('tab:settings').ok)
-    local owner
-    for _, category in ipairs(loaded.categories) do
-      for _, item in ipairs(category.settings) do if item.id == 'naturalSpeech' then owner = category end end
-    end
-    assert(owner and owner.id == 'voices' and row('voiceProvider') and row('naturalSpeech').label == 'Natural speech')
-    assert(row('naturalSpeech').description:find('Pocket', 1, true) and row('naturalSpeech').description:find('Convai’s cloud voice', 1, true))
-    assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}}).ok and manager.naturalSpeech())
-  `);
-});
-
-test('Follow-up questions is on by default (2026-10-11), a saved choice is kept, it works with any voice and is independent of the retired followUpQuestions key', () => {
-  run(`${managerFixture}
-    manager.configure(api, profiles); manager.prepare(player)
-    assert(saved.followUpInterest == true and manager.followUpInterest() == true)
-    assert(manager.snapshot(player).settings.followUpInterest == true)
-    assert(manager.followUpQuestions == nil, 'the retired setting has no accessor')
-    for _, case in ipairs({{'missing', 'convai'}, {true, 'convai'}, {true, 'pocket'}, {true, 'omni'}, {false, 'convai'}, {'yes', 'pocket'}}) do
-      seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
-      if case[1] ~= 'missing' then seed.followUpInterest = case[1] end
-      files['runtime/settings.json'], saved = 'seed', nil
-      manager.configure(api, profiles); manager.prepare(player)
-      local on = case[1] ~= false -- a missing or non-boolean value is the default, on
-      assert(manager.followUpInterest() == on and saved.followUpInterest == on, tostring(case[1]))
-      -- Unlike Natural speech it needs no local voice: the saved voice is never moved because of it.
-      assert(saved.voiceProvider == case[2] and manager.snapshot(player).settings.voiceProvider == case[2])
-      assert(saved.future.keep == 'unchanged')
-    end
-    -- A saved value of the retired setting neither turns the new one off nor survives: the new one gets its default (on).
-    for _, retired in ipairs({true, false}) do
-      seed = {version = 2, voiceProvider = 'pocket', followUpQuestions = retired, enabledByKey = {}}
-      files['runtime/settings.json'], saved = 'seed', nil
-      manager.configure(api, profiles); manager.prepare(player)
-      assert(manager.followUpInterest() == true and saved.followUpQuestions == nil and saved.followUpInterest == true)
-    end
-    -- Apply keeps the choice, rejects anything but a boolean, and leaves the voice alone.
-    assert(manager.applySettings(player, {followUpInterest = false}) and not manager.followUpInterest() and saved.followUpInterest == false)
-    assert(manager.applySettings(player, {followUpInterest = true}) and manager.followUpInterest() and saved.followUpInterest == true)
-    assert(saved.voiceProvider == 'pocket')
-    assert(manager.applySettings(player, {followUpInterest = 'yes'}) == false and manager.followUpInterest())
-    assert(manager.applySettings(player, {followUpInterest = false}) and not manager.followUpInterest())
-  `);
-});
-
-test('Follow-up questions sits in the Voices category after Natural speech, applies on its own, and joins the Speech line', () => {
-  run(`${nsuiFixture}
-    assert(invoke('tab:settings').ok)
-    local owner, order = nil, {}
-    for _, category in ipairs(loaded.categories) do
-      for _, item in ipairs(category.settings) do
-        if category.id == 'voices' then order[#order + 1] = item.id end
-        if item.id == 'followUpInterest' then owner = category end
-      end
-    end
-    assert(owner and owner.id == 'voices' and row('followUpInterest').label == 'Follow-up questions')
-    assert(row('followUpInterest').value == true and row('followUpInterest').defaultValue == true)
-    assert(row('followUpInterest').description:find('never on every reply', 1, true) and not row('followUpInterest').description:find('Off by default', 1, true)
-        and row('followUpInterest').description:find('Now and then', 1, true))
-    local at = {}
-    for index, id in ipairs(order) do at[id] = index end
-    assert(at.expressiveEmotions == nil, 'Expressive emotions is not a setting any more')
-    assert(at.naturalSpeech < at.followUpInterest, 'next to the other speech setting')
-    assert(at.followUpInterest == at.naturalSpeech + 1, 'right after Natural speech')
-    local voiceBefore = manager.snapshot(player).settings.voiceProvider
-    assert(registered.applyBatch('manager', {{id = 'followUpInterest', value = false}}).ok and not manager.followUpInterest())
-    assert(manager.snapshot(player).settings.voiceProvider == voiceBefore, 'no voice switch, no notice')
-    assert(manager.takeNaturalSpeechNotice() == nil)
-  `);
-});
-
 test('V’s voice for typed lines is on by default and a saved choice is kept; whatever voice the companions use, the setting stays active', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
@@ -3936,7 +3753,6 @@ test('V’s voice for typed lines is on by default and a saved choice is kept; w
       assert(manager.snapshot(player).settings.vVoice == case[3])
       assert(manager.snapshot(player).settings.voiceProvider == loadedVoice, 'voice moved ' .. tostring(case[1]) .. ' ' .. case[2] .. ' -> ' .. tostring(manager.snapshot(player).settings.voiceProvider))
       assert(manager.vVoiceActive() == case[3], tostring(case[1]) .. ' ' .. case[2])
-      assert(manager.takeNaturalSpeechNotice() == nil, 'no notice at load')
       assert(saved.future.keep == 'unchanged')
     end
     seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
@@ -3946,13 +3762,12 @@ test('V’s voice for typed lines is on by default and a saved choice is kept; w
     -- Choosing the Convai cloud voice keeps V's voice on and active (V's own engine speaks), with no notice.
     local ok, err, notice = manager.applySettings(player, {voiceProvider = 'convai'})
     assert(ok and not err and notice == nil and manager.vVoice() and saved.vVoice == true and saved.voiceProvider == 'convai', tostring(err))
-    assert(manager.vVoiceActive() and manager.takeNaturalSpeechNotice() == nil)
+    assert(manager.vVoiceActive())
     assert(manager.applySettings(player, {vVoice = false}) and not manager.vVoice() and not manager.vVoiceActive() and saved.vVoice == false and saved.vVoiceChosen == true and saved.voiceProvider == 'convai')
     assert(manager.applySettings(player, {vVoice = true}) and manager.vVoice() and manager.vVoiceActive() and saved.voiceProvider == 'convai')
-    assert(manager.takeNaturalSpeechNotice() == nil)
     assert(manager.applySettings(player, {voiceProvider = 'pocket'}) and manager.vVoice() and manager.vVoiceActive())
     assert(manager.applySettings(player, {vVoice = 'yes'}) == false and manager.vVoice())
-    assert(manager.applySettings(player, {voiceProvider = 'pocket', followUpInterest = false}) and manager.vVoice())
+    assert(manager.applySettings(player, {voiceProvider = 'pocket', witnessReceipts = false}) and manager.vVoice())
     -- Explicitly turned off stays off through a voice change.
     assert(manager.applySettings(player, {vVoice = false}) and manager.applySettings(player, {voiceProvider = 'convai'}) and manager.applySettings(player, {voiceProvider = 'pocket'}) and not manager.vVoice())
   `);
@@ -4166,7 +3981,7 @@ test('V’s voice engine with Mature content in a saved file: Voxtral is Pocket 
   `);
 });
 
-test('V’s voice sits in the Voices category after Follow-up questions, is on by default, and applies on its own; the old Convai-voice note is gone', () => {
+test('V’s voice sits in the Voices category after the voice choice, is on by default, and applies on its own; the old Convai-voice note is gone', () => {
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local owner, order = nil, {}
@@ -4186,7 +4001,7 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     end
     local at = {}
     for index, id in ipairs(order) do at[id] = index end
-    assert(at.followUpInterest < at.vVoice, 'with the other speech settings')
+    assert(at.voiceProvider < at.vVoice and at.naturalSpeech == nil and at.followUpInterest == nil, 'with the other speech settings')
     -- No companion voice makes the row differ: V has its own engine.
     local plain = row('vVoice').description
     assert(manager.applySettings(player, {voiceProvider = 'convai'}))
@@ -4200,7 +4015,6 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     local voiceBefore = manager.snapshot(player).settings.voiceProvider
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 1}}).ok and not manager.vVoice())
     assert(manager.snapshot(player).settings.voiceProvider == voiceBefore, 'no voice switch')
-    assert(manager.takeNaturalSpeechNotice() == nil)
   `);
 });
 
@@ -4255,7 +4069,6 @@ const voiceApplyFixture = `
       files['runtime/local-voice-state.json'] = 'voice-runtime'
       manager.snapshot(player)
     end
-    local CLOUD_OFF = 'The Convai cloud voice cannot use Natural speech, so it was turned off.'
     assert(invoke('tab:settings').ok)
 `;
 
@@ -4289,52 +4102,41 @@ test('Pocket TTS is never refused or moved for a retired Multilingual value: cho
       assert(apply({'voiceProvider', POCKET}).ok and saved.voiceProvider == 'pocket', 'Pocket can be chosen')
       local ok, err, notice = manager.applySettings(player, {multilingualConversations = true})
       assert(ok and err == nil and notice == nil and saved.voiceProvider == 'pocket' and saved.multilingualConversations == nil, tostring(err))
-      ok, err = manager.applySettings(player, {voiceProvider = 'pocket', multilingualConversations = true, naturalSpeech = true})
-      assert(ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true, tostring(err))
-      assert(manager.takeNaturalSpeechNotice() == nil)
-      assert(apply({'naturalSpeech', false}).ok)
+      ok, err = manager.applySettings(player, {voiceProvider = 'pocket', multilingualConversations = true})
+      assert(ok and saved.voiceProvider == 'pocket' and saved.multilingualConversations == nil, tostring(err))
     end
   `);
 });
 
-test('Natural speech and the Convai cloud voice on the Convai provider: the voice chosen with it on is kept and Natural speech goes off; turned on beside the cloud voice it moves the voice to Pocket, never to OmniVoice', () => {
+test('The Convai cloud voice on the Convai provider is simply saved: no notice, no other setting moves, with or without the OmniVoice pack', () => {
   run(`${nsuiFixture}${voiceApplyFixture}
     for _, installed in ipairs({true, false}) do
       pack(installed)
-      if installed then
-        assert(apply({'voiceProvider', ULTRA}).ok and saved.omniSteps == 32 and saved.omniReference == 'long')
-        assert(apply({'naturalSpeech', true}).ok and saved.voiceProvider == 'omni')
-        assert(manager.takeNaturalSpeechNotice() == nil and saved.naturalSpeech)
-      else
-        assert(apply({'voiceProvider', POCKET}).ok and apply({'naturalSpeech', true}).ok and saved.naturalSpeech)
-      end
-      -- The cloud voice chosen while Natural speech is on is kept: Natural speech is turned off, with one notice.
+      assert(apply({'voiceProvider', POCKET}).ok and saved.voiceProvider == 'pocket')
+      local before = saved.conversationProvider
       local result = apply({'voiceProvider', CLOUD})
-      assert(result.ok and saved.voiceProvider == 'convai' and not saved.naturalSpeech)
-      assert(result.schemaChanged == true and manager.takeNaturalSpeechNotice() == CLOUD_OFF)
-      -- Natural speech turned on beside the saved cloud voice moves the voice to Pocket.
-      result = apply({'naturalSpeech', true})
-      assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech, tostring(saved.voiceProvider))
-      assert(manager.takeNaturalSpeechNotice() == 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.')
-      assert(apply({'naturalSpeech', false}).ok)
+      assert(result.ok and saved.voiceProvider == 'convai' and saved.conversationProvider == before, tostring(saved.voiceProvider))
+      local feedback = manager.snapshot(player).feedback or ''
+      assert(feedback == '' or feedback == 'Settings saved.', 'no notice for choosing the cloud voice: ' .. feedback)
     end
   `);
 });
 
-test('a saved pairing with the cloud voice and Natural speech cannot stand on a Convai provider; Pocket and OmniVoice pairings stand, whatever a retired Multilingual value says', () => {
+test('a saved Convai cloud voice stands on a Convai provider; Pocket and OmniVoice pairings stand too, and the retired Natural speech, Follow-up questions and Multilingual keys are dropped', () => {
   run(`${managerFixture}
     for _, case in ipairs({
-      {{voiceProvider = 'pocket'}, 'pocket', false},
-      {{voiceProvider = 'pocket', naturalSpeech = true}, 'pocket', true},
-      {{voiceProvider = 'convai', naturalSpeech = true}, 'convai', false},
-      {{voiceProvider = 'convai', expressiveEmotions = true}, 'convai', false},
-      {{voiceProvider = 'omni', naturalSpeech = true}, 'omni', true},
+      {{voiceProvider = 'pocket'}, 'pocket'},
+      {{voiceProvider = 'pocket', naturalSpeech = true}, 'pocket'},
+      {{voiceProvider = 'convai', naturalSpeech = true}, 'convai'},
+      {{voiceProvider = 'convai', expressiveEmotions = true}, 'convai'},
+      {{voiceProvider = 'omni', naturalSpeech = true}, 'omni'},
     }) do
       seed = {version = 2, enabledByKey = {}, multilingualConversations = true}
       for key, value in pairs(case[1]) do seed[key] = value end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      assert(saved.voiceProvider == case[2] and (saved.naturalSpeech == true) == case[3], case[1].voiceProvider)
+      assert(saved.voiceProvider == case[2], case[1].voiceProvider)
+      assert(saved.naturalSpeech == nil, 'the retired Natural speech key is dropped')
       assert(saved.expressiveEmotions == nil, 'the retired key is dropped')
       assert(saved.multilingualConversations == nil, 'the retired Multilingual key is dropped')
     end
@@ -5149,23 +4951,6 @@ test('with the settings menu closed the queue flush, notices and player identity
   `);
 });
 
-test('a notice is held at most one tick: a voice switch reaches the player once and is never lost', () => {
-  run(`${nsuiFixture}
-    local clock = 10
-    os.clock = function() return clock end
-    local sent = {}
-    convaiNotices = {sendLines = function(_, lines) for _, line in ipairs(lines) do sent[#sent + 1] = line.id end return #lines end}
-    managerUi.update(player, true); clock = clock + 1 / 60
-    local taken = 0
-    manager.takeNaturalSpeechNotice = function() taken = taken + 1; return taken == 1 and 'Voice switched.' or nil end
-    local frames = 0
-    while #sent == 0 and frames < 60 do managerUi.update(player, true); clock = clock + 1 / 60; frames = frames + 1 end
-    assert(#sent == 1 and sent[1] == 'voice-switched', 'the notice was lost')
-    assert(frames <= 16, 'the notice waited ' .. frames .. ' frames')
-    for _ = 1, 60 do managerUi.update(player, true); clock = clock + 1 / 60 end
-    assert(#sent == 1, 'the notice repeated')
-  `);
-});
 
 // Loading notices: a slow OmniVoice or Local AI load is one notice held on screen until its outcome replaces it (mod/notices.lua
 // loading board, manager.loadStatus, mod/manager-ui.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in
@@ -5196,7 +4981,6 @@ const loadingFixture = `
   end
   managerUi.update(player, true)
 `;
-
 test('OmniVoice loading is one notice after 1.5 s that stays until one ready line replaces it; a quick load says nothing', () => {
   run(`${nsuiFixture}${loadingFixture}
     step(1); assert(#posts == 0 and #shown == 0, 'a notice before the load had lasted 1.5 s: ' .. tostring(shown[1]))
@@ -5933,128 +5717,51 @@ test('the Interface language help says the microphone uses it as a hint for non-
   `);
 });
 
-test('Natural speech at load: the Convai cloud voice beside Convai (free tier or own key) turns it off silently; beside Mistral, Local AI or Custom it stays on; other voices keep it', () => {
-  run(`${managerFixture}
-    -- A case is {saved Natural speech, voice, provider, own key, expected Natural speech}.
-    for _, case in ipairs({
-      {true, 'convai', 'convai', false, false}, {true, 'convai', 'convai', true, false},
-      {true, 'convai', 'mistral', false, true}, {true, 'convai', 'local', false, true}, {true, 'convai', 'custom', false, true},
-      {true, 'pocket', 'convai', false, true}, {true, 'omni', 'convai', true, true}, {true, 'voxtral', 'convai', false, true},
-      {false, 'convai', 'convai', false, false}, {false, 'convai', 'mistral', false, false}}) do
-      seed = {version = 2, voiceProvider = case[2], conversationProvider = case[3], useOwnConvaiKey = case[4], naturalSpeech = case[1],
-        enabledByKey = {}, future = {keep = 'unchanged'}}
-      files['runtime/settings.json'], saved = 'seed', nil
-      manager.reset(); manager.configure(api, profiles); manager.prepare(player)
-      local label = tostring(case[1]) .. ' ' .. case[2] .. ' ' .. case[3] .. ' ' .. tostring(case[4])
-      assert(manager.naturalSpeech() == case[5] and saved.naturalSpeech == case[5], label)
-      assert(saved.voiceProvider == case[2] and saved.conversationProvider == case[3] and saved.future.keep == 'unchanged', 'only Natural speech moves: ' .. label)
-      assert(manager.takeNaturalSpeechNotice() == nil and (manager.snapshot(player).feedback or '') == '', 'a load is silent: ' .. label)
-    end
-  `);
-});
-
-test('Natural speech and the provider: the Convai voice beside Mistral, Local AI or Custom keeps it on and moves nothing; making the pairing on Convai turns it off with one notice; turning it on beside the pairing moves the voice to Pocket', () => {
+test('The Convai cloud voice is simply saved on every conversation provider: no notice, no feedback line, and the provider and the other settings do not move', () => {
   run(`${nsuiFixture}
     local clock = 5000
     os.clock = function() return clock end
     assert(invoke('tab:settings').ok)
-    local OFF = 'The Convai cloud voice cannot use Natural speech, so it was turned off.'
-    local SWITCHED = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
-    local CLOUD, POCKET
+    local CLOUD
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
       if choice.provider == 'convai' then CLOUD = index + 1 end
-      if choice.provider == 'pocket' then POCKET = index + 1 end
     end
-    local FREE, OWN, MISTRAL, LOCAL, CUSTOM = 1, 2, 3, 4, 5
     local function apply(...)
       clock = clock + 2
       local changes = {}
       for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
       return registered.applyBatch('manager', changes)
     end
-    -- Starting points: set the saved choices directly (the manager takes any pairing a file could hold except the blocked one).
-    local function start(provider, voice, speech)
-      assert(manager.applySettings(player, {conversationProvider = provider, useOwnConvaiKey = false, voiceProvider = voice, naturalSpeech = false}))
-      if speech then assert(manager.applySettings(player, {naturalSpeech = true})) end
-      manager.takeNaturalSpeechNotice()
-    end
-    -- Choosing the Convai voice while the provider is Mistral, Local AI or Custom keeps Natural speech on, moves no voice, says nothing.
-    for _, case in ipairs({{'mistral', MISTRAL}, {'local', LOCAL}, {'custom', CUSTOM}}) do
-      start(case[1], 'pocket', true)
+    for _, case in ipairs({{'convai', false}, {'convai', true}, {'mistral', false}, {'local', false}, {'custom', false}}) do
+      assert(manager.applySettings(player, {conversationProvider = case[1], useOwnConvaiKey = case[2], voiceProvider = 'pocket'}))
       local result = apply({'voiceProvider', CLOUD})
-      assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == true, case[1])
-      assert(manager.takeNaturalSpeechNotice() == nil and result.schemaChanged == false, case[1] .. ' needs no notice and no redraw')
-      assert(manager.naturalSpeech() == true)
-      -- Natural speech turned on beside the Convai voice there does nothing to the voice either.
-      assert(apply({'naturalSpeech', false}).ok)
-      result = apply({'naturalSpeech', true})
-      assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == true, case[1])
-      assert(manager.takeNaturalSpeechNotice() == nil and result.schemaChanged == false)
-      -- Choosing another provider from there with the Convai voice and Natural speech on: Convai makes the pairing.
-      local back = apply({'conversationProvider', FREE})
-      assert(back.ok and saved.conversationProvider == 'convai' and saved.voiceProvider == 'convai' and saved.naturalSpeech == false, case[1])
-      assert(manager.takeNaturalSpeechNotice() == OFF, case[1])
+      assert(result.ok and saved.voiceProvider == 'convai', case[1])
+      assert(saved.conversationProvider == case[1] and saved.useOwnConvaiKey == case[2], case[1])
+      local feedback = manager.snapshot(player).feedback or ''
+      assert(feedback == '' or feedback == 'Settings saved.', case[1] .. ' needs no notice: ' .. feedback)
     end
-    -- Choosing the Convai voice on the Convai provider (free tier, then own key) turns Natural speech off with the notice.
-    for _, provider in ipairs({FREE, OWN}) do
-      start('convai', 'pocket', true)
-      if provider == OWN then assert(manager.applySettings(player, {useOwnConvaiKey = true})) end
-      local result = apply({'voiceProvider', CLOUD})
-      assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false, provider)
-      assert(result.schemaChanged == true and manager.takeNaturalSpeechNotice() == OFF, provider)
-    end
-    -- Choosing the Convai provider (free tier and own key) while the voice is the Convai voice and Natural speech is on: both choices stay, it goes off.
-    for _, case in ipairs({{FREE, false}, {OWN, true}}) do
-      start('mistral', 'convai', true)
-      local result = apply({'conversationProvider', case[1]})
-      assert(result.ok and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == case[2], case[1])
-      assert(saved.voiceProvider == 'convai' and saved.naturalSpeech == false, 'both choices are kept, Natural speech is off: ' .. case[1])
-      assert(result.schemaChanged == true and manager.takeNaturalSpeechNotice() == OFF and manager.takeNaturalSpeechNotice() == nil, case[1])
-      assert(manager.snapshot(player).settings.naturalSpeech == false)
-    end
-    -- Choosing Local AI or Custom from the Convai pairing is not a blocked pairing: Natural speech does not come back by itself.
-    assert(apply({'conversationProvider', LOCAL}).ok and saved.naturalSpeech == false and manager.takeNaturalSpeechNotice() == nil)
-    -- Turning Natural speech on beside the Convai voice on the Convai provider moves the voice to Pocket, with the notice.
-    for _, provider in ipairs({FREE, OWN}) do
-      start('convai', 'convai', false)
-      if provider == OWN then assert(manager.applySettings(player, {useOwnConvaiKey = true})) end
-      local result = apply({'naturalSpeech', true})
-      assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true and result.schemaChanged == true, provider)
-      assert(manager.takeNaturalSpeechNotice() == SWITCHED, provider)
-    end
-    -- Both in one Apply: the provider chosen with Natural speech on beside the saved Convai voice. The pairing is made by the provider choice,
-    -- so the choices stay and Natural speech goes off.
-    start('mistral', 'convai', true)
-    local result = apply({'conversationProvider', FREE}, {'naturalSpeech', true})
-    assert(result.ok and saved.voiceProvider == 'convai' and saved.naturalSpeech == false)
-    assert(manager.takeNaturalSpeechNotice() == OFF)
-    -- The help of the row tells the provider-aware rule.
-    loaded = registered.loadMod('manager')
-    assert(row('naturalSpeech').description:find('Not available with Convai’s cloud voice: choosing it turns this off', 1, true))
   `);
 });
 
-test('Natural speech beside other providers is unaffected by a retired Multilingual value: Pocket and Natural speech stay on Mistral, back on the Convai free tier and on a player key', () => {
+test('Pocket TTS and the provider are unaffected by a retired Multilingual value: Pocket stays on Mistral, back on the Convai free tier and on a player key', () => {
   run(`${nsuiFixture}${voiceApplyFixture}
     pack(false)
-    assert(manager.applySettings(player, {conversationProvider = 'mistral', naturalSpeech = true}))
+    assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
     local ok, err, notice = manager.applySettings(player, {multilingualConversations = true})
-    assert(ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true and notice == nil, tostring(err))
-    assert(manager.takeNaturalSpeechNotice() == nil)
-    -- Back to the Convai free tier: no voice rule moves Pocket or turns Natural speech off.
+    assert(ok and saved.voiceProvider == 'pocket' and notice == nil, tostring(err))
+    -- Back to the Convai free tier: no voice rule moves Pocket.
     local result = apply({'conversationProvider', 1})
-    assert(result.ok and saved.conversationProvider == 'convai' and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true, tostring(result.error))
-    assert(manager.takeNaturalSpeechNotice() == nil)
+    assert(result.ok and saved.conversationProvider == 'convai' and saved.voiceProvider == 'pocket', tostring(result.error))
     -- A player's own Convai key: the same.
     assert(manager.applySettings(player, {useOwnConvaiKey = true}))
-    assert(manager.applySettings(player, {multilingualConversations = true}) and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true)
+    assert(manager.applySettings(player, {multilingualConversations = true}) and saved.voiceProvider == 'pocket')
   `);
 });
 
-test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures): no row, no snapshot key, no getter, no text on the page, no Apply branch, Companion behavior keeps the two gaze rows, and Gameplay holds the rest (Street reputation, NPCs react to threats and commands, Companions change outfits, the Immersive invitations and Housemates buttons, Revenge ambushes)', () => {
+test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures, Natural speech, Follow-up questions): no row, no snapshot key, no getter, no text on the page, no Apply branch, Companion behavior keeps the two gaze rows, and Gameplay holds the rest (Street reputation, NPCs react to threats and commands, Companions change outfits, the Immersive invitations and Housemates buttons, Revenge ambushes)', () => {
   run(`${nsuiFixture}
     local GONE = {autoConnectNearby = 'Auto-connect nearby characters', expressiveEmotions = 'Expressive emotions', gameDialogueContext = 'Continue from game dialogue',
-      holocallLiveImage = 'Live holocall picture', bodyGestures = 'Body gestures'}
+      holocallLiveImage = 'Live holocall picture', bodyGestures = 'Body gestures', naturalSpeech = 'Natural speech', followUpInterest = 'Follow-up questions'}
     local snapshot = manager.snapshot(player).settings
     for key in pairs(GONE) do
       assert(manager[key] == nil, 'a getter: ' .. key)
@@ -6099,30 +5806,18 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.
     for key in pairs(GONE) do
-      local result = registered.applyBatch('manager', {{id = 'followUpInterest', value = false}, {id = key, value = false}})
+      local result = registered.applyBatch('manager', {{id = 'battleReactions', value = false}, {id = key, value = false}})
       assert(result.ok == false and #(result.appliedIds or {}) == 0, key)
-      assert(manager.followUpInterest() == true and saved[key] == nil, key)
+      assert(manager.battleReactions() == true and saved[key] == nil, key)
     end
     for _, change in ipairs(core.defaults()) do assert(GONE[change.id] == nil and change.id ~= 'johnnyHologram' and change.id ~= 'vTalks', change.id) end
-    -- A normal batch applies none of them: the ids the page reports are the ones asked for.
-    local ok = registered.applyBatch('manager', {{id = 'followUpInterest', value = false}, {id = 'naturalSpeech', value = true}})
-    assert(ok.ok and #ok.appliedIds == 2)
-    for key in pairs(GONE) do assert(saved[key] == nil, key) end
-    -- Follow-up questions and Natural speech STAY: rows, their defaults, and each applies on its own.
-    assert(registered.applyBatch('manager', {{id = 'followUpInterest', value = true}, {id = 'naturalSpeech', value = false}}).ok)
-    loaded = registered.loadMod('manager')
-    local follow, natural = row('followUpInterest'), row('naturalSpeech')
-    assert(follow.type == 'bool' and follow.value == true and follow.defaultValue == true and follow.label == 'Follow-up questions')
-    assert(natural.type == 'bool' and natural.value == false and natural.defaultValue == false and natural.label == 'Natural speech')
-    local voiceBefore = saved.voiceProvider
-    assert(registered.applyBatch('manager', {{id = 'followUpInterest', value = false}}).ok and saved.followUpInterest == false and saved.voiceProvider == voiceBefore)
-    assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}}).ok and saved.naturalSpeech == true and saved.voiceProvider == voiceBefore)
   `);
 });
 
 test('an old settings.json with a removed setting set to false loads fine as if it were on: the key is dropped from the file once, the second load saves nothing, and an Apply that carries one is accepted and ignored', () => {
   run(`${managerFixture}
-    local KEYS = {'autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage', 'holocallLiveImageChosen', 'bodyGestures'}
+    local KEYS = {'autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage', 'holocallLiveImageChosen', 'bodyGestures',
+      'naturalSpeech', 'followUpInterest'}
     local function load(extra)
       seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'pocket', omniSteps = 16, enabledByKey = {}, future = {keep = 'unchanged'}}
       for key, value in pairs(extra) do seed[key] = value end
@@ -6150,19 +5845,60 @@ test('an old settings.json with a removed setting set to false loads fine as if 
     for _, key in ipairs(KEYS) do everything[key] = false end
     everything.bodyGestures = true
     assertGone(load(everything), 'all')
+    everything.naturalSpeech, everything.followUpInterest = true, true
+    assertGone(load(everything), 'all, opposite values')
     -- Behaviour is as if on, and nothing else moves: the Convai voice beside an old Expressive emotions true stays, silently.
-    local state = load({voiceProvider = 'convai', expressiveEmotions = true, naturalSpeech = false})
-    assert(state.voiceProvider == 'convai' and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
+    local state = load({voiceProvider = 'convai', expressiveEmotions = true, naturalSpeech = true})
+    assert(state.voiceProvider == 'convai' and saved.voiceProvider == 'convai')
     assertGone(state, 'expressive with the cloud voice')
     -- An Apply carrying a removed key is accepted and ignored, and saves the rest.
     load({})
     for _, key in ipairs(KEYS) do
-      assert(manager.applySettings(player, {[key] = false, followUpInterest = false}), key)
-      assert(saved[key] == nil and manager.snapshot(player).settings[key] == nil and saved.followUpInterest == false, key)
-      assert(manager.applySettings(player, {followUpInterest = true}))
+      assert(manager.applySettings(player, {[key] = false, witnessReceipts = false}), key)
+      assert(saved[key] == nil and manager.snapshot(player).settings[key] == nil and saved.witnessReceipts == false, key)
+      assert(manager.applySettings(player, {witnessReceipts = true}))
     end
     assert(manager.applySettings(player, {expressiveEmotions = 'maybe', bodyGestures = 7}), 'whatever the value')
     assertGone(manager.snapshot(player).settings, 'odd values')
+  `);
+});
+
+test('Natural speech and Follow-up questions are retired: an old file holding either value loads with no error, feedback or notice, drops both keys, keeps everything else, and an Apply that carries them saves nothing for them', () => {
+  run(`${managerFixture}
+    assert(manager.naturalSpeech == nil and manager.followUpInterest == nil and manager.takeNaturalSpeechNotice == nil, 'no getters, no notice taker')
+    for _, case in ipairs({{true, false}, {false, true}}) do
+      local label = tostring(case[1]) .. '/' .. tostring(case[2])
+      seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', conversationProvider = 'convai', omniSteps = 16,
+        enabledByKey = {}, future = {keep = 'unchanged'}, naturalSpeech = case[1], followUpInterest = case[2]}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.reset(); manager.configure(api, profiles); manager.prepare(player)
+      local snapshot = manager.snapshot(player)
+      assert(saved ~= nil and saved.naturalSpeech == nil and saved.followUpInterest == nil, 'dropped from the file: ' .. label)
+      assert(saved.voiceProvider == 'convai' and saved.conversationProvider == 'convai' and saved.subtitleStyle == 'dialogue'
+        and saved.omniSteps == 16 and saved.future.keep == 'unchanged', 'the rest is untouched: ' .. label)
+      assert(snapshot.settings.naturalSpeech == nil and snapshot.settings.followUpInterest == nil, label)
+      assert(snapshot.settings.voiceProvider == 'convai', 'the Convai voice stays, silently: ' .. label)
+      assert((snapshot.feedback or '') == '', 'a load says nothing: ' .. label .. ' ' .. tostring(snapshot.feedback))
+      -- Once: a second load finds nothing to drop.
+      local before = saved
+      manager.reset(); manager.configure(api, profiles); manager.snapshot(player)
+      assert(saved == before, 'the second load saved again: ' .. label)
+      -- An Apply that carries them is accepted and ignored, with no error text, no notice and nothing written for them.
+      local ok, err, notice = manager.applySettings(player, {naturalSpeech = case[1], followUpInterest = case[2]})
+      assert(ok == true and err == nil and notice == nil, label .. ': ' .. tostring(err))
+      assert(saved.naturalSpeech == nil and saved.followUpInterest == nil and saved.voiceProvider == 'convai', label)
+      assert(manager.snapshot(player).settings.naturalSpeech == nil and manager.snapshot(player).settings.followUpInterest == nil, label)
+      local feedback = manager.snapshot(player).feedback or ''
+      assert(feedback == '' or feedback == 'Settings saved.', 'an Apply says only that it saved: ' .. label .. ' ' .. feedback)
+      -- Beside a real setting it saves that one and still nothing for them, and never moves the voice.
+      ok, err, notice = manager.applySettings(player, {naturalSpeech = case[1], followUpInterest = case[2], witnessReceipts = false, voiceProvider = 'pocket'})
+      assert(ok == true and err == nil and notice == nil and saved.witnessReceipts == false and saved.voiceProvider == 'pocket', label)
+      assert(saved.naturalSpeech == nil and saved.followUpInterest == nil, label)
+      ok, err, notice = manager.applySettings(player, {voiceProvider = 'convai', conversationProvider = 'convai'})
+      assert(ok == true and err == nil and notice == nil and saved.voiceProvider == 'convai' and saved.conversationProvider == 'convai', label)
+      feedback = manager.snapshot(player).feedback or ''
+      assert(feedback == '' or feedback == 'Settings saved.', 'choosing the cloud voice on Convai says nothing more: ' .. label .. ' ' .. feedback)
+    end
   `);
 });
 
@@ -6403,7 +6139,7 @@ test('V’s voice for microphone lines is off by default, only a boolean is kept
     assert(saved.vVoice == true and saved.vVoiceChosen ~= true, 'V’s voice itself is untouched by this key')
     assert(manager.applySettings(player, {vVoiceMic = 'yes'}) == false and manager.vVoiceMic(), 'a non-boolean is refused')
     -- It survives other changes, and typed lines going off keeps the choice: the two are independent, so microphone lines alone keep V’s voice active.
-    assert(manager.applySettings(player, {followUpInterest = false}) and manager.vVoiceMic())
+    assert(manager.applySettings(player, {witnessReceipts = false}) and manager.vVoiceMic())
     assert(manager.applySettings(player, {vVoice = false}) and manager.vVoiceMic() and saved.vVoiceMic == true and not manager.vVoice() and manager.vVoiceActive())
     assert(manager.applySettings(player, {vVoiceMic = false}) and not manager.vVoiceMic() and saved.vVoiceMic == false and not manager.vVoiceActive(), 'both off: V is not active')
   `);
@@ -6468,9 +6204,9 @@ test('own key bindings: only game key names of the seven actions are kept, no ke
     end
     assert(manager.applySettings(player, {keyBindings = 'IK_F7'}) == false)
     -- It survives other changes, and a batch with a bad binding changes nothing at all.
-    assert(manager.applySettings(player, {followUpInterest = false}) and manager.keyBindings().text == 'IK_Pad_LeftShoulder')
-    local mixed = manager.applySettings(player, {followUpInterest = true, keyBindings = {voice = 'bad'}})
-    assert(mixed == false and manager.snapshot(player).settings.followUpInterest == false)
+    assert(manager.applySettings(player, {witnessReceipts = false}) and manager.keyBindings().text == 'IK_Pad_LeftShoulder')
+    local mixed = manager.applySettings(player, {witnessReceipts = true, keyBindings = {voice = 'bad'}})
+    assert(mixed == false and manager.snapshot(player).settings.witnessReceipts == false)
     -- Every action at once, as Restore defaults clears them.
     assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and manager.setKeyBinding(player, 'manager', 'IK_F4'))
     assert(manager.applySettings(player, {keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false}}))

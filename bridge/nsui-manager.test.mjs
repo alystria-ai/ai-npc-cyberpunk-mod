@@ -185,23 +185,21 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   ns.interact.select(ns.find('Companion voices'), 2); frames(8); ns.verify()
   assert(saved.voice == true and saved.voiceProvider == 'pocket' and ns.find('Companion voices').selectedElementIndex == 2)
   -- A refused choice goes back and says why; the other change in the same moment is kept.
-  ns.interact.toggle(ns.find('Follow-up questions'))
+  ns.interact.toggle(ns.find('React to collected loot'))
   ns.interact.select(ns.find('Companion voices'), 3)   -- Voxtral without a Mistral key
   frames(8); ns.verify()
-  assert(saved.followUpInterest == false, 'the change that could be made was made')
+  assert(saved.lootReactions == false, 'the change that could be made was made')
   assert(ns.find('Companion voices').selectedElementIndex == 2, 'the refused voice went back to the saved one')
   assert(managerUi.inspect().shown == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(managerUi.inspect().shown))
   assert(ns.sections()[1].options[2].label:find('Requires a Mistral key', 1, true) == 1, 'the line is under the way back')
-  -- A rule that moves another row: Natural speech beside the cloud voice moves the voice, in place, with the notice.
+  -- The Convai cloud voice is simply saved (the Natural speech pairing was removed): no other row moves, no line is shown.
   ns.interact.select(ns.find('Companion voices'), 8)   -- Convai cloud voice
   frames(8); ns.verify()
   assert(saved.voiceProvider == 'convai' and ns.find('Companion voices').selectedElementIndex == 8)
   assert(ns.find('Expressive emotions') == nil and saved.expressiveEmotions == nil, 'Expressive emotions is not a setting any more')
-  ns.interact.toggle(ns.find('Natural speech')); frames(8); ns.verify()
-  assert(saved.naturalSpeech == true and saved.voiceProvider == 'pocket', 'Natural speech moved the voice to Pocket')
-  assert(ns.find('Companion voices').selectedElementIndex == 2, 'the voice row shows it')
-  assert(managerUi.inspect().shown:find('Natural speech needs a local voice', 1, true), tostring(managerUi.inspect().shown))
-  assert(ns.sections()[1].options[2].label:find('Natural speech needs a local voice', 1, true) == 1)
+  assert(ns.find('Natural speech') == nil and ns.find('Follow-up questions') == nil, 'the two removed rows are not on the page')
+  assert(saved.naturalSpeech == nil and saved.followUpInterest == nil, 'and not in the file')
+  assert(not managerUi.inspect().shown, tostring(managerUi.inspect().shown))
   -- The line goes away with the next page.
   press('Back to Companion Manager')
   assert(not managerUi.inspect().shown)
@@ -312,7 +310,7 @@ test('Mature content beside Mistral: turning it on selects Local AI and says so 
   ns.interact.select(ns.find('Conversation provider'), 1); frames(8); ns.verify()
   assert(saved.conversationProvider == 'convai' and saved.matureContent == false, 'Convai turns it off')
   -- Beside Custom with the companions and V on Voxtral, turning it on moves both to Pocket (named), and turning it off puts them back.
-  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral', naturalSpeech = false}))
+  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', tostring(saved.voiceProvider))
@@ -350,16 +348,15 @@ test('Restore defaults goes through the same validated path, only on the Setting
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
   press('Settings')
-  assert(manager.applySettings(player, {battleReactions = false, followUpInterest = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
-    naturalSpeech = false}))
+  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai'}))
   frames(20)
   assert(ns.find('React to battles').state == false and ns.find('Subtitles').selectedElementIndex == 3)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.followUpInterest == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
+  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
-  assert(ns.find('Follow-up questions').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
+  assert(ns.find('React to collected loot').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
   assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 2)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
   -- Restore defaults after the cloud voice was chosen puts the default voice back.
@@ -854,9 +851,12 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   assert(saved.voiceVolume == 135 and stale(held) == 0, 'slider: ' .. stale(held))
   ns.setOption(ns.find('Subtitles', TAB), 3); frames(8)
   assert(stale(held) == 0, 'selector: ' .. stale(held))
-  -- A rule that moves another row (Natural speech moves the voice) and puts a line under the way back: still the same options.
-  ns.setOption(ns.find('Natural speech', TAB), true); frames(8)
-  assert(saved.naturalSpeech == true and saved.voiceProvider == 'pocket', 'the rule ran')
+  -- A rule that moves other rows (Mature content beside Custom moves the Voxtral voices to Pocket) and puts a line under them: still the same options.
+  jsonFixtures['m-ready'] = {provider = 'mistral', effective = 'mistral', localAi = 'ready', saved = true, localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}}, localModelDefault = 'standard'}
+  files['runtime/mistral-state.json'] = 'm-ready'; clock = clock + 2; manager.snapshot(player)
+  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'})); frames(8)
+  ns.setOption(ns.find('Mature content', TAB), true); frames(8)
+  assert(saved.matureContent == true and saved.voiceProvider == 'pocket', 'the rule ran')
   assert(stale(held) == 0, 'rule: ' .. stale(held))
   assert(ns.find('Companion voices', TAB).selectedElementIndex == 2, 'and the row shows the corrected value')
   -- Pressing a button through the mirror works while the tab is not on screen, and the page it opens is the page MCM reads next.

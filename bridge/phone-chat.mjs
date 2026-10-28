@@ -157,7 +157,7 @@ function providerText(context, instruction, text, event) {
   return lead ? lead + '\n\nV messages: ' + text : text;
 }
 // The reply as published: her text without any meet tag, and the action the tag asks for (null unless the offer allows it, bridge/meet-requests.mjs).
-// The tag may survive only in `speechText` (the voice-tagged original that bridge/natural-speech.mjs keeps), so both are read.
+// The tag may survive only in `speechText` (the voice-tagged original that bridge/speech-tags.mjs keeps), so both are read.
 function meetOutcome(result, offer, screen) {
   const own = splitMeetTags(result.text);
   let kind = own.kind;

@@ -172,17 +172,6 @@ test('cancelling stops the queued phrases and sends nothing more', async () => {
   assert.ok(worker.calls.every(call => call.options.signal.aborted), 'every queued job was told to stop');
 });
 
-test('voice tags reach OmniVoice only through voicedPhrases, and a wrong answer falls back to the plain phrases', async () => {
-  const worker = fakeWorker();
-  const tagged = createOmniPcmVoice({synthesize: worker.synthesize, voicedPhrases: (phrases, {role}) => phrases.map(phrase => `[${role}] ${phrase}`)});
-  await tagged.synthesizeStream('judy', REPLY, {role: 'tail', onPcm: () => {}});
-  assert.ok(worker.calls.every(call => call.text.startsWith('[tail] ')));
-  const wrong = fakeWorker();
-  const plain = createOmniPcmVoice({synthesize: wrong.synthesize, voicedPhrases: () => ['only one']});
-  await plain.synthesizeStream('judy', REPLY, {onPcm: () => {}});
-  assert.ok(wrong.calls.every(call => !call.text.includes('only one')));
-});
-
 test('a look-ahead (held) OmniVoice reply is buffered as PCM and drained in order into the speaker that claims it', async () => {
   const worker = fakeWorker({seconds: () => 2.5});
   const voice = createOmniPcmVoice({synthesize: worker.synthesize});

@@ -69,7 +69,7 @@ plainly and in her ordinary voice. Neither option writes game facts.
 turn was admitted (`relationshipContext(selection, channel, options)`). It is pure:
 no I/O, no state, no request of its own, and no per-frame work anywhere. It fills
 the same slot in the per-turn dynamic context that the old relationship note did,
-after vendor memory and before the phone, follow-up, natural-speech and
+after vendor memory and before the phone and
 multilingual blocks, so it adds no request, timer or Lua code.
 
 | Style | What the turn gets | Size |
@@ -230,7 +230,7 @@ so later settings changes cannot rewrite its admitted selection.
   and no affectionate cue.
 - Banter stays optional and relevant to the player's topic. It must not add a
   romantic speech to every reply, assume rivalry or exclusivity, change the
-  speaker order or bypass the final-speaker follow-up setting.
+  speaker order.
 
 This is prompt context for a real player conversation. It sends no separate
 memory-building message and does not create a new player ID.

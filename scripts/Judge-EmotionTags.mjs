@@ -16,7 +16,7 @@ import {readFile, writeFile, mkdir, readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {EMOTION_NAMES, emotionSpans, normaliseEmotion} from '../bridge/emotion-tags.mjs';
-import {OMNI_TAGS, CJK_TAGS, parseTagged} from '../bridge/natural-speech.mjs';
+import {OMNI_TAGS, CJK_TAGS, parseTagged} from '../bridge/speech-tags.mjs';
 // The bridge's own reading of a raw reply: the clean display text (no voice tag, no emotion tag) and the emotion marks.
 const parseEmotionText = raw => { const parsed = parseTagged(raw); return {text: parsed.display, tags: parsed.marks}; };
 // The picker being compared against. PICKER_BRIDGE=<dir> points at a copy of bridge/ (for example `git archive HEAD bridge`

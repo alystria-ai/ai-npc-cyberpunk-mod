@@ -1,5 +1,7 @@
 # Dynamic context audit (2026-10-12)
 
+> **Update 2026-10-28:** the Follow-up and Natural speech blocks were removed from the per-turn context (both settings are gone). Rows and sizes below that name them are history.
+>
 > **Update 2026-10-25:** three more kinds were added, each with its switch and each worded as background, told once and again only on a change (the lesson of this audit: a fact that arrives fresh on every turn is reacted to on every turn): the time since V last talked to this character, in game and real time (`bridge/last-talk.mjs`, decided once per turn id and recorded per memory scope, so the next turn of the same talk is silent), the song on the car or pocket radio and what a TV near V shows (`mod/media-context.lua`), and V's state from Dark Future when it is installed (`mod/mod-state.lua`). See `docs/DYNAMIC_INFO.md`. Companions' and Johnny's unprompted lines (`docs/COMPANION_SPEAK_UP.md`) carry the right-now block and the tracked quest too, which an automatic reaction did not before.
 >
 > **Update 2026-10-22:** the player can now turn each kind of live info off (Settings > Conversations > Dynamic info) and the place is worded more modestly; see `docs/DYNAMIC_INFO.md`. The tables below describe the 2026-10-12 state.
@@ -176,7 +178,7 @@ game never names V beyond "V").
   fixed text (SPOKEN_OUTPUT 787 characters, CURRENT_AUTHORITY 272, and the journal framing of about 800) has room to
   shrink.
 - Heavy characters (Johnny, Regina) should have a bridge-side check that the total fits Mistral's cap, trimming
-  natural-speech and the lowest-ranked facts rather than the new block.
+  the optional blocks and the lowest-ranked facts rather than the new block.
 
 ### Order of work if approved
 
@@ -366,7 +368,7 @@ Built and unit-tested on branch `dynamic-context-2`; not yet live (CET reload pl
 - Who gets what is unchanged: health, heat, money, company, vehicle and the rest stay in the block on every turn, with the same audience rules (a stranger never gets heat or money; a phone contact gets the weather where V is and nothing of V's body or wallet).
 - The turn-context log line now ends `background=<chars>` or `background=none`, so a log shows whether the weather went along.
 
-**Not changed, for a decision.** Three ordinary-NPC archetypes carry a standing rain flavour in their text (`characters/archetype-profiles/street-resident.json` speaking style "wry humor about money and rain", the same in `characters/natural-speech/npc-street-resident-female.json` "a sigh about rent or the rain", and sample lines in food-vendor and bartender). These are generated files (`scripts/Build-ArchetypeProfiles.mjs --check`), and the fact line is gone on most turns now; if players still hear rain from street residents, soften those two phrases and rebuild.
+**Not changed, for a decision.** Three ordinary-NPC archetypes carry a standing rain flavour in their text (`characters/archetype-profiles/street-resident.json` speaking style "wry humor about money and rain", and sample lines in food-vendor and bartender). These are generated files (`scripts/Build-ArchetypeProfiles.mjs --check`), and the fact line is gone on most turns now; if players still hear rain from street residents, soften those two phrases and rebuild.
 
 ## Update 2026-10-22: first-turn weather and the archetype place sentence, for every provider
 

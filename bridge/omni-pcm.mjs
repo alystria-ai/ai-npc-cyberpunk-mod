@@ -64,7 +64,6 @@ const sleepFor = (ms, signal) => new Promise((resolve, reject) => {
 
 /**
  * synthesize(profile, text, {signal, steps, language}) -> Promise<{audio: base64 WAV, timing}> (the resident worker's job; one at a time).
- * voicedPhrases(phrases, {role, text}) -> phrases with voice tags written in (Natural speech), or undefined for the plain phrases.
  * steps() -> the quality setting (16 or 32), read for each reply. onPhrase({index, role, generated, seconds}) is a diagnostics hook.
  * retries() -> how many more times a phrase whose render failed is asked for again before the reply ends there (default 0: none). The AMD route (ROCm) asks for one:
  * a stray PyTorch/MIOpen error on one phrase (the worker answers it with an error and keeps running) otherwise cut a reply off mid-sentence. A cancelled reply or a
@@ -74,7 +73,7 @@ const sleepFor = (ms, signal) => new Promise((resolve, reject) => {
  * onRunway(ms) is told, when a reply's first phrase is in, how long its first sound should be held so the queue does not run dry (bridge/omni-runway.mjs; 0: not at
  * all); it is called with 0 at the start of every head or whole reply.
  */
-export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => undefined, onPhrase, onRetry, retries = () => 0, ahead = 2, maxLeadSeconds = 14, sleep = sleepFor,
+export function createOmniPcmVoice({synthesize, steps = () => undefined, onPhrase, onRetry, retries = () => 0, ahead = 2, maxLeadSeconds = 14, sleep = sleepFor,
   pollMs = 75, now = () => performance.now(), join = true, onRunway}) {
   if (typeof synthesize !== 'function') throw Error('OmniVoice synthesis is required');
   let counter = 0, joiner = null;
@@ -90,9 +89,6 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
       throwIfCancelled(signal);
       utterance?.decide('pocket');
       const phrases = splitSpeechText(text);
-      let voiced;
-      try { voiced = voicedPhrases?.(phrases, {role, text}); } catch { voiced = undefined; }
-      if (!Array.isArray(voiced) || voiced.length !== phrases.length) voiced = phrases;
       const quality = options.steps ?? steps();
       const owner = randomBytes(16).toString('hex'), id = ++counter;
       const modelSha256 = createHash('sha256').update(`omnivoice:${profile}`).digest('hex');
@@ -102,7 +98,7 @@ export function createOmniPcmVoice({synthesize, voicedPhrases, steps = () => und
       let retryBudget = 0;
       try { retryBudget = Math.max(0, Math.min(2, Math.floor(Number(retries()) || 0))); } catch { retryBudget = 0; }
       const render = async (index, attempt = 0) => {
-        try { return await synthesize(profile, voiced[index], {signal: inner.signal, steps: quality, ...(language ? {language} : {})}); }
+        try { return await synthesize(profile, phrases[index], {signal: inner.signal, steps: quality, ...(language ? {language} : {})}); }
         catch (error) {
           if (attempt >= retryBudget || inner.signal.aborted || signal?.aborted) throw error;
           try { onRetry?.({index, error}); } catch { /* a diagnostic never affects speech */ }

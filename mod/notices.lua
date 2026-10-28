@@ -132,7 +132,6 @@ M.catalog = {
     ['trip-guidance'] = {class = DEVELOPER},
     ['action-queued'] = {class = DEVELOPER},
     ['tactic-outcome'] = {class = REMOVED},            -- the companion's own reply covers it; the outcome stays in probe.log (the user, 2026-10-18)
-    ['voice-switched'] = {class = DEVELOPER},          -- the Settings status line already says it
     ['support-report-saved'] = {class = DEVELOPER},
 
     -- Never shown

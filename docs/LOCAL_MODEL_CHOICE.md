@@ -54,9 +54,9 @@ pessimistic. No game, bridge or OmniVoice process was holding VRAM when the runs
   (a seeded memory of V, or V's name given earlier in the same chat), provocation ("are you an AI?") 3, emotional 3, combat 3
   (with verified battle observations), Spanish 3, Japanese 2.
 - **Prompt:** the bridge's own functions: `PersonaBook`, `systemPrompt` (persona, examples, output rules), `conversationContext`
-  (quest and journal, gear, `turn-context.mjs` "right now" block, the Natural speech and Expressive emotion notes), `cleanReply`,
+  (quest and journal, gear, `turn-context.mjs` "right now" block, the Natural speech and Expressive emotion notes, as they were then), `cleanReply`,
   the sentence cap and the stop rule. Natural speech and Expressive emotions on, Pocket as the voice, follow-up questions off (the
-  default). Each reply is the first attempt: no retry, so failures the host's retry would hide are visible.
+  default then). Natural speech and Follow-up questions were removed 2026-10-28. Each reply is the first attempt: no retry, so failures the host's retry would hide are visible.
 - **Order (stable first):** system = persona and rules, then the format notes, then the world block (the "right now" block first,
   then the person, journal, gear), then the memory block; then the history; the last message holds only the volatile part (battle
   observations) and `V says: ...`. For cache comparison the current Mistral layout (everything in the last message) was also run
@@ -219,7 +219,7 @@ a language line in the last message when V's text is not English; keep the host'
 1. Step 2 measures the game's real VRAM at the user's settings, with the 2B and then the 4B next to Omni.
 2. Test a short language note for Japanese, Portuguese, Korean and the other shipped languages with Gemma and Qwen 4B.
 3. Re-judge after layout v2 lands (the memory block and retrieved facts will change the memory turns).
-4. The same four models were not tried with follow-up questions on; that block alternates and belongs in the last message.
+4. (Follow-up questions were never tried with these four models, and that feature was removed 2026-10-28.)
 
 ## Listening sheet: 10 replies side by side
 

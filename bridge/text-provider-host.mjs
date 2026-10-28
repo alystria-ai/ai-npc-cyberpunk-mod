@@ -16,7 +16,7 @@ import {reactionTraceLine} from './companion-actions.mjs';
 import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
-import {stripSpeechTags} from './natural-speech.mjs';
+import {stripSpeechTags} from './speech-tags.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {currentClock, markStage} from './turn-clock.mjs';
 import {survivingLoss} from './local-server-recovery.mjs';
@@ -478,7 +478,7 @@ export class TextProviderHost {
    * routes      {mistral, local}: route objects as above
    * memory      MistralMemory or MemoryStore (bridge/memory-store.mjs; adds retrieval and fact extraction)
    * personas    PersonaBook
-   * transformReply   the bridge's cleanReply (Natural speech, Expressive emotions)
+   * transformReply   the bridge's cleanReply (tag removal, Expressive emotions)
    * gate        () => boolean: may background work (summaries, facts) run now? (the bridge: no combat, nothing speaking)
    * resolveProfile   config => profile key, for warm connections that carry no `local` field
    * idleRetryMs   how often a gated background task checks the gate again

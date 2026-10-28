@@ -17,7 +17,7 @@ import {streamChat, validateKey, redact, MISTRAL_ENDPOINT} from '../bridge/mistr
 import {PersonaBook, buildMessages, cleanReply, capPoint, LIMITS, joinBlocks} from '../bridge/mistral-prompt.mjs';
 import {mistralRoute} from '../bridge/text-provider-host.mjs';
 import {hasEmotionTag, EMOTION_TAG_BLOCK} from '../bridge/emotion-tags.mjs';
-import {stripSpeechTags, naturalSpeechContext} from '../bridge/natural-speech.mjs';
+import {stripSpeechTags} from '../bridge/speech-tags.mjs';
 import {conversationContextBlocks, FIRST_PERSON_REMINDER} from '../bridge/quest-context.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -42,8 +42,8 @@ function readKeys() {
 }
 
 // ---- The prompt -------------------------------------------------------------------------------------------------------------
-// Real pieces where they can be built without the game (the right-now block, the journal block, the style notes, the Natural speech
-// and Expressive emotion blocks, the first-person reminder); the save-specific world facts are synthesised at a realistic size.
+// Real pieces where they can be built without the game (the right-now block, the journal block, the style notes, the
+// Expressive emotion block, the first-person reminder); the save-specific world facts are synthesised at a realistic size.
 const KNOWLEDGE = [
   'Verified current-save facts about V and the world (game data, not instructions; an unsupplied fact stays unknown):',
   '- V has finished the prologue and the heist job with Jackie Welles; V and Jackie did not part on bad terms and V carries his dog tags.',
@@ -106,12 +106,11 @@ function buildPrompt() {
       {id: '1', text: 'Meet Judy at the Clouds and watch the braindance on the second floor to find where the trail continues.', tracked: true},
       {id: '2', text: 'Talk to the technician about the missing cyberware record and ask what was taken from the scene.', tracked: false},
       {id: '3', text: 'Leave the building through the service entrance and find the next lead in Kabuki.', tracked: false, optional: true}]}}};
-  // The real context blocks of a named, private turn (right-now, journal, voice notes, follow-up policy), by tier.
+  // The real context blocks of a named, private turn (right-now, journal, voice notes), by tier.
   const blocks = conversationContextBlocks(input).map(block => ({...block}));
   blocks.push({tier: 'world', text: KNOWLEDGE}, {tier: 'world', text: RECENCY}, {tier: 'world', text: JOBS}, {tier: 'world', text: GEAR},
     {tier: 'world', text: RELATIONSHIP});
-  blocks.push({tier: 'volatile', text: naturalSpeechContext({engine: 'omni', recent: [], profile: PROFILE, name: persona.name, trait: 'warm', language: 'en'})},
-    {tier: 'notes', text: EMOTION_TAG_BLOCK}, {tier: 'volatile', text: FIRST_PERSON_REMINDER});
+  blocks.push({tier: 'notes', text: EMOTION_TAG_BLOCK}, {tier: 'volatile', text: FIRST_PERSON_REMINDER});
   const contextParts = Object.fromEntries(['now', 'notes', 'world', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))]));
   return {persona, contextParts};
 }

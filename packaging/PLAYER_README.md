@@ -289,7 +289,7 @@ Every voice sounds like the character, Pocket and Voxtral included, so pick by w
 - **Fastest replies:** Mistral for the text with Pocket for the voice. Pocket starts speaking in a fraction of a second.
 - **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card).
 - **Fully local, lightweight:** Local AI lite with Pocket.
-- **Extra expression:** OmniVoice can laugh and sigh, and Natural speech adds pauses and hesitations. OmniVoice is the heaviest voice and starts speaking a little later.
+- **Heaviest voice:** OmniVoice is the heaviest voice and starts speaking a little later.
 
 Set Windows power mode to Balanced or Performance and plug a laptop in: it is the biggest single factor for reply speed.
 

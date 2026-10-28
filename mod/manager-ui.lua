@@ -417,8 +417,6 @@ end
 -- the snapshot already holds: no file is read and nothing runs per frame. Only what is switched on is named.
 local function sharedCharacterLines(snapshot)
     local settings, speech, behavior = snapshot.settings, {}, {}
-    if settings.naturalSpeech then speech[#speech + 1] = ui.t('Natural speech') end
-    if settings.followUpInterest then speech[#speech + 1] = ui.t('Follow-up questions') end
     if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
     if settings.vVoiceMic then speech[#speech + 1] = ui.t('V’s voice for microphone lines') end
     local talk = {}
@@ -2378,10 +2376,6 @@ local function schema()
             -- Off by default: talk with no key (docs/VOICE_INPUT.md). The microphone is closed while it is off.
             setting('voiceActivation', 'Voice activation', 'bool', snapshot.settings.voiceActivation == true, false,
                 'Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.'),
-            setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
-                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. It stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
-            setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
-                'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
             setting('vVoice', 'V’s voice for typed lines', 'select', vRowIndex(snapshot.settings.vVoice == true), 2,
                 'Your typed lines are spoken out loud too, in the V voice that matches yours, then the companion answers. V’s line is always waited for, up to about 30 s without audio.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.',
                 vRowElements, {elements = true}),
@@ -2772,7 +2766,7 @@ end
 
 -- Applies a batch of changes as ONE validated, saved transaction (manager.applySettings), with what Mature content needs added or put
 -- back. `changes` is a list of {id, value}: a switch's boolean, a list's position, a slider's number. Returns
--- {ok, error, notice, reload, names, ids}: `notice` is the sentence for a voice that was switched; `names` what was changed besides
+-- {ok, error, reload, names, ids}: `names` what was changed besides
 -- the player's own choices; `error` the reason when nothing was saved (a refusal leaves every setting as it was).
 function M.apply(changes)
     changes = splitMergedRows(changes)
@@ -2795,8 +2789,7 @@ function M.apply(changes)
     for _, change in ipairs(batch) do
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
-            or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
-            or key == 'followUpInterest'
+            or key == 'battleReactions' or key == 'lootReactions'
             or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
@@ -2980,23 +2973,22 @@ function M.apply(changes)
     end
     -- Turning Mature content on in this batch: what that staged is kept in the settings, so turning it off can undo it.
     if values.matureContent == true and record then values.matureRestore = record end
-    local ok, err, notice, reload
+    local ok, err, reload
     if addonChanges > 0 and addonChanges == #applied then ok = true
-    else ok, err, notice, reload = manager.applySettings(currentPlayer, values) end
+    else ok, err, _, reload = manager.applySettings(currentPlayer, values) end
     if addonChanges > 0 then
         if ok then convaiAddons.commitSettings() else convaiAddons.discardSettings() end
     end
-    -- What the player is told (the page's feedback line): the refusal, the voice that was switched, or what Mature content changed.
+    -- What the player is told (the page's feedback line): the refusal, or what Mature content changed.
     local text
     if not ok then text = ui.t(err)
     elseif refusal then text = refusal
-    elseif notice then text = notice
     elseif #names > 0 then text = ui.t('Also changed: {names}.', {names = table.concat(names, ', ')}) end
     if ok and matureNote then text = matureNote .. (text and ' ' .. text or '') end
     if ok and omniLeft then text = (text and text .. ' ' or '') .. ui.t('V’s voice switches from OmniVoice to Pocket.') end
     actionFeedback = text
     refreshQueued = true
-    return {ok = ok == true, error = not ok and ui.t(err) or nil, notice = notice, reload = reload == true, names = names,
+    return {ok = ok == true, error = not ok and ui.t(err) or nil, reload = reload == true, names = names,
         refusal = refusal, ids = ok and applied or {}}
 end
 
@@ -3069,8 +3061,6 @@ function M.slowUpdate(currentPlayer, worldReady)
         -- A voice that could not run is announced once, in gameplay.
         local voiceNotice = manager.takeVoiceFallbackNotice()
         if voiceNotice then log(voiceNotice); messages[#messages + 1] = {id = 'voice-fallback', text = voiceNotice} end
-        local speechNotice = manager.takeNaturalSpeechNotice()
-        if speechNotice then log(speechNotice); messages[#messages + 1] = {id = 'voice-switched', text = speechNotice} end
     end
     local progress = board and board.take(worldReady == true)
     if progress then messages[#messages + 1] = {id = 'invite-board', text = progress.message} end

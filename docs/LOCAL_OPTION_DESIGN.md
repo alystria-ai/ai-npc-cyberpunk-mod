@@ -45,7 +45,7 @@ measured (see Risks and build step 2).
 ### The realistic prompt
 
 The bench uses the same scenarios as `scripts/Test-MistralPrompts.mjs`: Judy, Johnny and a street resident, 4 turns each, private
-channel, Natural speech and Expressive emotions on, the follow-up hint every other turn, and quest, gear and location context.
+channel, Natural speech and Expressive emotions on, the follow-up hint every other turn (Natural speech and Follow-up questions were removed 2026-10-28), and quest, gear and location context.
 
 | Piece | Size |
 |---|---|
@@ -248,7 +248,7 @@ switching characters restores a persona without recomputing it. The measured tur
 other turn) in the last message. Order the local prompt from stable to volatile instead:
 
 1. **System, static per character and settings:** persona, examples, output rules, and the Natural speech and Expressive emotion
-   format notes. Those two notes, 1,042 and 1,393 characters, are identical every turn but are sent inside the live context
+   format notes (Natural speech is gone since 2026-10-28). Those two notes, 1,042 and 1,393 characters, are identical every turn but are sent inside the live context
    today. This block is about 3,500 tokens and is prewarmed when the companion is invited.
 2. **World block:** quest, journal, location and time of day, gear, relationship. It changes only on game events.
 3. **Memory block:** summary plus the retrieved records.
@@ -337,7 +337,7 @@ What `local-llm-server.mjs` does:
 
 What stays the same:
 - The reply result shape (`text`, `sessionID`, `timing`).
-- `transformReply` (Natural speech, Expressive emotions), subtitles, Phone Chat, Pocket/Omni, lip sync and group rounds.
+- `transformReply` (Expressive emotions), subtitles, Phone Chat, Pocket/Omni, lip sync and group rounds.
 - The voice key through `createLocalSpeech`.
 - Speculative preparation and look-ahead are refused, as with Mistral. Local is single-slot, and group rounds run speakers one
   after another.
