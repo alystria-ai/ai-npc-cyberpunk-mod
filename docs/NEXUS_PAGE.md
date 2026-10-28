@@ -3,10 +3,10 @@
 ## 1. Page description (Nexus BBCode)
 
 ```text
-[size=4][b]One download: the main file, AI NPC LLM Companions, holds everything. Extract it into your Cyberpunk 2077 folder and you are done. It is also on [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-LLM-Companions.zip]Hugging Face[/url].[/b][/size]
+[size=4][b]One download: the main file, AI NPC LLM Companions, holds everything. Extract it into your Cyberpunk 2077 folder and you are done.[/b][/size]
 
 [size=4][b]Game version 2.5, or the older 2.31.[/b][/size]
-The main file, [b]AI NPC LLM Companions[/b], is for game [b]2.5[/b], the current game. Still on the older game [b]2.31[/b]? Take the optional file [b]AI NPC LLM Companions - for game 2.31 (older game version)[/b] from this page instead (also on [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/AI-NPC-LLM-Companions.zip]Hugging Face[/url]). Both are the same mod version. To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old.
+The main file, [b]AI NPC LLM Companions[/b], is for game [b]2.5[/b], the current game. Still on the older game [b]2.31[/b]? Take the optional file [b]AI NPC LLM Companions - for game 2.31 (older game version)[/b] from this page instead. Both are the same mod version. To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old.
 
 [youtube]iR0lOYfrFx8[/youtube]
 
@@ -120,7 +120,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [b]Steps[/b]
 [list=1]
 [*]Install the mods in Requirements.
-[*]Download [b]AI NPC LLM Companions[/b] from this page (the main file for game 2.5, or the optional file for the older 2.31, by hand). It holds everything, so there is nothing else to download. The same zips are on Hugging Face: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-LLM-Companions.zip][b]game 2.5[/b][/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/AI-NPC-LLM-Companions.zip][b]game 2.31[/b][/url].
+[*]Download [b]AI NPC LLM Companions[/b] from this page (the main file for game 2.5, or the optional file for the older 2.31, by hand). It holds everything, so there is nothing else to download.
 [*]Close the game. Extract the zip into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract it before the OmniVoice pack.
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Check the keys of the AI NPC Cyberpunk Mod actions. F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager are set from the start. Change them, or give a key to Talk to Johnny, in game under [b]Companion Manager > Key bindings[/b] or in Cyber Engine Tweaks' [b]Bindings[/b]. A key you set before stays as it was.
@@ -140,7 +140,7 @@ Install the main file, [b]AI NPC LLM Companions[/b], as one mod. It holds everyt
 [b]Which file?[/b] The main file for a new install, for Vortex and for Mod Organizer 2. The Update file only for manual installs, extracted into the Cyberpunk 2077 folder over an install that already has the Runtime of the version it names or newer. Both must be for your game version (2.5 or 2.31). Settings > Help shows the version of the Scripts and of the Runtime.
 
 [b]Updating[/b]
-Updating by hand? Download the [b]Update[/b] for your game from this page (the file named Update, then the oldest version it runs on, then the new one, in the Updates section for game 2.5 and in Optional files for 2.31) and extract it over your install. It is also on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-LLM-Companions-Update.zip]game 2.5[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/AI-NPC-LLM-Companions-Update.zip]game 2.31[/url]). Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed, so if you already have them you don't need to download them again. Using Vortex or Mod Organizer 2? Skip the Update and install the newer main file as your one mod. Older than the version the Update names, or Settings > Help says the Runtime is too old? Take the main file, [b]AI NPC LLM Companions[/b], and extract it over your install. There are no steps to apply in order. Moved your game from 2.31 to 2.5? Take the main file for game 2.5 the same way.
+Updating by hand? Download the [b]Update[/b] for your game from this page (the file named Update, then the oldest version it runs on, then the new one, in the Updates section for game 2.5 and in Optional files for 2.31) and extract it over your install. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed, so if you already have them you don't need to download them again. Using Vortex or Mod Organizer 2? Skip the Update and install the newer main file as your one mod. Older than the version the Update names, or Settings > Help says the Runtime is too old? Take the main file, [b]AI NPC LLM Companions[/b], and extract it over your install. There are no steps to apply in order. Moved your game from 2.31 to 2.5? Take the main file for game 2.5 the same way.
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own. Install none, some or all, the same way as the main file.[list]
