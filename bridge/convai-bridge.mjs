@@ -99,7 +99,8 @@ import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-session.mjs';
-import {RelationshipRouting, retireRelationshipConnections} from './relationship-routing.mjs';
+import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
+import {EddiesDecisions, romanceOf} from './eddies.mjs';
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
@@ -1588,6 +1589,19 @@ const vendorScope = prepared => {
 // The blocks of a turn's context in the order Convai gets them, each tagged by how often it changes (see conversationContextBlocks in
 // bridge/quest-context.mjs). Convai gets them joined in this order; the text providers (Mistral, local) lay them out stable to
 // volatile (bridge/mistral-prompt.mjs, layout v2) so a prefix cache keeps working.
+// Eddies with characters (docs/EDDIES.md, bridge/eddies.mjs): the turn's money decision, made once per request from the game's `eddies` block (only sent while the
+// setting is on) and V's words; its proposal is written after the reply is published (publishResult). The relationship the turn was admitted with counts.
+const eddiesDecisions = new EddiesDecisions({log: line => console.error('[Eddies] ' + line)});
+const eddiesNote = (input, prepared, admitted) => input.eddies
+  ? eddiesDecisions.forTurn(input, {romance: romanceOf(admitted ? prepared.relationship : null, RELATIONSHIP_PROFILES)})?.note ?? '' : '';
+// The proposal of a published turn (a spoken turn's words are read now), for the game's Yes/No pop-up (mod/eddies.lua). Never awaited, never in front of a reply.
+function publishEddies(input, result) {
+  if (!input?.eddies) return;
+  try {
+    const proposal = eddiesDecisions.finish(input, result?.userText);
+    if (proposal) void atomic(resolve(runtime, 'eddies-offer.json'), JSON.stringify(proposal)).catch(() => {});
+  } catch (error) { console.error('[Eddies] proposal failed: ' + String(error?.message ?? error).slice(0, 120)); }
+}
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   const block = (tier, text) => ({tier, text});
@@ -1604,6 +1618,7 @@ const conversationBlocks = input => {
     // A holocall line carries the game's meeting offer the same way, as a note without tags (bridge/call-meet.mjs).
     block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : input.holocall && input.meetOffer ? callMeetNote(parseCallMeetOffer(input.meetOffer), input.text) : ''),
     block('volatile', typeof input.homeInstruction === 'string' ? input.homeInstruction : ''),
+    block('volatile', eddiesNote(input, prepared, admitted)),
     block('volatile', admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : ''),
     // The player's world rules (bridge/world-rules.mjs): Convai's characters live on Convai's side and cannot be edited, so the rules reach them in the
     // dynamic info this context is (realtime-client.mjs updateContext sends it, replacing the last one, every turn), after all the game's facts in it (world,
@@ -2414,7 +2429,7 @@ async function publishResult(input, profile, result, current = async () => true,
     // The game already received admission, live text and the consumed-sample
     // clock. Publishing a second ordinary reply would replay or replace it.
     realtimeSessions.set(sessionKey(input), result.sessionID);
-    commitExchange(input); gearTold();
+    commitExchange(input); gearTold(); publishEddies(input, result);
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
       stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : result.timing?.voiceProvider === 'omni' ? 'omni-continuous' : 'convai-continuous', complete: true},
@@ -2433,7 +2448,7 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
-  commitExchange(input); gearTold();
+  commitExchange(input); gearTold(); publishEddies(input, result);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face: undefined, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);

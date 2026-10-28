@@ -1027,6 +1027,19 @@ function M.partyMember(entity)
     return nil
 end
 
+-- One of V's own copies, and how (docs/EDDIES.md): 'party' (in V's party), 'housemate' (living at V's place), 'visitor' (an invited visitor), or nil
+-- (a character the game placed has no entry here). Asked once per turn while Eddies with characters is On, and once before eddies move.
+function M.ownCopy(entity,profileKey)
+    if type(entity)~='string' or type(profileKey)~='string' then return nil end
+    for _,entry in ipairs(entries) do
+        if entry.profileKey==profileKey and entry.entityID and tostring(entry.entityID.hash)==entity then
+            if entry.state=='ready' then return 'party' end
+            if entry.state=='visiting' then return entry.owner=='housemates' and 'housemate' or 'visitor' end
+        end
+    end
+    return nil
+end
+
 function M.identity(npc)
     if not npc then return nil end
     local ok, identity = pcall(function() return tostring(npc:GetEntityID().hash) end)

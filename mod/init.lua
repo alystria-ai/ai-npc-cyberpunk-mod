@@ -489,6 +489,8 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     end})
 convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
+    -- Eddies with characters (docs/EDDIES.md): the spoken turn's block, before any return below (a game-placed character talks about money too).
+    if not context.reaction and not context.group then convaiEddiesAttach(context) end
     -- No actions for a game-placed story character (docs/WORLD_CHARACTERS.md): it is not a party member, so nothing is offered
     -- and it is not even told what it cannot do.
     -- Nor for Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body to follow, fight or drive with.
@@ -3540,6 +3542,8 @@ local function sendRequest(context)
     -- Encoded first: an encoder that raises after the file was opened for writing left it emptied, its handle open, and the error escaping the caller.
     local providerOk, provider = pcall(function() return chosenProvider() end)
     context.provider = providerOk and provider or nil
+    -- Eddies with characters (docs/EDDIES.md): one boolean while it is off.
+    if not context.reaction and not context.group then convaiEddiesAttach(context) end
     local encodedOk, encoded = pcall(json.encode, context)
     if not encodedOk then
         gameplayActions.revoke('request-write-failed', context.requestId)
@@ -6079,6 +6083,71 @@ function convaiOutfitTick(player, elapsed, ready)
     if module then module.tick(player, elapsed, ready) end
 end
 
+-- ---- Eddies with characters (docs/EDDIES.md, mod/eddies.lua) ------------------------------------------------------------------------------
+-- Built on the first private turn sent with the setting On; Off, a turn pays one boolean and the tick one nil check. Globals and one do-block:
+-- the main chunk is near Lua's limit of locals.
+convaiEddies = nil
+do
+    local failed = false
+    local function service()
+        if convaiEddies then return convaiEddies end
+        if failed then return nil end
+        local loaded, module = pcall(dofile, 'eddies.lua')
+        local built, value = false, module
+        if loaded and type(module) == 'table' and type(module.new) == 'function' then
+            built, value = pcall(module.new, {
+                enabled = function() return manager.characterEddies() end,
+                ownCopy = function(entity, profileKey) return companions.ownCopy(entity, profileKey) end,
+                player = function() return Game.GetPlayer() end,
+                -- V's game clock stamps each ledger entry; a load from before an entry forgets it (the game took those eddies back).
+                gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
+                ask = function(player, title, message) return player:ConvaiEddiesAsk(title, message) == true end,
+                -- 1 Yes, 2 No (Eddies.reds); 0 while the box is open, or when it went away without an answer (a load): No.
+                answer = function(player)
+                    local answer = player:ConvaiEddiesAnswer()
+                    if answer == 1 then return 'yes' elseif answer == 2 then return 'no' end
+                    if player:ConvaiEddiesOpen() then return nil end
+                    return 'no'
+                end,
+                -- The pop-up waits for the reply to be over and for V to be free: no reply due or playing, no fight, scene or choice, no pause,
+                -- menu, text box or phone (Composer.reds ConvaiFrameFlags bits 8, 16, 32 and 64).
+                busy = function(player)
+                    if pending or speech.requestId ~= nil or subtitles.ownsUtterance() then return true end
+                    local sample = battleSample
+                    if type(sample) == 'table' and (sample.combat or sample.dialogue or sample.choices or (sample.tier ~= nil and sample.tier ~= 1)) then return true end
+                    local ok, flags = pcall(function() return player:ConvaiFrameFlags() end)
+                    return ok and type(flags) == 'number' and flags % 128 >= 8
+                end,
+                notice = function(player, text) convaiNotices.send(player, 'eddies-transfer', text) end,
+                t = function(text, vars) return ui.t(text, vars) end,
+                log = function(line) log(line) end,
+            })
+        end
+        if not built then
+            failed = true
+            convaiLogOnce('eddies', 'Eddies with characters is unavailable: ' .. tostring(value))
+            return nil
+        end
+        convaiEddies = value
+        return value
+    end
+    -- A private turn to a named character (typed or spoken): its `eddies` block, while the setting is On (bridge/eddies.mjs parseEddies).
+    function convaiEddiesAttach(context)
+        if type(context) ~= 'table' or not manager.characterEddies() then return end
+        local eddies = service()
+        if not eddies then return end
+        local ok, block = pcall(eddies.block, context)
+        if ok and block then context.eddies = block
+        elseif not ok then convaiLogOnce('eddies-block', 'Eddies block failed: ' .. tostring(block)) end
+    end
+    -- From the 0.1 s tick: nothing unless a proposal is awaited or shown.
+    function convaiEddiesTick(player)
+        if not convaiEddies or not player or not convaiEddies.pending() then return end
+        local ok, problem = pcall(convaiEddies.update, player)
+        if not ok then convaiLogOnce('eddies-tick', 'Eddies update failed: ' .. tostring(problem)) end
+    end
+end
+
 -- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
 companions.spawnOutfit = function(record, key)
     if not manager.companionOutfits() then return nil end
@@ -6733,6 +6802,8 @@ registerForEvent('onUpdate', function(delta)
     -- Companions change outfits (Settings > Companion behavior, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local outfitOk, outfitError = pcall(convaiOutfitTick, player, elapsedPoll, worldReady)
     if not outfitOk then convaiLogOnce('Companion outfits failed: ' .. tostring(outfitError)) end
+    -- Eddies with characters (off by default): one nil check per tick unless a proposal is awaited or its pop-up is open.
+    if convaiEddies and worldReady then convaiEddiesTick(player) end
     mark('init:tick')
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)

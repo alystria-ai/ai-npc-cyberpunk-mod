@@ -17,6 +17,7 @@ import {parseHouseReaction} from './house-chat.mjs';
 import {parseSpeakUpReaction} from './speakup-context.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
+import {parseEddies} from './eddies.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
 
@@ -105,8 +106,10 @@ function parseRequest(raw) {
   const provider = typeof value.provider === 'string' && PROVIDER_NAMES.includes(value.provider) ? value.provider : undefined;
   // Street reputation (docs/REPUTATION_DESIGN.md): sent only while the setting is on, only for an ordinary NPC's private turn.
   const reputation = value.reputation === undefined ? null : parseReputationSnapshot(value.reputation);
+  // Eddies with characters (docs/EDDIES.md): sent only while the setting is on, for a private turn V sends (never a group round, a reaction, a call or Johnny in V's head).
+  const eddies = value.eddies === undefined || group || reaction || holocall || head ? null : parseEddies(value.eddies, profileKey);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
-    ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}),
+    ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}), ...(eddies ? {eddies} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(homeOffer ? {homeOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),

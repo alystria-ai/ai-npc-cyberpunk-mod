@@ -276,8 +276,11 @@ export function sceneryFor(input, memory = sceneryMemory, off = NO_KINDS) {
 const MONEY_TALK = /\b(eddies|eddie|eurodollars?|euro\s?dollars?|creds?|credits?|cash|money|pay|pays|paid|paying|payment|tip|tipped|bribe|bribed|owe|owes)\b|[€$]\s?\d/i;
 export const MONEY_NOTE = 'Money: when V talks of eddies, V is the one paying you, not the other way round. If V says V gave or paid you eddies, you have them now: take it as done and thank V in your own way, '
   + 'and never answer as if V were asking you for eddies or as if you were the one handing them over. If V tells you to take eddies for a job, V is paying you for it.';
-/** The money note when V's words speak of money or paying, else ''. Not for an automatic reaction (a bark answers no remark of V's). */
-export const moneyNote = input => !input?.reaction && typeof input?.text === 'string' && MONEY_TALK.test(input.text) ? MONEY_NOTE : '';
+/**
+ * The money note when V's words speak of money or paying, else ''. Not for an automatic reaction (a bark answers no remark of V's). With Eddies with characters on, a named
+ * character's money is the eddies note's (bridge/eddies.mjs, `decides` set by parseEddies): V may borrow as well as pay, so this words-only note would contradict it.
+ */
+export const moneyNote = input => !input?.reaction && !input?.eddies?.decides && typeof input?.text === 'string' && MONEY_TALK.test(input.text) ? MONEY_NOTE : '';
 const BACKGROUND = 'Background (mention only if it matters or V asks):';
 
 // V visibly topless or naked (mod/player-gear.lua nudity, from the equipment the game reads, or the Equipment-EX / Wardrobe outfit): a short factual note and a cue to react in
