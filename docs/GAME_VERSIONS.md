@@ -29,6 +29,12 @@ unsuffixed default and 2.5 the `-for-2.5` option. The source tree is still the 2
    reproduce), so the overlay holds them as in the 2.31 file.
 3. `release.json` of both packages carries `game`.
 4. `mod/setup-check.lua` and `bridge/setup-check.mjs` know both builds (see "Wrong build").
+5. `archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive` is in the 2.31 Runtime only (`"games": ["2.31"]` in `release.config.json`,
+   `release-plan.json` and `scripts/development-files.json`). It replaces `base\open_world\passenger\phases\thepassenger.questphase` with the 2.31
+   copy plus one predicate (`scripts/Build-AmbientJohnnyDriverGuard.py`), and game 2.5 has a different copy of that file (archive SHA-1 in
+   `basegame_4_gamedata.archive`: 2.31 `acbec4f6…`, 2.5 `e5d3e6d3…`, read 2026-10-28), so a 2.5 Runtime must not lay the 2.31 phase over it. Runtimes
+   for 2.5 up to 0.3.3 shipped it; the next 2.5 Runtime update lists it as removed (it went away between the two Runtimes). A 2.5 guard would need a
+   rebuild from the 2.5 file.
 
 The launcher plugin (`CyberpunkConvai.dll`, plain C, no RED4ext.SDK, declares itself runtime independent) is the SAME file in both builds. Everything
 else in the Runtime (Node, Python, bridge, models, voices, archives, llama.cpp, vgmstream) and everything else in the Scripts is byte for byte the same.

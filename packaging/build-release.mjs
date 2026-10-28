@@ -67,7 +67,7 @@ import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mj
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
-import {DEFAULT_GAME, GAME_VARIANTS, gameOverlay} from './lib/game-variants.mjs';
+import {DEFAULT_GAME, GAME_VARIANTS, forGame, gameOverlay} from './lib/game-variants.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
@@ -529,7 +529,8 @@ async function runtimePackage(source, config, models, auth) {
   pkg.text(`${app}/${STEPS_DIR}/${BASE_FILE}`, baseText(version));
 
   // Game-side binary assets: the three generated archives (the Audioware reply bank is gone: every voice plays through the renderer).
-  for (const item of config.releaseData.archives) pkg.file(item.target, resolve(source.root, item.source));
+  // An archive with "games" ships only in those games' Runtimes (the driver guard: 2.31 only).
+  for (const item of forGame(config.releaseData.archives, game)) pkg.file(item.target, resolve(source.root, item.source));
 
   notices.push('Convai Web SDK (@convai/web-sdk) - Apache-2.0 (compiled into app/assets/realtime-client.js; licence text in app/licenses/client/)');
   notices.push('Lip-sync pronunciation table (app/models/lipsync/face-lexicon.txt.gz): CMU Pronouncing Dictionary, BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University,'

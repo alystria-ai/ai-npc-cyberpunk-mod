@@ -314,7 +314,7 @@
     "archives": [
       {"source": "packaging/release-data/archives/convai_facial.archive", "target": "archive/pc/mod/convai_facial.archive"},
       {"source": "packaging/release-data/archives/convai_gestures.archive", "target": "archive/pc/mod/convai_gestures.archive"},
-      {"source": "packaging/release-data/archives/cyberpunk_convai_ambient_driver_guard.archive", "target": "archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive"}
+      {"source": "packaging/release-data/archives/cyberpunk_convai_ambient_driver_guard.archive", "target": "archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive", "games": ["2.31"]}
     ]
   }
 }

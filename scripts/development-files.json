@@ -327,7 +327,8 @@
     },
     {
       "source": "runtime/ambient-driver-guard/package/cyberpunk_convai_ambient_driver_guard.archive",
-      "target": "archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive"
+      "target": "archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive",
+      "games": ["2.31"]
     },
     {
       "source": "mod/companion-space.lua",
