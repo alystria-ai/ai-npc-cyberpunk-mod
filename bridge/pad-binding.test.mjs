@@ -102,11 +102,11 @@ test('without the observer the 10 Hz tick reads the same queue', () => run(fixtu
   tick(); tick(); assert(not logged('installed') or #logs < 10)
 `));
 
-test('the redscript says no Lua inside a game event (today): no observer is installed, the tick takes every edge', () => run(fixture + `
+test('a redscript that does not notify (ConvaiPadObservable says no): no observer is installed, the tick takes every edge', () => run(fixture + `
   flags.observable = false
   tick()
   assert(observer == nil and pad.observed() == false, 'Observe on the notifier is never installed')
-  assert(logged('no Lua runs inside'), 'said once in the log')
+  assert(logged('the redscript does not notify'), 'said once in the log')
   player:push(1)
   assert(edgeList() == '', 'nothing is handled inside the game event')
   tick(); assert(edgeList() == 'down' and pad.firstSource() == 'tick')
@@ -344,11 +344,18 @@ test('PadTalk.reds: one listener on the game walking action for the stick click,
   assert.match(redsSource, /wrapMethod\(PlayerPuppet\)\s*protected cb func OnDetach\(\) -> Bool \{\s*this\.ConvaiPadStop\(\);\s*return wrappedMethod\(\);/);
 });
 
-test('PadTalk.reds never calls into Lua inside a game event (the freeze on the first hold after a load) and is never entered from inside itself', () => {
-  assert.match(redsSource, /public func ConvaiPadNotifyInEvent\(\) -> Bool \{\s*return false;/);
-  assert.match(redsSource, /ArrayPush\(this\.m_convaiPadEvents, value\);\s*if ConvaiPadNotifyInEvent\(\) && !this\.m_convaiPadBusy \{/);
-  assert.match(redsSource, /public final func ConvaiPadObservable\(\) -> Bool \{\s*return ConvaiPadNotifyInEvent\(\);/);
-  assert.equal([...redsSource.matchAll(/this\.ConvaiPadNotify\(\)/g)].length, 1, 'the notifier has one caller, behind the switch');
+test('PadTalk.reds calls Lua only from a next-frame step, never inside the click or the hold timer, and is never entered from inside itself', () => {
+  assert.match(redsSource, /public func ConvaiPadNotifyDeferred\(\) -> Bool \{\s*return true;/);
+  assert.match(redsSource, /public final func ConvaiPadObservable\(\) -> Bool \{\s*return ConvaiPadNotifyDeferred\(\);/);
+  assert.equal([...redsSource.matchAll(/this\.ConvaiPadNotify\(\)/g)].length, 1, 'the notifier has one caller: the step');
+  const flush = redsSource.slice(redsSource.indexOf('func ConvaiPadFlush('), redsSource.indexOf('func ConvaiPadPush('));
+  assert.match(flush, /this\.ConvaiPadNotify\(\)/, 'the one caller is ConvaiPadFlush');
+  assert.match(flush, /m_convaiPadBusy \|\| ArraySize\(this\.m_convaiPadEvents\) == 0 \{ return; \}/);
+  assert.ok(!/RegisterInputListener|ConvaiPadPush|ConvaiPadClick|DelayCallback/.test(flush), 'the step touches no input system and schedules nothing');
+  const push = redsSource.slice(redsSource.indexOf('func ConvaiPadPush('), redsSource.indexOf('func ConvaiPadConfigure('));
+  assert.match(push, /DelayCallbackNextFrame\(step\)/, 'one frame later, not the tick');
+  assert.match(push, /this\.m_convaiPadFlushPending \{ return; \}/, 'one step in the air at a time');
+  assert.ok(!/ConvaiPadNotify\(\)/.test(push), 'a push never calls Notify itself');
   assert.match(redsSource, /if down && this\.m_convaiPadBusy \{ return; \};/);
   assert.match(redsSource, /\|\| this\.m_convaiPadBusy \{ return; \};/);
   // The turn-to-face heading wrap is bounded (the other loop of the talk path in the redscript).

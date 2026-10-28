@@ -7,10 +7,11 @@
 -- the moment is still allowed: a menu that opened under a held click swallows the release, and the tick ends the turn then. Off, the tick costs one
 -- boolean and the redscript listener is not registered.
 --
--- No Lua runs inside a game event (player report on 0.3.3: the game froze, sometimes, on the first hold after a load). The redscript half answers
--- ConvaiPadObservable() with no, so the CET Observe on ConvaiPadNotify (which would run the whole talk path inside the game's input listener or delay
--- callback) is not installed; it is kept for a build that proves it safe. If it is ever installed, handling is never re-entered (state.inside) and a
--- run of hold starts is capped (CHATTER_MAX in CHATTER_S), so a loop through the game's events cannot spin the talk path.
+-- No Lua runs inside the game event that produced an edge (player report on 0.3.3: the game froze, sometimes, on the first hold after a load). The
+-- redscript half queues the edge and, one frame later, from a one-shot next-frame DelayCallback that does nothing else, calls ConvaiPadNotify, which this
+-- module observes (CET Observe): worst delay one frame, not the tick's 0.1 s. If the redscript answers ConvaiPadObservable() with no (or lacks it) the
+-- observer is not installed and the tick reads the queue. Handling is never re-entered (state.inside) and a run of hold starts is capped (CHATTER_MAX
+-- in CHATTER_S), so a loop through the game's events cannot spin the talk path.
 local M = {}
 M.clock = os.clock
 
@@ -117,8 +118,7 @@ function M.take(player, source)
     if not ok then say('Controller talk button: edge failed (' .. tostring(err) .. ')') end
 end
 
--- The observer only where the redscript says an edge may call into Lua inside the game's event (it says no on every build today, PadTalk.reds
--- ConvaiPadNotifyInEvent): the tick reads the queue then, outside every game event.
+-- The observer only where the redscript says it notifies from its next-frame step (PadTalk.reds ConvaiPadNotifyDeferred): otherwise the tick reads the queue.
 local function install(player)
     if state.observed ~= nil then return end
     local asked, observable = pcall(function() return player:ConvaiPadObservable() end)
@@ -128,7 +128,7 @@ local function install(player)
         say('Controller talk button: observer ' .. (ok and 'installed' or 'not installed, the tick reads the queue'))
     else
         state.observed = false
-        say('Controller talk button: the tick reads the queue (no Lua runs inside the game events)')
+        say('Controller talk button: the tick reads the queue (the redscript does not notify)')
     end
 end
 

@@ -15,14 +15,24 @@ module CyberpunkConvai
 // (the same action) or while the stick is pushed (a click made to sprint). Lua decides whether the moment is allowed (menus, scenes,
 // combat, vehicles) when it takes the 1.
 
-// Whether an edge may call into Lua while the game is delivering it (the input listener's OnAction, the delay system's callback), through
-// ConvaiPadNotify, which Lua observes. NO, on both game versions (player report on 0.3.3: the game froze, sometimes, on the first hold of the
-// left stick click after a load). A hold's Lua is the whole talk path (target choice, party and spawned-character scans, a warm connection,
-// the face request, the focus), which then ran inside the game's own event dispatch, the class of call that froze game 2.31 while a key was
-// being set (GameVariant.reds ConvaiKeyNotifyInEvent, 25 Oct). The pad has never been live-tested with that call in the event. Lua reads the
-// queue on its 10 Hz tick instead (at most 0.1 s later, after a 0.3 s hold that is already waited), outside every game event.
-public func ConvaiPadNotifyInEvent() -> Bool {
-    return false;
+// How an edge reaches Lua. Never inside the event that produced it (player report on 0.3.3: the game froze, sometimes, on the first hold of the
+// left stick click after a load). A hold's Lua is the whole talk path (target choice, party and spawned-character scans, a warm connection, the
+// face request, the focus); run inside the game's input listener or the hold's delay callback it is the class of call that froze game 2.31
+// while a key was being set (GameVariant.reds ConvaiKeyNotifyInEvent, 25 Oct), and the pad has never been live-tested with it.
+// true: the edge is queued and ConvaiPadNotify (which Lua observes) is called from a one-shot DelayCallbackNextFrame, one frame after the event
+// has ended. The step touches nothing of the input system and starts no event of its own; the only thing it does is that call. Worst delay
+// after the click: one frame.
+// false: Lua reads the queue on its 10 Hz tick only (worst delay 0.1 s). Also the fallback when the next-frame call did not run.
+public func ConvaiPadNotifyDeferred() -> Bool {
+    return true;
+}
+
+public class ConvaiPadNotifyStep extends DelayCallback {
+    public let player: wref<PlayerPuppet>;
+
+    public func Call() -> Void {
+        if IsDefined(this.player) { this.player.ConvaiPadFlush(); };
+    }
 }
 
 public class ConvaiPadTalkHold extends DelayCallback {
@@ -76,6 +86,10 @@ private let m_convaiPadEvents: array<Int32>;
 @addField(PlayerPuppet)
 private let m_convaiPadBusy: Bool;
 
+// A next-frame step is scheduled and has not run.
+@addField(PlayerPuppet)
+private let m_convaiPadFlushPending: Bool;
+
 @addMethod(PlayerPuppet)
 public final func ConvaiPadIsOn() -> Bool {
     return this.m_convaiPadOn;
@@ -95,27 +109,41 @@ public final func ConvaiPadTake() -> Int32 {
     return value;
 }
 
-// Whether Lua may observe ConvaiPadNotify (ConvaiPadNotifyInEvent above: no). Lua asks once and reads the queue on its tick when this says no.
+// Whether Lua may observe ConvaiPadNotify (ConvaiPadNotifyDeferred above). Lua asks once and reads the queue on its tick when this says no.
 @addMethod(PlayerPuppet)
 public final func ConvaiPadObservable() -> Bool {
-    return ConvaiPadNotifyInEvent();
+    return ConvaiPadNotifyDeferred();
 }
 
-// Called after an event is queued when ConvaiPadNotifyInEvent says so, and observed by Lua (Observe on this method) so a press and a release
-// are handled at the moment they happen. It does nothing itself. Lua otherwise drains the queue on its 10 Hz tick.
+// Called one frame after an event was queued (ConvaiPadFlush), and observed by Lua (Observe on this method) so a press and a release are handled
+// within a frame. It does nothing itself. Lua also drains the queue on its 10 Hz tick.
 @addMethod(PlayerPuppet)
 public final func ConvaiPadNotify() -> Void {
+}
+
+// The next-frame step: one Notify for everything queued since it was scheduled. Never from inside a handler (a busy flag), and only when something
+// is queued. It calls nothing of the input system and queues nothing new, so it cannot start another step.
+@addMethod(PlayerPuppet)
+public final func ConvaiPadFlush() -> Void {
+    this.m_convaiPadFlushPending = false;
+    if this.m_convaiPadBusy || ArraySize(this.m_convaiPadEvents) == 0 { return; };
+    this.m_convaiPadBusy = true;
+    this.ConvaiPadNotify();
+    this.m_convaiPadBusy = false;
 }
 
 @addMethod(PlayerPuppet)
 private final func ConvaiPadPush(value: Int32) -> Void {
     if ArraySize(this.m_convaiPadEvents) >= 8 { ArrayErase(this.m_convaiPadEvents, 0); };
     ArrayPush(this.m_convaiPadEvents, value);
-    if ConvaiPadNotifyInEvent() && !this.m_convaiPadBusy {
-        this.m_convaiPadBusy = true;
-        this.ConvaiPadNotify();
-        this.m_convaiPadBusy = false;
-    };
+    // One step in the air at a time: every edge queued before it runs is told to Lua by it.
+    if !ConvaiPadNotifyDeferred() || this.m_convaiPadFlushPending { return; };
+    let delay: ref<DelaySystem> = GameInstance.GetDelaySystem(this.GetGame());
+    if !IsDefined(delay) { return; };
+    let step = new ConvaiPadNotifyStep();
+    step.player = this;
+    this.m_convaiPadFlushPending = true;
+    delay.DelayCallbackNextFrame(step);
 }
 
 // Switch the binding on or off. On: the listener starts hearing the click. Off: it stops, a click in progress is forgotten, and a
