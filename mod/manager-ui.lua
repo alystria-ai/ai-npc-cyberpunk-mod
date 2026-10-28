@@ -47,6 +47,12 @@ local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
 -- Setup check (mod/setup-check.lua): the first section of the Help page and the first-load notice. Optional too; read through its
 -- global convaiSetupCheck, so no function here gains an upvalue (LuaJIT limits them).
 pcall(dofile, 'setup-check.lua')
+-- Favorites (mod/favorites.lua): the characters and models the player starred, kept in runtime/favorites.json (player state). Optional too:
+-- without it the pages have no Add to favorites button. Read through its global convaiFavorites, so no function here gains an upvalue.
+pcall(dofile, 'favorites.lua')
+-- The row the player is on (M.focus, the host's report) and what that page was, with whether the host can report it at all
+-- (M.offerFocus). A host that cannot report it uses the Search box instead (see favoriteKey).
+local focusRow = {key = nil, page = nil, offered = false}
 -- Edit characters: opens the character editor page in the player's browser. Optional like Help: without it the row is not shown.
 local editor
 local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
@@ -352,13 +358,23 @@ local function modelMatches(model, words)
 end
 M.searchWords, M.modelMatches = searchWords, modelMatches
 
--- The models of `list` (the browser's whole list) that answer the search text, in the same order. Worked out when the text changes or the
--- list does, never per keystroke of a page build: a page build only reads the held result.
-local function searchedModels(list)
+-- Whether a character of Characters to invite answers a search: every word is in its name or its key.
+local function profileMatches(profile, words)
+    local haystack = (tostring(profile.name or '') .. ' ' .. tostring(profile.key or '')):lower()
+    for _, word in ipairs(words) do
+        if not haystack:find(word, 1, true) then return false end
+    end
+    return true
+end
+
+-- The models of `list` (the browser's whole list; with `matcher`, any list of items) that answer the search text, in the same order.
+-- Worked out when the text changes or the list does, never per keystroke of a page build: a page build only reads the held result.
+local function searchedModels(list, matcher)
     if modelFind.source ~= list or modelFind.found ~= modelFind.text then
         local matches = {}
+        matcher = matcher or modelMatches
         for _, model in ipairs(list) do
-            if modelMatches(model, modelFind.words) then matches[#matches + 1] = model end
+            if matcher(model, modelFind.words) then matches[#matches + 1] = model end
         end
         modelFind.source, modelFind.found, modelFind.list = list, modelFind.text, matches
     end
@@ -1217,7 +1233,9 @@ local function pageSignature(snapshot)
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
             table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard),
             tostring((snapshot.mistral or {}).saved)}, '|'))
+        add(modelFind.text)
     end
+    if (view == 'characters' or view == 'models') and convaiFavorites then add('favorites:' .. tostring(convaiFavorites.revision())) end
     if view == 'models' then
         -- The list is built once the scan has finished (the models are sorted then); until then only the status line shows.
         add(tostring(snapshot.scan.finished))
@@ -1441,6 +1459,58 @@ local function dynamicInfoRows(snapshot)
     }
 end
 
+-- ---- Favorites (Characters to invite, Model browser) ------------------------------------------------------------------------------
+-- The page-wide Add to favorites button, beside the way back. It acts on one row of the page's list, found in one of two ways:
+--   * a host that reports the row the player is on (Native Settings UI: M.offerFocus, M.focus) gives the last list row the player was on,
+--     for as long as the page is the one that was on screen then;
+--   * a host that cannot (Mod Configuration Menu has no call for the row under the pointer or the highlight, and a click on a footer button
+--     leaves no row under it anyway) uses the Search box: the first entry the search leaves is the target.
+-- The key of the target in `list` (the page's whole list, favorites first, search applied), or nil.
+local function favoriteKey(list)
+    if focusRow.offered then
+        if focusRow.key and focusRow.page == M.pageId() then return focusRow.key end
+        return nil
+    end
+    if #modelFind.words > 0 and list[1] then return list[1].key end
+    return nil
+end
+
+local function favoriteName(item)
+    return item.unnamedIndex and ui.t('Unnamed model {index}', {index = item.unnamedIndex}) or tostring(item.name or item.key)
+end
+
+-- Toggles the favorite of the target and says what happened (the page's feedback line).
+local function toggleFavorite(scope, list)
+    local favorites = convaiFavorites
+    local key = favoriteKey(list)
+    if not key then
+        if focusRow.offered then return false, ui.t('Move onto an entry in the list first, then press the button.') end
+        if modelFind.offered then return false, ui.t('Type a name in the Search box first, then press the button.') end
+        return false, ui.t('This menu cannot tell which entry you are on, and has no Search box.')
+    end
+    local name = key
+    for _, item in ipairs(list) do if item.key == key then name = favoriteName(item); break end end
+    local now, kept, why = favorites.set(scope, key)
+    if now == nil then return false, ui.t('That entry cannot be a favorite.') end
+    refreshQueued = true
+    if why == 'full' then return false, ui.t('You have too many favorites. Remove one first.') end
+    local text = now and ui.t('{name} is now a favorite. Favorites are listed first.', {name = name})
+        or ui.t('{name} is no longer a favorite.', {name = name})
+    if kept == false then text = text .. ' ' .. ui.t('Your favorites could not be saved, so they last only until the game closes.') end
+    return true, text
+end
+
+local function favoriteButton(scope, list)
+    local key = favoriteKey(list)
+    local on = key ~= nil and convaiFavorites.isFavorite(scope, key)
+    local how = focusRow.offered
+        and ui.t('Adds the last entry you were on in the list to your favorites, or takes it out again.')
+        or ui.t('Type a name in the Search box, then press this to add the first entry listed to your favorites, or to take it out again.')
+    return action('favorite:toggle', on and ui.t('Remove from favorites') or ui.t('Add to favorites'), on and ui.t('Remove') or ui.t('Add'),
+        how .. '\n\n' .. ui.t('Favorites are listed first, on page 1, and their name starts with a *. Updates never touch them.'),
+        function() return toggleFavorite(scope, list) end)
+end
+
 -- Invite (Characters, Model browser): with Settings > Immersive invitations On it is an appointment she travels to; Off, or when it
 -- takes no part (the character is already in the party), the old instant invitation (docs/IMMERSIVE_INVITATIONS.md).
 local function inviteKey(key)
@@ -1573,20 +1643,29 @@ local function schema()
     elseif view == 'characters' then
         local shared = sharedCharacterLines(snapshot)
         local profiles = snapshot.invitable or snapshot.profiles
+        -- Favorites first (sorted when the page is built), then the Search of a host that has a box.
+        if convaiFavorites then profiles = convaiFavorites.order('characters', profiles) end
+        local searching = #modelFind.words > 0
+        if searching then profiles = searchedModels(profiles, profileMatches) end
         local first, last, pages = pageRange(#profiles)
         -- Without a loaded save the page can be read but nobody can be invited: say so, in a row, not only in greyed buttons.
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.') end
+        if searching then
+            rows[#rows + 1] = readonly('character-status', ui.t('{count} matching characters', {count = #profiles}), '', ui.t('{count} matching characters', {count = #profiles}),
+                {label = true, description = true})
+        end
         for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end)) do rows[#rows + 1] = row end
         for index = first, last do
             local profile = profiles[index]
             local key = profile.key
             local count = countKey(party, key)
             local available = manager.definition(key) ~= nil
-            rows[#rows + 1] = action('invite:' .. key, profile.name,
+            rows[#rows + 1] = action('invite:' .. key, convaiFavorites and convaiFavorites.name('characters', key, profile.name) or profile.name,
                 available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
                 profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
         end
+        if convaiFavorites then nav[#nav + 1] = favoriteButton('characters', profiles) end
         categories[#categories + 1] = category('characters', 'Characters to invite', rows)
     elseif view == 'party' then
         local trip = queue.chauffeur()
@@ -1674,6 +1753,7 @@ local function schema()
         categories[#categories + 1] = category('party', 'Current party', rows)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models
+        local modelsShown = {}
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.') end
         -- The list is sorted when the scan has finished; until then only the progress shows, and the page is built once.
@@ -1689,8 +1769,10 @@ local function schema()
             local groupElements = {ui.t('All')}
             for _, group in ipairs(groups) do groupElements[#groupElements + 1] = group end
             listGroup = math.max(1, math.min(listGroup, #groupElements))
-            local matches = searching and searchedModels(cache.all)
+            local matches = searching and searchedModels(convaiFavorites and convaiFavorites.order('models', cache.all) or cache.all)
                 or listGroup == 1 and cache.all or cache.lists[groupElements[listGroup]] or {}
+            if convaiFavorites and not searching then matches = convaiFavorites.order('models', matches) end
+            modelsShown = matches
             local talking = 0
             for _, model in ipairs(matches) do if model.profileName then talking = talking + 1 end end
             rows[#rows + 1] = readonly('model-status', ui.t('{count} matching models', {count = #matches}), '',
@@ -1710,12 +1792,13 @@ local function schema()
                 local conversation = model.archetype and ui.t('Conversation: {name} (archetype)', {name = model.profileName})
                     or model.profileName and ui.t('Conversation: {state}',{state=model.profileName})
                     or ui.t('No conversation profile. This model joins as a follower without AI conversations.')
-                rows[#rows + 1] = action('invite:' .. key, modelName, 'Invite',
+                rows[#rows + 1] = action('invite:' .. key, convaiFavorites and convaiFavorites.name('models', key, modelName) or modelName, 'Invite',
                     model.record .. '\n\n' .. conversation
                         .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
                     function() return inviteKey(key) end, canInvite)
             end
         end
+        if convaiFavorites and scan.finished then nav[#nav + 1] = favoriteButton('models', modelsShown) end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
     elseif view == 'memory' then
         -- The memory controls, then the list the character is chosen from, on the same page.
@@ -2150,13 +2233,35 @@ function M.offerSearch(offered)
 end
 function M.setSearch(text)
     local clean, words = searchWords(text)
-    if view ~= 'models' or clean == modelFind.text then return false end
+    if (view ~= 'models' and view ~= 'characters') or clean == modelFind.text then return false end
     modelFind.text, modelFind.words = clean, words
     listPage = 1
     refreshQueued = true
     return true
 end
 function M.search() return modelFind.text end
+
+-- The row the player is on. A host that can tell (Native Settings UI hears the game's hover and highlight events) says so with
+-- offerFocus and reports each row with focus(id). Only a row of the list counts (an Invite row, id invite:<key>): the pointer is on the
+-- Add to favorites button when it is pressed, and that must leave the last list row as the target. Returns whether the button's text
+-- changed (the host draws the page again on its next check; nothing is drawn here).
+function M.offerFocus(offered)
+    focusRow.offered = offered == true
+    if not focusRow.offered then focusRow.key, focusRow.page = nil, nil end
+end
+function M.focus(id)
+    local favorites = convaiFavorites
+    if not favorites or not focusRow.offered or (view ~= 'characters' and view ~= 'models') or type(id) ~= 'string' then return false end
+    local key = id:match('^invite:(.+)$')
+    if not key then return false end
+    local page = M.pageId()
+    if focusRow.key == key and focusRow.page == page then return false end
+    local before = focusRow.key ~= nil and focusRow.page == page and favorites.isFavorite(view, focusRow.key)
+    focusRow.key, focusRow.page = key, page
+    if before == favorites.isFavorite(view, key) then return false end
+    refreshQueued = true
+    return true
+end
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)

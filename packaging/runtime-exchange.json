@@ -82,6 +82,7 @@
   "state": [
     "addon-settings.json",
     "decision-ledger.json",
+    "favorites.json",
     "housemate-learned.json",
     "housemates.json",
     "immersive-invitations.json",

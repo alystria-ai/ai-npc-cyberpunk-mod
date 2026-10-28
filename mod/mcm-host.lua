@@ -182,7 +182,12 @@ end
 -- Page 1 / 11"), like the page number, and the help of the line is the page's description (the schema's, which MCM's description panel
 -- shows while no row is hovered: MCM's own heading has no hover text). Native Settings UI draws the rows as they are.
 -- Each entry names the part of the row the heading says: its value, its label, or both (the label, then the value).
-local STATUS_ROWS = {['needs-save'] = 'value', ['empty-party'] = 'label', ['model-status'] = 'label', ['chauffeur-state'] = 'both'}
+local STATUS_ROWS = {['needs-save'] = 'value', ['empty-party'] = 'label', ['model-status'] = 'label', ['character-status'] = 'label', ['chauffeur-state'] = 'both'}
+-- The page-wide Add to favorites button of Characters to invite and the Model browser (manager-ui.lua): a footer button beside the way back.
+-- MCM cannot say which row the player is on (its public context holds the mod, the page, the Search text and the scroll position; the row
+-- under the pointer is private to it, and the pointer is on the footer button when this is pressed), so the page acts on the first entry the
+-- Search box leaves (core.offerFocus(false) below).
+local FAVORITE_ID = 'favorite:toggle'
 
 -- The rows of manager-ui.lua's page as rows of MCM's schema. A row with no counterpart is dropped (nil); a page control becomes
 -- footer buttons (the second value is 'footer': they go in the footer, beside the way back, and not in the list).
@@ -202,6 +207,9 @@ local function convert(row)
         controls.group, controls.groups = group, math.max(1, #elements)
         local current = ui.t('Starts with: {letter}', {letter = elements[group] or ''})
         return {action('ui:group:next', current, current, row.description)}, 'footer'
+    elseif id == FAVORITE_ID then
+        -- The footer shows the button's text, so it is the whole name ("Remove from favorites"), not the short word the other host draws.
+        return {action(id, row.label, row.label, row.description)}, 'footer'
     elseif STATUS_ROWS[id] then
         local part = STATUS_ROWS[id]
         local text = part == 'value' and tostring(row.value or '') or tostring(row.label or '')
@@ -239,6 +247,7 @@ local function isBack(id) return id:match(':back$') ~= nil or id == 'memory:sett
 -- The model of manager-ui.lua as MCM's schema, plus what the page tells the UI extension (the way back, the voice entries that
 -- cannot be chosen). Runs in loadMod: MCM asks for it when the screen opens, after an Apply and on reloadMod.
 local function schema()
+    core.offerFocus(false)
     local model = core.model()
     local categories, disabledChoices, disabledReasons, footer = {}, {}, {}, {}
     local pageHelp = {}
@@ -303,7 +312,7 @@ local function schema()
     -- The buttons of the page that are not in the list: the letter group, the previous and next page, and the way back (rightmost).
     local footerIds, byId = {}, {}
     for _, item in ipairs(footer) do byId[item.id] = item end
-    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', DEFAULTS_ID, HOME_BACK_ID}) do
+    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', FAVORITE_ID, DEFAULTS_ID, HOME_BACK_ID}) do
         if byId[id] then footerIds[#footerIds + 1] = id end
     end
     -- The home page has no back action of its own (no backActionId): MCM's own Escape closes the screen, so Escape is Home's Back. With
@@ -318,7 +327,7 @@ local function schema()
         -- The Model browser searches itself (followSearch): with the provider search mode MCM does not filter the rows by the box, which
         -- would hide the models the page lists on a page of twelve. Every other page keeps MCM's own filter.
         local navigation = {pageId = pageSeen, backActionId = currentBack and currentBack.id, escapeBack = true,
-            searchMode = searchProvider and core.view() == 'models' and 'provider' or nil}
+            searchMode = searchProvider and (core.view() == 'models' or core.view() == 'characters') and 'provider' or nil}
         local called, accepted = pcall(api.ui.setNavigation, MOD_KEY, navigation)
         if navigation.searchMode and not (called and accepted == true) then
             -- An MCM that refuses the option refuses the whole call: the page is given without it, and keeps MCM's filter and no hint.
@@ -390,14 +399,14 @@ end
 local function followSearch()
     local view = core.view()
     if view ~= searchView then
-        local involved = view == 'models' or searchView == 'models'
+        local involved = view == 'models' or searchView == 'models' or view == 'characters' or searchView == 'characters'
         searchView = view
         if involved and contextSearch ~= '' then
             pcall(api.ui.setSearch, MOD_KEY, '')
             contextSearch = ''
         end
     end
-    if view == 'models' and searchProvider then core.setSearch(contextSearch) end
+    if (view == 'models' or view == 'characters') and searchProvider then core.setSearch(contextSearch) end
 end
 
 -- A button of a long list's page control: the list moves to another page, or to the next letter group.
