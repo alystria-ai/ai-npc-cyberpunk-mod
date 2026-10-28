@@ -7,7 +7,7 @@ import fengari from 'fengari';
 // writes, the Yes/No pop-up and the transfer with every re-check. Run on a fake game (a wallet, a clock, files in memory); nothing here starts the
 // game. The bridge half is bridge/eddies.test.mjs.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
-const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
+const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const moduleSource = read('../mod/eddies.lua');
 const init = read('../mod/init.lua');
 
