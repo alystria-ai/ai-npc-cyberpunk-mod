@@ -2,7 +2,7 @@
 //
 // Everything that shapes a prompt is the bridge's own code: PersonaBook / buildMessages (bridge/mistral-prompt.mjs), the context blocks of a turn
 // (bridge/quest-context.mjs, turn-context.mjs, game-dialogue.mjs, player-gear.mjs, johnny-head.mjs, intrinsic-character-context.mjs), the Expressive emotion
-// note, the reply-language note, and the TextProviderHost with its cleaning, cap and retries. What the harness has to
+// and Natural speech notes, the reply-language note, and the TextProviderHost with its cleaning, cap and retries. What the harness has to
 // supply is what the live bridge gets from the game and its services: the parsed game request (the shape the Lua side writes), the character's memory
 // (canned here, so a run is repeatable), the relationship and world-knowledge blocks (a fixed stand-in text, as in scripts/Eval-MistralPrompt.mjs), and a
 // provider. See scripts/response-audit/README.md for what is and is not reproduced.
@@ -13,11 +13,12 @@ import {parseInput, archetypeContext} from '../../bridge/protocol.mjs';
 import {conversationContextBlocks, FIRST_PERSON_REMINDER} from '../../bridge/quest-context.mjs';
 import {PersonaBook, LIMITS, joinBlocks, worldBlocksInCacheOrder} from '../../bridge/mistral-prompt.mjs';
 import {textProviderLanguageContext} from '../../bridge/multilingual.mjs';
+import {naturalSpeechContext} from '../../bridge/natural-speech.mjs';
 import {EXPRESSIVE_TEXT} from '../../bridge/expressive-emotions.mjs';
 import {loadIntrinsicCharacterContext} from '../../bridge/intrinsic-character-context.mjs';
 import {sceneryFor} from '../../bridge/turn-context.mjs';
 import {hasEmotionTag} from '../../bridge/emotion-tags.mjs';
-import {parseTagged, stripSpeechTags} from '../../bridge/speech-tags.mjs';
+import {parseTagged, stripSpeechTags} from '../../bridge/natural-speech.mjs';
 import {breaksCharacter} from '../../bridge/mistral-prompt.mjs';
 
 export const project = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -81,7 +82,7 @@ const RELATIONSHIP = 'Relationship with V (supplied by the save): friendly acqua
 
 /**
  * The turn as the text providers get it: persona, memory, contextParts (layout v2) and the Convai-style joined context.
- * opts.voice: 'pocket' (the default local voice: the Expressive emotion note) | 'none' (typed text, a cloud voice)
+ * opts.voice: 'pocket' (the default local voice: the Expressive emotion note, and the Natural speech note on a scenario that asks for it) | 'none' (typed text, a cloud voice)
  */
 export async function buildTurn(scn, personas, {voice = 'pocket'} = {}) {
   const persona = personas.persona(scn.char);
@@ -99,6 +100,7 @@ export async function buildTurn(scn, personas, {voice = 'pocket'} = {}) {
     : [{tier: 'world', text: knowledgeFor(persona.name, scn)}, {tier: 'world', text: scn.phone ? RELATIONSHIP.replace('private voice conversation', 'private phone text chat') : RELATIONSHIP}];
   blocks.splice(1, 0, ...world);
   const spoken = voice === 'pocket' && !scn.phone;
+  if (scn.ns && spoken) blocks.push({tier: 'volatile', text: naturalSpeechContext({engine: 'pocket'})});
   if (spoken) blocks.push({tier: 'notes', text: EXPRESSIVE_TEXT});
   blocks.push({tier: 'volatile', text: FIRST_PERSON_REMINDER});
   blocks.push({tier: 'volatile', text: textProviderLanguageContext({text: scn.text, lastLanguage: scn.lastLanguage ?? null})});
@@ -120,7 +122,7 @@ export function stubMemory({summary = '', remembered = [], turns: earlier = []} 
 
 // ---- The spoken form of a reply ----------------------------------------------------------------------------------------------
 
-/** What the player reads and the voice says: emotion and speech tags removed, as the bridge's reply cleaning does. */
+/** What the player reads and the voice says: emotion and speech tags removed, as the bridge's Natural speech pass does. */
 export function spokenText(raw) { try { return stripSpeechTags(String(raw ?? '')).replace(/\s+/g, ' ').trim(); } catch { return String(raw ?? ''); } }
 export const tagsOf = raw => { try { return parseTagged(String(raw ?? '')).tags?.length ?? 0; } catch { return 0; } };
 

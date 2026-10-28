@@ -22,7 +22,8 @@ same renderer as Pocket, Voxtral and Convai.
   never more than 2 phrases beyond the one being sent and never more than 14 s of audio beyond what has been heard (a paused game does not
   render a long reply to its end). Each finished phrase is decoded (`wavToPcm`) and sent in packets of at most 2 s.
 - A reply that is voiced while it is still being written (typed turn on Mistral / Local AI, the Convai text route, the voice key) sends its first
-  sentence to the renderer at once, as Pocket does (OmniVoice used to wait for the finished reply).
+  sentence to the renderer at once, as Pocket does (OmniVoice used to wait for the finished reply). Voice tags of Natural speech are written into the
+  rest of such a reply, not into its first sentence.
 - `bridge/convai-bridge.mjs` `omniVoiceFor`: the per-reply adapter (tags, Developer-mode capture, the worker's job count that keeps memory maintenance
   and a held look-ahead off the GPU). `continuousSpeech(..., {engine: 'omni'})` gives OmniVoice its own `SpeechPace` (a line that broke makes the
   next ones buffer a little first), the Pocket expression planner and face builder.
@@ -86,4 +87,5 @@ and appends them as they are.
 ## Limits
 
 - The renderer is a separate Windows audio session: no Wwise occlusion or reverb (Pocket and Convai never had them; Omni had Kira's).
+- Natural speech tags are not written into the first sentence of a reply that is voiced while it is written.
 - The OmniVoice worker still renders one phrase at a time (no streaming inside a phrase); a phrase longer than 22 or 34 words is split as before.

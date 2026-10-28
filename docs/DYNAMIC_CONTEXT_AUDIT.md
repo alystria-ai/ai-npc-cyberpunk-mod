@@ -1,6 +1,6 @@
 # Dynamic context audit (2026-10-12)
 
-> **Update 2026-10-28:** the Follow-up and Natural speech blocks were removed from the per-turn context (both settings are gone). Rows and sizes below that name them are history.
+> **Update 2026-10-28:** the Follow-up block was removed from the per-turn context (the setting is gone). Sizes below were measured with it, so they are 176 characters high on the turns that carried it.
 >
 > **Update 2026-10-25:** three more kinds were added, each with its switch and each worded as background, told once and again only on a change (the lesson of this audit: a fact that arrives fresh on every turn is reacted to on every turn): the time since V last talked to this character, in game and real time (`bridge/last-talk.mjs`, decided once per turn id and recorded per memory scope, so the next turn of the same talk is silent), the song on the car or pocket radio and what a TV near V shows (`mod/media-context.lua`), and V's state from Dark Future when it is installed (`mod/mod-state.lua`). See `docs/DYNAMIC_INFO.md`. Companions' and Johnny's unprompted lines (`docs/COMPANION_SPEAK_UP.md`) carry the right-now block and the tracked quest too, which an automatic reaction did not before.
 >
@@ -34,7 +34,7 @@ sendRequest / group round / microphone / phone chat    parseInput (protocol.mjs)
   playerGear:capture()        5 s cache                -> conversationContext (quest-context.mjs)         session
   battles.capture()           last combat              convai-bridge conversationContext adds:        Mistral: one user message
   -> json.encode -> runtime/last-input.json              intrinsic claims, archetype, vendor memory,     "[LIVE CONTEXT ...] <context>
-                                                         relationship, phone recap, follow-up, Natural    V says: ..." after the persona
+                                                         relationship, phone recap, Natural               V says: ..." after the persona
                                                          speech, Expressive emotions, first-person        (mistral-prompt.mjs buildMessages)
                                                          reminder, Multilingual language
 ```
@@ -74,7 +74,7 @@ sendRequest / group round / microphone / phone chat    parseInput (protocol.mjs)
 | 15 | Last events | Combat (row 5), game dialogue (last 180 s, up to 14 lines or 1,600 characters, scoped to the addressee), recent shared quest events (up to 3), Phone Chat recap, pickups only inside a battle-end reaction | Yes, as listed. Pickups do not reach a manual turn | Same | Dialogue by event hooks; others on demand | dialogue block up to 2,700 characters (about 730 tokens), events about 500 |
 | 16 | Relationship (romance style) | `mod/relationship-state.lua`: 11 quest facts every 2 s, one file write per refresh | Yes: 182 characters ordinary, up to 1,877 with the affectionate block (`romance-context.mjs`) | Same | 2 s background, read at turn start | 50 to 500 |
 | 17 | Character-specific | Native claims for 9 reviewed characters (up to 4,096 bytes), vendor memory for one-shop vendors | Yes | Same | Per turn | up to 1,100 |
-| 18 | Voice and style blocks | n/a (bridge only) | Follow-up (176), Natural speech (2,870 when offered, a share of spoken turns on Omni/Pocket), Expressive emotions (1,393 on a local voice), first-person reminder (187), Multilingual language note | Same | Per turn | 50 to 1,200 |
+| 18 | Voice and style blocks | n/a (bridge only) | Natural speech (2,870 when offered, a share of spoken turns on Omni/Pocket), Expressive emotions (1,393 on a local voice), first-person reminder (187), Multilingual language note | Same | Per turn | 50 to 1,200 |
 
 Present in the table but easy to miss:
 
@@ -86,7 +86,7 @@ Present in the table but easy to miss:
 
 | Character | Base context (`quest-context.mjs`) | Plus the bridge's additions | Total |
 |---|---|---|---|
-| Alex (1 fact) | 5,023 characters (about 1,360 tokens) | follow-up, voice blocks | about 6,000 to 9,000 characters |
+| Alex (1 fact) | 5,023 characters (about 1,360 tokens) | voice blocks | about 6,000 to 9,000 characters |
 | Judy (15 facts) | 10,388 characters (about 2,800 tokens): knowledge 5,417, recent events 1,812, journal 973, gear 686, fixed text about 1,300 | relationship 182 to 1,877, Natural speech 0 or 2,870, Expressive 1,393, reminder 187, prefix 280 | about 12,500 to 17,000 characters (3,400 to 4,600 tokens) |
 | Johnny (27 facts) | 12,551 characters | plus native claims up to 4,096, plus the same additions | about 15,000 to 22,000 characters |
 | Resident (ordinary NPC) | 2,719 characters, see finding B | district block 267 | about 3,000 + voice blocks |
@@ -178,7 +178,7 @@ game never names V beyond "V").
   fixed text (SPOKEN_OUTPUT 787 characters, CURRENT_AUTHORITY 272, and the journal framing of about 800) has room to
   shrink.
 - Heavy characters (Johnny, Regina) should have a bridge-side check that the total fits Mistral's cap, trimming
-  the optional blocks and the lowest-ranked facts rather than the new block.
+  natural-speech and the lowest-ranked facts rather than the new block.
 
 ### Order of work if approved
 
@@ -368,7 +368,7 @@ Built and unit-tested on branch `dynamic-context-2`; not yet live (CET reload pl
 - Who gets what is unchanged: health, heat, money, company, vehicle and the rest stay in the block on every turn, with the same audience rules (a stranger never gets heat or money; a phone contact gets the weather where V is and nothing of V's body or wallet).
 - The turn-context log line now ends `background=<chars>` or `background=none`, so a log shows whether the weather went along.
 
-**Not changed, for a decision.** Three ordinary-NPC archetypes carry a standing rain flavour in their text (`characters/archetype-profiles/street-resident.json` speaking style "wry humor about money and rain", and sample lines in food-vendor and bartender). These are generated files (`scripts/Build-ArchetypeProfiles.mjs --check`), and the fact line is gone on most turns now; if players still hear rain from street residents, soften those two phrases and rebuild.
+**Not changed, for a decision.** Three ordinary-NPC archetypes carry a standing rain flavour in their text (`characters/archetype-profiles/street-resident.json` speaking style "wry humor about money and rain", the same in `characters/natural-speech/npc-street-resident-female.json` "a sigh about rent or the rain", and sample lines in food-vendor and bartender). These are generated files (`scripts/Build-ArchetypeProfiles.mjs --check`), and the fact line is gone on most turns now; if players still hear rain from street residents, soften those two phrases and rebuild.
 
 ## Update 2026-10-22: first-turn weather and the archetype place sentence, for every provider
 

@@ -45,7 +45,7 @@ function sayNumber(text, year = true) {
   return words;
 }
 const MARK = '\u0001';
-// Same tag syntax as speech-tags.mjs: [voice-tag] is a sound OmniVoice renders, {emotion} is for the face only.
+// Same tag syntax as natural-speech.mjs: [voice-tag] is a sound OmniVoice renders, {emotion} is for the face only.
 const EMOTION_TAG = /\{[a-z]+(?::[a-z]+)?\}/gi, VOICE_TAG = /\[[a-z]+(?:-[a-z]+)*\]/gi, MARKUP = /<[^>]*>/g;
 const MONEY = /\$\s*(\d[\d,]*(?:\.\d+)?)/g, NUMBER = /\d[\d,]*(?:\.\d+)?/g, WORD = /[a-zà-ɏ][a-zà-ɏ']*/g;
 

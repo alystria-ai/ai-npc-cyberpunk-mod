@@ -54,9 +54,9 @@ pessimistic. No game, bridge or OmniVoice process was holding VRAM when the runs
   (a seeded memory of V, or V's name given earlier in the same chat), provocation ("are you an AI?") 3, emotional 3, combat 3
   (with verified battle observations), Spanish 3, Japanese 2.
 - **Prompt:** the bridge's own functions: `PersonaBook`, `systemPrompt` (persona, examples, output rules), `conversationContext`
-  (quest and journal, gear, `turn-context.mjs` "right now" block, the Natural speech and Expressive emotion notes, as they were then), `cleanReply`,
+  (quest and journal, gear, `turn-context.mjs` "right now" block, the Natural speech and Expressive emotion notes), `cleanReply`,
   the sentence cap and the stop rule. Natural speech and Expressive emotions on, Pocket as the voice, follow-up questions off (the
-  default then). Natural speech and Follow-up questions were removed 2026-10-28. Each reply is the first attempt: no retry, so failures the host's retry would hide are visible.
+  default then). Follow-up questions were removed 2026-10-28. Each reply is the first attempt: no retry, so failures the host's retry would hide are visible.
 - **Order (stable first):** system = persona and rules, then the format notes, then the world block (the "right now" block first,
   then the person, journal, gear), then the memory block; then the history; the last message holds only the volatile part (battle
   observations) and `V says: ...`. For cache comparison the current Mistral layout (everything in the last message) was also run

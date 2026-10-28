@@ -11,6 +11,7 @@ import {splitSpeechText} from './speech-phrases.mjs';
 import {createOmniPcmVoice} from './omni-pcm.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
+import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
 import {analyseReply, planSignal, createPlanner, baselineFromSignal} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
@@ -42,7 +43,7 @@ function fixture({local = false, available = true, continuous = false, voiceSele
     ownedPocketFace:()=>{},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,baselineFromSignal,
     emotionSelection:new EmotionSelection(),waitLateEmotion,personKey,
-    splitSpeechText,streaming:0,waitUntil,BufferedPcm,delivered,
+    splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,omniTagsFor,speechPhrases,logNaturalSpeech:()=>{},streaming:0,waitUntil,BufferedPcm,delivered,
     // The delivery function is the one both local voices share. OmniVoice's voice is driven the way deliverPocketSpeech drives it (the whole
     // reply text, or the held look-ahead's buffer), so the phrases reach the fake worker; Pocket's fake worker is not called here.
     deliverPocketSpeech: async value => {
@@ -637,27 +638,33 @@ test('an Invite is ready with a written-reply receipt when the chosen local voic
   assert.equal(receipt.provider, 'text'); assert.notEqual(receipt.provider, 'convai');
 });
 
-test('A voice tag the model wrote is never voiced: OmniVoice is handed the clean phrases, and every shown or stored text stays clean',async()=>{
+test('Natural speech: OmniVoice voices the tags the model wrote while every shown or stored text stays clean',async()=>{
   const raw='We have a long enough original sentence to produce [sigh] the first local phrase. Then we have another long enough sentence [laughter] for the following phrase.';
   const clean=raw.replace(/ ?\[[a-z-]+\]/g,'');
-  const generated=[],voice={provider:'omni',steps:16,usesProfile:()=>true,
-    async synthesize(key,text){generated.push(text);
-      return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
-  const f=fixture({voiceSelection:voice,continuous:true}),current=async()=>true;
-  f.remote.text=clean;f.remote.speechText=raw;
-  const result=await f.api.respond(f.input,f.profile,{current});
-  await f.api.publishResult(f.input,f.profile,result,current);
-  assert.equal(result.text,clean);
-  assert.deepEqual(generated,splitSpeechText(clean),'no tag is voiced');
-  // The voice, the delivery (its subtitles and the face's text) and the published reply are given the clean text only.
-  assert.deepEqual(f.calls.filter(value=>Array.isArray(value)&&value[0]==='voice-stream').map(value=>value[2]),[clean]);
-  assert.ok(f.calls.filter(value=>Array.isArray(value)&&value[0]==='omni-stream').every(value=>!/\[/.test(value[2])));
-  assert.ok(f.delivered.every(value=>!/\[/.test(value.result.text)));
-  assert.ok(!/\[/.test(result.text));
+  for(const enabled of [true,false]){
+    const generated=[],voice={provider:'omni',steps:16,usesProfile:()=>true,
+      async synthesize(key,text){generated.push(text);
+        return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+    const f=fixture({voiceSelection:voice,continuous:true}),current=async()=>true;
+    f.naturalSpeech.update({naturalSpeech:enabled});
+    f.remote.text=clean;f.remote.speechText=raw;
+    const result=await f.api.respond(f.input,f.profile,{current});
+    await f.api.publishResult(f.input,f.profile,result,current);
+    assert.equal(result.text,clean);
+    const voiced=generated.join(' ');
+    if(enabled){assert.match(generated[0],/\[sigh\]/);assert.match(voiced,/\[laughter\]/);assert.equal(voiced.replace(/ ?\[[a-z-]+\]/g,''),clean);}
+    else assert.deepEqual(generated,splitSpeechText(clean),'setting off: no tag is voiced');
+    // The voice, the delivery (its subtitles and the face's text) and the published reply are given the clean text only: tags exist only in what the worker renders.
+    assert.deepEqual(f.calls.filter(value=>Array.isArray(value)&&value[0]==='voice-stream').map(value=>value[2]),[clean]);
+    assert.ok(f.calls.filter(value=>Array.isArray(value)&&value[0]==='omni-stream').every(value=>!/\[/.test(value[2])));
+    assert.ok(f.delivered.every(value=>!/\[/.test(value.result.text)));
+    assert.ok(!/\[/.test(result.text));
+  }
 });
 
-test('Pocket is handed only the clean text, whatever the reply carried',async()=>{
+test('Natural speech: Pocket is handed only the clean text, whatever the reply carried',async()=>{
   const f=fixture({local:true,continuous:true});
+  f.naturalSpeech.update({naturalSpeech:true});
   f.remote.text='A complete reply. With two sentences.';f.remote.speechText='A complete reply. [laughter] With two sentences.';
   const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
   const spoken=f.calls.find(value=>Array.isArray(value)&&value[0]==='pocket-stream');

@@ -1,6 +1,6 @@
 # Speaking as "I": the third-person leak (October 10, 2026)
 
-> **Update 2026-10-28:** Natural speech and Follow-up questions (and the files `bridge/natural-speech.mjs`, `bridge/natural-speech-talk.mjs` and `bridge/follow-up.mjs` named below) were removed. This is the record of the October 10 fix. The first-person rule itself is unchanged.
+> **Update 2026-10-28:** Follow-up questions (and the file `bridge/follow-up.mjs` named below) were removed. The Follow-up parts below are the record of the October 10 fix. The first-person rule itself is unchanged and Natural speech stays.
 
 ## What the user heard
 

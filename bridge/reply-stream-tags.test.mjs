@@ -10,7 +10,7 @@ import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
-import {processReply} from './speech-tags.mjs';
+import {NaturalSpeech} from './natural-speech.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
@@ -35,9 +35,9 @@ async function harness(reply, {pieceMs = 8} = {}) {
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${KEY}\n`, writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
-  const emotions = new ExpressiveEmotions();
+  const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
   const host = new TextProviderHost({provider, memory, personas: new PersonaBook(roster), log: () => {},
-    transformReply: result => emotions.process(processReply(result)),
+    transformReply: result => emotions.process(speech.process(result)),
     routes: {mistral: mistralRoute({provider, gapMs: 0, cacheScope: 'x', endpoint: `http://127.0.0.1:${server.address().port}/v1/chat/completions`})}});
   return {host, requests, close: async () => { host.close(); server.closeAllConnections?.(); await new Promise(done => server.close(done)); }};
 }

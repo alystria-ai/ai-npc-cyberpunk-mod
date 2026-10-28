@@ -53,7 +53,7 @@ player chose it; adding the key and applying switches over).
 
 A turn reaches `MistralHost.reply` with the same configuration the Convai host gets (the bridge adds a `local` field with the
 character's profile key, channel and, for an ordinary NPC, an ambient key). The result has the same shape as a Convai reply (`text`,
-`sessionID`, `timing`, then `transformReply`: Expressive emotions are processed exactly as for Convai), so
+`sessionID`, `timing`, then `transformReply`: Natural speech tags and Expressive emotions are processed exactly as for Convai), so
 subtitles, Phone Chat, Pocket/Omni voices, lip sync, the emotion selector and group rounds see no difference. The reply is streamed;
 the stream stops at the sentence cap and the connection is dropped, so a long reply costs only what is read.
 
@@ -69,7 +69,7 @@ Then the recent history (the last 8 to 11 exchanges, cut back to 8 in one step s
 the context string the bridge sends Convai each turn. It opens with a short "right now" block (`bridge/turn-context.mjs`, at most 450
 characters, first so the 20000-character cap below can never cut it: the game clock as a part of the day and the nearest hour, the
 district, who else is with V, whether V is in a vehicle, V's gender and lifepath; in-person turns only, not Phone Chat yet and not
-automatic reactions). Then quest and world knowledge, relationship style, gear, game dialogue, battle and loot, the
+automatic reactions). Then quest and world knowledge, relationship style, gear, game dialogue, battle and loot, Natural speech and
 Expressive emotion tag instructions, first-person reminder, language. An ordinary NPC (resident, vendor or other
 archetype) is a stranger to V: it gets the time, the place, whether V is in a vehicle or has company, V's apparent gender and what
 V visibly wears and holds, but none of V's journal, jobs, world facts or gear list. There is no weather, health or wanted-level
@@ -103,7 +103,7 @@ a prefix cache keeps working on Mistral and the local model:
 3. system: the "right now" block (the clock, the place, who is with V). It used to open the context; it is now the last thing in the
    system message because it changes every few minutes and one changed word early in a prompt invalidates the cache after it;
 4. the recent exchanges, verbatim, as alternating messages;
-5. the last user message: the volatile notes (language), up to four remembered facts found for this
+5. the last user message: the volatile notes (language, Natural speech dice), up to four remembered facts found for this
    message, then `V says: <text>`.
 
 Convai keeps its own order (dynamic information as before). A bridge that does not supply `contextParts` gets the old layout.
@@ -264,7 +264,7 @@ https://docs.mistral.ai/api/endpoint/audio/speech, https://mistral.ai/news/voxtr
 ## What works and what does not
 
 Works: text talk, Phone Chat, group conversations, battle and loot reactions, subtitles, Pocket/Omni voices, lip sync, emotions,
-Expressive emotion tags, quest and world knowledge in the prompt, Forget, and the voice key when
+Natural speech and Expressive emotion tags (Natural speech also works with the Convai voice selection: the bridge plays Pocket for it here), quest and world knowledge in the prompt, Forget, and the voice key when
 local speech-to-text is available.
 
 Does not: Convai long-term memory and its cloud voices (use Convai for those); the Convai multilingual twins (Mistral answers in the language you write in without them); speculative preparation and look-ahead (a single session, like a free Convai plan); memory is local to this

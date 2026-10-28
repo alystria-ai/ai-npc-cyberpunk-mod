@@ -13,7 +13,7 @@
 // Text providers (Mistral, Local AI, Custom) and add-on speakers have no twins: the context block and the voice plan do the work.
 //
 // Voices: Pocket TTS speaks English only, unless the optional Pocket model of the reply's language is installed together with that language's voice
-// language pack (bridge/pocket-language-models.mjs: French, Italian, German, Spanish, Portuguese). A turn the cloud voice speaks gets no Expressive emotions instructions (the cloud
+// language pack (bridge/pocket-language-models.mjs: French, Italian, German, Spanish, Portuguese). A turn the cloud voice speaks gets no Natural speech or Expressive emotions instructions (the cloud
 // voice would read their tags aloud), OmniVoice is told the reply's language. The Convai voice is only ever the player's own choice: a voice that
 // cannot speak a turn (a local one that failed, Pocket in a language other than English, Voxtral with no key or in a language it does not list)
 // never hands the turn to a cloud voice. That turn is 'none': the reply is shown as written text (owner rule 2026-10-21).
@@ -296,7 +296,7 @@ const REFERENCE_NOTE = 'Everything else in this context is written in English on
 /**
  * The reply-language block of a turn's dynamic context, last in the context.
  * The twins answer in the player's language on their own, but the mod's dynamic context (relationship, knowledge,
- * Expressive emotions notes) is English, and with it a short message such as "hola, cómo estás" was
+ * Natural speech and Expressive emotions notes) is English, and with it a short message such as "hola, cómo estás" was
  * answered in English in game (2026-10-08). Naming the language of the player's message fixes that. A turn without
  * player text (a reaction, the microphone placeholder) follows the language the conversation was last in.
  */

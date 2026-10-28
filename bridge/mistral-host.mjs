@@ -11,7 +11,7 @@ export class MistralHost extends TextProviderHost {
    * memory      MistralMemory or MemoryStore
    * personas    PersonaBook
    * model       () => model id or list of ids, best first
-   * transformReply   the bridge's cleanReply (tag removal, Expressive emotions)
+   * transformReply   the bridge's cleanReply (Natural speech, Expressive emotions)
    * chat        the request function (streamChat; replaced in tests)
    */
   constructor({provider, memory, personas = new PersonaBook(), model = () => DEFAULT_MODELS, transformReply = result => result,

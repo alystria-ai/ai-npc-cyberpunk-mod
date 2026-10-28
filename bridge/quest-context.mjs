@@ -21,8 +21,8 @@ import {questBriefingContext} from './quest-briefing.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 
-// The same rule as SPOKEN_OUTPUT, in one sentence, for the END of the context. The voice block (Expressive
-// emotions) comes after the base context and pull a reply away from it: with a quest row about "Blue Moon" in the context,
+// The same rule as SPOKEN_OUTPUT, in one sentence, for the END of the context. The voice blocks (Natural speech, Expressive
+// emotions) come after the base context and pull a reply away from it: with a quest row about "Blue Moon" in the context,
 // "why blue hair?" was answered about someone else in 9 of 10 replies with only the base rule, and in 1 of 10 with this reminder
 // last (docs/FIRST_PERSON_RULE.md). Not sent on an automatic reaction (a bark answers no remark of V's).
 export const FIRST_PERSON_REMINDER = 'Reminder for this reply: you are speaking as yourself, so say "I", "me" and "my"; when V remarks on '
@@ -213,7 +213,7 @@ export function conversationContextBlocks(input) {
 
 /**
  * The context of an add-on voice with no body (persona.voiceContext, docs/ADDON_API.md), in place of the companion form above: the "right
- * now" facts as a voice gets them (bridge/turn-context.mjs), the group round, recent game dialogue and the question policy. Not the
+ * now" facts as a voice gets them (bridge/turn-context.mjs), the group round, recent game dialogue and the follow-up policy. Not the
  * quest journal, V's gear, the world snapshot or the first-person notes written for a person V is looking at: a cab's AI does not know them.
  */
 export function voiceConversationBlocks(input) {

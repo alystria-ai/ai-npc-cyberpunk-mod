@@ -118,8 +118,8 @@ const FAMILY_PATTERNS = [
   ['third-person-probe', /^third-person-probe-[0-9a-f]{6,}(-\d+)?$/],  // scripts/Probe-ThirdPerson.mjs
   ['emotion-tags-probe', /^emotion-tags-probe-[0-9a-f]{16}$/],        // scripts/Probe-EmotionTags.mjs
   ['emotion-probe', /^emotion-probe-[0-9a-f]{16}$/],                  // scripts/Probe-EmotionReplies.mjs
-  ['follow-up-probe', /^follow-up-probe-[0-9a-f]{16}$/],              // scripts/Probe-FollowUp.mjs (removed with the Follow-up feature)
-  ['natural-speech-probe', /^natural-speech-probe-[0-9a-f]{16}$/],    // scripts/Probe-NaturalSpeech.mjs (removed with Natural speech)
+  ['follow-up-probe', /^follow-up-probe-[0-9a-f]{16}$/],              // the probe (scripts/Probe-FollowUp.mjs) was removed with Follow-up questions
+  ['natural-speech-probe', /^natural-speech-probe-[0-9a-f]{16}$/],    // scripts/Probe-NaturalSpeech.mjs
   ['romance-probe', /^romance-probe-[0-9a-f]{16}$/],                  // scripts/Probe-RomanceBlock.mjs
   ['quest-recency-probe', /^quest-recency-probe-[0-9a-f]{16}$/],
   ['visual-lipsync', /^visual-lipsync-\d{10,}$/],

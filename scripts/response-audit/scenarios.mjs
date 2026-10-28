@@ -6,6 +6,7 @@
 //   first      the save says V and the character have not spoken before; history / summary / remembered: the canned earlier talk
 //   dialogue   recent game dialogue lines ({who: 'v'|'npc', text}), oldest first
 //   offer      the companion action the game offers this turn (see ACTION_OFFERS)
+//   ns         the Natural speech note is part of this turn's context (the bridge offers it on a share of turns)
 
 const AT = {hour: 15, minute: 20};
 const place = (district, area, extra = {}) => ({district, area, ...extra});
@@ -29,7 +30,7 @@ export const SCENARIOS = [
     history: [{v: 'You ready to head out?', r: 'Always. Dust is not going to move itself.'}, {v: 'How long have you been on the road?', r: 'Since I could walk. The Aldecaldos raised me out here.'}],
     text: 'Tell me about the Aldecaldos. What is the clan actually like?',
     want: 'A lore answer from Panam about the Aldecaldos (Saul, family, the Badlands life) in her own voice, short enough to speak, without reciting the weather or time.'},
-  {id: 'judy-lore-braindance', group: 'lore', char: 'judy-alvarez', party: [{activity: 'standing'}], place: {hour: 22, minute: 10, ...place('Watson', 'Kabuki')}, ongoing: true,
+  {id: 'judy-lore-braindance', group: 'lore', char: 'judy-alvarez', party: [{activity: 'standing'}], place: {hour: 22, minute: 10, ...place('Watson', 'Kabuki')}, ongoing: true, ns: true,
     history: [{v: 'Nice place you have here.', r: 'It gets the job done. The clients keep coming, and the rent keeps being a problem.'}],
     text: 'How did you get into braindance editing?',
     want: 'Judy tells how she got into BD editing in her own words (Mox, Clouds, Lizzy Wizzy, a hobby that became a trade) in one to three sentences, no invented facts.'},
@@ -109,7 +110,7 @@ export const SCENARIOS = [
     text: 'Can you do something about my arm? It stopped responding after the fight.',
     want: 'A ripperdoc responds professionally in a gruff or pragmatic manner: asks to look, mentions cost or time, no precise medical or price claims invented.'},
   {id: 'bartender-surprise', group: 'ongoing', ambient: true, char: 'npc-bartender-female', archetype: {base: 'bartender', category: 'vendor', title: 'bartender', vendorType: 'Drinks', district: 'Watson', area: 'LittleChina'},
-    place: {hour: 0, minute: 30, ...place('Watson', 'LittleChina', {money: 'rich', indoors: true})},
+    place: {hour: 0, minute: 30, ...place('Watson', 'LittleChina', {money: 'rich', indoors: true})}, ns: true,
     text: 'Rough night. Surprise me.',
     want: 'A bartender in character: pours something, reads V\'s mood with dry humour, short. No long list of cocktails.'},
 

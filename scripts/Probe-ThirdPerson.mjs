@@ -4,10 +4,11 @@
 // block can be toggled off and the rates compared, and sends ONE fresh Convai session per sample (no history carries over).
 //
 //   node scripts/Probe-ThirdPerson.mjs --profiles evelyn-parker,judy-alvarez,johnny-silverhand,panam-palmer,takemura,dexter-deshawn
-//        --conditions base,emotions,romance [--reps 1] [--prompts 10] [--concurrency 1]
+//        --conditions base,live,live-no-natural,live-no-emotions [--reps 1] [--prompts 10] [--concurrency 1]
 //        [--set general|appearance|blue | --text "line"] [--context-file path] [--label name] --run
-//   Conditions (every block FORCED on, the worst case; the Follow-up and Natural speech blocks were removed from the bridge):
-//     base  none      emotions  Expressive emotions only (live is the same)      romance  Relationship block + Expressive emotions
+//   Conditions (blocks in the bridge's order: Natural speech, Expressive emotions; every block FORCED on, the worst case; the Follow-up block was removed from the bridge):
+//     base  none                       natural  Natural speech only      emotions  Expressive only
+//     live  both                       live-no-natural / live-no-emotions  the other one alone
 //
 // Without --run it only prints the plan. ONE fixed test Convai identity for every job (never the player's); the API key is read
 // from runtime/convai-key.txt and never printed. Output: runtime/third-person-probe/<label>.json (rows + a regex pre-screen
@@ -20,7 +21,8 @@ import {RealtimeHost} from '../bridge/realtime-host.mjs';
 import * as questContext from '../bridge/quest-context.mjs';
 const {conversationContext} = questContext;
 import {archetypeContext, isAmbientProfile} from '../bridge/protocol.mjs';
-import {processReply} from '../bridge/speech-tags.mjs';
+import {traitFor} from '../bridge/emotion-analysis.mjs';
+import {NaturalSpeech, naturalSpeechContext, PLACES} from '../bridge/natural-speech.mjs';
 import {ExpressiveEmotions} from '../bridge/expressive-emotions.mjs';
 import {ConvaiMemoryAdapter} from '../bridge/convai-memory.mjs';
 import {relationshipContext} from '../bridge/romance-context.mjs';
@@ -65,6 +67,8 @@ const contextFile = option('--context-file');
 const lastBlock = option('--last-block-file') ? (await readFile(resolve(option('--last-block-file')), 'utf8')).trim() : '';
 
 const BLOCKS = {
+  natural: ({profile, name, index}) => naturalSpeechContext({engine: 'omni', profile: profile.key, name, trait: traitFor(profile.key),
+    place: Object.keys(PLACES)[index % Object.keys(PLACES).length]}),
   emotions: () => { const e = new ExpressiveEmotions(); e.update({expressiveEmotions: true}); return e.contextFor({engine: 'omni', spoken: true}); },
 };
 // The Relationship block (bridge/romance-context.mjs) as the bridge sends it to an affectionate Judy, Panam, River, Kerry or Meredith.
@@ -72,8 +76,10 @@ BLOCKS.romance = ({profile}) => RELATIONSHIP_PROFILES[profile.key]
   ? relationshipContext({status: 'ready', profileKey: profile.key, style: 'romantic',
     saveRelationship: {status: 'confirmed', evidenceRule: RELATIONSHIP_PROFILES[profile.key].rule}}, 'private') : '';
 const CONDITIONS = {
-  base: [], emotions: ['emotions'], live: ['emotions'],
-  romance: ['romance', 'emotions'],
+  base: [], natural: ['natural'], emotions: ['emotions'],
+  live: ['natural', 'emotions'],
+  romance: ['romance', 'natural', 'emotions'],
+  'live-no-natural': ['emotions'], 'live-no-emotions': ['natural'],
 };
 if (conditionNames.some(name => !CONDITIONS[name]) || !(reps >= 1 && reps <= 50) || !(concurrency >= 1 && concurrency <= 2)) throw Error('Bad arguments.');
 
@@ -101,8 +107,8 @@ const FIXED_IDENTITY = option('--identity', 'third-person-probe-fixed');
 if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(FIXED_IDENTITY)) throw Error('Bad --identity.');
 if (FIXED_IDENTITY === player.endUserId) throw Error('The probe identity must not be the player.');
 const memory = new ConvaiMemoryAdapter({key, enabled: true});
-const emotions = new ExpressiveEmotions();
-emotions.update({expressiveEmotions: true});
+const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
+speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
 const host = new RealtimeHost();
 
 // Pre-screen: pronouns or the character's own name in the reply. A judge decides which are self-narration.
@@ -130,7 +136,7 @@ async function work(job) {
   let row;
   try {
     const result = await host.reply(config, undefined);
-    const raw = result.text, processed = emotions.process(processReply(result)), reply = processed.text;
+    const raw = result.text, processed = emotions.process(speech.process(result)), reply = processed.text;
     const name = firstName(profile.name);
     row = {condition: job.condition, profile: job.profileKey, name: profile.name, prompt: job.text, rep: job.rep, raw, reply,
       voiced: /\[[a-z]+(?:-[a-z]+)*\]/i.test(raw), tagged: /\{[a-z]+(?::[a-z]+)?\}/i.test(raw), startsTagged: /^\s*\{[a-z]+(?::[a-z]+)?\}/i.test(raw),

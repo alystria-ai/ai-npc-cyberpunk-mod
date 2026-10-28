@@ -16,11 +16,11 @@
 //               not come before the world block, but it does change, so nothing stable may follow it. The bridge builds it first
 //               in the Convai context (Convai ignores the order); a prefix cache does not.
 //   history  the last few exchanges of this conversation (user / assistant)
-//   user     the volatile notes of this turn (question policy, game dialogue, battle and loot, language,
+//   user     the volatile notes of this turn (follow-up policy, Natural speech offer, game dialogue, battle and loot, language,
 //            first-person reminder), what the memory store retrieved for V's words, then `V says: ...` and the closing reminder
 // Without `contextParts` (older callers, tests) the old layout is used: persona, summary and rules in the system message, and the
 // whole live context (the string Convai gets) in the last user message.
-// A reply comes back as plain text and goes through the same cleaning as a Convai reply (tag removal, Expressive emotions).
+// A reply comes back as plain text and goes through the same cleaning as a Convai reply (Natural speech, Expressive emotions).
 // Mature content (bridge/mature-content.mjs): for the fully local AI with the setting on, a short layer ends the system head, after the
 // output rules. It is part of the stable early text (the prefix cache keeps it) and the prompt budget never trims it. Off, nothing changes.
 import {matureLayer, guardLayer, matureClosing, matureWorld} from './mature-content.mjs';
@@ -283,7 +283,7 @@ export function knowledgeApart(blocks, world) {
   return {stable: joinBlocks(blocks.filter(block => block?.key !== 'knowledge').map(block => block?.text)), knowledge};
 }
 
-/** A context longer than the cap keeps its head and its tail (the voice, follow-up and first-person notes are last). */
+/** A context longer than the cap keeps its head and its tail (the voice and first-person notes are last). */
 export function capContext(context, limit = LIMITS.context) {
   const text = String(context ?? '').trim();
   if (text.length <= limit) return text;
@@ -411,7 +411,7 @@ export function starred(text) {
 
 /**
  * A model reply as plain spoken text: reasoning blocks, speaker labels, stage directions, markdown and emoji removed. Emotion and
- * voice tags are left for the bridge's own pass (bridge/speech-tags.mjs), which removes them from the display text; braces and
+ * voice tags are left for the bridge's own pass (bridge/natural-speech.mjs), which removes them from the display text; braces and
  * bracket groups that are not tags are dropped here.
  */
 export function cleanReply(raw, {name = '', isTag = () => false} = {}) {

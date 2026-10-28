@@ -6,7 +6,7 @@ import {attachExpressionTrack} from './expression-timeline.mjs';
 import {ownedExpressionReceipt} from './companion-expressions.mjs';
 import {decodeAnalysisPcm} from './analysis-pcm.mjs';
 import {JALI_LEAD_SECONDS} from './jali-face.mjs';
-import {displayText} from './speech-tags.mjs';
+import {displayText} from './natural-speech.mjs';
 import {captionCues, cueSignature} from './caption-cues.mjs';
 import {activeMakeupDb, dialogueLevel} from './dialogue-level.mjs';
 import {audioDelayMs} from './audio-delay.mjs';
@@ -206,7 +206,7 @@ export class ConvaiContinuousSpeech {
       || typeof snapshot.textComplete !== 'boolean' || typeof snapshot.sourceComplete !== 'boolean'
       || typeof snapshot.ended !== 'boolean' || !integer(snapshot.underruns)
       || typeof snapshot.state !== 'string' || snapshot.state.length > 50) throw Error('Invalid continuous speech state');
-    // Voice tags never reach a subtitle (a local voice's text arrives clean; this covers the rest).
+    // Natural speech: voice tags never reach a subtitle (a local voice's text arrives clean; this covers the rest).
     const shown = displayText(snapshot.text, snapshot.textComplete);
     if (shown !== snapshot.text) snapshot = {...snapshot, text: shown};
     if (this.sampleRate && (snapshot.sampleRate !== this.sampleRate || snapshot.channels !== this.channels))

@@ -150,7 +150,7 @@ test('Restore defaults while Mature content is on gives the default voices, what
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
   press('Settings'); frames(20)
-  assert(manager.applySettings(player, {voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
+  assert(manager.applySettings(player, {voiceProvider = 'voxtral', naturalSpeech = false, vVoiceEngine = 'voxtral'}))
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8)
   assert(saved.matureContent == true and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
@@ -194,20 +194,27 @@ test('D3 (2026-10-20, revised): Mature content from Convai or Mistral without th
 `));
 
 
-test('the Convai cloud voice is simply saved on every provider (Natural speech is gone): no notice, nothing else moves, and the page has no Natural speech or Follow-up questions row', () => run(`${harness()}
+test('D8: Natural speech is blocked only by the Convai cloud voice on a Convai provider; Mistral, Local AI and Custom keep it with that voice', () => run(`${harness()}
   bridge('key', {provider = 'mistral', effective = 'mistral', saved = true})
   voices(true)
   press('Settings'); frames(20)
-  assert(ns.find('Natural speech') == nil and ns.find('Follow-up questions') == nil, 'the rows are gone')
-  for _, provider in ipairs({'convai', 'mistral', 'local', 'custom'}) do
-    local ok, err, notice = manager.applySettings(player, {conversationProvider = provider, voiceProvider = 'convai'})
-    assert(ok, provider .. ': ' .. tostring(err))
-    assert(notice == nil, provider .. ': a notice for a pairing that is gone: ' .. tostring(notice))
-    assert(settings().voiceProvider == 'convai' and settings().conversationProvider == provider, provider)
-    assert(settings().naturalSpeech == nil and settings().followUpInterest == nil and saved.naturalSpeech == nil and saved.followUpInterest == nil)
+  for _, provider in ipairs({'mistral', 'local', 'custom'}) do
+    assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = 'convai', naturalSpeech = true}))
+    assert(settings().naturalSpeech == true and settings().voiceProvider == 'convai', provider)
+    -- The row is not greyed out there.
     frames(8)
-    assert(not tostring(managerUi.inspect().shown):find('Natural speech', 1, true), tostring(managerUi.inspect().shown))
+    assert(not ns.find('Natural speech').disabled, provider .. ': the row is usable')
   end
+  -- Back on a Convai provider the pairing cannot stand: the voice is kept and Natural speech goes off, with a line.
+  local ok, err, notice = manager.applySettings(player, {conversationProvider = 'convai'})
+  assert(ok, err)
+  assert(settings().voiceProvider == 'convai' and settings().naturalSpeech == false, 'the voice stays, Natural speech is off')
+  assert(notice == 'The Convai cloud voice cannot use Natural speech, so it was turned off.', tostring(notice))
+  -- And turning it on beside the Convai provider and voice moves the voice to Pocket.
+  ok, err, notice = manager.applySettings(player, {naturalSpeech = true})
+  assert(ok, err)
+  assert(settings().naturalSpeech == true and settings().voiceProvider == 'pocket', tostring(settings().voiceProvider))
+  assert(notice and notice:find('Natural speech needs a local voice', 1, true), tostring(notice))
 `));
 
 test('the Multilingual conversations switch is gone (2026-10-21): an Apply that still carries it is ignored, nothing moves, nothing is saved or said, on every provider and voice', () => run(`${harness()}
@@ -216,7 +223,7 @@ test('the Multilingual conversations switch is gone (2026-10-21): an Apply that 
   press('Settings'); frames(20)
   for _, provider in ipairs({'convai', 'mistral', 'local', 'custom'}) do
     for _, voice in ipairs({'pocket', 'voxtral', 'convai', 'omni'}) do
-      assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = voice}))
+      assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = voice, naturalSpeech = false}))
       local before = settings()
       local ok, err, notice = manager.applySettings(player, {multilingualConversations = true})
       assert(ok, provider .. '/' .. voice .. ': ' .. tostring(err))

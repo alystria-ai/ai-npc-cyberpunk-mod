@@ -328,14 +328,14 @@ Every voice sounds like the character, so pick by what matters to you:
 - **Fastest replies:** Mistral for the text with Pocket for the voice.
 - **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card). No account, no internet.
 - **Fully local, lightweight:** Local AI lite with Pocket, about 1.8 GB of extra video memory.
-- **Heaviest voice:** OmniVoice is the heaviest voice and starts speaking a little later.
+- **Extra expression:** OmniVoice can laugh and sigh. It is the heaviest voice and starts speaking a little later.
 
 If Local AI makes the game stutter, choose the lite model in the **Local AI model** row.
 
 | Voice | Runs on | Languages | Notes |
 |---|---|---|---|
 | **Pocket** (default) | Your processor, no video memory | English | Each character's own voice, made on your PC |
-| **OmniVoice** | Your NVIDIA graphics card (the optional OmniVoice pack) | Many | Richer |
+| **OmniVoice** | Your NVIDIA graphics card (the optional OmniVoice pack) | Many | Richer, and it can laugh and sigh |
 | **Voxtral** | Mistral's servers, with your free Mistral key | English | Each character's own voice, made in the cloud. Needs the internet, so Local AI with Voxtral is no longer offline |
 
 With Local AI the voice key still works: your speech is recognised on this computer, in English (type in other languages).

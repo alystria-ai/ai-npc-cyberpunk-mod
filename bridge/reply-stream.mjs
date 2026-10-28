@@ -6,7 +6,7 @@
 // once while the model writes the rest, and the rest (the TAIL) follows when the reply is finished.
 //
 // The head is judged on the DISPLAY text: the reply with its emotion tags ({calm}, {joy}) and voice tags ([sigh]) taken out, which
-// is the text the finished reply ends with (bridge/speech-tags.mjs). With Expressive emotions on, the model opens EVERY reply
+// is the text the finished reply ends with (bridge/natural-speech.mjs). With Expressive emotions on, the model opens EVERY reply
 // with such a tag, so a head that had to be tag-free in the raw text was never found in the game (2026-10-13 live record: no
 // streamed head in three turns). The marks of the tags inside the head are kept (`headMarks`) for the face.
 //
@@ -22,7 +22,7 @@
 // reply by construction; `reconcile` enforces it when the finished reply disagrees (a second attempt that differs: the spoken part
 // stands and the rest is dropped, so the text never contradicts the audio).
 import {cleanReply, breaksCharacter, leaksReasoning} from './mistral-prompt.mjs';
-import {displayText, parseTagged, stripSpeechTags} from './speech-tags.mjs';
+import {displayText, parseTagged, stripSpeechTags} from './natural-speech.mjs';
 import {heldFrom} from './emotion-tags.mjs';
 import {markStage} from './turn-clock.mjs';
 

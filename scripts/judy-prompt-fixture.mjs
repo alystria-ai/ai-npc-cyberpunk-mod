@@ -7,6 +7,7 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {PersonaBook, buildMessages, LIMITS, joinBlocks} from '../bridge/mistral-prompt.mjs';
 import {EMOTION_TAG_BLOCK} from '../bridge/emotion-tags.mjs';
+import {naturalSpeechContext} from '../bridge/natural-speech.mjs';
 import {conversationContextBlocks, FIRST_PERSON_REMINDER} from '../bridge/quest-context.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -77,7 +78,8 @@ export function buildPrompt() {
   const blocks = conversationContextBlocks(input).map(block => ({...block}));
   blocks.push({tier: 'world', text: KNOWLEDGE}, {tier: 'world', text: RECENCY}, {tier: 'world', text: JOBS}, {tier: 'world', text: GEAR},
     {tier: 'world', text: RELATIONSHIP});
-  blocks.push({tier: 'notes', text: EMOTION_TAG_BLOCK}, {tier: 'volatile', text: FIRST_PERSON_REMINDER});
+  blocks.push({tier: 'volatile', text: naturalSpeechContext({engine: 'omni', recent: [], profile: PROFILE, name: persona.name, trait: 'warm', language: 'en'})},
+    {tier: 'notes', text: EMOTION_TAG_BLOCK}, {tier: 'volatile', text: FIRST_PERSON_REMINDER});
   const contextParts = Object.fromEntries(['now', 'notes', 'world', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))]));
   return {persona, contextParts};
 }

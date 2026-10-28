@@ -4,8 +4,8 @@
 //
 //   routing  RelationshipRouting with the twin map and the setting on or off: provider key and Convai character ID of
 //            Judy's turn (the relationship style never changes either; checked locally, no Convai call)
-//   context  the blocks the turn's dynamic context holds (romance block per the style, Expressive
-//            emotions note for OmniVoice, the reply-language block)
+//   context  the blocks the turn's dynamic context holds (romance block per the style, Natural speech and Expressive
+//            emotions notes for OmniVoice, the reply-language block)
 //   text     RealtimeHost.reply, the bridge's realtime client page, with a throwaway end-user ID; the reply language is
 //            checked with bridge/reply-language.mjs (on: the message's language; off: English)
 //   voice    --render: the OmniVoice worker renders Judy's lines in es/ja/de/en with the language (needs the Omni pack
@@ -25,7 +25,7 @@ import {MultilingualConversations, multilingualTwins} from '../bridge/multilingu
 import {detectLanguage} from '../bridge/reply-language.mjs';
 import {RelationshipRouting} from '../bridge/relationship-routing.mjs';
 import {relationshipContext} from '../bridge/romance-context.mjs';
-import {processReply} from '../bridge/speech-tags.mjs';
+import {NaturalSpeech} from '../bridge/natural-speech.mjs';
 import {ExpressiveEmotions} from '../bridge/expressive-emotions.mjs';
 import {PlayerMemoryApi} from '../bridge/player-memory-api.mjs';
 import {ResidentVoice} from '../bridge/resident-voice.mjs';
@@ -49,12 +49,12 @@ function route(multilingual, mode) {
   routes.update({relationshipModes: {'judy-alvarez': mode}}, undefined, {boundary});
   return routes.select('judy-alvarez', boundary, {multilingual});
 }
-const emotions = new ExpressiveEmotions();
-emotions.update({expressiveEmotions: true});
+const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
+speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
 function context(selection, text, multilingual) {
   const setting = new MultilingualConversations();
   return ['Current situation: V is standing with Judy in her apartment in Kabuki, Night City. It is evening.',
-    relationshipContext(selection, 'private'),
+    relationshipContext(selection, 'private'), speech.contextFor({engine: 'omni', random: () => 0}),
     emotions.contextFor({engine: 'omni'}), setting.contextFor(text)].filter(Boolean).join('\n\n');
 }
 const cleanup = [], failures = [];
@@ -86,7 +86,7 @@ try {
       cleanup.push({profileKey: selection.providerProfileKey, characterId: selection.characterId, endUserId});
       const result = await host.reply({key, characterId: selection.characterId, endUserId, ttsEnabled: false, text,
         scope: 'check:' + language, context: context(selection, text, multilingual)});
-      const reply = processReply(result).text, replyLanguage = detectLanguage(reply).language;
+      const reply = speech.process(result).text, replyLanguage = detectLanguage(reply).language;
       const expected = multilingual ? language : 'en';
       textRows.push({case: name, character: selection.providerProfileKey, characterId: selection.characterId, sent: language,
         replyLanguage, result: check(replyLanguage === expected, `${name} ${language}`), reply});
@@ -137,7 +137,7 @@ for (const [name, multilingual, language] of [['on', true, 'es'], ['on', true, '
     await channel.beginVoice(config);
     await new Promise(done => setTimeout(done, Math.ceil(clip.seconds * 1000) + (LEAD + 6) * 1000));
     const result = await channel.finishVoice(config);
-    const reply = processReply(result).text, heard = detectLanguage(result.userText).language;
+    const reply = speech.process(result).text, heard = detectLanguage(result.userText).language;
     micRows.push({case: name, character: selection.providerProfileKey, clip: language, transcription: result.userText,
       transcriptionLanguage: heard, replyLanguage: detectLanguage(reply).language,
       result: check(heard === language && detectLanguage(reply).language === (multilingual ? language : 'en'), `mic ${name} ${language}`),

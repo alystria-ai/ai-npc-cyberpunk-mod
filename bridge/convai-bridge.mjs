@@ -14,7 +14,7 @@ import {encodeSegmentedFace} from './continuous-face-file.mjs';
 import {timelineRecord, TIMELINE_PREFIX} from './expression-timeline.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
-import {planSignal} from './emotion-analysis.mjs';
+import {planSignal, traitFor} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {createOmniPcmVoice} from './omni-pcm.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
@@ -49,7 +49,7 @@ import {VoiceLanguagePacks} from './voice-language-packs.mjs';
 import {PocketLanguageModels, PocketLanguageNotice} from './pocket-language-models.mjs';
 import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {variantSeed} from './voice-variants.mjs';
-import {processReply} from './speech-tags.mjs';
+import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {dynamicInfo} from './dynamic-info.mjs';
 import {VVoice, V_VOICE_KEYS, extraVoices, vSettingsFor} from './v-voice.mjs';
 import {MicVLines} from './mic-v-line.mjs';
@@ -834,13 +834,14 @@ const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, 
   // On by default, the game's witnessReceipts setting writes the file (docs/QUEST_DECISIONS.md 4.3); one stat per turn when it does not exist.
   witnessReceipts: witnessReceiptsReader(resolve(stateDirectory, 'witness-receipts.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync})});
 const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
+// "Natural speech": the setting, and the display text of every reply with voice tags removed (bridge/natural-speech.mjs).
+const naturalSpeech = new NaturalSpeech();
 // "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
 const expressiveEmotions = new ExpressiveEmotions();
 // Facial emotion selection (bridge/emotion-selector.mjs): player message + reply + character manner + Convai's own
 // label; `emotionSelector: "legacy"` in settings.json returns to the reply-only planner.
 const emotionSelection = new EmotionSelection();
-// The display text of every reply has its voice and emotion tags removed (bridge/speech-tags.mjs).
-const cleanReply = result => expressiveEmotions.process(processReply(result));
+const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
 // The language the conversation was last in (bridge/multilingual.mjs). Replies follow the player's language on every route; there is no setting.
 const multilingual = new MultilingualConversations();
 // Convai's twins answer a turn only on the free shared plan (a player's own key has one session and no twins) and only while Convai answers at all.
@@ -1337,9 +1338,11 @@ const preparedInputs = new WeakMap();
 const intrinsicConversationContext = createIntrinsicConversationContext({baseContext: baseConversationContext, baseBlocks: baseConversationBlocks,
   intrinsic: intrinsicHistory, resolveAdmission: input => preparedInputs.get(input),
   isCurrentSync: prepared => knowledgeRouter.currentSync(prepared), skip: input => addonContent.covers(input?.profileKey)});
+// Natural speech: the devices the CURRENT voice engine can render, for spoken replies only. Phone chat is text,
+// battle and loot reactions are short barks, and the Convai cloud voice cannot follow it (it would read tags aloud).
 // The voice of each turn (bridge/multilingual.mjs). Decided once per submitted turn, the first time it is needed, so
-// the context, the Convai TTS flag and the delivery all agree. An English turn is exactly the character's chosen
-// voice; a turn in another language never reaches Pocket (its reply is shown as text).
+// the context (tags or none), the Convai TTS flag and the delivery all agree. An English turn is exactly the character's chosen
+// voice; a turn in another language never reaches Pocket (its reply is shown as text), and a cloud-voice turn never gets tag instructions.
 const turnVoices = new Map();
 // A cloud voice with no key speaks nothing, and its turns are written (planTurnVoice 'none'): neither a local voice nor the Convai voice stands in for it.
 // `convai`: the Convai voice may speak this installation's turns, and only because the player chose it. A voice that cannot run (a local one,
@@ -1435,6 +1438,35 @@ const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && l
   language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
 const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)});
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
+// Whether the Natural speech block went into the latest context built for each turn (for the log line below).
+const naturalSpeechBlocks = new Map();
+const naturalSpeechContext = input => {
+  const prepared = preparedInputs.get(input);
+  const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
+  const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
+  const engine = turnVoice(input).engine;
+  const block = naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input)),
+    turn: input?.requestId || input?.id, trait: traitFor(input.profileKey), profile: input.profileKey,
+    name: profileFor(input, roster)?.name, language: turnVoice(input).language});
+  const id = input?.requestId || input?.id;
+  if (id) {
+    naturalSpeechBlocks.set(id, block !== '');
+    while (naturalSpeechBlocks.size > 64) naturalSpeechBlocks.delete(naturalSpeechBlocks.keys().next().value);
+  }
+  return block;
+};
+// One line per spoken reply, so Natural speech can be verified without the game: the setting, the engine that speaks,
+// whether the instructions went into this turn's context, and which devices (tags, pauses, fillers) the reply used.
+// Routing facts only, no dialogue.
+function logNaturalSpeech(input, result) {
+  try {
+    if (!naturalSpeech.enabled && !naturalSpeechBlocks.get(input?.requestId || input?.id)) return;
+    const devices = result.naturalDevices ?? [], blockSent = naturalSpeechBlocks.get(input?.requestId || input?.id);
+    console.error(`[NaturalSpeech] profile=${input.profileKey} engine=${turnVoice(input).engine} setting=${naturalSpeech.enabled ? 'on' : 'off'} `
+      + `block=${blockSent ? 'sent' : 'none'} offered=${blockSent ? 'yes' : 'no'} reason=${naturalSpeech.reasonFor(input?.requestId || input?.id) ?? 'not-spoken'} devices=${devices.length ? devices.join(',') : '-'}`
+      + `${result.speechText ? ' voiced-tags=yes' : ''}${input.reaction ? ' reaction=yes' : ''}`);
+  } catch { /* a log line never affects a reply */ }
+}
 // Expressive emotions: spoken turns on a local voice, battle and loot barks included (they have a face). Not phone chat.
 const expressiveEmotionsContext = input => {
   const prepared = preparedInputs.get(input);
@@ -1600,14 +1632,15 @@ const conversationBlocks = input => {
     block('volatile', admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : ''),
     // The player's world rules (bridge/world-rules.mjs): Convai's characters live on Convai's side and cannot be edited, so the rules reach them in the
     // dynamic info this context is (realtime-client.mjs updateContext sends it, replacing the last one, every turn), after all the game's facts in it (world,
-    // relationship, phone recap), at most 2,000 characters of the player's words. The voice and style notes after them (Expressive
+    // relationship, phone recap), at most 2,000 characters of the player's words. The voice and style notes after them (Natural speech, Expressive
     // emotions, the first-person reminder, the reply language) keep the places that were measured for them. The tier is one no text-provider layout reads
     // (contextPartsOf): those carry the rules in the persona.
     // The content packs' world rules (API 1.1) follow the player's, kept to a size (bridge/addon-content.mjs convaiWorldRulesText); the pack's switch in the game's settings removes them.
     ...convaiWorldRulesBlocks(addonContent.convaiWorldRulesText(worldRules.get()), mistral.active),
-    // The Expressive emotion notes are the same every turn for a given setting. The one-sentence first-person reminder goes after
-    // the voice block, which pulls a reply away from the base rule (docs/FIRST_PERSON_RULE.md).
-    block('notes', expressiveEmotionsContext(input)),
+    // The one-sentence first-person reminder goes after the voice blocks, which pull a reply away from the base rule (docs/FIRST_PERSON_RULE.md).
+    // The Natural speech offer changes from turn to turn (it is dice and a place), so it is volatile; the Expressive emotion
+    // notes are the same every turn for a given setting.
+    block('volatile', naturalSpeechContext(input)), block('notes', expressiveEmotionsContext(input)),
     block('volatile', firstPersonReminder(input)),
     // The reply language, last so it outweighs the English notes above: the player's own language on every route (nothing in an English conversation; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md). An appointment event (the character texting first) has the mod's English trigger as its text, which says nothing of the player's language: the last turns do.
     block('volatile', multilingual.contextFor(input.reaction || input.event ? '' : input.text, input.reaction ? null : speechLanguage.evidence?.language))];
@@ -1963,6 +1996,7 @@ function mergeFinishedReply(spoken, final, streamed) {
     ...(final?.speechText !== undefined ? {speechText: final.speechText} : {}),
     ...(final?.emotionMarks !== undefined ? {emotionMarks: final.emotionMarks} : {}),
     ...(final?.voiceMarks !== undefined ? {voiceMarks: final.voiceMarks} : {}),
+    ...(final?.naturalDevices !== undefined ? {naturalDevices: final.naturalDevices} : {}),
     timing: {...final?.timing, ...spoken.timing}};
 }
 
@@ -2117,6 +2151,8 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
 // phrases into the PCM packets deliverPocketSpeech feeds the renderer and the streaming face model. Per reply (it knows the reply's
 // voice-tagged text, language and capture); nothing is held between replies. `capture` is read when a phrase arrives (Developer mode).
 function omniVoiceFor({input, result, streamed, language, capture}) {
+  const tagged = (phrases, raw) => naturalSpeech.enabled && typeof raw === 'string' ? speechPhrases(phrases, raw, omniTagsFor(language)) : undefined;
+  let headPhrases = [];
   const voice = createOmniPcmVoice({
     steps: () => localVoice.steps,
     // The AMD route (ROCm, the player's own Python) asks once more for a phrase that failed instead of ending the reply there (docs/OMNIVOICE_AMD.md); NVIDIA is unchanged.
@@ -2128,6 +2164,16 @@ function omniVoiceFor({input, result, streamed, language, capture}) {
       const generated = await localVoice.synthesize(key, text, options);
       if (generated.timing?.voiceLanguageReference === 'fallback') capture()?.note({referenceUsed: 'english-fallback'});
       return generated;
+    },
+    // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase. A reply voiced while it
+    // is still written has them for its rest only (the finished reply's tagged text), never for its first sentence.
+    voicedPhrases: (phrases, {role}) => {
+      if (role === 'tail') {
+        const all = tagged([...headPhrases, ...phrases], streamed?.stream?.meta?.speechText);
+        return all?.slice(headPhrases.length);
+      }
+      headPhrases = phrases;
+      return streamed ? undefined : tagged(phrases, result.speechText);
     }});
   // The count keeps memory maintenance and a held look-ahead turn off the worker while this reply still has phrases to render.
   return {synthesizeStream: async (key, text, options) => {
@@ -2314,7 +2360,7 @@ async function voiceStreamedReply(input, profile, {signal, current, stream, fina
   const said = userText();
   const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
     ...(said ? {userText: said} : {}),
-    ...(headMarks.length ? {emotionMarks: headMarks} : {})};
+    ...(headMarks.length ? {emotionMarks: headMarks} : {}), ...(naturalSpeech.enabled && stream.headSounds.length ? {voiceMarks: stream.headSounds} : {})};
   return synthesizeReply(input, partial, signal, current, profile, receiptPrepared, {stream, final, marks, signal, ...(convaiLate ? {convaiLate} : {})});
 }
 
@@ -2376,6 +2422,7 @@ async function publishResult(input, profile, result, current = async () => true,
   // The language of this exchange predicts the next turn without text (reactions, warm connections).
   // Only a turn the player had a hand in sets the conversation's language: the reply to a reaction (a bark) is short and may be in any language.
   if (!input.reaction) multilingual.observeTurn(input.text, result.text, speechLanguage.evidence?.language ?? null);
+  logNaturalSpeech(input, result);
   // The reply is published, so this character has been told V's gear as of this turn: the next turn is compared against it and says what changed (bridge/gear-memory.mjs).
   // Not for an automatic reaction (it carries no gear), a voice with no body, or while Settings > Dynamic info has V's gear off (none of it was told).
   const gearTold = () => { try { if (!input.reaction && !voice && dynamicInfo.on('gear')) gearSeen(input, gearMemory, {visible: isAmbientProfile(input.profileKey)}); } catch { /* a memory never affects a reply */ } };
@@ -3891,8 +3938,8 @@ async function pollSettings(checkShutdown = true) {
     void pocketLanguages.refresh().catch(() => {});
     // Developer mode: the last reply's audio and reference are kept (bridge/last-reply-capture.mjs).
     if (replyCapture.update(settings)) console.error(`[Debug] keeping the last spoken reply is now ${replyCapture.enabled ? 'on' : 'off'}`);
-    // A prepared reply was written under the previous Expressive emotions instructions.
-    const emotionsChanged = expressiveEmotions.update(settings);
+    // A prepared reply was written under the previous Natural speech instructions.
+    const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     // Settings > Dynamic info: the kinds of live game info the context may carry (bridge/dynamic-info.mjs); read by every provider's context builder.
     const dynamicInfoChanged = dynamicInfo.update(settings);
     if (dynamicInfoChanged) console.error(`[DynamicInfo] ${dynamicInfo.describe()}`);
@@ -3912,10 +3959,11 @@ async function pollSettings(checkShutdown = true) {
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
     await publishLocalModelList();
+    if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
     // A reply prepared ahead was written with the old Dynamic info (a place the player just turned off): it is not used.
-    if (emotionsChanged || dynamicInfoChanged) { dropPrefetch(); prefetchObserved = ''; }
+    if (speechChanged || emotionsChanged || dynamicInfoChanged) { dropPrefetch(); prefetchObserved = ''; }
     if (matureChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();

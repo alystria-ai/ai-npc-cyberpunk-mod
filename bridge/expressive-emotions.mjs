@@ -3,7 +3,7 @@
 // Without marks a local voice's face follows our text-based expression plan (bridge/emotion-analysis.mjs). Each spoken turn's dynamic context asks the character to mark where its feeling changes, inline, with a small
 // fixed set of curly-brace tags that map onto the mod's own emotion families. Everything after that reuses the
 // pipeline that already exists:
-//   - the tags are removed where the reply leaves Convai (bridge/speech-tags.mjs `parseTagged`), so subtitles,
+//   - the tags are removed where the reply leaves Convai (bridge/natural-speech.mjs `parseTagged`), so subtitles,
 //     phone chat, memory and every engine's input never see one; only their character offsets in the clean text
 //     stay behind as `emotionMarks`;
 //   - emotion-analysis.mjs turns those marks into a plan whose segment boundaries are the marks, and the existing
@@ -60,6 +60,6 @@ export class ExpressiveEmotions {
   contextFor({engine, spoken = true} = {}) {
     return this.active && spoken && (engine === 'omni' || engine === 'pocket') ? EXPRESSIVE_TEXT : '';
   }
-  /** A finished reply (already cleaned by processReply in bridge/speech-tags.mjs): its marks are always kept. */
+  /** A finished reply (already cleaned by NaturalSpeech.process): its marks are always kept. */
   process(result) { return result; }
 }

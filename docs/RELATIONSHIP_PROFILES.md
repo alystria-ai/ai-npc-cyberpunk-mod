@@ -69,7 +69,7 @@ plainly and in her ordinary voice. Neither option writes game facts.
 turn was admitted (`relationshipContext(selection, channel, options)`). It is pure:
 no I/O, no state, no request of its own, and no per-frame work anywhere. It fills
 the same slot in the per-turn dynamic context that the old relationship note did,
-after vendor memory and before the phone and
+after vendor memory and before the phone, natural-speech and
 multilingual blocks, so it adds no request, timer or Lua code.
 
 | Style | What the turn gets | Size |

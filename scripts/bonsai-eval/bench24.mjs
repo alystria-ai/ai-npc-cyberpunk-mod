@@ -14,7 +14,7 @@ const imp = rel => import(pathToFileURL(resolve(project, rel)).href);
 const {parseInput, archetypeContext} = await imp('bridge/protocol.mjs');
 const {conversationContext, withConversationKnowledge, firstPersonReminder} = await imp('bridge/quest-context.mjs');
 const {turnContext} = await imp('bridge/turn-context.mjs');
-const {stripSpeechTags} = await imp('bridge/speech-tags.mjs');
+const {NaturalSpeech, stripSpeechTags} = await imp('bridge/natural-speech.mjs');
 const {ExpressiveEmotions} = await imp('bridge/expressive-emotions.mjs');
 const {hasEmotionTag} = await imp('bridge/emotion-tags.mjs');
 const P = await imp('bridge/mistral-prompt.mjs');
@@ -89,7 +89,9 @@ function inputFor(s, text, battleFact) {
   return withConversationKnowledge(input, {knowledgeContext: WORLD, generation: 1, worldToken: 'sample'});
 }
 const formatNotes = () => {
-  return [new ExpressiveEmotions().contextFor({engine: 'pocket', spoken: true})].filter(Boolean).join('\n\n');
+  const natural = new NaturalSpeech(); natural.update({naturalSpeech: true});
+  return [natural.contextFor({engine: 'pocket', spoken: true, turn: 't0', trait: 'warm', profile: 'p', name: 'p', random: () => 0}),
+    new ExpressiveEmotions().contextFor({engine: 'pocket', spoken: true})].filter(Boolean).join('\n\n');
 };
 const NOTES = formatNotes();
 

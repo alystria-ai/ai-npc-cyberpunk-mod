@@ -266,7 +266,7 @@ end
 -- native layout budget; short sentences and commas do not force a new page.
 -- Preserve UTF-8 even in CJK text without spaces or unusually long words.
 local function clean(text)
-    -- A voice tag such as [laughter] is for the voice engine, never for the reader. The bridge
+    -- Natural speech: a voice tag such as [laughter] is for the voice engine, never for the reader. The bridge
     -- already removes them; this keeps one that slipped through off the screen.
     text = text:gsub('%s*%[%a[%a%-]*%]', '')
     -- Expressive emotions: {joy}, {anger:strong} and the other feeling tags are for the face, never for the reader.

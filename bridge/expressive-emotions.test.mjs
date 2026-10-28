@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {processReply, EMOTION_NAMES, parseTagged, stripSpeechTags, keepSpeechTags, displayText, hasSpeechTags,
-  hasEmotionTags, OMNI_TAGS} from './speech-tags.mjs';
+import {NaturalSpeech, EMOTION_NAMES, parseTagged, stripSpeechTags, keepSpeechTags, displayText, hasSpeechTags,
+  hasEmotionTags, speechPhrases, OMNI_TAGS} from './natural-speech.mjs';
 import {ExpressiveEmotions, EXPRESSIVE_TEXT, EMOTION_FAMILY, MARK_WEIGHT, plannedMarks} from './expressive-emotions.mjs';
 import {analyseReply, createPlanner, planSignal, FAMILIES} from './emotion-analysis.mjs';
 import {attachExpressionTrack, sampleTrack, alignSegments, findPauses, speechActivity} from './expression-timeline.mjs';
@@ -31,6 +31,16 @@ test('Expressive emotions is always on: a saved expressiveEmotions key, false in
   assert.equal(emotions.process(plain), plain);
   const source = readFileSync(new URL('./expressive-emotions.mjs', import.meta.url), 'utf8');
   assert.ok(!/settings\.expressiveEmotions/.test(source), 'the bridge does not read the key');
+});
+
+test('it is independent of Natural speech, which reads its own setting', () => {
+  const emotions = new ExpressiveEmotions(), speech = new NaturalSpeech();
+  assert.equal(speech.update({expressiveEmotions: true}), false, 'Natural speech does not read this key');
+  assert.equal(speech.enabled, false);
+  assert.equal(speech.update({naturalSpeech: true}), true);
+  assert.equal(emotions.active, true);
+  assert.equal(speech.update({naturalSpeech: false}), true);
+  assert.equal(emotions.active, true);
 });
 
 // ---- the dynamic context --------------------------------------------------------------------------------------
@@ -108,29 +118,35 @@ test('stripSpeechTags removes emotion tags everywhere text is shown, stored or s
 });
 
 test('a reply from Convai: clean text for subtitles, memory and history, voice tags for Omni, marks for the face', () => {
-  const result = processReply({text: RAW, sessionID: 's1', timing: {}});
+  const speech = new NaturalSpeech();
+  const result = speech.process({text: RAW, sessionID: 's1', timing: {}});
   assert.equal(result.text, 'Hey V, you made it. But Jackie is gone, and I miss him. Let us go and celebrate.');
   assert.equal(result.speechText, 'Hey V, [sigh] you made it. But Jackie is gone, and I miss him. Let us go and celebrate.');
   assert.equal(result.emotionMarks.length, 4);
   assert.ok(!/[{}]/.test(result.text) && !/[{}]/.test(result.speechText), 'no emotion tag reaches a voice');
   // Emotion tags alone: no speechText (nothing for a voice to add), marks kept.
-  const only = processReply({text: '{joy} Hello there, V.', sessionID: 's2'});
+  const only = speech.process({text: '{joy} Hello there, V.', sessionID: 's2'});
   assert.equal(only.text, 'Hello there, V.');
   assert.equal(only.speechText, undefined);
   assert.deepEqual(only.emotionMarks, [{at: 0, name: 'joy', strength: 'subtle'}]);
   // A reply that is only a tag is left whole rather than sent on empty.
   const alone = {text: '{joy}', sessionID: 's3'};
-  assert.equal(processReply(alone), alone);
+  assert.equal(speech.process(alone), alone);
+  // The devices note counts voice tags and pauses, never an emotion tag.
+  speech.update({naturalSpeech: true});
+  speech.process({text: '{joy} [laughter] Well... fine.', sessionID: 's4'});
+  assert.deepEqual(speech.last.get('s4').sort(), ['ellipsis', 'laughter']);
 });
 
-test('keepSpeechTags still lines up with the display text when both kinds of tag are present', () => {
+test('Omni phrases still line up with the voiced text when both kinds of tag are present', () => {
   const raw = '{interest} Hey V, [sigh] I have been thinking about what happened last night. {sadness} We could head down to the market together, pick up some food [laughter] and talk about the next job. That sounds good to me.';
-  const display = stripSpeechTags(raw);
-  const voiced = keepSpeechTags(raw, OMNI_TAGS);
-  assert.equal(stripSpeechTags(voiced), display);
-  assert.ok(!/[{}]/.test(voiced));
-  assert.match(voiced, /^Hey V, \[sigh\] I have/);
-  assert.equal(keepSpeechTags('{joy} ' + display, OMNI_TAGS), display, 'emotion tags alone give Omni nothing to add');
+  const display = stripSpeechTags(raw), phrases = splitSpeechText(display);
+  const voiced = speechPhrases(phrases, raw, OMNI_TAGS);
+  assert.equal(voiced.length, phrases.length);
+  assert.equal(stripSpeechTags(voiced.join(' ')), display);
+  assert.ok(!/[{}]/.test(voiced.join(' ')));
+  assert.match(voiced[0], /\[sigh\]/);
+  assert.equal(speechPhrases(phrases, '{joy} ' + display, OMNI_TAGS), undefined, 'emotion tags alone give Omni nothing to add');
 });
 
 // ---- the plan: marks become segment boundaries -----------------------------------------------------------------
@@ -274,12 +290,12 @@ test('Pocket: the planner reads the marks the growing stream has reached and ali
 
 // ---- the bridge wires it in the right places -----------------------------------------------------------------------
 
-test('the bridge cleans every reply, adds the block, and hands the marks to the planners', () => {
+test('the bridge cleans every reply, adds the block after Natural speech, and hands the marks to the planners', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{ExpressiveEmotions\} from '\.\/expressive-emotions\.mjs'/);
-  assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(processReply\(result\)\)/);
+  assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 4, 'conversation, phone, Mistral and add-on speaker hosts');
-  assert.match(bridge, /block\('notes', expressiveEmotionsContext\(input\)\),/);
+  assert.match(bridge, /naturalSpeechContext\(input\)\), block\('notes', expressiveEmotionsContext\(input\)\),/);
   assert.match(bridge, /expressiveEmotions\.contextFor\(\{engine, spoken: !phone && localVoice\.playbackEnabled !== false\}\)/);
   // OmniVoice and Pocket share one continuous speech and one planner (bridge/emotion-selector.mjs), which gets the marks.
   assert.equal(bridge.match(/marks: result\.emotionMarks/g).length, 1, 'the reply plan');

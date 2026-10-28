@@ -35,7 +35,8 @@ Portuguese, Italian, Dutch, German, Hindi, Arabic) and is the list used while it
 handed to the Convai voice or its multilingual twin's voice (`planTurnVoice`, `replyVoice`; owner rule 2026-10-21). An English conversation
 keeps the chosen voice untouched. No voice is moved or refused for the language of a reply (the Multilingual conversations switch was removed on 2026-10-21; the
 language is detected per message). See docs/MISTRAL.md, "Voxtral 3".
-Expressive emotions stay available: the voice uses Pocket's route, whose tag handling it keeps. Voxtral is not used with Mature content (since 2026-10-20, after Voxtral refused Mature lines in a live test): turning it on moves the voices to Pocket, turning it off puts Voxtral back. V's own Voxtral engine is a choice of the "V's voice for typed lines" list (docs/V_VOICE.md).
+Natural speech and Expressive emotions stay available: the voice uses Pocket's route, whose tag handling it keeps (Natural speech is
+limited to pauses, as with Pocket). Voxtral is not used with Mature content (since 2026-10-20, after Voxtral refused Mature lines in a live test): turning it on moves the voices to Pocket, turning it off puts Voxtral back. V's own Voxtral engine is a choice of the "V's voice for typed lines" list (docs/V_VOICE.md).
 
 ## How it speaks
 
@@ -391,8 +392,8 @@ scheduler is paused or slowed.
 ## Limits
 
 - The languages of the model in use (see above); the face and lip sync follow the audio, so a different voice speed is handled by the same packets.
-- The audio style comes from the reference clip (Voxtral has no tags or style field), so
-  Expressive emotions use the usual text-based expression.
+- The audio style comes from the reference clip (Voxtral has no tags or style field), so Natural speech is limited to pauses
+  and Expressive emotions use the usual text-based expression.
 - A reply is one voice from start to end; nothing is cross-faded. A reply whose rest the cloud could not deliver (after two asks)
   ends after its first part, in the cloud voice.
 - The routing log (`runtime/bridge.stderr.log`, `[VoiceRouting]`) names, under `ref=`, the reference Voxtral clones from (long set, else

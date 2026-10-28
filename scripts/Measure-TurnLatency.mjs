@@ -20,11 +20,11 @@ import {resolve, dirname} from 'node:path';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const load = path => import(pathToFileURL(resolve(root, path)).href);
 const [{TextProviderHost, mistralRoute}, {MistralMemory}, {MistralProvider}, {PersonaBook}, {RealtimeHost}, {deliverPocketSpeech},
-  {ReplyStream}, {TurnClock, withClock}, {ConvaiContinuousSpeech}, {ownedPocketFace}, {hasEmotionTag}, {processReply}, {ExpressiveEmotions}, {MicrophoneSession}, {createLocalSttChannel}, {startVoiceKeyStream}] = await Promise.all([
+  {ReplyStream}, {TurnClock, withClock}, {ConvaiContinuousSpeech}, {ownedPocketFace}, {hasEmotionTag}, {NaturalSpeech}, {ExpressiveEmotions}, {MicrophoneSession}, {createLocalSttChannel}, {startVoiceKeyStream}] = await Promise.all([
   load('bridge/text-provider-host.mjs'), load('bridge/mistral-memory.mjs'), load('bridge/mistral-key.mjs'),
   load('bridge/mistral-prompt.mjs'), load('bridge/realtime-host.mjs'), load('bridge/pocket-speech.mjs'), load('bridge/reply-stream.mjs'),
   load('bridge/turn-clock.mjs'), load('bridge/convai-continuous-speech.mjs'), load('bridge/pocket-facial-stream.mjs'),
-  load('bridge/emotion-tags.mjs'), load('bridge/speech-tags.mjs'), load('bridge/expressive-emotions.mjs'),
+  load('bridge/emotion-tags.mjs'), load('bridge/natural-speech.mjs'), load('bridge/expressive-emotions.mjs'),
   load('bridge/microphone-session.mjs'), load('bridge/local-stt-capture.mjs'), load('bridge/voice-key-stream.mjs')]);
 
 const args = process.argv.slice(2);
@@ -130,8 +130,8 @@ async function oneTurn({host, stream, model, voice, reply, chatDefaults, mic}) {
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => 'api-key=aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL\n', writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
   const memory = await MistralMemory.open({path: null});
-  const expressive = new ExpressiveEmotions();
-  const text = new TextProviderHost({provider, memory, personas: book, transformReply: result => expressive.process(processReply(result)), routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'bench', ...(chatDefaults ? {chatDefaults} : {})})}, log: () => {}});
+  const naturalSpeech = new NaturalSpeech(), expressive = new ExpressiveEmotions();
+  const text = new TextProviderHost({provider, memory, personas: book, transformReply: result => expressive.process(naturalSpeech.process(result)), routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, cacheScope: 'bench', ...(chatDefaults ? {chatDefaults} : {})})}, log: () => {}});
   const input = {requestId: 'bench-turn', entity: '17ULL', generation: 1, profileKey: 'judy-alvarez'};
   const profile = {key: input.profileKey, name: 'Judy Alvarez'};
   const clock = new TurnClock({origin: performance.timeOrigin + performance.now()});
