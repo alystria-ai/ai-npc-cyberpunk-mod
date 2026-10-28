@@ -325,9 +325,17 @@ async function buildNative(source) {
 }
 
 
-async function installPython(spec, lockFile, target, pthExtra) {
+// unzipStdlib: the standard library ships as plain files in Lib/ instead of the embeddable package's python3XX.zip. Nexus Mods
+// quarantines an upload that carries a zip inside the zip (0.3.4: the Full zip was held twice, a test upload of python312.zip alone
+// was held and the same files unzipped passed), and a sourceless .pyc in a path folder imports the same way as from the zip.
+async function installPython(spec, lockFile, target, pthExtra, {unzipStdlib = false} = {}) {
   const zip = await download(spec.url, resolve(cache, 'downloads', basename(spec.url)), spec.sha256, log);
   await extractZip(zip, target);
+  const stdlibZip = 'python' + spec.version.split('.').slice(0, 2).join('') + '.zip';
+  if (unzipStdlib) {
+    await extractZip(resolve(target, stdlibZip), resolve(target, 'Lib'));
+    await rm(resolve(target, stdlibZip));
+  }
   const sitePackages = resolve(target, 'Lib/site-packages');
   log(`Installing ${basename(lockFile)} into ${posix(relative(out, target))} (hash-locked wheels, no dependency resolution).`);
   await run(hostPython, ['-m', 'pip', 'install', '--no-deps', '--require-hashes', '--only-binary=:all:', '--no-compile',
@@ -336,12 +344,13 @@ async function installPython(spec, lockFile, target, pthExtra) {
     '--target', sitePackages, '--cache-dir', resolve(cache, 'pip'), '-r', lockFile], {quiet: true});
   // pip's generated console-script launchers are not part of any upstream wheel and are never used.
   await rm(resolve(sitePackages, 'bin'), {recursive: true, force: true});
-  const pth = ['python' + spec.version.split('.').slice(0, 2).join('') + '.zip', '.', 'Lib\\site-packages', ...pthExtra, 'import site', ''];
+  const pth = [unzipStdlib ? 'Lib' : stdlibZip, '.','Lib\\site-packages', ...pthExtra, 'import site', ''];
   await writeFile(resolve(target, spec.pth), pth.join('\r\n'));
 }
 
 // Files a Python worker never loads at run time: C/C++ headers, link libraries, CMake files, caches.
-const PYTHON_SKIP = rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel) || /\.pyc$/.test(rel)
+// A .pyc outside site-packages is the unzipped standard library itself (sourceless, see installPython), so it is kept.
+const PYTHON_SKIP = rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel) || /^Lib\/site-packages\/.*\.pyc$/.test(rel)
   || /^Lib\/site-packages\/torch\/(?:include|share)\//.test(rel) || /^Lib\/site-packages\/torch\/lib\/[^/]+\.lib$/i.test(rel)
   // Build tools inside wheels: setuptools' script-launcher stubs and PyTorch's protobuf compiler.
   || /^Lib\/site-packages\/setuptools\/(?:cli|gui)[^/]*\.exe$/i.test(rel) || /^Lib\/site-packages\/torch\/bin\/[^/]+\.exe$/i.test(rel);
@@ -519,7 +528,7 @@ async function runtimePackage(source, config, models, auth) {
 
   // Python for the Pocket voice worker.
   const pythonDir = resolve(stage, 'python');
-  await installPython(tool.python, resolve(source.root, tool.python.lock), pythonDir, ['..\\bridge']);
+  await installPython(tool.python, resolve(source.root, tool.python.lock), pythonDir, ['..\\bridge'], {unzipStdlib: true});
   // Besides PYTHON_SKIP, the Runtime leaves out what nothing loads (packaging/lib/runtime-prune.mjs): the sherpa-onnx wheel's second DLL copy, torch/bin's
   // duplicates and the packages' own tests folders.
   await pkg.tree(`${app}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || pythonPruned(rel)});
