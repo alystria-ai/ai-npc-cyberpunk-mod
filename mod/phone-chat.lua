@@ -2,6 +2,8 @@
 -- single-player policy retains local transcripts across saves; world/generation
 -- guards still prevent a delayed reply from crossing a load or memory reset.
 local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}, names = {}, groups = {}}
+-- Favorites (mod/favorites.lua) are read through its global, so no function here gains an upvalue.
+pcall(dofile, 'favorites.lua')
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
 local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
@@ -579,6 +581,24 @@ function M.startEvent(player, entry)
     return false
 end
 
+-- Tells the game which Chat contacts are favorites (the characters starred in Characters to invite), when the favorites changed since the last
+-- time. The contact id maps to its profile key through the catalog. Older scripts without the methods are skipped (asked once).
+function M.pushFavorites(player)
+    local favorites = convaiFavorites
+    if type(favorites) ~= 'table' or M.favoritesMissing then return end
+    local revision = favorites.revision()
+    if M.favoritesSeen == revision then return end
+    local ok = pcall(function()
+        player:ConvaiPhoneChatClearFavorites(favorites.MARK)
+        if favorites.count('characters') > 0 then
+            for id, key in pairs(M.catalog) do
+                if favorites.isFavorite('characters', key) then player:ConvaiPhoneChatAddFavorite(id) end
+            end
+        end
+    end)
+    if ok then M.favoritesSeen = revision else M.favoritesMissing = true end
+end
+
 function M.update(player, delta)
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
@@ -649,7 +669,11 @@ function M.update(player, delta)
             for id in pairs(M.catalog) do player:ConvaiPhoneChatRegisterContact(id, M.names[id] or '') end
         end
         M.registered = true
+        M.favoritesSeen = nil
     end
+    -- Favorites first on the Chat list (mod/favorites.lua): the game gets the favorite contact ids when they change (one number compared on this
+    -- tick), and the list puts them first when it is built (PhoneChatTabs.reds), so there is no work while the list is open.
+    M.pushFavorites(player)
     contact = tostring(contact or '')
     -- One evidence hook per typing session, on its rising edge. The native read is
     -- made only while a phone chat is open, on this 10 Hz tick.

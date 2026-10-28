@@ -11,6 +11,24 @@ public enum ConvaiPhoneChatState {
 
 @addField(ContactData)
 public let convaiChat: Bool;
+// The name without the favorite mark: the chat page and its title use this one (localizedName carries the mark on the list).
+@addField(ContactData)
+public let convaiPlainName: String;
+// A favorite Chat row: the list's sort puts these before the others (SortItem below), whatever the names compare like.
+@addField(ContactData)
+public let convaiFavorite: Bool;
+
+// The Chat tab's order, explicitly: favorites first, then the game's own order (by name) inside each group. The game sorts when the list is
+// filled, that is when the tab opens, so this runs then and never per frame. Rows that are not Chat rows are compared by the game alone.
+@wrapMethod(DialerContactDataView)
+public func SortItem(left: ref<IScriptable>, right: ref<IScriptable>) -> Bool {
+    let first = left as ContactData;
+    let second = right as ContactData;
+    if IsDefined(first) && IsDefined(second) && first.convaiChat && second.convaiChat && NotEquals(first.convaiFavorite, second.convaiFavorite) {
+        return first.convaiFavorite;
+    };
+    return wrappedMethod(left, right);
+}
 @addField(JournalNotificationData)
 public let convaiChat: Bool;
 @addField(JournalNotificationData)
@@ -138,7 +156,9 @@ private final func ConvaiShowChatContacts() -> Void {
             row.id = contact.GetId();
             row.contactId = row.id;
             row.hash = this.m_journalMgr.GetEntryHash(contact);
-            row.localizedName = contact.GetLocalizedName(this.m_journalMgr);
+            row.convaiPlainName = contact.GetLocalizedName(this.m_journalMgr);
+            row.convaiFavorite = this.m_player.ConvaiPhoneChatIsFavorite(row.id);
+            row.localizedName = this.m_player.ConvaiPhoneChatListName(row.id, row.convaiPlainName);
             row.avatarID = contact.GetAvatarID(this.m_journalMgr);
             // This is a display row. Activation below always opens AI chat.
             row.isCallable = true;
@@ -158,7 +178,9 @@ private final func ConvaiShowChatContacts() -> Void {
             row.id = id;
             row.contactId = id;
             row.hash = 0;
-            row.localizedName = name;
+            row.convaiPlainName = name;
+            row.convaiFavorite = this.m_player.ConvaiPhoneChatIsFavorite(id);
+            row.localizedName = this.m_player.ConvaiPhoneChatListName(id, name);
             row.isCallable = true;
             ArrayPush(contacts, row);
         };
@@ -299,12 +321,13 @@ private final func ConvaiOpenChat(contact: wref<ContactData>, opt fromKey: Bool)
     data.convaiChatGeneration = this.m_convaiChatGeneration;
     if contact.hash != 0 { data.journalEntry = this.m_journalMgr.GetEntry(Cast<Uint32>(contact.hash)); };
     data.convaiChatId = contact.id;
-    data.convaiChatName = contact.localizedName;
+    let plain = StrLen(contact.convaiPlainName) > 0 ? contact.convaiPlainName : contact.localizedName;
+    data.convaiChatName = plain;
     data.type = MessengerContactType.SingleThread;
     data.mode = JournalNotificationMode.HUD;
     data.openedFromPhone = true;
     data.source = PhoneScreenType.Contacts;
-    data.contactNameLocKey = StringToName(contact.localizedName);
+    data.contactNameLocKey = StringToName(plain);
     if this.m_messagesPanelSpawned {
         let refresh = new RefreshSmsMessagerEvent();
         refresh.m_data = data;

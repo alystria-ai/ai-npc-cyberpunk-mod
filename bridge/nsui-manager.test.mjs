@@ -110,7 +110,7 @@ test('a long list is one page of rows: the page slider turns it, only the rows b
   assert(ns.find('Johnny Silverhand') and invites() == 12)
   -- A page of rows never creates more widgets than the page: at most 12 list rows + 2 controls + 1 way back.
   local widgets = #ns.screen.children
-  assert(widgets <= 1 + 1 + 1 + 1 + 2 + 12, 'widgets on screen: ' .. widgets)
+  assert(widgets <= 1 + 1 + 1 + 1 + 1 + 2 + 12, 'widgets on screen: ' .. widgets)
   -- Going away and coming back starts on the first page of the list.
   press('Back to Companion Manager'); press('Characters to invite')
   assert(ns.find('Page').currentValue == 1)
@@ -124,7 +124,7 @@ test('the model browser reads the scan first, then a letter group and a page of 
   assert(ns.find('Starts with') and ns.find('Starts with').type == 'selectorString' and ns.find('Starts with').elements[1] == 'All')
   assert(ns.find('Page').max == 500, 'twelve models a page over 6000 models')
   local before = #ns.screen.children
-  assert(before <= 1 + 1 + 1 + 1 + 1 + 1 + 12 + 1, 'widgets on screen: ' .. before)
+  assert(before <= 1 + 1 + 1 + 1 + 1 + 1 + 1 + 12 + 1, 'widgets on screen: ' .. before)
   -- One row's button changes (an invite is made): only that row is replaced, in its place.
   local first
   for _, option in ipairs(ns.sections()[2].options) do if option.buttonText == 'Invite' then first = option; break end end

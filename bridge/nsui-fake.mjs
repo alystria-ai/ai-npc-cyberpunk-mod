@@ -408,6 +408,19 @@ export const nativeSettingsFake = String.raw`
     shown(option); assert(option.type == 'button')
     option.callback()
   end
+  -- NSUI's own lookup of the option a controller belongs to (nativeSettings.getOptionTable), and the game's hover event of the
+  -- Settings screen: the pointer (or the gamepad highlight) moves onto the row of an option.
+  function ns.getOptionTable(controller)
+    for _, option in pairs(allOptions()) do
+      if option.controller ~= nil and option.controller == controller then return option end
+    end
+    return nil
+  end
+  function ns.interact.hover(option)
+    shown(option)
+    local event = {GetCurrentTarget = function() return {GetController = function() return option.controller end} end}
+    fire('SettingsMainGameController.OnSettingHoverOver', ns.settingsController, event)
+  end
   -- "Restore defaults" as NSUI's override does it: the tab's callback, and when it does not take over, every default.
   function ns.interact.restoreDefaults()
     local tab = ns.data[ns.currentTab]

@@ -154,6 +154,24 @@ public final func ConvaiPhoneChatContactName(contact: String) -> String {
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatHasContact(contact: String) -> Bool { return ArrayContains(this.m_convaiChatContacts, contact); }
 
+// The favorite contacts (the characters starred in Characters to invite): the Chat list puts them first and starts their name with the
+// mark. Set from Lua when the favorites change; read only when the list is built.
+@addField(PlayerPuppet)
+private let m_convaiChatFavorites: array<String>;
+@addField(PlayerPuppet)
+private let m_convaiChatFavoriteMark: String;
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatClearFavorites(mark: String) -> Void { ArrayClear(this.m_convaiChatFavorites); this.m_convaiChatFavoriteMark = mark; }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatAddFavorite(contact: String) -> Void { ArrayPush(this.m_convaiChatFavorites, contact); }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatIsFavorite(contact: String) -> Bool { return ArrayContains(this.m_convaiChatFavorites, contact); }
+// The name as the Chat list shows it: a favorite's name starts with the mark, so the list's own sort by name puts it first.
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatListName(contact: String, name: String) -> String {
+    return ArrayContains(this.m_convaiChatFavorites, contact) ? this.m_convaiChatFavoriteMark + name : name;
+}
+
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatContact() -> String {
     return IsDefined(this.m_convaiChatView) ? this.m_convaiChatView.ConvaiChatContact() : "";
