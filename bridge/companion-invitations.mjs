@@ -38,7 +38,7 @@ const PREPARATION_CODES = new Set(['CANCELLED', 'TIMEOUT', 'DISABLED', 'NOT_MOD_
   'NETWORK_ERROR', 'RESPONSE_TOO_LARGE', 'ENABLE_UNVERIFIED', 'MEMORY_UNAVAILABLE',
   'STALE_TURN', 'MEMORY_CLEAR_PENDING', 'CLOSED', 'STORAGE_FAILURE', 'REGISTRY_CHANGED',
   'IDENTITY_CHANGED', 'INVITATION_CONNECTION_REPLACED', 'SIGNIN_RATE', 'SIGNIN_BUSY', 'SIGNIN_PAUSED', 'SIGNIN_DAILY',
-  'SIGNIN_OUTDATED', 'SIGNIN_REFUSED', 'SIGNIN_UNREACHABLE', 'SIGNIN_OTHER', 'CAPACITY', 'GUARD', 'QUOTA_DAILY', 'QUOTA_RATE',
+  'SIGNIN_OUTDATED', 'SIGNIN_REFUSED', 'SIGNIN_UNREACHABLE', 'SIGNIN_OTHER', 'CAPACITY', 'GUARD', 'QUOTA_DAILY',
   'PREPARATION_FAILED']);
 const AUTH_KINDS = new Set(['rate', 'busy', 'paused', 'daily', 'outdated', 'refused', 'unreachable']);
 // A failed Convai sign-in (bridge/convai-credential.mjs unavailableError: "[convai-auth:<kind>]") or the daily allowance
@@ -46,10 +46,9 @@ const AUTH_KINDS = new Set(['rate', 'busy', 'paused', 'daily', 'outdated', 'refu
 export function preparationFailure(error) {
   const text = typeof error?.message === 'string' ? error.message : '';
   const auth = typeof error?.authKind === 'string' ? error.authKind : /\[convai-auth:(\w+)\]/.exec(text)?.[1];
-  const quota = error?.name === 'TurnLimitError' ? error.kind : /\[convai-quota:(daily|rate)\]/.exec(text)?.[1];
+  const quota = error?.name === 'TurnLimitError' ? error.kind : /\[convai-quota:(daily)\]/.exec(text)?.[1];
   if (auth === 'daily' || quota === 'daily') return {code: auth ? 'SIGNIN_DAILY' : 'QUOTA_DAILY', kind: 'daily'};
   if (auth) return {code: AUTH_KINDS.has(auth) ? 'SIGNIN_' + auth.toUpperCase() : 'SIGNIN_OTHER', kind: 'signin'};
-  if (quota === 'rate') return {code: 'QUOTA_RATE', kind: null};
   return {code: PREPARATION_CODES.has(error?.code) ? error.code : 'PREPARATION_FAILED', kind: null};
 }
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {DAILY_LIMIT, LimitStore, sanitizeLimit, MIN_SPACING_MS, RATE_BURST, RATE_PER_MINUTE, SharedKeyGuard, TurnLimitError, UsageStore, dayOf,
+import {DAILY_LIMIT, LimitStore, sanitizeLimit, SharedKeyGuard, TurnLimitError, UsageStore, dayOf,
   limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {ConvaiKeys, OwnKeyControl, parseKeyFileText} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
@@ -29,8 +29,11 @@ test('a plain api-key file is read; a key a release before 0.2.9 packed there, o
 const guardWith = (clock, options = {}) => new SharedKeyGuard({now: clock.now, limit: 100, ...options});
 const drain = (guard, clock, count) => { for (let i = 0; i < count; i++) { clock.advance(5000); guard.admit(); } };
 
-test('the shipped numbers are the documented ones', () => {
-  assert.equal(DAILY_LIMIT, 500); assert.equal(RATE_BURST, 15); assert.equal(RATE_PER_MINUTE, 12); assert.equal(MIN_SPACING_MS, 250);
+test('the shipped number is the documented one, and nothing but the daily cap is exported as a limit', async () => {
+  assert.equal(DAILY_LIMIT, 500);
+  const exported = Object.keys(await import('./shared-key-guard.mjs'));
+  for (const gone of ['RATE_BURST', 'RATE_PER_MINUTE', 'MIN_SPACING_MS', 'REMARK_SHARE', 'REACTION_SHARE', 'RemarkAllowance', 'remarkCap', 'isRemark', 'isReaction'])
+    assert(!exported.includes(gone), `${gone} is gone: the daily cap is the only limit`);
 });
 
 test('the counter goes up once per admitted turn and the cap blocks the next one', () => {
@@ -48,11 +51,11 @@ test('the counter goes up once per admitted turn and the cap blocks the next one
   assert.equal(guard.snapshot().left, 0, 'a refused turn is not counted');
 });
 
-test("a player's own key is never counted, capped or rate limited", () => {
+test("a player's own key is never counted or capped", () => {
   const clock = clockAt(noon);
   let shared = false;
   const guard = guardWith(clock, {limit: 2, applies: () => shared});
-  for (let i = 0; i < 50; i++) guard.admit(); // no clock movement: no rate limit either
+  for (let i = 0; i < 50; i++) guard.admit();
   assert.equal(guard.snapshot(), null);
   shared = true;
   assert.deepEqual(guard.snapshot(), {limit: 2, left: 2, blocked: false}, 'nothing was counted on the own key');
@@ -81,23 +84,16 @@ test('the allowance comes back at local midnight and a clock set back does not g
   guard.admit(); assert.equal(guard.snapshot().left, 2);
 });
 
-test('a burst is allowed, then turns are limited to the sustained rate and need a minimum gap', () => {
+test('turns are never limited by speed: any number at the same instant count one each, up to the cap, and no kind of turn has its own share', () => {
   const clock = clockAt(noon), guard = guardWith(clock, {limit: 1000});
-  for (let i = 0; i < RATE_BURST; i++) { clock.advance(MIN_SPACING_MS); guard.admit(); }
-  clock.advance(MIN_SPACING_MS);
-  assert.throws(() => guard.admit(), error => error.kind === 'rate' && /\[convai-quota:rate\]/.test(error.message));
-  assert.equal(guard.snapshot().left, 1000 - RATE_BURST, 'a rate-limited turn is not counted');
-  clock.advance(60000 / RATE_PER_MINUTE); // one token comes back every 5 seconds
-  guard.admit();
-  // Two turns inside the minimum gap: the second waits.
-  const quick = guardWith(clockAt(noon), {limit: 1000}), quickClock = clockAt(noon);
-  const spaced = guardWith(quickClock, {limit: 1000});
-  spaced.admit();
-  quickClock.advance(MIN_SPACING_MS - 1);
-  assert.throws(() => spaced.admit(), /\[convai-quota:rate\]/);
-  quickClock.advance(1);
-  spaced.admit();
-  quick.admit();
+  for (let i = 0; i < 600; i++) guard.admit(); // the clock never moves
+  assert.equal(guard.snapshot().left, 400);
+  // The speed of a five-person group round, and of speak-up, battle, loot and ride lines among typed turns, is no business of the guard.
+  for (const reaction of [{kind: 'head'}, {kind: 'speakup'}, {kind: 'battle'}, {kind: 'loot'}, {kind: 'addon'}, undefined]) { guard.check({reaction}); guard.consume({reaction}); }
+  assert.equal(guard.snapshot().left, 394, 'every kind counts once in the one pool');
+  const small = guardWith(clock, {limit: 3});
+  for (const reaction of [{kind: 'speakup'}, {kind: 'battle'}, {kind: 'head'}]) small.admit({reaction});
+  assert.throws(() => small.admit(), error => error.kind === 'daily', 'the cap is the whole day, not a tenth of it for unprompted lines');
 });
 
 test('an ordinary evening is never limited: a few turns a minute, and a five-person group round', () => {
@@ -106,7 +102,7 @@ test('an ordinary evening is never limited: a few turns a minute, and a five-per
     for (let i = 0; i < 4; i++) { clock.advance(10000); guard.admit(); }
     clock.advance(20000);
   }
-  for (let i = 0; i < 5; i++) { clock.advance(MIN_SPACING_MS); guard.admit(); }
+  for (let i = 0; i < 5; i++) guard.admit();
   assert.equal(guard.snapshot().left, 100 - 45);
 });
 
@@ -139,14 +135,14 @@ test('an edited, copied or damaged counter is ignored and never blocks the playe
   // Lowering the count by hand breaks the signature; the other copy still holds 40.
   memory.files.set('state/usage', genuine.replace('"count":40', '"count":1'));
   assert.equal((await guardWith(clock, {limit: 100, store: storeOver(memory)}).load()).snapshot().left, 60);
-  // Both damaged: count 0, no crash, and the rate limit still applies.
+  // Both damaged: count 0 and no crash.
   for (const damaged of ['', '{', 'null', '[]', '{"v":1}', genuine.slice(0, 20), '\u0000\u0000']) {
     memory.files.set('state/usage', damaged); memory.files.set('profile/usage', damaged);
     const fresh = await guardWith(clock, {limit: 100, store: storeOver(memory)}).load();
     assert.deepEqual(fresh.snapshot(), {limit: 100, left: 100, blocked: false}, JSON.stringify(damaged));
     fresh.admit();
-    clock.advance(1);
-    assert.throws(() => fresh.admit(), /\[convai-quota:rate\]/, 'the rate limit works without a counter');
+    fresh.admit();
+    assert.equal(fresh.snapshot().left, 98, 'turns count from zero without a counter');
     await fresh.flush();
     clock.advance(5000);
   }
@@ -254,10 +250,9 @@ test('the daily cap becomes the game notice for a turn V asked for, and silence 
   assert.equal(shared.codeFor(error), 'daily-limit');
   assert.equal(shared.codeFor(error, {automatic: true}), undefined, 'battle and loot reactions stop quietly');
   assert.equal(new QuotaWatch({keys: keysFor('player')}).codeFor(error), undefined, 'the notice never applies to an own key');
-  assert.equal(shared.codeFor(new TurnLimitError('rate')), undefined, 'a quick turn gets the ordinary failure text');
   assert.equal(shared.observe(error), 'daily');
   assert.equal(shared.snapshot(), null, 'the cap is not shown as a used-up Convai plan');
-  assert.equal(classifyFailure(new TurnLimitError('rate')), 'rate');
+  assert.equal(classifyFailure(Error('Conversation turns are coming too quickly [convai-quota:rate]')), null, 'there is no rate limit any more');
   assert.equal(classifyFailure(Error('Convai usage limit reached [convai-quota:interaction]')), 'quota');
 });
 

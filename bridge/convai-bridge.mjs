@@ -114,7 +114,7 @@ import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, setting
 import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, parseKeyFileText, validateKey, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, PACKAGED_AUTH_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
-import {DAILY_LIMIT, LimitStore, REACTION_SHARE, RemarkAllowance, SharedKeyGuard, isReaction, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
+import {DAILY_LIMIT, LimitStore, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider, PROVIDERS} from './mistral-key.mjs';
 import {CUSTOM_FILE, CustomControl, CustomEndpoint, testConnection as testCustomConnection} from './custom-endpoint.mjs';
 import {TextProviderHost, attachTextProvider, customRoute, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
@@ -682,11 +682,12 @@ const noteTurn = input => {
 const memoryQuiet = () => !stopped && !active && !streaming && !mic.current && !phone.active && Date.now() - lastTurnAt > 20000 && Date.now() - lastFightingAt > 30000;
 const mistralMemory = await MemoryStore.open({dir: resolve(stateDirectory, 'local-memory'), legacyPath: resolve(stateDirectory, MISTRAL_MEMORY_FILE),
   embedder: localEmbedder, gate: memoryQuiet, log: message => console.error('[Memory] ' + message)});
-// Daily cap and rate limit for the shared account (the sign-in backend with no key of the developer's own); never applied to a player's own
-// key. CYBERPUNK_CONVAI_DAILY_LIMIT sets the cap (a number) or switches the guard off (off); without it only the shared account is limited, so
+// The one daily cap (500 turns per installation) for the shared account (the sign-in backend with no key of the developer's own); never applied to
+// a player's own key, Local AI, Mistral or Custom. It counts every turn the shared key serves: no pools for kinds of turns, no rate limit.
+// CYBERPUNK_CONVAI_DAILY_LIMIT sets the cap (a number) or switches the guard off (off); without it only the shared account is limited, so
 // a development checkout with a plain runtime/convai-key.txt is not. The count is saved twice (state folder, user profile), signed.
 const dailyLimitPinned = typeof process.env.CYBERPUNK_CONVAI_DAILY_LIMIT === 'string' && process.env.CYBERPUNK_CONVAI_DAILY_LIMIT.trim() !== '';
-// With the sign-in backend on, the cap is the backend's number: the last one it told this installation (kept in daily-limit.json), else 100,
+// With the sign-in backend on, the cap is the backend's number: the last one it told this installation (kept in daily-limit.json), else 500,
 // until the first answer arrives. Without the backend, or with the environment variable set, it stays what it was.
 const limitStore = tokenSource && !dailyLimitPinned ? new LimitStore({machine: await machineId(), path: resolve(stateDirectory, 'daily-limit.json')}) : undefined;
 const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, tokenSource && !key ? (await limitStore?.load() ?? DAILY_LIMIT) : 0);
@@ -699,16 +700,8 @@ turnGuardRef = turnGuard;
 if (backendDailyLimit !== null) turnGuard.setLimit(backendDailyLimit);
 // What the hosts ask before a turn: the local gate as before, plus (backend mode only) the backend's own "daily allowance used"
 // answer, shown with the same notice. Both are synchronous checks of memory; nothing here touches the network.
-// Johnny's unprompted remarks may use at most a tenth of the shared key's day (bridge/shared-key-guard.mjs REMARK_SHARE), counted apart.
-const remarkAllowance = await new RemarkAllowance({guard: turnGuard,
-  store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'remark-usage.json'),
-    resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'remark-usage.json')]}) : undefined}).load();
-// Battle and loot reactions (on by default) may use at most a fifth of it, counted apart (REACTION_SHARE); both pools leave the rest to the player's own talk.
-const reactionAllowance = await new RemarkAllowance({guard: turnGuard, applies: isReaction, share: REACTION_SHARE,
-  store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'reaction-usage.json'),
-    resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'reaction-usage.json')]}) : undefined}).load();
-const hostGuard = {check: config => { turnGuard.check(); remarkAllowance.check(config); reactionAllowance.check(config); if (tokenSource) keys.assertAllowed(); },
-  consume: config => { turnGuard.consume(); remarkAllowance.consume(config); reactionAllowance.consume(config); }};
+const hostGuard = {check: () => { turnGuard.check(); if (tokenSource) keys.assertAllowed(); },
+  consume: () => { turnGuard.consume(); }};
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
 // A player's key pre-opens no connections and speculates on nothing (its plan's interactions and its one-connection free plan).

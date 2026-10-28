@@ -10,7 +10,7 @@ facts, independently of the automatic-comment setting.
 ## Cost on the Convai free tier
 
 A fight uses at most one opening and one closing comment per ten-minute cooldown. On the shared Convai key each comment counts as one of the
-day's turns, battle and loot comments together may use at most a fifth of the day (`REACTION_SHARE`, 20 of 100), and once that share or the day's allowance is used up nothing is spent and the reaction is skipped silently (no notice, no retry).
+day's 500 turns, like any other turn (there is no share of the day set apart for reactions since 2026-10-28), and once the day's allowance is used up nothing is spent and the reaction is skipped silently (no notice, no retry).
 
 ## Encounter rules
 

@@ -5,7 +5,7 @@ import fengari from 'fengari';
 import {parseInput} from './protocol.mjs';
 import {battleTrigger, battleContext} from './battle-context.mjs';
 import {parseHeadReaction, headTrigger} from './johnny-head.mjs';
-import {REMARK_SHARE, RemarkAllowance, SharedKeyGuard, TurnLimitError, remarkCap} from './shared-key-guard.mjs';
+import {SharedKeyGuard, TurnLimitError} from './shared-key-guard.mjs';
 
 // Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): the remark policy of mod/johnny-remarks.lua, the collectors that hand events
 // over, the automatic-turn wiring in init.lua, the bridge's trigger and the shared key's remark share.
@@ -253,36 +253,29 @@ test('bridge: the trigger says where he is, what happened (quoted), his standing
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The shared key: remarks are turns, and at most a tenth of the day's.
+// The shared key: remarks are turns of the one daily cap, with no share of their own.
 
-test('shared key: remarks count as turns and may use at most REMARK_SHARE of the day (10 of 100); other turns and other keys are untouched', () => {
-  assert.equal(REMARK_SHARE, 0.1);
-  assert.equal(remarkCap(100), 10); assert.equal(remarkCap(5), 1); assert.equal(remarkCap(250), 25);
+test('shared key: remarks count as turns of the one daily cap; other turns and other keys are untouched', () => {
   let now = new Date(2026, 9, 19, 12).getTime(), shared = true;
-  const guard = new SharedKeyGuard({limit: 100, now: () => now, applies: () => shared, spacingMs: 0, burst: 1000, perMinute: 100000});
-  const remarks = new RemarkAllowance({guard});
+  const guard = new SharedKeyGuard({limit: 100, now: () => now, applies: () => shared});
   const head = {reaction: {kind: 'head'}}, battle = {reaction: {kind: 'battle'}}, talk = {};
-  const admit = config => { guard.check(); remarks.check(config); guard.consume(); remarks.consume(config); };
-  for (let i = 0; i < 10; i++) admit(head);
-  assert.equal(guard.count, 10, 'each remark is one of the day\'s turns');
-  assert.throws(() => admit(head), TurnLimitError, 'the eleventh remark of the day is refused');
-  assert.equal(guard.count, 10);
+  const admit = config => { guard.check(config); guard.consume(config); };
+  for (let i = 0; i < 50; i++) admit(head);
+  assert.equal(guard.count, 50, "each remark is one of the day's turns, and there is no tenth reserved for them");
   admit(talk); admit(battle);
-  assert.equal(guard.count, 12, 'V\'s own turns and battle reactions go on');
+  assert.equal(guard.count, 52);
+  for (let i = 0; i < 48; i++) admit(head);
+  assert.throws(() => admit(head), TurnLimitError, 'the hundred and first turn of the day is refused, whatever it is');
   guard.setLimit(200);
-  assert.doesNotThrow(() => admit(head), 'the share follows the backend\'s limit');
-  shared = false; remarks.count = 999;
-  assert.doesNotThrow(() => admit(head), 'a player\'s own key is never limited');
+  assert.doesNotThrow(() => admit(head), "the cap follows the backend's limit");
+  shared = false;
+  for (let i = 0; i < 300; i++) assert.doesNotThrow(() => admit(head), "a player's own key is never limited");
   shared = true; now += 24 * 3600 * 1000;
   assert.doesNotThrow(() => admit(head), 'a new day');
-  assert.equal(remarks.count, 1);
-  // Wired where a turn reaches Convai, with the turn's config.
+  assert.equal(guard.count, 1);
+  // Wired where a turn reaches Convai, once.
   assert.match(read('./realtime-host.mjs'), /this\.guard\.check\(config\); this\.guard\.consume\(config\);/);
-  const bridge = read('./convai-bridge.mjs');
-  assert.match(bridge, /const remarkAllowance = await new RemarkAllowance\(\{guard: turnGuard,/);
-  assert.match(bridge, /check: config => \{ turnGuard\.check\(\); remarkAllowance\.check\(config\); reactionAllowance\.check\(config\); if \(tokenSource\) keys\.assertAllowed\(\); \}/);
-  assert.match(bridge, /consume: config => \{ turnGuard\.consume\(\); remarkAllowance\.consume\(config\); reactionAllowance\.consume\(config\); \}/);
-  assert.match(bridge, /'remark-usage\.json'/);
+  assert.doesNotMatch(read('./convai-bridge.mjs'), /RemarkAllowance|remark-usage/);
 });
 
 test('shipping: the module ships and dev-installs; the one select row (Johnny in your head, five options) has its texts in all languages; the separate row is gone', () => {

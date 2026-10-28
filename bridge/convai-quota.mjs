@@ -16,15 +16,13 @@
 //     conversation at all.
 export const QUOTA_MARKER = /\[convai-quota:(interaction|tts|plan)\]/;
 
-/** 'daily' (the shared key's daily cap) or 'rate' (turns too quick), both raised by bridge/shared-key-guard.mjs before a turn
- * reaches Convai; 'signin' (the shared account has no token and no key: the sign-in backend did not answer, refused, or the package
- * has none; the failure carries "[convai-auth:<why>]", bridge/convai-credential.mjs and convai-key.mjs); 'quota' (interactions used up), 'speaker' (the plan's memory-user limit), 'memory' (an end-user identity is required
+/** 'daily' (the shared key's daily cap, raised by bridge/shared-key-guard.mjs before a turn reaches Convai); 'signin' (the shared account has
+ * no token and no key: the sign-in backend did not answer, refused, or the package has none; the failure carries "[convai-auth:<why>]", bridge/convai-credential.mjs and convai-key.mjs); 'quota' (interactions used up), 'speaker' (the plan's memory-user limit), 'memory' (an end-user identity is required
  * and unavailable), 'rejected' (key not accepted), 'busy' (concurrency) or null. Only the message text is read. */
 export function classifyFailure(error) {
   const text = typeof error === 'string' ? error : typeof error?.message === 'string' ? error.message : '';
   if (!text || error?.name === 'AbortError') return null;
-  const own = /\[convai-quota:(daily|rate)\]/.exec(text);
-  if (own) return own[1];
+  if (/\[convai-quota:daily\]/.test(text)) return 'daily';
   if (/\[convai-auth:\w+\]/.test(text)) return 'signin';
   if (/concurrency limit/i.test(text)) return 'busy';
   if (QUOTA_MARKER.test(text) || /exceeded usage limits|\busage limit\b|\binteraction limit\b|reached your .{0,40}\blimit\b/i.test(text)) return 'quota';
@@ -62,7 +60,7 @@ export class QuotaWatch {
   codeFor(error, {recentMs = 15000, automatic = false} = {}) {
     const kind = classifyFailure(error);
     const fresh = entry => entry && this.now() - entry.at <= recentMs;
-    // The shared key's daily cap: the game says so once. A rate-limited turn gets the ordinary failure text.
+    // The shared key's daily cap: the game says so once.
     // An automatic reaction (battle, loot) that meets the cap just stops: only a turn the player asked for gets the notice.
     if (kind === 'daily') return this.keys?.source === 'player' || automatic ? undefined : 'daily-limit';
     // The shared account could not be signed in to: a turn V asked for says so (the game shows it at most once per five minutes); an automatic reaction just stops.

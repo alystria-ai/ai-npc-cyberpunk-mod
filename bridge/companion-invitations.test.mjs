@@ -645,7 +645,6 @@ test('preparationFailure reads only bounded kinds: sign-in refusals, the daily a
   assert.deepEqual(preparationFailure(Error('Convai sign-in is unavailable (busy) [convai-auth:busy]')), {code: 'SIGNIN_BUSY', kind: 'signin'});
   assert.deepEqual(preparationFailure(Error('x [convai-auth:weirdnewkind]')), {code: 'SIGNIN_OTHER', kind: 'signin'});
   assert.deepEqual(preparationFailure(Error('Daily conversation limit reached [convai-quota:daily]')), {code: 'QUOTA_DAILY', kind: 'daily'});
-  assert.deepEqual(preparationFailure(Error('Conversation turns are coming too quickly [convai-quota:rate]')), {code: 'QUOTA_RATE', kind: null});
   assert.deepEqual(preparationFailure(Object.assign(Error('char-1234-secret session abc'), {code: 'NETWORK_ERROR'})), {code: 'NETWORK_ERROR', kind: null});
   assert.deepEqual(preparationFailure(Object.assign(Error('whatever'), {code: 'SOME_PROVIDER_STRING_WITH_ids_9f3'})), {code: 'PREPARATION_FAILED', kind: null});
 });

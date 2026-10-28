@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {GroupLookahead, PREPARED_HOLD_MS, PREPARED_KINDS, lookaheadKind, lookaheadAllowed, turnKey, validateFollow, validateAhead, validateLookahead} from './group-lookahead.mjs';
 import {parseInput} from './protocol.mjs';
-import {REMARK_SHARE, RemarkAllowance, SharedKeyGuard, TurnLimitError, remarkCap, isRemark, UNPROMPTED_KINDS} from './shared-key-guard.mjs';
+import {SharedKeyGuard, TurnLimitError} from './shared-key-guard.mjs';
 
 const NOW = 4_000_000_000_000;
 const parse = raw => parseInput(JSON.stringify(raw));
@@ -172,33 +172,27 @@ test('GroupLookahead.watchSource: a held follow-on whose source is gone is dropp
   assert.equal(await lookahead.watchSource(() => true), false); assert.equal(lookahead.entry, scene);
 });
 
-// ---- the shared key's one pool ------------------------------------------------------------------------------------------------------------
+// ---- the shared key's one cap -------------------------------------------------------------------------------------------------------------
 
-test('shared key: Johnny\'s remarks and follow-ons and a companion\'s speak-ups are one pool of REMARK_SHARE of the day; V\'s turns, barks and pickups are outside it', () => {
-  assert.deepEqual([...UNPROMPTED_KINDS], ['head', 'speakup']);
-  assert.equal(REMARK_SHARE, 0.1); assert.equal(remarkCap(100), 10);
-  for (const kind of ['head', 'speakup']) assert.equal(isRemark({reaction: {kind}}), true, kind);
-  for (const config of [undefined, null, {}, {reaction: {kind: 'battle'}}, {reaction: {kind: 'loot'}}, {reaction: {kind: 'addon'}}, {reaction: {kind: 'Head'}}, {reaction: 'head'}]) assert.equal(isRemark(config), false, JSON.stringify(config));
+test("shared key: Johnny's remarks and a companion's speak-ups are ordinary turns of the one daily cap, with no pool of their own; group rounds of five fit", () => {
   let now = new Date(2026, 9, 25, 12).getTime(), shared = true;
-  const guard = new SharedKeyGuard({limit: 100, now: () => now, applies: () => shared, spacingMs: 0, burst: 1000, perMinute: 100000});
-  const pool = new RemarkAllowance({guard});
-  const admit = config => { guard.check(); pool.check(config); guard.consume(); pool.consume(config); };
+  const guard = new SharedKeyGuard({limit: 100, now: () => now, applies: () => shared});
+  const admit = config => { guard.check(config); guard.consume(config); };
   const head = {reaction: {kind: 'head', event: 'follow'}}, speak = {reaction: {kind: 'speakup', event: 'calm'}};
-  for (let i = 0; i < 10; i++) admit(i % 2 ? head : speak);   // five of each
-  assert.equal(guard.count, 10, 'each is one of the day\'s turns'); assert.equal(pool.count, 10);
-  assert.throws(() => admit(speak), TurnLimitError, 'the eleventh unprompted line of the day, a companion\'s');
-  assert.throws(() => admit(head), TurnLimitError, 'or Johnny\'s: one pool');
-  assert.equal(guard.count, 10);
-  admit({}); admit({reaction: {kind: 'battle'}}); admit({reaction: {kind: 'loot'}});
-  assert.equal(guard.count, 13); assert.equal(pool.count, 10, 'V\'s own turns and the barks go on and are not counted in the pool');
-  shared = false; pool.count = 999;
-  assert.doesNotThrow(() => admit(speak), 'a player\'s own key is never limited');
+  for (let i = 0; i < 60; i++) admit(i % 2 ? head : speak);
+  assert.equal(guard.count, 60, 'thirty of each: the old pool of 10 is gone');
+  for (let round = 0; round < 8; round++) for (let speaker = 0; speaker < 5; speaker++) admit(speak);   // a round is 3 to 5 provider turns
+  assert.equal(guard.count, 100);
+  assert.throws(() => admit(speak), TurnLimitError, 'the day is used up for everything');
+  assert.throws(() => admit({}), TurnLimitError);
+  shared = false;
+  assert.doesNotThrow(() => admit(speak), "a player's own key is never limited");
   shared = true; now += 24 * 3600 * 1000;
-  assert.doesNotThrow(() => admit(speak), 'a new day'); assert.equal(pool.count, 1);
+  assert.doesNotThrow(() => admit(speak), 'a new day'); assert.equal(guard.count, 1);
 });
 
-test('the shared key guard is called with the turn\'s config where a turn reaches Convai (the pool sees the reaction)', () => {
+test("the shared key guard is called with the turn's config where a turn reaches Convai", () => {
   const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
   assert.match(read('./realtime-host.mjs'), /this\.guard\.check\(config\); this\.guard\.consume\(config\);/);
-  assert.match(read('./convai-bridge.mjs'), /check: config => \{ turnGuard\.check\(\); remarkAllowance\.check\(config\);/);
+  assert.doesNotMatch(read('./convai-bridge.mjs'), /remarkAllowance/);
 });

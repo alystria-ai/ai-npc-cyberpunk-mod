@@ -6,7 +6,6 @@ import {parseInput} from './protocol.mjs';
 import {parseSpeakUpReaction, speakupTrigger, SPEAKUP_EVENTS, PARTY_WORDS, PARTY_LINES} from './speakup-context.mjs';
 import {validateAhead, turnKey} from './group-lookahead.mjs';
 import {describeTurnContext} from './turn-context.mjs';
-import {isRemark} from './shared-key-guard.mjs';
 
 const NOW = Date.now();
 const turnContext = {version: 1, status: 'ready', hour: 2, minute: 10, district: 'Heywood', weather: 'rain',
@@ -82,11 +81,11 @@ test('the trigger: the first line opens, a middle line answers the one before, t
   for (const text of [first, middle, last, pair]) assert.doesNotMatch(text, /at home|live there|flat|apartment/i);
 });
 
-test('a party line gets the right-now facts like any speak-up, and counts as an unprompted line on the shared key', () => {
+test('a party line gets the right-now facts like any speak-up, and is an ordinary turn of the one daily cap on the shared key', () => {
   const input = parse(line(2));
   const block = describeTurnContext(input, {split: true});
   assert.match(block.text, /You are with V in person/);
-  assert.equal(isRemark({reaction: input.reaction}), true);
+  assert.equal(input.reaction.kind, 'speakup');
 });
 
 test('a party line is prepared ahead like the next line of a housemates chat: accepted while alive and private, refused otherwise', () => {

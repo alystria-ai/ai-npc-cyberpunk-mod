@@ -15,7 +15,7 @@ test('a signed request gets a token, with its expiry and allowance, in one store
   const body = response.json;
   assert.equal(body.authToken, 'fake-token-1');
   assert.equal(body.expiresAt, new Date(world.clock.now + HOUR).toISOString());
-  assert.deepEqual(body.allowance, { used: 3, limit: 100, resetAt: '2026-10-15T00:00:00.000Z' });
+  assert.deepEqual(body.allowance, { used: 3, limit: 500, resetAt: '2026-10-15T00:00:00.000Z' });
   assert.equal(world.store.commands, 1, 'the whole admission is one script');
   assert.equal(world.convai.state.mints, 1);
   assert.equal(response.headers['Cache-Control'], 'no-store');
@@ -357,11 +357,11 @@ test('the default limits are the documented ones', async () => {
   const config = readConfig({});
   assert.deepEqual(
     [config.installPerHour, config.ipPerHour, config.newInstallsPerIpPerDay, config.mintsPerDay, config.dailyTurnCap, config.remintMarginSeconds, config.mode],
-    [12, 60, 5, 500, 100, 300, 'shared'],
+    [12, 60, 5, 500, 500, 300, 'shared'],
   );
-  assert.equal(DEFAULTS.dailyTurnCap, 100);
+  assert.equal(DEFAULTS.dailyTurnCap, 500);
   assert.equal(readConfig({ CONVAI_AUTH_MODE: 'PER-INSTALL' }).mode, 'per-install');
   assert.equal(readConfig({ CONVAI_AUTH_MODE: 'weird' }).mode, 'shared');
-  assert.equal(readConfig({ CONVAI_AUTH_DAILY_TURN_CAP: 'lots' }).dailyTurnCap, 100);
+  assert.equal(readConfig({ CONVAI_AUTH_DAILY_TURN_CAP: 'lots' }).dailyTurnCap, 500);
   assert.equal(readConfig({ KV_REST_API_URL: 'https://x', KV_REST_API_TOKEN: 'y' }).storeUrl, 'https://x');
 });

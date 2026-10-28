@@ -4,7 +4,7 @@ import {eventTrigger, eventExchange, soundsLikeRoad, parseMeetReaction, meetTrig
 import {parseMeetEvent} from './meet-requests.mjs';
 import {parseInput, parseMeetReaction as protocolParse} from './protocol.mjs';
 import {battleTrigger, battleContext, reactionLeaseProblem} from './battle-context.mjs';
-import {isRemark} from './shared-key-guard.mjs';
+import {SharedKeyGuard} from './shared-key-guard.mjs';
 import {followUpContext} from './conversation-style.mjs';
 
 const event = (kind, extra = {}) => parseMeetEvent({version: 1, kind, place: 'Pacifica, Coastview', minutes: 5, car: false, ...extra});
@@ -135,7 +135,8 @@ test('the main pipeline words a greeting as its trigger and gives it no battle c
   assert.equal(battleTrigger({text: 'hello'}), 'hello');
 });
 
-test('the shared-key guard does not count a greeting as a remark: it follows an explicit invitation and is rare, so it is an ordinary turn of the day', () => {
-  assert.equal(isRemark({reaction: {kind: 'meet'}}), false);
-  assert.equal(isRemark({reaction: {kind: 'head'}}), true);
+test('the shared-key guard counts a greeting like any other turn of the one daily cap', () => {
+  const guard = new SharedKeyGuard({limit: 2});
+  guard.admit({reaction: {kind: 'meet'}}); guard.admit({reaction: {kind: 'head'}});
+  assert.throws(() => guard.admit({reaction: {kind: 'meet'}}), error => error.kind === 'daily');
 });

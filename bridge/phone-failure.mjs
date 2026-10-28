@@ -44,7 +44,6 @@ function reasonFor(error, text) {
   const quota = classifyFailure(error);
   if (quota === 'daily') return 'daily-limit';
   if (quota === 'signin') return 'convai-signin';
-  if (quota === 'rate') return 'rate-limit';
   if (quota === 'busy') return 'convai-busy';
   if (quota === 'quota') return 'convai-quota';
   if (quota === 'speaker') return 'convai-speaker-limit';
