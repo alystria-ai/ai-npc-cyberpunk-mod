@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts — для гри {other}, у тебе {game}. Візьми Scripts для {game} на Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Мод для гри {other}, у тебе {game}. Візьми Scripts і Runtime для {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts — для гри {scripts}, Runtime — для {runtime}. Вони мають збігатися. Див. Довідку.",
+    ["Speak dialogue choices"] = "Озвучування варіантів реплік",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Назви варіант репліки, щоб вибрати його: його слова, частину слів або його номер (\"два\", \"останній\"). Якщо нічого не пасує явно, нічого не вибирається. Жоден персонаж не відповідає.\n\nНатискає стрілки та Enter, тож гра має бути на передньому плані. Потрібне розпізнавання мовлення на цьому ПК. Найкраще працюють навушники.",
+    ["No option matched. Say its number."] = "Жоден варіант не підійшов. Назви його номер.",
+    ["Two options fit. Say its number."] = "Пасують два варіанти. Назви номер потрібного.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Озвучення варіанта потребує розпізнавання мовлення на цьому ПК.",
 }

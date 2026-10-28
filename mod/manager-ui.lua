@@ -1946,6 +1946,9 @@ local function schema()
             -- Off by default: talk with no key (docs/VOICE_INPUT.md). The microphone is closed while it is off.
             setting('voiceActivation', 'Voice activation', 'bool', snapshot.settings.voiceActivation == true, false,
                 'Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.'),
+            -- Off by default: say one of the game's dialogue choices to pick it (docs/VOICE_CHOICES.md). It sits under Voices for now; the new Gameplay section will take it.
+            setting('voiceChoices', 'Speak dialogue choices', 'bool', snapshot.settings.voiceChoices == true, false,
+                'Say a dialogue choice to pick it: its words, a part of them, or its number ("two", "the last one"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best.'),
             -- Off by default: hold the left stick click to talk by voice (docs/CONTROLLER_BINDING.md). Nothing is registered while it is off.
             setting('padTalk', 'Controller talk button', 'bool', snapshot.settings.padTalk == true, false,
                 'Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand.'),
@@ -2437,6 +2440,7 @@ function M.apply(changes)
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
+        elseif key == 'voiceChoices' then values.voiceChoices = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
         elseif key == 'remoteOmni' then values.remoteOmni = change.value
         elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false, johnny_voice = false, johnny_text = false}

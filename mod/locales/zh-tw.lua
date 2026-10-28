@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts 適用於遊戲 {other}，你的是 {game}。請從 Nexus Mods 取得 {game} 版 Scripts。",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "本模組適用於遊戲 {other}，你的是 {game}。請取得 {game} 版 Scripts 和 Runtime。",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts 適用於 {scripts}，Runtime 適用於 {runtime}，兩者須一致。詳見設定中的說明。",
+    ["Speak dialogue choices"] = "說出對話選項",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "說出某個對話選項即可選取它：說出它的文字、部分文字，或它的編號（\"二\"、\"最後一個\"）。若沒有明確符合的選項，則不選取任何選項。沒有角色回應。\n\n會按方向鍵和 Enter，因此遊戲必須在最前面。需要本機具備語音辨識功能。最好使用耳機。",
+    ["No option matched. Say its number."] = "沒有符合的選項。請說出它的編號。",
+    ["Two options fit. Say its number."] = "有兩個選項符合。請說出它的編號。",
+    ["Speaking a choice needs speech recognition on this PC."] = "說出選項需要本機具備語音辨識功能。",
 }

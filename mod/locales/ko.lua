@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts는 게임 {other}용이고 현재 게임은 {game}입니다. Nexus Mods에서 {game}용을 받으세요.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "이 모드는 게임 {other}용이고 현재 게임은 {game}입니다. {game}용 Scripts와 Runtime을 받으세요.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts는 {scripts}용, Runtime은 {runtime}용입니다. 서로 맞아야 합니다. 설정의 도움말 참조.",
+    ["Speak dialogue choices"] = "대화 선택지 말하기",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "대화 선택지를 말하면 고를 수 있습니다. 선택지의 단어, 일부 단어, 또는 번호(\"둘\", \"마지막 것\")로 말하면 됩니다. 어떤 선택지에도 분명히 맞지 않으면 아무것도 고르지 않습니다. 어떤 캐릭터도 응답하지 않습니다.\n\n방향키와 Enter를 누르므로 게임이 맨 앞에 있어야 합니다. 이 PC에서 음성 인식이 필요합니다. 헤드폰을 쓰면 가장 잘 작동합니다.",
+    ["No option matched. Say its number."] = "일치하는 선택지가 없습니다. 번호를 말하세요.",
+    ["Two options fit. Say its number."] = "두 개의 선택지가 맞습니다. 번호를 말하세요.",
+    ["Speaking a choice needs speech recognition on this PC."] = "선택지를 말하려면 이 PC에서 음성 인식이 필요합니다.",
 }

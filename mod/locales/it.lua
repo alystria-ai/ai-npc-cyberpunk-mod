@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts per il gioco {other}, il tuo è {game}. Prendili per {game} da Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod per il gioco {other}, il tuo è {game}. Prendi Scripts e Runtime per {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime}. Devono corrispondere: vedi Aiuto in Impostazioni.",
+    ["Speak dialogue choices"] = "Pronuncia le scelte di dialogo",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Pronuncia una scelta di dialogo per selezionarla: le sue parole, una parte di esse o il suo numero (\"due\", \"l'ultima\"). Se nulla corrisponde chiaramente, non viene selezionato nulla. Nessun personaggio risponde.\n\nPreme i tasti freccia e Enter, quindi il gioco deve essere in primo piano. Richiede il riconoscimento vocale su questo PC. Le cuffie funzionano meglio.",
+    ["No option matched. Say its number."] = "Nessuna scelta corrisponde. Dì il suo numero.",
+    ["Two options fit. Say its number."] = "Due scelte corrispondono. Dì il suo numero.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Dire una scelta richiede il riconoscimento vocale su questo PC.",
 }

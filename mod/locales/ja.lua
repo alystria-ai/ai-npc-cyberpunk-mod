@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts はゲーム {other} 用です。お使いは {game}。Nexus Mods から {game} 用を入手してください。",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "この MOD はゲーム {other} 用です。お使いは {game}。{game} 用の Scripts と Runtime を入手してください。",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts は {scripts} 用、Runtime は {runtime} 用です。揃える必要があります。設定のヘルプを参照。",
+    ["Speak dialogue choices"] = "会話の選択肢を話す",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "会話の選択肢を話すと選べます。話す内容は、選択肢の言葉、その一部、または番号（\"二\"、\"最後のもの\"）でかまいません。どれにもはっきり合わなければ、何も選ばれません。キャラクターは応答しません。\n\n方向キーと Enter を押すため、ゲームが前面にある必要があります。このPCで音声認識が必要です。ヘッドホンが一番おすすめです。",
+    ["No option matched. Say its number."] = "一致する選択肢がありません。番号を言ってください。",
+    ["Two options fit. Say its number."] = "二つの選択肢が当てはまります。番号を言ってください。",
+    ["Speaking a choice needs speech recognition on this PC."] = "選択肢を話すには、このPCで音声認識が必要です。",
 }

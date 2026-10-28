@@ -305,7 +305,8 @@
   "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs"],
   "bridgeWorkers": [
     "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py",
-    "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py", "bridge/local-stt-worker.py"
+    "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py", "bridge/local-stt-worker.py",
+    "bridge/choice-keys.py"
   ],
   "clientModules": ["continuous-pcm-player.mjs", "continuous-pcm-worklet.mjs", "continuous-pcm-core.mjs", "local-pcm-client.mjs"],
   "nodePackages": ["playwright", "playwright-core"],

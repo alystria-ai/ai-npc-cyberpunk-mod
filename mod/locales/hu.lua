@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "A Scripts a {other} játékhoz, a tiéd {game}. Töltsd le a {game}-hoz valót Nexus Mods-ról.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "A mod {other} játékhoz való, a tiéd {game}. Szerezd be a {game}-hoz való Scripts-et és Runtime-ot.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime} verzió. Egyezniük kell: Súgó a Beállításokban.",
+    ["Speak dialogue choices"] = "Párbeszédválaszok kimondása",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Mondj ki egy párbeszédválasztást a kiválasztásához: a szavait, ezek egy részét vagy a számát (\"kettő\", \"az utolsó\"). Ha semmi sem illik egyértelműen, nem választódik ki semmi. Egyetlen karakter sem válaszol.\n\nNyílbillentyűket és Entert használ, ezért a játéknak előtérben kell lennie. Beszédfelismerés kell ehhez a gépen. Fejhallgatóval működik a legjobban.",
+    ["No option matched. Say its number."] = "Egyik választás sem illett. Mondd ki a számát.",
+    ["Two options fit. Say its number."] = "Két választás is illik. Mondd ki a számát.",
+    ["Speaking a choice needs speech recognition on this PC."] = "A választás kimondásához beszédfelismerés kell ezen a gépen.",
 }

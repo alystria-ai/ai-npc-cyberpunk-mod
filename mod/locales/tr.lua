@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts {other} oyunu için, senin oyunun {game}. {game} için Scripts'i Nexus Mods'tan al.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod {other} oyunu için, senin oyunun {game}. {game} için Scripts ve Runtime'ı al.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts {scripts}, Runtime {runtime} için. Eşleşmeli: Ayarlar'daki Yardım'a bak.",
+    ["Speak dialogue choices"] = "Diyalog seçeneklerini söyle",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Bir diyalog seçeneğini söyleyerek seç: sözcükleri, bir kısmı ya da numarası (\"iki\", \"sondaki\"). Hiçbir şey açıkça uymuyorsa hiçbir şey seçilmez. Hiçbir karakter yanıt vermez.\n\nYön tuşlarına ve Enter'a basar, bu yüzden oyunun ön planda olması gerekir. Bu bilgisayarda konuşma tanıma gerekir. En iyi sonucu kulaklıkla alırsın.",
+    ["No option matched. Say its number."] = "Hiçbir seçenekle eşleşmedi. Numarasını söyle.",
+    ["Two options fit. Say its number."] = "İki seçenek uyuyor. Numarasını söyle.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Bir seçeneği söylemek için bu bilgisayarda konuşma tanıma gerekir.",
 }

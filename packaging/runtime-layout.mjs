@@ -216,6 +216,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/vendor-memory.mjs',
   'bridge/vision-capture.mjs',
   'bridge/voice-activity.mjs',
+  'bridge/voice-choice-match.mjs',
+  'bridge/voice-choice.mjs',
   'bridge/voice-config-paths.mjs',
   'bridge/voice-failures.mjs',
   'bridge/voice-key-stream.mjs',
@@ -247,6 +249,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/jali-face-worker.mjs',
   'bridge/jali-face-text.mjs', // imported only by the worker
   'bridge/face-visemes.mjs', // imported only by the worker
+  'bridge/choice-keys.py',
   'bridge/resident-voice-worker.py',
   // The OmniVoice server (docs/REMOTE_OMNIVOICE.md): a separate program started from the server folder, not imported by the bridge.
   'bridge/omni-server.mjs',

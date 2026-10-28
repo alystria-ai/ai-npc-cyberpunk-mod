@@ -9,18 +9,19 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- The two live signals the bridge's microphone tap (bridge/mic-tap.mjs) needs before any turn exists, one small file (runtime/microphone-live.json):
 --   hold   the talk key went down / came up. The bridge opens the microphone at the key press and keeps what it hears, so the first word is never lost
 --          while the conversation connection is still opening; the key release stops it on the spot.
---   listen Voice activation (mod/voice-activation.lua) wants the microphone open (a conversation is possible) or closed.
+--   listen Voice activation (mod/voice-activation.lua) wants the microphone open (a conversation is possible) or closed, or Speak dialogue choices
+--          (mod/voice-choices.lua, live.choiceListen) wants it open for the choice list on screen: the file's `listen` is either of the two.
 --   blocked  the game is in a menu, a loading screen, a scene, a dialogue with choices or a call. After a voice turn the bridge keeps the device open for about
 --          15 s (the linger, bridge/mic-tap.mjs) so the next press of a conversation starts at once; while blocked it closes it at once and does not linger.
 -- A write happens on a change only: the key's two edges (one write each), when listening or blocked changes. Never per frame.
-local live = {holdId = nil, down = false, listen = false, blocked = false, writes = 0}
+local live = {holdId = nil, down = false, listen = false, choiceListen = false, blocked = false, writes = 0}
 
 local function writeLive()
     live.writes = live.writes + 1
     local f = io.open('runtime/microphone-live.json', 'wb')
     if not f then return false end
     local ok = pcall(function()
-        f:write(json.encode({n = live.writes, at = os.clock(), holdId = live.holdId, down = live.down, listen = live.listen, blocked = live.blocked}))
+        f:write(json.encode({n = live.writes, at = os.clock(), holdId = live.holdId, down = live.down, listen = live.listen or live.choiceListen, blocked = live.blocked}))
     end)
     f:close()
     return ok
@@ -45,6 +46,17 @@ function M.listen(on)
     on = on == true
     if live.listen == on then return false end
     live.listen = on
+    -- The file says listen while the choice list wants it too: nothing changed for the bridge, nothing is written.
+    if live.choiceListen then return false end
+    return writeLive()
+end
+
+-- The choice list on screen (mod/voice-choices.lua) wants the microphone open or closed. One write, on a change that the file would show.
+function M.listenChoice(on)
+    on = on == true
+    if live.choiceListen == on then return false end
+    live.choiceListen = on
+    if live.listen then return false end
     return writeLive()
 end
 

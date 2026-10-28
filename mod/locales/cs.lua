@@ -1534,4 +1534,9 @@ return {
     ["The Scripts are for game {other}, yours is {game}. Get the Scripts for {game} from Nexus Mods."] = "Scripts jsou pro hru {other}, tvoje je {game}. Stáhni Scripts pro {game} z Nexus Mods.",
     ["This mod is for game {other}, yours is {game}. Get the Scripts and Runtime for {game}."] = "Mod je pro hru {other}, tvoje je {game}. Stáhni Scripts a Runtime pro {game}.",
     ["Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings."] = "Scripts pro hru {scripts}, Runtime pro {runtime}. Musí si odpovídat. Viz Nápověda.",
+    ["Speak dialogue choices"] = "Říkat volby v dialogu",
+    ["Say a dialogue choice to pick it: its words, a part of them, or its number (\"two\", \"the last one\"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best."] = "Řekni volbu v dialogu, aby se vybrala: její slova, část z nich nebo její číslo (\"dvě\", \"poslední\"). Pokud nic jasně nesedí, nic se nevybere. Žádná postava neodpoví.\n\nStiskne šipky a Enter, takže hra musí být v popředí. Vyžaduje rozpoznávání řeči na tomto počítači. Nejlépe fungují sluchátka.",
+    ["No option matched. Say its number."] = "Žádná možnost neodpovídá. Řekni její číslo.",
+    ["Two options fit. Say its number."] = "Hodí se dvě možnosti. Řekni její číslo.",
+    ["Speaking a choice needs speech recognition on this PC."] = "Vyslovení volby vyžaduje rozpoznávání řeči na tomto počítači.",
 }

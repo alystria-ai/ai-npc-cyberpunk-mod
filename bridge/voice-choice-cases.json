@@ -1,0 +1,3874 @@
+{
+ "hubs": [
+  {
+   "id": "en-001",
+   "language": "en",
+   "captions": [
+    "I'm looking for a fixer.",
+    "Who are you?",
+    "Never mind."
+   ],
+   "cases": [
+    {
+     "say": "i'm looking for a fixer",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "never mind",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "I need to find a fixer",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "um so I'm kind of trying to find a fixer around here",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "who the hell are you",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "the third one",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "option five",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "fixer",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "do you know any fixers",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'm not looking for trouble",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "where can I find a ripperdoc",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pass me the controller",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-002",
+   "language": "en",
+   "captions": [
+    "I want a few upgrades.",
+    "Just browsing, thanks."
+   ],
+   "cases": [
+    {
+     "say": "i want a few upgrades",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "just browsing thanks",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I'd like to get some cyberware installed",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I'm just looking around",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the second one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "number three",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "upgrades",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "how much do upgrades cost",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "maybe later",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "anything worth buying around here",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "did you see the game last night",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-003",
+   "language": "en",
+   "captions": [
+    "Who are you, really?",
+    "Get out of my head.",
+    "I'm not interested in your war.",
+    "Let's talk about Arasaka."
+   ],
+   "cases": [
+    {
+     "say": "who are you really",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "get out of my head",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "let's talk about arasaka",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "talk to me about arasaka",
+     "expect": 3,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "um, get out of my head please",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I don't care about your war",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "number four",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "the second one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "option six",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "arasaka",
+     "expect": 3,
+     "kind": "keyword"
+    },
+    {
+     "say": "tell me about the corporation",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "what's your problem",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "you sound like a corpo",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the controller is in the car",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-004",
+   "language": "en",
+   "captions": [
+    "Do you want to get out of here?",
+    "I'm not ready to talk about it."
+   ],
+   "cases": [
+    {
+     "say": "do you want to get out of here",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I'm not ready to talk about it",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "let's leave this place together",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "can we not talk about it right now",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "the last one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "ready",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "let's get a drink",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "should I be worried",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "what did they do to you",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "uh",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-005",
+   "language": "en",
+   "captions": [
+    "Where's the car?",
+    "Let's go for a ride.",
+    "Tell me about your people."
+   ],
+   "cases": [
+    {
+     "say": "let's go for a ride",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "tell me about your people",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "where did you park the car",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "um let's take a drive together",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "so what's up with your people, anyway",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option 2",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "people",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "where's the nearest gas station",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "do you need help with the aldecaldos",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is your family still out in the badlands",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "did you hear the new song on the radio",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-006",
+   "language": "en",
+   "captions": [
+    "Where is Jackie?",
+    "Let's grab a drink.",
+    "Do you think he's still alive?"
+   ],
+   "cases": [
+    {
+     "say": "where is jackie",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "let's grab a drink",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "you think he's still alive",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "where's Jackie right now",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "wanna get a drink together",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "number two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "the last one",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "jackie",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "where's the bar",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is jackie in trouble",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "did he ever call you back",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "choom you better watch your back out there",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "hmm",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-007",
+   "language": "en",
+   "captions": [
+    "Let's talk about the cyberware.",
+    "How much do you charge?",
+    "I want to try something new.",
+    "I'll come back later."
+   ],
+   "cases": [
+    {
+     "say": "let's talk about the cyberware",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "how much do you charge",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I'll come back later",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "what does this cost",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I'll be back later on",
+     "expect": 3,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option four",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "cyberware",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "I'd like to see your new implants",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "can you give me a discount",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "do you do surgery on the spot",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "damn it's hot in here",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-008",
+   "language": "en",
+   "captions": [
+    "Got any work for me?",
+    "What's the gossip around here?",
+    "I'm just here for the food."
+   ],
+   "cases": [
+    {
+     "say": "got any work for me",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "what's the gossip around here",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I'm just here for the food",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "do you have any jobs for me",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "anything juicy happening around town",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I'm only here to eat",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "gossip",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "is the food any good",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "any news about the job",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "who runs this place",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "did the game crash",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-009",
+   "language": "en",
+   "captions": [
+    "Tell me about the Afterlife.",
+    "I'm here to talk business."
+   ],
+   "cases": [
+    {
+     "say": "tell me about the afterlife",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I'm here to talk business",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "what goes on at the afterlife",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I came to discuss some business",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "option three",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "afterlife",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "do you know where to find dex",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "business is slow, huh",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is the afterlife open tonight",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "nice jacket man",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-010",
+   "language": "en",
+   "captions": [
+    "I want to speak with someone in charge.",
+    "I'm here about the contract.",
+    "Never mind, wrong building."
+   ],
+   "cases": [
+    {
+     "say": "I want to speak with someone in charge",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I'm here about the contract",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "never mind wrong building",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "I need to see the boss",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I've got a meeting about the deal",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "oops, wrong place, sorry",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the second one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "number two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "contract",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "where is the lobby",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is this the right building",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "who's the CEO here",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pick up some milk later",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-011",
+   "language": "en",
+   "captions": [
+    "Please help, I'm bleeding.",
+    "Tell them I'm fine."
+   ],
+   "cases": [
+    {
+     "say": "please help I'm bleeding",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "tell them I'm fine",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I think I need a doctor",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "don't worry, I'm okay",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "the second one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "bleeding",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "where's the nearest clinic",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'm not bleeding",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is anyone else hurt",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "heavy traffic on the bridge",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "uh",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-012",
+   "language": "en",
+   "captions": [
+    "Take me to the nearest ripperdoc.",
+    "Drive me to Watson.",
+    "Just drive around for a bit."
+   ],
+   "cases": [
+    {
+     "say": "take me to the nearest ripperdoc",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "drive me to watson",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "just drive around for a bit",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "get me to the nearest ripperdoc",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "let's just cruise for a while",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "watson",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "take me home",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "stop right here",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "how long until we get there",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the radio is too loud",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "okay",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-013",
+   "language": "en",
+   "captions": [
+    "Tell me about your past.",
+    "What are you doing here?",
+    "I'm leaving."
+   ],
+   "cases": [
+    {
+     "say": "what are you doing here",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I'm leaving",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "tell me about your past",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "tell me about your history",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I'm heading out now",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "so what's your story",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the middle one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "option three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "leaving",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "what's the time",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "you look familiar",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "where are you from originally",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pass the salt",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "uh uh",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-014",
+   "language": "en",
+   "captions": [
+    "I'll do the gig.",
+    "Who's paying you?",
+    "Let's get you a drink.",
+    "You're too much, Kerry."
+   ],
+   "cases": [
+    {
+     "say": "I'll do the gig",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "who's paying you",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "you're too much kerry",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "I'll play along with the show",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "let me buy you a drink",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "who's footing the bill",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option four",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "the last one",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "drink",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "where's the stage",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I want to hear more about the show",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "that bassline was sick",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "how long have you been playing",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pass the potatoes",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-015",
+   "language": "en",
+   "captions": [
+    "We can just be friends.",
+    "I want more than that."
+   ],
+   "cases": [
+    {
+     "say": "we can just be friends",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I want more than that",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "let's stay as friends",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I want something more serious",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "number two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "friends",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "are you seeing someone else",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "let's talk later",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "are we dating",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "shh",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-016",
+   "language": "en",
+   "captions": [
+    "Show me what you've got.",
+    "How much for the pistol?",
+    "I'll come back when I have more money."
+   ],
+   "cases": [
+    {
+     "say": "show me what you've got",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "how much for the pistol",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I'll come back when I have more money",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "let me see your inventory",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "what does that pistol cost",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I'll return once I'm richer",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "the last one",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "pistol",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "do you have any shotguns",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "can you give me a discount",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is that the new model",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the sun is blinding today",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "mm-hmm",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-017",
+   "language": "en",
+   "captions": [
+    "A whiskey, neat.",
+    "Just a water, please."
+   ],
+   "cases": [
+    {
+     "say": "a whiskey neat",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "just a water please",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "a glass of whisky please, no ice",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "um can I get some plain water",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option 2",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "whiskey",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "do you have any beer",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "make it a double",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is this place open late",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "that guy's staring at us",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-018",
+   "language": "en",
+   "captions": [
+    "Who is this?",
+    "I can't talk right now.",
+    "Send me the location."
+   ],
+   "cases": [
+    {
+     "say": "who is this",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I can't talk right now",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "send me the location",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "who's calling",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I'm busy, call me later",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "text me the address",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "the first",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "location",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "where are you right now",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'll call you back",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "who gave you this number",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "turn that music down",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "hmm",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-019",
+   "language": "en",
+   "captions": [
+    "Go deeper into the memory.",
+    "End the braindance."
+   ],
+   "cases": [
+    {
+     "say": "go deeper into the memory",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "end the braindance",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "let's dive deeper",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "stop the simulation, get me out",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "the first",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "deeper",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "replay that memory",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "what am I seeing",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "hold on a second",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "wait what year is it",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-020",
+   "language": "en",
+   "captions": [
+    "Can you tell my fortune?",
+    "I'd like a card reading.",
+    "Not today, thanks."
+   ],
+   "cases": [
+    {
+     "say": "can you tell my fortune",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I'd like a card reading",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "not today thanks",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "what do the cards say about me",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "tell me what my future holds",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "no thanks, maybe another time",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the middle one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "option three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "fortune",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "what's your name",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "how much for a reading",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "do you read palms too",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the sea smells terrible",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-021",
+   "language": "en",
+   "captions": [
+    "What do you need from me?",
+    "I'm not sure I'm the right person."
+   ],
+   "cases": [
+    {
+     "say": "what do you need from me",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I'm not sure I'm the right person",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "tell me what you need",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "maybe you should find someone else",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "number four",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "person",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "what's in it for me",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "do you trust me",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I've never done this before",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the traffic is awful",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "uhhh",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-022",
+   "language": "en",
+   "captions": [
+    "Yes, I'll do it.",
+    "Yes, but I want more money.",
+    "No, not for Arasaka."
+   ],
+   "cases": [
+    {
+     "say": "yes I'll do it",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "yes but I want more money",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "no not for arasaka",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "sure, I'm in",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "yes, but pay me more",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I won't work for Arasaka, forget it",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "the last one",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "money",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "yes",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "nope, maybe later",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is it safe to go there",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pass the chips",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-023",
+   "language": "en",
+   "captions": [
+    "I think you're lying to me.",
+    "I think we can make a deal.",
+    "I think this is a bad idea."
+   ],
+   "cases": [
+    {
+     "say": "I think you're lying to me",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I think we can make a deal",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I think this is a bad idea",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "you're lying, I can tell",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "let's make a deal then",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "this sounds like a terrible plan",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "number three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "lying",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "I think",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I think I'll pass",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "maybe you're right",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the stars are out tonight",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-024",
+   "language": "en",
+   "captions": [
+    "Let me think about it.",
+    "Let me see the goods first.",
+    "Let me talk to my partner.",
+    "Let me out of here."
+   ],
+   "cases": [
+    {
+     "say": "let me think about it",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "let me see the goods first",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "let me talk to my partner",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "let me out of here",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "give me a minute to decide",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "show me the merchandise before I pay",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I need to ask my partner first",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option four",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "the third one",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "partner",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "let me go home",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "let me in",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "let me see your face",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I love this song",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-025",
+   "language": "en",
+   "captions": [
+    "Stay the night.",
+    "I should probably go."
+   ],
+   "cases": [
+    {
+     "say": "stay the night",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I should probably go",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "why don't you stay a while",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "I think I ought to leave",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option 2",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "stay",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "it's getting late",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "do you want to get dinner",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "you're really something else",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pass the remote",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "mm",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-026",
+   "language": "en",
+   "captions": [
+    "You're going to regret that.",
+    "Easy, I'm not looking for trouble.",
+    "Who's your boss?",
+    "I've got a deal for you."
+   ],
+   "cases": [
+    {
+     "say": "you're going to regret that",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "easy I'm not looking for trouble",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "who's your boss",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "I've got a deal for you",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "you'll regret saying that",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "calm down, I don't want a fight",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "who runs this crew",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option four",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "the second one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "boss",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "what's the gang's territory",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "take a hike",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "are you the one who sent this",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "that motorcycle is nice",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-027",
+   "language": "en",
+   "captions": [
+    "I'm not the one who did it.",
+    "I'll cooperate, officer.",
+    "I need a lawyer."
+   ],
+   "cases": [
+    {
+     "say": "I'm not the one who did it",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "I'll cooperate officer",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I need a lawyer",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "wasn't me, I swear",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "fine, I'll answer your questions",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "get me a lawyer right now",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option three",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "lawyer",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "am I under arrest",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "officer what's the problem",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I didn't call anyone",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the pizza's getting cold",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-028",
+   "language": "en",
+   "captions": [
+    "Maybe next time.",
+    "I'll think about your offer.",
+    "Let's do the job now.",
+    "Tell me more about the payout.",
+    "Got any other work?",
+    "Never mind."
+   ],
+   "cases": [
+    {
+     "say": "maybe next time",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "let's do the job now",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "tell me more about the payout",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "never mind",
+     "expect": 5,
+     "kind": "exact"
+    },
+    {
+     "say": "I'll get back to you on that offer",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "how much is the payout",
+     "expect": 3,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "any other jobs for me",
+     "expect": 4,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option six",
+     "expect": 5,
+     "kind": "number"
+    },
+    {
+     "say": "the fourth one",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "payout",
+     "expect": 3,
+     "kind": "keyword"
+    },
+    {
+     "say": "what is the job",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "who sent you",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'm not sure about this deal",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "turn the volume down",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-029",
+   "language": "en",
+   "captions": [
+    "Yes, I'm in.",
+    "No deal."
+   ],
+   "cases": [
+    {
+     "say": "yes I'm in",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "no deal",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "count me in",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "forget it, the deal's off",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "the second one",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "deal",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "yes",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "no",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'll think about it",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "where's the bathroom",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "okay",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-030",
+   "language": "en",
+   "captions": [
+    "Tell me about yourself.",
+    "Tell me about the job."
+   ],
+   "cases": [
+    {
+     "say": "tell me about the job",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "tell me about yourself",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "what's the job",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "so what's your backstory",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "yourself",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "tell me something",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "what kind of work is it",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "what happened last night",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'm starving",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "shut up",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-031",
+   "language": "en",
+   "captions": [
+    "[Persuade] You can do better than that.",
+    "[Intimidate] Give me what I want, or else.",
+    "Let's talk this out."
+   ],
+   "cases": [
+    {
+     "say": "you can do better than that",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "give me what I want or else",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "let's talk this out",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "come on, you can offer more than that",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "hand it over or you'll regret it",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "let's sit down and talk it through",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "talk",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "you're going to pay for that",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "can we talk about the money",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I don't think that's fair",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the vending machine is broken",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "heh",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-032",
+   "language": "en",
+   "captions": [
+    "What's your deal?",
+    "Let's make a trade.",
+    "Not interested."
+   ],
+   "cases": [
+    {
+     "say": "what's your deal",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "let's make a trade",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "not interested",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "so what's your angle",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "let's do an exchange",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "no thanks, I'm not in",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option two",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "the third one",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "trade",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "what do you want from me",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "maybe I'd be interested",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "how much are you asking",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "nice tattoo",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "mm",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-033",
+   "language": "en",
+   "captions": [
+    "Sure, let's work together.",
+    "Forget it, I'm out."
+   ],
+   "cases": [
+    {
+     "say": "sure let's work together",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "forget it I'm out",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "I'm down to team up",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "no, I'm done with this",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "number one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option 2",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "together",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "what's in it for me",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'll think about it",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "who else is coming",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "did you bring the snacks",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "shh",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-034",
+   "language": "en",
+   "captions": [
+    "Let's get out of here."
+   ],
+   "cases": [
+    {
+     "say": "let's get out of here",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "time to leave this place",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "let's go",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option two",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "where are we going",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "I'm not leaving yet",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "stay here",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "the traffic lights are red",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "okay",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-035",
+   "language": "en",
+   "captions": [
+    "I'm not done talking to you."
+   ],
+   "cases": [
+    {
+     "say": "I'm not done talking to you",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "hang on, I haven't finished",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "wait I'm not finished with you",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "the first one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "option three",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "goodbye",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "talk to you later",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "see you",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "can you turn on the light",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "so",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "en-036",
+   "language": "en",
+   "captions": [
+    "Call me a cab, please."
+   ],
+   "cases": [
+    {
+     "say": "call me a cab please",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "could you get me a taxi",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "order a cab for me",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "option one",
+     "expect": 0,
+     "kind": "number"
+    },
+    {
+     "say": "the second one",
+     "expect": null,
+     "kind": "number"
+    },
+    {
+     "say": "cab",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "where's the nearest bus stop",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "how much is a cab",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "is the taxi on its way",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "hey did you see the game",
+     "expect": null,
+     "kind": "unrelated"
+    },
+    {
+     "say": "hmm",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "de-001",
+   "language": "de",
+   "captions": [
+    "Ich nehme den Auftrag.",
+    "Erzähl mir mehr über den Job."
+   ],
+   "cases": [
+    {
+     "say": "ich nehme den Auftrag",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "erzähl mir mehr über den Job",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "ich bin dabei, ich übernehme das",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "was genau ist denn der Plan",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "Option zwei",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "Auftrag",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "wie viel zahlst du",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "kann ich das irgendwie verhandeln",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "wer hat dich geschickt",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "das Radio ist zu laut",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "de-002",
+   "language": "de",
+   "captions": [
+    "Zeig mir deine Implantate.",
+    "Was kostet das?",
+    "Ich komme später wieder."
+   ],
+   "cases": [
+    {
+     "say": "zeig mir deine Implantate",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "ich komme später wieder",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "wie viel kostet das denn",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "ich bin später wieder da",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "Option drei",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "Implantate",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "wo ist der Arzt",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "hast du was gegen Schmerzen",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "das ist ein teurer Laden hier",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "hast du das Spiel gesehen",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "de-003",
+   "language": "de",
+   "captions": [
+    "Einen Whisky, bitte.",
+    "Nur Wasser für mich."
+   ],
+   "cases": [
+    {
+     "say": "einen Whisky bitte",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "nur Wasser für mich",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "gib mir einen Schnaps",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "ein Glas Leitungswasser reicht",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "Option zwei",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "Whisky",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "hast du Bier",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "hast du was Starkes",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ist das Lokal sauber",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ähm",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "de-004",
+   "language": "de",
+   "captions": [
+    "Geh mir aus dem Kopf.",
+    "Ich habe keine Zeit für deinen Krieg.",
+    "Reden wir über Arasaka."
+   ],
+   "cases": [
+    {
+     "say": "geh mir aus dem Kopf",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "reden wir über Arasaka",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "verschwinde aus meinem Kopf",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "ich will mit deinem Krieg nichts zu tun haben",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "die zweite",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "Arasaka",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "wer bist du eigentlich",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ist dein Krieg eigentlich schon vorbei",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "gib mir mal was zu trinken",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pass mal die Chips rüber",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "fr-001",
+   "language": "fr",
+   "captions": [
+    "Je suis partant.",
+    "Quel est le plan ?"
+   ],
+   "cases": [
+    {
+     "say": "je suis partant",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "quel est le plan",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "ok je marche",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "dis-moi c'est quoi le plan exactement",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "la deuxième",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "partant",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "où est le bar",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "tu connais quelqu'un d'autre",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "c'est combien pour la mission",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "tu as vu le match hier",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "fr-002",
+   "language": "fr",
+   "captions": [
+    "Montre-moi tes implants.",
+    "Combien ça coûte ?",
+    "Je reviendrai plus tard."
+   ],
+   "cases": [
+    {
+     "say": "montre moi tes implants",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "je reviendrai plus tard",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "c'est combien",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "je repasserai plus tard",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "la troisième",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "implants",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "tu fais des réductions",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "tu as un truc contre la douleur",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "où est le médecin",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "il fait chaud aujourd'hui",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "fr-003",
+   "language": "fr",
+   "captions": [
+    "Un whisky, sec.",
+    "Juste de l'eau, merci."
+   ],
+   "cases": [
+    {
+     "say": "un whisky sec",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "juste de l'eau merci",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "un verre de whisky sans glace",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "de l'eau plate, ça ira",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "la dernière",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "whisky",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "un café",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "tu sers à manger",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "il y a de la bière",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "passe-moi le sel",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "fr-004",
+   "language": "fr",
+   "captions": [
+    "Sors de ma tête.",
+    "Parlons d'Arasaka.",
+    "Je m'en fiche de ta guerre.",
+    "Qui es-tu, au juste ?"
+   ],
+   "cases": [
+    {
+     "say": "sors de ma tête",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "qui es tu au juste",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "dégage de ma tête",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "ta guerre, je n'en ai rien à faire",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "l'option deux",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "arasaka",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "où est la sortie",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "tu veux boire un coup",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "tu parles de quoi là",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "pas mal ton blouson",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "es-001",
+   "language": "es",
+   "captions": [
+    "Estoy dentro.",
+    "¿Cuál es el plan?"
+   ],
+   "cases": [
+    {
+     "say": "estoy dentro",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "cuál es el plan",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "cuenta conmigo",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "dime cuál es el plan exactamente",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "la segunda",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "dentro",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "dónde está el baño",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "y el dinero cuánto es",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "¿tienes más trabajos?",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "viste el partido de anoche",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "es-002",
+   "language": "es",
+   "captions": [
+    "Enséñame tus implantes.",
+    "¿Cuánto cuesta?",
+    "Vuelvo más tarde."
+   ],
+   "cases": [
+    {
+     "say": "enséñame tus implantes",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "vuelvo más tarde",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "cuánto me cobras",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "regreso luego",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "la tercera",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "implantes",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "tienes algo para el dolor",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "me duele la cabeza",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "¿abres los domingos?",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "hace mucho calor aquí",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "es-003",
+   "language": "es",
+   "captions": [
+    "Un whisky con hielo.",
+    "Solo agua, por favor."
+   ],
+   "cases": [
+    {
+     "say": "un whisky con hielo",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "solo agua por favor",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "póngame un whisky con hielo",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "un vaso de agua nada más",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "la última",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "whisky",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "¿tienen cerveza?",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "un vino, por favor",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "¿dónde está el baño?",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ya basta",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "es-004",
+   "language": "es",
+   "captions": [
+    "¿Tienes trabajo para mí?",
+    "¿Qué chismes hay por aquí?",
+    "Solo vine a comer.",
+    "Adiós, nos vemos."
+   ],
+   "cases": [
+    {
+     "say": "tienes trabajo para mí",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "solo vine a comer",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "cuéntame lo último del barrio",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "hay algún trabajo",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "la cuarta",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "chismes",
+     "expect": 1,
+     "kind": "keyword"
+    },
+    {
+     "say": "¿la comida es buena?",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "¿cuánto cuesta el menú?",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "¿conoces a Dex?",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "viste el partido",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "pl-001",
+   "language": "pl",
+   "captions": [
+    "Biorę tę robotę.",
+    "Opowiedz mi więcej o zleceniu."
+   ],
+   "cases": [
+    {
+     "say": "biorę tę robotę",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "opowiedz mi więcej o zleceniu",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "jestem w tym, zgadzam się",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "powiedz dokładnie, o co chodzi w tym zleceniu",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "druga opcja",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "robotę",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "gdzie jest toaleta",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "masz coś do picia",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "kto cię tu przysłał",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "widziałeś wczorajszy mecz",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "pl-002",
+   "language": "pl",
+   "captions": [
+    "Pokaż mi swoje implanty.",
+    "Ile to kosztuje?",
+    "Wrócę innym razem."
+   ],
+   "cases": [
+    {
+     "say": "pokaż mi swoje implanty",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "wrócę innym razem",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "ile mnie to będzie kosztować",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "przyjdę kiedy indziej",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "opcja trzecia",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "implanty",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "masz coś na ból głowy",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "czy robicie zniżki",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "gdzie mogę kupić broń",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "zimno dzisiaj",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "pl-003",
+   "language": "pl",
+   "captions": [
+    "Whisky, bez lodu.",
+    "Poproszę tylko wodę."
+   ],
+   "cases": [
+    {
+     "say": "whisky bez lodu",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "poproszę tylko wodę",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "szklankę whisky, proszę",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "wystarczy mi zwykła woda",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "ostatnia",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "whisky",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "może piwo",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "masz coś mocniejszego",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ile płacę",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ten facet się gapi",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "pl-004",
+   "language": "pl",
+   "captions": [
+    "Wynoś się z mojej głowy.",
+    "Nie mam czasu na twoją wojnę.",
+    "Porozmawiajmy o Arasace.",
+    "Kim w ogóle jesteś?"
+   ],
+   "cases": [
+    {
+     "say": "wynoś się z mojej głowy",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "kim w ogóle jesteś",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "zejdź mi z głowy",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "nie obchodzi mnie twoja wojna",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "numer drugi",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "arasace",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "skąd jesteś",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "co tam słychać u ciebie",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "opowiedz mi coś o sobie",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "włącz radio",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "ru-001",
+   "language": "ru",
+   "captions": [
+    "Я в деле.",
+    "Расскажи подробнее о работе."
+   ],
+   "cases": [
+    {
+     "say": "я в деле",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "расскажи подробнее о работе",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "я согласен, давай",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "что там за работа, объясни",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "второй вариант",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "деле",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "где здесь туалет",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "сколько платят",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "кто тебя прислал",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ты видел вчерашний матч",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "ru-002",
+   "language": "ru",
+   "captions": [
+    "Покажи свои импланты.",
+    "Сколько это стоит?",
+    "Я зайду позже."
+   ],
+   "cases": [
+    {
+     "say": "покажи свои импланты",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "я зайду позже",
+     "expect": 2,
+     "kind": "exact"
+    },
+    {
+     "say": "сколько с меня возьмёшь",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "я приду попозже",
+     "expect": 2,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "третий вариант",
+     "expect": 2,
+     "kind": "number"
+    },
+    {
+     "say": "импланты",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "у тебя есть что-нибудь от боли",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "ты делаешь скидки",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "где тут аптека",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "сегодня жарко",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "ru-003",
+   "language": "ru",
+   "captions": [
+    "Виски, без льда.",
+    "Просто воды, пожалуйста."
+   ],
+   "cases": [
+    {
+     "say": "виски без льда",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "просто воды пожалуйста",
+     "expect": 1,
+     "kind": "exact"
+    },
+    {
+     "say": "налей мне виски",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "обычной воды, пожалуйста",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "последний вариант",
+     "expect": 1,
+     "kind": "number"
+    },
+    {
+     "say": "виски",
+     "expect": 0,
+     "kind": "keyword"
+    },
+    {
+     "say": "есть пиво",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "что-нибудь покрепче",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "сколько с меня",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "этот парень на нас смотрит",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  },
+  {
+   "id": "ru-004",
+   "language": "ru",
+   "captions": [
+    "Убирайся из моей головы.",
+    "У меня нет времени на твою войну.",
+    "Давай поговорим об Арасаке.",
+    "Кто ты вообще такой?"
+   ],
+   "cases": [
+    {
+     "say": "убирайся из моей головы",
+     "expect": 0,
+     "kind": "exact"
+    },
+    {
+     "say": "кто ты вообще такой",
+     "expect": 3,
+     "kind": "exact"
+    },
+    {
+     "say": "вылезай из моей головы",
+     "expect": 0,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "мне плевать на твою войну",
+     "expect": 1,
+     "kind": "paraphrase"
+    },
+    {
+     "say": "четвёртый вариант",
+     "expect": 3,
+     "kind": "number"
+    },
+    {
+     "say": "арасаке",
+     "expect": 2,
+     "kind": "keyword"
+    },
+    {
+     "say": "откуда ты взялся",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "что ты тут забыл",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "у тебя есть время поговорить",
+     "expect": null,
+     "kind": "near-miss"
+    },
+    {
+     "say": "включи радио",
+     "expect": null,
+     "kind": "unrelated"
+    }
+   ]
+  }
+ ]
+}

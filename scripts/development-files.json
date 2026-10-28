@@ -134,6 +134,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-activation.lua"
     },
     {
+      "source": "mod/voice-choices.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-choices.lua"
+    },
+    {
       "source": "mod/pad-binding.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/pad-binding.lua"
     },
