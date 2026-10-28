@@ -223,11 +223,11 @@ The optional packs are on the same Hugging Face page, https://huggingface.co/aly
 ### Vortex
 
 - **Scripts**: use Vortex's download button on the Nexus page, or drop the Scripts zip onto Vortex's Mods page.
-- **Runtime**: download the zip from Hugging Face and drop it onto the Mods page too. Then click Deploy. Every file lands in the right place. Vortex moves only the "HOW TO INSTALL" text file to its mod-extra-files folder, which is harmless. At its first start the mod copies its code from the Scripts into the Runtime's folder, so Vortex may then report "external changes" in the Runtime mod: keep the changes.
+- **Runtime**: download the zip from Hugging Face and drop it onto the Mods page too. Then click Deploy. Every file lands in the right place. Vortex moves only the "HOW TO INSTALL" text file to its mod-extra-files folder, which is harmless. At its first start the mod copies its code from the Scripts into the Runtime's folder, so Vortex may then report "external changes" in the Runtime mod: click Save all changes.
 - **The warning sign in the Version column** only means the mod was added from a file and not downloaded from Nexus. It is harmless.
 - **Local AI packs and the other model packs**: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
 - **The OmniVoice pack**: extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
-- **External changes**: the mod writes its state files inside its own folders, so Vortex may report "external changes" at the next deploy. Keeping the changes is fine.
+- **External changes**: if Vortex shows External Changes ("Mod files were changed outside Vortex") for this mod's files after an update, click Save all changes (or Use newer file for all changes) so it keeps the newer files, never Revert, then Confirm.
 - **Versions**: the Scripts need a Runtime base of at least the version Settings > Help names (a newer Runtime is fine too), and both must be for the same game. Settings > Help shows both.
 
 ### Mod Organizer 2

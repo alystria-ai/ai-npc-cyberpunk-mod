@@ -19,6 +19,7 @@
 // (docs/PACKAGING.md, "Mod Organizer 2").
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {CODE_FOLDER} from './code-payload.mjs';
 
 export const EXCHANGE_MANIFEST = 'packaging/runtime-exchange.json';
 const NAME = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
@@ -52,12 +53,13 @@ export const RUNTIME_FOLDER_NOTE = 'This folder is where AI NPC Cyberpunk Mod an
 export const STATIC_RUNTIME_FILES = Object.freeze(['README.txt', 'native-off.txt']);
 
 // The names (as listed in a package) that a package must not ship because the game or the service writes them while it runs: anything in
-// the mod folder's runtime/ besides STATIC_RUNTIME_FILES, and launcher.log in the plugin folder. `layout` is release.config.json's "layout".
+// the mod folder's runtime/ besides STATIC_RUNTIME_FILES, and launcher.log in the folder of the launcher DLL (the Scripts' code folder from 0.3.4,
+// the Runtime's plugin folder before). `layout` is release.config.json's "layout".
 export function runtimeWrittenShipped(names, layout) {
-  const runtime = `${layout.modDirectory}/runtime/`.toLowerCase(), launcher = `${layout.pluginDirectory}/launcher.log`.toLowerCase();
+  const runtime = `${layout.modDirectory}/runtime/`.toLowerCase(), launchers = new Set([`${layout.pluginDirectory}/launcher.log`, `${CODE_FOLDER}/launcher.log`].map(name => name.toLowerCase()));
   const allowed = new Set(STATIC_RUNTIME_FILES.map(name => name.toLowerCase()));
   return names.filter(name => {
     const lower = name.toLowerCase();
-    return lower === launcher || (lower.startsWith(runtime) && !allowed.has(lower.slice(runtime.length)));
+    return launchers.has(lower) || (lower.startsWith(runtime) && !allowed.has(lower.slice(runtime.length)));
   });
 }

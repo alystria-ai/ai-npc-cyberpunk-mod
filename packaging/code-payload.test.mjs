@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -277,4 +277,41 @@ test('run as the launcher runs it on game 2.5: the guard archive is removed befo
   assert.equal(first.length, 1); assert.match(first[0], /^Removed what an older Runtime shipped and game 2\.5 must not load/);
   assert.equal(run().status, 0);
   assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).filter(line => /driver_guard|Removing files/.test(line)), []);
+});
+
+// A mod manager's "revert" (Vortex: "Revert change (use staging file)") puts its staged file back over the copy install-code made. That file can be an
+// older release's file of the very same size, so the quick check also compares the modification time recorded at the copy.
+test('a file a mod manager reverted to older bytes of the same size is noticed, a touched but right file is only re-stamped', t => {
+  const w = world(t);
+  const manifest = scripts(w, {'bridge/a.mjs': 'new a', 'bridge/b.mjs': 'new b', 'launcher/start-service.mjs': 'start'});
+  assert.equal(installer.installCode({codeApp: w.codeApp, runtimeApp: w.runtimeApp, manifest}).state, 'installed');
+  const listPath = join(w.runtimeApp, payload.INSTALLED_MANIFEST);
+  const recorded = () => JSON.parse(readFileSync(listPath, 'utf8')).files;
+  assert(recorded().every(row => Number.isSafeInteger(row.mtime)), 'the list records when each file was copied');
+  const a = join(w.runtimeApp, 'bridge', 'a.mjs'), b = join(w.runtimeApp, 'bridge', 'b.mjs');
+  const stamp = path => Math.trunc(statSync(path).mtimeMs);
+
+  // Reverted: old bytes, the same size (5 characters), a different time.
+  writeFileSync(a, 'old a');
+  utimesSync(a, new Date(Date.now() - 86_400_000), new Date(Date.now() - 86_400_000));
+  const reverted = installer.installCode({codeApp: w.codeApp, runtimeApp: w.runtimeApp, manifest});
+  assert.equal(reverted.state, 'installed'); assert.equal(reverted.copied, 1);
+  assert.equal(readFileSync(a, 'utf8'), 'new a');
+  assert.equal(recorded().find(row => row.path === 'bridge/a.mjs').mtime, stamp(a));
+
+  // Touched (a mod manager moved the right file back, or a backup tool restored it): the bytes are right, nothing is copied, the new time is recorded.
+  const old = new Date(Date.now() - 3_600_000);
+  utimesSync(b, old, old);
+  const touched = installer.installCode({codeApp: w.codeApp, runtimeApp: w.runtimeApp, manifest});
+  assert.equal(touched.state, 'current'); assert.equal(touched.copied, 0);
+  assert.equal(recorded().find(row => row.path === 'bridge/b.mjs').mtime, stamp(b), 'the list follows the file');
+
+  // Untouched: the quick path reads no file (a file whose bytes change under an unchanged size and time is what a hash per start would catch, and this does not look).
+  const listBefore = readFileSync(listPath, 'utf8');
+  assert.equal(installer.installCode({codeApp: w.codeApp, runtimeApp: w.runtimeApp, manifest}).state, 'current');
+  assert.equal(readFileSync(listPath, 'utf8'), listBefore, 'the quick path writes nothing');
+  // An older list without times (installed before times were recorded) is hashed once, then follows.
+  writeFileSync(listPath, JSON.stringify({...manifest}));
+  assert.equal(installer.installCode({codeApp: w.codeApp, runtimeApp: w.runtimeApp, manifest}).state, 'current');
+  assert(recorded().every(row => Number.isSafeInteger(row.mtime)));
 });

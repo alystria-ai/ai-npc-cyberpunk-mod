@@ -62,7 +62,8 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
-import {RUNTIME_FOLDER_NOTE, runtimeWrittenShipped} from './lib/runtime-exchange.mjs';
+import {RUNTIME_FOLDER_NOTE} from './lib/runtime-exchange.mjs';
+import {shippedButWritten} from './lib/package-writes.mjs';
 import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
@@ -373,9 +374,11 @@ async function scriptsPackage(source, config) {
   // plugins in red4ext/plugins/AiNpcCyberpunkCode/), install-code.mjs and one complete copy of the code in app/ (listed in code.json), which
   // install-code.mjs copies into the Runtime base's app/ at every start where it differs. The Runtime base carries none of it.
   const code = await addCodePayload(pkg, source, config);
-  // Checked over the whole package, the code folder included: nothing in it may be a file the game, the launcher or the service writes.
-  const written = runtimeWrittenShipped([...pkg.entries.keys()], config.layout);
-  if (written.length) throw Error(`The Scripts package ships files the game or the service rewrites: ${written.join(', ')}`);
+  // Checked over the whole package, the code folder included: nothing in it may be a file the game, the launcher, install-code.mjs or the service
+  // writes, replaces or deletes (packaging/lib/package-writes.mjs): Vortex reports every such file as changed outside the manager.
+  const written = shippedButWritten([...pkg.entries.keys()], {layout: config.layout, game, codeRemoves: code.removes,
+    removes: (await readJson(resolve(source.root, DECLARED_REMOVALS))).removes ?? []});
+  if (written.length) throw Error(`The Scripts package ships files our own code writes or deletes: ${written.map(item => `${item.name} (${item.why})`).join('; ')}`);
   pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, game, commit: source.commit, runtimeBase: config.runtimeBase.required});
   return {pkg, devOnlyExcluded: excluded, code};
 }
@@ -478,7 +481,7 @@ async function addCodePayload(pkg, source, config) {
     ...notices.map(line => `- ${line}`), '- Convai Web SDK (@convai/web-sdk) - Apache-2.0 (compiled into app/assets/realtime-client.js)',
     '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.', ''].join('\r\n'));
   log(`Code in the Scripts: ${files.length} files, ${(bytes / 1024 ** 2).toFixed(1)} MiB (the Runtime base needs ${config.runtimeBase.required} or newer).`);
-  return {files: files.length, bytes};
+  return {files: files.length, bytes, removes};
 }
 
 
@@ -621,8 +624,9 @@ async function runtimePackage(source, config, models, auth) {
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', kind: 'base', version, game, commit: source.commit,
     node: tool.node.version, python: tool.python.version,
     pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: 'none', convaiSignIn: auth ? 'backend' : 'none'});
-  const written = runtimeWrittenShipped([...pkg.entries.keys()], config.layout);
-  if (written.length) throw Error(`The Runtime package ships files the game or the service rewrites: ${written.join(', ')}`);
+  // The same rule for the base (packaging/lib/package-writes.mjs): a base installed through Vortex must never see one of its files replaced, deleted or changed by us.
+  const written = shippedButWritten([...pkg.entries.keys()], {layout: config.layout, game, removes: declared});
+  if (written.length) throw Error(`The Runtime package ships files our own code writes or deletes: ${written.map(item => `${item.name} (${item.why})`).join('; ')}`);
   return pkg;
 }
 
