@@ -336,6 +336,23 @@ test('a failing synthesis or renderer drops the line quietly: one log line, the 
   assert.equal(broken.line.reason, 'failed'); assert.equal(broken.logs.length, 1);
 });
 
+test('a line ended by a cancellation (the worker restarting, the owner changing) is dropped as cancelled, never as a failure to report', async () => {
+  // Reports 47b2f6ce (28 Oct 2026): 'v-line: Conversation cancelled'. The bridge files a voice failure only for reason 'failed' or 'no-audio'.
+  const cancelledError = Object.assign(Error('Conversation cancelled'), {name: 'AbortError'});
+  const {line: made, logs, summaries} = line({stream: async () => { throw cancelledError; }});
+  await made.clear; await made.finished;
+  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'cancelled');
+  assert.equal(logs.length, 1); assert.match(logs[0], /Conversation cancelled/, 'the log still says why the line was not spoken');
+  assert.equal(summaries.length, 1); assert.equal(summaries[0].reason, 'cancelled'); assert.equal(summaries[0].failure, 'Conversation cancelled');
+  const played = line({play: async () => { throw cancelledError; }});
+  await played.line.clear;
+  assert.equal(played.line.reason, 'cancelled');
+  // A real failure of the same line is still a failure.
+  const broken = line({play: async () => { throw Error('Local PCM page startup timed out'); }});
+  await broken.line.clear;
+  assert.equal(broken.line.reason, 'failed');
+});
+
 test('the turn ending (a newer message, a stop) stops the line, even while it is audible', async () => {
   const controller = new AbortController();
   const {line: made, host} = line({signal: controller.signal}, {endAfter: 500});
