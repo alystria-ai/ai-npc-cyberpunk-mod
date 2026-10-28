@@ -15,6 +15,9 @@ const block = 'do\n' + init.slice(from, to) + '\nend\n';
 const PRELUDE = `
   clockNow = 100.0
   os.clock = function() return clockNow end
+  -- fengari's integers have 32 bits: the game's (os.time() + 90) * 1000 would wrap, so the clock is a float here (as in the game's LuaJIT, where every number is)
+  local realTime = os.time
+  os.time = function() return realTime() + 0.0 end
   generation = 0
   automatic, pending = nil, nil
   speech = {requestId = nil}

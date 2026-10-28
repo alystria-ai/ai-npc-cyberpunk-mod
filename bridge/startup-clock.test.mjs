@@ -37,20 +37,20 @@ test('onInit registers hooks only: no file is read or decoded, no catalogue buil
   assert.equal((body.match(/io\.open\(/g) || []).length, 1);
 });
 
-test('no redscript key handler listens before a session: Input/Key is registered only by a popup, the phone, and the player-bound list', () => {
+test('no redscript key handler listens before a session: Input/Key is registered only by a popup, the phone (its chat list too), and the player-bound list', () => {
   const owners = [];
   for (const name of readdirSync(scripts)) {
     if (!name.endsWith('.reds')) continue;
     const text = readFileSync(new URL(name, scripts), 'utf8').replace(/\r\n/g, '\n');
     if (/RegisterCallback\(n"Input\/Key"/.test(text)) owners.push(name);
   }
-  assert.deepEqual(owners.sort(), ['KeyBinds.reds', 'Manager.reds', 'PhoneChat.reds', 'PhoneContacts.reds']);
+  assert.deepEqual(owners.sort(), ['KeyBinds.reds', 'Manager.reds', 'PhoneChat.reds', 'PhoneChatTabs.reds', 'PhoneContacts.reds']);
   // the player-bound list is configured by Lua from a PlayerPuppet method, i.e. once a player exists, never from a system's OnLoad/OnAttach
   const binds = readFileSync(new URL('KeyBinds.reds', scripts), 'utf8').replace(/\r\n/g, '\n');
   assert.match(binds, /@addMethod\(PlayerPuppet\)\npublic final func ConvaiKeyBindsConfigure\(list: String\)/);
   // every other registered Session callback is a lifecycle event, none is an input one
   for (const name of readdirSync(scripts)) {
-    if (!name.endsWith('.reds') || ['KeyBinds.reds', 'Manager.reds', 'PhoneChat.reds', 'PhoneContacts.reds'].includes(name)) continue;
+    if (!name.endsWith('.reds') || ['KeyBinds.reds', 'Manager.reds', 'PhoneChat.reds', 'PhoneChatTabs.reds', 'PhoneContacts.reds'].includes(name)) continue;
     assert.doesNotMatch(readFileSync(new URL(name, scripts), 'utf8'), /Input\/Key|Input\/Axis|Input\/Action/);
   }
 });

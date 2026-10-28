@@ -188,7 +188,8 @@ test('the worker dying is the server\'s business: it starts again, puts the voic
   try {
     await r.client.start();
     await assert.rejects(r.client.synthesize('judy-alvarez', 'CRASH now'));
-    for (let at = 0; at < 200 && !(r.server.loaded && r.server.restarts === 1); at++) await wait(25);
+    // The voices are put back after the worker is loaded (logged last), so wait for that line, not only for the loaded flag.
+    for (let at = 0; at < 200 && !(r.server.loaded && r.server.restarts === 1 && r.logs.some(line => /voices put back/.test(line))); at++) await wait(25);
     assert.equal(r.server.restarts, 1); assert.ok(r.server.loaded);
     assert.ok(r.logs.some(line => /starting it again/.test(line)));
     assert.ok(r.logs.some(line => /voices put back/.test(line)));
