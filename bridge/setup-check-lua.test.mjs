@@ -390,12 +390,17 @@ test('omni-python: the own Python for OmniVoice names its backend or why it was 
   assert(lineOf('omni-python').description:find('the module transformers is missing in it', 1, true), tostring(lineOf('omni-python').description))
   assert(files['runtime/probe.log']:find('omni-python refused backend=rocm reason=missing-module module=transformers', 1, true))
   assert(#check.problems() == 0, 'an experimental setup is no first-load notice')
+  -- The AMD setup's own Python (Settings > Voices > OmniVoice for AMD) has its own words, not omni-python.txt's.
+  answer({['omni-python'] = {id = 'omni-python', state = 'ok', code = 'used', managed = true, backend = 'rocm', device = 'AMD Radeon RX 9070 XT', memoryMiB = 16304}}); check.run()
+  assert(lineOf('omni-python').state == 'ok' and lineOf('omni-python').description:find('^The AMD setup %(Settings > Voices > OmniVoice for AMD%) runs OmniVoice with ROCm on AMD Radeon RX 9070 XT, 15.9 GB.'), tostring(lineOf('omni-python').description))
+  answer({['omni-python'] = {id = 'omni-python', state = 'problem', code = 'refused', managed = true, reason = 'op-failed', backend = 'rocm'}}); check.run()
+  assert(lineOf('omni-python').description == 'The AMD setup was not used: a test on the graphics card failed. Choose Reinstall in Settings > Voices > OmniVoice for AMD. Until then Pocket speaks.', tostring(lineOf('omni-python').description))
   answer({['omni-python'] = {id = 'omni-python', state = 'unknown', code = 'testing'}}); check.run()
   assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('being tested', 1, true))
   answer({['omni-python'] = {id = 'omni-python', state = 'unknown', code = 'untested'}}); check.run()
   assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('tested when OmniVoice starts', 1, true))
   answer({['omni-python'] = {id = 'omni-python', state = 'note', code = 'amd-route', device = 'AMD Radeon RX 9070 XT'}}); check.run()
-  assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('^Your AMD Radeon card %(AMD Radeon RX 9070 XT%) can run OmniVoice with your own Python') and lineOf('omni-python').description:find('Experimental. Steps: docs/OMNIVOICE_AMD.md', 1, true), tostring(lineOf('omni-python').description))
+  assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('^Your AMD Radeon card %(AMD Radeon RX 9070 XT%) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD') and not lineOf('omni-python').description:find('OMNIVOICE_AMD', 1, true), tostring(lineOf('omni-python').description))
   assert(#check.problems() == 0 and files['runtime/probe.log']:find('omni-python amd-route', 1, true))
 `));
 

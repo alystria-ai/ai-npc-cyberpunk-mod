@@ -69,6 +69,8 @@ OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON'
 OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE'
 # On a ROCm PyTorch only (docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions (the default turns them off, PyTorch's own path is faster and steadier there).
 ROCM_MIOPEN_VARIABLE = 'CYBERPUNK_CONVAI_ROCM_MIOPEN'
+# MIOpen's find mode and find enforcement on ROCm (2 = FAST, 1 = NONE), unless the player set their own (bridge/omni-own-python.mjs MIOPEN_DEFAULTS).
+MIOPEN_DEFAULTS = {'MIOPEN_FIND_MODE': '2', 'MIOPEN_FIND_ENFORCE': '1'}
 # The worker's process priority (docs/PROCESS_PRIORITY.md): the bridge names the level here ('high' by default on both routes, 'below' or nothing otherwise) and sets the
 # child it spawned too; the worker sets itself because a venv's python.exe is a launcher, so the child's pid is not the worker's. Never REALTIME.
 PRIORITY_VARIABLE = 'CYBERPUNK_CONVAI_WORKER_PRIORITY'
@@ -236,33 +238,38 @@ def rocm_build(torch):
 
 
 def tune_rocm(torch, environ=None):
-    """ROCm only (torch.version.hip set): the two settings an RX 9070 XT player found fast and steady (docs/OMNIVOICE_AMD.md).
+    """ROCm only (torch.version.hip set): the MIOpen settings an RX 9070 XT player found fast and steady (docs/OMNIVOICE_AMD.md).
 
-    MIOPEN_FIND_MODE=FAST (a value the player already set stays) and PyTorch's own convolutions instead of MIOpen's (torch.backends.cudnn.enabled = False;
-    ROCM_MIOPEN_VARIABLE=1 keeps MIOpen). Both are read when the first convolution runs, so this is called before any model is loaded. Returns the one log
-    line, or None on a CUDA or CPU build.
+    MIOpen runs the convolutions by default (the game's "MIOpen convolutions (AMD)" choice, on), with MIOPEN_FIND_MODE=2 and MIOPEN_FIND_ENFORCE=1.
+    ROCM_MIOPEN_VARIABLE=0 (the choice off) runs PyTorch's own convolutions instead (torch.backends.cudnn.enabled = False), with MIOPEN_FIND_MODE=2.
+    A value the player already set stays theirs. All of it is read when the first convolution runs, so this is called before any model is loaded. Returns
+    the one log line, or None on a CUDA or CPU build.
     """
     environ = os.environ if environ is None else environ
     hip = rocm_build(torch)
     if not hip:
         return None
-    if environ.get('MIOPEN_FIND_MODE'):
-        find = f"{environ['MIOPEN_FIND_MODE']} (already set)"
-    else:
-        environ['MIOPEN_FIND_MODE'] = 'FAST'
-        find = 'FAST'
-    if environ.get(ROCM_MIOPEN_VARIABLE) == '1':
-        convolutions = 'MIOpen kept on'
+    on = environ.get(ROCM_MIOPEN_VARIABLE) != '0'
+    names = ['MIOPEN_FIND_MODE', 'MIOPEN_FIND_ENFORCE'] if on else ['MIOPEN_FIND_MODE']
+    shown = []
+    for name in names:
+        if environ.get(name):
+            shown.append(f'{name}={environ[name]} (already set)')
+        else:
+            environ[name] = MIOPEN_DEFAULTS[name]
+            shown.append(f'{name}={environ[name]}')
+    if on:
+        convolutions = 'MIOpen'
     else:
         torch.backends.cudnn.enabled = False
         convolutions = "PyTorch's own, MIOpen off"
-    return f'[rocm] HIP {hip}: MIOPEN_FIND_MODE={find}; convolutions: {convolutions}'
+    return f"[rocm] HIP {hip}: {', '.join(shown)}; convolutions: {convolutions}"
 
 
 def keep_rocm_convolutions(torch, environ=None):
     """After the model is loaded: a library that switched MIOpen back on is told off again. Returns a log line when it had to, else None."""
     environ = os.environ if environ is None else environ
-    if not rocm_build(torch) or environ.get(ROCM_MIOPEN_VARIABLE) == '1' or not torch.backends.cudnn.enabled:
+    if not rocm_build(torch) or environ.get(ROCM_MIOPEN_VARIABLE) != '0' or not torch.backends.cudnn.enabled:
         return None
     torch.backends.cudnn.enabled = False
     return '[rocm] MIOpen convolutions were switched on while the model loaded: off again'

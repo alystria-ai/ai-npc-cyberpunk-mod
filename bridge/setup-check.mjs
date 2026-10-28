@@ -586,10 +586,12 @@ export async function collectSetupCheck(options = {}) {
       } catch { return null; }
     }
     const backend = ['cuda', 'rocm', 'none'].includes(found.backend) ? found.backend : null;
+    // `managed`: the Python of Settings > Voices > OmniVoice for AMD (bridge/omni-amd-setup.mjs), not the player's own omni-python.txt.
+    const managed = found.managed === true ? {managed: true} : {};
     if (found.used === true) return {id: 'omni-python', state: 'ok', code: 'used', backend, device: clip(found.device, 80),
-      memoryMiB: Number.isFinite(found.vramMiB) && found.vramMiB > 0 ? Math.round(found.vramMiB) : null};
+      memoryMiB: Number.isFinite(found.vramMiB) && found.vramMiB > 0 ? Math.round(found.vramMiB) : null, ...managed};
     if (typeof found.reason === 'string' && found.reason) return {id: 'omni-python', state: 'problem', code: 'refused', reason: text(found.reason, 30),
-      module: clip(found.module, 60), backend};
+      module: clip(found.module, 60), backend, ...managed};
     return {id: 'omni-python', state: 'unknown', code: found.testing === true ? 'testing' : 'untested'};
   };
 

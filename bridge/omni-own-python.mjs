@@ -13,13 +13,16 @@ import {spawn} from 'node:child_process';
 import {readFile as fsReadFile, stat} from 'node:fs/promises';
 import {basename, dirname, isAbsolute, resolve} from 'node:path';
 import {DEFAULT_PRIORITY, PRIORITY_LEVELS, PRIORITY_VARIABLE, priorityLevel} from './process-priority.mjs';
+import {amdPaths, readAmdSetup, syncAmdPython} from './omni-amd-layout.mjs';
 
 export const OWN_PYTHON_FILE = 'omni-python.txt';
 // Told to the worker (bridge/resident-voice-worker.py): it runs in the player's Python and loads OmniVoice's code from this folder of the pack.
 export const OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON';
 export const OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE';
-// ROCm tuning (bridge/resident-voice-worker.py tune_rocm, docs/OMNIVOICE_AMD.md): '1' keeps MIOpen's convolutions.
+// ROCm tuning (bridge/resident-voice-worker.py tune_rocm, docs/OMNIVOICE_AMD.md): '1' lets MIOpen run the convolutions (the default since 0.3.4), '0' turns it off.
 export const ROCM_MIOPEN_VARIABLE = 'CYBERPUNK_CONVAI_ROCM_MIOPEN';
+// With MIOpen on: the find mode and find enforcement an RX 9070 XT player found fast and steady (2 = FAST, 1 = NONE).
+export const MIOPEN_DEFAULTS = Object.freeze({MIOPEN_FIND_MODE: '2', MIOPEN_FIND_ENFORCE: '1'});
 // The worker's priority level is the same rule on both routes (bridge/process-priority.mjs, docs/PROCESS_PRIORITY.md); re-exported for the callers that had it here.
 export {PRIORITY_VARIABLE};
 // Importing a ROCm PyTorch and OmniVoice's libraries the first time can take a while on a cold disk; a test that says nothing for this long is refused.
@@ -93,18 +96,28 @@ export function parseRocmOptions(rows) {
   return options;
 }
 
+/** Whether MIOpen runs the convolutions: the `miopen =` line of omni-python.txt when it names one, else the game's setting (Settings > Voices > OmniVoice for AMD, `amdMiopen`, on by default). Pure. */
+export function miopenWanted(own, setting = true) {
+  const named = own?.options?.miopen;
+  if (named === 'on') return true;
+  if (named === 'off') return false;
+  return setting !== false;
+}
+
 /**
- * The worker's environment for the ROCm route (a Python whose self-test found torch.version.hip): MIOPEN_FIND_MODE=FAST unless the file names another mode or the
- * variable is already set where the game started (`processEnv`), MIOpen's convolutions off unless `miopen = on`. The priority is not here: it is one rule for both
- * routes (omniPriority). {} for any other backend: NVIDIA and the Runtime's Python are never touched. Pure.
+ * The worker's environment for the ROCm route (a Python whose self-test found torch.version.hip). MIOpen on (the default, `miopen`): ROCM_MIOPEN_VARIABLE=1 with
+ * MIOPEN_FIND_MODE=2 and MIOPEN_FIND_ENFORCE=1. MIOpen off: ROCM_MIOPEN_VARIABLE=0 (PyTorch's own convolutions) with MIOPEN_FIND_MODE=2. A find mode the file names
+ * (`miopen-find-mode =`) wins, and a variable already set where the game started (`processEnv`) is the player's and is not sent. The priority is not here: it is one
+ * rule for both routes (omniPriority). {} for any other backend: NVIDIA and the Runtime's Python are never touched. Pure.
  */
-export function rocmWorkerEnvironment(own, processEnv = process.env) {
+export function rocmWorkerEnvironment(own, processEnv = process.env, {miopen = true} = {}) {
   if (!own?.used || own.backend !== 'rocm') return {};
   const options = own.options ?? {};
-  const environment = {};
+  const on = miopenWanted(own, miopen);
+  const environment = {[ROCM_MIOPEN_VARIABLE]: on ? '1' : '0'};
   if (options.miopenFindMode) environment.MIOPEN_FIND_MODE = options.miopenFindMode;
-  else if (!processEnv?.MIOPEN_FIND_MODE) environment.MIOPEN_FIND_MODE = 'FAST';
-  if (options.miopen === 'on') environment[ROCM_MIOPEN_VARIABLE] = '1';
+  else if (!processEnv?.MIOPEN_FIND_MODE) environment.MIOPEN_FIND_MODE = MIOPEN_DEFAULTS.MIOPEN_FIND_MODE;
+  if (on && !processEnv?.MIOPEN_FIND_ENFORCE) environment.MIOPEN_FIND_ENFORCE = MIOPEN_DEFAULTS.MIOPEN_FIND_ENFORCE;
   return environment;
 }
 
@@ -132,18 +145,26 @@ export function parseOwnPythonText(text) {
 
 /**
  * The override as the player left it: {configured: false} without the file (or with only comments in it), else {configured: true, path, problem}
- * where problem is null or a REFUSALS code about the path itself. Reads one small file.
+ * where problem is null or a REFUSALS code about the path itself. Reads one small file. Without the file, the Python that Settings > Voices > OmniVoice for AMD set up
+ * (bridge/omni-amd-layout.mjs, <data>/amd/py) is the one: {configured: true, managed: true, path, problem: null}. The player's own file always wins.
  */
-export async function readOwnPythonSetting({stateDirectory, readFile = fsReadFile, isFile = defaultIsFile} = {}) {
+export async function readOwnPythonSetting({stateDirectory, readFile = fsReadFile, isFile = defaultIsFile, managed = managedPythonSetting} = {}) {
   if (!stateDirectory) return {configured: false};
   let text;
-  try { text = await readFile(resolve(stateDirectory, OWN_PYTHON_FILE), 'utf8'); } catch { return {configured: false}; }
-  const {path, problem, options} = parseOwnPythonText(String(text).slice(0, 4096));
-  if (!path && !problem) return {configured: false};
+  try { text = await readFile(resolve(stateDirectory, OWN_PYTHON_FILE), 'utf8'); } catch { text = null; }
+  const {path, problem, options} = text === null ? {path: null, problem: null} : parseOwnPythonText(String(text).slice(0, 4096));
+  if (!path && !problem) {
+    try { return (await managed({stateDirectory, readFile})) ?? {configured: false}; } catch { return {configured: false}; }
+  }
   if (problem) return {configured: true, path: null, problem};
   return {configured: true, path, problem: (await isFile(path)) ? null : 'not-found', ...(options ? {options} : {})};
 }
 async function defaultIsFile(path) { try { return (await stat(path)).isFile(); } catch { return false; } }
+/** The AMD setup's Python as a setting, or null when none is set up (its setup.json is written last, so a half-made one is not taken). */
+async function managedPythonSetting({stateDirectory, readFile = fsReadFile}) {
+  const setup = await readAmdSetup({stateDirectory, readFile});
+  return setup ? {configured: true, managed: true, path: amdPaths(stateDirectory).python, problem: null} : null;
+}
 
 /** 'rocm' (torch.version.hip set), 'cuda' (a CUDA build), or 'none' (no GPU build, or PyTorch sees no card). Pure. */
 export function backendOf(report) {
@@ -206,14 +227,18 @@ export const packagedOmniSource = runtimePython => runtimePython ? resolve(dirna
  * OmniVoice's code come from the pack). Never throws.
  */
 export async function resolveOwnPython({stateDirectory, runtimePython, packInstalled = true, readSetting = readOwnPythonSetting, selfTest = runOwnPythonSelfTest,
-  exists = defaultIsFile} = {}) {
+  exists = defaultIsFile, prepareManaged = syncAmdPython} = {}) {
   let setting;
   try { setting = await readSetting({stateDirectory}); } catch { setting = {configured: false}; }
   if (!setting?.configured) return {configured: false};
-  const base = {configured: true, used: false, path: setting.path ?? null, ...(setting.options ? {options: setting.options} : {})};
+  const base = {configured: true, used: false, path: setting.path ?? null, ...(setting.managed ? {managed: true} : {}), ...(setting.options ? {options: setting.options} : {})};
   if (setting.problem) return {...base, backend: null, reason: setting.problem};
   const source = packagedOmniSource(runtimePython);
   if (!packInstalled || !source || !(await exists(resolve(source, '__init__.py')))) return {...base, backend: null, reason: 'no-pack'};
+  // The AMD setup's Python borrows the pack's interpreter and libraries: its path file follows the pack to wherever the Runtime is now (a moved game folder, a new pack).
+  if (setting.managed) {
+    try { await prepareManaged({stateDirectory, runtimePython}); } catch { return {...base, backend: null, reason: 'start-failed'}; }
+  }
   let report;
   try { report = await selfTest({python: setting.path, source}); } catch { report = {error: 'start-failed'}; }
   if (report && ['start-failed', 'timed-out', 'bad-output'].includes(report.error)) return {...base, backend: null, reason: report.error};
@@ -225,6 +250,12 @@ export async function resolveOwnPython({stateDirectory, runtimePython, packInsta
 /** One log line about the decision (no folder names but the python.exe the player chose; the report keeps the same facts). */
 export function ownPythonLine(result) {
   if (!result?.configured) return 'OmniVoice uses the Runtime\'s Python (no omni-python.txt)';
+  if (result.managed) {
+    const card = result.device ? `, ${result.device}${result.vramMiB ? ` ${result.vramMiB} MiB` : ''}` : '';
+    if (result.used) return `OmniVoice uses the AMD setup: PyTorch ${result.torch ?? '?'}, ROCm/HIP ${result.hip ?? '?'}${card}`;
+    const why = result.reason === 'missing-module' ? `missing-module ${result.module ?? '?'}` : result.reason;
+    return `The AMD setup was not used (${why}${result.detail ? `; ${result.detail}` : ''}); OmniVoice uses the Runtime's Python`;
+  }
   const card = result.device ? `, ${result.device}${result.vramMiB ? ` ${result.vramMiB} MiB` : ''}` : '';
   const build = result.backend === 'rocm' ? `ROCm/HIP ${result.hip ?? '?'}` : result.backend === 'cuda' ? `CUDA ${result.cuda ?? '?'}` : 'no GPU backend';
   if (result.used) return `OmniVoice uses the player's own Python (experimental): PyTorch ${result.torch ?? '?'}, ${build}${card}`;
@@ -235,6 +266,6 @@ export function ownPythonLine(result) {
 /** What the voice state and the support report carry: small, no folder names. null without the override. */
 export function ownPythonSummary(result) {
   if (!result?.configured) return null;
-  return {used: result.used === true, backend: result.backend ?? null, reason: result.reason ?? null, module: result.module ?? null,
+  return {used: result.used === true, ...(result.managed ? {managed: true} : {}), backend: result.backend ?? null, reason: result.reason ?? null, module: result.module ?? null,
     torch: result.torch ?? null, hip: result.hip ?? null, cuda: result.cuda ?? null, device: result.device ?? null, vramMiB: result.vramMiB ?? null};
 }

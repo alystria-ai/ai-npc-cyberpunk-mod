@@ -704,8 +704,13 @@ local function bridgeLines(out)
         if ownPython.code == 'used' then
             local backend = ownPython.backend == 'rocm' and 'ROCm' or 'CUDA'
             local size, name = gigabytes(ownPython.memoryMiB), text(ownPython.device, 80) or '?'
-            out[#out + 1] = line('omni-python', label, 'ok', ui.t('Your own Python (omni-python.txt) runs OmniVoice with {backend} on {card}. Experimental.',
-                {backend = backend, card = size and (name .. ', ' .. size .. ' GB') or name}))
+            local card = size and (name .. ', ' .. size .. ' GB') or name
+            if ownPython.managed == true then
+                out[#out + 1] = line('omni-python', label, 'ok', ui.t('The AMD setup (Settings > Voices > OmniVoice for AMD) runs OmniVoice with ROCm on {card}. Experimental.', {card = card}))
+            else
+                out[#out + 1] = line('omni-python', label, 'ok', ui.t('Your own Python (omni-python.txt) runs OmniVoice with {backend} on {card}. Experimental.',
+                    {backend = backend, card = card}))
+            end
         elseif ownPython.code == 'refused' then
             local reason, why = text(ownPython.reason, 30), nil
             if reason == 'not-absolute' or reason == 'not-found' or reason == 'not-python' then why = ui.t('the file does not name a python.exe that exists')
@@ -716,9 +721,13 @@ local function bridgeLines(out)
             elseif reason == 'missing-module' then why = ui.t('the module {module} is missing in it', {module = text(ownPython.module, 60) or '?'})
             elseif reason == 'omnivoice-failed' then why = ui.t('OmniVoice’s code could not load in it')
             else why = ui.t('it did not start or did not answer in time') end
-            out[#out + 1] = line('omni-python', label, 'problem', ui.t('Your own Python (omni-python.txt) was not used: {reason}. OmniVoice uses the Runtime’s Python, which needs an NVIDIA card.', {reason = why}))
+            if ownPython.managed == true then
+                out[#out + 1] = line('omni-python', label, 'problem', ui.t('The AMD setup was not used: {reason}. Choose Reinstall in Settings > Voices > OmniVoice for AMD. Until then Pocket speaks.', {reason = why}))
+            else
+                out[#out + 1] = line('omni-python', label, 'problem', ui.t('Your own Python (omni-python.txt) was not used: {reason}. OmniVoice uses the Runtime’s Python, which needs an NVIDIA card.', {reason = why}))
+            end
         elseif ownPython.code == 'amd-route' then
-            out[#out + 1] = line('omni-python', label, 'note', ui.t('Your AMD Radeon card ({card}) can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md in the mod’s repository (github.com/alystria-ai/ai-npc-cyberpunk-mod). The mod downloads nothing for it.',
+            out[#out + 1] = line('omni-python', label, 'note', ui.t('Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download from AMD, then it starts by itself.',
                 {card = text(ownPython.device, 80) or 'AMD Radeon'}))
         elseif ownPython.code == 'testing' then
             out[#out + 1] = line('omni-python', label, 'note', ui.t('Your own Python (omni-python.txt) is being tested. Open this page again in a minute.'))

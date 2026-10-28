@@ -1464,8 +1464,9 @@ test('the player\'s own Python (omni-python.txt) runs the Omni worker only after
   h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
   const hooks = h.omniWorkers()[0].hooks;
   assert.equal(hooks.pythonExecutable, PY);
-  // The ROCm route also gets MIOpen's fast find mode (docs/OMNIVOICE_AMD.md); the convolutions stay PyTorch's own by the worker's default. The priority is the rule of both routes: high.
-  assert.deepEqual(hooks.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: SOURCE, MIOPEN_FIND_MODE: 'FAST', CYBERPUNK_CONVAI_WORKER_PRIORITY: 'high'});
+  // The ROCm route also gets MIOpen on with find mode 2 and enforce 1 (docs/OMNIVOICE_AMD.md, the game's choice, on by default). The priority is the rule of both routes: high.
+  assert.deepEqual(hooks.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: SOURCE, CYBERPUNK_CONVAI_ROCM_MIOPEN: '1', MIOPEN_FIND_MODE: '2',
+    MIOPEN_FIND_ENFORCE: '1', CYBERPUNK_CONVAI_WORKER_PRIORITY: 'high'});
   assert.equal(hooks.priority, 'high', 'the worker keeps high priority for good on the AMD route as on NVIDIA');
   assert.equal(h.states.at(-1).omniNoNvidia, false, 'an AMD card with a ROCm PyTorch that passed is not told it needs NVIDIA');
   assert.deepEqual(h.states.at(-1).omniPython, {used: true, backend: 'rocm', reason: null, module: null, torch: '2.14.0+rocm10.1.0', hip: '10.1.0', cuda: null,
@@ -1509,8 +1510,8 @@ test('the CUDA graph retry after a memory fault keeps the own Python\'s environm
   h.advance(5000); h.voice.update({}, null, false); await h.settle();
   assert.equal(h.omniWorkers().length, 2);
   assert.equal(h.omniWorkers()[1].hooks.pythonExecutable, 'C:/p/python.exe');
-  assert.deepEqual(h.omniWorkers()[1].hooks.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: 'C:/s', MIOPEN_FIND_MODE: 'FAST',
-    CYBERPUNK_CONVAI_WORKER_PRIORITY: 'high', CYBERPUNK_CONVAI_CUDA_GRAPH: '0'});
+  assert.deepEqual(h.omniWorkers()[1].hooks.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: 'C:/s', CYBERPUNK_CONVAI_ROCM_MIOPEN: '1',
+    MIOPEN_FIND_MODE: '2', MIOPEN_FIND_ENFORCE: '1', CYBERPUNK_CONVAI_WORKER_PRIORITY: 'high', CYBERPUNK_CONVAI_CUDA_GRAPH: '0'});
   await h.voice.close();
 });
 
@@ -1529,9 +1530,12 @@ test('ROCm tuning (find mode, convolutions, priority) reaches only a worker on a
   // A player who set MIOPEN_FIND_MODE where the game starts keeps it (the mod sends none).
   const theirs = await hooksFor({...base, backend: 'rocm'}, {MIOPEN_FIND_MODE: 'NORMAL'});
   assert.equal(Object.hasOwn(theirs.extraEnvironment, 'MIOPEN_FIND_MODE'), false);
-  // The file's lines: another find mode, MIOpen kept, normal priority (the way back if the game stutters: nothing is told to the worker).
+  // The file's lines: another find mode, MIOpen on, normal priority (the way back if the game stutters: nothing is told to the worker).
   const options = await hooksFor({...base, backend: 'rocm', options: {miopenFindMode: 'HYBRID', miopen: 'on', priority: 'normal'}});
-  assert.deepEqual(options.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: 'C:/s', MIOPEN_FIND_MODE: 'HYBRID', CYBERPUNK_CONVAI_ROCM_MIOPEN: '1'});
+  assert.deepEqual(options.extraEnvironment, {CYBERPUNK_CONVAI_OMNI_OWN_PYTHON: '1', CYBERPUNK_CONVAI_OMNI_SOURCE: 'C:/s', CYBERPUNK_CONVAI_ROCM_MIOPEN: '1', MIOPEN_FIND_MODE: 'HYBRID',
+    MIOPEN_FIND_ENFORCE: '1'});
+  const off = await hooksFor({...base, backend: 'rocm', options: {miopen: 'off'}});
+  assert.equal(off.extraEnvironment.CYBERPUNK_CONVAI_ROCM_MIOPEN, '0'); assert.equal(Object.hasOwn(off.extraEnvironment, 'MIOPEN_FIND_ENFORCE'), false);
   assert.equal(options.priority, 'normal');
   // `priority = below` is still a choice (the AMD route's earlier default); `priority = high` states the default.
   const below = await hooksFor({...base, backend: 'rocm', options: {priority: 'below'}});
@@ -1576,4 +1580,41 @@ test('the OmniVoice worker hooks while the title-screen gate is closed: high is 
   assert.equal(normal.priority, 'normal'); assert.equal(normal.extraEnvironment, undefined);
   const open = await hooksFor(null, undefined, new PriorityGate({open: true}));
   assert.equal(open.priority, 'high'); assert.deepEqual(open.extraEnvironment, {CYBERPUNK_CONVAI_WORKER_PRIORITY: 'high'}, 'an open gate: as before');
+});
+
+test('the AMD setup: a Python that passes after "no CUDA" is tried at once, and the MIOpen choice replaces a ROCm worker at the next idle moment (NVIDIA untouched)', async () => {
+  let own = null;
+  const h = retryFixture({omni: ['nocuda'], options: {gpuVendors: () => ['amd'], omniOwnPython: () => own, processEnv: {}}});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start().catch(() => {}); await h.settle();
+  h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.omniNoCuda, true, 'the pack\'s CUDA Python found no card');
+  const before = h.omniWorkers().length;
+  own = {configured: true, managed: true, used: true, path: 'C:/data/amd/py/python.exe', source: 'C:/s', backend: 'rocm', reason: null};
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.omniNoCuda, false);
+  const rocm = h.omniWorkers().at(-1);
+  assert.ok(h.omniWorkers().length > before, 'OmniVoice was started again with the AMD setup');
+  assert.equal(rocm.hooks.pythonExecutable, own.path);
+  assert.equal(rocm.hooks.extraEnvironment.CYBERPUNK_CONVAI_ROCM_MIOPEN, '1');
+  assert.ok(h.logs.some(line => line.includes('tried again with the AMD setup')), h.logs.join('\n'));
+  // The player turns MIOpen off: the worker is replaced by one with PyTorch's own convolutions.
+  h.voice.update({amdMiopen: false}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  const off = h.omniWorkers().at(-1);
+  assert.notEqual(off, rocm); assert.equal(rocm.closes, 1);
+  assert.equal(off.hooks.extraEnvironment.CYBERPUNK_CONVAI_ROCM_MIOPEN, '0');
+  // The same choice again changes nothing.
+  h.voice.update({amdMiopen: false}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().at(-1), off);
+  await h.voice.close();
+});
+
+test('the MIOpen choice changes nothing for a CUDA worker', async () => {
+  const own = {configured: true, used: true, path: 'C:/p/python.exe', source: 'C:/s', backend: 'cuda', reason: null};
+  const h = retryFixture({options: {omniOwnPython: () => own, processEnv: {}}});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  const first = h.omniWorkers().at(-1);
+  h.voice.update({amdMiopen: false}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().at(-1), first); assert.equal(first.closes, 0);
+  assert.equal(Object.hasOwn(first.hooks.extraEnvironment, 'CYBERPUNK_CONVAI_ROCM_MIOPEN'), false);
+  await h.voice.close();
 });

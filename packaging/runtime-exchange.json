@@ -48,6 +48,8 @@
     "mistral-key-command.json",
     "mistral-state.json",
     "nearby-connections.json",
+    "omni-amd-command.json",
+    "omni-amd-state.json",
     "own-key-command.json",
     "own-key-state.json",
     "paid-tier-command.json",

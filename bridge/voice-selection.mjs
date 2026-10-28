@@ -4,7 +4,7 @@ import {RemoteVoice, REMOTE_RETRY_DELAYS_MS} from './remote-voice.mjs';
 import {parseServerAddress} from './omni-remote.mjs';
 import {lacksNvidia, isSmallCard, underNeeded} from './gpu-vendors.mjs';
 import {spillVerdict} from './gpu-memory.mjs';
-import {OMNI_SOURCE_VARIABLE, OWN_PYTHON_VARIABLE, omniPriority, ownPythonSummary, rocmWorkerEnvironment} from './omni-own-python.mjs';
+import {OMNI_SOURCE_VARIABLE, OWN_PYTHON_VARIABLE, miopenWanted, omniPriority, ownPythonSummary, rocmWorkerEnvironment} from './omni-own-python.mjs';
 import {priorityEnvironment, priorityGate} from './process-priority.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
@@ -119,7 +119,7 @@ export class VoiceSelection {
     // The optional OmniVoice pack (worker Python, model weights): a function or a fixed {installed, missing}.
     this.omniPackSource=options.omniPack||(()=>({installed:true,missing:[]}));
     // Remote OmniVoice: `omniRemoteAddress()` is the saved server address (text or {host, port}); `remoteWanted` follows the setting `remoteOmni`.
-    this.remoteAddressSource=typeof options.omniRemoteAddress==='function'?options.omniRemoteAddress:()=>null;this.remoteWanted=false;this.remoteSeen='';this.clientRemote='';
+    this.remoteAddressSource=typeof options.omniRemoteAddress==='function'?options.omniRemoteAddress:()=>null;this.remoteWanted=false;this.remoteSeen='';this.clientRemote='';this.amdMiopen=true;this.ownWorkerSeen='';
     // A character the player made (bridge/custom-characters.mjs) has a voice of its own only when it was given a clip before the service
     // started; `aliases(key)` names the voice that speaks it until then and when it has none (the resident voice of its gender).
     this.aliases=typeof options.aliases==='function'?options.aliases:null;
@@ -262,7 +262,25 @@ export class VoiceSelection {
   get omniRemoteUnset(){return this.remoteWanted&&!this.omniRemote;}
   get remoteKey(){const remote=this.omniRemote;return remote?`${remote.host}:${remote.port}`:'';}
   // The worker held was made for another server (or for this PC while the setting changed): it is replaced at the next idle moment, like a change of reference.
-  clientStale(backend){return backend==='omni'&&this.clientRemote!==this.remoteKey;}
+  // What an OmniVoice worker was made for: the server (Remote OmniVoice), and with a tested own or AMD-setup Python that Python and, on ROCm, the MIOpen choice.
+  // A worker made for another one is replaced at the next idle moment, so a new MIOpen choice or a Python set up in the game takes effect without a restart.
+  get workerKey(){
+    const own=this.remoteWanted?null:this.omniOwnPython;
+    if(!(own?.used===true&&own.path&&own.source))return this.remoteKey;
+    return `${this.remoteKey}|${own.path}|${own.backend==='rocm'?(miopenWanted(own,this.amdMiopen)?'miopen':'own-convolutions'):''}`;
+  }
+  clientStale(backend){return backend==='omni'&&this.clientRemote!==this.workerKey;}
+  // Called with every settings poll: a Python that newly passed its test (the AMD setup finished, or omni-python.txt was fixed) undoes "no CUDA" for the session,
+  // so OmniVoice is tried with it at once instead of after a restart.
+  checkOwnWorker(){
+    const own=this.remoteWanted?null:this.omniOwnPython;
+    const key=own?.used===true&&own.path?own.path:'';
+    if(key===this.ownWorkerSeen)return;
+    this.ownWorkerSeen=key;
+    if(!key||!(this.omniNoCuda||this.failedBackends.has('omni')))return;
+    this.omniNoCuda=false;this.failedBackends.delete('omni');this.endOmniRetry();
+    this.log(`OmniVoice is tried again with ${own.managed?'the AMD setup':'the player\'s own Python'}`);
+  }
   // Called with every settings poll after the setting is read: a change of the setting or of the address starts the OmniVoice story afresh.
   checkRemote(){
     const key=this.remoteWanted?`on:${this.remoteKey}`:'off';
@@ -508,6 +526,8 @@ export class VoiceSelection {
       this.requestedProvider=chosen;
     }
     if(typeof settings?.remoteOmni==='boolean')this.remoteWanted=settings.remoteOmni;
+    // Settings > Voices > OmniVoice for AMD: MIOpen's convolutions on (the default) or off. Read only for a ROCm worker (omniWorkerHooks).
+    if(typeof settings?.amdMiopen==='boolean')this.amdMiopen=settings.amdMiopen;
     if ([16,32].includes(settings?.omniSteps))this.requestedOmniSteps=settings.omniSteps;
     const reference=canonicalOmniReference(settings?.omniReference);
     if(reference)this.requestedOmniReference=reference;
@@ -591,6 +611,7 @@ export class VoiceSelection {
     const voicesApplied=this.applyVoicesWhenIdle();
     this.request(settings);
     this.checkRemote();
+    this.checkOwnWorker();
     const previewChanged = this.setPreview(preview);
     const applied = this.applyWhenIdle(busy)||voicesApplied;
     this.reconcile();
@@ -709,7 +730,7 @@ export class VoiceSelection {
     let client;
     this.clientBackend=backend;
     this.clientReference=backend==='omni'?this.wantedReference:null;
-    this.clientRemote=backend==='omni'?this.remoteKey:'';
+    this.clientRemote=backend==='omni'?this.workerKey:'';
     const variant=backend==='omni'?this.omniVariants[this.clientReference]:null;
     const factory=backend==='omni'?this.omniFactory:this.factory;
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,...(backend==='omni'?{configPath:variant.path,
@@ -882,12 +903,19 @@ export class VoiceSelection {
   // gate opens (`priority` stays the level asked for). 'below' and 'normal' ignore the gate. `priorityGate` (an option) is for tests; the shared gate is open by default.
   omniWorkerHooks(){
     const own=this.omniOwnPython,used=own?.used===true&&!!own.path&&!!own.source;
-    const rocm=used?rocmWorkerEnvironment(own,this.options.processEnv??process.env):{};
+    const rocm=used?rocmWorkerEnvironment(own,this.options.processEnv??process.env,{miopen:this.amdMiopen}):{};
     const level=omniPriority(own,this.options.workerPriority);
     const extra={...(used?{[OWN_PYTHON_VARIABLE]:'1',[OMNI_SOURCE_VARIABLE]:own.source}:{}),...rocm,...priorityEnvironment((this.options.priorityGate??priorityGate).level(level)),...(this.omniGraphOff?{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}:{})};
     return {pythonExecutable:used?own.path:this.options.omniPythonExecutable,...(Object.keys(extra).length?{extraEnvironment:extra}:{}),priority:level,...(this.options.priorityGate?{gate:this.options.priorityGate}:{})};
   }
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
+  // The AMD setup is about to be replaced or removed (bridge/omni-amd-setup.mjs): the OmniVoice workers are let go now, not at the next idle moment, unless a reply is
+  // being spoken (that one is replaced when it is done). Resolves when they have exited.
+  releaseOmniWorkers(){
+    const exits=[this.dropCandidate()];
+    if(this.clientBackend==='omni'&&!this.busy)exits.push(this.retire());
+    return Promise.all(exits).then(()=>{},()=>{});
+  }
   // Would routing speak with Pocket if it could run? Only when the player chose Pocket: an Omni that cannot run does not load Pocket in its
   // place. A cloud voice and the Convai voice want no Pocket worker.
   get pocketWanted(){
@@ -929,7 +957,7 @@ export class VoiceSelection {
     if(this.closed)return;
     // A background worker for a reference the player no longer wants (loading, or loaded and waiting for its idle
     // commit) is released; the normal start path loads the wanted one after its confirmed exit.
-    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference||this.candidate.remote!==this.remoteKey||this.silent))void this.dropCandidate();
+    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference||this.candidate.remote!==this.workerKey||this.silent))void this.dropCandidate();
     if(!this.omniRetry)return;
     if(this.requestedProvider!=='omni'||this.omniPack.installed===false){this.endOmniRetry();return;}
     if(this.candidate)return;
@@ -940,7 +968,7 @@ export class VoiceSelection {
   startCandidate(){
     const reference=this.requestedOmniReference,variant=this.omniVariants[reference];
     if(!variant.configured){this.omniRetry=null;return;}
-    const entry={reference,remote:this.remoteKey,client:null,loaded:false,lastState:null};
+    const entry={reference,remote:this.workerKey,client:null,loaded:false,lastState:null};
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,configPath:variant.path,
       ...this.omniWorkerHooks(),lowPriority:true,onState:value=>{
         if(this.closed)return;
@@ -1002,7 +1030,7 @@ export class VoiceSelection {
   // The loaded background worker becomes the committed one once the fallback worker is gone.
   adoptCandidate(wanted){
     const entry=this.candidate;
-    if(!entry?.loaded||this.client||wanted!=='omni'||entry.reference!==this.wantedReference||entry.remote!==this.remoteKey||entry.client.failure||entry.client.closing)return false;
+    if(!entry?.loaded||this.client||wanted!=='omni'||entry.reference!==this.wantedReference||entry.remote!==this.workerKey||entry.client.failure||entry.client.closing)return false;
     this.candidate=null;
     this.client=entry.client;this.clientBackend='omni';this.clientReference=entry.reference;this.clientRemote=entry.remote;
     this.starting=Promise.resolve();

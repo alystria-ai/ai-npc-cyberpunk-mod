@@ -358,6 +358,24 @@ CRC-32), converts the model (the old file must be the pinned upstream file), app
 zip with the builder's writer (`OmniPack-<v>.zip` and `.files.json`). It stops when the old pack already holds a clip the Runtime carries. `packaging/omni-pack-rules.test.mjs` covers the rules, the pins and a
 small synthetic pack through the tool.
 
+### OmniVoice for AMD (no pack, 0.3.4)
+
+There is **no AMD pack to build or upload.** AMD players press Settings > Voices > OmniVoice for AMD > Install, and the bridge downloads AMD's ROCm PyTorch for the card's family straight from
+AMD's index (`https://stable.repo.amd.com/rocm/whl-next/`) into `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\amd\` (docs/OMNIVOICE_AMD.md). A Hugging Face OmniPack-AMD was weighed and
+dropped: seven card families would mean seven 1.5 GB packs, the player would have to pick the right one, and the mod would rehost AMD's ROCm binaries.
+
+What a release carries instead is the pinned list `bridge/omni-amd-wheels.mjs` (a module, so it ships with the bridge's import closure in the Runtime, no `appData` entry). Before each release:
+
+1. `node packaging/resolve-omni-amd.mjs` (metadata only: HTTP range reads of each wheel's METADATA and the 27 KB `rocm` source package; about a minute). It follows AMD's Requires-Dist lines for
+   `torch[device-<gfx>]==ROOTS.torch`, `torchaudio`, `torchvision[device-<gfx>]` for the pack's Python (`cp311`, `win_amd64`) and every family in `TARGETS`, leaves out what the pack has (`FROM_PACK`)
+   and records size, unpacked size and AMD's ETag (an MD5 the game checks for files uploaded in one part).
+2. Optional: `--hash` downloads every listed file once (about 6 GB for the seven families) and records SHA-256, which the game then checks instead of the ETag.
+3. Commit the changed list. A newer PyTorch from AMD means changing `ROOTS` in the script (and checking it still pairs with the pack's libraries: docs/OMNIVOICE_AMD.md, omni-requirements.txt).
+
+AMD's `whl-next` is AMD's "next" index: if AMD drops a pinned version before the release, an install fails with "The download did not finish". `bridge/omni-amd-setup.test.mjs` checks the list's shape
+(every family has torch, torchaudio, torchvision, the rocm SDK core, libraries and device parts, https URLs on AMD's host, nothing from the pack). The two exchange files
+(`omni-amd-command.json`, `omni-amd-state.json`) are in `packaging/runtime-exchange.json`. Nothing is added to the OmniVoice pack, the Runtime update zip or Hugging Face.
+
 ### Packs reused unchanged
 
 A new version rebuilds the Scripts and the Runtime, but the optional packs are several GB each, so a version that did not change them
