@@ -317,6 +317,32 @@ test('overlapping local turns and foreign renderer receipts cannot be admitted',
   assert.equal(pages[0].closed, true);
 });
 
+test('whenFree resolves when the owning turn has released the host, at once when none owns it, and after the limit or an abort when it never does', {timeout: 120_000}, async t => {
+  const {host, track} = fixture(t), gate = deferred();
+  assert.equal(await host.whenFree(5), undefined, 'nothing owns the host: at once');
+  const pending = track(host.play({token: 'owned', text: 'Owned'}, async emit => { await gate.promise; return emit(packet()); }, {onFrame: () => control}));
+  await until(() => host.active);
+  let freed = false;
+  const waiting = host.whenFree(60_000).then(() => { freed = true; });
+  await sleep(30);
+  assert.equal(freed, false, 'the turn still owns the host');
+  // The limit: a host that stays owned does not hold the caller for ever.
+  const started = performance.now();
+  await host.whenFree(40);
+  assert.equal(performance.now() - started >= 30, true);
+  const controller = new AbortController(), aborted = host.whenFree(60_000, controller.signal);
+  controller.abort();
+  await aborted;
+  assert.equal(host.freeWaiters.length, 1, 'a waiter that gave up is not kept');
+  // The turn ends (the host is closed under it): its release wakes the waiter.
+  await host.close();
+  await pending.catch(() => {});
+  await waiting;
+  assert.equal(freed, true);
+  assert.equal(host.active, null);
+  assert.equal(host.freeWaiters.length, 0);
+});
+
 test('failed or foreign snapshots reject without forwarding private data', async () => {
   for (const raw of [undefined, null, '[]', 'invalid', JSON.stringify({version: 1, token: 'foreign'}),
     JSON.stringify({version: 1, token: 'owned', sampleRate: 24000, channels: 1, engine: 'pocket-tts',

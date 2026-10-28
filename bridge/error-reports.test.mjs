@@ -276,6 +276,9 @@ test('no planted secret, conversation text or account name gets out, and the pay
     const {payload, body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state,
       project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser], now: () => START,
       graphics: () => [{name: `Card in C:\\Users\\${PLANTED.windowsUser}\\x`, memoryMiB: 12288}], memory: () => ({totalRamMiB: 32768.4, commitLimitMiB: 40960}),
+      systemFacts: () => ({cpu: {name: 'Test CPU 9000', cores: 8, threads: 16}, os: {edition: 'Core', build: 26200}, antivirus: [{name: 'Defender', on: true}], elevated: false,
+        drive: {letter: 'D', kind: 'fixed', freeGiB: 120.5, underProgramFiles: false}, display: {width: 2560, height: 1440, refreshHz: 165},
+        mods: {cet: [`mod of ${PLANTED.windowsUser}`, 'AppearanceMenuMod'], red4ext: ['Codeware'], scripts: [], archives: ['a.archive'], redmod: [], tweaks: [], plugins: [], more: {}}}),
       gameInfo: {game: '2.31', cet: 'v1.35.0', codeware: '1.20.5', setup: ['codeware: ok found']}});
     for (const [name, value] of Object.entries(PLANTED)) assert.ok(!body.includes(value), `planted ${name} got out`);
     assert.ok(!body.includes(INSTALL), 'the raw install id never leaves');
@@ -300,9 +303,12 @@ test('no planted secret, conversation text or account name gets out, and the pay
     assert.deepEqual(payload.report.system.gpu.map(card => card.memoryMiB), [12288]);
     // Total RAM and the commit limit (RAM plus paging files) tell a "paging file is too small" failure from another one; two numbers and nothing else.
     assert.deepEqual([payload.report.system.totalRamMiB, payload.report.system.commitLimitMiB], [32768, 40960]);
-    assert.deepEqual(Object.keys(payload.report.system), ['gpu', 'totalRamMiB', 'commitLimitMiB']);
+    // The processor, Windows, security products, the game's drive, the display and the mods' names ride along (bridge/system-facts.mjs); a user name inside a name is scrubbed.
+    assert.deepEqual(Object.keys(payload.report.system), ['gpu', 'totalRamMiB', 'commitLimitMiB', 'cpu', 'os', 'antivirus', 'elevated', 'drive', 'display', 'mods']);
+    assert.deepEqual([payload.report.system.cpu.threads, payload.report.system.drive.freeGiB, payload.report.system.display.refreshHz], [16, 120.5, 165]);
+    assert.deepEqual(payload.report.system.mods.red4ext, ['Codeware']);
     const noFacts = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser],
-      now: () => START, graphics: () => [], memory: () => { throw Error('powershell is missing'); }});
+      now: () => START, graphics: () => [], systemFacts: () => { throw Error('no facts'); }, memory: () => { throw Error('powershell is missing'); }});
     assert.deepEqual([noFacts.payload.report.system.totalRamMiB, noFacts.payload.report.system.commitLimitMiB], [null, null], 'a read that fails is two nulls and the report still goes out');
     const junk = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser],
       now: () => START, graphics: () => [], memory: () => ({totalRamMiB: 'lots', commitLimitMiB: -5})});

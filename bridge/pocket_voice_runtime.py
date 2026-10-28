@@ -636,9 +636,10 @@ def validate_config(raw, *, yaml_load=None, source_hasher=None):
     runtime = raw.get("runtime", {})
     paths = {key: plain_absolute(runtime.get(key), key) for key in
              ("sourceDirectory", "exportDirectory", "referenceDirectory", "workDirectory")}
-    if (not paths["sourceDirectory"].is_dir() or not paths["exportDirectory"].is_dir()
-            or not paths["referenceDirectory"].is_dir()):
-        raise ValueError("Pocket runtime assets are missing")
+    absent = [key for key in ("sourceDirectory", "exportDirectory", "referenceDirectory") if not paths[key].is_dir()]
+    if absent:
+        # Which folder: the error report carries this line, and an install that lost one is told apart from one whose files differ from the pinned ones (the report of 28 Oct 2026).
+        raise ValueError("Pocket runtime assets are missing (" + ", ".join(key.replace("Directory", "") for key in absent) + ")")
     work = paths["workDirectory"]
     if any(work.is_relative_to(paths[key]) or paths[key].is_relative_to(work)
            for key in ("sourceDirectory", "exportDirectory", "referenceDirectory")):

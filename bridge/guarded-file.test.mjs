@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import {readFileSync, renameSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
-import {atomicFile} from './guarded-file.mjs';
+import {IN_PLACE_AFTER_REFUSALS, atomicFile, atomicFileSession, resetAtomicFileSession} from './guarded-file.mjs';
 
 const deferred = () => {
   let release;
@@ -386,4 +386,59 @@ test('a rename that always fails keeps the old file, removes the temporary file 
   }
   assert.deepEqual(failures, ['EACCES', 'EACCES', 'EACCES']);
   await onlyOutput(directory, output, 'original');
+});
+
+test('after six refused renames in a session the writes go in place, and the switch is logged once', async t => {
+  const {directory, output} = await fixture(t);
+  const session = {refused: 0, inPlace: false};
+  const logs = [];
+  let renames = 0;
+  const refuse = {rename: () => { renames++; throw failure('EPERM'); }};
+  const options = {files: refuse, session, retryDelay: () => {}, log: line => logs.push(line)};
+  // One write is refused six times in its retry loop (it used to end in an error): the sixth refusal is the switch, and that write goes in place.
+  assert.equal(await atomicFile(output, 'b', options), true, 'the sixth refused rename writes this file in place instead of failing');
+  assert.equal(IN_PLACE_AFTER_REFUSALS, 6);
+  assert.deepEqual([session.refused, session.inPlace, renames], [6, true, 6]);
+  assert.equal(await fs.readFile(output, 'utf8'), 'b');
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /refused 6 renames/);
+  // Later writes do not try the rename at all, and do not log again.
+  assert.equal(await atomicFile(output, 'c', options), true);
+  assert.equal(await atomicFile(output, 'd', options), true);
+  assert.equal(renames, 6);
+  assert.equal(logs.length, 1);
+  await onlyOutput(directory, output, 'd');
+});
+
+test('refusals add up across writes, a rename that works does not count, and a cancelled write is not written in place', async t => {
+  const {directory, output} = await fixture(t);
+  const session = {refused: 0, inPlace: false};
+  const logs = [];
+  let calls = 0;
+  const files = {rename: (from, to) => { if (++calls % 2 === 1) throw failure('EBUSY'); return renameSync(from, to); }};
+  for (let write = 0; write < IN_PLACE_AFTER_REFUSALS - 1; write++) {
+    assert.equal(await atomicFile(output, `w${write}`, {files, session, retryDelay: () => {}, log: line => logs.push(line)}), true);
+    assert.equal(session.inPlace, false, `${write + 1} refusals do not switch yet`);
+  }
+  assert.equal(session.refused, IN_PLACE_AFTER_REFUSALS - 1);
+  await onlyOutput(directory, output, `w${IN_PLACE_AFTER_REFUSALS - 2}`);
+  const controller = new AbortController();
+  const refusing = {rename: () => { controller.abort(); throw failure('EPERM'); }};
+  assert.equal(await atomicFile(output, 'stale', {files: refusing, session, signal: controller.signal, retryDelay: () => {}, log: line => logs.push(line)}), false);
+  await onlyOutput(directory, output, `w${IN_PLACE_AFTER_REFUSALS - 2}`);
+  assert.equal(await atomicFile(output, 'last', {files: {rename: () => { throw failure('EACCES'); }}, session, retryDelay: () => {}, log: line => logs.push(line)}), true);
+  assert.equal(session.inPlace, true);
+  assert.equal(logs.length, 1);
+  await onlyOutput(directory, output, 'last');
+});
+
+test('the real rename counts toward the process-wide switch and a test with its own rename and no session does not', async t => {
+  const {directory, output} = await fixture(t);
+  resetAtomicFileSession();
+  t.after(resetAtomicFileSession);
+  await assert.rejects(atomicFile(output, 'x', {files: {rename: () => { throw failure('EPERM'); }}, retryDelay: () => {}}), {code: 'EPERM'});
+  assert.deepEqual([atomicFileSession.refused, atomicFileSession.inPlace], [0, false]);
+  assert.equal(await atomicFile(output, 'real'), true);
+  await onlyOutput(directory, output, 'real');
+  assert.deepEqual([atomicFileSession.refused, atomicFileSession.inPlace], [0, false]);
 });

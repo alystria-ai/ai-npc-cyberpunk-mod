@@ -129,6 +129,8 @@ export class PlayerMemoryControl {
     if (this.closed) return;
     this.closed = true; this.controller.abort();
     await this.work?.catch(() => {});
-    await this.publishStatus();
+    // The last status write is best effort: at the game's exit Windows can still refuse the rename for a moment (EPERM; two reports of 27 Oct 2026), and a throw here ended the
+    // bridge's shutdown before the player's memory was closed (bridge/convai-bridge.mjs shutdown).
+    await this.publishStatus().catch(() => {});
   }
 }

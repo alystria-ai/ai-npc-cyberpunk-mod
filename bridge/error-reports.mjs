@@ -19,7 +19,7 @@
 //
 // What a report holds (buildErrorPayload): the signature, the error's kind, message and top frames; versions (Scripts, Runtime, game,
 // CET, RED4ext, redscript, Codeware, ArchiveXL, Node, Windows); the provider, voice and Local AI model choices;
-// Mature content as on or off only; the graphics card name and memory, the PC's total RAM and its commit limit (RAM plus paging files); the setup check's lines; whether the Runtime's code files match the release
+// Mature content as on or off only; the graphics card name and memory, the PC's total RAM and its commit limit (RAM plus paging files); the processor, the Windows edition, build and display language, the security products Windows knows and Smart App Control, whether the game runs as administrator, the game's drive (kind, free space, under Program Files or not), the screen's size and refresh rate, and the NAMES of the installed mods (bridge/system-facts.mjs, saved for 7 days and refreshed in the background); the setup check's lines; whether the Runtime's code files match the release
 // (counts and up to five file names, bridge/runtime-integrity.mjs, worked out when the report is built); for a bridge crash, the exit code in words,
 // the stage the bridge was in and the summary of Node's own report (bridge/bridge-diagnostics.mjs); up to 150 log lines around the error
 // (bridge stderr, the service log, the launcher, the mod's own logs, the redscript log's error lines); the install id hashed again.
@@ -34,6 +34,7 @@ import {accountNames, createRedactor, credentialSecrets, customServerSecrets, se
 export {accountNames};
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 import {cachedGraphicsCards, cachedMemoryFacts} from './setup-check.mjs';
+import {systemFactsNow} from './system-facts.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, cleanBackupUrl, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
 import {GAME_EVENTS_FILE, QUEUE_FOLDER, attachLogs, cleanSlow, clearQueue, errorReportsEnabled, errorReportsSetting, parseGameEvents, readQueue, recordErrorEvent,
@@ -341,7 +342,7 @@ export async function reportSecrets({stateDirectory, project, environment = proc
  * it. The JSON is at most MAX_BODY_BYTES (log lines are dropped, oldest first from the largest source, until it fits).
  */
 export async function buildErrorPayload({record, game, modRoot, runtime, stateDirectory, project, installId, gameInfo = {}, secrets,
-  graphics = () => cachedGraphicsCards(), memory = () => cachedMemoryFacts(), integrity = () => checkRuntimeFiles({project}), environment = process.env, names, now = Date.now}) {
+  graphics = () => cachedGraphicsCards(), memory = () => cachedMemoryFacts(), systemFacts = () => systemFactsNow({game, stateDirectory}), integrity = () => checkRuntimeFiles({project}), environment = process.env, names, now = Date.now}) {
   const scrub = secrets ?? await reportSecrets({stateDirectory, project, environment});
   const {clean, stats} = reportCleaner({secrets: scrub, ...(names ? {names} : {})});
   const versions = await collectVersions({game, modRoot, project, gameInfo});
@@ -352,6 +353,9 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
   // Total RAM and the commit limit (RAM plus the paging files): what tells a "paging file is too small" failure (error 1455) from another one. Read once per bridge process.
   const facts = await Promise.resolve().then(() => typeof memory === 'function' ? memory() : memory).catch(() => null);
   const wholeMiB = value => Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  // The processor, Windows, security products, the game's drive, the display and the installed mods' names (bridge/system-facts.mjs): saved in the state folder for 7 days, refreshed in the background at idle priority, never waited for and never on a turn.
+  const pc = await Promise.resolve().then(() => typeof systemFacts === 'function' ? systemFacts() : systemFacts).catch(() => null);
+  const pcFacts = pc && typeof pc === 'object' ? cleanStrings(pc, clean) : {};
   // Only the detail fields the recorders write (codes, versions, the log a Lua error was found in and the mod's own label before it).
   const detail = record.detail && typeof record.detail === 'object'
     ? Object.fromEntries(Object.entries(record.detail).filter(([key]) => DETAIL_KEYS.has(key))
@@ -380,7 +384,7 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
       ...(record.kind === 'voice-failed' && record.voice ? {voice: cleanStrings(record.voice, clean)} : {}),
       runtimeFiles: cleanStrings(await Promise.resolve().then(() => integrity()).catch(() => ({state: 'unavailable'})), clean),
       choices: await collectChoices({runtime, gameInfo}),
-      system: {gpu, totalRamMiB: wholeMiB(facts?.totalRamMiB), commitLimitMiB: wholeMiB(facts?.commitLimitMiB)},
+      system: {gpu, totalRamMiB: wholeMiB(facts?.totalRamMiB), commitLimitMiB: wholeMiB(facts?.commitLimitMiB), ...pcFacts},
       setup: (await collectSetup({runtime, gameInfo, now: now()})).map(line => clean(line)),
       // A queued record carries the excerpt taken when the event was seen; one without (an older queue file) is read now.
       logs: Array.isArray(record.logs) ? keptLogs(record.logs, clean) : await collectLogs({paths: logPaths({game, modRoot, runtime, stateDirectory}), record, clean}),
@@ -390,7 +394,12 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
   let body = JSON.stringify(payload);
   while (Buffer.byteLength(body, 'utf8') > MAX_BODY_BYTES) {
     const largest = payload.report.logs.reduce((best, item) => !best || item.lines.length > best.lines.length ? item : best, null);
-    if (!largest || largest.lines.length === 0) { payload.report.logs = []; payload.report.stack = payload.report.stack.slice(0, 2); body = JSON.stringify(payload); break; }
+    if (!largest || largest.lines.length === 0) {
+      payload.report.logs = []; payload.report.stack = payload.report.stack.slice(0, 2); body = JSON.stringify(payload);
+      // Still too long (a very long mod list): the installed mods' names go too, the rest of the PC stays.
+      if (Buffer.byteLength(body, 'utf8') > MAX_BODY_BYTES && payload.report.system.mods) { delete payload.report.system.mods; body = JSON.stringify(payload); }
+      break;
+    }
     largest.lines.splice(0, Math.max(1, Math.ceil(largest.lines.length / 10)));
     body = JSON.stringify(payload);
   }
@@ -438,8 +447,8 @@ export class ErrorReporter {
    */
   constructor({game, runtime, modRoot, stateDirectory, project, env = process.env, fetchImpl = globalThis.fetch, now = Date.now,
     setTimer = setTimeout, clearTimer = clearTimeout, setRepeat = setInterval, clearRepeat = clearInterval, log = () => {},
-    graphics, timings = {}, target, names} = {}) {
-    Object.assign(this, {game, runtime, stateDirectory, project, env, fetchImpl, now, setTimer, clearTimer, setRepeat, clearRepeat, log, graphics, names});
+    graphics, systemFacts, timings = {}, target, names} = {}) {
+    Object.assign(this, {game, runtime, stateDirectory, project, env, fetchImpl, now, setTimer, clearTimer, setRepeat, clearRepeat, log, graphics, systemFacts, names});
     this.modRoot = modRoot ?? (runtime ? dirname(runtime) : null);
     this.timings = {...TIMINGS, ...timings};
     this.targetOverride = target;
@@ -687,7 +696,7 @@ export class ErrorReporter {
         installId ??= await loadInstallId({path: join(this.stateDirectory, INSTALL_FILE)});
         secrets ??= await reportSecrets({stateDirectory: this.stateDirectory, project: this.project, environment: this.env});
         const {body} = await buildErrorPayload({record, game: this.game, modRoot: this.modRoot, runtime: this.runtime,
-          stateDirectory: this.stateDirectory, project: this.project, installId, gameInfo: this.gameInfo, secrets, graphics: this.graphics,
+          stateDirectory: this.stateDirectory, project: this.project, installId, gameInfo: this.gameInfo, secrets, graphics: this.graphics, ...(this.systemFacts ? {systemFacts: this.systemFacts} : {}),
           environment: this.env, now: this.now, ...(this.names ? {names: this.names} : {})});
         let result = await this.#send(target, body);
         if (result.kind === 'stale') {

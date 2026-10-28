@@ -175,6 +175,22 @@ test('Flesh and Chrome: out-of-range answers are unknown, never a guess; a gette
   assert(failures == 2, 'each failing getter is logged once: ' .. failures)
 `));
 
+test('a getter the other mod does not have is logged once and without the game\'s file:line (the error reports read that as a Lua error of the mod)', () => withModule(`
+  -- A player's Injuries without IsLive (a1ba6f, 27 Oct 2026): calling the missing method raises "vixen-state.lua:131: attempt to call a nil value".
+  local inj = installInjuries({applied = {[3] = 1}})
+  inj.IsLive = function() error("vixen-state.lua:131: attempt to call a nil value", 0) end
+  M.read(player, log); M.read(player, log)
+  local seen = 0
+  for _, line in ipairs(lines) do
+    if line:find('^Mod state: ') and line:find('failed', 1, true) then
+      seen = seen + 1
+      assert(not line:find('%.lua:%d'), 'no file:line in the line: ' .. line)
+      assert(line:find('attempt to call a nil value', 1, true), 'but it still says what failed: ' .. line)
+    end
+  end
+  assert(seen == 1, 'logged once: ' .. seen)
+`));
+
 test('Injuries: the tier in effect per kind, and a treated injury (held back by a healing item) is told from none', () => withModule(`
   installInjuries()
   local out, notes = M.read(player, log)

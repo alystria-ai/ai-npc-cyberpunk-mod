@@ -66,7 +66,7 @@ export async function readRuntimeSteps(project) {
  *   {code: 'none'}                          no markers, or nothing to compare: nothing can be said
  *   {code: 'ok'}                            the chain reaches `current`
  *   {code: 'gap', from, to}                 the step that starts at `from` and ends at `to` was never applied (`to` is where the next marker starts, or `current`)
- *   {code: 'order'}                         `current` is older than a step that was applied: a newer zip went on first, then an older one
+ *   {code: 'order'}                         `current` is older than a step that was applied: a newer zip went on first, then an older one (not after the full Runtime of `current`)
  */
 export async function checkRuntimeSteps({project, current}) {
   try {
@@ -75,7 +75,10 @@ export async function checkRuntimeSteps({project, current}) {
     const {steps} = found;
     const base = found.base ?? steps[0]?.from ?? null;
     if (base === null) return {code: 'none'};
-    if (steps.some(step => compareVersions(step.to, current) === 1)) return {code: 'order'};
+    // A step that ends after the Runtime's own version: an older zip went on over a newer one. Not when the full Runtime of this very version was extracted last (the base marker
+    // is its own): that replaced every file the version has, and what is left of the newer zip is a marker and a few files nothing reads (a rollback; found in a report of
+    // 28 Oct 2026, where the row's own advice, to extract the full Runtime again, could never clear it).
+    if (found.base !== current && steps.some(step => compareVersions(step.to, current) === 1)) return {code: 'order'};
     let at = base;
     for (let guard = 0; guard < 100; guard++) {
       const order = compareVersions(at, current);

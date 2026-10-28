@@ -1888,6 +1888,130 @@ test('the no-speech failure never cuts off a recognised or still-thinking voice 
   }
 });
 
+// Error signature cbb775b3 (owner decision 2026-10-28): a voice turn with a transcript and no reply text after 15 s is sent again, once, as a typed line to the same character.
+test('a voice turn with a transcript and no reply text after 15 s sends the transcript once as a typed line, and the reply to it completes the turn', async () => {
+  const transcribe = (client, content) => client.handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false}]);
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const {api, clients, events} = fixture({allowMic: true, clock});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+  transcribe(clients[0], 'Tell me about the job');
+  offset = 14000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(events.some(event => event[0] === 'message'), false, 'nothing is sent inside the 15 s');
+  offset = 16000; await new Promise(done => setTimeout(done, 120));
+  assert.deepEqual(events.filter(event => event[0] === 'message'), [['message', 'Tell me about the job']], 'the transcript goes out as a typed line');
+  offset = 30000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(events.filter(event => event[0] === 'message').length, 1, 'sent once');
+  assert.equal(api.diagnostics().activeTurn, true, 'the resend has its own time to be answered');
+  clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'Tell me about the job', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Which job?', isStreaming: false}]);
+  const result = await pending;
+  assert.equal(result.text, 'Which job?');
+  assert.equal(result.userText, 'Tell me about the job');
+  await api.close();
+});
+
+test('a voice turn whose resent line is not answered either fails with the usual error, now saying resent=true; a reply in time sends nothing', async () => {
+  const transcribe = (client, content) => client.handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false}]);
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const {api, clients, events} = fixture({allowMic: true, clock});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+  transcribe(clients[0], 'Hello there friend');
+  offset = 16000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(events.filter(event => event[0] === 'message').length, 1);
+  offset = 40000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(api.diagnostics().activeTurn, true, 'still inside the resend\'s 30 s');
+  offset = 47000;
+  await assert.rejects(pending, /did not finish the reply \(transcript=true text=false .* resent=true\)/);
+  assert.equal(events.filter(event => event[0] === 'message').length, 1, 'never a second resend');
+  await api.close();
+  // A reply that comes in 3 s: no resend at all, and no resent flag anywhere.
+  offset = 0;
+  const quick = fixture({allowMic: true, clock});
+  await quick.api.beginVoice(request);
+  const fast = quick.api.finishVoice(request); await flush();
+  transcribe(quick.clients[0], 'Hello there friend');
+  offset = 3000;
+  quick.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'Hello there friend', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Hi.', isStreaming: false}]);
+  assert.equal((await fast).text, 'Hi.');
+  offset = 20000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(quick.events.some(event => event[0] === 'message'), false);
+  await quick.api.close();
+  // A typed turn (no microphone) has no transcript to resend.
+  offset = 0;
+  const typed = fixture({clock}); await typed.api.warm({...config, ttsEnabled: false});
+  const line = typed.api.reply({...config, ttsEnabled: false}); line.catch(() => {}); await flush();
+  const sent = typed.events.filter(event => event[0] === 'message').length;
+  offset = 20000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(typed.events.filter(event => event[0] === 'message').length, sent, 'a typed turn sends nothing extra');
+  offset = 61000;
+  await assert.rejects(line, /did not finish the reply/);
+  await typed.api.close();
+});
+
+test('a voice turn is not resent while Convai is thinking or its reply has started; 15 s with no sign at all is what counts', async () => {
+  const transcribe = (client, content) => client.handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false}]);
+  const request = {...config, ttsEnabled: false};
+  const sent = events => events.filter(event => event[0] === 'message').length;
+  // Thinking for 20 s: nothing is sent; the reply that comes ends the turn.
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const thinking = fixture({allowMic: true, clock});
+  await thinking.api.beginVoice(request);
+  const pending = thinking.api.finishVoice(request); pending.catch(() => {}); await flush();
+  transcribe(thinking.clients[0], 'Tell me about the job');
+  thinking.clients[0].state.isThinking = true;
+  offset = 20000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(sent(thinking.events), 0, 'thinking at 20 s: no resend');
+  offset = 34000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(sent(thinking.events), 0, 'still thinking: no resend');
+  // It stops thinking with no text: the 15 s count from the last sign of work, not from the transcript.
+  thinking.clients[0].state.isThinking = false;
+  offset = 40000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(sent(thinking.events), 0, 'six seconds after the last sign of work');
+  offset = 50000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(sent(thinking.events), 1, 'fifteen seconds with no sign: resent once');
+  thinking.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'Tell me about the job', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Which job?', isStreaming: false}]);
+  assert.equal((await pending).text, 'Which job?');
+  await thinking.api.close();
+  // Reply text started (not complete yet) at 10 s and never finishes: no resend either, the 60 s ceiling decides.
+  offset = 0;
+  const started = fixture({allowMic: true, clock});
+  await started.api.beginVoice(request);
+  const slow = started.api.finishVoice(request); slow.catch(() => {}); await flush();
+  transcribe(started.clients[0], 'Tell me about the job');
+  started.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'Tell me about the job', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Well', isStreaming: true}]);
+  offset = 30000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(sent(started.events), 0, 'reply text has started: no resend');
+  offset = 61000;
+  await assert.rejects(slow, error => /did not finish the reply \(transcript=true text=true /.test(error.message) && !/resent/.test(error.message));
+  await started.api.close();
+  // A resend that Convai starts working on is not cut at 30 s.
+  offset = 0;
+  const busy = fixture({allowMic: true, clock});
+  await busy.api.beginVoice(request);
+  const working = busy.api.finishVoice(request); working.catch(() => {}); await flush();
+  transcribe(busy.clients[0], 'Tell me about the job');
+  offset = 16000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(sent(busy.events), 1);
+  busy.clients[0].state.isThinking = true;
+  offset = 50000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(busy.api.diagnostics().activeTurn, true, 'the resend is being answered');
+  busy.clients[0].state.isThinking = false;
+  busy.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'Tell me about the job', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Which job?', isStreaming: false}]);
+  assert.equal((await working).text, 'Which job?');
+  await busy.api.close();
+});
+
 test('a text send that fails before collection releases the standby device', async () => {
   const {Player, standbys} = playerFixture();
   const {api, clients} = fixture({player: Player}); await api.warm(config);

@@ -431,9 +431,13 @@ function M.nativeAdapter()
     -- and exactly 30.0 m moved by 3 s, three times, all crowd and workspot people), so a crowd person never gets one: it gets the crowd's own fear.
     function N.crowd(npc) return npc:IsCrowd() == true end
     -- The game's own temper of the person: its reaction preset (Ganger_Aggressive, Ganger_Passive, Civilian_Neutral, ...). 'aggressive',
-    -- 'passive' or 'neutral'.
+    -- 'passive' or 'neutral'; nil when the person has no reaction component or no preset (some do: a player's 0.3.3 report, 76c13d, "attempt to
+    -- index a nil value" here, three of which would have switched the whole read off for the session). Not read is not a failure.
     function N.temper(npc)
-        local text = tostring(npc:GetStimReactionComponent():GetReactionPreset():Type())
+        local component = npc:GetStimReactionComponent()
+        local preset = component ~= nil and component:GetReactionPreset() or nil
+        if preset == nil then return nil end
+        local text = tostring(preset:Type())
         if text:find('Aggressive', 1, true) then return 'aggressive' end
         if text:find('Passive', 1, true) or text:find('NoReaction', 1, true) then return 'passive' end
         return 'neutral'

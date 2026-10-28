@@ -546,6 +546,25 @@ test('natives: the police call is the request the game\'s own CallPolice task se
   assert(not pcall(N.callPolice, player))
 `));
 
+test('natives: the temper is the reaction preset\'s kind, and nil (not read) for a person with no component or no preset, never an error', () => withNatives(`
+  local function preset(name) return {Type = function() return name end} end
+  reaction.GetReactionPreset = function() return preset('Ganger_Aggressive') end
+  assert(N.temper(npc) == 'aggressive')
+  reaction.GetReactionPreset = function() return preset('Ganger_Passive') end
+  assert(N.temper(npc) == 'passive')
+  reaction.GetReactionPreset = function() return preset('Civilian_Neutral') end
+  assert(N.temper(npc) == 'neutral')
+  -- A person whose component has no preset (a player's report, 0.3.3: "attempt to index a nil value"): not read, so the three failures that switch a read off never come from it.
+  reaction.GetReactionPreset = function() return nil end
+  assert(N.temper(npc) == nil)
+  local bare = {GetStimReactionComponent = function() return nil end}
+  assert(N.temper(bare) == nil)
+  -- A component that raises is still a failure the service guards.
+  reaction.throws = true
+  assert(not pcall(N.temper, npc))
+  reaction.throws = false
+`));
+
 test('natives: the safe-zone read says true on any of the three signals, false only when the zone was read, nil when it could not be', () => withNatives(`
   zones.value = 1; assert(N.safe(player) == false)
   zones.value = 2; assert(N.safe(player) == true, 'PlayerStateMachine.Zones == Safe')

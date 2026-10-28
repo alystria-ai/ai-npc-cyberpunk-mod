@@ -87,7 +87,7 @@ export class LocalPcmHost {
     cleanupTimeoutMs = 2500, now = () => performance.now(), levelLog = null, label = 'voice'} = {}) {
     if (typeof createPage !== 'function') throw Error('Local PCM page factory is required');
     Object.assign(this, {createPage, pollMs, timeoutMs, commandTimeoutMs, cleanupTimeoutMs, now, levelLog, label});
-    this.active = null; this.page = null; this.epoch = 0; this.retirements = new WeakMap();
+    this.active = null; this.page = null; this.epoch = 0; this.retirements = new WeakMap(); this.freeWaiters = [];
   }
 
   async bounded(task, ms, message, signal) {
@@ -293,8 +293,25 @@ export class LocalPcmHost {
           if (this.page === page) this.page = null;
           await this.dispose(page);
         }
-      } finally { if (this.active === turn) this.active = null; }
+      } finally {
+        if (this.active === turn) this.active = null;
+        if (!this.active) for (const wake of this.freeWaiters.splice(0)) wake();
+      }
     }
+  }
+
+  // Resolves when no turn owns the host (the last one's drain and retirement are done), or after `ms`, or when `signal` aborts; never rejects. A line queued behind a turn (V's
+  // next typed line, a report of 28 Oct 2026: 'Local PCM playback is already owned') waits here for its turn instead of being refused.
+  whenFree(ms = 8000, signal) {
+    if (!this.active) return Promise.resolve();
+    return new Promise(resolve => {
+      let timer;
+      const done = () => { clearTimeout(timer); signal?.removeEventListener('abort', done); const at = this.freeWaiters.indexOf(done); if (at >= 0) this.freeWaiters.splice(at, 1); resolve(); };
+      timer = setTimeout(done, ms); timer.unref?.();
+      this.freeWaiters.push(done);
+      signal?.addEventListener('abort', done, {once: true});
+      if (signal?.aborted) done();
+    });
   }
 
   // Opens the renderer page ahead of the first turn (the browser, the page and its audio worklet take about a second). Never

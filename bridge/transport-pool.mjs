@@ -48,7 +48,12 @@ export function throwIfCancelled(signal) { if (signal?.aborted) throw cancelled(
 
 export function abortable(promise, signal) {
   if (!signal) return promise;
-  if (signal.aborted) return Promise.reject(cancelled());
+  if (signal.aborted) {
+    // The caller gives the promise up: if it rejects later, nobody is left to hear it, and Node would take it for an unhandled rejection of the bridge (a player's report, 28 Oct
+    // 2026: 'AbortError: Conversation cancelled' from the local voice page's factory, signature 78ffeac5).
+    Promise.resolve(promise).catch(() => {});
+    return Promise.reject(cancelled());
+  }
   return new Promise((resolve, reject) => {
     const abort = () => { cleanup(); reject(cancelled()); };
     const cleanup = () => signal.removeEventListener('abort', abort);

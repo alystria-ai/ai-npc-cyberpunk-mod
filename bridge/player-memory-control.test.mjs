@@ -41,6 +41,18 @@ test('memory command parser bounds identifiers and never accepts an identity or 
   assert.equal(parseMemoryCommand('x'.repeat(8193), NOW), null);
 });
 
+test('closing never throws when the last status write is refused (the game exiting holds the file), so the shutdown goes on to close the memory', async () => {
+  const f = fixture();
+  let refuse = false;
+  const control = await PlayerMemoryControl.open({...f.options, publish: async value => {
+    if (refuse) throw Object.assign(Error('EPERM: operation not permitted, rename'), {code: 'EPERM'});
+    f.published.push(value);
+  }});
+  refuse = true;
+  await control.close();
+  assert.equal(control.closed, true);
+});
+
 test('startup restores a known result but never dispatches an old or unknown destructive command', async () => {
   const f = fixture(JSON.stringify(command('old-request')));
   const control = await PlayerMemoryControl.open(f.options);
