@@ -57,7 +57,7 @@ cut at the first comma after 12 words, later ones after 22), where the model end
 - Cropping the model's lead is also the biggest first-sound gain: the first word starts 30 ms after the first packet instead of 450 to 900 ms.
 - Measure: `node scripts/Measure-OmniJoins.mjs` (renders old and new cuts of four sample replies with `scripts/Render-OmniPhrases.py`, writes before/after WAVs and
   first-word / finished / join-silence numbers). Tests: `bridge/omni-join.test.mjs`, `bridge/speech-phrases.test.mjs`, `bridge/omni-pcm.test.mjs`.
-- Not changed: V's own OmniVoice line (`bridge/v-voice.mjs omniProducer`) still plays the render as the model made it plus the line's edges (`bridge/pcm-edges.mjs`).
+- V's own OmniVoice line (`bridge/v-voice.mjs` `omniProducer`) is cropped the same way (`cropOmniPackets`), so the companion reply no longer waits behind the model's padding.
 
 ## Cost
 
