@@ -230,6 +230,12 @@ async function main() {
   const here = dirname(fileURLToPath(import.meta.url));
   const notes = [];
   globalThis[NOTES] = notes;
+  // The Runtime's real place is looked up BEFORE the stat fallbacks go in. With them in, stat sees a folder that only an MO2 mod holds, realFolder
+  // answers with the virtual path, the code is copied through the virtual file system (every file that is new lands in Overwrite, where Node
+  // cannot stat it) and start-service.mjs runs from the virtual path, so its child processes cannot import the files they need
+  // (found in the live check of 2026-10-28: "Cannot find module ...launcher/usvfs-compat.mjs").
+  const virtualApp = resolve(gameRoot, ...RUNTIME_APP.split('/'));
+  const runtimeApp = realFolder(virtualApp);
   // Under Mod Organizer 2 the stat fallbacks go in before anything else looks at a file (the Scripts' own copy; start-service.mjs then finds
   // them in place). A problem is noted and the copy goes on with the handle fallback of sizeOf.
   try {
@@ -239,9 +245,7 @@ async function main() {
     }
   } catch (error) { notes.push(`Mod Organizer 2 support could not be loaded before the code copy: ${error?.message || error}`); }
 
-  const virtualApp = resolve(gameRoot, ...RUNTIME_APP.split('/'));
-  const runtimeApp = realFolder(virtualApp);
-  const manifest = readManifest(resolve(here, 'code.json'));
+  const manifest =readManifest(resolve(here, 'code.json'));
   if (!manifest) {
     publishFailure(gameRoot, 'install-incomplete', 'the Scripts\' code.json is missing or damaged; install the Scripts again');
     process.exit(1);
