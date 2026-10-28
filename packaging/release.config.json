@@ -17,6 +17,19 @@
     "githubFileBytes": 1950000000,
     "notes": "assetBytes: a Scripts or Runtime zip is closed and continued in another before it passes this (the GitHub release's 2 GiB limit). githubFileBytes: a single file that large in those packages stops the build. The optional packs (OmniVoice, Local AI, Mature) are hosted on Hugging Face as ONE zip each and have no limit here: no parts, no split files."
   },
+  "packFiles": {
+    "notes": "The file names of the optional packs (owner decision 2026-10-28: every model pack carries the model's name and parameter count in its file name). Pattern: <Type>-<Tier>-<Model>-<Params> (OmniPack-<Model>-<Params> and PocketTTS-Model-<Params>-<Language> have no tier). `title` is the name a build writes (<title>-<version>.zip) and the name on Hugging Face (<folder>/<title>.zip, no version). `legacyTitle` is the name before 0.3.4: detection never depended on a zip's name (the packs are found by the markers and folders inside them, so a pack installed from an old name works unchanged), but the uploader still accepts a build folder that holds the old name, and the old Hugging Face paths stay valid for a transition. packaging/lib/pack-names.mjs and packaging/upload-packs.py read this block; a test keeps it equal to the model names pinned below. docs/PACKAGING.md, 'Pack file names'.",
+    "packs": {
+      "omni": {"folder": "voice", "title": "OmniPack-OmniVoice-0.6B", "legacyTitle": "OmniPack"},
+      "localai-standard": {"folder": "local-ai", "title": "LocalAI-Standard-Gemma-4-E4B", "legacyTitle": "LocalAI-Standard"},
+      "localai-lite": {"folder": "local-ai", "title": "LocalAI-Lite-Bonsai-2-4B", "legacyTitle": "LocalAI-Lite"},
+      "mature-lite": {"folder": "mature", "title": "Mature-Lite-Qwen3.5-4B", "legacyTitle": "Mature-Lite"},
+      "mature-standard": {"folder": "mature", "title": "Mature-Standard-Gemma-4-E4B", "legacyTitle": "Mature-Standard"},
+      "micpack-european": {"folder": "mic", "title": "MicPack-European-Parakeet-TDT-0.6B-v3", "legacyTitle": "MicPack-European"},
+      "micpack-asian": {"folder": "mic", "title": "MicPack-Asian-SenseVoice-Small-234M", "legacyTitle": "MicPack-Asian"}
+    },
+    "pocketModels": {"folder": "multilingual", "prefix": "PocketTTS-Model-100M-", "legacyPrefix": "PocketTTS-Model-"}
+  },
   "toolchain": {
     "node": {
       "version": "24.21.0",
@@ -220,7 +233,7 @@
       "european": {
         "id": "parakeet-tdt-0.6b-v3-int8",
         "packageId": "micpack-european",
-        "title": "MicPack-European",
+        "title": "MicPack-European-Parakeet-TDT-0.6B-v3",
         "name": "NVIDIA Parakeet TDT 0.6B v3 (int8)",
         "model": "NVIDIA Parakeet TDT 0.6B v3, int8 ONNX conversion by the k2-fsa sherpa-onnx project",
         "languages": ["ru", "uk", "pl", "cs", "hu", "de", "fr", "es", "it", "pt"],
@@ -246,7 +259,7 @@
       "asian": {
         "id": "sense-voice-int8",
         "packageId": "micpack-asian",
-        "title": "MicPack-Asian",
+        "title": "MicPack-Asian-SenseVoice-Small-234M",
         "name": "FunAudioLLM SenseVoice Small (int8)",
         "model": "SenseVoice Small, int8 ONNX conversion by the k2-fsa sherpa-onnx project",
         "languages": ["zh", "ja", "ko"],

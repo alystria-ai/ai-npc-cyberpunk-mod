@@ -1372,7 +1372,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing Convai turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
 - Distribution: the packs (one uncensored GGUF each) are distributed ONLY as optional files on this project's Hugging Face repository
-  (`alystria-ai/ai-npc-cyberpunk-mod-packs`, `mature/Mature-Lite.zip` and `mature/Mature-Standard.zip`, each one zip, no parts), never on Nexus Mods and not on the
+  (`alystria-ai/ai-npc-cyberpunk-mod-packs`, `mature/Mature-Lite-Qwen3.5-4B.zip` and `mature/Mature-Standard-Gemma-4-E4B.zip`, each one zip, no parts), never on Nexus Mods and not on the
   GitHub release. `.github/workflows/release.yml` builds and uploads them only in its opt-in `mature` job (a matrix of `lite` and `standard`; the `mature` input is off by default and a tag push never runs it), and `packaging/build-release.mjs` builds each only with `--packages mature-lite` or `mature-standard`, never in the default set. Nothing of it is in the
   Runtime package or `release-plan.json`; its marker, README, release notes and models are not read by the runtime builder (tested). The
   main mod's own files (the bridge modules `mature-content`, `mature-guard`, `mature-guard-terms` and `mature-pack`, the Lua and locale

@@ -9,15 +9,16 @@
 //                                               game archives (GitHub)
 //   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, each in its own folder; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB). Every package except the Scripts drops
-//   the product prefix, and the version stays in the build folder only (the uploader publishes them under the unversioned name):
-//   OmniPack-<v>.zip                            optional OmniVoice GPU pack (voice/)
-//   LocalAI-Standard-<v>.zip                    optional Local AI pack, Gemma 4 E4B (local-ai/)
-//   LocalAI-Lite-<v>.zip                        optional Local AI pack, Bonsai 2 4B (local-ai/)
-//   Mature-Lite-<v>.zip                         optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
+//   the product prefix, and the version stays in the build folder only (the uploader publishes them under the unversioned name). Since 0.3.4 every
+//   model pack carries the model's name and parameter count in its name (<Type>-<Tier>-<Model>-<Params>; the names are "packFiles" in release.config.json):
+//   OmniPack-OmniVoice-0.6B-<v>.zip             optional OmniVoice GPU pack (voice/)
+//   LocalAI-Standard-Gemma-4-E4B-<v>.zip        optional Local AI pack, Gemma 4 E4B (local-ai/)
+//   LocalAI-Lite-Bonsai-2-4B-<v>.zip            optional Local AI pack, Bonsai 2 4B (local-ai/)
+//   Mature-Lite-Qwen3.5-4B-<v>.zip              optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
 //                                               never in the default set, never Nexus; it carries its own marker, so it works alone (mature/)
-//   Mature-Standard-<v>.zip                     optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard (mature/)
-//   MicPack-European-<v>.zip                    optional voice-input pack, NVIDIA Parakeet TDT 0.6B v3 (int8); only with --packages micpack-european (mic/)
-//   MicPack-Asian-<v>.zip                       optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian (mic/)
+//   Mature-Standard-Gemma-4-E4B-<v>.zip         optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard (mature/)
+//   MicPack-European-Parakeet-TDT-0.6B-v3-<v>.zip  optional voice-input pack, NVIDIA Parakeet TDT 0.6B v3 (int8); only with --packages micpack-european (mic/)
+//   MicPack-Asian-SenseVoice-Small-234M-<v>.zip optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian (mic/)
 //                                               (neither is in the default set or on Nexus; the model files come from the pinned sherpa-onnx archive, or --mic-pack-source)
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus release-manifest.json (no loose checksum files: nothing reads them). The Runtime package also carries the native plugin
@@ -67,6 +68,7 @@ import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mj
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
+import {packFiles, packTitle} from './lib/pack-names.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, gameOverlay} from './lib/game-variants.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
@@ -1113,8 +1115,8 @@ async function main() {
     'micpack-european': () => micPackage(source, config, 'european'),
     'micpack-asian': () => micPackage(source, config, 'asian'),
   };
-  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', 'mature-lite': 'Mature-Lite', 'mature-standard': 'Mature-Standard',
-    'micpack-european': 'MicPack-European', 'micpack-asian': 'MicPack-Asian'};
+  // The file name of a pack carries the model's name and parameter count (packaging/release.config.json, "packFiles"; packaging/lib/pack-names.mjs).
+  const titles = {scripts: 'Scripts', runtime: 'Runtime', ...Object.fromEntries(Object.keys(packFiles(config).packs).map(id => [id, packTitle(config, id)]))};
   for (const id of PACKAGE_IDS) {
     if (!packages.has(id)) continue;
     log(`Staging the ${titles[id]} package.`);

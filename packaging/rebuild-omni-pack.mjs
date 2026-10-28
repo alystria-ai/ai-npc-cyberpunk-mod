@@ -12,7 +12,7 @@
 //   - the notices, omni-pack.json and the install note are rewritten the way the builder writes them;
 //   - nothing the Runtime carries (packaging/pack-listings/runtime-omni-clips-*.json) may be in the pack.
 // Everything else is copied byte for byte (each entry is checked against its CRC-32 on the way out and the SHA-256 of the result is recorded).
-// Output: <out>/OmniPack-<version>.zip and OmniPack-<version>.files.json (the same names the builder uses).
+// Output: <out>/OmniPack-OmniVoice-0.6B-<version>.zip and the same name .files.json (the same names the builder uses).
 import {mkdir, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {dirname, resolve} from 'node:path';
@@ -22,6 +22,7 @@ import {extractEntry} from './lib/zip-entry.mjs';
 import {run, sha256File} from './lib/files.mjs';
 import {OMNI_MODEL_FILE, omniLeaveOutReason, omniMarker, omniNoticeLines, omniNoticesText, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {INSTALL_NOTE, INSTALL_NOTE_NAME} from './build-pocket-models.mjs';
+import {packTitle} from './lib/pack-names.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PLUGIN = 'red4ext/plugins/AiNpcCyberpunkMod';
@@ -102,7 +103,7 @@ async function main(argv) {
   rows.set(INSTALL_NOTE_NAME, {buffer: Buffer.from(INSTALL_NOTE, 'utf8')});
 
   const names = [...rows.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-  const zipPath = resolve(out, `OmniPack-${version}.zip`);
+  const zipPath = resolve(out, `${packTitle(config, 'omni')}-${version}.zip`);
   const writer = await ZipWriter.create(zipPath, {timestamp});
   const files = [];
   for (const [position, name] of names.entries()) {
@@ -111,7 +112,7 @@ async function main(argv) {
     if (position % 2000 === 0) log(`written ${position} of ${names.length}`);
   }
   const closed = await writer.close();
-  await writeFile(resolve(out, `OmniPack-${version}.files.json`), JSON.stringify(files, null, 1) + '\n');
+  await writeFile(resolve(out, `${packTitle(config, 'omni')}-${version}.files.json`), JSON.stringify(files, null, 1) + '\n');
   const hash = await sha256File(zipPath);
   log(`${zipPath}: ${closed.bytes} bytes, ${closed.entries} entries, sha256 ${hash}`);
   if (!option('--keep-work')) await rm(work, {recursive: true, force: true});

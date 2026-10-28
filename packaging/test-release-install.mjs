@@ -31,7 +31,7 @@
 //    model on the processor (no sound, no graphics card, no game).
 import {spawn, spawnSync} from 'node:child_process';
 import {copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import net from 'node:net';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -46,11 +46,16 @@ const gameArgument = process.argv.slice(2).indexOf('--game');
 const gameId = gameArgument >= 0 && process.argv.slice(2)[gameArgument + 1] ? process.argv.slice(2)[gameArgument + 1] : DEFAULT_GAME;
 if (!Object.hasOwn(GAME_VARIANTS, gameId)) throw Error(`--game must be one of ${Object.keys(GAME_VARIANTS).join(', ')}, not ${gameId}`);
 const gameSuffix = GAME_VARIANTS[gameId].suffix;
-const packageBase = (id, version) => id === 'Scripts' ? `AI-NPC-Cyberpunk-Mod-Scripts-${version}${gameSuffix}` : id === 'Runtime' ? `Runtime-${version}${gameSuffix}` : `${id}-${version}`;
+// The optional packs are named by pack id ('omni', 'localai-standard', 'localai-lite'; the file name carries the model, packaging/lib/pack-names.mjs). A build
+// folder made before 0.3.4 holds the old titles (OmniPack-<v>.zip), which are accepted too: titlesOf(id) lists the new title first.
+const releaseConfig = JSON.parse(readFileSync(new URL('./release.config.json', import.meta.url), 'utf8'));
+const titlesOf = id => id === 'Scripts' ? ['AI-NPC-Cyberpunk-Mod-Scripts'] : id === 'Runtime' ? ['Runtime'] : packTitles(releaseConfig, id);
+const packageBase = (id, version, title = titlesOf(id)[0]) => id === 'Scripts' || id === 'Runtime' ? `${title}-${version}${gameSuffix}` : `${title}-${version}`;
 import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs';
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
+import {packTitles} from './lib/pack-names.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
@@ -287,16 +292,16 @@ async function main() {
     // Exact names only: version 0.2 must not pick up files of 0.2.1 or 0.20.
     const escaped = text => text.replace(/[.+]/g, '\\$&');
     // Only the Runtime may still come in several zips; the optional packs (OmniVoice, Local AI) are one zip each.
-    const pick = (prefix, {parts = false} = {}) => names.filter(name => name === `${packageBase(prefix, version)}.zip`
-      || (parts && new RegExp(`^${packageBase(prefix, escaped(version))}-part\\d+of\\d+\\.zip$`).test(name))).sort();
-    const localIds = localAi ? ['LocalAI-Standard', 'LocalAI-Lite'] : [];
+    const pick = (prefix, {parts = false} = {}) => names.filter(name => titlesOf(prefix).some(title => name === `${packageBase(prefix, version, title)}.zip`
+      || (parts && new RegExp(`^${packageBase(prefix, escaped(version), title)}-part\\d+of\\d+\\.zip$`).test(name)))).sort();
+    const localIds = localAi ? ['localai-standard', 'localai-lite'] : [];
     // The update test extracts the previous version and the update zip instead of the new full Runtime (see the header).
     const updateZips = names.filter(name => new RegExp(`^Runtime-Update-.+-to-${escaped(version)}${escaped(gameSuffix)}\\.zip$`).test(name));
     const updateZip = updateFrom.length ? (updateZipArgument ?? (updateZips.length === 1 ? join(packagesDir, updateZips[0]) : null)) : null;
-    const wanted = updateFrom.length ? [...pick('Scripts'), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)]
-      : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
+    const wanted = updateFrom.length ? [...pick('Scripts'), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)]
+      : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)];
     check('packages present', pick('Scripts').length === 1 && (updateFrom.length ? existsSync(updateZip ?? '') && existsSync(join(packagesDir, `${packageBase('Runtime', version)}.files.json`))
-      : pick('Runtime', {parts: true}).length >= 1) && (!omni || pick('OmniPack').length === 1) && localIds.every(id => pick(id).length === 1),
+      : pick('Runtime', {parts: true}).length >= 1) && (!omni || pick('omni').length === 1) && localIds.every(id => pick(id).length === 1),
     updateFrom.length ? [...wanted, updateZip ? updateZip.split(/[\\/]/).pop() : '(no update zip)'].join(', ') : wanted.join(', '));
     let t = Date.now();
     let update = null;
@@ -317,8 +322,10 @@ async function main() {
     check('extracted with Expand-Archive', true, `${wanted.length + (update ? updateFrom.length + updateFromScripts.length + 1 : 0)} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);
     let mismatches = 0, count = 0, longest = 0;
     const omniSplit = new Set();
-    for (const id of ['Scripts', 'Runtime', ...(omni ? ['OmniPack'] : []), ...localIds]) {
-      const list = JSON.parse(await readFile(join(packagesDir, `${packageBase(id, version)}.files.json`), 'utf8'));
+    for (const id of ['Scripts', 'Runtime', ...(omni ? ['omni'] : []), ...localIds]) {
+      // The file list sits beside the zip, under whichever title the zip has.
+      const listed = titlesOf(id).map(title => join(packagesDir, `${packageBase(id, version, title)}.files.json`)).find(existsSync) ?? join(packagesDir, `${packageBase(id, version)}.files.json`);
+      const list = JSON.parse(await readFile(listed, 'utf8'));
       for (const file of list) {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
         // The one file that differs by design: the update's removal list (what went away since the previous Runtime) replaces the full Runtime's own; it is checked below.

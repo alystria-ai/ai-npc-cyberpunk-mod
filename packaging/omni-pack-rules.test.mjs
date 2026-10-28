@@ -179,7 +179,7 @@ test('the rebuild tool writes the lean pack: float16 model, no tests folders, DL
       '--release-config', configFile, '--commit', 'deadbeef', '--timestamp', '1792678298'];
     const run = spawnSync(process.execPath, args, {encoding: 'utf8'});
     assert.equal(run.status, 0, run.stderr + run.stdout);
-    const zip = join(directory, 'out/OmniPack-9.9.9.zip');
+    const zip = join(directory, 'out/OmniPack-OmniVoice-0.6B-9.9.9.zip');
     const entries = await listZip(zip);
     const names = entries.map(entry => entry.name);
     assert.deepEqual(names, [...names].sort(), 'sorted, like the builder');
@@ -193,7 +193,7 @@ test('the rebuild tool writes the lean pack: float16 model, no tests folders, DL
     const marker = JSON.parse(await read(`${PLUGIN}/app/omni/omni-pack.json`));
     assert.deepEqual([marker.version, marker.commit, marker.precision, marker.modelFileSha256], ['9.9.9', 'deadbeef', OMNI_PRECISION, sha(half)]);
     assert.match((await read(`${PLUGIN}/app/omni/THIRD-PARTY-NOTICES.txt`)).toString(), /CHANGED: app\/omni\/model\/model\.safetensors/);
-    const files = JSON.parse(await readFile(join(directory, 'out/OmniPack-9.9.9.files.json'), 'utf8'));
+    const files = JSON.parse(await readFile(join(directory, 'out/OmniPack-OmniVoice-0.6B-9.9.9.files.json'), 'utf8'));
     assert.equal(files.length, entries.length); assert.equal(files.find(file => file.path === OMNI_MODEL_FILE).sha256, sha(half));
 
     // A pack that already holds a clip the Runtime carries stops the tool; a model that is not the pinned upstream file does too.
