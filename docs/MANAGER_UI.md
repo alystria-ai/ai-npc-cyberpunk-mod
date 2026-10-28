@@ -282,6 +282,21 @@ touches it. The file is read once, when a page first needs it, and written only 
 favorite for the session and the page says so). The lists are sorted only when a page is built, and `convaiFavorites.order` keeps its answer
 while the list and the favorites stay the same. Without `favorites.lua` the pages have no button.
 
+*The Chat tab of V's phone* (a character made favorite on Characters to invite): the favorites are listed first there too, with the same `* `
+mark, then the others in the list's own order (by name). Read only: `mod/phone-chat.lua` `M.pushFavorites` compares `convaiFavorites.revision()`
+(one number) on the phone's existing 10 Hz tick and, only when it changed (or the contacts were registered again), hands the game the favorite
+contact ids (`ConvaiPhoneChatClearFavorites(mark)`, `ConvaiPhoneChatAddFavorite(id)`; the contact id maps to its profile key through the
+catalog, so the shipped phone contacts such as `judy` follow `judy-alvarez`). The list is built in `PhoneChatTabs.reds`
+`ConvaiShowChatContacts` when the tab opens: a favorite's row name is the mark plus the name (`ConvaiPhoneChatListName`), and because the
+game's list sorts by name and `*` sorts before letters, the favorites come first, each group still by name. Nothing runs while the list is open
+and no widget is touched per frame. The name without the mark is kept on the row (`ContactData.convaiPlainName`), so the chat page title and
+the chat's name never show the mark. Scripts older than the Lua skip it (asked once, `M.favoritesMissing`).
+
+*MCM's own Add to favorites* (the footer button of MCM 0.10.5 and later for the mod): already handled, nothing to add. With MCM 0.10.6 or newer
+`mod/mcm-host.lua` sends `setActionVisibility(modKey, {favorite = 'hide'})` with the presentation (see "MCM 0.10.6" below), so only ours shows
+on our pages. MCM 0.10.5 has no public option to hide it, so there it still sits beside ours (it favorites the mod in MCM, ours favorites a row);
+that is known and not a bug.
+
 *Which row the button acts on* depends on what the host can tell:
 - **Native Settings UI** reports it. `nsui.lua` observes the game's `SettingsMainGameController.OnSettingHoverOver` (the event NSUI itself uses
   for its description panel; it fires for the pointer and for the gamepad highlight), asks NSUI for the option (`getOptionTable`) and looks it up

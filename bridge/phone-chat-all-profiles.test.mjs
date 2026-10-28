@@ -73,6 +73,68 @@ test('Lua: the catalog gains every named profile with its name, keeps the shippe
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 });
 
+test('Lua: favorite characters are handed to the game for the Chat list, again only when the favorites change', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const rows = roster.map(({key, name, kind}) => ({key, name, kind}));
+  const program = `
+    local files = {}
+    files['phone-contacts.json'] = ${luaValue(contacts)}
+    json = {decode = function(raw) return raw end, encode = function(v) return v end}
+    io.open = function(path, mode)
+      if mode == 'rb' and files[path] then return {read = function() return files[path] end, close = function() end} end
+      return nil
+    end
+    NewObject = function() return {} end
+    os.time = function() return 100 end
+    -- The favorites module's surface the Chat reads: a revision, the mark, the count and the lookup.
+    local starred, revision, reads = {}, 1, 0
+    convaiFavorites = {MARK = '* ',
+      revision = function() reads = reads + 1; return revision end,
+      count = function(scope) local n = 0 for _ in pairs(starred) do n = n + 1 end return n end,
+      isFavorite = function(scope, key) return scope == 'characters' and starred[key] == true end}
+    local chat = (function() ${adapter} end)()
+    chat.configure(${luaValue(rows)}, {profileEnabled = function() return true end}, {captureBinding = function() return {version = 1, status = 'unavailable', generation = 1} end})
+    local favoriteIds, mark, cleared = {}, nil, 0
+    local player = {ConvaiPhoneChatContact = function() return '' end, ConvaiPhoneChatTick = function() end,
+      ConvaiPhoneChatClearContacts = function() end, ConvaiPhoneChatRegisterContact = function() end,
+      ConvaiPhoneChatClearFavorites = function(_, m) cleared = cleared + 1; favoriteIds = {}; mark = m end,
+      ConvaiPhoneChatAddFavorite = function(_, id) favoriteIds[id] = true end,
+      ConvaiPhoneChatDraft = function() return nil end, ConvaiPhoneChatTakeSubmission = function() return nil end,
+      ConvaiPhoneChatTyping = function() return false end, ConvaiPhoneChatPresent = function() end,
+      ConvaiRequirements = function() return 'codeware codeware-ui codeware-textinput' end}
+    chat.resetPeriod, chat.resetIdlePeriod = 0, 0
+    for _ = 1, 8 do chat.update(player, 0) end
+    assert(cleared == 1 and next(favoriteIds) == nil and mark == '* ', 'no favorites: the list is cleared once and holds none')
+    for _ = 1, 8 do chat.update(player, 0) end
+    assert(cleared == 1, 'nothing changed, nothing sent')
+    -- A shipped contact (its own id, mapped to a profile key) and a profile listed by its key.
+    starred['judy-alvarez'], starred['rita-wheeler'] = true, true
+    revision = 2
+    for _ = 1, 8 do chat.update(player, 0) end
+    assert(cleared == 2 and favoriteIds['judy'] and favoriteIds['rita-wheeler'] and not favoriteIds['panam'], 'the contact ids of the favorite profiles')
+    starred['judy-alvarez'] = nil
+    revision = 3
+    for _ = 1, 8 do chat.update(player, 0) end
+    assert(cleared == 3 and not favoriteIds['judy'] and favoriteIds['rita-wheeler'], 'a removed favorite goes')
+    -- New contacts are registered again: the favorites go with them.
+    chat.setContacts('pack', {{key = 'rita-wheeler-medieval', name = 'Rita of the Keep'}})
+    for _ = 1, 8 do chat.update(player, 0) end
+    assert(cleared == 4 and favoriteIds['rita-wheeler'], 'sent again after the registration')
+    -- Older scripts without the methods: asked once, then left alone, and the Chat keeps working.
+    convaiFavorites.revision = function() revision = revision + 1; return revision end
+    local old = {ConvaiPhoneChatContact = player.ConvaiPhoneChatContact, ConvaiPhoneChatTick = function() end,
+      ConvaiPhoneChatClearContacts = function() end, ConvaiPhoneChatRegisterContact = function() end,
+      ConvaiPhoneChatDraft = function() return nil end, ConvaiPhoneChatTakeSubmission = function() return nil end,
+      ConvaiPhoneChatTyping = function() return false end, ConvaiPhoneChatPresent = function() end,
+      ConvaiRequirements = player.ConvaiRequirements}
+    for _ = 1, 8 do chat.update(old, 0) end
+    assert(chat.favoritesMissing == true)
+  `;
+  const result = lauxlib.luaL_dostring(state, to_luastring(program));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
+});
+
 function luaValue(value) {
   if (Array.isArray(value)) return `{${value.map(luaValue).join(',')}}`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).map(([k, v]) => `[${JSON.stringify(k)}]=${luaValue(v)}`).join(',')}}`;

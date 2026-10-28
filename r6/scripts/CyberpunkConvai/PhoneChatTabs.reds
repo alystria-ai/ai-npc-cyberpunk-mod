@@ -11,6 +11,9 @@ public enum ConvaiPhoneChatState {
 
 @addField(ContactData)
 public let convaiChat: Bool;
+// The name without the favorite mark: the chat page and its title use this one (localizedName carries the mark on the list).
+@addField(ContactData)
+public let convaiPlainName: String;
 @addField(JournalNotificationData)
 public let convaiChat: Bool;
 @addField(JournalNotificationData)
@@ -138,7 +141,8 @@ private final func ConvaiShowChatContacts() -> Void {
             row.id = contact.GetId();
             row.contactId = row.id;
             row.hash = this.m_journalMgr.GetEntryHash(contact);
-            row.localizedName = contact.GetLocalizedName(this.m_journalMgr);
+            row.convaiPlainName = contact.GetLocalizedName(this.m_journalMgr);
+            row.localizedName = this.m_player.ConvaiPhoneChatListName(row.id, row.convaiPlainName);
             row.avatarID = contact.GetAvatarID(this.m_journalMgr);
             // This is a display row. Activation below always opens AI chat.
             row.isCallable = true;
@@ -158,7 +162,8 @@ private final func ConvaiShowChatContacts() -> Void {
             row.id = id;
             row.contactId = id;
             row.hash = 0;
-            row.localizedName = name;
+            row.convaiPlainName = name;
+            row.localizedName = this.m_player.ConvaiPhoneChatListName(id, name);
             row.isCallable = true;
             ArrayPush(contacts, row);
         };
@@ -299,12 +304,13 @@ private final func ConvaiOpenChat(contact: wref<ContactData>, opt fromKey: Bool)
     data.convaiChatGeneration = this.m_convaiChatGeneration;
     if contact.hash != 0 { data.journalEntry = this.m_journalMgr.GetEntry(Cast<Uint32>(contact.hash)); };
     data.convaiChatId = contact.id;
-    data.convaiChatName = contact.localizedName;
+    let plain = StrLen(contact.convaiPlainName) > 0 ? contact.convaiPlainName : contact.localizedName;
+    data.convaiChatName = plain;
     data.type = MessengerContactType.SingleThread;
     data.mode = JournalNotificationMode.HUD;
     data.openedFromPhone = true;
     data.source = PhoneScreenType.Contacts;
-    data.contactNameLocKey = StringToName(contact.localizedName);
+    data.contactNameLocKey = StringToName(plain);
     if this.m_messagesPanelSpawned {
         let refresh = new RefreshSmsMessagerEvent();
         refresh.m_data = data;
