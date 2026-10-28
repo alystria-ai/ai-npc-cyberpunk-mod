@@ -221,6 +221,18 @@ export function buildServerArgs({model, port, keyFile, device, contextSize = LOC
     '--host', host, '--port', String(port), '--api-key-file', keyFile];
 }
 
+// The chat model server allocates graphics memory in pieces of at most 64 MiB (llama.cpp's Vulkan backend, `GGML_VK_FORCE_MAX_ALLOCATION_SIZE`).
+// Measured live on 28 Oct 2026 (RTX 4080 Laptop, game 2.5 running; docs/LOCAL_AI.md, "A model load froze the game"): a model load made its large allocations in one
+// piece each (the 512 MiB KV cache of the lite model at 16,384, the weights) and the game froze for 0.1 to 2 s while Windows placed them, in 3 of 5
+// loads (608, 189 and 1,226 ms; 1,964 ms on a load after the idle stop, 1,709 ms for a 2.7 GB model): the stutter "right after I finish speaking"
+// on the first turn after a start or an idle stop. In 64 MiB pieces the same loads froze nothing (5 of 5; one 106 ms frame) and the model reads
+// and writes at the same speed (2,365 to 2,519 prompt tokens a second against 2,299 to 2,475; 89 against 82 to 91 written). Every model of the
+// packs loads and answers with it. A value the environment already holds (a developer's) is kept.
+export const SERVER_ALLOCATION_MIB = 64;
+export function serverEnvironment(environment = process.env) {
+  return environment?.GGML_VK_FORCE_MAX_ALLOCATION_SIZE ? {} : {GGML_VK_FORCE_MAX_ALLOCATION_SIZE: String(SERVER_ALLOCATION_MIB * 1024 * 1024)};
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Devices
 
@@ -1179,7 +1191,7 @@ export class LocalLlmServer extends EventEmitter {
       startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
       buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true, kvType,
         fitTargetMiB: placement?.targetMiB ?? null, threads}),
-      ...this.processOptions});
+      ...this.processOptions, env: {...serverEnvironment(process.env), ...(this.processOptions?.env ?? {})}});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));
     this.#mark('loading the model into the server (waiting for it to answer)');

@@ -1143,6 +1143,30 @@ Tests: `bridge/local-queue.test.mjs` (the arbitration, the warm-up skip, the hos
   the 10 s wait), `bridge/local-turn-diagnostics.test.mjs` (the first turn after the idle stop with a faked clock, a turn that never reached the model is no stall, `stopped` is no
   failure, `loadPending` / `prepare`), `bridge/prompt-budget.test.mjs` (older exchanges in blocks).
 
+### A model load froze the game (2026-10-28: "the game stutters right after I finish speaking and right before the NPC responds")
+
+The report: an RTX 5090 Laptop (24 GB), game 2.31, OmniVoice with Local AI, lite model too, `priority.txt` or not; GPU use going from 50 to 100 %.
+
+**Measured** (28 Oct, RTX 4080 Laptop, game 2.5 at High 1080p windowed, the game's frame times read from RivaTuner's shared memory, one sample per frame,
+other work on the PC stopped): an ordinary turn costs the game nothing. The prompt read (GPU at 77 to 98 %), the OmniVoice render of the first phrase (86 to 99 %,
+a CUDA graph captured), the reply playing and the model writing left the frame times where they were (60 fps capped: p95 17.8 to 18.4 ms, worst frame 20 to 22 ms,
+against 17.9 / 19.5 before the turn). A standalone llama-server with the lite model wholly on the card, eight 2,370-token prompts back to back, did the same
+(no frame over 21 ms). What froze the game was the model **loading**: the turn after the idle stop froze it for 976 ms (and 1,964 ms in an earlier record, CPU
+busy), and 8 of 13 standalone loads (the mod's flags, wholly on the card) froze it for 106 to 1,709 ms. llama-server's own log puts the freeze at the large allocations (the lite
+model's 512 MiB KV cache at 16,384, the weights); reading the model file alone (1.5 GB, cold, 989 MiB/s) froze nothing, and neither did `--list-devices`,
+`llama-fit-params` or `nvidia-smi`. The load happens on the first turn of a session that has none loaded and on the first turn after the ten-minute idle stop,
+which is "right after I finish speaking" (the talk key's persona warm-up starts it), and a card with room for the game is no protection.
+
+**Fix:** the chat model server is started with `GGML_VK_FORCE_MAX_ALLOCATION_SIZE` = 64 MiB (`serverEnvironment` in `bridge/local-llm-server.mjs`; a value
+already in the environment is kept). llama.cpp's Vulkan backend then allocates in pieces of 64 MiB at most. Same game, same quiet PC, alternating runs:
+default loads froze for 608, 189 + 102, -, -, 1,226 ms; 64 MiB loads for -, -, -, -, 106 + 78 ms. The model reads and writes at the same speed (2,365 to 2,519
+prompt tokens a second against 2,299 to 2,475; 89 against 82 to 91 written). All four models of the packs (lite, standard, both Mature) load and answer with it,
+wholly on the card. The idle stop is unchanged.
+
+**Not measured:** a 24 GB card and game 2.31 (the report's), a voice turn through the talk key (the test sent typed turns through the request file, so the game's
+own key handling was not part of it), a model the player added (not tried; one that failed to start would take the existing start-failed path).
+Tests: `bridge/local-llm-server.test.mjs` (the variable reaches the server; a value already set is kept).
+
 ### Convai audio labelled with the wrong sample rate (2026-10-21)
 
 Reports `14e50b97` (0.2.5) and `0e895ffe` (0.2.2), all with Multilingual on: "Convai PCM size does not match its declared duration" with 5,733 ms declared against 10,535 counted, exactly
