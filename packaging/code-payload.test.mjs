@@ -214,3 +214,67 @@ test('Mod Organizer 2: a code file only Overwrite holds still resolves (the reso
   assert.throws(() => moduleFallback('./x.mjs', {parentURL}, () => { throw Object.assign(Error('other'), {code: 'ERR_OTHER'}); }, () => {}), /other/);
   assert.deepEqual(moduleFallback('./x.mjs', {parentURL}, () => ({url: 'file:///found'}), () => {}), {url: 'file:///found'});
 });
+
+const GUARD = 'archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive';
+
+test('game 2.5: the 2.31 driver guard archive an older Runtime base shipped is removed through the removal rules, game 2.31 keeps it', async t => {
+  const rules = await import('./runtime/apply-removals.mjs');
+  assert.deepEqual(installer.GAME_REMOVALS['2.5'], [GUARD]);
+  assert.equal(installer.GAME_REMOVALS['2.31'], undefined);
+  for (const rel of installer.GAME_REMOVALS['2.5']) assert.equal(rules.refusalFor(rel), null, rel);
+  const w = world(t);
+  const guard = join(w.game, ...GUARD.split('/'));
+  mkdirSync(dirname(guard), {recursive: true});
+  writeFileSync(guard, 'guard');
+  assert.deepEqual(installer.removeGameFiles({game: '2.31', runtimeApp: w.runtimeApp, rules}), {removed: [], failed: [], refused: []});
+  assert.ok(existsSync(guard));
+  assert.deepEqual(installer.removeGameFiles({game: '2.5', runtimeApp: w.runtimeApp, rules}).removed, [GUARD]);
+  assert.ok(!existsSync(guard));
+  assert.deepEqual(installer.removeGameFiles({game: '2.5', runtimeApp: w.runtimeApp, rules}), {removed: [], failed: [], refused: []});
+  // Mod Organizer 2: the Runtime's real app/ sits in its own mod folder; the file is deleted there, never in the game folder.
+  const mo2 = join(w.root, 'mods', 'AI NPC Runtime'), mo2App = join(mo2, ...payload.RUNTIME_APP.split('/'));
+  const inMod = join(mo2, ...GUARD.split('/')), inGame = guard;
+  mkdirSync(dirname(inMod), {recursive: true}); mkdirSync(mo2App, {recursive: true});
+  writeFileSync(inMod, 'guard'); writeFileSync(inGame, 'someone else\'s copy');
+  assert.deepEqual(installer.removeGameFiles({game: '2.5', runtimeApp: mo2App, rules}).removed, [GUARD]);
+  assert.ok(!existsSync(inMod)); assert.ok(existsSync(inGame));
+  // An app/ folder that is not the Runtime's deletes nothing.
+  assert.deepEqual(installer.removeGameFiles({game: '2.5', runtimeApp: join(w.root, 'elsewhere', 'app'), rules}).removed, []);
+});
+
+test('the game-file removal refuses what the removal rules refuse, and a file Windows holds is tried again at the next start', t => {
+  const w = world(t);
+  const guard = join(w.game, ...GUARD.split('/'));
+  mkdirSync(dirname(guard), {recursive: true});
+  writeFileSync(guard, 'guard');
+  const refuse = {installRootOf: () => w.game, refusalFor: () => 'not ours'};
+  assert.deepEqual(installer.removeGameFiles({game: '2.5', runtimeApp: w.runtimeApp, rules: refuse}).refused, [`${GUARD} (not ours)`]);
+  assert.ok(existsSync(guard));
+  const rules = {installRootOf: () => w.game, refusalFor};
+  const busy = () => { throw Object.assign(Error('busy'), {code: 'EBUSY'}); };
+  assert.deepEqual(installer.removeGameFiles({game: '2.5', runtimeApp: w.runtimeApp, rules, unlink: busy}).failed, [`${GUARD} (EBUSY)`]);
+  assert.ok(existsSync(guard));
+  assert.deepEqual(installer.removeGameFiles({game: '2.5', runtimeApp: w.runtimeApp, rules}).removed, [GUARD]);
+});
+
+test('run as the launcher runs it on game 2.5: the guard archive is removed before the code copy and logged once', t => {
+  const w = world(t);
+  mkdirSync(join(w.game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime'), {recursive: true});
+  writeFileSync(join(w.runtimeApp, 'release.json'), JSON.stringify({package: 'runtime', version: '0.3.3'}));
+  const guard = join(w.game, ...GUARD.split('/'));
+  mkdirSync(dirname(guard), {recursive: true});
+  writeFileSync(guard, 'guard');
+  const record = join(w.root, 'notes.json');
+  scripts(w, {
+    'launcher/apply-removals.mjs': readFileSync(join(here, 'runtime', 'apply-removals.mjs'), 'utf8'),
+    'launcher/start-service.mjs': `import {writeFileSync} from 'node:fs';\nwriteFileSync(${JSON.stringify(record)}, JSON.stringify(globalThis[Symbol.for('ai-npc-cyberpunk-mod.install-code')]));\n`,
+  });
+  writeFileSync(join(w.codeFolder, payload.INSTALLER), readFileSync(join(here, 'runtime', 'install-code.mjs')));
+  const run = () => spawnSync(process.execPath, [join(w.codeFolder, payload.INSTALLER), '--game-root', w.game, '--prepare-only'], {encoding: 'utf8'});
+  assert.equal(run().status, 0);
+  assert.ok(!existsSync(guard));
+  const first = JSON.parse(readFileSync(record, 'utf8')).filter(line => /driver_guard/.test(line));
+  assert.equal(first.length, 1); assert.match(first[0], /^Removed what an older Runtime shipped and game 2\.5 must not load/);
+  assert.equal(run().status, 0);
+  assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).filter(line => /driver_guard|Removing files/.test(line)), []);
+});

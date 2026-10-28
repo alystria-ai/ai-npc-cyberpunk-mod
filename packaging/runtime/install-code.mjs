@@ -153,6 +153,32 @@ export function sweepLeftovers({gameRoot, runtimeApp}) {
   return removed;
 }
 
+// Files an older Runtime base shipped that must go for one game, removed by the Scripts so no Runtime update is needed (game -> game-relative paths).
+// 2.5: the ambient driver guard archive is built from 2.31's quest phase and lays a stale copy over 2.5's own (fix/driver-guard-2.31-only); 2.5 bases
+// from 0.3.4 do not ship it, older ones do. Each path goes through the Runtime removal step's own rules (refusalFor in apply-removals.mjs: under a
+// folder a Runtime installs into, archive/pc/mod/ only for our file names, never a protected path) and is deleted in the folder the Runtime was
+// installed into (installRootOf: the game folder, or the Runtime's own mod folder under Mod Organizer 2).
+export const GAME_REMOVALS = Object.freeze({'2.5': Object.freeze(['archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive'])});
+
+/**
+ * Removes the GAME_REMOVALS of `game`. `rules` is {refusalFor, installRootOf} of apply-removals.mjs. Runs early in the start, before the game mounts its
+ * archives (the launcher starts this process while RED4ext loads plugins). A file that is gone costs one stat; a file Windows will not delete (the game
+ * already holds it) is tried again at the next start. Returns {removed, failed, refused}: one log line is made from it only when something happened.
+ */
+export function removeGameFiles({game, runtimeApp, rules, unlink = unlinkSync, exists = path => sizeOf(path) !== null}) {
+  const result = {removed: [], failed: [], refused: []};
+  const root = rules.installRootOf(runtimeApp);
+  if (!root) return result;
+  for (const rel of GAME_REMOVALS[game] ?? []) {
+    const why = rules.refusalFor(rel);
+    if (why) { result.refused.push(`${rel} (${why})`); continue; }
+    const path = resolve(root, ...rel.split('/'));
+    if (!exists(path)) continue;
+    try { unlink(path); result.removed.push(rel); } catch (error) { if (error?.code !== 'ENOENT') result.failed.push(`${rel} (${error?.code || error?.message})`); }
+  }
+  return result;
+}
+
 function publishFailure(gameRoot, code, reason) {
   try {
     const runtime = resolve(gameRoot, MOD_FOLDER, 'runtime');
@@ -193,6 +219,14 @@ async function main() {
     publishFailure(gameRoot, 'install-incomplete', 'the Runtime base is not installed; get it from the mod\'s Hugging Face page');
     process.exit(1);
   }
+  // First, before the game mounts its archives: the files an older base shipped that this game must not have (GAME_REMOVALS).
+  try {
+    const rules = await import(pathToFileURL(resolve(here, 'app/launcher/apply-removals.mjs')).href);
+    const gone = removeGameFiles({game: manifest.game, runtimeApp, rules});
+    if (gone.removed.length) notes.push(`Removed what an older Runtime shipped and game ${manifest.game} must not load: ${gone.removed.join(', ')}.`);
+    if (gone.failed.length) notes.push(`Could not remove yet (tried again at the next start): ${gone.failed.join(', ')}.`);
+    if (gone.refused.length) notes.push(`Not removed (the removal rules refuse it): ${gone.refused.join(', ')}.`);
+  } catch (error) { notes.push(`Removing files for game ${manifest.game} failed: ${error?.message || error}`); }
   try {
     const result = installCode({codeApp: resolve(here, 'app'), runtimeApp, manifest, log: line => notes.push(line)});
     for (const problem of result.problems) notes.push(`Code copy: ${problem}`);

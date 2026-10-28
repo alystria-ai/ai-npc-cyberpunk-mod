@@ -132,14 +132,16 @@ Scripts' own usvfs fallbacks before it reads anything.
 
 **Both games.** The code is the same for 2.5 and 2.31; the native plugin is built per game and ships in each variant's Scripts (`-for-2.31`), and
 `code.json` names the game. The Runtime base is still built per game (the archives differ: `fix/driver-guard-2.31-only` makes the driver guard
-archive 2.31-only).
+archive 2.31-only). 2.5 bases from 0.3.3 and earlier still hold that archive, which lays a stale 2.31 quest phase over 2.5's own, so the Scripts
+remove it on game 2.5 (`GAME_REMOVALS` / `removeGameFiles` in `install-code.mjs`): before the code copy, through the Runtime removal step's own rules
+(`refusalFor` and `installRootOf` of `apply-removals.mjs`, so under Mod Organizer 2 it goes from the Runtime's own mod folder), one log line when it is
+removed, tried again at the next start when Windows holds it. No update zip is needed and `runtimeBase` stays 0.3.3; a 2.31 game keeps the archive.
 
 **Interplay with held branches.** `fix/vortex-runtime-files` (stops shipping empty `runtime/*` placeholders) touches `scriptsPackage` in
 `build-release.mjs` (the placeholder loop right above the text-only check) and `scripts-package-layout.test.mjs` (the `runtime/` test): merge by
 keeping both changes. `feat/pack-model-names` renames pack files (pack builders and `upload-packs.py`); no shared lines expected beyond the header
 comment of `build-release.mjs`. `fix/driver-guard-2.31-only` changes `releaseData.archives` per game in `release.config.json` (the archives stay in the
-Runtime base; with it, 2.5 bases lose the driver guard archive, a base change, so that release raises `runtimeBase` and ships an update zip with the
-removal) and may touch `runtimePackage`.
+Runtime base; the Scripts remove the archive from older 2.5 bases, see "Both games", so `runtimeBase` does not change for it).
 
 **Tests.** `packaging/code-payload.test.mjs` (the copy, damaged Scripts, removals, leftovers, the hand-off as the launcher runs it, the failure
 status, the usvfs resolve fallback, the shared rules), `bridge/autostart-plugin.test.mjs` (the built-in settings, the retirement of an older
