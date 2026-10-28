@@ -17,6 +17,12 @@ With Settings > Gameplay > Immersive invitations On, the Invite button and the C
 (`mod/immersive-invitations.lua`). The same queue prepares her (a quiet job whose `gate` holds the spawn), and she is created as a visiting copy away from V.
 See [IMMERSIVE_INVITATIONS.md](IMMERSIVE_INVITATIONS.md). Off, everything below is unchanged.
 
+## Saved parties
+
+The Parties page can save the current party and invite it again with one press (`docs/MANAGER_UI.md`, "Parties"). Each missing member goes through
+`Q.invite` like an Invite button press; the job is marked `stagger`, and `flush` creates at most one marked body per flush so several do not appear in one
+frame. Copies are the same character key invited again, and a character already in the party counts toward the saved members.
+
 ## Duplicate copies
 
 The same character or conversation profile can be in the party more than once.
@@ -24,7 +30,7 @@ Each copy has its own serial, actor and place; a copy's model and its
 conversation profile are separate, so `companions.setProfile` changes only the
 profile.
 
-- **Current party** dismisses exactly the copy named by its row (`live:<serial>`).
+- **Current party** (a section of the Parties page) dismisses exactly the copy named by its row (`live:<serial>`).
   The other copies keep their actor, profile and seat.
 - **Phone dismiss** names a character, not a copy. A copy belongs to the character
   it speaks as; a copy with no conversation profile belongs to its model. One

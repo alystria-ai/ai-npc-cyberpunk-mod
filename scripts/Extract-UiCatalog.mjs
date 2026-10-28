@@ -125,7 +125,7 @@ function staticText(tokens) {
 // sink is indirect. Each item must still exist as an exact source literal.
 const reviewed = {
   'page.navigation': [
-    'Companion Manager', 'Characters', 'Current party', 'Model browser', 'Settings', 'Selected', 'Open',
+    'Companion Manager', 'Characters', 'Current party', 'Parties', 'Model browser', 'Settings', 'Selected', 'Open',
     'Your companions, character models and conversation settings.',
     ],
   'page.voice-status': [

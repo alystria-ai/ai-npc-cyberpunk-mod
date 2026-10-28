@@ -19,6 +19,7 @@ export const voicePreviewSource = source('voice-preview.lua');
 export const keyBindingsSource = source('key-bindings.lua');
 export const fontsSource = source('ui-fonts.lua');
 export const favoritesSource = source('favorites.lua');
+export const savedPartiesSource = source('saved-parties.lua');
 
 export function run(code) {
   const state = lauxlib.luaL_newstate();
@@ -177,6 +178,7 @@ export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = tr
     if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
     if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
     if path == 'favorites.lua' and not ${absent.includes('favorites.lua')} then return (function() ${favoritesSource} end)() end
+    if path == 'saved-parties.lua' and not ${absent.includes('saved-parties.lua')} then return (function() ${savedPartiesSource} end)() end
     if path == 'manager-ui.lua' then return (function() ${coreSource} end)() end
     if path == 'nsui-entry.lua' then return (function() ${entrySource} end)() end
     if path == 'mcm-host.lua' then return (function() ${mcmHostSource} end)() end
