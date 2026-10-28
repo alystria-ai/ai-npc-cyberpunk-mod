@@ -131,8 +131,12 @@ private final func ConvaiTurnCivilian(npc: wref<NPCPuppet>) -> Void {
     let forward: Vector4 = npc.GetWorldForward();
     let from: Float = Vector4.Heading(forward);
     let difference: Float = Vector4.Heading(direction) - from;
-    while difference > 180.0 { difference -= 360.0; };
-    while difference < -180.0 { difference += 360.0; };
+    // Heading is within -180..180, so the difference is within -360..360: two steps at most. Bounded, so a value that cannot be walked into range
+    // (infinite, or too large to change by 360) ends the loop instead of spinning the game.
+    let wrapGuard: Int32 = 0;
+    while difference > 180.0 && wrapGuard < 4 { difference -= 360.0; wrapGuard += 1; };
+    while difference < -180.0 && wrapGuard < 8 { difference += 360.0; wrapGuard += 1; };
+    if difference > 180.0 || difference < -180.0 { return; };
     if AbsF(difference) < 12.0 { return; };
     let stepIndex: Int32 = 1;
     while stepIndex <= 6 {

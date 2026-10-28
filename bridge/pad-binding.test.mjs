@@ -31,7 +31,7 @@ const fixture = `
 local clock = 100
 local pad = (function() ${moduleSource} end)()
 pad.clock = function() return clock end
-local flags = {enabled = true, menu = false, observerFails = false}
+local flags = {enabled = true, menu = false, observerFails = false, observable = true}
 local sample = {available = true, combat = false, vehicle = false, dialogue = false, choices = false, call = false, replacer = false, tier = 1}
 local edges, logs, observer, sampled = {}, {}, nil, 0
 local player = {queue = {}, on = false, held = false, calls = {}, absent = false, configures = {}}
@@ -39,6 +39,7 @@ local function called(name) player.calls[name] = (player.calls[name] or 0) + 1 e
 function player:ConvaiPadIsOn() called('IsOn'); if self.absent then error('no such method') end return self.on end
 function player:ConvaiPadConfigure(on) called('Configure'); self.on = on; self.configures[#self.configures + 1] = on; return on end
 function player:ConvaiPadTake() called('Take'); if #self.queue == 0 then return -1 end return table.remove(self.queue, 1) end
+function player:ConvaiPadObservable() called('Observable'); if flags.noObservableMethod then error('no such method') end return flags.observable end
 function player:ConvaiPadHeld() called('Held'); return self.held end
 -- What the redscript does when the hold elapses / the click comes up, and tells the observer.
 function player:push(value) self.queue[#self.queue + 1] = value; if value == 1 then self.held = true else self.held = false end
@@ -99,6 +100,56 @@ test('without the observer the 10 Hz tick reads the same queue', () => run(fixtu
   player.queue[1] = 0; player.held = false
   tick(); assert(edgeList() == 'down,up')
   tick(); tick(); assert(not logged('installed') or #logs < 10)
+`));
+
+test('a redscript that does not notify (ConvaiPadObservable says no): no observer is installed, the tick takes every edge', () => run(fixture + `
+  flags.observable = false
+  tick()
+  assert(observer == nil and pad.observed() == false, 'Observe on the notifier is never installed')
+  assert(logged('the redscript does not notify'), 'said once in the log')
+  player:push(1)
+  assert(edgeList() == '', 'nothing is handled inside the game event')
+  tick(); assert(edgeList() == 'down' and pad.firstSource() == 'tick')
+  player:push(0)
+  assert(edgeList() == 'down', 'the release too waits for the tick')
+  tick(); assert(edgeList() == 'down,up' and not pad.talking())
+`));
+
+test('a redscript without ConvaiPadObservable (an older build) is read on the tick too', () => run(fixture + `
+  flags.noObservableMethod = true
+  tick()
+  assert(observer == nil and pad.observed() == false)
+  player.queue[1] = 1; player.held = true
+  tick(); assert(edgeList() == 'down')
+`));
+
+test('handling is never entered from inside itself: edges raised while one is handled wait for the loop already running, which is bounded', () => run(fixture + `
+  tick()
+  local presses, depth, deepest = 0, 0, 0
+  pad.deps.press = function()
+    presses = presses + 1
+    depth = depth + 1
+    if depth > deepest then deepest = depth end
+    if presses < 1000 then player:push(0); player:push(1) end   -- the talk path raising more edges, as a loop through the game events would
+    depth = depth - 1
+  end
+  player:push(1)
+  assert(deepest == 1, 'press was entered from inside itself: depth ' .. deepest)
+  assert(presses <= 8, 'bounded per call: ' .. presses)
+`));
+
+test('a run of hold starts is capped: a ninth within five seconds is ignored, and the log says so once', () => run(fixture + `
+  tick()
+  for i = 1, 8 do player:push(1); player:push(0) end
+  assert(#edges == 16, 'eight holds go through: ' .. #edges)
+  player:push(1); player:push(0); player:push(1); player:push(0)
+  assert(#edges == 16, 'the ninth and tenth are ignored')
+  local count = 0
+  for _, line in ipairs(logs) do if line:find('more than 8 in 5 s', 1, true) then count = count + 1 end end
+  assert(count == 1, 'said once, not per edge: ' .. count)
+  clock = clock + 6
+  player:push(1)
+  assert(edgeList():sub(-4) == 'down', 'after the run, holds work again')
 `));
 
 test('a repeated hold report while talking is one down, and a release that follows a refused hold ends nothing', () => run(fixture + `
@@ -291,6 +342,26 @@ test('PadTalk.reds: one listener on the game walking action for the stick click,
   assert.match(redsSource, /DelayCallback\(step, 0\.3, false\)/, 'the 0.3 s hold is a one-shot delay, not a poll');
   assert.match(redsSource, /generation != this\.m_convaiPadGeneration/, 'a timer of an earlier click never counts for a later one');
   assert.match(redsSource, /wrapMethod\(PlayerPuppet\)\s*protected cb func OnDetach\(\) -> Bool \{\s*this\.ConvaiPadStop\(\);\s*return wrappedMethod\(\);/);
+});
+
+test('PadTalk.reds calls Lua only from a next-frame step, never inside the click or the hold timer, and is never entered from inside itself', () => {
+  assert.match(redsSource, /public func ConvaiPadNotifyDeferred\(\) -> Bool \{\s*return true;/);
+  assert.match(redsSource, /public final func ConvaiPadObservable\(\) -> Bool \{\s*return ConvaiPadNotifyDeferred\(\);/);
+  assert.equal([...redsSource.matchAll(/this\.ConvaiPadNotify\(\)/g)].length, 1, 'the notifier has one caller: the step');
+  const flush = redsSource.slice(redsSource.indexOf('func ConvaiPadFlush('), redsSource.indexOf('func ConvaiPadPush('));
+  assert.match(flush, /this\.ConvaiPadNotify\(\)/, 'the one caller is ConvaiPadFlush');
+  assert.match(flush, /m_convaiPadBusy \|\| ArraySize\(this\.m_convaiPadEvents\) == 0 \{ return; \}/);
+  assert.ok(!/RegisterInputListener|ConvaiPadPush|ConvaiPadClick|DelayCallback/.test(flush), 'the step touches no input system and schedules nothing');
+  const push = redsSource.slice(redsSource.indexOf('func ConvaiPadPush('), redsSource.indexOf('func ConvaiPadConfigure('));
+  assert.match(push, /DelayCallbackNextFrame\(step\)/, 'one frame later, not the tick');
+  assert.match(push, /this\.m_convaiPadFlushPending \{ return; \}/, 'one step in the air at a time');
+  assert.ok(!/ConvaiPadNotify\(\)/.test(push), 'a push never calls Notify itself');
+  assert.match(redsSource, /if down && this\.m_convaiPadBusy \{ return; \};/);
+  assert.match(redsSource, /\|\| this\.m_convaiPadBusy \{ return; \};/);
+  // The turn-to-face heading wrap is bounded (the other loop of the talk path in the redscript).
+  const engagement = readFileSync(new URL('../r6/scripts/CyberpunkConvai/Engagement.reds', import.meta.url), 'utf8');
+  assert.match(engagement, /while difference > 180\.0 && wrapGuard < 4/);
+  assert.match(engagement, /while difference < -180\.0 && wrapGuard < 8/);
 });
 
 test('PadTalk.reds does not need Codeware, so a missing requirement cannot stop the compile', () => {
