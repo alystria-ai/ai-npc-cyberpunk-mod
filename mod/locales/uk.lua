@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "Дуже коротко: до приблизно {words} слів",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "Збережений вибір набуває чинності протягом кількох секунд. Одяг змінюється, коли ніхто не дивиться.",
     ["Look and moves"] = "Образ і рухи",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Утримуй Shift, Ctrl або Alt, натискаючи клавішу, щоб задати поєднання, наприклад Shift+F5. Поєднання спрацьовує лише з точно цими затиснутими клавішами, а проста клавіша не спрацьовує, поки затиснута будь-яка з них. У грі Shift вмикає спринт, Ctrl уклонення, а Alt відкриває коло зброї, тож V теж це робить.",
 }

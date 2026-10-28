@@ -12,10 +12,13 @@ module CyberpunkConvai
 // What it reports to Lua (mod/key-bindings.lua), as short texts in two bounded queues:
 //   d1..d5       the key bound to slot 1..5 went down (the slots are the five actions, in the order Lua gives them)
 //   u1..u5       that key came back up
-//   kIK_F7       while a key is being chosen (Set): the key that went down, by the name of the game's EInputKey (the capture's own queue)
+//   kIK_F7       while a key is being chosen (Set): the key that went down, by the name of the game's EInputKey (the capture's own queue), with the
+//                modifiers held in front of it ("kIK_LShift+IK_F5")
 //   x            the capture closed itself: it met more key events or lasted longer than any Set does (the capture's own queue)
-// A key pressed while Shift, Ctrl or Alt is held is not a binding of this mod and reports nothing, and a key that stays down reports one d, not one per
-// key repeat. Lua decides whether the moment is allowed (menus, scenes, calls, the text box ...) when it takes the event, and runs the same code path
+// A binding is a key and the modifiers that must be held with it ("IK_LShift+IK_F5": Shift held when F5 goes down, nothing else; a plain "IK_F7" needs none).
+// The modifiers are read from the key event itself (Shift, Ctrl and Alt as the game reports them, left and right alike): the mod listens to no modifier key, so
+// nothing runs when only a modifier is pressed. A key pressed with another set of modifiers than its binding has reports nothing, and a key that stays down
+// reports one d, not one per key repeat. Lua decides whether the moment is allowed (menus, scenes, calls, the text box ...) when it takes the event, and runs the same code path
 // the Cyber Engine Tweaks key of that action runs.
 
 @addField(PlayerPuppet)
@@ -27,6 +30,10 @@ private let m_convaiKeySlots: array<EInputKey>;
 
 @addField(PlayerPuppet)
 private let m_convaiKeyDown: array<Bool>;
+
+// The modifiers each slot needs held with its key: 1 Shift, 2 Ctrl, 4 Alt added up (0 for a plain key).
+@addField(PlayerPuppet)
+private let m_convaiKeyMods: array<Int32>;
 
 @addField(PlayerPuppet)
 private let m_convaiKeyEvents: array<String>;
@@ -121,7 +128,8 @@ public final func ConvaiKeyBindsObservable() -> Bool {
     return ConvaiKeyNotifyInEvent();
 }
 
-// The keys to listen to, as the names of EInputKey in slot order, "-" for a slot without a binding ("IK_F7,-,IK_Pad_LeftShoulder,-,-"). An empty list
+// The keys to listen to, as the names of EInputKey in slot order, "-" for a slot without a binding ("IK_F7,-,IK_Pad_LeftShoulder,-,-"; a combination names
+// its modifiers first: "IK_LShift+IK_F5"). An empty list
 // stops listening. A key that is down when the list changes is forgotten (Lua ends its hold when it changes the list).
 @if(ModuleExists("Codeware"))
 @addMethod(PlayerPuppet)
@@ -133,12 +141,24 @@ public final func ConvaiKeyBindsConfigure(list: String) -> Bool {
     let i: Int32 = 0;
     while i < ArraySize(names) {
         let key: EInputKey = EInputKey.IK_None;
+        let mods: Int32 = 0;
         if NotEquals(names[i], "-") {
-            let value: Int64 = EnumValueFromString("EInputKey", names[i]);
+            // "IK_LControl+IK_Alt+IK_LShift+IK_F5": the modifiers first, the key last.
+            let parts: array<String> = StrSplit(names[i], "+");
+            let last: Int32 = ArraySize(parts) - 1;
+            let j: Int32 = 0;
+            while j < last {
+                if Equals(parts[j], "IK_LShift") { mods += 1; };
+                if Equals(parts[j], "IK_LControl") { mods += 2; };
+                if Equals(parts[j], "IK_Alt") { mods += 4; };
+                j += 1;
+            };
+            let value: Int64 = EnumValueFromString("EInputKey", parts[last]);
             if value > 0l { key = IntEnum<EInputKey>(Cast<Int32>(value)); };
         };
         ArrayPush(this.m_convaiKeySlots, key);
         ArrayPush(this.m_convaiKeyDown, false);
+        ArrayPush(this.m_convaiKeyMods, mods);
         if NotEquals(key, EInputKey.IK_None) { any = true; };
         i += 1;
     };
@@ -147,9 +167,12 @@ public final func ConvaiKeyBindsConfigure(list: String) -> Bool {
         return true;
     };
     this.m_convaiKeyHandler = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiBoundKey");
+    // One target for each key, however many slots use it (F5 plain on one action and Shift+F5 on another is one target and the handler tells the slots apart).
+    let added: array<EInputKey>;
     i = 0;
     while i < ArraySize(this.m_convaiKeySlots) {
-        if NotEquals(this.m_convaiKeySlots[i], EInputKey.IK_None) {
+        if NotEquals(this.m_convaiKeySlots[i], EInputKey.IK_None) && !ArrayContains(added, this.m_convaiKeySlots[i]) {
+            ArrayPush(added, this.m_convaiKeySlots[i]);
             this.m_convaiKeyHandler.AddTarget(ConvaiKeyTarget(this.m_convaiKeySlots[i], EInputAction.IACT_Press));
             if ConvaiKeyTargetsByAction() {
                 this.m_convaiKeyHandler.AddTarget(ConvaiKeyTarget(this.m_convaiKeySlots[i], EInputAction.IACT_Release));
@@ -222,6 +245,7 @@ private final func ConvaiKeyBindsRelease() -> Void {
     };
     ArrayClear(this.m_convaiKeySlots);
     ArrayClear(this.m_convaiKeyDown);
+    ArrayClear(this.m_convaiKeyMods);
     this.m_convaiKeyList = "";
 }
 
@@ -239,13 +263,21 @@ private cb func OnConvaiBoundKey(evt: ref<KeyInputEvent>) -> Void {
     if this.m_convaiKeyBusy { return; };
     this.m_convaiKeyBusy = true;
     let key: EInputKey = evt.GetKey();
+    // The modifiers held as this key goes down, read from the event (1 Shift, 2 Ctrl, 4 Alt): only on a press of a bound key.
+    let held: Int32 = 0;
+    if pressed {
+        if evt.IsShiftDown() { held += 1; };
+        if evt.IsControlDown() { held += 2; };
+        if evt.IsAltDown() { held += 4; };
+    };
     let i: Int32 = 0;
     while i < ArraySize(this.m_convaiKeySlots) {
         if Equals(this.m_convaiKeySlots[i], key) {
             if pressed {
-                // Not while Shift, Ctrl or Alt is held (Ctrl+C is not a talk key), not again for the key repeat of a key that is already down, and not for
-                // the key that was just chosen and has not come up yet.
-                if !this.m_convaiKeyDown[i] && NotEquals(key, this.m_convaiKeyChosen) && !evt.IsShiftDown() && !evt.IsControlDown() && !evt.IsAltDown() {
+                // Only with exactly the modifiers the binding names (a plain F7 not while Shift, Ctrl or Alt is held: Ctrl+C is not a talk key, and the game's own
+                // Shift, Ctrl and Alt actions do not set it off; Shift+F5 not with Ctrl too), not again for the key repeat of a key that is already down, and not
+                // for the key that was just chosen and has not come up yet.
+                if !this.m_convaiKeyDown[i] && NotEquals(key, this.m_convaiKeyChosen) && held == this.m_convaiKeyMods[i] {
                     this.m_convaiKeyDown[i] = true;
                     this.ConvaiKeyBindPush("d" + IntToString(i + 1));
                 };
@@ -277,7 +309,12 @@ private cb func OnConvaiCaptureKey(evt: ref<KeyInputEvent>) -> Void {
         ArrayPush(this.m_convaiKeyCaptured, "x");
     } else {
         if Equals(action, EInputAction.IACT_Press) {
-            let value: String = "k" + EnumValueToString("EInputKey", Cast<Int64>(EnumInt(key)));
+            // The modifiers held with the key come first, in the stored order ("kIK_LControl+IK_LShift+IK_F5"): Lua decides what the combination is.
+            let prefix: String = "";
+            if evt.IsControlDown() { prefix += "IK_LControl+"; };
+            if evt.IsAltDown() { prefix += "IK_Alt+"; };
+            if evt.IsShiftDown() { prefix += "IK_LShift+"; };
+            let value: String = "k" + prefix + EnumValueToString("EInputKey", Cast<Int64>(EnumInt(key)));
             let size: Int32 = ArraySize(this.m_convaiKeyCaptured);
             // A key held down repeats its press: one entry for it while Lua has not read the last one.
             if size < 8 && (size == 0 || NotEquals(this.m_convaiKeyCaptured[size - 1], value)) {

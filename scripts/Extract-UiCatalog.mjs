@@ -174,7 +174,7 @@ const reviewed = {
   'page.key-bindings': [
     'Space', 'Enter', 'Tab', 'Backspace', 'Insert', 'Delete', 'Home', 'End', 'Page up', 'Page down',
     'Up arrow', 'Down arrow', 'Left arrow', 'Right arrow', 'Caps lock', 'Num lock', 'Scroll lock', 'Pause', 'Print screen',
-    'D-pad up', 'D-pad down', 'D-pad left', 'D-pad right', 'View', 'Menu', 'Cancel',
+    'D-pad up', 'D-pad down', 'D-pad left', 'D-pad right', 'View', 'Menu', 'Cancel', 'Shift', 'Ctrl', 'Alt', 'Controller {button}',
   ],
   'page.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',

@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "Muito curta: até cerca de {words} palavras",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "Uma escolha salva passa a valer em alguns segundos. As roupas mudam quando ninguém está olhando.",
     ["Look and moves"] = "Look e movimentos",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Segure Shift, Ctrl ou Alt enquanto pressiona uma tecla para definir uma combinação como Shift+F5. Uma combinação só funciona com exatamente essas teclas seguradas, e uma tecla simples não funciona enquanto uma delas estiver segurada. No jogo, Shift faz correr, Ctrl desvia e Alt abre a roda de armas, então V também faz isso.",
 }

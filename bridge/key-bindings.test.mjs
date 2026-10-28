@@ -617,7 +617,7 @@ test('KeyBinds.reds: a key with Shift, Ctrl or Alt held is not a binding, a repe
     'and forgets it when it comes up before its binding listens');
   // The events Lua reads: d<slot>, u<slot>, k<name>.
   assert.match(handler, /"d" \+ IntToString\(i \+ 1\)/); assert.match(handler, /"u" \+ IntToString\(i \+ 1\)/);
-  assert.match(redsSource, /"k" \+ EnumValueToString\("EInputKey"/);
+  assert.match(redsSource, /"k" \+ prefix \+ EnumValueToString\("EInputKey"/);
   assert.match(redsSource, /ArraySize\(this\.m_convaiKeyEvents\) >= 16/, 'the queue is bounded');
 });
 
@@ -716,4 +716,82 @@ test('the shipped file lists carry both new files', () => {
     assert.match(text, /"source": "mod\/key-bindings\.lua"/, file);
     assert.match(text, /"source": "r6\/scripts\/CyberpunkConvai\/KeyBinds\.reds"/, file);
   }
+});
+
+// ---- key combinations (Shift, Ctrl or Alt held with a keyboard key) -------------------------------------------------------------------------------------
+
+test('combinations: stored as modifier names then the key, in one order; a plain key keeps its single name; a controller button is never combined', () => run(fixture + `
+  local function words(name) local kind, word, mods = kb.describe(name); return (kind or 'none') .. ':' .. (word or '') .. ':' .. table.concat(mods or {}, '+') end
+  assert(words('IK_LShift+IK_F5') == 'key:F5:Shift' and words('IK_LControl+IK_T') == 'key:T:Ctrl' and words('IK_Alt+IK_Space') == 'key:Space:Alt')
+  assert(words('IK_LControl+IK_Alt+IK_LShift+IK_NumPad0') == 'key:Num 0:Ctrl+Alt+Shift')
+  assert(words('IK_F7') == 'key:F7:', 'a plain key is unchanged')
+  for _, bad in ipairs({'IK_LShift+IK_LShift+IK_F5', 'IK_LShift+IK_LControl+IK_F5', 'IK_Alt+IK_LControl+IK_F5', 'IK_LShift+', '+IK_F5', 'IK_LShift+IK_Alt',
+      'IK_LShift', 'IK_LShift+IK_Pad_A_CROSS', 'IK_RShift+IK_F5', 'IK_Shift+IK_F5', 'IK_LShift+IK_Escape', 'IK_LShift+IK_LeftMouse', 'Shift+F5', 'IK_LShift+IK_F5+'}) do
+    assert(kb.describe(bad) == nil and not kb.valid(bad), bad .. ' must not be a key')
+  end
+  assert(kb.valid('IK_LShift+IK_F5') and kb.valid('IK_LControl+IK_Alt+IK_LShift+IK_A') and kb.valid('IK_Pad_LeftThumb'))
+  assert(kb.compose({IK_LShift = true, IK_LControl = true}, 'IK_F5') == 'IK_LControl+IK_LShift+IK_F5' and kb.compose({}, 'IK_F7') == 'IK_F7')
+  assert(kb.baseKey('IK_LControl+IK_LShift+IK_F5') == 'IK_F5' and kb.baseKey('IK_F7') == 'IK_F7' and kb.baseKey('IK_LShift') == nil)
+`));
+
+test('combinations: shown as Shift+F5 (every word through the translator), a controller button as before, nothing for a name that is no key', () => run(fixture + `
+  local function tr(text, values) if values then return (text:gsub('{(%w+)}', values)) end return text end
+  assert(kb.label('IK_LShift+IK_F5', tr) == 'Shift+F5' and kb.label('IK_LControl+IK_Alt+IK_LShift+IK_PageUp', tr) == 'Ctrl+Alt+Shift+Page up')
+  assert(kb.label('IK_F7', tr) == 'F7' and kb.label('IK_Pad_LeftShoulder', tr) == 'Controller LB' and kb.label('IK_Nothing', tr) == nil and kb.label(nil, tr) == nil)
+  local translated = kb.label('IK_LShift+IK_Space', function(text) return ({Shift = 'Umschalt', Space = 'Leertaste'})[text] or text end)
+  assert(translated == 'Umschalt+Leertaste', translated)
+  assert(kb.label('IK_LControl+IK_T') == 'Ctrl+T', 'works without a translator too')
+`));
+
+test('combinations: the redscript list carries the stored names as they are, and the same key with and without a modifier is two bindings', () => run(fixture + `
+  assert(kb.list({voice = 'IK_F7', text = 'IK_LShift+IK_F5'}) == 'IK_F7,IK_LShift+IK_F5,-,-,-')
+  assert(kb.list({text = 'IK_LShift+IK_Pad_A_CROSS'}) == '', 'a controller button with a modifier is left out')
+  assert(kb.list({voice = 'IK_F5', group_voice = 'IK_LShift+IK_F5'}) == 'IK_F5,-,IK_LShift+IK_F5,-,-')
+  saved.text = 'IK_LShift+IK_F5'; tick()
+  assert(player.list == '-,IK_LShift+IK_F5,-,-,-', player.list)
+`));
+
+test('combinations: a Set that hears Shift+F5 saves that, Ctrl+Alt+Shift in one order, and a controller button without the keyboard modifier', () => run(fixture + `
+  kb.beginCapture(player, 'text'); clock = clock + 1
+  player.captured[#player.captured + 1] = 'kIK_LShift+IK_F5'; tick()
+  assert(lastResult().kind == 'bound' and lastResult().name == 'IK_LShift+IK_F5' and saved.text == 'IK_LShift+IK_F5' and player.list == '-,IK_LShift+IK_F5,-,-,-')
+  kb.beginCapture(player, 'voice'); clock = clock + 1
+  player.captured[#player.captured + 1] = 'kIK_LControl+IK_Alt+IK_LShift+IK_F9'; tick()
+  assert(saved.voice == 'IK_LControl+IK_Alt+IK_LShift+IK_F9')
+  kb.beginCapture(player, 'manager'); clock = clock + 1
+  player.captured[#player.captured + 1] = 'kIK_Alt+IK_LControl+IK_G'; tick()
+  assert(saved.manager == 'IK_LControl+IK_Alt+IK_G', 'a different order is put in the stored order: ' .. tostring(saved.manager))
+  kb.beginCapture(player, 'group_text'); clock = clock + 1
+  player.captured[#player.captured + 1] = 'kIK_LShift+IK_Pad_LeftShoulder'; tick()
+  assert(saved.group_text == 'IK_Pad_LeftShoulder', 'a controller button is single: ' .. tostring(saved.group_text))
+`));
+
+test('combinations: Esc cancels even with a modifier held, a modifier alone is never a binding, and the clash check is on the whole combination', () => run(fixture + `
+  saved.text = 'IK_LShift+IK_F5'; saved.voice = 'IK_F5'
+  kb.beginCapture(player, 'manager'); clock = clock + 1
+  player.captured[#player.captured + 1] = 'kIK_LShift+IK_Escape'; tick()
+  assert(kb.capturing() == nil and lastResult().kind == 'cancelled' and saved.manager == nil)
+  kb.beginCapture(player, 'manager'); clock = clock + 1
+  player.captured[#player.captured + 1] = 'kIK_LShift'; player.captured[#player.captured + 1] = 'kIK_LControl+IK_Alt'; tick(); tick()
+  assert(kb.capturing() == 'manager' and saved.manager == nil, 'still waiting: a modifier alone is not a binding')
+  player.captured[#player.captured + 1] = 'kIK_LShift+IK_F5'; tick()
+  local result = lastResult()
+  assert(result.kind == 'duplicate' and result.name == 'IK_LShift+IK_F5' and result.other == 'text' and saved.manager == nil)
+  kb.beginCapture(player, 'manager'); clock = clock + 1
+  player.captured[#player.captured + 1] = 'kIK_LControl+IK_F5'; tick()
+  assert(saved.manager == 'IK_LControl+IK_F5', 'F5, Shift+F5 and Ctrl+F5 are three different bindings')
+`));
+
+test('combinations: the redscript matches the modifiers exactly on a press, reads them from the key event only, and adds one target for each key', () => {
+  const handler = redsSource.slice(redsSource.indexOf('cb func OnConvaiBoundKey('), redsSource.indexOf('cb func OnConvaiCaptureKey('));
+  assert.match(handler, /held == this\.m_convaiKeyMods\[i\]/, 'exactly the modifiers the binding names');
+  assert.doesNotMatch(handler, /!evt\.IsShiftDown\(\) && !evt\.IsControlDown\(\)/, 'no longer "no modifier at all"');
+  assert.match(handler, /if evt\.IsShiftDown\(\) \{ held \+= 1; \}/); assert.match(handler, /if evt\.IsControlDown\(\) \{ held \+= 2; \}/); assert.match(handler, /if evt\.IsAltDown\(\) \{ held \+= 4; \}/);
+  assert.match(handler, /if pressed \{\s*if evt\.IsShiftDown/, 'the modifiers are read on a press only');
+  const configure = redsSource.slice(redsSource.indexOf('func ConvaiKeyBindsConfigure(list: String) -> Bool {'), redsSource.indexOf('func ConvaiKeyBindsCapture(keys: String) -> Bool {'));
+  assert.match(configure, /StrSplit\(names\[i\], "\+"\)/); assert.match(configure, /"IK_LShift"\) \{ mods \+= 1; \}/);
+  assert.match(configure, /"IK_LControl"\) \{ mods \+= 2; \}/); assert.match(configure, /"IK_Alt"\) \{ mods \+= 4; \}/);
+  assert.match(configure, /!ArrayContains\(added, this\.m_convaiKeySlots\[i\]\)/, 'one target for a key two bindings share');
+  // No target is ever added for a modifier key: nothing runs when only a modifier is pressed.
+  assert.doesNotMatch(redsSource, /AddTarget\([^)]*IK_(L|R)?(Shift|Control|Alt)/);
 });

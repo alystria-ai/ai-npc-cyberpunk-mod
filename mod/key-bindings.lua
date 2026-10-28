@@ -15,6 +15,9 @@
 -- unregistered at most 0.1 s later, outside the event (game 2.31 froze while a key was being set, 25 Oct). The capture listens to the keys a player may
 -- choose (captureKeys), not to every key, and closes itself in the redscript past a number of events or a time.
 --
+-- A binding is a keyboard key or controller button, or a keyboard key with Shift, Ctrl and/or Alt held ('IK_LShift+IK_F5'; see MODIFIERS below). The redscript half
+-- reads the modifiers from the key event of the bound key, so no modifier key is listened to and nothing extra runs per frame or per modifier press.
+--
 --   hold actions (talk by voice, group voice chat, talk to Johnny by voice)   key down = V's turn begins, key up = it ends, as the CET voice keys (hold to talk)
 --   tap actions (text, group text, manager, talk to Johnny by text)           the action runs when the key comes back up, as a CET hotkey does (so the key's character is not typed
 --                                                    into the box it opens)
@@ -82,18 +85,76 @@ local PAD = {
     IK_Pad_Back_Select = 'View', IK_Pad_Start = 'Menu',
 }
 
--- 'key' or 'pad' and the English words of a key the player may choose, or nil: modifiers (Shift, Ctrl and Alt are how a key is told from a shortcut), the
--- mouse, the sticks' axes, Escape (it cancels) and every key without a name here are not offered.
+-- A combination is a keyboard key with Shift, Ctrl and/or Alt held. It is stored as the game's names for the modifiers, then the key, joined with '+', the
+-- modifiers always in this order: 'IK_LControl+IK_Alt+IK_LShift+IK_F5'. The left and right keys count as one (IK_LShift stands for either Shift). A plain key keeps
+-- its single name ('IK_F7'), and an older version of the mod, which only knows single names, drops a combination as unreadable (the '+' is not a name).
+-- Controller buttons stay single.
+local MODIFIERS = {'IK_LControl', 'IK_Alt', 'IK_LShift'}
+local MODIFIER_WORD = {IK_LControl = 'Ctrl', IK_Alt = 'Alt', IK_LShift = 'Shift'}
+local MODIFIER_RANK = {IK_LControl = 1, IK_Alt = 2, IK_LShift = 3}
+
+-- The modifiers and the key of a stored name: {'IK_LShift'}, 'IK_F5' (or {}, 'IK_F7' for a plain key). nil for a name that is not well formed: a modifier out of
+-- order or twice, a modifier alone, a pad button with a modifier.
+local function split(name)
+    if type(name) ~= 'string' or name == '' then return nil end
+    local parts = {}
+    for part in (name .. '+'):gmatch('([^+]*)%+') do parts[#parts + 1] = part end
+    local base = parts[#parts]
+    local mods, last = {}, 0
+    for index = 1, #parts - 1 do
+        local rank = MODIFIER_RANK[parts[index]]
+        if not rank or rank <= last then return nil end
+        last = rank
+        mods[#mods + 1] = parts[index]
+    end
+    if base == '' or MODIFIER_RANK[base] then return nil end
+    return mods, base
+end
+
+-- The stored name of a key and a set of modifiers ({IK_LShift = true}); other modifier names are ignored.
+function M.compose(modifiers, base)
+    local parts = {}
+    for _, modifier in ipairs(MODIFIERS) do
+        if type(modifiers) == 'table' and modifiers[modifier] then parts[#parts + 1] = modifier end
+    end
+    parts[#parts + 1] = base
+    return table.concat(parts, '+')
+end
+
+-- 'key' or 'pad', the English word of the key itself (F5), and the English words of its modifiers in order ({'Shift'}; {} for a plain key), of a name the player
+-- may choose, or nil: the modifiers alone (they are how a key becomes a combination), the mouse, the sticks' axes, Escape (it cancels) and every key without a
+-- name here are not offered.
 function M.describe(name)
-    if type(name) ~= 'string' then return nil end
-    if KEYBOARD[name] then return 'key', KEYBOARD[name] end
-    if PAD[name] then return 'pad', PAD[name] end
+    local mods, base = split(name)
+    if not base then return nil end
+    local words = {}
+    for index, modifier in ipairs(mods) do words[index] = MODIFIER_WORD[modifier] end
+    if KEYBOARD[base] then return 'key', KEYBOARD[base], words end
+    if PAD[base] and #mods == 0 then return 'pad', PAD[base], words end
     return nil
 end
 
--- Whether a stored value is the name of a key (the manager checks this before saving; the names are the game's, 'IK_F7').
+-- A key as the player reads it: 'F7', 'Shift+F5', 'Controller LB', or nil when the name is not a key. `t` translates a word (ui.t); every word goes through it.
+function M.label(name, t)
+    local kind, word, mods = M.describe(name)
+    if not kind then return nil end
+    t = t or function(text) return text end
+    if kind == 'pad' then return t('Controller {button}', {button = t(word)}) end
+    local parts = {}
+    for index, modifier in ipairs(mods) do parts[index] = t(modifier) end
+    parts[#parts + 1] = t(word)
+    return table.concat(parts, '+')
+end
+
+-- Whether a stored value is the name of a key or a combination (the manager checks this before saving; the names are the game's, 'IK_F7', 'IK_LShift+IK_F5').
 function M.valid(name)
     return type(name) == 'string' and M.describe(name) ~= nil
+end
+
+-- The key itself of a stored or heard name, without its modifiers ('IK_F5' for 'IK_LShift+IK_F5'), or nil.
+function M.baseKey(name)
+    local _, base = split(name)
+    return base
 end
 
 -- The keys a Set listens to: every key and button a player may choose, and Escape (B is a pad button already) to cancel. Comma separated, in a fixed
@@ -305,10 +366,18 @@ end
 local function captured(player, name)
     local capture = state.capture
     if not capture or M.clock() - capture.at < GRACE_S then return end
-    if name == 'IK_Escape' or name == 'IK_Pad_B_CIRCLE' then
+    -- The redscript names the modifiers that were held with the key ('IK_LShift+IK_F5'): the key itself decides. Escape and B cancel with or without a modifier,
+    -- and a controller button is always single (a modifier held on the keyboard is left out of it).
+    local mods, base = {}, name
+    for part in (name .. '+'):gmatch('([^+]*)%+') do
+        if part == 'IK_LControl' or part == 'IK_Alt' or part == 'IK_LShift' then mods[part] = true else base = part end
+    end
+    if base == 'IK_Escape' or base == 'IK_Pad_B_CIRCLE' then
         endCapture(player, {kind = 'cancelled', action = capture.action})
         return
     end
+    local kind = M.describe(base)
+    if kind == 'pad' then name = base elseif kind == 'key' then name = M.compose(mods, base) else return end
     if not M.valid(name) then return end
     for action, bound in pairs(M.deps.bindings() or {}) do
         if bound == name and action ~= capture.action then

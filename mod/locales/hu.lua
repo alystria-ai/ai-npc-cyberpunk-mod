@@ -1723,4 +1723,8 @@ return {
     ["Very short: up to about {words} words"] = "Nagyon rövid: legfeljebb kb. {words} szó",
     ["A saved choice counts within a few seconds. Clothes change when nobody is looking."] = "A mentett választás néhány másodpercen belül érvényesül. A ruha akkor cserélődik, amikor senki nem figyeli.",
     ["Look and moves"] = "Kinézet és mozgás",
+    ["Shift"] = "Shift",
+    ["Ctrl"] = "Ctrl",
+    ["Alt"] = "Alt",
+    ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Tartsd lenyomva a Shift, Ctrl vagy Alt billentyűt, miközben megnyomsz egy billentyűt, így kombinációt állítasz be, például Shift+F5. A kombináció csak pontosan ezekkel a lenyomott billentyűkkel fut le, az egyszerű billentyű pedig nem fut le, amíg valamelyik le van nyomva. A játékban a Shift sprintel, a Ctrl kitér, az Alt pedig megnyitja a fegyverkereket, így V is ezt teszi.",
 }
