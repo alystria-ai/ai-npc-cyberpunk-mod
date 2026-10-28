@@ -62,7 +62,8 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
-import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
+import {RUNTIME_FOLDER_NOTE} from './lib/runtime-exchange.mjs';
+import {shippedButWritten} from './lib/package-writes.mjs';
 import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
@@ -360,10 +361,11 @@ async function scriptsPackage(source, config) {
   }
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
-  // The runtime/ files the Lua and the bridge exchange, as empty placeholders: under Mod Organizer 2 a file created in the game
-  // folder lands in Overwrite and is gone at the next launch, while an existing one is only ever modified or replaced
-  // (packaging/lib/runtime-exchange.mjs). An update that extracts over a running install only empties transient files.
-  for (const name of (await loadRuntimeExchange(source.root)).exchange) pkg.text(`${mod}/runtime/${name}`, '');
+  // No runtime/ file the Lua or the bridge rewrites ships (packaging/lib/runtime-exchange.mjs): a mod manager that tracks what it installed
+  // (Vortex) would report each of them as changed outside the manager at every deploy. They are created at their first write, and a missing
+  // file reads as an empty one. CET lets the Lua open files only inside its mod folder, so runtime/ itself has to exist: it holds one static
+  // note that nothing ever writes.
+  pkg.text(`${mod}/runtime/README.txt`, RUNTIME_FOLDER_NOTE);
   // The game-side part (the CET mod, redscript) stays text only; the code folder (below) is the one place with programs.
   for (const name of pkg.entries.keys()) {
     if (!/\.(?:lua|reds|json|txt|log|ndjson)$/.test(name)) throw Error(`Scripts package must stay text-only outside ${CODE_FOLDER}: ${name}`);
@@ -372,6 +374,11 @@ async function scriptsPackage(source, config) {
   // plugins in red4ext/plugins/AiNpcCyberpunkCode/), install-code.mjs and one complete copy of the code in app/ (listed in code.json), which
   // install-code.mjs copies into the Runtime base's app/ at every start where it differs. The Runtime base carries none of it.
   const code = await addCodePayload(pkg, source, config);
+  // Checked over the whole package, the code folder included: nothing in it may be a file the game, the launcher, install-code.mjs or the service
+  // writes, replaces or deletes (packaging/lib/package-writes.mjs): Vortex reports every such file as changed outside the manager.
+  const written = shippedButWritten([...pkg.entries.keys()], {layout: config.layout, game, codeRemoves: code.removes,
+    removes: (await readJson(resolve(source.root, DECLARED_REMOVALS))).removes ?? []});
+  if (written.length) throw Error(`The Scripts package ships files our own code writes or deletes: ${written.map(item => `${item.name} (${item.why})`).join('; ')}`);
   pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, game, commit: source.commit, runtimeBase: config.runtimeBase.required});
   return {pkg, devOnlyExcluded: excluded, code};
 }
@@ -474,7 +481,7 @@ async function addCodePayload(pkg, source, config) {
     ...notices.map(line => `- ${line}`), '- Convai Web SDK (@convai/web-sdk) - Apache-2.0 (compiled into app/assets/realtime-client.js)',
     '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.', ''].join('\r\n'));
   log(`Code in the Scripts: ${files.length} files, ${(bytes / 1024 ** 2).toFixed(1)} MiB (the Runtime base needs ${config.runtimeBase.required} or newer).`);
-  return {files: files.length, bytes};
+  return {files: files.length, bytes, removes};
 }
 
 
@@ -617,6 +624,9 @@ async function runtimePackage(source, config, models, auth) {
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', kind: 'base', version, game, commit: source.commit,
     node: tool.node.version, python: tool.python.version,
     pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: 'none', convaiSignIn: auth ? 'backend' : 'none'});
+  // The same rule for the base (packaging/lib/package-writes.mjs): a base installed through Vortex must never see one of its files replaced, deleted or changed by us.
+  const written = shippedButWritten([...pkg.entries.keys()], {layout: config.layout, game, removes: declared});
+  if (written.length) throw Error(`The Runtime package ships files our own code writes or deletes: ${written.map(item => `${item.name} (${item.why})`).join('; ')}`);
   return pkg;
 }
 

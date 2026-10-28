@@ -7,7 +7,7 @@ How the player release is built, what it contains and how it starts. Players rea
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods (the same file is `Scripts.zip` on Hugging Face: the name on Nexus is the owner's own) | The CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`, all text; and from 0.3.4 ALL of the mod's own code in `red4ext/plugins/AiNpcCyberpunkCode/`: the launcher and native DLLs, `install-code.mjs` and the code copy in `app/` ("Code in the Scripts" below). |
+| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods (the same file is `Scripts.zip` on Hugging Face: the name on Nexus is the owner's own) | The CET Lua mod, redscript, the four JSON catalogs the Lua reads, one static `runtime/README.txt` (no file the game rewrites ships, see "Files the game rewrites" below), `README.txt` and `release.json`, all text; and from 0.3.4 ALL of the mod's own code in `red4ext/plugins/AiNpcCyberpunkCode/`: the launcher and native DLLs, `install-code.mjs` and the code copy in `app/` ("Code in the Scripts" below). |
 | `Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder (every step is kept; before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
 | `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the root of the Hugging Face repository as `Runtime.zip` | From 0.3.4 the Runtime BASE, installed once ("Code in the Scripts" below): no launcher, native plugin or code of ours any more (a do-nothing marker plugin keeps Vortex accepting it). Bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the Pocket voice and lip-sync models, voice references and game archives (the Audioware reply bank of older Runtimes is gone: every voice plays through the browser renderer). |
 | `OmniPack-OmniVoice-0.6B-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip (about 5.3 GB since 0.2.9): CUDA Python environment, the VoiceStudio adapter, the OmniVoice model (the language model as float16) and the OmniVoice references the Runtime does not carry ("The OmniVoice pack" below). |
@@ -117,8 +117,11 @@ extracts an older full Runtime again gets its DLLs retired again and its code re
 every file of `red4ext/plugins/**` and of the CET mod folder to the same path; two DLLs in one plugin folder and the nested `app/**` files are
 accepted, and the root `HOW TO INSTALL` note is moved to its extra-files folder as before (a loose `.json` at the zip root would send it to the
 fallback dialog: there is none). The Scripts' folder is one the Runtime never ships, so Vortex deploys and purges only its own files. A Runtime from
-0.3.3 that Vortex deployed: the launcher's rename of the old DLL and install-code's replaced code files are "external changes" at the next deploy;
-keeping them is right, reverting only means the next start retires and copies again. Vortex's tag files (`__folder_managed_by_vortex`) in the code
+0.3.3 that Vortex deployed: the launcher's rename of the old DLL and install-code's replaced code files are "external changes" at the next deploy
+(once per release that changes code, and once for the 2.5 archive removal, see "Files the game rewrites (Vortex)" below); keeping them is right ("Save all
+changes" or "Use newer file for all changes", and for the deleted archive "Save all changes" too: "Revert" would link the archive back, and the next start deletes
+it again). Reverting a code file only means the next start copies it again: install-code compares the modification time recorded at the copy as well as the size,
+hashes a file whose time differs, and copies it when the bytes are the old ones. A 0.3.4 Runtime base ships no code, so none of this applies to it. Vortex's tag files (`__folder_managed_by_vortex`) in the code
 folders are ignored (install-code reads the list, never the folder).
 
 **Mod Organizer 2.** Scripts as a mod: the launcher is loaded from the virtual path; the bootstrap runs install-code.mjs from its real place, so the
@@ -137,16 +140,16 @@ remove it on game 2.5 (`GAME_REMOVALS` / `removeGameFiles` in `install-code.mjs`
 (`refusalFor` and `installRootOf` of `apply-removals.mjs`, so under Mod Organizer 2 it goes from the Runtime's own mod folder), one log line when it is
 removed, tried again at the next start when Windows holds it. No update zip is needed and `runtimeBase` stays 0.3.3; a 2.31 game keeps the archive.
 
-**Interplay with held branches.** `fix/vortex-runtime-files` (stops shipping empty `runtime/*` placeholders) touches `scriptsPackage` in
-`build-release.mjs` (the placeholder loop right above the text-only check) and `scripts-package-layout.test.mjs` (the `runtime/` test): merge by
-keeping both changes. `feat/pack-model-names` renames pack files (pack builders and `upload-packs.py`); no shared lines expected beyond the header
+**Interplay with held branches.** `fix/vortex-runtime-files` is merged (branch `fix/vortex-0.3.4`): no placeholder files, and the rule of "Files the game rewrites (Vortex)"
+now covers the code folder too. `feat/pack-model-names` renames pack files (pack builders and `upload-packs.py`); no shared lines expected beyond the header
 comment of `build-release.mjs`. `fix/driver-guard-2.31-only` changes `releaseData.archives` per game in `release.config.json` (the archives stay in the
 Runtime base; the Scripts remove the archive from older 2.5 bases, see "Both games", so `runtimeBase` does not change for it).
 
 **Tests.** `packaging/code-payload.test.mjs` (the copy, damaged Scripts, removals, leftovers, the hand-off as the launcher runs it, the failure
 status, the usvfs resolve fallback, the shared rules), `bridge/autostart-plugin.test.mjs` (the built-in settings, the retirement of an older
 Runtime's two DLLs), `packaging/scripts-package-layout.test.mjs` (the code folder and `code.json`), `bridge/setup-check.test.mjs` and
-`bridge/setup-check-lua.test.mjs` (`base-old`, the base row and notice), `packaging/runtime-removals.test.mjs`, `packaging/build-runtime-update.test.mjs`.
+`bridge/setup-check-lua.test.mjs` (`base-old`, the base row and notice), `packaging/runtime-removals.test.mjs`, `packaging/build-runtime-update.test.mjs`, `packaging/vortex-no-rewrites.test.mjs` (nothing a package ships is written
+or deleted by our own code, "Files the game rewrites (Vortex)").
 `packaging/test-release-install.mjs` starts the service through install-code.mjs and checks the code folder.
 
 **Live checks owed** (see the report of 2026-10-28): fresh install (new base + new Scripts), upgrade from 0.3.3 on 2.5 and on 2.31 (Scripts only),
@@ -706,15 +709,60 @@ the service had created its files there, CET stopped loading the mod ("cannot op
 the game folder (and profile-local saves), so `%LOCALAPPDATA%` is written as is, with or without MO2, Vortex or a manual install.
 `runtime/` stays in the CET mod folder because CET lets Lua open files only inside its own mod folder.
 
-### Mod Organizer 2: files that exist from the start
+### Files the game rewrites (Vortex)
+
+No package ships a file that the game or the service rewrites while playing. Vortex records every file it installs and, at the next
+deploy, asks about each one that changed outside it; the Scripts package used to carry about 70 empty placeholder files in `runtime/`
+(and the Runtime an empty `launcher.log`) that the mod rewrote at once, so a Vortex player was asked about all of them. Now:
+
+- **The Scripts package ships one file in `runtime/`:** the static `README.txt` (`RUNTIME_FOLDER_NOTE` in `packaging/lib/runtime-exchange.mjs`).
+  The folder has to exist because CET lets the Lua open files only inside its mod folder and `io.open` does not create folders; the note is
+  written by nobody, so the mod manager never sees it change. No package ships `runtime/native-off.txt` (only a person edits it; a missing file
+  switches nothing off) or a `launcher.log` (the launcher creates it beside its own DLL, in the Scripts' code folder).
+- **The rule, for both packages.** No file in the Scripts zip or in a Runtime base zip is ever written, replaced or deleted by the mod, the launcher,
+  `install-code.mjs` or the service. `shippedButWritten` (`packaging/lib/package-writes.mjs`) lists every shipped path one of those writers touches:
+  `runtime/` besides the note, `launcher.log` (code folder and plugin folder), the Runtime's code copy and its list and error note, `.old-<pid>` and
+  `.code-<pid>.tmp` leftovers, code files `code.json` "removes" or a removal list deletes, `GAME_REMOVALS` of the game, an older Runtime's two DLLs
+  (`RETIRED_DLLS`, which the launcher renames to `.retired`), and the mod's first-name folders (`migrate-legacy.mjs`). Both package builders refuse to finish
+  with a hit. `install-code.mjs` and the launcher only ever read the Scripts' own files (`code.json`, `app/`, the DLLs, the installer): the shipped DLLs are
+  never renamed, only an older Runtime's. `packaging/vortex-no-rewrites.test.mjs` builds the real Scripts lists for 2.5 and 2.31, crosses them (and a
+  Runtime base list) with every writer's list, runs `install-code` over the extracted Scripts and a base and compares every shipped file before and
+  after, and reads the launcher and native plugin sources for what they write.
+- **What Vortex checks** (Nexus-Mods/Vortex, read 2026-10-28): at each deploy `checkForExternalChanges` (`mod_management/util/externalChanges.ts`) asks the
+  deployment method `externalChanges` (`mod_management/LinkingDeployment.ts`) about every file in the LAST deployment manifest only. For the hardlink
+  method (`hardlink_activator/index.ts`, `isLink`) a file is intact when `nlink > 1` and its inode equals the staged file's. So: a file written IN PLACE
+  keeps its inode and raises nothing (the staged copy changes with it); a file REPLACED (temp file renamed over it, which is what every writer of ours does)
+  has a new inode: "File content modified" (`refchange`, default action "Use newer file"); a file DELETED: "Links were deleted" (`deleted`, default "Revert
+  change (restore file)", which links it back); a staged file deleted: "Source files were deleted"; a NEW file nobody deployed raises nothing (not in the
+  manifest), which is why writing new files is fine. The dialog is "External Changes": "Mod files were changed outside Vortex. You can undo these changes now
+  or apply them permanently." with the buttons Cancel and Confirm, and per type "Save change (use deployed file)" / "Revert change (use staging file)" / "Use
+  newer file" (and "Save all changes" and the like for every file at once).
+- **A base Vortex installed from 0.3.3.** Its code files, the two old DLLs (renamed by the launcher) and, on 2.5, the guard archive are files Vortex
+  deployed, so the first start of 0.3.4 and every later release that changes code makes Vortex ask once (install-code replaces by rename). Writing those code
+  files in place would avoid the question for hardlinked files but is not atomic, so it is not done; the player picks "Save all changes".
+- **Every file is created at its first write.** Every Lua reader tests the result of `io.open` and every Node reader treats a missing file
+  like an empty one, as they did before the placeholders (`bridge/startup-exchange-placeholders.test.mjs` starts a real bridge over no
+  exchange files at all, and over empty ones, which is what an older install still has).
+- **`runtimeWrittenShipped`** (`packaging/lib/runtime-exchange.mjs`) lists anything in a package's `runtime/` besides the two static files, and
+  `launcher.log`; `scriptsPackage` and `runtimePackage` refuse to finish while it is not empty, and `scripts-package-layout.test.mjs` and
+  `runtime-exchange.test.mjs` check the built zip and the function. A new rewritten file needs no packaging step; a file that ships
+  must not be one the game writes.
+- **Updates.** An install made before keeps its empty files: nothing deletes them, they are rewritten in place as always, and a new
+  Scripts zip does not touch them (it does not contain them). The Runtime update zip is built from two Runtimes, so `launcher.log` is
+  simply not in it (it is in `PROTECTED` of `apply-removals.mjs`, so the removal list never deletes an old one).
+- **Mod Organizer 2.** The first write of such a file lands in Overwrite, like every other file the Runtime and the packs create there.
+  The next section describes why the files were once shipped; it is the history of the earlier design, which the Vortex change gave up. The
+  parts of it that are still in force are the rules for code that touches an exchange file and the state restore. Not tested on MO2 since.
+
+### Mod Organizer 2: files that exist from the start (earlier design: the placeholders are no longer shipped)
 
 USVFS puts every NEW file created under the game folder in Overwrite (invisible at the next launch), while an existing real file that
 is opened for writing, or replaced with `MoveFileExW(REPLACE_EXISTING)` (what `fs.rename` over an existing file does on Windows), stays
-in place. So the files the game and the service must share inside the game folder are made to exist in the packages, and both sides only
-ever modify or replace them (no player usvfs log was available; the design works with or without one).
+in place. So the files the game and the service must share inside the game folder had been made to exist in the packages, and both sides
+only ever modify or replace them (no player usvfs log was available; the design works with or without one).
 
 - **`packaging/runtime-exchange.json`** classifies every `runtime/` file name the shipped Lua and the bridge use: `exchange` (about 70
-  files; shipped as **empty placeholders in the Scripts package** by `scriptsPackage`), `state` (settings, chat history, witness
+  files; **no longer shipped**, they were empty placeholders in the Scripts package), `state` (settings, chat history, witness
   receipts, decision ledger, add-on settings, NPC names: never shipped, an update would wipe the player's data; their writers keep the
   temp-file and backup protection, and the service keeps a copy outside the game folder, see "the player's state" below), `optional` (switch and probe files made by hand, and the knowledge-service files that the shipped bridge never
   runs: a missing file is harmless) and `elsewhere` (names that are not in the mod folder). `packaging/runtime-exchange.test.mjs` fails
@@ -725,8 +773,8 @@ ever modify or replace them (no player usvfs log was available; the design works
   "withdrawn" or "consumed" signal is an empty file. Node: `atomicFile` (temp + rename over the placeholder) or a plain write; never
   `rm`/`unlink`. Every reader treats a missing, an empty and a half-written file as "nothing yet". This is also cheaper in the game
   thread (one `io.open` instead of open + remove + rename).
-- **`launcher.log`** (opened with `CREATE_ALWAYS` by the launcher in the game process) ships empty in the Runtime package, beside
-  `launcher.ini`, so it is an existing file opened for writing.
+- **`launcher.log`** (opened with `CREATE_ALWAYS` by the launcher in the game process) no longer ships in the Runtime package (it
+  used to ship empty beside `launcher.ini`).
 - **Help reports** (the bridge's zip reports) are written to `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports` (the parent of the service's
   state folder when that folder is called `data` and sits outside the mod folder; else the old `runtime/reports`). The Help page shows
   the path the bridge published in `runtime/support-paths.json`, and `%LOCALAPPDATA%\AiNpcCyberpunkMod\data` and `...\reports` when
@@ -785,7 +833,7 @@ there).
   (USVFS shares the virtual tree between the processes it hooks); at the next launch the files are gone (or, if Overwrite is mapped, there
   and real), and the start-up restore settles them either way. Not measured on MO2 (see the live check below).
 - **Packages.** Scripts: `mod/state-restore.lua` (new), `init.lua`, `manager.lua`, `phone-chat.lua`, `addons.lua`, `npc-names.lua`, and the
-  empty `runtime/state-restore.json` placeholder. Runtime: `bridge/game-state.mjs` (new), `bridge/file-wake.mjs`, `bridge/convai-bridge.mjs`,
+  `runtime/state-restore.json` exchange file (created by the service; not shipped since the Vortex change). Runtime: `bridge/game-state.mjs` (new), `bridge/file-wake.mjs`, `bridge/convai-bridge.mjs`,
   `packaging/runtime/start-service.mjs`, `packaging/runtime/prepare-state.mjs`. Scripts new with Runtime old: no signal, so a first-ever
   launch (the only time a file is missing) holds the defaults for 120 s, then behaves as before. Runtime new with Scripts old: the restore
   works; an old Lua that happened to read first could save defaults, and that real file then wins (the copy it replaces is kept in `older/`).

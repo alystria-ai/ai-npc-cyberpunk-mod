@@ -11,8 +11,8 @@ import {amdRoute, gpuVendors} from './gpu-vendors.mjs';
 import {checkRuntimeSteps} from './runtime-steps.mjs';
 
 // Setup check (Settings > Help): what the Node side can tell the player about their installation, as codes the game's Lua turns into
-// translated text. runtime/setup-check-request.json (written by the Help page) asks, runtime/setup-check.json answers; both are shipped
-// as empty placeholders and only ever replaced in place (packaging/runtime-exchange.json), so a missing, empty or half-written file all
+// translated text. runtime/setup-check-request.json (written by the Help page) asks, runtime/setup-check.json answers; neither is shipped
+// (packaging/runtime-exchange.json) and both are only ever replaced in place, so a missing, empty or half-written file all
 // mean "nothing yet" to every reader here, and nothing in this module deletes anything.
 //
 // Nothing runs at import time. Every detector is injectable and none of them throws: a detector that fails turns its own check into

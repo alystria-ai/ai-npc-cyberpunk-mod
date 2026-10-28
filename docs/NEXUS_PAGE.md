@@ -132,7 +132,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*]Local AI and Mature packs: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
 [*]The OmniVoice pack (Voice models): extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
 [*]Updating: drop the new Scripts zip, then the Runtime update zips one by one, oldest first, onto the Mods page. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The full Runtime and the switch zip (for moving from game 2.31 to 2.5) work the same way.
-[*]The mod writes its state files inside its own folders, so Vortex may report "external changes" at the next deploy. Keeping the changes is fine.
+[*]If Vortex shows External Changes ("Mod files were changed outside Vortex") for this mod's files after an update, click Save all changes (or Use newer file for all changes) so it keeps the newer files, never Revert, then Confirm.
 [/list][b]Mod Organizer 2[/b]
 Install the Runtime as one mod. Put the Runtime update zips, the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
 
