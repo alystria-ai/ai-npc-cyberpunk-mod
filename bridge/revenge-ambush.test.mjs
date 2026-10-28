@@ -288,3 +288,9 @@ test('init.lua: one boolean while off, the tick is the mod\'s own, the recorder 
   assert.match(initSource, /onDeed = function\(row, npc\) if convaiAmbush then convaiAmbush\.deed\(row, npc\) end end/);
   assert.match(initSource, /if convaiAmbush then pcall\(convaiAmbush\.reset, reason\) end/);
 });
+
+test('init.lua: the deed recorder also starts at load when only Revenge ambushes is on (not just Street reputation)', () => {
+  assert.match(initSource, /if convaiDeedsWanted\(\) then pcall\(convaiReputationWanted\) end/);
+  assert.doesNotMatch(initSource, /if type\(manager\.reputation\) == 'function' and manager\.reputation\(\) then pcall\(convaiReputationWanted\) end/);
+  assert.match(initSource, /function convaiDeedsWanted\(\)[\s\S]*?manager\.revengeAmbushes\(\) == true/);
+});

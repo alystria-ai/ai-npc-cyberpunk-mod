@@ -6748,8 +6748,9 @@ registerForEvent('onInit', function()
         local hooked, hookError = pcall(convaiVanillaReactions.install)
         if not hooked then log('Vanilla reaction hooks failed: ' .. tostring(hookError)) end
     end
-    -- Street reputation: its hooks only when the setting is on (docs/REPUTATION_DESIGN.md); off, nothing is loaded or registered.
-    if type(manager.reputation) == 'function' and manager.reputation() then pcall(convaiReputationWanted) end
+    -- Street reputation: its hooks only when the setting is on (docs/REPUTATION_DESIGN.md); off, nothing is loaded or registered. The same recorder feeds
+    -- Revenge ambushes, so it also starts when only that setting is on (convaiDeedsWanted).
+    if convaiDeedsWanted() then pcall(convaiReputationWanted) end
     convaiGuarded('Locomotion hooks', function()
         convaiLocomotion = dofile('companion-locomotion.lua')
         convaiLocomotion.install(function(npc, command)
