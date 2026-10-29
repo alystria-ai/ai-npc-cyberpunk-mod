@@ -14,6 +14,9 @@ local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- (options.wantVolume, wired in init.lua); the bridge plays V's line at that level (docs/V_VOICE.md). Cached with the rest.
 local M = {}
 M.MAX_AGE, M.MAX_PARTY, M.PARTY_RADIUS, M.MAX_NAME = 5, 4, 15, 60
+-- A party row whose body is within this many metres of V is `near` (the distance the row already carries from the companion list; a row without one, a group round's spawned
+-- character or a rider in V's vehicle, is with V by how it was found). The bridge uses it for a phone chat or a call with a character standing beside V (bridge/turn-context.mjs).
+M.NEAR_RADIUS = 10
 
 local function clean(value, limit)
     if type(value) ~= 'string' then return nil end
@@ -570,6 +573,8 @@ function Instance:read()
             if type(key) == 'string' and key:match('^[a-z0-9%-]+$') and #key <= 80 and name and not seen[key] and #party < M.MAX_PARTY then
                 seen[key] = true
                 party[#party + 1] = {key = key, name = name}
+                local distance = tonumber(row.distance)
+                if distance == nil or distance <= M.NEAR_RADIUS then party[#party].near = true end
             end
         end
         if #party > 0 then

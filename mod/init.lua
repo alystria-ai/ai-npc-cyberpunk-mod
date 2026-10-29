@@ -1760,8 +1760,38 @@ do
     -- A group round with a character another mod or a spawner created in it needs a party row for that character: read it
     -- afresh rather than reuse a snapshot a private turn took a moment earlier (nothing else changes for other rounds).
     groupChat.onSpawned = function() if convaiTurnContext then convaiTurnContext:reset('group-spawned') end end
+    -- A phone chat or a holocall with a character whose body is beside V (bridge/turn-context.mjs `near`): her party row says so when she is one of our companions within
+    -- NEAR_RADIUS, 10 m (the companion list's own distance); a character another mod or a spawner placed is found by the one targeting query a group key press uses, asked only
+    -- when a message is sent or a call line is built, never per frame, and only for a character the snapshot does not already list. The snapshot may be shared and cached,
+    -- so the row goes on a copy. Nothing is added while Dynamic info's company switch is off, and a failed query leaves the snapshot as it was.
+    function convaiNearbyTurn(snapshot, profileKey)
+        if type(snapshot) ~= 'table' or type(profileKey) ~= 'string' or convaiSpawnedPeople == nil then return snapshot end
+        for _, row in ipairs(type(snapshot.party) == 'table' and snapshot.party or {}) do
+            if type(row) == 'table' and row.key == profileKey then return snapshot end
+        end
+        if manager.dynamicInfo ~= nil and not manager.dynamicInfo('company') then return snapshot end
+        local player = convaiPlayer()
+        if not player then return snapshot end
+        local ok, rows = pcall(convaiSpawnedPeople.nearby, player, 10, {})
+        if not ok or type(rows) ~= 'table' then return snapshot end
+        for _, row in ipairs(rows) do
+            if row.profileKey == profileKey and type(row.name) == 'string' and row.name ~= '' then
+                local copy, party = {}, {}
+                for key, value in pairs(snapshot) do copy[key] = value end
+                for _, item in ipairs(type(snapshot.party) == 'table' and snapshot.party or {}) do party[#party + 1] = item end
+                party[#party + 1] = {key = profileKey, name = row.name, near = true}
+                copy.party = party
+                return copy
+            end
+        end
+        return snapshot
+    end
     -- A phone chat reads it once per message too (mod/phone-chat.lua, when the message is sent).
-    phoneChat.captureTurnContext = microphone.captureTurnContext
+    phoneChat.captureTurnContext = function(profileKey)
+        local snapshot = microphone.captureTurnContext(profileKey)
+        local ok, nearby = pcall(convaiNearbyTurn, snapshot, profileKey)
+        return ok and nearby or snapshot
+    end
 end
 
 -- entity: the addressed character's ID ("<hash>ULL") for a private conversation. A generic resident or archetype
@@ -3679,6 +3709,11 @@ local function sendRequest(context)
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
     if (not context.reaction or speakUp or houseWelcome) and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
     if not context.reaction and context.turnContext and convaiAppointmentTurn then context.turnContext = convaiAppointmentTurn(context.turnContext, context.profileKey) end
+    -- A holocall line to a character standing beside V (convaiNearbyTurn): she is told so, as a phone chat's character is.
+    if context.holocall and context.turnContext and convaiNearbyTurn then
+        local ok, nearby = pcall(convaiNearbyTurn, context.turnContext, context.profileKey)
+        if ok then context.turnContext = nearby end
+    end
     -- Housemates: where she lives, whether she is home, who else lives there (bridge/turn-context.mjs `housemate`).
     if not context.reaction and context.turnContext and convaiHousemateTurn then context.turnContext = convaiHousemateTurn(context.turnContext, context.profileKey) end
     -- Street reputation (docs/REPUTATION_DESIGN.md): nil checks only while the setting is off.

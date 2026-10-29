@@ -107,7 +107,7 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {EddiesDecisions, romanceOf} from './eddies.mjs';
-import {relationshipContext} from './romance-context.mjs';
+import {relationshipContext, romanceReminder} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
 import {publishCallOff} from './call-off.mjs';
@@ -1703,6 +1703,8 @@ const conversationBlocks = input => {
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
+    // The partner tone again, right after V's words (the closing tier: bridge/mistral-prompt.mjs); '' unless the affectionate delivery is on for a private or phone turn.
+    block('closing', admitted && !input.reaction ? romanceReminder(prepared.relationship, prepared.route.channel) : ''),
     // A phone message that can be a request to meet carries the game's offer as an instruction (bridge/meet-requests.mjs); '' for every other turn.
     // A holocall line carries the game's meeting offer the same way, as a note without tags (bridge/call-meet.mjs).
     block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : input.holocall && input.meetOffer ? callMeetNote(parseCallMeetOffer(input.meetOffer), input.text) : ''),
@@ -1732,7 +1734,7 @@ const conversationContext = input => joinedContext(conversationBlocks(input));
 // that only change on game events, so a turn re-reads the facts and not the whole world block.
 const contextPartsOf = blocks => {
   const world = worldBlocksInCacheOrder(blocks.filter(item => item.tier === 'world'));
-  return {...Object.fromEntries(['now', 'notes', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+  return {...Object.fromEntries(['now', 'notes', 'volatile', 'closing'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
     world: joinBlocks(world.map(item => item.text)),
     worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text})), ...freshParts(blocks)};
 };

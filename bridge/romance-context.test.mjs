@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {ROMANCE_CUES, relationshipContext} from './romance-context.mjs';
+import {ROMANCE_CUES, ROMANCE_TONE, ROMANCE_REMINDER, ROMANCE_USE, romanceKind, romanceReminder, relationshipContext} from './romance-context.mjs';
 import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 
 const PROFILES = Object.keys(RELATIONSHIP_PROFILES);
@@ -24,7 +24,7 @@ test('an affectionate turn gets the verified fact, the character cue and the lim
     assert.match(text, /current save confirms/);
     assert.match(text, profile === 'meredith-stout' ? /Everything else .* exactly\s+as you normally would/ : /answer that in your ordinary voice first/);
     assert.match(text, /Do not invent shared scenes/);
-    assert(text.length < 2200, `${profile} block is ${text.length} characters`);
+    assert(text.length < 3600, `${profile} block is ${text.length} characters`);
     assert.doesNotMatch(text, /romantic profile|alternate profile|profile switch/i);
   }
   assert.match(relationshipContext(choice('judy-alvarez', 'romantic', true)), /you and V are together/);
@@ -102,4 +102,43 @@ test('group turns: only the speaker\'s own admitted receipt counts, and no other
   const casual = relationshipContext(choice('meredith-stout', 'romantic', true), 'group', groupOptions(['meredith-stout', 'judy-alvarez']));
   assert.match(casual, /casual intimate encounter/);
   assert.match(casual, /never a claim that she is V's committed partner/);
+});
+
+// ---- the partner tone (2026-10-30): affection in the character's own voice, in the cached block and again right after V's words ----------------------------------------
+test('a partner is warm in her own voice: pet names and open affection are allowed, practical turns keep a touch of it, nothing sexual unless V leads', () => {
+  assert.doesNotMatch(ROMANCE_USE, /at most a few words|Never add a declaration, a pet name/, 'the old wording that kept warmth to a few words and forbade pet names is gone');
+  assert.match(ROMANCE_USE, /pet name or an open word of affection is welcome/);
+  for (const profile of PROFILES.filter(profile => profile !== 'meredith-stout')) {
+    const text = relationshipContext(choice(profile, 'romantic', true), 'private');
+    assert.ok(text.includes(ROMANCE_TONE.partner), profile);
+    assert.match(text, /pet name or nickname for V in your own style/);
+    assert.match(text, /blunt stays blunt, shy stays shy/);
+    assert.match(text, /nothing sexual happens unless V leads/);
+    assert.match(text, /Do not steer the talk to plans, quests or logistics/);
+    assert.ok(relationshipContext(choice(profile, 'romantic', true), 'phone').includes(ROMANCE_TONE.partner), 'phone turns get it too');
+  }
+  // On without a confirmed relationship is a partner delivery as well (V chose it); the ordinary delivery has none of it.
+  assert.ok(relationshipContext(choice('panam-palmer', 'romantic', false)).includes(ROMANCE_TONE.partner));
+  assert.doesNotMatch(relationshipContext(choice('panam-palmer', 'ordinary', true)), /pet name or nickname/);
+});
+
+test('Meredith gets the casual tone, never the partner one', () => {
+  const text = relationshipContext(choice('meredith-stout', 'romantic', true));
+  assert.ok(text.includes(ROMANCE_TONE.casual));
+  assert.doesNotMatch(text, /you love V|pet name or nickname/);
+});
+
+test('the closing note: partner or casual, only for the affectionate delivery on a private or phone turn', () => {
+  assert.equal(romanceKind(choice('panam-palmer', 'romantic', true)), 'partner');
+  assert.equal(romanceKind(choice('panam-palmer', 'romantic', false)), 'partner');
+  assert.equal(romanceKind(choice('meredith-stout', 'romantic', true)), 'casual');
+  assert.equal(romanceKind(choice('panam-palmer', 'ordinary', true)), '');
+  assert.equal(romanceKind(choice('viktor-vektor', 'romantic', true)), '');
+  assert.equal(romanceKind({status: 'unavailable'}), '');
+  assert.equal(romanceReminder(choice('panam-palmer', 'romantic', true), 'private'), ROMANCE_REMINDER.partner);
+  assert.equal(romanceReminder(choice('panam-palmer', 'romantic', true), 'phone'), ROMANCE_REMINDER.partner);
+  assert.equal(romanceReminder(choice('judy-alvarez', 'romantic', true), 'group'), '');
+  assert.equal(romanceReminder(choice('panam-palmer', 'ordinary', true), 'private'), '');
+    assert.match(ROMANCE_REMINDER.partner, /call V something fond \(a pet name or nickname\)/);
+  assert.ok(ROMANCE_REMINDER.partner.length < 420 && ROMANCE_REMINDER.casual.length < 120, 'short: it is read on every turn');
 });

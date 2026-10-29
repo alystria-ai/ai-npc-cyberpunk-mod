@@ -237,7 +237,7 @@ test('the bridge puts the Convai block after the facts of the game and before th
   assert.match(source, /new PersonaBook\(roster, \{[^}]*worldRules\}\)/);
   assert.match(source, /new CharacterEditor\(\{[^]*?worldRules,/);
   // The tiers the text providers read are the four it names; 'convai' is none of them.
-  assert.match(source, /\['now', 'notes', 'volatile'\]/);
+  assert.match(source, /\['now', 'notes', 'volatile', 'closing'\]/);
 });
 
 // ---- the editor
