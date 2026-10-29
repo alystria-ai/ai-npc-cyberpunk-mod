@@ -353,6 +353,8 @@ English speech is recognised on your computer by a small model that is already i
 
 **Replies show as text when I picked OmniVoice.** Without the pack choosing an OmniVoice entry is refused (the row goes back to the saved voice and says it needs the pack). With it, an OmniVoice that fails to start leaves the replies as text, with one notice, and retries in the background; choosing it again also retries. Nothing is sent to a cloud voice meanwhile.
 
+**Only some characters have an OmniVoice voice.** The pack holds most of the characters' reference clips (the full install carries only a few), so a pack that stopped extracting half way, or a folder a mod manager cleared, leaves the others without a voice and their replies are written. The bridge log then has one `[OmniPack] ... reference clips are missing` line per clip length, naming a few of them. Extract the OmniVoice pack again over the game folder (replace files if asked): it only adds what is missing and never changes the full install's files.
+
 **Lips run ahead of the sound.** Bluetooth audio arrives a little late. Leave **Lip sync delay (Bluetooth)** on Auto, which adds 150 ms while Windows plays through Bluetooth, or pick a value that suits your headset. Hearing nothing at all? Check the game's Master and Dialogue Volume and the Windows mixer.
 
 **A companion cannot be summoned there.** Companions need clear space, and a spawn is refused when there is no safe spot nearby. Try somewhere more open. Party membership is not restored after a save reload, a game restart or a Cyber Engine Tweaks reload.

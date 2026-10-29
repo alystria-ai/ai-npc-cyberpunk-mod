@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
-import {detectOmniPack} from './omni-pack.mjs';
+import {detectOmniPack, missingOmniClips, missingOmniClipsLine} from './omni-pack.mjs';
 
 test('the optional OmniVoice pack is installed only with its worker Python, model weights and adapter', () => {
   const project = resolve('project-fixture');
@@ -24,4 +24,25 @@ test('the optional OmniVoice pack is installed only with its worker Python, mode
   const files = [portable.CYBERPUNK_CONVAI_PYTHON, resolve('pack/model/model.safetensors'),
     resolve('pack/adapter/services/tts_backend.py'), all[3]];
   assert.equal(detectOmniPack({project, config: {}, environment: portable, exists: path => files.includes(path)}).installed, true);
+});
+
+test('an installed pack that lacks reference clips is reported with the characters it cannot voice', () => {
+  const referenceDirectory = resolve('refs-fixture');
+  const config = {voices: {
+    'johnny-silverhand': {reference: 'runtime/voice-references/picked/autobest/omni-long/johnny-silverhand.wav'},
+    'judy-alvarez': {reference: 'runtime/voice-references/picked/autobest/omni-long/judy-alvarez.wav'},
+    'brick': {reference: 'runtime/voice-references/picked/autobest/omni-long/brick.wav'},
+    'player': {reference: 'player-voices/player.wav'},
+    'sneaky': {reference: 'runtime/voice-references/../../outside.wav'}}};
+  const present = [resolve(referenceDirectory, 'picked/autobest/omni-long/brick.wav')];
+  const check = missingOmniClips({config, referenceDirectory, exists: path => present.includes(path)});
+  assert.equal(check.total, 3);
+  assert.deepEqual(check.missing, ['picked/autobest/omni-long/johnny-silverhand.wav', 'picked/autobest/omni-long/judy-alvarez.wav']);
+  const line = missingOmniClipsLine(check, 'long');
+  assert.match(line, /2 of 3 long reference clips are missing \(for example johnny-silverhand, judy-alvarez\)/);
+  assert.match(line, /Extract the OmniVoice pack again/);
+  // Nothing missing: no line. No folder to look in: nothing is claimed missing.
+  assert.equal(missingOmniClipsLine(missingOmniClips({config, referenceDirectory, exists: () => true})), null);
+  assert.deepEqual(missingOmniClips({config, referenceDirectory: undefined}).missing, []);
+  assert.deepEqual(missingOmniClips({config: {}, referenceDirectory}), {total: 0, missing: []});
 });
