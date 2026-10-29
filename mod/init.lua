@@ -6887,6 +6887,15 @@ end
 -- Eddies and bonds: the main chunk is near Lua's limit of locals.
 convaiQuestPlay, convaiQuestLines, convaiQuestWorld, convaiQuestSpeaker = nil, nil, nil, nil
 convaiQuestDue = true
+-- What an ordinary person did after what V said (mod/npc-reactions.lua calls options.onOutcome(kind, entityKey) where a reaction starts). The npc-react primitive
+-- (mod/quest-prims-scene.lua) adds a listener to convaiQuestNpcSinks through the scene world calls and takes it away with its stage. With no quest the list is empty.
+convaiQuestNpcSinks = {}
+function convaiQuestNpcOutcome(key, kind)
+    local snapshot = {}
+    for index, fn in ipairs(convaiQuestNpcSinks) do snapshot[index] = fn end
+    for _, fn in ipairs(snapshot) do pcall(fn, key, kind) end
+end
+if convaiNpcReactions then convaiNpcReactions.options.onOutcome = function(kind, key) convaiQuestNpcOutcome(key, kind) end end
 do
     local failed = false
     local function settingOn()
@@ -6912,6 +6921,7 @@ do
                 seating = function() return convaiSeating end, district = function() return currentDistrict() end, log = log})
             local places = modules[2].new({world = world, clock = os.clock, log = log})
             local prims = modules[3].new({places = places, world = world, clock = os.clock, gameTime = gameClock, log = log})
+            if type(prims.env) == 'table' then prims.env.companions = companions end   -- the scene primitives find the mod's copies through it
             for _, extra in ipairs({'quest-prims-action.lua', 'quest-prims-drive.lua', 'quest-prims-race.lua', 'quest-prims-scene.lua', 'quest-prims-systems.lua'}) do
                 local okExtra, extension = pcall(dofile, extra)
                 if okExtra and type(prims.extend) == 'function' then prims.extend(extension) end
@@ -6922,6 +6932,7 @@ do
                 alive = function(requestId) return automatic ~= nil and automatic.requestId == requestId end,
                 subtitle = function(profileKey, text) return convaiQuestSubtitle(profileKey, text) end,
                 phone = function(profileKey, text, image) return convaiQuestPhone(profileKey, text, image) end,
+                idle = function(profileKey, idleKey, on, situation) return convaiQuestIdle(profileKey, idleKey, on, situation) end,
                 emit = function(pack, name) if convaiQuestPlay then convaiQuestPlay.emitPack(pack, name) end end,
                 onChange = function() if convaiQuestPlay then convaiQuestPlay.rearm() end end})
             local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log})
@@ -6968,6 +6979,15 @@ do
         convaiQuestDue = true
         convaiQuestSpeaker = nil
         if convaiQuestPlay then pcall(convaiQuestPlay.abandon) end
+    end
+    -- The pose of a talk gap (mod/quest-lines.lua asks once at the gap's start and once at its end): the copy takes the gap's idle, or the one its situation stands
+    -- for, through the scene world's gap idle (mod/quest-world-scene.lua, the gestures' invisible device). It may hand back a step function for the line player to call
+    -- once a second while the pose starts. A seat kind is left to the seating code. Never raises, never loud: the talk goes on without the pose.
+    function convaiQuestIdle(profileKey, idleKey, on, situation)
+        local world = convaiQuestWorld
+        if world == nil or type(world.gapIdle) ~= 'function' then return nil end
+        local ok, step = pcall(world.gapIdle, profileKey, idleKey, on == true, situation)
+        return ok and type(step) == 'function' and step or nil
     end
     -- An open gap or a line in progress: the speak-up scheduler and every automatic remark stay quiet (docs/QUEST_PRIMITIVES.md section 5).
     function convaiQuestBusy()
