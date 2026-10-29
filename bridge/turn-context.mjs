@@ -219,7 +219,7 @@ export function timeOfDay(hour, minute) {
 const listOf = names => names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 // Where V is: {text, inside, kind} (bridge/place-names.mjs), or null. A named place only when the game's own record says V is there.
 const placeOf = snapshot => describePlace({district: snapshot.district, area: snapshot.area, indoors: snapshot.indoors,
-  named: snapshot.position ? namedPlaceAt(snapshot.position, {district: snapshot.district}) : null});
+  named: snapshot.position ? namedPlaceAt(snapshot.position, {district: snapshot.district, indoors: snapshot.indoors}) : null});
 
 // Where V (or the companion in person) is, as one modest sentence of its own: [subject, verb] is ['You', 'are'] or ['V', 'is']. A named interior
 // (V's apartment, a bar, a clinic) says "inside"; the Badlands say "outdoors"; a plain neighbourhood says indoors or outdoors when the game's

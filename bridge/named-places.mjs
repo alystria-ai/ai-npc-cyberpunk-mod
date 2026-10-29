@@ -56,15 +56,17 @@ export function placesWithPositions(list = NAMED_PLACES, measured = captured) {
 
 /**
  * The named place around `position` ({x, y, z}), or null: horizontal distance within the place's radius, height within its `dz`, and, when the game named
- * the root district and the place knows its own, the same district. Of several, the one V is deepest inside (distance over radius).
+ * the root district and the place knows its own, the same district. A place whose position is only a streaming cell (`approx`) is skipped while the game says V is
+ * outdoors (`indoors` false): its radius would reach the street. Of several, the one V is deepest inside (distance over radius).
  */
-export function namedPlaceAt(position, {district, list = NAMED_PLACES, measured = captured} = {}) {
+export function namedPlaceAt(position, {district, indoors, list = NAMED_PLACES, measured = captured} = {}) {
   const at = parsePosition(position);
   if (!at) return null;
   let best = null, bestRatio = Infinity;
   for (const place of placesWithPositions(list, measured)) {
     if (!finite(place.x) || !finite(place.y) || !finite(place.z)) continue;
     if (place.root && typeof district === 'string' && district && district !== place.root) continue;
+    if (place.approx === true && indoors === false) continue;
     if (Math.abs(at.z - place.z) > (place.dz ?? 6)) continue;
     const ratio = Math.hypot(at.x - place.x, at.y - place.y) / place.radius;
     if (ratio <= 1 && ratio < bestRatio) { best = place; bestRatio = ratio; }
