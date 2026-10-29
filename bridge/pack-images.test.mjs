@@ -144,7 +144,9 @@ test('every problem is reported together, a bad picture is left out of the manif
 
 test('the packs are the ones named, all of a folder, or the ones the release plan ships; a name with no file is a problem', () => {
   const config = JSON.parse(readFileSync(join(project, 'packaging', 'release.config.json'), 'utf8'));
-  assert.deepEqual(shippedPackIds(config), ['judy-dinner-dress', 'kerry-new-song', 'panam-truck-ransom']);
+  // The release ships every pack of the folder (packaging/release.config.json appData lists each one).
+  const inFolder = readdirSync(join(project, 'characters', 'bond-packs')).filter(name => name.endsWith('.json')).map(name => name.slice(0, -5)).sort();
+  assert.deepEqual([...shippedPackIds(config)].sort(), inFolder);
   assert.deepEqual(shippedPackIds({}), []); assert.deepEqual(shippedPackIds({appData: ['characters/roster.json', 'characters/bond-packs/../x.json']}), []);
   const folder = packFolder({'demo-pack': {door: [4, 4]}, 'other-pack': {door: [4, 4]}});
   try {
