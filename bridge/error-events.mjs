@@ -31,6 +31,8 @@ const KIND_PATTERN = /^[a-z][a-z0-9-]{1,39}$/;
 const GAME_SHAPE = /^\d{1,2}\.\d{1,2}$/;
 const MODULE_SHAPE = /^[A-Za-z_][A-Za-z0-9_.]{0,59}$/;
 const SIGNATURE_PATTERN = /^[0-9a-f]{16}$/;
+// The words of a write that failed because the disk or the player's quota is full (Node's code and message, and Windows' own words for it).
+const DISK_FULL = /\b(?:ENOSPC|EDQUOT)\b|no space left on device|not enough space on the disk|disk quota exceeded/i;
 
 export const SENT_FILE = 'sent.json';
 export const queueDirectory = stateDirectory => join(stateDirectory, QUEUE_FOLDER, 'queue');
@@ -274,6 +276,9 @@ export function queueRecord(event, now = Date.now()) {
   if (!event || typeof event !== 'object' || !KIND_PATTERN.test(String(event.kind ?? ''))) return null;
   const message = clip(String(event.message ?? ''), 400).trim();
   if (!message) return null;
+  // A full disk or an exceeded quota is the player's PC, not a fault of the mod (reports a2b5caf8, e1a42aa8, d7a05e11, 5be50746, ea023111: one install with 0.8 GiB free on C:).
+  // The setup check already tells the player (Disk space row and first-load notice), and a record could hardly be written on that disk anyway.
+  if (DISK_FULL.test(message) || DISK_FULL.test(String(event.frame ?? ''))) return null;
   const frame = clip(String(event.frame ?? ''), 240);
   const signature = SIGNATURE_PATTERN.test(String(event.signature ?? '')) ? event.signature : errorSignature({kind: event.kind, message, frame});
   const stack = Array.isArray(event.stack) ? event.stack.slice(0, 8).map(line => clip(String(line), 200)) : [];
@@ -475,6 +480,9 @@ export function reportableTurnFailure(error, {errorCode, localReason, microphone
   if (typeof error?.code === 'string' && error.code.startsWith('MIC_')) return false;
   const text = typeof error?.message === 'string' ? error.message : String(error);
   if (NOT_A_FAULT.test(text) || PLAYER_SETUP.test(text)) return false;
+  // Local AI that could not be used for a reason of the player's PC, judged from the error itself: an automatic reaction (battle, loot) carries no error code, so the code
+  // test below never saw it (report d1ee522b016b2efa: a reaction on a PC with no discrete graphics card).
+  if (error?.name === 'LocalAiUnavailable' && OWN_LOCAL_REASONS.has(error.reason)) return false;
   if (errorCode && OWN_DOING.has(errorCode)) return false;
   if (LOCAL_DOWN.has(errorCode) && OWN_LOCAL_REASONS.has(localReason)) return false;
   // A microphone turn fails for the device as often as for the service: only one that names a provider failure counts.

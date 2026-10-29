@@ -1,5 +1,6 @@
 import {readFile} from 'node:fs/promises';
 import {ChatMemoryResets} from './chat-memory-resets.mjs';
+import {isDiskFull} from './runtime-files.mjs';
 
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const COMMAND = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
@@ -40,7 +41,9 @@ export class PlayerMemoryControl {
         : {...commandIdentity(previous), state: 'failed',
           message: 'This request was not run. Open the menu and confirm again.'};
     }
-    await control.publishStatus();
+    // The first status write is best effort: on a full disk it fails (ENOSPC) and a throw here ended the bridge before it had started (error report
+    // e1a42aa8799b2b8f, 0.3.3, 0.8 GiB free on C:). The 500 ms poll writes the status again once there is room.
+    await control.publishStatus().catch(error => { if (!isDiskFull(error)) throw error; });
     return control;
   }
   constructor({memory, commandPath, publish, now = Date.now, chatResets, chatResetFamilies = {},

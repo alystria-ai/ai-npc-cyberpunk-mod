@@ -1,5 +1,6 @@
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {markStage} from './turn-clock.mjs';
+import {pcmReason} from './continuous-pcm-core.mjs';
 
 const TOKEN = /^[A-Za-z0-9_-]{1,128}$/;
 const SHA = /^[a-f0-9]{64}$/;
@@ -215,7 +216,7 @@ export class LocalPcmHost {
           const snapshot = await this.bounded(localSnapshotForHost(page, turn.token, controller.signal),
             this.commandTimeoutMs, 'Local PCM renderer clock timed out', controller.signal);
           await check();
-          if (snapshot.error) throw Error('Local PCM renderer failed');
+          if (snapshot.error) throw Error('Local PCM renderer failed' + pcmReason(snapshot.error));
           if (snapshot.positionSeconds > heardSeconds) { heardSeconds = snapshot.positionSeconds; progressAt = this.now(); }
           if (liveText) { const live = liveText(); snapshot.text = live.text; snapshot.textComplete = live.complete === true; }
           if (getFace) {

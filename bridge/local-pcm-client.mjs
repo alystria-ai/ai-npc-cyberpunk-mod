@@ -1,6 +1,7 @@
 // Local synthesis has no SDK, session or microphone capability. It feeds the
 // same continuous sample reader used for provider audio through one owned page.
 import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
+import {pcmReason} from './continuous-pcm-core.mjs';
 
 const TOKEN = /^[A-Za-z0-9_-]{1,128}$/;
 const SHA = /^[a-f0-9]{64}$/;
@@ -130,7 +131,7 @@ export class LocalPcmClient {
     // snapshot. Inspect the exact owner again on this event-loop turn: its
     // player can have closed itself at audible drain during that await.
     const state = turn.player.snapshot();
-    if (state.error) throw Error('Local PCM renderer failed');
+    if (state.error) throw Error('Local PCM renderer failed' + pcmReason(state.error));
     if (state.ended) {
       if (!turn.sourceComplete || state.receivedFrames !== turn.frames)
         throw Error('Local PCM ended before its source');
