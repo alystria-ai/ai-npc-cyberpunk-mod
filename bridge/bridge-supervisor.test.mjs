@@ -371,7 +371,7 @@ test('a bridge that dies on a package or file of its own that is not there is "i
   const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
   const line = log.split('\n').find(text => text.includes('The Runtime is incomplete'));
   assert(line, log);
-  assert.match(line, /The Runtime is incomplete: node_modules\/fakepkg-core\/lib\/server\/inner\/thing is missing\. Extract the full install zip \(AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face\) into the Cyberpunk 2077 folder again/);
+  assert.match(line, /The Runtime is incomplete: node_modules\/fakepkg-core\/lib\/server\/inner\/thing is missing\. Extract the full install zip \(AI-NPC-LLM-Companions, on Nexus Mods\) into the Cyberpunk 2077 folder again/);
   assert(!line.includes(f.project) && !line.toLowerCase().includes(basename(f.root).toLowerCase()), 'never a folder');
   assert.doesNotMatch(log, /exited unexpectedly/, 'not counted as a crash');
   run.endGame(); await run.done;
@@ -390,7 +390,7 @@ test('a bridge whose files are of two versions (Node: "does not provide an expor
   const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
   const line = log.split('\n').find(text => text.includes('does not match'));
   assert(line, log);
-  assert.match(line, /The Runtime does not match the mod's Scripts: bridge\/runtime-files\.mjs comes from a different version\. Extract the full install zip \(AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face\) into the Cyberpunk 2077 folder again/);
+  assert.match(line, /The Runtime does not match the mod's Scripts: bridge\/runtime-files\.mjs comes from a different version\. Extract the full install zip \(AI-NPC-LLM-Companions, on Nexus Mods\) into the Cyberpunk 2077 folder again/);
   assert(!line.includes(f.project) && !line.toLowerCase().includes(basename(f.root).toLowerCase()), 'never a folder');
   assert.doesNotMatch(log, /exited unexpectedly/, 'not counted as a crash');
   run.endGame(); await run.done;

@@ -88,7 +88,7 @@ test('a running service that never answers the setup check is a Runtime older th
   assert(not shown:find('update zips', 1, true))
   local line = lineOf('versions')
   assert(line.state == 'problem' and line.value == 'Problem', tostring(line and line.state))
-  assert(line.description == 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', line.description)
+  assert(line.description == 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', line.description)
   assert(check.problemCount() == 1 and table.concat(check.problems(), ',') == 'versions')
   assert(ids():sub(1, 17) == 'versions=problem ', ids())
   assert(table.concat(check.reportLines(), '\n'):find('the running service did not answer the request', 1, true))
@@ -155,7 +155,7 @@ test('a Local AI or Mature pack one folder too deep is told once: the packs line
 `));
 
 test('the new sentence is a catalogued English UI key', () => {
-  const text = 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.';
+  const text = 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.';
   assert.equal(catalog[text], text);
 });
 

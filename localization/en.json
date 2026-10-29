@@ -764,7 +764,7 @@
     "No reply arrived. The conversation service may not be running.": "No reply arrived. The conversation service may not be running.",
     "No reply received. Your message is in the draft; press Enter to retry.": "No reply received. Your message is in the draft; press Enter to retry.",
     "No settings were supplied.": "No settings were supplied.",
-    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page and on its Hugging Face page.": "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page and on its Hugging Face page.",
+    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page.": "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page.",
     "No speech was heard. Hold the talk key while you speak.": "No speech was heard. Hold the talk key while you speak.",
     "Nobody lives at your place.": "Nobody lives at your place.",
     "Nod while you talk to them": "Nod while you talk to them",
@@ -1034,8 +1034,8 @@
     "Scenery or a vehicle is blocking the companion position.": "Scenery or a vehicle is blocking the companion position.",
     "Scripts and Runtime": "Scripts and Runtime",
     "Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings.": "Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings.",
-    "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods or Hugging Face. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.": "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods or Hugging Face. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.",
-    "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+    "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.": "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.",
+    "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
     "Scripts {scripts} and Runtime {runtime}.": "Scripts {scripts} and Runtime {runtime}.",
     "Scripts {scripts} on Runtime base {runtime}.": "Scripts {scripts} on Runtime base {runtime}.",
     "Scroll lock": "Scroll lock",
@@ -1084,7 +1084,7 @@
     "Signed in. Your Convai API key is saved.": "Signed in. Your Convai API key is saved.",
     "Sit down and take a place": "Sit down and take a place",
     "Solo look": "Solo look",
-    "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again. Then restart the game.": "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again. Then restart the game.",
+    "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.": "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.",
     "Some game models have special rigs or roles and may not behave as ordinary companions.": "Some game models have special rigs or roles and may not behave as ordinary companions.",
     "Some mod files are missing. Extract the update zip again. See Help in Settings.": "Some mod files are missing. Extract the update zip again. See Help in Settings.",
     "Some model records could not be read.": "Some model records could not be read.",
@@ -1205,11 +1205,11 @@
     "The Runtime is incomplete ({code}). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.": "The Runtime is incomplete ({code}). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.",
     "The Runtime is older than {required}. Get the full install zip.": "The Runtime is older than {required}. Get the full install zip.",
     "The Runtime is out of date. Get the full install zip.": "The Runtime is out of date. Get the full install zip.",
-    "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+    "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
     "The Runtime’s plugin is loaded, but the conversation service left no trace in this session. launcher.log in red4ext/plugins/AiNpcCyberpunkCode says why: launcher.ini switched off, Node missing, or Node blocked by a security program. Fix that, then restart the game.": "The Runtime’s plugin is loaded, but the conversation service left no trace in this session. launcher.log in red4ext/plugins/AiNpcCyberpunkCode says why: launcher.ini switched off, Node missing, or Node blocked by a security program. Fix that, then restart the game.",
     "The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.": "The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.",
     "The Scripts are for game {other}, yours is {game}. Get the update zip for {game}.": "The Scripts are for game {other}, yours is {game}. Get the update zip for {game}.",
-    "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods or Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods or Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+    "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
     "The account is out of credits. Add credits with your provider.": "The account is out of credits. Add credits with your provider.",
     "The action could not finish: {reason}": "The action could not finish: {reason}",
     "The address must start with https:// or http://.": "The address must start with https:// or http://.",
@@ -1253,7 +1253,7 @@
     "The conversation service could not reply. Please try again.": "The conversation service could not reply. Please try again.",
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
     "The conversation service could not start. Restart the game, or see Help in Settings.": "The conversation service could not start. Restart the game, or see Help in Settings.",
-    "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+    "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
     "The conversation service did not answer. Wait a moment, then invite again.": "The conversation service did not answer. Wait a moment, then invite again.",
     "The conversation service did not get that message. Try again.": "The conversation service did not get that message. Try again.",
     "The conversation service did not start. Is the Runtime installed? See Help in Settings.": "The conversation service did not start. Is the Runtime installed? See Help in Settings.",
@@ -1387,7 +1387,7 @@
     "The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.": "The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.",
     "There is no companion trip to cancel.": "There is no companion trip to cancel.",
     "There is not enough free space on drive C:. Free some up and try again.": "There is not enough free space on drive C:. Free some up and try again.",
-    "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+    "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
     "They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person.": "They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person.",
     "Things they always know": "Things they always know",
     "This PC cannot look up {host}. Check your internet connection, then restart the game.": "This PC cannot look up {host}. Check your internet connection, then restart the game.",
@@ -1493,7 +1493,7 @@
     "Vehicle information is not ready.": "Vehicle information is not ready.",
     "Version {version}.": "Version {version}.",
     "Version {version}. The mod is tested on {game} only, so some things may not work.": "Version {version}. The mod is tested on {game} only, so some things may not work.",
-    "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page or Hugging Face page, into the Cyberpunk 2077 folder, then restart the game.": "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page or Hugging Face page, into the Cyberpunk 2077 folder, then restart the game.",
+    "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.": "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.",
     "Very short: up to about {words} words": "Very short: up to about {words} words",
     "Vest": "Vest",
     "View": "View",
@@ -1621,9 +1621,9 @@
     "Your companion must step out before taking the driver seat.": "Your companion must step out before taking the driver seat.",
     "Your companions, character models and conversation settings.": "Your companions, character models and conversation settings.",
     "Your favorites could not be saved, so they last only until the game closes.": "Your favorites could not be saved, so they last only until the game closes.",
-    "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.": "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.",
-    "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.": "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.",
-    "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and install it over these, then restart the game.": "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and install it over these, then restart the game.",
+    "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.": "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.",
+    "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.": "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.",
+    "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) and install it over these, then restart the game.": "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) and install it over these, then restart the game.",
     "Your group": "Your group",
     "Your key was removed.": "Your key was removed.",
     "Your key: no room for memory": "Your key: no room for memory",
@@ -3050,7 +3050,7 @@
       "No problem found. Select a line to see what was checked.",
       "No reply arrived within {seconds} s. Try again.",
       "No reply arrived. The conversation service may not be running.",
-      "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page and on its Hugging Face page.",
+      "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page.",
       "No speech was heard. Hold the talk key while you speak.",
       "Nobody lives at your place.",
       "Nod while you talk to them",
@@ -3232,8 +3232,8 @@
       "Saves the characters in your party now, copies and your own characters included, as a party you can invite again with one press. It is named Party 1, Party 2 and so on, and appears below.\n\nYou keep up to {count} saved parties.",
       "Scripts and Runtime",
       "Scripts are for game {scripts}, Runtime for {runtime}. They must match. See Help in Settings.",
-      "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods or Hugging Face. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.",
-      "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+      "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.",
+      "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
       "Scripts {scripts} and Runtime {runtime}.",
       "Scripts {scripts} on Runtime base {runtime}.",
       "Search characters",
@@ -3261,7 +3261,7 @@
       "Signed in. Your Convai API key is saved.",
       "Sit down and take a place",
       "Solo look",
-      "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again. Then restart the game.",
+      "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.",
       "Some game models have special rigs or roles and may not behave as ordinary companions.",
       "Some mod files are missing. Extract the update zip again. See Help in Settings.",
       "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.",
@@ -3344,11 +3344,11 @@
       "The Runtime is incomplete ({code}). Extract the full install zip (AI-NPC-LLM-Companions) into the Cyberpunk 2077 folder again and let it replace the files, then restart the game.",
       "The Runtime is older than {required}. Get the full install zip.",
       "The Runtime is out of date. Get the full install zip.",
-      "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+      "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
       "The Runtime’s plugin is loaded, but the conversation service left no trace in this session. launcher.log in red4ext/plugins/AiNpcCyberpunkCode says why: launcher.ini switched off, Node missing, or Node blocked by a security program. Fix that, then restart the game.",
       "The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.",
       "The Scripts are for game {other}, yours is {game}. Get the update zip for {game}.",
-      "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods or Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+      "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
       "The account is out of credits. Add credits with your provider.",
       "The action could not finish: {reason}",
       "The address must start with https:// or http://.",
@@ -3382,7 +3382,7 @@
       "The conversation service could not reply. Please try again.",
       "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
       "The conversation service could not start. Restart the game, or see Help in Settings.",
-      "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+      "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
       "The conversation service did not answer. Wait a moment, then invite again.",
       "The conversation service did not get that message. Try again.",
       "The conversation service did not start. Is the Runtime installed? See Help in Settings.",
@@ -3484,7 +3484,7 @@
       "The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.",
       "There is no companion trip to cancel.",
       "There is not enough free space on drive C:. Free some up and try again.",
-      "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.",
+      "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.",
       "They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person.",
       "Things they always know",
       "This PC cannot look up {host}. Check your internet connection, then restart the game.",
@@ -3554,7 +3554,7 @@
       "Valentino look",
       "Version {version}.",
       "Version {version}. The mod is tested on {game} only, so some things may not work.",
-      "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page or Hugging Face page, into the Cyberpunk 2077 folder, then restart the game.",
+      "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.",
       "Very short: up to about {words} words",
       "Vest",
       "Voice",
@@ -3626,9 +3626,9 @@
       "Your companion is ready. Get in the passenger seat to start the trip.",
       "Your companions, character models and conversation settings.",
       "Your favorites could not be saved, so they last only until the game closes.",
-      "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.",
-      "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.",
-      "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and install it over these, then restart the game.",
+      "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.",
+      "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.",
+      "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) and install it over these, then restart the game.",
       "Your key was removed.",
       "Your key: no room for memory",
       "Your key: not accepted",
@@ -9674,7 +9674,7 @@
         "mod/manager.lua:2288"
       ]
     },
-    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page and on its Hugging Face page.": {
+    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page.": {
       "contexts": [
         "ui.localized"
       ],
@@ -11942,7 +11942,7 @@
         "mod/setup-check.lua:893"
       ]
     },
-    "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods or Hugging Face. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.": {
+    "Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -11950,7 +11950,7 @@
         "mod/setup-check.lua:656"
       ]
     },
-    "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": {
+    "Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -12350,7 +12350,7 @@
         "mod/character-editor.lua:328"
       ]
     },
-    "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again. Then restart the game.": {
+    "Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -13379,7 +13379,7 @@
         "mod/setup-check.lua:904"
       ]
     },
-    "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": {
+    "The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -13411,7 +13411,7 @@
         "mod/setup-check.lua:891"
       ]
     },
-    "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods or Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": {
+    "The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -13782,7 +13782,7 @@
         "mod/service-status.lua:183"
       ]
     },
-    "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": {
+    "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -14914,7 +14914,7 @@
         "mod/omni-amd.lua:173"
       ]
     },
-    "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": {
+    "These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -15815,7 +15815,7 @@
         "mod/setup-check.lua:582"
       ]
     },
-    "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page or Hugging Face page, into the Cyberpunk 2077 folder, then restart the game.": {
+    "Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -16875,7 +16875,7 @@
         "mod/manager-ui.lua:1567"
       ]
     },
-    "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.": {
+    "Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -16883,7 +16883,7 @@
         "mod/setup-check.lua:570"
       ]
     },
-    "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.": {
+    "Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
@@ -16891,7 +16891,7 @@
         "mod/setup-check.lua:574"
       ]
     },
-    "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and install it over these, then restart the game.": {
+    "Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) and install it over these, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
