@@ -449,7 +449,7 @@ test('the browser, Local AI and the internet: every state has its own line and f
   -- Windows refused to load a file of the voice: restarting cannot help, so the line names what blocked it and offers another voice.
   answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'pocket', cause = 'blocked'}}); check.run()
   assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('blocks the files of the voice', 1, true) and lineOf('voice').description:find('Smart App Control', 1, true)
-    and lineOf('voice').description:find('Turn Smart App Control off, or choose a cloud voice (Voxtral)', 1, true) and not lineOf('voice').description:find('OmniVoice', 1, true)
+    and lineOf('voice').description:find('Choose a cloud voice (Voxtral) in Settings', 1, true) and not lineOf('voice').description:find('OmniVoice', 1, true)
     and not lineOf('voice').description:find('Restart', 1, true), tostring(lineOf('voice').description))
   assert(#check.problems() == 0)
   -- Windows ran out of memory it can promise (error 1455): restarting cannot help, a larger paging file or fewer programs can; the same sentence as the in-game notice.
@@ -459,7 +459,7 @@ test('the browser, Local AI and the internet: every state has its own line and f
   -- Local AI whose model server Windows would not run: the same advice, for a cloud conversation provider; a plain start failure keeps its own line.
   answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true, cause = 'blocked'}}); check.run()
   assert(lineOf('local-ai').state == 'problem' and lineOf('local-ai').description:find('blocks the files of the model server', 1, true)
-    and lineOf('local-ai').description:find('Turn Smart App Control off, or choose a cloud conversation provider', 1, true) and not lineOf('local-ai').description:find('OmniVoice', 1, true), tostring(lineOf('local-ai').description))
+    and lineOf('local-ai').description:find('Choose a cloud conversation provider in Settings', 1, true) and not lineOf('local-ai').description:find('OmniVoice', 1, true), tostring(lineOf('local-ai').description))
   answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true}}); check.run()
   assert(lineOf('local-ai').description:find('Local AI could not start', 1, true), 'without the cause the generic line stays')
   answer({voice = {id = 'voice', state = 'unknown', code = 'unknown'}}); check.run()
