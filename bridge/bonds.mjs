@@ -370,12 +370,30 @@ export class BondStore {
 
 // ---- the turn: the line and the record ----------------------------------------------------------------------------------------------------
 
-/** The prompt line of a bond (world tier). `hurt`: the hurt left now. */
-export function bondLine(level, hurt = 0) {
+// The tone of a romance, on top of the level line (docs/RELATIONSHIPS_AND_QUESTS.md): the same few sentences for as long as the romance stands, so the text stays in the cached part of
+// the prompt. It is about warmth and closeness only: how explicit anything gets stays with the Mature setting and with V (bridge/mature-content.mjs).
+export const ROMANCE_TONE = Object.freeze({
+  partner: "You and V are a couple, and V is the person you are closest to. Every reply to V carries some of that, whatever the subject, even a one line answer: a fond or teasing touch, a word that shows you care or are glad V is here, the ease of someone who is at home with V. A practical question gets its practical answer, said warmly and never coldly. When the moment is personal (V is tired, hurt, sincere, flirting), drop the guard and say what you feel plainly, and let it be intimate. This outranks any instruction to keep warmth to a few words or to answer practical turns in your ordinary voice. Stay yourself: your edge, humour and pride stay, and it is never syrupy, never a speech and never a string of pet names. It is closeness, not a scene: it adds no date, memory or promise that was not supplied, and nothing sexual happens unless V leads.",
+  casual: "You and V have been intimate, and you both know it was casual. Let a little easy, knowing familiarity show in how you talk to V: a half smile in your words, a bit more teasing and ease than with other people. No declarations, no claim of commitment, nothing more than that unless V leads.",
+});
+/** The tone line of a romance (`partner` or `casual`), or ''. */
+export const romanceTone = romance => ROMANCE_TONE[romance] ?? '';
+// The same tone in one sentence for the notes right before V's words (the volatile tier of the turn): the level line sits far above in the system message, and a small model
+// follows the rules and the last lines first (measured 2026-10-30, Gemma 4 E4B: the long line alone left Panam's replies as they were). Same text every turn, so it adds the same few tokens.
+export const ROMANCE_REMINDER = Object.freeze({
+  partner: "Tone with V this reply: you are V's partner, so let it sound like it, warm and affectionate in your own voice, even when the answer is short or practical (a fond word, a tease, a sign you care).",
+  casual: "Tone with V this reply: an easy, knowing familiarity, a little teasing warmth, nothing more.",
+});
+export const romanceReminder = romance => ROMANCE_REMINDER[romance] ?? '';
+
+/** The prompt line of a bond (world tier). `hurt`: the hurt left now. `romance`: 'partner' or 'casual' adds the tone of that romance. */
+export function bondLine(level, hurt = 0, romance = null) {
   const row = LEVELS[clamp(level, 1, 10) - 1];
   const text = `How close you are to V (a fact for you; never say it as a level or a number): ${row.line}`;
-  return hurt > HURT_NOTE_FROM
+  const tone = romanceTone(romance);
+  const line = hurt > HURT_NOTE_FROM
     ? `${text} V threatened or insulted you recently, and it still stings: let it show in how you talk to V until it fades.` : text;
+  return tone ? `${line} ${tone}` : line;
 }
 
 const CHANGE_LIMIT = 8;
@@ -390,6 +408,7 @@ export class Bonds {
     now = Date.now, turns = 64} = {}) {
     Object.assign(this, {store, statusPath, write, log, arcs, now, turnLimit: turns});
     this.turns = new Map();       // request id -> {line, view}
+    this.lines = new Map();       // profile key -> the last line a turn of V's had (for the reactions that follow it)
     this.levels = new Map();      // memory key -> {profileKey, name, level, points}, the last level told to the game
     this.changes = [];            // the last level changes, newest last
     // Change ids go on from the session's start time, so an id is never reused after a bridge restart (the game shows a change whose id is newer
@@ -433,8 +452,24 @@ export class Bonds {
   /** The line for this turn's context, '' when bonds are not in it. The first build of a turn decides; later builds get the same line. */
   contextFor(input, facts = {}) {
     const view = this.viewFor(input, facts);
-    return view ? bondLine(view.level, view.hurt) : '';
+    if (!view) return '';
+    const line = bondLine(view.level, view.hurt, facts.tone ?? null);
+    this.lines.set(input.profileKey, line);
+    while (this.lines.size > CHARACTER_LIMIT) this.lines.delete(this.lines.keys().next().value);
+    return line;
   }
+
+  /**
+   * The line of a turn the game sends no bond block with (a reaction: a companion speaking up, a fight line): the last line this character had on a turn of V's. The system message of a
+   * text model then reads the same on a reaction as on a talk, so a model that can only continue from a saved checkpoint (the lite and Mature models) reuses the whole prompt after a
+   * reaction. '' for a character that has had none. `forget()` and `dropLine()` clear it.
+   */
+  repeatFor(input) {
+    return input?.reaction && !input.head && !input.bonds ? this.lines.get(input.profileKey) ?? '' : '';
+  }
+
+  /** A turn of V's with this character came without a bond block (the setting is off): its remembered line is not used again. */
+  dropLine(input) { this.lines.delete(input?.profileKey); }
 
   /**
    * A reply was published (heard or shown): add the exchange to the shared part and tell the game when the level changed. `userText`: the spoken
@@ -490,6 +525,7 @@ export class Bonds {
   /** Forget (the memory reset): the shared part of these characters, and their known levels. */
   forget(options = {}) {
     const removed = this.store.forget(options);
+    this.lines.clear();
     if (options.all) {
       const mine = options.scope || '';
       for (const key of [...this.levels.keys()]) if (scopeOf(key) === mine) this.levels.delete(key);

@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {gearMemory} from './gear-memory.mjs';
 import {parseGear, gearContext, gearDiagnostic, MAX_CHARS, GUIDANCE} from './player-gear.mjs';
 import {parseInput} from './protocol.mjs';
 import {conversationContext} from './quest-context.mjs';
@@ -114,7 +115,16 @@ test('the conversation context carries the line on a manual turn, last before th
   assert.match(context, /V's current gear/);
   assert.ok(context.indexOf('V\'s current gear') < context.indexOf('Speak only your own dialogue'));
   assert.ok(!/V's current gear/.test(conversationContext(parseInput(JSON.stringify(turn())))));
-  assert.ok(!/V's current gear/.test(conversationContext({...parseInput(JSON.stringify(turn({gear: gear()}))), reaction: {kind: 'battle'}})));
+  // A reaction carries no gear of its own (the game sends none): with no manual turn before it there is no line, and after one it repeats that turn's line, byte for byte, so the system
+  // message of the prompt reads the same on both (a model that continues only from a saved checkpoint reuses it: bridge/prompt-prefix-turns.test.mjs).
+  gearMemory.clear();
+  const reaction = () => conversationContext({...parseInput(JSON.stringify(turn({gear: gear()}))), reaction: {kind: 'battle'}, gear: undefined});
+  assert.ok(!/V's current gear/.test(reaction()), 'no manual turn before it: no line');
+  const manual = conversationContext(parseInput(JSON.stringify(turn({gear: gear()}))));
+  assert.match(reaction(), /V's current gear/);
+  assert.ok(reaction().includes(gearContext(parseInput(JSON.stringify(turn({gear: gear()}))))) && manual.includes(gearContext(parseInput(JSON.stringify(turn({gear: gear()}))))), 'the very same text');
+  gearMemory.clear();
+  assert.ok(!/V's current gear/.test(reaction()), 'a new world forgets it');
 });
 
 test('the per-turn diagnostic says whether the gear line was in the context, or why not', () => {

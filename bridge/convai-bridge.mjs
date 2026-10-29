@@ -110,7 +110,7 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {EddiesDecisions, romanceOf} from './eddies.mjs';
-import {Bonds, BondStore} from './bonds.mjs';
+import {Bonds, BondStore, romanceReminder} from './bonds.mjs';
 import {BondPacks} from './bond-pack-runner.mjs';
 import {QuestLink} from './quest-link.mjs';
 import {createFactsReader} from './quest-facts.mjs';
@@ -1706,8 +1706,19 @@ const eddiesNote = (input, prepared, admitted) => input.eddies
 // The proposal of a published turn (a spoken turn's words are read now), for the game to carry out (mod/eddies.lua). Never awaited, never in front of a reply.
 // Character bonds: the turn's line (world tier: it changes only with a level, so prefix caches keep working) and the record of a published turn, which is made after the
 // reply is out and never waits on anything. The relationship the turn was admitted with counts, as for Eddies.
-const bondFacts = (input, prepared, admitted) => ({romance: romanceOf(admitted ? prepared?.relationship : null, RELATIONSHIP_PROFILES)});
-const bondNote = (input, prepared, admitted) => input.bonds ? bonds.contextFor(input, bondFacts(input, prepared, admitted)) : '';
+const bondFacts = (input, prepared, admitted) => {
+  const selection = admitted ? prepared?.relationship : null, romance = romanceOf(selection, RELATIONSHIP_PROFILES);
+  // The tone of the romance (bridge/bonds.mjs ROMANCE_TONE) only where the affectionate delivery is on for this character (Auto with the save's word, or On): Off stays ordinary.
+  return {romance, tone: selection?.style === 'romantic' ? romance : null};
+};
+// A reaction (the game sends no bond block with it) repeats the line of the character's last talk with V, so the system message of the prompt reads the same on both and a model that
+// continues only from a saved checkpoint reuses it; a talk with the setting off forgets the character's line.
+const bondNote = (input, prepared, admitted) => {
+  if (input.bonds) return bonds.contextFor(input, bondFacts(input, prepared, admitted));
+  if (input.reaction) return bonds.repeatFor(input);
+  if (!input.head) bonds.dropLine(input);
+  return '';
+};
 // The turn's story pack decision (a start, or the stage in progress), made once per turn; null while Story packs is off or the turn is not a private one with a named character.
 const packTurn = (input, prepared, admitted) => {
   if (!input.bonds?.packs) { if (input.bonds) bondPacks.on = false; return null; }
@@ -1755,6 +1766,7 @@ const conversationBlocks = input => {
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
     block('world', bondNote(input, prepared, admitted)),
+    block('volatile', input.bonds ? romanceReminder(bondFacts(input, prepared, admitted).tone) : ''),
     block('volatile', packTurn(input, prepared, admitted)?.note ?? ''),
     // The cast member of an armed pay stage is told what is asked and the least it takes (bridge/quest-pay.mjs); '' for every other turn.
     block('volatile', input.quest ? bondPacks.payNote(input) : ''),

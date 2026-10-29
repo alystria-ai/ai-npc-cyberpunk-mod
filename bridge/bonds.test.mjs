@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {LEVELS, levelOf, parseBonds, bondable, channelOf, arcPoints, moneyPoints, storyPart, exchangeValue, cappedTalk, fadedHurt, sharedPart,
-  BondStore, Bonds, bondLine, inventoryComplete, questState, shippedBondArcs, TALK_POINTS, HURT_POINTS, DAY_CAPS, ROMANCE_POINTS, MAX_POINTS,
+  BondStore, Bonds, bondLine, ROMANCE_TONE, ROMANCE_REMINDER, romanceReminder, inventoryComplete, questState, shippedBondArcs, TALK_POINTS, HURT_POINTS, DAY_CAPS, ROMANCE_POINTS, MAX_POINTS,
   HURT_HALF_LIFE_DAYS} from './bonds.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 import {parseInput} from './protocol.mjs';
@@ -169,6 +169,55 @@ test('a turn: the line is decided once per request; no line without the block, f
   assert.match(bonds.contextFor(turn({group: {index: 2}, requestId: 'g-1'})), /How close you are to V/);
   // A romance the save confirms raises the story part.
   assert.match(bonds.contextFor(turn(), {romance: 'partner'}), /good friend/i, '100 + 150: level 5');
+});
+
+test('a romance adds its tone to the line: warm for a partner, light for a casual one, nothing without, the same text every turn, and it keeps to warmth', () => {
+  const plain = bondLine(7), partner = bondLine(7, 0, 'partner'), casual = bondLine(7, 0, 'casual');
+  assert.equal(bondLine(7, 0, null), plain);
+  assert.equal(bondLine(7, 0, 'unknown'), plain, 'an unknown romance adds nothing');
+  assert(partner.startsWith(plain) && casual.startsWith(plain), 'the level line comes first, the tone follows');
+  assert.match(partner, /You and V are a couple/);
+  assert.match(partner, /whatever the subject, even a one line answer/, 'the partner tone is not only for personal moments');
+  assert.match(partner, /nothing sexual happens unless V leads/, 'explicit stays with Mature and with V');
+  assert.match(partner, /never syrupy/);
+  assert.match(casual, /casual/);
+  assert.match(casual, /No declarations, no claim of commitment/);
+  assert(casual.length < partner.length, 'the casual version is lighter');
+  assert.equal(bondLine(7, 0, 'partner'), partner, 'stable: the same text each time');
+  assert.match(bondLine(7, 30, 'partner'), /it still stings.*You and V are a couple/);
+  for (const text of Object.values(ROMANCE_TONE)) assert.doesNotMatch(text, /[–—;]|--/, 'no dashes or semicolons');
+  // On a turn: only the tone the bridge passes (it passes one only where the affectionate delivery is on).
+  const bonds = new Bonds({store: new BondStore(), now: () => 0});
+  assert.doesNotMatch(bonds.contextFor(turn(), {romance: 'partner', tone: null}), /You and V are a couple/, 'the story points count, the tone does not follow Off');
+  assert.match(bonds.contextFor(turn(), {romance: 'partner', tone: 'partner'}), /You and V are a couple/);
+  assert.match(bonds.contextFor(turn(), {romance: 'casual', tone: 'casual'}), /casual/);
+});
+
+test('the one sentence reminder before the words of V: partner, casual, nothing else, no dashes or semicolons', () => {
+  assert.match(romanceReminder('partner'), /you are V's partner/);
+  assert.match(romanceReminder('casual'), /easy, knowing familiarity/);
+  assert.equal(romanceReminder(null), '');
+  assert.equal(romanceReminder('other'), '');
+  for (const text of Object.values(ROMANCE_REMINDER)) assert.doesNotMatch(text, /[–—;]|--/);
+  assert(ROMANCE_REMINDER.partner.length < 260, 'short: it is read again on every turn');
+});
+
+test('a reaction repeats the line of the last talk, byte for byte, so the system message reads the same; nothing before a talk, nothing after the setting went off or a Forget', () => {
+  const bonds = new Bonds({store: new BondStore(), now: () => 0});
+  const reaction = (extra = {}) => ({requestId: 'x' + Math.random(), profileKey: 'panam-palmer', text: 'Speak up on your own.', reaction: {kind: 'speakup'}, ...extra});
+  assert.equal(bonds.repeatFor(reaction()), '', 'no talk yet');
+  const line = bonds.contextFor(turn(), {romance: 'partner', tone: 'partner'});
+  assert.equal(bonds.repeatFor(reaction()), line);
+  assert.equal(bonds.repeatFor(reaction({profileKey: 'judy-alvarez'})), '', 'another character has its own');
+  assert.equal(bonds.repeatFor(reaction({head: {stage: 1}})), '', 'Johnny in the head has none');
+  assert.equal(bonds.repeatFor({...turn(), reaction: undefined}), '', 'a talk builds its own line');
+  assert.equal(bonds.repeatFor(reaction({bonds: {on: true}})), '', 'a reaction that does carry the block builds its own');
+  bonds.dropLine(turn({bonds: undefined}));
+  assert.equal(bonds.repeatFor(reaction()), '', 'a talk with the setting off');
+  bonds.contextFor(turn());
+  assert.notEqual(bonds.repeatFor(reaction()), '');
+  bonds.forget({all: true});
+  assert.equal(bonds.repeatFor(reaction()), '', 'Forget clears the lines');
 });
 
 test('recording turns: a level change is told to the game once, up and down, with unique ids; the status file holds the levels', async () => {

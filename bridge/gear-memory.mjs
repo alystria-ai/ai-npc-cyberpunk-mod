@@ -7,7 +7,20 @@ export const MAX_CONVERSATIONS = 256;   // least recently used go first (every s
 const sameItems = (a, b) => a.length === b.length && [...a].sort().every((item, index) => item === [...b].sort()[index]);
 
 export class GearMemory {
-  constructor({limit = MAX_CONVERSATIONS} = {}) { this.limit = limit; this.seen = new Map(); }
+  constructor({limit = MAX_CONVERSATIONS} = {}) { this.limit = limit; this.seen = new Map(); this.texts = new Map(); }
+  /**
+   * The gear block a talk with `key` (a profile key) had, for the reactions that follow it. The game sends the gear with V's own turns only, and a reaction (a companion speaking up, a
+   * fight line) with none left the block out of the system message, so a model that continues a prompt only from a saved checkpoint (the lite and Mature models) read the whole message
+   * again after every change of kind. A reaction now repeats the block, byte for byte, in its place.
+   */
+  remember(key, text) {
+    if (typeof key !== 'string') return;
+    this.texts.delete(key);
+    if (typeof text === 'string' && text) this.texts.set(key, text);
+    while (this.texts.size > this.limit) this.texts.delete(this.texts.keys().next().value);
+  }
+  /** The block remembered for `key`, or ''. */
+  recall(key) { return this.texts.get(key) ?? ''; }
   /** [{key, now, before}] for each fact in `facts` that differs from what the conversation last saw; [] on its first turn or when nothing changed. */
   changes(key, facts) {
     const before = this.seen.get(key);
@@ -24,7 +37,7 @@ export class GearMemory {
     while (this.seen.size > this.limit) this.seen.delete(this.seen.keys().next().value);
   }
   /** A new world, key or provider: every conversation starts again. */
-  clear() { this.seen.clear(); }
+  clear() { this.seen.clear(); this.texts.clear(); }
 }
 
 export const gearMemory = new GearMemory();
