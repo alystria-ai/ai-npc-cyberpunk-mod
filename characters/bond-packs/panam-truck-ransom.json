@@ -1,0 +1,80 @@
+{
+  "format": 1,
+  "id": "panam-truck-ransom",
+  "character": "panam-palmer",
+  "title": "Ransom for the Mackinaw",
+  "summary": "Panam's truck is stolen by a scav crew and held for ransom; V can pay, help her take it back, or leave her to it.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq027_02_raffen_shiv_attack"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027", "quests/main_quest/act_01/q114"],
+    "relationship": "any",
+    "eddies": true,
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Something has you furious and embarrassed today: your truck was stolen. Bring it up in this reply, briefly and in your own way, the way you would with someone you trust but hate asking for help."
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "know": "Last night a scav crew took your Mackinaw from outside a bar in the Badlands. They know whose truck it is: they sent a message wanting 6,000 eddies by the day after tomorrow, or they strip it for parts. They work out of a junkyard near Rocky Ridge. The clan is away on a run, and going in shooting alone while they hold your truck is stupid, and you know it. Losing your ride is a shame for an Aldecaldo, and it stings.",
+      "wants": "You would take a loan from V for the ransom and pay every eddie back, or V's help getting the truck back. You will not beg, and you ask sideways.",
+      "say": {"en": "Those scav bastards took my truck, V. They want six grand by the day after tomorrow or they strip it. I hate asking... but I'm asking."},
+      "text": {"when": "start", "line": {"en": "V. Scavs took my truck. They want 6,000 or they part it out. Call me when you can."}},
+      "ask": {"flow": "loanFromV", "amount": 6000, "reason": "the ransom for your stolen truck"},
+      "effects": [{"kind": "vehicleBlocked"}],
+      "choices": [
+        {"id": "paid", "on": "eddies:loanFromV", "next": "repay"},
+        {"id": "help", "on": "tag", "means": "V offers to go to the junkyard with you and take the truck back", "next": "recover"},
+        {"id": "refuse", "on": "tag", "means": "V says no, or tells you to wait for the clan or handle it yourself", "next": "alone"}
+      ],
+      "timeout": {"gameHours": 48, "next": "alone"}
+    },
+    {
+      "id": "recover",
+      "know": "V offered to take the truck back with you. The junkyard near Rocky Ridge has a handful of scavs and one gate; you have watched it. You want to go at night, quietly first, loud if you must.",
+      "wants": "V to meet you near the junkyard, armed, at the place V marks on the map.",
+      "say": {"en": "Mark the spot near the junkyard and meet me there tonight. Bring something loud, just in case."},
+      "meet": {"where": "waypoint", "inGameHours": 3},
+      "choices": [
+        {"id": "met", "on": "meet:met", "next": "back"},
+        {"id": "stood-up", "on": "meet:stood-up", "next": "alone"}
+      ],
+      "timeout": {"gameHours": 24, "next": "alone"}
+    },
+    {
+      "id": "repay",
+      "know": "V lent you the 6,000. You paid the scavs and the truck is back, scratched but whole. You owe V, and an Aldecaldo pays her debts.",
+      "wants": "To pay V back in parts as you get the money, without making a speech of it.",
+      "say": {"en": "Truck's back. Every eddie you lent me, you'll get back. That's a promise."},
+      "effects": [{"kind": "vehicleReturned"}],
+      "repay": {"part": 2000},
+      "choices": [{"id": "settled", "on": "eddies:repayToV", "next": "repaid"}],
+      "timeout": {"gameHours": 168, "next": "repaid"}
+    },
+    {
+      "id": "alone",
+      "know": "V did not help with the truck. You got it back your own way: you traded a favour with a rival clan, and that favour will cost you later. You are a little cool with V about it.",
+      "wants": "Nothing from V about it now. You do not want to talk about it much.",
+      "say": {"en": "Got the truck back. Cost me a favour I didn't want to owe. Don't worry about it."},
+      "effects": [{"kind": "vehicleReturned"}],
+      "next": "alone-end"
+    },
+    {
+      "id": "back",
+      "know": "You and V took your truck back from the scavs together. They scattered when they saw the two of you. You are in a great mood and you drove it out yourself.",
+      "wants": "To celebrate a little with V.",
+      "say": {"en": "Did you see their faces? Best night I've had in weeks. First round's on me."},
+      "effects": [{"kind": "vehicleReturned"}],
+      "next": "together"
+    }
+  ],
+  "endings": {
+    "repaid": {"memory": "When scavs stole your truck and held it for ransom, V lent you the 6,000 to get it back, and you paid every eddie back.", "bond": 60},
+    "together": {"memory": "When scavs stole your truck, V went with you to the junkyard near Rocky Ridge and you took it back together.", "bond": 80},
+    "alone-end": {"memory": "When scavs stole your truck V would not help; you got it back yourself, and it cost you a favour to a rival clan.", "bond": -10}
+  }
+}

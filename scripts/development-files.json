@@ -154,6 +154,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/eddies.lua"
     },
     {
+      "source": "mod/bonds.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/bonds.lua"
+    },
+    {
       "source": "mod/companion-outfits.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits.lua"
     },

@@ -491,6 +491,8 @@ convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
     -- Eddies with characters (docs/EDDIES.md): the spoken turn's block, before any return below (a game-placed character talks about money too).
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
+    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): the spoken turn's block too (a game-placed character has a bond as well).
+    if not context.reaction and not context.group then convaiBondsAttach(context) end
     -- No actions for a game-placed story character (docs/WORLD_CHARACTERS.md): it is not a party member, so nothing is offered
     -- and it is not even told what it cannot do.
     -- Nor for Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body to follow, fight or drive with.
@@ -3707,6 +3709,8 @@ local function sendRequest(context)
     -- Encoded first: an encoder that raises after the file was opened for writing left it emptied, its handle open, and the error escaping the caller.
     local providerOk, provider = pcall(function() return chosenProvider() end)
     context.provider = providerOk and provider or nil
+    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): one boolean while it is off.
+    if not context.reaction and not context.group then convaiBondsAttach(context) end
     -- Eddies with characters (docs/EDDIES.md): one boolean while it is off.
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
     local encodedOk, encoded = pcall(json.encode, context)
@@ -6755,6 +6759,50 @@ do
     end
 end
 
+-- ---- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md, mod/bonds.lua) -----------------------------------------------------------------------
+-- Built on the first private turn sent with the setting On; Off, a turn pays one boolean and the tick one nil check. Globals and one do-block, as for
+-- Eddies: the main chunk is near Lua's limit of locals.
+convaiBonds = nil
+do
+    local failed = false
+    local function service()
+        if convaiBonds then return convaiBonds end
+        if failed then return nil end
+        local loaded, module = pcall(dofile, 'bonds.lua')
+        local built, value = false, module
+        if loaded and type(module) == 'table' and type(module.new) == 'function' then
+            built, value = pcall(module.new, {
+                enabled = function() return manager.characterBonds() end,
+                ownCopy = function(entity, profileKey) return companions.ownCopy(entity, profileKey) end,
+                notice = function(player, text) convaiNotices.send(player, 'bond-level', text) end,
+                t = function(text, vars) return ui.t(text, vars) end,
+                log = function(line) log(line) end,
+            })
+        end
+        if not built then
+            failed = true
+            convaiLogOnce('bonds', 'Character bonds is unavailable: ' .. tostring(value))
+            return nil
+        end
+        convaiBonds = value
+        return value
+    end
+    -- A private turn to a named character (typed, spoken or a holocall): its `bonds` block, while the setting is On (bridge/bonds.mjs parseBonds).
+    function convaiBondsAttach(context)
+        if type(context) ~= 'table' or type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return end
+        local bonds = service()
+        if not bonds then return end
+        local ok, problem = pcall(bonds.attach, context)
+        if not ok then convaiLogOnce('bonds-block', 'Bonds block failed: ' .. tostring(problem)) end
+    end
+    -- From the 0.1 s tick: nothing unless a level notice is awaited (at most 30 s after a turn).
+    function convaiBondsTick(player)
+        if not convaiBonds or not player or not convaiBonds.pending() then return end
+        local ok, problem = pcall(convaiBonds.update, player)
+        if not ok then convaiLogOnce('bonds-tick', 'Bonds update failed: ' .. tostring(problem)) end
+    end
+end
+
 -- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
 companions.spawnOutfit = function(record, key)
     local chosen = convaiCharacterOptions
@@ -7419,6 +7467,7 @@ registerForEvent('onUpdate', function(delta)
     if not ambushOk then convaiLogOnce('ambush-tick', 'Revenge ambushes failed: ' .. tostring(ambushError)) end
     -- Eddies with characters (off by default): one nil check per tick unless a proposal is awaited or its pop-up is open.
     if convaiEddies and worldReady then convaiEddiesTick(player) end
+    if convaiBonds and worldReady then convaiBondsTick(player) end
     mark('init:tick')
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)

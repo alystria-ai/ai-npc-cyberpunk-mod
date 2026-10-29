@@ -162,6 +162,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/eddies.lua"
         },
         {
+          "source": "mod/bonds.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/bonds.lua"
+        },
+        {
           "source": "mod/companion-outfits.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits.lua"
         },
@@ -761,6 +765,8 @@
             "bridge/ascii-temp.mjs",
             "bridge/audio-delay.mjs",
             "bridge/battle-context.mjs",
+            "bridge/bond-arcs.mjs",
+            "bridge/bonds.mjs",
             "bridge/bridge-diagnostics.mjs",
             "bridge/call-meet.mjs",
             "bridge/call-off.mjs",

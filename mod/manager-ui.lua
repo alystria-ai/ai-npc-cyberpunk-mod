@@ -2282,6 +2282,9 @@ local function schema()
             -- It sits in Settings > Gameplay (moved there when the section was made); the stored key is unchanged.
             setting('characterEddies', 'Eddies with characters', 'bool', snapshot.settings.characterEddies == true, false,
                 'Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.'),
+            -- Off by default (docs/RELATIONSHIPS_AND_QUESTS.md): a bond with every named character, level 1 to 10, from their quests with V and their talks; one notice per change.
+            setting('characterBonds', 'Character bonds', 'bool', snapshot.settings.characterBonds == true, false,
+                'Every named character has a bond with you, level 1 to 10. Quests finished together, a romance, eddies paid back and talking raise it; threats and insults lower it. Closer characters trust you more.\n\nA notice shows each level change. Forget clears the talk part. Off by default.'),
             action('immersive-invitations', 'Immersive invitations', 'Open',
                 'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
                 function() return navigate('immersive-invitations') end),
@@ -2930,6 +2933,7 @@ function M.apply(changes)
         elseif key == 'keyBindings:reset' then values.keyBindings = manager.defaultKeyBindings()
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'characterEddies' then values.characterEddies = change.value
+        elseif key == 'characterBonds' then values.characterBonds = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'npcThreats' then values.npcThreats = change.value
         elseif key == 'revengeAmbushes' then values.revengeAmbushes = change.value

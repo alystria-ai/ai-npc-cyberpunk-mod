@@ -14,7 +14,7 @@ const files = [
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
   'mod/immersive-invitations.lua', 'mod/housemates.lua', 'mod/housemate-service.lua', 'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua', 'mod/holocall.lua',
-  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/setup-check.lua', 'mod/character-editor.lua', 'mod/convai-paid-tier.lua', 'mod/custom-provider.lua', 'mod/remote-omni.lua', 'mod/omni-amd.lua', 'mod/error-reports.lua', 'mod/eddies.lua',
+  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/setup-check.lua', 'mod/character-editor.lua', 'mod/convai-paid-tier.lua', 'mod/custom-provider.lua', 'mod/remote-omni.lua', 'mod/omni-amd.lua', 'mod/error-reports.lua', 'mod/eddies.lua', 'mod/bonds.lua',
   'r6/scripts/CyberpunkConvai/Composer.reds',
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
   'r6/scripts/CyberpunkConvai/PhoneChat.reds',

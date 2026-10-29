@@ -103,6 +103,7 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {EddiesDecisions, romanceOf} from './eddies.mjs';
+import {Bonds, BondStore} from './bonds.mjs';
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
@@ -1161,6 +1162,11 @@ const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, '
 const memoryNamespace = memoryScopes(addonContent);
 // When V last talked to each character (Settings > Dynamic info > Time since last talk, bridge/last-talk.mjs): kept per memory key, so a pack's characters have their own, read before the first turn.
 await lastTalk.configure({path: resolve(stateDirectory, 'last-talk.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[LastTalk] ' + message)});
+// Character bonds (Settings > Gameplay > Character bonds, bridge/bonds.mjs): the shared part of each bond, per memory key (it follows the memory, and Forget clears it),
+// read before the first turn; the levels and their changes go to the game in runtime/bonds-status.json for the one notice per change (mod/bonds.lua).
+const bondStore = new BondStore();
+await bondStore.configure({path: resolve(stateDirectory, 'bonds.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[Bonds] ' + message)});
+const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-status.json'), log: line => console.error('[Bonds] ' + line)});
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
   memoryKeyFor: memoryNamespace.keyFor,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
@@ -1598,6 +1604,15 @@ const eddiesDecisions = new EddiesDecisions({log: line => console.error('[Eddies
 const eddiesNote = (input, prepared, admitted) => input.eddies
   ? eddiesDecisions.forTurn(input, {romance: romanceOf(admitted ? prepared.relationship : null, RELATIONSHIP_PROFILES)})?.note ?? '' : '';
 // The proposal of a published turn (a spoken turn's words are read now), for the game to carry out (mod/eddies.lua). Never awaited, never in front of a reply.
+// Character bonds: the turn's line (world tier: it changes only with a level, so prefix caches keep working) and the record of a published turn, which is made after the
+// reply is out and never waits on anything. The relationship the turn was admitted with counts, as for Eddies.
+const bondFacts = (input, prepared, admitted) => ({romance: romanceOf(admitted ? prepared?.relationship : null, RELATIONSHIP_PROFILES)});
+const bondNote = (input, prepared, admitted) => input.bonds ? bonds.contextFor(input, bondFacts(input, prepared, admitted)) : '';
+function publishBonds(input, result) {
+  if (!input?.bonds) return;
+  const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
+  bonds.recordTurn(input, result?.userText, bondFacts(input, prepared, admitted));
+}
 function publishEddies(input, result) {
   if (!input?.eddies) return;
   try {
@@ -1614,6 +1629,7 @@ const conversationBlocks = input => {
     block('world', reputation.contextFor(input, {place: dynamicInfo.on('location')})),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
+    block('world', bondNote(input, prepared, admitted)),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
@@ -2430,7 +2446,7 @@ async function publishResult(input, profile, result, current = async () => true,
     // The game already received admission, live text and the consumed-sample
     // clock. Publishing a second ordinary reply would replay or replace it.
     realtimeSessions.set(sessionKey(input), result.sessionID);
-    commitExchange(input); gearTold(); publishEddies(input, result);
+    commitExchange(input); gearTold(); publishEddies(input, result); publishBonds(input, result);
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
       stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : result.timing?.voiceProvider === 'omni' ? 'omni-continuous' : 'convai-continuous', complete: true},
@@ -2449,7 +2465,7 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
-  commitExchange(input); gearTold(); publishEddies(input, result);
+  commitExchange(input); gearTold(); publishEddies(input, result); publishBonds(input, result);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face: undefined, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
@@ -2655,6 +2671,7 @@ async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
     // The text providers keep their own conversation memory here (bridge/memory-store.mjs): Forget clears it too, records and vectors included.
     mistralMemory.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});
     lastTalk.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});   // a forgotten character does not remember when it last met V
+    bonds.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});   // the bond's talk part follows the memory it came from
     await mistralMemory.flush().catch(() => {});
     return {quiesced: true};
   } finally { memoryQuiescing--; }
@@ -4189,6 +4206,7 @@ async function shutdown() {
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
   await lastTalk.flush().catch(() => {});
+  await bondStore.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);
   await reputation.flush().catch(() => {});
   await vendorMemory.idle().catch(() => {});
