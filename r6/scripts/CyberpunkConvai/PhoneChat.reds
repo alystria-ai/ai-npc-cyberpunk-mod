@@ -338,8 +338,9 @@ private func SetupData() -> Void {
     // it. An open conversation shows no Call hint at all (calls start from the Chat list: its row icon and Call (V)).
     inkWidgetRef.SetVisible(this.m_hintCall, false);
     inkWidgetRef.SetVisible(this.m_hintReply, false);
-    // The native "C CLOSE" hint is replaced by our own line (Esc closes here, as well as C).
-    inkWidgetRef.SetVisible(this.m_hintClose, false);
+    // The native close hint stays, and shows the game's Esc key on a keyboard (Esc is what closes the chat here, 30 Oct: it read C).
+    inkWidgetRef.SetVisible(this.m_hintClose, true);
+    this.ConvaiChatCloseKey();
     inkWidgetRef.SetVisible(this.m_scrollReply, false);
     inkWidgetRef.SetVisible(this.m_hintMessenger, false);
     inkWidgetRef.SetVisible(this.m_contactsPath, false);
@@ -351,10 +352,24 @@ private func SetupData() -> Void {
     this.QueueEvent(ready);
 }
 
+// The close hint of an AI chat shows Esc on a keyboard: every hint of the page bound to the game's cancel action (C) is rebound to the pause-menu action, whose key is Esc.
+// The trace says what was found, once per opening. A pad keeps the game's own key.
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatCloseKey() -> Void {
+    let player = this.m_player as PlayerPuppet;
+    if !IsDefined(player) || !player.PlayerLastUsedKBM() { return; };
+    inkWidgetRef.SetVisible(this.m_hintClose, true);
+    let changed = ConvaiHintBinding.CloseToEsc(this.GetRootWidget(), 8);
+    if changed == 0 { changed = ConvaiHintBinding.CloseToEsc(inkWidgetRef.Get(this.m_hintClose), 4); };
+    if changed == 0 { player.ConvaiPhoneChatTrace("close hint: no cancel hint found on the chat page; hints: " + StrMid(ConvaiHintBinding.Describe(this.GetRootWidget(), 8), 0, 150)); };
+}
+
 @wrapMethod(PhoneMessagePopupGameController)
 private func SetFocus(isFocused: Bool) -> Void {
     if !isFocused { this.ConvaiChatSaveDraft(); this.ConvaiChatBlur(); };
     wrappedMethod(isFocused);
+    // The game may draw its close hint again when the page gains or loses the focus: in an AI chat it names Esc every time.
+    if this.m_data.convaiChat { this.ConvaiChatCloseKey(); };
     this.m_convaiChatEscape = false;
     this.m_convaiChatAutoFocus = isFocused && this.m_data.convaiChat;
     let player = this.m_player as PlayerPuppet;

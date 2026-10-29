@@ -107,6 +107,46 @@ public class ConvaiHintBinding {
         icon.SetAtlasResource(r"base\\gameplay\\gui\\common\\input\\icons_keyboard.inkatlas");
         icon.SetTexturePart(part);
     }
+    // Every key hint under a widget as `name=action`, with `(hidden)` for one that is not shown: a bounded walk (depth and a count the caller owns), used once per opening of the Chat list
+    // to put the close hint's widget in the log (30 Oct: the hint reads C there, Esc is the key that works, and the widget is not one of the fields the mod reaches).
+    public static func Describe(root: ref<inkWidget>, depth: Int32) -> String {
+        if !IsDefined(root) { return ""; };
+        let text = "";
+        let display = root.GetController() as inkInputDisplayController;
+        if IsDefined(display) {
+            text = NameToString(root.GetName()) + "=" + NameToString(display.GetInputAction()) + (root.IsVisible() ? "" : "(hidden)") + " ";
+        };
+        let parent = root as inkCompoundWidget;
+        if depth <= 0 || !IsDefined(parent) { return text; };
+        let i = 0;
+        while i < parent.GetNumChildren() {
+            text += ConvaiHintBinding.Describe(parent.GetWidgetByIndex(i), depth - 1);
+            i += 1;
+        };
+        return text;
+    }
+    // The close hints of a keyboard player show Esc, the key that closes the phone's pages here (30 Oct: they read C). Every key hint under `root` bound to the game's cancel action
+    // (C) is rebound to the pause-menu action, whose key is Esc; returns how many were. EscToClose puts them back. A bounded walk (depth), done when a page or list is shown, never per frame.
+    public static func CloseToEsc(root: ref<inkWidget>, depth: Int32) -> Int32 {
+        return ConvaiHintBinding.SwapAction(root, depth, n"cancel", n"OpenPauseMenu");
+    }
+    public static func EscToClose(root: ref<inkWidget>, depth: Int32) -> Int32 {
+        return ConvaiHintBinding.SwapAction(root, depth, n"OpenPauseMenu", n"cancel");
+    }
+    public static func SwapAction(root: ref<inkWidget>, depth: Int32, from: CName, to: CName) -> Int32 {
+        if !IsDefined(root) { return 0; };
+        let count = 0;
+        let display = root.GetController() as inkInputDisplayController;
+        if IsDefined(display) && Equals(display.GetInputAction(), from) { display.SetInputAction(to); count += 1; };
+        let parent = root as inkCompoundWidget;
+        if depth <= 0 || !IsDefined(parent) { return count; };
+        let i = 0;
+        while i < parent.GetNumChildren() {
+            count += ConvaiHintBinding.SwapAction(parent.GetWidgetByIndex(i), depth - 1, from, to);
+            i += 1;
+        };
+        return count;
+    }
     // The hint's own key box again, for the action it is bound to: setting another action and then this one makes the controller draw it anew.
     public static func Redraw(root: ref<inkWidget>) -> Void {
         let display = ConvaiHintBinding.Display(root, 3);
@@ -632,11 +672,46 @@ private let m_convaiShowAllSaved: Bool;
 @addField(PhoneDialerLogicController)
 private let m_convaiFavoriteStar: wref<inkImage>;
 
+// The hints of the phone window, written to the log once per session the first time the Chat list is shown (ConvaiHintBinding.Describe).
+@addField(PhoneDialerLogicController)
+private let m_convaiHintsTraced: Bool;
+@addField(PhoneDialerLogicController)
+private let m_convaiCloseEsc: Bool;
+@addField(PhoneDialerLogicController)
+private let m_convaiCloseRoot: wref<inkWidget>;
+
 @wrapMethod(PhoneDialerLogicController)
 private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
     wrappedMethod(contactData);
     if IsDefined(contactData) && contactData.convaiChat {
         let player = GetPlayer(GetGameInstance()) as PlayerPuppet;
+        // The bottom bar's close hint: Esc on a keyboard (it read C). The hint is found by its action (cancel) under the list, then under the whole phone window.
+        if IsDefined(player) && player.PlayerLastUsedKBM() {
+            let top = this.GetRootWidget();
+            let found = ConvaiHintBinding.CloseToEsc(top, 8);
+            if found == 0 {
+                let up = 0;
+                while up < 6 && IsDefined(top) && IsDefined(top.GetParentWidget()) {
+                    top = top.GetParentWidget();
+                    up += 1;
+                };
+                found = ConvaiHintBinding.CloseToEsc(top, 9);
+            };
+            this.m_convaiCloseEsc = IsDefined(top) && found > 0;
+            if this.m_convaiCloseEsc { this.m_convaiCloseRoot = top; };
+            if !this.m_convaiHintsTraced {
+                this.m_convaiHintsTraced = true;
+                player.ConvaiPhoneChatTrace("Chat list close hint: rebound " + IntToString(found) + " cancel hint(s) to Esc");
+                if found == 0 {
+                    let described = ConvaiHintBinding.Describe(inkWidgetRef.Get(this.m_inputHintsPanel), 6);
+                    let at = 0;
+                    while at < StrLen(described) && at < 540 {
+                        player.ConvaiPhoneChatTrace("Chat list hints: " + StrMid(described, at, 180));
+                        at += 180;
+                    };
+                };
+            };
+        };
         let keyboard = !IsDefined(player) || player.PlayerLastUsedKBM();
         inkTextRef.SetText(this.m_acceptButtonLabel, "Chat");
         inkWidgetRef.SetVisible(this.m_acceptButtonWidget, true);
@@ -669,7 +744,11 @@ private func RefreshInputHints(contactData: wref<ContactData>) -> Void {
             inkWidgetRef.SetVisible(this.m_showAllButtonWidget, false);
         };
     } else {
-        // Anything else on this list: the hint is the game's again, bound to what it was bound to.
+        // Anything else on this list: the hint is the game's again, bound to what it was bound to (the close hint too: C).
+        if this.m_convaiCloseEsc {
+            ConvaiHintBinding.EscToClose(this.m_convaiCloseRoot, 9);
+            this.m_convaiCloseEsc = false;
+        };
         if this.m_convaiCallHintBound {
             ConvaiHintBinding.Rebind(inkWidgetRef.Get(this.m_action2ButtonWidget), this.m_convaiCallHintAction);
             this.m_convaiCallHintBound = false;
