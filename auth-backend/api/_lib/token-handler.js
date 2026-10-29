@@ -11,6 +11,21 @@ const MAX_TURNS_PER_REPORT = 1000;
 const MAX_MIN_LIFE_SECONDS = 900;
 const PREFILTER_PER_MINUTE = 60;
 const STALE_SERVE_MS = 60_000;
+// Browser extensions (any chrome-extension:// id: unpacked, Chrome Web Store and Edge Add-ons builds differ) may call this from
+// their pages without a host permission. They still sign every request, so CORS opens nothing the signature does not already gate.
+const EXTENSION_ORIGIN = /^chrome-extension:\/\/[a-p]{32}$/;
+const PREFLIGHT_HEADERS = {
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, x-convai-timestamp, x-convai-signature',
+  'Access-Control-Max-Age': '86400',
+};
+
+/** Vary: Origin always, and the caller's origin echoed back only when it is an extension's. */
+function allowExtensionOrigin(request, response) {
+  response.setHeader('Vary', 'Origin');
+  const origin = headerValue(request, 'origin');
+  if (EXTENSION_ORIGIN.test(origin)) response.setHeader('Access-Control-Allow-Origin', origin);
+}
 
 const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
 const nextUtcMidnight = ms => Math.floor(ms / 86_400_000 + 1) * 86_400_000;
@@ -63,8 +78,15 @@ export function createTokenHandler(options = {}) {
   }
 
   return async function tokenHandler(request, response) {
+    allowExtensionOrigin(request, response);
+    if (request.method === 'OPTIONS') {
+      for (const [name, value] of Object.entries(PREFLIGHT_HEADERS)) response.setHeader(name, value);
+      response.statusCode = 204;
+      response.end();
+      return;
+    }
     if (request.method !== 'POST') {
-      sendJson(response, 405, { error: 'method_not_allowed' }, { Allow: 'POST' });
+      sendJson(response, 405, { error: 'method_not_allowed' }, { Allow: 'POST, OPTIONS' });
       return;
     }
     const config = readConfig(getEnv());

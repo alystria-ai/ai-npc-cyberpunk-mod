@@ -36,7 +36,6 @@ test('every refusal is a short JSON answer with the same hardening headers, no c
     const world = createWorld({ CONVAI_AUTH_MIN_VERSION: '0.2.1', CONVAI_AUTH_INSTALL_PER_HOUR: '1' });
     const now = Math.floor(world.clock.now / 1000);
     add('wrong method', 405, await world.send({ method: 'GET' }));
-    add('browser preflight', 405, await world.send({ method: 'OPTIONS', headers: { origin: 'https://example.org', 'access-control-request-method': 'POST' } }));
     add('forged signature', 401, await world.send({ signature: FORGED }));
     add('stale clock', 401, await world.send({ timestamp: String(now - 500) }));
     add('too large', 413, await world.send({ body: 'x'.repeat(5000) }));
@@ -71,6 +70,7 @@ test('every refusal is a short JSON answer with the same hardening headers, no c
     assert.equal(response.headers['Content-Type'], 'application/json; charset=utf-8', label);
     assert.equal(typeof response.json.error, 'string', label);
     assert.ok(!Object.keys(response.headers).some(name => name.toLowerCase().startsWith('access-control-')), `${label} grants no cross-origin access`);
+    assert.equal(response.headers.Vary, 'Origin', label);
     assert.ok(!/node_modules|\.m?js:\d|Error:/.test(response.text), `${label} shows no stack or file path: ${response.text}`);
     assert.ok(!response.text.includes(FAKE_API_KEY) && !response.text.includes(SIGNING_SECRET), label);
   }
@@ -324,4 +324,51 @@ test('a request body that fails while being read (the client went away) gets a c
   await world.handler(broken, response);
   assert.ok(response.statusCode >= 400 && response.statusCode < 600, 'some error status was written');
   assert.equal(typeof response.json.error, 'string');
+});
+
+const EXTENSION = 'chrome-extension://acfemddbfagijogenkmibnbhejamckgf';
+const PREFLIGHT = { 'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type,x-convai-timestamp,x-convai-signature' };
+
+test('an extension preflight gets 204 with its own origin echoed; a web page or a look-alike origin gets 204 and no permission', async () => {
+  const world = createWorld();
+  const ok = await world.send({ method: 'OPTIONS', headers: { origin: EXTENSION, ...PREFLIGHT } });
+  assert.equal(ok.statusCode, 204);
+  assert.equal(ok.text, '');
+  assert.equal(ok.headers['Access-Control-Allow-Origin'], EXTENSION);
+  assert.equal(ok.headers['Access-Control-Allow-Methods'], 'POST, OPTIONS');
+  assert.equal(ok.headers['Access-Control-Allow-Headers'], 'Content-Type, x-convai-timestamp, x-convai-signature');
+  assert.equal(ok.headers['Access-Control-Max-Age'], '86400');
+  assert.equal(ok.headers.Vary, 'Origin');
+  assert.equal(ok.headers['Access-Control-Allow-Credentials'], undefined);
+  assert.equal(world.store.commands, 0, 'a preflight costs no store command');
+  for (const origin of ['https://example.org', 'chrome-extension://ACFEMDDBFAGIJOGENKMIBNBHEJAMCKGF', 'chrome-extension://acfemddbfagijogenkmibnbhejamckgz',
+    'chrome-extension://acfemddbfagijogenkmibnbhejamckgf.evil.org', 'moz-extension://acfemddbfagijogenkmibnbhejamckgf', 'null', '']) {
+    const refused = await world.send({ method: 'OPTIONS', headers: { origin, ...PREFLIGHT } });
+    assert.equal(refused.statusCode, 204, origin);
+    assert.equal(refused.headers['Access-Control-Allow-Origin'], undefined, origin);
+    assert.equal(refused.headers.Vary, 'Origin', origin);
+  }
+});
+
+test('every answer to an extension, the token and each refusal, carries its origin so the extension can read the body', async () => {
+  const headers = { origin: EXTENSION };
+  const world = createWorld({ CONVAI_AUTH_MIN_VERSION: '0.2.1' });
+  const now = Math.floor(world.clock.now / 1000);
+  const answers = [
+    ['token', 200, await world.send({ headers, version: '0.2.1' })],
+    ['stale', 401, await world.send({ headers, timestamp: String(now - 500) })],
+    ['forged', 401, await world.send({ headers, signature: 'v1=' + '0'.repeat(64) })],
+    ['outdated', 426, await world.send({ headers, version: '0.1' })],
+    ['daily', 429, await createWorld({ CONVAI_AUTH_DAILY_TURN_CAP: '5' }).send({ headers, turns: 5 })],
+    ['paused', 503, await createWorld({ CONVAI_AUTH_PAUSED: '1' }).send({ headers })],
+    ['wrong method', 405, await world.send({ headers, method: 'GET' })],
+  ];
+  for (const [label, status, response] of answers) {
+    assert.equal(response.statusCode, status, label);
+    assert.equal(response.headers['Access-Control-Allow-Origin'], EXTENSION, label);
+    assert.equal(response.headers.Vary, 'Origin', label);
+    assert.equal(response.headers['Access-Control-Allow-Credentials'], undefined, label);
+  }
+  assert.equal(answers[1][2].json.error, 'stale');
+  assert.equal(typeof answers[1][2].json.serverTime, 'number');
 });
