@@ -127,6 +127,23 @@ test('the other pack kinds are recognised: Local AI lite, Mature lite and standa
   } finally { await f.cleanup(); }
 });
 
+test('a vision file (the projector of a model, a zip of its own) extracted one folder too deep is moved into place by its receipt', async () => {
+  const f = await fakeGame();
+  try {
+    const wrapper = join(f.game, 'Vision-Gemma-4-E4B-projector');
+    const app = join(wrapper, APP);
+    await put(join(app, 'local-ai/vision-gemma.json'), '{"package":"vision-gemma"}');
+    await put(join(app, 'local-ai/models/mmproj-gemma-4-E4B-it-Q8_0.gguf'), 'projector');
+    await put(join(app, 'local-ai/vision/THIRD-PARTY-NOTICES-Vision-Gemma-4-E4B-projector.txt'), 'notice');
+    await put(join(app, 'local-ai/licenses/Apache-2.0.txt'), 'licence');
+    const log = lines();
+    await placeMisplacedPacks({layout: f.layout, log: log.log});
+    assert.deepEqual([...log], ['Moved the Vision file (Gemma 4 E4B) files into place from Vision-Gemma-4-E4B-projector']);
+    assert.deepEqual(await tree(join(f.game, APP, 'local-ai')), ['licenses/Apache-2.0.txt', 'models/mmproj-gemma-4-E4B-it-Q8_0.gguf', 'vision/THIRD-PARTY-NOTICES-Vision-Gemma-4-E4B-projector.txt', 'vision-gemma.json']);
+    assert.equal(await exists(wrapper), false);
+  } finally { await f.cleanup(); }
+});
+
 test('the OmniVoice pack moves app/omni and its voices folder', async () => {
   const f = await fakeGame();
   try {

@@ -10,6 +10,8 @@ message), the optional packs no product prefix, and there are NO checksum files:
     local-ai/LocalAI-Standard-Gemma-4-E4B.zip   local-ai/LocalAI-Lite-Bonsai-2-4B.zip
     mature/Mature-Standard-Gemma-4-E4B.zip      mature/Mature-Lite-Qwen3.5-4B.zip
     mic/MicPack-European-Parakeet-TDT-0.6B-v3.zip   mic/MicPack-Asian-SenseVoice-Small-234M.zip
+    local-ai/vision/Vision-Gemma-4-E4B-projector.zip   local-ai/vision/Vision-Bonsai-2-4B-projector.zip   (the vision files of the Local AI models: small separate zips, not part of the packs)
+    mature/vision/Vision-Gemma-4-E4B-projector.zip     mature/vision/Vision-Qwen3.5-4B-projector.zip      (the same Gemma zip is published at both paths: one build, one file, two paths)
     voice/OmniPack-OmniVoice-0.6B.zip           (OmniVoice is the only downloadable voice model)
     voice/amd/OmniAMD-<family>-PyTorch-<v>-ROCm-<v>.zip    (AMD's ROCm PyTorch for OmniVoice, one zip per card family; packaging/build-omni-amd-packs.mjs)
     updates/Runtime-Update-<from>-to-<to>.zip   and   multilingual/Voices-<Language>.zip, PocketTTS-Model-100M-<Language>.zip   (published by their own tools)
@@ -66,8 +68,10 @@ LAYOUT = {
     "runtime": ("runtime", "Runtime"),
     **{pack: (entry["folder"], entry["title"]) for pack, entry in PACK_FILES["packs"].items()},
 }
-# pack id -> the title before 0.3.4 (OmniPack, LocalAI-Lite ...): still accepted in a build folder, and the old path of --also-old-name.
-LEGACY_TITLES = {pack: entry["legacyTitle"] for pack, entry in PACK_FILES["packs"].items()}
+# pack id -> the title before 0.3.4 (OmniPack, LocalAI-Lite ...): still accepted in a build folder, and the old path of --also-old-name. The vision files are newer than that and have none.
+LEGACY_TITLES = {pack: entry["legacyTitle"] for pack, entry in PACK_FILES["packs"].items() if entry.get("legacyTitle")}
+# pack id -> the other folders the same zip is published to (the Gemma 4 E4B vision file serves Local AI standard and Mature standard: local-ai/vision and mature/vision).
+ALSO_IN = {pack: tuple(entry["alsoIn"]) for pack, entry in PACK_FILES["packs"].items() if entry.get("alsoIn")}
 PACKS = tuple(LAYOUT) + ("omni-amd",)
 # The AMD packs (packaging/build-omni-amd-packs.mjs) are not part of a release build: the zips are named by what is inside, not by the release,
 # and go to voice/amd/ as they are. --pack omni-amd uploads every one found in the folder.
@@ -221,6 +225,8 @@ def plan(version: str, pack: str, packages: Path, game: str = "2.5", also_old_na
     if zip_path is None or not zip_path.is_file():
         raise SystemExit(f"Expected exactly one zip for the {pack} pack in {packages}: {name} is missing. A pack is a single zip, never parts.")
     items = [(zip_path, remote_path(pack, game))]
+    # A zip that serves two folders (the Gemma 4 E4B vision file) is published at every path, from the one file.
+    items += [(zip_path, f"{folder}/{LAYOUT[pack][1]}.zip") for folder in ALSO_IN.get(pack, ())]
     if also_old_name and legacy_remote_path(pack, game):
         items.append((zip_path, legacy_remote_path(pack, game)))
     return items

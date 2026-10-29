@@ -21,6 +21,9 @@
 //   Mature-Lite-Qwen3.5-4B-<v>.zip              optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
 //                                               never in the default set, never Nexus; it carries its own marker, so it works alone (mature/)
 //   Mature-Standard-Gemma-4-E4B-<v>.zip         optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard (mature/)
+//   Vision-Gemma-4-E4B-projector-<v>.zip        the vision file of Gemma 4 E4B (Local AI standard, Mature standard): a small separate zip, local-ai/vision/ and mature/vision/;
+//   Vision-Bonsai-2-4B-projector-<v>.zip        of Bonsai 2 4B (Local AI lite, local-ai/vision/); Vision-Qwen3.5-4B-projector-<v>.zip of Qwen3.5-4B (Mature lite, mature/vision/);
+//                                               only with --packages vision-gemma,vision-bonsai,vision-qwen (release.config.json "visionFiles"), never on Nexus
 //   MicPack-European-Parakeet-TDT-0.6B-v3-<v>.zip  optional voice-input pack, NVIDIA Parakeet TDT 0.6B v3 (int8); only with --packages micpack-european (mic/)
 //   MicPack-Asian-SenseVoice-Small-234M-<v>.zip optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian (mic/)
 //                                               (neither is in the default set or on Nexus; the model files come from the pinned sherpa-onnx archive, or --mic-pack-source)
@@ -32,7 +35,7 @@
 //   --version V        release version, 2077.N or 2077.N.M (required)
 //   --dry-run          local build: models from the developer runtime/ folder; the sign-in settings below may be left out
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
-//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-standard,micpack-european,micpack-asian (default: the first five)
+//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-standard,vision-gemma,vision-bonsai,vision-qwen,micpack-european,micpack-asian (default: the first five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
 //   --auth-url URL     the token backend's address (https://<backend>/api/convai/token; default: the CONVAI_AUTH_URL environment variable)
 //   --auth-backup-url URL  the second backend's address (the Cloudflare Worker, https://<worker>/api/convai/token; optional, default: the CONVAI_AUTH_BACKUP_URL
@@ -69,7 +72,7 @@ import {RUNTIME_FOLDER_NOTE} from './lib/runtime-exchange.mjs';
 import {shippedButWritten} from './lib/package-writes.mjs';
 import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
-import {PROJECTOR_FOLDER, projectorField, projectorNotice, projectorReceipt, projectorUrl, tierProjector, verifyProjectorFile} from './lib/pack-projector.mjs';
+import {projectorField, projectorReceipt, projectorUrl, tierProjector, verifyProjectorFile, visionFilePath, visionNoticePath, visionNoticeText, visionReceiptPath, visionZip, visionZipIds} from './lib/pack-projector.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
@@ -104,9 +107,10 @@ const modelSource = value('--models', dryRun ? 'local' : 'hf');
 // 'mature-lite' and 'mature-standard' are the two separate adult-flagged Mature packs (packaging/MATURE_PACK_README.md), one model each: built only
 // when asked for, never in the default set. 'micpack-european' and 'micpack-asian' are the two voice-input packs (docs/LOCAL_STT.md), opt-in the same way.
 // The optional packs (OPTIONAL_PACKAGE_IDS) are hosted on Hugging Face as one zip each.
-const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'micpack-european', 'micpack-asian'];
-const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => !id.startsWith('mature') && !id.startsWith('micpack'));
-const OPTIONAL_PACKAGE_IDS = new Set(['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'micpack-european', 'micpack-asian']);
+// 'vision-gemma', 'vision-bonsai' and 'vision-qwen' are the three small zips with a model's vision projector (release.config.json "visionFiles"): opt-in too.
+const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'vision-gemma', 'vision-bonsai', 'vision-qwen', 'micpack-european', 'micpack-asian'];
+const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => !id.startsWith('mature') && !id.startsWith('micpack') && !id.startsWith('vision'));
+const OPTIONAL_PACKAGE_IDS = new Set(['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'vision-gemma', 'vision-bonsai', 'vision-qwen', 'micpack-european', 'micpack-asian']);
 const packages = new Set(value('--packages', DEFAULT_PACKAGE_IDS.join(',')).split(',').map(item => item.trim()).filter(Boolean));
 const localAiSource = value('--local-ai-source', process.env.CYBERPUNK_CONVAI_LOCAL_AI_DEV);
 const out = resolve(value('--out', resolve(project, 'dist/release')));
@@ -866,13 +870,18 @@ async function localAiFile(spec, url, cacheName) {
   return download(url, resolve(cache, 'local-ai', cacheName), spec.sha256, log);
 }
 
-// The vision projector of a model (packaging/lib/pack-projector.mjs): fetched like the model (the developer folder, else the pinned revision on Hugging Face), checked against its
-// pinned size and SHA-256, written into models/ beside the model. The caller names it in the pack's manifest (projectorField). Returns the pin, or null for a model with none.
-async function addProjector(pkg, root, tier, label) {
-  const spec = tierProjector(tier, label);
-  if (!spec) return null;
-  pkg.file(`${root}/${PROJECTOR_FOLDER}/${spec.file}`, await verifyProjectorFile(await localAiFile(spec, projectorUrl(spec), spec.file), spec));
-  return spec;
+// A vision file (packaging/lib/pack-projector.mjs, release.config.json "visionFiles"): ONE small zip with a model's projector, separate from the packs (owner decision 2026-10-29).
+// The projector is fetched like a model (the developer folder, else the pinned revision on Hugging Face), checked against its pinned size and SHA-256 and written to
+// models/ beside the model files, which is where the pack manifests name it (projectorField). The zip also holds the Apache-2.0 text, a notice and a receipt, vision-<id>.json,
+// which the pack placer reads like a pack marker so a zip extracted one folder too deep is moved into place.
+async function visionPackage(source, config, id) {
+  const zip = visionZip(config, id), root = config.layout.localAiDirectory;
+  const pkg = new Package(id);
+  pkg.file(visionFilePath(root, zip.spec), await verifyProjectorFile(await localAiFile(zip.spec, projectorUrl(zip.spec), zip.spec.file), zip.spec));
+  pkg.file(`${root}/licenses/Apache-2.0.txt`, resolve(source.root, 'packaging/licenses/Apache-2.0.txt'));
+  pkg.text(visionNoticePath(root, zip.title), visionNoticeText(zip, config.product));
+  pkg.json(visionReceiptPath(root, id), {product: config.product, package: id, version, commit: '' + source.commit, usedBy: zip.usedBy, ...projectorReceipt(zip.spec)});
+  return pkg;
 }
 
 // The llama.cpp files that ship: the official Windows Vulkan release (unmodified), only the server, llama-fit-params and the libraries they load (localAi.server
@@ -980,8 +989,9 @@ async function localAiPackage(source, config, tierKey) {
   const engine = await addEngine(pkg, source, config);
   const chatPath = await localAiFile(tier, huggingFace(tier), tier.file);
   pkg.file(`${root}/models/${tier.file}`, chatPath);
-  // Its vision projector, named in the manifest so the bridge loads it (only while Companions can see is on) without guessing.
-  const projector = await addProjector(pkg, root, tier, `Local AI ${tierKey}`);
+  // Its vision projector is NOT in this pack (a separate zip, visionPackage): the manifest only names the file it expects in models/, so the bridge loads it when it is there (only
+  // while Companions can see is on) and tells the player where to get it when it is not.
+  const projector = tierProjector(tier, `Local AI ${tierKey}`);
 
   pkg.json(`${root}/manifest.${tierKey}.json`, {version: 1, ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${tier.file}`, name: tier.name, ...projectorField(projector)}, embed: engine.embed});
 
@@ -995,7 +1005,6 @@ async function localAiPackage(source, config, tierKey) {
     `${lite.name} (ternary Q2_0 GGUF, a Qwen3.5-based model; Local AI lite only) - ${lite.publisher}, ${lite.license}: licenses/Apache-2.0.txt;`
       + ' it derives from Qwen3.5 (Alibaba Cloud, Apache-2.0)'
       + ` - https://huggingface.co/${lite.repository}`,
-    ...[[standard, 'Google'], [lite, 'PrismML']].filter(([model]) => model.mmproj).map(([model, owner]) => projectorNotice(model.mmproj, owner)),
     embedNotice,
     ...(spec.server.inPacks === false ? ['This pack carries models only and needs the Runtime of version 0.2.7 or newer: the llama.cpp engine that runs the models is part of the Runtime, not of this pack.'] : []),
     'The model files are the unmodified converted files of the publishers named above.',
@@ -1004,7 +1013,7 @@ async function localAiPackage(source, config, tierKey) {
   pkg.text(`${root}/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod Local AI packs - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.json(`${root}/local-ai-${tierKey}.json`, {product: config.product, package: `localai-${tierKey}`, version, commit: '' + source.commit,
     llamaCpp: spec.server.version, model: `${tier.repository}@${tier.revision}`, modelFile: tier.file, modelSha256: tier.sha256,
-    embedModel: `${spec.embed.repository}@${spec.embed.revision}`, ...projectorReceipt(projector)});
+    embedModel: `${spec.embed.repository}@${spec.embed.revision}`});
   return pkg;
 }
 
@@ -1043,9 +1052,9 @@ async function maturePackage(source, config, tierKey) {
   const engine = await addEngine(pkg, source, config);
   const mirrored = modelSource === 'hf' ? await matureMirror(source, tierKey) : new Map();
   pkg.file(`${root}/models/${model.file}`, mirrored.get(model.file) ?? await localAiFile(model, huggingFace(model), model.file));
-  // The projector of the model when the pin has one (the Gemma 4 E4B one for the standard pack; the same file, at the same path, as the Local AI standard pack's). The marker names it,
-  // because a Mature model is never given a projector by looking beside it (bridge/mature-pack.mjs).
-  const projector = await addProjector(pkg, root, model, `Mature ${packKey}`);
+  // The projector of the model (a separate zip, visionPackage: the Gemma 4 E4B one for standard is the same file, at the same path, as the Local AI standard pack's). The marker only names
+  // it, because a Mature model is never given a projector by looking beside it (bridge/mature-pack.mjs).
+  const projector = tierProjector(model, `Mature ${packKey}`);
   // This pack's own marker, so the other pack's marker is never overwritten and either one alone is detected. It names the server and the
   // embedding model too (bridge/local-ai-pack.mjs reads those two fields), so a Mature-only install counts as installed.
   pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family, ...projectorField(projector)}, embed: engine.embed});
@@ -1054,7 +1063,6 @@ async function maturePackage(source, config, tierKey) {
   const [llamaNotice, embedNotice] = engineNotices(config.localAi, 'every Local AI pack and Mature pack');
   pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${packKey}.txt`, [`AI NPC Cyberpunk Mod Mature ${packKey} pack - third-party components`, '',
     `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`,
-    ...(projector ? [`- ${projectorNotice(projector, 'Google')}`] : []),
     `- The model is a community fine-tune of the Apache-2.0 base model named above.${tierKey === 'good' ? ' Google also publishes a prohibited use policy for Gemma: https://ai.google.dev/gemma/prohibited_use_policy' : ''}`,
     `- ${llamaNotice}`, `- ${embedNotice}`,
     config.localAi.server.inPacks === false
@@ -1063,7 +1071,7 @@ async function maturePackage(source, config, tierKey) {
     '- The licence paths above (licenses/...) are in the Local AI folder, one level up from this folder; the Apache-2.0 text is also in mature/licenses/.',
     '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see ../LICENSE.txt.', ''].join('\r\n'));
   pkg.json(`${root}/${spec.directory}/mature-pack-${packKey}.json`, {product: config.product, package: `mature-${packKey}`, version, commit: '' + source.commit,
-    models: [{tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256, ...projectorReceipt(projector)}]});
+    models: [{tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256}]});
   return pkg;
 }
 
@@ -1208,6 +1216,7 @@ async function main() {
     'localai-lite': () => localAiPackage(source, config, 'lite'),
     'mature-lite': () => maturePackage(source, config, 'lite'),
     'mature-standard': () => maturePackage(source, config, 'good'),
+    ...Object.fromEntries(visionZipIds(config).map(id => [id, () => visionPackage(source, config, id)])),
     'micpack-european': () => micPackage(source, config, 'european'),
     'micpack-asian': () => micPackage(source, config, 'asian'),
   };

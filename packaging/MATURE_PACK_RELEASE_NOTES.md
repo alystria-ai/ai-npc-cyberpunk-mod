@@ -14,7 +14,7 @@ The main mod has a **Mature content** setting (Settings > Conversation provider,
 
 **What it adds**
 
-- Two packs, each one zip with one uncensored model for **Local AI**: **Mature lite** (about 2.8 GB) and **Mature standard** (about 6.0 GB), running on your own graphics card. Each includes the memory model, the same file as in the Local AI packs, and runs on the llama.cpp engine of the Runtime (version 0.2.7 or newer), so it works without a Local AI pack. Install either one, or both.
+- Two packs, each one zip with one uncensored model for **Local AI**: **Mature lite** (about 2.8 GB) and **Mature standard** (about 5.5 GB), running on your own graphics card. Each includes the memory model, the same file as in the Local AI packs, and runs on the llama.cpp engine of the Runtime (version 0.2.7 or newer), so it works without a Local AI pack. Install either one, or both.
 - With Mature content on: strong language, graphic violence, drug and cyberware-abuse talk, dark and morally grey themes, crude humour, and flirting, romance and sexual content between consenting adults.
 
 **What does not change**
@@ -28,7 +28,7 @@ The main mod has a **Mature content** setting (Settings > Conversation provider,
 - You are 18 or older.
 - AI NPC Cyberpunk Mod (the main mod, Scripts and Runtime, same version) and its requirements.
 - A graphics card with free memory for the model (about 3.4 GB for lite, about 6.5 GB for standard). No Local AI pack is needed; with one installed too, its models stay available while Mature content is off.
-- Free disk space: about 2.8 GB for Mature lite, about 6.0 GB for Mature standard (about 8.8 GB for both). Mature standard includes the Gemma 4 E4B vision projector, loaded only while Companions can see is on.
+- Free disk space: about 2.8 GB for Mature lite, about 5.5 GB for Mature standard (about 8.3 GB for both). The vision files (optional, for Companions can see) are separate small zips in the `vision` folder next to the packs, `mature/vision/` on the same page: `Vision-Qwen3.5-4B-projector.zip` for Mature lite (about 0.68 GB) and `Vision-Gemma-4-E4B-projector.zip` for Mature standard (about 0.56 GB). They are read only while Companions can see is on.
 
 **Install**
 
