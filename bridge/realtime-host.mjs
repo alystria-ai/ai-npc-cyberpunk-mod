@@ -8,7 +8,7 @@ import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
-import {browserMissing, launchSystemBrowser} from './system-browser.mjs';
+import {browserMissing, browserOutputLines, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
@@ -85,6 +85,11 @@ export const NO_GRAPHICS_ARGUMENTS = Object.freeze(['--disable-gpu']);
 const withoutGraphics = options => ({...options, args: [...(options.args ?? []), ...NO_GRAPHICS_ARGUMENTS]});
 // A start that ended because the browser process went away at once (Playwright: "Target page, context or browser has been closed", "Browser closed unexpectedly", an exit code).
 const browserWentAway = error => /has been closed|closed unexpectedly|process did exit|exitCode|exited/i.test(String(error?.message ?? error));
+// What the last try printed, the process-exit line first (its exit code tells a crash from a refusal), then the browser's own lines.
+const rescueOutput = error => {
+  const lines = browserOutputLines(error?.message), exit = line => /<process did exit:/i.test(line);
+  return [...lines.filter(exit), ...lines.filter(line => !exit(line))].slice(0, 4);
+};
 const firstLine = error => String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
 const sandboxStatePathDefault = () => (process.env.NODE_TEST_CONTEXT ? null
   : resolve(process.env.CYBERPUNK_CONVAI_STATE || fileURLToPath(new URL('../runtime/', import.meta.url)), SANDBOX_STATE_FILE));
@@ -529,7 +534,7 @@ export class RealtimeHost {
       if (browserMissing(error) || !browserWentAway(error) || (options.args ?? []).includes(NO_GRAPHICS_ARGUMENTS[0])) throw annotate(error);
       let browser;
       try { browser = await this.launchBrowser({...withoutGraphics(options), chromiumSandbox: false}); }
-      catch (second) { throw annotate(error, {rescue: firstLine(second)}); }
+      catch (second) { throw annotate(error, {rescue: firstLine(second), rescueLines: rescueOutput(second)}); }
       const reason = `${firstLine(error)}; it starts without its graphics process`;
       rememberGraphicsRefusal(key, this.sandboxStatePath, now, reason);
       try { this.log(`The hidden browser went away at once (${firstLine(error)}); it runs without its graphics process`); } catch { /* a log that fails changes nothing */ }

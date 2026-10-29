@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {join} from 'node:path';
 import {BROWSER_OVERRIDE_FILE, NO_BROWSER_MESSAGE, OTHER_CHROMIUM_BROWSERS, SYSTEM_BROWSERS, browserNameFor, defaultBrowserPath, installedSystemBrowsers,
   browserLookupSummary, isChromiumProgram, launchSystemBrowser, parseAppPath, parseBrowserOverride, parseCommandProgram, readBrowserOverride, registeredPaths,
-  browserFailureTail, browserStartFailed, lastBrowserStartFailure, launchDiagnostics, resetBrowserFailureLog, resolveBrowserOverride, startMenuBrowserPaths, systemBrowserAvailable, systemBrowserCandidates} from './system-browser.mjs';
+  browserFailureTail, browserOutputLines, browserStartFailed, lastBrowserStartFailure, launchDiagnostics, resetBrowserFailureLog, resolveBrowserOverride, startMenuBrowserPaths, systemBrowserAvailable, systemBrowserCandidates} from './system-browser.mjs';
 
 const env = {LOCALAPPDATA: 'C:\\Users\\p\\AppData\\Local', PROGRAMFILES: 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)'};
 const at = (...paths) => path => paths.includes(path);
@@ -400,4 +400,33 @@ test('browserStartFailed recognises the words of a browser that would not start 
   assert.equal(browserStartFailed(NO_BROWSER_MESSAGE), true);
   assert.equal(browserStartFailed('Pocket student startup timed out'), false);
   assert.equal(browserStartFailed(undefined), false);
+});
+
+// 29 Oct 2026, report 144971a28fc434ac (install 0d0750, 0.3.4, Edge on an AMD RX 9070 XT): the message said "(exit code 3221225477)" but the tail did not hold the exit line,
+// because Playwright 1.58 prints it as "[pid=N] <process did exit: ...>" and only a line that began with "<process did exit" was kept.
+test('the process-exit line of Playwright 1.58 ("[pid=N] <process did exit: ...>") is in the diagnostic without its pid', () => {
+  const crash = Error([
+    'browserType.launch: Target page, context or browser has been closed',
+    'Browser logs:',
+    '',
+    '<launching> C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe --headless',
+    '<launched> pid=7788',
+    '[pid=7788] <process did exit: exitCode=3221225477, signal=null>',
+    '[pid=7788] starting temporary directories cleanup',
+  ].join('\n'));
+  assert.deepEqual(browserOutputLines(crash.message), ['<process did exit: exitCode=3221225477, signal=null>']);
+  assert.deepEqual(launchDiagnostics(crash), ['<process did exit: exitCode=3221225477, signal=null>']);
+  assert.deepEqual(browserOutputLines('only a summary'), []);
+});
+
+test('the last try\'s own process exit and output are in the diagnostic, after the two try lines and before the first try\'s output', () => {
+  const error = Object.assign(Error('browserType.launch: Target page, context or browser has been closed\n[pid=1] <process did exit: exitCode=3221225477, signal=null>'), {
+    earlier: 'browserType.launch: Target page, context or browser has been closed', rescue: 'browserType.launch: Target page, context or browser has been closed',
+    rescueLines: ['<process did exit: exitCode=3221225477, signal=null>', '[0101/000000:ERROR:foo.cc(1)] something']});
+  assert.deepEqual(launchDiagnostics(error), [
+    'first try, with the sandbox: browserType.launch: Target page, context or browser has been closed',
+    'last try, without the graphics process: browserType.launch: Target page, context or browser has been closed',
+    'last try: <process did exit: exitCode=3221225477, signal=null>',
+    'last try: [0101/000000:ERROR:foo.cc(1)] something',
+    '<process did exit: exitCode=3221225477, signal=null>']);
 });
