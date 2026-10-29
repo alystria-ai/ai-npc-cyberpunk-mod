@@ -1051,6 +1051,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "Naciśnij Potwierdź, aby każde ustawienie wróciło do wartości domyślnej.",
     ["Local AI stopped working and was restarted."] = "Local AI przestało działać i zostało uruchomione ponownie.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI działa tu głównie na procesorze, więc odpowiedzi będą wolne.",
+    ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI znowu działa na karcie graficznej, więc odpowiedzi są znowu szybsze.",
     ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Żółta ramka: Windows pokazuje przechwycenie. Wybierz Mistral lub Local AI, aby ją zatrzymać.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Zmienia tylko menu i powiadomienia tego modu.\n\nGłosy postaci i język, którym rozmawiasz, są oddzielne. Mikrofon używa tego języka jako wskazówki przy mowie w językach innych niż angielski.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral przestaje mówić; odpowiedzi towarzyszy są wyświetlane jako tekst, dopóki nie zostanie zapisany klucz.",

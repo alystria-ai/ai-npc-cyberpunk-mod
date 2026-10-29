@@ -1051,6 +1051,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "Stiskněte Potvrdit, aby se každé nastavení vrátilo na výchozí hodnotu.",
     ["Local AI stopped working and was restarted."] = "Local AI přestala fungovat a byla restartována.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI tu běží hlavně na procesoru, takže odpovědi budou pomalé.",
+    ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI je zpět na tvé grafické kartě, takže odpovědi budou zase rychlejší.",
     ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Žlutý rámeček je Windows, který ukazuje záznam. Zastav ho volbou Mistral nebo Local AI.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Mění jen nabídky a hlášení tohoto modu.\n\nHlasy postav a jazyk, kterým mluvíš, jsou oddělené. Mikrofon tento jazyk použije jako nápovědu pro řeč v jiném jazyce než angličtině.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral přestane mluvit; odpovědi společníků se zobrazují jako text, dokud nebude uložen klíč.",

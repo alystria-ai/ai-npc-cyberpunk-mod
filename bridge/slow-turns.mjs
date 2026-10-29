@@ -26,6 +26,21 @@ const round = (value, places = 0) => Math.round(value * 10 ** places) / 10 ** pl
 const word = value => typeof value === 'string' && WORD.test(value) ? value : undefined;
 const count = value => Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined;
 
+/**
+ * What the local model's watch knows when the report is made (LocalLlmServer.homeState(), bridge/local-return.mjs): whether the model is still off the card and being
+ * watched, how many looks found too little room, the free graphics memory at the last look, the returns so far, the model server's own graphics memory (on the card and in
+ * shared system memory, from the last counters) and the OmniVoice worker's. Numbers and booleans only; undefined when there is nothing. The 29 Oct 2026 report could not say any
+ * of it: its "free video memory" was the figure of the model's last load, at the game's start.
+ */
+export function localFacts(value) {
+  if (!value || typeof value !== 'object') return undefined;
+  const voice = value.voice && typeof value.voice === 'object'
+    ? clean({dedicatedMiB: count(value.voice.dedicatedMiB), sharedMiB: count(value.voice.sharedMiB), spilled: value.voice.spilled === true ? true : undefined}) : undefined;
+  const facts = clean({watching: value.watching === true ? true : undefined, looks: count(value.looks), lastFreeMiB: count(value.lastFreeMiB), returns: count(value.returns),
+    dedicatedMiB: count(value.dedicatedMiB), sharedMiB: count(value.sharedMiB), voice: voice && Object.keys(voice).length ? voice : undefined});
+  return Object.keys(facts).length ? facts : undefined;
+}
+
 /** One turn as the report keeps it: small, numbers and fixed names. `marks`: stage -> ms after the bridge read the request. */
 function entryOf({n, atMin, soundMs, details = {}, snapshot, fallback = {}, withMarks = true}) {
   const marks = {};
@@ -101,6 +116,7 @@ export class SlowTurnWatch {
       turns: this.turns, excluded: {...this.excluded}, minutes: round((this.now() - this.startedAt) / 60_000, 1),
       provider: word(fallback.provider), voice: word(fallback.voice),
       ...(count(extra.freeVideoMemoryMiB) !== undefined ? {freeVideoMemoryMiB: count(extra.freeVideoMemoryMiB)} : {}),
+      ...(localFacts(extra.local) ? {local: localFacts(extra.local)} : {}),
       ...(Object.keys(background).length ? {background} : {}),
       recentSoundMs: this.recent.map(item => item.soundMs),
       first, slow};

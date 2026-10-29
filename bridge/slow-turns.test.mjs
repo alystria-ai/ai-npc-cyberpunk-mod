@@ -248,3 +248,16 @@ test('the bridge judges every turn from its clock, annotates failed and paused t
   const speech = await readFile(new URL('./convai-continuous-speech.mjs', import.meta.url), 'utf8');
   assert.match(speech, /if \(value\.paused && !this\.pausedSeen\)/);
 });
+
+test('the local model watch (localFacts) rides in the report as numbers and flags only: where the model is, the free memory at the last look, the voice worker', async () => {
+  const local = {watching: true, looks: 3, lastFreeMiB: 5200.4, returns: 1, dedicatedMiB: 90, sharedMiB: 4308, voice: {dedicatedMiB: 2400, sharedMiB: 12, spilled: false, at: 'text'}, note: 'free words'};
+  const { watch, sent } = watchWith({reportContext: () => ({freeVideoMemoryMiB: 31419, local})});
+  for (const ms of [18_000, 25_000, 61_000]) watch.observe(turn(ms, {provider: 'local'}));
+  assert.deepEqual(sent[0].local, {watching: true, looks: 3, lastFreeMiB: 5200, returns: 1, dedicatedMiB: 90, sharedMiB: 4308, voice: {dedicatedMiB: 2400, sharedMiB: 12}});
+  const clean = cleanSlow({...sent[0], local: {...sent[0].local, extra: 'a sentence', voice: {dedicatedMiB: 1, sharedMiB: 'two', spilled: true, text: 'x'}}});
+  assert.deepEqual(clean.local, {watching: true, looks: 3, lastFreeMiB: 5200, returns: 1, dedicatedMiB: 90, sharedMiB: 4308, voice: {dedicatedMiB: 1, spilled: true}});
+  assert.equal(cleanSlow({...sent[0], local: 'free words'}).local, undefined);
+  const none = watchWith({reportContext: () => ({local: {}})});
+  for (const ms of [18_000, 25_000, 61_000]) none.watch.observe(turn(ms));
+  assert.equal(none.sent[0].local, undefined, 'nothing known: no group');
+});

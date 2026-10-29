@@ -610,6 +610,11 @@ test('the notice for a failed local turn is the translated sentence plus the bri
   assert.equal(cpu('{keyNotice = \'local-cpu\', keyNoticeDetail = \'a smaller model or the Custom provider is faster\'}'),
     'local-cpu|T(Local AI runs mostly on your processor here, so replies will be slow.)\n(a smaller model or the Custom provider is faster)');
   assert.equal(cpu('{keyNotice = \'local-cpu\'}'), 'local-cpu|T(Local AI runs mostly on your processor here, so replies will be slow.)');
+  // The 'local-gpu' notice (the model is whole on the graphics card again): one translated sentence, nothing after it.
+  const gpuBranch = source.slice(source.indexOf('if reply.keyNotice == \'local-gpu\' then'), source.indexOf('-- Windows draws its yellow capture border around the game'));
+  assert.ok(gpuBranch.includes('local-gpu'), 'the branch is in mod/init.lua');
+  const gpu = reply => runLua(`local ui = {t = function(text) return 'T(' .. text .. ')' end}\nlocal function notice(reply)\n${gpuBranch}\nreturn nil\nend\nlocal id, text = notice(${reply})\nreturn id .. '|' .. text`);
+  assert.equal(gpu('{keyNotice = \'local-gpu\'}'), 'local-gpu|T(Local AI is back on your graphics card, so replies are faster again.)');
 });
 
 // ---- both packs installed: what the folder holds, and the install that did not finish -------------------------------------------------------

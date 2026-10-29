@@ -86,6 +86,7 @@ M.catalog = {
     ['local-restarted'] = {class = PLAYER, repeatS = 300},   -- the Local AI model server stopped by itself and was started again: about once per five minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
     ['local-cpu'] = {class = PLAYER, repeatS = 86400},       -- the Local AI model is mostly on the processor (too little of it fits the graphics card beside the game): once per game session, with the next reply; a smaller model or the Custom provider is faster
+    ['local-gpu'] = {class = PLAYER, repeatS = 86400},       -- the Local AI model was in shared system memory (or partly on the processor) and is whole on the graphics card again: once per game session, with the next reply
     ['local-stepdown'] = {class = PLAYER, repeatS = 60},    -- Local AI's turns stalled (the game uses most of the graphics memory): a smaller model was loaded (the bridge sends it once per step)
     ['browser-failed'] = {class = PLAYER, repeatS = 60},    -- the browser for the conversation page was found but would not start (or there is none): says which and why, at most once a minute
     ['local-unavailable'] = {class = PLAYER, repeatS = 30}, -- Local AI is chosen and could not start (never handed to another provider; the next turn tries again): every attempt, at most twice a minute
