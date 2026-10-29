@@ -27,7 +27,7 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 ## Free, three ways
 
 - **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
-- **Mistral with a free account.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. With a Mistral key you can also choose **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything. Which Mistral plans include the Voxtral voice is Mistral's call: if yours does not, replies show as text.
+- **Mistral with your own key.** Paste a Mistral key once for the fastest cloud replies. Mistral stopped giving free API keys to new accounts in October 2026, so a new key needs a paid Mistral plan. With a Mistral key you can also choose **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything. Which Mistral plans include the Voxtral voice is Mistral's call: if yours does not, replies show as text.
 - **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 500 turns a day. Install, start the game, talk.
 
 Already pay for OpenRouter or Nano-GPT, or run Ollama or LM Studio on your PC? The **Custom (OpenAI-compatible)** provider uses any of them: paste an address, a model ID and, for most, a key ([details](#custom-openai-compatible)).
@@ -146,10 +146,10 @@ The microphone only ever starts when you press the key. A recording stops by its
 
 **Companion Manager > Settings > Conversation provider** chooses who writes your characters' replies. A change takes effect when no conversation is running.
 
-|  | **Local AI** | **Mistral (free plan)** | **Convai free tier** (default) | **Convai API key** | **Custom (OpenAI-compatible)** |
+|  | **Local AI** | **Mistral** | **Convai free tier** (default) | **Convai API key** | **Custom (OpenAI-compatible)** |
 | --- | --- | --- | --- | --- | --- |
-| **Setup** | Download a Local AI pack | Free Mistral account, paste its key | None | Paste your own Convai key | Paste an endpoint URL, a model ID and (for most) a key |
-| **Cost** | Free | Free | Free | Your Convai plan | What your provider charges; a server on your PC is free |
+| **Setup** | Download a Local AI pack | A Mistral key (new keys need a paid plan), paste it | None | Paste your own Convai key | Paste an endpoint URL, a model ID and (for most) a key |
+| **Cost** | Free | Mistral's pay-as-you-go rates | Free | Your Convai plan | What your provider charges; a server on your PC is free |
 | **Internet** | **Not needed** | Needed | Needed | Needed | Needed for a cloud endpoint, not for a server on your PC |
 | **Limit** | None | About 1 message a second, about 5,000 turns a day | 500 turns a day (the service can change this), no other limit | Your Convai plan's limits | Your provider's |
 | **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier | Depends on the model you choose |
@@ -187,13 +187,13 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 - Short on memory, the mod steps down by itself and keeps your voice before the model: standard gives way to lite, and if lite does not fit either, the text comes from Mistral (with a saved key) or Convai, with one notice.
 - You can add a GGUF chat model of your own, or use a server you already run (KoboldCpp, LM Studio, Ollama or any other OpenAI-compatible one; no pack needed, and it shows as "(custom)" in the **Local AI model** row): see "Add your own model" and "Use your own server" in [LOCAL_AI.md](docs/LOCAL_AI.md). Keep the model and its `manifest.custom.json` in `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai` and they survive reinstalls and mod managers; the Local AI folder inside the mod works as it always did, and both are read.
 
-### Mistral (free plan)
+### Mistral
 
-1. Make a free account at Mistral (it asks for phone verification) and create an API key.
-2. Copy it, open **Settings > Conversation provider** and press **Paste** on the **Mistral free API key** row.
-3. Choose **Mistral (free plan)** as the provider.
+1. Create an API key at Mistral. Mistral stopped giving free API keys to new accounts in October 2026, so a new key needs a paid plan.
+2. Copy it, open **Settings > Conversation provider** and press **Paste** on the **Mistral API key** row.
+3. Choose **Mistral** as the provider.
 
-Quick and free, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. The same key also unlocks the **Voxtral** voice ([Pick a voice](#pick-a-voice)): with both, the whole conversation runs in the cloud. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
+Quick, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. The same key also unlocks the **Voxtral** voice ([Pick a voice](#pick-a-voice)): with both, the whole conversation runs in the cloud. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
 
 ### Custom (OpenAI-compatible)
 
@@ -237,7 +237,7 @@ Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32.
 
 - **Pocket:** nothing to do.
 - **OmniVoice:** install the pack, restart the game, pick an OmniVoice entry. Without the pack the entries stay listed, the row reads "(no Omni pack)" and choosing one is refused with a line under Back that says it needs the pack. The very first start takes two to three minutes (longer on a laptop in Silent power mode) while you keep a fallback voice; later starts are faster. A start that fails falls back to Pocket and retries in the background. **AMD cards (experimental):** on a PC with an AMD Radeon RX 6000, 7000 or 9000 card and no NVIDIA card, Settings > Voices has an **OmniVoice for AMD** page: one button downloads AMD's own ROCm PyTorch (about 1.5 GB, 4 GB on the drive), tests it on the card and OmniVoice then starts on it. Your own Python (`omni-python.txt`) still works and wins. See [docs/OMNIVOICE_AMD.md](docs/OMNIVOICE_AMD.md).
-- **Voxtral:** save a Mistral key ([Mistral](#mistral-free-plan)), then pick **Voxtral · Mistral cloud**. Until then it reads "Voxtral · needs Mistral key".
+- **Voxtral:** save a Mistral key ([Mistral](#mistral)), then pick **Voxtral · Mistral cloud**. Until then it reads "Voxtral · needs Mistral key".
 - **Convai voice:** choose Convai as the provider, then the Convai cloud voice.
 
 If the local voice you chose cannot run (OmniVoice or Pocket), your companions' replies show as text with one notice, and the voice comes back by itself when it recovers. The mod never moves you to a cloud voice behind your back: the Convai voice speaks only when you chose it. Voxtral has no fallback either, local or cloud: a line it cannot voice (no key, a cool-down, a language it does not speak) is shown as text, with one notice, and it speaks again by itself when it can.
@@ -346,7 +346,7 @@ English speech is recognised on your computer by a small model that is already i
 
 **A character does not answer.** Give the game a moment after launch: the background service starts with it. **Settings > Help > Help and support** shows the service status; if it is not running, restart the game. With Mistral, check that the key row says it was accepted. With Local AI, check that the **Local AI model** row does not read "(Warming up)", "(Not enough memory)" or "(Unavailable)".
 
-**"Today's turns are used."** The free tier's daily turns are spent and come back at the time the message gives (00:00 UTC, in your time). To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local AI** (with a Local AI pack) as the Conversation provider. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
+**"Today's turns are used."** The free tier's daily turns are spent and come back at the time the message gives (00:00 UTC, in your time). To keep talking now, choose **Local AI** (with a Local AI pack) or **Mistral** (with your own key) as the Conversation provider. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
 
 **The microphone does nothing, or says "needs Convai for now".** Check that **talk by voice** has a key in CET's Bindings. Hold it while you speak, then let go. Windows must let desktop apps use the microphone, and yours should be the Windows **default** input device. With Mistral or Local AI your speech is recognised on your computer, in English, and the recogniser takes a moment to load the first time: if it is not ready yet you see "Speaking to companions needs Convai for now". Try again in a moment, type, or switch to Convai.
 
@@ -625,7 +625,7 @@ Each profile is a Convai character with three separate text fields: `backstory`,
 - **Prompt** (`bridge/mistral-prompt.mjs`, `LIMITS`): persona up to 16,000 characters, context 20,000, summary 1,400, 8 turns, user message 1,200, reply 6 sentences and 700 characters, 600 output tokens, temperature 0.65. Layout v2, shared with Local AI: persona and rules, format notes and world or quest knowledge, summary, the "right now" block, history, then the last user message.
 - **Memory** (`bridge/mistral-memory.mjs`): the last 8 exchanges per character and channel and a summary of up to 1,400 characters, extracted only when there has been no combat for 30 s, nothing is in flight, speaking or recording, and 20 s have passed since the last turn.
 - **Companion actions** (`bridge/text-actions.mjs`): a text model has no action system, so a tiny classifier request (12 tokens, temperature 0, no retry, 8 s total, 6 s to first byte, run while memory is retrieved so it normally adds no time) answers `DRIVE`, `FIGHT`, `FOLLOW`, `DISMISSED` or `NONE` for the actions the game offers that turn. The decision models are `ministral-3b-latest`, then `ministral-8b-latest` (`DECISION_MODELS`). The bridge turns the answer into a structured packet and publishes it to `runtime/companion-actions.json`; Lua (`mod/gameplay-actions.lua`) accepts it only against a lease it captured itself, so an answer alone can never pick an actor, car or target.
-- **Failures:** 401 or 403 is "Mistral: key not accepted", 429 is "Mistral: free limit reached for now", and a model error is "Mistral: model unavailable". With Mistral chosen and no key saved, turns go to Convai with one notice.
+- **Failures:** 401 or 403 is "Mistral: key not accepted", 429 is "Mistral: limit reached for now", and a model error is "Mistral: model unavailable". With Mistral chosen and no key saved, turns go to Convai with one notice.
 - **Prompt evaluation:** `scripts/Eval-MistralPrompt.mjs`, `scripts/Test-MistralPrompts.mjs`. Design: [docs/MISTRAL.md](docs/MISTRAL.md), [docs/MISTRAL_PROMPT_PASS.md](docs/MISTRAL_PROMPT_PASS.md).
 
 The Mistral key lives only in the bridge's state folder (`player-mistral-key.txt`) and in the Settings row, which shows only its last four characters.
