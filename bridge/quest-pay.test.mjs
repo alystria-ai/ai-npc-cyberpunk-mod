@@ -12,7 +12,7 @@ test('the note says what is asked and the least it takes, in the second person, 
   assert.match(note, /You want eddies from V to let V through/);
   assert.match(note, /100 eddies/); assert.match(note, /60 eddies at the very least/);
   assert(note.length <= 500, String(note.length));
-  assert(!note.includes(';') && !/[–—]|--/.test(note));
+  assert(!note.includes(';') && !new RegExp('[' + String.fromCharCode(0x2013, 0x2014) + ']|--').test(note));
   assert.match(payNote({...spec, min: undefined}), /you do not take less/);
   assert.match(payNote({...spec, reason: 'bribe'}), /look the other way/);
   assert.match(payNote({...spec, reason: 'tab'}), /the tab V owes/);

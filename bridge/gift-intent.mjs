@@ -9,7 +9,9 @@ export const GIFT_WORDS_MAX = 80;
 
 const CJK = new Set(['ja', 'ko', 'zh']);
 // Combining marks (accents, the Cyrillic breve and diaeresis) are dropped so a line typed without them matches; kana and Hangul are left whole.
-const fold = text => text.normalize('NFD').replace(/[̀-ͯ]/g, '').normalize('NFC').replace(/[łđøıßœæ]/gu, c => ({ł: 'l', đ: 'd', ø: 'o', ı: 'i', ß: 'ss', œ: 'oe', æ: 'ae'})[c]);
+const MARKS = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+const FOLDED = {'ł': 'l', 'đ': 'd', 'ø': 'o', 'ı': 'i', 'ß': 'ss', 'œ': 'oe', 'æ': 'ae'};
+const fold = text => text.normalize('NFD').replace(MARKS, '').normalize('NFC').replace(/[łđøıßœæ]/gu, c => FOLDED[c]);
 const prepare = text => fold(String(text ?? '').slice(0, 600).normalize('NFKC').toLowerCase().replace(/[‘’ʼ`´]/g, "'"));
 
 // Per language: `offer` is the phrases of an offer (regular-expression source), `no` the words that make the clause a refusal or a promise. Sources are written folded.

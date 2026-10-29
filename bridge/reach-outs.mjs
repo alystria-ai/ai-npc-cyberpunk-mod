@@ -30,7 +30,7 @@ const PACK_ID = /^[a-z][a-z0-9-]{2,47}$/;
 const KEY = /^[a-z][a-z0-9-]{1,31}$/;
 const DISTRICT = /^[A-Za-z][A-Za-z0-9_ ]{1,40}$/;
 const ENGLISH = /^[\x20-\x7E‘’“”…]+$/;
-const DASH = /[–—]|--| - /;
+const DASH = new RegExp('[' + String.fromCharCode(0x2013, 0x2014) + ']|--| - ');
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const whole = value => Number.isSafeInteger(value) && value >= 0;
 const num = (value, low, high) => typeof value === 'number' && Number.isFinite(value) && value >= low && value <= high;
@@ -286,7 +286,7 @@ export class ReachOuts {
    *   enabled       Story packs AND Characters text first are on
    *   gameSeconds   the newest game clock the bridge knows (null: nothing is listed)
    *   journalHistory, facts, tracked   for the character gates (bridge/bond-packs.mjs journalGate)
-   *   levels        {profileKey: bond level}   talkedAt   {profileKey: game clock of the last talk}   romance   {profileKey: 'partner' | 'casual'}
+   *   levels        {profileKey: bond level} of the characters V has talked to (a character not in it never reaches out)   talkedAt   {profileKey: game clock of the last talk}   romance   {profileKey: 'partner' | 'casual'}
    *   busy          Set of characters who have a story pack open or an offer waiting (they get no reach-out: their own texts take the slot)
    *   finishedPacks Set of finished pack ids
    */
@@ -299,8 +299,10 @@ export class ReachOuts {
     if (!inventoryComplete(journalHistory)) return block;
     for (const [character, file] of this.files) {
       if (busy.has(character)) continue;
+      // A character V has never talked to does not text first: the bond is known only after a first talk.
+      if (!Number.isInteger(levels[character])) continue;
       if (!journalGate({requires: file.requires ?? {}, character}, {journalHistory, facts, tracked}).open) continue;
-      const level = Number.isInteger(levels[character]) ? levels[character] : null;
+      const level = levels[character];
       for (const trigger of file.triggers) {
         const keys = this.#ready(trigger, {gameSeconds, journalHistory, level, talkedAt: talkedAt[character], romance: romance[character] ?? null, finishedPacks, character});
         if (!keys) continue;

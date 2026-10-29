@@ -72,7 +72,7 @@ test('the validator: one example per rule', () => {
   bad(data => { data.triggers.push(trigger()); }, /the id is used twice/);
   bad(data => { data.triggers[0].via = 'smoke'; }, /via must be one of/);
   bad(data => { data.triggers[0].text = 'Hi; there'; }, /semicolon/);
-  bad(data => { data.triggers[0].text = 'Hi — there'; }, /dash as punctuation/);
+  bad(data => { data.triggers[0].text = 'Hi ' + String.fromCharCode(0x2014) + ' there'; }, /dash as punctuation/);
   bad(data => { data.triggers[0].text = 'Wait -- what'; }, /dash as punctuation/);
   bad(data => { data.triggers[0].text = 'Wait - what'; }, /dash as punctuation/);
   bad(data => { data.triggers[0].text = 'Hola, ¿qué tal?'; }, /English/);
@@ -149,7 +149,8 @@ test('conditions: a quest finished, the bond, a story pack, days without talk, m
   const ids = extra => ask(extra).items.map(item => item.id);
   assert.deepEqual(ids(), ['aa-quest', 'aa-friend']);
   assert.deepEqual(ids({levels: {'panam-palmer': 7}}), ['aa-quest', 'aa-bond7', 'aa-min', 'aa-friend']);
-  assert.deepEqual(ids({levels: {}}), ['aa-quest'], 'an unknown level opens nothing that needs one (the friend line needs bond 2)');
+  assert.deepEqual(ids({levels: {}}), [], 'a character V has never talked to does not text first');
+  assert.deepEqual(ids({levels: {'panam-palmer': 1}}), ['aa-quest'], 'the friend line needs bond 2');
   assert.deepEqual(ids({romance: {'panam-palmer': 'partner'}}), ['aa-quest', 'aa-love']);
   assert.deepEqual(ids({finishedPacks: new Set(['panam-truck-ransom'])}), ['aa-quest', 'aa-pack', 'aa-friend']);
   assert.deepEqual(ids({talkedAt: {'panam-palmer': T0 - 9 * DAY}}), ['aa-quest', 'aa-friend']);

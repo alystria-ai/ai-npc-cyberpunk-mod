@@ -116,7 +116,10 @@ export class BondPacks {
 
   /** Story packs was on at the last turn (a meeting's outcome moves a pack only then; a bridge that sees a turn with packs off sets it false). Turning it off also turns the reach-outs off. */
   get on() { return this.packsOn === true; }
-  set on(value) { this.packsOn = value === true; this.settings.packs = this.packsOn; }
+  set on(value) {
+    this.packsOn = value === true;
+    if (this.settings.packs !== this.packsOn) { this.settings.packs = this.packsOn; this.#schedule(); }
+  }
 
   // ---- the state ---------------------------------------------------------------------------------------------------------------------------
 
@@ -658,7 +661,7 @@ export class BondPacks {
   /** The game delivered reach-out `id` at game time `at`: its cooldown starts, V's answer carries its note for this turn and the next two, an `offer` is made. */
   noteReach(id, at) {
     try {
-      const found = this.reach?.noteFired?.(id, at);
+      const found = this.reach?.noteFired?.(id, whole(at) ? at : this.lastClock);
       if (!found) return false;
       if (whole(at)) this.lastClock = Math.max(this.lastClock ?? 0, at);
       const {character, trigger} = found;
