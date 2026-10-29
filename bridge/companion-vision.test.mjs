@@ -13,8 +13,8 @@ function fakeCapture({fail, border} = {}) {
   const capture = {calls: 0, started: 0, stopped: 0, running: false, borderShown: false,
     start: async () => { capture.started++; capture.running = true; return true; },
     stop: () => { capture.stopped++; capture.running = false; },
-    capture: async () => {
-      capture.calls++; capture.running = true;
+    capture: async options => {
+      capture.calls++; capture.running = true; capture.options = options; (capture.allOptions ??= []).push(options);
       if (!fail && border === true) capture.borderShown = true;
       return fail ? {ok: false, reason: fail} : {ok: true, mime: 'image/jpeg', base64: shotOf(capture.calls), width: 768, height: 432, bytes: 9, ms: {total: 100},
         ...(border === undefined ? {} : {method: border ? 'wgc' : 'dxgi', border})};
@@ -23,35 +23,74 @@ function fakeCapture({fail, border} = {}) {
 }
 // A scene with a clock, a companion nearby or not, a conversation running or not; tick() is the bridge's 500 ms poll.
 function scene(options = {}) {
-  const state = {now: 100000, near: true, conversing: false, convai: true};
+  const state = {now: 100000, near: true, conversing: false, convai: true, sees: false};
   const capture = options.capture ?? fakeCapture();
   const vision = new CompanionVision({capture, now: () => state.now, isNear: () => state.near, isConversing: () => state.conversing,
-    isConvai: () => state.convai, env: {}, sleep: () => new Promise(done => setImmediate(done)), ...options});
+    isConvai: () => state.convai, sees: () => state.sees, env: {}, sleep: () => new Promise(done => setImmediate(done)), ...options});
+  vision.enabled = true;   // as if the settings poll had already read companionVision: true (nothing is polled before the first tick)
   const settle = () => new Promise(done => setImmediate(done));
-  const tick = async (settings = {}) => { vision.update(settings); await settle(); };
+  // The setting is on (settings.json `companionVision: true`) unless a test says otherwise: it is off by default, so nothing here runs without it.
+  const tick = async (settings = {}) => { vision.update({companionVision: true, ...settings}); await settle(); };
   // Advances the clock in poll-sized steps, ticking like the bridge does.
   const run = async (ms, settings) => { for (let t = 0; t < ms; t += 500) { state.now += 500; await tick(settings); } };
   return {state, capture, vision, tick, run};
 }
 const pictureOf = base64 => [{mime: 'image/jpeg', base64}];
 
-test('always on with Convai (a saved companionVision false from an older install is ignored); CYBERPUNK_CONVAI_VISION=off turns it off; Mistral and Local get nothing', async () => {
-  const {vision, state, tick} = scene();
-  assert.equal(vision.active, true);
-  assert.deepEqual(vision.connectConfig(), {transport: 'video'});
-  await tick({companionVision: false});
-  assert.equal(vision.active, true, 'the retired setting no longer turns vision off');
-  assert.deepEqual(vision.connectConfig(), {transport: 'video'});
-  await tick({});
-  assert.equal(vision.active, true, 'a missing key is on');
-  state.convai = false;
+test('off by default: nothing is active, captured or held until the setting is on; it covers Convai and every other provider; CYBERPUNK_CONVAI_VISION=off overrides it', async () => {
+  const state = {convai: true, sees: true};
+  const capture = fakeCapture();
+  const vision = new CompanionVision({capture, now: () => 1000, env: {}, isConvai: () => state.convai, sees: () => state.sees});
+  assert.equal(vision.active, false, 'a fresh bridge has not read the setting: off');
   assert.equal(vision.connectConfig(), null);
+  vision.update({});
+  assert.equal(vision.active, false, 'a missing key is off');
+  vision.update({companionVision: false});
+  assert.equal(vision.active, false);
+  assert.equal(vision.update({companionVision: true}), true, 'turning it on is a change');
+  assert.equal(vision.active, true, 'Convai answers: on');
+  assert.deepEqual(vision.connectConfig(), {transport: 'video'});
+  state.convai = false;
+  assert.equal(vision.active, true, 'Mistral, Local AI or Custom that can see: on too');
+  assert.equal(vision.connectConfig(), null, 'no pages to connect with a picture channel');
+  state.sees = false;
+  assert.equal(vision.active, false, 'a provider that cannot see is not active');
   assert.deepEqual(vision.attachToNextTurn(pictureOf(QUEUED)), {queued: 0, reason: 'provider'});
+  state.sees = true;
+  assert.equal(vision.update({companionVision: false}), true);
+  assert.equal(vision.active, false, 'turned off again');
+  assert.deepEqual(vision.attachToNextTurn(pictureOf(QUEUED)), {queued: 0, reason: 'off'});
   assert.equal(visionDisabledByEnv({CYBERPUNK_CONVAI_VISION: 'off'}), true);
   assert.equal(visionDisabledByEnv({}), false);
   const off = new CompanionVision({capture: fakeCapture(), env: {CYBERPUNK_CONVAI_VISION: '0'}});
-  off.update({});
-  assert.equal(off.active, false, 'the environment switch is the only off switch');
+  off.update({companionVision: true});
+  assert.equal(off.active, false, 'the environment switch overrides the setting');
+});
+
+test('setting off: no capture, no helper process, no picture in memory, on any provider', async () => {
+  const {vision, capture, state, run, tick} = scene();
+  await run(2000, {companionVision: false});
+  assert.equal(capture.calls, 0);
+  assert.equal(capture.started, 0, 'the helper was never started');
+  assert.equal(capture.running, false);
+  assert.equal(vision.frames.length, 0);
+  state.convai = false;
+  await run(2000, {companionVision: false});
+  assert.equal(capture.calls, 0);
+  assert.equal(capture.running, false);
+  assert.equal(vision.openComposer([{characterId: 'a'}]), false, 'the composer opening takes no picture');
+  assert.equal(vision.beginVoice('r1'), false);
+  assert.equal(await vision.imagesForTurn({characterId: 'a', visionTurn: 'turn-1'}), null);
+  await tick({companionVision: false});
+  assert.equal(capture.calls, 0, 'nothing was captured for any of it');
+  // The setting goes on, runs, and goes off again: the helper is released at once and the buffer emptied.
+  state.convai = true;
+  await run(4000);
+  assert.equal(capture.running, true);
+  assert.ok(vision.frames.length > 0);
+  await tick({companionVision: false});
+  assert.equal(capture.running, false, 'released on the next poll');
+  assert.equal(vision.frames.length, 0);
 });
 
 test('the buffer captures every FRAME_INTERVAL_MS while someone is near and nobody talks, and keeps FRAME_SLOTS frames in memory', async () => {
@@ -66,8 +105,6 @@ test('unload rule: no helper under another provider, with nobody near, or during
   const {vision, capture, state, run, tick} = scene();
   await run(1000);
   assert.equal(capture.running, true);
-  await tick({companionVision: false});
-  assert.equal(capture.running, true, 'an old saved false does not release it');
   await run(4000, {}); assert.equal(capture.running, true);
   state.convai = false; await tick();
   assert.equal(capture.running, false, 'Mistral or Local AI: released at once');
@@ -167,6 +204,7 @@ test('a slow capture does not hold a turn at all: no sleep, no timer, the turn g
     capture: () => new Promise(done => { release = () => done({ok: true, mime: 'image/jpeg', base64: shotOf(7), width: 1, height: 1, bytes: 1, ms: {}}); })};
   let waited = 0;
   const vision = new CompanionVision({capture: slow, now: () => 1000, env: {}, sleep: ms => { waited = ms; return new Promise(done => setImmediate(done)); }});
+  vision.update({companionVision: true});
   const images = await vision.imagesForTurn({visionTurn: 'x'});
   assert.equal(images, null);
   assert.equal(waited, 0, 'nothing slept for a picture');
@@ -706,9 +744,84 @@ test('a recording whose frame is still being taken at the finish does not wait f
     capture: () => new Promise(done => { release = () => done({ok: true, mime: 'image/jpeg', base64: shotOf(9), width: 1, height: 1, bytes: 1, ms: {}}); })};
   let waited = 0;
   const vision = new CompanionVision({capture: slow, now: () => 1000, env: {}, sleep: ms => { waited = ms; return new Promise(done => setImmediate(done)); }});
+  vision.update({companionVision: true});
   vision.beginVoice('mic-quick');
   await new Promise(done => setImmediate(done));
   assert.equal(await vision.imagesForTurn({visionTurn: 'mic-quick'}, {phase: 'finish'}), null);
   assert.equal(waited, 0);
   release();
+});
+
+// ---- the text providers (Mistral, Local AI, Custom): same setting, no pages, the picture rides with the request ----------------------------------------------------------------
+
+test('text providers: the picture is 768 px at quality 80, Convai keeps 1024 at 88 (the helper default), and a change of provider drops pictures taken for the other', async () => {
+  const {vision, capture, state, run} = scene();
+  await run(FRAME_INTERVAL_MS * 2);
+  assert.equal(capture.options, undefined, 'Convai: the helper default (1024 px, quality 88)');
+  assert.ok(vision.frames.length > 0);
+  state.convai = false; state.sees = true;
+  await run(500);
+  assert.equal(vision.frames.length <= 1, true, 'the pictures taken at the old size are gone');
+  await run(FRAME_INTERVAL_MS * 2);
+  assert.deepEqual(capture.options, {maxWidth: 768, quality: 80}, 'a text provider: 768 px, quality 80');
+  assert.equal(vision.diagnostics().provider, 'mistral');
+  assert.equal(vision.diagnostics().paged, false);
+});
+
+test('text providers: the composer picks the frame while V types and publishes nothing, the voice key does the same, nothing is staged on pages', async () => {
+  const staged = [];
+  const {vision, capture, state, run} = scene({stagePage: async (config, images) => { staged.push(config.characterId); return {staged: true}; },
+    stageVoice: async () => { staged.push('voice'); return {staged: true}; }});
+  state.convai = false; state.sees = true;
+  await run(FRAME_INTERVAL_MS * 2);
+  // A composer opens: no configs are needed (there are no pages), the newest young frame is the turn's picture.
+  assert.equal(vision.openComposer([]), true);
+  await new Promise(done => setImmediate(done));
+  assert.ok(vision.stagedYoung(), 'the frame is chosen');
+  const images = await vision.imagesForTurn({visionTurn: 'text-1', characterId: 'judy'});
+  assert.equal(images.length, 1);
+  assert.equal(images[0].mime, 'image/jpeg');
+  // The same turn asked again (a retry, or the reply that broke character and is written again) gets the same picture.
+  assert.deepEqual(await vision.imagesForTurn({visionTurn: 'text-1', characterId: 'judy'}), images);
+  // The talk key: a frame is taken or reused and kept for the turn; the recording is not asked to hold it.
+  assert.equal(vision.beginVoice('voice-1'), true);
+  await vision.voice.get('voice-1').done;
+  const voiced = await vision.imagesForTurn({visionTurn: 'voice-1', characterId: 'judy'}, {phase: 'reply'});
+  assert.equal(voiced.length, 1);
+  assert.equal(vision.stageForNext([{characterId: 'dax'}]), false, 'no next-speaker staging without pages');
+  assert.deepEqual(staged, [], 'nothing was published anywhere');
+  assert.ok(capture.calls >= 1);
+});
+
+test('text providers: a provider that cannot see captures nothing and starts no helper, and the player is told once per case', async () => {
+  const blocked = {code: 'vision-local-no-model', key: 'local:Gemma 4 E4B:no-projector', why: 'Gemma 4 E4B cannot see (it has no vision projector)'};
+  const state = {blocker: blocked};
+  const {vision, capture, state: scenery, run} = scene({blocker: () => state.blocker});
+  scenery.convai = false; scenery.sees = false;
+  await run(FRAME_INTERVAL_MS * 3);
+  assert.equal(capture.calls, 0, 'nothing is captured for a model that cannot see');
+  assert.equal(capture.started, 0);
+  assert.equal(vision.takeSightNotice(), 'vision-local-no-model');
+  assert.equal(vision.takeSightNotice(), null, 'said once');
+  await run(2000);
+  assert.equal(vision.takeSightNotice(), null, 'the same cause is not said again');
+  state.blocker = {...blocked, key: 'local:Bonsai 2 4B:no-projector'};
+  await run(1000);
+  assert.equal(vision.takeSightNotice(), 'vision-local-no-model', 'another model is a new case');
+  // With the setting off nobody is told anything.
+  state.blocker = {...blocked, key: 'local:Other:no-room'};
+  await run(1000, {companionVision: false});
+  assert.equal(vision.takeSightNotice(), null);
+});
+
+test('text providers: an endpoint that refused a picture is told once, and the Custom case only', async () => {
+  const {vision, state, run} = scene();
+  state.convai = false; state.sees = true;
+  await run(500);
+  vision.noteRefused('mistral');
+  assert.equal(vision.takeSightNotice(), null, 'Mistral and Local AI refusals are a log line, not a notice');
+  vision.noteRefused('custom');
+  assert.equal(vision.takeSightNotice(), 'vision-custom-no-images');
+  vision.noteRefused('custom');
+  assert.equal(vision.takeSightNotice(), null, 'once');
 });

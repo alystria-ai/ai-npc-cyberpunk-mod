@@ -952,24 +952,45 @@ test('Companions speak up is one select row, Often by default: four entries (Off
   `);
 });
 
-test('Companions can see has no setting any more: no row, an old saved companionVision (even false) is dropped on load, and an Apply for it is refused', () => {
+test('Companions can see: off by default, one on/off row on the Conversations page, a plain boolean saved in settings.json for the bridge, and Restore defaults turns it off', () => {
   run(`${managerFixture}
-    seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, companionVision = false}
+    seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}}
     for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
     files['runtime/settings.json'], saved = 'seed', nil
     manager.reset(); manager.configure(api, profiles)
-    assert(manager.snapshot(player).settings.companionVision == nil, 'the retired key is still in the snapshot')
-    assert(saved and saved.companionVision == nil, 'the retired key was not dropped from settings.json')
-    assert(not manager.applySettings(player, {companionVision = true}) and manager.snapshot(player).settings.companionVision == nil)
+    assert(manager.snapshot(player).settings.companionVision == false, 'it is not off by default')
+    assert(saved and saved.companionVision == false, 'the default was not written to settings.json')
+    assert(not manager.applySettings(player, {companionVision = 'on'}) and manager.snapshot(player).settings.companionVision == false, 'a non-boolean was accepted')
+    assert(manager.applySettings(player, {companionVision = true}) and manager.snapshot(player).settings.companionVision == true)
+    assert(saved.companionVision == true, 'the choice was not written to settings.json')
+    assert(manager.applySettings(player, {companionVision = false}) and saved.companionVision == false)
+    -- A file that says true (the player's choice) keeps it; a wrong type reads as off.
+    seed.companionVision = true
+    files['runtime/settings.json'] = 'seed'
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.snapshot(player).settings.companionVision == true, 'a saved true was lost')
+    seed.companionVision = 'yes'
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.snapshot(player).settings.companionVision == false, 'a wrong type is not off')
   `);
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
-    assert(row('companionVision') == nil, 'the setting is still offered')
+    local vision = assert(row('companionVision'), 'the setting is not offered')
+    assert(vision.type == 'bool' and vision.value == false and vision.defaultValue == false and vision.label == 'Companions can see')
+    assert(vision.description:find('Off means nothing is captured', 1, true) and vision.description:find('every conversation provider', 1, true), 'the description does not say what it covers')
+    local conversations
     for _, category in ipairs(loaded.categories) do
-      for _, item in ipairs(category.settings or {}) do assert(item.label ~= 'Companions can see' and item.id ~= 'companionVision') end
+      for _, item in ipairs(category.settings or {}) do if item.id == 'companionVision' then conversations = category end end
     end
-    local result = registered.applyBatch('manager', {{id = 'companionVision', value = false}})
-    assert(result.ok == false, 'an Apply for the removed row was accepted')
+    assert(conversations and conversations.id == 'conversation-controls', 'it is not on the Conversations page')
+    assert(registered.applyBatch('manager', {{id = 'companionVision', value = true}}).ok)
+    assert(saved.companionVision == true)
+    loaded = registered.loadMod('manager')
+    assert(row('companionVision').value == true)
+    assert(not registered.applyBatch('manager', {{id = 'companionVision', value = 'on'}}).ok, 'a non-boolean was accepted')
+    local back = {}
+    for _, change in ipairs(core.defaults()) do back[change.id] = change.value end
+    assert(back.companionVision == false, 'Restore defaults does not name it, off')
   `);
 });
 

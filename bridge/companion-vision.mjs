@@ -1,6 +1,8 @@
-// "Companions can see" (docs/COMPANION_VISION.md): with Convai, every conversation turn carries one recent picture of V's
-// surroundings. Always on with Convai (there is no player setting; a saved "companionVision" key from an older install is ignored);
-// CYBERPUNK_CONVAI_VISION=off is the developer switch.
+// "Companions can see" (docs/COMPANION_VISION.md): every conversation turn carries one recent picture of V's surroundings. One player setting, off by default
+// (Settings > Conversations, settings.json `companionVision`), covers every conversation provider: Convai (the picture is published to the realtime session ahead of the line),
+// and Mistral, Local AI and Custom (the picture is an image_url part of the last user message, bridge/vision-message.mjs). With the setting off nothing is captured, the helper is
+// not started and no picture is held in memory. CYBERPUNK_CONVAI_VISION=off is the developer switch that overrides the setting.
+// A provider that cannot see (a Local AI model with no vision projector, a Custom endpoint that refused a picture) is not `active`: nothing is captured for it, and the player is told once (takeSightNotice).
 //
 // Why a rolling buffer and not a screenshot at talk time: when V talks, V is usually looking at the companion, so a picture taken
 // then is mostly her face. The view from a few seconds *before* the conversation shows where they are. So, while a companion (or
@@ -35,6 +37,7 @@ import {writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {MAX_IMAGES, validImages} from './convai-vision.mjs';
+import {TEXT_PICTURE} from './vision-message.mjs';
 
 export const FRAME_INTERVAL_MS = 3000;
 export const FRAME_SLOTS = 5;
@@ -66,23 +69,27 @@ const pageKeyOf = config => JSON.stringify([config?.characterId ?? null, config?
 export const visionDisabledByEnv = (env = process.env) => /^(0|off|false|no)$/i.test(String(env.CYBERPUNK_CONVAI_VISION ?? '').trim());
 
 export class CompanionVision {
-  // capture: a VisionCapture (bridge/vision-capture.mjs). isConvai(): true while Convai answers (Mistral and Local AI get no picture).
+  // capture: a VisionCapture (bridge/vision-capture.mjs). isConvai(): true while Convai answers. sees(): while another provider answers (Mistral, Local AI, Custom), whether it can take a
+  // picture right now (its model has vision, the endpoint has not refused one); read only when it is not Convai. blocker(): null, or {code, key} when the setting is on and the provider cannot
+  // see for a reason the player is told once ('vision-local-no-model', 'vision-custom-no-images'; key says which case, so each is told once). provider(): 'convai' | 'mistral' | 'local' | 'custom'.
   // isNear(): a party member or a character V may talk to is around. isConversing(): a composer, turn, recording or reply is running.
   // stageVoice(images): hands pictures to the running microphone turn ({staged, reason}). stagePage(config, images) / unstagePage(config):
   // publish or withdraw a picture on an idle conversation page ahead of the turn ({staged, reason}).
-  constructor({capture, isConvai = () => true, isNear = () => true, isConversing = () => false,
+  constructor({capture, isConvai = () => true, sees = () => true, blocker = () => null, provider = () => (isConvai() ? 'convai' : 'mistral'), isNear = () => true, isConversing = () => false,
     stageVoice = async () => ({staged: false}), stagePage = async () => ({staged: false}), unstagePage = async () => {},
     log = () => {}, now = () => Date.now(), env = process.env,
     debugDirectory = absoluteRuntimeOverride(env.CYBERPUNK_CONVAI_VISION_DEBUG_DIR || undefined, 'CYBERPUNK_CONVAI_VISION_DEBUG_DIR'),
     lastSentPath = null,
     writeDebug = (path, bytes) => writeFile(path, bytes), sleep = ms => new Promise(done => setTimeout(done, ms))} = {}) {
-    Object.assign(this, {capture, isConvai, isNear, isConversing, stageVoice, stagePage, unstagePage,
+    Object.assign(this, {capture, isConvai, sees, blocker, provider, isNear, isConversing, stageVoice, stagePage, unstagePage,
       log, now, debugDirectory, lastSentPath, writeDebug, sleep});
     this.envOff = visionDisabledByEnv(env);
     // Development only: keep the last picture handed to Convai (and a line about it) in lastSentPath, to look at what the model saw.
     this.debugLast = /^(1|on|true|yes)$/i.test(String(env.CYBERPUNK_CONVAI_VISION_DEBUG_LAST ?? '').trim());
     this.turnCapture = null; this.stagedFrame = null; this.newestTakenAt = null;
-    this.enabled = !this.envOff; this.transport = 'video'; this.waitMs = null;
+    // Off until the settings poll says the player turned it on (settings.json `companionVision: true`): a fresh install, a missing key and a bridge that has not read the settings yet capture nothing.
+    this.enabled = false; this.transport = 'video'; this.waitMs = null;
+    this.kind = null; this.noticePending = null; this.noticed = new Set();
     this.frames = []; this.lastCaptureAt = -Infinity; this.busy = 0; this.frameSerial = 0;
     this.conversing = false; this.conversationStart = null; this.lastConversationAt = -Infinity;
     this.queue = []; this.voice = new Map(); this.answered = new Map(); this.answeredAt = new Map(); this.staged = new Map(); this.stageRound = 0;
@@ -100,8 +107,28 @@ export class CompanionVision {
     this.borderNoticePending = false;
     return true;
   }
+  // Convai answers: pictures go to its realtime pages, ahead of the line. The other providers take the picture with the request itself (no pages to stage on).
+  get paged() { try { return this.isConvai() === true; } catch { return false; } }
   get active() {
-    try { return this.enabled && this.isConvai() === true; } catch { return false; }
+    try { return this.enabled && (this.isConvai() === true || this.sees() === true); } catch { return false; }
+  }
+  // The size of the picture for the provider that answers: Convai 1024 px at quality 88 (the helper's default), the text providers 768 px at 80 (smaller to read and to send).
+  captureOptions() { return this.paged ? undefined : TEXT_PICTURE; }
+  // Told once: the setting is on and the provider cannot see ('vision-local-no-model': the Local AI model has no vision projector, or none fits beside it; 'vision-custom-no-images': the
+  // endpoint refused a picture). The bridge adds the code to the next reply's notice (keyNotice).
+  takeSightNotice() {
+    const code = this.noticePending;
+    this.noticePending = null;
+    return code ?? null;
+  }
+  // The Custom (or any text) endpoint refused a picture: none is sent to it again this session, and the player is told once.
+  noteRefused(kind) {
+    const key = `refused:${kind}`;
+    if (this.noticed.has(key)) return;
+    this.noticed.add(key);
+    // Only the Custom endpoint is the player's own: Mistral's and Local AI's models are known to take pictures, so a refusal there is a log line.
+    if (kind === 'custom') this.noticePending = 'vision-custom-no-images';
+    this.log(`${kind} refused a picture: none is sent to it again this session`);
   }
   // True while the helper may run: it is capturing frames.
   get capturing() {
@@ -118,7 +145,7 @@ export class CompanionVision {
   update(settings) {
     let changed = false;
     if (settings && typeof settings === 'object') {
-      const enabled = !this.envOff;
+      const enabled = settings.companionVision === true && !this.envOff;
       const transport = settings.visionTransport === 'upload' ? 'upload' : 'video';
       const wait = Number(settings.visionWaitMs);
       changed = enabled !== this.enabled || transport !== this.transport;
@@ -135,6 +162,11 @@ export class CompanionVision {
     let conversing = false;
     try { conversing = this.isConversing() === true; } catch {}
     if (conversing) this.markConversation(); else this.conversing = false;
+    // The provider changed (Convai to Local AI, Mistral to Custom): the buffered pictures were taken at the old provider's size, and a staged one is on a page that is not used any more.
+    let kind = null;
+    try { kind = this.provider(); } catch { kind = null; }
+    if (kind !== this.kind) { const before = this.kind; this.kind = kind; if (before !== null) { this.frames = []; this.stagedFrame = null; this.pageFrames.clear(); this.nextRound++; } }
+    this.checkBlocked();
     // Pictures are base64 JPEGs (about 0.2 to 0.3 MB each as a string): while vision is not used (the setting is off, another provider answers) none is held, and while it is
     // the pictures of turns that are over are let go once a retry of them can no longer happen (the ids stay).
     if (!this.active) { this.frames = []; this.releasePictures(); }
@@ -152,6 +184,17 @@ export class CompanionVision {
       return;
     }
     if (this.busy === 0 && this.now() - this.lastCaptureAt >= FRAME_INTERVAL_MS) void this.collect();
+  }
+  // The setting is on but the provider cannot see: the player is told once per case (Local AI: the model has no vision projector, or it did not fit, or it could not start with it).
+  // A cheap read of the server's remembered state every poll; nothing when the setting is off.
+  checkBlocked() {
+    if (!this.enabled) return;
+    let blocked = null;
+    try { blocked = this.blocker(); } catch { blocked = null; }
+    if (!blocked || typeof blocked.code !== 'string' || this.noticed.has(blocked.key)) return;
+    this.noticed.add(blocked.key);
+    this.noticePending = blocked.code;
+    this.log(`pictures are on but ${blocked.why ?? 'the provider cannot see'}: the player is told once, replies use text only`);
   }
   // Every picture this object holds, bar the frame buffer (tick empties that): the staged frame, queued pictures, the recordings' and the answered turns' pictures. The
   // turns' ids stay, so a retried turn is still told it was answered. Cheap when there is nothing to release.
@@ -254,7 +297,7 @@ export class CompanionVision {
     this.writeDebug(this.lastSentPath, Buffer.from(frame.base64, 'base64')).catch(() => {});
     this.writeDebug(this.lastSentPath.replace(/\.jpe?g$/i, '') + '.json', JSON.stringify(note, null, 1)).catch(() => {});
   }
-  connectConfig() { return this.active ? {transport: this.transport} : null; }
+  connectConfig() { return this.active && this.paged ? {transport: this.transport} : null; }
   turnWaitMs() { return this.waitMs; }
 
   // ---- public API for other features ------------------------------------------------------------------------------------------
@@ -278,15 +321,17 @@ export class CompanionVision {
   // The composer (or a group's composer) opened for these conversation pages: the frame is published on each page now, while V
   // types, retried while a page is still connecting. When no frame is young (FRESH_FRAME_AGE_MS) one is taken first (the helper
   // starts; about 0.3 to 0.5 s, hidden behind typing). Queued pictures are not staged ahead (they may arrive later).
+  // With a provider that has no pages (Mistral, Local AI, Custom) the frame is only chosen, here, while V types: the turn takes it from memory (stagedYoung), and nothing is published.
   openComposer(configs) {
-    if (!this.active || !Array.isArray(configs) || !configs.length) return false;
+    if (!this.active || (this.paged && (!Array.isArray(configs) || !configs.length))) return false;
     this.markConversation();
     const round = ++this.stageRound, have = this.frame();
     this.stagedFrame = null;
-    if (!this.wantsFresh(have)) { if (have) this.beginStage(round, configs, have); return !!have; }
+    const stage = frame => { if (this.paged) this.beginStage(round, configs, frame); else this.stagedFrame = frame; };
+    if (!this.wantsFresh(have)) { if (have) stage(have); return !!have; }
     void this.captureForTurn('composer').then(() => {
       const frame = this.frame();   // the new picture, or an older one that is still within MAX_FRAME_AGE_MS, or none
-      if (round === this.stageRound && frame) this.beginStage(round, configs, frame);
+      if (round === this.stageRound && frame) stage(frame);
     });
     return true;
   }
@@ -316,7 +361,7 @@ export class CompanionVision {
   // pages of the speakers after them get a frame now, while this one is written and heard: the newest frame if it is at most FRESH_FRAME_AGE_MS old (no capture),
   // else one new capture (the helper starts, about 0.3 to 0.5 s). Never waited for by the turn that calls it. configs: the next speakers' conversation pages.
   stageForNext(configs) {
-    if (!this.active || !Array.isArray(configs) || !configs.length) return false;
+    if (!this.active || !this.paged || !Array.isArray(configs) || !configs.length) return false;
     const round = ++this.nextRound, current = () => round === this.nextRound;
     const publish = (frame, source) => {
       if (!frame || !current() || !this.active || this.now() - frame.at > MAX_FRAME_AGE_MS) return;
@@ -368,6 +413,8 @@ export class CompanionVision {
       if (!frame || this.voice.get(requestId) !== entry || !this.active) return;
       this.stagedFrame = entry.frame = frame;
       entry.images = [{mime: frame.mime, base64: frame.base64}];
+      // No pages to publish on (Mistral, Local AI, Custom): the turn takes the frame from memory when the recording is answered.
+      if (!this.paged) return;
       const until = this.now() + STAGE_RETRY_MS;
       for (let attempt = 0; attempt <= STAGE_ATTEMPTS && this.voice.get(requestId) === entry && this.active; attempt++) {
         const result = await this.stageVoice(entry.images, requestId).catch(() => ({staged: false, reason: 'failed'}));
@@ -438,7 +485,7 @@ export class CompanionVision {
   // One game picture, or null. Never throws.
   async grab(trigger) {
     let result;
-    try { result = await this.capture.capture(); } catch { result = {ok: false, reason: 'failed'}; }
+    try { result = await this.capture.capture(this.captureOptions()); } catch { result = {ok: false, reason: 'failed'}; }
     if (!result?.ok) {
       // A minimised game, or one that is not in front or has a window over it (the border-free capture sees the whole monitor, so it does not take that), is not a failure.
       const quiet = result?.reason === 'minimised' || result?.reason === 'covered';
@@ -467,7 +514,7 @@ export class CompanionVision {
   }
   diagnostics() {
     const newest = this.frames.at(-1);
-    return {enabled: this.enabled, active: this.active, transport: this.transport, frames: this.frames.length,
+    return {enabled: this.enabled, active: this.active, provider: this.kind, paged: this.paged, transport: this.transport, frames: this.frames.length,
       newestFrameAgeMs: newest ? this.now() - newest.at : null, capturing: this.capturing, helperRunning: this.capture?.running === true,
       captureMethod: this.capture?.method ?? null, borderShown: this.borderShown, helper: this.capture?.info ?? null,
       queued: this.queue.length, ...this.counters};

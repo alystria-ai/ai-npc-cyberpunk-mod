@@ -235,7 +235,7 @@ test('contextRefusal reads each shape and nothing else', () => {
 test('the bridge wires it: one limits file in the state folder, the log goes to stderr as it is, nothing on a normal turn', async () => {
   const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /const promptLimits = new LearnedLimits\(\{file: resolve\(stateDirectory, 'prompt-limits\.json'\)\}\)/);
-  assert.match(bridge, /customRoute\(\{provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console\.error\(line\)\}\)/);
-  assert.match(bridge, /limits: promptLimits, log: line => console\.error\(line\)\}\),\s*local:/);
+  assert.match(bridge, /customRoute\(\{provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console\.error\(line\), onImagesRejected: kind => companionVision\.noteRefused\(kind\)\}\)/);
+  assert.match(bridge, /limits: promptLimits, log: line => console\.error\(line\),\s*onImagesRejected: kind => companionVision\.noteRefused\(kind\)\}\),\s*local:/);
   assert.equal(PROMPT_SOURCE.description, 'cyberpunk-convai.prompt-source');
 });

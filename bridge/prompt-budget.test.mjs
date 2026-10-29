@@ -568,3 +568,32 @@ test('coldAttemptRoomMs: the base room for a model on the card; the time the col
   quick.observe({timings: {promptTokens: 6000, cachedTokens: 0, promptMs: 1000}});            // 6,000 a second
   assert.equal(coldAttemptRoomMs({baseMs: base, offload: true, speed: quick}), Math.round(COLD_PROMPT.tokens / 6000 * 1000 + COLD_PROMPT.answerMs) < base ? base : Math.round(COLD_PROMPT.tokens / 6000 * 1000 + COLD_PROMPT.answerMs));
 });
+
+test('budgetedChat: a request that carried a picture (imageTokens) teaches neither the token ratio nor the reading speed, and keeps room for it; one without does teach', async () => {
+  for (const imageTokens of [400, 0]) {
+    const meter = new TokenMeter({charsPerToken: 4});
+    const observed = {speed: 0};
+    const speed = {observe() { observed.speed++; }, observeFailure() {}};
+    let fitted;
+    const chat = budgetedChat(async options => ({text: 'ok', usage: {prompt_tokens: 2500}, trace: {}}),
+      {budget: async () => ({contextTokens: 8192, meter, speed, ...(imageTokens ? {reserveTokens: BUDGET.reserveTokens + imageTokens, imageTokens} : {})}), onFit: fit => { fitted = fit; }});
+    const before = meter.charsPerToken;
+    await chat({messages: buildMessages(turn()), provider: 'local'});
+    if (imageTokens) {
+      assert.equal(meter.charsPerToken, before, 'a count that includes the picture teaches nothing');
+      assert.equal(observed.speed, 0, 'the encoder time is not the prompt reading speed');
+    } else {
+      assert.notEqual(meter.charsPerToken, before, 'an ordinary request teaches the ratio');
+      assert.equal(observed.speed, 1);
+    }
+    void fitted;
+  }
+  // The room kept for the picture comes off the prompt: the same prompt (about 4,550 tokens) goes through at the usual reserve and no longer fits once 3,500 tokens are kept for pictures.
+  const sent = [];
+  const reserved = reserveTokens => budgetedChat(async options => { sent.push(options.messages); return {text: 'ok', usage: {prompt_tokens: 1}}; },
+    {budget: async () => ({contextTokens: 8192, meter: new TokenMeter(), reserveTokens, imageTokens: reserveTokens > BUDGET.reserveTokens ? 3500 : 0})});
+  const prompt = () => buildMessages(turn({history: exchanges(8), context: lines('world', 400)}));
+  assert.equal((await reserved(BUDGET.reserveTokens)({messages: prompt(), provider: 'local'})).text, 'ok');
+  await assert.rejects(reserved(BUDGET.reserveTokens + 3500)({messages: prompt(), provider: 'local'}), error => error instanceof PromptTooLarge);
+  assert.equal(sent.length, 1, 'the second request was refused before it was sent');
+});

@@ -10,6 +10,7 @@
 // names its exact origin as `trustedOrigin`: a server the player runs themselves (bridge/custom-models.mjs, an `endpoint` entry) on the local network
 // or, with the player's explicit "remote": true, anywhere; the key then goes to that origin and to no other.
 import {markStage} from './turn-clock.mjs';
+import {isImageRefusal, usableImages, withImages} from './vision-message.mjs';
 import {ThinkFilter, reasoningIn, reasoningTokens, afterStrayClose, retryBudget, withNoThink, lowerEffort, REASONING_ROOM, NO_THINK_MODEL, NO_THINKING_FIELDS} from './reasoning.mjs';
 export const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 export const MISTRAL_MODELS_ENDPOINT = 'https://api.mistral.ai/v1/models';
@@ -19,6 +20,9 @@ export const MISTRAL_MODELS_ENDPOINT = 'https://api.mistral.ai/v1/models';
 // in about 1 s and follows a persona well; `14b` is richer but slower (docs/FREE_CLOUD_OPTION_RESEARCH.md).
 export const DEFAULT_MODELS = Object.freeze(['ministral-8b-latest', 'ministral-14b-latest', 'ministral-3b-latest']);
 export const DEFAULT_MODEL = DEFAULT_MODELS[0];
+// The models of the list above that take pictures, checked against Mistral's own model list on 2026-10-29 (GET /v1/models, capabilities.vision is true for all three: the 2512 builds
+// of Ministral 3 behind the -latest names). "Companions can see" sends a picture only to a model named here, never to one that is not (docs/COMPANION_VISION.md, "Mistral").
+export const VISION_MODELS = Object.freeze(new Set(DEFAULT_MODELS));
 // The companion-action decision (bridge/text-actions.mjs) is one word read from V's message, so the smallest model answers it: measured with
 // scripts/Eval-MistralPrompt.mjs --actions --decision-only on 54 lines (14 Oct 2026), `ministral-3b` had recall 97% and no false trigger at a
 // p50/p90 of 475/760 ms against 8b's 97-100% recall, one false trigger and 510-590/940 ms. The reply keeps DEFAULT_MODELS; 8b is the fallback.
@@ -609,13 +613,14 @@ const contentText = content => typeof content === 'string' ? content
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, promptStallMs = stallMs, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
-  adapt, headers, reasoning, noThinking, askedKeys, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+  adapt, headers, reasoning, noThinking, askedKeys, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout,
+  images, onImagesRejected} = {}) {
   // The custom provider's key is optional (a server on this computer wants none); a key it has is held to the same length as any other.
   const keyless = provider === 'custom' && (apiKey === undefined || apiKey === null || apiKey === '');
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
   if (keyless) apiKey = undefined;
   const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
-  let lastError, adapted = 0, advancedDrops = 0, larger = null;   // larger: {maxTokens, noThink} once a reply that went to thinking is asked again with more room
+  let lastError, adapted = 0, advancedDrops = 0, larger = null, refusedPicture = null;   // larger: {maxTokens, noThink} once a reply that went to thinking is asked again with more room
   let thinkRetry = false;   // a reply of only thinking is asked again once with the fields that ask for no thinking (noThinking)
   const failed = [];
   const hasDeadline = Number.isFinite(deadlineAt);
@@ -636,15 +641,25 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
         firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, promptStallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
-        adapt, headers, reasoning, askedKeys, noThinking: askedNoThink ? noThinking : undefined, lowEffort: askedLow, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
+        adapt, headers, reasoning, askedKeys, noThinking: askedNoThink ? noThinking : undefined, lowEffort: askedLow, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer, images,
         ...(larger ? {maxTokens: larger.maxTokens, noThink: larger.noThink} : {})});
       // What the larger budget (and the switch) bought is kept: the next requests start with it, so no turn pays for the empty first try again.
       if (larger && adapt) { adapt.floorTokens = larger.maxTokens; if (larger.noThink) adapt.noThink = true; if (askedLow) adapt.lowEffort = true; }
+      // The request that was refused for its picture worked without it: the picture was the cause, so the caller stops sending them to this model or endpoint.
+      if (refusedPicture) { const cause = refusedPicture; refusedPicture = null; try { onImagesRejected?.(cause); } catch { /* an observer never fails a reply */ } }
       return {...result, attempts: attempt + 1 + adapted + (larger ? 1 : 0), failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
       lastError = error instanceof MistralError ? error : new MistralError('network', redact(error?.message ?? 'request failed', apiKey), {apiKey, provider});
       failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began), ...(lastError.reason ? {reason: lastError.reason} : {})});
+      // A server that will not take the picture this request carried (a model with no vision, an endpoint that wants plain text): the picture is dropped, the caller is told (it stops
+      // sending pictures to that model or endpoint), and the same request is sent again at once without it. Once: with no picture left this cannot repeat.
+      if (images?.length && lastError.imagesRejected === true && !signal?.aborted) {
+        images = undefined; refusedPicture = lastError;   // the caller is told once the request has worked without it: until then the picture may not have been the cause
+        try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
+        attempt--;
+        continue;
+      }
       // A reply of only thinking from a server of the player's: the endpoint is remembered as one that thinks (the next requests carry the fields that ask for no
       // thinking from the start), and this request is asked again at once with them, whatever retries are left (the loop above still holds the turn's own time).
       // A custom provider's reply that spent its budget on thinking also gets the larger room, in the same one retry.
@@ -785,7 +800,7 @@ function emptyAnswer(provider, apiKey, {thought, finishReason, extra = {}}) {
 }
 
 async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, promptStallMs = stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders, setTimer = setTimeout, clearTimer = clearTimeout,
-  reasoning, noThinking, noThink, lowEffort = false, thinkingRoom, thinkingPieces = 0, deadlineCapped = false, askedKeys}) {
+  reasoning, noThinking, noThink, lowEffort = false, thinkingRoom, thinkingPieces = 0, deadlineCapped = false, askedKeys, images}) {
   const controller = new AbortController();
   let timedOut = null;   // which limit ended it: 'first', 'stall' or 'total'
   const trace = newTrace();
@@ -824,7 +839,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       // The custom provider's https connections are kept alive like Mistral's (the reply after a pause finds one ready).
       const dispatcher = isCloud(url) || (provider === 'custom' && url.startsWith('https:')) ? await remoteDispatcher() : undefined;
       const custom = provider === 'custom';
-      const body = {model, messages: custom && (noThink || adapt?.noThink) && NO_THINK_MODEL.test(model) ? withNoThink(messages) : messages, stream: true,
+      const body = {model, messages: withImages(custom && (noThink || adapt?.noThink) && NO_THINK_MODEL.test(model) ? withNoThink(messages) : messages, images), stream: true,
         max_tokens: custom && thinkingRoom !== false && adapt?.floorTokens ? Math.max(maxTokens, adapt.floorTokens) : maxTokens, temperature, ...extraBody};
       // The field that asks a reasoning model to think less, at the step the server has not refused yet (bridge/reasoning.mjs).
       if (custom) Object.assign(body, lowEffort ? lowerEffort(reasoning?.[adapt?.reasoningStep ?? 0]) ?? reasoning?.[adapt?.reasoningStep ?? 0] : reasoning?.[adapt?.reasoningStep ?? 0]);
@@ -863,6 +878,8 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     if (!response.ok) {
       const refused = await errorBody(response, provider);
       const failure = mapFailure(response.status, refused, {headers: response.headers, apiKey, provider});
+      // The request carried a picture and the server says it will not take one: marked, so streamChat sends it again without (and the caller stops sending pictures there).
+      if (usableImages(images).length && isImageRefusal(response.status, textOf(refused))) failure.imagesRejected = true;
       // A server that has `adapt` and refuses a sampling field or one of the player's advanced parameters (`askedKeys`) by name loses that field and is asked again. This comes before the
       // no-thinking check below: a strict server's "unknown field typical_p" is a refusal of that key, not of the fields that ask for no thinking.
       if (adapt && askedKeys?.length && (response.status === 400 || response.status === 422)) {

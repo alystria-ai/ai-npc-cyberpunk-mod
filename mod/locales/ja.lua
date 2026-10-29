@@ -1045,7 +1045,6 @@ return {
     ["Local AI stopped working and was restarted."] = "Local AI が動作しなくなったため、再起動しました。",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI はここでは主にプロセッサで動作するため、返信は遅くなります。",
     ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI がグラフィックカードに戻ったため、返答が再び速くなりました。",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "黄色い枠はWindowsのキャプチャ表示です。Mistral か Local AI を選ぶと止まります。",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "このMODのメニューと通知だけを変更します。\n\nキャラクターの声と、話す言語は別々です。マイクは、英語以外の音声を認識するためのヒントとしてこの言語を使います。",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral は音声を出さなくなり、キーを保存するまで、コンパニオンの返答はテキストで表示されます。",
     ["Conversations go back to Convai free tier."] = "会話は Convai（無料プラン）に戻ります。",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "キーを押すときに Shift、Ctrl、Alt を押したままにすると、Shift+F5 のような組み合わせを設定できます。組み合わせは、ちょうどそのキーを押している間だけ動作し、単独のキーはいずれかを押している間は動作しません。ゲームでは Shift でダッシュ、Ctrl で回避、Alt でウェポンホイールが開くため、V もそれを行います。",
     ["Disk space"] = "ディスク容量",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "ドライブ {drive} の空きがわずか（残り{free}GB）です。ログと記憶を保存できるよう、空けてください。",
+    ["Companions can see"] = "仲間の視覚",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "各発言には、話す直前にゲーム画面から取得した周囲の最新画像も添えられます。どの会話プロバイダーでも使えます。Local AI は画像を認識できるモデルが必要です。認識できないモデルでは、あなたの言葉だけが渡ります。\n\n取得対象はゲーム画面のみで、近くに誰かいるときだけ、短時間メモリに保持されます。オフの場合は何も取得されません。",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "黄色い枠はWindowsのキャプチャ表示です。仲間の視覚をオフにすると止まります。",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "このLocal AIモデルは画像を見られないため、返答にはプレイヤーの言葉だけが使われます。",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Customエンドポイントは画像を受け付けないため、返答にはプレイヤーの言葉だけが使われます。",
 }

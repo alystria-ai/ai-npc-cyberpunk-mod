@@ -1052,7 +1052,6 @@ return {
     ["Local AI stopped working and was restarted."] = "Local AI přestala fungovat a byla restartována.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI tu běží hlavně na procesoru, takže odpovědi budou pomalé.",
     ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI je zpět na tvé grafické kartě, takže odpovědi budou zase rychlejší.",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Žlutý rámeček je Windows, který ukazuje záznam. Zastav ho volbou Mistral nebo Local AI.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Mění jen nabídky a hlášení tohoto modu.\n\nHlasy postav a jazyk, kterým mluvíš, jsou oddělené. Mikrofon tento jazyk použije jako nápovědu pro řeč v jiném jazyce než angličtině.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral přestane mluvit; odpovědi společníků se zobrazují jako text, dokud nebude uložen klíč.",
     ["Conversations go back to Convai free tier."] = "Konverzace se vrátí ke Convai (bezplatný plán).",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Podrž Shift, Ctrl nebo Alt při stisku klávesy a nastavíš kombinaci, například Shift+F5. Kombinace se spustí jen tehdy, když jsou drženy přesně tyto klávesy, a obyčejná klávesa se nespustí, dokud je některá z nich držena. Ve hře Shift znamená sprint, Ctrl úhyb a Alt otevírá kolo zbraní, takže to udělá i V.",
     ["Disk space"] = "Místo na disku",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "Tvůj disk {drive} je skoro plný ({free} GB volných). Uvolni místo, aby mod mohl uložit logy a vzpomínky.",
+    ["Companions can see"] = "Společníci vidí",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Každý řádek dostane i čerstvý obraz okolí z okna hry. Funguje s každým poskytovatelem konverzace. Local AI potřebuje model, který umí vidět. Model, který nemůže, dostane jen tvoje slova.\n\nPouze okno hry, pouze když je někdo poblíž, krátce uložené v paměti. Vypnuto znamená, že se nic nezachytává.",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "Žlutý rámeček je Windows, který ukazuje záznam. Zastav ho vypnutím volby Společníci vidí.",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "Tento model Local AI neumí vidět obrázky, odpovědi tedy berou jen tvá slova.",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Tvůj Custom koncový bod nepřijímá obrázky, odpovědi tedy berou jen tvá slova.",
 }

@@ -1052,7 +1052,6 @@ return {
     ["Local AI stopped working and was restarted."] = "Local AI çalışmayı durdurdu ve yeniden başlatıldı.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI burada çoğunlukla işlemcide çalışıyor, bu yüzden yanıtlar yavaş olacak.",
     ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI yeniden ekran kartında çalışıyor, bu yüzden yanıtlar yine daha hızlı.",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Sarı çerçeve: Windows görüntü alıyor. Durdurmak için Mistral veya Local AI seç.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Yalnızca bu modun menülerini ve bildirimlerini değiştirir.\n\nKarakter sesleri ile konuştuğun dil ayrı şeylerdir. Mikrofon, İngilizce olmayan konuşmalar için bu dili bir ipucu olarak kullanır.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral konuşmayı bırakır; bir anahtar kaydedilene kadar yoldaşların yanıtları metin olarak gösterilir.",
     ["Conversations go back to Convai free tier."] = "Konuşmalar yeniden Convai (ücretsiz plan) seçeneğine geçer.",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Bir tuşa basarken Shift, Ctrl veya Alt tuşunu basılı tutarak Shift+F5 gibi bir kombinasyon belirle. Kombinasyon yalnızca tam olarak bu tuşlar basılıyken çalışır, düz bir tuş ise bunlardan biri basılıyken çalışmaz. Oyunda Shift koşturur, Ctrl kaçınır, Alt ise silah çarkını açar, bu yüzden V de bunu yapar.",
     ["Disk space"] = "Disk alanı",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "{drive} sürücün neredeyse dolu ({free} GB boş). Yer aç, mod günlüklerini ve anılarını kaydedebilsin.",
+    ["Companions can see"] = "Yol arkadaşları görür",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Her satıra oyun penceresinden alınan güncel bir çevre görüntüsü eklenir. Her konuşma sağlayıcısıyla çalışır. Local AI, görebilen bir model gerektirir. Göremeyen model yalnızca sözlerini alır.\n\nYalnızca oyun penceresi, yalnızca biri yakındayken, kısa süre bellekte tutulur. Kapalıyken hiçbir şey yakalanmaz.",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "Sarı çerçeve: Windows görüntü alıyor. Durdurmak için Yol arkadaşları görür seçeneğini kapat.",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "Bu Local AI modeli görüntü göremez, yanıtlar yalnızca senin sözlerini kullanır.",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Custom uç noktan görüntü kabul etmez, yanıtlar yalnızca senin sözlerini kullanır.",
 }

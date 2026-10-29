@@ -1052,7 +1052,6 @@ return {
     ["Local AI stopped working and was restarted."] = "Local AI przestało działać i zostało uruchomione ponownie.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI działa tu głównie na procesorze, więc odpowiedzi będą wolne.",
     ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI znowu działa na karcie graficznej, więc odpowiedzi są znowu szybsze.",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Żółta ramka: Windows pokazuje przechwycenie. Wybierz Mistral lub Local AI, aby ją zatrzymać.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Zmienia tylko menu i powiadomienia tego modu.\n\nGłosy postaci i język, którym rozmawiasz, są oddzielne. Mikrofon używa tego języka jako wskazówki przy mowie w językach innych niż angielski.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral przestaje mówić; odpowiedzi towarzyszy są wyświetlane jako tekst, dopóki nie zostanie zapisany klucz.",
     ["Conversations go back to Convai free tier."] = "Rozmowy wracają do Convai (darmowy plan).",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Przytrzymaj Shift, Ctrl lub Alt podczas naciskania klawisza, aby ustawić kombinację, na przykład Shift+F5. Kombinacja działa tylko przy dokładnie tych przytrzymanych klawiszach, a zwykły klawisz nie działa, gdy któryś z nich jest przytrzymany. W grze Shift oznacza sprint, Ctrl unik, a Alt otwiera koło broni, więc V też to zrobi.",
     ["Disk space"] = "Miejsce na dysku",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "Twój dysk {drive} jest prawie pełny ({free} GB wolnego). Zrób miejsce na logi i wspomnienia moda.",
+    ["Companions can see"] = "Towarzysze widzą",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Każda kwestia dostaje też świeży obraz otoczenia z okna gry. Działa z każdym dostawcą rozmów. Local AI potrzebuje modelu, który potrafi widzieć. Model, który nie potrafi, dostaje tylko twoje słowa.\n\nTylko okno gry, tylko gdy ktoś jest w pobliżu, krótko w pamięci. Wyłączone: nic nie jest przechwytywane.",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "Żółta ramka: Windows pokazuje przechwycenie. Wyłącz Towarzysze widzą, aby ją zatrzymać.",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "Ten model Local AI nie widzi obrazów, więc dostaje tylko twoje słowa.",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Twój endpoint Custom nie przyjmuje obrazów, więc dostaje tylko twoje słowa.",
 }

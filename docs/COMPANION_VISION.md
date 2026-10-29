@@ -1,8 +1,8 @@
 # Companions can see
 
-Status 2026-10-23: **works with Convai.** A live check with a test picture (a red car and the word PINEAPPLE) had Judy describe it; without a picture she said she could not see. The server needs the picture on the session about 3 s before the line (see "What the turn waits for"). Built on branch `companion-vision`, merged with main, unit-tested, capture cost measured against the running game.
+Status 2026-10-29: **one setting, off by default, for every provider.** "Companions can see" (Settings > Conversations) now covers Convai, Mistral, Local AI and Custom. Convai was always on from 2026-10-16 to 2026-10-29 and is now off by default too, by the owner's decision, so a player who had pictures with Convai starts with them off. Section 2 is the work of 2026-10-29 (branch `feat/vision-all-providers`): unit-tested, the Mistral request and the helper's encode time measured, **not yet run live with a Local AI projector** (none is installed). The Convai part below was live-checked on 2026-10-23: a test picture (a red car and the word PINEAPPLE) had Judy describe it, and without a picture she said she could not see. The server needs the picture on the session about 3 s before the line (see "What the turn waits for"). Built on branch `companion-vision`, merged with main, unit-tested, capture cost measured against the running game.
 
-With Convai, every conversation turn (typed or talk key) carries one recent picture of V's surroundings: V's view from a few seconds before the turn, never older than 15 s (see "Freshness" in section 3). Before a conversation it is taken from a few seconds **before** it started, so it shows the place rather than the companion's face; during one a new picture is taken as each turn starts, and the companion may be in it. There is no player setting: it is always on with Convai, never with Mistral or Local AI.
+With the setting on, every conversation turn (typed or talk key) carries one recent picture of V's surroundings: V's view from a few seconds before the turn, never older than 15 s (see "Freshness" in section 3). Before a conversation it is taken from a few seconds **before** it started, so it shows the place rather than the companion's face. During one a new picture is taken as each turn starts, and the companion may be in it. With the setting off nothing is captured, the helper process is not started and no frame is held in memory.
 
 ## 1. What Convai offers (research, 2026-10-14)
 
@@ -60,18 +60,58 @@ Sources:
 - Ordinary questions ("How's your day going?", "Want to grab some food later?") got ordinary answers: none of the 10 replies with a picture mentioned the picture.
 - Not measured: time to first audio (the harness's non-live Convai audio path never completes, so each turn timed out).
 
-## 2. Mistral and Local AI (postponed)
+## 2. The text providers: Mistral, Local AI and Custom (built 2026-10-29, branch `feat/vision-all-providers`)
 
-- **Mistral** ([vision docs](https://docs.mistral.ai/capabilities/vision), [models](https://docs.mistral.ai/getting-started/models/models_overview/)):
-  - Ministral 3 (3B, 8B, 14B, 2512) accepts images on the same chat-completions endpoint we already call: a content array with `{"type": "image_url", "image_url": "data:image/jpeg;base64,…"}`, up to 20 MB.
-  - Cost is about one token per 28×28 px patch, so a 768×432 frame is about 420 tokens (an estimate). Expect +0.2–0.5 s latency.
-  - The mod asks for `ministral-8b-latest`; whether that alias points at the vision-capable 2512 build is unverified.
-  - Postponed by the user until the Convai design is settled.
-- **Local AI**:
-  - llama.cpp (b11560, Vulkan) supports images through `--mmproj` ([multimodal](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md)). Gemma 4 E4B needs its projector (946 MiB F16, or about 560 MB Q8): about 1.0–1.3 GB more video memory and an estimated 0.3–1 s per image on a GPU the game is using.
-  - That needs a download and a VRAM rule. It is a separate project.
+One setting, **Companions can see** (Settings > Conversations, `companionVision` in `settings.json`, **off by default**), now covers every conversation provider, Convai included. Convai used to have it always on (since 2026-10-16), so a player who had pictures with Convai starts with them off after this change: that is the owner's decision. With the setting off nothing is captured, the helper is not started, no frame is held in memory, and Local AI loads no projector (the unload rule, `docs/RESOURCE_LIFECYCLE.md`).
 
-`CompanionVision.active` is false while Mistral or Local AI answers: no picture, no helper process, no buffer.
+What each provider does with a picture:
+
+| Provider | What goes out | When it does not |
+|---|---|---|
+| Convai | The picture is published to the realtime session ahead of the line (sections 1 and 3, unchanged). 1024 px, JPEG quality 88. | Setting off. |
+| Mistral | An `image_url` part in the last user message. All three models the route asks (`ministral-8b-latest`, `ministral-14b-latest`, `ministral-3b-latest`) have vision: `GET /v1/models` on 2026-10-29 lists `capabilities.vision: true` for all of them (the 2512 builds behind the `-latest` names). | A model that is not on `VISION_MODELS` (`bridge/mistral-client.mjs`), or one that refused a picture: that turn is text only. |
+| Local AI | An `image_url` part, only when llama-server was started with the model's vision projector (`--mmproj`, section "Local AI" below). | The model has no projector, none fits beside it, the machine was measured to read prompts slowly or runs the model mostly on the processor, or the server is being restarted: text only, and the player is told once ('vision-local-no-model'). |
+| Custom | An OpenAI-style `image_url` part. | The endpoint answered with a 400, 415 or 422 that names images or says the content must be a string: the same turn is written again at once without the picture, no picture goes to that address and model again this session, and the player is told once ('vision-custom-no-images'). |
+
+**Where the picture is in the request.** In the last user message only, as `[image_url parts..., one text part]`. The text part is the note (`VISION_NOTE` in `bridge/vision-message.mjs`: what the picture is, mention it only when it fits, never describe the interface, say so when it is dark or unclear, indoors or outdoors comes from the text when the text says it) followed by exactly the text the message had without a picture. Every earlier message (persona, memory, earlier turns) is the same plain string as in a request without a picture: a test pins that the two requests are equal up to the last message. The last user message already differs on every turn (the live context, V's words), so nothing that a provider's prompt cache (llama-server's slot, Mistral's `prompt_cache_key`) could reuse sits after the picture, and the long-prompt reuse of `bridge/topic-words.mjs` and the stutter fix is not touched. Earlier turns are rebuilt from memory as text, so no old picture is ever replayed.
+
+**Mistral: why no model swap.** The alternatives were to send a picture-carrying turn to the nearest vision-capable model, or to skip the picture when the chosen model cannot see. The route's models all see, so the question is only about a model that does not (none today, or one a refusal taught us about). Skipping the picture is the cleaner failure. A swap would change who answers mid-conversation (a different voice for the same character), would spend the allowance of a model the account may not have (on 11 Oct 2026 Small and Medium had a request allowance of 0 on a free account), and would send the turn away from the model whose `prompt_cache_key` prefix is warm. `route.imagesFor(modelId)` is the gate. The turn goes out with text and nothing else changes.
+
+**Custom.** The refusal check is `isImageRefusal(status, text)` in `bridge/vision-message.mjs`. `streamChat` repeats the request without the picture, and calls `onImagesRejected` only after that repeat worked (so a 400 about something else never costs the player their pictures). The answer is kept in the endpoint's adaptation (`noImages`, per address and model, in memory), so a restart of the bridge asks again.
+
+**Local AI.** `docs/LOCAL_AI.md`, "Pictures (Companions can see)", holds the supervisor's side. In short:
+- A model has a projector when its manifest entry names one (`mmproj` on the `standard` and `lite` entries of the pack manifests, on an entry of `manifest.custom.json`, or on a Mature pack marker), or when its folder holds exactly one other `.gguf` that is a projector (GGUF architecture `clip`) and nothing else but that model. No pack ships a projector yet (section "Projectors that exist" below).
+- It is loaded only while the setting is on: `--mmproj <file> --image-max-tokens 320`. Its memory is counted in the fit (`projectorNeedMiB`: the file plus 384 MiB for the image encoder, an estimate): a model that fits whole without it but not with it loads without it ('no-room'), and a projector never pushes a model onto the processor.
+- Setting off: the server is restarted without the projector at the next idle moment, the old server's exit confirmed in the log. Setting on: restarted with it, if the model has one.
+- `llama-server` could not start with the projector: the same model is started again without it, once, and not marked broken.
+- The request carries its picture only when `lease.vision` is true (the loaded server has a projector). The prompt keeps `imageReserveTokens` (400 per picture) out of the budget, and a request that carried a picture does not teach the token ratio or the prompt-reading speed (the picture's tokens and the encoder's time are not the prompt's), so one picture cannot make the machine look slow.
+- On a machine measured to read prompts slowly, or one that runs the model mostly on the processor, no picture is sent: a picture would add to a wait the player already feels. One log line says so.
+
+**The picture's size.** Convai keeps 1024 px at quality 88 (its server scales to 1024). The text providers get 768 px at quality 80 (`TEXT_PICTURE`, about 27 KB for a plain scene and 45 to 50 KB for a normal interior), which means fewer image tokens and a smaller request. The helper takes the width and quality per request, so there is no rebuild. The buffer is emptied when the provider changes so a picture of the other size is never sent.
+
+**What a turn waits for.** Nothing, as before. The frame is chosen from memory (the buffer, or the one taken when the composer opened or the talk key went down) when the turn is built. A turn with no young frame goes out without a picture and starts one capture for the next. The text providers have no pages, so nothing is published ahead and nothing is staged. `openComposer` and `beginVoice` only pick the frame, `stageForNext` does nothing. The picture is attached by `attachTextProvider` (`bridge/text-provider-host.mjs`) from the host's `turnImages` (memory only, never throws), for the in-person host only: the phone, reactions, add-on lines and the action decision never carry one.
+
+**Measured (2026-10-29).**
+
+| What | Result |
+|---|---|
+| Helper, encode (WIC scale plus JPEG) of a plain 1366-wide stand-in window by Windows Graphics Capture, 30 runs each, alternating, while the full test suite ran beside it (so the tails are noise) | 1024 px q88: median 29.3 ms, 47 KB. 768 px q80: median 19.6 ms, 27 KB. 640 px q75: median 21 ms, 19 KB. Helper CPU 15.6 ms median in all three. In the game the documented medians are 8.8 ms (768 q80) and 11.9 ms (1024 q88) for the encode, and 104 to 112 ms for the whole capture (the compositor's next frame), section 4. |
+| Mistral, `ministral-8b-latest`, 557-token prompt against the same with a 768x369 picture and the note, 8 turns each, alternating, through `streamChat` | First word median 659 ms with the picture against 675 ms without (noise), whole reply 1776 against 2126 ms (noise). The server counted 1057 prompt tokens against 557: the picture is about 365 of the 500 more (one token per 28 by 28 pixel patch, the estimate of section 2 before), the note about 135. |
+| Local AI, added prefill of a picture | **Not measured: no vision projector is on this machine, and none was downloaded.** The estimate, from the token counts above and the engine's measured prompt speed (2,300 to 2,500 tokens a second on the RTX 4080 Laptop, `docs/LOCAL_AI.md`): the note and up to 320 image tokens are about 0.2 s of prefill, plus the image encoder (an estimated 0.1 to 0.4 s on a card the game is using). So about 0.3 to 0.6 s on a turn with a picture, none on a turn without. `scripts/Measure-VisionPrefill.mjs` measures it as soon as a model and its projector are given. |
+
+**Projectors that exist** (Hugging Face file lists read on 2026-10-29, nothing downloaded):
+- Gemma 4 E4B (the standard pack model): `google/gemma-4-E4B-it-qat-q4_0-gguf` holds the exact model file the pack ships and `gemma-4-E4B-it-mmproj.gguf` (946 MiB, BF16) beside it. `ggml-org/gemma-4-E4B-it-GGUF` has `mmproj-gemma-4-E4B-it-Q8_0.gguf` (534 MiB).
+- Bonsai 2 4B (the lite pack model): `prism-ml/Ternary-Bonsai-2-4B-gguf` has `Ternary-Bonsai-2-4B-mmproj-Q8_0.gguf` (350 MiB) and a BF16 one (644 MiB), beside the same `Q2_0` model file the pack ships.
+- Mature lite (Qwen3.5-4B Uncensored HauhauCS): `mmproj-Qwen3.5-4B-Uncensored-HauhauCS-Aggressive-BF16.gguf` (644 MiB) in its own repo.
+- Mature good (Gemma4-E4B-MiniFantasy-V1): the fine-tune's repos carry no projector. The Gemma 4 E4B one is the likely match (a text fine-tune normally keeps the vision tower), unverified.
+- A model the player adds can use any projector that matches it, from its repository, beside the model file.
+Shipping one is a release decision (an extra download of 350 to 950 MiB per model on the Hugging Face page, and `mmproj` in the pack manifests).
+
+## 2b. Audio: can a character know the song that is playing? (checked 2026-10-29)
+
+Partly, and nothing needs building for it. `bridge/media-context.mjs` and `mod/media-song.lua` (Settings > Dynamic info > Music and TV, on by default) already tell an in-person companion, and Johnny in V's head, the song and the station of the car radio (while V is mounted) or of V's pocket radio, from the game's own song-change events: "You can hear the car radio: "<track>" on "<station>". If V asks what is on, answer from this." The text is the game's own title, quoted and capped, only for the forms of turn that hear what V hears, and it is sent when it changes (the first turn, a new song or station, after a long silence), not on every turn. The TV channel and the last line a TV said are told the same way.
+
+What does not exist, and was not built (audio capture is out of scope), music that is not the radio (a club, a bar, a shop, ambient street music), and what a song sounds like. The picture cannot carry sound. A character cannot name a song from a bar's speakers because the game does not expose which track an ambient emitter plays. Only the vehicle radio and the pocket radio events carry a name.
 
 ## 3. Design
 
@@ -128,7 +168,7 @@ Counters in `bridge-diagnostics.json`: `borderCaptures`, `covered`, and `capture
 
 **Privacy.** Only the game window, kept in memory for at most 15 s (a picture is taken only while someone V may talk to is near, or when a conversation turn starts) and never written to disk. Exceptions, development only: `CYBERPUNK_CONVAI_VISION_DEBUG_DIR` (an absolute folder) keeps one copy per picture, and `CYBERPUNK_CONVAI_VISION_DEBUG_LAST=1` or `"visionDebugLastSent": true` in `runtime/settings.json` keeps the last picture handed to Convai in `runtime/vision-last-sent.jpg` with `vision-last-sent.json` (when it was taken and how it was sent), overwritten by each picture.
 
-**The unload rule** (`docs/RESOURCE_LIFECYCLE.md`). The helper process exists only while it is capturing. It is stopped on the next poll when Mistral or Local AI becomes the provider, nobody is near, or a conversation starts. It is never stopped mid-capture. It starts again (about 0.2 to 0.4 s, off the turn's path) when capturing resumes, and for one frame at the start of a turn that has no young frame (see "Freshness"). Leaving Convai also drops the buffer and reconnects the pages audio-only, once.
+**The unload rule** (`docs/RESOURCE_LIFECYCLE.md`). The helper process exists only while it is capturing. It is stopped on the next poll when the setting goes off, the provider cannot see (a Local AI model with no projector, a Custom endpoint that refused a picture), nobody is near, or a conversation starts. It is never stopped mid-capture. It starts again (about 0.2 to 0.4 s, off the turn's path) when capturing resumes, and for one frame at the start of a turn that has no young frame (see "Freshness"). Leaving Convai also drops the buffer and reconnects the pages audio-only, once. Any change of provider drops the buffer, because its pictures were taken at the other provider's size.
 
 ### Freshness (2026-10-15, from a live test)
 
@@ -235,8 +275,8 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 
 ## 6. Settings and developer keys
 
-- No player setting. The `companionVision` setting (Settings > Conversation provider) was removed on 2026-10-16: vision is always on with Convai. `mod/manager.lua` drops an old saved `companionVision` key on load and the bridge ignores it, so a saved `false` cannot keep vision off.
-- `CYBERPUNK_CONVAI_VISION=off` (environment, development): turns vision off (no helper, no buffer, pages audio-only).
+- One player setting, **Companions can see**, on the Conversations page (`mod/manager-ui.lua`), `companionVision` in `runtime/settings.json`, a boolean, **off by default** for every provider. `mod/manager.lua` writes `false` for a missing or wrongly typed value and keeps a saved `true`. The bridge reads it on the 500 ms settings poll (`CompanionVision.update`) and tells Local AI at the same moment (`LocalLlmServer.setVision`). History: it was a setting with Convai only until 2026-10-16, always on with Convai from then until 2026-10-29 (the old key was dropped on load), and is a setting again, for every provider and off by default, since 2026-10-29. A player who had pictures with Convai therefore has them off after the update: say so in the changelog.
+- `CYBERPUNK_CONVAI_VISION=off` (environment, development): turns vision off whatever the setting says (no helper, no buffer, pages audio-only, no projector).
 - `visionTransport` in `runtime/settings.json` (developer only, not in the menu): `"video"` (default, dynamic vision context) or `"upload"` (`uploadFile` of the JPEG, for the live comparison).
 - `visionWaitMs` in `runtime/settings.json` (developer only): how long a turn may wait for its picture to finish publishing, 0 to 900 ms (default 0: the line is sent at once). It never waits for a server reply.
 - `CYBERPUNK_CONVAI_VISION_HELPER`: absolute path to a helper build. Default search: `<app>/vision/`, then `dist/vision/`.
@@ -254,15 +294,17 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 - `bridge/companion-vision.mjs`: the buffer, frame choice, ahead-of-time staging, the unload rule, and `attachToNextTurn`.
 - `bridge/convai-vision.mjs`: page side (connect options, compose, publish or upload, reuse of a picture staged ahead, acknowledgements); bundled into `runtime/realtime-client.js`.
 - `bridge/realtime-client.mjs`, `bridge/realtime-host.mjs` and `bridge/convai-bridge.mjs`: wiring.
+- `bridge/vision-message.mjs`: the picture in a chat request (`withImages`), the note, the refusal test, the size of a text provider's picture. `bridge/local-vision.mjs`: the numbers Local AI shares (image tokens, projector memory). `bridge/local-projector.mjs`, `bridge/local-llm-server.mjs`: the projector (`docs/LOCAL_AI.md`). `bridge/text-provider-host.mjs` (`attachTextProvider`, the routes' `imagesFor`) and `bridge/mistral-client.mjs` (`images`, `VISION_MODELS`): the request.
+- `scripts/Measure-VisionPicture.mjs`: the helper's encode time per picture size against any program's window. `scripts/Measure-VisionPrefill.mjs`: what a picture adds to a Local AI turn, given a model and its projector.
 - Packaging: `packaging/runtime-layout.mjs`, `packaging/release-plan.json` and `packaging/build-release.mjs`.
-- Tests: `bridge/companion-vision.test.mjs`, `bridge/convai-vision.test.mjs`, 2 cases in `bridge/realtime-client.test.mjs`, the provider-section row lists in `bridge/manager.test.mjs`.
+- Tests: `bridge/companion-vision.test.mjs`, `bridge/vision-message.test.mjs`, the vision cases of `bridge/text-provider-host.test.mjs`, `bridge/custom-provider.test.mjs` and `bridge/prompt-budget.test.mjs`, `bridge/local-projector.test.mjs` and the projector cases of `bridge/local-llm-server.test.mjs`, `bridge/convai-vision.test.mjs`, 2 cases in `bridge/realtime-client.test.mjs`, the provider-section row lists in `bridge/manager.test.mjs`.
 
 ## 8. Live check (needs the user's approval: real Convai turns)
 
 Each turn is one Convai interaction (about 1 of the 100k a month). No separate image charge is documented. A first check needs about 5 to 10 turns.
 
 1. Build the helper with `scripts/Build-VisionCapture.ps1` in the checkout the bridge runs from (the development bridge finds `dist/vision/CyberpunkConvaiVision.exe` there), and rebuild the page bundle with `npm run build:voice` (`runtime/realtime-client.js` carries `bridge/convai-vision.mjs`).
-2. Restart the bridge (with the helper and bundle from step 1). Settings > Conversation provider has no vision row: it is always on with Convai.
+2. Restart the bridge (with the helper and bundle from step 1). Settings > Conversations > Companions can see is off by default: turn it on and Apply.
 3. With Judy in the party, walk around for 15 s without talking: the log shows `[Vision] picture (buffer) 1024x576` and Task Manager shows `CyberpunkConvaiVision.exe`.
 4. Turn to Judy, open the composer, type "what do you see around us?", send. The log shows `turn …: 1 image(s), frame N s old`. The reply describes the place, not her face and not the HUD. `bridge-diagnostics.json`: the page's `vision.lastOutcome` (watch for `vision_not_enabled`: then try one character on a Gemini or GPT model) and `prestaged` above 0.
 5. Typed latency: compare `bridge-latency.json` for a few lines with `CYBERPUNK_CONVAI_VISION=off` against on.
@@ -271,3 +313,14 @@ Each turn is one Convai interaction (about 1 of the 100k a month). No separate i
 8. `"visionTransport": "upload"` and `"visionWaitMs": 0` in `runtime/settings.json`: do these paths work instead?
 9. Minimise the game for a while, then talk: the turn goes without a picture and the reply still comes.
 10. FPS: `perf-probe.json` for 2 minutes walking with Judy near (captures running) against 2 minutes with `CYBERPUNK_CONVAI_VISION=off`; watch for hitches.
+
+### 8b. Live checks for the setting and the text providers (2026-10-29, not yet run)
+
+Do X, check Y. Mistral and Custom turns cost a few requests of the player's own key. Local AI needs a model and its projector (section 2, "Projectors that exist"), which are not installed.
+1. Fresh settings, game running, Convai: walk with Judy for 30 s. Check there is no `CyberpunkConvaiVision.exe` in Task Manager and no `[Vision] picture` line. Turn on Settings > Conversations > Companions can see (Apply). Check the helper appears within a few seconds and a `[Vision] picture (buffer) 1024x...` line follows. Turn it off. Check the helper is gone on the next poll.
+2. Setting on, Mistral: ask "what do you see around us?". Check the log line `turn ...: 1 image(s)` and a reply about the place. Ask a plain question and check the reply does not mention the picture. Check `[Vision] picture (buffer) 768x...` (not 1024).
+3. Setting on, Custom, to an endpoint with a vision model (for example an OpenRouter vision model): the same question gets a description. Then a model with no vision: the reply still comes (one extra request), the notice "Your Custom endpoint does not accept pictures, so replies use only your words." appears once, and later turns carry no picture (no `1 image(s)` line).
+4. Setting on, Local AI, Gemma 4 E4B with `gemma-4-E4B-it-mmproj.gguf` named as `mmproj` in the pack manifest (or beside the model alone in a folder): the log shows `pictures: ... is loaded with its vision projector`, `llama-server` runs with `--mmproj`, and a reply describes the place. Run `scripts/Measure-VisionPrefill.mjs` with the same files for the added prefill, and watch the card's memory in Task Manager.
+5. Setting on, Local AI, a model with no projector: the notice "This Local AI model cannot see pictures, so replies use only your words." appears once with the next reply, no `CyberpunkConvaiVision.exe` runs, and replies are as before.
+6. Setting on then off with Local AI and a projector: the log shows the restart, `the previous model server (pid N) exited: its graphics memory is back`, and the card's memory drops by about the projector's size plus the encoder buffer.
+7. FPS and latency: 2 minutes walking with a companion near, setting on against off, `perf-probe.json` (method of section 4). For a Local AI turn with a picture compare `[LocalTurn]` first word and prompt tokens against a turn without.

@@ -5894,9 +5894,17 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'local-gpu' then
         return 'local-gpu', ui.t('Local AI is back on your graphics card, so replies are faster again.')
     end
-    -- Windows draws its yellow capture border around the game for the "Companions can see" pictures (only with Convai; docs/COMPANION_VISION.md): said once, with the next reply.
+    -- Windows draws its yellow capture border around the game for the "Companions can see" pictures (docs/COMPANION_VISION.md): said once, with the next reply.
     if reply.keyNotice == 'vision-border' then
-        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.')
+        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Turn off Companions can see to stop it.')
+    end
+    -- Companions can see is on and the Local AI model cannot take pictures (no vision file beside it, or none that fits the graphics card): said once per model, with the next reply.
+    if reply.keyNotice == 'vision-local-no-model' then
+        return 'vision-local-no-model', ui.t('This Local AI model cannot see pictures, so replies use only your words.')
+    end
+    -- Companions can see is on and the Custom endpoint refused a picture (a model with no vision): none is sent to it again this session, said once.
+    if reply.keyNotice == 'vision-custom-no-images' then
+        return 'vision-custom-no-images', ui.t('Your Custom endpoint does not accept pictures, so replies use only your words.')
     end
     -- The Local AI model the player chose is missing, does not fit or did not start, and another was used (the reply names it): said once per choice.
     if reply.keyNotice == 'local-model-fallback' then
@@ -5982,6 +5990,8 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'local-cpu' then convaiNotices.send(player, 'local-cpu', keyText)
     elseif keyId == 'local-gpu' then convaiNotices.send(player, 'local-gpu', keyText)
     elseif keyId == 'vision-border' then convaiNotices.send(player, 'vision-border', keyText)
+    elseif keyId == 'vision-local-no-model' then convaiNotices.send(player, 'vision-local-no-model', keyText)
+    elseif keyId == 'vision-custom-no-images' then convaiNotices.send(player, 'vision-custom-no-images', keyText)
     elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
     elseif keyId == 'pocket-pack-fr' then convaiNotices.send(player, 'pocket-pack-fr', keyText)
     elseif keyId == 'pocket-pack-it' then convaiNotices.send(player, 'pocket-pack-it', keyText)
@@ -7695,7 +7705,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-gpu' or keyId == 'local-stepdown' or keyId == 'vision-border' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-gpu' or keyId == 'local-stepdown' or keyId == 'vision-border' or keyId == 'vision-local-no-model' or keyId == 'vision-custom-no-images' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                         -- A plan limit or a refused key: a turn V asked for says so; an automatic reaction (battle, loot) just stops.

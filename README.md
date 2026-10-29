@@ -1085,7 +1085,7 @@ Docs: [docs/CHARACTER_API.md](docs/CHARACTER_API.md), [characters/README.md](cha
 
 ### Companion vision
 
-Companion vision gives a Convai character one recent picture of V's surroundings with each conversation turn. It is Convai only: while Mistral or Local AI answers, `CompanionVision.active` is false and there is no picture, no helper process and no buffer. There is no player setting: it is always on with Convai (a saved `companionVision` key from an older install is dropped on the next load and ignored by the bridge). The developer switches are `CYBERPUNK_CONVAI_VISION=off` (environment) and `visionTransport` in `runtime/settings.json` (`video`, the default dynamic vision context, or `upload`). **Status:** pictures reached Convai and shaped replies in live turns on 2026-10-15 (the freshness rules below came from one of them: a companion indoors described the street from a 52 s old frame). Every mod character uses `fast-gemma-4-31b-it`.
+Companion vision gives a character one recent picture of V's surroundings with each conversation turn, with every conversation provider: Convai (published to the realtime session ahead of the line), and Mistral, Local AI and Custom (an `image_url` part of the last user message, `bridge/vision-message.mjs`). One player setting, Settings > Conversations > Companions can see, **off by default** (since 2026-10-29 also with Convai, where it used to be always on). With it off, or with a provider that cannot see (a Local AI model with no vision projector), `CompanionVision.active` is false and there is no picture, no helper process and no buffer. The developer switches are `CYBERPUNK_CONVAI_VISION=off` (environment) and `visionTransport` in `runtime/settings.json` (`video`, the default dynamic vision context, or `upload`). **Status:** pictures reached Convai and shaped replies in live turns on 2026-10-15 (the freshness rules below came from one of them: a companion indoors described the street from a 52 s old frame). Every mod character uses `fast-gemma-4-31b-it`.
 
 **Why a rolling buffer.** When V talks to a companion, V is usually looking at her, so a picture taken then is mostly her face. The bridge keeps a few pictures from before the conversation and prefers one from the moment V was still looking at the place, as long as it is fresh.
 
@@ -1514,7 +1514,7 @@ Everything in this README describes current `main`. Tests cover the logic; they 
 
 | Area | State |
 |---|---|
-| Companion vision | Seen working with Convai live (2026-10-15); latency with vision on, walking hitches and the minimised-window turn are still to measure |
+| Companion vision | Seen working with Convai live (2026-10-15). Mistral, Local AI and Custom built 2026-10-29 and unit-tested, not yet live (Local AI needs a vision projector). Latency with vision on, walking hitches and the minimised-window turn are still to measure |
 | Holocalls | Calling from the Chat tab and the live picture seen live; the leftovers are listed in [Holocall and Phone Chat](#holocall-and-phone-chat) and [docs/HOLOCALL.md](docs/HOLOCALL.md) |
 | Ordinary-NPC conversations and their lip sync | Built; the gated crowd graph has not been installed or seen, and its FPS A/B check has not been run |
 | Character editor and automatic reply language (including the multilingual microphone) | Built and tested; not seen live |

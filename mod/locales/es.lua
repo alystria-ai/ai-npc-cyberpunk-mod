@@ -1052,7 +1052,6 @@ return {
     ["Local AI stopped working and was restarted."] = "Local AI dejó de funcionar y se reinició.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI se ejecuta sobre todo en tu procesador aquí, así que las respuestas serán lentas.",
     ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI vuelve a estar en tu tarjeta gráfica, así que las respuestas son otra vez más rápidas.",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "El borde amarillo es Windows mostrando una captura. Elige Mistral o Local AI para detenerlo.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Solo cambia los menús y los avisos de este mod.\n\nLas voces de los personajes y el idioma en que hablas son cosas distintas. El micrófono usa este idioma como pista para el habla en otros idiomas.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral deja de hablar; las respuestas de los compañeros se muestran como texto hasta que se guarde una clave.",
     ["Conversations go back to Convai free tier."] = "Las conversaciones vuelven a Convai (plan gratuito).",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Mantén pulsada Mayús, Ctrl o Alt mientras pulsas una tecla para definir una combinación como Mayús+F5. Una combinación solo se activa con exactamente esas teclas pulsadas, y una tecla simple no se activa mientras haya una pulsada. En el juego Mayús sirve para correr, Ctrl para esquivar y Alt abre la rueda de armas, así que V también lo hace.",
     ["Disk space"] = "Espacio en disco",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "Tu unidad {drive} está casi llena ({free} GB libres). Libera espacio para los registros y recuerdos del mod.",
+    ["Companions can see"] = "Los acompañantes ven",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Cada línea recibe una imagen reciente de tu entorno, tomada de la ventana del juego. Funciona con todos los proveedores de conversación. Local AI necesita un modelo que vea. Si no, solo recibe tus palabras.\n\nSolo la ventana del juego, solo cuando hay alguien cerca, guardada brevemente en memoria. Desactivado, no se captura nada.",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "El borde amarillo es una captura de Windows. Desactiva Los acompañantes ven.",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "Este modelo de Local AI no ve imágenes, así que solo usa tus palabras.",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Tu endpoint Custom no acepta imágenes, así que solo usa tus palabras.",
 }

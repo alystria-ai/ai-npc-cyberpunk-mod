@@ -1052,7 +1052,6 @@ return {
     ["Local AI stopped working and was restarted."] = "Local AI перестав працювати і був перезапущений.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI тут працює переважно на процесорі, тому відповіді будуть повільними.",
     ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI знову працює на твоїй відеокарті, тож відповіді знову швидші.",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Жовта рамка: Windows робить знімок. Вибери Mistral або Local AI, щоб зупинити.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Змінює лише меню та сповіщення цього моду.\n\nГолоси персонажів і мова, якою ти говориш, — окремі речі. Мікрофон використовує цю мову як підказку для мовлення не англійською.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral перестає говорити; відповіді компаньйонів показуються текстом, доки не буде збережено ключ.",
     ["Conversations go back to Convai free tier."] = "Розмови знову працюють через Convai (безкоштовний тариф).",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Утримуй Shift, Ctrl або Alt, натискаючи клавішу, щоб задати поєднання, наприклад Shift+F5. Поєднання спрацьовує лише з точно цими затиснутими клавішами, а проста клавіша не спрацьовує, поки затиснута будь-яка з них. У грі Shift вмикає спринт, Ctrl уклонення, а Alt відкриває коло зброї, тож V теж це робить.",
     ["Disk space"] = "Місце на диску",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "Твій диск {drive} майже заповнений (вільно {free} ГБ). Звільни місце для логів і спогадів мода.",
+    ["Companions can see"] = "Супутники бачать",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Кожна репліка отримує й свіжий знімок оточення з вікна гри. Працює з кожним провайдером розмов. Local AI потребує моделі, яка вміє бачити. Якщо ні, отримує лише твої слова.\n\nЛише вікно гри, лише коли хтось поруч, недовго в пам'яті. Вимкнено, нічого не фіксується.",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "Жовта рамка: Windows робить знімок. Вимкни Супутники бачать, щоб зупинити.",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "Ця модель Local AI не бачить зображень, тому враховує лише твої слова.",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Твій Custom-ендпоінт не приймає зображень, тому враховує лише твої слова.",
 }

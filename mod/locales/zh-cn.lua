@@ -1052,7 +1052,6 @@ return {
     ["Local AI stopped working and was restarted."] = "Local AI 停止工作，已重新启动。",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI 在这里主要靠处理器运行，所以回复会很慢。",
     ["Local AI is back on your graphics card, so replies are faster again."] = "Local AI 已重新回到你的显卡上运行，所以回复又变快了。",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "黄色边框是 Windows 在截图。选择 Mistral 或 Local AI 即可停止。",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "只更改本模组的菜单和提示。\n\n角色语音与你的对话语言是分开设置的。麦克风会把这个语言作为非英语语音的提示。",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral 将不再发声；保存密钥之前，伙伴的回复将以文字显示。",
     ["Conversations go back to Convai free tier."] = "对话将改回使用 Convai（免费套餐）。",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "按键时按住 Shift、Ctrl 或 Alt，可以设置 Shift+F5 这样的组合键。组合键只在恰好按住这些键时才会触发，普通按键在按住其中任何一个时不会触发。游戏中 Shift 用于冲刺，Ctrl 用于闪避，Alt 用于打开武器轮盘，所以 V 也会做出这些动作。",
     ["Disk space"] = "磁盘空间",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "你的 {drive} 盘快满了（剩余 {free} GB）。请腾出空间，让模组能保存日志和记忆。",
+    ["Companions can see"] = "同伴能看见",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "每条对话还会附带一张最近的周围环境画面，在你开口前从游戏窗口截取。适用于所有对话提供商。Local AI 需要支持图像的模型，不支持的模型只会收到你的话语。\n\n只截取游戏窗口，只在有人靠近时截取，短暂保存在内存中。关闭后则不截取任何内容。",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "黄色边框是 Windows 在截图。关闭同伴能看见即可停止。",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "此 Local AI 模型无法识别图片，因此回复只使用你的文字。",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "你的 Custom 端点不接受图片，因此回复只使用你的文字。",
 }

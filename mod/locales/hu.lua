@@ -1052,7 +1052,6 @@ return {
     ["Local AI stopped working and was restarted."] = "A Local AI leállt, és újra lett indítva.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "A Local AI itt főleg a processzoron fut, ezért a válaszok lassúak lesznek.",
     ["Local AI is back on your graphics card, so replies are faster again."] = "A Local AI ismét a videokártyádon fut, ezért a válaszok megint gyorsabbak.",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "A sárga keret a Windows felvételét jelzi. Leállításhoz válaszd a Mistralt vagy a Local AI-t.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Csak ennek a modnak a menüit és értesítéseit módosítja.\n\nA karakterek hangja és a nyelv, amelyen beszélsz, külön van kezelve. A mikrofon ezt a nyelvet tippként használja a nem angol beszédhez.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "A Voxtral elnémul; a társak válaszai szövegként jelennek meg, amíg nincs mentett kulcs.",
     ["Conversations go back to Convai free tier."] = "A beszélgetések visszatérnek a Convai (ingyenes szint) szolgáltatáshoz.",
@@ -1734,4 +1733,9 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Tartsd lenyomva a Shift, Ctrl vagy Alt billentyűt, miközben megnyomsz egy billentyűt, így kombinációt állítasz be, például Shift+F5. A kombináció csak pontosan ezekkel a lenyomott billentyűkkel fut le, az egyszerű billentyű pedig nem fut le, amíg valamelyik le van nyomva. A játékban a Shift sprintel, a Ctrl kitér, az Alt pedig megnyitja a fegyverkereket, így V is ezt teszi.",
     ["Disk space"] = "Lemezterület",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "A {drive} meghajtód majdnem tele ({free} GB szabad). Adj helyet, hogy a mod menthesse naplóit és emlékeit.",
+    ["Companions can see"] = "A társak látnak",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Minden sorhoz kap egy friss képet is a környezetedről a játékablakból. Minden beszélgetési szolgáltatóval működik. A Local AI-hoz olyan modell kell, amely lát. Ha nem lát, csak a szavaidat kapja.\n\nCsak a játékablak, csak ha valaki a közelben van, rövid ideig a memóriában marad. Kikapcsolva semmi nem kerül rögzítésre.",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "A sárga keret a Windows felvételét jelzi. Leállításhoz kapcsold ki: A társak látnak.",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "Ez a Local AI modell nem lát képeket, ezért csak a szavaidat kapja.",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "A Custom végpontod nem fogad képeket, ezért csak a szavaidat kapja.",
 }
