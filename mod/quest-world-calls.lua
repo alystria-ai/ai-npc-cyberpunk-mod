@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the CALL primitives of the bond quests (mod/quest-prims-calls.lua: call-in and call-script, docs/QUEST_PRIMITIVES.md section 10.6). The native calls only,
 -- each one guarded by its caller. None of them runs per frame: a call is started once, read once a second by the primitive while it rings or plays, and ended once.
 --
@@ -35,7 +36,7 @@ function M.new(deps)
         return type(module) == 'table' and module or nil
     end
     local function player()
-        local ok, value = pcall(function() return Game.GetPlayer() end)
+        local ok, value = pcall(function() return convaiPlayer() end)
         return ok and value or nil
     end
 

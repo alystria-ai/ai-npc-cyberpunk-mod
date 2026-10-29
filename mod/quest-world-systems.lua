@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the SYSTEMS group of bond quest primitives (mod/quest-prims-systems.lua: pay, gift, garage, memory-share). The native calls only, each one guarded by
 -- its caller. None of them runs per frame: a balance read, an item count, one inventory read or one vehicle call happens when V pays, gives or is given something, or when a
 -- garage stage arms. Nothing here touches a character the game placed.
@@ -55,7 +56,7 @@ function M.new(deps)
     local tweak
 
     local function log(line) if type(deps.log) == 'function' then pcall(deps.log, 'Quest systems world: ' .. line) end end
-    local function player() return Game.GetPlayer() end
+    local function player() return convaiPlayer() end
     local function transactions() return Game.GetTransactionSystem() end
     local function itemId(record) return ItemID.FromTDBID(TweakDBID.new(record)) end
 

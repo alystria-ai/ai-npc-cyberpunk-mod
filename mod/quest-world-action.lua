@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the action primitives of the bond quests (mod/quest-prims-action.lua: squad, hostage, escortee). The native calls only, each one guarded by its
 -- caller, none of them run per frame. They are asked at a checkpoint (a spawn) or once a second per member at most (a state read, an arm). Nothing here touches a
 -- character the game placed: every call takes a handle this module made itself (an entity ID kept in `mine`) and the ones it is given are checked against that set.
@@ -31,7 +32,7 @@ function M.new(deps)
     local roles = {}           -- entity id key -> 'role' | 'command'
 
     local function log(line) if type(deps.log) == 'function' then pcall(deps.log, 'Quest action world: ' .. line) end end
-    local function player() return Game.GetPlayer() end
+    local function player() return convaiPlayer() end
     local function attitude(name) return Enum.new('EAIAttitude', name) end
 
     -- The entity once the game has attached it, else nil (it is not in the world yet, or it is not ours).

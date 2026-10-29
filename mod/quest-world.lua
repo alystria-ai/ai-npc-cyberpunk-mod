@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the bond quest primitives (docs/QUEST_PRIMITIVES.md): the native calls mod/quest-places.lua and mod/quest-prims.lua ask for, each one
 -- guarded by its caller, none of them run per frame. They are made only when a primitive asks (a position read at 1 Hz or slower, one ray per place, a pin,
 -- a spawn, a sweep). Nothing here touches a character the game placed: it reads and spawns the mod's own copies and its own tagged spawns.
@@ -24,7 +25,7 @@ function M.new(deps)
     local function log(line) if type(deps.log) == 'function' then pcall(deps.log, 'Quest world: ' .. line) end end
 
     function W.playerPosition()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return nil end
         return plain(player:GetWorldPosition())
     end
@@ -65,7 +66,7 @@ function M.new(deps)
     -- ---- the character's copy -----------------------------------------------------------------------------------------------------------
     -- The nearest copy of the mod that speaks as this profile: {kind = 'party' | 'visitor' | 'housemate', serial, position}. Looked up on each call.
     function W.copyOf(profileKey)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player or type(companions.conversationCandidates) ~= 'function' then return nil end
         for _, row in ipairs(companions.conversationCandidates(player, 100000)) do
             if row.profileKey == profileKey then

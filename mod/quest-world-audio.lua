@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the quest SOUNDS (mod/quest-audio.lua: a stage's `music` and `sfx`, docs/QUEST_PRIMITIVES.md section 10.10). The native calls only, each one guarded by its caller.
 -- None of them runs per frame: a camera read happens when a positioned sound starts and, for a looping sound at a place, up to four times a second while it plays within 60 m,
 -- the radio calls happen when a stage switches V's car radio and when it gives it back, a game sound is one audio system call to start and one to stop.
@@ -34,7 +35,7 @@ function M.new(deps)
     deps = deps or {}
     local W = {}
     local function log(line) if type(deps.log) == 'function' then pcall(deps.log, 'Quest audio world: ' .. line) end end
-    local function player() return Game.GetPlayer() end
+    local function player() return convaiPlayer() end
 
     -- The camera: where it is and which way it looks on the ground, {x, y, z, fx, fy}.
     function W.cameraPose()

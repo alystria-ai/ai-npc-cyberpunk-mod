@@ -159,6 +159,7 @@ local convaiNotices = {send = function(player, kind, text) game.notices[#game.no
 subtitles.showAnyway = function(speaker, text) game.subtitles[#game.subtitles + 1] = speaker .. ': ' .. text; return true end
 phoneChat.deliverScripted = function(key, text, image) game.phones[#game.phones + 1] = key .. ': ' .. text; return not game.phoneFails, 'contact' end
 local Game = {GetPlayer = function() return {ConvaiComposerOpen = function() return game.composer == true end} end}
+local convaiPlayer = function() return Game.GetPlayer() end
 function convaiJohnnyHeadService() if game.noHead then return nil end return {name = 'Johnny Silverhand', refusal = function() return game.headRefusal end} end
 local function log(line) end
 local function fakeModule(name, extra)

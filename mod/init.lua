@@ -7018,14 +7018,14 @@ do
             district = function() return currentDistrict() end,
             -- V's health pool as a percent (the read mod/turn-context.lua makes), V's place on the ground.
             health = function()
-                local player = Game.GetPlayer()
+                local player = convaiPlayer()
                 local pools = player and Game.GetStatPoolsSystem()
                 if not pools then return nil end
                 local id, kind = player:GetEntityID(), Enum.new('gamedataStatPoolType', 'Health')
                 return tonumber(pools:GetStatPoolValue(id, kind, true))
             end,
             position = function()
-                local player = Game.GetPlayer()
+                local player = convaiPlayer()
                 local at = player and player:GetWorldPosition()
                 return at and {x = at.x, y = at.y, z = at.z} or nil
             end}
@@ -7199,7 +7199,7 @@ do
     end
     -- A scripted line may not start now: V talks (key held, composer open), any reply is produced or heard, an automatic remark plays, a scene, call or fight runs.
     function convaiQuestLineBusy()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return true end
         if active ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil then return true end
         if microphone.context ~= nil and microphone.state ~= 'reply' then return true end
@@ -7221,7 +7221,7 @@ do
     -- The request of a scripted line: a private automatic turn of the speaking copy, no model behind it (the bridge takes the words and the prepared audio
     -- from the pack). Returns the request id, or nil and why.
     function convaiQuestLineStart(entry)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return nil, 'no-player' end
         local person
         if entry.channel == 'holocall' then
@@ -7299,7 +7299,7 @@ do
     -- words as a caption, no model and no audio. UNVERIFIED in the game.
     function convaiQuestReachVoice(text)
         local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not head or not player or head:refusal(player) ~= nil then return false end
         local ok, shown = pcall(subtitles.showAnyway, head.name or 'Johnny Silverhand', text, nil, nil)
         return ok and shown == true
@@ -7327,7 +7327,7 @@ do
     function convaiQuestPhone(profileKey, text, image)
         local ok, sent = pcall(phoneChat.deliverScripted, profileKey, text, image)
         if not ok or sent ~= true then return false end
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if player then
             local line = text
             if #line > 140 then line = line:sub(1, 137):gsub('[\128-\191]+$', '') .. '...' end

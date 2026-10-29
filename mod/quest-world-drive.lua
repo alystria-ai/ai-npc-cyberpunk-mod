@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the DRIVE group of bond quest primitives (mod/quest-prims-drive.lua: ride, post, remote, runner, tail, check). It adds native reads and
 -- commands that the pure primitives ask for through env.world. Each function is guarded by its caller (a raised error is an unanswered question), none of them
 -- runs per frame, and none of them touches a character the game placed: they read V, the mod's own copies, and spawn or command only tagged characters and
@@ -112,7 +113,7 @@ function M.new(deps)
     -- {mounted, driving, vehicleId, at = {x, y, z}, copy = 'aboard' | 'outside' | 'gone'} from the mounting reads (never the quick-slot vehicle read).
     -- `at` is the vehicle's position while V is mounted, else V's. The copy is the party copy that speaks as the profile.
     function W.rideRead(profileKey)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return nil end
         local mine = mountOf(player)
         local out = {mounted = mine ~= nil, driving = mine ~= nil and M.DRIVER_SEATS[mine.seat] == true, vehicleId = mine and mine.id, copy = 'gone'}
@@ -189,7 +190,7 @@ function M.new(deps)
 
     -- {playing = false} with the radio off, else {playing = true, station = text, song = text | nil}.
     function W.readSong()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return nil end
         local station
         local vehicle = player:GetMountedVehicle()
@@ -227,7 +228,7 @@ function M.new(deps)
     end
 
     function W.readItem(id)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player or type(id) ~= 'string' then return nil end
         local count = Game.GetTransactionSystem():GetItemQuantity(player, ItemID.FromTDBID(TweakDBID.new(id)))
         return tonumber(count)
@@ -425,7 +426,7 @@ function M.new(deps)
     function W.driveFollow(handle, gap)
         local car = handle and handle.entityID and find(handle.entityID)
         local ai = car and car:GetAIComponent()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not ai or not player then return false end
         local command = NewObject('AIVehicleFollowCommand')
         command.target = player
@@ -479,7 +480,7 @@ function M.new(deps)
 
     -- A spot behind V along the way V faces, `metres` back: {x, y, z, yaw}. For a tail car that has no place of its own.
     function W.behindPlayer(metres)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return nil end
         local at, forward = player:GetWorldPosition(), player:GetWorldForward()
         metres = tonumber(metres) or 60

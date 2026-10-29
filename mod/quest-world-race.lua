@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the RACE group of bond quest primitives (mod/quest-prims-race.lua: race and convoy). It adds the few native calls those two ask for through
 -- env.world. Everything else they need is already in mod/quest-world-drive.lua and is used from there: driveSpawn, driveLookup, driveMountDriver, driveTo,
 -- driveBrake, driveDelete, readHeat, the visitor seat calls postCarMount and postCarMounted. Each function here is guarded by its caller (a raised error is an
@@ -38,7 +39,7 @@ function M.new(deps)
     -- {mounted, driving, at = {x, y, z}}: V's seat in a vehicle and where the vehicle is (V's own position when V is on foot or the car is not found).
     -- One facility read and one position read, no scan of the party. Never the quick-slot vehicle read.
     function W.raceRead()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return nil end
         local info = Game.GetMountingFacility():GetMountingInfoSingleWithObjects(player)
         local parent = info and info.parentId

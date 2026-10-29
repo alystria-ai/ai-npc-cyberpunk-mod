@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the SCENE group of bond quest primitives (mod/quest-prims-scene.lua: bout, hold-until, apart, unseen, dead-zone, workspot, npc-react) and of the gap
 -- idle (mod/quest-lines.lua). The native calls only, each one guarded by its caller. None of them runs per frame: a state read is asked once a second at most per
 -- fighter, a workspot step once a second until the pose plays, an outcome never polled.
@@ -44,7 +45,7 @@ function M.new(deps)
         local ok, value = pcall(deps.clock or os.clock)
         return ok and type(value) == 'number' and value or os.clock()
     end
-    local function player() return Game.GetPlayer() end
+    local function player() return convaiPlayer() end
     local function attitude(name) return Enum.new('EAIAttitude', name) end
     local function spots()
         if workspot == nil and type(dofile) == 'function' then
