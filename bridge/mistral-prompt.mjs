@@ -324,9 +324,11 @@ export function buildMessages({persona, memory, history = [], context, contextPa
   }
   const says = `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}`;
   const finish = closing(persona.name, persona.talkWords, mature, profile);
+  // `contextParts.closing`: one short note right after V's words and before the closing rules (the partner tone, bridge/romance-context.mjs romanceReminder): the place a small model follows most.
+  const tail = v2 && !reaction ? String(contextParts.closing ?? '').trim() : '';
   const message = reaction
     ? `[EVENT, not spoken by V]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
-    : finish ? `${says}\n\n${finish}` : says;
+    : [says, tail, finish].filter(Boolean).join('\n\n');
   if (!v2) {
     const fitted = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);
     const live = mature ? matureWorld(fitted, profile.matureLayer) : fitted;
@@ -362,7 +364,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
           : 'That is all you are doing; never claim to be anywhere else.'}]` : '',
     volatile && !notesAfter ? `[${profile.labels.thisTurn}]\n${volatile}` : '',
     facts.length ? `[${profile.labels.things}]\n${facts.join('\n')}` : '',
-    ...(notesAfter ? [says, `[${profile.labels.thisTurn}]\n${volatile}`, fresh, finish] : [fresh, message])].filter(Boolean).join('\n\n')});
+    ...(notesAfter ? [says, `[${profile.labels.thisTurn}]\n${volatile}`, fresh, tail, finish] : [fresh, message])].filter(Boolean).join('\n\n')});
   // For the bridge log: where the fresh facts went (names only) and what was left out because the game read the opposite.
   Object.defineProperty(messages, FRESH_NOTE, {enumerable: false, value: {codes: reaction ? '' : contextParts.freshCodes || '', asked: !reaction && contextParts.freshAsked === true,
     placed: fresh ? ['system-end', notesAfter ? 'before-closing' : 'before-v'] : [], history: droppedHistory, memory: droppedMemory}});

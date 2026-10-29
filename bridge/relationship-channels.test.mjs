@@ -583,7 +583,7 @@ test('the bridge sends the admitted turn\'s selected provider key and relationsh
   assert.match(source, /const invitationTextProvider = \(\) => mistral\.requested !== 'convai';/);
   // One profile per character: nothing reads the retired alternate-profile file, and memory ignores retired provider rows.
   assert.match(source, /retired: providerKey => RETIRED_PROVIDER_KEY\.test\(providerKey\)/);
-  assert.match(source, /import \{relationshipContext\} from '\.\/romance-context\.mjs'/);
+  assert.match(source, /import \{relationshipContext, romanceReminder\} from '\.\/romance-context\.mjs'/);
   assert.doesNotMatch(source, /relationshipVariant|relationship-profiles\.json'/);
 });
 

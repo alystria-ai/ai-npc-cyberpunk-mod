@@ -69,6 +69,12 @@ const PHONE_SUFFIX = " Treat this as fact: you are not with V and cannot see V's
 // contact she is somewhere else with her own place and doing not given, and learns nothing of V's company, heat or wallet.
 const CALL_SUFFIX = " Treat this as fact: you are on a call, not with V, and you do not know how near or far you are, so never say you are there, close or nearby. "
   + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine).' + MENTION;
+// A phone chat or a call with a character whose own body is within a few metres of V (mod/turn-context.lua NEAR_RADIUS: the party row says `near`): V is texting or calling the person
+// standing right there. She is told so, in her own words, and gets the in-person form of the block (she sees V, V's company and condition) instead of the "somewhere else" one: a partner
+// told she was somewhere else kept asking V to come over while V stood beside her (live 2026-10-30). The first sentence is also the one said again right before V's words (bridge/mistral-prompt.mjs HERE).
+const NEAR_HOW = {phone: 'V is texting you on the phone instead of talking out loud', audio: 'V has you on a voice call on the phone instead of just talking to you',
+  holo: 'V has you on a holocall on the phone instead of just talking to you'};
+const NEAR_NOTE = 'You can see and hear V right beside you. Answer as you would to V next to you: never ask V to come over or come here, never say you miss V or talk as if V were far away, and never say you cannot see V.';
 // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body and goes where V goes. He knows what V sees and feels, so he gets
 // what a companion in person gets (company, health, heat, money), but never a place or a doing of his own.
 const HEAD_SUFFIX = ' Treat this as fact: you have no body here and go wherever V goes; never claim to be anywhere else, to touch, carry or'
@@ -189,7 +195,7 @@ export function parseTurnContext(value) {
       const name = clean(row?.name, MAX_NAME);
       if (!plain(row) || typeof row.key !== 'string' || !/^[a-z0-9-]{1,80}$/.test(row.key) || !name || seen.has(row.key)) continue;
       seen.add(row.key); party.push({key: row.key, name, ...(Object.hasOwn(ACTIVITIES, row.activity) ? {activity: row.activity} : {}),
-        ...(Object.hasOwn(OUTFITS, row.outfit) ? {outfit: row.outfit} : {}), ...(Object.hasOwn(HOLDING, row.holding) ? {holding: row.holding, ...(clean(row.weapon, MAX_NAME) ? {weapon: clean(row.weapon, MAX_NAME)} : {})} : {})});
+        ...(Object.hasOwn(OUTFITS, row.outfit) ? {outfit: row.outfit} : {}), ...(row.near === true ? {near: true} : {}), ...(Object.hasOwn(HOLDING, row.holding) ? {holding: row.holding, ...(clean(row.weapon, MAX_NAME) ? {weapon: clean(row.weapon, MAX_NAME)} : {})} : {})});
       if (party.length >= MAX_PARTY) break;
     }
     if (party.length) result.party = party;
@@ -327,7 +333,11 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const head = !ambient && input.channel !== 'phone' ? headOf(input) : null;
   const call = !ambient && !head && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
   // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
-  const spot = placeOf(snapshot), phone = input.channel === 'phone' || call !== null;
+  const remote = input.channel === 'phone' || call !== null;
+  const mine = !ambient && !head ? (snapshot.party ?? []).find(row => row.key === input.profileKey) : undefined;
+  // Her own body is within a few metres of V (a companion or a spawned copy): the phone or the call is only how V is talking to her.
+  const near = remote && mine?.near === true;
+  const spot = placeOf(snapshot), phone = remote && !near;
   const pushWhere = who => { const text = whereSentence(spot, who, snapshot.vehicle === true); if (text) sentences.push(text); };
   // The first sentence, so a budget cut never reaches it: where she is and what she is doing. She is in person with V (a face to
   // face talk, a companion, a voice chat) or on a call, and the call says nothing of her own place or doing.
@@ -336,9 +346,10 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
     sentences.push("You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath.");
     pushWhere(V);
   } else if (!ambient && !phone) {
-    const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
-    sentences.push(`You are with V in person${ACTIVITIES[mine?.activity] ?? ''}.`);
+    sentences.push(near ? `You are with V in person${ACTIVITIES[mine?.activity] ?? ''}, right next to V, even though ${NEAR_HOW[input.channel === 'phone' ? 'phone' : call.mode]}.`
+      : `You are with V in person${ACTIVITIES[mine?.activity] ?? ''}.`);
     pushWhere(YOU);
+    if (near) sentences.push(NEAR_NOTE);
     // V asking what she carries gets the answer worded as one, right where it cannot be cut or skimmed (live 2026-10-26: "what weapon do you have?" was answered none).
     if (mine?.holding) sentences.push(!speaksUp(input) && asksAboutWeapon(input.text) ? `V asks what you are armed with. The true answer: ${HOLDING[mine.holding](mine.weapon)} Answer from this, in your own words.` : HOLDING[mine.holding](mine.weapon));
     if (mine?.outfit) sentences.push(OUTFITS[mine.outfit]);
@@ -359,7 +370,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   if (snapshot.weather) scene('weather', WEATHER[snapshot.weather]);
   // Music and TV, other mods' state and the time since the last talk (docs/DYNAMIC_INFO.md): worded by their own modules for this form of turn,
   // told with the scenery (a short Background line) only when new to the conversation, never as a fact to recite.
-  const form = head ? 'head' : call ? 'call' : input.channel === 'phone' ? 'phone' : ambient ? 'ambient' : 'person';
+  const form = head ? 'head' : near ? 'person' : call ? 'call' : input.channel === 'phone' ? 'phone' : ambient ? 'ambient' : 'person';
   for (const sentence of mediaSentences(snapshot.media, form)) scene('media', sentence);
   // V asking about themself ("how do I look?") gets them in the block itself, worded as the answer, whatever the conversation heard before (bridge/scenery-memory.mjs modsAsked).
   // The game side's compact notes (what each mod's reader found) let it answer "everything is fine" when V asks and nothing is wrong (a live test of 2026-10-27).
@@ -407,7 +418,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // An arranged meeting: a named companion's, on every channel (a stranger and Johnny in V's head have none). One sentence; on a phone or a call it also
   // lifts the "name no place of your own" rule for that one place.
   const meeting = !ambient && !head && snapshot.appointment ? appointmentSentence(snapshot.appointment) : null;
-  const remoteMeeting = meeting && (phone || call) && ['on-the-way', 'waiting'].includes(snapshot.appointment.kind);
+  const remoteMeeting = meeting && phone && ['on-the-way', 'waiting'].includes(snapshot.appointment.kind);
   // A stranger hears who V is to them on every turn, with or without other facts: a player report (2026-10-25) had every pedestrian and guard talk as if they knew V.
   // A housemate's note: a named character in person, on a phone or in a call; not a stranger, not Johnny in V's head. Room of its own, like the meeting.
   const housing = !ambient && !head && snapshot.housemate ? housemateSentences(snapshot.housemate, phone) : [];
@@ -415,7 +426,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const prefix = 'Right now (from the game, this turn only): ';
   let suffix = ambient
     ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
-    : head ? HEAD_SUFFIX : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
+    : head ? HEAD_SUFFIX : phone ? (call ? CALL_SUFFIX : PHONE_SUFFIX) : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
       + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them.' + MENTION;
   // Over budget: drop whole sentences from the end, never cut one in half. The meeting sentence (and its exception) has room of its own: the other facts
   // keep the budget they have without it, and it is never the one dropped.

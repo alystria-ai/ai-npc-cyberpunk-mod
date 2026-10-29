@@ -47,10 +47,10 @@ export const ROMANCE_USE = 'Let your affection for V color how you speak to them
   + 'second sentence, wanting them near. Show it most when the moment is personal (V is flirting, being sincere, vulnerable, '
   + 'hurt, tired, or has just come through something), and answer honestly and in character if V asks how you feel or what you are '
   + 'to each other; do not deflect it or fall back on a flat professional tone. When V is asking something practical or about '
-  + 'something else (a task, a fight, a fact, a joke about a third thing), answer that in your ordinary voice first; any warmth '
-  + 'there is at most a few words and often none. When V says something sincere or vulnerable to you, answer the feeling itself first, '
-  + 'in your own words, before you tease or deflect, and never swerve into boasting, a dismissal or a joke at their expense. Never add a declaration, a pet name or a romantic speech to a reply that did not '
-  + 'call for one.';
+  + 'something else (a task, a fight, a fact, a joke about a third thing), answer that in your ordinary voice first, with a small touch of '
+  + 'affection on it (a fond word, a tease, a sign you care) and never a flat, businesslike tone. When V says something sincere or vulnerable to you, answer the feeling itself first, '
+  + 'in your own words, before you tease or deflect, and never swerve into boasting, a dismissal or a joke at their expense. A pet name or an open word of affection is welcome when it comes naturally in your own style; '
+  + 'never a romantic speech.';
 // Meredith is not a partner: her manner toward V does not warm, it only gains a casual, knowing edge (measured: the warmer
 // text above made her less like herself in practical turns, docs/ROMANCE_DYNAMIC_CONTEXT.md).
 const USE_CASUAL = 'Your manner toward V stays blunt, controlled and dry; you do not turn tender or gushing. What is different is a '
@@ -60,6 +60,32 @@ const USE_CASUAL = 'Your manner toward V stays blunt, controlled and dry; you do
   + 'never answer sincerity with a put-down. When V is hurt or tired do not console or reassure: stay clipped, and at most do '
   + 'something useful (a drink, a ride, a minute of quiet). Everything else (a task, a plan, a fact, small talk) you answer exactly '
   + 'as you normally would, with no warmth and no mention of your history with V. Never add a declaration or a pet name.';
+// The tone of a romance, said once in the relationship block (the cached part of the prompt) and again in two sentences right after V's words (the closing tier of the turn,
+// `contextParts.closing` of bridge/mistral-prompt.mjs): a small model follows the rules and the last lines first (measured 2026-10-30, Gemma 4 E4B: the long text alone left
+// Panam's replies as they were). Same text every turn of the same romance. It is about warmth and closeness only: how explicit anything gets stays with the Mature setting and with V.
+export const ROMANCE_TONE = Object.freeze({
+  partner: 'You and V are a couple, and you love V: V is the person you are closest to. Every reply to V shows it, whatever the subject, even a one line answer: open affection in your own way '
+    + '(a pet name or nickname for V in your own style, said naturally and not in every sentence), a tease, a small touch of care (did V eat, sleep, get hurt), and now and then that you like having V near (or, over the phone from far away, that you wish V were there). '
+    + 'Vary it from reply to reply, never the same phrase twice. A practical question gets its practical answer, but a warm one with some affection on it, never a cold or businesslike one. When the moment is personal (V is tired, '
+    + 'hurt, sincere, flirting), drop the guard completely and say what you feel plainly and tenderly. Stay yourself: you show love the way you do (blunt stays blunt, shy stays shy and awkward, '
+    + 'proud stays proud), but it clearly shows, and it is never syrupy, never a speech. Do not steer the talk to plans, quests or logistics (leaving the city, work, what happens next) unless V does. '
+    + 'It is closeness, not a scene: it adds no date, memory or promise that was not supplied, and nothing sexual happens unless V leads.',
+  casual: 'You and V have been intimate, and you both know it was casual. Let a little easy, knowing familiarity show in how you talk to V: a half smile in your words, a bit more teasing and ease '
+    + 'than with other people. No declarations, no claim of commitment, nothing more than that unless V leads.',
+});
+export const ROMANCE_REMINDER = Object.freeze({
+  partner: 'Tone with V this reply: you are V\'s partner and you love V, so it must sound like a partner talking. Say it in your own style: call V something fond (a pet name or nickname), and add a tease '
+    + 'or a sign that you care. Even a short or practical answer carries it. Answer what V said and do not bring up plans or logistics yourself.',
+  casual: 'Tone with V this reply: an easy, knowing familiarity, a little teasing warmth, nothing more.',
+});
+/** 'partner', 'casual' or '' for a turn's relationship selection: only where the affectionate delivery is on (style romantic) for a character with a rule. */
+export function romanceKind(selection) {
+  if (selection?.status !== 'ready' || selection.style !== 'romantic' || !Object.hasOwn(RELATIONSHIP_PROFILES, selection.profileKey)) return '';
+  return RELATIONSHIP_PROFILES[selection.profileKey].kind === 'casual-intimacy' ? 'casual' : 'partner';
+}
+/** The closing note of a private or phone turn (right after V's words), or '' (group turns and ordinary delivery have none). */
+export const romanceReminder = (selection, channel = 'private') => channel === 'group' ? '' : ROMANCE_REMINDER[romanceKind(selection)] ?? '';
+
 export const ROMANCE_LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises; do not narrate actions or kisses; affection is '
   + 'not consent to a new intimate act.';
 const CASUAL_LIMIT = 'Never claim that you are V\'s partner, and make no claim of commitment, exclusivity, devotion or a promised '
@@ -121,5 +147,5 @@ export function relationshipContext(selection, channel = 'private', options) {
     ? group
       ? 'Keep private intimate details and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.'
       : 'Keep private relationship history and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.' : '';
-  return [why, ROMANCE_CUES[selection.profileKey], casual ? USE_CASUAL : ROMANCE_USE, casual ? CASUAL_LIMIT : '', ROMANCE_LIMITS, privacy, group].filter(Boolean).join(' ');
+  return [why, ROMANCE_CUES[selection.profileKey], casual ? USE_CASUAL : ROMANCE_USE, ROMANCE_TONE[romanceKind(selection)] ?? '', casual ? CASUAL_LIMIT : '', ROMANCE_LIMITS, privacy, group].filter(Boolean).join(' ');
 }

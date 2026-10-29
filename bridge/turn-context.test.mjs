@@ -515,7 +515,7 @@ test('every manual send path captures the block (in person, microphone and phone
   // The phone reads it once, when a message is sent, through the same wrapper the microphone uses.
   assert.match(phoneSource, /local turnContext = capture\(M\.captureTurnContext, key\)/);
   assert.equal(phoneSource.match(/captureTurnContext/g).length, 2, 'two reads: the send path and the start of a text she sends herself (immersive invitations)');
-  assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
+  assert.match(initSource, /phoneChat\.captureTurnContext = function\(profileKey\)\s+local snapshot = microphone\.captureTurnContext\(profileKey\)/);
   // The only readers are those turn paths.
   assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 4, 'the send path, the microphone wrapper, the speak-up request and the group speak-up line (each captured when it is built, so a line prepared ahead is the one sent)');
 });
@@ -967,7 +967,7 @@ test('the default adapter survives a game with none of the calls: every field ab
 `));
 
 test('init and phone chat pass the same snapshot on, so the phone gets the weather with no change of its own', () => {
-  assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
+  assert.match(initSource, /phoneChat\.captureTurnContext = function\(profileKey\)\s+local snapshot = microphone\.captureTurnContext\(profileKey\)/);
   assert.match(phoneSource, /capture\(M\.captureTurnContext, key\)/);
   const bridgePhone = readFileSync(new URL('./phone-chat.mjs', import.meta.url), 'utf8');
   assert.match(bridgePhone, /parseTurnContext\(state\.request\.turnContext\)/);
