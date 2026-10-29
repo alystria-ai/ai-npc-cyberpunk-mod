@@ -276,7 +276,7 @@ function checkSounds(list, kind, stage, ctx, where, fail) {
   list.forEach((item, index) => {
     const here = `${where} ${kind} ${index + 1}`;
     if (!plain(item)) { fail(`${here} must be an object`); return; }
-    const allowed = ['source', 'start', 'stop', 'fadeIn', 'fadeOut', 'volume', ...(kind === 'music' ? ['duck'] : ['at', 'loop'])];
+    const allowed = ['source', 'start', 'stop', 'fadeIn', 'fadeOut', 'volume', ...(kind === 'music' ? ['duck', 'loop'] : ['at', 'loop'])];
     for (const key of Object.keys(item)) if (!allowed.includes(key)) fail(`${here}: unknown field ${JSON.stringify(key).slice(0, 30)}`);
     const source = item.source;
     const sourceOk = typeof source === 'string' && ((kind === 'music' && RADIO_SOURCE.test(source)) || GAME_SOUND.test(source)

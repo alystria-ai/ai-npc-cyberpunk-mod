@@ -258,7 +258,7 @@ function M.new(options)
     -- ---- the ctx ------------------------------------------------------------------------------------------------------------------------
     local function newCtx(q)
         local ctx = {pack = q.pack, character = q.character, serial = q.serial, stage = q.stage, places = q.places, tag = M.TAG .. ':' .. q.pack,
-            gifts = q.gifts, tracked = {}, timers = {}, listeners = {}, prims = {}, reaped = false}
+            gifts = q.gifts, calls = q.calls, tracked = {}, timers = {}, listeners = {}, prims = {}, reaped = false}
         function ctx:track(kind, handle, undo)
             if self.reaped then
                 if type(undo) == 'function' then pcall(undo, handle) end
@@ -406,6 +406,7 @@ function M.new(options)
             places = type(q.places) == 'table' and q.places or {}, doList = list(q['do']), rows = list(q.script), lines = list(q.lines),
             gaps = list(q.gaps), images = list(q.images), gap = type(q.gap) == 'table' and q.gap or nil,
             gifts = type(q.gifts) == 'table' and q.gifts or nil,   -- the character's likes rules for a gift primitive (loved, liked, disliked)
+            calls = type(q.calls) == 'table' and q.calls or nil, music = type(q.music) == 'table' and q.music or nil, sfx = type(q.sfx) == 'table' and q.sfx or nil,   -- the call-in / call-script calls and the stage's sounds (mod/quest-prims-calls.lua, mod/quest-audio.lua)
             timeoutAt = type(q.timeoutAt) == 'number' and q.timeoutAt == q.timeoutAt and q.timeoutAt >= 0 and q.timeoutAt or nil}
     end
 
@@ -447,6 +448,8 @@ function M.new(options)
             if c.gap and plainId(c.gap.id) then lines.restoreGap(c.pack, c.gap.id, c.gap.openedAt) end
         end
         armStage(c)
+        -- The stage's music and sound effects (a hook of the primitive registry that mod/quest-audio.lua fills, nothing without it).
+        if prims and type(prims.stageStart) == 'function' then pcall(prims.stageStart, c.ctx, c) end
         -- The stage's own timeout (game seconds, from the pack): the bridge checks timers only when a turn or an event reaches it, so the game says when it has run out.
         if c.timeoutAt then
             local now = gameTime()

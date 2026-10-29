@@ -6991,7 +6991,9 @@ do
             local places = modules[2].new({world = world, clock = os.clock, log = log})
             local prims = modules[3].new({places = places, world = world, clock = os.clock, gameTime = gameClock, log = log})
             if type(prims.env) == 'table' then prims.env.companions = companions end   -- the scene primitives find the mod's copies through it
-            for _, extra in ipairs({'quest-prims-action.lua', 'quest-prims-drive.lua', 'quest-prims-race.lua', 'quest-prims-scene.lua', 'quest-prims-systems.lua'}) do
+            -- The line player is in prims.env.lines: the call primitives (quest-prims-calls.lua) and the sounds (quest-audio.lua, prims.sounds) read it from there.
+            for _, extra in ipairs({'quest-prims-action.lua', 'quest-prims-drive.lua', 'quest-prims-race.lua', 'quest-prims-scene.lua', 'quest-prims-systems.lua',
+                    'quest-prims-calls.lua', 'quest-audio.lua'}) do
                 local okExtra, extension = pcall(dofile, extra)
                 if okExtra and type(prims.extend) == 'function' then prims.extend(extension) end
             end
@@ -7004,6 +7006,7 @@ do
                 idle = function(profileKey, idleKey, on, situation) return convaiQuestIdle(profileKey, idleKey, on, situation) end,
                 emit = function(pack, name) if convaiQuestPlay then convaiQuestPlay.emitPack(pack, name) end end,
                 onChange = function() if convaiQuestPlay then convaiQuestPlay.rearm() end end})
+            if type(prims.env) == 'table' then prims.env.lines = lines end
             local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log,
                 -- The play file's reach block (mod/quest-reach.lua): handed over whenever a play file is applied, or nil when it is gone.
                 onReach = function(block) if convaiReach then convaiReach.setBlock(block) end end})
@@ -7042,6 +7045,12 @@ do
         if reach ~= nil then
             local okReach, problemReach = pcall(reach.update)
             if not okReach then convaiLogOnce('reach-tick', 'Characters text first failed: ' .. tostring(problemReach)) end
+        end
+        -- Quest sounds (mod/quest-audio.lua): the queued media commands and a place loop's steering. One nil check and a boolean while no sound is playing or queued.
+        local sounds = convaiQuestPrims and convaiQuestPrims.sounds
+        if sounds ~= nil and sounds.pending() then
+            local okSounds, problemSounds = pcall(sounds.update, delta)
+            if not okSounds then convaiLogOnce('quest-sounds', 'Quest sounds update failed: ' .. tostring(problemSounds)) end
         end
         -- The facts the packs want read (runtime/quest-facts.json): a nil check while the play file wants none. The reader looks at its clock every 5 s and reads every 300 s.
         if play.factsWanted ~= nil and play.factsWanted() ~= nil and not convaiQuestFactsFailed then
@@ -7084,6 +7093,10 @@ do
         if convaiQuestFacts then pcall(convaiQuestFacts.reset) end   -- the facts are read again in the new world
         if convaiReach then pcall(convaiReach.reset, reason) end     -- its timer, watches and fired stamps go with the world
         if convaiQuestPlay then pcall(convaiQuestPlay.abandon) end
+        -- The sounds the bridge plays for the packs stop with the world (mod/quest-audio.lua), a scripted call's lock goes with it.
+        local sounds = convaiQuestPrims and convaiQuestPrims.sounds
+        if sounds ~= nil then pcall(sounds.worldChanged) end
+        convaiQuestCallLines = nil
     end
     -- The pose of a talk gap (mod/quest-lines.lua asks once at the gap's start and once at its end): the copy takes the gap's idle, or the one its situation stands
     -- for, through the scene world's gap idle (mod/quest-world-scene.lua, the gestures' invisible device). It may hand back a step function for the line player to call
@@ -7112,7 +7125,8 @@ do
         local sample = battleSample
         if not sample or sample.available ~= true or sample.blocked or sample.combat or sample.dialogue or sample.choices or sample.call then return true end
         if (sample.tier ~= nil and sample.tier ~= 1) or battles.fighting() then return true end
-        if convaiHolocall ~= nil and convaiHolocall.call ~= nil then return true end
+        -- A call is open: nothing starts, except the lines of a scripted call of a quest, which are spoken on it (mod/quest-prims-calls.lua sets convaiQuestCallLines).
+        if convaiHolocall ~= nil and convaiHolocall.call ~= nil and convaiQuestCallLines ~= true then return true end
         if convaiPartyState and convaiPartyState.chat then return true end
         if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end
         local controller = convaiHousemates and convaiHousemates.controller
@@ -7125,15 +7139,21 @@ do
         local player = Game.GetPlayer()
         if not player then return nil, 'no-player' end
         local person
-        for _, row in ipairs(companions.conversationCandidates(player, 100000)) do
-            if row.profileKey == entry.profileKey then person = row; break end
+        if entry.channel == 'holocall' then
+            -- A line of a scripted call (mod/quest-prims-calls.lua) is said by the caller on the phone: the open call's partner (V's own body in a voice call, the posed copy in a live one).
+            local caller = convaiHolocall ~= nil and convaiHolocall.partner(player, false) or nil
+            if caller ~= nil and caller.profileKey == entry.profileKey then person = caller end
+        else
+            for _, row in ipairs(companions.conversationCandidates(player, 100000)) do
+                if row.profileKey == entry.profileKey then person = row; break end
+            end
         end
         if not person then return nil, 'no-speaker' end
         local outputs = battleOutputs or reactionOutputs(player)
         generation = generation + 1
         local now = os.time()
         local context = {generation = generation, entity = person.entity, name = person.name, bodyType = person.bodyType, profileKey = person.profileKey,
-            sentAt = now, text = 'A scripted line. The pack supplies the words.',
+            sentAt = now, text = 'A scripted line. The pack supplies the words.', holocall = person.holocall, voiceOnly = person.voiceOnly,
             reaction = {kind = 'scripted', pack = entry.pack, line = entry.id, channel = entry.channel, expiresAt = math.floor((now + 60) * 1000)}}
         context.requestId = tostring(now) .. '-' .. generation .. '-' .. context.entity
         automatic = context

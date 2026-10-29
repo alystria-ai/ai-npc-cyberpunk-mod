@@ -214,6 +214,22 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-systems.lua"
     },
     {
+      "source": "mod/quest-prims-calls.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-calls.lua"
+    },
+    {
+      "source": "mod/quest-world-calls.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-calls.lua"
+    },
+    {
+      "source": "mod/quest-audio.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-audio.lua"
+    },
+    {
+      "source": "mod/quest-world-audio.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-audio.lua"
+    },
+    {
       "source": "mod/quest-facts.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-facts.lua"
     },

@@ -899,7 +899,8 @@ export class BondPacks {
         for (const step of call.steps) if (typeof step.say === 'string') refs.lines.add(step.say);
         for (const step of call.steps) if (typeof step.gap === 'string') refs.gaps.add(step.gap);
       }
-      for (const key of placesOf(doList)) {
+      const soundPlaces = (stage.sfx ?? []).filter(item => typeof item?.at === 'string' && item.at.startsWith('place:')).map(item => ({at: item.at.slice(6)}));
+      for (const key of placesOf([...doList, ...soundPlaces])) {
         const place = pack.places?.[key];
         if (place) places[key] = {name: place.name, radius: place.radius ?? 25, ...(place.district ? {district: place.district} : {}),
           ...(Number.isFinite(place.x) && Number.isFinite(place.y) && Number.isFinite(place.z) ? {x: place.x, y: place.y, z: place.z} : {})};
