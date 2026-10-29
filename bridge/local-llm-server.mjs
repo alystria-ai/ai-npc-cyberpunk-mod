@@ -13,6 +13,7 @@
 //                                                                              // also what the chosen model needs and what was available for it (MiB, after the game's room)
 //   server.on('model-stepdown', ({from, model, free}) => ...)                  // turns stalled (the game took the graphics memory): `model` (its name) was loaded instead, or null when none is
 //                                                                              // left (none to step to: the same model is loaded with part of its layers on the CPU, or a 'failed' event with reason 'low-memory' and detail 'too-small' follows)
+//   server.on('returned-to-card', ({model, fromSharedMiB, contextSize}) => ...)  // a model that had gone into shared system memory was loaded again whole onto the card (#homeLook, docs/LOCAL_AI.md, "Back to the card")
 //   await server.reselect()                                                    // the model choice changed: reload at an idle moment
 //   server.diagnostics()                                                       // what is loaded and how the turns went (model file, family, template, timings); for the log and the support report
 //   server.noteTurn({ok, trace, error, detail})                                // the host reports each local turn: kept in diagnostics(), a 'diagnostics' event on a failure and on the first turn after a start
@@ -44,6 +45,7 @@ import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
 import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
+import {RETURN_LIMITS, lookRefusal, returnAvailableMiB, returnBackoffMs, returnCandidate, returnVerdict} from './local-return.mjs';
 import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, engineMissingForOwnModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies, usableModels} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
@@ -642,6 +644,10 @@ export class LocalLlmServer extends EventEmitter {
   // Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs): the device of the last start, the models already reloaded once after a spill (a second spill
   // steps down), the one-shot fit a spill reload brings to the next start, and the rate limit of the counter reads.
   #device = null; #refitted = new Set(); #refitPlan = null; #spillAt = -Infinity; #checking = false; #headerWatch = new Set();
+  // Back to the card (#watchHome): the watch of the loaded model (looks, back-off, confirmation), the returns of this session, the timer of the next look, whether a look or a load is under
+  // way (#homing: no step-down and no spill action meanwhile), the server being prepared beside the one that answers, the old server waiting to be released, the waiters for an idle
+  // moment, what was last learned about the voice worker's memory and the last return (for diagnostics()).
+  #home = null; #returns = 0; #homeTimer = null; #homing = false; #fresh = null; #retiring = null; #idleWaiters = []; #voiceGpu = null; #returned = null;
   // The ready server runs below normal priority so the game keeps its CPU, but a request in flight (and priorityHoldMs after the last one) runs at normal:
   // the server's own thread feeds the graphics card and streams the reply, and a game that keeps every core busy starved it for seconds.
   priorityHoldMs = 5000; #raised = false; #holdTimer = null;
@@ -664,8 +670,14 @@ export class LocalLlmServer extends EventEmitter {
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, deviceListRetryMs = LOCAL_LLM_LIMITS.deviceListRetryMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
-      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length, gameRoom = null} = {}) {
+      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length, gameRoom = null,
+      // Back to the card (bridge/local-return.mjs): `homeLimits` overrides RETURN_LIMITS (tests), `homeTimer` is the timer of the looks alone (a test compresses it without touching the idle or header timers),
+      // `voiceMemory()` -> {dedicatedMiB, sharedMiB} | null reads the OmniVoice worker's graphics-memory counters once when the model is found in shared memory (diagnostics only).
+      homeLimits = {}, homeTimer, voiceMemory = null} = {}) {
     super();
+    this.homeLimits = Object.freeze({...RETURN_LIMITS, ...homeLimits});
+    this.homeTimer = typeof homeTimer === 'function' ? homeTimer : setTimer;
+    this.voiceMemory = typeof voiceMemory === 'function' ? voiceMemory : null;
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, deviceListRetryMs, argsPrefix, processOptions, freeMemMiB,
@@ -837,6 +849,7 @@ export class LocalLlmServer extends EventEmitter {
     this.#deviceLosses = 0; this.#lostProc = null;
     this.#stalled.clear(); this.#stalls = 0;   // so does a model that stalled the turns: Local AI is chosen again, the whole choice is tried
     this.#refitted.clear(); this.#refitPlan = null; this.#forcedOffload = null; this.#offloadTried.clear();   // and a model that spilled into shared memory may be fitted again
+    this.#dropHome(); this.#returns = 0;
     if (this.#state !== 'failed') return;
     this.#reason = null; this.#reasonDetail = null; this.#state = 'stopped';
     this.emit('state', this.status());
@@ -1133,6 +1146,15 @@ export class LocalLlmServer extends EventEmitter {
     return true;
   }
 
+  // The llama-server child for one load of `tier`: the arguments of buildServerArgs, the supervisor's process options (priority, registry, environment). Used by #startOnce and by the
+  // server prepared beside the running one (#returnToCard).
+  #makeProcess({tier, device, contextSize, cacheRamMiB, kvType = null, swaFull = false, offload = false, fitTargetMiB = null, threads = null}) {
+    return new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
+      startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
+      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload, kvType, swaFull, fitTargetMiB, threads}),
+      ...this.processOptions, env: {...serverEnvironment(process.env), ...(this.processOptions?.env ?? {})}});
+  }
+
   async #startOnce() {
     const generation = this.#generation;
     const pack = this.pack;
@@ -1231,11 +1253,7 @@ export class LocalLlmServer extends EventEmitter {
       offloadPlan: placement ? {share: placement.share === null ? null : Math.round(placement.share * 100) / 100, projectedMiB: placement.projectedMiB, estimated: placement.estimated, fitTargetMiB: placement.targetMiB, threads} : null};
     this.#turns.sinceStart = 0; this.#stalls = 0;
     const began = this.now();
-    const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
-      startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
-      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true, kvType, swaFull,
-        fitTargetMiB: placement?.targetMiB ?? null, threads}),
-      ...this.processOptions, env: {...serverEnvironment(process.env), ...(this.processOptions?.env ?? {})}});
+    const proc = this.#makeProcess({tier, device, contextSize, cacheRamMiB, kvType, swaFull, offload: choice.offload === true, fitTargetMiB: placement?.targetMiB ?? null, threads});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));
     this.#mark('loading the model into the server (waiting for it to answer)');
@@ -1284,6 +1302,8 @@ export class LocalLlmServer extends EventEmitter {
     this.#setState('ready');
     this.#arm();
     this.log('[local] model ready: ' + this.#describeLoaded());
+    // Loaded with part of its layers on the CPU because the card was short: it goes back onto the card when the memory is free again (#homeLook).
+    if (this.#loaded.offload === true) this.#watchHome('it runs partly on the processor');
     this.emit('diagnostics', this.diagnostics());
     // A choice that changed while it was loading is checked a moment later, after the turn that waited for it has marked itself in flight.
     if (this.#reselectPending) { const timer = this.setTimer(() => { void this.#reloadIfIdle(); }, 250); timer?.unref?.(); }
@@ -1433,7 +1453,8 @@ export class LocalLlmServer extends EventEmitter {
         custom: loaded.custom, ...(loaded.external ? {external: true} : {})},
       engine: {build: loaded.build, ftype: loaded.ftype, device: loaded.device ? {id: loaded.device.id, name: String(loaded.device.name ?? '').slice(0, 60), freeMiB: loaded.device.freeMiB} : null,
         contextSize: loaded.contextSize, cacheRamMiB: loaded.cacheRamMiB, priority: loaded.priority ?? null, ram: loaded.ram ?? null,
-        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.swaFull ? {swaFull: true} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.offloadPlan ? {offloadPlan: loaded.offloadPlan} : {}), ...(loaded.spill ? {spill: loaded.spill} : {}), ...(loaded.spillKept ? {spillKept: loaded.spillKept} : {})},
+        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.swaFull ? {swaFull: true} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.offloadPlan ? {offloadPlan: loaded.offloadPlan} : {}), ...(loaded.spill ? {spill: loaded.spill} : {}), ...(loaded.spillKept ? {spillKept: loaded.spillKept} : {}),
+        ...(this.#returned ? {returned: this.#returned} : {}), ...(this.#voiceGpu ? {voiceGpu: this.#voiceGpu} : {})},
       template: loaded.template ? {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf', ...loaded.template} : {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported'},
       tokens: {bos: loaded.bos, eos: loaded.eos},
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},
@@ -1681,7 +1702,12 @@ export class LocalLlmServer extends EventEmitter {
 
   end() {
     if (this.#inflight > 0) this.#inflight--;
-    if (this.#inflight === 0) { this.#holdThenLower(); this.touch(); if (this.#reselectPending) void this.#reloadIfIdle(); }
+    if (this.#inflight === 0) {
+      this.#holdThenLower(); this.touch(); if (this.#reselectPending) void this.#reloadIfIdle();
+      // A request ended: a look at the free graphics memory may be due (it waits for the quiet moment itself), and a new server that is ready waits for exactly this.
+      if (this.#home) this.#scheduleHomeLook();
+      this.#flushIdleWaiters();
+    }
   }
   get inflight() { return this.#inflight; }
 
@@ -1716,7 +1742,7 @@ export class LocalLlmServer extends EventEmitter {
   #idleFire() {
     this.#idleTimer = null;
     if (this.#state !== 'ready' || this.#inflight > 0) return;
-    this.#dropHold();
+    this.#dropHold(); this.#dropHome();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     this.#setState('stopped');
     this.log('[local] idle: stopping the local model server');
@@ -1819,6 +1845,273 @@ export class LocalLlmServer extends EventEmitter {
     return why;
   }
 
+  // --- back to the card --------------------------------------------------------------------------------------------
+
+  /**
+   * A model that is not wholly on the graphics card (it is in shared system memory because the game held the card, or part of it runs on the CPU) is watched: at idle moments the free
+   * graphics memory is read (one nvidia-smi call), and when there is room for the whole model beside the game it is loaded again onto the card. Report 931d4563 (RTX 5090, 32 GB): loaded
+   * at the game's start with 31 GB free, 4,308 MiB went into shared memory, "nothing can replace it" with 2,011 MiB free, and for the rest of the session replies took 25 to 30 s at 1.9 tokens
+   * a second, while OmniVoice rendering beside it was starved until the model's text was done.
+   *
+   * The rules (bridge/local-return.mjs): a look needs a quiet moment (no request in flight, none ended in the last 20 s), is spaced by a back-off (1, 2, 5, 10, then 15 minutes after a look that
+   * found too little room), needs the room twice 30 s apart, never runs per frame or per turn, and a turn that is under way is never made to wait for it. Nothing is stopped first: a second
+   * server is loaded BESIDE the running one (the old one keeps answering, slowly, until the new one is up and warm), the switch is made at an idle moment, and the old server is stopped
+   * afterwards with its exit confirmed. The player is told once ('returned-to-card'). At most RETURN_LIMITS.maxReturns a session.
+   */
+  #watchHome(why) {
+    try {
+      const loaded = this.#loaded, proc = this.#proc, limits = this.homeLimits;
+      if (!loaded || !proc || this.#state !== 'ready' || this.#info?.external || this.#returns >= limits.maxReturns) return;
+      if (typeof this.freeVramMiB !== 'function' || !this.#device) return;
+      if (this.#home && this.#home.proc === proc) return;
+      if (!returnCandidate({loaded, spilled: loaded.spill?.spilled === true})) return;
+      const now = this.now();
+      this.#home = {proc, loadedAt: loaded.readyAt, since: now, nextAt: now + limits.firstLookMs, looks: 0, confirmed: 0, failures: 0, busy: false, lastFreeMiB: null, projections: null,
+        sharedMiB: Number.isFinite(loaded.spill?.sharedMiB) ? loaded.spill.sharedMiB : null};
+      this.log('[local] ' + this.#model + ' is not wholly on the graphics card (' + why + '): the free graphics memory is looked at again at idle moments, the first time in '
+        + Math.round(limits.firstLookMs / 1000) + ' s, and the model goes back onto the card when there is room');
+      this.#scheduleHomeLook();
+    } catch { /* a watch is best effort */ }
+  }
+
+  #dropHome() {
+    this.#home = null;
+    if (this.#homeTimer) { this.clearTimer(this.#homeTimer); this.#homeTimer = null; }
+  }
+
+  // The watch belongs to one load of one server: a stop, an idle stop, a crash restart or a newer load ends it.
+  #homeValid(home) { return this.#home === home && home.proc === this.#proc && this.#state === 'ready' && this.#loaded?.readyAt === home.loadedAt; }
+
+  // One timer at most, unref'd, set when a look may become due (a request ended, the back-off was set) and never otherwise: nothing polls. It fires no sooner than the back-off, the
+  // quiet moment and `minDelay` allow; the look re-checks everything when it fires.
+  #scheduleHomeLook(minDelay = 0) {
+    const home = this.#home;
+    if (!home || home.busy || this.#homing || this.#homeTimer) return;
+    const now = this.now(), limits = this.homeLimits;
+    const delay = Math.max(home.nextAt - now, minDelay, this.#foregroundEndedAt + limits.quietMs - now, 0);
+    this.#homeTimer = this.homeTimer(() => { this.#homeTimer = null; void this.#homeLook(); }, Math.max(1, Math.round(delay)));
+    this.#homeTimer?.unref?.();
+  }
+
+  async #homeLook() {
+    const home = this.#home;
+    if (!home) return;
+    if (!this.#homeValid(home)) { this.#dropHome(); return; }
+    const limits = this.homeLimits;
+    const refusal = lookRefusal({now: this.now(), nextAt: home.nextAt, inflight: this.#inflight, foregroundEndedAt: this.#foregroundEndedAt,
+      background: this.#yieldable.size > 0 || this.#prewarming !== null, busy: home.busy || this.#homing, stepping: this.#stepping, limits});
+    if (refusal) { if (refusal.retryMs !== null) this.#scheduleHomeLook(refusal.retryMs); return; }
+    home.busy = true;
+    try {
+      const generation = this.#generation;
+      let free = null;
+      try { free = Number(await this.freeVramMiB()); } catch { /* unknown */ }
+      if (!this.#homeValid(home) || generation !== this.#generation) return;
+      home.lastFreeMiB = Number.isFinite(free) ? Math.round(free) : null;
+      let voiceMiB = 0;
+      try { voiceMiB = Number(this.gameRoom?.voiceMiB?.() ?? 0) || 0; } catch { /* no voice engine to wait for */ }
+      const available = returnAvailableMiB({freeMiB: free, voiceMiB, limits});
+      const verdict = await this.#homeVerdict(home, available);
+      if (!this.#homeValid(home) || generation !== this.#generation) return;
+      if (!verdict.enough) { this.#homeNotYet(home, free, available, verdict.why ?? (verdict.needMiB === null ? 'what the model needs is not known' : 'the model needs ' + verdict.needMiB + ' MiB')); return; }
+      const freeRam = Number(this.freeMemMiB());
+      if (Number.isFinite(freeRam) && freeRam < limits.ramNeedMiB) { this.#homeNotYet(home, free, available, 'a second server needs ' + limits.ramNeedMiB + ' MiB of system memory and ' + Math.round(freeRam) + ' MiB are free'); return; }
+      home.confirmed++;
+      if (home.confirmed < limits.confirmReadings) {
+        home.nextAt = this.now() + limits.confirmGapMs;
+        this.log('[local] back to the card: ' + Math.round(free) + ' MiB of graphics memory are free, ' + Math.round(available) + ' MiB for the model (it needs ' + verdict.needMiB + '): looking once more in ' + Math.round(limits.confirmGapMs / 1000) + ' s before anything is loaded');
+        home.busy = false;   // the timer is not set while a look is under way
+        this.#scheduleHomeLook(limits.confirmGapMs);
+        return;
+      }
+      // Still in shared memory? A model the driver moved back by itself needs nothing (the counters of its process say so).
+      if (this.#loaded.offload !== true && typeof this.gpuMemory === 'function' && this.#proc?.pid) {
+        const memory = await this.gpuMemory(this.#proc.pid);
+        if (!this.#homeValid(home) || generation !== this.#generation) return;
+        if (memory) {
+          const state = spillVerdict(memory);
+          this.#loaded.spill = {at: new Date(this.now()).toISOString(), dedicatedMiB: memory.dedicatedMiB, sharedMiB: memory.sharedMiB, spilledMiB: state.spilledMiB, spilled: state.spilled};
+          if (!state.spilled) { this.log('[local] back to the card: ' + this.#model + ' is no longer in shared system memory (' + memory.dedicatedMiB + ' MiB on the card, ' + memory.sharedMiB + ' MiB shared): nothing to move'); this.#dropHome(); return; }
+          home.sharedMiB = memory.sharedMiB;
+        }
+      }
+      await this.#returnToCard(home, verdict.pick, available);
+    } catch (error) {
+      this.log('[local] back to the card: the look failed (' + oneLine(error?.message || 'error', 120) + ')');
+      if (this.#home === home) this.#homeNotYet(home, home.lastFreeMiB, null, 'the look failed');
+    } finally { home.busy = false; }
+  }
+
+  // The projections of the model's context ladder are asked of llama-fit-params once (1 to 3 s, nothing allocated) and kept: later looks only compare numbers. Without the tool the file-size rule stands.
+  async #homeVerdict(home, available) {
+    const limits = this.homeLimits;
+    if (!Number.isFinite(available)) return {enough: false, pick: null, needMiB: null, why: 'the free graphics memory cannot be read'};
+    const from = this.#selected(this.pack).models.find(model => model.id === this.#modelId);
+    if (!from || from.external === true || !from.file) return {enough: false, pick: null, needMiB: null, why: 'the loaded model is not one to move'};
+    const size = Number(this.fileSizeMiB(from.file)) || Number(this.#loaded?.sizeMiB) || 0;
+    // Far too little for the model: not even the fit tool is started.
+    if (size > 0 && available < size * limits.floorShare) return {enough: false, pick: null, needMiB: Math.ceil(size * limits.floorShare), why: 'not even ' + Math.round(size * limits.floorShare) + ' MiB for the model are available'};
+    if (!home.projections) {
+      const fit = await this.#fitFor(from, available, FIT_LIMITS.marginMiB, this.#device).catch(() => null);
+      home.projections = fit ? fit.projections : [];
+    }
+    if (home.projections.length) return returnVerdict({availableMiB: available, projections: home.projections, marginMiB: FIT_LIMITS.marginMiB});
+    const need = modelNeedMiB(from, size);
+    return {enough: need <= available, pick: need <= available ? {contextSize: null, kvType: null, projectedMiB: null} : null, needMiB: need};
+  }
+
+  #homeNotYet(home, free, available, why) {
+    const limits = this.homeLimits;
+    home.looks++; home.confirmed = 0;
+    const gap = returnBackoffMs(home.looks, limits);
+    home.nextAt = this.now() + gap;
+    if (home.looks <= 3 || home.looks % 5 === 0) {
+      this.log('[local] back to the card: not yet (look ' + home.looks + '): ' + (Number.isFinite(free) ? Math.round(free) + ' MiB of graphics memory free' : 'the free graphics memory is unknown')
+        + (Number.isFinite(available) ? ', ' + Math.round(available) + ' MiB for the model' : '') + ', ' + why + '; the next look is no sooner than ' + Math.round(gap / 60000 * 10) / 10 + ' min and waits for an idle moment');
+    }
+  }
+
+  // Loads the same model, whole, beside the running one; switches at an idle moment; releases the old one with its exit confirmed. Returns whether the model moved.
+  async #returnToCard(home, pick, available) {
+    const limits = this.homeLimits, generation = this.#generation, oldProc = this.#proc, oldLoaded = this.#loaded;
+    const tier = this.#selected(this.pack).models.find(model => model.id === this.#modelId);
+    const device = this.#device;
+    if (!tier || tier.external === true || !tier.file || !device || !oldProc || !oldLoaded) { this.#dropHome(); return false; }
+    const fixed = tier.contextSize ?? this.contextSize ?? null;
+    const contextSize = fixed ?? pick?.contextSize ?? chooseContext({tier: this.#tier, freeMiB: available, sizeMiB: oldLoaded.sizeMiB});
+    const kvType = fixed ? null : pick?.kvType ?? null;
+    const swaFull = await this.#swaFullPlan(tier, contextSize, kvType, device, available);
+    const cacheRamMiB = this.cacheRamMiB ?? defaultCacheRamMiB(Number(this.freeMemMiB()));
+    if (!this.#homeValid(home) || generation !== this.#generation) return false;
+    this.log('[local] back to the card: ' + this.#model + ' is loaded again whole onto the graphics card beside the running one (' + Math.round(home.lastFreeMiB ?? 0) + ' MiB free, '
+      + Math.round(available) + ' MiB for the model, context ' + contextSize + (kvType ? ', ' + kvType + ' cache' : '') + (swaFull ? ', full sliding-window cache' : '') + '); the running one keeps answering until the new one is ready');
+    const began = this.now();
+    const proc = this.#makeProcess({tier, device, contextSize, cacheRamMiB, kvType, swaFull});
+    this.#homing = true; this.#fresh = proc;
+    proc.on('exit', info => this.#onExit(proc, info));
+    const alive = () => generation === this.#generation && this.#proc === oldProc && this.#state === 'ready' && this.#fresh === proc;
+    const fail = async (why, count = true) => {
+      if (this.#fresh === proc) this.#fresh = null;
+      this.log('[local] back to the card: the new server was dropped (' + why + ')');
+      await this.#stopConfirmed(proc, 'new');
+      if (count && this.#home === home) {
+        home.failures++;
+        if (home.failures >= limits.maxFailedLooks) { this.log('[local] back to the card: given up after ' + home.failures + ' loads that did not work out; ' + this.#model + ' stays where it is'); this.#dropHome(); }
+        else this.#homeNotYet(home, home.lastFreeMiB, available, 'the load did not work out');
+      }
+      return false;
+    };
+    try {
+      await proc.start();
+      if (!alive()) return await fail('the running server changed meanwhile', false);
+      const props = await this.#readProps(proc, contextSize);
+      const info = {endpoint: proc.baseUrl + '/v1/chat/completions', base: proc.baseUrl, apiKey: proc.apiKey, contextSize: props.contextSize};
+      if (this.warmup) await this.#complete(info, warmupMessages(0), {timeoutMs: this.warmupMs, cachePrompt: false});
+      if (!alive()) return await fail('the running server changed meanwhile', false);
+      // The new server must really be on the card: a game that took the room in these seconds would put this one into shared memory too.
+      if (typeof this.gpuMemory === 'function' && proc.pid) {
+        const memory = await this.gpuMemory(proc.pid);
+        if (!alive()) return await fail('the running server changed meanwhile', false);
+        if (memory && spillVerdict(memory).spilled) return await fail('it came up in shared system memory too: ' + memory.dedicatedMiB + ' MiB on the card, ' + memory.sharedMiB + ' MiB shared');
+      }
+      // Ready. The switch waits for a moment in which no request is in flight; the running server answers whatever comes meanwhile.
+      for (;;) {
+        if (!await this.#waitIdle(limits.prepareMaxMs, alive)) return await fail(alive() ? 'no idle moment came within ' + Math.round(limits.prepareMaxMs / 1000) + ' s' : 'the running server changed meanwhile', alive());
+        if (this.#inflight === 0 && alive()) break;
+      }
+      // From here to the end of the switch there is no await: nothing can start a request on the old server in between.
+      this.#fresh = null;
+      const fromShared = home.sharedMiB;
+      const loaded = {id: oldLoaded.id, name: oldLoaded.name, file: oldLoaded.file, family: oldLoaded.family, tier: oldLoaded.tier, sizeMiB: oldLoaded.sizeMiB,
+        device: {id: device.id, name: device.name, freeMiB: home.lastFreeMiB}, contextSize: props.contextSize, cacheRamMiB, priority: 'normal', loadPriority: oldLoaded.loadPriority, turnPriority: oldLoaded.turnPriority,
+        ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: false, custom: oldLoaded.custom, templateFlag: oldLoaded.templateFlag,
+        template: props.template ?? null, bos: props.bos ?? null, eos: props.eos ?? null, build: props.build ?? null, ftype: props.ftype ?? null, loadMs: this.now() - began, warmMs: null,
+        firstTime: false, readyAt: this.now(), kvType, swaFull, fit: pick ? {pick: {contextSize, kvType, projectedMiB: pick.projectedMiB ?? null}, share: 1, marginMiB: FIT_LIMITS.marginMiB} : null,
+        gpuShare: null, forcedOffload: false, offloadPlan: null, returned: true};
+      this.#dropHold(); this.#raised = false;
+      this.#proc = proc; this.#info = info; this.#contextSize = props.contextSize; this.#loaded = loaded;
+      loaded.priority = proc.lower() ? 'below-normal' : 'normal';
+      this.#turns.sinceStart = 0; this.#stalls = 0; this.#slot = null; this.#returns++;
+      this.#returned = {at: new Date(this.now()).toISOString(), count: this.#returns, fromSharedMiB: fromShared, contextSize: props.contextSize};
+      this.#dropHome();
+      this.#arm();
+      this.#retire(oldProc);
+      this.log('[local] back on the graphics card: ' + this.#describeLoaded());
+      this.#emitStatus();
+      this.emit('diagnostics', this.diagnostics());
+      this.emit('returned-to-card', {model: this.#model, fromSharedMiB: fromShared, contextSize: props.contextSize});
+      return true;
+    } catch (error) {
+      if (!alive()) return await fail('the running server changed meanwhile', false);
+      return await fail('it did not start: ' + oneLine(error?.code || error?.message || 'error', 80));
+    } finally {
+      this.#homing = false;
+      if (this.#fresh === proc) this.#fresh = null;
+    }
+  }
+
+  // Resolves true at a moment with no request in flight while `alive()` holds; false when `alive()` stops holding or `ms` pass (a real timer). Woken by end() and stop().
+  async #waitIdle(ms, alive) {
+    let expired = false;
+    const timer = this.setTimer(() => { expired = true; this.#flushIdleWaiters(); }, ms);
+    timer?.unref?.();
+    try {
+      while (alive() && !expired) {
+        if (this.#inflight === 0) return true;
+        await new Promise(resolveWait => { this.#idleWaiters.push(resolveWait); });
+      }
+      return false;
+    } finally { this.clearTimer(timer); }
+  }
+  #flushIdleWaiters() { for (const wake of this.#idleWaiters.splice(0)) { try { wake(); } catch { /* a waiter never fails */ } } }
+
+  // The server that was answered by until the switch: released after a short grace (a caller that was handed its address a moment before the switch), when no request is in flight
+  // (at most retireMaxMs), with its exit confirmed.
+  #retire(old) {
+    const entry = {proc: old};
+    this.#retiring = entry;
+    const limits = this.homeLimits;
+    void (async () => {
+      await new Promise(resolveWait => { const timer = this.setTimer(resolveWait, limits.releaseGraceMs); timer?.unref?.(); });
+      await this.#waitIdle(limits.retireMaxMs, () => true);
+      await this.#stopConfirmed(old, 'previous');
+      if (this.#retiring === entry) this.#retiring = null;
+    })().catch(() => { if (this.#retiring === entry) this.#retiring = null; });
+  }
+
+  // Stops a server of ours and says whether its process is gone (the unload rule: an exit that is not seen is tried again, and said).
+  async #stopConfirmed(proc, label) {
+    const pid = proc.pid;
+    try { await proc.stop(); } catch { /* it is being ended anyway */ }
+    let gone = proc.exited === true;
+    if (!gone) { try { proc.killSync(); } catch { /* gone */ } gone = await proc.waitForExit(3000); }
+    this.log('[local] the ' + label + ' model server (pid ' + (pid ?? '?') + ') ' + (gone ? 'exited: its graphics memory is back' : 'did not exit when asked; it is stopped again'));
+    return gone;
+  }
+
+  // The voice worker's graphics-memory counters, read once when the chat model is found in shared memory: OmniVoice rendering beside it is slow when it is starved or spilled too, and the
+  // line tells which (a report of 29 Oct 2026 could not say). Diagnostics only; one short typeperf run, only then.
+  async #noteVoiceMemory(why) {
+    try {
+      const loaded = this.#loaded;
+      if (typeof this.voiceMemory !== 'function' || !loaded || loaded.voiceLooked === true) return;
+      loaded.voiceLooked = true;
+      const memory = await this.voiceMemory();
+      if (!memory || !Number.isFinite(memory.dedicatedMiB) || !Number.isFinite(memory.sharedMiB)) return;
+      const state = spillVerdict(memory);
+      this.#voiceGpu = {at: new Date(this.now()).toISOString(), dedicatedMiB: Math.round(memory.dedicatedMiB), sharedMiB: Math.round(memory.sharedMiB), spilled: state.spilled};
+      this.log('[local] graphics memory of the voice worker after ' + why + ': ' + this.#voiceGpu.dedicatedMiB + ' MiB on the card, ' + this.#voiceGpu.sharedMiB + ' MiB in shared system memory'
+        + (state.spilled ? ' (spilled)' : ' (not spilled: its slowness beside the chat model is the two sharing the card\'s compute, not memory)'));
+    } catch { /* a reading is best effort */ }
+  }
+
+  /** For the slow-turn report: what the watch knows. {watching, looks, lastFreeMiB, returns, dedicatedMiB, sharedMiB, voice}. Plain property reads. */
+  homeState() {
+    const spill = this.#loaded?.spill ?? null, home = this.#home;
+    return {watching: home !== null, looks: home?.looks ?? 0, lastFreeMiB: home?.lastFreeMiB ?? null, returns: this.#returns,
+      dedicatedMiB: Number.isFinite(spill?.dedicatedMiB) ? spill.dedicatedMiB : null, sharedMiB: Number.isFinite(spill?.sharedMiB) ? spill.sharedMiB : null, voice: this.#voiceGpu};
+  }
+
   // --- stalled turns: step down ---------------------------------------------------------------------------------
 
   /**
@@ -1831,7 +2124,8 @@ export class LocalLlmServer extends EventEmitter {
    */
   noteStall(what = 'a request') {
     try {
-      if (this.#state !== 'ready' || this.#info?.external || this.#stepping || !this.#modelId) return false;
+      // A better placement of the same model is being prepared beside this one (#returnToCard): a step down now would stop the model it is about to replace.
+      if (this.#state !== 'ready' || this.#info?.external || this.#stepping || this.#homing || !this.#modelId) return false;
       this.#stalls++;
       // On a card of about 8 GB or less a model that leaves the game under SMALL_CARD_GAME_RESERVE_MIB (a pinned Mature good model: 2026-10-20 reports of a 4060, a
       // 3070 and a 5060 Ti, each read the prompt at 50 to 120 tokens a second and waited out 75 s twice) steps down at its first stall: the second one is another
@@ -1914,7 +2208,7 @@ export class LocalLlmServer extends EventEmitter {
    */
   async #checkSpill(why, {every = SPILL_LIMITS.checkEveryMs} = {}) {
     try {
-      if (this.#checking || this.#state !== 'ready' || this.#info?.external || !this.#proc?.pid || typeof this.gpuMemory !== 'function') return false;
+      if (this.#checking || this.#homing || this.#state !== 'ready' || this.#info?.external || !this.#proc?.pid || typeof this.gpuMemory !== 'function') return false;
       if (this.now() - this.#spillAt < every) return false;
       this.#checking = true; this.#spillAt = this.now();
       const generation = this.#generation, proc = this.#proc;
@@ -1924,6 +2218,7 @@ export class LocalLlmServer extends EventEmitter {
       if (this.#loaded) this.#loaded.spill = {at: new Date(this.now()).toISOString(), dedicatedMiB: memory.dedicatedMiB, sharedMiB: memory.sharedMiB, spilledMiB: verdict.spilledMiB, spilled: verdict.spilled};
       this.log('[local] graphics memory of the model server after ' + why + ': ' + memory.dedicatedMiB + ' MiB on the card, ' + memory.sharedMiB + ' MiB in shared system memory'
         + (verdict.spilled ? ' (spilled: ' + verdict.spilledMiB + ' MiB beyond the usual)' : ''));
+      if (verdict.spilled) void this.#noteVoiceMemory(why);
       if (!verdict.spilled || this.#stepping) return false;
       // What could replace the model is worked out first, with the model still up and answering and no step gate held (a turn that comes meanwhile is not made to wait for a look): the model
       // leaves only when a replacement exists (2026-10-24 reports 014a3be6 / 316c6d2b: four installs, 12 GB cards included, ended with no Local AI at all after an unload that nothing could follow).
@@ -1995,6 +2290,8 @@ export class LocalLlmServer extends EventEmitter {
   #spillKeep(verdict, plan) {
     this.#spillAt = this.now() + LOCAL_LLM_LIMITS.spillKeptRecheckMs - SPILL_LIMITS.checkEveryMs;
     if (!this.#loaded) return;
+    // It stays for now, but it is not left there: the free graphics memory is looked at again at idle moments and the model goes back onto the card when there is room (#homeLook).
+    this.#watchHome('it is in shared system memory');
     if (this.#loaded.spillKept) { this.#loaded.spillKept.checks++; return; }
     this.#loaded.spillKept = {at: new Date(this.now()).toISOString(), spilledMiB: verdict.spilledMiB, why: plan.why ?? null, checks: 1};
     this.log('[local] ' + this.#model + ' has ' + verdict.spilledMiB + ' MiB in shared system memory (the game took the graphics memory) and nothing can replace it' + (plan.why ? ' (' + plan.why + ')' : '')
@@ -2101,7 +2398,10 @@ export class LocalLlmServer extends EventEmitter {
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#setState('stopped');
     this.#starting = null;
-    await proc?.stop();
+    // The server prepared beside this one and the old one waiting to be released go with it (their stop is confirmed like any other).
+    const fresh = this.#fresh, retiring = this.#retiring; this.#fresh = null; this.#dropHome();
+    this.#flushIdleWaiters();
+    await Promise.all([proc?.stop(), fresh?.stop(), retiring?.proc.stop()]);
   }
 
   // For process exit handlers: no awaiting.
@@ -2111,7 +2411,8 @@ export class LocalLlmServer extends EventEmitter {
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#state = 'stopped';
     this.#starting = null;
-    proc?.killSync();
+    this.#dropHome();
+    proc?.killSync(); this.#fresh?.killSync(); this.#retiring?.proc.killSync();
   }
 
   // --- first-run state ----------------------------------------------------------------------------------------
