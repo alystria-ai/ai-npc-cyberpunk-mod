@@ -1,3 +1,5 @@
+// First, so a full disk or a closed output can never end this process through a log line (bridge/safe-streams.mjs, error report 1cbe337a5144ebbd).
+import './safe-streams-install.mjs';
 import {readFile, stat, mkdir} from 'node:fs/promises';
 import {readFileSync, statSync} from 'node:fs';
 import {decisionLedgerReader} from './game-dialogue.mjs';
@@ -27,7 +29,7 @@ import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
-import {CompanionVision} from './companion-vision.mjs';
+import {CompanionVision, visionDisabledByEnv} from './companion-vision.mjs';
 import {VisionCapture} from './vision-capture.mjs';
 import {MicrophoneSession, microphoneErrorState} from './microphone-session.mjs';
 import {createAddonVoice} from './addon-voice.mjs';
@@ -135,7 +137,7 @@ import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
 import {BLOCKED as LOCAL_AI_BLOCKED, LocalLlmServer, isPlayerServerDetail, nvidiaFreeMiB, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
 import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
-import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
+import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, localAiAvailable, matureOffBlocks, normalisePin, ownFileModels} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {ChildRegistry, CHILDREN_FILE, reapChildren} from './child-registry.mjs';
@@ -162,6 +164,7 @@ import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 import {AddonContent} from './addon-content.mjs';
 import {memoryScopes, scopedMemory} from './memory-scope.mjs';
+import {readGpuProcessMemory} from './gpu-memory.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -279,10 +282,11 @@ if (multilingualProfiles.skipped.length) console.error('[CyberpunkConvai] Multil
 const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingual: multilingualProfiles.twins,
   packTwins: addonContent.convaiTwins({ids, taken: Object.values(multilingualProfiles.twins)}),
   packTwinFor: profileKey => (keys.singleSession ? null : addonContent.twinFor(profileKey))});
-// The sample rate Convai's audio really arrives at, per Convai character (bridge/convai-audio-rates.mjs): the twin sends 44.1 kHz audio labelled 24 kHz. Learned from the first turn's
-// statistics, kept here between sessions (convai-audio-rates.json in the state folder; a missing or unreadable file is an empty memory), and handed to every later turn of that character.
+// The sample rate Convai's audio really arrives at, per Convai character, where the packets' label is wrong (bridge/convai-audio-rates.mjs). Learned from a turn's bytes and statistics, kept
+// here between sessions (convai-audio-rates.json in the state folder; a missing or unreadable file is an empty memory), and handed to every later turn of that character. Version 2: the
+// first version of the file (a plain map) held the 44.1 kHz guess for every multilingual twin, which played their lines 1.84 times too fast, so it is not read.
 const audioRatesPath = resolve(stateDirectory, 'convai-audio-rates.json');
-const savedAudioRates = await readFile(audioRatesPath, 'utf8').then(text => JSON.parse(text), () => null).catch(() => null);
+const savedAudioRates = await readFile(audioRatesPath, 'utf8').then(text => { const file = JSON.parse(text); return file?.version === 2 ? file.rates : null; }, () => null).catch(() => null);
 let audioRatesWriting = Promise.resolve();
 // Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
 // the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
@@ -617,6 +621,8 @@ const childRegistry = new ChildRegistry({file: childrenFile, log: message => con
 const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection, processOptions: {registry: childRegistry, raiseLevel: turnPriority},
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   gameRoom: {voiceMiB: omniStillToLoadMiB, residentVoiceMiB: omniResidentMiB},
+  // The OmniVoice worker's graphics-memory counters, read once when the chat model is found in shared memory (diagnostics: is the voice starved, or spilled too?).
+  voiceMemory: async () => { const pid = localVoice.clientBackend === 'omni' ? localVoice.client?.child?.pid : null; return pid ? readGpuProcessMemory(pid) : null; },
   log: message => console.error('[LocalAI] ' + message)});
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
 localServer.on('failed', ({reason}) => {
@@ -631,10 +637,11 @@ function logLocalDown() {
 }
 // A chosen model that is missing, does not fit or did not start: another was used (the event names it), and the game says so once per choice (not at every later start).
 let localModelFallbackNoted = '';
-localServer.on('model-fallback', ({pin, reason, model}) => {
+// A model that did not fit the graphics memory also carries what it needs and what was available for it (MiB): the notice says both.
+localServer.on('model-fallback', ({pin, reason, model, needMiB, availableMiB}) => {
   const key = pin + '|' + reason;
   if (key === localModelFallbackNoted) return;
-  localModelFallbackNoted = key; mistral.noteLocalModelFallback(model);
+  localModelFallbackNoted = key; mistral.noteLocalModelFallback(model, reason === 'low-memory' ? {needMiB, availableMiB} : undefined);
 });
 // Turns stalled (the game uses most of the graphics memory and the model reads at a crawl): the server stepped down to the next smaller model of its family, or, with
 // none left, Local AI fails with 'low-memory' (its 'failed' follows; no cloud takes over). The game says so once, with the next reply (mod/init.lua, 'local-stepdown'). The saved choice is untouched.
@@ -646,6 +653,11 @@ localServer.on('offload-slow', ({id, model, share}) => {
   if (cpuHeavyNoted.has(id)) return;
   cpuHeavyNoted.add(id); mistral.noteLocalCpuHeavy();
   console.error(`[LocalAI] ${model} runs mostly on the processor (about ${Math.round((share ?? 0) * 100)}% of its layers on the graphics card): replies will be slow`);
+});
+// The model that had gone into shared memory (or partly onto the CPU) is whole on the graphics card again: the game says so once, with the next reply (mod/init.lua, 'local-gpu').
+localServer.on('returned-to-card', ({model, fromSharedMiB, contextSize}) => {
+  mistral.noteLocalReturned();
+  console.error(`[LocalAI] ${model} is back on the graphics card${Number.isFinite(fromSharedMiB) ? ` (it had ${fromSharedMiB} MiB in shared system memory)` : ''}, context ${contextSize}: replies are fast again`);
 });
 localServer.on('state', status => {
   // The model server is running: whatever failed before is over (a later turn found memory again, or the retry of a turn started it), so turns stop failing with the old reason.
@@ -675,9 +687,13 @@ function refreshLocalPack(force = false) {
 // A server the player already runs (an `endpoint` entry of manifest.custom.json, docs/LOCAL_AI.md "Use your own server") can answer Local AI with no
 // pack at all. Read from the last scan of the manifest (the settings poll, at most every 5 s): no file is read here.
 const ownServerListed = () => externalModels(customScan.models).length > 0;
+// Can Local AI answer at all: an installed pack, a server of the player's, or a GGUF file of their own with the Runtime's engine to run it (no pack needed, 2026-10-29).
+const localAiUsable = pack => localAiAvailable({pack, customModels: customScan.models});
+// The player has a model file of their own and the Runtime's engine is there to run it (no pack needed): the setup check counts that as installed.
+const ownModelRunnable = pack => Boolean(pack?.server) && ownFileModels(listLocalModels({pack, customModels: customScan.models})).length > 0;
 // The status the settings page shows: ready, warming up, not installed, not enough graphics memory, or unavailable.
 function localAiStatus() {
-  if (!refreshLocalPack().installed && !ownServerListed()) return 'not-installed';
+  if (!localAiUsable(refreshLocalPack())) return 'not-installed';
   const {state, reason} = localServer.status();
   if (state === 'failed') return reason === 'low-memory' ? 'no-memory' : reason === 'not-installed' ? 'not-installed' : 'failed';
   return state === 'starting' || state === 'warming' ? 'warming' : 'ready';
@@ -687,9 +703,9 @@ const localAiReason = () => { const {state, reason} = localServer.status(); retu
 // Choosing Local: look for the pack, clear an earlier failure, and load the model in the background so the shader compile of a
 // first start is over before the first conversation. A missing pack or a failed start leaves the provider on Local AI, and its turns say why.
 function prepareLocal() {
-  const packInstalled = refreshLocalPack(true).installed;
-  if (!packInstalled) scanCustomModels();   // a pack-less install can still have a server of its own listed
-  if (!packInstalled && !ownServerListed()) { mistral.noteLocalFailure('not-installed'); return; }
+  const pack = refreshLocalPack(true);
+  if (!pack.installed) scanCustomModels();   // a pack-less install can still have a server or a model file of its own listed
+  if (!localAiUsable(pack)) { mistral.noteLocalFailure('not-installed'); return; }
   localServer.reset();
   void localServer.ensure({background: true}).catch(() => {});
 }
@@ -751,11 +767,16 @@ const keyNotice = () => {
   pocketNotice = undefined;
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take() ?? (pocketNotice = pocketLanguageNotice.take())?.keyNotice
     // Windows draws its yellow capture border for the "Companions can see" pictures (docs/COMPANION_VISION.md): said once, with the next reply.
-    ?? (companionVision.takeBorderNotice() ? 'vision-border' : undefined);
+    ?? (companionVision.takeBorderNotice() ? 'vision-border' : undefined)
+    // The setting is on and the provider cannot take pictures (a Local AI model with no vision projector, a Custom endpoint that refused one): said once per case, with the next reply.
+    ?? companionVision.takeSightNotice() ?? undefined;
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'pocket-language-pack' ? {keyNoticeLanguage: pocketNotice.keyNoticeLanguage} : {}), ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
+    ...(keyNotice === 'local-model-fallback' && mistral.noticeMemory ? {keyNoticeNeedMiB: mistral.noticeMemory.needMiB, keyNoticeAvailableMiB: mistral.noticeMemory.availableMiB} : {}),
     // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.
-    ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {})} : {};
+    ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {}),
+    // The folder of the Hugging Face packs page the missing vision file is in (data, so the sentence is the only string to translate): local-ai or mature.
+    ...(keyNotice === 'vision-local-no-file' ? {keyNoticeFolder: localServer.visionState().folder === 'mature' ? 'mature' : 'local-ai'} : {})} : {};
 };
 const LOCAL_CPU_DETAIL = 'a smaller model or the Custom provider is faster';
 // The game's code for a turn Local AI could not take (never a hand-over to another provider): not enough free graphics memory, or any other reason it could not start.
@@ -1112,15 +1133,38 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
     return `convai=allowed:${e.allowed} privateManual:${e.privateManual} verified:${e.verified} armed:${e.armed} published:${seen.published}`
       + ` accepted:${seen.accepted} skipped:${seen.skipped} skip:${seen.lastSkip ?? '-'} ack:${seen.contextAck ?? '-'}`;
   }});
-// "Companions can see" (docs/COMPANION_VISION.md): always on, Convai only. Every conversation turn carries a recent picture of
-// V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking;
-// it is published on the page ahead of the line. companionVision.attachToNextTurn(images) lets other features show the companion
-// something (e.g. a TV picture).
+// "Companions can see" (docs/COMPANION_VISION.md): one setting, off by default (Settings > Conversations), for every conversation provider. Every conversation turn carries a recent
+// picture of V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking. With Convai it is published on the page ahead
+// of the line, with Mistral, Local AI and Custom it is an image_url part of the last user message (bridge/vision-message.mjs). With the setting off nothing is captured and the helper is not
+// started. companionVision.attachToNextTurn(images) lets other features show the companion something (e.g. a TV picture).
 const visionLog = message => console.error('[Vision] ' + message);
 let speechPlayingAt = 0;
 // Development: CYBERPUNK_CONVAI_VISION_DEBUG_LAST=1 (or "visionDebugLastSent": true in settings.json) keeps the last picture handed to
 // Convai in runtime/vision-last-sent.jpg, with runtime/vision-last-sent.json saying when it was taken and how it was sent.
-const companionVision = new CompanionVision({capture: new VisionCapture({log: visionLog}), isConvai: () => !mistral.active,
+// What the text provider that answers can take: Mistral's models all have vision (bridge/mistral-client.mjs VISION_MODELS), Local AI only with a model that has a projector that fits
+// (LocalLlmServer.visionState, remembered state only, no I/O), a Custom endpoint until it refuses a picture.
+const visionSees = () => {
+  switch (mistral.route) {
+    case 'mistral': return true;
+    case 'local': { const state = localServer.visionState(); return state.available === true && state.reason !== 'no-room' && state.reason !== 'start-failed'; }
+    case 'custom': return textRoutes.custom.visionAllowed() === true;
+    default: return false;
+  }
+};
+// Local AI with the setting on and a model that cannot see: the player is told once per model and cause (mod/init.lua 'vision-local-no-model'). Nothing for a model that is not installed:
+// Local AI has its own notices for that.
+const visionBlocker = () => {
+  if (mistral.route !== 'local') return null;
+  const state = localServer.visionState();
+  if (!state.wanted || !state.model || (state.available && state.reason !== 'no-room' && state.reason !== 'start-failed')) return null;
+  const cause = state.reason ?? 'no-projector';
+  // The pack's manifest names a vision file that is not installed: the model can see with it, and the player is told once where to get it ('vision-local-no-file', the folder comes with the reply).
+  if (cause === 'file-missing') return {code: 'vision-local-no-file', key: `local:${state.model}:${cause}`, why: `${state.model} can see with its vision file, which is not installed (${state.file ?? 'no name'}, the vision folder of ${state.folder ?? 'local-ai'} on Hugging Face)`};
+  return {code: 'vision-local-no-model', key: `local:${state.model}:${cause}`,
+    why: `${state.model} cannot see (${cause === 'no-room' ? 'its vision projector does not fit beside it on the graphics card' : cause === 'start-failed' ? 'llama-server could not use its vision projector' : 'it has no vision projector'})`};
+};
+const companionVision = new CompanionVision({capture: new VisionCapture({log: visionLog}), isConvai: () => !mistral.active, sees: visionSees, blocker: visionBlocker,
+  provider: () => mistral.active ? mistral.route : 'convai',
   lastSentPath: resolve(runtime, 'vision-last-sent.jpg'),
   isNear: () => !connections.stale && (connections.profiles.length > 0 || connections.nearby.length > 0 || connections.partners.length > 0),
   isConversing: () => !!(active || mic.current || micPolling || connections.composer) || Date.now() - speechPlayingAt < 1500,
@@ -1129,8 +1173,8 @@ const companionVision = new CompanionVision({capture: new VisionCapture({log: vi
   log: visionLog});
 const realtime = new RealtimeHost({browserPriority: turnPriority, onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime]),
-  audioRates: savedAudioRates, audioRateSeed: {ids: Object.values(multilingualProfiles.twins), hint: {declared: 24000, actual: 44100}}, log: line => console.error('[Convai audio] ' + line),
-  onAudioRate: rates => { audioRatesWriting = audioRatesWriting.catch(() => {}).then(() => mkdir(stateDirectory, {recursive: true}).then(() => atomic(audioRatesPath, JSON.stringify(rates)))).catch(() => {}); }});
+  audioRates: savedAudioRates, log: line => console.error('[Convai audio] ' + line),
+  onAudioRate: rates => { audioRatesWriting = audioRatesWriting.catch(() => {}).then(() => mkdir(stateDirectory, {recursive: true}).then(() => atomic(audioRatesPath, JSON.stringify({version: 2, rates})))).catch(() => {}); }});
 // Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
 // the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
@@ -1140,9 +1184,10 @@ const realtime = new RealtimeHost({browserPriority: turnPriority, onCompanionAct
 // The prompt limits a cloud provider named when it refused a prompt as too long (bridge/prompt-fit.mjs), per provider and model, kept for three days so the next session starts from them.
 const promptLimits = new LearnedLimits({file: resolve(stateDirectory, 'prompt-limits.json')});
 const textRoutes = {
-  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12), limits: promptLimits, log: line => console.error(line)}),
-  local: localRoute({server: localServer, provider: mistral, log: message => console.error(message.startsWith('[PromptFit]') ? message : '[TextProvider] ' + message)}),
-  custom: customRoute({provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console.error(line)}),
+  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12), limits: promptLimits, log: line => console.error(line),
+    onImagesRejected: kind => companionVision.noteRefused(kind)}),
+  local: localRoute({server: localServer, provider: mistral, log: message => console.error(message.startsWith('[PromptFit]') ? message : '[TextProvider] ' + message), onImagesRejected: kind => companionVision.noteRefused(kind)}),
+  custom: customRoute({provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console.error(line), onImagesRejected: kind => companionVision.noteRefused(kind)}),
 };
 const providerOfCharacter = new Map();
 const profileOfCharacter = config => {
@@ -1374,7 +1419,8 @@ const slowTurns = new SlowTurnWatch({onSlow: data => errorEvents.slowTurns(data)
   turnContext: () => ({provider: mistral.route ?? 'convai', voice: localVoice.provider}),
   reportContext: () => {
     const warm = connections.diagnostic();
-    return {freeVideoMemoryMiB: localServer.lastFreeMiB,
+    // `lastFreeMiB` is the free memory the model's LAST LOAD saw (often the game's start, long before the report); `local` is what the watch knows now (bridge/local-return.mjs).
+    return {freeVideoMemoryMiB: localServer.lastFreeMiB, local: localServer.homeState(),
       background: {warmConnections: warm.ready, connectingConnections: warm.connecting, turnsInFlight: [...turnClocks.values()].filter(clock => !clock.has('published')).length}};
   }});
 // Voice playback is on and the replies of this run never made a sound: one `voice-failed` report (bridge/voice-silence.mjs). Judged from the stage clock after each turn.
@@ -2621,7 +2667,7 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
   minRecordMs: 0,
   // `note`: the recording's channel says something the game should tell the player once ('english-only', bridge/local-stt-capture.mjs).
   onState: (state, input, opened) => {
-    micStateLast = {state, requestId: input.requestId, ...(state === 'recording' && typeof opened?.note === 'string' ? {note: opened.note.slice(0, 24)} : {})};
+    micStateLast = {state, requestId: input.requestId, ...(state === 'recording' && typeof opened?.note === 'string' ? {note: opened.note.slice(0, 24), ...(opened.note === 'mic-loopback' && typeof opened.device === 'string' ? {device: opened.device.slice(0, 80)} : {})} : {})};
     // Whatever ends the recording ends the tap with it (a no-op when a channel or the key already did).
     if (state === 'off') void micTap.release(input.requestId, 'the recording is over');
     return publishMicState();
@@ -4002,7 +4048,7 @@ function syncLocalModelChoice(settings) {
 function retryLocalAfterInstall() {
   const why = mistral.localBroken;
   if (mistral.preference !== 'local' || (why !== 'not-installed' && why !== 'mature-off')) return;
-  const lifted = why === 'not-installed' ? localPack.installed || ownServerListed()
+  const lifted = why === 'not-installed' ? localAiUsable(localPack)
     : !matureOffBlocks(listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}), matureContent.enabled);
   if (lifted && mistral.clearLocalFailure(why)) {
     console.error(`[LocalAI] ${why === 'not-installed' ? 'a model was installed' : 'a model that needs no Mature content was installed'}: starting the local model`);
@@ -4138,6 +4184,9 @@ async function pollSettings(checkShutdown = true) {
     const vSettings = vSettingsFor(settings, {cloudUsable: matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
     if (vVoice.update(vSettings)) console.error(`[VVoice] typed lines ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}, microphone lines ${vVoice.micEnabled ? 'on' : 'off'}`);
     if (vVoice.active) startVVoiceModScan();
+    // Companions can see: Local AI loads its vision projector only while the setting is on (and restarts without it when it goes off, bridge/local-llm-server.mjs setVision), so the server is
+    // told before the policy looks at what the model can do.
+    if (settings && typeof settings === 'object') localServer.setVision(settings.companionVision === true && !visionDisabledByEnv());
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
@@ -4253,7 +4302,7 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     localAi: () => {
       const pack = refreshLocalPack(), matureInstalled = maturePackInstalled(), {state, reason, detail} = localServer.status();
       return {status: localAiStatus(), reason: state === 'failed' ? reason ?? null : null, packInstalled: pack.installed, tiers: pack.tiers,
-        matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), models: maturePackModels,
+        matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), ownModel: ownModelRunnable(pack), models: maturePackModels,
         // The start failed because the server the player runs does not answer, is blocked, refuses the key or is no OpenAI-style address: their setup, so no error report (error-events.mjs setupChecked).
         playerServer: state === 'failed' && reason === 'start-failed' && isPlayerServerDetail(detail),
         // Windows blocked a file of the model server (Smart App Control / Application Control): the Help row names it.

@@ -152,6 +152,21 @@ test('a standby player sits silent far beyond the 2s lease, ignores controls, th
   await assert.rejects(g.player.arm(), /not on standby/);
 });
 
+test('audio sent to a player that already failed or stopped is refused with the reason the player closed for, so a report names the cause', async () => {
+  const lease = fixture(); await lease.player.open({sampleRate: 8000, channels: 1, token: 'owner'});
+  lease.player.control({allow: true, paused: false, volume: 1, pan: 0}); await flush();
+  lease.advance(2500); await flush();
+  await assert.rejects(lease.player.append(pcm(100), 0), error => error.message === 'PCM player cannot accept audio (Playback admission expired)');
+  const device = fixture(); await device.player.open({sampleRate: 8000, channels: 1, token: 'owner'});
+  device.context.state = 'suspended'; device.context.onstatechange(); await flush();
+  await assert.rejects(device.player.append(pcm(100), 0), /cannot accept audio \(Audio output is no longer running\)/);
+  const stopped = fixture(); await stopped.player.open({sampleRate: 8000, channels: 1, token: 'owner'});
+  await stopped.player.stop(); await flush();
+  await assert.rejects(stopped.player.append(pcm(100), 0), error => error.message === 'PCM player cannot accept audio (stopped)');
+  const waiting = fixture(); await waiting.player.open({sampleRate: 8000, channels: 1, token: 'owner', standby: true});
+  await assert.rejects(waiting.player.append(pcm(100), 0), error => error.message === 'PCM player cannot accept audio (standby)');
+});
+
 test('arming restarts the lease from the first audio, not from when the device opened', async () => {
   const f = fixture(); await f.player.open({sampleRate: 8000, channels: 1, token: 'owner', standby: true});
   f.advance(6000); await flush(); await f.player.arm();

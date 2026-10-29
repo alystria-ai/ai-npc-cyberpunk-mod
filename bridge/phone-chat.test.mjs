@@ -541,7 +541,7 @@ put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pend
 update(); assert(not m.pending)
 local status=paints[#paints].status
 assert(status:find('today', 1, true) and status:find('Convai free tier limit', 1, true) and status:find('Settings > Conversation provider', 1, true), status)
-assert(status:find('Mistral (free, with your own free key) allows about 5,000 turns a day', 1, true) and status:find('Local AI is unlimited', 1, true) and not status:find('Convai API key', 1, true), status)
+assert(status:find('Mistral works with your own key', 1, true) and status:find('Local AI is unlimited', 1, true) and not status:find('Convai API key', 1, true), status)
 assert(not status:find('Message could not be delivered', 1, true))
 `));
 test('phone timeout restores the draft and save unload rejects a stale reply', () => runLua(setup + `
@@ -583,7 +583,7 @@ update(); assert(not m.pending and m.history.judy[#m.history.judy].text=='Sorry,
 `));
 test('the phone status row words Convai\'s own limits and refusals, in the lines the game notices use', () => runLua(setup + `
 local expected={
-  ['quota-shared']='The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.',
+  ['quota-shared']='The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.',
   ['quota-own']='Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.',
   ['key-rejected']='Convai did not accept your API key. Check it in Settings > Conversation provider.',
   ['key-memory-needed']='Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.'}

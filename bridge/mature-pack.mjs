@@ -72,8 +72,10 @@ export function detectMaturePack({project, environment = process.env, exists = f
       // Under Mod Organizer 2 the folder is the merged virtual one and each model file is looked at where it really is (the identity otherwise).
       const entry = marker[tier], virtual = inside(root, entry?.file), file = virtual && realPath(virtual);
       if (file) {
+        // A vision projector only when the marker names one (same path rules as the model file): a Mature model is never given one by looking beside it.
+        const projector = inside(root, entry.mmproj);
         return [{tier, name: typeof entry.name === 'string' ? entry.name.slice(0, 80) : '', family: typeof entry.family === 'string' ? entry.family.slice(0, 40) : '',
-          file, present: exists(file)}];
+          file, present: exists(file), ...(projector ? {mmproj: realPath(projector)} : {})}];
       }
     }
     return [];

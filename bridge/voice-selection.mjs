@@ -199,7 +199,7 @@ export class VoiceSelection {
     // Windows ran out of memory it can promise (pagingFileFailed): for OmniVoice, then Pocket takes its place; for Pocket, the reply is written. Neither is started again until the player chooses it again.
     this.omniPagingFailed=false;this.pocketPagingFailed=false;
     // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
-    this.pocketRetry=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
+    this.pocketRetry=null;this.heldPocketFailure=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
     this.failureReasons={};
     // "Keep prepared voices" (default on): Pocket saves each voice's prepared state to disk; Omni warms at the
     // selected steps while the companion joins.
@@ -546,7 +546,7 @@ export class VoiceSelection {
   consumeRouteChanges() { const value = [...this.routeChanges].sort(); this.routeChanges.clear(); return value; }
   stageAvailability(client,backend=this.clientBackend) {
     if (this.client !== client || this.closed || !client.loaded) return;
-    if(backend==='pocket'&&this.pocketRetry){this.pocketRetry=null;this.log('Pocket is ready again','PocketRetry');}
+    if(backend==='pocket'&&this.pocketRetry){this.pocketRetry=null;this.releasePocketFailure(false);this.log('Pocket is ready again','PocketRetry');}
     const registry=backend==='omni'?this.omniVariants[this.clientReference].registry:this.registries[backend];
     this.verifiedAvailabilities.set(this.verifiedKey(backend,this.clientReference),
       new Set(registry.keys.filter(key=>client.hasProfile(key))));
@@ -764,9 +764,16 @@ export class VoiceSelection {
     if(this.closed||this.client!==client||this.failedBackends.has(backend))return;
     this.failedBackends.add(backend);
     this.failureReasons[backend]=String(client.failure?.message??'unknown').slice(0,200);
-    this.noteFailure(backend,client.failure?.message,client.failure?.gpu,client.stderrTail);
+    // A Pocket start that timed out is told only if its retry fails too: on a cold disk or under a scanner the first import can pass the 240 s bound and the retry, with the files
+    // cached, is ready in seconds (3 of 5 reports of 3a653672677b28c6 in 0.3.4 healed that way, and the voice works).
+    if(backend==='pocket'&&/startup timed out/i.test(String(client.failure?.message??''))){
+      this.heldPocketFailure=[backend,client.failure?.message,client.failure?.gpu,client.stderrTail];
+    } else {
+      this.releasePocketFailure();
+      this.noteFailure(backend,client.failure?.message,client.failure?.gpu,client.stderrTail);
+    }
     if(backend==='omni')this.scheduleOmniRetry(client.failure?.message,client.failure?.gpu);
-    if(backend==='pocket')this.schedulePocketRetry(client.failure?.message);
+    if(backend==='pocket'){this.schedulePocketRetry(client.failure?.message);if(!this.pocketRetry)this.releasePocketFailure();}
     this.reconcile();
     this.publish();
   }
@@ -793,7 +800,8 @@ export class VoiceSelection {
   }
   // `cause: 'blocked'` when Windows refused to load a file of the voice (blockedByWindows); the Help row then says so, in plain words.
   // `cause: 'virtual-memory'` when Windows ran out of memory for it (pagingFileFailed): the row says to enlarge the paging file or close programs.
-  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:pagingFileFailed(problem.reason)?{...problem,cause:'virtual-memory'}:problem;}
+  // `cause: 'missing-files'` when a file or Python module of the voice is not on the disk (missingFilesFailed; report 0b8367fd0ebd2f2f, "No module named 'urllib'"): the row says to reinstall the Full download.
+  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:pagingFileFailed(problem.reason)?{...problem,cause:'virtual-memory'}:missingFilesFailed(problem.reason)?{...problem,cause:'missing-files'}:problem;}
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason,gpu){
@@ -927,6 +935,11 @@ export class VoiceSelection {
     // Pocket is also the voice of a player who chose Omni when Omni cannot get the graphics memory (omniNoMemory).
     return this.requestedProvider==='pocket'||(this.requestedProvider==='omni'&&this.omniNoMemory);
   }
+  // The held start timeout (backendFailed) is told now, when no retry is left, or dropped when Pocket loaded again or is no longer wanted.
+  releasePocketFailure(tell=true){
+    const held=this.heldPocketFailure;this.heldPocketFailure=null;
+    if(held&&tell&&!this.closed)this.noteFailure(...held);
+  }
   // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.
   schedulePocketRetry(reason){
     const failures=(this.pocketRetry?.failures??0)+1,delay=this.pocketRetryDelays[failures-1];
@@ -948,7 +961,7 @@ export class VoiceSelection {
   // voice that is no longer wanted (the story ends), and none while voice playback is Off, unless V's typed line uses Pocket.
   maintainPocketRetry(){
     if(this.closed||!this.pocketRetry)return;
-    if(!this.pocketWanted){this.pocketRetry=null;return;}
+    if(!this.pocketWanted){this.pocketRetry=null;this.releasePocketFailure(false);return;}
     if(this.busy||this.clientBackend==='pocket'||this.clock()<this.pocketRetry.nextAt||(this.silent&&!this.vHelperWanted))return;
     this.failedBackends.delete('pocket');
     this.log(`loading Pocket again (retry ${this.pocketRetry.failures})`,'PocketRetry');
@@ -1415,7 +1428,7 @@ export class VoiceSelection {
   }
   close() {
     if (this.closed) return this.closing||this.retiring;
-    this.closed = true; this.preview = null; this.omniRetry = null; this.pocketRetry = null;
+    this.closed = true; this.preview = null; this.omniRetry = null; this.pocketRetry = null; this.heldPocketFailure = null;
     for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
     this.routingWaiters.clear();
     return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close(),this.dropCandidate(),this.vHelper.release()]);

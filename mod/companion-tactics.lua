@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Companion tactics against the target chosen from the game's own tagging: Fight.
 --
 -- Ownership: while a tactic runs, this module supplies the movement decision for
@@ -404,7 +405,7 @@ function M.nativeAdapter()
         if record.fromHer then companion:GetAttitudeAgent():SetAttitudeTowards(member:GetAttitudeAgent(), attitude(record.fromHer)) end
         if record.toHer then member:GetAttitudeAgent():SetAttitudeTowards(companion:GetAttitudeAgent(), attitude(record.toHer)) end
         if record.toPlayer then
-            local player = Game.GetPlayer()
+            local player = convaiPlayer()
             if player then member:GetAttitudeAgent():SetAttitudeTowards(player:GetAttitudeAgent(), attitude(record.toPlayer)) end
         end
         if record.threat and N.threatListed(companion, member) then
@@ -468,7 +469,7 @@ function M.nativeAdapter()
         if receipt.companionToTarget then companion:GetAttitudeAgent():SetAttitudeTowards(target:GetAttitudeAgent(), attitude(receipt.companionToTarget)) end
         if receipt.targetToCompanion then target:GetAttitudeAgent():SetAttitudeTowards(companion:GetAttitudeAgent(), attitude(receipt.targetToCompanion)) end
         if receipt.targetToPlayer then
-            local player = Game.GetPlayer()
+            local player = convaiPlayer()
             if player then target:GetAttitudeAgent():SetAttitudeTowards(player:GetAttitudeAgent(), attitude(receipt.targetToPlayer)) end
             receipt.targetToPlayer = nil
         end

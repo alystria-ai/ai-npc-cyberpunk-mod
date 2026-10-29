@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Setup check (docs/MANAGER_UI.md, "Setup check"): what the game can see of this mod's installation, and what the conversation
 -- service found (runtime/setup-check.json, written by bridge/setup-check.mjs), as one line per check with a one-line fix.
 -- Shown first on the Help page (mod/manager-ui.lua), as one notice at the first load when something critical is wrong, and, without
@@ -42,7 +43,7 @@ local INCOMPLETE = {['install-incomplete'] = true, ['bridge-missing'] = true, ['
 -- comes first: it is a Problem only when nothing it loads answers (this mod's native plugin, which does not depend on the script
 -- compile, and the probe of Codeware), and without it Codeware's scripts never reach the compile. This mod's scripts come next: when they did not load (a compile error anywhere disables every
 -- redscript mod), nothing below can be judged from them and the log, not a missing framework, is the thing to read.
-local CRITICAL = {'red4ext', 'build', 'redscript', 'codeware', 'nsui', 'files', 'service', 'versions', 'packs', 'internet'}
+local CRITICAL = {'red4ext', 'build', 'redscript', 'codeware', 'nsui', 'files', 'service', 'versions', 'python', 'packs', 'internet', 'disk'}
 -- The requirements one first-load notice names together (Native Settings UI has its own notice: its name is long and the notice
 -- fits two lines), and at most this many names in one notice.
 local REQUIREMENT_IDS = {red4ext = true, codeware = true}
@@ -164,6 +165,12 @@ local function gigabytes(mib)
     return (value:gsub('%.0$', ''))
 end
 
+-- The values of the almost full drive's sentence (the service's 'disk' check): the drive as C: and the free GB with one decimal.
+local function diskValues(check)
+    check = type(check) == 'table' and check or {}
+    return {drive = (text(check.drive, 2) or '?') .. ':', free = string.format('%.1f', tonumber(check.freeGiB) or 0)}
+end
+
 -- The page's signature: every game-side result and the service answer's time.
 local function contentOf()
     local parts = {}
@@ -257,7 +264,7 @@ local function frameworks()
     -- This mod's own scripts (r6/scripts/CyberpunkConvai): ConvaiRequirements says they loaded and which frameworks they were
     -- compiled with; scripts of 0.2.1 and older only have ConvaiPhoneIsOpen, which proves they loaded. nil while there is no player
     -- to ask. found.requirements stays nil for old scripts and for none.
-    local player = try(function() return Game.GetPlayer() end)
+    local player = try(function() return convaiPlayer() end)
     if player then
         local set = readRequirements(player)
         requirementSet = set
@@ -633,6 +640,11 @@ local function runtimeIsOlder(versions)
     return nil
 end
 
+-- The Help row for voice files that are not on the disk, whether the setup check found them (the 'python' row) or a voice worker failed on them (the 'voice' row).
+local function voiceFilesText()
+    return ui.t('The voice files are incomplete, so the voices and the microphone cannot start. Reinstall the Full download from Nexus Mods: extract it into the Cyberpunk 2077 folder and let it replace the files, then restart the game.')
+end
+
 local function bridgeLines(out)
     local versions = bridgeCheck('versions')
     local build = game and game.checks.build
@@ -668,6 +680,11 @@ local function bridgeLines(out)
     local hint = managerHint()
     local last = out[#out]
     if hint ~= '' and last and last.id == 'versions' and last.state == 'problem' then last.description = last.description .. hint end
+    -- The Python of the voices and the microphone has lost files (an extraction that stopped, a cleaner or a scanner): Python starts, a voice worker cannot.
+    local python = bridgeCheck('python')
+    if python and python.state == 'problem' then
+        out[#out + 1] = line('python', ui.t('Voice files'), 'problem', voiceFilesText())
+    end
     local packs = bridgeCheck('packs')
     if packs then
         local label = ui.t('Optional packs')
@@ -697,7 +714,10 @@ local function bridgeLines(out)
     -- The Pocket voice failed to start (two 0.2.2 players had no voice from V and no way to tell why). Only a failure has a line: a voice that works
     -- needs none. Pocket ships inside the Runtime, so the line says nothing needs installing.
     local voice = bridgeCheck('voice')
-    if voice and voice.code == 'pocket-failed' and voice.cause == 'virtual-memory' then
+    if voice and voice.code == 'pocket-failed' and voice.cause == 'missing-files' then
+        -- A file or Python module of the voice is not on the disk ("No module named 'urllib'"): restarting changes nothing, the Full download puts the files back.
+        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', voiceFilesText())
+    elseif voice and voice.code == 'pocket-failed' and voice.cause == 'virtual-memory' then
         -- Windows ran out of memory it can promise (error 1455, the paging file is too small): restarting changes nothing, a larger paging file or fewer programs does.
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows ran out of memory for the voice. A larger paging file or closing other apps helps.'))
     elseif voice and voice.code == 'pocket-failed' and voice.cause == 'blocked' then
@@ -712,6 +732,8 @@ local function bridgeLines(out)
         local label, name = ui.t('Microphone'), text(microphone.device, 100) or '?'
         if microphone.code == 'missing' then
             out[#out + 1] = line('microphone', label, 'note', ui.t('The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}.', {chosen = text(microphone.chosen, 100) or '?', name = name}))
+        elseif microphone.code == 'loopback' then
+            out[#out + 1] = line('microphone', label, 'note', ui.t('{name} looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone.', {name = name}))
         elseif microphone.code == 'chosen' then
             out[#out + 1] = line('microphone', label, 'ok', ui.t('{name}, chosen in Settings > Voices.', {name = name}))
         elseif microphone.code == 'default' then
@@ -788,6 +810,11 @@ local function bridgeLines(out)
         elseif internet.code == 'reachable' then out[#out + 1] = line('internet', label, 'ok', ui.t('Reached {host}.', {host = host}))
         elseif internet.code == 'no-dns' then out[#out + 1] = line('internet', label, 'problem', ui.t('This PC cannot look up {host}. Check your internet connection, then restart the game.', {host = host}))
         else out[#out + 1] = line('internet', label, 'problem', ui.t('The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.', {host = host})) end
+    end
+    -- A drive with under 2 GB free (the game's or the one the mod's data is on): the logs, the memories and the voice files then fail to save. Only a problem has a row.
+    local disk = bridgeCheck('disk')
+    if disk and disk.state == 'problem' then
+        out[#out + 1] = line('disk', ui.t('Disk space'), 'problem', ui.t('Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories.', diskValues(disk)))
     end
     local gpu = bridgeCheck('gpu')
     if gpu and gpu.code == 'found' and text(gpu.name, 80) then
@@ -883,7 +910,7 @@ end
 -- Every sentence of the first-load notice is in this one function (bridge/setup-notice-fit.test.mjs measures each against the warning
 -- line). id 'redscript': this mod's scripts did not load. id 'requirements': names is the list of two or more requirement names
 -- (old: one of them is installed but too old). ids 'build-runtime', 'build-scripts', 'build-both', 'build-differ': the Scripts, the Runtime and the game are not for
--- the same game version (values: game, other, scripts, runtime). id 'codeware-old': Codeware
+-- the same game version (values: game, other, scripts, runtime). id 'disk': the drive is almost full (values: drive like C:, free in GB). id 'codeware-old': Codeware
 -- without the parts this mod needs. Any other id: one check,
 -- named by PRODUCT or, for an id that has no entry, by `names`.
 local function shortText(id, names, old, values)
@@ -901,12 +928,15 @@ local function shortText(id, names, old, values)
     if id == 'mcm-old' then return ui.t('Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI') end
     if id == 'files' then return ui.t('Some mod files are missing. Extract the update zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
+    -- The Runtime's Python lacks files (bridge/runtime-python.mjs; report 0b8367fd0ebd2f2f): the Full download puts them back.
+    if id == 'python' then return ui.t('The voice files are incomplete. Reinstall the Full download from Nexus Mods.') end
     if id == 'versions-old' then return ui.t('The Runtime is out of date. Get the full install zip.') end
     if id == 'versions-base' then return ui.t('The Runtime is older than {required}. Get the full install zip.', values) end
     if id == 'versions-steps' then return ui.t('Runtime files are old. Get the full install zip.') end
     if id == 'versions' then return ui.t('The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.') end
     if id == 'packs' then return ui.t('A pack is one folder too deep. See Help in Settings.') end
     if id == 'internet' then return ui.t('The conversation service cannot reach the internet. See Help in Settings.') end
+    if id == 'disk' then return ui.t('Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories.', values) end
     return ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = PRODUCT[id] or names or id})
 end
 
@@ -964,6 +994,11 @@ local function firstLoad()
         elseif id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or scriptsConsole(buildOf()))
         elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or nsuiConsole(buildOf()))
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
+        elseif id == 'python' then
+            -- The Runtime's Python lost files (bridge/runtime-python.mjs): the modules, for the report, and what puts them back.
+            local lost = names((bridgeCheck('python') or {}).missing, nil, 8)
+            say('AI NPC Cyberpunk Mod: the voice files are incomplete' .. (#lost > 0 and (' (Python cannot find: ' .. table.concat(lost, ', ') .. ')') or '')
+                .. '. Reinstall the Full download from Nexus Mods (extract it into the Cyberpunk 2077 folder and let it replace the files), then restart the game.')
         elseif REQUIREMENT_IDS[id] then
             say('AI NPC Cyberpunk Mod: ' .. (PRODUCT[id] or id) .. ' is missing. Install it from Nexus Mods, then restart the game.')
         end
@@ -992,6 +1027,7 @@ local function firstLoad()
     -- redscript itself is missing: the sentence of any missing requirement, with its name (there is no compile log to open)
     if first == 'redscript' and game.checks.redscript.code == 'no-compiler' then return shortText('compiler', PRODUCT.redscript) end
     if first == 'nsui' and game.checks.nsui.code == 'mcm-old' then return shortText('mcm-old') end
+    if first == 'disk' then return shortText('disk', nil, nil, diskValues(bridgeCheck('disk'))) end
     -- Scripts and Runtime of different versions: a Runtime that is the older one (nearly every report) is told to take the full install zip. A Runtime that never
     -- answered (0.2.1 and older: no update zips exist for it) has no versions to compare: it gets the generic notice, and the Help line tells it to get the full install zip.
     local versions = bridgeCheck('versions')
@@ -1008,7 +1044,7 @@ end
 -- word: 'codeware', 'codeware-ui' or 'codeware-textinput'. player: the caller's, when it has one.
 function M.requirement(word, player)
     if requirementSet == nil then
-        player = player or try(function() return Game.GetPlayer() end)
+        player = player or try(function() return convaiPlayer() end)
         if not player then return nil end
         requirementSet = readRequirements(player)
     end
@@ -1103,16 +1139,20 @@ function M.reportLines()
         for _, check in ipairs(bridge.checks) do
             if type(check) == 'table' and type(check.id) == 'string' then
                 local extra = {}
-                for _, field in ipairs({'scripts', 'runtime', 'name', 'host', 'service', 'device'}) do
+                for _, field in ipairs({'scripts', 'runtime', 'name', 'host', 'service', 'device', 'drive', 'layout'}) do
                     if text(check[field], 80) then extra[#extra + 1] = field .. '=' .. text(check[field], 80) end
                 end
                 if type(check.memoryMiB) == 'number' then extra[#extra + 1] = 'memoryMiB=' .. math.floor(check.memoryMiB) end
+                if type(check.freeGiB) == 'number' then extra[#extra + 1] = 'freeGiB=' .. string.format('%.1f', check.freeGiB) end
                 local found = names(check.found)
                 if #found > 0 then extra[#extra + 1] = 'found=' .. table.concat(found, '+') end
                 local nested = names(check.nested, 'folder')
                 if #nested > 0 then extra[#extra + 1] = 'nested=' .. table.concat(nested, '+') end
                 local managers = names(check.managers)
                 if #managers > 0 then extra[#extra + 1] = 'managers=' .. table.concat(managers, '+') end
+                -- The Python modules the voice files lack (bridge/runtime-python.mjs): module names, up to eight.
+                local lost = names(check.missing, nil, 8)
+                if #lost > 0 then extra[#extra + 1] = 'missing=' .. table.concat(lost, '+') end
                 out[#out + 1] = string.format('service %s: %s %s%s', check.id, tostring(check.state), tostring(check.code),
                     #extra > 0 and (' ' .. table.concat(extra, ' ')) or '')
             end

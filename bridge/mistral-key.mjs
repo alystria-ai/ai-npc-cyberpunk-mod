@@ -56,7 +56,7 @@ export class MistralProvider {
     Object.assign(this, {keyPath, readText, writeText, removeFile, custom});
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
-    this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
+    this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localGpuNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.localModelNoticeMemory = null; this.lastNoticeModel = ''; this.lastNoticeMemory = null;
     this.localBroken = null; // why the local AI cannot be used right now (null: it can); it decides the failure code and the status, never the provider
     this.localStepNoticePending = false; this.localStepNoticeName = '';   // turns stalled: a smaller model was loaded (its name)
     // The bridge holds the status file until its first settings poll has applied the saved provider, so the game never reads the defaults
@@ -84,7 +84,7 @@ export class MistralProvider {
     const next = PROVIDERS.includes(value) ? value : 'convai', changed = next !== this.preference;
     this.preference = next;
     if (changed) {
-      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localStepNoticePending = false;
+      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localGpuNoticePending = false; this.localStepNoticePending = false;
     }
     return changed;
   }
@@ -153,8 +153,19 @@ export class MistralProvider {
   noteLocalRestarted() { if (this.applied === 'local') this.localRestartNoticePending = true; }
   /** Local AI's model runs mostly on the processor (bridge/local-llm-server.mjs 'offload-slow': under FIT_LIMITS.hopelessShare of its layers on the card): one notice ('local-cpu') with the next reply. */
   noteLocalCpuHeavy() { if (this.applied === 'local' || this.preference === 'local') this.localCpuNoticePending = true; }
-  /** The model the player chose for Local AI is missing, does not fit or did not start, and `model` (its name) was used instead: one notice ('local-model-fallback') with the next reply; `noticeModel` holds the name. */
-  noteLocalModelFallback(model) { if (this.preference === 'local') { this.localModelNoticePending = true; this.localModelNoticeName = typeof model === 'string' ? model.slice(0, 80) : ''; } }
+  /** Local AI's model was in shared system memory or partly on the CPU and is whole on the graphics card again (bridge/local-llm-server.mjs 'returned-to-card'): one notice ('local-gpu') with the next reply. */
+  noteLocalReturned() { if (this.applied === 'local' || this.preference === 'local') this.localGpuNoticePending = true; }
+  /**
+   * The model the player chose for Local AI is missing, does not fit or did not start, and `model` (its name) was used instead: one notice ('local-model-fallback') with the next reply; `noticeModel` holds the name.
+   * `memory` ({needMiB, availableMiB}, a model that did not fit the graphics memory): the notice says how much the chosen model needs and how much is available for it; `noticeMemory` holds both.
+   */
+  noteLocalModelFallback(model, memory) {
+    if (this.preference !== 'local') return;
+    const mib = (value, least) => (typeof value === 'number' && Number.isFinite(value) && value >= least && value < 1_000_000 ? Math.round(value) : null);
+    const need = mib(memory?.needMiB, 1), available = mib(memory?.availableMiB, 0);   // a card with no room left for the model is "0 MB available"
+    this.localModelNoticePending = true; this.localModelNoticeName = typeof model === 'string' ? model.slice(0, 80) : '';
+    this.localModelNoticeMemory = need !== null && available !== null ? {needMiB: need, availableMiB: available} : null;
+  }
   /**
    * Local AI's turns stalled (the game uses most of the graphics memory) and the supervisor stepped down (bridge/local-llm-server.mjs 'model-stepdown'): `model` (its
    * name) was loaded instead, said once with the next reply ('local-stepdown', `noticeModel` holds the name). With no name (no smaller model is installed) there is
@@ -166,6 +177,8 @@ export class MistralProvider {
   }
   /** The name of the model the 'local-model-fallback' or 'local-stepdown' notice just taken says was used, else ''. */
   get noticeModel() { return this.lastNoticeModel || ''; }
+  /** {needMiB, availableMiB} when the 'local-model-fallback' notice just taken is a model that did not fit the graphics memory, else null. */
+  get noticeMemory() { return this.lastNoticeMemory || null; }
   /** Adopts the requested provider; call only at an idle boundary. Returns whether it changed. */
   apply() {
     const changed = this.pending;
@@ -184,12 +197,13 @@ export class MistralProvider {
   secrets() { return [this.key, ...(this.custom?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
-  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-stepdown', 'local-model-fallback' or 'local-restarted' once each (the game shows them with the next reply), else undefined. */
+  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-stepdown', 'local-model-fallback', 'local-restarted', 'local-cpu' or 'local-gpu' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
-    if (this.localStepNoticePending && this.applied === 'local') { this.localStepNoticePending = false; this.lastNoticeModel = this.localStepNoticeName || ''; return 'local-stepdown'; }
-    if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; return 'local-model-fallback'; }
+    if (this.localStepNoticePending && this.applied === 'local') { this.localStepNoticePending = false; this.lastNoticeModel = this.localStepNoticeName || ''; this.lastNoticeMemory = null; return 'local-stepdown'; }
+    if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; this.lastNoticeMemory = this.localModelNoticeMemory; this.localModelNoticeMemory = null; return 'local-model-fallback'; }
     if (this.localRestartNoticePending && this.applied === 'local') { this.localRestartNoticePending = false; return 'local-restarted'; }
     if (this.localCpuNoticePending && this.applied === 'local') { this.localCpuNoticePending = false; return 'local-cpu'; }
+    if (this.localGpuNoticePending && this.applied === 'local') { this.localGpuNoticePending = false; return 'local-gpu'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }
     if (this.noSetupPending && this.applied === 'convai') { this.noSetupPending = false; return 'custom-no-setup'; }
     if (this.voicePending && this.applied === 'mistral' && cloudVoice) { this.voicePending = false; return 'mistral-voice'; }

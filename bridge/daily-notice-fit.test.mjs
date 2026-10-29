@@ -5,7 +5,7 @@
 // The measure itself (the upper-case advances at 35 px, 20 px for a Cyrillic capital, 35 px for a full-width character) is in
 // bridge/notice-fit.mjs. It is an estimate and cannot see the game; it keeps every language to two lines with room for a word that wraps early.
 // The text carries a forced break ("\n"): the first sentence ("Today's {limit} Convai turns are used.") is line 1 and must fit ONE
-// line; the detailed choice (Try Mistral, free key, about 5,000 a day, or Local AI, unlimited) starts on a fresh line and may wrap
+// line; the detailed choice (Try Local AI, unlimited, or Mistral, your own key) starts on a fresh line and may wrap
 // to a second, so the whole notice is at most three rendered lines (a third line makes the frame a taller block, about 140 px,
 // but it is shown for 9 s after the frame opens, and the reading-time test below still holds for its roughly 100 letters). The warning
 // text is an ordinary ink text and breaks at "\n" (the mod's loading notice already joins its lines with it).
@@ -56,7 +56,6 @@ const [withLimit, withoutLimit] = [source[1], source[2]].map(text => text.replac
 // Sample limits: the real one is 100 now; a four-digit one must still fit.
 const filled = (text, limit) => text.replace('{limit}', String(limit));
 const english = filled(withLimit, 100);
-const THOUSANDS = /5[\s\u00a0\u202f.,]?000/;
 const catalog = JSON.parse(read('../localization/en.json'));
 const notices = read('../mod/notices.lua');
 const showTable = /M\.showS = \{([^}]*)\}/.exec(notices);
@@ -81,15 +80,15 @@ test('the English daily-limit notice is line 1 on one line plus a detailed line 
     const shown = forcedLines(filled(withLimit, limit));
     assert.equal(shown.length, FORCED);
     assert.equal(shown[0].line, `Today’s ${limit} Convai turns are used.`);
-    assert.equal(shown[1].line, 'Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).');
+    assert.equal(shown[1].line, 'Try Local AI (unlimited) or Mistral (your own key).');
     assert.deepEqual(problems(filled(withLimit, limit), LINE_ENGLISH), []);
     assert(shown[0].wrapped + shown[1].wrapped <= MAX_LINES, `${shown[0].wrapped + shown[1].wrapped} lines`);
   }
   assert(english.length <= 100, `${english.length} letters`);
   assert.equal(withLimit.split('{limit}').length, 2, 'the limit appears once, as {limit}');
-  assert(!/\d/.test(withLimit.replace('{limit}', '')) || /^[^\d]*5,000[^\d]*$/.test(withLimit.replace('{limit}', '')), 'only the 5,000 may be a number');
-  assert(/^Today’s \{limit\} Convai turns are used\.\nTry Mistral \(free key, ~5,000 a day\) or Local AI \(unlimited\)\.$/.test(withLimit), withLimit);
-  assert(withLimit.indexOf('Local AI (unlimited)') > withLimit.indexOf('Mistral'), '"unlimited" stays beside Local AI');
+  assert(!/\d/.test(withLimit.replace('{limit}', '')), 'the notice names no figure: the limit comes from the server');
+  assert(/^Today’s \{limit\} Convai turns are used\.\nTry Local AI \(unlimited\) or Mistral \(your own key\)\.$/.test(withLimit), withLimit);
+  assert(withLimit.indexOf('Local AI (unlimited)') < withLimit.indexOf('Mistral'), '"unlimited" stays beside Local AI, which is named first');
   assert(!withoutLimit.includes('{') && withoutLimit.startsWith('Today’s Convai turns are used.\n') && withoutLimit.endsWith(withLimit.split('\n')[1]), withoutLimit);
   assert.deepEqual(problems(withoutLimit, LINE_ENGLISH), [], 'the line without a limit fits too');
   for (const word of ['recommend', 'embedded', 'shared', 'antivirus', 'defender', 'paid', 'subscription', 'token']) {
@@ -116,13 +115,12 @@ test('every language has the notice with the same forced break: line 1 fits one 
       assert(typeof text === 'string' && text.length > 0, `${code}: no translation of ${source.slice(0, 30)}`);
       assert.notEqual(text, source, `${code}: still English`);
       assert(text.includes('Convai') && text.includes('Mistral'), `${code}: product names missing: ${text}`);
-      // {limit} survives exactly once (and not at all in the line for an unknown limit); the 5,000 is there, in the language's own format
+      // {limit} survives exactly once (and not at all in the line for an unknown limit); the notice names no figure of its own
       assert.equal(text.split('{limit}').length - 1, hasLimit ? 1 : 0, `${code}: {limit} count: ${text}`);
       const rest = text.replace('{limit}', '');
-      assert(THOUSANDS.test(rest), `${code}: the 5,000 a day is missing or not a number: ${text}`);
-      assert(!/[{}]/.test(rest) && !/\d/.test(rest.replace(THOUSANDS, '')), `${code}: a stray placeholder or number: ${text}`);
+      assert(!/[{}]/.test(rest) && !/\d/.test(rest), `${code}: a stray placeholder or number: ${text}`);
       assert.equal(text, text.trim(), `${code}: stray space`);
-      // the same forced break as the English: line 1 on one line, the full Mistral / Local AI sentence (with "free") starting line 2, three lines at most
+      // the same forced break as the English: line 1 on one line, the full Local AI / Mistral sentence starting line 2, three lines at most
       assert.equal(text.split('\n').length, FORCED, `${code}: needs exactly one line break: ${JSON.stringify(text)}`);
       assert(text.split('\n')[1].includes('Mistral') && !text.split('\n')[0].includes('Mistral'), `${code}: the choice belongs on line 2: ${JSON.stringify(text)}`);
       for (const limit of hasLimit ? [100, 1500] : [0]) {
@@ -152,8 +150,8 @@ const withTime = (text, limit, time) => text.replace('{limit}', String(limit)).r
 const SAMPLES = [[100, '05:30'], [1500, '23:59'], [500, '00:00'], [500, '20:08']];
 
 test('the English notice with a reset time keeps line 1 on one line and fits three lines in all', () => {
-  assert.equal(timedWithLimit, 'Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).');
-  assert.equal(timedWithoutLimit, 'Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).');
+  assert.equal(timedWithLimit, 'Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).');
+  assert.equal(timedWithoutLimit, 'Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).');
   for (const [limit, time] of SAMPLES) {
     for (const text of [withTime(timedWithLimit, limit, time), withTime(timedWithoutLimit, limit, time)]) {
       assert.deepEqual(problems(text, LINE_ENGLISH), [], text);
@@ -174,7 +172,7 @@ test('every language has the notice with a reset time: both placeholders once, t
       assert.equal(text.split('{time}').length - 1, 1, `${code}: {time} count: ${text}`);
       assert.equal(text.split('{limit}').length - 1, hasLimit ? 1 : 0, `${code}: {limit} count: ${text}`);
       const rest = text.replace('{limit}', '').replace('{time}', '');
-      assert(THOUSANDS.test(rest) && !/[{}]/.test(rest) && !/\d/.test(rest.replace(THOUSANDS, '')), `${code}: a stray placeholder or number: ${text}`);
+      assert(!/[{}]/.test(rest) && !/\d/.test(rest), `${code}: a stray placeholder or number: ${text}`);
       assert(!rest.includes(';') && text === text.trim(), `${code}: a semicolon or stray space: ${text}`);
       const lines = text.split('\n');
       assert.equal(lines.length, FORCED, `${code}: needs exactly one line break: ${JSON.stringify(text)}`);
@@ -189,7 +187,7 @@ test('every language has the notice with a reset time: both placeholders once, t
 
 test('the settings help, the invitation failure and the Phone Chat status have a reset-time version in every language', () => {
   const sources = [
-    'You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).',
+    'You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).',
     'The Convai daily limit is used up. It resets at {time}. Choose another provider in Settings, or invite again then.',
     read('../mod/phone-chat.lua').match(/local DAILY_LIMIT_STATUS_AT = '([^'\n]*)'/)?.[1],
   ];

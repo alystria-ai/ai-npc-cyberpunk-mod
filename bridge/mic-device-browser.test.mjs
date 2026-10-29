@@ -36,7 +36,8 @@ test('the capture page lists the inputs by label, opens the chosen one, and fall
     assert.equal(info.requested, preferred);
     assert.equal(info.missing, null);
     assert.equal(info.reused, false, 'a different input than the one open before is a new open');
-    assert.deepEqual(capture.lastInput, {device: preferred, requested: preferred, missing: null});
+    assert.equal(info.settings.echoCancellation, true, 'a chosen input is opened with echo cancellation too');
+    assert.deepEqual(capture.lastInput, {device: preferred, requested: preferred, missing: null, loopback: false});
     await capture.end();
 
     // Pressed again with the same choice: the open device is kept (no new open on the way to the recording).
@@ -49,7 +50,7 @@ test('the capture page lists the inputs by label, opens the chosen one, and fall
     info = await capture.begin(() => {});
     assert.equal(info.missing, preferred);
     assert.equal(info.device, defaultLabel, 'the default input opened instead');
-    assert.deepEqual(capture.lastInput, {device: defaultLabel, requested: preferred, missing: preferred});
+    assert.deepEqual(capture.lastInput, {device: defaultLabel, requested: preferred, missing: preferred, loopback: false});
     await capture.end();
 
     // Back to the Windows default.

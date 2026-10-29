@@ -29,7 +29,10 @@ export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bri
 const KIND_PATTERN = /^[a-z][a-z0-9-]{1,39}$/;
 // A game version as release.json names the build ("2.5", "2.31"): the only shape a recorded game field may have.
 const GAME_SHAPE = /^\d{1,2}\.\d{1,2}$/;
+const MODULE_SHAPE = /^[A-Za-z_][A-Za-z0-9_.]{0,59}$/;
 const SIGNATURE_PATTERN = /^[0-9a-f]{16}$/;
+// The words of a write that failed because the disk or the player's quota is full (Node's code and message, and Windows' own words for it).
+const DISK_FULL = /\b(?:ENOSPC|EDQUOT)\b|no space left on device|not enough space on the disk|disk quota exceeded/i;
 
 export const SENT_FILE = 'sent.json';
 export const queueDirectory = stateDirectory => join(stateDirectory, QUEUE_FOLDER, 'queue');
@@ -178,6 +181,15 @@ function slowTurn(row) {
  * The `slow` section of a slow-turn record (bridge/slow-turns.mjs), rebuilt field by field: numbers, fixed names and nothing else, each
  * bounded, so no text can ride along. null when there is nothing usable.
  */
+/** The `local` group of a slow-turn record (bridge/slow-turns.mjs localFacts): numbers and flags only, each bounded. */
+function slowLocal(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const numbers = (object, keys) => without(Object.fromEntries(keys.map(key => [key, slowNumber(object?.[key], 1e6)])));
+  const voice = value.voice && typeof value.voice === 'object' ? without({...numbers(value.voice, ['dedicatedMiB', 'sharedMiB']), spilled: value.voice.spilled === true ? true : undefined}) : undefined;
+  const clean = without({...numbers(value, ['looks', 'lastFreeMiB', 'returns', 'dedicatedMiB', 'sharedMiB']), watching: value.watching === true ? true : undefined,
+    voice: voice && Object.keys(voice).length ? voice : undefined});
+  return Object.keys(clean).length ? clean : undefined;
+}
 export function cleanSlow(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const rows = list => (Array.isArray(list) ? list.slice(0, 8).map(slowTurn).filter(Boolean) : []);
@@ -190,6 +202,7 @@ export function cleanSlow(value) {
   const clean = without({reason: slowWord(value.reason), thresholds: group(value.thresholds, ['windowTurns', 'slowInWindow', 'slowMs', 'extremeMs']),
     turns: slowNumber(value.turns, 1e6), excluded: group(value.excluded, ['failed', 'paused']), minutes: slowNumber(value.minutes, 1e6),
     provider: slowWord(value.provider), voice: slowWord(value.voice), freeVideoMemoryMiB: slowNumber(value.freeVideoMemoryMiB, 1e6),
+    local: slowLocal(value.local),
     background: Object.keys(background).length ? background : undefined,
     recentSoundMs: Array.isArray(value.recentSoundMs) ? value.recentSoundMs.slice(0, 12).map(item => slowNumber(item)).filter(item => item !== undefined) : undefined,
     first: rows(value.first), slow: rows(value.slow)});
@@ -263,6 +276,9 @@ export function queueRecord(event, now = Date.now()) {
   if (!event || typeof event !== 'object' || !KIND_PATTERN.test(String(event.kind ?? ''))) return null;
   const message = clip(String(event.message ?? ''), 400).trim();
   if (!message) return null;
+  // A full disk or an exceeded quota is the player's PC, not a fault of the mod (reports a2b5caf8, e1a42aa8, d7a05e11, 5be50746, ea023111: one install with 0.8 GiB free on C:).
+  // The setup check already tells the player (Disk space row and first-load notice), and a record could hardly be written on that disk anyway.
+  if (DISK_FULL.test(message) || DISK_FULL.test(String(event.frame ?? ''))) return null;
   const frame = clip(String(event.frame ?? ''), 240);
   const signature = SIGNATURE_PATTERN.test(String(event.signature ?? '')) ? event.signature : errorSignature({kind: event.kind, message, frame});
   const stack = Array.isArray(event.stack) ? event.stack.slice(0, 8).map(line => clip(String(line), 200)) : [];
@@ -464,6 +480,9 @@ export function reportableTurnFailure(error, {errorCode, localReason, microphone
   if (typeof error?.code === 'string' && error.code.startsWith('MIC_')) return false;
   const text = typeof error?.message === 'string' ? error.message : String(error);
   if (NOT_A_FAULT.test(text) || PLAYER_SETUP.test(text)) return false;
+  // Local AI that could not be used for a reason of the player's PC, judged from the error itself: an automatic reaction (battle, loot) carries no error code, so the code
+  // test below never saw it (report d1ee522b016b2efa: a reaction on a PC with no discrete graphics card).
+  if (error?.name === 'LocalAiUnavailable' && OWN_LOCAL_REASONS.has(error.reason)) return false;
   if (errorCode && OWN_DOING.has(errorCode)) return false;
   if (LOCAL_DOWN.has(errorCode) && OWN_LOCAL_REASONS.has(localReason)) return false;
   // A microphone turn fails for the device as often as for the service: only one that names a provider failure counts.
@@ -571,11 +590,15 @@ export class ErrorEvents {
       if (row.playerServer === true) continue;
       // The player's own Python for OmniVoice that was refused (docs/OMNIVOICE_AMD.md): their experimental setup, told on the Help page, like a PC without CUDA.
       if (row.id === 'omni-python') continue;
+      // A drive that is almost full: the player's own PC, told in the game (the Help row and the first-load notice), not a fault of the mod.
+      if (row.id === 'disk') continue;
       this.record({kind: 'setup-problem', message: `${clip(row.id, 40)} ${clip(row.code, 40)}`, frame: 'setup-check',
         detail: {...(typeof row.scripts === 'string' ? {scripts: row.scripts} : {}), ...(typeof row.runtime === 'string' ? {runtime: row.runtime} : {}),
           // The game each half was built for (a Scripts of one game with the Runtime of the other: 6 installs on 27 Oct), a version number shape only.
           ...(row.id === 'versions' && GAME_SHAPE.test(row.scriptsGame) ? {scriptsGame: row.scriptsGame} : {}),
-          ...(row.id === 'versions' && GAME_SHAPE.test(row.runtimeGame) ? {runtimeGame: row.runtimeGame} : {})}});
+          ...(row.id === 'versions' && GAME_SHAPE.test(row.runtimeGame) ? {runtimeGame: row.runtimeGame} : {}),
+          // The Runtime's Python lacks files (bridge/runtime-python.mjs): the module names it could not find, up to eight, a name shape only (report 0b8367fd0ebd2f2f: urllib).
+          ...(row.id === 'python' && Array.isArray(row.missing) ? {missingModules: row.missing.filter(name => typeof name === 'string' && MODULE_SHAPE.test(name)).slice(0, 8).join(',')} : {})}});
     }
   }
 }

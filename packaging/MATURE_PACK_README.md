@@ -12,7 +12,7 @@ The **Mature content** setting is part of the main mod and works without these p
 
 ## What stays the same
 
-Characters stay themselves. Judy, Panam, Kerry and the others keep their voices, personalities and orientations, and those decide how they flirt and talk about sex, not whether they do. With the setting on, they are direct and explicit: they say what they want and what they would do, in plain words. Your relationship with them sets the tone: a partner is the most forward, a friend warm and playful, a stranger or rival bolder and rougher.
+Characters stay themselves. Judy, Panam, Kerry and the others keep their voices, personalities and orientations, and those decide how they talk. With the setting on they are free to talk about anything, sex included, and explicit when you take it there or when a romance or the place calls for it, but they do not bring up sex or flirt with you out of nowhere. Swearing follows who they are: a gang member swears freely, a doctor or a shopkeeper much less. Your relationship with them sets how close they get: a partner is the most forward, a friend warm and playful, a stranger keeps to their own business.
 
 The **Mature content** setting itself lives in Settings > Conversation provider, right under the provider. It is off by default, needs Local AI or Custom (the models in these packs are for Local AI), and its help text says the content is for adults (18+).
 
@@ -32,7 +32,7 @@ The uncensored models have no limits of their own, so the mod holds these in thr
 - You are 18 or older.
 - The main mod, **AI NPC Cyberpunk Mod** (Scripts and Runtime, the same version number as this pack, and in any case the Runtime of version 0.2.7 or newer: the engine that runs the model is part of the Runtime), and everything it needs.
 - A graphics card with free memory for the model you use: about 3.4 GB for lite, about 6.5 GB for standard. No Local AI pack is needed. If you also have one (standard or lite from the same Hugging Face page), its models stay available for when Mature content is off.
-- Free disk space: about 2.8 GB for Mature lite, about 5.5 GB for Mature standard (about 8.2 GB for both, which share the memory model).
+- Free disk space: about 2.8 GB for Mature lite, about 5.5 GB for Mature standard (about 8.2 GB for both, which share the memory model). The vision files (optional, for Companions can see) are separate small downloads in the `vision` folder of the same Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mature/vision: `Vision-Qwen3.5-4B-projector.zip` for Mature lite (about 0.68 GB) and `Vision-Gemma-4-E4B-projector.zip` for Mature standard (about 0.56 GB). Extract one like a pack. The file is read only while Companions can see is on. Without it the model answers from your words alone, and the game tells you once where to get it.
 
 ## Install
 

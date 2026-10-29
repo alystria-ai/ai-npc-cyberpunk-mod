@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Quiet vanilla reactions on an NPC the mod is addressing.
 --
 -- A world NPC the mod talks to must not also bark its vanilla reaction at V
@@ -89,8 +90,8 @@ end
 -- The bark window lives on the player (Engagement.reds): hold(seconds) never shortens it, release(seconds) ends it that long from now.
 local function nativeBarkGate()
     return {
-        hold = function(seconds) Game.GetPlayer():ConvaiBarkHold(seconds) end,
-        release = function(seconds) Game.GetPlayer():ConvaiBarkRelease(seconds) end,
+        hold = function(seconds) convaiPlayer():ConvaiBarkHold(seconds) end,
+        release = function(seconds) convaiPlayer():ConvaiBarkRelease(seconds) end,
     }
 end
 

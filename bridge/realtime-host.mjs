@@ -1,16 +1,17 @@
 import {createServer} from 'node:http';
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {readFileSync, renameSync, rmSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
-import {browserMissing, launchSystemBrowser} from './system-browser.mjs';
+import {browserMissing, browserOutputLines, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
 import {MediaHost} from './media-host.mjs';
+import {inputNote} from './mic-match.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
 import {BrowserPriority} from './process-priority.mjs';
@@ -60,9 +61,15 @@ function graphicsRefused(key, now) {
   return true;
 }
 const saveSandboxState = (statePath, reason) => {
+  const temporary = `${statePath}.${process.pid}.tmp`;
   try {
-    writeFileSync(statePath, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), graphicsOff: Object.fromEntries(graphicsRefusals), reason: String(reason).slice(0, 160)}));
-  } catch { /* read-only: remembered for this process only */ }
+    // A temporary file and a rename: a full disk leaves the old file as it was.
+    writeFileSync(temporary, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), graphicsOff: Object.fromEntries(graphicsRefusals), reason: String(reason).slice(0, 160)}));
+    renameSync(temporary, statePath);
+  } catch {
+    // Read-only or full: remembered for this process only.
+    try { rmSync(temporary, {force: true}); } catch { /* nothing to remove */ }
+  }
 };
 // `persist` false: found out in this process only (a timeout says the PC was slow, not that the sandbox cannot work: it is not written for 30 days).
 function rememberSandboxRefusal(key, statePath, now, reason, persist = true) {
@@ -80,6 +87,11 @@ export const NO_GRAPHICS_ARGUMENTS = Object.freeze(['--disable-gpu']);
 const withoutGraphics = options => ({...options, args: [...(options.args ?? []), ...NO_GRAPHICS_ARGUMENTS]});
 // A start that ended because the browser process went away at once (Playwright: "Target page, context or browser has been closed", "Browser closed unexpectedly", an exit code).
 const browserWentAway = error => /has been closed|closed unexpectedly|process did exit|exitCode|exited/i.test(String(error?.message ?? error));
+// What the last try printed, the process-exit line first (its exit code tells a crash from a refusal), then the browser's own lines.
+const rescueOutput = error => {
+  const lines = browserOutputLines(error?.message), exit = line => /<process did exit:/i.test(line);
+  return [...lines.filter(exit), ...lines.filter(line => !exit(line))].slice(0, 4);
+};
 const firstLine = error => String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
 const sandboxStatePathDefault = () => (process.env.NODE_TEST_CONTEXT ? null
   : resolve(process.env.CYBERPUNK_CONVAI_STATE || fileURLToPath(new URL('../runtime/', import.meta.url)), SANDBOX_STATE_FILE));
@@ -245,9 +257,9 @@ export class RealtimeHost {
   //   connectConfig() -> null | {transport}: whether pages connect with Convai's vision channel (read when a page is called);
   //   imagesForTurn(config, {phase: 'reply' | 'finish'}) -> images or null: the picture(s) for this turn, from memory;
   //   turnWaitMs() -> null | ms: the page's cap on waiting for Convai to buffer a picture not staged ahead.
-  // audioRates: {characterId: {declared, actual}} remembered from earlier sessions, and onAudioRate(map): called when it changed (the bridge saves it). Convai's multilingual twin sends 44.1 kHz audio
-  // in packets that say 24 kHz (error reports 14e50b97 and others); the first turn finds out when the statistics arrive, later turns of that character are told the rate (config.audioRate) and play right at once.
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision, audioRates, onAudioRate, audioRateSeed,
+  // audioRates: {characterId: {declared, actual}} remembered from earlier sessions, and onAudioRate(map): called when it changed (the bridge saves it). Audio that arrives at another rate than its
+  // packets say is found out by the first turn when its bytes and the statistics have arrived; later turns of that character are told the rate (config.audioRate) and play right at once.
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision, audioRates, onAudioRate,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
@@ -281,7 +293,7 @@ export class RealtimeHost {
     this.guard = guard;
     this.credential = typeof credential === 'function' ? credential : null;
     this.vision = vision && typeof vision === 'object' ? vision : null;
-    this.audioRates = new AudioRates({initial: audioRates, seed: audioRateSeed, onChange: onAudioRate, log: line => this.log(line)});
+    this.audioRates = new AudioRates({initial: audioRates, onChange: onAudioRate, log: line => this.log(line)});
   }
   // The page config with the current vision setting applied (and any stale vision fields from the caller removed).
   withVision(config) {
@@ -561,7 +573,7 @@ export class RealtimeHost {
       if (browserMissing(error) || !browserWentAway(error) || (options.args ?? []).includes(NO_GRAPHICS_ARGUMENTS[0])) throw annotate(error);
       let browser;
       try { browser = await this.launchBrowser({...withoutGraphics(options), chromiumSandbox: false}); }
-      catch (second) { throw annotate(error, {rescue: firstLine(second)}); }
+      catch (second) { throw annotate(error, {rescue: firstLine(second), rescueLines: rescueOutput(second)}); }
       const reason = `${firstLine(error)}; it starts without its graphics process`;
       rememberGraphicsRefusal(key, this.sandboxStatePath, now, reason);
       try { this.log(`The hidden browser went away at once (${firstLine(error)}); it runs without its graphics process`); } catch { /* a log that fails changes nothing */ }
@@ -993,7 +1005,7 @@ export class RealtimeHost {
       const relay = process.env.CYBERPUNK_CONVAI_MIC_RELAY !== '0' && tap && tapOwner !== null && tap.isOwner(tapOwner);
       lease.tapOwner = relay ? tapOwner : null;
       const beginning = lease.value.evaluate(([config, options]) => window.convaiRealtime.beginVoice(config, options),
-        [credentialed, {relay: !!relay, device: ''}]);
+        [credentialed, {relay: !!relay, device: '', micDevice: this.micTap?.capture?.preferred?.() ?? ''}]);
       beginning.catch(() => {});
       if (relay) lease.pump = this.startRelayPump(lease, tap, tapOwner);
       const result = await beginning;
@@ -1009,7 +1021,7 @@ export class RealtimeHost {
           throwIfCancelled(signal);
           if (info?.device) result.device = info.device;
           // The input the player chose was not there and the default opened: the game tells them once (bridge/local-stt-capture.mjs MIC_DEVICE_NOTE).
-          if (info?.missing && !result.note) result.note = 'mic-device-gone';
+          if (!result.note) { const note = inputNote(info); if (note) result.note = note; }
         }
       }
       this.sessions.accept(config);

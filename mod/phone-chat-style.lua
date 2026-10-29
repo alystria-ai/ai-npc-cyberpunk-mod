@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Native phone presentation, also installable into an already-open phone.
 -- Keep state on the owned widgets, never in retained native widget handles.
 local M = convaiPhoneChatStyle or {}
@@ -50,9 +51,9 @@ local statusSources = {
     ['Conversation is unavailable for this contact.'] = true,
     ['This character needs Mistral, Local AI or Custom to answer.'] = true,
     ['Opening chat. Waiting for the conversation service.'] = true,
-    ['You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'] = true,
+    ['You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.'] = true,
     ['Mistral did not accept your key. Check it in Settings > Conversation provider.'] = true,
-    ['Mistral’s free limit is reached for now. Try again in a moment.'] = true,
+    ['Mistral’s limit is reached for now. Try again in a moment.'] = true,
     ['The Mistral model is unavailable right now. Try again in a minute.'] = true,
     ['The custom provider did not accept your key. Check it in Settings > Conversation provider.'] = true,
     ['The custom provider says your account is out of credits. Add credits there, then try again.'] = true,
@@ -61,7 +62,7 @@ local statusSources = {
     ['The free daily limit for this model was reached. Try again after it resets.'] = true,
     ['This model spends its reply on thinking. Choose a non-reasoning model in Settings.'] = true,
     ['The custom provider did not answer. Check its address in Settings, or try again.'] = true,
-    ['The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.'] = true,
+    ['The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.'] = true,
     ['Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.'] = true,
     ['Convai did not accept your API key. Check it in Settings > Conversation provider.'] = true,
     ['Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.'] = true,
@@ -77,7 +78,7 @@ local statusSources = {
 -- A status that carries a value is a template: the stored text has the value filled in, so it is matched against the template (the
 -- value is the reset time "HH:MM" of the Convai daily limit, phone-chat.lua DAILY_LIMIT_STATUS_AT) and translated from the template.
 local statusTemplates = {
-    {source = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'},
+    {source = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.'},
 }
 for _, entry in ipairs(statusTemplates) do
     local escaped = entry.source:gsub('[%^%$%(%)%%%.%[%]%*%+%-%?]', '%%%0')
@@ -482,7 +483,7 @@ local function childCount(widget) return widget:GetNumChildren() end
 -- phone work); with no player (a wrapped manager update) it asks for itself.
 function M.refresh(force, player, open)
     if player == nil then
-        player = Game.GetPlayer()
+        player = convaiPlayer()
         open = player and player:ConvaiPhoneIsOpen()
     end
     if not player or not open then

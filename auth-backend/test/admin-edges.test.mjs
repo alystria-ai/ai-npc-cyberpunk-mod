@@ -69,7 +69,7 @@ test('the admin credential: a missing, wrong, shorter, longer or oddly written o
   }
 });
 
-test('every endpoint names its allowed methods on a 405, answers a browser preflight with a 405 too and never sends a cross-origin header', async () => {
+test('every endpoint names its allowed methods on a 405, answers a browser preflight with a 405 too (the token endpoint: 204 for extensions, token-handler-edges) and never grants a web page cross-origin access', async () => {
   const world = createWorld();
   const options = { env: world.env, store: world.store };
   const endpoints = [
@@ -78,11 +78,11 @@ test('every endpoint names its allowed methods on a 405, answers a browser prefl
     { name: 'plans', handler: createPlansHandler(options), allow: 'GET, HEAD', also: ['POST'] },
     { name: 'admin turns', handler: createAdminTurnsHandler(options), allow: 'GET', also: ['POST', 'HEAD'] },
     { name: 'admin config', handler: createAdminConfigHandler(options), allow: 'GET, POST', also: ['HEAD'] },
-    { name: 'token', handler: world.handler, allow: 'POST', also: ['GET', 'HEAD'] },
+    { name: 'token', handler: world.handler, allow: 'POST, OPTIONS', also: ['GET', 'HEAD'], preflightAnswered: true },
   ];
   const preflight = { origin: 'https://example.org', 'access-control-request-method': 'POST', 'access-control-request-headers': 'authorization' };
-  for (const { name, handler, allow, also } of endpoints) {
-    for (const method of ['OPTIONS', 'PUT', 'PATCH', 'DELETE', ...also]) {
+  for (const { name, handler, allow, also, preflightAnswered } of endpoints) {
+    for (const method of [...(preflightAnswered ? [] : ['OPTIONS']), 'PUT', 'PATCH', 'DELETE', ...also]) {
       const response = await call(handler, { method, headers: preflight });
       assert.equal(response.statusCode, 405, `${name} ${method}`);
       assert.equal(response.headers.Allow, allow, `${name} ${method}`);
@@ -103,7 +103,7 @@ test('every endpoint names its allowed methods on a 405, answers a browser prefl
     assert.ok(!hasCorsHeader(crossOrigin), `${url} stays unreadable to other web pages`);
   }
   const wrongHead = await callHead(world.handler, '/api/convai/token');
-  assert.deepEqual([wrongHead.statusCode, wrongHead.text, wrongHead.headers.Allow], [405, '', 'POST']);
+  assert.deepEqual([wrongHead.statusCode, wrongHead.text, wrongHead.headers.Allow], [405, '', 'POST, OPTIONS']);
   const notReadyHead = await callHead(createReadyHandler({ env: {} }), '/api/readyz');
   assert.deepEqual([notReadyHead.statusCode, notReadyHead.text], [503, '']);
 });

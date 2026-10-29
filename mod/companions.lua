@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Managed copies only. World and quest NPCs are never assigned a follower role.
 -- A world character asked to follow joins as a managed copy placed where it
 -- stood (invitation.adoption, docs/WORLD_COMPANIONS.md); the original is only
@@ -463,7 +464,7 @@ local function spawnCopy(key, invitation, returning)
             return nil, checked and reason or 'Companion preparation is unavailable.'
         end
     end
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     local system = Game.GetDynamicEntitySystem()
     if not player or not system or not system:IsReady() then return nil, 'World is not ready' end
     local recordID = definition.recordID or TweakDBID.new(definition.id)
@@ -878,7 +879,7 @@ end
 function M.joinVisitor(serial)
     local entry=visitorEntry(serial)
     if not entry then return false,'She is not waiting for V.' end
-    local player=Game.GetPlayer()
+    local player=convaiPlayer()
     if not player then return false,'World is not ready' end
     local ok,err=pcall(function()
         if not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then error('She is no longer there.') end
@@ -1495,7 +1496,7 @@ function M.chauffeurOffer(entity)
     -- Not one of our ready copies (a character the game placed, story people included, or a stranger): it never drives. The code
     -- reaches the character's prompt (bridge/companion-actions.mjs DRIVE_LIMIT 'not-driver') so it does not promise a ride.
     if not entry then return {available=false,code='not-companion',reason='Choose a ready companion from your party.'} end
-    return vehicles.chauffeurOffer(fleet,Game.GetPlayer(),entry)
+    return vehicles.chauffeurOffer(fleet,convaiPlayer(),entry)
 end
 
 function M.queueChauffeur(serialToDrive,expectedOffer,entity)
@@ -1503,7 +1504,7 @@ function M.queueChauffeur(serialToDrive,expectedOffer,entity)
     if type(serialToDrive)~='number' or serialToDrive<=0 then return false,'Choose a ready companion from your party.' end
     local entry=chauffeurEntry(entity,serialToDrive)
     if not entry then return false,'That companion is no longer ready to drive.' end
-    return vehicles.queueChauffeur(fleet,Game.GetPlayer(),entry,expectedOffer)
+    return vehicles.queueChauffeur(fleet,convaiPlayer(),entry,expectedOffer)
 end
 
 function M.cancelChauffeur(reason) return vehicles.cancelChauffeur(fleet,reason) end
@@ -1515,7 +1516,7 @@ function M.prepareChauffeurShutdown(reason)
         local owner=cleanupOwner()
         if not owner.receipt then
             local person=fleet.people[trip.serial]
-            local captured,error=reloadCleanupModule.capture(owner,Game.GetPlayer(),trip.entry,trip.car,
+            local captured,error=reloadCleanupModule.capture(owner,convaiPlayer(),trip.entry,trip.car,
                 person and person.command,trip.operation)
             if not captured then why=tostring(why)..' Cleanup receipt: '..tostring(error) end
         end
@@ -1527,7 +1528,7 @@ end
 function M.captureInterruptedDriver(npc)
     if M.owns(npc) then return false,'This driver still belongs to the current companion controller. Stop the trip normally.' end
     local owner=cleanupOwner()
-    return reloadCleanupModule.captureSeated(owner,Game.GetPlayer(),npc)
+    return reloadCleanupModule.captureSeated(owner,convaiPlayer(),npc)
 end
 function M.chauffeurAutodriveToggled(enabled) return vehicles.chauffeurAutodriveToggled(fleet,enabled) end
 function M.chauffeurArrived(entity) return vehicles.chauffeurArrived(fleet,entity) end
@@ -1861,7 +1862,7 @@ local function visitorReason(state)
         s.nav or 0,s.dup or 0,s.floor or 0,s.near or 0,s.seen or 0,s.route or 0,s.body or 0,s.avoid or 0)
 end
 function M.findVisitorSpot(key,request,state)
-    local player=Game.GetPlayer()
+    local player=convaiPlayer()
     if not player then return nil,'World is not ready' end
     local definition=records[key]
     if not definition then return nil,'Unknown companion' end
@@ -2014,7 +2015,7 @@ local function carReason(state)
 end
 local function squareOf(point) return string.format('%d:%d',math.floor(point.x/4),math.floor(point.y/4)) end
 function M.findCarSpot(key,request,state)
-    local player=Game.GetPlayer()
+    local player=convaiPlayer()
     if not player then return nil,'World is not ready' end
     local destination=request.destination
     if not clearance.isPoint(destination) then return nil,'There is no road end point.' end
@@ -2152,7 +2153,7 @@ function M.findCarSpot(key,request,state)
 end
 -- Out of V's sight now? true / false, or nil when the query budget is spent (asked again on a later step).
 function M.hiddenFromPlayer(position)
-    local player=Game.GetPlayer()
+    local player=convaiPlayer()
     if not player or not clearance.isPoint(position) then return nil end
     return hiddenFromPlayer(player,position)
 end

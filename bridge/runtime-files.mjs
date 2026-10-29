@@ -144,7 +144,12 @@ export function endIfIncomplete(error, {log = message => console.error('[Cyberpu
 
 // File errors that come from the player's folders changing under a read: a file another program holds for a moment, one that was moved or
 // removed between listing and opening. A read nobody waits for that fails this way is not a reason to stop the whole service.
-const TRANSIENT_FILE_ERRORS = new Set(['ENOENT', 'EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY', 'EMFILE', 'ENFILE', 'EEXIST', 'EIO', 'ETXTBSY', 'UNKNOWN']);
+const TRANSIENT_FILE_ERRORS = new Set(['ENOENT', 'EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY', 'EMFILE', 'ENFILE', 'EEXIST', 'EIO', 'ETXTBSY', 'UNKNOWN',
+  // A full disk or an exceeded quota: a write nobody waits for that fails this way is lost, never a reason to stop the service (error report 1cbe337a5144ebbd).
+  'ENOSPC', 'EDQUOT']);
+
+/** True for a write that failed because the disk or the player's quota is full (ENOSPC, EDQUOT). */
+export const isDiskFull = error => error?.code === 'ENOSPC' || error?.code === 'EDQUOT';
 
 /** True for a rejected file operation of the kind above (an fs error carries `syscall` and a code). */
 export const isTransientFileError = error => typeof error?.code === 'string' && TRANSIENT_FILE_ERRORS.has(error.code) && typeof error?.syscall === 'string';

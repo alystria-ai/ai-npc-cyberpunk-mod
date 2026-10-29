@@ -22,7 +22,7 @@ const guardSource = between('speech.storyGuard = function', 'local function reac
 
 function run(code) {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
-  const result = lauxlib.luaL_dostring(state, to_luastring(code));
+  const result = lauxlib.luaL_dostring(state, to_luastring('convaiPlayer = function() return Game.GetPlayer() end ' + code));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 }
@@ -220,7 +220,7 @@ test('describe: a refusal\'s facts are plain text, "?" for what was not read, an
 test('wiring: the log line of a refusal carries the facts, and Johnny\'s key reaches every place that asks', () => {
   const select = between('local function selectConversation(', 'local function voiceTargetValid');
   assert.match(select, /log\('World conversation refused: profile=' \.\. key \.\. ' reason=' \.\. why[\s\S]*?convaiWorldTalk\.facts[\s\S]*?convaiUnprofiledWhy\(npc\)/);
-  assert.match(init, /convaiWorldTalk:refusal\(actor, Game\.GetPlayer\(\), story\.entity, story\.key, story\.idle\)/);
+  assert.match(init, /convaiWorldTalk:refusal\(actor, convaiPlayer()\(\), story\.entity, story\.key, story\.idle\)/);
   assert.match(init, /log\('World conversation ended: profile=' \.\. story\.key[\s\S]*?convaiWorldTalk\.facts/);
 });
 
@@ -451,7 +451,7 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   // No gaze: both talk paths skip the focus for a story character.
   assert.match(init, /not primary\.holocall and not \(primary\.story or primary\.guarded\) then\s+local focused, reason = beginFocus\(player, npc\)/);
   assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not \(primary\.story or primary\.guarded\) then beginFocus\(player, npc\) end/);
-  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
+  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, convaiPlayer()\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
   // No actions: neither the typed nor the spoken path offers or even mentions follow, fight, drive or leave for a story character.
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
   assert.match(init, /elseif convaiStory and convaiStory\.entity == context\.entity then\s+-- A game-placed story character gets no action offers or advisories[^\r\n]*\s+elseif not context\.group and not context\.reaction then gameplayActions\.capture\(context, 'private-text'\)/);

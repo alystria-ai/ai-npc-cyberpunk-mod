@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Companion Manager pages, actions and settings, with no knowledge of the screen that shows them. mod/nsui.lua is the host: it puts
 -- the pages built here into Native Settings UI and turns a widget change or a button press back into the calls below. Everything a
 -- page shows is a row of one of four kinds (the same shapes the pages always had, so a row added for a provider is one more
@@ -126,7 +127,7 @@ local function readLoads()
 end
 
 local function player()
-    local ok, value = pcall(function() return Game.GetPlayer() end)
+    local ok, value = pcall(function() return convaiPlayer() end)
     return ok and value or nil
 end
 
@@ -1009,14 +1010,25 @@ local function customVoicesRows(snapshot)
 end
 
 -- Settings > Voices > Microphone: 1 Windows default (stored as no choice), then each input the conversation service listed, by its name. A saved input that is not
--- listed (unplugged, or the list has not arrived yet) follows as "name (not connected)" so the row never shows a choice that is not the saved one.
--- Returns the labels, the stored value of each position ('' for the default) and the position of the saved choice.
+-- listed (unplugged, or the list has not arrived yet) follows as "name (not connected)" so the row never shows a choice that is not the saved one. An input whose name
+-- looks like a loopback or virtual device (the service decides, bridge/mic-match.mjs) carries " (!)" and the description explains it; it is only marked, never left out
+-- and never chosen by the mod.
+-- Returns the labels, the stored value of each position ('' for the default), the position of the saved choice, whether any listed input is marked and whether the
+-- saved choice is.
+local MIC_MARK = ' (!)'
+local function withMarker(name, marker)
+    if optionUnits(name) + optionUnits(marker) <= OPTION_BUDGET then return name .. marker end
+    return cutToUnits(name, OPTION_BUDGET - optionUnits(marker)) .. marker
+end
 local function microphoneChoices(settings)
     local labels, values, saved, seen = {ui.t('Windows default')}, {''}, settings.micDevice, {}
     local listed = manager.microphoneInputs()
+    local anyMarked, savedMarked = false, false
     for _, name in ipairs(listed.inputs) do
         seen[name] = true
-        labels[#labels + 1], values[#values + 1] = name, name
+        local marked = listed.loopback and listed.loopback[name] == true
+        if marked then anyMarked = true; if name == saved then savedMarked = true end end
+        labels[#labels + 1], values[#values + 1] = marked and withMarker(name, MIC_MARK) or name, name
     end
     if saved and not seen[saved] then
         -- The name is cut, not the marker: a long device name would otherwise push "(not connected)" out of the row. Said only once the service has
@@ -1027,7 +1039,7 @@ local function microphoneChoices(settings)
     end
     local index = 1
     for position, value in ipairs(values) do if value == (saved or '') then index = position end end
-    return labels, values, index
+    return labels, values, index, anyMarked, savedMarked
 end
 
 -- Settings > Voices > OmniVoice for AMD: the setup and remove rows (their texts come from mod/omni-amd.lua) and the MIOpen choice, a saved setting like any other.
@@ -1082,7 +1094,7 @@ local function ownKeyRows(snapshot)
     local note, limitHelp
     if mistral.pending then note = ui.t('Waiting for the conversation to end')
     elseif mistral.effective == 'mistral' then
-        if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: free limit reached for now')
+        if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: limit reached for now')
         elseif mistral.limit == 'invalid' then note = ui.t('Mistral: key not accepted')
         elseif mistral.limit == 'model' then note = ui.t('Mistral: model unavailable') end
     elseif mistral.effective == 'custom' then
@@ -1106,15 +1118,15 @@ local function ownKeyRows(snapshot)
         -- When they come back: the next 00:00 UTC on this computer's clock (ui.dailyResetClock), else "tomorrow".
         local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
         if at then
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).', {limit = own.daily.limit, time = at})
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).', {limit = own.daily.limit, time = at})
         else
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).', {limit = own.daily.limit})
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).', {limit = own.daily.limit})
         end
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
-        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     -- The note comes first: the description area holds only so much, and who answers right now is what the player acts on.
     if note then providerHelp = note .. '\n\n' .. providerHelp end
     -- Mature content is part of the main mod (off by default). It works with Local AI and Custom only: turning it on beside Convai or Mistral selects
@@ -1217,11 +1229,11 @@ local function ownKeyRows(snapshot)
     end
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
-            {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
+            {'Convai free tier', 'Convai API key', 'Mistral', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
         matureRow,
         modelRow,
-        keyRow('Mistral free API key',
-            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day.',
+        keyRow('Mistral API key',
+            'Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.',
             'Deletes the saved key.',
             'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage, removeMore = mistralRemoval(snapshot)},
             function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
@@ -2362,6 +2374,9 @@ local function schema()
                     or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 4,
                 'Companions in your party sometimes start talking on their own, at a calm moment or after a scene. With two or more near you, it is often a short chat between up to three of them, and you can join in by talking. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often (the default): about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
                 {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
+            -- Companions can see (docs/COMPANION_VISION.md): off by default, every conversation provider. The bridge does all the work out of process.
+            setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision == true, false,
+                'Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured.'),
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
         table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
@@ -2443,7 +2458,7 @@ local function schema()
         local voiceRange = manager.voiceVolumeRange()
         -- The microphone list is asked for when this page is built (at most once in 15 s; the answer redraws the page): never per frame, never per turn.
         pcall(manager.requestMicrophoneInputs)
-        local micLabels, _, micIndex = microphoneChoices(snapshot.settings)
+        local micLabels, _, micIndex, micAnyMarked, micSavedMarked = microphoneChoices(snapshot.settings)
         -- Voice language: English (the default), Automatic, then the mod's other languages, in the bridge's order (manager.replyLanguageChoices).
         local replyCodes, replyLabels, replyIndex = manager.replyLanguageChoices(), {}, 1
         for index, code in ipairs(replyCodes) do
@@ -2498,10 +2513,13 @@ local function schema()
             setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
                 'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
-            -- The input device for every way of talking (key, Voice activation, controller). The list comes from the voice browser's capture page.
+            -- The input device for every way of talking (key, Voice activation). The list comes from the voice browser's capture page. Inputs that look like a loopback
+            -- or virtual device are marked and explained below the usual text (only when one is listed or chosen), and the chosen one gets a plain warning.
             setting('micDevice', 'Microphone', 'select', micIndex, 1,
-                'The input the mod listens to for the talk keys and Voice activation.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.',
-                micLabels, {elements = true}),
+                ui.t('The input the mod listens to for the talk keys and Voice activation.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.')
+                    .. (micAnyMarked and '\n\n' .. ui.t('An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself.') or '')
+                    .. (micSavedMarked and '\n\n' .. ui.t('The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone.') or ''),
+                micLabels, {elements = true, description = true}),
             -- Off by default: talk with no key (docs/VOICE_INPUT.md). The microphone is closed while it is off.
             setting('voiceActivation', 'Voice activation', 'bool', snapshot.settings.voiceActivation == true, false,
                 'Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.'),
@@ -2599,7 +2617,7 @@ local function schema()
         -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
         categories[#categories + 1] = category('privacy', 'Privacy', {
             setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
-                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your settings, PC details (graphics card, processor, Windows, security software, game drive, screen), installed mod names, setup check, reply timings and the log lines around it.'),
+                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your settings, PC details (graphics card, processor, Windows, security software, game drive, screen), installed mod names, setup check, reply timings and the log lines around it (for setup problems and script errors also the Cyber Engine Tweaks log).'),
         })
         local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
@@ -2922,7 +2940,7 @@ function M.apply(changes)
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
-            or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
+            or key == 'matureContent' or key == 'errorReports' or key == 'companionVision' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
             values.voiceVolume = change.value

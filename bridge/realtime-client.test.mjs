@@ -10,6 +10,7 @@ import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';
+import {matchInput} from './mic-match.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
@@ -20,7 +21,8 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
   .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';", '')
-  .replace("import {PcmRelay} from './pcm-relay.mjs';", '');
+  .replace("import {PcmRelay} from './pcm-relay.mjs';", '')
+  .replace("import {matchInput} from './mic-match.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 // Waits for a state to hold. The ceiling is reached only by a hung test (a fixed count of short polls is a wall-clock limit in disguise).
 async function until(predicate, label) {
@@ -136,7 +138,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
     ConvaiVision: visionClass, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE,
-    ContinuousPcmPlayer: player || ForbiddenAudio, PcmRelay: relayClass, navigator,
+    ContinuousPcmPlayer: player || ForbiddenAudio, PcmRelay: relayClass, navigator, matchInput,
     window, performance: clock ?? performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
@@ -1495,6 +1497,53 @@ test('a live turn with mislabelled packets shows the corrected rate in its snaps
   instances[0].drain(); await pending; await api.close();
 });
 
+// Measured on Convai's multilingual twins 2026-10-30 (English, Ukrainian and Russian alike): the packets say 24 kHz and carry 24 kHz audio, and the final statistics count the same audio
+// in 44.1 kHz bytes. The line must play at 24 kHz from its first packet to its last, be complete and end, with nothing remembered.
+test('a live twin turn (24 kHz packets, statistics in 44.1 kHz bytes) plays all its audio at 24 kHz and ends, and nothing is taught for its character', async () => {
+  const {Player, instances} = playerFixture();
+  const {api, clients} = fixture({player: Player});
+  await api.warm(config);
+  let settled = false;
+  const pending = api.reply({...config, liveSpeechToken: 'twin-turn'}).finally(() => { settled = true; }); pending.catch(() => {}); await flush();
+  const c = clients[0], data = audioFixture({seconds: 2, sampleRate: 24000});
+  const half = data.samples.length / 2;
+  c.data(data.faces); c.data(data.pcm(data.samples.subarray(0, half))); await flush();
+  assert.equal(instances[0].format.sampleRate, 24000, 'the label is right: the player starts at it');
+  c.data(data.pcm(data.samples.subarray(half)));
+  // The statistics count 2 s in 44.1 kHz bytes: 176,400, not the 96,000 that arrived.
+  c.data(wire({type: 'blendshape-turn-stats', ...data.owner, sequence: 19, stats: {total_audio_bytes: 176400, total_audio_duration_ms: 2000, total_blendshapes: 120, fps: 60, was_interrupted: false}}));
+  c.data(data.terminal); finalText(c);
+  await new Promise(done => setTimeout(done, 80));
+  const snapshot = api.continuousSnapshot('twin-turn');
+  assert.equal(snapshot.sourceComplete, true, 'the audio covers the declared duration at 24 kHz');
+  assert.equal(snapshot.sampleRate, 24000); assert.equal(snapshot.receivedFrames, 48000);
+  assert.equal(Object.hasOwn(snapshot, 'sampleRateCorrected'), false); assert.equal(Object.hasOwn(snapshot, 'openedSampleRate'), false);
+  assert.equal(Object.hasOwn(snapshot, 'sampleRateHintMissed'), false);
+  assert.equal(instances[0].totalFrames, 48000, 'the player is told the end of all 2 s');
+  assert.deepEqual(Buffer.concat(instances[0].packets.map(packet => packet.bytes)), data.samples, 'every sample reached the player, none dropped');
+  instances[0].drain();
+  const result = await pending;
+  assert.equal(settled, true); assert.equal(result.continuous, true); assert.equal(result.sampleRate, 24000); assert.equal(result.duration, 2);
+  assert.equal(Object.hasOwn(result, 'sampleRateCorrected'), false);
+  await api.close();
+});
+
+test('a twin turn that is not played live (24 kHz packets, statistics in 44.1 kHz bytes) gives a complete 24 kHz clip', async () => {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const pending = api.reply({...config}); pending.catch(() => {}); await flush();
+  const c = clients[0], data = audioFixture({seconds: 2, sampleRate: 24000});
+  finalText(c, 'Привіт, V.');
+  c.data(data.faces); c.data(data.pcm());
+  c.data(wire({type: 'blendshape-turn-stats', ...data.owner, sequence: 19, stats: {total_audio_bytes: 176400, total_audio_duration_ms: 2000, total_blendshapes: 120, fps: 60, was_interrupted: false}}));
+  c.data(data.terminal);
+  const result = await pending;
+  const wav = Buffer.from(result.audio, 'base64');
+  assert.equal(wav.readUInt32LE(24), 24000); assert.deepEqual(wav.subarray(44), data.samples);
+  assert.equal(result.sampleRate, 24000); assert.equal(result.duration, 2); assert.equal(Object.hasOwn(result, 'sampleRateCorrected'), false);
+  await api.close();
+});
+
 test('a live turn told the rate of its character starts at it, and says so in its snapshot when the statistics do not confirm it', async () => {
   const hint = {declared: 24000, actual: 44100};
   const {Player, instances} = playerFixture();
@@ -2260,7 +2309,7 @@ test('partialReply gives the text so far of the turn that asked for it, and noth
 });
 
 // ---- instant push-to-talk: the microphone comes from a PcmRelay the bridge pushes into ----
-function relayFixture({openFails = false, deadTrack = false, enableFailsOnce = false, ...rest} = {}) {
+function relayFixture({openFails = false, deadTrack = false, enableFailsOnce = false, mediaExtras = {}, ...rest} = {}) {
   const events = [], relays = [];
   class FakeRelay {
     constructor() {
@@ -2275,7 +2324,7 @@ function relayFixture({openFails = false, deadTrack = false, enableFailsOnce = f
     close() { this.closed++; events.push('relay-close'); }
   }
   const original = async constraints => ({id: 'native', constraints});
-  const navigator = {mediaDevices: {getUserMedia: original}};
+  const navigator = {mediaDevices: {getUserMedia: original, ...mediaExtras}};
   const seen = {streams: [], videoAnswers: [], enableCalls: 0, duringOverride: []};
   let failed = !enableFailsOnce;
   const onEnableAudio = async client => {
@@ -2380,6 +2429,58 @@ test('a relay that cannot open falls back once to the SDK microphone and never t
   assert.equal(navigator.mediaDevices.getUserMedia, original);
   assert.ok(relays[0].closed >= 1); assert.equal(api.pushAudio('X'), false);
   assert.equal(clients[0].room.localParticipant.audioTrackPublications.size, 1);
+  await api.close();
+});
+
+test('the page\'s own microphone (relay failed) opens the input chosen in Settings, with echo cancellation, noise suppression and gain control on', async () => {
+  const requests = [];
+  const mediaExtras = {enumerateDevices: async () => [{kind: 'audioinput', deviceId: 'default', label: 'Default - Stereo Mix (Realtek)'}, {kind: 'audioinput', deviceId: 'mix1', label: 'Stereo Mix (Realtek)'},
+    {kind: 'audioinput', deviceId: 'hs9', label: 'Headset Mic (USB Audio Device)'}, {kind: 'audiooutput', deviceId: 'o1', label: 'Speakers'}]};
+  const {api, navigator, original, seen} = relayFixture({openFails: true, mediaExtras});
+  const real = navigator.mediaDevices.getUserMedia;
+  navigator.mediaDevices.getUserMedia = async constraints => { if (!constraints.video) requests.push(constraints); return real(constraints); };
+  const saved = navigator.mediaDevices.getUserMedia;
+  const opened = await api.beginVoice(config, {relay: true, device: '', micDevice: 'headset mic (USB Audio Device)'});
+  assert.equal(opened.relay, false);
+  assert.equal(seen.enableCalls, 1); assert.deepEqual([...seen.duringOverride], [true], 'the override exists only while the SDK opens the device');
+  assert.equal(requests.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(requests[0].audio)), {deviceId: {exact: 'hs9'}, echoCancellation: true, noiseSuppression: true, autoGainControl: true}, 'the chosen input by label, never the loopback or the default alias');
+  assert.equal(navigator.mediaDevices.getUserMedia, saved, 'restored afterwards');
+  await api.close();
+});
+
+test('the page\'s own microphone: a chosen input that is not listed leaves the default, still with echo cancellation on', async () => {
+  const requests = [];
+  const probes = [];
+  const mediaExtras = {enumerateDevices: async () => [{kind: 'audioinput', deviceId: 'a', label: 'Microphone (Realtek)'}]};
+  const {api, navigator} = relayFixture({openFails: true, mediaExtras});
+  const real = navigator.mediaDevices.getUserMedia;
+  navigator.mediaDevices.getUserMedia = async constraints => {
+    if (constraints.audio === true) { probes.push(constraints); return {getTracks: () => [{stop() {}}]}; }
+    if (!constraints.video) requests.push(constraints);
+    return real(constraints);
+  };
+  await api.beginVoice(config, {relay: true, micDevice: 'Unplugged Headset'});
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].audio.deviceId, 'default', 'the SDK own request stands, only with the processing on');
+  assert.equal(requests[0].audio.echoCancellation, true);
+  assert.equal(probes.length, 1, 'one short probe tried to unlock the labels');
+  await api.close();
+});
+
+test('the page\'s own microphone: a refused chosen input falls back once to the default', async () => {
+  const requests = [];
+  const mediaExtras = {enumerateDevices: async () => [{kind: 'audioinput', deviceId: 'gone', label: 'Headset Mic'}]};
+  const {api, navigator} = relayFixture({openFails: true, mediaExtras});
+  const real = navigator.mediaDevices.getUserMedia;
+  navigator.mediaDevices.getUserMedia = async constraints => {
+    if (!constraints.video) requests.push(constraints);
+    if (constraints.audio?.deviceId) { const error = Error('gone'); error.name = 'OverconstrainedError'; throw error; }
+    return real(constraints);
+  };
+  const opened = await api.beginVoice(config, {relay: true, micDevice: 'Headset Mic'});
+  assert.equal(opened.relay, false);
+  assert.equal(requests.length, 2); assert.equal(requests[1].audio.deviceId, undefined); assert.equal(requests[1].audio.echoCancellation, true);
   await api.close();
 });
 

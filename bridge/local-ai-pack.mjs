@@ -11,6 +11,8 @@
 //    standard: {file: 'models/x.gguf', name: 'Qwen3.5-4B'}, lite: {file, name},
 //    embed: {file: 'models/e.gguf', dim: 384, id: 'granite-embedding-107m-multilingual-q8_0'}}
 //   Paths are relative to the root; absolute paths and `..` are rejected. Another model is only another manifest.
+//   A model entry may also name its vision projector: `standard: {file, name, mmproj: 'models/x-mmproj.gguf'}` (same path rules). It is carried as `mmproj` on the tier and
+//   loaded only while Companions can see is on (bridge/local-projector.mjs checks the file, docs/LOCAL_AI.md "Pictures (Companions can see)"). A bad path is dropped, the model stays.
 //
 // The optional Mature packs (bridge/mature-pack.mjs) carry the same server and embedding files, so each works alone. Their markers
 // (manifest.mature-lite.json, manifest.mature-standard.json) may also name `server` and `embed` (same shape as above); this module reads
@@ -134,7 +136,7 @@ export function detectLocalAiPack({project, environment = process.env, exists = 
   if (picked?.mapped) places.server = {virtual: layout.server, real: picked.file, complete: picked.complete, missing: picked.missing};
   const server = picked ? picked.file : null;
   const matureEngine = Boolean(server) && layout.matureModel === true;
-  const present = (piece, tier) => { const file = tier && place(piece, tier.file); return file && exists(file) ? {file, name: tier.name} : null; };
+  const present = (piece, tier) => { const file = tier && place(piece, tier.file); return file && exists(file) ? {file, name: tier.name, ...(tier.mmproj ? {mmproj: realPath(tier.mmproj)} : {})} : null; };
   const standard = present('standard', layout.standard);
   const lite = present('lite', layout.lite);
   const embedFile = layout.embed && place('embed', layout.embed.file);
@@ -203,7 +205,8 @@ function realLayout(root, manifestPath, readText) {
   if (!manifest || typeof manifest !== 'object' || manifest.version !== 1) return empty;
   const tier = entry => {
     const file = packPath(root, entry?.file);
-    return file ? {file, name: typeof entry.name === 'string' && entry.name ? entry.name : modelName(file)} : null;
+    const mmproj = file ? packPath(root, entry.mmproj) : null;
+    return file ? {file, name: typeof entry.name === 'string' && entry.name ? entry.name : modelName(file), ...(mmproj ? {mmproj} : {})} : null;
   };
   const embedFile = packPath(root, manifest.embed?.file);
   const dim = Number(manifest.embed?.dim);

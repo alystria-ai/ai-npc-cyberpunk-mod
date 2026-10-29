@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {LlamaProcess, LocalLlmServer, LocalAiUnavailable, buildServerArgs, chooseTier, defaultCacheRamMiB, fillerText, isIntegratedGpu, parseDeviceList, tierNeedMiB,
   pickDevice, unavailableDetail, looksBlocked, BLOCKED, isAsciiPath, withoutKeyFile, serverEnvironment} from './local-llm-server.mjs';
 import {SPILL_LIMITS} from './gpu-memory.mjs';
+import {ggufFile} from './fixtures/gguf-header.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
 const DEVICES = `Available devices:
@@ -620,7 +621,7 @@ test('beforeStart is awaited before free VRAM is read, and a hook that never ret
 
 // ---- The model choice (bridge/local-model-choice.mjs): which installed model loads, and a reload when the choice changes ----------
 // Sizes by file name: standard 5280 MiB (needs 6480 free), lite 1311 (2011), a big uncensored model 5400 (6600), a small one 1400 (2100).
-const CHOICE_SIZES = {'q4.gguf': 5280, 'q2.gguf': 1311, 'big-u.gguf': 5400, 'small-u.gguf': 1400};
+const CHOICE_SIZES = {'q4.gguf': 5280, 'q2.gguf': 1311, 'big-u.gguf': 5400, 'small-u.gguf': 1400, 'mm.gguf': 900};
 function choiceHarness(t, {selected = {}, mature = true, freeMiB = 24000, ...options} = {}) {
   const state = {pin: 'auto', matureOn: false, matureModels: [], ...selected};
   const made = harness(t, {freeVramMiB: () => freeMiB, selection: () => state,
@@ -674,7 +675,7 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
 
   const tooBig = choiceHarness(t, {selected: {pin: 'standard'}, freeMiB: 3000});
   await tooBig.server.ensure();
-  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory', model: 'Qwen3.5-2B'}]], 'the notice names the model that was used');
+  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory', model: 'Qwen3.5-2B', needMiB: 6480, availableMiB: 3000}]], 'the notice names the model that was used, with what the model needs and what was available (2026-10-29)');
   assert.ok(tooBig.logs.some(line => /not usable \(low-memory\)/.test(line)));
 
   // With Mature content on and an uncensored model installed, the fallback of a missing choice is the largest uncensored one that fits.
@@ -867,7 +868,7 @@ test('a custom model takes part in the default choice by size, and is never chos
   const huge = customHarness(t, {selected: {pin: 'custom:huge'}});
   huge.state.customModels = [huge.entry('huge', 'huge-model.gguf')];
   await huge.server.ensure();
-  assert.deepEqual([huge.loaded(), huge.fallbacks], [['q4.gguf'], [{pin: 'custom:huge', reason: 'low-memory', model: 'Qwen3.5-4B'}]]);
+  assert.deepEqual([huge.loaded(), huge.fallbacks], [['q4.gguf'], [{pin: 'custom:huge', reason: 'low-memory', model: 'Qwen3.5-4B', needMiB: 31200, availableMiB: 11229}]]);
   assert.equal(huge.server.totalVramMiB, 11997);
 });
 
@@ -946,7 +947,7 @@ test('Mature content on never loads a censored model: a Mature model that does n
   // A pinned good model that does not fit with the lite one installed too: the lite model fits whole, so it is loaded plainly and the usual notice names it.
   const pinned = choiceHarness(t, {selected: {matureOn: true, pin: 'mature:good'}, freeMiB: 3000});
   await pinned.server.ensure();
-  assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['small-u.gguf'], [{pin: 'mature:good', reason: 'low-memory', model: 'Qwen3.5-2B-Uncensored'}]]);
+  assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['small-u.gguf'], [{pin: 'mature:good', reason: 'low-memory', model: 'Qwen3.5-2B-Uncensored', needMiB: 6600, availableMiB: 3000}]]);
   assert.ok(pinned.calls[0].args.includes('-ngl') && argValue(pinned.calls[0], '-fit') === 'off' && !pinned.calls[0].args.includes('-fitt') && !pinned.calls[0].args.includes('-t'));
   // Fits: the plain start (all layers on the card, fit pass off).
   const roomy = choiceHarness(t, {selected: {matureOn: true}, freeMiB: 3000});
@@ -1131,8 +1132,13 @@ test('on a small card a model that leaves the game under 3000 MiB steps down at 
 // ---- Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs) ------------------------------------------------------------------------------
 // llama-fit-params' projections of a Gemma 4 E4B model by context (16,384 / 8,192 / 8,192 with the 8-bit cache), measured 2026-10-20: the file-size rule says 6,600 MiB for the 5,400 MiB file, the projection 3,734.
 const PROJECTED = {'big-u.gguf': {16384: 3734, 8192: 3598, q8: 3520}, 'q4.gguf': {16384: 3562, 8192: 3426, q8: 3348}, 'q2.gguf': {16384: 2228, 8192: 1964, q8: 1844}};
-function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], table = PROJECTED, ...options} = {}) {
-  const fitProbe = async args => { probes.push(args); return table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null; };
+function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], swaProbes = [], swaGain = 0, table = PROJECTED, ...options} = {}) {
+  // The runs for `--swa-full` (a load looks at what the full sliding-window cache would cost) are kept apart from the runs that decide which model is loaded.
+  const fitProbe = async args => {
+    const projected = table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null;
+    if (args.swaFull !== undefined) { swaProbes.push(args); return projected === null ? null : projected + (args.swaFull ? swaGain : 0); }
+    probes.push(args); return projected;
+  };
   const gpuMemory = spill ? async () => spill.value : null;
   // `free.value` is the graphics memory that is free with none of our model loaded; while a model of ours runs, what it holds on the card (the spill counters' dedicated MiB) is not free, and
   // goes back when it stops. That is how a spill decision (it adds the model's own memory to what is free) and the start after the stop both see the same room.
@@ -1141,7 +1147,7 @@ function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000
   const freeVramMiB = () => free.value - (spill && running() ? Number(spill.value.dedicatedMiB) || 0 : 0);
   const h = stepHarness(t, {freeVramMiB, fitProbe, gpuMemory, now: () => clock.now, ...options});
   created = h;
-  return {...h, free, probes, clock, spill};
+  return {...h, free, probes, swaProbes, clock, spill};
 }
 const argValue = (call, flag) => call.args[call.args.indexOf(flag) + 1];
 // A Mature pack with only its good model (the 2026-10-20 8 GB reports had no smaller model to fall back to): the pin that does not fit is loaded anyway.
@@ -1493,7 +1499,7 @@ test('a changed choice that would end on the model already loaded does not reloa
   h.free.value = 6300; h.state.pin = 'standard';   // 3,000 MiB are free while our 3,300 MiB model runs (the harness subtracts what it holds)
   assert.equal(await h.server.reselect(), false);
   assert.equal(h.calls.length, 1, 'no reload of the same 5 GB model');
-  assert.deepEqual(h.fallbacks, [{pin: 'standard', reason: 'low-memory', model: 'Gemma-4-E4B-uncensored'}]);
+  assert.deepEqual(h.fallbacks, [{pin: 'standard', reason: 'low-memory', model: 'Gemma-4-E4B-uncensored', needMiB: 6480, availableMiB: 6300}]);
   assert.ok(h.logs.some(line => /it stays loaded/.test(line)));
   // With room for the pinned model the reload happens.
   h.free.value = 24000;
@@ -1770,11 +1776,11 @@ test('a card of 12 GB or less with room for both gets the whole model on the car
   const line = big.logs.find(text => text.includes('game room on a small card'));
   assert.ok(line.includes('7438 MiB kept for the game') && line.includes('so 3791 MiB for the model'), line);
   assert.ok(!line.includes('about 0% of its layers'), line);
-  // A 24 GB card (report 8e09af42, an RTX 4090): the game's room is 62% of it, 15,230 MiB, of which the 564 MiB it already holds (card - free - 1,000 desktop) are not kept again, at the start (it used to be none: the model got all the free memory and 3.2 GB of it spilled when the game and OmniVoice arrived).
+  // A 24 GB card (report 8e09af42, an RTX 4090): the game's room is 10,240 MiB since 2026-10-29 (62% of the card, 15,230 MiB, before), of which the 564 MiB it already holds (card - free - 1,000 desktop) are not kept again, at the start (it used to be none: the model got all the free memory and 3.2 GB of it spilled when the game and OmniVoice arrived).
   const card24 = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4090 (24564 MiB, 23000 MiB free)\n', free: {value: 23000}});
   await card24.server.ensure();
   const plan24 = card24.logs.find(text => text.includes('game room on a small card'));
-  assert.ok(plan24.includes('card 24564 MiB, 14666 MiB kept for the game, 23000 MiB free now, so 8334 MiB for the model'), plan24);
+  assert.ok(plan24.includes('card 24564 MiB, 9676 MiB kept for the game, 23000 MiB free now, so 13324 MiB for the model'), plan24);
   // A card above 24 GB (32 GB): no plan line at all.
   const huge = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 5090 (32607 MiB, 31000 MiB free)\n', free: {value: 31000}});
   await huge.server.ensure();
@@ -1842,4 +1848,639 @@ test('with raiseLevel high every start of the model server loads at high priorit
   assert.ok(h.calls.length >= 4);
   for (const {child} of h.calls) assert.equal(levels.get(child.pid)?.[0], HIGH, 'every server ever started loaded at high');
   assert.ok(![...levels.values()].flat().includes(constants.priority.PRIORITY_HIGHEST), 'never the realtime class');
+});
+
+// ---- 2026-10-29: a 12B model of the player's own, pinned, on the 24,463 MiB RTX 5090 Laptop with OmniVoice (the lite and standard pack models also installed) ----------------------------------------
+// Before: the game's room was 62% of the card (15,167 MiB), so the model got 5,796 MiB (OmniVoice resident or still to load) and the pinned 12B (8,800 MiB by the rule, 8,400 at least by its projection) fell
+// back to the lite model with a generic notice. Now the room is 10,240 MiB and the model gets 10,723 MiB. The projections are a fixture (derived: file 7,600 MiB, +1.6 GB at 16,384, +1.1 GB at 8,192).
+const RTX5090_LAPTOP = (free = 23463) => `Available devices:\n  Vulkan0: Intel(R) Arc(TM) Graphics (16000 MiB, 15000 MiB free)\n  Vulkan1: NVIDIA GeForce RTX 5090 Laptop GPU (24463 MiB, ${free} MiB free)\n`;
+const LAPTOP_SIZES = {...CHOICE_SIZES, 'twelve-b.gguf': 7600, 'huge-model.gguf': 31000};
+const LAPTOP_TABLE = {...PROJECTED, 'twelve-b.gguf': {16384: 9200, 8192: 8700, q8: 8400}};
+function laptopHarness(t, {voice = 'resident', pin = 'custom:twelve', table = LAPTOP_TABLE, extra = [], ...options} = {}) {
+  const free = {value: voice === 'resident' ? 20963 : 23463};
+  const gameRoom = {voiceMiB: () => (voice === 'to-load' ? 2500 : 0), residentVoiceMiB: () => (voice === 'resident' ? 2500 : 0)};
+  const h = fitHarness(t, {mature: false, selected: {pin}, free, listDevices: async () => RTX5090_LAPTOP(free.value), gameRoom, table, fileSizeMiB: file => LAPTOP_SIZES[String(file).split(/[\\/]/).pop()] ?? 0, ...options});
+  for (const name of ['twelve-b.gguf', 'huge-model.gguf']) writeFileSync(join(h.directory, name), name);
+  h.state.customModels = [{id: 'custom:twelve', name: 'gemma-4-12b-it-qat-ud-q4_k_xl', file: join(h.directory, 'twelve-b.gguf'), uncensored: false, family: 'gemma', contextSize: null, chatTemplate: null, tooLarge: false},
+    {id: 'custom:huge', name: 'huge-model', file: join(h.directory, 'huge-model.gguf'), uncensored: false, family: 'llama', contextSize: null, chatTemplate: null, tooLarge: false}, ...extra];
+  return h;
+}
+
+test('the 24 GB laptop: the pinned 12B is loaded whole at the largest context its projection fits, with OmniVoice loaded or still to load, and nothing is announced', async t => {
+  for (const voice of ['resident', 'to-load']) {
+    const h = laptopHarness(t, {voice});
+    const info = await h.server.ensure();
+    assert.deepEqual([voice, info.model, h.server.modelId, h.loaded(), h.fallbacks], [voice, 'gemma-4-12b-it-qat-ud-q4_k_xl', 'custom:twelve', ['twelve-b.gguf'], []]);
+    assert.ok(h.calls[0].args.includes('-ngl') && argValue(h.calls[0], '-fit') === 'off', voice + ': the whole model on the card');
+    assert.equal(argValue(h.calls[0], '-c'), '16384');
+    assert.ok(!h.calls[0].args.includes('-ctk'), 'the full-precision cache');
+    const plan = h.logs.find(line => line.includes('game room on a small card'));
+    assert.ok(plan.includes('card 24463 MiB, 10240 MiB kept for the game') && plan.includes('so 10723 MiB for the model') && plan.includes('all of its layers on the card') && plan.includes('context 16384'), plan);
+    assert.ok(h.logs.some(line => /fit of gemma-4-12b-it-qat-ud-q4_k_xl: projected 9200 MiB at 16384, 8700 MiB at 8192, 8400 MiB at 8192 q8_0 against 10723 MiB free/.test(line) && /the whole model fits: context 16384/.test(line)));
+    assert.deepEqual(h.failures, []);
+  }
+});
+
+test('the 24 GB laptop with OmniVoice off: the 12B gets 13.2 GB and the same context; a projection that is a little larger steps down to a smaller context, then the 8-bit cache, before the pin is given up', async t => {
+  const off = laptopHarness(t, {voice: 'off'});
+  await off.server.ensure();
+  assert.ok(off.logs.find(line => line.includes('game room on a small card')).includes('so 13223 MiB for the model'));
+  assert.equal(argValue(off.calls[0], '-c'), '16384');
+  // A 12B with a large cache: 10,300 at 16,384 does not fit 10,723 with the 512 MiB margin, 9,900 at 8,192 does.
+  const smaller = laptopHarness(t, {table: {...LAPTOP_TABLE, 'twelve-b.gguf': {16384: 10300, 8192: 9900, q8: 9700}}});
+  await smaller.server.ensure();
+  assert.deepEqual([smaller.fallbacks, argValue(smaller.calls[0], '-c'), smaller.calls[0].args.includes('-ctk')], [[], '8192', false]);
+  // Only the 8-bit cache fits: 10,100 does, 10,300 and 10,600 do not.
+  const q8 = laptopHarness(t, {table: {...LAPTOP_TABLE, 'twelve-b.gguf': {16384: 10700, 8192: 10600, q8: 10100}}});
+  await q8.server.ensure();
+  assert.deepEqual([q8.fallbacks, argValue(q8.calls[0], '-c'), argValue(q8.calls[0], '-ctk')], [[], '8192', 'q8_0']);
+});
+
+test('a model that truly does not fit the laptop says why: the event and the log carry what it needs and what is available for it, and the model used instead is named', async t => {
+  // A 31,000 MiB file on a 24,463 MiB card: too large for the card whatever the game does.
+  const huge = laptopHarness(t, {pin: 'custom:huge'});
+  await huge.server.ensure();
+  assert.equal(huge.fallbacks.length, 1);
+  assert.deepEqual(huge.fallbacks[0], {pin: 'custom:huge', reason: 'low-memory', model: huge.fallbacks[0].model, needMiB: 32200, availableMiB: 10723});
+  assert.notEqual(huge.fallbacks[0].model, 'huge-model');
+  const line = huge.logs.find(text => /huge-model needs 32200 MiB of graphics memory/.test(text));
+  assert.ok(line && line.includes('10723 MiB are available for it') && line.includes('free 20963 MiB') && line.includes('game room 10240 MiB of 10240') && line.includes('voice engine 0 MiB')
+    && line.endsWith(huge.fallbacks[0].model + ' is used instead'), line);
+  // A 12B whose projection (a model with a big cache) fits no rung of the ladder in the room: the rule would have let it in, the projection does not.
+  const big = laptopHarness(t, {voice: 'to-load', table: {...LAPTOP_TABLE, 'twelve-b.gguf': {16384: 12000, 8192: 11800, q8: 11600}}});
+  await big.server.ensure();
+  assert.deepEqual(big.fallbacks.map(event => [event.pin, event.reason, event.needMiB, event.availableMiB]), [['custom:twelve', 'low-memory', 12112, 10723]]);
+  assert.ok(big.logs.some(text => /gemma-4-12b-it-qat-ud-q4_k_xl needs 12112 MiB of graphics memory, 10723 MiB are available for it \(free 23463 MiB, game room 10240 MiB of 10240, voice engine 2500 MiB\)/.test(text)));
+  // One event per start: the same choice does not announce twice from one start.
+  assert.equal(big.fallbacks.length, 1);
+  // A pin that is simply missing carries no numbers.
+  const gone = laptopHarness(t, {pin: 'custom:gone'});
+  await gone.server.ensure();
+  assert.deepEqual(gone.fallbacks.map(event => [event.reason, 'needMiB' in event]), [['missing', false]]);
+});
+
+test('the pinned model\'s projection is looked at when the file-size rule passes with little to spare (a model of unknown architecture), not on a card with plenty of room', async t => {
+  // Free 22,000 - rule need 8,800: a card with plenty of room and the game's room small (12 GB class card is not this); here no game room (the option is off) and 11,000 MiB free: 11,000 < 8,800 + 3,000.
+  const tight = laptopHarness(t, {gameRoom: null, free: {value: 11000}, listDevices: async () => RTX5090_LAPTOP(11000)});
+  await tight.server.ensure();
+  assert.ok(tight.probes.length > 0 && tight.probes.every(probe => String(probe.model).endsWith('twelve-b.gguf')), 'the pin was looked at: ' + tight.probes.length + ' runs');
+  assert.equal(argValue(tight.calls[0], '-c'), '16384');
+  // Free memory beyond the slack: no run of the tool at all (the old behaviour).
+  const roomy = laptopHarness(t, {gameRoom: null, free: {value: 22000}, listDevices: async () => RTX5090_LAPTOP(22000)});
+  await roomy.server.ensure();
+  assert.deepEqual(roomy.probes, []);
+});
+
+test('buildServerArgs: --swa-full is given only when the load asked for it', () => {
+  const base = {model: 'm.gguf', port: 1, keyFile: 'k', device: 'Vulkan1'};
+  assert.ok(!buildServerArgs(base).includes('--swa-full'));
+  const args = buildServerArgs({...base, swaFull: true});
+  assert.ok(args.includes('--swa-full') && args.indexOf('--swa-full') > args.indexOf('-fa'));
+});
+
+test('a model with a sliding-window cache gets --swa-full when the larger projection still fits the room, and not when it grows by nothing or does not fit', async t => {
+  // Standard (q4.gguf) projects 3,000 to 3,600 MiB in the table; the full cache adds 615 MiB (Gemma 4 E4B, llama-fit-params, 16,384).
+  const roomy = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 615});
+  await roomy.server.ensure();
+  assert.ok(roomy.calls[0].args.includes('--swa-full'), 'room for the full cache: used');
+  assert.deepEqual(roomy.swaProbes.map(probe => probe.swaFull).sort(), [false, true], 'one run without and one with, nothing else');
+  assert.equal(roomy.server.diagnostics().engine.swaFull, true);
+  // A model with no sliding-window layers projects the same with the flag: it is not passed.
+  const plain = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 0});
+  await plain.server.ensure();
+  assert.ok(!plain.calls[0].args.includes('--swa-full'));
+  // No run of the tool gives a number: no flag, the load is as it was.
+  const blind = fitHarness(t, {mature: false, free: {value: 24000}, table: {}});
+  await blind.server.ensure();
+  assert.ok(!blind.calls[0].args.includes('--swa-full'));
+  // The larger projection does not fit what the model may take (with the usual margin): not passed.
+  const tight = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 30000});
+  await tight.server.ensure();
+  assert.ok(!tight.calls[0].args.includes('--swa-full'));
+});
+
+// ---- Back to the card (bridge/local-return.mjs; report 931d4563: the model was in shared memory for the whole session) ------------------------------------------------------
+// A model the driver moved into shared memory stays loaded and answering (nothing can replace it while the game holds the card). The free graphics memory is read again at idle moments,
+// and when there is room a second server is loaded BESIDE it, the switch is made at an idle moment and the old one is stopped with its exit confirmed.
+function homeHarness(t, {free = {value: 4500}, spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}}, counters = null, reads = {count: 0}, limits = {}, ...options} = {}) {
+  const clock = {now: 1_000_000};
+  let hh = null;
+  const running = () => hh.calls.some(serverAlive);
+  const freeVramMiB = async () => { reads.count++; return free.value - (running() ? Number(spill.value.dedicatedMiB) || 0 : 0); };
+  const gpuMemory = async pid => (counters ? counters(pid, hh) : pid === hh.calls[0]?.child.pid ? spill.value : {dedicatedMiB: 3400, sharedMiB: 90});
+  hh = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free, clock, freeVramMiB, gpuMemory,
+    homeLimits: {firstLookMs: 1000, backoffMs: [1000, 2000, 4000], quietMs: 500, confirmGapMs: 1000, releaseGraceMs: 30, prepareMaxMs: 20_000, retireMaxMs: 2000, ...limits},
+    homeTimer: (fn, ms) => setTimeout(fn, Math.min(ms, 15)), ...options});
+  const returned = [];
+  hh.server.on('returned-to-card', event => returned.push(event));
+  return {...hh, reads, returned, clock};
+}
+// The model is up, the game takes the card, a slow reply finds it in shared memory and nothing can replace it: the watch starts.
+async function spilledAndKept(h) {
+  const info = await h.server.ensure();
+  h.free.value = 2800;
+  h.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => h.logs.some(line => /is not wholly on the graphics card \(it is in shared system memory\)/.test(line))), true, h.logs.join('|'));
+  return info;
+}
+// A request that ends is what makes the next look due (nothing polls).
+const turn = h => { h.server.begin()(); };
+// The game gave the card back: one reading with room is not enough, the second one (a second later) is.
+async function roomTwice(h) {
+  h.free.value = 24000;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  h.clock.now += 1100;
+}
+
+test('back to the card: a spilled model is loaded again beside the running one when the memory is free twice in a row, the old one answers until the new one is ready, then it is stopped with its exit confirmed, and the player is told once', async t => {
+  const h = homeHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '700'} : {})});
+  const first = await spilledAndKept(h);
+  assert.deepEqual([h.calls.length, h.returned.length], [1, 0], 'nothing moves while the card is full');
+  h.free.value = 24000;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /looking once more in 1 s before anything is loaded/.test(line))), true, 'the first reading with room is confirmed by a second one');
+  assert.equal(h.calls.length, 1, 'one reading with room loads nothing');
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true, 'the second reading: the new server is started');
+  // While it loads (700 ms) the old server is the one that answers.
+  assert.equal(serverAlive(h.calls[0]), true);
+  assert.equal((await h.server.ensure()).endpoint, first.endpoint, 'the running server is still the one handed out');
+  assert.equal(h.returned.length, 0);
+  assert.equal(await until(() => h.returned.length === 1), true, 'the switch is made once the new server is up');
+  assert.deepEqual([h.returned[0].model, h.returned[0].fromSharedMiB, h.returned[0].contextSize], ['Qwen3.5-4B', 1100, 16384]);
+  const second = await h.server.ensure();
+  assert.notEqual(second.endpoint, first.endpoint, 'the next turn goes to the new server');
+  assert.deepEqual([h.server.status().state, h.server.diagnostics().engine.returned.count, h.server.homeState().watching], ['ready', 1, false]);
+  const args = h.calls[1];
+  assert.deepEqual([args.args.includes('-ngl'), argValue(args, '-fit'), argValue(args, '-c')], [true, 'off', '16384'], 'the whole model, every layer on the card, the context the room allows');
+  // The old server is released after the switch and its exit is seen.
+  assert.equal(await until(() => !serverAlive(h.calls[0])), true, 'the old server was stopped');
+  assert.equal(await until(() => h.logs.some(line => /the previous model server \(pid \d+\) exited: its graphics memory is back/.test(line))), true, h.logs.filter(line => /previous|back to the card/.test(line)).join('|'));
+  assert.equal(serverAlive(h.calls[1]), true);
+  assert.deepEqual([h.failures, h.returned.length], [[], 1], 'no failure, one notice');
+  assert.ok(h.logs.some(line => /back on the graphics card/.test(line)));
+  await h.server.stop();
+  assert.equal(await until(() => !serverAlive(h.calls[1])), true, 'a stop works on the new server too');
+});
+
+test('back to the card: never while a turn is being served, and not within the quiet time after the last one; the end of the turn asks again', async t => {
+  const h = homeHarness(t);
+  await spilledAndKept(h);
+  const done = h.server.begin();   // a turn
+  await sleep(100);
+  h.free.value = 24000;
+  const reads = h.reads.count;
+  h.clock.now += 5000;
+  await sleep(250);
+  assert.deepEqual([h.reads.count, h.calls.length], [reads, 1], 'no reading and no load while the reply is being written');
+  done();   // the reply is published
+  h.clock.now += 100;
+  await sleep(250);
+  assert.deepEqual([h.reads.count, h.calls.length], [reads, 1], 'a turn that ended a moment ago: still quiet');
+  h.clock.now += 600;   // past the quiet moment
+  assert.equal(await until(() => h.reads.count > reads), true, 'now the free memory is read');
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true);
+  assert.equal(await until(() => h.returned.length === 1), true);
+});
+
+test('back to the card: a turn that comes while the new server loads is answered by the old one, and the switch waits for the end of it', async t => {
+  const h = homeHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '400'} : {})});
+  const first = await spilledAndKept(h);
+  await roomTwice(h);
+  assert.equal(await until(() => h.calls.length === 2), true);
+  const done = h.server.begin();   // a turn arrives while the new server is loading
+  assert.equal((await h.server.ensure()).endpoint, first.endpoint);
+  await sleep(1200);               // the new server is up long ago
+  assert.deepEqual([h.returned.length, serverAlive(h.calls[0]), serverAlive(h.calls[1])], [0, true, true], 'the turn is not interrupted: no switch while a request is in flight');
+  assert.equal((await h.server.ensure()).endpoint, first.endpoint);
+  done();
+  assert.equal(await until(() => h.returned.length === 1), true, 'the switch is made at the idle moment');
+  assert.equal(await until(() => !serverAlive(h.calls[0])), true);
+});
+
+test('back to the card: the room is judged by the smallest projection plus the margin, a look inside the back-off reads nothing, the gaps grow, and the fit tool is run once', async t => {
+  const h = homeHarness(t);
+  await spilledAndKept(h);
+  // The standard model projects 3,562 MiB at 16,384, 3,426 at 8,192 and 3,348 with the 8-bit cache. With the 512 MiB margin and the 1,024 MiB kept for the game the smallest placement
+  // needs 3,348 + 512 + 1,024 = 4,884 MiB free. 4,883 is one short.
+  h.free.value = 4883 + 2200;   // the old server's own 2,200 MiB are not free
+  const probes = h.probes.length, reads = h.reads.count;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\)/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.ok(h.logs.some(line => /not yet \(look 1\): 4883 MiB of graphics memory free, 3859 MiB for the model, the model needs 3860 MiB/.test(line)), h.logs.filter(line => /not yet/.test(line)).join('|'));
+  assert.equal(h.reads.count, reads + 1);
+  const afterFirst = h.probes.length;
+  assert.ok(afterFirst > probes, 'the ladder was asked once');
+  // A look is made after a request ended (nothing polls): a turn ends, the quiet moment passes, and the back-off of 1 s is still running.
+  turn(h);
+  h.clock.now += 800;
+  await sleep(150);
+  assert.equal(h.reads.count, reads + 1, 'inside the back-off nothing is read');
+  h.clock.now += 200;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 2\)/.test(line))), true);
+  turn(h);
+  h.clock.now += 1900;
+  await sleep(150);
+  assert.equal(h.reads.count, reads + 2, 'the second gap is longer: 2 s, not 1');
+  assert.equal(h.probes.length, afterFirst, 'the projections are kept: later looks only compare numbers');
+  // One MiB more: room for the smallest placement, confirmed, loaded in the largest context that fits (8,192 with the 8-bit cache, not the 16,384 of a roomy card).
+  h.free.value = 4884 + 2200;
+  h.clock.now += 300;
+  turn(h);
+  h.clock.now += 600;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true);
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true);
+  assert.equal(await until(() => h.returned.length === 1), true);
+  assert.deepEqual([argValue(h.calls[1], '-c'), argValue(h.calls[1], '-ctk'), h.calls[1].args.includes('-ngl')], ['8192', 'q8_0', true]);
+});
+
+test('back to the card: a voice engine still to load is not free memory', async t => {
+  let voice = 0;
+  const big = 'Available devices:\n  Vulkan1: NVIDIA GeForce RTX 5090 (32607 MiB, 4500 MiB free)\n';   // a card above 24 GB keeps no room for the game at the start: the model loads whole
+  const h = homeHarness(t, {listDevices: async () => big, gameRoom: {voiceMiB: () => voice, residentVoiceMiB: () => 0}});
+  await spilledAndKept(h);
+  voice = 2500;
+  h.free.value = 7000 + 2200;   // 7,000 free: 7,000 - 2,500 - 1,024 = 3,476 for the model, which needs 3,860
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\)/.test(line))), true);
+  assert.equal(h.calls.length, 1);
+  voice = 0;   // the voice engine loaded and is in the used memory already
+  h.free.value = 8000 + 2200;
+  turn(h);
+  h.clock.now += 1600;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true);
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true);
+});
+
+test('back to the card: a model loaded with part of its layers on the CPU is watched from its start', async t => {
+  const small = 'Available devices:\n  Vulkan1: NVIDIA GeForce RTX 4080 Laptop GPU (11997 MiB, 4500 MiB free)\n';
+  const h = homeHarness(t, {gameRoom: {voiceMiB: () => 2500, residentVoiceMiB: () => 0}, listDevices: async () => small});
+  await h.server.ensure();
+  assert.equal(h.server.diagnostics().model.offload, true, 'the small-card room put part of the model on the CPU');
+  assert.ok(h.logs.some(line => /is not wholly on the graphics card \(it runs partly on the processor\)/.test(line)));
+  assert.equal(h.server.homeState().watching, true);
+});
+
+test('back to the card: a model the driver already moved back needs nothing', async t => {
+  const state = {healthy: false};
+  const h = homeHarness(t, {counters: (pid, hh) => (state.healthy ? {dedicatedMiB: 3400, sharedMiB: 90} : {dedicatedMiB: 2200, sharedMiB: 1100})});
+  await spilledAndKept(h);
+  state.healthy = true;
+  await roomTwice(h);
+  assert.equal(await until(() => h.logs.some(line => /is no longer in shared system memory \(3400 MiB on the card, 90 MiB shared\): nothing to move/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.deepEqual([h.calls.length, h.server.homeState().watching, h.server.diagnostics().engine.spill.spilled], [1, false, false], 'nothing was loaded, the watch ended, the fresh reading is kept');
+});
+
+test('back to the card: a new server that comes up in shared memory too is dropped with its exit confirmed, and the old one never stops answering', async t => {
+  const h = homeHarness(t, {counters: () => ({dedicatedMiB: 800, sharedMiB: 2600})});
+  const info = await spilledAndKept(h);
+  await roomTwice(h);
+  assert.equal(await until(() => h.logs.some(line => /the new server was dropped \(it came up in shared system memory too: 800 MiB on the card, 2600 MiB shared\)/.test(line))), true, h.logs.filter(line => /back to the card|new model/.test(line)).join('|'));
+  assert.equal(await until(() => h.calls.length === 2 && !serverAlive(h.calls[1])), true, 'the new server was stopped');
+  assert.ok(h.logs.some(line => /the new model server \(pid \d+\) exited: its graphics memory is back/.test(line)));
+  assert.deepEqual([h.returned.length, serverAlive(h.calls[0]), (await h.server.ensure()).endpoint === info.endpoint, h.failures], [0, true, true, []]);
+  assert.equal(h.server.homeState().watching, true, 'the watch goes on with a longer gap');
+});
+
+test('back to the card: a stop while the new server is loading ends both servers, and the limit of returns a session ends the watch', async t => {
+  const h = homeHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '1500'} : {})});
+  await spilledAndKept(h);
+  await roomTwice(h);
+  assert.equal(await until(() => h.calls.length === 2), true);
+  await h.server.stop();
+  assert.equal(await until(() => !serverAlive(h.calls[0]) && !serverAlive(h.calls[1])), true, 'both servers are gone');
+  await sleep(100);
+  assert.deepEqual([h.returned.length, h.server.status().state], [0, 'stopped']);
+
+  // A model that was returned the allowed number of times and is pushed out again stays where it is.
+  const state = {pushedOut: false};
+  const capped = homeHarness(t, {limits: {maxReturns: 1}, counters: (pid, hh) => (pid === hh.calls[0]?.child.pid || state.pushedOut ? {dedicatedMiB: 2200, sharedMiB: 1100} : {dedicatedMiB: 3400, sharedMiB: 90})});
+  await spilledAndKept(capped);
+  await roomTwice(capped);
+  assert.equal(await until(() => capped.returned.length === 1), true);
+  state.pushedOut = true;
+  capped.free.value = 2800; capped.clock.now += 700_000;
+  capped.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => capped.logs.filter(line => /nothing can replace it/.test(line)).length === 2), true, 'the new server was found in shared memory too');
+  await sleep(100);
+  assert.equal(capped.logs.filter(line => /is not wholly on the graphics card/.test(line)).length, 1, 'no second watch');
+  assert.deepEqual([capped.server.homeState().watching, capped.server.homeState().returns], [false, 1]);
+});
+
+test('back to the card: a card whose free memory cannot be read (no nvidia-smi) is never moved, and says so in the log', async t => {
+  const state = {unknown: false};
+  const h = homeHarness(t);
+  // The reading is answered by the harness; swap it for one that has none once the watch runs.
+  const original = h.server.freeVramMiB;
+  h.server.freeVramMiB = async () => (state.unknown ? null : original());
+  await spilledAndKept(h);
+  state.unknown = true;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\): the free graphics memory is unknown/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.deepEqual([h.calls.length, h.returned.length], [1, 0]);
+});
+
+// ---- Pictures (Companions can see): the vision projector loads only while the setting is on (docs/LOCAL_AI.md, "Pictures (Companions can see)") ------------------------------------
+// The projector is `mm.gguf` (900 MiB by CHOICE_SIZES, so 900 + 384 MiB of encoder buffer are counted: 1,284). No real projector exists on the development machine: these tests use a stand-in file
+// with a clip header and the fake server, so the arguments, the memory arithmetic and the restarts are what is measured, never llama-server's own use of a projector.
+const PROJECTOR_MIB = 1284;
+function visionHarness(t, {factory = choiceHarness, projector = true, selected = {pin: 'standard'}, ...options} = {}) {
+  const h = factory(t, {mature: false, selected, ...options});
+  const path = join(h.directory, 'mm.gguf');
+  writeFileSync(path, ggufFile('clip'));
+  if (projector) h.pack.tiers.standard.mmproj = path;
+  const mmprojOf = call => (call.args.includes('--mmproj') ? argValue(call, '--mmproj') : null);
+  return {...h, path, mmprojOf};
+}
+
+test('buildServerArgs: --mmproj and --image-max-tokens only when a projector is given, and nothing else changes', () => {
+  const plain = buildServerArgs({model: 'M.gguf', port: 5123, keyFile: 'K', device: 'Vulkan1'});
+  assert.equal(plain.includes('--mmproj'), false);
+  assert.deepEqual(buildServerArgs({model: 'M.gguf', port: 5123, keyFile: 'K', device: 'Vulkan1', mmproj: null, imageMaxTokens: 320}), plain, 'a size without a projector is ignored');
+  const withProjector = buildServerArgs({model: 'M.gguf', port: 5123, keyFile: 'K', device: 'Vulkan1', mmproj: 'P.gguf', imageMaxTokens: 320});
+  assert.deepEqual(withProjector.filter(word => !['--mmproj', 'P.gguf', '--image-max-tokens', '320'].includes(word)), plain, 'only those four words are added');
+  assert.equal(withProjector[withProjector.indexOf('--mmproj') + 1], 'P.gguf');
+  assert.equal(withProjector[withProjector.indexOf('--image-max-tokens') + 1], '320');
+  assert.ok(withProjector.indexOf('--mmproj') < withProjector.indexOf('--host'), 'before the host and the key file');
+  for (const bad of [0, -3, 1.5, '320', NaN, null]) {
+    assert.equal(buildServerArgs({model: 'M', port: 1, keyFile: 'K', device: 'V', mmproj: 'P.gguf', imageMaxTokens: bad}).includes('--image-max-tokens'), false, String(bad));
+  }
+  assert.deepEqual(buildServerArgs({model: 'M', port: 1, keyFile: 'K', device: 'V', mmproj: 'P.gguf'}).filter(word => word === '--mmproj' || word === '--image-max-tokens'), ['--mmproj']);
+});
+
+test('pictures off (the default): no projector anywhere, whatever the model has, and the handle and diagnostics say so', async t => {
+  const h = visionHarness(t);
+  assert.deepEqual(h.server.visionState(), {wanted: false, loaded: false, available: true, model: 'Qwen3.5-4B', reason: null}, 'asking before any start spawns nothing');
+  assert.equal(h.calls.length, 0);
+  const info = await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[0]), null);
+  assert.equal(h.calls[0].args.includes('--image-max-tokens'), false);
+  assert.deepEqual([info.vision, info.imageMaxTokens], [false, null]);
+  assert.deepEqual(h.server.diagnostics().vision, {wanted: false, loaded: false, projector: null, projectorMiB: null, reason: null});
+  assert.deepEqual(h.server.visionState(), {wanted: false, loaded: false, available: true, model: 'Qwen3.5-4B', reason: null});
+  assert.equal(h.logs.some(line => /pictures/.test(line)), false, 'nothing about pictures is logged while they are off');
+});
+
+test('pictures on before the start: the projector loads with the model, counted at its size plus the encoder buffer, and only its file name is published', async t => {
+  const h = visionHarness(t);
+  assert.equal(h.server.setVision(true), false, 'nothing is loaded: the next start reads the flag');
+  assert.equal(h.server.setVision(true), false, 'the same value again does nothing');
+  const info = await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[0]), h.path);
+  assert.equal(argValue(h.calls[0], '--image-max-tokens'), '320');
+  assert.deepEqual([info.vision, info.imageMaxTokens], [true, 320]);
+  assert.deepEqual(h.server.diagnostics().vision, {wanted: true, loaded: true, projector: 'mm.gguf', projectorMiB: PROJECTOR_MIB, reason: null});
+  assert.equal(JSON.stringify(h.server.diagnostics()).includes('local-llm-test-'), false, 'no path in the diagnostics');
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: true, available: true, model: 'Qwen3.5-4B', reason: null});
+  assert.ok(h.logs.some(line => /pictures: Qwen3\.5-4B is loaded with its vision projector mm\.gguf \(900 MiB file, 1284 MiB counted/.test(line)), h.logs.join('|'));
+  assert.ok(h.logs.some(line => /model ready: .*vision projector mm\.gguf/.test(line)));
+});
+
+test('turning pictures on and off restarts the server: the old one exits (confirmed in the log) before the new one starts, with the projector and then without it', async t => {
+  const h = visionHarness(t);
+  await h.server.ensure();
+  const first = h.calls[0].child;
+  assert.equal(h.server.setVision(true), true, 'a restart is waiting for its idle moment');
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true, h.logs.join('|'));
+  assert.notEqual(first.exitCode ?? first.signalCode, null, 'the old server is gone');
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+  assert.ok(h.logs.some(line => /pictures turned on: Qwen3\.5-4B is restarted with its vision projector/.test(line)));
+  assert.ok(h.logs.some(line => /the previous model server \(pid \d+\) exited: its graphics memory is back/.test(line)), 'the exit is confirmed and logged');
+  assert.equal((await h.server.ensure()).vision, true);
+  assert.equal(h.server.visionState().loaded, true);
+  assert.equal(h.server.setVision(true), false);
+  await sleep(150);
+  assert.equal(h.calls.length, 2, 'the same value again restarts nothing');
+  // And off: restarted without it, the old server (and the projector memory) gone first.
+  const second = h.calls[1].child;
+  assert.equal(h.server.setVision(false), true);
+  assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
+  assert.notEqual(second.exitCode ?? second.signalCode, null);
+  assert.equal(h.mmprojOf(h.calls[2]), null, 'no --mmproj anywhere once pictures are off');
+  assert.equal(h.calls[2].args.includes('--image-max-tokens'), false);
+  assert.deepEqual([(await h.server.ensure()).vision, h.server.visionState().loaded, h.server.diagnostics().vision.projector], [false, false, null]);
+  assert.equal(h.logs.filter(line => /exited: its graphics memory is back/.test(line)).length, 2);
+  assert.equal(h.server.setVision(false), false);
+  await sleep(150);
+  assert.equal(h.calls.length, 3);
+  assert.equal(h.failures.length, 0);
+});
+
+test('the restart never happens while a request is in flight, and a stop leaves none pending', async t => {
+  const h = visionHarness(t);
+  await h.server.ensure();
+  const release = h.server.begin();
+  assert.equal(h.server.setVision(true), true);
+  assert.deepEqual([h.server.visionState().reason, h.server.visionState().wanted], ['reloading', true], 'the change is waiting');
+  await sleep(200);
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].child.exitCode, null, 'the server answers its request');
+  assert.equal(h.server.inflight, 1);
+  release();
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+  assert.equal(h.server.visionState().reason, null, 'settled');
+
+  // A stop (another provider is chosen) clears a change that is waiting: nothing is started again.
+  const release2 = h.server.begin();
+  h.server.setVision(false);
+  await h.server.stop();
+  release2();
+  await sleep(250);
+  assert.equal(h.calls.length, 2);
+  assert.deepEqual([h.server.status().state, h.server.visionState().reason], ['stopped', null]);
+  // The next start reads the flag itself: without the projector.
+  await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[2]), null);
+});
+
+test('a turn that comes while the server is restarted waits for the new one instead of starting a load of its own', async t => {
+  const h = visionHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '300'} : {})});
+  await h.server.ensure();
+  h.server.setVision(true);
+  await sleep(20);
+  const info = await h.server.ensure();
+  assert.equal(h.calls.length, 2, 'one new server, not two');
+  assert.equal(info.vision, true);
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+});
+
+test('a model with no projector says so, and pictures on restart nothing', async t => {
+  const h = visionHarness(t, {projector: false});
+  await h.server.ensure();
+  h.server.setVision(true);
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: false, available: false, model: 'Qwen3.5-4B', reason: 'no-projector'});
+  await sleep(150);
+  assert.equal(h.calls.length, 1);
+  const again = visionHarness(t, {projector: false});
+  again.server.setVision(true);
+  await again.server.ensure();
+  assert.equal(again.mmprojOf(again.calls[0]), null);
+  assert.deepEqual([again.server.diagnostics().vision.reason, again.server.visionState().reason], ['no-projector', 'no-projector']);
+  assert.ok(again.logs.some(line => /Qwen3\.5-4B has no vision projector/.test(line)));
+  // A projector file that is not a projector (a chat model header) counts as none.
+  const wrong = visionHarness(t);
+  writeFileSync(wrong.path, ggufFile('gemma4'));
+  wrong.server.setVision(true);
+  await wrong.server.ensure();
+  assert.equal(wrong.mmprojOf(wrong.calls[0]), null);
+  assert.equal(wrong.server.visionState().reason, 'no-projector');
+});
+
+test('a model whose manifest names a vision file that is not installed says so, with the file and the folder to get it from', async t => {
+  const h = visionHarness(t, {projector: false});
+  const named = join(h.directory, 'mmproj-named.gguf');
+  h.pack.tiers.standard.mmproj = named;
+  await h.server.ensure();
+  h.server.setVision(true);
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: false, available: false, model: 'Qwen3.5-4B', reason: 'file-missing', file: 'mmproj-named.gguf', folder: 'local-ai'});
+  await sleep(150);
+  assert.equal(h.calls.length, 1, 'nothing is restarted for a file that is not there');
+  // Started with pictures on: the log says it is a separate download, and the reason stays.
+  const again = visionHarness(t, {projector: false});
+  again.pack.tiers.standard.mmproj = join(again.directory, 'mmproj-gemma.gguf');
+  again.server.setVision(true);
+  await again.server.ensure();
+  assert.equal(again.mmprojOf(again.calls[0]), null);
+  assert.ok(again.logs.some(line => /has no vision projector installed/.test(line)), 'the log says it is a separate download');
+  assert.deepEqual([again.server.diagnostics().vision.reason, again.server.visionState().reason], ['file-missing', 'file-missing']);
+});
+
+test('the projector is counted against the model\'s room: with room it loads, a context that no longer fits steps down, and a model that fits only without it goes without ("no-room")', async t => {
+  // Standard (5,280 MiB file) needs 6,480 free, its largest context needs 6,616. The projector takes 1,284 of what the model may have.
+  const roomy = visionHarness(t, {freeMiB: 9000});
+  roomy.server.setVision(true);
+  await roomy.server.ensure();
+  assert.deepEqual([roomy.mmprojOf(roomy.calls[0]) !== null, argValue(roomy.calls[0], '-c')], [true, '16384']);
+  // 7,774 less 1,284 leaves 6,490: the model fits, and only the 8,192 context.
+  const tight = visionHarness(t, {freeMiB: 7774});
+  tight.server.setVision(true);
+  await tight.server.ensure();
+  assert.deepEqual([tight.mmprojOf(tight.calls[0]) !== null, argValue(tight.calls[0], '-c'), tight.server.modelId], [true, '8192', 'standard'], 'the ladder saw the projector');
+  const without = visionHarness(t, {freeMiB: 7774});
+  await without.server.ensure();
+  assert.equal(argValue(without.calls[0], '-c'), '16384', 'the same card without pictures keeps its context');
+  // 7,000 holds the model (6,480) and not the projector too: the model keeps its place and the projector is dropped.
+  const none = visionHarness(t, {freeMiB: 7000});
+  none.server.setVision(true);
+  const info = await none.server.ensure();
+  assert.deepEqual([none.mmprojOf(none.calls[0]), none.server.modelId, info.vision, info.model], [null, 'standard', false, 'Qwen3.5-4B'], 'never a smaller model for the projector');
+  assert.deepEqual(none.server.visionState(), {wanted: true, loaded: false, available: true, model: 'Qwen3.5-4B', reason: 'no-room'});
+  assert.equal(none.server.diagnostics().vision.reason, 'no-room');
+  assert.deepEqual(none.fallbacks, [], 'no model-fallback notice for a projector that did not fit');
+  assert.ok(none.logs.some(line => /pictures: Qwen3\.5-4B is loaded without its vision projector mm\.gguf: 1284 MiB more do not fit/.test(line)));
+  assert.equal(none.server.setVision(true), false, 'unchanged: no restart loop');
+  await sleep(150);
+  assert.equal(none.calls.length, 1);
+});
+
+test('a model that cannot be placed whole never gets the projector (it would only push more of it off the card)', async t => {
+  const h = visionHarness(t, {freeMiB: 1000, lite: false});
+  h.server.setVision(true);
+  await h.server.ensure();
+  assert.equal(argValue(h.calls[0], '-fit'), 'on', 'loaded with part of its layers on the CPU');
+  assert.equal(h.mmprojOf(h.calls[0]), null);
+  assert.equal(h.server.visionState().reason, 'no-room');
+  assert.equal(h.server.diagnostics().vision.loaded, false);
+});
+
+test('the free-memory fit sees the projector: the rung that fits the smaller room is used, and a model that fits only without it loses the projector', async t => {
+  // Standard projects 3,562 / 3,426 / 3,348 MiB (16,384 / 8,192 / 8,192 with the 8-bit cache), plus the 512 MiB margin: 4,074 / 3,938 / 3,860 needed.
+  const plain = visionHarness(t, {factory: fitHarness, free: {value: 5200}});
+  await plain.server.ensure();
+  assert.deepEqual([argValue(plain.calls[0], '-c'), plain.calls[0].args.includes('-ctk')], ['16384', false], 'without pictures the whole model fits at the full context');
+  const rung = visionHarness(t, {factory: fitHarness, free: {value: 5200}});
+  rung.server.setVision(true);
+  await rung.server.ensure();
+  assert.deepEqual([rung.mmprojOf(rung.calls[0]) !== null, argValue(rung.calls[0], '-c'), argValue(rung.calls[0], '-ctk')], [true, '8192', 'q8_0'], '1,284 MiB less: 3,916 left, only the 8-bit rung fits');
+  assert.equal(rung.server.diagnostics().vision.loaded, true);
+  const roomy = visionHarness(t, {factory: fitHarness, free: {value: 5600}});
+  roomy.server.setVision(true);
+  await roomy.server.ensure();
+  assert.deepEqual([roomy.mmprojOf(roomy.calls[0]) !== null, argValue(roomy.calls[0], '-c'), roomy.calls[0].args.includes('-ctk')], [true, '16384', false]);
+  const tooTight = visionHarness(t, {factory: fitHarness, free: {value: 4800}});
+  tooTight.server.setVision(true);
+  await tooTight.server.ensure();
+  assert.equal(tooTight.mmprojOf(tooTight.calls[0]), null, 'fits without (4,800 holds 4,074), not with (3,516 left holds no rung)');
+  assert.deepEqual([tooTight.calls[0].args.includes('-ngl'), argValue(tooTight.calls[0], '-fit'), tooTight.server.visionState().reason], [true, 'off', 'no-room'], 'the model is still whole on the card');
+});
+
+test('llama-server that cannot start with the projector is started again without it, once: no failure, the model is not marked broken, the reason is start-failed', async t => {
+  const h = visionHarness(t, {env: {FAKE_LLAMA_EXIT_WITH_MMPROJ: '1'}});
+  h.server.setVision(true);
+  const info = await h.server.ensure();
+  assert.equal(h.calls.length, 2);
+  assert.notEqual(h.mmprojOf(h.calls[0]), null, 'the first start had the projector');
+  assert.equal(h.mmprojOf(h.calls[1]), null, 'the second one did not');
+  assert.deepEqual([info.vision, h.server.modelId, h.server.status().state, h.failures, h.fallbacks], [false, 'standard', 'ready', [], []]);
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: false, available: true, model: 'Qwen3.5-4B', reason: 'start-failed'});
+  assert.equal(h.server.diagnostics().vision.reason, 'start-failed');
+  assert.ok(h.logs.some(line => /llama-server did not start with the vision projector mm\.gguf \(exited\): Qwen3\.5-4B is started again without it/.test(line)), h.logs.join('|'));
+  // It is not tried again this session, and reset() gives it another chance.
+  h.server.setVision(false); h.server.setVision(true);
+  await sleep(100);
+  assert.equal(h.calls.length, 2);
+  await h.server.stop();
+  await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[2]), null);
+  h.server.reset();
+  await h.server.stop();
+  await h.server.ensure();
+  assert.notEqual(h.mmprojOf(h.calls[3]), null, 'after reset() the projector is tried again');
+});
+
+test('visionState is cheap and never starts anything: it can be asked every half second, with the server stopped, and when the selection is broken', async t => {
+  const h = visionHarness(t);
+  for (let index = 0; index < 50; index++) h.server.visionState();
+  assert.equal(h.calls.length, 0);
+  assert.deepEqual(Object.keys(h.server.visionState()), ['wanted', 'loaded', 'available', 'model', 'reason']);
+  const broken = new LocalLlmServer({pack: {installed: false}, selection: () => { throw new Error('broken hook'); }, command: process.execPath, argsPrefix: [FAKE]});
+  assert.deepEqual(broken.visionState(), {wanted: false, loaded: false, available: false, model: null, reason: null});
+  broken.setVision(true);
+  assert.deepEqual(broken.visionState(), {wanted: true, loaded: false, available: false, model: null, reason: 'no-projector'});
+});
+
+test('back to the card: the second server carries the projector when pictures are on, and the diagnostics still say so', async t => {
+  const h = visionHarness(t, {factory: homeHarness, free: {value: 6200}, envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '200'} : {})});
+  h.server.setVision(true);
+  await spilledAndKept(h);
+  assert.notEqual(h.mmprojOf(h.calls[0]), null, 'the first load had it');
+  await roomTwice(h);
+  assert.equal(await until(() => h.returned.length === 1), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.equal(h.mmprojOf(h.calls[1]), h.path, 'the same model, whole on the card, with its projector');
+  assert.equal((await h.server.ensure()).vision, true);
+  assert.deepEqual(h.server.diagnostics().vision, {wanted: true, loaded: true, projector: 'mm.gguf', projectorMiB: PROJECTOR_MIB, reason: null});
+  await h.server.stop();
+});
+
+test('back to the card with less room: the model returns whole on the card without the projector when only the model fits ("no-room"), instead of not returning', async t => {
+  const h = visionHarness(t, {factory: homeHarness, free: {value: 6200}, envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '100'} : {})});
+  h.server.setVision(true);
+  await spilledAndKept(h);
+  assert.notEqual(h.mmprojOf(h.calls[0]), null);
+  // 5,600 MiB read (the harness takes the running model's 2,200 off): 4,576 for the model after the room kept for the game. It needs 4,074 for a rung, and 5,358 with the projector.
+  h.free.value = 7800;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.returned.length === 1), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.equal(h.mmprojOf(h.calls[1]), null, 'the model came back, the projector did not');
+  assert.deepEqual([(await h.server.ensure()).vision, h.server.visionState().reason, h.server.diagnostics().vision.reason], [false, 'no-room', 'no-room']);
+  await h.server.stop();
+});
+
+test('pictures turned on while the server is still starting: that start ends as it began, and the restart with the projector follows once it is ready', async t => {
+  const h = visionHarness(t, {envFor: n => (n === 0 ? {FAKE_LLAMA_DELAY_MS: '400'} : {})});
+  const starting = h.server.ensure();
+  assert.equal(await until(() => h.calls.length === 1), true);
+  assert.equal(h.server.setVision(true), true, 'a check is waiting for the end of the start');
+  await starting;
+  assert.equal(h.mmprojOf(h.calls[0]), null, 'it began with pictures off');
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true, h.logs.join('|'));
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+  assert.equal(h.server.visionState().loaded, true);
 });

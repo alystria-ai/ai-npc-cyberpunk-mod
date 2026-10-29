@@ -325,13 +325,26 @@ export function launchDiagnostics(error) {
   };
   if (typeof error?.earlier === 'string') add(`first try, with the sandbox: ${error.earlier}`);
   if (typeof error?.rescue === 'string') add(`last try, without the graphics process: ${error.rescue}`);
-  for (const raw of String(error?.message ?? '').split(/\r?\n/).slice(1)) {
+  // What the last try itself printed (its process exit and first lines), set by RealtimeHost.launchWithoutSandbox: it can differ from the browser lines below, which are the second try's.
+  if (Array.isArray(error?.rescueLines)) for (const line of error.rescueLines.slice(0, 4)) add(`last try: ${line}`);
+  for (const line of browserOutputLines(error?.message)) add(line);
+  return lines;
+}
+
+/**
+ * The lines of a Playwright launch error that say what the browser did: its own output (`[pid=N][err] ...`), how its process ended (Playwright 1.58 prints
+ * `[pid=N] <process did exit: exitCode=..., signal=...>`, older ones the same without the pid) and a line starting error, fatal or failed. The first line of the
+ * error is the summary and is not one of them. Not cut or cleaned: launchDiagnostics does that.
+ */
+export function browserOutputLines(message) {
+  const found = [];
+  for (const raw of String(message ?? '').split(/\r?\n/).slice(1)) {
     const line = raw.replace(/^\s*-\s*/, '').trim();
     const output = /^\[pid=\d+\]\[(?:err|out)\]\s*(.*)$/i.exec(line);
-    if (output) add(output[1]);
-    else if (/^<process did exit:/i.test(line) || /^(?:error|fatal|failed)\b/i.test(line)) add(line);
+    if (output) found.push(output[1]);
+    else if (/^(?:\[pid=\d+\]\s*)?<process did exit:/i.test(line) || /^(?:error|fatal|failed)\b/i.test(line)) found.push(line.replace(/^\[pid=\d+\]\s*/, ''));
   }
-  return lines;
+  return found;
 }
 
 // Said once per process for each distinct message: every turn asks for the browser again, and a browser that cannot start would

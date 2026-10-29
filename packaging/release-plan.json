@@ -630,6 +630,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/state-restore.lua"
         },
         {
+          "source": "mod/player-guard.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-guard.lua"
+        },
+        {
           "source": "mod/error-reports.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/error-reports.lua"
         },
@@ -963,9 +967,12 @@
             "bridge/local-llm-server.mjs",
             "bridge/local-model-choice.mjs",
             "bridge/local-pcm-host.mjs",
+            "bridge/local-projector.mjs",
+            "bridge/local-return.mjs",
             "bridge/local-server-recovery.mjs",
             "bridge/local-stt-capture.mjs",
             "bridge/local-stt.mjs",
+            "bridge/local-vision.mjs",
             "bridge/local-vram-fit.mjs",
             "bridge/loot-context.mjs",
             "bridge/mature-content.mjs",
@@ -981,6 +988,7 @@
             "bridge/memory-store.mjs",
             "bridge/mic-devices-control.mjs",
             "bridge/mic-live.mjs",
+            "bridge/mic-match.mjs",
             "bridge/mic-tap.mjs",
             "bridge/mic-v-line.mjs",
             "bridge/microphone-session.mjs",
@@ -1067,7 +1075,10 @@
             "bridge/runtime-files.mjs",
             "bridge/runtime-integrity.mjs",
             "bridge/runtime-paths.mjs",
+            "bridge/runtime-python.mjs",
             "bridge/runtime-steps.mjs",
+            "bridge/safe-streams-install.mjs",
+            "bridge/safe-streams.mjs",
             "bridge/sampler-extras.mjs",
             "bridge/scenery-memory.mjs",
             "bridge/setup-check.mjs",
@@ -1089,6 +1100,7 @@
             "bridge/text-emotion.mjs",
             "bridge/text-provider-host.mjs",
             "bridge/threat-screen.mjs",
+            "bridge/topic-words.mjs",
             "bridge/transport-pool.mjs",
             "bridge/turn-clock.mjs",
             "bridge/turn-context.mjs",
@@ -1099,6 +1111,7 @@
             "bridge/v-voice.mjs",
             "bridge/vendor-memory.mjs",
             "bridge/vision-capture.mjs",
+            "bridge/vision-message.mjs",
             "bridge/voice-activity.mjs",
             "bridge/voice-choice-match.mjs",
             "bridge/voice-choice.mjs",
@@ -1137,6 +1150,7 @@
             "bridge/audio-output-probe.ps1",
             "bridge/error-reports.mjs",
             "bridge/report-secrets.mjs",
+            "bridge/cet-log.mjs",
             "bridge/system-facts.mjs",
             "bridge/log-cap.mjs"
           ]

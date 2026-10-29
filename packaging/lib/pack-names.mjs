@@ -23,6 +23,12 @@ export const legacyPackTitle = (config, id) => packFiles(config).packs[id]?.lega
 /** Where a pack lives on Hugging Face: '<folder>/<title>.zip'. */
 export const hfPath = (config, id) => `${packFiles(config).packs[id].folder}/${packTitle(config, id)}.zip`;
 
+/** Every place a pack is published to: its folder, then `alsoIn` (the Gemma 4 E4B vision file is in local-ai/vision and in mature/vision, one zip at two paths). */
+export const hfPaths = (config, id) => {
+  const entry = packFiles(config).packs[id];
+  return [entry.folder, ...(entry.alsoIn ?? [])].map(folder => `${folder}/${entry.title}.zip`);
+};
+
 /** The same, under the name before 0.3.4. */
 export const legacyHfPath = (config, id) => `${packFiles(config).packs[id].folder}/${legacyPackTitle(config, id)}.zip`;
 

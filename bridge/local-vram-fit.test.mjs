@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {FIT_LIMITS, SMALL_CARD_ROOM, describeFit, fitLadder, fitToolPath, gameRoomMiB, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
+import {FIT_LIMITS, SMALL_CARD_ROOM, describeFit, fitAgainst, fitLadder, fitToolPath, gameRoomMiB, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {chooseLocalModel, listLocalModels} from './local-model-choice.mjs';
 
 // The line llama-fit-params prints at -lv 4, as measured 2026-10-20 (RTX 4080 Laptop, build 11560, Gemma 4 E4B Mature good at 16,384 context; the same line and the same projections to the MiB on build 11782, 2026-10-21).
@@ -173,7 +173,7 @@ test('offloadRamNeedMiB: the part of the model and its cache that stays on the p
   for (const unknown of [offloadRamNeedMiB({share: 1, sizeMiB: 2582}), offloadRamNeedMiB({share: null, sizeMiB: 2582}), offloadRamNeedMiB({share: 0.4}), offloadRamNeedMiB({})]) assert.equal(unknown, null);
 });
 
-test('the game\'s room: 55% of the card between 3,000 and 4,608 MiB up to 9 GB, 62% (at most 15,360 MiB) from 10 GB to 24 GB, none above 24 GB or without a reading', () => {
+test('the game\'s room: 55% of the card between 3,000 and 4,608 MiB up to 9 GB, 62% (at most 10,240 MiB) from 10 GB to 24 GB, none above 24 GB or without a reading', () => {
   assert.equal(gameRoomMiB(8232), 4528, 'the 8 GB card of the 2026-10-22 report; the game held about 4.3 GB beside OmniVoice there');
   assert.equal(gameRoomMiB(6144), 3379);
   assert.equal(gameRoomMiB(4096), 3000, 'the floor is the old reserve');
@@ -186,11 +186,19 @@ test('the game\'s room: 55% of the card between 3,000 and 4,608 MiB up to 9 GB, 
   assert.equal(gameRoomMiB(12282), 7615, 'the same card as the adapter list reads it');
   assert.equal(gameRoomMiB(10240), 6349, 'a 10 GB card');
   assert.equal(gameRoomMiB(12288), 7619, 'a card of 12,288 MiB keeps the number it had: the raised cap does not touch it');
-  // Report 8e09af42 (RTX 4090, 24,564 MiB, OmniVoice, the game in the world): the same 62% share, about the 17 GB the game seemed to hold (70%) on this one report.
-  assert.equal(gameRoomMiB(24564), 15230);
-  assert.equal(gameRoomMiB(16376), 10153, 'a 16 GB card');
-  assert.equal(gameRoomMiB(SMALL_CARD_ROOM.maxCardMiB), 15237);
-  assert.ok(gameRoomMiB(SMALL_CARD_ROOM.maxCardMiB) <= SMALL_CARD_ROOM.bigGameCapMiB, 'the cap only stops a reading a little above 24 GB');
+  // Report 8e09af42 (RTX 4090, 24,564 MiB, OmniVoice, the game in the world) derived about 17 GB held by the game alone (70%), and 62% of the card was kept for it (15,230 MiB). 2026-10-29: the room stops
+  // growing where a 16 GB card's ends (10,240 MiB), because a model the player chose (a 12B on the report of an RTX 5090 Laptop, 24,463 MiB) was given 5.8 GB and fell back to the lite model.
+  assert.equal(gameRoomMiB(24564), 10240);
+  assert.equal(gameRoomMiB(24463), 10240, 'the RTX 5090 Laptop of the 2026-10-29 report');
+  assert.equal(gameRoomMiB(16376), 10153, 'a 16 GB card keeps the number it had');
+  assert.equal(gameRoomMiB(16384), 10158);
+  assert.equal(gameRoomMiB(16516), 10240, '62% of 16,516 is the cap: the share and the cap meet on a 16 GB class card');
+  assert.equal(gameRoomMiB(20480), 10240, 'a 20 GB card (62% would have been 12,698)');
+  assert.equal(gameRoomMiB(SMALL_CARD_ROOM.maxCardMiB), 10240);
+  assert.equal(SMALL_CARD_ROOM.bigGameCapMiB, 10240);
+  assert.ok(gameRoomMiB(SMALL_CARD_ROOM.maxCardMiB) <= SMALL_CARD_ROOM.bigGameCapMiB);
+  // Every card up to 16 GB is exactly what it was before the cap moved (the old cap 15,360 never applied below a 24 GB card, and 62% is under 10,240 up to 16,516 MiB).
+  for (const total of [9217, 10240, 11997, 12010, 12282, 12288, 14336, 15360, 16376, 16384]) assert.equal(gameRoomMiB(total), Math.round(total * 0.62), total + ' MiB');
   for (const total of [10240, 11997, 12010, 12288]) assert.ok(gameRoomMiB(total) < 7680, total + ' MiB was never held to the old cap');
   assert.equal(SMALL_CARD_ROOM.maxCardMiB, 24576);
   assert.equal(gameRoomMiB(SMALL_CARD_ROOM.maxCardMiB + 1), 0);
@@ -228,16 +236,16 @@ test('smallCardRoom keeps back only the room the game has not taken yet (review 
 });
 
 test('a 24 GB card: the room is kept at the start and not counted twice once the game and OmniVoice are on the card (report 8e09af42)', () => {
-  // The service starts with the game: 24,564 MiB, 864 MiB used by the desktop (23,700 free), OmniVoice still to load. 15,230 MiB are kept for the game and 2,500 for the voice: 5,970 for the model.
+  // The service starts with the game: 24,564 MiB, 864 MiB used by the desktop (23,700 free), OmniVoice still to load. 10,240 MiB are kept for the game (15,230 before 2026-10-29) and 2,500 for the voice: 10,960 for the model (5,970 before).
   const start = smallCardRoom({totalMiB: 24564, freeMiB: 23700, voiceMiB: SMALL_CARD_ROOM.omniVoiceMiB});
-  assert.deepEqual(start, {totalMiB: 24564, freeMiB: 23700, reserveMiB: 15230, voiceMiB: 2500, modelMiB: 5970, gameRoomMiB: 15230, gameUsedMiB: 0});
+  assert.deepEqual(start, {totalMiB: 24564, freeMiB: 23700, reserveMiB: 10240, voiceMiB: 2500, modelMiB: 10960, gameRoomMiB: 10240, gameUsedMiB: 0});
   // A restart in the world with OmniVoice resident: the report read 3,900 MiB free with the model unloaded, so the game holds 24,564 - 3,900 - 2,500 - 1,000 = 17,164 MiB, more than its room: nothing is kept back
   // again and the model gets everything that is free (the 3.9 GB the step-down used in the report).
   const world = smallCardRoom({totalMiB: 24564, freeMiB: 3900, residentVoiceMiB: SMALL_CARD_ROOM.omniVoiceMiB});
   assert.equal(world.gameUsedMiB, 17164); assert.equal(world.reserveMiB, 0); assert.equal(world.modelMiB, 3900);
-  // A game that has taken half its room: only the other half is kept (7,615 MiB held, 7,615 MiB still reserved).
+  // A game that has taken most of its room: only the rest is kept (7,615 MiB held, 2,625 MiB of the 10,240 still reserved).
   const half = smallCardRoom({totalMiB: 24564, freeMiB: 24564 - 1000 - 7615 - 2500, residentVoiceMiB: SMALL_CARD_ROOM.omniVoiceMiB});
-  assert.equal(half.gameUsedMiB, 7615); assert.equal(half.reserveMiB, 7615); assert.equal(half.modelMiB, 13449 - 7615);
+  assert.equal(half.gameUsedMiB, 7615); assert.equal(half.reserveMiB, 2625); assert.equal(half.modelMiB, 13449 - 2625);
   assert.equal(smallCardRoom({totalMiB: 32607, freeMiB: 31000}), null, 'a card above 24 GB has no reserve');
 });
 
@@ -254,4 +262,42 @@ test('smallCardRoom takes the game\'s room and a voice engine still to load out 
   const plan = offloadPlan({projectedMiB: 3520, freeMiB: room.freeMiB, targetMiB: room.reserveMiB});
   assert.equal(Math.round(plan.share * 100), 76);
   assert.equal(plan.hopeless, false);
+});
+
+test('the 24,463 MiB RTX 5090 Laptop of the 2026-10-29 report: the model\'s room at the service start is 10.7 GB with OmniVoice loaded or still to load, 13.2 GB with it off (it was 5.8 and 8.3 GB)', () => {
+  const total = 24463, desktop = 1000;
+  const at = (voice, limits) => smallCardRoom({totalMiB: total, freeMiB: total - desktop - (voice === 'resident' ? 2500 : 0), voiceMiB: voice === 'to-load' ? 2500 : 0, residentVoiceMiB: voice === 'resident' ? 2500 : 0, ...(limits ? {limits} : {})});
+  const before = {...SMALL_CARD_ROOM, bigGameCapMiB: 15360};
+  // Before: 62% of the card, 15,167 MiB, kept for the game.
+  assert.equal(gameRoomMiB(total, before), 15167);
+  assert.deepEqual(['resident', 'to-load', 'off'].map(voice => at(voice, before).modelMiB), [5796, 5796, 8296], 'the numbers of the report: a 12B with 8,800 MiB (file plus headroom) did not fit any of them');
+  // Now: the room a 16 GB card gets.
+  assert.equal(gameRoomMiB(total), 10240);
+  assert.deepEqual(['resident', 'to-load', 'off'].map(voice => at(voice).modelMiB), [10723, 10723, 13223]);
+  // The voice engine is counted once: resident (in the used memory, not the game's) or still to load (taken out of the free memory), never both.
+  assert.equal(at('resident').voiceMiB, 0);
+  assert.equal(at('to-load').voiceMiB, 2500);
+  // The game already in the world, OmniVoice resident, the model unloaded (a restart): the game's footprint is measured, nothing is kept twice.
+  const inWorld = smallCardRoom({totalMiB: total, freeMiB: 3900, residentVoiceMiB: 2500});
+  assert.deepEqual([inWorld.gameUsedMiB, inWorld.reserveMiB, inWorld.modelMiB], [17063, 0, 3900]);
+  // Cards up to 16 GB keep exactly the numbers they had.
+  assert.equal(smallCardRoom({totalMiB: 16376, freeMiB: 15000}).modelMiB, smallCardRoom({totalMiB: 16376, freeMiB: 15000, limits: before}).modelMiB);
+  assert.equal(smallCardRoom({totalMiB: 11997, freeMiB: 11229}).modelMiB, 3791, 'the 12 GB card of the tests is untouched');
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 7461}).modelMiB, 2933, 'and so is the 8 GB card');
+});
+
+test('the ladder worked out again for less room keeps its projections and picks the rung that still fits (a vision projector takes memory first)', () => {
+  const projections = [{contextSize: 16384, kvType: null, projectedMiB: 3734}, {contextSize: 8192, kvType: null, projectedMiB: 3598}, {contextSize: 8192, kvType: 'q8_0', projectedMiB: 3520}];
+  const fit = {projections, pick: projections[0], share: 1, marginMiB: 512};
+  assert.equal(fitAgainst(fit, 4246).pick.contextSize, 16384, 'with the room it had');
+  const less = fitAgainst(fit, 4246 - 100);
+  assert.deepEqual([less.pick.contextSize, less.pick.kvType], [8192, null], '100 MiB less: the next rung');
+  assert.deepEqual([fitAgainst(fit, 4246 - 180).pick.contextSize, fitAgainst(fit, 4246 - 180).pick.kvType], [8192, 'q8_0'], '180 MiB less: the 8-bit cache');
+  assert.equal(fitAgainst(fit, 4031).pick, null, 'no rung fits');
+  assert.equal(fitAgainst(fit, 4031).share < 1, true, 'and the share of the layers on the card is worked out for the offload placement');
+  assert.deepEqual(fitAgainst(fit, 4246).projections, projections);
+  assert.equal(fitAgainst(fit, 5000, 100).marginMiB, 100);
+  assert.equal(fitAgainst(fit, 4300).marginMiB, 512, 'the margin of the first look is kept');
+  assert.deepEqual(fitAgainst(null, 5000), {projections: [], pick: null, share: null, marginMiB: FIT_LIMITS.marginMiB});
+  assert.deepEqual(fitAgainst(fit, NaN).pick, null);
 });

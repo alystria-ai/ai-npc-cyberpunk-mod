@@ -27,7 +27,7 @@ Restore defaults (Native Settings UI's own button, and the Defaults footer butto
 
 What is deliberately not a switch: what each character knows about the story (the world facts and the recent shared events, they are the character's own
 knowledge and the bridge binds a conversation to the save with them), a fight reaction's own subject (battle reactions have their own setting), the pickups
-of a loot reaction, the relationship style (Relationships page), the vision picture (Convai only, always on since the Companions can see setting was retired,
+of a loot reaction, the relationship style (Relationships page), the vision picture (every provider, only while the Companions can see setting is on, off by default since 2026-10-29,
 and it follows the same place rule: indoors or outdoors only from the text, else the picture), V's voice gender and the dialogue volume for V's typed-line
 voice (they are no part of the words the model reads; they keep working with every switch off).
 

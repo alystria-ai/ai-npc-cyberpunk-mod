@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Stage 0 development probe for companion body gestures (docs/COMPANION_GESTURES.md).
 -- Inert until a request arrives in runtime/gesture-probe-request.txt:
 --   line 1: a fresh nonce, line 2: a command (see COMMANDS below).
@@ -215,7 +216,7 @@ local function play(s, npc)
         calls[#calls + 1] = function() return ws:PlayInDeviceSimple(device, npc, false, component, none, none, slideTime, sliding, nil) end
     end
     if api == 'npc' or api == 'auto' then
-        calls[#calls + 1] = function() return ws:PlayNpcInWorkspot(npc, Game.GetPlayer(), device, component, none, slideTime, none) end
+        calls[#calls + 1] = function() return ws:PlayNpcInWorkspot(npc, convaiPlayer(), device, component, none, slideTime, none) end
     end
     local ok, result, index, errors = attempt('play-' .. api, calls)
     log('play', {serial = s.serial, api = api, ok = ok, variant = index, result = tostring(result), errors = errors,

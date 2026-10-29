@@ -626,3 +626,43 @@ test('Mistral\'s route and the custom route keep apart: the same host serves bot
     assert.equal(options.extraBody.prompt_cache_key, undefined);
   } finally { host.close(); await mock.close(); }
 });
+
+// ---- Companions can see: a picture the endpoint refuses ---------------------------------------------------------------------------------------------------------------
+
+test('an endpoint that answers a picture with a 400 about images gets the same turn again at once without it, and no picture goes to it again this session', async () => {
+  const mock = await startOpenAiMock();
+  const hasPicture = body => (body?.messages ?? []).some(message => Array.isArray(message.content) && message.content.some(part => part.type === 'image_url'));
+  mock.behave(request => hasPicture(request.body)
+    ? {status: 400, body: {error: {message: 'messages[3].content: expected a string, got an array (image_url parts are not supported by this model)'}}}
+    : {sse: ['Sure, V.']});
+  const {host, route, logs} = await harness(mock);
+  const refused = [];
+  route.noteImagesRejected = ((original) => (...args) => { refused.push(args[0]); return original(...args); })(route.noteImagesRejected);
+  const picture = [{mime: 'image/jpeg', base64: Buffer.from('a street').toString('base64')}];
+  try {
+    const first = await host.reply(turn('what do you see?', {visionImages: picture}));
+    assert.equal(first.text, 'Sure, V.');
+    assert.deepEqual(mock.requests.map(request => hasPicture(request.body)), [true, false], 'the refused request was repeated without the picture');
+    assert.equal(route.visionAllowed(), false, 'the session keeps the answer');
+    assert.deepEqual(refused, ['vendor/test-model:free']);
+    assert.ok(logs.some(line => /\[Vision\] .*would not take the picture/.test(line)));
+    await host.reply(turn('and now?', {visionImages: picture}));
+    assert.deepEqual(mock.requests.map(request => hasPicture(request.body)), [true, false, false], 'no picture went to that endpoint again');
+  } finally { host.close(); await mock.close(); }
+});
+
+test('an endpoint that takes the picture is sent an OpenAI-style image_url part in the last user message', async () => {
+  const mock = await startOpenAiMock();
+  mock.behave(() => ({sse: ['A neon street.']}));
+  const {host, route} = await harness(mock);
+  const picture = [{mime: 'image/jpeg', base64: Buffer.from('a street').toString('base64')}];
+  try {
+    const answer = await host.reply(turn('what do you see?', {visionImages: picture}));
+    assert.equal(answer.text, 'A neon street.');
+    const last = mock.requests[0].body.messages.at(-1);
+    assert.equal(last.role, 'user');
+    assert.deepEqual(last.content.map(part => part.type), ['image_url', 'text']);
+    assert.equal(last.content[0].image_url.url, `data:image/jpeg;base64,${picture[0].base64}`);
+    assert.equal(route.visionAllowed(), true);
+  } finally { host.close(); await mock.close(); }
+});

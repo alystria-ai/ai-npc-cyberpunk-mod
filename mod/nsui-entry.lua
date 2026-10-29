@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Open the Companion Manager through the game's own menus: the pause menu, Native Settings UI's "Mods" entry, and this mod's tab. The
 -- walk is the same one the player makes: it activates the real pause-menu item (the one NSUI adds beside Settings) and lets NSUI
 -- build its screen. This adapter neither simulates keys nor edits another mod's files, preferences, menu or input handlers.
@@ -142,7 +143,7 @@ function M.new(options)
     end
 
     local function inGameMenu()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player or not player:IsAttached() or Game.GetSystemRequestsHandler():IsPreGame() then return nil end
         local defs = Game.GetAllBlackboardDefs()
         return Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
@@ -301,7 +302,7 @@ function M.new(options)
             if ok then return true end
         end
         local ok, reason = pcall(function()
-            local player = Game.GetPlayer()
+            local player = convaiPlayer()
             if not player or not player:IsAttached() then return 'Load a save first.' end
             if Game.GetSystemRequestsHandler():IsPreGame() then return 'Load a save first.' end
             local defs, boards = Game.GetAllBlackboardDefs(), Game.GetBlackboardSystem()

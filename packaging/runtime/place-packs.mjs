@@ -12,7 +12,7 @@
 //   - the mod folder (bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod): red4ext/... and app/... extracted into it;
 //   - the plugin folder (red4ext/plugins/AiNpcCyberpunkMod): red4ext/... extracted into it, also one wrapper folder deep.
 // A candidate counts only when <candidate>/red4ext/plugins/AiNpcCyberpunkMod/app/ holds a pack marker:
-//   local-ai/manifest.*.json (Local AI and Mature packs), local-ai/mature/, omni/omni-pack.json (OmniVoice), or
+//   local-ai/manifest.*.json (Local AI and Mature packs) or local-ai/vision-*.json (a vision file), local-ai/mature/, omni/omni-pack.json (OmniVoice), or
 //   models/stt/<id>/mic-pack.json for one of the two voice-input pack ids (MIC_PACKS below);
 // or when <candidate>/red4ext/plugins/AiNpcCyberpunkMod/voices/ holds a language pack: multilingual/<code>/manifest.json (a voice language
 // pack) or multilingual-pocket/<code>/pocket-model.json (a PocketTTS model). Those zips hold only voices/, no app/.
@@ -37,7 +37,8 @@ export const GAME_FOLDERS = Object.freeze(new Set(['archive', 'bin', 'engine', '
   'localization', 'redprelauncher', 'redmod', 'app', 'voices', 'node_modules', '.git']));
 // Pack folders under app/ that are moved. A sibling of app/ moved with the OmniVoice pack.
 const APP_TREES = Object.freeze(['local-ai', 'omni']);
-const LOCAL_MARKER = /^manifest\.[A-Za-z0-9._-]+\.json$/;
+// A vision file (the projector of a model, a small zip of its own) holds vision-<id>.json at the top of local-ai/; it counts as a pack marker, so a zip extracted one folder too deep is found and moved.
+const LOCAL_MARKER = /^(?:manifest\.|vision-)[A-Za-z0-9._-]+\.json$/;
 // The voice-input packs: pack id (the folder under app/models/stt/, bridge/speech-language.mjs LOCAL_PACKS) -> name in the log. The marker is mic-pack.json.
 // The ids are repeated here because this file imports nothing from the bridge (packaging/mic-packs.test.mjs checks them against release.config.json).
 export const MIC_PACKS = Object.freeze({'parakeet-tdt-0.6b-v3-int8': 'MicPack-European', 'sense-voice-int8': 'MicPack-Asian'});
@@ -54,6 +55,7 @@ const micTree = id => `models/stt/${id}`;
 const PACK_NAMES = Object.freeze({
   'manifest.standard.json': 'Local AI standard', 'manifest.lite.json': 'Local AI lite',
   'manifest.mature-standard.json': 'Mature standard', 'manifest.mature-lite.json': 'Mature lite',
+  'vision-gemma.json': 'Vision file (Gemma 4 E4B)', 'vision-bonsai.json': 'Vision file (Bonsai 2 4B)', 'vision-qwen.json': 'Vision file (Qwen3.5-4B)',
 });
 
 const kindOf = async (fs, path) => {

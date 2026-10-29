@@ -53,6 +53,13 @@ test('closing never throws when the last status write is refused (the game exiti
   assert.equal(control.closed, true);
 });
 
+test('a full disk at start-up does not stop the bridge: the first status write is best effort, any other fault still throws', async () => {
+  const f = fixture();
+  const control = await PlayerMemoryControl.open({...f.options, publish: async () => { throw Object.assign(Error('ENOSPC: no space left on device, write'), {code: 'ENOSPC'}); }});
+  assert.equal(control.closed, false);
+  await assert.rejects(PlayerMemoryControl.open({...f.options, publish: async () => { throw Object.assign(Error('EACCES: permission denied'), {code: 'EACCES'}); }}), /EACCES/);
+});
+
 test('startup restores a known result but never dispatches an old or unknown destructive command', async () => {
   const f = fixture(JSON.stringify(command('old-request')));
   const control = await PlayerMemoryControl.open(f.options);

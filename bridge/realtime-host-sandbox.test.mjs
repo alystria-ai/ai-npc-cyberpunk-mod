@@ -311,3 +311,22 @@ test('the hidden browser tree is raised to high after the start and again after 
   const normal = await hostWith(async () => fakeBrowser(), {browserPriority: 'normal', setBrowserTree: async () => { throw Error('must not run'); }});
   assert.equal(normal.host.priorityKeeper, null, 'priority = normal leaves the browser as it starts');
 });
+
+// Report 144971a28fc434ac (29 Oct 2026): Edge on an AMD RX 9070 XT crashed (0xC0000005) with the sandbox, without it and without the graphics process. The report held the first line of the last try only.
+test('a browser that crashes every way, the last try too, carries the last try\'s own exit code in the diagnostic', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const crash = code => Error(`browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launched> pid=1\n[pid=1] <process did exit: exitCode=${code}, signal=null>`);
+  const tried = [];
+  const {host} = await hostWith(async options => {
+    const noGraphics = (options.args ?? []).includes('--disable-gpu');
+    tried.push(`${options.chromiumSandbox}:${noGraphics}`);
+    throw crash(noGraphics ? 3221226505 : 3221225477);
+  });
+  await assert.rejects(host.start(), error => {
+    assert.deepEqual(tried, ['true:false', 'false:false', 'false:true']);
+    assert.ok(error.diagnostic.includes('last try: <process did exit: exitCode=3221226505, signal=null>'), error.diagnostic.join(' / '));
+    assert.ok(error.diagnostic.includes('<process did exit: exitCode=3221225477, signal=null>'), 'the first no-sandbox try keeps its own exit line');
+    assert.match(error.message, /(exit code 3221225477)/);
+    return true;
+  });
+});

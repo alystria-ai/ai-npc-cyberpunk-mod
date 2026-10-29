@@ -82,6 +82,8 @@ Request (`Content-Type: text/plain`, so the platform leaves the raw bytes alone)
 | 502 | `{error:"convai_unavailable"}` | Convai would not mint. |
 | 503 | `{error:"paused"}`, `{error:"busy"}`, `{error:"unavailable"}`, `{error:"unconfigured"}` | Kill switch, mint budget spent, Redis down, or settings missing. |
 
+Browser extensions: `OPTIONS` answers `204` with `Access-Control-Allow-Methods: POST, OPTIONS`, `Access-Control-Allow-Headers: Content-Type, x-convai-timestamp, x-convai-signature` and `Access-Control-Max-Age: 86400`. Every answer (the preflight, the token and every refusal) carries `Vary: Origin`, and echoes the caller's `Origin` in `Access-Control-Allow-Origin` only when it matches `^chrome-extension://[a-p]{32}$` (any extension id, so unpacked, Chrome Web Store and Edge Add-ons builds all work). A web page gets no cross-origin permission, and no credentials or exposed headers are allowed. This opens nothing the signature does not already gate.
+
 Turns are recorded when a request passes the rate limits, so a reply the client did not receive is reported again on its retry (a small over-count, in the safe direction). A request refused earlier (signature, version, kill switch, rate limit) records nothing, and the bridge keeps the count for next time.
 
 ## Settings (environment variables)
@@ -196,7 +198,7 @@ Other top-level fields are accepted and kept with the body. Anything else is a 4
 | 400 / 413 | `{error:"bad_request" \| "too_large"}` | Malformed body, or more than 65,536 bytes. |
 | 401 | `{error:"unauthorized"}` or `{error:"stale", serverTime}` | Bad signature, or a clock more than 120 s off (as for the token request). |
 | 404 | `{error:"not_found"}` | `ERROR_REPORTS_OFF` is set. The bridge reads this as "this backend has no error endpoint" and stops sending for the session. |
-| 405 | `{error:"method_not_allowed"}` | Not a POST (`Allow: POST`). |
+| 405 | `{error:"method_not_allowed"}` | Not a POST or OPTIONS (`Allow: POST, OPTIONS`). |
 | 429 | `{error:"rate", retryAfterSeconds}` | A limit below (`Retry-After` is set). |
 | 503 | `{error:"unconfigured"}` or `{error:"unavailable"}` | Signing secret or store missing; or Redis down (`Retry-After: 30`, fails closed: nothing is kept). |
 

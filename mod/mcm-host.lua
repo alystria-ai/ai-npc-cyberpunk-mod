@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The Companion Manager inside Mod Configuration Menu (MCM, Nexus Mods 31640), version 0.10.5 or later. This is the second host of
 -- the page that mod/manager-ui.lua builds (the first is Native Settings UI, mod/nsui.lua): it registers one provider, "AI NPC
 -- Cyberpunk Mod", with MCM and gives MCM the page as a schema of categories and rows. The pages, the actions and the rules for
@@ -701,7 +702,7 @@ end
 -- tells the player. The second value is the kind of the refusal: 'seated' for a plain sit, nil otherwise.
 M.STAND_UP = 'Stand up to open the Companion Manager'
 local function refusal()
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player or not player:IsAttached() or Game.GetSystemRequestsHandler():IsPreGame() then return 'Load a save first.' end
     local boxOk, boxOpen = pcall(function() return player:ConvaiComposerOpen() end)
     if boxOk and boxOpen then return 'Close the text box first.' end

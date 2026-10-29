@@ -11,7 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs';
 import {MistralError, newTrace} from './mistral-client.mjs';
 import {ErrorEvents, authCauseDetail, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
-  readQueue, recordErrorEvent, recordErrorEventSync, sentPath, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
+  queueRecord, readQueue, recordErrorEvent, recordErrorEventSync, sentPath, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
 import {ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, errorLines, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
@@ -164,6 +164,28 @@ test('a failed turn is reported only when it is not the player\'s own doing', ()
   assert.equal(reportableTurnFailure(new Error('Microphone device unavailable'), {microphone: true}), false);
   assert.equal(reportableTurnFailure(Object.assign(new Error('silent'), {code: 'MIC_SILENT'}), {microphone: true}), false);
   assert.equal(reportableTurnFailure(new Error('Convai connection closed'), {microphone: true}), true);
+});
+
+test('Local AI that cannot be used for a reason of the PC is not reported even with no error code (an automatic reaction carries none), and one that failed to start is', () => {
+  const unavailable = reason => Object.assign(new Error(`[local:unavailable] ${reason}`), {name: 'LocalAiUnavailable', code: 'local-unavailable', reason});
+  for (const reason of ['no-gpu', 'low-memory', 'not-installed', 'mature-off']) assert.equal(reportableTurnFailure(unavailable(reason)), false, reason);
+  for (const reason of ['start-failed', 'crashed']) assert.equal(reportableTurnFailure(unavailable(reason)), true, reason);
+});
+
+test('a full disk is never recorded: not as an exception, a rejection, a failed turn or a bridge that could not start', async () => {
+  const f = await folders();
+  try {
+    const messages = ['ENOSPC: no space left on device, write', "ENOSPC: no space left on device, open 'C:/Users/Alice/x.json'", 'EDQUOT: disk quota exceeded, write'];
+    for (const message of messages) {
+      for (const kind of ['bridge-exception', 'bridge-rejection', 'turn-failed']) {
+        assert.equal(queueRecord({kind, message: `custom: ${message}`, frame: 'guarded-file.mjs:53 async atomicFile'}, START), null, `${kind}: ${message}`);
+        assert.equal(await recordErrorEvent(f.state, {kind, message, frame: 'x.mjs:1'}, {now: START}), null);
+      }
+    }
+    assert.equal(queueRecord({kind: 'bridge-crash', message: 'The bridge exited unexpectedly', frame: 'launch error: ENOSPC: no space left on device, write'}, START), null);
+    assert.deepEqual(await readQueue(f.state, {now: START}), []);
+    assert.ok(queueRecord({kind: 'bridge-exception', message: 'ENOENT: no such file or directory, open', frame: 'x.mjs:1'}, START), 'another file error still counts');
+  } finally { await f.cleanup(); }
 });
 
 test('the game ending a talk is not a fault: V interrupting or the game pausing or loading is never reported', () => {
@@ -1072,6 +1094,18 @@ test('a Scripts of one game with the Runtime of the other is one setup-problem e
     const queue = await readQueue(f.state, {now: START});
     const mismatch = queue.find(item => item.message === 'versions mismatch');
     assert.deepEqual(mismatch.detail, {scripts: '0.3.2', runtime: '0.3.1', runtimeGame: '2.31'});
+  } finally { await f.cleanup(); }
+});
+
+test('voice files missing from the Runtime Python are one setup-problem event with the module names, a name shape only (report 0b8367fd0ebd2f2f)', async () => {
+  const f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.setupChecked({checks: [{id: 'python', state: 'problem', code: 'incomplete', layout: 'lib', missing: ['urllib', 'urllib.parse', 'C:/Users/x/y', '_distutils_hack', 7], missingCount: 4}]});
+    await untilQueued(f, 1);
+    const [record] = await readQueue(f.state, {now: START});
+    assert.equal(record.message, 'python incomplete');
+    assert.deepEqual(record.detail, {missingModules: 'urllib,urllib.parse,_distutils_hack'});
   } finally { await f.cleanup(); }
 });
 

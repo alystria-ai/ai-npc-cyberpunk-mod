@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {MistralHost, attachMistral} from './mistral-host.mjs';
-import {TextProviderHost, attachTextProvider, localRoute, mistralRoute, isLocalUnavailable, CLOUD_CHAT_LIMITS, HOLDING_LINES} from './text-provider-host.mjs';
+import {TextProviderHost, attachTextProvider, customRoute, localRoute, mistralRoute, isLocalUnavailable, CLOUD_CHAT_LIMITS, HOLDING_LINES} from './text-provider-host.mjs';
 import {MistralMemory, MEMORY_LIMITS} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {MistralProvider} from './mistral-key.mjs';
@@ -1074,4 +1074,137 @@ test('two strangers on one crowd template keep their own turns; the same strange
       ['Crowd person: profile=resident-female entity=10009597ULL earlier-turns=0', 'Crowd person: profile=resident-female entity=11146316ULL earlier-turns=0',
         'Crowd person: profile=resident-female entity=10009597ULL earlier-turns=1']);
   } finally { await close(); }
+});
+
+// ---- Companions can see on the text providers (docs/COMPANION_VISION.md, "Text providers") -------------------------------------------------------------------------------
+
+const PICTURE = [{mime: 'image/jpeg', base64: Buffer.from('a picture of a street').toString('base64')}];
+const hasPicture = message => Array.isArray(message?.content) && message.content.some(part => part.type === 'image_url');
+
+test('Mistral: a turn with a picture carries it in the LAST user message only, and everything before it is byte for byte the request without a picture', async () => {
+  // Two fresh hosts, so the second request has the same history as the first (a host remembers the exchange).
+  const requests = [];
+  for (const visionImages of [PICTURE, undefined]) {
+    const {server, host, close} = await harness(() => 'I see a street, V.');
+    try { await host.reply(turn('what do you see?', visionImages ? {visionImages} : {})); requests.push(server.requests[0].body.messages); } finally { await close(); }
+  }
+  const [withPicture, without] = requests;
+  assert.equal(withPicture.length, without.length);
+  const last = withPicture.at(-1);
+  assert.equal(last.role, 'user');
+  assert.ok(Array.isArray(last.content), 'the last user message holds parts');
+  assert.equal(last.content[0].type, 'image_url');
+  assert.equal(last.content[0].image_url.url, `data:image/jpeg;base64,${PICTURE[0].base64}`);
+  assert.equal(last.content.at(-1).type, 'text');
+  assert.match(last.content.at(-1).text, /^\[PICTURE: what V can see around V right now/);
+  assert.ok(last.content.at(-1).text.endsWith(without.at(-1).content), "V's words and the live context follow the note unchanged");
+  // The cached prefix: every earlier message is the same string in both requests, and no earlier message holds a picture.
+  assert.deepEqual(withPicture.slice(0, -1), without.slice(0, -1));
+  assert.ok(withPicture.slice(0, -1).every(message => typeof message.content === 'string'));
+  assert.equal(hasPicture(without.at(-1)), false);
+  assert.equal(typeof without.at(-1).content, 'string', 'a turn without a picture is the request it always was');
+});
+
+test('Mistral: a picture goes only to a model known to take one, and never with a reaction', async () => {
+  const server = await fakeServer(() => 'Fine.');
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
+  await provider.load(); provider.setPreference('mistral'); provider.apply();
+  const memory = await MistralMemory.open({path: null});
+  const route = mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, model: () => ['some-text-only-model']});
+  const host = new TextProviderHost({provider, memory, personas: book, routes: {mistral: route}});
+  try {
+    assert.equal(route.imagesFor('ministral-8b-latest'), true);
+    assert.equal(route.imagesFor('ministral-14b-latest'), true);
+    assert.equal(route.imagesFor('ministral-3b-latest'), true);
+    assert.equal(route.imagesFor('some-text-only-model'), false);
+    await host.reply(turn('hello', {visionImages: PICTURE}));
+    assert.equal(hasPicture(server.requests[0].body.messages.at(-1)), false, 'a model not on the list is never sent a picture');
+  } finally { host.close(); await server.close(); }
+  const second = await harness(() => 'Fine.');
+  try {
+    await second.host.reply(turn('hello', {visionImages: PICTURE, reaction: {phase: 'battle', kind: 'bark', maxWords: 8}}));
+    assert.equal(second.server.requests.some(request => request.body.messages.some(hasPicture)), false, 'a reaction never carries a picture');
+  } finally { await second.close(); }
+});
+
+test('Mistral: a model that refuses the picture is asked again at once without it, the reply still comes, and it is not sent one again', async () => {
+  const seen = [];
+  const server = await fakeServer(body => {
+    const withPicture = body.messages.some(hasPicture);
+    seen.push(withPicture);
+    return withPicture ? {status: 400, message: 'Image inputs are not supported by this model'} : 'I hear you, V.';
+  });
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
+  await provider.load(); provider.setPreference('mistral'); provider.apply();
+  const memory = await MistralMemory.open({path: null});
+  const refused = [];
+  const logs = [];
+  const route = mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, onImagesRejected: (...args) => refused.push(args)});
+  const host = new TextProviderHost({provider, memory, personas: book, routes: {mistral: route}, log: line => logs.push(line)});
+  try {
+    const first = await host.reply(turn('what do you see?', {visionImages: PICTURE}));
+    assert.equal(first.text, 'I hear you, V.');
+    assert.deepEqual(seen, [true, false], 'the refused request was repeated without the picture');
+    assert.deepEqual(refused, [['mistral', 'ministral-8b-latest']]);
+    assert.ok(logs.some(line => /\[Vision\] .*would not take the picture/.test(line)));
+    await host.reply(turn('and now?', {visionImages: PICTURE}));
+    assert.deepEqual(seen, [true, false, false], 'no picture went to that model again');
+  } finally { host.close(); await server.close(); }
+});
+
+test('Custom: the route sends a picture until the endpoint refuses one, then never again for that lease, and says so', () => {
+  const refused = [];
+  const adapt = {};
+  const custom = {ready: true, model: 'gpt-test', origin: 'http://127.0.0.1:9', chatUrl: 'http://127.0.0.1:9/v1/chat/completions', local: true};
+  const route = customRoute({provider: {noteSuccess() {}, noteLimit() {}}, custom, chat: async () => ({}), onImagesRejected: (...args) => refused.push(args)});
+  assert.equal(route.visionAllowed(), true);
+  assert.equal(route.imagesFor('gpt-test', {adapt}), true);
+  route.noteImagesRejected('gpt-test', {adapt});
+  assert.equal(adapt.noImages, true);
+  assert.equal(route.imagesFor('gpt-test', {adapt}), false, 'this lease no longer gets a picture');
+  assert.deepEqual(refused, [['custom', 'gpt-test']]);
+});
+
+test('local: a picture goes only to a server started with its vision projector, and the reply is the same kind of reply', async () => {
+  for (const vision of [false, true]) {
+    const llama = await fakeServer(() => 'Neon everywhere, V.');
+    const server = {status: () => ({state: 'ready'}), touch() {}, prewarm: async () => {},
+      ensure: async () => ({endpoint: llama.endpoint, apiKey: 'session-key-abcdef123456', model: 'gemma-test', tier: 'standard', contextSize: 16384, vision})};
+    const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
+    await provider.load(); provider.setPreference('local'); provider.apply();
+    const memory = await MistralMemory.open({path: null});
+    const host = new TextProviderHost({provider, memory, personas: book, routes: {local: localRoute({server, provider})}});
+    try {
+      const answer = await host.reply(turn('what do you see?', {visionImages: PICTURE}));
+      assert.equal(answer.text, 'Neon everywhere, V.');
+      assert.equal(hasPicture(llama.requests[0].body.messages.at(-1)), vision, vision ? 'the projector is loaded: the picture goes' : 'no projector: text only');
+      assert.ok(llama.requests[0].body.messages.slice(0, -1).every(message => typeof message.content === 'string'));
+    } finally { host.close(); await llama.close(); }
+  }
+});
+
+test('attachTextProvider: the picture of a turn comes from the vision policy, the phone host (no policy) gets none, and a policy that is off adds nothing', async () => {
+  const calls = [];
+  const original = {reply: async config => ({text: 'convai', config}), prepare: async () => {}, warm: async () => {}, readiness: async () => ({}), lateEmotion: async () => ({}), refreshIdle: async () => true,
+    voiceChannel: () => ({})};
+  const make = vision => {
+    const host = {...original, vision, turnImages: async (config, phase) => { calls.push([config.visionTurn, phase]); return vision?.images ?? null; }};
+    const seen = [];
+    const provider = {active: true, route: 'mistral'};
+    attachTextProvider(host, {provider, mistral: {reply: async config => { seen.push(config); return {text: 'ok'}; }}});
+    return {host, seen};
+  };
+  const on = make({active: true, images: PICTURE});
+  await on.host.reply({visionTurn: 'turn-1', text: 'hi'});
+  assert.deepEqual(on.seen[0].visionImages, PICTURE);
+  assert.deepEqual(calls, [['turn-1', 'reply']]);
+  await on.host.reply({visionTurn: 'turn-2', text: 'hi', reaction: {phase: 'battle'}});
+  assert.equal(on.seen[1].visionImages, undefined, 'a reaction is not asked for a picture');
+  const off = make({active: false, images: PICTURE});
+  await off.host.reply({visionTurn: 'turn-3', text: 'hi'});
+  assert.equal(off.seen[0].visionImages, undefined, 'the setting is off: no picture is asked for');
+  const phone = make(undefined);
+  await phone.host.reply({text: 'hi'});
+  assert.equal(phone.seen[0].visionImages, undefined, 'the phone host has no vision policy');
+  assert.equal(calls.length, 1, 'turnImages was asked once in all');
 });

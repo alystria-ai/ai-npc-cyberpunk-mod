@@ -157,7 +157,13 @@ local function writeFile(name, text)
     end
     local file = io.open(path .. '.tmp', 'wb')
     if not file then return false end
-    file:write(text); file:close()
+    -- A write or close that fails (a full disk) leaves the saved file alone: the temporary file is dropped and nothing is replaced.
+    local written = file:write(text)
+    local closed = file:close()
+    if not written or not closed then
+        os.remove(path .. '.tmp')
+        return false
+    end
     os.remove(path)
     return os.rename(path .. '.tmp', path) ~= nil
 end

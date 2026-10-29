@@ -22,7 +22,7 @@
 // Mature content as on or off only; the graphics card name and memory, the PC's total RAM and its commit limit (RAM plus paging files); the processor, the Windows edition, build and display language, the security products Windows knows and Smart App Control, whether the game runs as administrator, the game's drive (kind, free space, under Program Files or not), the screen's size and refresh rate, and the NAMES of the installed mods (bridge/system-facts.mjs, saved for 7 days and refreshed in the background); the setup check's lines; whether the Runtime's code files match the release
 // (counts and up to five file names, bridge/runtime-integrity.mjs, worked out when the report is built); for a bridge crash, the exit code in words,
 // the stage the bridge was in and the summary of Node's own report (bridge/bridge-diagnostics.mjs); up to 150 log lines around the error
-// (bridge stderr, the service log, the launcher, the mod's own logs, the redscript log's error lines); the install id hashed again.
+// (bridge stderr, the service log, the launcher, the mod's own logs, the redscript log's error lines; for a setup problem or a Lua error also the error, warning, failed-load and manager-host lines of Cyber Engine Tweaks' own log and scripting log, bridge/cet-log.mjs); the install id hashed again.
 // Never: keys, tokens, conversation text, memories, typed lines, audio, the Windows user name. Every text goes through the support
 // report's redactor (bridge/support-report.mjs) with every key file's value as a literal to scrub, then a filter that removes
 // anything that looks like conversation text (long quoted text, text=/reply=/prompt= values), then the user name.
@@ -33,6 +33,7 @@ import os from 'node:os';
 import {accountNames, createRedactor, credentialSecrets, customServerSecrets, setupLine, tailFile} from './support-report.mjs';
 export {accountNames};
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
+import {cetLines} from './cet-log.mjs';
 import {cachedGraphicsCards, cachedMemoryFacts} from './setup-check.mjs';
 import {systemFactsNow} from './system-facts.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
@@ -49,7 +50,7 @@ const LINE_LIMIT = 300;
 // `engine` and the graphics-memory numbers are what ErrorEvents.voiceFailed records (they never reached a report before: the voice reports of 2026-10-22 all had an empty detail), the `empty*` ones
 // how a server the player runs ended an answer with no text (emptyAnswerDetail in bridge/error-events.mjs): a short word and counts, never text.
 const DETAIL_KEYS = new Set(['provider', 'errorCode', 'localReason', 'microphone', 'log', 'context', 'scripts', 'runtime', 'detail',
-  'scriptsGame', 'runtimeGame', 'engine', 'gpuDedicatedMiB', 'gpuSharedMiB', 'emptyFinish', 'emptyEvents', 'emptyPieces', 'emptyThinking', 'emptyTokens', 'emptyMs',
+  'scriptsGame', 'runtimeGame', 'missingModules', 'engine', 'gpuDedicatedMiB', 'gpuSharedMiB', 'emptyFinish', 'emptyEvents', 'emptyPieces', 'emptyThinking', 'emptyTokens', 'emptyMs',
   // Why the sign-in backend could not be reached: one network code (ENOTFOUND, ECONNRESET, UND_ERR_CONNECT_TIMEOUT, TimeoutError ...), bridge/error-events.mjs authCauseDetail.
   'authCause']);
 // The game's setup row "service never" says that, when the game loaded its save, nothing of this game session had started the conversation service (the Runtime or its
@@ -67,6 +68,22 @@ const LOG_SOURCES = [
   {id: 'cet-mod', lines: 15},
   {id: 'redscript', lines: 10, errors: true},
 ];
+// A setup problem or a Lua error is often explained by CET itself (a mod it could not load, a Lua error of another mod, the host the Companion Manager needs: 4 of 11
+// "nsui missing" installs of 0.3.4 listed Native Settings UI or Mod Configuration Menu and had none registered, 2026-10-29). Those two kinds also carry the interesting lines of CET's own
+// log and of its scripting log (bridge/cet-log.mjs): errors, warnings, failed loads and anything that names the manager's two hosts. The 150 lines stay 150 for every kind:
+// the CET sources take their lines from the others' shares, so a report is no larger than before and the backends' 65536 byte limit and the sender's 60 KB cap still hold.
+export const CET_LOG_KINDS = new Set(['setup-problem', 'lua-error']);
+const CET_LOG_SOURCES = [
+  {id: 'bridge-stderr', lines: 55, anchor: true},
+  {id: 'service', lines: 10},
+  {id: 'launcher', lines: 5},
+  {id: 'probe', lines: 25, anchor: true},
+  {id: 'cet-mod', lines: 10},
+  {id: 'redscript', lines: 10, errors: true},
+  {id: 'cet', lines: 20, cet: true},
+  {id: 'cet-scripting', lines: 15, cet: true},
+];
+export const logSourcesFor = kind => CET_LOG_KINDS.has(kind) ? CET_LOG_SOURCES : LOG_SOURCES;
 
 const clip = (value, size = 120) => typeof value === 'string' ? value.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').slice(0, size) : undefined;
 const today = now => new Date(now).toISOString().slice(0, 10);
@@ -190,6 +207,9 @@ export function logPaths({game, modRoot, runtime, stateDirectory}) {
     probe: runtime ? join(runtime, 'probe.log') : null,
     'cet-mod': modRoot ? join(modRoot, 'AiNpcCyberpunkMod.log') : null,
     redscript: game ? join(game, 'r6', 'logs', 'redscript_rCURRENT.log') : null,
+    // Cyber Engine Tweaks' own logs (bin/x64/plugins/cyber_engine_tweaks/): what it did with every mod, and the scripting console.
+    cet: game ? join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'cyber_engine_tweaks.log') : null,
+    'cet-scripting': game ? join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'scripting.log') : null,
   };
 }
 
@@ -282,13 +302,14 @@ const needleOf = message => String(message ?? '').replace(/^\w*Error: /, '').rep
 async function collectLogs({paths, record, clean}) {
   const result = [];
   const needle = needleOf(record.message);
-  for (const source of LOG_SOURCES) {
+  for (const source of logSourcesFor(record.kind)) {
     const path = paths[source.id];
     if (!path) continue;
     const tail = await tailFile(path, {maxBytes: 1024 * 1024, maxLines: 4000});
     if (!tail?.lines.length) continue;
     let lines = tail.lines;
     if (source.errors) lines = errorLines(lines).slice(-source.lines);
+    else if (source.cet) lines = cetLines(lines).slice(-source.lines);
     else {
       let at = -1;
       if (source.anchor && needle.length >= 8) for (let index = lines.length - 1; index >= 0 && at < 0; index--) if (lines[index].includes(needle)) at = index;
@@ -316,10 +337,11 @@ export async function captureLogs({record, game, modRoot, runtime, stateDirector
 
 // A kept excerpt, checked again and put through the redactor once more (the file is the player's to edit): known sources only, the share of lines
 // each source has, text lines only.
-function keptLogs(logs, clean) {
-  const shares = new Map(LOG_SOURCES.map(source => [source.id, source.lines]));
+function keptLogs(logs, clean, kind) {
+  const sources = logSourcesFor(kind);
+  const shares = new Map(sources.map(source => [source.id, source.lines]));
   const out = [];
-  for (const item of Array.isArray(logs) ? logs.slice(0, LOG_SOURCES.length) : []) {
+  for (const item of Array.isArray(logs) ? logs.slice(0, sources.length) : []) {
     if (!item || typeof item.source !== 'string' || !shares.has(item.source) || !Array.isArray(item.lines)) continue;
     const lines = item.lines.slice(-shares.get(item.source)).filter(line => typeof line === 'string')
       .map(line => clean(line.length > LINE_LIMIT + 6 ? `${line.slice(0, LINE_LIMIT)} [cut]` : line)).filter(line => line.trim() !== '');
@@ -388,7 +410,7 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
       system: {gpu, totalRamMiB: wholeMiB(facts?.totalRamMiB), commitLimitMiB: wholeMiB(facts?.commitLimitMiB), ...pcFacts},
       setup: (await collectSetup({runtime, gameInfo, now: now()})).map(line => clean(line)),
       // A queued record carries the excerpt taken when the event was seen; one without (an older queue file) is read now.
-      logs: Array.isArray(record.logs) ? keptLogs(record.logs, clean) : await collectLogs({paths: logPaths({game, modRoot, runtime, stateDirectory}), record, clean}),
+      logs: Array.isArray(record.logs) ? keptLogs(record.logs, clean, record.kind) : await collectLogs({paths: logPaths({game, modRoot, runtime, stateDirectory}), record, clean}),
     },
   };
   payload.report.privacy = {redactions: {...stats}};

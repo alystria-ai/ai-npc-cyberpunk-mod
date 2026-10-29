@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- What V is wearing and carrying, for mod conversations (docs/PLAYER_GEAR_CONTEXT.md).
 -- Read-only and on demand: the snapshot is read when a conversation turn is built and reused for MAX_AGE seconds,
 -- never per frame. Every native call is guarded; a failure drops that item (or the whole snapshot), never the turn.
@@ -44,7 +45,7 @@ local function failure(err) return (tostring(err):gsub('^[^:]*:%d+: ', ''):gsub(
 -- Default native adapter. Every call is guarded by the caller; tests replace it.
 local function nativeAdapter()
     local N = {}
-    function N.player() return Game.GetPlayer() end
+    function N.player() return convaiPlayer() end
     function N.ready(player)
         return player ~= nil and player:IsAttached() and not player:IsDeadNoStatPool() and not player:IsReplacer()
     end

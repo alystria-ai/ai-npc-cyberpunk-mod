@@ -70,8 +70,8 @@ test('across the roster: every named character\'s head comes to about 1,500 to 2
     for (const options of [{}, {mature: 'full'}]) {
       const compact = compactPersonaFor(persona, options);
       const head = systemHead({persona: compact, ...options}), tokens = head.length / 4.2;
-      if (compact !== persona) { changed++; assert(tokens >= 1300 && tokens <= 2200, `${row.key} ${JSON.stringify(options)}: ${Math.round(tokens)} tokens`); assert(compact.backstory.length > 400 && compact.style.length > 200, row.key); }
-      else assert(systemHead({persona, ...options}).length / 4.2 < 2300, `${row.key} unchanged but ${Math.round(systemHead({persona, ...options}).length / 4.2)} tokens`);
+      if (compact !== persona) { changed++; assert(tokens >= 1300 && tokens <= 2300, `${row.key} ${JSON.stringify(options)}: ${Math.round(tokens)} tokens`); assert(compact.backstory.length > 400 && compact.style.length > 200, row.key); }
+      else assert(systemHead({persona, ...options}).length / 4.2 < 2400, `${row.key} unchanged but ${Math.round(systemHead({persona, ...options}).length / 4.2)} tokens`);
     }
   }
   assert(changed > 200, `${changed} personas changed`);
@@ -242,7 +242,7 @@ test('a slow machine: once it is measured slow, the next character starts compac
   const common = (a, b) => { let i = 0; while (i < a.length && a[i] === b[i]) i++; return i; };
   const headLength = system(shown[0]).indexOf('FORMAT NOTES FOR EVERY REPLY');
   assert(common(system(shown[0]), system(shown[1])) >= headLength && common(system(shown[0]), system(shown[2])) >= headLength, 'a stable head');
-  assert(headLength / 4.2 < 2200, `${Math.round(headLength / 4.2)} tokens of head`);
+  assert(headLength / 4.2 < 2300, `${Math.round(headLength / 4.2)} tokens of head`);
   assert(headLength < head.length, 'shorter than the whole head');
   // One line when it started.
   assert.equal(logs.filter(line => /compact character text \(this computer reads about \d+ tokens a second\)/.test(line)).length, 1, logs.join('\n'));

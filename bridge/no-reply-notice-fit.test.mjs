@@ -11,7 +11,11 @@ const NOTICES = [
   ['Local AI could not start. Check Local AI in Settings > Conversation provider.', ['init.lua', 'phone-chat.lua']],
   ['Not enough free graphics memory to start Local AI. Try a smaller model in Settings.', ['init.lua', 'phone-chat.lua']],
   ['Local AI runs mostly on your processor here, so replies will be slow.', ['init.lua']],   // 'local-cpu': a model mostly on the processor; the bridge's few words after it are data
-  ['The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.', ['init.lua']],   // 'vision-border': Windows' capture border around the game (Companions can see, Convai)
+  ['Local AI is back on your graphics card, so replies are faster again.', ['init.lua']],   // 'local-gpu': the model is whole on the card again
+  ['The yellow border is Windows showing a capture. Turn off Companions can see to stop it.', ['init.lua']],   // 'vision-border': Windows' capture border around the game (Companions can see)
+  ['This Local AI model cannot see pictures, so replies use only your words.', ['init.lua']],   // 'vision-local-no-model': Companions can see is on and the Local AI model has no vision
+  ['This model can see pictures with its vision file, from {folder}/vision on Hugging Face.', ['init.lua']],   // 'vision-local-no-file': the pack's vision file is a separate download that is not installed; {folder} is local-ai or mature
+  ['Your Custom endpoint does not accept pictures, so replies use only your words.', ['init.lua']],   // 'vision-custom-no-images': the Custom endpoint refused a picture
   ['Local AI is still loading its model. Try again in a moment.', ['service-status.lua']],
   ['Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.', ['service-status.lua']],
   ['Local AI is not ready, so Convai took that message and did not answer in time.', ['service-status.lua']],
@@ -21,7 +25,7 @@ const NOTICES = [
 const CODES = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const unescape = text => text.replace(/\\(["\\n])/g, (_, char) => char === 'n' ? '\n' : char);
-const shown = text => text.replace('{seconds}', '90');
+const shown = text => text.replace('{seconds}', '90').replace('{folder}', 'local-ai');
 
 test('each notice is one paragraph that fits two lines of the warning line, and the scripts that show it hold it', () => {
   for (const [text, files] of NOTICES) {
@@ -38,6 +42,7 @@ for (const code of CODES) {
       assert.ok(translated, `${code} has no translation of: ${text}`);
       assert.notEqual(translated, text, `${code} copies the English: ${text}`);
       assert.equal(translated.includes('{seconds}'), text.includes('{seconds}'), `${code}: {seconds} in ${text}`);
+      assert.equal(translated.includes('{folder}'), text.includes('{folder}'), `${code}: {folder} in ${text}`);
       assert.deepEqual(noticeProblems(shown(translated)), [], `${code}: ${text}`);
     }
   });

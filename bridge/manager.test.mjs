@@ -952,24 +952,45 @@ test('Companions speak up is one select row, Often by default: four entries (Off
   `);
 });
 
-test('Companions can see has no setting any more: no row, an old saved companionVision (even false) is dropped on load, and an Apply for it is refused', () => {
+test('Companions can see: off by default, one on/off row on the Conversations page, a plain boolean saved in settings.json for the bridge, and Restore defaults turns it off', () => {
   run(`${managerFixture}
-    seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, companionVision = false}
+    seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}}
     for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
     files['runtime/settings.json'], saved = 'seed', nil
     manager.reset(); manager.configure(api, profiles)
-    assert(manager.snapshot(player).settings.companionVision == nil, 'the retired key is still in the snapshot')
-    assert(saved and saved.companionVision == nil, 'the retired key was not dropped from settings.json')
-    assert(not manager.applySettings(player, {companionVision = true}) and manager.snapshot(player).settings.companionVision == nil)
+    assert(manager.snapshot(player).settings.companionVision == false, 'it is not off by default')
+    assert(saved and saved.companionVision == false, 'the default was not written to settings.json')
+    assert(not manager.applySettings(player, {companionVision = 'on'}) and manager.snapshot(player).settings.companionVision == false, 'a non-boolean was accepted')
+    assert(manager.applySettings(player, {companionVision = true}) and manager.snapshot(player).settings.companionVision == true)
+    assert(saved.companionVision == true, 'the choice was not written to settings.json')
+    assert(manager.applySettings(player, {companionVision = false}) and saved.companionVision == false)
+    -- A file that says true (the player's choice) keeps it; a wrong type reads as off.
+    seed.companionVision = true
+    files['runtime/settings.json'] = 'seed'
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.snapshot(player).settings.companionVision == true, 'a saved true was lost')
+    seed.companionVision = 'yes'
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.snapshot(player).settings.companionVision == false, 'a wrong type is not off')
   `);
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
-    assert(row('companionVision') == nil, 'the setting is still offered')
+    local vision = assert(row('companionVision'), 'the setting is not offered')
+    assert(vision.type == 'bool' and vision.value == false and vision.defaultValue == false and vision.label == 'Companions can see')
+    assert(vision.description:find('Off means nothing is captured', 1, true) and vision.description:find('every conversation provider', 1, true), 'the description does not say what it covers')
+    local conversations
     for _, category in ipairs(loaded.categories) do
-      for _, item in ipairs(category.settings or {}) do assert(item.label ~= 'Companions can see' and item.id ~= 'companionVision') end
+      for _, item in ipairs(category.settings or {}) do if item.id == 'companionVision' then conversations = category end end
     end
-    local result = registered.applyBatch('manager', {{id = 'companionVision', value = false}})
-    assert(result.ok == false, 'an Apply for the removed row was accepted')
+    assert(conversations and conversations.id == 'conversation-controls', 'it is not on the Conversations page')
+    assert(registered.applyBatch('manager', {{id = 'companionVision', value = true}}).ok)
+    assert(saved.companionVision == true)
+    loaded = registered.loadMod('manager')
+    assert(row('companionVision').value == true)
+    assert(not registered.applyBatch('manager', {{id = 'companionVision', value = 'on'}}).ok, 'a non-boolean was accepted')
+    local back = {}
+    for _, change in ipairs(core.defaults()) do back[change.id] = change.value end
+    assert(back.companionVision == false, 'Restore defaults does not name it, off')
   `);
 });
 
@@ -1942,7 +1963,7 @@ test('Local AI model: custom models are marked, show the memory they need or tha
 });
 
 test('select option width: the Lua estimate equals the test estimate, and a name that is too long is cut with an ellipsis and keeps its marker', () => {
-  const samples = ['Pocket · Performance', 'OmniVoice · Ultra Quality · needs pack', 'Qwen3.5-4B · uncensored', 'Mistral (free plan)', 'WWWW MMMM mmmm', '日本語のテスト', 'Español (México)', 'Русский', 'It’s'];
+  const samples = ['Pocket · Performance', 'OmniVoice · Ultra Quality · needs pack', 'Qwen3.5-4B · uncensored', 'Mistral', 'WWWW MMMM mmmm', '日本語のテスト', 'Español (México)', 'Русский', 'It’s'];
   const expected = samples.map(text => `{${JSON.stringify(text)}, ${optionUnits(text)}}`).join(', ');
   run(`${nsuiFixture}
     for _, pair in ipairs({${expected}}) do
@@ -3164,6 +3185,39 @@ test('Microphone is a Voices select: Windows default first, then the listed inpu
     assert(item.elements[3]:sub(-15) == '(not connected)', 'the marker is kept whole: ' .. item.elements[3])
     assert(registered.applyBatch('manager', {{id = 'micDevice', value = 1}}).ok)
     assert(manager.snapshot(player).settings.micDevice == nil and saved.micDevice == nil, 'Windows default removes the choice')
+  `);
+});
+
+test('Microphone: inputs the service flags as loopbacks carry (!) and the description explains it, the chosen one is warned about, nothing is left out or picked by the mod', () => {
+  run(`${nsuiFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    registered.loadMod('manager')
+    local plain = assert(row('micDevice'))
+    assert(not plain.description:find('(!)', 1, true), 'no flagged input listed: the usual text only')
+    jsonFixtures['mics-lb'] = {version = 1, state = 'ok', inputs = {'Microphone (Realtek(R) Audio)', 'Stereo Mix (Realtek(R) Audio)', 'CABLE Output (VB-Audio Virtual Cable)'},
+      loopback = {'Stereo Mix (Realtek(R) Audio)', 'CABLE Output (VB-Audio Virtual Cable)', 'Not Listed'}}
+    files['runtime/microphone-devices.json'] = 'mics-lb'; clock = clock + 2
+    registered.loadMod('manager')
+    local item = assert(row('micDevice'))
+    assert(#item.elements == 4, 'every input stays listed: ' .. table.concat(item.elements, '|'))
+    assert(item.elements[2] == 'Microphone (Realtek(R) Audio)' and not item.elements[2]:find('(!)', 1, true), 'a real microphone is not marked')
+    assert(item.elements[3]:find('(!)', 1, true) and item.elements[4]:find('(!)', 1, true), table.concat(item.elements, '|'))
+    assert(item.description:find('An input marked (!) looks like a loopback', 1, true), 'the description explains the mark')
+    assert(not item.description:find('The input you chose looks like', 1, true), 'nothing flagged is chosen yet')
+    assert(item.value == 1, 'the mod keeps the Windows default: it never picks a flagged input')
+    -- Choosing a flagged one saves its real name (not the marked label) and the description warns about the choice.
+    assert(registered.applyBatch('manager', {{id = 'micDevice', value = 3}}).ok)
+    assert(manager.snapshot(player).settings.micDevice == 'Stereo Mix (Realtek(R) Audio)')
+    registered.loadMod('manager')
+    item = assert(row('micDevice'))
+    assert(item.value == 3 and item.description:find('The input you chose looks like it carries PC sound', 1, true), item.description)
+    -- A long name is cut before its mark, never the other way round.
+    jsonFixtures['mics-long'] = {version = 1, state = 'ok', inputs = {'Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO) Extended Name'}, loopback = {'Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO) Extended Name'}}
+    files['runtime/microphone-devices.json'] = 'mics-long'; clock = clock + 2
+    registered.loadMod('manager')
+    item = assert(row('micDevice'))
+    assert(item.elements[2]:sub(-4) == ' (!)', item.elements[2])
   `);
 });
 
@@ -4398,10 +4452,10 @@ test('the Convai and Mistral key rows are always listed, whichever provider is c
     -- The switch is not a setting any more: the selector entry sets it (see the provider setting test).
     clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'useOwnConvaiKey', value = true}}).ok == false, 'useOwnConvaiKey is not an accepted setting id')
-    -- The player-facing text never names the embedded key or a paid plan.
+    -- The player-facing text never names the embedded key or a paid Convai plan. The Mistral row says a paid Mistral plan is needed for a key (true).
     for _, id in ipairs({'own-key', 'mistral-key', 'conversationProvider'}) do
       local text = (row(id).label or '') .. ' ' .. tostring(row(id).description or '') .. ' ' .. tostring(row(id).value or '')
-      for _, word in ipairs({'embedded', 'shipped', 'paid', 'premium', 'subscription'}) do
+      for _, word in ipairs(id == 'mistral-key' and {'embedded', 'shipped', 'premium', 'subscription'} or {'embedded', 'shipped', 'paid', 'premium', 'subscription'}) do
         assert(not text:lower():find(word, 1, true), id .. ' mentions ' .. word)
       end
     end
@@ -4432,7 +4486,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
     for _, id in ipairs(voices) do assert(id ~= 'voice-pack' and id ~= 'voice-status', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements
-    assert(#elements == 5 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local AI'
+    assert(#elements == 5 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral' and elements[4] == 'Local AI'
       and elements[5] == 'Custom (OpenAI-compatible)')
     assert(not tostring(row('conversationProvider').description):find('Groq', 1, true))
     -- Developer mode adds no row to Development.
@@ -4573,14 +4627,14 @@ test('The provider row says when the player key runs without memory or cannot ho
     assert(note() == 'Convai free tier: 63 of 100 left today', tostring(note()))
     state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true}}, 'blocked')
     -- The provider help ends with the status. What to do ends the Mistral key row's help (the provider help has no room for it in
-    -- every language): the limit (from the server), the reset, Mistral's rounded estimate, Local AI without a limit.
+    -- every language): the limit (from the server), the reset, Local AI without a limit, Mistral with the player's own key.
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
     local mistralHelp = row('mistral-key').description
     -- It says when the turns come back on this computer's clock (the next 00:00 UTC, convaiUiLocale.dailyResetClock), not "tomorrow".
     local resetAt = convaiUiLocale.dailyResetClock()
     assert(resetAt and resetAt:match('^%d%d:%d%d$'), tostring(resetAt))
-    assert(mistralHelp:find('You have used today’s 100 turns, which come back at ' .. resetAt .. '.', 1, true) and not mistralHelp:find('tomorrow', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
-      and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('about 5,000 turns a day', 1, true), mistralHelp)
+    assert(mistralHelp:find('You have used today’s 100 turns, which come back at ' .. resetAt .. '.', 1, true) and not mistralHelp:find('tomorrow', 1, true)
+      and mistralHelp:find('Local AI (unlimited) or Mistral (with your own key).', 1, true), mistralHelp)
     assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
     local limitText = lastParagraph(mistralHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)
@@ -4618,14 +4672,14 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-rejected'}); assert(id == 'quota-exhausted' and text:find('did not accept', 1, true))
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    -- The notice names today's turns (the limit the backend set, never a number written in the code) and the two ways on: Mistral with a
-    -- free key (about 5,000 a day) and Local AI (unlimited). It is two lines with a forced break in the game's warning frame, the first
+    -- The notice names today's turns (the limit the backend set, never a number written in the code) and the two ways on: Local AI
+    -- (unlimited) and Mistral with the player's own key. It is two lines with a forced break in the game's warning frame, the first
     -- sentence on line 1 and the detailed choice starting on a fresh line 2 (the width itself is checked in bridge/daily-notice-fit.test.mjs).
-    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used.\\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).', text)
+    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used.\\nTry Local AI (unlimited) or Mistral (your own key).', text)
     ownKey = {daily = {limit = 150, left = 0, blocked = true}}
     id, text = notice({errorCode = 'daily-limit', error = 'x'}); assert(text:find('Today’s 150 Convai turns', 1, true), 'the limit the status reports: ' .. text)
     ownKey = {}; id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(text == 'Today’s Convai turns are used.\\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).' and not text:find('{', 1, true), 'no limit known: ' .. text)
+    assert(text == 'Today’s Convai turns are used.\\nTry Local AI (unlimited) or Mistral (your own key).' and not text:find('{', 1, true), 'no limit known: ' .. text)
     ownKey = 'error'; id, text = notice({errorCode = 'daily-limit', error = 'x'})
     assert(text:find('Today’s Convai turns are used.', 1, true), 'the status could not be read: ' .. text)
     ownKey = {daily = {limit = 100, left = 0, blocked = true}}
@@ -4663,7 +4717,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     local provider = row('conversationProvider')
     assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
     assert(#provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
-      and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
+      and provider.elements[3] == 'Mistral' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
     assert(provider.description:find('memory stays on this computer', 1, true) and provider.description:find('Convai API key uses your own key', 1, true))
     assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
@@ -4671,8 +4725,8 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(not provider.description:find('needs Local AI pack', 1, true) and not provider.description:find('Recommended', 1, true) and not provider.description:find('recommended', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     local mistral = row('mistral-key')
-    assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral free API key' and mistral.value == 'Paste', mistral.label)
-    assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
+    assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral API key' and mistral.value == 'Paste', mistral.label)
+    assert(mistral.description:find('paid plan', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and not mistral.description:find('free', 1, true))
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(firstParagraph(provider.description) == firstParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')
@@ -4697,7 +4751,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     local function id(number) return (command.id:gsub(':1$', ':' .. number)) end
     answer('invalid', {version = 1, provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'invalid'}})
     mistral = row('mistral-key')
-    assert(mistral.label == 'Mistral free API key (Not added)' and mistral.value == 'Paste' and firstParagraph(mistral.description) == 'Mistral did not accept that key.', mistral.label)
+    assert(mistral.label == 'Mistral API key (Not added)' and mistral.value == 'Paste' and firstParagraph(mistral.description) == 'Mistral did not accept that key.', mistral.label)
     answer('unreadable', {provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'unreadable'}})
     assert(firstParagraph(row('mistral-key').description) == 'The clipboard could not be read.')
     answer('failed', {provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'failed'}})
@@ -4706,21 +4760,21 @@ test('The Conversation provider section offers the provider, Mature content, the
     answer('saved', {version = 1, provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', stt = false,
       model = 'mistral-small-latest', result = {id = id(2), state = 'saved'}})
     mistral = row('mistral-key')
-    assert(mistral.label == 'Mistral free API key (…abcd)' and mistral.value == 'Remove', mistral.label)
+    assert(mistral.label == 'Mistral API key (…abcd)' and mistral.value == 'Remove', mistral.label)
     assert(mistral.description:find('Deletes the saved key', 1, true) and mistral.description:find('last four characters', 1, true))
     assert(not mistral.description:find('Mistral did not accept', 1, true))
     answer('no-tail', {provider = 'mistral', effective = 'mistral', saved = true})
-    assert(row('mistral-key').label == 'Mistral free API key (Added)' and row('mistral-key').value == 'Remove')
+    assert(row('mistral-key').label == 'Mistral API key (Added)' and row('mistral-key').value == 'Remove')
     -- An answer to an older command is not shown, a damaged status reads as Convai without a key.
     answer('old', {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', result = {id = 'x:mkey:9', state = 'invalid'}})
-    assert(row('mistral-key').label == 'Mistral free API key (…abcd)' and not row('mistral-key').description:find('Mistral did not accept', 1, true))
+    assert(row('mistral-key').label == 'Mistral API key (…abcd)' and not row('mistral-key').description:find('Mistral did not accept', 1, true))
     answer('garbled', {provider = 7, effective = {}, saved = 'yes', tail = 5, limit = 'sometimes', stt = 'yes', model = 12})
     local state = manager.mistral()
     assert(state.provider == 'convai' and state.effective == 'convai' and state.saved == false and state.tail == nil
       and state.limit == nil and state.stt == false and state.model == nil and state.result == nil)
-    assert(row('mistral-key').label == 'Mistral free API key' and row('mistral-key').value == 'Paste')
+    assert(row('mistral-key').label == 'Mistral API key' and row('mistral-key').value == 'Paste')
     -- Limits and the waiting state are told in the first paragraph of the provider row's help.
-    for limit, text in pairs({rate = 'Mistral: free limit reached for now', daily = 'Mistral: free limit reached for now',
+    for limit, text in pairs({rate = 'Mistral: limit reached for now', daily = 'Mistral: limit reached for now',
       invalid = 'Mistral: key not accepted', model = 'Mistral: model unavailable'}) do
       answer('limit-' .. limit, {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', limit = limit})
       assert(note() == text, limit .. ': ' .. note())
@@ -4982,7 +5036,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     local id, text = notice({errorCode = 'mistral-key', error = 'x'})
     assert(id == 'mistral-key' and text:find('did not accept your key', 1, true) and text:find('Settings > Conversation provider', 1, true), text)
     id, text = notice({errorCode = 'mistral-limit', error = 'x'})
-    assert(id == 'mistral-limit' and text:find('free limit', 1, true) and not text:find('Convai', 1, true), text)
+    assert(id == 'mistral-limit' and text:find('limit is reached', 1, true) and not text:find('Convai', 1, true), text)
     id, text = notice({errorCode = 'mistral-model', error = 'x'})
     assert(id == 'mistral-model' and text:find('unavailable', 1, true) and text:find('a minute', 1, true), text)
     id, text = notice({keyNotice = 'mistral-no-key', text = 'Hello'})
@@ -5025,6 +5079,15 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     id, text = notice({keyNotice = 'local-model-fallback', text = 'Hello'})
     assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so another model was used instead.', text)
     assert(not text:find('Auto', 1, true))
+    -- A model that did not fit the graphics memory says how much it needs and how much is available for it beside the game (MiB from the bridge, shown as MB to the nearest 100).
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = 'Qwen3.5-2B', keyNoticeNeedMiB = 8912, keyNoticeAvailableMiB = 5796, text = 'Hello'})
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose needs about 9300 MB of graphics memory, but only 6100 MB are available for it beside the game, so Qwen3.5-2B was used instead.', text)
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeNeedMiB = 8912, keyNoticeAvailableMiB = 5796, text = 'Hello'})
+    assert(text:find('so another model was used instead.', 1, true), text)
+    for _, odd in ipairs({{'x', 5}, {0, 5}, {-5, 5}, {5e9, 5}, {8912, 'x'}, {8912, -1}}) do
+      id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = 'Qwen3.5-2B', keyNoticeNeedMiB = odd[1], keyNoticeAvailableMiB = odd[2], text = 'Hello'})
+      assert(text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Qwen3.5-2B was used instead.', 'odd numbers read as the generic sentence: ' .. text)
+    end
     sendProviderNotice({}, 'local-model-fallback', 'e')
     assert(#sent == 3 and sent[3] == 'local-model-fallback=e', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')
@@ -5381,6 +5444,7 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
     local manager = {developerMode = function() return developer end}
     local convaiNotices = {send = function(who, id, text) sent[#sent + 1] = {id = id, text = text}; return true end}
     local Game = {GetPlayer = function() return player end}
+    local convaiPlayer = function() return Game.GetPlayer() end
     local function log(message) logged[#logged + 1] = message end
     local speech = {}
     ${init.slice(textStart, textEnd)}
@@ -6252,10 +6316,10 @@ test('Custom endpoint is one button after the Mistral key row that opens a page 
     assert(page and page.name == 'Custom endpoint', 'the page category')
     local ids = {}
     for _, item in ipairs(page.settings) do ids[#ids + 1] = item.id end
-    assert(table.concat(ids, ',') == 'custom-url,custom-key,custom-model,custom-test', table.concat(ids, ','))
+    assert(table.concat(ids, ',') == 'custom-preset-gemini,custom-preset-groq,custom-url,custom-key,custom-model,custom-test', table.concat(ids, ','))
     for _, item in ipairs(page.settings) do assert(item.type == 'action', item.id) end
     local rows = dofile('custom-provider.lua').new({readJSON = function() return nil end}).rows()
-    assert(#rows == 4, 'the module has four rows')
+    assert(#rows == 6, 'the module has six rows')
     for index, item in ipairs(rows) do assert(page.settings[index].id == item.id and page.settings[index].label == item.label, item.id) end
     local back = row('custom-endpoint:back')
     assert(back, 'a Back action at the top of the page')

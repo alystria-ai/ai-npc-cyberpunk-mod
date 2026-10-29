@@ -313,6 +313,10 @@ function M.update(player)
                         elseif value.note == 'mic-device-gone' then
                             -- The input chosen in Settings > Voices > Microphone is not connected: the Windows default input opened instead (bridge/local-stt-capture.mjs).
                             convaiNotices.send(player, 'mic-device-gone', ui.t('The microphone you chose in Settings is not connected, so the Windows default input is used.'))
+                        elseif value.note == 'mic-loopback' then
+                            -- The Windows default input looks like a loopback or virtual one (Stereo Mix, CABLE Output, a mixer's Out) and the player has not chosen another:
+                            -- it may carry the far side of a call. Said once per session (bridge/mic-match.mjs).
+                            convaiNotices.send(player, 'mic-loopback', ui.t('{name} looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone.', {name = tostring(value.device or '?'):sub(1, 80)}))
                         elseif value.note == 'pack-available' then
                             -- The same, but an optional microphone pack hears this language and is not installed: the notice says where the help is.
                             convaiNotices.send(player, 'mic-english-only', ui.t('Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.'))

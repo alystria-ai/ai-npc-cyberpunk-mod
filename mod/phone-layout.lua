@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Small layout adjustment on our native phone widgets. No input interception.
 local M = convaiPhoneLayout or {patched = 0}
 local width, reserve = 132, 264
@@ -82,7 +83,7 @@ end
 -- no player (a wrapped manager update, a test) it asks for itself.
 function M.refresh(force, player, open)
     if player == nil then
-        player = Game.GetPlayer()
+        player = convaiPlayer()
         open = player and player:ConvaiPhoneIsOpen()
     end
     if not player or not open then

@@ -666,7 +666,7 @@ test('init.lua: the tick is in the 10 Hz branch after the poll gate, off costs o
   assert.match(initSource, /convaiOutfitApi = \{\s*setHome = function\(key, on\)/);
   // The game's own frustum test and the margins its reaction code uses; the world check is the battle observer's.
   assert.match(initSource, /IsInCameraFrustum\(npc, 2\.0, 0\.75\)/);
-  assert.match(initSource, /world = function\(\)\s*local sample = battleObserver\.sample\(Game\.GetPlayer\(\)\)/);
+  assert.match(initSource, /world = function\(\)\s*local sample = battleObserver\.sample\(convaiPlayer()\(\)\)/);
   assert.match(initSource, /standUp = function\(row, hold\) return companions\.outfitStandUp\(row\.serial, hold\) end/);
   assert.match(initSource, /sitAgain = function\(row, delay\) return companions\.outfitSitAgain\(row\.serial, delay\) end/);
   assert.match(initSource, /return sample\.vehicle and 'vehicle' or sample\.call and 'call' or sample\.sitting and 'v-seated' or 'scene'/);

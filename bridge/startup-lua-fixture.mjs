@@ -248,7 +248,7 @@ export const freshSettings = {
   developerMode: false, useOwnConvaiKey: false, conversationProvider: 'convai',
   battleReactionsChosen: false, battleReactions: true, lootReactionsChosen: false, lootReactions: true, decisionLedger: true, witnessReceipts: true, defaultsRevision: 1,
   eyeContactHeight: 0, headFollowStrength: 1, voiceProvider: 'pocket', omniSteps: 16, omniReference: 'long', keepPreparedVoices: true,
-  archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off', companionSpeakUp: 'normal', speakUpOftenGiven: true,
+  archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off', companionSpeakUp: 'normal', speakUpOftenGiven: true, companionVision: false,
   reputation: false, npcThreats: false, revengeAmbushes: false, voiceActivation: false, voiceChoices: false, remoteOmni: false, amdMiopen: true,
   // A first start gives the five actions that have a default key their key, once (keyDefaultsGiven); the two Johnny actions have none.
   keyBindings: {manager: 'IK_F4', text: 'IK_F6', voice: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F10'}, keyDefaultsGiven: true, companionOutfits: false, characterEddies: false, characterBonds: false, storyPacks: false, reachOuts: true,

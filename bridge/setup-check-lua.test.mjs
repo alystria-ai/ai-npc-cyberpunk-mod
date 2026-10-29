@@ -431,6 +431,10 @@ test('the microphone: the input in use, chosen or the Windows default, and a not
   assert(lineOf('microphone').state == 'note' and lineOf('microphone').description:find('Headset Mic (USB)', 1, true) and lineOf('microphone').description:find('is not connected', 1, true)
     and lineOf('microphone').description:find('Microphone (Realtek(R) Audio)', 1, true), tostring(lineOf('microphone').description))
   assert(#check.problems() == 0, 'a note is not a problem')
+  answer({microphone = {id = 'microphone', state = 'note', code = 'loopback', device = 'Default - Stereo Mix (Realtek(R) Audio)'}}); check.run()
+  assert(lineOf('microphone').state == 'note' and lineOf('microphone').description:find('Default - Stereo Mix (Realtek(R) Audio)', 1, true)
+    and lineOf('microphone').description:find('carries PC sound', 1, true) and lineOf('microphone').description:find('Settings > Voices > Microphone', 1, true), tostring(lineOf('microphone').description))
+  assert(#check.problems() == 0, 'the loopback note is not a problem')
 `));
 
 test('the browser, Local AI and the internet: every state has its own line and fix', () => run(String.raw`
@@ -717,6 +721,8 @@ test('the first load names Scripts and Runtime of different versions, a pack one
       'A pack is one folder too deep. See Help in Settings.'],
     ['internet', `{id = 'internet', state = 'problem', code = 'blocked', service = 'convai', host = 'api.convai.com'}`,
       'The conversation service cannot reach the internet. See Help in Settings.'],
+    ['disk', `{id = 'disk', state = 'problem', code = 'low', drive = 'C', freeGiB = 0.8}`,
+      'Your C: drive is almost full (0.8 GB free). Free space so the mod can save logs and memories.'],
     ['files', null, 'Some mod files are missing. Extract the update zip again. See Help in Settings.'],
   ];
   for (const [id, document, expected] of cases) {
@@ -732,6 +738,63 @@ test('the first load names Scripts and Runtime of different versions, a pack one
     `);
   }
 });
+
+test('a drive that is almost full has a Help row and is a problem the first load announces; a drive with room has neither', () => run(String.raw`
+  installFiles(); serviceRunning()
+  answer({disk = {id = 'disk', state = 'ok', code = 'enough', drive = 'C', freeGiB = 120.3}}); check.run()
+  assert(lineOf('disk') == nil and #check.problems() == 0, 'a drive with room needs no row')
+  answer({disk = {id = 'disk', state = 'unknown', code = 'unknown'}}); check.run()
+  assert(lineOf('disk') == nil and #check.problems() == 0, 'a drive that could not be read says nothing')
+  answer({disk = {id = 'disk', state = 'problem', code = 'low', drive = 'D', freeGiB = 1.9}}); check.run()
+  assert(lineOf('disk').state == 'problem' and lineOf('disk').label == 'Disk space', 'the row')
+  assert(lineOf('disk').description == 'Your D: drive is almost full (1.9 GB free). Free space so the mod can save logs and memories.', lineOf('disk').description)
+  assert(table.concat(check.problems(), ',') == 'disk')
+  assert(table.concat(check.reportLines(), '\n'):find('service disk: problem low drive=D freeGiB=1.9', 1, true), 'the short report carries the drive and the free space')
+`));
+
+test('voice files that are not on the disk (report 0b8367fd0ebd2f2f, No module named urllib): a Help row, the first-load notice, the short report; a worker that failed on them says the same', () => run(String.raw`
+  installFiles(); serviceRunning()
+  answer({python = {id = 'python', state = 'ok', code = 'ok', layout = 'lib', missing = {}, missingCount = 0}}); check.run()
+  assert(lineOf('python') == nil and #check.problems() == 0, 'a complete Python needs no row')
+  answer({python = {id = 'python', state = 'unknown', code = 'unknown', missing = {}, missingCount = 0}}); check.run()
+  assert(lineOf('python') == nil and #check.problems() == 0, 'a Python not looked at says nothing')
+  answer({python = {id = 'python', state = 'problem', code = 'incomplete', layout = 'lib', missing = {'urllib', 'urllib.parse', '_distutils_hack'}, missingCount = 3}}); check.run()
+  assert(lineOf('python').state == 'problem' and lineOf('python').label == 'Voice files', 'the row')
+  assert(lineOf('python').description:find('Reinstall the Full download from Nexus Mods', 1, true) and not lineOf('python').description:find('Hugging', 1, true), lineOf('python').description)
+  assert(table.concat(check.problems(), ',') == 'python', 'a critical problem')
+  assert(table.concat(check.reportLines(), '\n'):find('service python: problem incomplete layout=lib missing=urllib+urllib.parse+_distutils_hack', 1, true), 'the short report names the modules')
+  -- The same words when a voice worker failed on a missing module: the Help row of the Pocket voice.
+  answer({python = {id = 'python', state = 'ok', code = 'ok', missing = {}, missingCount = 0},
+    voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'pocket', cause = 'missing-files'}}); check.run()
+  assert(lineOf('voice').state == 'problem' and lineOf('voice').label == 'Pocket voice' and lineOf('voice').description:find('Reinstall the Full download from Nexus Mods', 1, true)
+    and not lineOf('voice').description:find('Restart the game', 1, true), tostring(lineOf('voice').description))
+  assert(#check.problems() == 0, 'the worker row has no first-load notice of its own: the python row is the one that announces')
+`));
+
+test('the first load announces voice files that are not on the disk, once, and the console says it in English too', () => run(String.raw`
+  installFiles(); serviceRunning()
+  check.tick(true, true); advance(12); check.tick(true, true)
+  local request = json.decode(files['runtime/setup-check-request.json'])
+  answer({python = {id = 'python', state = 'problem', code = 'incomplete', layout = 'lib', missing = {'urllib', 'urllib.parse'}, missingCount = 2}}, request.id); advance(1)
+  local notice = check.tick(true, true)
+  assert(notice == 'The voice files are incomplete. Reinstall the Full download from Nexus Mods.', tostring(notice))
+  assert(check.tick(true, true) == nil, 'once')
+  assert(#console == 1 and console[1]:find('the voice files are incomplete', 1, true), 'the console says it in English for the report')
+  assert(files['runtime/probe.log']:find('Setup check: problems: python', 1, true))
+`));
+
+test('without Native Settings UI the console says which modules Python cannot find, in English, for the report', () => run(String.raw`
+  installFiles(); serviceRunning()
+  env.nsui = 'none'; applyEnv()
+  check.tick(true, true); advance(12); check.tick(true, true)
+  local request = json.decode(files['runtime/setup-check-request.json'])
+  answer({python = {id = 'python', state = 'problem', code = 'incomplete', layout = 'lib', missing = {'urllib', '_distutils_hack'}, missingCount = 2}}, request.id); advance(1)
+  local notice = check.tick(true, true)
+  assert(notice == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI', 'Native Settings UI comes first in the fixed order: ' .. tostring(notice))
+  local said = table.concat(console, ' | ')
+  assert(said:find('the voice files are incomplete (Python cannot find: urllib, _distutils_hack). Reinstall the Full download from Nexus Mods', 1, true), said)
+  assert(not said:find('Hugging', 1, true))
+`));
 
 test('the first load stays silent when only a failed service, Local AI, a missing browser or a mod manager are wrong', () => run(String.raw`
   installFiles()

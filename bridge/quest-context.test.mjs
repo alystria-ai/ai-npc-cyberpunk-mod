@@ -1,3 +1,4 @@
+import {topicWords} from './topic-words.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -337,3 +338,13 @@ assert(group.next(2,102,live).journal.quest.title=='The current quest')
 group.start('round-2',people,'And now?')
 assert(group.next(3,103,live).journal.quest.title=='Changed after the question' and captures==2)
 `));
+
+test('the journal block of a talk reads the same on the next turn: V asking about a quest keeps it in the block, and the clock moving on changes nothing', () => {
+  topicWords.reset();
+  const turn = (text, now) => conversationContext(withConversationKnowledge({...knowledgeInput(), text, profileKey: 'judy-alvarez'}, {...knowledgeOptions, now}));
+  const asked = turn('What about the revealed past quest?', knowledgeNow);
+  assert.match(asked, /Revealed past quest/);
+  const next = turn('How are you feeling today?', knowledgeNow + 1);
+  assert.equal(next.slice(0, next.indexOf('Visible quest')), asked.slice(0, asked.indexOf('Visible quest')));
+  topicWords.reset();
+});

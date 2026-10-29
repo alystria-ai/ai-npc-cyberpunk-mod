@@ -8,7 +8,8 @@ import {GAME_FOLDERS as PLACE_PACKS_FOLDERS} from '../packaging/runtime/place-pa
 import {SETUP_CHECK_FILE, SETUP_REQUEST_FILE, SERVICE_HOSTS, SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedMemoryFacts, cachedModManagers,
   checkReachable, collectSetupCheck, detectBrowserName, detectGraphicsCards, detectMemoryFacts, detectModManagers, findNestedPacks, GAME_FOLDERS,
   graphicsCardsFrom, localAiCheck, neededServices, parseRegistryValues, parseSetupRequest, readPackPlacement,
-  resetSetupCheckCaches} from './setup-check.mjs';
+  resetSetupCheckCaches, DISK_LOW_BYTES} from './setup-check.mjs';
+import {ErrorEvents} from './error-events.mjs';
 
 // Every test works in a temporary folder with fake files, fake registry output, fake DNS and fake sockets. No process is started
 // (reg.exe is replaced by an injected function), no connection is made and nothing outside the temporary folder is read or changed.
@@ -312,30 +313,32 @@ const quietLocalAi = {status: 'ready', reason: null, packInstalled: false, tiers
 const options = (paths, over = {}) => ({...paths, now: () => 1_800_000_000_000, settings: {}, localAi: () => quietLocalAi,
   omniPack: () => ({installed: false, missing: ['model', 'adapter']}), browser: () => 'Microsoft Edge',
   graphics: async () => [{name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188}, {name: 'Intel(R) UHD Graphics', memoryMiB: 128}],
-  modManagers: () => ({managers: []}), reach: async () => 'reachable', nestedPacks: async () => [], placement: async () => null, ...over});
+  modManagers: () => ({managers: []}), reach: async () => 'reachable', nestedPacks: async () => [], placement: async () => null,
+  freeSpace: async () => 50 * 1024 ** 3, python: async () => ({state: 'ok', layout: 'lib', missing: [], missingCount: 0}), ...over});
 const byId = document => Object.fromEntries(document.checks.map(check => [check.id, check]));
 const KEYS = {
   versions: ['id', 'state', 'code', 'scripts', 'runtime', 'scriptsGame', 'runtimeGame'], packs: ['id', 'state', 'code', 'found', 'nested', 'moved', 'omniMissing'],
   browser: ['id', 'state', 'code', 'name'], 'local-ai': ['id', 'state', 'code', 'selected', 'installed'],
   internet: ['id', 'state', 'code', 'service', 'host'], gpu: ['id', 'state', 'code', 'name', 'memoryMiB', 'adapters'],
-  'mod-manager': ['id', 'state', 'code', 'managers'], compiler: ['id', 'state', 'code'],
+  'mod-manager': ['id', 'state', 'code', 'managers'], compiler: ['id', 'state', 'code'], disk: ['id', 'state', 'code', 'drive', 'freeGiB'], python: ['id', 'state', 'code', 'layout', 'missing', 'missingCount'],
 };
 
-test('the document has exactly the agreed shape: eight checks in order, each with its own fields', async () => temp(async root => {
+test('the document has exactly the agreed shape: ten checks in order, each with its own fields', async () => temp(async root => {
   const document = await collectSetupCheck(options(await install(root), {request: 'r-1'}));
   assert.deepEqual(Object.keys(document), ['version', 'updated', 'bridgePid', 'request', 'checks']);
   assert.equal(document.version, 1); assert.equal(document.updated, 1_800_000_000_000);
   assert.equal(document.bridgePid, process.pid); assert.equal(document.request, 'r-1');
-  assert.deepEqual(document.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager', 'compiler']);
+  assert.deepEqual(document.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager', 'compiler', 'disk', 'python']);
   for (const check of document.checks) assert.deepEqual(Object.keys(check), KEYS[check.id], check.id);
   assert.deepEqual(byId(document).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0', scriptsGame: '2.31', runtimeGame: '2.31'});
   assert.deepEqual(byId(document).browser, {id: 'browser', state: 'ok', code: 'found', name: 'Microsoft Edge'});
+  assert.deepEqual(byId(document).python, {id: 'python', state: 'ok', code: 'ok', layout: 'lib', missing: [], missingCount: 0});
   assert.deepEqual(byId(document).gpu, {id: 'gpu', state: 'ok', code: 'found', name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188,
     adapters: [{name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188}, {name: 'Intel(R) UHD Graphics', memoryMiB: 128}]});
   assert.deepEqual(byId(document)['mod-manager'], {id: 'mod-manager', state: 'ok', code: 'none', managers: []});
   assert.deepEqual(byId(document)['local-ai'], {id: 'local-ai', state: 'ok', code: 'not-used', selected: false, installed: false});
   assert.deepEqual(byId(document).internet, {id: 'internet', state: 'ok', code: 'reachable', service: 'convai', host: 'api.convai.com'});
-  assert.equal(JSON.parse(JSON.stringify(document)).checks.length, 8, 'plain JSON');
+  assert.equal(JSON.parse(JSON.stringify(document)).checks.length, 10, 'plain JSON');
   assert.equal((await collectSetupCheck(options(await install(root), {request: '../../etc'}))).request, null, 'only a well-formed id is echoed');
   assert.equal((await collectSetupCheck(options(await install(root)))).request, null);
 }));
@@ -514,10 +517,13 @@ test('voice: a row only when the bridge can say, a problem only while the Pocket
   // Windows ran out of memory (the paging file is too small): the row names that cause and nothing else of the reason; an unknown cause is dropped.
   assert.deepEqual((await checks({voice: async () => ({engine: 'pocket', reason: 'OSError: The paging file is too small for this operation to complete. (os error 1455)', cause: 'virtual-memory'})})).voice,
     {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'pocket', cause: 'virtual-memory'});
+  // A file or Python module of the voice is not on the disk (report 0b8367fd0ebd2f2f, No module named urllib): the row carries the cause, and the game says to reinstall the Full download.
+  assert.deepEqual((await checks({voice: async () => ({engine: 'pocket', reason: "ModuleNotFoundError: No module named 'urllib'", cause: 'missing-files'})})).voice,
+    {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'pocket', cause: 'missing-files'});
   assert.deepEqual((await checks({voice: async () => ({engine: 'pocket', reason: 'x', cause: 'C:\\Users\\someone'})})).voice, {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'pocket'});
   const boom = () => { throw Error('detector failed'); };
   assert.deepEqual((await checks({voice: boom})).voice, {id: 'voice', state: 'unknown', code: 'unknown'});
-  assert.equal((await collectSetupCheck(options(paths, {voice: () => null}))).checks.length, 9);
+  assert.equal((await collectSetupCheck(options(paths, {voice: () => null}))).checks.length, 11);
 }));
 
 test('microphone: a row only once an input was opened or one is chosen; the label of the input, never an id', async () => temp(async root => {
@@ -533,6 +539,10 @@ test('microphone: a row only once an input was opened or one is chosen; the labe
     {id: 'microphone', state: 'ok', code: 'chosen', device: 'Headset Mic (USB)', chosen: 'Headset Mic (USB)'}, 'chosen but not opened yet: named as chosen');
   assert.deepEqual((await checks({microphone: () => ({chosen: 'Headset Mic (USB)', device: 'Microphone (Realtek(R) Audio)', missing: true})})).microphone,
     {id: 'microphone', state: 'note', code: 'missing', device: 'Microphone (Realtek(R) Audio)', chosen: 'Headset Mic (USB)'});
+  assert.deepEqual((await checks({microphone: () => ({chosen: null, device: 'Default - CABLE Output (VB-Audio Virtual Cable)', missing: false, loopback: true})})).microphone,
+    {id: 'microphone', state: 'note', code: 'loopback', device: 'Default - CABLE Output (VB-Audio Virtual Cable)'}, 'the Windows default looks like a loopback');
+  assert.deepEqual((await checks({microphone: () => ({chosen: 'Stereo Mix (Realtek)', device: null, missing: false, loopback: true})})).microphone,
+    {id: 'microphone', state: 'note', code: 'loopback', device: 'Stereo Mix (Realtek)', chosen: 'Stereo Mix (Realtek)'}, 'a chosen loopback is told before anything opened');
   const boom = () => { throw Error('detector failed'); };
   assert.equal((await checks({microphone: boom})).microphone, undefined);
 }));
@@ -542,7 +552,7 @@ test('omni-python: a row only with omni-python.txt; the backend it found (CUDA, 
   const checks = async over => byId(await collectSetupCheck(options(paths, over)));
   assert.equal((await checks({}))['omni-python'], undefined, 'a run without the source has no such row');
   assert.equal((await checks({omniPython: () => null}))['omni-python'], undefined, 'no file, no row: nothing changes for NVIDIA or CPU players');
-  assert.equal((await collectSetupCheck(options(paths, {omniPython: () => null}))).checks.length, 8);
+  assert.equal((await collectSetupCheck(options(paths, {omniPython: () => null}))).checks.length, 10);
   const rocm = {used: true, backend: 'rocm', reason: null, module: null, torch: '2.14.0+rocm10.1.0', hip: '10.1.0', cuda: null, device: 'AMD Radeon RX 9070 XT', vramMiB: 16304};
   assert.deepEqual((await checks({omniPython: async () => rocm}))['omni-python'],
     {id: 'omni-python', state: 'ok', code: 'used', backend: 'rocm', device: 'AMD Radeon RX 9070 XT', memoryMiB: 16304});
@@ -582,7 +592,7 @@ test('a detector that fails turns only its own check into unknown', async () => 
   for (const [name, over, id] of [['browser', {browser: boom}, 'browser'], ['graphics', {graphics: reject}, 'gpu'], ['localAi', {localAi: boom}, 'local-ai'],
     ['modManagers', {modManagers: reject}, 'mod-manager'], ['nestedPacks', {nestedPacks: reject}, 'packs']]) {
     const document = await collectSetupCheck(options(paths, over));
-    assert.equal(document.checks.length, 8, name);
+    assert.equal(document.checks.length, 10, name);
     assert.deepEqual(byId(document)[id], unknown(id), name);
     for (const other of document.checks) {
       if (other.id !== id) assert(!(other.state === 'unknown' && other.code === 'unknown'), `${name}: ${other.id} is unaffected`);
@@ -603,7 +613,7 @@ test('a light run starts no process and makes no connection', async () => temp(a
   const paths = await install(root);
   const trap = name => () => assert.fail(`${name} must not run in a light run`);
   const light = await collectSetupCheck(options(paths, {light: true, request: 'r-2', browser: trap('browser'), graphics: trap('graphics'), reach: trap('reach')}));
-  assert.deepEqual(light.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager', 'compiler']);
+  assert.deepEqual(light.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager', 'compiler', 'disk', 'python']);
   assert.deepEqual(byId(light).browser, {id: 'browser', state: 'unknown', code: 'unknown', name: null});
   assert.deepEqual(byId(light).gpu, {id: 'gpu', state: 'unknown', code: 'unknown', name: null, memoryMiB: null, adapters: []});
   assert.deepEqual(byId(light).internet, {id: 'internet', state: 'unknown', code: 'unknown', service: 'convai', host: 'api.convai.com'});
@@ -685,7 +695,7 @@ test('a request left by an earlier session is never answered; a new one is answe
   await f.instance.poll();
   assert.deepEqual(collects(f.calls).map(call => [call[1], call[2]]), [['s-1', {light: false}]], 'a request is a full run');
   const answer = JSON.parse(await readFile(resultPath, 'utf8'));
-  assert.equal(answer.request, 's-1'); assert.equal(answer.version, 1); assert.equal(answer.checks.length, 8);
+  assert.equal(answer.request, 's-1'); assert.equal(answer.version, 1); assert.equal(answer.checks.length, 10);
   assert.equal(await readFile(requestPath, 'utf8'), asked, 'the request file is left exactly as the game wrote it');
 
   await f.instance.poll(); await f.instance.poll();
@@ -853,3 +863,43 @@ test('versions with the code in the Scripts: a base at or above runtimeBase matc
     scriptsGame: '2.5', runtimeGame: '2.5'});
   assert.equal((await scheme('f', {base: '0.3.3', code: null})).code, 'mismatch');
 }));
+
+// ---------------------------------------------------------------- the disk (error report 1cbe337a5144ebbd: ENOSPC on a C: drive with 0.8 GiB free)
+
+const GIB = 1024 ** 3;
+
+test('disk: under 2 GiB free on the game drive or the data drive is a problem that names the drive and the free space, rounded down to a tenth', async () => temp(async root => {
+  const paths = await install(root), asked = [];
+  const run = free => async folder => { asked.push(folder); return typeof free === 'function' ? free(folder) : free; };
+  const low = byId(await collectSetupCheck(options(paths, {freeSpace: run(0.84 * GIB)}))).disk;
+  assert.deepEqual(low, {id: 'disk', state: 'problem', code: 'low', drive: low.drive, freeGiB: 0.8});
+  assert.match(low.drive, /^[A-Z]$/);
+  assert.deepEqual(asked, [paths.game, paths.stateDirectory], 'the game folder and the data folder are asked, nothing else');
+  assert.equal(byId(await collectSetupCheck(options(paths, {freeSpace: run(1.99 * GIB)}))).disk.freeGiB, 1.9, 'never rounds up to the line');
+  assert.deepEqual(byId(await collectSetupCheck(options(paths, {freeSpace: run(2 * GIB)}))).disk, {id: 'disk', state: 'ok', code: 'enough', drive: low.drive, freeGiB: 2});
+  // The data folder alone is low (the game is on a big drive): still a problem, and the lower of the two is the one named.
+  const dataLow = byId(await collectSetupCheck(options(paths, {freeSpace: run(folder => folder === paths.stateDirectory ? 0.3 * GIB : 400 * GIB)}))).disk;
+  assert.deepEqual([dataLow.state, dataLow.freeGiB], ['problem', 0.3]);
+  assert.equal(DISK_LOW_BYTES, 2 * GIB);
+}));
+
+test('disk: a drive that cannot be read, or a folder with no drive letter, leaves the check unknown and never fails the document', async () => temp(async root => {
+  const paths = await install(root);
+  const unknown = {id: 'disk', state: 'unknown', code: 'unknown'};
+  assert.deepEqual(byId(await collectSetupCheck(options(paths, {freeSpace: async () => { throw Object.assign(new Error('EPERM'), {code: 'EPERM'}); }}))).disk, unknown);
+  assert.deepEqual(byId(await collectSetupCheck(options(paths, {freeSpace: async () => NaN}))).disk, unknown);
+  assert.deepEqual(byId(await collectSetupCheck(options({...paths, game: '//server/share/game', stateDirectory: '/data'}))).disk, unknown, 'a share has no drive letter to name');
+  const light = byId(await collectSetupCheck(options(paths, {light: true, freeSpace: async () => 1 * GIB}))).disk;
+  assert.deepEqual([light.state, light.code], ['problem', 'low'], 'a light run (the bridge start) reads it too: it starts no process');
+  // The real statfs works on this PC.
+  const real = byId(await collectSetupCheck({...options(paths), freeSpace: undefined})).disk;
+  assert.equal(typeof real.freeGiB, 'number');
+}));
+
+test('disk: a nearly full drive is no error report of its own: it is the PC of the player and the game tells them', () => {
+  const recorded = [];
+  const events = new ErrorEvents({stateDirectory: tmpdir(), runtime: tmpdir()});
+  events.record = event => recorded.push(event.message);
+  events.setupChecked({checks: [{id: 'disk', state: 'problem', code: 'low', drive: 'C', freeGiB: 0.8}, {id: 'browser', state: 'problem', code: 'missing'}]});
+  assert.deepEqual(recorded, ['browser missing']);
+});

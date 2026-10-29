@@ -16,7 +16,7 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 function run(program) {
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
   try {
-    const result = lauxlib.luaL_dostring(vm, to_luastring(program));
+    const result = lauxlib.luaL_dostring(vm, to_luastring('convaiPlayer = function() return Game.GetPlayer() end ' + program));
     const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
     const line = Number(/\]:(\d+):/.exec(error)?.[1]);
     assert.equal(result, lua.LUA_OK, error + (line ? '\n' + program.split('\n')[line - 1] : ''));

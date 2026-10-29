@@ -971,9 +971,10 @@ local function loadSettings()
     -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
-    -- The retired Companions can see setting (docs/COMPANION_VISION.md): vision is always on with Convai now. An old saved key is
-    -- dropped; the bridge ignores it either way.
-    if settings.companionVision ~= nil then settings.companionVision, settingsNeedSave = nil, true end
+    -- Companions can see (docs/COMPANION_VISION.md): off by default, for every conversation provider (Convai had it always on until 2026-10-29, when this setting came back and
+    -- Convai joined it, so a player who had pictures with Convai starts with them off). Each conversation turn then carries a recent picture of V's surroundings. The bridge does all
+    -- the work out of process: with the setting off nothing is captured and no helper runs. Nothing in the game runs for it.
+    if type(settings.companionVision) ~= 'boolean' then settings.companionVision, settingsNeedSave = false, true end
     -- Mature content (off by default): lets the Local AI and Custom providers write adult language and themes (not Convai, not Mistral). Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Mature content and Convai (free tier or API key) exclude each other (Convai prompting cannot take it): a saved pairing comes back with Mature content off.
@@ -1605,19 +1606,23 @@ end
 -- Settings > Voices > Microphone: the audio inputs the conversation service lists (runtime/microphone-devices.json, bridge/mic-devices-control.mjs). The page asks
 -- for the list when it is built (requestMicrophoneInputs, at most once in 15 s) and reads the answer at most every 1.5 s; nothing here runs per frame.
 local MIC_LIST, MIC_ASK = 'runtime/microphone-devices.json', 'runtime/microphone-devices-command.json'
-local micInputs, micReadAt, micAskedAt, micAsks = {inputs = {}, state = 'idle'}, nil, nil, 0
+local micInputs, micReadAt, micAskedAt, micAsks = {inputs = {}, loopback = {}, state = 'idle'}, nil, nil, 0
 function M.microphoneInputs(force)
     local now = os.clock()
     if not force and micReadAt and now >= micReadAt and now - micReadAt < 1.5 then return micInputs end
     micReadAt = now
     local value = readJSON(MIC_LIST)
-    local list, seen = {}, {}
+    local list, seen, loopback = {}, {}, {}
     if value and value.version == 1 and type(value.inputs) == 'table' then
         for _, label in ipairs(value.inputs) do
             if validMicLabel(label) and not seen[label] and #list < 32 then seen[label] = true; list[#list + 1] = label end
         end
+        -- The inputs whose name looks like a loopback or virtual device (bridge/mic-match.mjs decides): the row marks them, nothing picks or refuses by it.
+        if type(value.loopback) == 'table' then
+            for _, label in ipairs(value.loopback) do if seen[label] then loopback[label] = true end end
+        end
     end
-    micInputs = {inputs = list, state = value and value.state == 'failed' and 'failed' or value and value.state == 'ok' and 'ok' or 'idle'}
+    micInputs = {inputs = list, loopback = loopback, state = value and value.state == 'failed' and 'failed' or value and value.state == 'ok' and 'ok' or 'idle'}
     return micInputs
 end
 function M.requestMicrophoneInputs()
@@ -2247,6 +2252,7 @@ function M.snapshot(player)
             lootReactions = settings.lootReactions,
             decisionLedger = settings.decisionLedger,
             witnessReceipts = settings.witnessReceipts,
+            companionVision = settings.companionVision == true,
             errorReports = settings.errorReports ~= false,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
@@ -2333,7 +2339,7 @@ function M.applySettings(player, values)
         if key == 'lootReactions' then nextSettings.lootReactionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
-            or key == 'naturalSpeech' or key == 'errorReports'
+            or key == 'companionVision' or key == 'naturalSpeech' or key == 'errorReports'
             or key == 'vVoice' or key == 'vVoiceMic' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value

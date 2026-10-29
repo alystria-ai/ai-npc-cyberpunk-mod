@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Development tools for the housemates (docs/HOUSEMATES.md, "Phase 0"): measuring V's flats, qualifying the saved facts, and driving the feature
 -- without a conversation. Reached through the gesture probe (mod/gesture-probe.lua command `housemate`; scripts/Send-GestureProbe.ps1 "housemate ...").
 -- Never loaded by the mod itself and never run for a player. The measuring commands write plain text lines to runtime/housemate-survey.txt
@@ -35,7 +36,7 @@ local DISTRICT = {LittleChina_VApartment = 'h10', CorpoPlaza_Apartment = 'corpo'
     Northside_Apartment = 'north'}
 
 local function round(value, places) local m = 10 ^ (places or 2) return math.floor(value * m + 0.5) / m end
-local function player() return Game.GetPlayer() end
+local function player() return convaiPlayer() end
 local function pose()
     local p = player()
     local at, e = p:GetWorldPosition(), p:GetWorldOrientation():ToEulerAngles()

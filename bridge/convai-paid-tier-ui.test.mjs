@@ -332,7 +332,7 @@ test('each of the four plan rows shows its own quota, whatever the running servi
   assert(quotas() == want, 'current plan: ' .. quotas())
 `));
 
-test('Conversation provider: the Mistral free API key row sits above the Convai API key row, the paid tier entry right under the Convai key', () => run(`${paidFixture}
+test('Conversation provider: the Mistral API key row sits above the Convai API key row, the paid tier entry right under the Convai key', () => run(`${paidFixture}
   jsonFile('runtime/own-key-state.json', {version = 1, saved = false, active = 'shared'})
   service({keySaved = false})
   assert(invoke('tab:settings').ok)
@@ -340,7 +340,7 @@ test('Conversation provider: the Mistral free API key row sits above the Convai 
   for index, item in ipairs(category('conversation-provider').settings) do at[item.id] = index end
   assert(at['mistral-key'] and at['own-key'] and at['paid-tier'], 'all three rows are there')
   assert(at['mistral-key'] < at['own-key'] and at['paid-tier'] == at['own-key'] + 1, 'Mistral, then Convai, then the paid tier entry')
-  assert(row('mistral-key').label == 'Mistral free API key', row('mistral-key').label)
+  assert(row('mistral-key').label == 'Mistral API key', row('mistral-key').label)
   assert(row('own-key').label == 'Convai API key')
   assert(not (row('mistral-key').label .. row('mistral-key').description):lower():find('recommend'))
 `));

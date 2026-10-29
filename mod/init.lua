@@ -31,6 +31,14 @@ end)
 pcall(function() dofile('native-core.lua').install() end)
 -- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
 pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
+-- The one way the whole mod asks for V (mod/player-guard.lua). Game is shared by every CET mod and one of them replaced Game.GetPlayer with a
+-- table (error report aa500cce), which made every call below raise. Loaded right after the native io shim and the perf probe (neither asks for V), so the original Game.GetPlayer is captured before any other
+-- mod's onInit. A global, so no function gains an upvalue; without the file it is the plain call.
+do
+    local loaded, guard = pcall(dofile, 'player-guard.lua')
+    convaiPlayerGuard = loaded and type(guard) == 'table' and type(guard.get) == 'function' and guard or nil
+    convaiPlayer = convaiPlayerGuard and convaiPlayerGuard.get or function() return Game.GetPlayer() end
+end
 -- Game 2.5 changed TargetingSystem.GetCrosshairData(owner) into GetCrosshairData(ownerID, owner). Every caller goes through this: it tries the 2.31
 -- form once and keeps whichever form answers (both return the crosshair position and direction).
 local crosshairForm = nil
@@ -481,7 +489,7 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     end,
     developerMode = manager.developerMode,
     feedback = function(state, reason)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         -- A queued action with no text posts nothing: a queued drive has none.
         if state == 'queued' and (reason == nil or reason == '') then return end
         if player then convaiNotices.send(player, state == 'queued' and 'action-queued' or 'action-rejected',
@@ -1026,7 +1034,7 @@ do
     local loaded, module = pcall(dofile, 'npc-reactions.lua')
     if loaded and type(module) == 'table' and type(module.new) == 'function' then
         local built, service = pcall(module.new, {
-            player = function() return Game.GetPlayer() end,
+            player = function() return convaiPlayer() end,
             npcFor = function(entity) return conversationNpc(entity) end,
             policy = {
                 ours = function(npc) return convaiWorldPolicy.ours(npc) end,
@@ -1162,7 +1170,7 @@ end
 -- verdict and the sample's scene facts, so a refusal on a seat that should have counted shows why in probe.log.
 function convaiPlainSitting()
     local controller = convaiSeatedLook
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     local ok, sample = false, nil
     if player then ok, sample = pcall(battleObserver.sample, player) end
     local plain = ok and type(sample) == 'table' and controller ~= nil and controller.sitting ~= nil and sample.sitting == true
@@ -1521,7 +1529,7 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     tracked = function() return questContext.trackedQuest and questContext.trackedQuest() end,
     present = function(radius)
         local keys = {}
-        for _, person in ipairs(companions.conversationCandidates(Game.GetPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
+        for _, person in ipairs(companions.conversationCandidates(convaiPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
         return keys
     end}) or nil
 convaiGameDialogue = gameDialogue
@@ -1599,7 +1607,7 @@ do
         gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
         near = function(radius)
             local keys = {}
-            for _, person in ipairs(companions.conversationCandidates(Game.GetPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
+            for _, person in ipairs(companions.conversationCandidates(convaiPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
             return keys
         end}) or nil
     if convaiWitnessReceipts then
@@ -2088,7 +2096,7 @@ function convaiReputationWanted()
         enabled = convaiDeedsWanted,
         onDeed = function(row, npc) if convaiAmbush then convaiAmbush.deed(row, npc) end end,
         observe = ObserveAfter,
-        player = function() return Game.GetPlayer() end,
+        player = function() return convaiPlayer() end,
         gameTime = worldKnowledgeModule.nativeGameTime,
         lifepath = worldKnowledgeModule.nativeAdapter.readLifepath,
         district = currentDistrict,
@@ -2099,7 +2107,7 @@ function convaiReputationWanted()
             return not (convaiWorldTalk ~= nil and convaiWorldTalk.runtimeQuest(npc) == true)
         end,
         stat = function(name)
-            local player = Game.GetPlayer()
+            local player = convaiPlayer()
             return Game.GetStatsSystem():GetStatValue(player:GetEntityID(), Enum.new('gamedataStatType', name))
         end,
         log = log,
@@ -2188,7 +2196,7 @@ do
     if loaded and type(module) == 'table' and type(module.new) == 'function' then
         built, value = pcall(module.new, {companions = companions,
             party = function() return managerUi.party and managerUi.party() or nil end,
-            player = function() return Game.GetPlayer() end,
+            player = function() return convaiPlayer() end,
             -- The reply that requested the action is still being written or heard.
             busy = function(requestId, groupId)
                 if groupId and groupChat.round and groupChat.round.id == groupId then return true end
@@ -2316,7 +2324,7 @@ do
                 local npc = partner.entity
                 if not npc then return false end
                 if not npc:IsAttached() or npc:IsDeadNoStatPool() then return nil end
-                local player = Game.GetPlayer()
+                local player = convaiPlayer()
                 if not player then return false end
                 local a, b = npc:GetWorldPosition(), player:GetWorldPosition()
                 return math.sqrt((a.x - b.x)^2 + (a.y - b.y)^2 + (a.z - b.z)^2)
@@ -2567,7 +2575,7 @@ end
 
 -- Phase 2: measure the candidates against the crosshair now and choose. `gathered` is a gatherTargets result from the tick before.
 local function targetAtCrosshair(gathered)
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player then return nil, 'Player unavailable' end
     local targeting = Game.GetTargetingSystem()
     local gather = gathered or gatherTargets(player)
@@ -2690,7 +2698,7 @@ if convaiNpcReactions then
         local same = tostring(current.npc:GetEntityID().hash) == tostring(npc:GetEntityID().hash)
         if not same then return nil end
         local hold
-        pcall(function() hold = Game.GetPlayer().m_convaiFocusHold end)
+        pcall(function() hold = convaiPlayer().m_convaiFocusHold end)
         return {age = os.time() - (current.at or os.time()), hold = hold}
     end
 end
@@ -3330,7 +3338,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
 end
 
 local function voiceTargetValid(npc, context)
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not npc or not player or tostring(npc:GetEntityID().hash) ~= context.entity
         or not npc:IsAttached() or npc:IsDeadNoStatPool() then return false end
     local pos, origin = npc:GetWorldPosition(), player:GetWorldPosition()
@@ -3473,7 +3481,7 @@ local function moveStateText(player)
 end
 local function beginTextNow(groupMode, waited, talkJohnny)
     local ok, err = pcall(function()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player or not gameplayCanAcquire(player) then return end
         local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_text', nil, talkJohnny)
         if not primary then return end
@@ -3536,7 +3544,7 @@ local function beginTextNow(groupMode, waited, talkJohnny)
 end
 
 local function beginText(groupMode, talkJohnny)
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     local gate = convaiTalkGate
     if player and gate and moveStateText(player) == 'held' then
         -- A second press while waiting only updates which chat was asked for.
@@ -3557,7 +3565,7 @@ function convaiTalkGate.update(delta, worldReady)
     local waiting = convaiTalkGate.waiting
     if not waiting then return end
     if not worldReady then convaiTalkGate.waiting = nil; return end
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player then convaiTalkGate.waiting = nil; return end
     waiting.waited = waiting.waited + (tonumber(delta) or 0)
     local stillHeld = moveStateText(player) == 'held'
@@ -3576,7 +3584,7 @@ end
 -- No notice is shown for a normal turn: no "connecting", no "listening", no "finished". Only a real failure speaks (no microphone, no connection).
 local function toggleVoice(groupMode, source, holdId, vadId, talkJohnny)
     source = source or 'press'
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player then return end
     local ok, err = pcall(function()
         local mode = groupMode and 'group' or 'private'
@@ -3645,10 +3653,10 @@ local function toggleVoice(groupMode, source, holdId, vadId, talkJohnny)
             -- Johnny in V's head stays valid while the story keeps him there and the game does not take the floor (held 0.4 s).
             if primary.head then
                 local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
-                return head ~= nil and head:refusal(Game.GetPlayer()) == nil
+                return head ~= nil and head:refusal(convaiPlayer()) == nil
             end
-            if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
-            if (primary.story or primary.guarded) and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity, primary.profileKey, primary.guarded) then return false end
+            if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, convaiPlayer()) end
+            if (primary.story or primary.guarded) and convaiWorldTalk:refusal(npc, convaiPlayer(), entity, primary.profileKey, primary.guarded) then return false end
             return voiceTargetValid(npc, context)
         end
         context.provider = chosenProvider()
@@ -3886,7 +3894,7 @@ speech.storyGuard = function(actor, context, starting)
     if headTalk and type(context) == 'table' and context.entity == headTalk.entity
         and (type(context.head) == 'table' or (not starting and speech.head == true)) then
         local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
-        local why = head == nil and 'off' or head:refusal(Game.GetPlayer())
+        local why = head == nil and 'off' or head:refusal(convaiPlayer())
         if not why then return false end
         log('Johnny in your head: reply ended reason=' .. why .. (starting and ' (before the reply began)' or '')
             .. ' facts[' .. (head and head:detail() or 'off') .. ']')
@@ -3896,7 +3904,7 @@ speech.storyGuard = function(actor, context, starting)
     end
     local story = convaiStory
     if not story or convaiWorldTalk == nil or type(context) ~= 'table' or context.entity ~= story.entity then return false end
-    local why = convaiWorldTalk:refusal(actor, Game.GetPlayer(), story.entity, story.key, story.idle)
+    local why = convaiWorldTalk:refusal(actor, convaiPlayer(), story.entity, story.key, story.idle)
     if not why then return false end
     log('World conversation ended: profile=' .. story.key .. ' reason=' .. why .. (starting and ' (before the reply began)' or '')
         .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or '')
@@ -4114,7 +4122,7 @@ do
         return nil
     end
     local function notify(kind, text)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player or type(text) ~= 'string' or text == '' then return end
         if kind == 'text' then convaiNotices.send(player, 'immersive-text', text)
         elseif kind == 'on-the-way' then convaiNotices.send(player, 'immersive-on-the-way', text) end
@@ -4208,7 +4216,7 @@ do
         convaiMeetGreetingWaiting = {info = info, at = os.time()}
     end
     local function greetingFallback(info)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if player then
             convaiNotices.send(player, 'immersive-greeting', ui.t('{name}: Good to see you. Let us go.', {name = tostring(info.name)}))
         end
@@ -4286,7 +4294,7 @@ do
         if (tonumber(sample.tier) or 1) >= 3 or sample.dialogue or sample.choices then
             -- V sitting, sleeping or washing at home plays as a scene of tier 3 or 4: V's own interaction, not a quest scene.
             if not sample.dialogue and not sample.choices then
-                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(Game.GetPlayer()) == true end)
+                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(convaiPlayer()) == true end)
                 if ok and inside then return nil end
             end
             return 'scene', 'tier=' .. tostring(sample.tier) .. ',dialogue=' .. tostring(sample.dialogue == true) .. ',choices=' .. tostring(sample.choices == true)
@@ -4303,7 +4311,7 @@ do
         return true
     end
     local function notify(text)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if player and type(text) == 'string' and text ~= '' then convaiNotices.send(player, 'housemate-notice', text) end
     end
     -- Settings > Gameplay > Housemates: one table read.
@@ -4379,7 +4387,7 @@ do
             end,
             hours = gameHours, held = held,
             vpos = function()
-                local player = Game.GetPlayer()
+                local player = convaiPlayer()
                 local at = player and player:GetWorldPosition()
                 return at and {x = at.x, y = at.y, z = at.z} or nil
             end,
@@ -4749,7 +4757,7 @@ function convaiAmbushModule()
         gameTime = worldKnowledgeModule.nativeGameTime,
         -- Ordinary play only: no fight, scene, call, vehicle, interior, safe zone or wanted level (the battle observer's read, once per look).
         world = function()
-            return world.world(battleObserver.sample(Game.GetPlayer()), function()
+            return world.world(battleObserver.sample(convaiPlayer()), function()
                 local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
                 if system == nil then error('no prevention system') end
                 local okHeat, value = pcall(function() return system:GetHeatStageAsInt() end)
@@ -4802,7 +4810,7 @@ function convaiAmbushBark(npc, info)
     if automatic ~= nil or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
     if active ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil or (microphone.context ~= nil and microphone.state ~= 'reply') then return false end
     if type(manager.archetypeConversations) == 'function' and not manager.archetypeConversations() then return false end
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player then return false end
     local outputs = battleOutputs or reactionOutputs(player)
     if not outputs.enabled then return false end
@@ -4868,7 +4876,7 @@ do
         if sample.vehicle then return 'car' end
         if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then
             if not sample.dialogue and not sample.choices then
-                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(Game.GetPlayer()) == true end)
+                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(convaiPlayer()) == true end)
                 if ok and inside then return nil end
             end
             return 'scene'
@@ -4887,7 +4895,7 @@ do
             load = dofile,
             seating = function() return convaiSeating end,
             vpos = function()
-                local player = Game.GetPlayer()
+                local player = convaiPlayer()
                 local at = player and player:GetWorldPosition()
                 return at and {x = at.x, y = at.y, z = at.z} or nil
             end,
@@ -5288,7 +5296,7 @@ end
 -- Johnny's prepared follow-on: the source line has been heard to its end, so the very request that was prepared is sent now.
 function convaiSpeakUpSubmitFollow(plan)
     local st, sched = convaiSpeakUpState, convaiSpeakUp
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     local head = convaiJohnnyHeadService()
     local outputs = battleOutputs or (player and reactionOutputs(player)) or {enabled = true}
     if not sched or not player or not head or head:refusal(player) or pending ~= nil or automatic ~= nil or not outputs.enabled then
@@ -5806,19 +5814,19 @@ local function dailyLimitText()
     local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
     if at then
         if type(limit) == 'number' then
-            return ui.t('Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit, time = at})
+            return ui.t('Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).', {limit = limit, time = at})
         end
-        return ui.t('Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {time = at})
+        return ui.t('Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).', {time = at})
     end
     if type(limit) == 'number' then
-        return ui.t('Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit})
+        return ui.t('Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).', {limit = limit})
     end
-    return ui.t('Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).')
+    return ui.t('Today’s Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).')
 end
 
 local function keyNoticeText(code)
     if code == 'quota-shared' then
-        return ui.t('The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.')
+        return ui.t('The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.')
     elseif code == 'quota-own' then
         return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.')
     elseif code == 'key-rejected' then
@@ -5852,7 +5860,7 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'mistral-key' then
         return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Conversation provider.')
     elseif reply.errorCode == 'mistral-limit' then
-        return 'mistral-limit', ui.t('Mistral’s free limit is reached for now. Try again in a moment.')
+        return 'mistral-limit', ui.t('Mistral’s limit is reached for now. Try again in a moment.')
     elseif reply.errorCode == 'mistral-model' then
         return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end
@@ -5911,14 +5919,37 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'local-cpu' then
         return 'local-cpu', ui.t('Local AI runs mostly on your processor here, so replies will be slow.') .. localFailureSuffix(reply, 'keyNoticeDetail')
     end
-    -- Windows draws its yellow capture border around the game for the "Companions can see" pictures (only with Convai; docs/COMPANION_VISION.md): said once, with the next reply.
+    -- The Local AI model had gone into shared system memory (or partly onto the processor) and is whole on the graphics card again (bridge/local-llm-server.mjs, 'returned-to-card'): said once, with the next reply.
+    if reply.keyNotice == 'local-gpu' then
+        return 'local-gpu', ui.t('Local AI is back on your graphics card, so replies are faster again.')
+    end
+    -- Windows draws its yellow capture border around the game for the "Companions can see" pictures (docs/COMPANION_VISION.md): said once, with the next reply.
     if reply.keyNotice == 'vision-border' then
-        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.')
+        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Turn off Companions can see to stop it.')
+    end
+    -- Companions can see is on and the Local AI model cannot take pictures (no vision file beside it, or none that fits the graphics card): said once per model, with the next reply.
+    if reply.keyNotice == 'vision-local-no-model' then
+        return 'vision-local-no-model', ui.t('This Local AI model cannot see pictures, so replies use only your words.')
+    end
+    -- Companions can see is on and the Local AI model can see with its vision file, which is not installed (a separate download, the vision folder of local-ai or mature on Hugging Face): said once per model, with the next reply.
+    if reply.keyNotice == 'vision-local-no-file' then
+        local folder = reply.keyNoticeFolder == 'mature' and 'mature' or 'local-ai'
+        return 'vision-local-no-file', ui.t('This model can see pictures with its vision file, from {folder}/vision on Hugging Face.', {folder = folder})
+    end
+    -- Companions can see is on and the Custom endpoint refused a picture (a model with no vision): none is sent to it again this session, said once.
+    if reply.keyNotice == 'vision-custom-no-images' then
+        return 'vision-custom-no-images', ui.t('Your Custom endpoint does not accept pictures, so replies use only your words.')
     end
     -- The Local AI model the player chose is missing, does not fit or did not start, and another was used (the reply names it): said once per choice.
     if reply.keyNotice == 'local-model-fallback' then
         local used = reply.keyNoticeModel
         if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then used = ui.t('another model') end
+        -- A model that did not fit: how much graphics memory it needs and how much is available for it beside the game (MiB from the bridge, shown as MB to the nearest 100).
+        local need, available = reply.keyNoticeNeedMiB, reply.keyNoticeAvailableMiB
+        if type(need) == 'number' and type(available) == 'number' and need > 0 and need < 1000000 and available >= 0 and available < 1000000 then
+            local function megabytes(mib) return math.floor(mib * 1.048576 / 100 + 0.5) * 100 end
+            return 'local-model-fallback', ui.t('The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead.', {need = megabytes(need), available = megabytes(available), model = used})
+        end
         return 'local-model-fallback', ui.t('The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.', {model = used})
     end
     -- Local AI's turns stalled because the game uses most of the graphics memory: the bridge loaded the next smaller model (the reply names it; an older bridge may
@@ -5991,7 +6022,11 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'custom-voice' then convaiNotices.send(player, 'custom-voice', keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
     elseif keyId == 'local-cpu' then convaiNotices.send(player, 'local-cpu', keyText)
+    elseif keyId == 'local-gpu' then convaiNotices.send(player, 'local-gpu', keyText)
     elseif keyId == 'vision-border' then convaiNotices.send(player, 'vision-border', keyText)
+    elseif keyId == 'vision-local-no-model' then convaiNotices.send(player, 'vision-local-no-model', keyText)
+    elseif keyId == 'vision-local-no-file' then convaiNotices.send(player, 'vision-local-no-file', keyText)
+    elseif keyId == 'vision-custom-no-images' then convaiNotices.send(player, 'vision-custom-no-images', keyText)
     elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
     elseif keyId == 'pocket-pack-fr' then convaiNotices.send(player, 'pocket-pack-fr', keyText)
     elseif keyId == 'pocket-pack-it' then convaiNotices.send(player, 'pocket-pack-it', keyText)
@@ -6046,7 +6081,7 @@ end
 speech.devNotice = function(request)
     if not manager.developerMode() then return false, 'developer mode is off' end
     local id = type(request) == 'string' and request:match('^notice:([%w%-]+)') or nil
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if id ~= 'daily-limit' or not player then log('Developer notice request ignored: ' .. tostring(id)); return false, 'unknown notice or no player' end
     convaiNotices.send(player, 'daily-limit', dailyLimitText())
     log('Developer notice shown: ' .. id)
@@ -6219,7 +6254,7 @@ local function openManager()
     if ok and result then
         log('Companion manager shortcut: press ' .. press .. ' opened (requested from the settings host)')
         gameplayActions.revoke('menu')
-        endFocus(Game.GetPlayer())
+        endFocus(convaiPlayer())
         if convaiBarkEnd then convaiBarkEnd() end
         focusMode = nil
         focusEntity = nil
@@ -6231,7 +6266,7 @@ local function openManager()
         log('Companion manager shortcut: press ' .. press .. (ok and ' refused' or ' failed') .. ' (kind=' .. tostring(ok and kind or nil) .. ')')
         if ok and kind == 'seated' then
             pcall(function()
-                local player = Game.GetPlayer()
+                local player = convaiPlayer()
                 if player then convaiNotices.send(player, 'manager-seated', ui.t('Stand up to open the Companion Manager')) end
             end)
         end
@@ -6324,7 +6359,7 @@ end
 
 -- Fight tactic environment: the player, the ready companion by entity, the marked target, and developer
 -- notices. Nothing here sends a request or plays a line.
-tacticEnv.player = function() return Game.GetPlayer() end
+tacticEnv.player = function() return convaiPlayer() end
 tacticEnv.actor = function(entity) return companions.readyActor(entity) end
 tacticEnv.rearm = function(entity) return companions.rearmEquipment(entity) end
 tacticEnv.marked = function(player) return marking.current(player) end
@@ -6332,7 +6367,7 @@ tacticEnv.marked = function(player) return marking.current(player) end
 tacticEnv.protected = function(npc) return convaiWorldPolicy ~= nil and convaiWorldPolicy.protected(npc) == true end
 tacticEnv.owned = function(npc) return companions.owns(npc) or (convaiCompanionAdoption ~= nil and convaiCompanionAdoption.hidden(npc)) end
 tacticEnv.feedback = function(message)
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if player then convaiNotices.send(player, 'tactic-outcome', ui.t(message)) end
 end
 tacticEnv.log = function(line) log(line) end
@@ -6344,7 +6379,7 @@ companions.onProfileChanged = function(entity) retirePrivateReply(entity, 'profi
 -- keeps; none runs unless an add-on has registered, and none runs per frame.
 if convaiAddons then
     local seams = {log = function(line) log(line) end, native = function() return convaiNative end,
-        player = function() return Game.GetPlayer() end, outputs = function(player) return reactionOutputs(player) end,
+        player = function() return convaiPlayer() end, outputs = function(player) return reactionOutputs(player) end,
         sample = function(player) return battleObserver.sample(player) end,
         nextGeneration = function() generation = generation + 1; return generation end,
         registerProfile = function(key) supportedProfiles[key] = true end,
@@ -6510,7 +6545,7 @@ function convaiVoiceActivationModule()
             return ran and microphone.context ~= nil
         end,
         errorNotice = function()
-            convaiNotices.send(Game.GetPlayer(), 'mic-vad-error', ui.t('Voice activation could not open the microphone. Check your Windows input device.'))
+            convaiNotices.send(convaiPlayer(), 'mic-vad-error', ui.t('Voice activation could not open the microphone. Check your Windows input device.'))
         end,
     }
     return convaiVoiceActivation
@@ -6565,7 +6600,7 @@ function convaiVoiceChoicesModule()
             local text = kind == 'ambiguous' and ui.t('Two options fit. Say its number.')
                 or kind == 'unavailable' and ui.t('Speaking a choice needs speech recognition on this PC.')
                 or ui.t('No option matched. Say its number.')
-            convaiNotices.send(Game.GetPlayer(), 'voice-choice', text)
+            convaiNotices.send(convaiPlayer(), 'voice-choice', text)
         end,
         log = log,
     }
@@ -6620,7 +6655,7 @@ function convaiKeyBindsModule()
     convaiKeyBinds = module
     convaiKeyBinds.deps = {
         bindings = function() return manager.keyBindings() end,
-        save = function(action, name) return manager.setKeyBinding(Game.GetPlayer(), action, name) end,
+        save = function(action, name) return manager.setKeyBinding(convaiPlayer(), action, name) end,
         voice = function(action, isDown) voiceKeyEdge(action, action == 'group_voice', isDown, action == 'johnny_voice') end,
         tap = function(action)
             if action == 'text' then beginText(false) elseif action == 'group_text' then beginText(true)
@@ -6641,7 +6676,7 @@ function convaiKeyBindsModule()
             return text
         end,
         changed = function(result) managerUi.keyBindResult(result) end,
-        player = function() return Game.GetPlayer() end,
+        player = function() return convaiPlayer() end,
         log = log,
     }
     return convaiKeyBinds
@@ -6700,7 +6735,7 @@ function convaiOutfitModule()
         place = function() local where = currentDistrict(); return where and (where.area or where.district) or nil end,
         -- Ordinary gameplay: no fight, scene, call, vehicle or V as a replacer (battle-observer's read, once per check that has a change to make).
         world = function()
-            local sample = battleObserver.sample(Game.GetPlayer())
+            local sample = battleObserver.sample(convaiPlayer())
             if sample.available ~= true then return 'unreadable' end
             if sample.combat then return 'combat' end
             if sample.blocked then
@@ -6753,7 +6788,7 @@ do
             built, value = pcall(module.new, {
                 enabled = function() return manager.characterEddies() end,
                 ownCopy = function(entity, profileKey) return companions.ownCopy(entity, profileKey) end,
-                player = function() return Game.GetPlayer() end,
+                player = function() return convaiPlayer() end,
                 -- V's game clock stamps each ledger entry; a load from before an entry forgets it (the game took those eddies back).
                 gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
                 -- The transfer waits for the reply to be over and for V to be free: no reply due or playing, no fight, scene or choice, no pause,
@@ -7522,7 +7557,7 @@ registerForEvent('onInit', function()
     ObserveBefore('FastTravelSystem','OnPerformFastTravelRequest',function(system,request)
         if fastTravelActive or worldSuspended or not sessionHasState then return end
         local valid,travelling=pcall(function()
-            local current=Game.GetPlayer()
+            local current=convaiPlayer()
             if not request or not request.player or not current or not request.pointData
                 or not system:HasFastTravelPoint(request.pointData) then return false end
             if tostring(request.player:GetEntityID().hash)~=tostring(current:GetEntityID().hash) then return false end
@@ -7601,7 +7636,7 @@ end)
 -- drops the receipts and the attach hooks resume the mod. A global, so the onUpdate closure gains no upvalue and builds no closure.
 convaiFastTravelExpired = function()
     local attached = false
-    pcall(function() local player = Game.GetPlayer(); attached = player ~= nil and player:IsAttached() == true end)
+    pcall(function() local player = convaiPlayer(); attached = player ~= nil and player:IsAttached() == true end)
     if attached then
         log('Fast travel completion did not arrive within 120 s: recovering the party and resuming')
         fastTravelActive.finished = true
@@ -7709,7 +7744,7 @@ registerForEvent('onUpdate', function(delta)
     companions.beginSpatialFrame()
     local mark = convaiPerfMark
     mark('init:session')
-    local menuPlayer = Game.GetPlayer()
+    local menuPlayer = convaiPlayer()
     -- Each native call through CET costs the game thread; the world check below reuses this frame's answers.
     local sessionOk, sessionReady, requests = pcall(convaiSessionReady, menuPlayer, worldSuspended)
     if not sessionOk or not sessionReady then
@@ -8174,7 +8209,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-stepdown' or keyId == 'vision-border' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-gpu' or keyId == 'local-stepdown' or keyId == 'vision-border' or keyId == 'vision-local-no-model' or keyId == 'vision-local-no-file' or keyId == 'vision-custom-no-images' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                         -- A plan limit or a refused key: a turn V asked for says so; an automatic reaction (battle, loot) just stops.
@@ -8325,7 +8360,7 @@ registerForEvent('onShutdown', function()
     battleSample, battlePeople = nil, {}
     phoneChat.abandon()
     if convaiHolocall then
-        if liveWorld then pcall(convaiHolocall.finish, Game.GetPlayer(), 'shutdown') else pcall(convaiHolocall.abandon, 'shutdown') end
+        if liveWorld then pcall(convaiHolocall.finish, convaiPlayer(), 'shutdown') else pcall(convaiHolocall.abandon, 'shutdown') end
     end
     managerUi.shutdown(liveWorld)
     groupChat.cancel()
@@ -8333,13 +8368,13 @@ registerForEvent('onShutdown', function()
     if autoConnect then pcall(autoConnect.reset) end
     microphone.cancel()
     if convaiVoiceActivation then pcall(convaiVoiceActivation.off) end
-    if convaiKeyBinds then pcall(convaiKeyBinds.stop, liveWorld and Game.GetPlayer() or nil) end
+    if convaiKeyBinds then pcall(convaiKeyBinds.stop, liveWorld and convaiPlayer() or nil) end
     if liveWorld then speech.stop('shutdown'); subtitles.clear()
     else speech.abandon(); subtitles.abandon() end
     active = nil
     if liveWorld then companions.dismissAll() else companions.abandon() end
     if liveWorld then pcall(companions.destroyPartyCars) end -- overflow party cars: no update runs again to remove them
-    local player = liveWorld and Game.GetPlayer() or nil
+    local player = liveWorld and convaiPlayer() or nil
     if player then pcall(function() player:ConvaiCloseManager() end) end
     manager.reset()
     if liveWorld then endFocus(player) else focusedCrowd, releasedCrowd = nil, nil end

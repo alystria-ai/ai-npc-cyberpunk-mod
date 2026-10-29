@@ -155,6 +155,11 @@ Object.assign(process.env, launcher.serviceEnvironment(layout, {omni: ${withOmni
 const {PocketVoice} = await load('bridge/pocket-voice.mjs');
 const {JaliFace} = await load('bridge/jali-face.mjs');
 const report = {};
+// The Python itself finds every module the voice workers import, and its start-up prints no import error (bridge/runtime-python.mjs; report 0b8367fd0ebd2f2f).
+{
+  const {checkRuntimePython} = await load('bridge/runtime-python.mjs');
+  report.python = await checkRuntimePython({project: app, import: true});
+}
 const configPath = resolve(state, 'pocket-voices.autobest.json');
 const config = JSON.parse(await readFile(configPath, 'utf8'));
 const pocket = new PocketVoice(config, {project: app, configPath, pythonExecutable: config.runtime.pythonExecutable});
@@ -604,6 +609,8 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
     const smoke = await runNode(node, harness, cleanEnv(), 900_000);
     let report = {};
     try { report = JSON.parse(smoke.out.trim().split('\n').pop()); } catch {}
+    check("the packaged Python has every file the voice workers import (the standard library in Lib/, the site-packages, no start-up import error)", report.python?.state === 'ok',
+      report.python ? `${report.python.layout ?? '?'} layout, ${report.python.state}${report.python.missingCount ? `, missing ${report.python.missing.join(', ')}` : ''}` : smoke.err.slice(-1500));
     check('Pocket voice speaks from the packaged Python', smoke.code === 0 && report.pocketSeconds > 0.5,
       smoke.code === 0 ? `${report.pocketProfiles} voices, ${report.pocketProfile}: ${report.pocketSeconds?.toFixed?.(2)} s of audio, start ${report.pocketStartMs} ms, render ${report.pocketRenderMs} ms`
         : smoke.err.slice(-1500));

@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Music and TV, the song (docs/DYNAMIC_INFO.md "Music and TV"): the game's own song-change events, cached for mod/media-context.lua.
 -- The live pass of 2026-10-25 read the station on both radios but never the song, so the song is also taken from the events the game's own
 -- radio UI is driven by. Each one fires once per song (or station change), never per frame; the callback only stores {song, station, at}.
@@ -32,7 +33,7 @@ local function nativeAdapter()
     function N.stationOf(evt) return evt.radioStationName end
     -- The station tuned now, the same read media-context.lua makes: the car receiver while mounted, else the pocket radio.
     function N.station()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if player == nil then return nil end
         local vehicle = player:GetMountedVehicle()
         if vehicle ~= nil then

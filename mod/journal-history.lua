@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Bounded journal inventory. All retained queues contain hashes/strings only.
 -- These are V's revealed journal entries, never inferred choices or memories.
 local M = {}; local Collector = {}; Collector.__index = Collector
@@ -107,7 +108,7 @@ local function descriptor(journal,entry)
     return out
 end
 local function ready()
-    local player=Game.GetPlayer()
+    local player=convaiPlayer()
     return player and player:IsAttached() and not player:IsDeadNoStatPool()
         and not Game.GetSystemRequestsHandler():IsPreGame() and not Game.GetJournalManager():HasAnyDelayedStateChanges() or false
 end

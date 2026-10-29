@@ -28,6 +28,13 @@ const UPLOADS = {
   'micpack-european': ['MicPack-European-Parakeet-TDT-0.6B-v3-0.2.9.zip', 'mic/MicPack-European-Parakeet-TDT-0.6B-v3.zip'],
   'micpack-asian': ['MicPack-Asian-SenseVoice-Small-234M-0.2.9.zip', 'mic/MicPack-Asian-SenseVoice-Small-234M.zip'],
 };
+// The vision files (a model's projector as a small zip of its own, 2026-10-29): pack id -> [zip a build writes, every path in the repository]. The Gemma 4 E4B zip serves both Local AI
+// standard and Mature standard: one file, published at both paths.
+const VISION = {
+  'vision-gemma': ['Vision-Gemma-4-E4B-projector-0.2.9.zip', ['local-ai/vision/Vision-Gemma-4-E4B-projector.zip', 'mature/vision/Vision-Gemma-4-E4B-projector.zip']],
+  'vision-bonsai': ['Vision-Bonsai-2-4B-projector-0.2.9.zip', ['local-ai/vision/Vision-Bonsai-2-4B-projector.zip']],
+  'vision-qwen': ['Vision-Qwen3.5-4B-projector-0.2.9.zip', ['mature/vision/Vision-Qwen3.5-4B-projector.zip']],
+};
 // The same packs built before 0.3.4 (old zip names) are accepted and published under the new names; --also-old-name adds the old path.
 const OLD = {
   omni: ['OmniPack-0.2.9.zip', 'voice/OmniPack.zip'], 'localai-standard': ['LocalAI-Standard-0.2.9.zip', 'local-ai/LocalAI-Standard.zip'],
@@ -49,6 +56,26 @@ test('a build folder that still holds a pack under its old name is accepted, and
       assert.deepEqual(both.stdout.trim().split(/\r?\n/), [`${join(directory, oldZip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${UPLOADS[pack][1]}`,
         `${join(directory, oldZip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${oldRemote}`]);
     }
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
+test('the vision files go to the vision folder of local-ai and mature, the Gemma one to both from one zip, with no old name and no checksum file', {skip: !python && 'no Python'}, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'hf vision '));
+  try {
+    for (const [zip] of Object.values(VISION)) await writeFile(join(directory, zip), 'x');
+    for (const [pack, [zip, remotes]] of Object.entries(VISION)) {
+      const run = py(['packaging/upload-packs.py', '--version', '0.2.9', '--pack', pack, '--packages', directory, '--dry-run']);
+      assert.equal(run.status, 0, run.stderr);
+      assert.deepEqual(run.stdout.trim().split(/\r?\n/), remotes.map(remote => `${join(directory, zip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${remote}`));
+      // A transition name does not exist for them: --also-old-name adds nothing.
+      const old = py(['packaging/upload-packs.py', '--version', '0.2.9', '--pack', pack, '--packages', directory, '--dry-run', '--also-old-name']);
+      assert.equal(old.stdout, run.stdout, `${pack}: no old path`);
+    }
+    // The zip of another version, or a pack in parts, is refused. A vision file is the same for every game version.
+    assert.notEqual(py(['packaging/upload-packs.py', '--version', '0.2.8', '--pack', 'vision-qwen', '--packages', directory, '--dry-run']).status, 0);
+    assert.notEqual(py(['packaging/upload-packs.py', '--version', '0.2.9', '--pack', 'vision-qwen', '--packages', directory, '--dry-run', '--game', '2.31']).status, 0);
+    await writeFile(join(directory, 'Vision-Qwen3.5-4B-projector-0.2.9-part1of2.zip'), 'x');
+    assert.notEqual(py(['packaging/upload-packs.py', '--version', '0.2.9', '--pack', 'vision-qwen', '--packages', directory, '--dry-run']).status, 0);
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
 
@@ -155,6 +182,8 @@ test('the player texts link the files at their folders and new names, say nothin
   // The mod itself downloads from Nexus only (owner, 2026-10-29): no Hugging Face mirror of the full install or the update.
   for (const link of ['AI-NPC-LLM-Companions.zip', 'AI-NPC-LLM-Companions-Update.zip']) assert(!nexus.includes(`/blob/main/${link}`) && !nexus.includes(`/blob/main/game-2.31/${link}`), `the Nexus page links no Hugging Face ${link}`);
   for (const link of [...Object.values(UPLOADS).map(([, remote]) => remote).filter(remote => /^(?:local-ai|voice|mature|mic)\//.test(remote))]) assert(nexus.includes(`${HF}/blob/main/${link}`), `the Nexus page links ${link}`);
+  // The vision files are listed on the Nexus page too, with the link of each folder they are in.
+  for (const folder of ['local-ai/vision', 'mature/vision']) assert(nexus.includes(`${HF}/tree/main/${folder}`), `the Nexus page links the ${folder} folder`);
   assert(nexus.includes(`${HF}/tree/main/multilingual`), 'the multilingual folder link is the same as before');
   assert(!nexus.includes('Runtime.zip'), 'managers install the full install as one mod: the Nexus page does not advertise the Runtime alone');
   assert.match(nexus, /Remove both of the old mods, then install the main file/, 'the one step for a manager coming from 0.3.3');
@@ -162,7 +191,8 @@ test('the player texts link the files at their folders and new names, say nothin
   // Every file name on HF has lost the prefix: the model card lists the new paths.
   const card = texts['packaging/HF_MODEL_CARD.md'];
   assert(!card.includes('AI-NPC-LLM-Companions'), 'the model card offers no full install or update (Nexus only)');
-  for (const path of ['local-ai/', 'mature/', 'mic/', 'voice/', 'updates/', 'multilingual/']) assert(card.includes(path), `the model card lists ${path}`);
+  for (const path of ['local-ai/', 'mature/', 'mic/', 'voice/', 'updates/', 'multilingual/', 'local-ai/vision/', 'mature/vision/']) assert(card.includes(path), `the model card lists ${path}`);
+  for (const [, remotes] of Object.values(VISION)) for (const remote of remotes) assert(card.includes(remote), `the model card lists ${remote}`);
   // The Runtime alone is no longer on Hugging Face (owner, 2026-10-28): the full install holds it.
   assert(!card.includes('runtime/Runtime.zip') &&!card.includes('tree/main/runtime'), 'the model card names no runtime/ folder');
   assert.doesNotMatch(card, /Pocket language model/i, 'the Pocket language models are PocketTTS models in the texts players read');

@@ -489,3 +489,88 @@ test('chooseLocalModel and stillSatisfies follow a server pin whose id changed, 
   assert.equal(fallback.fellBack, 'missing');
   assert.equal(fallback.model.id, 'standard');
 });
+
+// ---- 2026-10-29: a 12B model of the player's own on a 24 GB laptop (RTX 5090 Laptop, 24,463 MiB), OmniVoice, the lite pack also installed ----------------------------------------
+// The room the model gets comes from smallCardRoom (bridge/local-vram-fit.mjs). The model: 7,600 MiB on disk (gemma-4-12b-it-qat-ud-q4_k_xl is about 7 to 8 GB), so the file-size rule asks for
+// 8,800 MiB. The projections are a FIXTURE (derived, not measured: a 12B with sliding-window layers is about 1.6 GB above its file at 16,384, 1.1 GB at 8,192, 0.8 GB with the 8-bit cache).
+import {FIT_LIMITS, SMALL_CARD_ROOM, fitLadder, smallCardRoom} from './local-vram-fit.mjs';
+
+const TWELVE_B = {id: 'custom:gemma-12b', name: 'gemma-4-12b-it-qat-ud-q4_k_xl', file: 'own/gemma-12b.gguf', custom: true, tier: null, uncensored: false, family: 'gemma', loadedName: 'gemma-4-12b-it-qat-ud-q4_k_xl'};
+const LAPTOP = {total: 24463, desktop: 1000};
+const laptopSizes = {'std.gguf': 4916, 'lite.gguf': 1311, 'own/gemma-12b.gguf': 7600};
+const laptopSizeOf = file => laptopSizes[file] ?? 0;
+const laptopModels = listLocalModels({pack, customModels: [TWELVE_B]});
+const PROJECTION_12B = {16384: 9200, 8192: 8700, q8: 8400};
+const ladderFor = (freeMiB, table = PROJECTION_12B) => fitLadder({freeMiB, probe: async rung => table[rung.kvType ? 'q8' : rung.contextSize] ?? null});
+// What the model may take at the service's start, in the three voice cases of the report.
+const roomAt = ({voice}) => {
+  const resident = voice === 'resident' ? SMALL_CARD_ROOM.omniVoiceMiB : 0, toLoad = voice === 'to-load' ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
+  const free = LAPTOP.total - LAPTOP.desktop - resident;   // the game has allocated nothing yet
+  return smallCardRoom({totalMiB: LAPTOP.total, freeMiB: free, voiceMiB: toLoad, residentVoiceMiB: resident});
+};
+
+test('the 24,463 MiB laptop at the service start: OmniVoice loaded, still to load or off, the pinned 12B gets 10.7 to 13.2 GB and is chosen with the largest context its projection fits', async () => {
+  const rooms = {resident: roomAt({voice: 'resident'}), 'to-load': roomAt({voice: 'to-load'}), off: roomAt({voice: 'off'})};
+  // The game's room is 10,240 MiB, the 5.8 GB the model used to get (62% of the card, 15,167 MiB) is gone.
+  assert.deepEqual([rooms.resident.reserveMiB, rooms.resident.modelMiB], [10240, 10723]);
+  assert.deepEqual([rooms['to-load'].reserveMiB, rooms['to-load'].voiceMiB, rooms['to-load'].modelMiB], [10240, 2500, 10723]);
+  assert.deepEqual([rooms.off.reserveMiB, rooms.off.modelMiB], [10240, 13223]);
+  for (const [voice, room] of Object.entries(rooms)) {
+    const fit = await ladderFor(room.modelMiB);
+    const choice = chooseLocalModel({models: laptopModels, pin: TWELVE_B.id, sizeOf: laptopSizeOf, freeMiB: room.modelMiB, totalMiB: LAPTOP.total, realFit: {[TWELVE_B.id]: {...fit, marginMiB: FIT_LIMITS.marginMiB}}});
+    assert.deepEqual([voice, choice.model.id, choice.pinned, choice.fellBack, choice.offload], [voice, TWELVE_B.id, true, null, false]);
+    assert.equal(fit.pick.contextSize, 16384, voice + ': the largest context fits (' + fit.pick.projectedMiB + ' MiB plus the margin in ' + room.modelMiB + ')');
+  }
+});
+
+test('the same laptop with the old room (62% of the card, 5,796 MiB for the model) rejected the pin: the numbers the report had, and what the player is now told', async () => {
+  const old = smallCardRoom({totalMiB: LAPTOP.total, freeMiB: LAPTOP.total - LAPTOP.desktop - 2500, residentVoiceMiB: 2500, limits: {...SMALL_CARD_ROOM, bigGameCapMiB: 15360}});
+  assert.equal(old.modelMiB, 5796);
+  const fit = await ladderFor(old.modelMiB);
+  assert.equal(fit.pick, null, 'no rung of the ladder fits in 5,796 MiB');
+  const choice = chooseLocalModel({models: laptopModels, pin: TWELVE_B.id, sizeOf: laptopSizeOf, freeMiB: old.modelMiB, totalMiB: LAPTOP.total, realFit: {[TWELVE_B.id]: {...fit, marginMiB: FIT_LIMITS.marginMiB}}});
+  assert.deepEqual([choice.model.id, choice.fellBack], ['lite', 'low-memory']);
+  // The projection's smallest placement (8,400 at 8,192 with the 8-bit cache) plus the 512 MiB margin is what the model needs, not the file-size rule's 8,800.
+  assert.deepEqual([choice.needMiB, choice.availableMiB], [8912, 5796]);
+  // Without a projection (no tool) the file-size rule's figure is the need.
+  const noTool = chooseLocalModel({models: laptopModels, pin: TWELVE_B.id, sizeOf: laptopSizeOf, freeMiB: 5796, totalMiB: LAPTOP.total});
+  assert.deepEqual([noTool.fellBack, noTool.needMiB, noTool.availableMiB], ['low-memory', 8800, 5796]);
+  // The numbers only come with a low-memory fallback.
+  const missing = chooseLocalModel({models: laptopModels, pin: 'custom:gone', sizeOf: laptopSizeOf, freeMiB: 5796});
+  assert.deepEqual([missing.fellBack, 'needMiB' in missing, 'availableMiB' in missing], ['missing', false, false]);
+  const fine = chooseLocalModel({models: laptopModels, pin: 'standard', sizeOf: laptopSizeOf, freeMiB: 24000});
+  assert.deepEqual([fine.fellBack, 'needMiB' in fine], [null, false]);
+});
+
+test('a model that truly does not fit (a 40 GB file on the 24 GB laptop) is rejected with its numbers, and the pack model is the answer', () => {
+  const huge = {...TWELVE_B, id: 'custom:huge', name: 'huge', file: 'own/huge.gguf'};
+  const models = listLocalModels({pack, customModels: [huge]});
+  const sizes2 = file => ({...laptopSizes, 'own/huge.gguf': 40000})[file] ?? 0;
+  const room = roomAt({voice: 'resident'});
+  const choice = chooseLocalModel({models, pin: huge.id, sizeOf: sizes2, freeMiB: room.modelMiB});
+  assert.equal(choice.fellBack, 'low-memory');
+  assert.ok(choice.needMiB > 40000 && choice.availableMiB === room.modelMiB, JSON.stringify([choice.needMiB, choice.availableMiB]));
+});
+
+test('for a model the player added the projection decides in both directions: the file-size rule passing does not make it fit when no rung of the ladder does', async () => {
+  // 10,000 MiB for the model: the rule (7,600 + 1,200 = 8,800) says it fits, a model with a large cache projects 9,900 / 9,700 / 9,600 and needs 10,112 at least.
+  const fit = await ladderFor(10000, {16384: 9900, 8192: 9700, q8: 9600});
+  assert.equal(fit.pick, null);
+  const choice = chooseLocalModel({models: laptopModels, pin: TWELVE_B.id, sizeOf: laptopSizeOf, freeMiB: 10000, realFit: {[TWELVE_B.id]: {...fit, marginMiB: 512}}});
+  assert.deepEqual([choice.model.id, choice.fellBack, choice.needMiB, choice.availableMiB], ['standard', 'low-memory', 10112, 10000]);
+  // The same projection on a model of a pack changes nothing: the rule stays the pack models' judge (their constants were measured).
+  const pinnedPack = chooseLocalModel({models: laptopModels, pin: 'standard', sizeOf: laptopSizeOf, freeMiB: 7000, realFit: {standard: {projections: [{contextSize: 16384, kvType: null, projectedMiB: 9900}], pick: null, marginMiB: 512}}});
+  assert.deepEqual([pinnedPack.model.id, pinnedPack.fellBack], ['standard', null]);
+  // A projection that fits keeps the model and the fit is the context.
+  const roomy = await ladderFor(12000);
+  const kept = chooseLocalModel({models: laptopModels, pin: TWELVE_B.id, sizeOf: laptopSizeOf, freeMiB: 12000, realFit: {[TWELVE_B.id]: {...roomy, marginMiB: 512}}});
+  assert.deepEqual([kept.model.id, kept.fellBack], [TWELVE_B.id, null]);
+});
+
+test('the default rule on the laptop takes the largest model that fits the new room, and the lite model in the old one', () => {
+  const room = roomAt({voice: 'resident'});
+  const choice = chooseLocalModel({models: laptopModels, sizeOf: laptopSizeOf, freeMiB: room.modelMiB, totalMiB: LAPTOP.total});
+  assert.equal(choice.model.id, TWELVE_B.id, 'by file size the 12B is the largest one that fits 10,723 MiB (8,800 by the rule)');
+  const tight = chooseLocalModel({models: laptopModels, sizeOf: laptopSizeOf, freeMiB: 5796, totalMiB: LAPTOP.total});
+  assert.equal(tight.model.id, 'lite', 'the old room: 4,916 + 1,200 = 6,116 > 5,796, so the lite model');
+});

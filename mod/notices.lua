@@ -82,10 +82,14 @@ M.catalog = {
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered (no other provider ever takes it over): say so on every attempt, not more than twice a minute
     ['local-thinking'] = {class = PLAYER, repeatS = 30},    -- the player's own model server answered with only thinking, also when asked not to think: turn thinking off there or pick another model
     ['local-context'] = {class = PLAYER, repeatS = 30},     -- the player's own model server has a context too small for the character: raise it there
-    ['vision-border'] = {class = PLAYER, repeatS = 86400},  -- Windows draws its yellow capture border for the Companions-can-see pictures (Convai): what it is and how to stop it; once per game session, with the next reply
+    ['vision-border'] = {class = PLAYER, repeatS = 86400},  -- Windows draws its yellow capture border for the Companions-can-see pictures: what it is and how to stop it; once per game session, with the next reply
+    ['vision-local-no-model'] = {class = PLAYER, repeatS = 86400},   -- Companions can see is on and the Local AI model cannot take pictures (no vision file, or none that fits the card): once per game session, with the next reply
+    ['vision-local-no-file'] = {class = PLAYER, repeatS = 86400},    -- Companions can see is on and the Local AI model's vision file is not installed (a separate download): once per game session, with the next reply, says where to get it
+    ['vision-custom-no-images'] = {class = PLAYER, repeatS = 86400}, -- Companions can see is on and the Custom endpoint refused a picture: none is sent again this session; once, with the next reply
     ['local-restarted'] = {class = PLAYER, repeatS = 300},   -- the Local AI model server stopped by itself and was started again: about once per five minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
     ['local-cpu'] = {class = PLAYER, repeatS = 86400},       -- the Local AI model is mostly on the processor (too little of it fits the graphics card beside the game): once per game session, with the next reply; a smaller model or the Custom provider is faster
+    ['local-gpu'] = {class = PLAYER, repeatS = 86400},       -- the Local AI model was in shared system memory (or partly on the processor) and is whole on the graphics card again: once per game session, with the next reply
     ['local-stepdown'] = {class = PLAYER, repeatS = 60},    -- Local AI's turns stalled (the game uses most of the graphics memory): a smaller model was loaded (the bridge sends it once per step)
     ['browser-failed'] = {class = PLAYER, repeatS = 60},    -- the browser for the conversation page was found but would not start (or there is none): says which and why, at most once a minute
     ['local-unavailable'] = {class = PLAYER, repeatS = 30}, -- Local AI is chosen and could not start (never handed to another provider; the next turn tries again): every attempt, at most twice a minute
@@ -110,6 +114,7 @@ M.catalog = {
     ['mic-no-speech'] = {class = PLAYER, repeatS = 15},
     ['mic-silent'] = {class = PLAYER, repeatS = 15},
     ['mic-device-gone'] = {class = PLAYER, repeatS = 86400}, -- the input chosen in Settings > Voices > Microphone is not connected and the Windows default is used: once per game session
+    ['mic-loopback'] = {class = PLAYER, repeatS = 86400}, -- the Windows default input looks like a loopback or virtual input that may carry a call's far side: once per game session
     ['mic-vad-error'] = {class = PLAYER, repeatS = 120}, -- Voice activation could not open the microphone (mod/voice-activation.lua)
     ['mic-english-only'] = {class = PLAYER, repeatS = 86400}, -- voice input in another language that nothing on this setup recognises (Mistral transcription refused or not used, no multilingual pack): once per game session
     ['mic-heard'] = {class = PLAYER},

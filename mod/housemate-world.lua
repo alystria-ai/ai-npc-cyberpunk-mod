@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of the housemates (docs/HOUSEMATES.md): finding the real seat behind a data seed, walking a body to it, playing the vanilla NPC
 -- workspot on it, getting her out again, and the plain questions the controller asks of the world. Everything here is guarded and bounded;
 -- nothing runs unless the controller (mod/housemates.lua) asks, and nothing runs per frame.
@@ -45,7 +46,7 @@ function M.new(o)
     local clock = o.clock or os.clock
 
     local function log(kind, fields) if o.log then pcall(o.log, kind, fields) end end
-    local function player() return Game.GetPlayer() end
+    local function player() return convaiPlayer() end
 
     local function spend(n)
         local now = clock()

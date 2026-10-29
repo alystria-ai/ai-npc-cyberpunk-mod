@@ -9,7 +9,7 @@
 // request fields), whether requests are paced (Mistral's free plan), how a failure is recorded on the provider, and whether a
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
-import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
+import {streamChat, MistralError, DEFAULT_MODELS, VISION_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS, freshNote} from './mistral-prompt.mjs';
 import {reactionTraceLine, claimsToDrive, DRIVE_HONEST, DRIVE_LIMIT} from './companion-actions.mjs';
@@ -25,7 +25,8 @@ import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {LearnedLimits, learnedLimitChat, promptFitLine} from './prompt-fit.mjs';
-import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
+import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs, BUDGET} from './prompt-budget.mjs';
+import {imageReserveTokens} from './local-vision.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
@@ -112,13 +113,18 @@ export const LOCAL_RETRY_MS = 10_000;
  * token budget; docs/FREE_CLOUD_OPTION_RESEARCH.md).
  */
 export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionModel, chat = streamChat, endpoint, gapMs = 1100, onFailure, onSuccess,
-  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS, limits, log = () => {}} = {}) {
+  cacheScope = '', now = () => performance.now(), scheduler, priorities = {TEXT: 0, BACKGROUND: 2}, chatDefaults = CLOUD_CHAT_LIMITS, limits, log = () => {}, onImagesRejected} = {}) {
+  // Models that refused a picture this session (a model of VISION_MODELS that Mistral says takes none): no picture goes to them again.
+  const refusedPictures = new Set();
   // A prompt Mistral refuses as too long, with the limit it names, is cut to it once and sent again; the limit is remembered (bridge/prompt-fit.mjs).
   chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
   return {name: 'mistral', provider: 'mistral', chat, endpoint, gapMs, now, blocked: new Map(), nextSlot: 0, scheduler, priorities,
     chatDefaults,
     noteHeaders: scheduler ? headers => { try { scheduler.noteHeaders(headers); } catch { /* spacing is best effort */ } } : undefined,
     models: () => [model()].flat().map(id => ({id})),
+    // "Companions can see": a picture goes only to a model known to take one (VISION_MODELS) and not refused since. Every model of DEFAULT_MODELS qualifies, so no model is swapped for a picture.
+    imagesFor: id => VISION_MODELS.has(id) && !refusedPictures.has(id),
+    noteImagesRejected: id => { refusedPictures.add(id); try { onImagesRejected?.('mistral', id); } catch { /* an observer never fails a reply */ } },
     // The models of the companion-action decision (a one-word answer, bridge/text-actions.mjs); without it the reply's models are used.
     decisionModels: decisionModel ? () => [decisionModel()].flat().map(id => ({id})) : undefined,
     async connect() { return {apiKey: provider.apiKey}; },
@@ -145,7 +151,7 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  * not retried and says so. The Mature layer follows MATURE_PROVIDERS (the Custom provider has it, #matureLevel).
  *   custom      the CustomEndpoint (address, key, model id)
  */
-export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}} = {}) {
+export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}, onImagesRejected} = {}) {
   // A prompt the endpoint refuses as too long (a Groq plan of 8,000 tokens a minute, an 8k context) is cut to the limit it names, sent again once, and the limit is remembered for this model.
   chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
   const adaptations = new Map();
@@ -163,6 +169,10 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
     get chatDefaults() { return custom.local ? CUSTOM_SERVER_LIMITS : CUSTOM_CLOUD_LIMITS; },
     models: () => [{id: custom.model ?? 'custom'}],
     adaptation,
+    // "Companions can see": an OpenAI-style picture goes to the endpoint until it refuses one (a 400 that names images), then never again this session for this address and model.
+    imagesFor: (_id, lease) => lease?.adapt?.noImages !== true,
+    visionAllowed: () => adaptation().noImages !== true,
+    noteImagesRejected: (_id, lease) => { const adapt = lease?.adapt ?? adaptation(); adapt.noImages = true; try { onImagesRejected?.('custom', custom.model ?? null); } catch { /* an observer never fails a reply */ } },
     async connect() {
       if (!custom.ready) throw new MistralError('request', 'is not set up', {provider: 'custom'});
       const wait = pausedScope === scope() ? pausedUntil - now() : 0;
@@ -213,12 +223,12 @@ export function loadingLine(server, waitedMs) {
  * supervisor's per-session key on a loopback port. Starting the server is part of `connect` (it waits for the model to load on the
  * first turn after an idle unload). Background work (summaries, facts) never starts the server: it runs only while it is loaded.
  */
-export function localRoute({server, chat = streamChat, provider, onFailure, log = () => {}, now = () => Date.now()} = {}) {
+export function localRoute({server, chat = streamChat, provider, onFailure, log = () => {}, now = () => Date.now(), onImagesRejected} = {}) {
   // A Local AI that failed for a reason the next start may not meet again (not enough free graphics memory, a start that failed, a crash) is started again by
   // the next turn that needs it, at most once every LOCAL_RETRY_MS, so a later turn recovers without the player touching Settings. Not 'not-installed' and
   // not 'mature-off': the install and the Mature setting have their own polls. No timer: it runs only when a turn comes. Turns are never handed to another provider.
   // A start this route's own turn just made and lost counts as the last try too (one turn never starts the model twice).
-  let lastRetry = -Infinity;
+  let lastRetry = -Infinity, picturesSkipLogged = false;
   const retryFailed = () => {
     try {
       const status = server.status?.();
@@ -282,7 +292,11 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
         return tokens === null ? null : tokens + templateTokens(messages.length);
       };
       // server: a model server the player runs. Its loaded context can be smaller than what it reported, so a refusal for length teaches the real one (learnContext).
-      return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count, server: handle.external === true};
+      // A turn with a picture keeps room in the prompt for it (the image tokens), and its prompt count is not used to teach the token ratio or the reading speed: the picture's tokens are
+      // not text, and the image encoder's time is not the prompt's (bridge/prompt-budget.mjs, imageTokens).
+      const pictures = Array.isArray(options?.images) ? options.images.length : 0;
+      return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count, server: handle.external === true,
+        ...(pictures ? {reserveTokens: BUDGET.reserveTokens + imageReserveTokens(pictures), imageTokens: imageReserveTokens(pictures)} : {})};
     },
     learn: tokens => { try { server.learnContext?.(tokens); } catch { /* a note of the context never fails a request */ } },
     // A refusal for length that was learned (a server the player runs that has a smaller context than it said): one line with what was cut and whether the second try went through.
@@ -308,6 +322,16 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // 2026-10-13: the overlap gained nothing on Gemma 4 with one slot or two (docs/LOCAL_AI.md, Actions).
   return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, parallel: false,
     models: () => [{id: 'local'}],
+    // "Companions can see": a picture goes only to a server of ours that was started with a vision projector, and never on a machine measured to read prompts slowly or to run the model
+    // mostly on the processor: the picture's encoding and tokens would add to a wait the player already feels (docs/COMPANION_VISION.md, "Local AI").
+    imagesFor: (_id, lease) => {
+      if (lease?.vision !== true) return false;
+      let slow = lastSpeed?.slow === true;
+      try { slow = slow || server.placement?.()?.cpuBound === true; } catch { /* the placement is best effort */ }
+      if (slow && !picturesSkipLogged) { picturesSkipLogged = true; log('[Vision] pictures are not sent to Local AI on this computer: it reads prompts slowly, and a picture would add to the wait'); }
+      return !slow;
+    },
+    noteImagesRejected: () => { try { onImagesRejected?.('local', null); } catch { /* an observer never fails a reply */ } },
     // waitMs: the most this turn can still wait (its budget, LOCAL_TURN_BUDGET_MS). A model that is still loading then (a first start compiles shaders for a
     // minute or two; a reload after a changed choice) ends the turn with its own explanation instead of the game's silent timeout; the load itself goes on, so
     // the next turn finds the model ready. No other provider ever answers that turn.
@@ -353,6 +377,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       let hostname = ''; try { hostname = new URL(connection.endpoint).hostname; } catch { /* no address: nothing to ask */ }
       const own = connection.external === true ? {adapt: adaptation(connection), noThinking: noThinkingFields({hostname, local: true})} : {};
       return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin, external: connection.external === true,
+        vision: connection.vision === true,
         ...own, ...(stopper ? {signal: stopper.signal} : {}), queue: {behind, ...(stopped ? {stopped: true} : {})},
         release: () => { try { if (done) done(); else server.touch?.(); } catch { /* the idle timer is best effort */ } }};
     },
@@ -538,7 +563,7 @@ export class TextProviderHost {
   async #send(route, messages, signal, extra = {}) {
     // slotKey: whose persona a local server has just been warmed with, for a request that has no `profileKey` of its own (the action decision, which must
     // not carry the persona's cache key to the cloud): it only tells the local route which warm-up not to stop.
-    const {profileKey, slotKey, background, prepared, extraBody, models, sampling, ...rest} = extra;
+    const {profileKey, slotKey, background, prepared, extraBody, models, sampling, images, ...rest} = extra;
     const began = this.now();
     const lease = await route.connect(signal, {background, prepared: prepared === true, profileKey: profileKey ?? slotKey, persona: profileKey ?? null, ...(extra.deadlineAt !== undefined ? {waitMs: extra.deadlineAt - this.now()} : {})});
     // How long this request waited before it was sent (starting or waiting for the model, giving way to others) and what was in flight beside it: left on the
@@ -566,6 +591,11 @@ export class TextProviderHost {
             ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), ...(lease.noThinking ? {noThinking: lease.noThinking} : {}), maxTokens: item.maxTokens ?? sampling?.maxTokens ?? this.limits.maxTokens, temperature: sampling?.temperature ?? this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, ...(rest.deadlineAt !== undefined ? {now: this.now} : {}), onHeaders: route.noteHeaders,
             ...(askedKeys.length ? {askedKeys} : {}),
+            // "Companions can see": the picture of this turn goes to this model only when the route says it takes one; a model that refuses it is not sent one again, and the request is repeated without it.
+            ...(images?.length && route.imagesFor?.(item.id, lease) === true ? {images, onImagesRejected: () => {
+              this.log(`[Vision] ${route.label} would not take the picture (${item.id}): none is sent to it again this session, and this reply is written without it`);
+              try { route.noteImagesRejected?.(item.id, lease); } catch { /* an observer never fails a reply */ }
+            }} : {}),
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}${error.paramsRejected ? `, refused ${error.paramsRejected.names?.length ? error.paramsRejected.names.join(', ') : 'a request field'}: left out from now on` : ''}); asking again in ${waitMs} ms`),
             extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...sampled, ...(item.body ?? {}), ...extraBody}});
           noted(answer?.trace);
@@ -1095,6 +1125,8 @@ export class TextProviderHost {
       const clean = cleanReply(visible(soFar), {name: persona.name, isTag});
       return capPoint(clean, this.limits) >= 0 || (wordLimit > 0 && overWords(clean, wordLimit));
     };
+    // The pictures of this turn ("Companions can see", bridge/companion-vision.mjs), handed in with the config by attachTextProvider: never for a reaction.
+    const pictures = !reaction && Array.isArray(config?.visionImages) && config.visionImages.length ? config.visionImages : null;
     const run = async nudge => {
       const messages = build(nudge);
       markStage('promptBuilt');
@@ -1102,7 +1134,7 @@ export class TextProviderHost {
       // bridge/fresh-facts.mjs). An ordinary turn with none of these writes nothing.
       if (!reaction) { try { const note = freshNote(messages, {quiet: true}); if (note) this.log(`[FreshFacts] profile=${profileKey ?? persona.name} ${note}`); } catch { /* a log line never affects a reply */ } }
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
-      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(config?.prepared === true ? {prepared: true, priority: 'background'} : {}), ...(sampling ? {sampling} : {}), ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
+      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(pictures ? {images: pictures} : {}), ...(config?.prepared === true ? {prepared: true, priority: 'background'} : {}), ...(sampling ? {sampling} : {}), ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
         // A reply on trial for a false yes to a ride is shown to the voice only once it has passed (the finished reply is spoken whole).
         if (driveGuard) return;
         const shown = visible(soFar);
@@ -1335,12 +1367,18 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     return rest;
   };
   const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
+  // "Companions can see" (bridge/companion-vision.mjs): the picture for this turn comes from the frames already in memory (the host's turnImages never waits and never throws), and goes
+  // with the config as `visionImages`. Only the in-person host has a vision policy (the phone host has none), and only while the setting is on and the provider can see. Not a reaction.
+  const withPictures = (config, send) => {
+    if (!host.vision?.active || typeof host.turnImages !== 'function' || !config || config.reaction || config.phoneEvent) return send(config);
+    return host.turnImages(config, 'reply').then(images => send(images ? {...config, visionImages: images} : config), () => send(config));
+  };
   host.reply = function reply(config, options) {
     // The language of what the player types tells the microphone which language to expect (bridge/speech-language.mjs). Automatic
     // reactions carry a `reaction` and English prompts of the mod's own: they say nothing about the player.
     // (An appointment event's text is the mod's trigger too: config.phoneEvent.)
     if (provider.active && onPlayerText && !config?.reaction && !config?.phoneEvent && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
-    return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
+    return provider.active ? withPictures(config, picked => textHost.reply(picked, options)) : original.reply.call(this, withoutLocal(config), options);
   };
   host.prepare = function prepare(config, options) {
     if (provider.active) return Promise.reject(Error(`A speculative turn is not available with ${label()}`));
@@ -1372,7 +1410,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     // through the text route; without it the voice key says voice needs Convai.
     // A reply may start on a stable live-words decode before the final decode is back (bridge/local-stt-capture.mjs, `confirmed`): Mistral only
     // (a cancelled request costs a little quota there; the local AI shares the game's GPU and a cancelled request there is not free).
-    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => textHost.reply(config, options),
+    if (speech?.available?.() && typeof speech.voiceChannel === 'function') return speech.voiceChannel({reply: (config, options) => withPictures(config, picked => textHost.reply(picked, options)),
       speculate: () => provider.route === 'mistral' && process.env.CYBERPUNK_CONVAI_STT_SPECULATE !== '0'});
     const refuse = () => Promise.reject(Error(`Voice needs Convai for now: speech recognition is not available with ${label()} [mistral:voice]`));
     return {beginVoice: refuse, finishVoice: refuse, heard: async () => '', close: async () => {}};
