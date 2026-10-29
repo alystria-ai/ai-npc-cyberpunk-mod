@@ -68,6 +68,22 @@ same as an ending id.
 | she holds a spot | `{"p":"post","id":"<name>","at":"<place>"}` |
 | a car that runs or follows | `{"p":"runner",...}` or `{"p":"tail",...}` |
 | one look at the radio, the hour, the heat | `{"p":"check","id":"<name>","what":"heat"}` |
+| her car races V | `{"p":"race","id":"dash","from":"start","to":"finish","heat":true}` (`"reversed":true` for slowest wins) |
+| a column of cars | `{"p":"convoy","id":"col","route":["gate","bridge","camp"],"reroute":["gate","dam"],"cars":2,"lead":"self","driver":"Character.<record>","fallback":true}` |
+| two fighters trade fists | `{"p":"bout","id":"b1","a":"boxer1","b":"boxer2","rounds":3,"floor":25}` (`"staged":true,"winner":"a"` for a talk and bet scene) |
+| hold the place until a game hour | `{"p":"hold-until","id":"dawn","hour":6,"squad":"wave","witness":"wit"}` |
+| V keeps away from her for a while | `{"p":"apart","id":"ring","at":"pier","inner":10,"outer":60,"minutes":5}` |
+| sneak past a squad | `{"p":"squad",...,"hostile":false}` then `{"p":"unseen","id":"sneak","squad":"wave","at":"door"}` |
+| her voice cuts out in a place | `{"p":"remote"}` and `{"p":"dead-zone","id":"dz","at":"container"}` |
+| she plays a pose | `{"p":"workspot","id":"pose","who":"self","at":"bench","key":"smoke","fallback":"panam"}` |
+| what a cast extra does after what V says | `{"p":"npc-react","id":"react","cast":"guard"}` |
+| V pays a cast extra | `{"p":"pay","id":"toll","to":"guard","amount":100,"min":60}` |
+| she gives V something | `{"p":"gift","id":"get","dir":"receive","tier":"common","second":"Items.<record>"}` |
+| V gives her something | `{"p":"gift","id":"give","dir":"give"}`, with rows on `gift:give:loved`, `liked`, `neutral`, `disliked`, `nothing` |
+| the car goes to V's garage | `{"p":"garage","id":"car","vehicle":"Vehicle.<record>"}` (shipped packs only) |
+| another character learns of it | `{"p":"memory-share","id":"tell","to":"misty-olszewski","note":"..."}` or `"share": [{"to":"...","note":"..."}]` in an ending |
+| she rings V | `{"p":"call-in","id":"ring","call":"c1","ringSeconds":30}` (the call is in the pack's `calls`) |
+| V rings her | `{"p":"call-script","id":"back","call":"c1"}` |
 
   The full list with every field and the events each raises is `bridge/quest-primitives.mjs`. A primitive the validator does not know is an error, a typo in a field is an error.
 
@@ -85,7 +101,22 @@ same as an ending id.
 `stage:enter`, `place:<id>:arrived`, `place:<id>:left`, `together:<id>:done`, `together:<id>:broken`, `seat:seated`, `seat:stood`, `cast:<id>:arrived`, `timer:<id>`,
 `squad:<id>:spawned|hostile|down|fled`, `hostage:<id>:down|freed|dead`, `escortee:<id>:arrived|bolted|back|lost`, `ride:started|arrived|timeout|abandoned|failed-heat`,
 `ride:checkpoint:<place>`, `post:<id>:set|lost`, `runner:<id>:caught|lost|stopped`, `tail:<id>:noticed|lost`, `check:<id>:<value>`, `line:<line id>:done`,
-`gap:<id>:resume`, `gap:<id>:<tag>`, `meet:met`, `meet:stood-up`. The validator rejects a choice or row that waits on an event nothing in its stage can raise.
+`gap:<id>:resume`, `gap:<id>:<tag>`, `meet:met`, `meet:stood-up`, and for the round 2 primitives `race:<id>:started|won|lost|void|timeout|stopped`, `convoy:<id>:started|leg<N>|arrived|lost-one|failed|rerouted|fallback`, `bout:<id>:started|round<N>|a-down|b-down|stopped|ended`, `hold-until:<id>:reached|failed`, `apart:<id>:done|near|far|broken`, `unseen:<id>:spotted|reached`, `dead-zone:<id>:entered|left`, `workspot:<id>:set|fallback|lost`, `npc:<id>:leave|call-police|attack|cower|brawl|obey`, `pay:<id>:paid|short|broke|declined`, `gift:<id>:given|second|failed|loved|liked|neutral|disliked|nothing`, `garage:<id>:added|owned|failed`, `memory-share:<id>:done`, `call:<id>:ringing|answered|done|hung-up|missed|texted`. Events the stage listens to (the stage raises them with an `event` row or a choice): `race:<id>:go`, `convoy:<id>:go|reroute`, `bout:<id>:go|stop`, `post:<id>:fight`, `squad:<id>:go`, `check:<id>:go`. The validator rejects a choice or row that waits on an event nothing in its stage can raise.
+
+## 4b. Calls, music, sound, situations, shares
+
+* **calls**: a table of scripted holocalls. `"calls": {"c1": {"caller": "self", "picture": "voice", "text": "P1.call.text", "onHangUp": "call:ring:hung-up", "steps": [{"say": "P1.call.01"}, {"gap": "g1"}, {"event": "x:y"}, {"say": "P1.call.02"}, {"hangup": true}]}}`. Give every line of the call `"channel": "holocall"`. `text` is the Phone Chat line sent when the call cannot ring. The stage that starts it has a `call-in` entry (she rings V) or a `call-script` entry (V rings her).
+* **music** and **sfx** on a stage: `"music": [{"source": "radio:Morro Rock Radio", "start": "stage:enter", "stop": "race:dash:won", "fadeIn": 1, "fadeOut": 2, "volume": 0.6, "duck": true, "loop": true}]` and `"sfx": [{"source": "file:sfx/rain.ogg", "at": "place:porch", "loop": true}, {"source": "game:ui_jingle_quest_new", "at": "v", "start": "race:dash:won"}]`. A source is `file:music/<name>.ogg` or `file:sfx/<name>.ogg` (inside the pack folder, `.wav` and `.opus` too), `radio:<station>` (music only, a car radio) or `game:<sound event>`. `at` for sfx is `v`, `copy`, `bed` or `place:<id>`. `start` defaults to `stage:enter`, `stop` to the end of the stage. Every `game:` event name has to be checked in the game once, a wrong name plays nothing.
+* **situation** (`nervous`, `celebrating`, `grieving`, `angry`, `relaxed`, `working`) on a stage, a gap or an ending sets the idle and the gesture bias. A gap `idle` is a seat kind or an idle key of `assets/gestures/gestures.json`.
+* **share** in an ending: `"share": [{"to": "misty-olszewski", "note": "V and Jackie ate at Mama's."}]`, up to 4, note up to 300 characters.
+* **audio files** of lines: `audio/<line id>.wav` (or `.ogg`, `.opus`: those need a decoder on the machine, so a shipped pack uses WAV).
+
+## 4c. The other kinds of file
+
+* **Gate-plus** in `requires`: `"facts": {"takemura-alive": true}`, `"before": ["quests/main_quest/prologue/q005_heist"]` (not finished), `"notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"]`, `"window": {"allowActive": ["quests/main_quest/prologue/q003"], "untracked": true}`. At pack level `"unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}` (the `unfinished` ending needs no stage that leads to it). Jackie's quests use `before`, `window` and `unfinishedWhen`, Takemura's `facts`, Songbird's `notBegun`.
+* **A hangout** is a one-stage pack with `"kind": "hangout"` and `"hangout": {"repeatDays": 3, "capPerDay": 20, "stoodUp": -10, "variations": [{"id": "dusk", "know": "It is dusk.", "places": {"spot": "spot-b"}}]}`. Use the catalogue's hangout text as the stage. An invitation is a reach-out trigger with `"offer": "<hangout pack id>"`.
+* **Reach-outs** are not in a pack: `characters/reach-outs/<character>.json`, `{"format": 1, "character": "panam-palmer", "triggers": [{"id": "storm", "via": "text", "text": "...", "after": [{"kind": "bond", "level": 3}], "when": {"kind": "weather", "is": "dust"}, "cooldownDays": 3, "note": "She saw the storm on a feed."}]}`. The text is copied from the character's "reaches out first" table. `bridge/reach-outs.mjs` validates the file.
+* **Gift tables** are `characters/gift-tables.json`: what each character gives by tier and what she likes. A pack names a tier and the bridge picks the item.
 
 ## 5. Endings
 
@@ -115,7 +146,5 @@ start the quest through the runner, feed each stage's events as the game would, 
 ## 8. Things that need the owner or the game, not the conversion
 
 * Positions of places: captured in the game. Audio: rendered later. Pictures: made ahead of time in the photo-mode look. Gift ids and the `garage` call: not part of a first conversion.
-* `call-in` (an incoming holocall the mod starts) is not built: a scripted call opener is written as a `text` row (the fallback in BOND_QUESTS 14.3) and the call lines as `holocall`
-  channel lines.
-* Anything the quest asks for that is not in `bridge/quest-primitives.mjs` (`npc-react` outcomes, `unseen`, `bout`, `convoy`, `race`, pay-an-NPC, `memory-share`, reach-outs, hangouts):
-  convert the rest of the quest, leave a stage out only by writing it as a talk stage, and list the missing piece in your report.
+* `call-in` and `call-script` are built (section 4b): the call lines are `holocall` channel lines, and the pack's `text` is the fallback when the phone cannot ring.
+* Every name of the catalogue is a primitive or a pack field (`CATALOGUE` and `CATALOGUE_ELSEWHERE` in `bridge/quest-primitives.mjs`, covered by `bridge/quest-catalogue.test.mjs`). If a quest asks for something none of them can say (a kneeling captive, squad vehicles, a patrol path), convert the rest, write that stage as a talk stage, and list the missing piece in your report.
