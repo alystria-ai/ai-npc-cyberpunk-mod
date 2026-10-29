@@ -148,6 +148,9 @@ const TRANSIENT_FILE_ERRORS = new Set(['ENOENT', 'EPERM', 'EBUSY', 'EACCES', 'EN
   // A full disk or an exceeded quota: a write nobody waits for that fails this way is lost, never a reason to stop the service (error report 1cbe337a5144ebbd).
   'ENOSPC', 'EDQUOT']);
 
+/** True for a write that failed because the disk or the player's quota is full (ENOSPC, EDQUOT). */
+export const isDiskFull = error => error?.code === 'ENOSPC' || error?.code === 'EDQUOT';
+
 /** True for a rejected file operation of the kind above (an fs error carries `syscall` and a code). */
 export const isTransientFileError = error => typeof error?.code === 'string' && TRANSIENT_FILE_ERRORS.has(error.code) && typeof error?.syscall === 'string';
 
