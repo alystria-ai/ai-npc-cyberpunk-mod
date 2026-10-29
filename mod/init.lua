@@ -6144,7 +6144,10 @@ function convaiJohnnyProbeRun(request)
     if not manager.developerMode() then return false end
     local ok, probe = pcall(dofile, 'johnny-probe.lua')
     if not ok or type(probe) ~= 'table' then log('Johnny probe unavailable: ' .. tostring(probe)); return false end
-    return probe.run(request)
+    -- The mailbox's pcall drops an error, so a failed probe says so here (it used to vanish: the probe read a global that is a local of this file, and nothing answered).
+    local ran, result = pcall(probe.run, request)
+    if not ran then log('Johnny probe failed: ' .. tostring(result)); return false end
+    return result
 end
 
 local function groupAudience(player)
@@ -7963,13 +7966,10 @@ registerForEvent('onUpdate', function(delta)
                 -- "lua-heap:<nonce>" writes the Lua heap report (runtime/lua-heap.json, see convaiLuaHeapReport), "notice:<id>:<nonce>"
                 -- shows one notice on demand (Developer mode only), "johnny-probe:..." runs a Johnny probe (mod/johnny-probe.lua,
                 -- Developer mode only); anything else is a diagnostic capture.
-                -- A request that fails says so in the log (it used to vanish: a probe file read a global that is local here, and nothing answered).
-                local dispatched, problem = true, nil
-                if nonce:find('^lua%-heap:') then dispatched, problem = pcall(convaiLuaHeapReport, nonce)
-                elseif nonce:find('^notice:') then dispatched, problem = pcall(speech.devNotice, nonce)
-                elseif nonce:find('^johnny%-probe:') then dispatched, problem = pcall(convaiJohnnyProbeRun, nonce)
+                if nonce:find('^lua%-heap:') then pcall(convaiLuaHeapReport, nonce)
+                elseif nonce:find('^notice:') then pcall(speech.devNotice, nonce)
+                elseif nonce:find('^johnny%-probe:') then pcall(convaiJohnnyProbeRun, nonce)
                 else captureDiagnostic() end
-                if not dispatched then log('Developer request failed: ' .. tostring(problem)) end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end

@@ -98,7 +98,9 @@ test('place: what the sample reads now, and a test arrival queued with its coold
 `));
 
 test('wiring: the mailbox runs it in Developer mode only; the tick rides the 0.5 s battle sample; nothing per frame', () => {
-  assert.match(init, /if nonce:find\('\^notice:'\) then dispatched, problem = pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then dispatched, problem = pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end\s+if not dispatched then log\('Developer request failed: ' \.\. tostring\(problem\)\) end/);
+  assert.match(init, /if nonce:find\('\^notice:'\) then pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end/);
+  // A probe that fails says so in the log: the mailbox's pcall drops the error (30 Oct: nothing answered and nothing was logged).
+  assert.match(init, /local ran, result = pcall\(probe\.run, request\)\s+if not ran then log\('Johnny probe failed: ' \.\. tostring\(result\)\); return false end\s+return result/);
   assert.match(init, /function convaiJohnnyProbeRun\(request\)\s+if not manager\.developerMode\(\) then return false end\s+local ok, probe = pcall\(dofile, 'johnny-probe\.lua'\)/);
   assert.match(init, /if convaiJohnnyPlaceSample then convaiJohnnyGuarded\('place sample'[^\n]*\s+if convaiJohnnyFight then[^\n]*\s+-- [^\n]*\s+if convaiJohnnyProbeTick then pcall\(convaiJohnnyProbeTick\) end/);
   assert.doesNotMatch(probeSource, /registerForEvent|onUpdate|Observe|Override/, 'no hook of its own');

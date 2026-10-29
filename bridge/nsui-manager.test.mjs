@@ -63,8 +63,8 @@ test('every page builds on the tab and the tab always starts with the way back, 
   end
   -- Settings has its sub-pages: Memory, Relationships, Help, the paid tier and the Custom endpoint, each with its Back to Settings at the top.
   press('Settings')
-  assert(ns.find('Memory') and ns.find('Relationships') and ns.find('Help and support') and ns.find('Convai paid tier') and ns.find('Custom endpoint'))
-  for _, page in ipairs({'Memory', 'Relationships', 'Help and support', 'Convai paid tier', 'Custom endpoint'}) do
+  assert(ns.find('Memory') and ns.find('Romantic relationships') and ns.find('Help and support') and ns.find('Convai paid tier') and ns.find('Custom endpoint'))
+  for _, page in ipairs({'Memory', 'Romantic relationships', 'Help and support', 'Convai paid tier', 'Custom endpoint'}) do
     press(page)
     check(page, 'Back to settings')
     press('Back to settings')
@@ -74,10 +74,10 @@ test('every page builds on the tab and the tab always starts with the way back, 
   -- the Memory page.
   local labels = {}
   for _, section in ipairs(ns.sections()) do labels[#labels + 1] = section.label end
-  assert(table.concat(labels, ','):find('Conversations,Conversation provider', 1, true) and not table.concat(labels, ','):find('Relationships', 1, true),
+  assert(table.concat(labels, ','):find('Conversations,Conversation provider', 1, true) and not table.concat(labels, ','):find('Romantic relationships', 1, true),
     table.concat(labels, ','))
-  press('Relationships')
-  assert(ns.sections()[2].label == 'Relationships' and ns.find('Judy Alvarez') and not ns.find('Memory'))
+  press('Romantic relationships')
+  assert(ns.sections()[2].label == 'Romantic relationships' and ns.find('Judy Alvarez') and not ns.find('Memory'))
   press('Back to settings')
   press('Memory')
   assert(ns.sections()[3].label == 'Whose memories' and ns.find('Selected character'))
@@ -369,7 +369,7 @@ test('Restore defaults goes through the same validated path, only on the Setting
   assert(manager.snapshot(player).settings.voiceProvider == 'pocket')
   -- The Relationships page is part of Settings: its rows go back to Auto too.
   assert(manager.applySettings(player, {relationshipModes = {['judy-alvarez'] = 'on'}}))
-  press('Relationships'); frames(4)
+  press('Romantic relationships'); frames(4)
   assert(ns.find('Judy Alvarez').selectedElementIndex == 2)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto')

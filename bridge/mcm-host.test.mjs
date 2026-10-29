@@ -511,7 +511,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   go('Model browser'); frames(140)
   check('models'); go('Starts with: All'); check('models letter J'); go('Starts with: J'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
   go('Settings'); check('settings')
-  go('Relationships'); check('relationships'); go('Back to settings')
+  go('Romantic relationships'); check('relationships'); go('Back to settings')
   go('Dynamic info'); check('dynamic-info'); go('Back to settings')
   go('Memory'); check('memory'); go('Back to settings')
   go('Help and support'); check('help'); go('Back to settings')
@@ -649,12 +649,12 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
 test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Settings', () => withScreen(`
   ${footer}
   press('Settings')
-  assert(mcm.row('Relationships').type == 'action' and mcm.row('Relationships').value == 'Open')
-  assert(mcm.row('Judy Alvarez') == nil and not headings():find('Relationships', 1, true), headings())
-  press('Relationships')
+  assert(mcm.row('Romantic relationships').type == 'action' and mcm.row('Romantic relationships').value == 'Open')
+  assert(mcm.row('Judy Alvarez') == nil and not headings():find('Romantic relationships', 1, true), headings())
+  press('Romantic relationships')
   local config = mcm.config()
   assert(config.navigation.pageId == 'relationships|1|1' and config.navigation.backActionId == 'relationships:back' and config.navigation.escapeBack == true)
-  assert(headings() == 'Relationships', headings())
+  assert(headings() == 'Romantic relationships', headings())
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.row('Judy Alvarez').type == 'select' and mcm.row('Judy Alvarez').default == nil)
   for _, row in ipairs(mcm.layout().rows) do
@@ -668,7 +668,7 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto' and mcm.row('Judy Alvarez').value == 1)
   -- The way back leads to Settings.
   press('Back to settings')
-  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Relationships'))
+  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Romantic relationships'))
   press('Back to Companion Manager')
 `));
 
@@ -1697,7 +1697,7 @@ for (const locale of ['en', 'cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl'
     end
     press('tab:settings')
     check('Settings')
-    press('relationships'); check('Relationships'); press('relationships:back')
+    press('relationships'); check('Romantic relationships'); press('relationships:back')
     press('dynamic-info'); check('Dynamic info'); press('dynamic-info:back')
     press('custom-endpoint'); check('Custom endpoint')
     assert(checked > 25, 'the pages have settings: ' .. checked)
