@@ -795,8 +795,8 @@ function retryFixture({omni = [], pocket = [], options = {}} = {}) {
       profileReady(key) { return loaded && this.hasProfile(key); }, setSteps(value) { this.steps = value; }, setKeepPrepared() {},
       async start() {
         this.starts++;
-        if (['fail', 'blocked', 'paths', 'nocuda', 'timeout', 'timeout-spill', 'integrity', 'missing', 'fault', 'oom', 'paging', 'paging-fault'].includes(mode)) {
-          this.failure = Error(mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)'
+        if (['fail', 'blocked', 'paths', 'nocuda', 'timeout', 'timeout-spill', 'integrity', 'missing', 'fault', 'oom', 'paging', 'paging-fault', 'startup-timeout'].includes(mode)) {
+          this.failure = Error(mode === 'startup-timeout' ? 'Pocket student startup timed out' : mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)'
             : mode === 'integrity' ? 'Pocket student runtime is unavailable (Pocket source differs from the pinned official revision (3 files))'
             : mode === 'missing' ? 'Local voice worker exited (1): FileNotFoundError: [Errno 2] No such file or directory: model.safetensors'
             : mode === 'fault' ? 'Local voice worker exited (3221225477 = access violation (0xC0000005)): Windows fatal exception: access violation'
@@ -1303,6 +1303,33 @@ test('an Omni load that ran out of CUDA memory, with the card read as 8 GB or le
   h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
   assert.equal(h.omniWorkers().length, 1); assert.equal(h.voice.omniNoMemory, true); assert.equal(h.voice.omniRetry, null);
   assert.ok(h.logs.some(line => /not trying again: not enough graphics memory for OmniVoice next to the game .the card has 8188 MiB./.test(line)));
+});
+
+test('a Pocket start that timed out is reported only when its retry fails too: a retry that loads makes no report', async () => {
+  const healed = retryFixture({pocket: ['startup-timeout', 'ok']});
+  healed.voice.update({}, null, false); await healed.settle(); healed.voice.update({}, null, false); await healed.settle();
+  assert.equal(healed.voice.provider, 'text'); assert.deepEqual(healed.failures, [], 'held while a retry is coming');
+  assert.deepEqual(healed.voice.voiceProblem(), {engine: 'pocket', reason: 'Pocket student startup timed out'}, 'the setup row still shows it');
+  healed.advance(45_000); healed.voice.update({}, null, false); await healed.settle();
+  healed.voice.update({}, null, false); await healed.settle();
+  assert.equal(healed.voice.provider, 'pocket'); assert.deepEqual(healed.failures, [], 'the retry loaded: nothing is reported');
+  await healed.voice.close();
+  const lost = retryFixture({pocket: ['startup-timeout', 'startup-timeout', 'startup-timeout', 'startup-timeout']});
+  lost.voice.update({}, null, false); await lost.settle(); lost.voice.update({}, null, false); await lost.settle();
+  for (const delay of [45_000, 180_000, 600_000]) {
+    assert.deepEqual(lost.failures, [], 'still held while a retry is left');
+    lost.advance(delay); lost.voice.update({}, null, false); await lost.settle(); lost.voice.update({}, null, false); await lost.settle();
+  }
+  assert.equal(lost.failures.length, 1, 'the last failure is told once, when no retry is left');
+  assert.deepEqual([lost.failures[0].engine, lost.failures[0].reason, lost.failures[0].fellBackTo], ['pocket', 'Pocket student startup timed out', 'text']);
+  await lost.voice.close();
+  // A different failure of the retry is told at once, with the held timeout before it.
+  const other = retryFixture({pocket: ['startup-timeout', 'fail']});
+  other.voice.update({}, null, false); await other.settle(); other.voice.update({}, null, false); await other.settle();
+  assert.deepEqual(other.failures, []);
+  other.advance(45_000); other.voice.update({}, null, false); await other.settle(); other.voice.update({}, null, false); await other.settle();
+  assert.deepEqual(other.failures.map(info => info.reason), ['Pocket student startup timed out', 'pocket worker failed']);
+  await other.voice.close();
 });
 
 test('a Pocket that loads on a retry takes the route back at the next idle poll, and its failures start over', async () => {
