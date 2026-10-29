@@ -19,12 +19,16 @@ const durationSlack = seconds => DURATION_SLACK_SECONDS + DURATION_SLACK_FRACTIO
 // The rates audio really arrives at when the packets' own label is wrong, and how close the rate the declared duration gives must be to one of them (0.5 percent: the
 // duration is a rounded millisecond figure).
 const STANDARD_RATES = [44100, 48000], RATE_MATCH = 0.005;
-/** The standard rate the bytes and the declared duration agree on, or null (not one, or the rate the packets already said). */
-function mislabelledRate(bytes, align, declaredSeconds, declaredRate, extra = []) {
+/** The rate the final statistics' byte count and declared duration agree on: the packets' own label when it fits (to within rounding, see durationSlack), else a standard rate, else null. */
+function statisticsRate(bytes, align, declaredSeconds, label) {
   if (!(declaredSeconds > 0)) return null;
-  const actual = bytes / (align * declaredSeconds);
-  return [...extra, ...STANDARD_RATES].find(rate => rate !== declaredRate && Math.abs(actual - rate) / rate <= RATE_MATCH) ?? null;
+  if (Math.abs(bytes / (align * label) - declaredSeconds) <= 1 / label + 0.001 + durationSlack(declaredSeconds)) return label;
+  const rate = bytes / (align * declaredSeconds);
+  return STANDARD_RATES.find(candidate => candidate !== label && Math.abs(rate - candidate) / candidate <= RATE_MATCH) ?? null;
 }
+// The audio itself is complete at the label's rate (shape 2 below) when the bytes that arrived cover the declared duration to within a little more than rounding (a packet is about 100 ms, so
+// a missing last packet is never taken for it).
+const COMPLETE_SLACK_SECONDS = 0.02, COMPLETE_SLACK_FRACTION = 0.0015;
 /** A remembered correction ({declared, actual}: packets of this character say `declared` but carry `actual`), or null when it is not a usable one. Only the standard rates are ever taken. */
 export function validRateHint(hint) {
   return hint && Number.isInteger(hint.declared) && hint.declared >= 8000 && hint.declared <= 96000 && STANDARD_RATES.includes(hint.actual) && hint.actual !== hint.declared
@@ -148,14 +152,15 @@ export class ConvaiDataAudio {
     // (rateCorrected: {declared, actual}, see validateTotals).
     this.declaredRate = null; this.rateCorrected = null;
     this.rateHint = validRateHint(rateHint); this.rateHinted = false; this.rateHintMissed = false;
+    // The audio is all here: its bytes match the final statistics, or (the statistics counting at another rate than the packets carry) the declared duration at the packets' rate.
+    this.complete = false;
     this.timing = {}; this.sealed = false; this.result = null;
   }
 
   get owner() { return this._owner ? {...this._owner} : null; }
 
   get ready() {
-    if (this.error || this.sealed || !this.stats || !this.terminal || !this.sampleRate) return false;
-    return this.byteCount === this.stats.total_audio_bytes;
+    return !this.error && !this.sealed && !!this.stats && !!this.terminal && !!this.sampleRate && this.complete;
   }
 
   // `format`: the fault is in the audio's format (sample rate, channels, sample alignment, size against the declared duration), which a caller whose voice is not Convai's may
@@ -323,24 +328,38 @@ export class ConvaiDataAudio {
     if (Math.abs(this.stats.total_blendshapes / this.stats.fps - declaredSeconds) > 1 / this.stats.fps + 0.001 + durationSlack(declaredSeconds))
       this.faceFault('Convai facial duration does not match its speech');
     if (this.sampleRate) {
-      const align = this.channels * 2, bytes = this.stats.total_audio_bytes;
-      const counted = bytes / (align * this.sampleRate);
+      const align = this.channels * 2, bytes = this.stats.total_audio_bytes, label = this.declaredRate;
+      const counted = bytes / (align * label);
       const numbers = `${bytes} bytes, ${this.stats.total_audio_duration_ms} ms declared against ${(counted * 1000).toFixed(1)} ms counted, `
-        + `${this.sampleRate} Hz, ${this.channels} channel${this.channels === 1 ? '' : 's'}, ${this.packetCount} packets`;
+        + `${label} Hz, ${this.channels} channel${this.channels === 1 ? '' : 's'}, ${this.packetCount} packets`;
       if (bytes % align) return this.fail(`Convai PCM size is not a whole number of samples (${numbers})`, {format: true});
-      if (Math.abs(counted - declaredSeconds) > 1 / this.sampleRate + 0.001 + durationSlack(declaredSeconds)) {
-        // The packets say one rate and the bytes and the declared duration agree on another: the audio is mislabelled (2026-10-21: packets that said 24 kHz carried 44.1 kHz audio,
-        // 5,733 ms declared against 10,535 counted, which is exactly 44100 / 24000, in the reports of the turns with Multilingual on). The clip is taken at the rate the declared duration
-        // gives, when that is a standard rate (within RATE_MATCH of it), and written and played at it. Anything else is still a fault.
-        // A hinted rate that the statistics do not confirm (the character's audio is labelled right now, or is another rate): the rate they fit stands, the label included.
-        const actual = this.rateHinted ? mislabelledRate(bytes, align, declaredSeconds, this.sampleRate, [this.declaredRate])
-          : mislabelledRate(bytes, align, declaredSeconds, this.declaredRate);
-        if (actual === null) return this.fail(`Convai PCM size does not match its declared duration (${numbers})`, {format: true});
-        if (this.rateHinted) { this.rateHintMissed = true; this.rateHinted = false; }
-        this.rateCorrected = actual === this.declaredRate ? null : {declared: this.declaredRate, actual};
-        this.sampleRate = actual;
-      }
+      // What rate the statistics count at: the label's (the usual case) or a standard one. Anything else is a fault.
+      const counts = statisticsRate(bytes, align, declaredSeconds, label);
+      if (counts === null) return this.fail(`Convai PCM size does not match its declared duration (${numbers})`, {format: true});
+      this.settle(counts, bytes, align, declaredSeconds);
     }
+  }
+
+  // The rate the audio really arrived at, decided only from the bytes that arrived against the declared duration, never from the statistics' byte count alone. There are two
+  // shapes when the statistics count at another rate than the packets' label:
+  //   1. The packets carry audio at the rate the statistics count (the label is wrong): the bytes that arrive reach the statistics' byte count.
+  //   2. The packets carry audio at their label's rate and the statistics count the same audio in 44.1 kHz bytes (seen 2026-10-29 on Convai's multilingual twins, in English, Ukrainian
+  //      and Russian alike): the bytes that arrive stop at 24/44.1 of the statistics' byte count and cover exactly the declared duration at the label's rate. Reading the statistics
+  //      as the audio's rate (what this did until then) played every such line at 1.84 times its speed (a Ukrainian or Russian Convai voice "inhaled helium") and the line never
+  //      counted as complete, so the turn ended at its 60 s ceiling.
+  // Until one of the two is visible the packets' own label (or the remembered rate of the character) stands.
+  settle(counts, bytes, align, declaredSeconds) {
+    const label = this.declaredRate;
+    let actual;
+    if (this.byteCount === bytes) actual = counts;
+    else if (counts !== label && this.terminal
+      && Math.abs(this.byteCount / (align * label) - declaredSeconds) <= 1 / label + 0.001 + COMPLETE_SLACK_SECONDS + COMPLETE_SLACK_FRACTION * declaredSeconds) actual = label;
+    else { this.complete = false; return; }
+    this.complete = true;
+    // A remembered rate that the audio does not confirm gives way to the rate it fits (the caller forgets the hint).
+    if (this.rateHinted && actual !== this.sampleRate) { this.rateHintMissed = true; this.rateHinted = false; }
+    this.rateCorrected = actual === label ? null : {declared: label, actual};
+    this.sampleRate = actual;
   }
 
   // A packet is admitted by accept() first. Ownerless PCM may precede the

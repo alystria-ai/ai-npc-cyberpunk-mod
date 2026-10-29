@@ -364,6 +364,94 @@ test('the same for 48 kHz audio labelled 24 kHz, and a clip whose label is right
   assert.equal(right.c.finish().sampleRate, 24000);
 });
 
+// Measured on the real Convai multilingual twins, 2026-10-30 (shared sign-in, anonymous throwaway user, Azure multilingual voices): the packets say 24 kHz and carry 24 kHz audio, 19 to
+// about 120 packets of roughly 96 ms; the final statistics count the same audio in 44.1 kHz bytes (bytes = ms * 44.1 * 2), so the bytes that arrive stop at 24/44.1 of them. The
+// audio is complete when it covers the declared duration at the packets' rate. The first rows are the English, Ukrainian and Russian lines of the probe; `received` is the byte count
+// that arrived, `counted` the statistics' byte count.
+const MEASURED = [
+  {voice: 'Ava, English line', received: 88000, counted: 161700, ms: 1833.3333333333333, frames: 110, packets: 19},
+  {voice: 'Ava, Ukrainian line', received: 552800, counted: 1015770, ms: 11516.666666666668, frames: 691, packets: 116},
+  {voice: 'Ava, Russian line', received: 316000, counted: 580650, ms: 6583.333333333333, frames: 395, packets: 66},
+  {voice: 'Emma, Ukrainian line', received: 496000, counted: 911400, ms: 10333.333333333334, frames: 620, packets: 104},
+  {voice: 'ShimmerTurbo, Ukrainian line', received: 376000, counted: 690900, ms: 7833.333333333333, frames: 470, packets: 79},
+  {voice: 'OnyxTurbo, Ukrainian line', received: 269600, counted: 495390, ms: 5616.666666666666, frames: 337, packets: 57},
+  {voice: 'EchoTurbo, Russian line', received: 353600, counted: 649740, ms: 7366.666666666666, frames: 442, packets: 74},
+];
+const hybrid = ({received, counted, ms, frames, packets = 19, said = 24000}) => {
+  const c = new ConvaiDataAudio(), data = Buffer.alloc(received);
+  for (let index = 0; index < received / 2; index++) data.writeInt16LE([-3000, -1, 0, 1, 3000][index % 5], index * 2);
+  const size = Math.ceil(received / packets / 2) * 2, parts = [];
+  for (let at = 0; at < received; at += size) parts.push(data.subarray(at, Math.min(received, at + size)));
+  feed(c, face(0, frames), 10);
+  parts.forEach((part, index) => feed(c, pcm(part, {sample_rate: said}), 20 + index));
+  return {c, data, parts,
+    statistics: () => feed(c, stats({total_audio_bytes: counted, total_blendshapes: frames, total_audio_duration_ms: ms}), 40),
+    end: () => feed(c, terminal(), 41)};
+};
+
+test('measured twin turns (24 kHz audio, statistics counted in 44.1 kHz bytes) are complete at the packets rate, with the whole audio and no correction', () => {
+  for (const row of MEASURED) {
+    const {c, data, statistics, end} = hybrid(row);
+    statistics();
+    assert.equal(c.ready, false, `${row.voice}: no terminal yet`);
+    end();
+    assert.equal(c.error, null, row.voice);
+    assert.equal(c.ready, true, `${row.voice}: the audio covers the declared duration`);
+    assert.equal(c.sampleRate, 24000, `${row.voice}: the label is right`);
+    assert.equal(c.rateCorrected, null);
+    const result = c.finish(), decoded = readPcmWav(Buffer.from(result.audio, 'base64'));
+    assert.equal(decoded.sampleRate, 24000); assert.deepEqual(decoded.data, data);
+    assert(Math.abs(result.duration - row.ms / 1000) < 0.002, `${row.voice}: the duration is the declared one, not ${(row.counted / 2 / 24000).toFixed(2)} s`);
+    assert.equal(result.sampleRateCorrected, undefined); assert.equal(result.sampleRateHintMissed, undefined);
+    assert.equal(result.faces.length, row.frames);
+  }
+});
+
+test('a twin line is not taken for complete before all its audio is here: the last packet missing, or the terminal not yet sent', () => {
+  const row = MEASURED[0];
+  const early = hybrid(row);
+  early.statistics(); early.end();
+  assert.equal(early.c.ready, true);
+  // One packet of about 96 ms short: still waiting, and it completes when the packet arrives.
+  const short = hybrid({...row, received: row.received - 4800});
+  short.statistics(); short.end();
+  assert.equal(short.c.ready, false, 'a packet is missing');
+  feed(short.c, pcm(Buffer.alloc(4800), {sample_rate: 24000}), 60);
+  assert.equal(short.c.ready, true, 'it was the last packet');
+  assert.equal(short.c.sampleRate, 24000);
+  // The statistics come before the audio is all here (the usual order is audio first, but not promised): not complete until the terminal.
+  const first = hybrid({...row, received: row.received - 4800});
+  first.statistics();
+  assert.equal(first.c.ready, false);
+  feed(first.c, pcm(Buffer.alloc(4800), {sample_rate: 24000}), 60); first.end();
+  assert.equal(first.c.ready, true);
+});
+
+test('44.1 kHz audio in packets that say 24 kHz is still found when its bytes reach the statistics, even though the audio first passes the 24 kHz length', () => {
+  // 5,733 ms: the bytes pass 24/44.1 of the total (the length of the audio at 24 kHz) long before the end, so only the terminal and the full byte count decide.
+  const {c, parts, statistics, end} = hybrid({received: 505652, counted: 505652, ms: 5733, frames: 344, packets: 57});
+  statistics(); end();
+  assert.equal(c.ready, true);
+  assert.deepEqual(c.rateCorrected, {declared: 24000, actual: 44100});
+  assert.equal(c.finish().sampleRate, 44100);
+  assert.equal(parts.length > 40, true);
+});
+
+test('a remembered 44.1 kHz rate that the real 24 kHz bytes do not confirm is given up, and the result says so', () => {
+  const row = MEASURED[0], c = new ConvaiDataAudio({rateHint: {declared: 24000, actual: 44100}});
+  const data = Buffer.alloc(row.received);
+  feed(c, face(0, row.frames), 10);
+  feed(c, pcm(data.subarray(0, 40000), {sample_rate: 24000}), 20);
+  assert.equal(c.sampleRate, 44100, 'the first packets start at the remembered rate');
+  feed(c, pcm(data.subarray(40000), {sample_rate: 24000}), 21);
+  feed(c, stats({total_audio_bytes: row.counted, total_blendshapes: row.frames, total_audio_duration_ms: row.ms}), 40); feed(c, terminal(), 41);
+  assert.equal(c.ready, true);
+  const result = c.finish();
+  assert.equal(result.sampleRate, 24000); assert.equal(result.sampleRateHintMissed, true);
+  assert.equal(result.sampleRateCorrected, undefined); assert.equal(result.sampleRateHinted, undefined);
+  assert(Math.abs(result.duration - row.ms / 1000) < 0.002);
+});
+
 test('a rate that is not a standard one, or off by more than half a percent, is still a fault, flagged as a format fault; faults of ownership are not', () => {
   // 32 kHz data labelled 24 kHz, and 44.1 kHz data declared 1 percent too long: not mislabelling.
   for (const options of [{bytes: 384000, ms: 6000, frames: 360}, {bytes: 505652, ms: 5790, frames: 347}]) {

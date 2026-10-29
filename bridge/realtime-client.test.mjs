@@ -1497,6 +1497,53 @@ test('a live turn with mislabelled packets shows the corrected rate in its snaps
   instances[0].drain(); await pending; await api.close();
 });
 
+// Measured on Convai's multilingual twins 2026-10-30 (English, Ukrainian and Russian alike): the packets say 24 kHz and carry 24 kHz audio, and the final statistics count the same audio
+// in 44.1 kHz bytes. The line must play at 24 kHz from its first packet to its last, be complete and end, with nothing remembered.
+test('a live twin turn (24 kHz packets, statistics in 44.1 kHz bytes) plays all its audio at 24 kHz and ends, and nothing is taught for its character', async () => {
+  const {Player, instances} = playerFixture();
+  const {api, clients} = fixture({player: Player});
+  await api.warm(config);
+  let settled = false;
+  const pending = api.reply({...config, liveSpeechToken: 'twin-turn'}).finally(() => { settled = true; }); pending.catch(() => {}); await flush();
+  const c = clients[0], data = audioFixture({seconds: 2, sampleRate: 24000});
+  const half = data.samples.length / 2;
+  c.data(data.faces); c.data(data.pcm(data.samples.subarray(0, half))); await flush();
+  assert.equal(instances[0].format.sampleRate, 24000, 'the label is right: the player starts at it');
+  c.data(data.pcm(data.samples.subarray(half)));
+  // The statistics count 2 s in 44.1 kHz bytes: 176,400, not the 96,000 that arrived.
+  c.data(wire({type: 'blendshape-turn-stats', ...data.owner, sequence: 19, stats: {total_audio_bytes: 176400, total_audio_duration_ms: 2000, total_blendshapes: 120, fps: 60, was_interrupted: false}}));
+  c.data(data.terminal); finalText(c);
+  await new Promise(done => setTimeout(done, 80));
+  const snapshot = api.continuousSnapshot('twin-turn');
+  assert.equal(snapshot.sourceComplete, true, 'the audio covers the declared duration at 24 kHz');
+  assert.equal(snapshot.sampleRate, 24000); assert.equal(snapshot.receivedFrames, 48000);
+  assert.equal(Object.hasOwn(snapshot, 'sampleRateCorrected'), false); assert.equal(Object.hasOwn(snapshot, 'openedSampleRate'), false);
+  assert.equal(Object.hasOwn(snapshot, 'sampleRateHintMissed'), false);
+  assert.equal(instances[0].totalFrames, 48000, 'the player is told the end of all 2 s');
+  assert.deepEqual(Buffer.concat(instances[0].packets.map(packet => packet.bytes)), data.samples, 'every sample reached the player, none dropped');
+  instances[0].drain();
+  const result = await pending;
+  assert.equal(settled, true); assert.equal(result.continuous, true); assert.equal(result.sampleRate, 24000); assert.equal(result.duration, 2);
+  assert.equal(Object.hasOwn(result, 'sampleRateCorrected'), false);
+  await api.close();
+});
+
+test('a twin turn that is not played live (24 kHz packets, statistics in 44.1 kHz bytes) gives a complete 24 kHz clip', async () => {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const pending = api.reply({...config}); pending.catch(() => {}); await flush();
+  const c = clients[0], data = audioFixture({seconds: 2, sampleRate: 24000});
+  finalText(c, 'Привіт, V.');
+  c.data(data.faces); c.data(data.pcm());
+  c.data(wire({type: 'blendshape-turn-stats', ...data.owner, sequence: 19, stats: {total_audio_bytes: 176400, total_audio_duration_ms: 2000, total_blendshapes: 120, fps: 60, was_interrupted: false}}));
+  c.data(data.terminal);
+  const result = await pending;
+  const wav = Buffer.from(result.audio, 'base64');
+  assert.equal(wav.readUInt32LE(24), 24000); assert.deepEqual(wav.subarray(44), data.samples);
+  assert.equal(result.sampleRate, 24000); assert.equal(result.duration, 2); assert.equal(Object.hasOwn(result, 'sampleRateCorrected'), false);
+  await api.close();
+});
+
 test('a live turn told the rate of its character starts at it, and says so in its snapshot when the statistics do not confirm it', async () => {
   const hint = {declared: 24000, actual: 44100};
   const {Player, instances} = playerFixture();
