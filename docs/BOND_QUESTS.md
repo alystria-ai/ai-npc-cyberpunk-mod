@@ -4769,10 +4769,11 @@ answered and stay open at the end.
 15. **Map pins.** Yes. Quests place map pins at their meeting points ("meet Panam here"), registered with `MappinSystem:RegisterMappin` and registered again after every save load. `pin` is a primitive, and the
     quests' meeting points carry a Pins line. Applied in sections 2, 3, 16, 18.2, 21 and 22.
 
-**Still open** (not answered on 29 Oct):
+**Answered later on 29 Oct:**
 
-2. **Songbird's fate**: every line keeps her "far away". Is that how the owner reads the ending, or should one shipped line be more definite?
-13. **Community packs**: allow quests for characters a player made, or roster characters only (as written)?
+2. **Songbird's fate**: left a mystery. She calls and texts from somewhere unnamed, no line says where she ended up, and nobody names a place.
+13. **Community packs**: packs may target characters a player made in the character editor, by the character's id, as well as roster characters.
+14. **A shipped line with no audio file**: shown as a subtitle and an error is logged, never spoken by the live voice.
 
 ## Appendix A. Lore and engine points to verify
 
