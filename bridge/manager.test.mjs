@@ -4576,7 +4576,10 @@ test('The provider row says when the player key runs without memory or cannot ho
     -- every language): the limit (from the server), the reset, Mistral's rounded estimate, Local AI without a limit.
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
     local mistralHelp = row('mistral-key').description
-    assert(mistralHelp:find('You have used today’s 100 turns, which come back tomorrow.', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
+    -- It says when the turns come back on this computer's clock (the next 00:00 UTC, convaiUiLocale.dailyResetClock), not "tomorrow".
+    local resetAt = convaiUiLocale.dailyResetClock()
+    assert(resetAt and resetAt:match('^%d%d:%d%d$'), tostring(resetAt))
+    assert(mistralHelp:find('You have used today’s 100 turns, which come back at ' .. resetAt .. '.', 1, true) and not mistralHelp:find('tomorrow', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
       and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('about 5,000 turns a day', 1, true), mistralHelp)
     assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
     local limitText = lastParagraph(mistralHelp)

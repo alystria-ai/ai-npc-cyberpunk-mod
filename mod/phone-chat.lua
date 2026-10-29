@@ -7,6 +7,16 @@ pcall(dofile, 'favorites.lua')
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
 local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
+-- The same with the time it resets (the next 00:00 UTC on this computer's clock, ui-locale dailyResetClock); the status row shows it filled in, and
+-- phone-chat-style.lua translates it from this template. DAILY_LIMIT_STATUS stays for a clock that cannot be read.
+local DAILY_LIMIT_STATUS_AT = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
+-- The status row's text for a daily-limit reply, worked out when the reply arrives (never per frame).
+local function dailyLimitStatus()
+    local locale = convaiUiLocale
+    local at = type(locale) == 'table' and type(locale.dailyResetClock) == 'function' and locale.dailyResetClock() or nil
+    if not at then return DAILY_LIMIT_STATUS end
+    return (DAILY_LIMIT_STATUS_AT:gsub('{time}', at))
+end
 -- The same for the Mistral failures the bridge names; other failures keep the provider's text.
 local MISTRAL_STATUS = {
     ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Conversation provider.',
@@ -856,7 +866,7 @@ function M.update(player, delta, phoneOpen)
                 if item then M.deliverEvent(contact, item, item.fallback) end
             elseif reply.state == 'error' then
                 M.errors = M.errors or {}
-                M.errors[reply.contact] = reply.errorCode == 'daily-limit' and DAILY_LIMIT_STATUS
+                M.errors[reply.contact] = reply.errorCode == 'daily-limit' and dailyLimitStatus()
                     or MISTRAL_STATUS[reply.errorCode] or tostring(reply.error)
                 if (M.drafts[reply.contact] or '') == '' then
                     M.drafts[reply.contact] = M.pending.text; M.clearDraft = reply.contact
