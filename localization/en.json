@@ -8698,7 +8698,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:265"
+        "mod/service-status.lua:269"
       ]
     },
     "Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.": {
@@ -8714,7 +8714,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:268"
+        "mod/service-status.lua:272"
       ]
     },
     "Local AI is ready.": {
@@ -8731,7 +8731,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:264"
+        "mod/service-status.lua:268"
       ]
     },
     "Local AI is warming up…": {
@@ -9646,7 +9646,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:270"
+        "mod/service-status.lua:274"
       ]
     },
     "No reply arrived. The conversation service may not be running.": {
@@ -13779,7 +13779,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:181"
+        "mod/service-status.lua:183"
       ]
     },
     "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.": {
@@ -13803,7 +13803,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:260"
+        "mod/service-status.lua:264"
       ]
     },
     "The conversation service did not start. Is the Runtime installed? See Help in Settings.": {
@@ -13811,7 +13811,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:194",
+        "mod/service-status.lua:196",
+        "mod/service-status.lua:198",
+        "mod/service-status.lua:249",
         "mod/setup-check.lua:903"
       ]
     },
@@ -13845,7 +13847,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:185"
+        "mod/service-status.lua:187"
       ]
     },
     "The conversation service is not running. Restart the game.": {
@@ -13861,7 +13863,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:176"
+        "mod/service-status.lua:178"
       ]
     },
     "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.": {
@@ -13870,7 +13872,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:2136",
-        "mod/service-status.lua:179",
+        "mod/service-status.lua:181",
         "mod/setup-check.lua:522",
         "mod/setup-check.lua:695"
       ]
@@ -13880,7 +13882,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:178"
+        "mod/service-status.lua:180"
       ]
     },
     "The conversation service restarted. Please try again.": {
@@ -13888,7 +13890,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:177"
+        "mod/service-status.lua:179"
       ]
     },
     "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.": {
