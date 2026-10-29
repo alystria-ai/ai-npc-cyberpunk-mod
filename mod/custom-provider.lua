@@ -3,7 +3,8 @@
 -- everything the settings page needs to know about the provider in one place, so the page itself only draws rows.
 --
 --   * It writes one small command file when the player chooses something (runtime/custom-provider-command.json): paste-url, paste-key
---     and paste-model (the service reads the clipboard itself), clear-url, clear-key, clear-model and test.
+--     and paste-model (the service reads the clipboard itself), clear-url, clear-key, clear-model, test, and preset-gemini and preset-groq
+--     (the service fills in the endpoint and the model id of that free plan; the player only pastes a key).
 --   * It reads the status file the service answers in (runtime/custom-provider-state.json), at most every 1.5 s and only when the page
 --     asks for it: nothing here runs per frame and nothing is read while no page is drawn. The key never reaches either file; only its
 --     last four characters (a key of 16 or more characters) are ever shown.
@@ -21,8 +22,10 @@ local TEST_STALE = 200
 
 -- The field each command changes; `test` changes none.
 local FIELD_OF = {['paste-url'] = 'url', ['clear-url'] = 'url', ['paste-key'] = 'key', ['clear-key'] = 'key',
-    ['paste-model'] = 'model', ['clear-model'] = 'model', test = false}
-local FIELDS = {url = true, key = true, model = true}
+    ['paste-model'] = 'model', ['clear-model'] = 'model', ['preset-gemini'] = 'preset', ['preset-groq'] = 'preset', test = false}
+local FIELDS = {url = true, key = true, model = true, preset = true}
+-- The one-press setups of the free cloud plans (bridge/custom-endpoint.mjs PRESETS); the service says which one is saved.
+local PRESETS = {gemini = true, groq = true}
 local RESULT_STATES = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local REASONS = {empty = true, ['not-a-url'] = true, scheme = true, insecure = true, extras = true, long = true,
     ['not-a-key'] = true, ['not-a-model'] = true}
@@ -168,7 +171,7 @@ function M.new(options)
             keySaved = value.keySaved == true, tail = text(value.tail, 8, '^[%w%p]+$'),
             -- A key was forgotten because the address moved to another host, and none is saved since: the key row says to paste it again.
             keyForgotten = value.keyForgotten == true and value.keySaved ~= true,
-            result = result, test = test, limit = LIMITS[value.limit] and value.limit or nil,
+            result = result, test = test, limit = LIMITS[value.limit] and value.limit or nil, preset = PRESETS[value.preset] and value.preset or nil,
             action = sent and sent.action or nil}
     end
 
@@ -177,7 +180,7 @@ function M.new(options)
         local state = self.state()
         local result, test = state.result, state.test
         return table.concat({tostring(state.available), tostring(state.ready), state.host or '', tostring(state.secure),
-            state.model or '', tostring(state.keySaved), state.tail or '', state.limit or '', tostring(state.keyForgotten),
+            state.model or '', tostring(state.keySaved), state.tail or '', state.limit or '', tostring(state.keyForgotten), state.preset or '',
             result and (result.field .. '/' .. result.state .. '/' .. (result.reason or '')) or '',
             test and table.concat({test.state, test.code or '', tostring(test.status), tostring(test.waitS), test.detail or '',
                 tostring(test.ms), test.resetTime or ''}, '/') or ''}, '|')
@@ -246,12 +249,29 @@ function M.new(options)
         return ui.t('The connection test failed.')
     end
 
-    -- The four rows, in the order they are drawn: {id, field, label, value, help, enabled, action}. `action` is what choosing the row
+    -- The six rows (two free setups, then the endpoint URL, key, model ID and test), in the order they are drawn: {id, field, label, value, help, enabled, action}. `action` is what choosing the row
     -- sends through request(). The texts are already translated.
     function self.rows()
         local state = self.state()
         local result, test = state.result, state.test
         local rows = {}
+
+        -- The free setups: one press fills in the endpoint URL and the model ID of a free cloud plan, so only the key is left to paste.
+        do
+            local message = failure(result, 'preset')
+            local function presetRow(id, name, label, help, action)
+                if message then help = message .. '\n\n' .. help end
+                -- The button reads Added while this plan is the one saved (pressing it again fills the same values in again).
+                rows[#rows + 1] = {id = id, field = 'preset', label = label, value = state.preset == name and ui.t('Added') or ui.t('Use'),
+                    help = help, enabled = true, action = action}
+            end
+            presetRow('custom-preset-gemini', 'gemini', ui.t('Google Gemini (free)'),
+                ui.t('Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.'),
+                'preset-gemini')
+            presetRow('custom-preset-groq', 'groq', ui.t('Groq (free)'),
+                ui.t('Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.'),
+                'preset-groq')
+        end
 
         -- The endpoint URL.
         do

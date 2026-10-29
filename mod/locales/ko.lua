@@ -1744,4 +1744,9 @@ return {
     ["This Local AI model cannot see pictures, so replies use only your words."] = "이 Local AI 모델은 사진을 볼 수 없어서 응답에는 플레이어의 말만 사용됩니다.",
     ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "Hugging Face {folder}/vision의 vision 파일을 설치하면 이 모델이 사진을 볼 수 있습니다.",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Custom 엔드포인트가 사진을 받지 않아서 응답에는 플레이어의 말만 사용됩니다.",
+    ["Google Gemini (free)"] = "Google Gemini (무료)",
+    ["Groq (free)"] = "Groq (무료)",
+    ["Use"] = "사용",
+    ["Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products."] = "Google Gemini 무료 요금제(Flash-Lite)의 엔드포인트 URL과 모델 ID를 채워 넣으세요. 그다음 aistudio.google.com/apikey에서 무료 API 키를 만들고(Google 계정이면 충분하며 카드는 필요 없습니다) 아래에 붙여넣으세요.\n\n무료 요금제에는 하루 사용 한도가 있고, 모든 국가에서 제공되지는 않습니다. 또한 Google은 무료 요금제의 대화 내용을 제품 개선에 사용할 수 있습니다.",
+    ["Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country."] = "Groq 무료 요금제(Qwen)의 엔드포인트 URL과 모델 ID를 채워 넣으세요. 그다음 console.groq.com/keys에서 무료 API 키를 만들고(카드는 필요 없습니다) 아래에 붙여넣으세요.\n\n응답은 아주 빠르게 오지만 무료 요금제는 작습니다. 대략 1분에 한 번, 하루에 수십 번 정도입니다. 모든 국가에서 제공되지는 않습니다.",
 }

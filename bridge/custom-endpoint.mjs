@@ -25,7 +25,15 @@ import {reasoningSteps, noThinkingFields} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
-export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test']);
+export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'preset-groq']);
+// One-press setups for the free cloud plans (2026-10-30, after Mistral stopped giving free keys to new accounts): the settings page fills in the
+// endpoint and the model id, the player only pastes a key. Still the Custom provider, nothing else changes. The model ids are the ones that answered
+// live on 2026-10-30. Gemini's `-latest` alias keeps working when Google retires a version (gemini-2.5-flash-lite already answers 404).
+export const PRESETS = Object.freeze({
+  gemini: Object.freeze({endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-flash-lite-latest'}),
+  groq: Object.freeze({endpoint: 'https://api.groq.com/openai/v1', model: 'qwen/qwen3.8-27b'}),
+});
+const PRESET_OF = Object.freeze(Object.fromEntries(Object.keys(PRESETS).map(name => [`preset-${name}`, name])));
 // Only OpenRouter gets its two optional attribution headers (https://openrouter.ai/docs: HTTP-Referer, X-Title). Never any other host.
 export const OPENROUTER_HOST = 'openrouter.ai';
 export const OPENROUTER_HEADERS = Object.freeze({'HTTP-Referer': 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs', 'X-Title': 'AI NPC Cyberpunk Mod'});
@@ -222,6 +230,11 @@ export class CustomEndpoint {
   /** The https origin whose connection is worth opening ahead of the first turn, or null. */
   get warmOrigin() { return this.address && this.secure && !this.local ? this.address.origin : null; }
   get tail() { return keyTail(this.key); }
+  /** The name of the one-press setup (PRESETS) whose address and model id are the ones saved, or null. */
+  get preset() {
+    if (!this.address || !this.model) return null;
+    return Object.keys(PRESETS).find(name => this.address.endpoint === PRESETS[name].endpoint && this.model === PRESETS[name].model) ?? null;
+  }
   /** The steps of the field that asks a reasoning model to think less, for this address and model id (bridge/reasoning.mjs), or undefined. */
   get reasoning() { return reasoningSteps({hostname: this.address?.hostname, local: this.local, model: this.model}); }
   /** The fields a reply of only thinking is asked again with (bridge/reasoning.mjs noThinkingFields), or undefined (OpenRouter and DeepSeek already get theirs on every request). */
@@ -335,7 +348,8 @@ export function parseCustomCommand(raw, now = Date.now()) {
   return {id: value.id, action: value.action};
 }
 
-const FIELD_OF = {'paste-url': 'url', 'clear-url': 'url', 'paste-key': 'key', 'clear-key': 'key', 'paste-model': 'model', 'clear-model': 'model'};
+const FIELD_OF = {'paste-url': 'url', 'clear-url': 'url', 'paste-key': 'key', 'clear-key': 'key', 'paste-model': 'model', 'clear-model': 'model',
+  'preset-gemini': 'preset', 'preset-groq': 'preset'};
 const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits']);
 
 /**
@@ -360,7 +374,7 @@ export class CustomControl {
   status() {
     const c = this.custom, limit = this.provider?.applied === 'custom' ? this.provider.limit?.kind : null;
     return {version: 1, updated: this.now(), ready: c.ready, host: c.host, secure: c.secure, local: c.local, model: c.model,
-      keySaved: !!c.key, tail: c.tail, ...(c.keyForgotten && !c.key ? {keyForgotten: true} : {}),
+      keySaved: !!c.key, tail: c.tail, preset: c.preset, ...(c.keyForgotten && !c.key ? {keyForgotten: true} : {}),
       ...(this.result ? {result: this.result} : {}), ...(this.testResult ? {test: this.testResult} : {}),
       limit: LIMITS.has(limit) ? limit : null};
   }
@@ -391,6 +405,14 @@ export class CustomControl {
     if (action === 'clear-url') { await c.clearUrl(); this.testResult = null; return {state: 'cleared'}; }
     if (action === 'clear-key') { await c.clearKey(); this.testResult = null; return {state: 'cleared'}; }
     if (action === 'clear-model') { await c.clearModel(); this.testResult = null; return {state: 'cleared'}; }
+    // A one-press setup: the address and the model id come from PRESETS, not from the clipboard. The saved key follows the usual rule (it stays only on the same host).
+    const preset = PRESETS[PRESET_OF[action]];
+    if (preset) {
+      await c.setUrl(parseEndpointUrl(preset.endpoint));
+      await c.setModel(preset.model);
+      this.testResult = null;
+      return {state: 'saved'};
+    }
     let text;
     try { text = await this.readClipboard(); } catch { return {state: 'unreadable'}; }
     if (typeof text !== 'string' || !text.trim()) return {state: 'invalid', reason: 'empty'};
