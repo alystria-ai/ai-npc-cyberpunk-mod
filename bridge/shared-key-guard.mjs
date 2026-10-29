@@ -1,7 +1,9 @@
 // The one limit on conversation turns that are paid for by the project's shared Convai key (never a player's own key, Local AI,
 // Mistral or Custom, which get no limit from us at all).
 //
-//   * Daily cap: DAILY_LIMIT turns per local calendar day per installation (the day rolls over at local midnight). It is the ONLY
+//   * Daily cap: DAILY_LIMIT turns per UTC calendar day per installation (the day rolls over at 00:00 UTC, the same instant the sign-in
+//     backend's day does: 5:30 AM in India, 7 PM the evening before in New York). Counting by local day made a player east of UTC see turns
+//     left here while the backend, whose day started hours after local midnight, already refused new tokens. It is the ONLY
 //     limit, and it counts everything that goes to Convai on the shared key, once per provider interaction, in RealtimeHost: a spoken
 //     or typed turn, a phone message, a group speaker (look-ahead turns included, they are real responses), a call, a ride or
 //     threat answer and every automatic reaction (Johnny's remarks, a companion speaking up, battle and loot comments). Opening or
@@ -19,7 +21,7 @@ import {dirname} from 'node:path';
 import {execFile} from 'node:child_process';
 import {hostname, userInfo} from 'node:os';
 
-export const DAILY_LIMIT = 500;       // turns per local day on the shared key until the sign-in backend says otherwise (auth-backend/ POST /api/admin/config)
+export const DAILY_LIMIT = 500;       // turns per UTC day on the shared key until the sign-in backend says otherwise (auth-backend/ POST /api/admin/config)
 export const LIMIT_MIN = 1, LIMIT_MAX = 10_000;  // the range of a limit the backend may set; the same bounds as auth-backend/api/_lib/config.js
 export const LIMIT_MARKER = /\[convai-quota:daily\]/;
 
@@ -39,8 +41,8 @@ export const sanitizeLimit = value => {
 
 const PEPPER = 'cyberpunk-convai/usage/v1';
 const pad = value => String(value).padStart(2, '0');
-/** The local calendar day of `ms`, as YYYY-MM-DD. */
-export const dayOf = ms => { const date = new Date(ms); return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`; };
+/** The UTC calendar day of `ms`, as YYYY-MM-DD: the day the sign-in backend counts a player's reported turns in (auth-backend/api/_lib/token-handler.js). */
+export const dayOf = ms => { const date = new Date(ms); return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`; };
 
 /** A stable per-computer string: the Windows machine GUID when readable, else the host and user names. */
 export async function machineId({exec = execFile, timeoutMs = 3000} = {}) {
@@ -144,7 +146,9 @@ export class SharedKeyGuard {
   /** Reads the saved count. Without a valid copy the count is 0. */
   async load() {
     const record = this.store ? await this.store.load().catch(() => null) : null;
-    if (record) { this.day = record.day; this.count = record.count; this.seen = record.seen; this.#roll(); }
+    // A record always has day == the day of `seen` (#roll sets both together). Records written before 0.3.5 named the LOCAL day: reading the day from
+    // `seen` moves such a count onto the UTC day it was last used in, so an upgrade neither keeps a used-up count for a day longer nor frees it early.
+    if (record) { this.day = dayOf(record.seen); this.count = record.count; this.seen = record.seen; this.#roll(); }
     return this;
   }
   // The day only moves forward: a clock set back does not return yesterday's allowance.

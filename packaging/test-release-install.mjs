@@ -38,14 +38,15 @@
 //    model on the processor (no sound, no graphics card, no game).
 import {spawn, spawnSync} from 'node:child_process';
 import {copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
-import {existsSync, readFileSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
 import net from 'node:net';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {childEnv, sha256File, walk} from './lib/files.mjs';
 import {listZip} from './lib/zip.mjs';
 import {readEntry} from './lib/zip-entry.mjs';
+import {zipListing} from './lib/zip-listing.mjs';
 
 // The names the build gives its packages (build-release.mjs): the Scripts package is the Update zip of the mod page, the others have no product prefix.
 // --game 2.31 tests the build for that game (default 2.5): its Scripts and Runtime (and the update zip) carry the variant's suffix (packaging/game-variants.json).
@@ -66,7 +67,7 @@ import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {packTitles} from './lib/pack-names.mjs';
 import {updateBaseNameFor} from './lib/full-package.mjs';
 import {CODE_APP, CODE_FOLDER, INSTALLER, RETIRED_DLLS, RUNTIME_APP, isCodeGamePath} from './lib/code-payload.mjs';
-import {MODES, baseVerdict, chooseMode, hadRetiredDlls, packagesForPath, runtimeUpdateZips, setupCheckVerdict, staleCode, upgradePathsFor, upgradeZips} from './lib/install-test-plan.mjs';
+import {MODES, baseVerdict, chooseMode, hadRetiredDlls, listingSource, packagesForPath, runtimeUpdateZips, setupCheckVerdict, staleCode, upgradePathsFor, upgradeZips} from './lib/install-test-plan.mjs';
 import {GAME_REMOVALS} from './runtime/install-code.mjs';
 import {fullBaseName} from './lib/full-package.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
@@ -115,6 +116,19 @@ async function expand(zip, destination) {
     `$ProgressPreference='SilentlyContinue'; Expand-Archive -LiteralPath $env:ZIP -DestinationPath $env:DEST -Force`],
   {env: childEnv('powershell.exe', {...process.env, ZIP: zip, DEST: destination}), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024});
   if (result.status !== 0) throw Error(`Expand-Archive failed for ${zip}: ${result.stderr.slice(-2000)}`);
+}
+
+// A package's file list ({path, bytes, sha256} rows). The build writes <base>.files.json beside each zip, but a folder made by hand (the 0.3.4 staging
+// folder held an Update zip taken from another folder, and no list) may have the zip alone: the list is then worked out from the zip. It is looked for
+// in the packages folder and in the folder of --update-zip (listingSource, packaging/lib/install-test-plan.mjs). Missing only when neither exists.
+const listingFolders = () => [...new Set([packagesDir, ...(updateZipArgument ? [dirname(updateZipArgument)] : [])])]
+  .map(dir => ({dir, names: existsSync(dir) ? readdirSync(dir) : []}));
+const findListing = bases => listingSource({bases, folders: listingFolders()});
+async function listingRows(source, what) {
+  if (!source) throw Error(`No file list and no zip for ${what}: nothing to compare the installation with.`);
+  if (source.kind === 'listing') return JSON.parse(await readFile(join(source.dir, source.file), 'utf8'));
+  console.log(`  no .files.json for ${what}: the list is worked out from ${source.file}`);
+  return zipListing(join(source.dir, source.file));
 }
 
 function runNode(node, script, env, timeoutMs = 600_000) {
@@ -316,16 +330,25 @@ async function main({names, mode, upgradePath}) {
     const updateZip = legacy ? (updateZipArgument ?? (runtimeUpdates.length === 1 ? join(packagesDir, runtimeUpdates[0]) : null)) : null;
     // Code upgrade: path a extracts the Update zip (the build's Scripts package, or the one --update-zip names), path b the Full zip of this version.
     const codeUpdateName = updateZipArgument ? updateZipArgument.split(/[\\/]/).pop() : pick('Scripts')[0];
-    const zips = codeUpgrade ? upgradeZips({names, version, game: gameId, updateName: codeUpdateName}) : null;
+    // --update-zip may name a zip in another folder (a staging folder holds only part of a release): it counts as one of the packages and is extracted from where it is.
+    const zipNames = updateZipArgument && existsSync(updateZipArgument) ? [...new Set([...names, basename(updateZipArgument)])] : names;
+    const zipPath = name => (updateZipArgument && name === basename(updateZipArgument) ? updateZipArgument : join(packagesDir, name));
+    const zips = codeUpgrade ? upgradeZips({names: zipNames, version, game: gameId, updateName: codeUpdateName}) : null;
     const pathPackages = codeUpgrade ? packagesForPath(upgradePath, zips) : null;
     const optionalOk = (!omni || pick('omni').length === 1) && localIds.every(id => pick(id).length === 1);
     const wanted = codeUpgrade ? [...(fullPath ? [zips.full] : [zips.update]).filter(Boolean), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)]
       : legacy ? [...pick('Scripts'), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)]
         : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('omni') : []), ...localIds.flatMap(pick)];
     const previousGiven = updateFrom.length > 0 && updateFromScripts.length > 0;
-    const runtimeListing = join(packagesDir, `${packageBase('Runtime', version)}.files.json`);
-    check('packages present', codeUpgrade ? previousGiven && pathPackages.missing.length === 0 && existsSync(runtimeListing) && optionalOk
-      : pick('Scripts').length === 1 && (legacy ? existsSync(updateZip ?? '') && existsSync(runtimeListing) : pick('Runtime', {parts: true}).length >= 1) && optionalOk,
+    // The files this run compares the installation with: the Full zip's (path b) or the Update's (otherwise), the Runtime's (a clean install, a Runtime update, and
+    // path a for the base), the optional packs'. Each is a .files.json or, failing that, its zip (findListing): a missing list alone does not fail the run.
+    const listIds = [...(fullPath ? ['Full'] : ['Scripts']), ...(codeUpgrade ? [] : ['Runtime']), ...(omni ? ['omni'] : []), ...localIds];
+    const listBases = id => (id === 'Full' ? [fullBaseName(version, gameId)]
+      : [...new Set([...titlesOf(id).map(title => packageBase(id, version, title)), packageBase(id, version)])]);
+    const missingLists = [...listIds, ...(codeUpgrade && !fullPath ? ['Runtime'] : [])].filter(id => !findListing(listBases(id)));
+    if (missingLists.length) console.log(`  MISSING file list and zip for: ${missingLists.join(', ')}`);
+    check('packages present', codeUpgrade ? previousGiven && pathPackages.missing.length === 0 && missingLists.length === 0 && optionalOk
+      : pick('Scripts').length === 1 && missingLists.length === 0 && (legacy ? existsSync(updateZip ?? '') : pick('Runtime', {parts: true}).length >= 1) && optionalOk,
     codeUpgrade ? `previous release: ${[...updateFromScripts, ...updateFrom].map(zip => zip.split(/[\\/]/).pop()).join(', ') || '(none given)'}; then ${wanted.join(', ')}${pathPackages.missing.length ? `; MISSING ${pathPackages.missing.join(', ')}` : ''}`
       : legacy ? [...wanted, updateZip ? updateZip.split(/[\\/]/).pop() : '(no update zip)'].join(', ') : wanted.join(', '));
     let t = Date.now();
@@ -355,18 +378,15 @@ async function main({names, mode, upgradePath}) {
       check('the previous release is installed, with the old launcher and native plugin DLLs the new launcher retires', previous.size > 0 && oldDlls.length === RETIRED_DLLS.length
         && oldDlls.every(rel => existsSync(join(game, rel))), `${previousAll.size} files before; old DLLs: ${oldDlls.map(rel => rel.split('/').pop()).join(', ') || 'none'}`);
     }
-    for (const zip of wanted) await expand(join(packagesDir, zip), game);
+    for (const zip of wanted) await expand(zipPath(zip), game);
     check('extracted with Expand-Archive', true, `${wanted.length + (upgrading ? updateFrom.length + updateFromScripts.length + (legacy ? 1 : 0) : 0)} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);
     let mismatches = 0, count = 0, longest = 0;
     const omniSplit = new Set();
     // The files the zips of this run ship: the Full zip's own listing for path b (the Update and the Runtime base in one); for path a only the Update (it leaves the
     // previous Runtime base in place, which is compared below); otherwise the Update, the Runtime and the optional packs.
-    const listIds = [...(fullPath ? ['Full'] : ['Scripts']), ...(codeUpgrade ? [] : ['Runtime']), ...(omni ? ['omni'] : []), ...localIds];
     for (const id of listIds) {
-      // The file list sits beside the zip, under whichever title the zip has.
-      const listed = id === 'Full' ? join(packagesDir, `${fullBaseName(version, gameId)}.files.json`)
-        : titlesOf(id).map(title => join(packagesDir, `${packageBase(id, version, title)}.files.json`)).find(existsSync) ?? join(packagesDir, `${packageBase(id, version)}.files.json`);
-      const list = JSON.parse(await readFile(listed, 'utf8'));
+      // The file list sits beside the zip, under whichever title the zip has (or is worked out from the zip).
+      const list = await listingRows(findListing(listBases(id)), id);
       for (const file of list) {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
         // The one file that differs by design: the update's removal list (what went away since the previous Runtime) replaces the full Runtime's own; it is checked below.
@@ -386,7 +406,7 @@ async function main({names, mode, upgradePath}) {
     // marker DLL) are allowed to differ and are counted. Path b put the new base in place and checked it above.
     if (codeUpgrade && !fullPath) {
       const missing = [], differing = [];
-      for (const file of JSON.parse(await readFile(runtimeListing, 'utf8'))) {
+      for (const file of await listingRows(findListing(listBases('Runtime')), 'Runtime')) {
         const path = join(game, file.path);
         if (!existsSync(path)) missing.push(file.path);
         else if ((await stat(path)).size !== file.bytes || await sha256File(path) !== file.sha256) differing.push(file.path);
@@ -424,7 +444,7 @@ async function main({names, mode, upgradePath}) {
       check('the start removed the files the update names, refusing and failing on none', removals.state === 'done' && removals.removed === update.present.length
         && removals.refused === 0 && removals.failed === 0 && update.present.every(rel => !existsSync(join(game, rel))),
       JSON.stringify(removals));
-      const newList = JSON.parse(await readFile(join(packagesDir, `${packageBase('Runtime', version)}.files.json`), 'utf8'));
+      const newList = await listingRows(findListing(listBases('Runtime')), 'Runtime');
       const shippedNow = new Set(newList.map(file => file.path.toLowerCase()));
       const dropped = [...update.previous].filter(name => !shippedNow.has(name.toLowerCase())).sort();
       // What the previous Runtime had and the new one has not: gone, or left on purpose (a path the removal step may not delete, or an optional pack's file).

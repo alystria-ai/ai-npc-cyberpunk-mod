@@ -108,7 +108,9 @@ function M.unavailable(now)
         end
         if service.state == 'failed' and (current or ofThisSession(service)) then
             local kind = failureKind(service)
-            return {kind = kind, detail = kind == 'failed' and detailOf(service) or nil}
+            -- The launcher found no node.exe of the Runtime base: the Scripts are installed and the Runtime is not (0.3.4: nine installs reported it in a day,
+            -- the Update zip was all some of them had). Restarting the game cannot help; the sentence for a Runtime that was never extracted can.
+            return {kind = kind, detail = kind == 'failed' and detailOf(service) or nil, runtimeMissing = service.code == 'launcher-program-missing' or nil}
         end
         -- The launcher's or the start script's own "starting" with nothing after it: within the time a first start may take the service
         -- is coming up; past it, the process that was started never reported.
@@ -193,6 +195,7 @@ function M.blockedMessage(now)
     if state and state.kind == 'failed' and state.code == nil and state.detail == nil and M.reach(now) == 'never' then
         return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.'), state.kind
     end
+    if state and state.runtimeMissing then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.'), state.kind end
     return state and M.message(state.kind), state and state.kind
 end
 
@@ -243,6 +246,7 @@ function M.notice(now)
         pcall(convaiErrorReports.record, silent and 'service-silent' or 'service-failed', code, down.detail,
             type(service.source) == 'string' and service.source or 'supervisor')
     end
+    if down.runtimeMissing then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
     return M.message(down.kind)
 end
 

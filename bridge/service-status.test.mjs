@@ -159,6 +159,8 @@ test('failures distinguish missing setup from other errors, including launcher f
   put('runtime/bridge-service.json', {state = 'failed', code = 'launcher-program-missing', source = 'launcher',
       since = ms(-600 - 60), updated = ms(-600 - 60)})
   assert(select(2, status.blockedMessage()) == 'failed', 'a launcher failure from this game session')
+  assert(status.blockedMessage() == ${lua_(messages.never)}, 'no node.exe of the Runtime: "restart the game" cannot help, the sentence says to look at the Runtime')
+  assert(status.notice() == ${lua_(messages.never)}, 'and the proactive notice says the same')
   advance(1)
   put('runtime/bridge-service.json', {state = 'failed', code = 'launcher-program-missing', source = 'launcher',
       since = ms(-7200), updated = ms(-7200)})

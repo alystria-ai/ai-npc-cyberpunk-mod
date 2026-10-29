@@ -72,13 +72,13 @@ local function buildConsole(check)
     local head = 'AI NPC Cyberpunk Mod: game build mismatch (' .. tostring(check.detail) .. '). '
     if check.code == 'runtime-wrong' then
         return head .. 'Your game is ' .. game .. ' but the Runtime is the one for game ' .. runtime .. '. Get the full install zip (AI-NPC-LLM-Companions) for game ' .. game
-            .. ' from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (top folder for game 2.5, game-2.31 folder for game 2.31) and extract it over this one, then restart the game.'
+            .. ' from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it over this one, then restart the game.'
     elseif check.code == 'scripts-wrong' then
         return head .. 'Your game is ' .. game .. ' but the Scripts are the build for game ' .. scripts .. '. Get the update zip for game ' .. game
-            .. ' from the mod’s Nexus Mods page (update file for game 2.5, optional update file for game 2.31) or its Hugging Face page and install it over these, then restart the game.'
+            .. ' from the mod’s Nexus Mods page (update file for game 2.5, optional update file for game 2.31) and install it over these, then restart the game.'
     elseif check.code == 'both-wrong' then
         return head .. 'Your game is ' .. game .. ' but the Scripts and the Runtime are the build for game ' .. scripts .. '. Get the full install zip (AI-NPC-LLM-Companions) for game ' .. game
-            .. ' from Nexus Mods or Hugging Face and extract it over these, then restart the game.'
+            .. ' from Nexus Mods and extract it over these, then restart the game.'
     end
     return head .. 'The Scripts are the build for game ' .. scripts .. ' but the Runtime is the build for game ' .. runtime
         .. ', and the game version matches neither. Extract the full install zip (AI-NPC-LLM-Companions) made for the same game as yours, then restart the game.'
@@ -488,7 +488,7 @@ end
 local function lineFor(check)
     if not check then return nil end
     if check.code == 'never' then
-        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page and on its Hugging Face page.') .. managerHint()}
+        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The full install is on the mod’s Nexus Mods page.') .. managerHint()}
     end
     -- The launcher found no launcher.ini beside its DLL (a 0.2.3 Vortex report; the launcher from 0.2.4 on starts without it, so this is an
     -- older launcher): the generic sentence below would say "download it again" without saying which file or why.
@@ -567,13 +567,13 @@ local function gameLine(id, check)
         label = ui.t('Build for your game')
         local values = {game = check.forGame or '?', scripts = check.scripts or '?', runtime = check.runtime or '?'}
         if check.code == 'runtime-wrong' then
-            return line(id, label, 'problem', ui.t('Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.', values))
+            return line(id, label, 'problem', ui.t('Your game is {game} but the Runtime is the one for game {runtime}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over this one, then restart the game.', values))
         elseif check.code == 'scripts-wrong' then
-            return line(id, label, 'problem', ui.t('Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and install it over these, then restart the game.', values))
+            return line(id, label, 'problem', ui.t('Your game is {game} but the Scripts are the build for game {scripts}. Get the update zip for game {game} from the mod’s Nexus Mods page (the update file is for game 2.5, the optional update file for game 2.31) and install it over these, then restart the game.', values))
         elseif check.code == 'both-wrong' then
-            return line(id, label, 'problem', ui.t('Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) or its Hugging Face page (the top folder is for game 2.5, the game-2.31 folder is for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.', values))
+            return line(id, label, 'problem', ui.t('Your game is {game} but the Scripts and the Runtime are the build for game {scripts}. Get the full install zip for game {game} from the mod’s Nexus Mods page (main file for game 2.5, optional file for game 2.31) and extract it into the Cyberpunk 2077 folder over these, then restart the game.', values))
         end
-        return line(id, label, 'problem', ui.t('The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods or Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', values))
+        return line(id, label, 'problem', ui.t('The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}, and the game version matches neither. Extract the full install zip made for the same game as yours (from Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', values))
     end
     if id == 'game' then
         label = ui.t('Game version')
@@ -583,7 +583,7 @@ local function gameLine(id, check)
         end
         if check.state == 'problem' then
             -- The other game's build is installed: the mod names the build to get (the Nexus page and the Hugging Face folder carry both).
-            return line(id, label, 'problem', ui.t('Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page or Hugging Face page, into the Cyberpunk 2077 folder, then restart the game.', {version = check.version, build = check.build or '?', game = check.forGame or '?'}))
+            return line(id, label, 'problem', ui.t('Version {version}. These files are the mod build for game {build}. Extract the full install zip made for game {game}, from the mod’s Nexus Mods page, into the Cyberpunk 2077 folder, then restart the game.', {version = check.version, build = check.build or '?', game = check.forGame or '?'}))
         end
         return line(id, label, 'unknown', ui.t('The game version could not be read.'))
     end
@@ -642,7 +642,7 @@ local function bridgeLines(out)
     elseif versions and versions.code == 'base-old' then
         -- From 0.3.4 the Scripts carry the code and the Runtime is the base (docs/PACKAGING.md, "Code in the Scripts"): its version must be at least the
         -- base the Scripts name (runtimeBase). An older base gets the full install zip (the Runtime update zips are no longer offered), the base it needs named.
-        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.',
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('These Scripts {scripts} need the Runtime base {required} or newer, and your Runtime is {runtime}. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.',
             {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?', required = text(versions.required, 30) or '?'}))
     elseif versions and versions.code == 'match' and versions.base == true then
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} on Runtime base {runtime}.',
@@ -652,17 +652,17 @@ local function bridgeLines(out)
         local older = versions.code == 'mismatch' and runtimeIsOlder(versions)
         out[#out + 1] = versions.code == 'mismatch'
             and line('versions', ui.t('Scripts and Runtime'), 'problem', older
-                and ui.t('Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', values)
-                or ui.t('Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods or Hugging Face. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.', values))
+                and ui.t('Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', values)
+                or ui.t('Scripts {scripts} and Runtime {runtime} do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.', values))
             or line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} and Runtime {runtime}.', values))
     elseif versions and (versions.code == 'chain-gap' or versions.code == 'chain-order') then
         -- The versions agree, but an update step in between was never applied (bridge/runtime-steps.mjs): the files are a mix of releases.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', versions.code == 'chain-gap'
-            and ui.t('The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', {from = text(versions.from, 30) or '?', to = text(versions.to, 30) or '?'})
-            or ui.t('Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again. Then restart the game.'))
+            and ui.t('The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', {from = text(versions.from, 30) or '?', to = text(versions.to, 30) or '?'})
+            or ui.t('Some Runtime files are from a newer update than this Runtime says. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again. Then restart the game.'))
     elseif not versions and silent then
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
-        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.'))
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.'))
     end
     -- Under a mod manager a problem with the versions or the update steps says how to install the full install zip as one mod.
     local hint = managerHint()
@@ -702,7 +702,7 @@ local function bridgeLines(out)
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows ran out of memory for the voice. A larger paging file or closing other apps helps.'))
     elseif voice and voice.code == 'pocket-failed' and voice.cause == 'blocked' then
         -- Windows refused to load a file of the voice (Smart App Control, or an Application Control policy of a company or school): restarting changes nothing.
-        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Turn Smart App Control off, or choose a cloud voice (Voxtral) in Settings.'))
+        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Choose a cloud voice (Voxtral) in Settings.'))
     elseif voice and voice.code == 'pocket-failed' then
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.'))
     end
@@ -778,7 +778,7 @@ local function bridgeLines(out)
         elseif code == 'no-memory' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'))
         elseif code == 'mature-off' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Only Mature models found. Turn on Mature content to use them.'))
         elseif code == 'no-gpu' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.'))
-        elseif code == 'start-failed' and localAi.cause == 'blocked' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Turn Smart App Control off, or choose a cloud conversation provider in Settings.'))
+        elseif code == 'start-failed' and localAi.cause == 'blocked' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Choose a cloud conversation provider in Settings.'))
         else out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI could not start. Generate a report below and send it, or choose another conversation provider.')) end
     end
     local internet = bridgeCheck('internet')

@@ -1004,7 +1004,7 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
     "linked directories inside the app folder (junction, N folders above it)"; OmniVoice's is "Linked directories inside the application directory
     are not supported". The portable worker still refuses an OmniVoice package outside the pack. Tests: `scripts/test_pocket_voice_runtime.py` (`UsvfsPaths`),
     `scripts/test_resident_voice_paths.py` (`UsvfsVoicePaths`, `AppLinks`), `scripts/test_pocket_voice_runtime.py` (`AppLinks`), `packaging/mo2-voice-workers.test.mjs`, `bridge/pocket-voice.test.mjs`. The phone-analysis worker is unchanged: nothing in the
-    player install writes its `phone-analysis.json`, so it is not started for players.
+    player install writes its `phone-analysis.json`, so it is not started for players. Since 0.3.5 the worker is not shipped either: `bridge/phone-analysis-worker.py` left the Runtime layout and the release plan (it stays in the repository for `scripts/Prepare-PhoneAnalysis.mjs`), and it is in `packaging/runtime-removals.json` with `bridge/follow-up.mjs` (Follow-up questions, removed 2026-10-28) so an Update or a Scripts install clears the old copies from `app/bridge` (install-code.mjs deletes declared code paths).
   - **Where the files were found** is in the service log (`Mod Organizer 2: Local AI pack files, where each really is (...)`: one line per marker,
     model, the server with whether its DLLs are beside it, the embedding model) and in the support report's `localAi.packFiles` (`foundIn`: the MO2
     mod folder's name, never a path; `engine`: the server's and the embedding model's mod and whether the DLLs sit beside the server). A physical
