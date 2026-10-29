@@ -286,6 +286,22 @@ test('local: a chosen model that could not be used says so once, naming the mode
   provider.noteLocalModelFallback({bad: true});
   assert.equal(provider.takeNotice(), 'local-model-fallback');
   assert.equal(provider.noticeModel, '');
+  // A model that did not fit the graphics memory (2026-10-29): the notice carries what it needs and what was available for it, once; any other notice carries none.
+  assert.equal(provider.noticeMemory, null);
+  provider.noteLocalModelFallback('Qwen3.5-2B', {needMiB: 8912, availableMiB: 5796.4});
+  assert.equal(provider.takeNotice(), 'local-model-fallback');
+  assert.deepEqual([provider.noticeModel, provider.noticeMemory], ['Qwen3.5-2B', {needMiB: 8912, availableMiB: 5796}]);
+  provider.noteLocalModelFallback('Qwen3.5-2B');
+  assert.equal(provider.takeNotice(), 'local-model-fallback');
+  assert.equal(provider.noticeMemory, null, 'a fallback without numbers (a missing model) clears them');
+  for (const odd of [{needMiB: 'x', availableMiB: 5}, {needMiB: 5}, {needMiB: -1, availableMiB: 5}, {needMiB: 5e9, availableMiB: 5}, null, 'text']) {
+    provider.noteLocalModelFallback('Qwen3.5-2B', odd);
+    assert.equal(provider.takeNotice(), 'local-model-fallback');
+    assert.equal(provider.noticeMemory, null, JSON.stringify(odd));
+  }
+  provider.noteLocalModelFallback('Qwen3.5-2B', {needMiB: 8912, availableMiB: 0});
+  provider.takeNotice();
+  assert.deepEqual(provider.noticeMemory, {needMiB: 8912, availableMiB: 0}, 'no room at all for it is stated as it is');
   provider.noteLocalModelFallback();
   provider.setPreference('mistral');
   assert.equal(provider.takeNotice(), undefined, 'changing the provider drops it');

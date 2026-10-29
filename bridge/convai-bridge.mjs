@@ -620,10 +620,11 @@ function logLocalDown() {
 }
 // A chosen model that is missing, does not fit or did not start: another was used (the event names it), and the game says so once per choice (not at every later start).
 let localModelFallbackNoted = '';
-localServer.on('model-fallback', ({pin, reason, model}) => {
+// A model that did not fit the graphics memory also carries what it needs and what was available for it (MiB): the notice says both.
+localServer.on('model-fallback', ({pin, reason, model, needMiB, availableMiB}) => {
   const key = pin + '|' + reason;
   if (key === localModelFallbackNoted) return;
-  localModelFallbackNoted = key; mistral.noteLocalModelFallback(model);
+  localModelFallbackNoted = key; mistral.noteLocalModelFallback(model, reason === 'low-memory' ? {needMiB, availableMiB} : undefined);
 });
 // Turns stalled (the game uses most of the graphics memory and the model reads at a crawl): the server stepped down to the next smaller model of its family, or, with
 // none left, Local AI fails with 'low-memory' (its 'failed' follows; no cloud takes over). The game says so once, with the next reply (mod/init.lua, 'local-stepdown'). The saved choice is untouched.
@@ -747,6 +748,7 @@ const keyNotice = () => {
     ?? (companionVision.takeBorderNotice() ? 'vision-border' : undefined);
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'pocket-language-pack' ? {keyNoticeLanguage: pocketNotice.keyNoticeLanguage} : {}), ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
+    ...(keyNotice === 'local-model-fallback' && mistral.noticeMemory ? {keyNoticeNeedMiB: mistral.noticeMemory.needMiB, keyNoticeAvailableMiB: mistral.noticeMemory.availableMiB} : {}),
     // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.
     ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {})} : {};
 };

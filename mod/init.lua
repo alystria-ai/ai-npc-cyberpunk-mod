@@ -5898,6 +5898,12 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'local-model-fallback' then
         local used = reply.keyNoticeModel
         if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then used = ui.t('another model') end
+        -- A model that did not fit: how much graphics memory it needs and how much is available for it beside the game (MiB from the bridge, shown as MB to the nearest 100).
+        local need, available = reply.keyNoticeNeedMiB, reply.keyNoticeAvailableMiB
+        if type(need) == 'number' and type(available) == 'number' and need > 0 and need < 1000000 and available >= 0 and available < 1000000 then
+            local function megabytes(mib) return math.floor(mib * 1.048576 / 100 + 0.5) * 100 end
+            return 'local-model-fallback', ui.t('The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead.', {need = megabytes(need), available = megabytes(available), model = used})
+        end
         return 'local-model-fallback', ui.t('The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.', {model = used})
     end
     -- Local AI's turns stalled because the game uses most of the graphics memory: the bridge loaded the next smaller model (the reply names it; an older bridge may

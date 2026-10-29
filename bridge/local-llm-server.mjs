@@ -9,7 +9,8 @@
 //   const done = server.begin();  ...stream the reply...  done();              // in-flight requests block the idle stop
 //   server.status()   -> {state: 'stopped'|'starting'|'warming'|'ready'|'failed', reason?, tier, model, firstTime?}
 //   server.on('failed', ({reason}) => ...)                                     // once per failure episode
-//   server.on('model-fallback', ({pin, reason, model}) => ...)                 // the chosen model was missing, did not fit or did not start; `model` (its name) was used instead
+//   server.on('model-fallback', ({pin, reason, model, needMiB, availableMiB}) => ...)  // the chosen model was missing, did not fit or did not start; `model` (its name) was used instead; for 'low-memory'
+//                                                                              // also what the chosen model needs and what was available for it (MiB, after the game's room)
 //   server.on('model-stepdown', ({from, model, free}) => ...)                  // turns stalled (the game took the graphics memory): `model` (its name) was loaded instead, or null when none is
 //                                                                              // left (none to step to: the same model is loaded with part of its layers on the CPU, or a 'failed' event with reason 'low-memory' and detail 'too-small' follows)
 //   await server.reselect()                                                    // the model choice changed: reload at an idle moment
@@ -927,7 +928,8 @@ export class LocalLlmServer extends EventEmitter {
 
   // The model to load now: the player's choice (this.selection), else the older `tier` option, else the default (the largest that fits).
   // A chosen model that is missing or does not fit is replaced by the default, and one 'model-fallback' event names the model used.
-  #choose(pack, freeMiB, selected = this.#selected(pack), realFit = {}) {
+  // `memory` ({freeMiB, room}): the card as the start read it, for the line and the event that say why a chosen model was not used.
+  #choose(pack, freeMiB, selected = this.#selected(pack), realFit = {}, memory = null) {
     this.#lastFreeMiB = Number.isFinite(freeMiB) ? freeMiB : null;
     const sizeOf = file => this.fileSizeMiB(file);
     if (this.tierSetting === 'standard' || this.tierSetting === 'lite') {
@@ -936,7 +938,7 @@ export class LocalLlmServer extends EventEmitter {
       return {model: forced, sizeMiB: Number(sizeOf(forced.file)) || 0, profile: forced.tier, pinned: true, fellBack: null};
     }
     const choice = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB, totalMiB: this.#totalMiB, sizeOf, realFit});
-    this.#announce(choice, selected);
+    this.#announce(choice, selected, memory);
     return choice;
   }
 
@@ -959,7 +961,8 @@ export class LocalLlmServer extends EventEmitter {
     if (!Number.isFinite(freeMiB) || typeof this.fitProbe !== 'function' || this.tierSetting === 'standard' || this.tierSetting === 'lite') return result;
     const wanted = selected.models.filter(model => !model.external && model.file && !result[model.id] && !model.broken && !model.stalled
       && (all || model.id === selected.pin || (selected.matureOn && model.uncensored === true))
-      && freeMiB < modelNeedMiB(model, Number(this.fileSizeMiB(model.file)) || 0));
+      // The model the player added and chose is looked at when the room is not clearly more than the file-size rule asks for (FIT_LIMITS.pinProbeSlackMiB): its projection decides then.
+      && freeMiB < modelNeedMiB(model, Number(this.fileSizeMiB(model.file)) || 0) + (model.custom === true && model.id === selected.pin ? FIT_LIMITS.pinProbeSlackMiB : 0));
     await Promise.all(wanted.map(async model => {
       try { const fit = await this.#fitFor(model, freeMiB, FIT_LIMITS.marginMiB, device); if (fit) result[model.id] = fit; } catch { /* the file-size rule stands */ }
     }));
@@ -992,11 +995,19 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
-  #announce(choice, selected) {
+  #announce(choice, selected, memory = null) {
     // 'too-slow' is the step-down (noteStall): it has its own event and notice, emitted when the smaller model is loaded.
     if (choice.fellBack && choice.fellBack !== 'start-failed' && choice.fellBack !== 'too-slow') {
+      // A model that does not fit says how much it needs and how much there is for it (MiB, after the game's room): the event and the log carry both, the game's notice shows them (2026-10-29).
+      const numbers = choice.fellBack === 'low-memory' && Number.isFinite(choice.needMiB) ? {needMiB: choice.needMiB, ...(Number.isFinite(choice.availableMiB) ? {availableMiB: choice.availableMiB} : {})} : {};
       this.log('[local] the chosen model is not usable (' + choice.fellBack + '): ' + choice.model.name + ' was chosen instead');
-      this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack, model: choice.model.name});
+      const wanted = selected.models.find(model => model.id === selected.pin);
+      if (numbers.needMiB !== undefined && wanted) {
+        const room = memory?.room, free = memory && Number.isFinite(memory.freeMiB) ? Math.round(memory.freeMiB) : null;
+        this.log('[local] ' + (wanted.loadedName ?? wanted.name) + ' needs ' + numbers.needMiB + ' MiB of graphics memory, ' + (numbers.availableMiB === undefined ? 'an unknown amount is' : numbers.availableMiB + ' MiB are') + ' available for it'
+          + (memory ? ' (free ' + (free ?? '?') + ' MiB, ' + (room ? 'game room ' + room.reserveMiB + ' MiB of ' + room.gameRoomMiB + ', voice engine ' + room.voiceMiB + ' MiB' : 'no room kept for the game') + ')' : '') + ': ' + choice.model.name + ' is used instead');
+      }
+      this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack, model: choice.model.name, ...numbers});
     }
     if (choice.gameReserve) this.log('[local] a small graphics card (' + (this.#totalMiB ?? '?') + ' MiB): room is kept for the game, so ' + choice.model.name + ' was chosen');
     if (choice.offload) this.log('[local] ' + choice.model.name + ' does not fit the free graphics memory whole: it is loaded with part of its layers on the CPU if enough of them can stay on the card'
@@ -1138,7 +1149,7 @@ export class LocalLlmServer extends EventEmitter {
     this.#mark('checking which model fits the free graphics memory');
     const realFit = await this.#probeFits(selected, modelFreeMiB, device, {all: room !== null});
     this.#guard(generation);
-    let choice = this.#choose(pack, modelFreeMiB, selected, realFit);
+    let choice = this.#choose(pack, modelFreeMiB, selected, realFit, {freeMiB, room});
     this.#lastFreeMiB = Number.isFinite(freeMiB) ? freeMiB : null;
     // The model a step-down or a spill found no smaller model for: the same model, with part of its layers on the CPU (this start only).
     const forced = this.#forcedOffload; this.#forcedOffload = null;

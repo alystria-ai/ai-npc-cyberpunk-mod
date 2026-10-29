@@ -26,6 +26,9 @@ export const FIT_LIMITS = Object.freeze({
   offloadRamHeadroomMiB: 512,    // system memory kept beyond the CPU part of an offloaded model and its cache (the process itself, the prompt cache, the game and Windows)
   offloadMaxThreads: 6,       // CPU threads of an offloaded load: the CPU part is bound by memory bandwidth, more threads only take cores from the game
   probeMs: 15_000,
+  // A model the player added is a file of unknown architecture: the file-size rule (file + 1,200 MiB) is a guess for it, in either direction (a 12B model with a large cache needs more, a
+  // Gemma E4B less). Its projection is looked at whenever the room beyond the rule's need is under this much, and then decides (bridge/local-model-choice.mjs prepare()). 2026-10-29.
+  pinProbeSlackMiB: 3000,
   // Largest first. 16,384 is the normal context; 8,192 is what the prompt budget still serves (the persona and rules are about 4.5k tokens); q8_0 saves another 75 to 135 MiB.
   ladder: Object.freeze([
     Object.freeze({contextSize: 16384, kvType: null}),
@@ -173,6 +176,10 @@ export function describeFit(fit, freeMiB, marginMiB) {
  *                  against 11,242 - 4,608 = 6,634 MiB, then lost 993 MiB to shared system memory, stalled at the 75 s limit and was reloaded at 40% of its layers. The game takes what the card has to give, so the
  *                  room is a share of the card: 62% is 7,446 MiB on that card (7,438 on a card that reads 11,997, 6,349 on a 10 GB card), the cap 7,680 MiB. One report: the live check is the
  *                  "graphics memory of the model server after ..." lines of 12 GB installs.
+ *   bigGameCapMiB, 2026-10-29: 15,360 -> 10,240 MiB (see "A 12B model on a 24 GB card" in docs/LOCAL_AI.md). The share (62%) is unchanged and 10,240 is where it ends on a 16 GB card (62% of 16,376 is 10,153),
+ *                  so every card up to 16 GB keeps the number it had; only a card of about 16.5 GB and more (18 to 24 GB: 62% would have been 11,000 to 15,237 MiB) is capped, at the room a 16 GB card
+ *                  already gets. Cyberpunk 2077 at 4K with ray tracing needs about 10 to 12 GB of its own; the 17 GB the 24 GB report below derived is what the game takes when it is alone on the card.
+ *                  A player's 24,463 MiB laptop card (RTX 5090 Laptop, OmniVoice, a 12B model of their own) was given 5.8 GB for the model and fell back to the lite model.
  *   maxCardMiB     the reserve now applies up to a 24,576 MiB card (was 12,288, 2026-10-22 late report 8e09af42: an RTX 4090 with 24 GB, Local AI Mature good and OmniVoice, 0.2.7). The first placement
  *                  gave the model all the free memory; the game and OmniVoice then took the card, 3,102 MiB of the model stayed on it and 3,254 MiB went into shared memory, the first word came after
  *                  18.4 s and the turn stalled at the 74 s limit, and the step-down reloaded the model to the 3.9 GB that was free. Reading that report: with the model unloaded 3.9 GB were free, so the game
@@ -185,7 +192,7 @@ export function describeFit(fit, freeMiB, marginMiB) {
  *   restarted mid-play, or a quick Continue that has the game and OmniVoice on the card already, keeps nothing back twice. Nothing depends on how long the service has run.
  */
 export const SMALL_CARD_ROOM = Object.freeze({maxCardMiB: 24576, gameShare: 0.55, gameCapMiB: 4608, gameFloorMiB: 3000, omniVoiceMiB: 2500, desktopMiB: 1000,
-  bigCardAboveMiB: 9216, bigGameShare: 0.62, bigGameCapMiB: 15360});
+  bigCardAboveMiB: 9216, bigGameShare: 0.62, bigGameCapMiB: 10240});
 
 /** The game's room (MiB) on a card of this size, or 0 for a card above SMALL_CARD_ROOM.maxCardMiB or an unknown one. */
 export function gameRoomMiB(totalMiB, limits = SMALL_CARD_ROOM) {

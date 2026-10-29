@@ -648,6 +648,7 @@ return {
     ["No model installed"] = "未安裝任何模型",
     ["another model"] = "其他模型",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "你選擇的 Local AI 模型缺失、放不進可用顯示記憶體或未能啟動，因此改用了 {model}。",
+    ["The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead."] = "你選擇的 Local AI 模型需要約 {need} MB 顯示記憶體，但在遊戲之外只有 {available} MB 可供它使用，因此改用了 {model}。",
     ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI 已切換至 {model}：遊戲正在佔用大部分顯示記憶體。",
     ["Choose one of the listed Local AI models."] = "請從列出的 Local AI 模型中選擇一個。",
     ["Characters to invite"] = "可邀請的角色",

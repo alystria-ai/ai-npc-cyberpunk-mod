@@ -5025,6 +5025,15 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     id, text = notice({keyNotice = 'local-model-fallback', text = 'Hello'})
     assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so another model was used instead.', text)
     assert(not text:find('Auto', 1, true))
+    -- A model that did not fit the graphics memory says how much it needs and how much is available for it beside the game (MiB from the bridge, shown as MB to the nearest 100).
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = 'Qwen3.5-2B', keyNoticeNeedMiB = 8912, keyNoticeAvailableMiB = 5796, text = 'Hello'})
+    assert(id == 'local-model-fallback' and text == 'The Local AI model you chose needs about 9300 MB of graphics memory, but only 6100 MB are available for it beside the game, so Qwen3.5-2B was used instead.', text)
+    id, text = notice({keyNotice = 'local-model-fallback', keyNoticeNeedMiB = 8912, keyNoticeAvailableMiB = 5796, text = 'Hello'})
+    assert(text:find('so another model was used instead.', 1, true), text)
+    for _, odd in ipairs({{'x', 5}, {0, 5}, {-5, 5}, {5e9, 5}, {8912, 'x'}, {8912, -1}}) do
+      id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = 'Qwen3.5-2B', keyNoticeNeedMiB = odd[1], keyNoticeAvailableMiB = odd[2], text = 'Hello'})
+      assert(text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so Qwen3.5-2B was used instead.', 'odd numbers read as the generic sentence: ' .. text)
+    end
     sendProviderNotice({}, 'local-model-fallback', 'e')
     assert(#sent == 3 and sent[3] == 'local-model-fallback=e', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')
