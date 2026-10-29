@@ -651,6 +651,8 @@ export async function collectSetupCheck(options = {}) {
     if (!found || typeof found !== 'object') return null;
     const chosen = clip(found.chosen, 160), device = clip(found.device, 160);
     if (found.missing === true && chosen) return {id: 'microphone', state: 'note', code: 'missing', device, chosen};
+    // The input in use looks like a loopback or virtual input (Stereo Mix, CABLE Output, a mixer's Out): it may carry the PC's sound, such as the far side of a call.
+    if (found.loopback === true && (device || chosen)) return {id: 'microphone', state: 'note', code: 'loopback', device: device ?? chosen, ...(chosen ? {chosen} : {})};
     if (chosen) return {id: 'microphone', state: 'ok', code: 'chosen', device: device ?? chosen, chosen};
     if (device) return {id: 'microphone', state: 'ok', code: 'default', device};
     return null;

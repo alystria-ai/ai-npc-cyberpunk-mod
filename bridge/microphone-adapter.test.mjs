@@ -459,6 +459,16 @@ test('a recording in a language an optional pack hears (not installed) names the
  mic.update(player);assert(#feedback==1)
 `));
 
+test('a Windows default input that looks like a loopback is told once, with its name, and a chosen input that is gone has its own notice', () => check(`
+ local context=input(false);assert(mic.begin(context))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='mic-loopback',device='Default - Stereo Mix (Realtek(R) Audio)'})
+ mic.update(player)
+ assert(mic.state=='recording')
+ local want='Default - Stereo Mix (Realtek(R) Audio) looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone.'
+ assert(#feedback==1 and feedback[1]==want,tostring(feedback[1]))
+ mic.update(player);now=now+1;mic.update(player);assert(#feedback==1,'the note is told once')
+`));
+
 test('the language note is still shown once when the recording state arrives after the key was already let go', () => check(`
  local context=input(false);assert(mic.begin(context))
  assert(mic.finish('private','release')==context and mic.state=='reply')

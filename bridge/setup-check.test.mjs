@@ -535,6 +535,10 @@ test('microphone: a row only once an input was opened or one is chosen; the labe
     {id: 'microphone', state: 'ok', code: 'chosen', device: 'Headset Mic (USB)', chosen: 'Headset Mic (USB)'}, 'chosen but not opened yet: named as chosen');
   assert.deepEqual((await checks({microphone: () => ({chosen: 'Headset Mic (USB)', device: 'Microphone (Realtek(R) Audio)', missing: true})})).microphone,
     {id: 'microphone', state: 'note', code: 'missing', device: 'Microphone (Realtek(R) Audio)', chosen: 'Headset Mic (USB)'});
+  assert.deepEqual((await checks({microphone: () => ({chosen: null, device: 'Default - CABLE Output (VB-Audio Virtual Cable)', missing: false, loopback: true})})).microphone,
+    {id: 'microphone', state: 'note', code: 'loopback', device: 'Default - CABLE Output (VB-Audio Virtual Cable)'}, 'the Windows default looks like a loopback');
+  assert.deepEqual((await checks({microphone: () => ({chosen: 'Stereo Mix (Realtek)', device: null, missing: false, loopback: true})})).microphone,
+    {id: 'microphone', state: 'note', code: 'loopback', device: 'Stereo Mix (Realtek)', chosen: 'Stereo Mix (Realtek)'}, 'a chosen loopback is told before anything opened');
   const boom = () => { throw Error('detector failed'); };
   assert.equal((await checks({microphone: boom})).microphone, undefined);
 }));

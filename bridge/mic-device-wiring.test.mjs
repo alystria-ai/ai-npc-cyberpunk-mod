@@ -24,9 +24,32 @@ test('nothing lists the devices on the way to a recording', () => {
   assert.ok(!tap.includes('listDevices'), 'the tap never lists');
 });
 
-test('the Convai route reports a missing chosen input with the same note as the local routes', () => {
+test('the Convai route reports a missing chosen input and a loopback default with the same notes as the local routes', () => {
   const host = read('./realtime-host.mjs');
-  assert.match(host, /if \(info\?\.missing && !result\.note\) result\.note = 'mic-device-gone'/);
-  const capture = read('./local-stt-capture.mjs');
-  assert.match(capture, /MIC_DEVICE_NOTE = 'mic-device-gone'/);
+  assert.match(host, /if \(!result\.note\) \{ const note = inputNote\(info\); if \(note\) result\.note = note; \}/);
+  const match = read('./mic-match.mjs');
+  assert.match(match, /MIC_DEVICE_NOTE = 'mic-device-gone'/);
+  assert.match(match, /MIC_LOOPBACK_NOTE = 'mic-loopback'/);
+});
+
+test('the Convai page\'s own microphone (the fallback) gets the chosen input and echo cancellation too', () => {
+  const host = read('./realtime-host.mjs');
+  assert.match(host, /micDevice: this\.micTap\?\.capture\?\.preferred\?\.\(\) \?\? ''/, 'the host hands the choice to the page');
+  const client = read('./realtime-client.mjs');
+  assert.match(client, /options\?\.micDevice/);
+  assert.match(client, /audio\.echoCancellation = true; audio\.noiseSuppression = true; audio\.autoGainControl = true/);
+});
+
+test('every getUserMedia in the bridge is the constrained open or a short unlock probe', () => {
+  for (const file of ['./local-stt-capture.mjs', './realtime-client.mjs']) {
+    const calls = read(file).split('\n').filter(line => /getUserMedia\(/.test(line) && !/^\s*\/\//.test(line) && !/getUserMedia = |Descriptor\(/.test(line));
+    for (const line of calls) {
+      assert.ok(/getUserMedia\(\{audio: true\}\)/.test(line) || /original\.call\(/.test(line) || /getUserMedia\(constraints\)/.test(line), file + ': ' + line.trim());
+    }
+  }
+  assert.match(read('./local-stt-capture.mjs'), /const constraints = \{audio: \{channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true\}\}/);
+});
+
+test('the recording state carries the input name only for the loopback note', () => {
+  assert.match(read('./convai-bridge.mjs'), /opened\.note === 'mic-loopback' && typeof opened\.device === 'string' \? \{device: opened\.device\.slice\(0, 80\)\}/);
 });

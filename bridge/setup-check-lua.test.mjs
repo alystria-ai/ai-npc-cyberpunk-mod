@@ -431,6 +431,10 @@ test('the microphone: the input in use, chosen or the Windows default, and a not
   assert(lineOf('microphone').state == 'note' and lineOf('microphone').description:find('Headset Mic (USB)', 1, true) and lineOf('microphone').description:find('is not connected', 1, true)
     and lineOf('microphone').description:find('Microphone (Realtek(R) Audio)', 1, true), tostring(lineOf('microphone').description))
   assert(#check.problems() == 0, 'a note is not a problem')
+  answer({microphone = {id = 'microphone', state = 'note', code = 'loopback', device = 'Default - Stereo Mix (Realtek(R) Audio)'}}); check.run()
+  assert(lineOf('microphone').state == 'note' and lineOf('microphone').description:find('Default - Stereo Mix (Realtek(R) Audio)', 1, true)
+    and lineOf('microphone').description:find('carries PC sound', 1, true) and lineOf('microphone').description:find('Settings > Voices > Microphone', 1, true), tostring(lineOf('microphone').description))
+  assert(#check.problems() == 0, 'the loopback note is not a problem')
 `));
 
 test('the browser, Local AI and the internet: every state has its own line and fix', () => run(String.raw`

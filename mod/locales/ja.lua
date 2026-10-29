@@ -1734,4 +1734,7 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "キーを押すときに Shift、Ctrl、Alt を押したままにすると、Shift+F5 のような組み合わせを設定できます。組み合わせは、ちょうどそのキーを押している間だけ動作し、単独のキーはいずれかを押している間は動作しません。ゲームでは Shift でダッシュ、Ctrl で回避、Alt でウェポンホイールが開くため、V もそれを行います。",
     ["Disk space"] = "ディスク容量",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "ドライブ {drive} の空きがわずか（残り{free}GB）です。ログと記憶を保存できるよう、空けてください。",
+    ["An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself."] = "(!) の付いた入力は、Stereo Mix、CABLE Output、ミキサーの出力などのループバックまたは仮想入力に見えます。通話相手の音など、ほかのアプリの音も入ることがあるため、MODは自動で選ぶことはありません。",
+    ["The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone."] = "選んだ入力は、声だけでなく PC の音も拾っているように見えます。キャラクターに通話が聞こえているなら、実際のマイクを選んでください。",
+    ["{name} looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone."] = "{name} は、声だけでなく通話などの PC の音も拾っているように見えます。設定 > 音声 > マイク で実際のマイクを選んでください。",
 }

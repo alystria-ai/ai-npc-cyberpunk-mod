@@ -2543,7 +2543,7 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
   minRecordMs: 0,
   // `note`: the recording's channel says something the game should tell the player once ('english-only', bridge/local-stt-capture.mjs).
   onState: (state, input, opened) => {
-    micStateLast = {state, requestId: input.requestId, ...(state === 'recording' && typeof opened?.note === 'string' ? {note: opened.note.slice(0, 24)} : {})};
+    micStateLast = {state, requestId: input.requestId, ...(state === 'recording' && typeof opened?.note === 'string' ? {note: opened.note.slice(0, 24), ...(opened.note === 'mic-loopback' && typeof opened.device === 'string' ? {device: opened.device.slice(0, 80)} : {})} : {})};
     // Whatever ends the recording ends the tap with it (a no-op when a channel or the key already did).
     if (state === 'off') void micTap.release(input.requestId, 'the recording is over');
     return publishMicState();

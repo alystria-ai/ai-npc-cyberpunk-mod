@@ -14,6 +14,9 @@ import {TurnClock, currentClock, withClock} from './turn-clock.mjs';
 import {cancelled} from './transport-pool.mjs';
 import {sameWords} from './local-stt.mjs';
 import {SpeechActivity} from './stt-activity.mjs';
+import {matchInput, looksLikeLoopback, MIC_DEVICE_NOTE, MIC_LOOPBACK_NOTE, inputNote} from './mic-match.mjs';
+
+export {matchInput};
 
 export const NO_SPEECH_ERROR = 'No speech was heard';
 // A recording whose loudest moment is below this sent no sound at all: the Windows input is muted, dead or the wrong device.
@@ -22,8 +25,8 @@ export const SILENT_INPUT_CODE = 'MIC_SILENT';
 export const STT_UNAVAILABLE_CODE = 'local-stt-unavailable';
 // A recording in another language that no engine could recognise (Mistral's transcription failed and no local pack or English recogniser took over).
 export const STT_LANGUAGE_CODE = 'STT_LANGUAGE';
-// The note a recording carries when the input the player chose in Settings > Voices was not there and the Windows default was used (the game says so once).
-export const MIC_DEVICE_NOTE = 'mic-device-gone';
+// The notes a recording carries about its input (bridge/mic-match.mjs): the chosen input was gone, or the default looks like a loopback.
+export {MIC_DEVICE_NOTE, MIC_LOOPBACK_NOTE, inputNote};
 const MAX_REMOTE_BYTES = 45 * 16000 * 2;   // a recording kept for Mistral's transcription ends here (the local recogniser's own 45 s cap)
 const CAPTURE_PATH = '/local-stt';
 const SAMPLE_RATE = 16000;
@@ -68,21 +71,6 @@ class LocalSttCapture extends AudioWorkletProcessor {
 }
 registerProcessor('local-stt-capture', LocalSttCapture);
 `;
-
-// The input a saved name stands for. Chromium's device ids are per origin and per browser profile, so the player's choice is kept as the device's LABEL and matched
-// here against what the page lists now: the exact label first, then the same label without case, spacing or the trailing (vid:pid) hardware id (Windows renumbers
-// "2- USB Audio Device" when the ports change). Windows' virtual 'default' and 'communications' entries never count: "Windows default" is the absence of a choice.
-// Runs in the capture page too (this function's source is embedded there), so it uses nothing from this module.
-export function matchInput(devices, wanted) {
-  const want = String(wanted ?? '');
-  if (!want) return null;
-  const list = (Array.isArray(devices) ? devices : []).filter(d => d && d.label && d.deviceId !== 'default' && d.deviceId !== 'communications');
-  const exact = list.find(d => d.label === want);
-  if (exact) return exact;
-  const norm = label => String(label).toLowerCase().replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/, '').replace(/\s+/g, ' ').trim();
-  const key = norm(want);
-  return list.find(d => norm(d.label) === key) || null;
-}
 
 const PAGE_SOURCE = `
 let stream, context, node, source, size = 0, info = null, queue = Promise.resolve(), failure = null, openedFor = '';
@@ -264,8 +252,10 @@ export class LocalSttCapture {
     if (!this.deviceOpen) await page.context().grantPermissions(['microphone'], {origin: this.origin});
     const info = await page.evaluate(([size, label, preferred]) => window.localStt.begin(size, label, preferred), [this.samplesFor(chunkMs), this.deviceLabel, this.preferred()]);
     this.deviceOpen = true;
-    this.lastInput = {device: info?.device ?? null, requested: info?.requested ?? null, missing: info?.missing ?? null};
-    return info;
+    // loopback: the input in use looks like it records the PC's sound (bridge/mic-match.mjs); a name test on a string, once per open.
+    const loopback = looksLikeLoopback(info?.device);
+    this.lastInput = {device: info?.device ?? null, requested: info?.requested ?? null, missing: info?.missing ?? null, loopback};
+    return {...info, loopback};
   }
   samplesFor(chunkMs) { return Number.isFinite(chunkMs) && chunkMs >= 10 && chunkMs <= 200 ? Math.round(chunkMs * SAMPLE_RATE / 1000) : 0; }
   // The inputs a player can choose, by label: {inputs: [label], current: the label of the device that is open now or null}. Only when the settings page asks (bridge/mic-devices-control.mjs),
@@ -306,9 +296,10 @@ const clip = (text, size = 160) => String(text ?? '').replace(/\s+/g, ' ').trim(
 export function describeInput(info) {
   const inputs = Array.isArray(info?.inputs) ? info.inputs : [];
   const settings = info?.settings ? ' echoCancellation=' + info.settings.echoCancellation + ' noiseSuppression=' + info.settings.noiseSuppression
-    + ' autoGainControl=' + info.settings.autoGainControl : '';
+    + ' autoGainControl=' + info.settings.autoGainControl + (info.settings.echoCancellation === false ? ' (echo cancellation is NOT active on this input)' : '') : '';
   const chosen = typeof info?.requested === 'string' && info.requested ? (info.missing ? ', chosen "' + clip(info.requested, 80) + '" not found, default used' : ', chosen in Settings') : '';
   return 'input "' + clip(info?.device || 'unknown', 120) + '"' + chosen + (info?.sampleRate ? ' at ' + info.sampleRate + ' Hz' : '')
+    + (info?.loopback === true ? ', LOOKS LIKE A LOOPBACK OR VIRTUAL INPUT (it may carry PC sound, such as a call)' : '')
     + (inputs.length ? ', ' + inputs.length + ' available [' + inputs.map(name => clip(name, 80)).join(' | ') + ']' : '') + settings;
 }
 // One line when a recording ends: how long it was, how loud and how voiced the sound was, which input it came from, and what was made of it.
@@ -472,7 +463,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
             log('speech language ' + (plan.language ?? '?') + ' (' + (plan.source ?? '?') + '): kept for Mistral transcription' + (plan.hint ? ' with the language hint' : ', language detected by Mistral'));
           } catch { /* a log line never breaks a recording */ }
           if (closed) { await capture.abort(); kept = []; throw Error('Microphone startup cancelled'); }
-          return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : info?.missing ? {note: MIC_DEVICE_NOTE} : {})};
+          return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : inputNote(info) ? {note: inputNote(info)} : {})};
         }
         engine = plan.mode === 'pack' && plan.stt ? plan.stt : stt;
         const availability = engine.availability();
@@ -495,7 +486,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
           else if (plan.note) log('speech language ' + (plan.language ?? '?') + ' (' + (plan.source ?? '?') + '): nothing here recognises it, English recogniser used (' + plan.note + ')');
         } catch { /* a log line never breaks a recording */ }
         if (closed) { await capture.abort(); await engine.cancel(requestId); throw Error('Microphone startup cancelled'); }
-        return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : info?.missing ? {note: MIC_DEVICE_NOTE} : {})};
+        return {device: info?.device ?? '', sessionID: undefined, local: true, ...(plan.note ? {note: plan.note} : inputNote(info) ? {note: inputNote(info)} : {})};
       },
       async finishVoice(config, options = {}) {
         if (!begun || closed) throw Error('Microphone connection is not running');
