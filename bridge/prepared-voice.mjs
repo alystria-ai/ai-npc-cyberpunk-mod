@@ -43,12 +43,15 @@ export function decodePreparedWav(bytes, {maxSeconds = PREPARED_MAX_SECONDS} = {
 }
 
 /**
- * load(profile, text, options) -> Promise<Buffer | Uint8Array | Float32Array>, the line's WAV bytes (or its samples, already decoded by decodePreparedWav). rate: the rate of the packets (24000 only: the renderer's rate).
+ * load(profile, text, options) -> Promise<Buffer | Uint8Array | Float32Array>, the line's file bytes (or its samples, already decoded). rate: the rate of the packets (24000 only: the renderer's rate).
+ * decode(bytes, {maxSeconds}) -> Promise<Float32Array>, optional: turns the file's bytes (any container prepared-audio.mjs knows) into 24 kHz mono samples. It throws a plain Error
+ * the caller shows as the subtitle path. Without it the bytes must be a PCM WAV.
  * The result of synthesizeStream is {frames, chunks, duration, truncated: false, timing: {voiceProvider: 'prepared', voiceEngine: 'prepared'}}.
  */
-export function createPreparedVoice({load, rate = PREPARED_RATE, maxSeconds = PREPARED_MAX_SECONDS} = {}) {
+export function createPreparedVoice({load, decode, rate = PREPARED_RATE, maxSeconds = PREPARED_MAX_SECONDS} = {}) {
   if (typeof load !== 'function') throw Error('A prepared voice needs a loader');
   if (rate !== PREPARED_RATE) throw Error('A prepared voice plays at 24000 Hz only');
+  if (decode !== undefined && typeof decode !== 'function') throw Error('A prepared voice decoder must be a function');
   let counter = 0;
   return {
     async synthesizeStream(profile, text, options = {}) {
@@ -60,7 +63,12 @@ export function createPreparedVoice({load, rate = PREPARED_RATE, maxSeconds = PR
       try { bytes = await load(profile, text, options); }
       catch (error) { throwIfCancelled(signal); throw error instanceof Error ? error : Error('The prepared audio file cannot be read'); }
       throwIfCancelled(signal);
-      const pcm = bytes instanceof Float32Array ? bytes : decodePreparedWav(bytes, {maxSeconds});
+      let pcm;
+      if (bytes instanceof Float32Array) pcm = bytes;
+      else if (decode) {
+        try { pcm = await decode(bytes, {maxSeconds}); } catch (error) { throwIfCancelled(signal); throw error instanceof Error ? error : Error('The prepared audio file cannot be decoded'); }
+        throwIfCancelled(signal);
+      } else pcm = decodePreparedWav(bytes, {maxSeconds});
       if (pcm.length > maxSeconds * rate) throw Error(`The prepared audio file is longer than ${maxSeconds} seconds`);
       if (!pcm.length) throw Error('The prepared audio file is empty');
       const owner = randomBytes(16).toString('hex'), id = ++counter;

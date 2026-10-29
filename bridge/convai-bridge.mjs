@@ -20,7 +20,8 @@ import {createOmniPcmVoice} from './omni-pcm.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 // Scripted quest lines (docs/QUEST_PRIMITIVES.md section 4): the line's reply, its voice route, and the prepared voice that plays its audio file.
 import {scriptedResult, scriptedRoute} from './quest-lines.mjs';
-import {createPreparedVoice, readPreparedFile, decodePreparedWav} from './prepared-voice.mjs';
+import {createPreparedVoice, readPreparedFile} from './prepared-voice.mjs';
+import {createPreparedAudio, createDecodeCache} from './prepared-audio.mjs';
 import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
@@ -2528,6 +2529,8 @@ async function publishResult(input, profile, result, current = async () => true,
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current, signal});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
+    // A scripted line whose prepared audio was missing or could not be played: the game shows the subtitle and adds a Phone Chat line (bridge/quest-lines.mjs scriptedResult).
+    ...(result.missingAudio === true ? {missingAudio: true} : {}),
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
   commitExchange(input); gearTold(); publishBonds(input, result, publishEddies(input, result)); publishMeeting(input);
@@ -3460,14 +3463,19 @@ async function runInput(request, prepared, clock) {
 // The game asks for a line of a story pack with a private turn of the speaking character (reaction kind 'scripted'). The words and the audio file come from the pack
 // (bondPacks.lineFor), never from the request. No model, no knowledge route, no Convai memory or connection and no allowance belong to the turn, as for a stocked add-on line.
 // With an audio file the line is played by the prepared voice (synthesizePrepared) whatever voice the player chose. With none it is shown, and the missing file is a pack
-// error in the log. In Developer mode only, the turn's own voice route speaks it instead, so a quest can be played before any audio exists.
+// error in the log. A line whose file is missing (or cannot be decoded) is NEVER spoken by a live voice, in Developer mode too (owner decision of 29 Oct 2026): the reply
+// carries `missingAudio: true` for the game, which shows the subtitle and adds a Phone Chat line.
+// Ogg, FLAC and MP3 files are decoded by bridge/prepared-audio.mjs (ffmpeg, else the Runtime Python); its decoded-sample cache lives in the state folder and is bounded.
+const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
+  onLog: message => console.error('[PreparedAudio] ' + message)});
 const scriptedLogged = new Set();
+// One ERROR line per pack and line (the pack id and the line id are in it), however often the line is asked for.
 const scriptedPackError = (input, message) => {
-  const key = `${input.reaction.pack}/${input.reaction.line}|${message}`;
+  const key = `${input.reaction.pack}/${input.reaction.line}`;
   if (scriptedLogged.has(key)) return;
   scriptedLogged.add(key);
   if (scriptedLogged.size > 256) scriptedLogged.delete(scriptedLogged.values().next().value);
-  console.error(`[QuestLines] pack error: ${message} ${input.reaction.pack}/${input.reaction.line}`);
+  console.error(`[QuestLines] ERROR pack=${input.reaction.pack} line=${input.reaction.line}: ${message}`);
 };
 // A published line is her own words from now on: a synthetic exchange in the local store of the text providers (Mistral, Local AI, Custom) with a bracketed note for V's side
 // (an exchange needs both sides) and the extractor skipped (reaction). Convai learns from real turns only (docs/BOND_QUESTS.md 14.6), so nothing is written on that provider.
@@ -3482,42 +3490,39 @@ async function runScriptedTurn(request, input, current, clock) {
   const fail = (error, errorCode) => atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
     error, errorCode}), {signal, isCurrent: current, isCurrentSync: current.sync});
   note(input, {receivedAt: request.receivedAt, preparation: {mode: 'none'}, reaction: 'scripted'});
-  if (!profile) { scriptedPackError(input, 'unknown speaker for'); await fail('', 'scripted-line'); return; }
+  if (!profile) { scriptedPackError(input, 'the speaker is not in the roster'); await fail('', 'scripted-line'); return; }
   void status('thinking', profile.name, {requestId: input.requestId}).catch(() => {});
   clock.mark('admitted');
   const {pack, line} = input.reaction;
   const resolved = bondPacks.lineFor?.(pack, line) ?? null;
   // A line the pack does not have (or a pack that is not active), or one of another character's: an error code, never a model call.
   const speaker = typeof resolved?.speaker === 'string' && roster.some(row => row.key === resolved.speaker) ? resolved.speaker : null;
-  const reply = speaker && speaker !== input.profileKey ? null : scriptedResult(resolved, {developerMode: replyCapture.enabled});
-  if (!reply) { scriptedPackError(input, 'no such line'); await fail('', 'scripted-line'); return; }
-  if (reply.missingAudio) scriptedPackError(input, 'no prepared audio for');
+  const reply = speaker && speaker !== input.profileKey ? null : scriptedResult(resolved);
+  if (!reply) { scriptedPackError(input, 'the pack has no such line, the pack is not running, or the line belongs to another character'); await fail('', 'scripted-line'); return; }
+  if (reply.missingAudio) scriptedPackError(input, 'the line has no prepared audio file, it is shown as a subtitle and is not spoken');
   throwIfCancelled(signal);
   let result;
   const route = scriptedRoute(reply, {playbackEnabled: localVoice.playbackEnabled !== false});
   // The renderer's page and a silent output device open now, beside the file being read, so the first sound waits for neither (as for any local voice, runInput). Not awaited.
   if (route === 'prepared') void Promise.resolve(readSpeechStateCached()).then(state => state.continuousAvailable === true ? realtime.standbyLocal?.() : null).catch(() => {});
   if (route === 'prepared') result = await synthesizeReply(input, reply, signal, current, profile);
-  else if (route === 'live') {
-    const voiced = turnUsesLocal(input) && audioAvailable(await readSpeechStateCached());
-    result = voiced ? await synthesizeReply(input, reply, signal, current, profile) : {...reply, ttsEnabled: false};
-  } else { const {audioPath: _file, ...written} = reply; result = {...written, ttsEnabled: false}; }
+  else { const {audioPath: _file, ...written} = reply; result = {...written, ttsEnabled: false}; }
   if (!await current()) return;
   note(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
   if (await publishResult(input, profile, result, current, signal)) rememberScripted(input, result.text);
 }
 // The prepared voice's delivery (the tail of synthesizeReplyBody, with the audio read from the pack's file): the same renderer, lease, face model and subtitles as a live
-// reply. A file that cannot be read or played is never handed to a live voice: the line is written (a pack error in the log) and no notice is raised.
+// reply. A file that cannot be read, decoded or played is never handed to a live voice: the line is written (a pack error in the log, `missingAudio: true` in the reply for the game) and no notice is raised.
 async function synthesizePrepared(input, result, signal, current, profile) {
   const {audioPath, ...written} = result;
   const textOnly = {...written, audio: undefined, faces: [], captions: [], timing: {...written.timing, voiceProvider: 'none'}};
   if ((await readSpeechStateCached()).continuousAvailable !== true) {
     console.error(`[QuestLines] ${input.reaction.pack}/${input.reaction.line}: local streaming is unavailable, the line is written only`);
-    return textOnly;
+    return {...textOnly, missingAudio: true};
   }
   let pcm;
-  try { pcm = decodePreparedWav(await readPreparedFile(audioPath)); }
-  catch (error) { scriptedPackError(input, `${error.message} for`); return textOnly; }
+  try { pcm = await preparedAudio.decode(await readPreparedFile(audioPath)); }
+  catch (error) { scriptedPackError(input, `${error.message}, the line is shown as a subtitle and is not spoken`); return {...textOnly, missingAudio: true}; }
   throwIfCancelled(signal);
   markStage('voiceStart');
   // The face: the line's own feeling when the pack names one (an ordered emotion), else what the words say. The prepared line is no answer to V's words.

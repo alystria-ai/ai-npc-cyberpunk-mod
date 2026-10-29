@@ -39,24 +39,23 @@ export function expressionSignalFor(emotion) {
 
 /**
  * What the runner resolved for a line ({text, audioPath, emotion, gesture, channel, speaker}) -> the reply the turn publishes, or null when there is nothing to say.
- * {text, model: 'scripted', finishReason: 'stop', transport: 'local', expressionSignal?, audioPath | missingAudio: true}. A line with no audio file is `missingAudio`:
- * it is shown, never given to a live voice, except in Developer mode (`liveVoice: true`: the turn's own voice route speaks it, so quests can be played before any
- * audio exists).
+ * {text, model: 'scripted', finishReason: 'stop', transport: 'local', expressionSignal?, audioPath | missingAudio: true}. A line with no audio file is `missingAudio`: the
+ * prepared audio is always the voice (owner decision of 29 Oct 2026), so a line without it is shown as a subtitle and NEVER spoken by a live voice, whatever voice the
+ * player chose. The turn logs a pack error for it (once per pack and line) and the reply file the game reads carries `missingAudio: true`, so the game can add a Phone Chat line.
  */
-export function scriptedResult(resolved, {developerMode = false} = {}) {
+export function scriptedResult(resolved) {
   if (!plain(resolved) || typeof resolved.text !== 'string' || !resolved.text.trim()) return null;
   const signal = expressionSignalFor(resolved.emotion);
   const audioPath = typeof resolved.audioPath === 'string' && resolved.audioPath ? resolved.audioPath : null;
   return {text: resolved.text.trim(), model: 'scripted', finishReason: 'stop', transport: 'local', ...(signal ? {expressionSignal: signal} : {}),
-    ...(audioPath ? {audioPath} : {missingAudio: true, ...(developerMode === true ? {liveVoice: true} : {})})};
+    ...(audioPath ? {audioPath} : {missingAudio: true})};
 }
 
 /**
- * How a scripted reply is voiced: 'prepared' (its audio file, whatever voice the player chose), 'live' (Developer mode only: no file, the turn's own voice route
- * speaks it) or 'text' (shown only). A player who turned voice playback off gets text only, with or without a file.
+ * How a scripted reply is voiced: 'prepared' (its audio file, whatever voice the player chose) or 'text' (shown only: no file, or the player turned voice playback off).
+ * There is no live-voice route: a line without a file is never given to a live voice.
  */
 export function scriptedRoute(reply, {playbackEnabled = true} = {}) {
   if (!playbackEnabled || !plain(reply)) return 'text';
-  if (reply.audioPath) return 'prepared';
-  return reply.missingAudio === true && reply.liveVoice === true ? 'live' : 'text';
+  return reply.audioPath ? 'prepared' : 'text';
 }
