@@ -12,7 +12,7 @@ The **Mature content** setting is part of the main mod and works without these p
 
 ## What stays the same
 
-Characters stay themselves. Judy, Panam, Kerry and the others keep their voices, personalities and orientations, and those decide how they flirt and talk about sex, not whether they do. With the setting on, they are direct and explicit: they say what they want and what they would do, in plain words. Your relationship with them sets the tone: a partner is the most forward, a friend warm and playful, a stranger or rival bolder and rougher.
+Characters stay themselves. Judy, Panam, Kerry and the others keep their voices, personalities and orientations, and those decide how they talk. With the setting on they are free to talk about anything, sex included, and explicit when you take it there or when a romance or the place calls for it, but they do not bring up sex or flirt with you out of nowhere. Swearing follows who they are: a gang member swears freely, a doctor or a shopkeeper much less. Your relationship with them sets how close they get: a partner is the most forward, a friend warm and playful, a stranger keeps to their own business.
 
 The **Mature content** setting itself lives in Settings > Conversation provider, right under the provider. It is off by default, needs Local AI or Custom (the models in these packs are for Local AI), and its help text says the content is for adults (18+).
 

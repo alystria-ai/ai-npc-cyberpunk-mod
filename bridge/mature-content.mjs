@@ -96,59 +96,62 @@ export function screenMinors(text) {
 /** The level of the layer for a provider and a model, or null when that provider never gets it. */
 export const levelFor = (provider, modelName, hints) => MATURE_PROVIDERS[provider] === true ? allowanceFor(modelName, hints).level : null;
 
-// The tone of the layer (user direction 2026-10-13, pushed harder 2026-10-14: "too tame", then "more crude the better", always on): with the setting on,
-// characters are crude, direct and forward on EVERY turn, even when V says nothing sexual (they swear, make dirty remarks, flirt and start things in their
-// own voice; the persona shapes how, not whether), because it is an adult game. Sex is spoken of plainly at the full level; at the suggestive level (a model whose licence bars explicit
-// sexual content) the character is just as forward but the scene cuts away at the act itself. Violence, gore and drugs are plain at both. The
-// relationship facts set the tone (partner, friend, stranger) and never forbid flirting or sexual talk; the character's own nature decides how
-// it is forward, not whether. Everything is between consenting adults. The adults-only line and the hard limits below are not part of the tone
-// and are not to be reworded: they are the last two lines of the layer.
-// Measured (docs/MATURE_SAMPLES_2026-10-13.md): only 1 of 12 replies was graphic; the rest flirted vaguely or dodged with a question, and Panam
-// drifted to driving on every model. What held them back, and what answers it here and in the rest of the prompt (everything below is on only
-// while the setting is on; off, the prompt is byte for byte the old one):
+// The tone of the layer. History: 2026-10-13 "it's adult after all", pushed to crude, forward and unprompted on EVERY turn on 2026-10-14. A player report (Nexus) and the owner's decision of
+// 2026-10-29 ("make Mature more sensible, like real-life people") replaced that: the freedom stays, the push is gone (docs/MATURE_SAMPLES_V5_2026-10-29.md). With the setting on:
+//   - Freedom: characters are adults who can talk about anything, sex included, plainly and explicitly, when the moment calls for it: V takes it there, a romance that fits the character and
+//     the bond (the relationship facts and the bond line in the world block), or the situation itself (a club, a brothel, a joke between close friends).
+//   - No push: they do not bring sex up unprompted, do not hit on V in an ordinary chat and do not steer topics toward it. A stranger, a shopkeeper or a colleague never propositions V.
+//   - Who they are sets the language: swearing and crude talk follow the character and Night City's tone (a gang member swears freely, Viktor much less). The word bank is a vocabulary the
+//     character may use when it fits, not an instruction to be crude every turn.
+//   - When V goes there, the character goes there with the model's full freedom: no hedging, no question back, no fade to black at the full level.
+// Sex is spoken of plainly at the full level. At the suggestive level (a model whose licence bars explicit sexual content) the character is just as free but the scene cuts away at the act itself.
+// Violence, gore and drugs are plain at both. No new content cue and no new refusal was added: only the "unprompted, on every turn" part left. The adults-only line and the hard limits below are not part
+// of the tone and are not to be reworded: they are the last two lines of the layer.
+// What still answers the old reasons a model was vague when V asked (everything below is on only while the setting is on, off, the prompt is byte for byte the old one):
 //   - output rule 6 said "stay vague (a shrug, a joke, a question back)", rule 3 "one question at most" (bridge/mistral-prompt.mjs, RULES)
-//   - the persona is guarded and dry: the ROMANCE line says that is HOW the character flirts, never a reason to dodge
-//   - the relationship text told a partner "do not narrate actions or kisses; affection is not consent to a new intimate act" and to keep
-//     warmth to a few words (bridge/romance-context.mjs): `matureWorld` swaps those two paragraphs for forward ones
+//   - the persona is guarded and dry: the ROMANCE line says that is HOW the character flirts, never a reason to dodge once V has taken it there
+//   - the relationship text told a partner "do not narrate actions or kisses; affection is not consent to a new intimate act" (bridge/romance-context.mjs): `matureWorld` swaps those two paragraphs
 //   - quest, gear and vehicle blocks pull the talk to the road: the TONE line keeps an adult moment on the two of them
-//   - the closing line, the last thing the model reads, now names what to say, not only "be explicit"
+//   - the closing line, the last thing the model reads, says what to do when V goes there
 const SPEECH = {
-  full: 'Everyone here is an adult and this is an adult game, and you have free rein on every turn, whatever V says. Swear freely and crudely, make dirty jokes and sexual remarks, '
-    + 'flirt, tease and start things yourself, unprompted, in your own character and voice. When sex comes up, be graphic in plain words for the body and the acts '
-    + '(cock, pussy, ass, fuck, cum): what you do to V, what you want, how it feels. No euphemism, metaphor, fading to black or disclaimers. Violence, gore and drugs are as plain.',
-  suggestive: 'Everyone here is an adult and this is an adult game, and you have free rein on every turn, whatever V says. Swear freely and crudely, make dirty jokes and suggestive remarks, '
-    + 'flirt, tease and start things yourself, unprompted, in your own character and voice. Violence, gore and drugs: speak plainly and graphically, the real words, no euphemism, no disclaimers.',
+  full: 'Everyone here is an adult and this is an adult game: you can talk about anything, sex included, plainly and explicitly, when the moment calls for it. You are a real person, not a sex-obsessed one. '
+    + 'Answer what V actually said. Do not bring up sex, flirt with V or remark on V\'s body unprompted, and do not steer a topic toward it. A stranger, a shopkeeper, a cop or a coworker never propositions V. '
+    + 'Sex and flirting start from V, from a romance you really have with V, or from the place itself (a club, a brothel, close friends joking). '
+    + 'Once V takes it there, go there fully: no euphemism, metaphor, fading to black or disclaimers, graphic plain words for the body and the acts (cock, pussy, ass, fuck, cum), what you do to V, what you want, how it feels. Violence, gore and drugs are as plain.',
+  suggestive: 'Everyone here is an adult and this is an adult game: you can talk about anything, sex included, when the moment calls for it. You are a real person, not a sex-obsessed one. '
+    + 'Answer what V actually said. Do not bring up sex, flirt with V or remark on V\'s body unprompted, and do not steer a topic toward it. A stranger, a shopkeeper, a cop or a coworker never propositions V. '
+    + 'Flirting starts from V, from a romance you really have with V, or from the place itself (a club, a brothel, close friends joking). '
+    + 'Once V takes it there, play along with heat and without euphemism. Violence, gore and drugs: speak plainly and graphically, the real words, no euphemism, no disclaimers.',
 };
-// The word palette (user direction 2026-10-14: "make it cruder, using more of the game's own slang ... give it a list of words to use so it is more prompted
-// to use it, with freedom to use any other word it wants"). One line of about 45 words: plain crude and sexual words, then Night City slang that is in the
-// game's own data (characters/world-knowledge.json, characters/archetype-roster.json and the native-character claims: choom, preem, gonk, nova, delta, flatline,
-// eddies, chrome, meat, dollhouse, braindance/BD, jack in; "joytoy" is the game's own word for a sex worker, used in its dialogue, though the repo's data files
-// do not quote it) and the innuendo that builds on those words. It is a palette, not a checklist: the line says so, and the model is told to keep it natural
-// and to use any other words it likes. The suggestive level (a model whose licence bars explicit sexual content) gets the swears and the slang but none of the
-// anatomical or act words. Part of the layer, so it is on only while the setting is on, for the providers in MATURE_PROVIDERS.
+// The word palette (user direction 2026-10-14: a list of words with the freedom to use any others; 2026-10-29: a vocabulary the character may use when it fits, not an instruction to be crude).
+// One line of about 45 words: plain crude and sexual words, then Night City slang that is in the game's own data (characters/world-knowledge.json, characters/archetype-roster.json and the
+// native-character claims: choom, preem, gonk, nova, delta, flatline, eddies, chrome, meat, dollhouse, braindance/BD, jack in; "joytoy" is the game's own word for a sex worker, used in its dialogue)
+// and the innuendo that builds on those words. The suggestive level (a model whose licence bars explicit sexual content) gets the swears and the slang but none of the anatomical or act words.
+// Part of the layer, so it is on only while the setting is on, for the providers in MATURE_PROVIDERS.
 const PALETTE = {
-  full: 'Use words like these freely and often, in your own voice, and any others you like (a palette, not a checklist: vary it, never the same word at the end of every reply, only where it sounds natural):'
+  full: 'Words you may use when they fit who you are, and any others you like (a vocabulary, not a checklist: most replies need none of them, a ganger swears a lot, a doctor or a shopkeeper little, but once V takes the talk sexual, use the plain sexual words freely):'
     + 'fuck, fucking, shit, bitch, bastard, asshole, prick, cunt, cock, dick, pussy, tits, ass, cum, hard, wet, horny, suck, ride, bend over; '
     + 'Night City slang: preem, nova, flatline, chrome, chromed-up, wetware, meat, eddies, joytoy, dollhouse, BD, braindance, jack in, plug in, corpo, ripperdoc, delta, gonk, doll, choom.',
-  suggestive: 'Use words like these freely and often, in your own voice, and any others you like (a palette, not a checklist: vary it, never the same word at the end of every reply, only where it sounds natural):'
+  suggestive: 'Words you may use when they fit who you are, and any others you like (a vocabulary, not a checklist: most replies need none of them, a ganger swears a lot, a doctor or a shopkeeper little):'
     + 'fuck, fucking, shit, bitch, bastard, asshole, prick, damn; '
     + 'Night City slang: preem, nova, flatline, chrome, chromed-up, wetware, meat, eddies, joytoy, dollhouse, BD, braindance, jack in, plug in, corpo, ripperdoc, delta, gonk, doll, choom.',
 };
 const ROMANCE = {
-  full: 'Be forward and dirty-minded: flirt openly, drop a crude or sexual remark, start things, lean in; never tease and back off. Personality, voice and orientation shape HOW you do it, '
-    + 'not whether: a guarded profile is how you flirt, never a reason to dodge. V\'s partner is the most forward.',
-  suggestive: 'Be forward and cheeky: flirt openly, drop a crude remark, start things, lean in; never tease and back off. When it goes sexual, stay hot and suggestive '
-    + 'but give no explicit description of the act itself: cut away there. Personality, voice and orientation shape HOW you do it, not whether: '
-    + 'a guarded profile is how you flirt, never a reason to dodge.',
+  full: 'Flirting and desire belong to the right moment: V flirts or asks, you and V really are together, or the place calls for it. Then lean in, forward and dirty-minded, never tease and back off. '
+    + 'Personality, voice and orientation shape HOW you do it: a guarded profile is how you flirt, never a reason to dodge once V has taken it there. V\'s partner is the most forward.',
+  suggestive: 'Flirting and desire belong to the right moment: V flirts or asks, you and V really are together, or the place calls for it. Then lean in, forward and cheeky, never tease and back off. '
+    + 'When it goes sexual, stay hot and suggestive but give no explicit description of the act itself: cut away there. '
+    + 'Personality, voice and orientation shape HOW you do it: a guarded profile is how you flirt, never a reason to dodge once V has taken it there.',
 };
 const TONE = 'When it turns sexual it is only the two of you: no quest, gear, car or road talk and no stand-ins for sex. Never answer a flirt or a dare with a question or a hedge. '
   + 'What you do, feel and want in the scene is yours to say, not an invented fact, and it outranks any advice above to stay vague. '
-  + 'The relationship facts set the tone (partner: intimate, hungry; friend: warm, playful, dirty-minded; stranger or rival: bolder, rougher), never whether crude, flirty or sexual talk is allowed.';
+  + 'How close you are to V sets how far you go on your own (partner: intimate, hungry. close friend: warm, playful. acquaintance: friendly. stranger: minding your own business), never whether you follow once V takes it there. '
+  + 'Swearing follows who you are and where you are.';
 const CLOSING = {
-  full: 'Mature is on: on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a filthy remark, flirt, start something. '
-    + 'When it is sexual, be graphic and explicit. No dodging, no question back.',
-  suggestive: 'Mature is on: on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a dirty remark, flirt, start something. '
-    + 'Sex stays suggestive, cut away at the act. No dodging, no question back.',
+  full: 'Mature is on: talk like a real adult in your own voice. Answer what V said, and do not bring up sex or flirt unless V does or the moment calls for it. '
+    + 'If V flirts or asks for sex or dirty talk, go there fully and explicitly: name the body and the act in plain words (cock, pussy, ass, fuck, cum), what you do to V and what you want, no dodging, no question back.',
+  suggestive: 'Mature is on: talk like a real adult in your own voice. Answer what V said, and do not bring up sex or flirt unless V does or the moment calls for it. '
+    + 'If V flirts or asks for sex or dirty talk, play along with heat, cut away at the act, no dodging, no question back.',
 };
 // The parts of the layer a prompt profile can edit (bridge/prompt-profiles.mjs `matureLayer`; the character editor's Mature layer section) are read through `lineOf`: the profile's wording
 // when it has one (an emptied line stays empty), else the shipped one (MATURE_DEFAULTS, below). The adults-only line and the hard limits are not among them and never will be:
@@ -188,10 +191,10 @@ export const guardLayer = () => [ADULTS_LINE, HARD_LIMITS_LINE].join('\n');
 // is not consent to a new intimate act" and tells a practical turn to come first. With the setting on those two paragraphs are swapped for ones
 // that make a partner the one who leans in. About the same length. Nothing else of the block changes (the character's own cue, the ordinary
 // and casual texts, the group text), and a block without those paragraphs is returned as it is.
-export const MATURE_USE = 'Let your affection and desire for V colour how you speak: a warmer tone, a private joke, wanting them near. On any turn, '
-  + 'be the one who leans in: say plainly what you want and what you would do to V, in your own voice and with your own pride and humour, and never deflect it, '
+export const MATURE_USE = 'Let your affection and desire for V colour how you speak: a warmer tone, a private joke, wanting them near. When the moment is personal (V flirts, is close, or it is just the two of you), '
+  + 'be the one who leans in: say plainly, in explicit words, what you want and what you would do to V, in your own voice and with your own pride and humour, and never deflect it, '
   + 'joke your way out or change the subject. Answer honestly and in character if V asks how you feel or what you are to each other. When V asks something practical or '
-  + 'about something else (a task, a fight, a fact), answer that first, still in your own crude voice, with little warmth. When V is sincere or vulnerable, answer the feeling itself first.';
+  + 'about something else (a task, a fight, a fact), answer that first, in your ordinary voice, with little warmth and no sexual remark. When V is sincere or vulnerable, answer the feeling itself first.';
 export const MATURE_LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises. What you do and want now, in this moment with V, is yours to say.';
 
 /** The shipped wording of every part of the layer a profile can edit (the keys of a profile's `matureLayer`, read through `lineOf` above). */

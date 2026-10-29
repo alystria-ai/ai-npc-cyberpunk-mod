@@ -32,7 +32,7 @@ test('the prompt Mistral and the local AI build is byte for byte what it was (ha
   assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'c0f452e89a4725d5220b665eaae39aa991c67f83098e7403b69733191c2f8af8');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
     'b73c697299ad24497e5a7b9fa8d1a6d8287f13173efdcc9ff0bbf9a2e21c7d5f');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '7805224503bc6abad368f22871274f0430a2afd8aa6bcf64b961079e5797f8c0');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '8e2bf0ec8a81aecf83839a5f1bbad12c59a652dab7bb52624b345f32b6ffdb6b');
   assert.equal(sha(systemHead({persona: prompt.persona})), 'e280e404f9a7f4db6cf79db635db722f61f92b3189b561a30b75fe257938c856');
 });
 
