@@ -27,7 +27,7 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 ## Free, three ways
 
 - **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
-- **A free cloud key (Google Gemini or Groq).** Make a free key at Google AI Studio or Groq, with no card, open the **Custom endpoint** page in Settings, press **Use** on the plan you made the key for and paste the key. That is all: the address and the model are filled in for you ([details](#custom-openai-compatible)). Both free plans have daily limits and are not offered in every country, and Google may use free-plan chats to improve its products.
+- **A free cloud key (Google Gemini).** Make a free key at Google AI Studio, with no card, open the **Custom endpoint** page in Settings, press **Use** on **Google Gemini (free)** and paste the key. That is all: the address and the model are filled in for you ([details](#custom-openai-compatible)). The free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.
 - **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 500 turns a day. Install, start the game, talk.
 
 **Mistral with your own key.** Paste a Mistral key once for the fastest cloud replies. Mistral stopped giving free API keys to new accounts in October 2026, so a new key needs a paid Mistral plan. With a Mistral key you can also choose **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything. Which Mistral plans include the Voxtral voice is Mistral's call: if yours does not, replies show as text.
@@ -152,8 +152,8 @@ The microphone only ever starts when you press the key. A recording stops by its
 
 |  | **Local AI** | **Mistral** | **Convai free tier** (default) | **Convai API key** | **Custom (OpenAI-compatible)** |
 | --- | --- | --- | --- | --- | --- |
-| **Setup** | Download a Local AI pack | A Mistral key (new keys need a paid plan), paste it | None | Paste your own Convai key | Press a free setup (Gemini or Groq) and paste its free key, or paste an endpoint URL, a model ID and (for most) a key |
-| **Cost** | Free | Mistral's pay-as-you-go rates | Free | Your Convai plan | What your provider charges. A free Gemini or Groq key, or a server on your PC, is free |
+| **Setup** | Download a Local AI pack | A Mistral key (new keys need a paid plan), paste it | None | Paste your own Convai key | Press the free Google Gemini setup and paste its free key, or paste an endpoint URL, a model ID and (for most) a key |
+| **Cost** | Free | Mistral's pay-as-you-go rates | Free | Your Convai plan | What your provider charges. A free Gemini key, or a server on your PC, is free |
 | **Internet** | **Not needed** | Needed | Needed | Needed | Needed for a cloud endpoint, not for a server on your PC |
 | **Limit** | None | About 1 message a second, about 5,000 turns a day | 500 turns a day (the service can change this), no other limit | Your Convai plan's limits | Your provider's |
 | **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier | Depends on the model you choose |
@@ -203,7 +203,7 @@ Quick, with plainer replies than Convai's. Memory stays on your computer, and th
 
 Any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-GPT, or a server on your own computer such as Ollama or LM Studio. It is the fifth entry of the provider selector and the last in the list.
 
-1. Open **Settings > Conversation provider** and press **Open** on the **Custom endpoint** row, under the Mistral key row. Its page holds the rows below (two free setups first, see [A free key in two presses](#a-free-key-in-two-presses-google-gemini-or-groq)). **Back to settings** returns.
+1. Open **Settings > Conversation provider** and press **Open** on the **Custom endpoint** row, under the Mistral key row. Its page holds the rows below (the free Google Gemini setup first, see [A free key in two presses](#a-free-key-in-two-presses-google-gemini)). **Back to settings** returns.
 2. Copy the endpoint's base address and press **Paste endpoint URL**: `https://openrouter.ai/api/v1` for OpenRouter, `https://nano-gpt.com/api/v1` for Nano-GPT, `http://localhost:11434/v1` for Ollama, `http://localhost:1234/v1` for LM Studio.
 3. Copy your API key and press **Paste API key**. A server on your own computer needs none.
 4. Copy a model ID from the provider's list and press **Paste model ID**, for example `meta-llama/llama-3.1-8b-instruct` on OpenRouter or `llama3.2` on Ollama.
@@ -212,20 +212,20 @@ Any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-
 
 Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. You can also write the three values into `player-custom-endpoint.txt` in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`. Only the last four characters of a key are ever shown, and the key goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. Nothing is sent until you choose the provider or press **Test connection**. Without an address and a model ID, conversations use Convai and one notice says so. When the provider answers with an error you see a notice that says what to do: key not accepted, out of credits, unknown model ID, rate limited, or no answer. Memory stays on your computer, the microphone is recognised on your computer in English, and the voices are the same as with Mistral (the Voxtral voice still needs a Mistral key). Mature content stays with Local AI. The whole story is in [CUSTOM_PROVIDER.md](docs/CUSTOM_PROVIDER.md).
 
-#### A free key in two presses (Google Gemini or Groq)
+#### A free key in two presses (Google Gemini)
 
-The top of the Custom endpoint page has two rows, **Google Gemini (free)** and **Groq (free)**. Press **Use** on one and the endpoint URL and the model ID are filled in, so only the key is left. The setup does not choose the provider for you: do step 6 above afterwards.
+The top of the Custom endpoint page has the row **Google Gemini (free)**. Press **Use** on it and the endpoint URL and the model ID are filled in, so only the key is left. The setup does not choose the provider for you: do step 6 above afterwards.
 
-| | **Google Gemini (free)** | **Groq (free)** |
-| --- | --- | --- |
-| Key | [aistudio.google.com/apikey](https://aistudio.google.com/apikey), a Google account, no card | [console.groq.com/keys](https://console.groq.com/keys), no card |
-| Filled in | `https://generativelanguage.googleapis.com/v1beta/openai` and `gemini-flash-lite-latest` | `https://api.groq.com/openai/v1` and `qwen/qwen3.8-27b` |
-| Free limits | A daily and a per-minute cap per key (15 requests a minute measured, the daily number is not published) | About 8,000 tokens a minute and 200,000 a day, which is about one reply a minute and a few dozen a day |
-| Speed | Replies start in about 1 to 1.5 s, with an occasional slow one | Fastest cloud text: the first words in about 0.3 to 0.5 s |
-| Where it is not offered | Russia (not on Google's list of countries) | Possibly Russia, not confirmed |
-| Your chats | Google may use free-plan chats to improve its products | See Groq's terms |
+| | **Google Gemini (free)** |
+| --- | --- |
+| Key | [aistudio.google.com/apikey](https://aistudio.google.com/apikey), a Google account, no card |
+| Filled in | `https://generativelanguage.googleapis.com/v1beta/openai` and `gemini-flash-lite-latest` |
+| Free limits | A daily and a per-minute cap per key (15 requests a minute measured, the daily number is not published) |
+| Speed | Replies start in about 1 to 1.5 s, with an occasional slow one |
+| Where it is not offered | Russia (not on Google's list of countries) |
+| Your chats | Google may use free-plan chats to improve its products |
 
-Press **Use**, copy your key, press **Paste API key**, press **Test connection** and choose **Custom (OpenAI-compatible)** as the provider. A key belongs to the address it was saved for, so pressing the other plan afterwards asks for that plan's own key. The limits are the providers' to change. When a free limit is reached you see the usual "free daily limit" notice: wait for the reset, or switch the provider.
+Press **Use**, copy your key, press **Paste API key**, press **Test connection** and choose **Custom (OpenAI-compatible)** as the provider. A key belongs to the address it was saved for, so a key saved for another address is forgotten when you press **Use**. The limits are the providers' to change. When a free limit is reached you see the usual "free daily limit" notice: wait for the reset, or switch the provider.
 
 ### Run the AI on another PC
 

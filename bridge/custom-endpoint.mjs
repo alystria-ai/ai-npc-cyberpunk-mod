@@ -25,13 +25,12 @@ import {reasoningSteps, noThinkingFields} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
-export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'preset-groq']);
+export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini']);
 // One-press setups for the free cloud plans (2026-10-30, after Mistral stopped giving free keys to new accounts): the settings page fills in the
 // endpoint and the model id, the player only pastes a key. Still the Custom provider, nothing else changes. The model ids are the ones that answered
 // live on 2026-10-30. Gemini's `-latest` alias keeps working when Google retires a version (gemini-2.5-flash-lite already answers 404).
 export const PRESETS = Object.freeze({
   gemini: Object.freeze({endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-flash-lite-latest'}),
-  groq: Object.freeze({endpoint: 'https://api.groq.com/openai/v1', model: 'qwen/qwen3.8-27b'}),
 });
 const PRESET_OF = Object.freeze(Object.fromEntries(Object.keys(PRESETS).map(name => [`preset-${name}`, name])));
 // Only OpenRouter gets its two optional attribution headers (https://openrouter.ai/docs: HTTP-Referer, X-Title). Never any other host.
@@ -349,7 +348,7 @@ export function parseCustomCommand(raw, now = Date.now()) {
 }
 
 const FIELD_OF = {'paste-url': 'url', 'clear-url': 'url', 'paste-key': 'key', 'clear-key': 'key', 'paste-model': 'model', 'clear-model': 'model',
-  'preset-gemini': 'preset', 'preset-groq': 'preset'};
+  'preset-gemini': 'preset'};
 const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits']);
 
 /**

@@ -3,7 +3,7 @@
 -- everything the settings page needs to know about the provider in one place, so the page itself only draws rows.
 --
 --   * It writes one small command file when the player chooses something (runtime/custom-provider-command.json): paste-url, paste-key
---     and paste-model (the service reads the clipboard itself), clear-url, clear-key, clear-model, test, and preset-gemini and preset-groq
+--     and paste-model (the service reads the clipboard itself), clear-url, clear-key, clear-model, test, and preset-gemini
 --     (the service fills in the endpoint and the model id of that free plan; the player only pastes a key).
 --   * It reads the status file the service answers in (runtime/custom-provider-state.json), at most every 1.5 s and only when the page
 --     asks for it: nothing here runs per frame and nothing is read while no page is drawn. The key never reaches either file; only its
@@ -22,10 +22,10 @@ local TEST_STALE = 200
 
 -- The field each command changes; `test` changes none.
 local FIELD_OF = {['paste-url'] = 'url', ['clear-url'] = 'url', ['paste-key'] = 'key', ['clear-key'] = 'key',
-    ['paste-model'] = 'model', ['clear-model'] = 'model', ['preset-gemini'] = 'preset', ['preset-groq'] = 'preset', test = false}
+    ['paste-model'] = 'model', ['clear-model'] = 'model', ['preset-gemini'] = 'preset', test = false}
 local FIELDS = {url = true, key = true, model = true, preset = true}
 -- The one-press setups of the free cloud plans (bridge/custom-endpoint.mjs PRESETS); the service says which one is saved.
-local PRESETS = {gemini = true, groq = true}
+local PRESETS = {gemini = true}
 local RESULT_STATES = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local REASONS = {empty = true, ['not-a-url'] = true, scheme = true, insecure = true, extras = true, long = true,
     ['not-a-key'] = true, ['not-a-model'] = true}
@@ -249,14 +249,14 @@ function M.new(options)
         return ui.t('The connection test failed.')
     end
 
-    -- The six rows (two free setups, then the endpoint URL, key, model ID and test), in the order they are drawn: {id, field, label, value, help, enabled, action}. `action` is what choosing the row
+    -- The five rows (the free setup, then the endpoint URL, key, model ID and test), in the order they are drawn: {id, field, label, value, help, enabled, action}. `action` is what choosing the row
     -- sends through request(). The texts are already translated.
     function self.rows()
         local state = self.state()
         local result, test = state.result, state.test
         local rows = {}
 
-        -- The free setups: one press fills in the endpoint URL and the model ID of a free cloud plan, so only the key is left to paste.
+        -- The free setup: one press fills in the endpoint URL and the model ID of a free cloud plan, so only the key is left to paste.
         do
             local message = failure(result, 'preset')
             local function presetRow(id, name, label, help, action)
@@ -268,9 +268,6 @@ function M.new(options)
             presetRow('custom-preset-gemini', 'gemini', ui.t('Google Gemini (free)'),
                 ui.t('Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.'),
                 'preset-gemini')
-            presetRow('custom-preset-groq', 'groq', ui.t('Groq (free)'),
-                ui.t('Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.'),
-                'preset-groq')
         end
 
         -- The endpoint URL.

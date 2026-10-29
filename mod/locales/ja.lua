@@ -1745,8 +1745,6 @@ return {
     ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "Hugging Face の {folder}/vision にある vision ファイルで、このモデルは画像を見られます。",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Customエンドポイントは画像を受け付けないため、返答にはプレイヤーの言葉だけが使われます。",
     ["Google Gemini (free)"] = "Google Gemini（無料）",
-    ["Groq (free)"] = "Groq（無料）",
     ["Use"] = "使用",
     ["Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products."] = "Google Gemini の無料プラン (Flash-Lite) のエンドポイントURLとモデルIDを入力してください。続いて aistudio.google.com/apikey で無料のAPIキーを作成し (Googleアカウントがあれば十分、カードは不要)、下に貼り付けてください。\n\n無料プランには1日の利用上限があり、すべての国で提供されているわけではありません。また、Googleは無料プランのチャットを製品の改善に使うことがあります。",
-    ["Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country."] = "Groq の無料プラン (Qwen) のエンドポイントURLとモデルIDを入力してください。続いて console.groq.com/keys で無料のAPIキーを作成し (カードは不要)、下に貼り付けてください。\n\n返答はとても速く届きますが、無料プランは少なめです。目安は1分に1回程度、1日に数十回程度です。すべての国で提供されているわけではありません。",
 }
