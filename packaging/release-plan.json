@@ -202,6 +202,14 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-race.lua"
         },
         {
+          "source": "mod/quest-prims-scene.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-scene.lua"
+        },
+        {
+          "source": "mod/quest-world-scene.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-scene.lua"
+        },
+        {
           "source": "mod/quest-tweak.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-tweak.lua"
         },
@@ -906,6 +914,8 @@
             "bridge/game-launch.mjs",
             "bridge/game-state.mjs",
             "bridge/gear-memory.mjs",
+            "bridge/gift-intent.mjs",
+            "bridge/gift-tables.mjs",
             "bridge/gpu-memory.mjs",
             "bridge/gpu-vendors.mjs",
             "bridge/group-context.mjs",
@@ -943,6 +953,9 @@
             "bridge/mature-guard.mjs",
             "bridge/mature-pack.mjs",
             "bridge/media-context.mjs",
+            "bridge/media-host.mjs",
+            "bridge/media-link.mjs",
+            "bridge/media-request.mjs",
             "bridge/meet-requests.mjs",
             "bridge/memory-scope.mjs",
             "bridge/memory-store.mjs",
@@ -995,6 +1008,7 @@
             "bridge/pocket-language-models.mjs",
             "bridge/pocket-speech.mjs",
             "bridge/pocket-voice.mjs",
+            "bridge/prepared-audio.mjs",
             "bridge/prepared-voice.mjs",
             "bridge/process-priority.mjs",
             "bridge/prompt-budget.mjs",
@@ -1006,13 +1020,16 @@
             "bridge/quest-briefing-data.mjs",
             "bridge/quest-briefing.mjs",
             "bridge/quest-context.mjs",
+            "bridge/quest-facts.mjs",
             "bridge/quest-format.mjs",
             "bridge/quest-lines.mjs",
             "bridge/quest-link.mjs",
             "bridge/quest-overview.mjs",
+            "bridge/quest-pay.mjs",
             "bridge/quest-poller.mjs",
             "bridge/quest-primitives.mjs",
             "bridge/rdar.mjs",
+            "bridge/reach-outs.mjs",
             "bridge/realtime-host.mjs",
             "bridge/reasoning.mjs",
             "bridge/relationship-routing.mjs",
