@@ -1,8 +1,8 @@
 # Relationships and quests: bonds, story packs, favours and recruits
 
-Status (2026-10-29): design, with **phase 1 built on branch `feat/bonds`** (worktree `../wt-bonds`, not merged, not pushed, nothing seen in the game).
-Phase 1 is the bond tracker (sections 3 to 5), its prompt line, its level notice and the story-pack format with a validator and gate (section 7, data
-only: no pack runs in the game yet). Everything after phase 1 is design.
+Status (2026-10-30): design, with **phases 1 and 2 built on branch `feat/bonds`** (worktree `../wt-bonds`, not merged, not pushed, nothing seen in the game).
+Phase 1 is the bond tracker (sections 3 to 5), its prompt line, its level notice and the story-pack format with a validator and gate (section 7).
+Phase 2 runs the packs (section 17: what it does, what is unverified, the live checks). Phases 3 and 4 are design.
 
 Asked for by players on Nexus Mods: AetherAmoris (27 Oct, a relationship tracker and threshold story packs), FOGH0RN (28 Oct, Parley for RDR2 and AI
 Influence for Bannerlord: quests from talk, barter, recruiting pedestrians, consequences). The owner's list of 29 Oct: (1) quests generated from
@@ -165,10 +165,15 @@ Phase 1:
   file says so.
 * The Settings > Gameplay row **Character bonds** (off by default) with its description.
 
-Phase 2:
-* A **Bond** column on the Companion Manager's Characters page (level and title per character, from `runtime/bonds-status.json`, read when the
-  page opens), and the same on the Memory page's picker so Forget shows what it will reset.
-* A short "what they would do for you now" line on the character's row (the level's perk, section 6).
+Phase 2 (built):
+* A **Relationships** page in the menu, right after the Model browser: only the characters V has actually interacted with, most recent first, each with
+  the level and title and the progress to the next level, warmth (and hurt with the game days until it fades), the story part against the talk part,
+  how many of their own quests are finished, and their story packs (the active one with its stage in one line, the finished ones). An empty state
+  when nobody has been met, and one when Character bonds is off. Built when the page opens from `runtime/bonds-status.json`; no polling.
+  This page replaces the earlier idea of a Bond column on the Characters page and of the Characters page listing active packs (no journal entries, decision 6).
+* The Characters sidebar text of a character and the Memory page's picker carry one line "Bond: level 5, Good friend" (and "Story: title" while a pack runs),
+  so Forget shows what it will reset.
+* Not built: a "what they would do for you now" line (the level's perk, section 6).
 
 Not planned: a HUD meter, a phone app of our own (the phone's Chat tab has no room for it and a redscript widget is a frame cost), numbers in the
 character's mouth.
@@ -278,30 +283,52 @@ Rules the validator enforces (`bridge/bond-packs.mjs` `validatePack`, phase 1):
 * `effects` only from the closed list; `meet.where` only `here`, `home` or `waypoint`; `on` only `tag`, `eddies:<flow>`, `meet:met`, `meet:stood-up`.
 * the fixed lines have English; other languages optional (the menu language is used when present, else English).
 
+Added in phase 2 (all optional unless stated; the validator checks them):
+* `kind` on every `tag` choice, required: `yes`, `no`, `honest` or `flatter`. V's words are read against the stage's kinds (bridge/bond-intent.mjs, 15
+  languages); at most one choice per kind in a stage. `means` stays as the author's description of the choice.
+* `label` on a stage: one English line (80 characters) for the Relationships page ("She wants your honest eye on the dress").
+* `type` on a stage (default `talk`) and `params` (an object): the stage format is open. The runner plays `talk`; any other type is accepted by the
+  validator (as a warning) and **skipped** by the runner (it follows the stage's `skip`, else `next`, else the timeout's `next`, else the first choice) and logged once per
+  type. Gameplay stage types (enemies at a place, a drive, a hangout, a rescue, an escort) are added later without changing existing packs.
+* `image` on a stage: `{"file": "images/<name>.png", "alt": "..."}`, a picture made ahead of time and shipped inside the pack (png, jpg or webp). Data only:
+  nothing shows it and nothing is generated while playing. Where a stage "texts a photo" the description stays in `know`.
+
 Packs can be written by hand or drafted with a model: the drafting script (phase 2, `scripts/Draft-BondPack.mjs`) gives the model the character's
 profile text, the quest premises of their arc and this format, and runs the validator; a person reads every pack before it ships (the same rule as
 the quest briefings and the decision rows).
 
-### 7.3 How a pack runs (phase 2)
+### 7.3 How a pack runs (phase 2, as built)
 
-* **Gate and start** in the bridge, on V's own private turn to the character, from the turn's data (bond, journal inventory, relationship
-  selection, channel, game clock): when the gate is open and the dice say so, the turn's volatile note carries `start.bringUp` and the first
-  stage's `know` and `wants`. The character brings it up in her reply. Nothing is started by a timer, so no turn is spent that V did not start.
-* **State** in the bridge (`<state>/bond-packs.json`): per pack the stage, its start time (game clock and real time), choices made, and the
-  ending. Every entry is stamped with the game clock; a turn whose clock is earlier than an entry (an earlier save) forgets that entry, the same
-  rollback guard as the Eddies ledger and Street reputation. Unlike the shared bond, a pack is a thing that happened in the world, so it follows
-  the save.
-* **Each later turn** of V's with the character, on any channel the pack allows, carries the current stage's `know` and `wants` as one volatile
-  note, plus the offered choices: "If V clearly agrees to X, add [pack:help] at the end of your reply." The bridge strips the tag (the way meet tags
-  are stripped, Convai included) and accepts it only when it is one of the stage's offered choices and V's words in that turn are not a refusal
-  (`screenMessage` refusals, the meet-request "sure/never mind" screen). Money choices are not tags: they are the Eddies proposal of that turn,
-  with the pack as its story (`origin: "story"`, `story: "<pack id>:<stage>"` in the ledger entry).
-* **Timers** (`timeout`) are checked on the next turn and when the game asks for the state (below), never by a tick.
-* **Effects for the game** (`runtime/bond-effects.json`, a small file the bridge writes when a stage changes): the active effects with the game
-  clock they started at. The game reads it when it needs to know (a drive offer, a car arrival, an outfit choice) and ignores an effect that started
-  later than the loaded save's clock.
-* **Endings**: the ending's `memory` goes into the character's next turns for 3 game days as a note, and as a synthetic exchange into the local
-  memory store for the text providers (as Immersive invitations does for a missed meeting); the bond reward is a shared-part event.
+Code: `bridge/bond-pack-runner.mjs` (the runner), `bridge/bond-intent.mjs` (V's words), `bridge/bond-packs.mjs` (format and gate), wired in
+`bridge/convai-bridge.mjs`. Two settings: Character bonds and Story packs (both off by default).
+
+* **Gate and start** on V's own private turn to the character (in person with one of V's own copies, Phone Chat, a holocall; never a group round, a reaction, a
+  message the character starts, or the game's own placed character): the gate of section 8 from the turn's data (bond level, journal inventory, relationship,
+  channel, the `busy` flag the game sends, the Eddies and Invitations settings), then the dice, thrown **once per game day per character** and only when a
+  pack could start. The turn's volatile note carries `start.bringUp`, the first stage's `know` and `wants`. The pack is recorded once the reply is
+  published. At most 2 packs are active, one per character, with a cooldown of 7 game days after an ending.
+* **State** in `<state>/bond-packs.json`: per pack the **trail** of steps (stage, game clock, the choice that led there). The state follows the save: a turn whose
+  clock is earlier than steps of a pack rewinds it to the stage that clock had it at (a pack that had not started yet is forgotten); 120 game seconds of slack.
+  A new playthrough whose clock passes an old entry's would inherit it: there is no save identity in the turn (the Eddies ledger has the same limit).
+* **Notes**: while a pack is active on a channel it allows, every turn carries one volatile note: the stage's `know` and `wants`, the meeting it hopes for, the
+  money it needs, in the second person, with the instruction never to call it a story, a quest or a stage. It pauses (no note, no new stage, no timer)
+  while a quest of the character is active, the main story is at its end, the journal is unknown, or the game is busy (a scene, a choice, a fight, a game call).
+* **Choices** are decided on the bridge, after the reply is published, never by a tag in a reply. The first plan used "[pack:help]" tags; they were dropped because
+  a tag in a spoken or streamed reply would be voiced, and stripping it everywhere would put work on the speech path. Instead:
+  * a `tag` choice is taken from **V's words** (the typed line or the spoken transcript) by the stage's `kind`: yes, no, honest (a line with something to say),
+    flatter (a short compliment or a bare "ok"). No kind found means the stage waits. V's words on the turn that brought a stage up do not answer it.
+  * an `eddies:<flow>` choice is taken from the **ledger row** of the next turn: the pack's transfer is marked with the story (`pack:stage`) and the row's last entry says
+    it was done. A turn that made such a proposal does not also answer by words. A repayment stage ends when the debt is clear.
+  * `meet:met` / `meet:stood-up` come from the game's own appointment outcomes: a Phone Chat event (arrived, stood up) or the greeting at a meeting. Only while a turn
+    has said Story packs is on.
+  * the **timer** (`timeout`) is checked when a turn's context is built, never by a tick.
+  * a closing beat (a stage with only `next`) is shown once, then ends at the next turn.
+* **Effects for the game** (`runtime/bond-effects.json`, written when they change): `blocked` (a personal car not offered), `outfits`, `items`, each with the game clock they
+  started at; the game ignores an entry from later than the loaded save. `bonds-status.json` carries `effectsRevision`, the active packs and the Relationships rows.
+* **Endings**: the bond reward or penalty is an event on the shared part (no talk caps); the ending's `memory` goes into the character's next turns for 3 game days as a
+  note. Not built: the synthetic exchange in the local memory store.
+* **Cost**: nothing per frame. A turn pays a pass over a character's packs while the context is built (the test asserts under 1 ms) and one more volatile note of
+  up to about 900 characters; the record happens after the reply is published.
 
 ### 7.4 What a stage can make the game do (closed list)
 
@@ -319,6 +346,14 @@ the quest briefings and the decision rows).
 | `takeItem` | V gives her an item V has (barter) | `TransactionSystem:RemoveItem` after a `GetItemQuantity` check | yes, unverified |
 | `pin` | a map pin at the meeting place | `MappinSystem` registration, which other script mods use | unverified; phase 4 at the earliest |
 | `squad` | a few hostiles at a place (the people holding the truck) | the Revenge ambushes squad spawner (`mod/revenge-ambush-world.lua`) | possible, risky; phase 4, opt-in |
+
+As built in phase 2: `ask` and `repay` (Eddies, with the story mark in the ledger), `vehicleBlocked` / `vehicleReturned` (the party car choice and the invited visitor's
+car arrival check `bond-effects.json` when they decide), `outfit` (a stage acts as a temporary chosen look in `mod/companion-outfits.lua`: only out of view, never in a
+fight or a ride, and only an appearance the character already has, so Judy, who has only her home clothes besides her base look, changes nothing), `giveItem` and
+`takeItem` (one-shot, once per stage visit, a take only if V has the item). `meet` is **not started by the pack**: the stage tells the character what she hopes for and V
+arranges it with the existing meeting flow (a holocall or Phone Chat message, `bridge/meet-requests.mjs`); the outcome moves the pack. `text` beats (a fixed phone text at the
+stage start) and `call` are **not delivered**: the game has no way yet to push a message into the Chat thread, so they are data and the character brings the news up
+the next time V talks to her. `pin` and `squad` are not built.
 
 Never: quest facts, journal entries, the game's quest markers and objective tracker, the game's characters, scenes or dialogue choices.
 
@@ -438,18 +473,24 @@ is in use. A pack never adds a second model call to a turn.
 | Recording the exchange | bridge | a threat screen of V's words (already run for ordinary NPCs), a few additions | after the reply is published, never in front of it |
 | Saving | bridge | an atomic write, debounced 10 s | after changes |
 | The level notice | Lua | a read of `runtime/bonds-status.json` (under 2 KB) at 1 Hz | only for 30 s after a turn to a named character, stops at the first change; none while off |
-| Packs (phase 2) | bridge | the same kind of pass as the gate, plus a note | per pack turn |
-| Pack effects (phase 2) | Lua | one small file read | at a drive offer or car arrival decision, not per frame |
+| Packs (phase 2) | bridge | the same kind of pass as the gate, plus a note | per pack turn, while the context is built |
+| V's words as a choice (phase 2) | bridge | a few regular expressions over one line | after the reply is published |
+| Pack effects (phase 2) | Lua | one small file read (a car decision), one read per status change (items, outfits) | at a car decision, or in the 30 s watch after a turn; not per frame |
+| Relationships page (phase 2) | Lua | one cached read of the status file (5 s) | when the page opens |
+| The status file (phase 2) | bridge | one atomic write of a few KB | after each recorded turn, after the reply |
 
-No new stage on the turn stage clock: the work sits inside `promptBuilt` (the context build) and after `published`. Phase 2 measures
-`promptBuilt` with and without a pack note on the Local AI route.
+No new stage on the turn stage clock: the work sits inside `promptBuilt` (the context build) and after `published`. Phase 2 was to measure
+`promptBuilt` with and without a pack note on the Local AI route: **not measured** (no game or Local AI server in the build session). Offline, the pack decision of a turn
+costs well under 1 ms (a test asserts it) and the note adds under 1,000 characters to one volatile block; measure on the Local AI route with the stage clock.
 
 ## 13. Files, saves and privacy
 
 * `<state>/bonds.json` (bridge, per memory key: warmth, hurt with its game clock, the day counters). Cleared by Forget; kept across saves on purpose.
 * `runtime/bonds-status.json` (bridge to game: revision, levels by profile, the last few changes for the notice).
 * `runtime/settings.json` `characterBonds` (game, off by default).
-* Phase 2: `<state>/bond-packs.json` (pack state, rollback-guarded), `runtime/bond-effects.json`.
+* Phase 2: `<state>/bond-packs.json` (pack state, rollback-guarded), `runtime/bond-effects.json` (the effects for the game), `runtime/bond-effects-done.json` (the game's
+  list of one-shot items already given, at most 60), `runtime/settings.json` `storyPacks` (off by default). `runtime/bonds-status.json` now also carries the
+  characters V has met, the active packs and `effectsRevision`. The pack files ship in the Runtime (`characters/bond-packs/`).
 * No player words are stored by bonds: only numbers and dates.
 
 ## 14. Phases
@@ -460,9 +501,10 @@ No new stage on the turn stage clock: the work sits inside `promptBuilt` (the co
    (`bridge/bond-packs.mjs`) with the three example packs as data (`characters/bond-packs/`), validated by tests but not run in the game (neither
    ships in the Runtime yet: nothing imports them outside the tests). Ships: `bridge/bonds.mjs`, `bridge/bond-arcs.mjs`, `mod/bonds.lua`. Unit
    tests only; nothing seen in the game.
-2. **Story packs run**: the pack runner (start, notes, choice tags, timers, endings, state with the rollback guard), the Eddies `story` link,
-   `vehicleBlocked` and `meet`, the Bond column on the Characters page, Eddies trust from the bond, group turns get the speaker's own line, Phone
+2. **Story packs run (built, section 17)**: the pack runner (start, notes, choices from V's words, ledger and meeting outcomes, timers, endings, state with the rollback
+   guard), the Eddies `story` link, `vehicleBlocked`, `outfit` and `giveItem`, the Relationships page, Eddies trust from the bond, group turns get the speaker's own line, Phone
    Chat turns count. Settings > Gameplay > Story packs (off by default). The three example packs ship; more drafted per character and reviewed.
+   Not built from the first plan: `meet` started by the pack, the `text` and `call` beats, the synthetic memory exchange of an ending, tags in replies (replaced by V's words).
 3. **Favours** (section 9) and the higher-level unlocks (texts first at 6, confidences at 8, the keepsake at 10); time together and invitations as
    bond events; items (`giveItem`, `takeItem`) after a live check of the transaction calls with non-money items.
 4. **Recruits** (section 10), then the riskier pack effects (`pin`, a spawned car to find, `squad`), each behind its own row.
@@ -550,3 +592,51 @@ Settled by the owner on 2026-10-29: all seven as recommended below (talk part fr
 6. **Journal entries for hand-written packs**: recommended no (an extra requirement, fixed text only, quest system calls the mod has never made);
    the Characters page lists active packs instead.
 7. **Squads in packs** (the people holding Panam's truck): recommended later and behind its own row; phase 2 resolves that stage by talk.
+
+## 17. Phase 2 as built (2026-10-30)
+
+### 17.1 What works, offline
+Tested without the game (`bridge/bond-pack-runner.test.mjs`, `bridge/bonds.test.mjs`, `bridge/bonds-lua.test.mjs`, the Eddies, manager, companion and invitation tests):
+the gate and the dice, notes, V's words as choices in several languages, the Eddies story link (ask, a tagged proposal, repay beats, the debt clearing the pack), meeting outcomes,
+timers, endings with the bond reward and the 3-day memory note, the rollback of a pack to an earlier clock, the effects file and its revision, unknown stage types skipped
+and logged once, state saved and read back, the status file with the Relationships rows, Eddies trust from the bond level, group speakers and Phone Chat turns in the bond,
+the Lua side on a fake game (the block flags, the watch, `vehicleBlocked`, one-shot items, the outfit hooks, the page).
+
+### 17.2 Unverified (needs the game)
+* Everything in the game: no pack, effect or page was seen running.
+* `GiveItem` / `RemoveItem` with non-money items. The car not offered: the party convoy choice and the invited visitor arriving on foot. The outfit change on a real copy.
+* The `busy` flag from the battle sample in a real scene, and whether the journal inventory is complete in time at a turn.
+* The Relationships page layout in Native Settings UI and MCM (description limits, the value column), and the sidebar and picker lines.
+* The reading of V's words on real talk: the screens are short word lists; a line they cannot place leaves the stage waiting until its timer ends it.
+* `promptBuilt` on the Local AI route with and without a pack note (section 12).
+* A pack started on Phone Chat: the block reaches the phone request, the note reaches the model, `meet` outcomes arrive as events.
+
+### 17.3 Live checks for the owner (each: do X, check Y)
+1. Settings > Gameplay: turn on Character bonds and Story packs. Check both rows are there, off by default, and the Relationships button sits right after Model browser.
+2. Open Relationships before talking to anyone. Check the empty state. Talk to an invited character twice, reopen it. Check one entry with level, progress, warmth, "From their story ... from talking ...".
+3. On a save past Queen of the Highway with Eddies with characters on, and Panam as an invited party member at bond 5 or more: talk to her once a game day (the dice are thrown once a day). Check the bridge log shows `[BondPacks] pack=panam-truck-ransom started`, and she brings up the stolen truck in that reply.
+4. Tell Panam "I'll lend you 6000". Check the eddies move (6,000 leave your wallet), the next turn's log says `stage=repay`, and over the following game days she pays back 2,000 at a time.
+5. While the truck is held, ask Panam to drive you, or call a car convoy with her in the party. Check her truck is not used (the fallback car or the next person's is).
+6. Start the pack again (another save) and answer "no, sort it out yourself". Check the stage becomes "alone" and, at the ending, her bond falls by 10.
+7. Judy (bond 6, Pyramid Song and the sq026 chain finished): when she asks you to see the dress, answer "sure, I'll come by", then give an honest opinion of two sentences. Check the log shows `dress` then `dinner`; check whether she changes clothes (she may have no other look).
+8. Load an earlier save while a pack runs. Check the next turn's log rewinds or forgets it, and the held-truck effect is gone.
+9. Turn Story packs off. Check no `[BondPacks]` line, no pack note, and the Relationships page shows the bonds without stories. Check the FPS in a crowd is the same with it on and off.
+10. Phone Chat: message Judy or Panam once the gate is open. Check the bond log line shows `channel=phone` and a pack can start there.
+
+### 17.4 Defaults picked (the owner may change them)
+* Choices are read from V's words after the reply, not from a tag in the reply (reason in 7.3). English plus short lists for the 14 other languages; a line the screens cannot place does nothing.
+* The dice are thrown once per game day per character, at the pack's `chance`; the cooldown is 7 game days; at most 2 packs run at once; an ending is remembered for 3 game days.
+* A pack requires Character bonds and Story packs both on (Eddies and Invitations when the pack says so); money moves only in person.
+* The Relationships page shows stories only while Story packs is on, lists at most 60 characters, and reads the status file the bridge rewrites after every recorded turn.
+* Pack titles and stage labels are English data (shown as they are in every menu language). Translating them is a later job.
+* Group rounds: every speaker gets its own bond line; only the first speaker records the exchange.
+* Phone Chat and holocall exchanges count 3 points; a message the character starts counts none.
+* `vehicleBlocked` and the outfit accessors also require Character bonds on.
+
+### 17.5 Pieces the mod already has for the gameplay stages of docs/BOND_QUESTS.md
+None of these is a pack stage yet. What exists to build on: **enemies at a place**: the Revenge ambush squad spawner (`mod/revenge-ambush.lua`, `mod/revenge-ambush-world.lua`,
+`bridge/ambush-context.mjs`). **Driving a character somewhere**: the chauffeur (`mod/companion-chauffeur.lua`, `mod/companion-chauffeur-native.lua`, `bridge/companion-actions.mjs`),
+the companion vehicles (`mod/companion-vehicles.lua`, `mod/companion-vehicle-catalog.lua`) and the invitation car (`mod/immersive-car.lua`). **Follow and escort**: the companion follow
+and travel code (`mod/companions.lua`, `mod/companion-travel.lua`, `mod/companion-adoption.lua` for the stand-in copy, `mod/companion-tactics.lua`). **A walk or a hangout at a place**: Immersive
+invitations (`mod/immersive-invitations.lua`, `mod/immersive-world.lua`, `bridge/meet-requests.mjs`) and the housemate spots (`mod/housemate-*.lua`). **A rescue**: a squad spawn plus a
+follow; nothing spawns a hostage yet. A new stage `type` plus `params` (open in the format since phase 2) is the hook; the runner calls nothing for a type it does not know.
