@@ -232,7 +232,7 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs(),
     const reach = new Set([stages[0].id]), queue = [stages[0].id];
     while (queue.length) for (const id of targets.get(queue.shift()) ?? []) if (!reach.has(id)) { reach.add(id); if (targets.has(id)) queue.push(id); }
     for (const id of stageIds) if (!reach.has(id)) fail(`stage ${id} cannot be reached from the first stage`);
-    for (const id of endingIds) if (!reach.has(id)) fail(`ending ${id} cannot be reached`);
+    for (const id of endingIds) if (!reach.has(id) && id !== pack.unfinishedWhen?.ending) fail(`ending ${id} cannot be reached`);
     const ends = new Set(endingIds);
     let grew = true;
     while (grew) {

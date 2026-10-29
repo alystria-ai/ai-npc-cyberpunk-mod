@@ -166,3 +166,25 @@ export function raisable(name, entries) {
 export const CORE_EVENTS = Object.freeze(['stage:enter']);
 export const CORE_PATTERNS = Object.freeze([/^line:[A-Za-z0-9._:-]+:done$/, /^gap:[a-z][a-z0-9-]*:(?:open|resume|[a-z][a-z0-9-]*)$/, /^meet:(?:met|stood-up)$/, /^ending:[a-z][a-z0-9-]*$/]);
 export const isCoreEvent = name => CORE_EVENTS.includes(name) || CORE_PATTERNS.some(pattern => pattern.test(name));
+
+/**
+ * Every name of the quest catalogue (docs/BOND_QUESTS.md sections 2 and 21) that is not a `do` primitive, and where a pack expresses it. A name is either a key of PRIMITIVES
+ * or a key here: bridge/quest-catalogue.test.mjs checks that the whole catalogue is covered, so a quest that uses a catalogue name can always be written as pack data.
+ */
+export const CATALOGUE_ELSEWHERE = Object.freeze({
+  line: 'pack.lines and a script row with say', gap: 'pack.gaps and a script row with gap', image: 'pack.images and a text row with image', history: 'ending.history',
+  meet: 'stage.meet, or place + cast + pin for a meeting at a pack place', text: 'a script row with text', eddies: 'stage.ask, stage.repay and eddies:<flow> choices (pay for an ordinary NPC is the pay primitive)',
+  items: 'stage.effects giveItem and takeItem (gift for the tables)', outfit: 'stage.effects outfit', 'her-car': 'stage.effects vehicleBlocked and vehicleReturned, race and convoy for a car of hers that moves',
+  talk: 'the stage know, wants and choices of kind tag', holocall: 'a line with channel holocall, calls and call-in', 'johnny-voice': 'a line with channel head or remote',
+  gestures: 'a line gesture', anim: 'a line gesture, the gap idle, workspot', situation: 'stage.situation, gap.situation and ending.situation', 'archetype-talk': 'a cast extra the player talks to, npc-react and pay',
+  heat: 'check what heat', district: 'check what district', radio: 'check what radio, a music source radio:<station>', gear: 'check what gear', fight: 'post fightFrom and bout',
+  'battle-remarks': 'the mod\'s own battle remarks, a script row with say after a squad event', chauffeur: 'the mod\'s chauffeur feature; a quest drive is ride (V drives) or convoy and race (the copy drives)',
+  settle: 'the mod\'s settle feature through stage.meet where home', 'gate-plus': 'requires.facts, before, notBegun, window and pack.unfinishedWhen', 'reach-out': 'characters/reach-outs/<character>.json',
+  hangout: 'kind hangout with a hangout block', music: 'stage.music', sfx: 'stage.sfx', 'dead-zone': 'the dead-zone primitive and remote.deadZone',
+});
+
+/** The catalogue's names, in the order of docs/BOND_QUESTS.md section 21. */
+export const CATALOGUE = Object.freeze(['line', 'gap', 'place', 'image', 'history', 'meet', 'pin', 'cast', 'together', 'seat', 'npc-react', 'squad', 'eddies', 'ride', 'remote', 'post', 'party',
+  'check', 'call-in', 'text', 'memory-share', 'unseen', 'workspot', 'items', 'chauffeur', 'her-car', 'gestures', 'archetype-talk', 'heat', 'hostage', 'runner', 'fight', 'radio', 'johnny-voice',
+  'bout', 'escortee', 'gate-plus', 'district', 'gear', 'tail', 'convoy', 'race', 'outfit', 'hold-until', 'dead-zone', 'apart', 'battle-remarks', 'call-script', 'reach-out', 'hangout', 'gift',
+  'music', 'sfx', 'garage', 'anim', 'situation', 'settle', 'talk', 'holocall']);
