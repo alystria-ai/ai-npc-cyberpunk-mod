@@ -1075,6 +1075,18 @@ test('a Scripts of one game with the Runtime of the other is one setup-problem e
   } finally { await f.cleanup(); }
 });
 
+test('voice files missing from the Runtime Python are one setup-problem event with the module names, a name shape only (report 0b8367fd0ebd2f2f)', async () => {
+  const f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.setupChecked({checks: [{id: 'python', state: 'problem', code: 'incomplete', layout: 'lib', missing: ['urllib', 'urllib.parse', 'C:/Users/x/y', '_distutils_hack', 7], missingCount: 4}]});
+    await untilQueued(f, 1);
+    const [record] = await readQueue(f.state, {now: START});
+    assert.equal(record.message, 'python incomplete');
+    assert.deepEqual(record.detail, {missingModules: 'urllib,urllib.parse,_distutils_hack'});
+  } finally { await f.cleanup(); }
+});
+
 test('a report names the game each half was built for, so a mixed install shows in the versions', async () => {
   const f = await folders();
   try {

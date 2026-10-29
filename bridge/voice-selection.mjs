@@ -793,7 +793,8 @@ export class VoiceSelection {
   }
   // `cause: 'blocked'` when Windows refused to load a file of the voice (blockedByWindows); the Help row then says so, in plain words.
   // `cause: 'virtual-memory'` when Windows ran out of memory for it (pagingFileFailed): the row says to enlarge the paging file or close programs.
-  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:pagingFileFailed(problem.reason)?{...problem,cause:'virtual-memory'}:problem;}
+  // `cause: 'missing-files'` when a file or Python module of the voice is not on the disk (missingFilesFailed; report 0b8367fd0ebd2f2f, "No module named 'urllib'"): the row says to reinstall the Full download.
+  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:pagingFileFailed(problem.reason)?{...problem,cause:'virtual-memory'}:missingFilesFailed(problem.reason)?{...problem,cause:'missing-files'}:problem;}
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason,gpu){

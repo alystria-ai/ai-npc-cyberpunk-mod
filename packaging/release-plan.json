@@ -947,6 +947,7 @@
             "bridge/runtime-files.mjs",
             "bridge/runtime-integrity.mjs",
             "bridge/runtime-paths.mjs",
+            "bridge/runtime-python.mjs",
             "bridge/runtime-steps.mjs",
             "bridge/safe-streams-install.mjs",
             "bridge/safe-streams.mjs",

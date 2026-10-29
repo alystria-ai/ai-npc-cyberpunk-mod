@@ -29,6 +29,7 @@ export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bri
 const KIND_PATTERN = /^[a-z][a-z0-9-]{1,39}$/;
 // A game version as release.json names the build ("2.5", "2.31"): the only shape a recorded game field may have.
 const GAME_SHAPE = /^\d{1,2}\.\d{1,2}$/;
+const MODULE_SHAPE = /^[A-Za-z_][A-Za-z0-9_.]{0,59}$/;
 const SIGNATURE_PATTERN = /^[0-9a-f]{16}$/;
 
 export const SENT_FILE = 'sent.json';
@@ -587,7 +588,9 @@ export class ErrorEvents {
         detail: {...(typeof row.scripts === 'string' ? {scripts: row.scripts} : {}), ...(typeof row.runtime === 'string' ? {runtime: row.runtime} : {}),
           // The game each half was built for (a Scripts of one game with the Runtime of the other: 6 installs on 27 Oct), a version number shape only.
           ...(row.id === 'versions' && GAME_SHAPE.test(row.scriptsGame) ? {scriptsGame: row.scriptsGame} : {}),
-          ...(row.id === 'versions' && GAME_SHAPE.test(row.runtimeGame) ? {runtimeGame: row.runtimeGame} : {})}});
+          ...(row.id === 'versions' && GAME_SHAPE.test(row.runtimeGame) ? {runtimeGame: row.runtimeGame} : {}),
+          // The Runtime's Python lacks files (bridge/runtime-python.mjs): the module names it could not find, up to eight, a name shape only (report 0b8367fd0ebd2f2f: urllib).
+          ...(row.id === 'python' && Array.isArray(row.missing) ? {missingModules: row.missing.filter(name => typeof name === 'string' && MODULE_SHAPE.test(name)).slice(0, 8).join(',')} : {})}});
     }
   }
 }

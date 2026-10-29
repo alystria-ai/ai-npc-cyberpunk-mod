@@ -341,6 +341,16 @@ test('a helper that Windows blocked is not tried again', async () => {
   await h.voice.close();
 });
 
+test('a helper that failed on a missing Python module is a missing-files problem and is not tried again (report 0b8367fd0ebd2f2f)', async () => {
+  let now = 1_000_000;
+  const h = fixture({failHelper: true, helperError: "Pocket worker exited (1): ModuleNotFoundError: No module named 'urllib'", options: {clock: () => now}});
+  await omniReady(h); await until(() => h.voice.vHelper.failed, 'the first failure');
+  assert.match(h.logs.join(''), /a file of the voice is missing from the install|not tried again/);
+  assert.equal(h.voice.voiceProblem().cause, 'missing-files');
+  assert.equal(h.voice.voiceProblem().engine, 'v-helper');
+  await h.voice.close();
+});
+
 test('the helper streams V\'s line (tags removed) and prepares V\'s voice; with no loaded worker both are refused and nothing waits', async () => {
   const h = fixture();
   await assert.rejects(h.voice.vHelperStream('v-male', 'Hi'), /not loaded/);
