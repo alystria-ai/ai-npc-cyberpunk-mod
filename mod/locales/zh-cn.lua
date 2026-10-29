@@ -1770,7 +1770,6 @@ return {
     ["Story packs"] = "剧情包",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "当你与某个角色关系亲近、且他们自己的任务已完成时，他们可能会开启一段自己的短篇故事。故事在聊天、短信和通话中展开，部分故事会用到“与角色的欧元”和“沉浸式邀请”。\n\n需要开启“角色羁绊”。仅限你自己的角色和渠道，绝不涉及游戏自带的场景或任务。默认关闭。",
     ["Characters text first"] = "角色主动联系你",
-    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "与你亲近的角色可能会时不时主动给你发短信或打电话，强尼也可能在你脑海中开口。这只会发生在平静的时刻，绝不会在战斗、场景或通话中出现，每天也只有几次。\n\n需要开启“剧情包”。仅限你自己的角色和渠道。默认开启。",
     ["Bond: level {level}, {title}"] = "羁绊：等级{level}，{title}",
     ["Story: {title}"] = "剧情：{title}",
     ["Bonds are not kept while Character bonds is off, so nobody is listed here. Turn it on in Settings, under Gameplay."] = "“角色羁绊”关闭时不会记录羁绊，所以这里没有人。请在“设置”的“游戏玩法”中打开它。",
@@ -1794,4 +1793,5 @@ return {
     ["{points} of {needed} points to level {to}"] = "升至{to}级：{points}/{needed}点",
     ["{title} (finished)"] = "{title}（已完成）",
     ["{title}: {label}"] = "{title}：{label}",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "与你亲近的角色可能会时不时主动给你发短信或打电话，强尼也可能在你脑海中开口。这只会发生在平静的时刻，绝不会在战斗、场景或通话中出现，每天也只有几次。\n\n需要开启“剧情包”。仅限你自己的角色和渠道。默认关闭。",
 }

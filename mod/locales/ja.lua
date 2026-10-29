@@ -1770,7 +1770,6 @@ return {
     ["Story packs"] = "ストーリーパック",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "親しくなり、キャラクター自身のクエストが終わると、そのキャラクターは自分だけの短いストーリーを始めることがあります。会話、メッセージ、通話の中で進み、一部は「キャラクターとのエディ」や「没入型の招待」を使います。\n\n「キャラクターとの絆」が必要です。対象はあなた自身のキャラクターとチャンネルだけで、ゲーム本来のシーンやクエストには関わりません。初期設定はオフです。",
     ["Characters text first"] = "キャラクターから先に連絡",
-    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "親しいキャラクターが、ときどき先にメッセージを送ったり電話をかけてきたりします。ジョニーが頭の中で話しかけてくることもあります。落ち着いた場面だけで、戦闘、シーン、通話の最中には起こらず、1日に数回までです。\n\n「ストーリーパック」が必要です。対象はあなた自身のキャラクターとチャンネルだけです。初期設定はオンです。",
     ["Bond: level {level}, {title}"] = "絆：レベル{level}、{title}",
     ["Story: {title}"] = "ストーリー：{title}",
     ["Bonds are not kept while Character bonds is off, so nobody is listed here. Turn it on in Settings, under Gameplay."] = "「キャラクターとの絆」がオフの間は絆を記録しないため、ここには誰も表示されません。「設定」の「ゲームプレイ」でオンにしてください。",
@@ -1794,4 +1793,5 @@ return {
     ["{points} of {needed} points to level {to}"] = "レベル{to}まで {points}/{needed}ポイント",
     ["{title} (finished)"] = "{title}（完了）",
     ["{title}: {label}"] = "{title}：{label}",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "親しいキャラクターが、ときどき先にメッセージを送ったり電話をかけてきたりします。ジョニーが頭の中で話しかけてくることもあります。落ち着いた場面だけで、戦闘、シーン、通話の最中には起こらず、1日に数回までです。\n\n「ストーリーパック」が必要です。対象はあなた自身のキャラクターとチャンネルだけです。初期設定はオフです。",
 }

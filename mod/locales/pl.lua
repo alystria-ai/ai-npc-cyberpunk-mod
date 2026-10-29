@@ -1770,7 +1770,6 @@ return {
     ["Story packs"] = "Pakiety historii",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Gdy jesteś blisko postaci, a jej własne zadania są ukończone, może zacząć krótką własną historię. Rozgrywa się w rozmowach, wiadomościach i połączeniach, a niektóre używają Eurodolarów z postaciami i Immersyjnych zaproszeń.\n\nWymaga Więzi z postaciami. Tylko twoje postacie i kanały, nigdy sceny ani zadania gry. Domyślnie wyłączone.",
     ["Characters text first"] = "Postacie piszą pierwsze",
-    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "Postacie, z którymi jesteś blisko, mogą czasem pierwsze napisać lub zadzwonić, a Johnny może odezwać się w twojej głowie. Dzieje się to tylko w spokojnych chwilach, nigdy podczas walki, sceny ani rozmowy, i tylko kilka razy dziennie.\n\nWymaga Pakietów historii. Tylko twoje postacie i kanały. Domyślnie włączone.",
     ["Bond: level {level}, {title}"] = "Więź: poziom {level}, {title}",
     ["Story: {title}"] = "Historia: {title}",
     ["Bonds are not kept while Character bonds is off, so nobody is listed here. Turn it on in Settings, under Gameplay."] = "Więzi nie są zapisywane, dopóki Więzi z postaciami są wyłączone, więc nikt się tu nie pojawia. Włącz je w Ustawieniach, w sekcji Rozgrywka.",
@@ -1794,4 +1793,5 @@ return {
     ["{points} of {needed} points to level {to}"] = "{points} z {needed} punktów do poziomu {to}",
     ["{title} (finished)"] = "{title} (zakończona)",
     ["{title}: {label}"] = "{title}: {label}",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Postacie, z którymi jesteś blisko, mogą czasem pierwsze napisać lub zadzwonić, a Johnny może odezwać się w twojej głowie. Dzieje się to tylko w spokojnych chwilach, nigdy podczas walki, sceny ani rozmowy, i tylko kilka razy dziennie.\n\nWymaga Pakietów historii. Tylko twoje postacie i kanały. Domyślnie wyłączone.",
 }

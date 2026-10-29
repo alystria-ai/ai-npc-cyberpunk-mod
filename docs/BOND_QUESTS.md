@@ -4119,7 +4119,7 @@ section ("reaches out first"): 86 triggers across the ten.
   scripted holocall (`call-in`, section 14.3), or for Johnny his voice in V's head (`johnny-voice`, he just speaks up when V is idle).
 * **Free on the shared key**: the opening is the fixed line, never a model turn. V's answer is V's own turn, with the trigger's note ("what
   the LLM knows when V answers") as a volatile note for that turn and the next two.
-* **Off switch**: reach-outs are **on by default whenever the Story packs setting is on** (owner decision of 29 Oct), and one more row, **Characters text first**, turns them off for players who do not want a phone that buzzes. With Story packs off there are none.
+* **Off switch**: reach-outs are **off by default**, and work only while the Story packs setting is on (owner decision of 30 Oct, reversing 29 Oct), and one more row, **Characters text first**, turns them off for players who do not want a phone that buzzes. With Story packs off there are none.
 
 ## 16. Free-time hangouts (the system)
 
@@ -4759,7 +4759,7 @@ answered and stay open at the end.
 5. **Languages.** English first. The scripted lines are written and voiced in English only for now. Other languages come later through the creator toolkit's translate and voice tools. Applied in 14.7, 18.2, 22 and 25.
 6. **`garage`.** Kerry's Guinevere is allowed as his legendary gift. It is added to V's garage for good and changes the save. Applied in sections 2, 17.2, 17.3, 21 and 22.
 7. **Gift ids.** They get an in-game check before any pack uses them, which is a task for the build. Applied in 17.3 and 22.
-8. **Reach-outs.** On by default whenever Story packs are on, with a setting (Characters text first) to turn them off. Applied in section 15.
+8. **Reach-outs.** Off by default (30 Oct), with a setting (Characters text first) to turn them on, and they need Story packs. Applied in section 15.
 9. **Hostages and waves.** Kept as designed: five hostage rescues and three defences. No change.
 10. **Invented details.** Kept: Kerry's first guitar (K6) and the SAMURAI flyer (K1), the names of the convoy's two Aldecaldo drivers (P5), the plant Songbird named and her fourteen-track playlist (S2, S6).
 11. **Nancy Hartley.** Kerry's old bandmate, now a reporter, following the mod's character profile. Applied in the Kerry notes and appendix A.

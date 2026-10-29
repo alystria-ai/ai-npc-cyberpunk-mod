@@ -6898,7 +6898,7 @@ do
             built, value = pcall(module.new, {
                 enabled = function() return manager.characterBonds() end,
                 storyPacks = function() return type(manager.storyPacks) == 'function' and manager.storyPacks() end,
-                -- Settings > Gameplay > Characters text first (on by default): the bridge's reach-outs list is shown only while it is on (bonds block field reach).
+                -- Settings > Gameplay > Characters text first (off by default): the bridge's reach-outs list is shown only while it is on (bonds block field reach).
                 reach = function() return type(manager.reachOuts) == 'function' and manager.reachOuts() end,
                 invitations = function() return manager.immersive().enabled == true end,
                 eddies = function() return type(manager.characterEddies) == 'function' and manager.characterEddies() end,

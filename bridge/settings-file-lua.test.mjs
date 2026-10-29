@@ -781,3 +781,21 @@ test('V’s microphone voice is its own setting: a file without vVoiceMicOwn and
   assert.equal(own.settings.vVoice, false);
   assert.equal(own.writes, 0);
 });
+
+test('Characters text first is off by default (30 Oct), and a player who turned it on keeps it across a restart', () => {
+  const out = run(`${managerLua}
+    local fresh = newManager()
+    report('freshOff', fresh.reachOuts()); report('freshSnapshot', fresh.snapshot(newPlayer()).settings.reachOuts)
+    files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, reachOuts: true}))}
+    local saved = newManager()
+    report('savedOn', saved.reachOuts()); report('savedSnapshot', saved.snapshot(newPlayer()).settings.reachOuts)
+    saved.update(newPlayer(), 0.1)
+    report('kept', settingsText())
+    files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, reachOuts: false}))}
+    report('savedOff', newManager().reachOuts())
+  `);
+  assert.equal(out.freshOff, false); assert.equal(out.freshSnapshot, false);
+  assert.equal(out.savedOn, true); assert.equal(out.savedSnapshot, true);
+  assert.equal(JSON.parse(out.kept).reachOuts, true);
+  assert.equal(out.savedOff, false);
+});

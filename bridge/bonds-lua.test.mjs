@@ -439,14 +439,14 @@ test('the wiring of the Relationships page: Home entry right after the Model bro
   }
 });
 
-test('Characters text first: ON by default in the settings file, read as on unless false, a row right after Story packs with its own default, set only by a boolean, in the bonds block', () => {
+test('Characters text first: OFF by default in the settings file (30 Oct, reversing 29 Oct), read as off unless true, a row right after Story packs with its own default, set only by a boolean, in the bonds block', () => {
   const manager = read('../mod/manager.lua');
-  assert.match(manager, /if type\(settings\.reachOuts\) ~= 'boolean' then settings\.reachOuts, settingsNeedSave = true, true end/);
-  assert.match(manager, /function M\.reachOuts\(\)\n\s*loadSettings\(\)\n\s*return settings\.reachOuts ~= false/);
-  assert.match(manager, /reachOuts = settings\.reachOuts ~= false,/);
+  assert.match(manager, /if type\(settings\.reachOuts\) ~= 'boolean' then settings\.reachOuts, settingsNeedSave = false, true end/);
+  assert.match(manager, /function M\.reachOuts\(\)\n\s*loadSettings\(\)\n\s*return settings\.reachOuts == true/);
+  assert.match(manager, /reachOuts = settings\.reachOuts == true,/);
   assert.match(manager, /elseif key == 'reachOuts' then\n\s*if type\(value\) ~= 'boolean' then return false, 'This setting must be on or off\.' end\n\s*nextSettings\.reachOuts = value/);
   const ui = read('../mod/manager-ui.lua');
-  assert.match(ui, /setting\('reachOuts', 'Characters text first', 'bool', snapshot\.settings\.reachOuts ~= false, true,/);
+  assert.match(ui, /setting\('reachOuts', 'Characters text first', 'bool', snapshot\.settings\.reachOuts == true, false,/);
   assert(ui.indexOf("setting('reachOuts'") > ui.indexOf("setting('storyPacks'") && ui.indexOf("setting('reachOuts'") < ui.indexOf("action('immersive-invitations'"), 'right after Story packs');
   assert.match(ui, /elseif key == 'reachOuts' then values\.reachOuts = change\.value/);
   assert.match(read('../mod/init.lua'), /reach = function\(\) return type\(manager\.reachOuts\) == 'function' and manager\.reachOuts\(\) end,/);

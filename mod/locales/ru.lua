@@ -1770,7 +1770,6 @@ return {
     ["Story packs"] = "Сюжетные пакеты",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Когда вы близки с персонажем и его собственные задания завершены, он может начать короткую историю. Она идёт в разговорах, сообщениях и звонках, а некоторые используют «Эдди с персонажами» и «Иммерсивные приглашения».\n\nТребуются «Связи с персонажами». Только ваши персонажи и каналы, никогда сцены или задания игры. Выключено по умолчанию.",
     ["Characters text first"] = "Персонажи пишут первыми",
-    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "Близкие вам персонажи могут время от времени первыми написать или позвонить, а Джонни может заговорить в вашей голове. Это бывает только в спокойные моменты, никогда во время боя, сцены или звонка, и лишь несколько раз в день.\n\nТребуются «Сюжетные пакеты». Только ваши персонажи и каналы. Включено по умолчанию.",
     ["Bond: level {level}, {title}"] = "Связь: уровень {level}, {title}",
     ["Story: {title}"] = "История: {title}",
     ["Bonds are not kept while Character bonds is off, so nobody is listed here. Turn it on in Settings, under Gameplay."] = "Связи не ведутся, пока выключено «Связи с персонажами», поэтому здесь никого нет. Включи их в Настройках, в разделе «Геймплей».",
@@ -1794,4 +1793,5 @@ return {
     ["{points} of {needed} points to level {to}"] = "{points} из {needed} очков до уровня {to}",
     ["{title} (finished)"] = "{title} (завершено)",
     ["{title}: {label}"] = "{title}: {label}",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Близкие вам персонажи могут время от времени первыми написать или позвонить, а Джонни может заговорить в вашей голове. Это бывает только в спокойные моменты, никогда во время боя, сцены или звонка, и лишь несколько раз в день.\n\nТребуются «Сюжетные пакеты». Только ваши персонажи и каналы. Выключено по умолчанию.",
 }

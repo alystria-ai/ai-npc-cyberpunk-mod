@@ -1770,7 +1770,6 @@ return {
     ["Story packs"] = "Geschichtenpakete",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Wenn du einer Figur nahestehst und ihre eigenen Aufträge erledigt sind, kann sie eine kurze eigene Geschichte beginnen. Sie läuft in Gesprächen, Nachrichten und Anrufen, manche nutzen Eddies mit Figuren und Immersive Einladungen.\n\nBraucht Bindungen zu Figuren. Nur eigene Figuren und Kanäle, nie Szenen oder Aufträge des Spiels. Standardmäßig aus.",
     ["Characters text first"] = "Figuren melden sich zuerst",
-    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "Figuren, denen du nahestehst, können dir ab und zu zuerst schreiben oder dich anrufen, und Johnny kann sich in deinem Kopf melden. Das passiert nur in ruhigen Momenten, nie in einem Kampf, einer Szene oder einem Anruf, und nur wenige Male am Tag.\n\nBraucht Geschichtenpakete. Nur eigene Figuren und Kanäle. Standardmäßig an.",
     ["Bond: level {level}, {title}"] = "Bindung: Stufe {level}, {title}",
     ["Story: {title}"] = "Geschichte: {title}",
     ["Bonds are not kept while Character bonds is off, so nobody is listed here. Turn it on in Settings, under Gameplay."] = "Bindungen werden nicht festgehalten, solange Bindungen zu Figuren aus ist, deshalb ist hier niemand aufgeführt. Schalte sie unter Einstellungen im Bereich Spielablauf ein.",
@@ -1794,4 +1793,5 @@ return {
     ["{points} of {needed} points to level {to}"] = "{points} von {needed} Punkten bis Stufe {to}",
     ["{title} (finished)"] = "{title} (abgeschlossen)",
     ["{title}: {label}"] = "{title}: {label}",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Figuren, denen du nahestehst, können dir ab und zu zuerst schreiben oder dich anrufen, und Johnny kann sich in deinem Kopf melden. Das passiert nur in ruhigen Momenten, nie in einem Kampf, einer Szene oder einem Anruf, und nur wenige Male am Tag.\n\nBraucht Geschichtenpakete. Nur eigene Figuren und Kanäle. Standardmäßig aus.",
 }

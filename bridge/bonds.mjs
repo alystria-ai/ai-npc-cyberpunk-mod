@@ -71,7 +71,7 @@ export function levelOf(points) {
  * The `bonds` block of a request (mod/bonds.lua attach): {version: 1, on: true, copy?}, sent only while the setting is on, for a private turn V sends.
  * `copy`: 'party' | 'visitor' | 'housemate' when the character is one of V's own copies. Phase 2 adds three flags, each present only when true:
  * `packs` (Settings > Gameplay > Story packs is on), `invitations` (Immersive invitations is on), `eddies` (Eddies with characters is on) and `busy` (a scene, a dialogue choice, combat, a game
- * call or a chase: no pack starts or moves now). Round 2 adds `reach` (Settings > Gameplay > Characters text first is on: the characters' reach-outs, default on in the game).
+ * call or a chase: no pack starts or moves now). Round 2 adds `reach` (Settings > Gameplay > Characters text first is on: the characters' reach-outs, off by default in the game).
  * Returns {on: true, copy, packs?, invitations?, eddies?, busy?, reach?} or null.
  */
 export function parseBonds(value) {
