@@ -27,10 +27,12 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 ## Free, three ways
 
 - **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
-- **Mistral with your own key.** Paste a Mistral key once for the fastest cloud replies. Mistral stopped giving free API keys to new accounts in October 2026, so a new key needs a paid Mistral plan. With a Mistral key you can also choose **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything. Which Mistral plans include the Voxtral voice is Mistral's call: if yours does not, replies show as text.
+- **A free cloud key (Google Gemini or Groq).** Make a free key at Google AI Studio or Groq, with no card, open the **Custom endpoint** page in Settings, press **Use** on the plan you made the key for and paste the key. That is all: the address and the model are filled in for you ([details](#custom-openai-compatible)). Both free plans have daily limits and are not offered in every country, and Google may use free-plan chats to improve its products.
 - **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 500 turns a day. Install, start the game, talk.
 
-Already pay for OpenRouter or Nano-GPT, or run Ollama or LM Studio on your PC? The **Custom (OpenAI-compatible)** provider uses any of them: paste an address, a model ID and, for most, a key ([details](#custom-openai-compatible)).
+**Mistral with your own key.** Paste a Mistral key once for the fastest cloud replies. Mistral stopped giving free API keys to new accounts in October 2026, so a new key needs a paid Mistral plan. With a Mistral key you can also choose **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything. Which Mistral plans include the Voxtral voice is Mistral's call: if yours does not, replies show as text.
+
+Already pay for OpenRouter or Nano-GPT, or run Ollama or LM Studio on your PC (or on another PC: [Run the AI on another PC](#run-the-ai-on-another-pc))? The **Custom (OpenAI-compatible)** provider uses any of them: paste an address, a model ID and, for most, a key ([details](#custom-openai-compatible)).
 
 The voices are free too. The default, **Pocket TTS**, gives every character a voice that sounds like them in the game, running right on your processor, so a fresh install sounds like Night City from the first line. With a Mistral key, **Voxtral** does the same in the cloud.
 
@@ -66,6 +68,8 @@ The first start after installing takes a little longer while the service prepare
 **Vortex.** Add the full install (`AI-NPC-LLM-Companions-<v>.zip`) as one mod: drop it onto the Mods page, then click Deploy (after the first start Vortex may report "external changes" in this mod, where the mod copied its code: click "Save all changes", never Revert). It holds the Runtime too, so it is the only mod you need. To update, add the newer full install the same way and choose "Replace the existing mod" (about 1.1 GB, one click). Never the small update zip: that one is for manual installs. Coming from 0.3.3 or older with a Scripts mod and a Runtime mod? Remove both, then install the full install. For the Local AI and Mature packs Vortex shows "You Have Reached The Fallback Installer": choose "Yes, Install To Staging Anyway". Two packs at once give "unresolved file conflicts": pick either one to load after the other. The OmniVoice pack must be extracted by hand (it holds DLLs). To update, drop the new update zip (and `runtime/Runtime.zip` again only when Settings > Help says the Runtime is too old) and choose "Replace the existing mod". The warning sign in the Version column and "external changes" at deploy are harmless.
 
 **Mod Organizer 2.** Install the full install as one mod. To update, install the newer full install the same way and choose Merge if asked, so the packs in its folder stay. Never the update zip. Coming from 0.3.3 or older with a Scripts mod and a Runtime mod? Remove both, then install the full install. Extract the multilingual packs and the PocketTTS models INTO that mod's folder (replace files), not as separate mods: the service runs from the real folder of that mod, so a language pack in a mod of its own is not read (the Setup check in Settings > Help says so when the versions disagree). The Local AI, Mature, OmniVoice and microphone packs can be mods of their own.
+
+**Coming from the separate Scripts and Runtime files (0.3.3 or older)?** Since 0.3.4 the full install holds both, and Vortex or Mod Organizer 2 cannot know that it replaces them, so it adds a third mod beside the old two and nothing is replaced. Remove the old Scripts mod and the old Runtime mod first (in Vortex, Remove on the Mods page, in Mod Organizer 2, right-click and Remove Mod), then install the full install as one mod and deploy. Your memories, saved keys, custom characters and settings are kept: the memories, keys and characters live in `%LOCALAPPDATA%\AiNpcCyberpunkMod`, outside any mod, and the service keeps a copy of your settings there and puts it back at the first start. Anything you put into the old Runtime mod's own folder, such as the multilingual packs, goes with that mod, so put it into the new mod again. Packs that are mods of their own stay.
 
 **Where your data is.** The background service keeps the memories stored on your computer, your saved keys, its logs and your reports in `%LOCALAPPDATA%\AiNpcCyberpunkMod`, outside the game folder. Your settings and Phone Chat history stay in the mod's own folder.
 
@@ -148,8 +152,8 @@ The microphone only ever starts when you press the key. A recording stops by its
 
 |  | **Local AI** | **Mistral** | **Convai free tier** (default) | **Convai API key** | **Custom (OpenAI-compatible)** |
 | --- | --- | --- | --- | --- | --- |
-| **Setup** | Download a Local AI pack | A Mistral key (new keys need a paid plan), paste it | None | Paste your own Convai key | Paste an endpoint URL, a model ID and (for most) a key |
-| **Cost** | Free | Mistral's pay-as-you-go rates | Free | Your Convai plan | What your provider charges; a server on your PC is free |
+| **Setup** | Download a Local AI pack | A Mistral key (new keys need a paid plan), paste it | None | Paste your own Convai key | Press a free setup (Gemini or Groq) and paste its free key, or paste an endpoint URL, a model ID and (for most) a key |
+| **Cost** | Free | Mistral's pay-as-you-go rates | Free | Your Convai plan | What your provider charges. A free Gemini or Groq key, or a server on your PC, is free |
 | **Internet** | **Not needed** | Needed | Needed | Needed | Needed for a cloud endpoint, not for a server on your PC |
 | **Limit** | None | About 1 message a second, about 5,000 turns a day | 500 turns a day (the service can change this), no other limit | Your Convai plan's limits | Your provider's |
 | **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier | Depends on the model you choose |
@@ -199,7 +203,7 @@ Quick, with plainer replies than Convai's. Memory stays on your computer, and th
 
 Any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-GPT, or a server on your own computer such as Ollama or LM Studio. It is the fifth entry of the provider selector and the last in the list.
 
-1. Open **Settings > Conversation provider** and press **Open** on the **Custom endpoint** row, under the Mistral key row. Its page holds the four rows below; **Back to settings** returns.
+1. Open **Settings > Conversation provider** and press **Open** on the **Custom endpoint** row, under the Mistral key row. Its page holds the rows below (two free setups first, see [A free key in two presses](#a-free-key-in-two-presses-google-gemini-or-groq)). **Back to settings** returns.
 2. Copy the endpoint's base address and press **Paste endpoint URL**: `https://openrouter.ai/api/v1` for OpenRouter, `https://nano-gpt.com/api/v1` for Nano-GPT, `http://localhost:11434/v1` for Ollama, `http://localhost:1234/v1` for LM Studio.
 3. Copy your API key and press **Paste API key**. A server on your own computer needs none.
 4. Copy a model ID from the provider's list and press **Paste model ID**, for example `meta-llama/llama-3.1-8b-instruct` on OpenRouter or `llama3.2` on Ollama.
@@ -207,6 +211,58 @@ Any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-
 6. Go back and choose **Custom (OpenAI-compatible)** as the provider.
 
 Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. You can also write the three values into `player-custom-endpoint.txt` in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`. Only the last four characters of a key are ever shown, and the key goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. Nothing is sent until you choose the provider or press **Test connection**. Without an address and a model ID, conversations use Convai and one notice says so. When the provider answers with an error you see a notice that says what to do: key not accepted, out of credits, unknown model ID, rate limited, or no answer. Memory stays on your computer, the microphone is recognised on your computer in English, and the voices are the same as with Mistral (the Voxtral voice still needs a Mistral key). Mature content stays with Local AI. The whole story is in [CUSTOM_PROVIDER.md](docs/CUSTOM_PROVIDER.md).
+
+#### A free key in two presses (Google Gemini or Groq)
+
+The top of the Custom endpoint page has two rows, **Google Gemini (free)** and **Groq (free)**. Press **Use** on one and the endpoint URL and the model ID are filled in, so only the key is left. The setup does not choose the provider for you: do step 6 above afterwards.
+
+| | **Google Gemini (free)** | **Groq (free)** |
+| --- | --- | --- |
+| Key | [aistudio.google.com/apikey](https://aistudio.google.com/apikey), a Google account, no card | [console.groq.com/keys](https://console.groq.com/keys), no card |
+| Filled in | `https://generativelanguage.googleapis.com/v1beta/openai` and `gemini-flash-lite-latest` | `https://api.groq.com/openai/v1` and `qwen/qwen3.8-27b` |
+| Free limits | A daily and a per-minute cap per key (15 requests a minute measured, the daily number is not published) | About 8,000 tokens a minute and 200,000 a day, which is about one reply a minute and a few dozen a day |
+| Speed | Replies start in about 1 to 1.5 s, with an occasional slow one | Fastest cloud text: the first words in about 0.3 to 0.5 s |
+| Where it is not offered | Russia (not on Google's list of countries) | Possibly Russia, not confirmed |
+| Your chats | Google may use free-plan chats to improve its products | See Groq's terms |
+
+Press **Use**, copy your key, press **Paste API key**, press **Test connection** and choose **Custom (OpenAI-compatible)** as the provider. A key belongs to the address it was saved for, so pressing the other plan afterwards asks for that plan's own key. The limits are the providers' to change. When a free limit is reached you see the usual "free daily limit" notice: wait for the reset, or switch the provider.
+
+### Run the AI on another PC
+
+An old PC with a graphics card can write the replies while your gaming PC keeps all its power for the game. The two PCs talk over a network cable (or your router), and the mod asks the second PC for every reply through the Custom provider. This guide shows one way only: llama.cpp's own server, with the same small model as Local AI lite. It runs on any graphics card with Vulkan, a GTX 1060 6 GB included, and you download two files.
+
+**What you need.** A second Windows PC with a graphics card (a GTX 1060 6 GB is plenty), 8 GB of RAM, 2 GB of free disk space, and a network cable between the two PCs, or both PCs on the same router. If Ollama runs on that PC, quit it first (right-click its tray icon, Quit), so it does not hold the card.
+
+**On the second PC**
+
+1. Download llama.cpp's Windows Vulkan build from [github.com/ggml-org/llama.cpp/releases](https://github.com/ggml-org/llama.cpp/releases). Open the newest release and take the file named `llama-b<number>-bin-win-vulkan-x64.zip` (about 37 MB). Vulkan is chosen on purpose: it needs no CUDA files and works on NVIDIA, AMD and Intel cards.
+2. Download the model `Ternary-Bonsai-2-4B-Q2_0.gguf` (1.2 GB) from the Files tab of [huggingface.co/prism-ml/Ternary-Bonsai-2-4B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-4B-gguf). It is the model inside Local AI lite. If Local AI lite is installed on your gaming PC, the same file is in `red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\models` of the game folder, and a USB stick carries it over.
+3. Make a folder `C:\ai`. Extract the zip into `C:\ai\llama`, so that `llama-server.exe` sits directly inside it. Put the `.gguf` file in `C:\ai`.
+4. Open a Command Prompt in `C:\ai` (type `cmd` in the folder's address bar and press Enter) and run:
+
+   ```text
+   llama\llama-server.exe -m Ternary-Bonsai-2-4B-Q2_0.gguf --host 0.0.0.0 --port 8080 -ngl 99 -c 8192 -np 1 -fa on --reasoning off --alias bonsai
+   ```
+
+   `--host 0.0.0.0` lets other PCs reach the server, `-ngl 99` puts the whole model on the graphics card, and `--alias bonsai` is the model name you enter in the mod later. It is ready when it says `listening on http://0.0.0.0:8080`. Leave the window open. To stop it, press Ctrl+C or close the window, and to start it again run the same command (the Up arrow brings it back). No restart of the PC is ever needed.
+5. Windows asks whether to let the program through the firewall. Tick **both** Private networks and Public networks, then press **Allow access**. A direct cable counts as a public network, so the second tick matters. If you pressed Cancel or closed the box, Windows blocks the program for good: open a Command Prompt as administrator, run `netsh advfirewall firewall delete rule name="llama-server.exe"`, start the server again and answer the question.
+
+**Connect the two PCs**
+
+6. Plug the cable into both PCs. With no router, Windows gives each PC an address starting with `169.254` by itself, which can take up to a minute. Both PCs may call the network "Unidentified network": that is normal.
+7. On the second PC, open a Command Prompt and run `ipconfig`. In the block of the wired adapter ("Ethernet adapter Ethernet"), the "Autoconfiguration IPv4 Address" (or "IPv4 Address") is the address, for example `169.254.37.12`. Through a router it starts with `192.168` and works the same.
+8. On the gaming PC, open a browser and go to `http://169.254.37.12:8080/v1/models`, with your address. Some text starting with `{"models":` means the two PCs are talking. If the page never loads, the firewall (step 5), the cable or the address is the cause.
+
+**In the mod, on the gaming PC**
+
+9. Open **Settings > Conversation provider**, press **Open** on the **Custom endpoint** row, copy `http://169.254.37.12:8080/v1` (with your address) and press **Paste endpoint URL**. Copy `bonsai` and press **Paste model ID**. No key is needed. Press **Test connection**: it should say OK.
+10. Go back, choose **Custom (OpenAI-compatible)** as the provider and apply. Replies now come from the second PC, and the voices still run on the gaming PC.
+
+**Is the second PC's graphics card doing the work?** Open Task Manager on it, **Performance**, then the NVIDIA GPU. When the server starts, "Dedicated GPU memory" rises by about 1.5 to 2 GB, and the 3D or Compute graph moves while a reply is written. If the memory does not rise and the processor is busy, run `llama\llama-server.exe --list-devices`. Your card must be in the list, for example `Vulkan0: NVIDIA GeForce GTX 1060`. If it is missing, update the graphics driver (Vulkan comes with it). If an Intel chip is listed beside your card, add `--device Vulkan1` (the number of your card) to the command.
+
+**Speed.** On my RTX 4080 Laptop this exact setup writes about 140 tokens a second and reads a 7,000 token prompt in 1.7 s, so the first reply with a character starts in under a second and later ones in about 0.1 s. A GTX 1060 is slower: my estimate, not a measurement, is a third to a half of the writing speed and several times slower on the long first prompt. Expect a few seconds for the first reply with a character and one to two seconds after that, instead of minutes. Two minutes per reply with the card idle means the model ran on the processor, which the steps above avoid.
+
+**Good to know.** The server has no password, so keep it on the cable or your home network and never forward its port on your router. Any other OpenAI-compatible server works the same way in step 9 (KoboldCpp, LM Studio, Ollama): only the address, the port and the model name change.
 
 ### Convai free tier
 
@@ -347,6 +403,8 @@ English speech is recognised on your computer by a small model that is already i
 **A character does not answer.** Give the game a moment after launch: the background service starts with it. **Settings > Help > Help and support** shows the service status; if it is not running, restart the game. With Mistral, check that the key row says it was accepted. With Local AI, check that the **Local AI model** row does not read "(Warming up)", "(Not enough memory)" or "(Unavailable)".
 
 **"Today's turns are used."** The free tier's daily turns are spent and come back at the time the message gives (00:00 UTC, in your time). To keep talking now, choose **Local AI** (with a Local AI pack) or **Mistral** (with your own key) as the Conversation provider. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
+
+**V's lines are never spoken.** Lines you type are voiced by default, in Settings > Voices > V's voice for typed lines (Pocket unless you changed it). Lines you speak by microphone are not repeated unless you turn on **V's voice for microphone lines**, which is Off by default, because you just said the words yourself. If you type a line, the row is not Off and V is still silent, open **Settings > Help > Help and support** and press **Generate report**, so the cause shows.
 
 **The microphone does nothing, or says "needs Convai for now".** Check that **talk by voice** has a key in CET's Bindings. Hold it while you speak, then let go. Windows must let desktop apps use the microphone, and yours should be the Windows **default** input device. With Mistral or Local AI your speech is recognised on your computer, in English, and the recogniser takes a moment to load the first time: if it is not ready yet you see "Speaking to companions needs Convai for now". Try again in a moment, type, or switch to Convai.
 
