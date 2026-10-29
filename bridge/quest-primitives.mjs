@@ -42,8 +42,9 @@ export const PRIMITIVES = Object.freeze({
   race:      {fields: {id: 'id', from: 'place', to: 'place', vehicle: 'text', reversed: 'bool', heat: 'bool', limitMinutes: 'num:1:120', headStart: 'num:0:120', stillSeconds: 'num:2:120', speed: 'num:1:100'},
     required: ['id', 'to'], events: ['race:<id>:started', 'race:<id>:won', 'race:<id>:lost', 'race:<id>:void', 'race:<id>:timeout', 'race:<id>:stopped'], listens: ['race:<id>:go']},
   // convoy: a column of friendly cars to a place: the stage's copy leads in her car (lead 'self'), or the cars lead (lead 'cars'), with `cars` more cars behind.
+  // route[1] is where the column stands, the legs go to route[2] and on. `holdLegs` (a list of leg numbers, 0 is the start) stops the column there until convoy:<id>:go. `driver` (alias `record`) is the Character record of the followers' drivers.
   // `reroute` is a second route that replaces the rest of `route` on convoy:<id>:reroute. `fallback`: when the column cannot be driven, the lead goes alone and the cars follow out of sight.
-  convoy:    {fields: {id: 'id', route: 'places', reroute: 'places', cars: 'int:1:3', lead: 'enum:self|cars', driver: 'record', vehicle: 'text', speed: 'num:1:100', limitMinutes: 'num:1:240', fallback: 'bool'},
+  convoy:    {fields: {id: 'id', route: 'places', reroute: 'places', cars: 'int:1:3', lead: 'enum:self|cars', driver: 'record', record: 'record', vehicle: 'text', speed: 'num:1:100', limitMinutes: 'num:1:240', fallback: 'bool', holdLegs: 'any'},
     required: ['id', 'route'], events: ['convoy:<id>:started', 'convoy:<id>:leg<N>', 'convoy:<id>:arrived', 'convoy:<id>:lost-one', 'convoy:<id>:failed', 'convoy:<id>:rerouted', 'convoy:<id>:fallback'],
     listens: ['convoy:<id>:go', 'convoy:<id>:reroute']},
   // bout: two fighters of the stage (cast ids, or 'self' for the stage's copy) trade fists for `rounds` rounds of `roundSeconds`, stopped when one is at `floor` percent health.
