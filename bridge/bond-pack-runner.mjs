@@ -12,12 +12,16 @@
 // What the game is asked to do (runtime/bond-effects.json) is computed from the state: a car that is not offered, one-shot items, an outfit for a stage.
 // Nothing runs per frame; the work is a pass over a few stages while a context is built and one small write when a stage changes.
 import {readFile} from 'node:fs/promises';
+import {existsSync} from 'node:fs';
+import {resolve as resolvePath, sep} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {atomicFile} from './guarded-file.mjs';
 import {packGate, validatePack, shippedPacks, blockingPrefixes, KNOWN_STAGE_TYPES, CHANNELS} from './bond-packs.mjs';
 import {intentKind} from './bond-intent.mjs';
 import {debts} from './eddies.mjs';
 import {channelOf} from './bonds.mjs';
 import {questStates, inventoryComplete} from './bonds.mjs';
+import {placesOf, referencesOf} from './quest-format.mjs';
 
 const DAY = 86400, HOUR = 3600;
 /** Game seconds of slack before an entry counts as later than the loaded save (the clock read and the stamp are a moment apart). */
@@ -25,6 +29,11 @@ export const ROLLBACK_SLACK = 120;
 export const MAX_ACTIVE = 2;
 export const COOLDOWN_DAYS = 7;
 export const ENDING_NOTE_DAYS = 3;
+/** Lasting lines of shared history kept per character, and how many of them a turn's note carries. */
+export const HISTORY_KEEP = 8, HISTORY_NOTE = 3;
+/** How long an ended quest's closing rows stay in the play file (real milliseconds), and how many commands the file keeps. */
+export const CLOSING_MS = 300000, COMMANDS_KEEP = 16;
+const SHIPPED_PACK_FOLDER = fileURLToPath(new URL('../characters/bond-packs/', import.meta.url));
 const MAX_FILE_CHARS = 1_000_000;
 const MAX_STEPS = 8;
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -44,8 +53,9 @@ export class BondPacks {
    */
   constructor({packs = shippedOrNone(), characters = null, path = null, effectsPath = null, bonds = null, random = Math.random,
     now = Date.now, read = file => readFile(file, 'utf8'), write = (file, text) => atomicFile(file, text), log = () => {}, debounceMs = 5000,
+    packFolder = SHIPPED_PACK_FOLDER, exists = file => existsSync(file),
     timers = {set: (fn, ms) => setTimeout(fn, ms), clear: handle => clearTimeout(handle)}} = {}) {
-    Object.assign(this, {path, effectsPath, bonds, random, now, read, write, log, debounceMs, timers, characters});
+    Object.assign(this, {path, effectsPath, bonds, random, now, read, write, log, debounceMs, timers, characters, packFolder, exists});
     this.packs = new Map();
     for (const pack of packs) {
       const result = validatePack(pack, {characters});
@@ -60,6 +70,10 @@ export class BondPacks {
     this.effectsText = ''; this.effectsRevision = 0; this.effectsChain = Promise.resolve();
     this.on = false;               // Story packs was on at the last turn (a meeting's outcome moves a pack only then)
     this.lastClock = undefined;
+    // The quest files (docs/QUEST_PRIMITIVES.md): commands for the game (events the bridge decided), the closing rows of quests that just ended, the play file's revision.
+    this.commands = []; this.commandSeq = Math.floor(now() / 1000) * 1000;
+    this.closing = [];
+    this.playText = ''; this.playRev = Math.floor(now() / 1000) * 1000;
   }
 
   // ---- the state ---------------------------------------------------------------------------------------------------------------------------
@@ -78,10 +92,16 @@ export class BondPacks {
       if (entry && !this.entries.has(id)) this.entries.set(id, entry);
     }
     if (plain(value.meta)) for (const [key, row] of Object.entries(value.meta)) {
-      if (plain(row) && /^[a-z0-9][a-z0-9-]{0,79}$/.test(key) && !this.meta.has(key)) this.meta.set(key, {rolled: whole(row.rolled) ? row.rolled : null, endedAt: whole(row.endedAt) ? row.endedAt : null});
+      if (plain(row) && /^[a-z0-9][a-z0-9-]{0,79}$/.test(key) && !this.meta.has(key)) this.meta.set(key, {rolled: whole(row.rolled) ? row.rolled : null, endedAt: whole(row.endedAt) ? row.endedAt : null, history: this.#cleanHistory(row.history)});
     }
     this.#effects();
     return this.entries.size;
+  }
+
+  #cleanHistory(rows) {
+    if (!Array.isArray(rows)) return [];
+    return rows.filter(row => plain(row) && typeof row.pack === 'string' && typeof row.text === 'string' && row.text.length <= 240 && (whole(row.at) || row.at === null))
+      .slice(-HISTORY_KEEP).map(row => ({pack: row.pack.slice(0, 48), ending: typeof row.ending === 'string' ? row.ending.slice(0, 32) : '', text: row.text, at: row.at}));
   }
 
   #clean(id, row) {
@@ -94,7 +114,9 @@ export class BondPacks {
     }
     const last = trail.at(-1), ended = last.ending === true;
     if (ended ? !(last.stage in pack.endings) : !pack.stages.some(stage => stage.id === last.stage)) return null;
-    return {status: ended ? 'done' : 'active', trail, presented: row.presented === true, beat: whole(row.beat) ? row.beat : null};
+    const gapId = plain(row.gap) && typeof row.gap.id === 'string' ? row.gap.id : null;
+    const gap = !ended && gapId && pack.gaps?.[gapId] ? {id: gapId, openedAt: whole(row.gap.openedAt) ? row.gap.openedAt : null} : null;
+    return {status: ended ? 'done' : 'active', trail, presented: row.presented === true, beat: whole(row.beat) ? row.beat : null, gap};
   }
 
   #schedule() {
@@ -115,8 +137,8 @@ export class BondPacks {
     this.dirty = false;
     try {
       const entries = {}, meta = {};
-      for (const [id, entry] of this.entries) entries[id] = {trail: entry.trail, presented: entry.presented, beat: entry.beat};
-      for (const [key, row] of this.meta) meta[key] = row;
+      for (const [id, entry] of this.entries) entries[id] = {trail: entry.trail, presented: entry.presented, beat: entry.beat, ...(entry.gap ? {gap: entry.gap} : {})};
+      for (const [key, row] of this.meta) meta[key] = {rolled: row.rolled, endedAt: row.endedAt, ...(row.history?.length ? {history: row.history} : {})};
       if (await this.write(this.path, JSON.stringify({version: 1, entries, meta})) === false) this.dirty = true;
     } catch (error) {
       this.dirty = true;
@@ -142,9 +164,10 @@ export class BondPacks {
       if (entry.trail.length === before) continue;
       changed = true;
       if (!entry.trail.length) { this.entries.delete(id); continue; }
-      entry.status = 'active'; entry.presented = true; entry.beat = null;
+      entry.status = 'active'; entry.presented = true; entry.beat = null; entry.gap = null;
     }
     for (const row of this.meta.values()) {
+      if (row.history?.some(item => item.at !== null && item.at > gameSeconds + ROLLBACK_SLACK)) { row.history = row.history.filter(item => item.at === null || item.at <= gameSeconds + ROLLBACK_SLACK); changed = true; }
       if (row.rolled !== null && row.rolled > Math.floor((gameSeconds + ROLLBACK_SLACK) / DAY)) { row.rolled = null; changed = true; }
       if (row.endedAt !== null && row.endedAt > gameSeconds + ROLLBACK_SLACK) { row.endedAt = null; changed = true; }
     }
@@ -158,9 +181,17 @@ export class BondPacks {
     const ending = pack.endings[endingId];
     entry.trail.push({stage: endingId, at: gameSeconds ?? null, ...(choice ? {choice} : {}), ending: true});
     entry.status = 'done';
-    const meta = this.meta.get(pack.character) ?? {rolled: null, endedAt: null};
+    const meta = this.meta.get(pack.character) ?? {rolled: null, endedAt: null, history: []};
     meta.endedAt = gameSeconds ?? null;
+    if (ending.history) meta.history = [...(meta.history ?? []), {pack: pack.id, ending: endingId, text: ending.history, at: gameSeconds ?? null}].slice(-HISTORY_KEEP);
     this.meta.set(pack.character, meta);
+    entry.gap = null;
+    // The ending's own rows (a closing line, a text) are carried to the game for a few minutes: the stage is gone from the play file by then.
+    if (Array.isArray(ending.script) && ending.script.length) {
+      const refs = referencesOf(ending.script);
+      this.closing = this.closing.filter(item => item.pack !== pack.id);
+      this.closing.push({pack: pack.id, character: pack.character, ending: endingId, serial: entry.trail.length, script: ending.script, ...this.#lineTables(pack, refs), at: this.now()});
+    }
     if (ending.bond) this.bonds?.award(pack.character, ending.bond, gameSeconds);
     this.log(`pack=${pack.id} ended ${endingId}${ending.bond ? ` bond ${ending.bond > 0 ? '+' : ''}${ending.bond}` : ''}`);
   }
@@ -172,7 +203,7 @@ export class BondPacks {
       const stage = pack.stages.find(item => item.id === next);
       if (!stage) { this.#finish(pack, entry, Object.keys(pack.endings)[0], gameSeconds, choice); break; }
       entry.trail.push({stage: next, at: gameSeconds ?? null, ...(choice ? {choice} : {})});
-      entry.presented = false; entry.beat = null;
+      entry.presented = false; entry.beat = null; entry.gap = null;
       this.log(`pack=${pack.id} stage=${next}${choice ? ` via ${choice}` : ''}`);
       if (!stage.type || KNOWN_STAGE_TYPES.includes(stage.type)) break;
       // A stage type this build does not play: skipped, logged once per type, on to its skip, next, timeout or first choice.
@@ -252,8 +283,11 @@ export class BondPacks {
       const last = entry.trail.at(-1);
       if (whole(last.at) && gameSeconds >= last.at && gameSeconds - last.at <= ENDING_NOTE_DAYS * DAY) lines.push(`Something you remember about V: ${pack.endings[last.stage].memory}`);
     }
+    // What the two of them have been through, kept for good (a lasting line per ending that has one, the newest few).
+    const past = (this.meta.get(profile)?.history ?? []).filter(item => !whole(gameSeconds) || item.at === null || item.at <= gameSeconds + ROLLBACK_SLACK).slice(-HISTORY_NOTE);
+    if (past.length) lines.push(`What you and V have been through together: ${past.map(item => item.text).join(' ')}`);
     const allowed = CHANNELS.includes(channel);
-    const decision = {note: '', story: null, evaluate: false, pack: null, entry: null, start: null, gameSeconds, channel, eddiesRow: input.eddies?.row ?? null};
+    const decision = {note: '', story: null, evaluate: false, pack: null, entry: null, start: null, gameSeconds, channel, eddiesRow: input.eddies?.row ?? null, gap: null};
     const activeRow = mine.map(pack => [pack, this.entries.get(pack.id)]).find(([, entry]) => entry?.status === 'active');
     if (activeRow && allowed) {
       const [pack, entry] = activeRow;
@@ -267,7 +301,8 @@ export class BondPacks {
           decision.pack = pack; decision.entry = entry;
           // A stage reached just now was not shown yet, so V's words this turn do not answer it.
           if (!entry.presented) decision.evaluate = false;
-          lines.unshift(this.#stageNote(pack, stage, {channel, settings: {invitations: bonds.invitations === true}}));
+          lines.unshift(this.#stageNote(pack, stage, {channel, settings: {invitations: bonds.invitations === true}}, entry));
+          if (entry.gap && pack.gaps?.[entry.gap.id]) decision.gap = {id: entry.gap.id, tags: pack.gaps[entry.gap.id].tags ?? []};
           decision.story = this.#storyFacts(pack, stage, entry, {channel, gameSeconds, eddies: bonds.eddies === true});
         } else {
           const last = entry.trail.at(-1);
@@ -287,7 +322,7 @@ export class BondPacks {
   }
 
   #tryStart(mine, input, {channel, gameSeconds, level, romance}) {
-    const profile = input.profileKey, meta = this.meta.get(profile) ?? {rolled: null, endedAt: null};
+    const profile = input.profileKey, meta = this.meta.get(profile) ?? {rolled: null, endedAt: null, history: []};
     if (this.#active().length >= MAX_ACTIVE) return null;
     if (meta.endedAt !== null && gameSeconds - meta.endedAt < COOLDOWN_DAYS * DAY) return null;
     const today = Math.floor(gameSeconds / DAY);
@@ -308,7 +343,7 @@ export class BondPacks {
   }
 
   /** The words the character is given for a stage. Second person, no pack or stage talk. */
-  #stageNote(pack, stage, {channel, settings}) {
+  #stageNote(pack, stage, {channel, settings}, entry = null) {
     const parts = [`What is going on between you and V right now (your own story with V, never call it a story, a quest or a stage): ${stage.know}`];
     if (stage.wants) parts.push(`What you want from V: ${stage.wants}`);
     if (stage.meet) {
@@ -317,6 +352,13 @@ export class BondPacks {
         : 'You would like to meet V, but meetings cannot be arranged now: say you will sort it out yourself.');
     }
     if (stage.ask && channel !== 'own') parts.push('Eddies can only change hands when V is with you in person: if V offers money, say V should come to you.');
+    const gap = entry?.gap ? pack.gaps?.[entry.gap.id] : null;
+    if (gap) {
+      // An open talk gap: the script has paused on a question to V. One short note, never longer than the limit.
+      const note = [`You have just asked V: "${gap.asks}"`, `What you know now: ${gap.know}`, gap.secret ? `You have not told V yet, and may keep it to yourself: ${gap.secret}` : '', gap.wants ? `What you want from V: ${gap.wants}` : '']
+        .filter(Boolean).join(' ');
+      parts.push(note.slice(0, 700));
+    }
     return parts.join(' ');
   }
 
@@ -349,6 +391,13 @@ export class BondPacks {
       if (!entry || entry !== decision.entry || entry.status !== 'active') return;
       const stage = this.#stageOf(pack, entry);
       if (!stage) return;
+      // An open talk gap: V's words against its tags (the same screens as a choice). A match ends the gap, tells the game and moves a stage that waits on it.
+      if (decision.gap && entry.gap?.id === decision.gap.id && decision.gap.tags.length) {
+        const words = typeof userText === 'string' && userText.trim() ? userText : input.text;
+        const kind = intentKind(words, decision.gap.tags.map(tag => tag.kind));
+        const tag = kind ? decision.gap.tags.find(item => item.kind === kind) : null;
+        if (tag) { this.#gapTag(pack, entry, decision.gap.id, tag.id, gameSeconds); return; }
+      }
       if (decision.story?.repay?.due && proposal?.story === decision.story.tag) { entry.beat = gameSeconds ?? null; this.#schedule(); }
       const moneyTurn = !!proposal?.story;
       if (decision.evaluate && !moneyTurn) {
@@ -374,10 +423,167 @@ export class BondPacks {
         if (entry?.status !== 'active') continue;
         const stage = this.#stageOf(pack, entry);
         const choice = stage?.choices?.find(item => item.on === `meet:${outcome}`);
+        this.#command(pack, entry, {cmd: 'event', name: `meet:${outcome}`});
         if (choice) { this.#go(pack, entry, choice.next, gameSeconds, choice.id); return choice.id; }
       }
     } catch (error) { this.log(`meeting failed: ${String(error?.message ?? error).slice(0, 120)}`); }
     return null;
+  }
+
+  // ---- the quest files (docs/QUEST_PRIMITIVES.md) --------------------------------------------------------------------------------------------
+
+  #command(pack, entry, command) {
+    this.commandSeq += 1;
+    this.commands.push({seq: this.commandSeq, pack: pack.id, serial: entry.trail.length, ...command});
+    while (this.commands.length > COMMANDS_KEEP) this.commands.shift();
+    this.#playChanged();
+  }
+
+  /** V's words picked a gap's tag: the gap ends, the game is told (the tag's event, then the resume), and a stage waiting on the event moves. */
+  #gapTag(pack, entry, gapId, tag, gameSeconds) {
+    entry.gap = null;
+    this.#command(pack, entry, {cmd: 'event', name: `gap:${gapId}:${tag}`});
+    this.#command(pack, entry, {cmd: 'resume', gap: gapId});
+    this.log(`pack=${pack.id} gap ${gapId} tag ${tag}`);
+    this.#schedule();
+    if (!this.#moveOn(pack, entry, `gap:${gapId}:${tag}`, gameSeconds)) this.#moveOn(pack, entry, `gap:${gapId}:resume`, gameSeconds);
+    this.#playChanged();
+  }
+
+  /** A stage that waits on `event:<name>` moves, else a timeout that has run out may. Returns whether it moved. */
+  #moveOn(pack, entry, name, gameSeconds) {
+    if (entry.status !== 'active') return false;
+    const stage = this.#stageOf(pack, entry);
+    const choice = stage?.choices?.find(item => item.on === `event:${name}`);
+    if (choice) { this.#go(pack, entry, choice.next, gameSeconds, choice.id); return true; }
+    return this.#resolve(pack, entry, {gameSeconds, eddiesRow: null});
+  }
+
+  /**
+   * An event the game saw ({pack, serial, name, at}). Opens and closes the talk gap, moves a stage that waits on it, and checks the stage's timeout against the
+   * event's game clock. An event for another stage (a different serial) is dropped. Returns whether the quest moved. Never throws.
+   */
+  noteEvent({pack: packId, serial, name, at} = {}) {
+    try {
+      const pack = this.packs.get(packId), entry = this.entries.get(packId);
+      if (!pack || entry?.status !== 'active' || typeof name !== 'string') return false;
+      if (Number.isSafeInteger(serial) && serial !== entry.trail.length) return false;
+      const gameSeconds = whole(at) ? at : undefined;
+      if (gameSeconds !== undefined) this.lastClock = Math.max(this.lastClock ?? 0, gameSeconds);
+      let match;
+      if ((match = /^gap:([a-z][a-z0-9-]*):open$/.exec(name)) && pack.gaps?.[match[1]]) {
+        entry.gap = {id: match[1], openedAt: gameSeconds ?? null};
+        this.#schedule(); this.#playChanged();
+      } else if ((match = /^gap:([a-z][a-z0-9-]*):resume$/.exec(name)) && entry.gap?.id === match[1]) {
+        entry.gap = null;
+        this.#schedule(); this.#playChanged();
+      }
+      return this.#moveOn(pack, entry, name, gameSeconds);
+    } catch (error) { this.log(`event failed: ${String(error?.message ?? error).slice(0, 120)}`); return false; }
+  }
+
+  #pruneClosing() {
+    const cutoff = this.now() - CLOSING_MS;
+    if (this.closing.some(item => item.at < cutoff)) this.closing = this.closing.filter(item => item.at >= cutoff);
+  }
+
+  /** Whether the game has anything to do for the bridge: a play stage, or the closing rows of an ending that just happened. */
+  questActive() {
+    this.#pruneClosing();
+    if (this.closing.length) return true;
+    for (const [id, entry] of this.entries) {
+      if (entry.status !== 'active') continue;
+      const stage = this.#stageOf(this.packs.get(id), entry);
+      if (stage?.do || stage?.script) return true;
+    }
+    return false;
+  }
+
+  /** The lines (with their text, emotion, channel) and pictures a list of references names, in the shape of the play file. */
+  #lineTables(pack, refs) {
+    const lines = {}, images = {};
+    for (const id of refs.lines) {
+      const line = pack.lines?.[id];
+      if (!line) continue;
+      lines[id] = {emotion: line.emotion ?? 'neutral', ...(line.gesture ? {gesture: line.gesture} : {}), channel: line.channel ?? 'own', text: line.text};
+    }
+    for (const key of refs.images) {
+      const image = pack.images?.[key];
+      if (!image) continue;
+      const slug = `${pack.id}_${key}`.replace(/-/g, '_');
+      const name = slug.length <= 48 ? slug : key.replace(/-/g, '_');
+      images[key] = {atlas: `cyberpunk_convai\\phone_images\\${name}.inkatlas`, part: name, width: image.width, height: image.height};
+    }
+    return {lines, images};
+  }
+
+  /** The play file's content (docs/QUEST_PRIMITIVES.md section 4), computed from the state. */
+  playState() {
+    this.#pruneClosing();
+    const quests = [];
+    for (const [id, entry] of this.entries) {
+      if (entry.status !== 'active') continue;
+      const pack = this.packs.get(id), stage = this.#stageOf(pack, entry);
+      if (!stage || (!stage.do && !stage.script)) continue;
+      const last = entry.trail.at(-1);
+      const refs = referencesOf(stage.script), places = {};
+      for (const key of placesOf(stage.do)) {
+        const place = pack.places?.[key];
+        if (place) places[key] = {name: place.name, radius: place.radius ?? 25, ...(place.district ? {district: place.district} : {}),
+          ...(Number.isFinite(place.x) && Number.isFinite(place.y) && Number.isFinite(place.z) ? {x: place.x, y: place.y, z: place.z} : {})};
+      }
+      const gaps = {};
+      for (const key of refs.gaps) {
+        const gap = pack.gaps?.[key];
+        if (gap) gaps[key] = {...(gap.idle ? {idle: gap.idle} : {}), ...(gap.resumeAfterSeconds ? {resumeAfterSeconds: gap.resumeAfterSeconds} : {}), ...(gap.resumeOn ? {resumeOn: gap.resumeOn} : {})};
+      }
+      const timeoutAt = stage.timeout && whole(last.at) ? last.at + stage.timeout.gameHours * HOUR : undefined;
+      quests.push({pack: id, character: pack.character, stage: stage.id, serial: entry.trail.length, since: last.at, places, do: stage.do ?? [], script: stage.script ?? [],
+        ...this.#lineTables(pack, refs), gaps, gap: entry.gap, ...(timeoutAt !== undefined ? {timeoutAt} : {})});
+    }
+    const closing = this.closing.map(item => ({pack: item.pack, character: item.character, ending: item.ending, serial: item.serial, script: item.script, lines: item.lines, images: item.images}));
+    const known = new Set(quests.map(quest => quest.pack));
+    return {version: 1, revision: this.playRev, quests, closing, commands: this.commands.filter(command => known.has(command.pack))};
+  }
+
+  /** Bumps the play file's revision when what the game should be told changed. */
+  #playChanged() {
+    const body = JSON.stringify({...this.playState(), revision: 0});
+    if (body === this.playText) return false;
+    this.playText = body; this.playRev += 1;
+    this.bonds?.publish?.();
+    return true;
+  }
+
+  playRevision() { this.#playChanged(); return this.playRev; }
+
+  /**
+   * A scripted line for the bridge to say ({pack, line}): its text, the path of its prepared audio (null when the file is not there), its emotion, gesture, channel and
+   * speaker. Only for a quest that is running or ended in the last minutes, null for anything else. The path never leaves the pack's own folder.
+   */
+  lineFor(packId, lineId) {
+    this.#pruneClosing();
+    const pack = this.packs.get(packId);
+    if (!pack || typeof lineId !== 'string') return null;
+    if (this.entries.get(packId)?.status !== 'active' && !this.closing.some(item => item.pack === packId)) return null;
+    const line = pack.lines?.[lineId];
+    if (!line) return null;
+    let audioPath = null;
+    if (line.audio) {
+      const root = resolvePath(this.packFolder, packId), file = resolvePath(root, line.audio);
+      if (file.startsWith(root + sep) && this.exists(file)) audioPath = file;
+    }
+    return {text: line.text, audioPath, emotion: line.emotion ?? 'neutral', gesture: line.gesture ?? null, channel: line.channel ?? 'own', speaker: line.speaker ?? pack.character};
+  }
+
+  /** Forget (the memory reset): the lasting history lines of these characters, or of all. */
+  forgetHistory({all = false, profileKeys = []} = {}) {
+    let removed = 0;
+    for (const [key, row] of this.meta) {
+      if ((all || profileKeys.includes(key)) && row.history?.length) { removed += row.history.length; row.history = []; }
+    }
+    if (removed) { this.#schedule(); this.#playChanged(); }
+    return removed;
   }
 
   // ---- what the game is told ----------------------------------------------------------------------------------------------------------------
@@ -412,6 +618,7 @@ export class BondPacks {
   }
 
   #effects() {
+    this.#playChanged();
     const body = this.effects();
     const text = JSON.stringify(body);
     if (text === this.effectsText) return;
@@ -447,6 +654,7 @@ export class BondPacks {
       },
       list: rowsOf,
       effectsRevision: () => this.effectsRevision,
+      playRevision: () => this.playRevision(),
     };
   }
 }

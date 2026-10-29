@@ -1579,6 +1579,12 @@ function M.new(options)
         return s ~= nil and s.place ~= nil and s.phase ~= 'off' and s.phase or nil
     end
 
+    -- The phase of a copy's seat ('seated', 'entering', 'standing', ...), or nil: one table read for the quest module's "seated together" watch.
+    function self.phaseOf(serial)
+        local s = self.states[serial]
+        return s ~= nil and s.phase ~= 'off' and s.phase or nil
+    end
+
     -- While seating owns her (walking to the seat, placing, seated, standing
     -- up), recovery must not relocate her. Closing in is ordinary following.
     function self.owns(entry)

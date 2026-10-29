@@ -172,6 +172,17 @@ function M.deliverImage(contact, text, image)
     append(contact, text, false, clean)
     return true
 end
+-- A fixed text a bond quest sends from a character (mod/quest-lines.lua, docs/QUEST_PRIMITIVES.md): a row of her thread, with a picture when `image` is one the
+-- mod's folder can hold (anything else makes it a plain text message, never an error). False when the character has no contact, is switched off, the saved
+-- chats are not loaded yet (the caller asks again) or the text is empty or too long. Nothing here runs per frame.
+function M.deliverScripted(profileKey, text, image)
+    if type(text) ~= 'string' or text == '' or #text > 6000 or M.bucket == nil then return false end
+    local contact = M.contactFor(profileKey)
+    if not contact then return false end
+    if M.manager and M.manager.profileEnabled and not M.manager.profileEnabled(profileKey) then return false end
+    append(contact, text, false, image)
+    return true, contact
+end
 local function publish(active)
     -- chatContact: the contact whose Chat is open, so the bridge can open that conversation while V types
     -- (bridge/phone-warm.mjs). It never selects, sends or stores anything.

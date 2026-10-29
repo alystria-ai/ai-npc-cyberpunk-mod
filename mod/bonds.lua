@@ -29,12 +29,13 @@ local COPIES = {party = true, visitor = true, housemate = true}
 -- game call or vehicle chase); ownCopy(entity, profileKey) -> 'party' | 'visitor' | 'housemate' | nil; clock() -> seconds (os.clock);
 -- gameTime() -> V's game clock in seconds or nil; read(path) -> text | nil; write(path, text) -> bool; encode / decode (json); player() -> V;
 -- give(player, record, quantity), remove(player, record, quantity), quantity(player, record) (the game's transaction calls by default);
--- notice(player, text); t(text, vars) (mod/ui-locale.lua); log(line).
+-- notice(player, text), t(text, vars) (mod/ui-locale.lua), log(line), onPlayRevision() (the status file's optional `playRevision` changed: the bond quests' play file did, mod/quest-play.lua).
 function M.new(options)
     options = options or {}
     local P = {}
     local watchUntil, pollAt, seen, lastRaw = nil, 0, nil, nil
     local effectsRev                   -- the last effectsRevision acted on (nil: none yet this session)
+    local playRev                      -- the last playRevision acted on (nil: none yet this session, the field is optional)
     local outfits, restore = nil, {}   -- the outfit entries of the effects file (nil until read), and the profiles to put back: key -> clock to give up at
     local wearing = {}                 -- the profiles that were in `outfits` at the last read (so a profile that went is put back)
     local viewAt, viewValue = nil, nil
@@ -329,6 +330,14 @@ function M.new(options)
             local ok, result = pcall(applyEffects, player)
             if not ok then log('effects failed: ' .. tostring(result):sub(1, 120)) end
             acted = ok and result == true and not first
+        end
+        -- The bond quests' play file changed (optional field): the quest module reads it once, now.
+        if whole(value.playRevision, 0, 1e15) and value.playRevision ~= playRev then
+            playRev = value.playRevision
+            if type(options.onPlayRevision) == 'function' then
+                local ok, problem = pcall(options.onPlayRevision)
+                if not ok then log('play revision failed: ' .. tostring(problem):sub(1, 120)) end
+            end
         end
         local shown = false
         if type(value.changes) == 'table' then

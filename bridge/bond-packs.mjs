@@ -6,8 +6,11 @@
 import {readFileSync, readdirSync} from 'node:fs';
 import {EDDIES_CAP, FLOWS} from './eddies.mjs';
 import {shippedBondArcs, inventoryComplete, questState, questStates, finished} from './bonds.mjs';
+import {usesFormat2, checkPackExtras, checkStagePlay, checkEndingPlay, eventProblem} from './quest-format.mjs';
 
 export const PACK_FORMAT = 1;
+/** Format 2 adds places, lines, gaps, images, the play stage type with `do` and `script`, event choices and an ending's history (bridge/quest-format.mjs, docs/QUEST_PRIMITIVES.md). */
+export const PACK_FORMATS = Object.freeze([1, 2]);
 export const PACK_LIMITS = Object.freeze({stages: 8, choices: 4, effects: 4, know: 600, wants: 300, bringUp: 400, memory: 300, line: 240,
   title: 80, summary: 200, label: 80, alt: 200, paths: 24, gameHours: 24 * 14, bondReward: 150});
 export const CHANNELS = Object.freeze(['own', 'phone', 'holocall']);
@@ -16,13 +19,13 @@ export const EFFECTS = Object.freeze(['vehicleBlocked', 'vehicleReturned', 'outf
 /** How V answers a stage, read from V's own words (bridge/bond-intent.mjs): a tag choice names one of these as its `kind`. */
 export const CHOICE_KINDS = Object.freeze(['yes', 'no', 'honest', 'flatter']);
 /** The stage types the runner plays. Any other `type` is accepted by the validator (a later build adds it) and skipped by the runner, logged once. */
-export const KNOWN_STAGE_TYPES = Object.freeze(['talk']);
+export const KNOWN_STAGE_TYPES = Object.freeze(['talk', 'play']);
 const STAGE_TYPE = /^[a-z][a-z0-9-]{1,31}$/;
 /** A stage's picture: a file shipped inside the pack, made ahead of time (nothing is generated while playing). Data only: nothing shows it yet. */
 export const IMAGE_FILE = /^images\/[a-z0-9][a-z0-9_\/-]{0,80}\.(?:png|jpe?g|webp)$/;
 export const MEET_PLACES = Object.freeze(['here', 'home', 'waypoint']);
 /** How a choice is taken: the character's tag (checked against V's words), an Eddies transfer of a flow, or an invitation's outcome. */
-export const CHOICE_ON = /^(?:tag|eddies:(?:loanToV|loanFromV|repayByV|repayToV|giftFromV|giftToV)|meet:(?:met|stood-up))$/;
+export const CHOICE_ON = /^(?:tag|eddies:(?:loanToV|loanFromV|repayByV|repayToV|giftFromV|giftToV)|meet:(?:met|stood-up)|event:[a-z0-9][a-z0-9:_.-]{0,79})$/;
 const ID = /^[a-z][a-z0-9-]{2,47}$/;
 const STAGE_ID = /^[a-z][a-z0-9-]{0,31}$/;
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -39,12 +42,16 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
   const errors = [], warnings = [];
   const fail = message => { errors.push(message); };
   if (!plain(pack)) return {ok: false, errors: ['the pack is not an object']};
-  if (pack.format !== PACK_FORMAT) fail(`format must be ${PACK_FORMAT}`);
+  if (!PACK_FORMATS.includes(pack.format)) fail(`format must be ${PACK_FORMATS.join(' or ')}`);
+  else if (pack.format === 1 && usesFormat2(pack)) fail('places, lines, gaps, images, do, script and history need format 2');
   if (typeof pack.id !== 'string' || !ID.test(pack.id)) fail('id must be 3 to 48 lowercase letters, digits or hyphens, starting with a letter');
   if (typeof pack.character !== 'string' || !PROFILE.test(pack.character)) fail('character must be a profile key');
   else if (characters && !characters.has(pack.character)) fail(`character ${pack.character} is not on the roster`);
   if (!text(pack.title, PACK_LIMITS.title)) fail(`title must be 1 to ${PACK_LIMITS.title} characters`);
   if (pack.summary !== undefined && !text(pack.summary, PACK_LIMITS.summary)) fail(`summary must be 1 to ${PACK_LIMITS.summary} characters`);
+
+  // Format 2: the places, lines, gaps and pictures the stages refer to.
+  const quest = pack.format === 2 ? checkPackExtras(pack, fail, message => warnings.push(message)) : {places: new Set(), lines: new Map(), gaps: new Map(), images: new Map()};
 
   // The gate.
   const requires = pack.requires;
@@ -111,6 +118,7 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
         fail(`${where}: image needs file (images/<name>.png, .jpg or .webp inside the pack) and an optional alt of up to ${PACK_LIMITS.alt} characters`);
       }
     }
+    if (pack.format === 2) checkStagePlay(stage, quest, where, fail, message => warnings.push(message));
     if (stage.say !== undefined) checkLine(stage.say, `${where}: say`, fail);
     if (stage.text !== undefined) {
       if (!plain(stage.text) || stage.text.when !== 'start') fail(`${where}: text.when must be "start"`);
@@ -148,11 +156,15 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
         for (const choice of stage.choices) {
           if (!plain(choice) || typeof choice.id !== 'string' || !STAGE_ID.test(choice.id) || seen.has(choice.id)) { fail(`${where}: every choice needs its own id`); continue; }
           seen.add(choice.id);
-          if (typeof choice.on !== 'string' || !CHOICE_ON.test(choice.on)) fail(`${where}: choice ${choice.id}: on must be tag, eddies:<flow> or meet:met / meet:stood-up`);
+          if (typeof choice.on !== 'string' || !CHOICE_ON.test(choice.on)) fail(`${where}: choice ${choice.id}: on must be tag, eddies:<flow>, meet:met / meet:stood-up or event:<name>`);
           if (choice.on === 'tag' && !text(choice.means, 200)) fail(`${where}: choice ${choice.id}: a tag choice needs means (what V does, up to 200 characters)`);
           if (choice.on === 'tag' && !CHOICE_KINDS.includes(choice.kind)) fail(`${where}: choice ${choice.id}: a tag choice needs a kind (${CHOICE_KINDS.join(', ')})`);
           if (choice.on === 'tag' && CHOICE_KINDS.includes(choice.kind)) { if (kinds.has(choice.kind)) fail(`${where}: two choices have the kind ${choice.kind}`); kinds.add(choice.kind); }
           if (String(choice.on).startsWith('meet:') && !plain(stage.meet)) fail(`${where}: choice ${choice.id}: a meeting outcome needs a meet in the stage`);
+          if (String(choice.on).startsWith('event:')) {
+            if (pack.format !== 2) fail(`${where}: choice ${choice.id}: an event choice needs format 2`);
+            else { const problem = eventProblem(choice.on.slice(6), stage, quest); if (problem) fail(`${where}: choice ${choice.id}: the event ${problem}`); }
+          }
           next.push(choice.next);
         }
       }
@@ -170,6 +182,7 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
   }
   for (const [id, ending] of Object.entries(endings ?? {})) {
     if (!plain(ending) || !text(ending.memory, PACK_LIMITS.memory)) fail(`ending ${id}: memory must be 1 to ${PACK_LIMITS.memory} characters`);
+    if (pack.format === 2) checkEndingPlay(ending, id, quest, `ending ${id}`, fail);
     if (ending?.bond !== undefined && !(Number.isInteger(ending.bond) && Math.abs(ending.bond) <= PACK_LIMITS.bondReward)) fail(`ending ${id}: bond must be a whole number from -${PACK_LIMITS.bondReward} to ${PACK_LIMITS.bondReward}`);
   }
   // Every stage is reachable from the first, every ending is reachable, and every stage can reach an ending (the arc always ends).

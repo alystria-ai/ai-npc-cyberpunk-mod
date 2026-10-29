@@ -522,7 +522,8 @@ export class Bonds {
     const levels = {};
     for (const row of this.levels.values()) levels[row.profileKey] = {level: row.level, title: levelOf(row.points).title};
     return {version: 1, revision: this.revision, levels, changes: this.changes.map(change => ({...change})),
-      characters: this.characters(), packs: this.packSource?.active?.() ?? {}, effectsRevision: this.packSource?.effectsRevision?.() ?? 0};
+      characters: this.characters(), packs: this.packSource?.active?.() ?? {}, effectsRevision: this.packSource?.effectsRevision?.() ?? 0,
+      playRevision: this.packSource?.playRevision?.() ?? 0};
   }
 
   /** Write the status file (after a recorded turn, a level change or a pack change). Never awaited by a turn. */

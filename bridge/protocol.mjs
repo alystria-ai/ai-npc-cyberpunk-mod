@@ -16,6 +16,7 @@ import {parseCallMeetOffer} from './call-meet.mjs';
 import {parseHouseReaction} from './house-chat.mjs';
 import {parseSpeakUpReaction} from './speakup-context.mjs';
 import {parseAmbushReaction} from './ambush-context.mjs';
+import {parseScriptedReaction} from './quest-lines.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
 import {parseEddies} from './eddies.mjs';
@@ -75,12 +76,16 @@ function parseRequest(raw) {
   const speakUp = value.reaction?.kind === 'speakup';
   // A revenge ambush squad's taunt (bridge/ambush-context.mjs): an ordinary NPC's private turn of the gang's own archetype profile, no add-on, group, head, loot, battle or holocall field.
   const ambush = value.reaction?.kind === 'ambush';
+  // A scripted line of a story pack (docs/QUEST_PRIMITIVES.md section 4, bridge/quest-lines.mjs): a private turn of a named roster character, no model. Like the two above it carries no
+  // add-on, group, head, loot or battle field, and a holocall field only on a line of the holocall channel.
+  const scripted = value.reaction?.kind === 'scripted';
   const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon, profileKey)
     : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
       // She met V at the place she was invited to (docs/IMMERSIVE_INVITATIONS.md): her own greeting, a private turn only (bridge/appointment-events.mjs).
       : value.reaction?.kind === 'meet' ? parseMeetReaction(value.reaction, {group: !!group})
         // A housemate speaks (docs/HOUSEMATES.md): a line of a chat with another housemate, or a welcome home; a private turn only (bridge/house-chat.mjs).
         : value.reaction?.kind === 'house' ? parseHouseReaction(value.reaction, {group: !!group})
+          : scripted ? (group || head || addon || loot || battle || (value.holocall !== undefined && value.reaction.channel !== 'holocall') || value.head !== undefined ? null : parseScriptedReaction(value.reaction, profileKey))
           : speakUp ? (group || head || addon || loot || battle || value.holocall !== undefined || value.head !== undefined ? null : parseSpeakUpReaction(value.reaction, profileKey))
             : ambush ? (group || head || addon || loot || battle || value.holocall !== undefined || value.head !== undefined ? null : parseAmbushReaction(value.reaction, profileKey, parseArchetype(value.archetype)))
               : parseReaction(value.reaction, battle, loot);
