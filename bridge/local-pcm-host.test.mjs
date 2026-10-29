@@ -189,7 +189,7 @@ test('late-control drain handling cannot ignore an explicit stop, a foreign toke
   await client.begin({token: 'strict-owner', text: 'Owned'});
   assert.throws(() => client.control('foreign-owner', control), /Local PCM owner changed/);
   player.fail('Renderer lease expired');
-  assert.throws(() => client.control('strict-owner', control), /Local PCM renderer failed/);
+  assert.throws(() => client.control('strict-owner', control), error => error.message === 'Local PCM renderer failed (Renderer lease expired)');
   assert.equal(player.controls.length, 0);
   await client.stop('strict-owner');
   assert.throws(() => client.control('strict-owner', control), /Local PCM owner changed/);

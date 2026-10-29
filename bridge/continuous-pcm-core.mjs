@@ -12,6 +12,16 @@ export const PCM_LIMITS = Object.freeze({maxSeconds: 120, maxBytes: 24000000,
   // nothing can sound until arm() starts the ordinary 2 s game lease.
   standbyMs: 70000});
 
+/**
+ * The player's own reason for a failure as a short printable suffix, " (Playback admission expired)", or "" when there is none. A refused append says why the player was
+ * already closed, so a report names the cause (the lease, the device, the renderer) and not only the refusal it came to (reports c1808dbe181f54da and bba9bf36c83e5565,
+ * 29 Oct 2026: "PCM player cannot accept audio" on every reply of one install, with the reason lost). Only the player's own strings reach it.
+ */
+export function pcmReason(reason) {
+  const text = typeof reason === 'string' ? reason.replace(/[^\x20-\x7e]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : '';
+  return text ? ` (${text})` : '';
+}
+
 export function pcmFormat(sampleRate, channels) {
   if (!Number.isInteger(sampleRate) || sampleRate < 8000 || sampleRate > 96000
       || ![1, 2].includes(channels)) throw Error('Unsupported continuous PCM format');

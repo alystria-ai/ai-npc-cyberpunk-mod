@@ -1,4 +1,4 @@
-import {pcmFormat, playbackControl, PCM_LIMITS, PcmClockHistory} from './continuous-pcm-core.mjs';
+import {pcmFormat, pcmReason, playbackControl, PCM_LIMITS, PcmClockHistory} from './continuous-pcm-core.mjs';
 
 const WORKLET_URL = new URL('./continuous-pcm-worklet.mjs', import.meta.url);
 // DynamicsCompressorNode settings for the dialogue-level limiter. The Web Audio
@@ -133,7 +133,7 @@ export class ContinuousPcmPlayer {
 
   append(bytes, offsetFrames) {
     try {
-      if (!this.opened || this.stopped || this.ending || this.standby) throw Error('PCM player cannot accept audio');
+      if (!this.opened || this.stopped || this.ending || this.standby) throw Error('PCM player cannot accept audio' + this.refusalReason());
       if (!(bytes instanceof Uint8Array) || !bytes.byteLength || bytes.byteLength % this.align
           || !Number.isSafeInteger(offsetFrames) || offsetFrames !== this.submittedFrames)
         throw Error('PCM append is malformed or out of order');
@@ -144,6 +144,11 @@ export class ContinuousPcmPlayer {
       const owned = bytes.slice(); this.submittedFrames += count;
       return this.command('append', {offsetFrames, bytes: owned.buffer}, [owned.buffer]);
     } catch (error) { this.fail(error.message); return Promise.reject(error); }
+  }
+
+  // Why the player takes no audio: the reason it failed with (a lease that ran out, a device that changed), else the state it is in.
+  refusalReason() {
+    return pcmReason(this.latest.error) || (this.stopped ? ' (stopped)' : this.ending ? ' (ending)' : this.standby ? ' (standby)' : !this.opened ? ' (not open)' : '');
   }
 
   control(value) {
