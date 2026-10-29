@@ -1,0 +1,81 @@
+{
+  "kind": "hangout",
+  "format": 2,
+  "id": "panam-hangout-stargazing-turbines",
+  "character": "panam-palmer",
+  "title": "Stargazing at the Turbines",
+  "summary": "Panam and V lie in the grass under the wind turbines and watch the sky. She names the constellations wrong on purpose.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.3,
+    "bringUp": "There is a clear sky tonight and you know where the turbines hum. Bring up, in your own way, that V should bring a jacket and lie in the grass with you."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "clear", "know": "The sky is clear with no moon, and the turbines hum over them.", "wants": "V to correct her when she gets a star wrong."},
+      {"id": "meteor", "know": "A meteor shower is due tonight and Panam has been counting the streaks.", "wants": "V to wish on the first one with her."},
+      {"id": "late", "know": "It is past midnight and the cold has them talking in whispers.", "wants": "V to tell her what V can see up there."}
+    ]
+  },
+  "places": {
+    "turbines": {"name": "the base of the wind turbines south of the Kendachi farm road", "radius": 40},
+    "lie": {"name": "the flat ground under the turbines where they lie back", "radius": 5}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "If you could leave the planet, would you?",
+      "know": "They are lying in the grass under the turbines, and Panam has just named a constellation wrong on purpose.",
+      "secret": "She wants to hear whether V would leave.",
+      "wants": "V's honest answer, and a correction if V has one.",
+      "idle": "panam",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "lie",
+      "type": "play",
+      "label": "V and Panam lie under the turbines and watch the sky",
+      "know": "The turbines hum over the flat ground. Panam lies on her back in the grass and names constellations wrong on purpose.",
+      "wants": "V to correct her, and to lie there and talk about the sky.",
+      "meet": {"where": "waypoint", "inGameHours": 4},
+      "do": [
+        {"p": "pin", "at": "turbines"},
+        {"p": "place", "at": "turbines"},
+        {"p": "workspot", "id": "lie-back", "who": "self", "at": "lie", "key": "lie-back"},
+        {"p": "together", "id": "sky", "minutes": 10, "at": "lie"}
+      ],
+      "script": [
+        {"when": "stage:enter", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stargazed", "on": "event:together:sky:done", "next": "stargazed"},
+        {"id": "left", "on": "event:together:sky:broken", "next": "left"},
+        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 4, "next": "left"}
+    }
+  ],
+  "endings": {
+    "stargazed": {
+      "memory": "You lay under the turbines with Panam, and she named the stars wrong on purpose until you corrected her.",
+      "bond": 12
+    },
+    "left": {
+      "memory": "You left the turbines before you and Panam finished looking at the sky.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You never came to the turbines, and Panam watched the sky alone."
+    }
+  }
+}

@@ -1,0 +1,217 @@
+{
+  "format": 2,
+  "id": "jackie-come-home",
+  "character": "jackie-welles",
+  "title": "Come Home, Kid",
+  "summary": "A kid from Jackie's old block is about to sign with the Maelstrom in Northside, and Jackie calls you in to get him out.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex", "quests/main_quest/prologue/q003_maelstrom"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["holocall"],
+    "chance": 0.5,
+    "bringUp": "Jackie calls you while he is walking, loud and urgent. A kid from his old block was seen with Maelstrom recruiters in Northside, and by morning he will have signed on to something he cannot get out of. Jackie sees himself at that age, and he distrusts the Maelstrom because the Valentinos at least had rules."
+  },
+  "places": {
+    "steps": {"name": "the steps of the Afterlife in Little China", "radius": 12},
+    "yard": {"name": "the Maelstrom yard in Northside", "radius": 25},
+    "platform": {"name": "the platform at the Kabuki Metro station", "radius": 12}
+  },
+  "lines": {
+    "JW3.call.01": {"text": "V. Drop whatever you're doing. A kid from my old block is in trouble.", "emotion": "emphatic", "channel": "holocall"},
+    "JW3.call.02": {"text": "Maelstrom recruiters in Northside. By morning he signs something he can't unsign.", "emotion": "angry", "channel": "holocall"},
+    "JW3.call.03": {"text": "I know that look in the eyes. I had it at his age.", "emotion": "sad", "channel": "holocall"},
+    "JW3.call.04": {"text": "Afterlife steps, one hour. Can you come?", "emotion": "neutral", "channel": "holocall"},
+    "JW3.stage.drive.01": {"text": "The Valentinos had rules. You knew what a name cost. Maelstrom? Just chrome and hunger.", "emotion": "angry"},
+    "JW3.stage.yard.01": {"text": "There. The kid in the hoodie. Don't spook him.", "emotion": "neutral"},
+    "JW3.bark.signed-timer.a": {"text": "Two minutes. They're going to hand him something. Move.", "emotion": "emphatic"},
+    "JW3.bark.signed-timer.b": {"text": "Faster, choom. He's about to be someone's property.", "emotion": "emphatic"},
+    "JW3.bark.freed.a": {"text": "Come on, mijo. We're going home.", "emotion": "nod"},
+    "JW3.bark.freed.b": {"text": "Easy. Walk with us. Nobody's angry.", "emotion": "nod"},
+    "JW3.kid.01": {"text": "I just wanted to be somebody. They said they'd make me one.", "emotion": "sad"},
+    "JW3.close.01": {"text": "You want a name? Get one the long way. And tell your mama you were with me.", "emotion": "emphatic"},
+    "JW3.close.02": {"text": "Good kid. Good kid. Thanks, V. Let's go find Misty a flower.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You in? And if you're not, say it now, no hard feelings.",
+      "know": "The kid is a Heywood teenager at a Maelstrom yard in Northside, about six minutes from being handed a gun. Jackie is calling from the Afterlife steps and wants V there within the hour.",
+      "secret": "He sees himself in the kid.",
+      "wants": "V on the Afterlife steps within one hour.",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 3600
+    },
+    "g2": {
+      "asks": "What do I say to him? Honestly, hermano, I never learned how to tell a kid no.",
+      "know": "The kid is free or on his way out. The Metro is the only way home, and Jackie wants him on the train. Jackie's own mother once said what he is about to say.",
+      "secret": "Jackie's mother once said what he is about to say.",
+      "wants": "V's help to find the words.",
+      "idle": "jackie",
+      "tags": [{"id": "advice", "kind": "honest"}],
+      "resumeAfterSeconds": 240
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Jackie calls V in about the kid",
+      "know": "Jackie is walking and calling you on a loud holocall. A kid from his old block is about to sign with the Maelstrom in Northside, and he wants you on the Afterlife steps within the hour.",
+      "wants": "V to say yes and come to the Afterlife steps.",
+      "do": [
+        {"p": "call-in", "id": "ring", "call": "jw3-call", "ringSeconds": 40, "text": true}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "meet"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "alone"},
+        {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "alone"},
+        {"id": "resume", "on": "event:gap:g1:resume", "next": "alone"}
+      ],
+      "timeout": {"gameHours": 1, "next": "alone"}
+    },
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "V meets Jackie on the Afterlife steps",
+      "know": "You are on the Afterlife steps in Little China and Jackie is waiting for you. He wants to get to Northside before the kid is handed anything.",
+      "wants": "V to get in the car and go.",
+      "do": [
+        {"p": "pin", "at": "steps"},
+        {"p": "place", "at": "steps"},
+        {"p": "party"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:steps:arrived", "next": "drive"}
+      ],
+      "timeout": {"gameHours": 1, "next": "alone"}
+    },
+    {
+      "id": "drive",
+      "type": "play",
+      "label": "V drives Jackie to the Maelstrom yard in Northside",
+      "know": "V is driving with Jackie in the passenger seat. Jackie talks about the Valentinos and the Maelstrom, and he is clearer about both than he has ever been.",
+      "wants": "V to drive to the Maelstrom yard in Northside.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "yard", "limitMinutes": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW3.stage.drive.01"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "yard"}
+      ],
+      "timeout": {"gameHours": 1, "next": "yard"}
+    },
+    {
+      "id": "yard",
+      "type": "play",
+      "label": "V gets the kid out of the Maelstrom yard",
+      "know": "The Maelstrom squad is relaxed in the yard. The kid is among them, scared and wanting to be someone. The recruiter is the squad boss. About six minutes from now the kid is handed a job and a gun.",
+      "wants": "V to get the kid out before the handover.",
+      "do": [
+        {"p": "place", "at": "yard"},
+        {"p": "squad", "id": "maelstrom", "at": "yard", "faction": "Maelstrom", "count": 5, "hostile": false},
+        {"p": "cast", "id": "kid", "who": "a scared teen in a hoodie", "at": "yard"},
+        {"p": "npc-react", "id": "kid", "cast": "kid"},
+        {"p": "unseen", "id": "sneak", "squad": "maelstrom", "at": "yard"},
+        {"p": "timer", "id": "hurry", "seconds": 240, "clock": "game"},
+        {"p": "timer", "id": "yard", "seconds": 360, "clock": "game"}
+      ],
+      "script": [
+        {"when": "place:yard:arrived", "say": "JW3.stage.yard.01"},
+        {"when": "timer:hurry", "say": "JW3.bark.signed-timer.a"},
+        {"when": "line:JW3.bark.signed-timer.a:done", "say": "JW3.bark.signed-timer.b"},
+        {"when": "npc:kid:obey", "say": "JW3.bark.freed.a"},
+        {"when": "line:JW3.bark.freed.a:done", "say": "JW3.bark.freed.b"}
+      ],
+      "choices": [
+        {"id": "talked", "on": "event:npc:kid:obey", "next": "platform"},
+        {"id": "sneaked", "on": "event:unseen:sneak:reached", "next": "platform"},
+        {"id": "fight", "on": "event:squad:maelstrom:hostile", "next": "fight"},
+        {"id": "handed", "on": "event:timer:yard", "next": "signed"}
+      ],
+      "timeout": {"gameHours": 1, "next": "signed"}
+    },
+    {
+      "id": "platform",
+      "type": "play",
+      "label": "Jackie puts the kid on the train home",
+      "know": "The kid is with you on the platform at the Kabuki Metro station. Jackie is about to tell him what to do next.",
+      "wants": "V's advice, which Jackie will quote back.",
+      "do": [
+        {"p": "place", "at": "platform"},
+        {"p": "cast", "id": "kid", "who": "the teenage kid from Jackie's old block", "at": "platform"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW3.kid.01"},
+        {"when": "line:JW3.kid.01:done", "gap": "g2"},
+        {"when": "gap:g2:advice", "say": "JW3.close.01"}
+      ],
+      "choices": [
+        {"id": "advice", "on": "event:gap:g2:advice", "next": "home-by-train"},
+        {"id": "resume", "on": "event:gap:g2:resume", "next": "home-by-train"}
+      ],
+      "timeout": {"gameHours": 1, "next": "home-by-train"}
+    },
+    {
+      "id": "fight",
+      "type": "play",
+      "label": "V and Jackie fight their way into the yard",
+      "know": "The Maelstrom has turned on you in the yard in Northside. The kid is somewhere behind the squad, and the fight is loud.",
+      "wants": "V to get the kid out alive.",
+      "do": [
+        {"p": "place", "at": "yard"},
+        {"p": "squad", "id": "maelstrom", "at": "yard", "faction": "Maelstrom", "count": 5, "hostile": true}
+      ],
+      "choices": [
+        {"id": "down", "on": "event:squad:maelstrom:down", "next": "loud"},
+        {"id": "fled", "on": "event:squad:maelstrom:fled", "next": "loud"}
+      ],
+      "timeout": {"gameHours": 1, "next": "loud"}
+    }
+  ],
+  "endings": {
+    "home-by-train": {
+      "memory": "You helped Jackie talk a kid from his old block out of the Maelstrom in Northside and put him on a train home.",
+      "bond": 65,
+      "script": [{"when": "ending:home-by-train", "say": "JW3.close.02"}]
+    },
+    "loud": {
+      "memory": "You and Jackie fought your way into a Maelstrom yard in Northside, and the kid from his old block got out and onto a train home.",
+      "bond": 50
+    },
+    "signed": {
+      "memory": "A kid from Jackie's old block signed with the Maelstrom in Northside while you were there, and Jackie took it hard for days.",
+      "bond": 20
+    },
+    "alone": {
+      "memory": "You told Jackie no on the call, so he went to Northside by himself to find the kid from his old block.",
+      "bond": 0
+    },
+    "unfinished": {
+      "memory": "Jackie got a text about a kid from his old block, you went to Northside with him, and you never heard if the boy got home.",
+      "bond": 0
+    }
+  },
+  "calls": {
+    "jw3-call": {
+      "caller": "self",
+      "picture": "voice",
+      "text": "JW3.call.01",
+      "steps": [
+        {"say": "JW3.call.01"},
+        {"say": "JW3.call.02"},
+        {"say": "JW3.call.03"},
+        {"say": "JW3.call.04"},
+        {"gap": "g1"}
+      ]
+    }
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

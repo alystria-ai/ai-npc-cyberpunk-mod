@@ -1,0 +1,83 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "kerry-hangout-midnight-fridge-run",
+  "character": "kerry-eurodyne",
+  "title": "Midnight Fridge Run",
+  "summary": "Kerry is starving at two in the morning, the staff are asleep, and he wants you to sneak through his North Oak villa to the fridge with him.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq011_kerry"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["holocall"],
+    "chance": 1,
+    "bringUp": "Kerry is starving in the middle of the night and the staff are asleep. Ask V to come and sneak to the fridge at his North Oak villa with him."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "back-garden", "know": "You are sneaking through the back garden of Kerry's North Oak villa, not the front, and a patrolling drone crosses the lawn ahead of you.", "wants": "To reach the fridge without the drone seeing you."},
+      {"id": "power-cut", "know": "The power is out in Kerry's North Oak villa, and the hall is dark. The fridge is still cold, and the housekeeper is asleep on the couch.", "wants": "To reach the fridge by the light of a phone."},
+      {"id": "guest-couch", "know": "A guest is asleep on the couch in the hall of Kerry's North Oak villa, and the housekeeper is asleep in the kitchen. The fridge is ahead of you.", "wants": "To reach the fridge without waking the guest."}
+    ]
+  },
+  "places": {
+    "hall": {"name": "the hall of Kerry's North Oak villa", "radius": 10},
+    "kitchen": {"name": "the kitchen door of Kerry's North Oak villa", "radius": 10},
+    "fridge": {"name": "the fridge in Kerry's North Oak villa kitchen", "radius": 8}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What do you eat at 2 a.m. when no one's looking?",
+      "know": "You have reached the fridge in Kerry's North Oak villa at two in the morning. The security drone and the housekeeper are behind you, and you are both quiet.",
+      "secret": "He cooks only when he cannot sleep.",
+      "wants": "V's late-night truth.",
+      "idle": "lean",
+      "tags": [{"id": "truth", "kind": "honest"}, {"id": "silent", "kind": "no"}],
+      "resumeAfterSeconds": 180
+    }
+  },
+  "stages": [
+    {
+      "id": "raid",
+      "type": "play",
+      "label": "Kerry and V sneak to the fridge in his villa",
+      "know": "You are sneaking through Kerry's North Oak villa at night, past a security drone on its patrol and a housekeeper asleep in the kitchen. The fridge is your destination.",
+      "wants": "V to get Kerry to the fridge without waking anyone.",
+      "do": [
+        {"p": "cast", "id": "kerry", "who": "self", "at": "hall", "carry": true},
+        {"p": "cast", "id": "drone", "who": "the security drone on its patrol", "at": "hall"},
+        {"p": "cast", "id": "housekeeper", "who": "the housekeeper asleep in the kitchen", "at": "kitchen"},
+        {"p": "place", "at": "fridge"}
+      ],
+      "script": [
+        {"when": "place:fridge:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "sandwich", "on": "event:gap:g1:truth", "next": "sandwich"},
+        {"id": "quiet", "on": "event:gap:g1:silent", "next": "quiet"}
+      ],
+      "timeout": {"gameHours": 1, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "sandwich": {
+      "memory": "You answered Kerry honestly at his North Oak fridge at two in the morning, and the sandwiches came out after all.",
+      "bond": 16
+    },
+    "quiet": {
+      "memory": "You raided Kerry's fridge in North Oak at two in the morning and said nothing about it.",
+      "bond": 10
+    },
+    "stood-up": {
+      "memory": "You never reached Kerry's fridge in North Oak, and he gave up on the night raid.",
+      "bond": 0
+    }
+  }
+}

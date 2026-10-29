@@ -1,0 +1,84 @@
+{
+  "kind": "hangout",
+  "format": 2,
+  "id": "panam-hangout-fixing-mackinaw",
+  "character": "panam-palmer",
+  "title": "Fixing the Mackinaw",
+  "summary": "Panam is under the Mackinaw at a Jackson Plains garage and calls for parts by name. V hands them over.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.3,
+    "bringUp": "The Mackinaw is making a noise. Bring up, in your own way, that you want V to come to the Jackson Plains garage, hand you things and pretend to know what they are."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "brakes", "know": "The noise is the front brakes, and Panam is sure of it.", "wants": "V to hand over the brake parts by name."},
+      {"id": "belt", "know": "The noise is a loose belt, and Panam is grumpy about the parts list.", "wants": "V to find the belt and the tensioner."},
+      {"id": "radio", "know": "The noise is the radio rattling in the dash, and Panam admits it is not the truck.", "wants": "V to fix the radio mount and keep quiet about it."}
+    ]
+  },
+  "places": {
+    "garage": {"name": "the Jackson Plains gas station garage, where the Mackinaw is on the lift", "radius": 25},
+    "crate-a": {"name": "the first marked parts crate in the garage", "radius": 3},
+    "crate-b": {"name": "the second marked parts crate in the garage", "radius": 3},
+    "crate-c": {"name": "the third marked parts crate in the garage", "radius": 3}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What was the first car you ever drove?",
+      "know": "Panam is under the Mackinaw and V is handing her parts. She calls each one by name.",
+      "secret": "She remembers what V says and will tease V with it later.",
+      "wants": "The next part, and V's answer.",
+      "idle": "panam",
+      "resumeOn": ["place:crate-b:arrived", "place:crate-c:arrived"]
+    }
+  },
+  "stages": [
+    {
+      "id": "fix",
+      "type": "play",
+      "label": "Panam works under the Mackinaw and calls for parts by name",
+      "know": "V is at the Jackson Plains garage. Panam is under the Mackinaw on the creeper and calls for parts by name.",
+      "wants": "V to bring her the parts she calls for.",
+      "meet": {"where": "waypoint", "inGameHours": 4},
+      "do": [
+        {"p": "pin", "at": "garage"},
+        {"p": "place", "at": "garage"},
+        {"p": "workspot", "id": "under", "who": "self", "at": "garage", "key": "mechanic"},
+        {"p": "place", "at": "crate-a"},
+        {"p": "place", "at": "crate-b"},
+        {"p": "place", "at": "crate-c"}
+      ],
+      "script": [
+        {"when": "stage:enter", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "fixed", "on": "event:place:crate-c:arrived", "next": "fixed"},
+        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 6, "next": "left"}
+    }
+  ],
+  "endings": {
+    "fixed": {
+      "memory": "You handed Panam the parts for the Mackinaw until the noise was gone.",
+      "bond": 12
+    },
+    "left": {
+      "memory": "You came to the Jackson Plains garage and left before Panam got the Mackinaw quiet.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You never showed up at the Jackson Plains garage, and Panam finished the truck alone."
+    }
+  }
+}

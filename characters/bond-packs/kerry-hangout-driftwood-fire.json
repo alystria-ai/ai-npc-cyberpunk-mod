@@ -1,0 +1,81 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "kerry-hangout-driftwood-fire",
+  "character": "kerry-eurodyne",
+  "title": "Driftwood Fire",
+  "summary": "Kerry invites you to a driftwood fire on the Pacifica coast at sunset, and asks you to sit with him until the sea goes dark.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/side_quest/sq011_kerry"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "Kerry is building a driftwood fire on the Pacifica beach for sunset. Ask V to come, in your own words, and say it is a fire made out of garbage."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "cold-dawn", "know": "It is a cold, windy dawn on the Pacifica beach, and the driftwood fire is small. Kerry is wrapped up against the wind, and the sea is grey.", "wants": "To sit by the fire until the sun is up."},
+      {"id": "rain", "know": "It is raining on the Pacifica beach, and there is no fire, only a blanket over your shoulders and the sound of the sea. Kerry sits close enough to share it.", "wants": "To sit together under the blanket until the rain stops."},
+      {"id": "bonfire", "know": "A bonfire burns on the Pacifica beach with a few strangers around it, and Kerry sits on the sand by you as if they were not there.", "wants": "To sit by the fire together while the strangers talk."}
+    ]
+  },
+  "places": {
+    "fire": {"name": "the driftwood fire spot on the Pacifica beach", "radius": 12}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Where would you go if you could go anywhere with no one knowing you?",
+      "know": "You are sitting by a driftwood fire on the Pacifica beach at dusk, with Kerry beside you on the sand. The bottle with a note in it is somewhere on the beach, and you have ten game minutes to sit together.",
+      "secret": "He sometimes drives to the coast and sits in the car.",
+      "wants": "V's dream.",
+      "idle": "stool",
+      "tags": [{"id": "answer", "kind": "honest"}, {"id": "pass", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "fire",
+      "type": "play",
+      "label": "Kerry and V sit by a driftwood fire on the beach",
+      "know": "You are sitting by a driftwood fire on the Pacifica beach at dusk, with Kerry beside you on the sand. You sit together for ten game minutes, and the sea goes dark.",
+      "wants": "To sit by the fire together until it is done.",
+      "do": [
+        {"p": "place", "at": "fire"},
+        {"p": "cast", "id": "kerry", "who": "self", "at": "fire", "carry": true},
+        {"p": "seat"},
+        {"p": "together", "id": "fire-sit", "minutes": 10, "metres": 5, "seated": true, "at": "fire", "breakSeconds": 120}
+      ],
+      "script": [
+        {"when": "place:fire:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "sat", "on": "event:together:fire-sit:done", "next": "sat"},
+        {"id": "left", "on": "event:together:fire-sit:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "sat": {
+      "memory": "You sat with Kerry by a driftwood fire on the Pacifica beach until the ten minutes were up and the sea had gone dark.",
+      "bond": 11
+    },
+    "left": {
+      "memory": "You got up from the driftwood fire on the Pacifica beach before the ten minutes were done, and Kerry sat on alone.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You did not come to the driftwood fire on the Pacifica beach, and Kerry waited by it alone.",
+      "bond": 0
+    }
+  }
+}

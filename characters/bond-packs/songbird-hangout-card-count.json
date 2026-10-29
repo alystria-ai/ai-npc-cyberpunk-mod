@@ -1,0 +1,91 @@
+{
+  "format": 2,
+  "id": "songbird-hangout-card-count",
+  "kind": "hangout",
+  "character": "songbird",
+  "title": "Card Count",
+  "summary": "Songbird counts the cards from V's descriptions at a Heavy Hearts card table in Dogtown.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Songbird cannot hack a card table, but she can count one, and she wants V to sit down and describe the hands."
+  },
+  "places": {
+    "spot": {"name": "the card table at Heavy Hearts in Dogtown", "radius": 15},
+    "spot-b": {"name": "the back card table at Heavy Hearts", "radius": 15}
+  },
+  "lines": {
+    "SBH2.ask.01": {"text": "What do you see in his hands?", "emotion": "neutral", "channel": "remote"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What do you see in his hands?",
+      "know": "Your descriptions of the cards and the players so far.",
+      "secret": "She misses the thrill of being exactly right.",
+      "wants": "Your eyes.",
+      "idle": "bar",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "flatter", "kind": "flatter"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "quiet", "know": "The table is quiet tonight, with only two other players.", "places": {"spot": "spot-b"}},
+      {"id": "crowded", "know": "The bar is crowded, and the table is loud."},
+      {"id": "bluff", "wants": "V bluffs, and she counts the bluff from your words."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "hangout",
+      "type": "play",
+      "label": "Songbird counts the hands from V's descriptions",
+      "know": "V is at the card table in Heavy Hearts with a dealer and two other players. You count the hands from what V tells you.",
+      "wants": "V's eyes on the other player's hands, and V's honest read of the table.",
+      "meet": {"where": "waypoint", "inGameHours": 3},
+      "do": [
+        {"p": "pin", "at": "spot"},
+        {"p": "place", "at": "spot"},
+        {"p": "seat"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "seat:seated", "say": "SBH2.ask.01"},
+        {"when": "line:SBH2.ask.01:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
+        {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
+        {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "left"}
+      ],
+      "timeout": {"gameHours": 3, "next": "left"}
+    }
+  ],
+  "endings": {
+    "honest": {
+      "memory": "You sat at a card table in Heavy Hearts and gave Songbird a straight read on the other player's hands.",
+      "bond": 8
+    },
+    "flattered": {
+      "memory": "You told Songbird what she wanted to hear about the other player's hands at Heavy Hearts. She noticed.",
+      "bond": 4
+    },
+    "left": {
+      "memory": "You played a few hands at Heavy Hearts with Songbird counting from your words and left before the night ended."
+    },
+    "stood-up": {
+      "memory": "You never sat down at the card table in Heavy Hearts, and Songbird counted the hands without you."
+    }
+  }
+}

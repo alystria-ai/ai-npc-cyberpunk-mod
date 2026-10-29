@@ -1,0 +1,220 @@
+{
+  "format": 2,
+  "id": "panam-convoy-home",
+  "character": "panam-palmer",
+  "title": "The Long Way Home",
+  "summary": "Saul trusts Panam with a supply run from the border. She asks V to ride along, and the column has to get through a Raffen ambush.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/side_quest/sq027_02_raffen_shiv_attack"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Saul has asked you to lead a supply run from the border, two cars of medicine and parts for the camp. Bring up, in your own way, that you want V to ride with you as a friend, not as a gun."
+  },
+  "places": {
+    "border": {"name": "the SoCal border crossing where the column forms", "radius": 30},
+    "canyon-short": {"name": "the stop short of the narrow canyon road", "radius": 20},
+    "canyon": {"name": "the narrow canyon road where two Raffen cars wait", "radius": 25},
+    "salt": {"name": "the salt flats the long way round", "radius": 60},
+    "camp": {"name": "the Aldecaldo camp", "radius": 40}
+  },
+  "lines": {
+    "P5.ask.01": {"text": "Saul asked me to lead a supply run. Me. Not Mitch, not Carol.", "emotion": "surprise", "gesture": "panam_hips", "channel": "own"},
+    "P5.ask.02": {"text": "Two cars of medicine and parts, from the border to camp.", "emotion": "neutral", "gesture": "describe", "channel": "own"},
+    "P5.ask.03": {"text": "I want you with me. Not as a gun. As a friend.", "emotion": "sad", "channel": "own"},
+    "P5.ask.04": {"text": "Border crossing, tomorrow night. Don't be late, I'll already be nervous.", "emotion": "happy", "gesture": "nod", "channel": "own"},
+    "P5.ask.05": {"text": "Okay. I'll manage. I always do.", "emotion": "sad", "gesture": "sad", "channel": "own"},
+    "P5.pickup.01": {"text": "Those two are Bodhi and Jen. Cousins, sort of. Don't ask.", "emotion": "happy", "gesture": "point", "channel": "own"},
+    "P5.pickup.02": {"text": "Get in. Seatbelt. Yes, nomads wear seatbelts.", "emotion": "emphatic", "gesture": "driving", "channel": "own"},
+    "P5.run.01": {"text": "Leg one is easy. It's leg two that keeps me up.", "emotion": "neutral", "channel": "own"},
+    "P5.run.02": {"text": "Saul's never trusted me with people before. Trucks, yes. People, no.", "emotion": "sad", "channel": "own"},
+    "P5.run.03": {"text": "Stop. Everyone stop.", "emotion": "fear", "channel": "own"},
+    "P5.run.04": {"text": "Two Raffen cars on the canyon road. They're waiting for us.", "emotion": "angry", "channel": "own"},
+    "P5.run.05": {"text": "Salt flats it is. Longer. Nobody bleeds.", "emotion": "neutral", "gesture": "nod", "channel": "own"},
+    "P5.run.06": {"text": "Then we punch through. Stay close to me.", "emotion": "emphatic", "gesture": "emphatic", "channel": "own"},
+    "P5.run.07": {"text": "Clear! Cars, move, move!", "emotion": "happy", "channel": "own"},
+    "P5.run.08": {"text": "No. No, no. Jen's car is gone.", "emotion": "fear", "channel": "own"},
+    "P5.run.09": {"text": "Look at that. Moonlight on salt. Mitch would cry.", "emotion": "happy", "channel": "own"},
+    "P5.bark.01": {"text": "They saw us! Guns up!", "emotion": "fear", "channel": "own"},
+    "P5.bark.03": {"text": "Almost there. I can see the lights.", "emotion": "happy", "channel": "own"},
+    "P5.bark.06": {"text": "Talk to me. About anything. My hands are shaking.", "emotion": "fear", "channel": "own"},
+    "P5.camp.01": {"text": "Camp. Every car. Every one.", "emotion": "happy", "gesture": "happy", "channel": "own"},
+    "P5.camp.02": {"text": "We're home. Not everyone is.", "emotion": "sad", "gesture": "sad", "channel": "own"},
+    "P5.camp.03": {"text": "Saul just nodded at me. That's Saul for \"thank you\". I'll take it.", "emotion": "happy", "gesture": "shrug", "channel": "own"},
+    "P5.camp.04": {"text": "Come here. Sit with me a minute before I have to be a leader again.", "emotion": "neutral", "channel": "own"},
+    "P5.camp.05": {"text": "You chose people over pride back there. I won't forget that.", "emotion": "happy", "channel": "own"},
+    "P5.camp.06": {"text": "The family has a name for you now. You'll hate it.", "emotion": "happy", "channel": "own"},
+    "P5.camp.07": {"text": "Buried Jen's car at the ridge. Her, she's fine. Sore. I'm not.", "emotion": "sad", "channel": "own"},
+    "P5.camp.08": {"text": "Every car made it. I kept looking at the passenger seat.", "emotion": "sad", "channel": "own"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Will you come?",
+      "know": "The run from the border to camp, Saul's trust, the route, and the risk of the canyon road.",
+      "secret": "How scared she is. She shows it only to V, and only if V asks.",
+      "wants": "Yes.",
+      "idle": "panam_hips",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}]
+    },
+    "g2": {
+      "asks": "Around the long way, or through them? I want your call, V. I mean it.",
+      "know": "Two Raffen cars wait where the canyon road narrows, and the convoy is stopped short of them. The salt flats add a leg and an hour, and the medicine is needed at camp.",
+      "secret": "She wants to go around, and is ashamed that it feels like cowardice.",
+      "wants": "V's decision, and she will follow it.",
+      "idle": "panam",
+      "tags": [{"id": "around", "kind": "yes"}, {"id": "through", "kind": "honest"}],
+      "resumeAfterSeconds": 180
+    },
+    "g3": {
+      "asks": "How did I do? Don't be nice.",
+      "know": "How the run went, and whether a car was lost on the way.",
+      "secret": "She wants Saul's approval and hates that she does.",
+      "wants": "Honesty.",
+      "idle": "panam_hips",
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Panam asks V to ride with her on the supply run",
+      "know": "Saul has asked Panam to lead a supply run of medicine and parts from the border to camp. She has never been trusted with the clan's people before.",
+      "wants": "V to say yes or no.",
+      "do": [
+        {"p": "pin", "at": "border"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P5.ask.01"},
+        {"when": "stage:enter", "say": "P5.ask.02"},
+        {"when": "line:P5.ask.02:done", "say": "P5.ask.03"},
+        {"when": "line:P5.ask.03:done", "gap": "g1"},
+        {"when": "gap:g1:yes", "say": "P5.ask.04"},
+        {"when": "gap:g1:no", "say": "P5.ask.05"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "event:gap:g1:yes", "next": "pickup"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "she-went"}
+      ],
+      "timeout": {"gameHours": 24, "next": "she-went"}
+    },
+    {
+      "id": "pickup",
+      "type": "play",
+      "label": "V meets Panam at the border crossing",
+      "know": "Two Aldecaldo drivers, Bodhi and Jen, wait at the border with their cars. Panam is at the wheel of the Mackinaw.",
+      "wants": "V to get in.",
+      "do": [
+        {"p": "place", "at": "border"},
+        {"p": "cast", "id": "bodhi", "who": "Bodhi", "at": "border", "archetype": "nomad"},
+        {"p": "cast", "id": "jen", "who": "Jen", "at": "border", "archetype": "nomad"}
+      ],
+      "script": [
+        {"when": "place:border:arrived", "say": "P5.pickup.01"},
+        {"when": "place:border:arrived", "say": "P5.pickup.02"}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:line:P5.pickup.02:done", "next": "run"}
+      ],
+      "timeout": {"gameHours": 4, "next": "she-went"}
+    },
+    {
+      "id": "run",
+      "type": "play",
+      "label": "The supply column drives to camp",
+      "know": "Panam leads the column of two clan cars from the border. Two Raffen cars wait where the canyon road narrows, and the column is stopped short of them. The salt flats are the long way round.",
+      "wants": "The column to reach camp, and V's call on the canyon.",
+      "do": [
+        {"p": "place", "at": "canyon-short"},
+        {"p": "place", "at": "canyon"},
+        {"p": "place", "at": "salt"},
+        {"p": "place", "at": "camp"},
+        {"p": "convoy", "id": "col", "route": ["border", "canyon-short", "canyon", "camp"], "reroute": ["canyon-short", "salt", "camp"], "cars": 2, "lead": "self", "holdLegs": [1], "limitMinutes": 60, "fallback": true},
+        {"p": "squad", "id": "raffen", "at": "canyon", "faction": "raffen", "count": 4, "hostile": false, "alertAfterSeconds": 20},
+        {"p": "timer", "id": "silence", "seconds": 420, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P5.run.01"},
+        {"when": "convoy:col:leg1", "say": "P5.run.02"},
+        {"when": "place:canyon-short:arrived", "say": "P5.run.03"},
+        {"when": "place:canyon-short:arrived", "say": "P5.run.04"},
+        {"when": "line:P5.run.04:done", "gap": "g2"},
+        {"when": "gap:g2:around", "say": "P5.run.05"},
+        {"when": "gap:g2:around", "event": "convoy:col:reroute"},
+        {"when": "gap:g2:through", "say": "P5.run.06"},
+        {"when": "gap:g2:through", "event": "convoy:col:go"},
+        {"when": "squad:raffen:hostile", "say": "P5.bark.01"},
+        {"when": "squad:raffen:down", "say": "P5.run.07"},
+        {"when": "convoy:col:lost-one", "say": "P5.run.08"},
+        {"when": "place:salt:arrived", "say": "P5.run.09"},
+        {"when": "convoy:col:leg3", "say": "P5.bark.03"},
+        {"when": "timer:silence", "say": "P5.bark.06"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:convoy:col:arrived", "next": "camp"},
+        {"id": "lost", "on": "event:convoy:col:lost-one", "next": "camp-lost"}
+      ],
+      "timeout": {"gameHours": 3, "next": "camp-lost"}
+    },
+    {
+      "id": "camp",
+      "type": "play",
+      "label": "The column reaches the Aldecaldo camp",
+      "know": "Every car has reached camp. Panam is standing with V by the trucks, and Saul is across the camp, watching.",
+      "wants": "V to sit with her for a minute and give an honest answer.",
+      "do": [
+        {"p": "place", "at": "camp"},
+        {"p": "pin", "at": "camp"}
+      ],
+      "script": [
+        {"when": "place:camp:arrived", "say": "P5.camp.01"},
+        {"when": "stage:enter", "say": "P5.camp.03"},
+        {"when": "line:P5.camp.03:done", "say": "P5.camp.04"},
+        {"when": "line:P5.camp.04:done", "gap": "g3"}
+      ],
+      "choices": [
+        {"id": "home", "on": "event:gap:g3:resume", "next": "delivered"}
+      ],
+      "timeout": {"gameHours": 3, "next": "delivered"}
+    },
+    {
+      "id": "camp-lost",
+      "type": "play",
+      "label": "The column reaches camp a car short",
+      "know": "A clan car was lost on the canyon road. Panam has brought the rest of the column to camp.",
+      "wants": "V to be there for her.",
+      "do": [
+        {"p": "pin", "at": "camp"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P5.camp.02"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost-one"}
+    }
+  ],
+  "endings": {
+    "delivered": {
+      "memory": "You rode with Panam on the clan's supply run from the border, and every car came home.",
+      "bond": 80,
+      "script": [
+        {"when": "ending:delivered", "say": "P5.camp.05"},
+        {"when": "ending:delivered", "say": "P5.camp.06"}
+      ]
+    },
+    "lost-one": {
+      "memory": "You led the supply run and lost a car on the canyon road, with Panam beside you.",
+      "bond": 45,
+      "script": [{"when": "ending:lost-one", "text": "P5.camp.07"}]
+    },
+    "she-went": {
+      "memory": "Panam ran the supply run without you. It went fine, and she is a little hurt you were not there.",
+      "bond": 0,
+      "script": [{"when": "ending:she-went", "text": "P5.camp.08"}]
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "johnny-hangout-wardrobe-veto",
+  "character": "johnny-silverhand",
+  "title": "Wardrobe Veto",
+  "summary": "Johnny vetoes V's clothes in an arcade near Corpo Plaza and asks why V dresses the way V does.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/main_quest/act_01/q108_johnny"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Johnny has opinions about your jacket. Bring up, in your own way and sharp, that V should go shopping in a bright arcade near Corpo Plaza and try on three looks for him to judge."
+  },
+  "places": {
+    "arcade": {"name": "a bright arcade of clothing shops near Corpo Plaza", "radius": 25, "district": "City Center"},
+    "rack": {"name": "a clothing rack in the arcade with one jacket on a hook", "radius": 6, "district": "City Center"}
+  },
+  "images": {
+    "wardrobe-veto": {"file": "images/wardrobe-veto.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "SHH3.caption": {"text": "That one. Maybe.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Why do you dress like that? I don't mean it's wrong. I mean what's it for?",
+      "know": "The gear read for each look, the Arasaka veto, and his love of sleeveless and leather.",
+      "secret": "He wore the same jacket for years because it was his only one.",
+      "wants": "V to answer honestly.",
+      "tags": [{"id": "defends", "kind": "honest"}, {"id": "shrug", "kind": "no"}],
+      "resumeAfterSeconds": 180
+    }
+  },
+  "stages": [
+    {
+      "id": "shopping",
+      "type": "play",
+      "label": "Try on three looks for Johnny",
+      "know": "Johnny judges three looks V puts on: nothing with a corporate logo, something he would wear on stage, and the worst thing V owns. Any Arasaka item makes him furious.",
+      "wants": "V to try on the looks and answer Johnny's question about the clothes.",
+      "do": [
+        {"p": "pin", "at": "arcade"},
+        {"p": "place", "at": "arcade"},
+        {"p": "place", "at": "rack"},
+        {"p": "check", "id": "look", "what": "gear"}
+      ],
+      "script": [
+        {"when": "place:rack:arrived", "text": "SHH3.caption", "image": "wardrobe-veto"},
+        {"when": "place:rack:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "all", "on": "event:gap:g1:defends", "next": "all"},
+        {"id": "some", "on": "event:gap:g1:shrug", "next": "some"}
+      ],
+      "timeout": {"gameHours": 2, "next": "some"}
+    }
+  ],
+  "endings": {
+    "all": {
+      "memory": "You let Johnny judge your looks in an arcade near Corpo Plaza, and you defended the one you wear.",
+      "bond": 23
+    },
+    "some": {
+      "memory": "You let Johnny judge a look or two in an arcade near Corpo Plaza, and he teased you about the rest.",
+      "bond": 9
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "daytime", "know": "It is daytime and rain is falling. The three looks are rain gear."},
+      {"id": "funeral", "know": "The three looks are funeral outfits, and Johnny says it is a joke, which it is not."},
+      {"id": "someone-else", "know": "Johnny asks V to dress as someone V is not, and judges each look against that."}
+    ]
+  }
+}

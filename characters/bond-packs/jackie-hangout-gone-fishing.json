@@ -1,0 +1,84 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "jackie-hangout-gone-fishing",
+  "character": "jackie-welles",
+  "title": "Gone Fishing",
+  "summary": "Jackie takes you fishing off a pier on the Arasaka Waterfront, where the catch is mostly junk and the gonk next to you bets he will do better.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie invites you to the pier on the Arasaka Waterfront. He brought a line and a bad attitude, and he asks you to bring patience."
+  },
+  "places": {
+    "pier": {"name": "the pier on the Arasaka Waterfront", "radius": 15}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Tell me something good that's going to happen to you this year. Make it up if you have to.",
+      "know": "You are on the pier, it is quiet, and the catch so far is junk. A gonk is fishing on the next post.",
+      "secret": "Fishing makes him think of his mother.",
+      "wants": "V to talk about the future.",
+      "idle": "lean",
+      "tags": [{"id": "bold", "kind": "yes"}, {"id": "modest", "kind": "honest"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "pier",
+      "type": "play",
+      "label": "Jackie and V fish off the Arasaka pier",
+      "know": "You are fishing from the pier on the Arasaka Waterfront with Jackie. A gonk on the next post bets Jackie he will catch more. Dawn and dusk give better odds, and the catch is mostly junk.",
+      "wants": "V to stay on the pier for the full twenty minutes.",
+      "do": [
+        {"p": "place", "at": "pier"},
+        {"p": "party"},
+        {"p": "cast", "id": "gonk", "who": "a street gonk who wants to share the spot and bets Jackie he'll catch more", "at": "pier"},
+        {"p": "timer", "id": "ten", "seconds": 600, "clock": "game"},
+        {"p": "together", "id": "fish", "minutes": 20, "metres": 5, "breakSeconds": 300, "at": "pier"}
+      ],
+      "script": [
+        {"when": "timer:ten", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stayed", "on": "event:together:fish:done", "next": "stayed"},
+        {"id": "left", "on": "event:together:fish:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "stayed": {
+      "memory": "You stayed on the pier with Jackie on the Arasaka Waterfront for the whole twenty minutes, fishing for something worth keeping.",
+      "bond": 9
+    },
+    "left": {
+      "memory": "You and Jackie fished off the Arasaka Waterfront, and you did not stay the full time.",
+      "bond": 6
+    },
+    "unfinished": {
+      "memory": "You and Jackie were doing something light, and it ended there.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "dawn", "know": "Dawn on the pier, with better odds for a catch and a cold wind off the water.", "wants": "To stay on the pier.", "places": {"pier": "pier"}},
+      {"id": "lantern", "know": "Night on the pier with one lantern, and the water black beneath the rail.", "wants": "To stay on the pier.", "places": {"pier": "pier"}},
+      {"id": "drizzle", "know": "A drizzle that only brings junk to the line, and Jackie laughing at every can.", "wants": "To stay on the pier.", "places": {"pier": "pier"}}
+    ]
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

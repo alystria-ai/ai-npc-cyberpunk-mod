@@ -1,0 +1,56 @@
+{
+  "format": 2,
+  "id": "viktor-hangout-brew-haggle",
+  "kind": "hangout",
+  "character": "viktor-vektor",
+  "title": "Brew and Haggle",
+  "summary": "V haggles with a tea stall owner by the canal bridge in Little China while Viktor sits and says nothing.",
+  "requires": {"bond": 6, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true, "eddies": true},
+  "start": {
+    "channels": ["phone", "own"],
+    "chance": 1,
+    "bringUp": "Viktor invites V to a tea stall by the canal bridge in Little China, where the prices are a matter of opinion."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "tasting", "know": "A different tea, and a tasting before the haggle."},
+      {"id": "closing", "know": "Closing time, and it is raining."},
+      {"id": "predict", "know": "Misty's copy joins and predicts what V will pick."}
+    ]
+  },
+  "places": {
+    "stall": {"name": "the tea stall by the canal bridge", "radius": 4}
+  },
+  "stages": [
+    {
+      "id": "haggle",
+      "type": "play",
+      "label": "V haggles over the price of two cups of tea",
+      "know": "Viktor sits at the stall and stays silent. The stall owner is a boxing fan. You haggle for a price at or under sixty percent of the asking price.",
+      "wants": "V to get the tea for at or under sixty percent of the asking price, or at least to make a deal.",
+      "do": [
+        {"p": "pin", "at": "stall"},
+        {"p": "place", "at": "stall"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "stall"},
+        {"p": "seat"},
+        {"p": "cast", "id": "owner", "who": "extra", "at": "stall", "archetype": "tea-seller"},
+        {"p": "npc-react", "id": "react", "cast": "owner"},
+        {"p": "pay", "id": "haggle", "to": "owner", "amount": 300, "min": 180, "reason": "haggle"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:haggle:paid", "next": "deal"},
+        {"id": "declined", "on": "event:pay:haggle:declined", "next": "no-deal"},
+        {"id": "short", "on": "event:pay:haggle:short", "next": "no-deal"},
+        {"id": "broke", "on": "event:pay:haggle:broke", "next": "no-deal"}
+      ],
+      "timeout": {"gameHours": 1, "next": "no-deal"}
+    }
+  ],
+  "endings": {
+    "deal": {"memory": "You haggled over two cups of tea by the canal bridge in Little China, and Viktor let you do it alone.", "bond": 3},
+    "no-deal": {"memory": "You and Viktor walked away from the tea stall without a deal, and he said the tea was still overpriced.", "bond": 0}
+  }
+}

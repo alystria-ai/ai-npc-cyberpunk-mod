@@ -1,0 +1,194 @@
+{
+  "format": 2,
+  "id": "rogue-four-questions",
+  "character": "rogue-amendiares",
+  "title": "Four Questions",
+  "summary": "Rogue talks V through an extraction of a nervous accountant from a Northside drop house, on foot, in her ear.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up", "quests/side_quest/sq031_cinema"],
+    "notActive": ["quests/main_quest/act_01/q103", "quests/side_quest/sq031", "quests/main_quest/act_01/q115"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "You have an accountant who wants out of a Northside drop house, and you want V to walk him out on foot with your voice in V's ear. Bring up, briefly and in your own way, that you have a job and that you want V to take it."
+  },
+  "places": {
+    "booth": {"name": "the private booth upstairs at the Afterlife", "radius": 8},
+    "drop-house": {"name": "the drop house in Northside", "radius": 25},
+    "alley": {"name": "the alley route out of Northside", "radius": 25},
+    "side-door": {"name": "the Afterlife's side door", "radius": 8}
+  },
+  "images": {
+    "four-questions-door": {"file": "images/four-questions-door.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "R3.open.01": {"text": "An accountant. Nervous, hiding in a Northside drop house. He wants out.", "emotion": "neutral"},
+    "R3.open.02": {"text": "Four questions. Reach. Backup. Extraction. What defends the target.", "emotion": "emphatic"},
+    "R3.open.03": {"text": "I'll be in your ear. You walk him out. No cars, they get seen.", "emotion": "emphatic"},
+    "R3.open.04": {"text": "Cars get seen. Go on foot. Argue after.", "emotion": "angry"},
+    "R3.stage.recon.01": {"text": "Question one. Reach. How far can they see from the windows?", "emotion": "neutral", "channel": "remote"},
+    "R3.stage.recon.02": {"text": "Backup. Who's on the stairs? Two? Three?", "emotion": "neutral", "channel": "remote"},
+    "R3.stage.recon.03": {"text": "Extraction. Pick the route. Alley's short and watched. Roofs are long and empty.", "emotion": "neutral", "channel": "remote"},
+    "R3.acc.01": {"text": "Please. I can't sleep, I can't think. I'll do whatever you say.", "emotion": "fear"},
+    "R3.bark.seen.a": {"text": "You're spotted. Don't stop. I'll talk you through.", "emotion": "emphatic", "channel": "remote"},
+    "R3.close.01": {"text": "Nobody saw him. Good. That's the job. Here's your pay.", "emotion": "nod"},
+    "R3.close.02": {"text": "Good. Keep that list short and keep it real.", "emotion": "nod"},
+    "R3.close.03": {"text": "Funny. Answer it later.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Do you take it? And if you want a car, argue it. I'll tell you why you're wrong.",
+      "know": "You have three routes out of Northside: the alley, the rooftops and the canal road. You stay in the booth, your lines reach V in the ear, and the squad patrols the streets.",
+      "secret": "You still think of every client as someone's last chance.",
+      "wants": "V to accept the job, or to argue and be told why you are right.",
+      "idle": "chair",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "car", "kind": "honest"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    },
+    "g2": {
+      "asks": "Fifth question. Who will miss you?",
+      "know": "The client is inside. Whatever the result was, you ask the fifth question as a rule, and you ask it of yourself too.",
+      "secret": "You ask it of yourself every night.",
+      "wants": "V to answer, or to be silent.",
+      "idle": "lean",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "joke", "kind": "flatter"}],
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "brief",
+      "type": "play",
+      "label": "Rogue briefs the extraction in the booth",
+      "know": "V is in the Afterlife's private booth upstairs. You sit there and talk V through the four questions. You have a nervous accountant in a Northside drop house, and you want V to walk him out on foot.",
+      "wants": "V to take the extraction, on foot, with your voice in V's ear.",
+      "do": [
+        {"p": "pin", "at": "booth"},
+        {"p": "place", "at": "booth"},
+        {"p": "post", "id": "rogue-post", "at": "booth"}
+      ],
+      "script": [
+        {"when": "place:booth:arrived", "say": "R3.open.01"},
+        {"when": "line:R3.open.01:done", "say": "R3.open.02"},
+        {"when": "line:R3.open.02:done", "say": "R3.open.03"},
+        {"when": "line:R3.open.03:done", "gap": "g1"},
+        {"when": "gap:g1:car", "say": "R3.open.04"}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "recon"},
+        {"id": "car", "on": "event:gap:g1:car", "next": "car"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 2, "next": "no"}
+    },
+    {
+      "id": "recon",
+      "type": "play",
+      "label": "V reaches the Northside drop house",
+      "know": "V is on the way to the drop house in Northside. You talk V through the four questions over the ear: reach, backup and the route out. The accountant is inside, and he is afraid.",
+      "wants": "V to answer the questions and pick the way out.",
+      "do": [
+        {"p": "pin", "at": "drop-house"},
+        {"p": "place", "at": "drop-house"},
+        {"p": "cast", "id": "acc", "who": "nervous corporate accountant, hiding", "at": "drop-house", "archetype": "corporate"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "place:drop-house:arrived", "say": "R3.stage.recon.01"},
+        {"when": "line:R3.stage.recon.01:done", "say": "R3.stage.recon.02"},
+        {"when": "line:R3.stage.recon.02:done", "say": "R3.stage.recon.03"},
+        {"when": "cast:acc:arrived", "say": "R3.acc.01"}
+      ],
+      "choices": [{"id": "route", "on": "event:line:R3.stage.recon.03:done", "next": "extract"}],
+      "timeout": {"gameHours": 1, "next": "extract"}
+    },
+    {
+      "id": "extract",
+      "type": "play",
+      "label": "V walks the accountant to the Afterlife side door",
+      "know": "The accountant follows V on foot. Six contractors patrol the alley route. You are in V's ear, and you want the client alive at the side door. If the contractors spot V, the walk becomes a fight.",
+      "wants": "The client alive at the Afterlife side door, and V unseen if possible.",
+      "do": [
+        {"p": "place", "at": "side-door"},
+        {"p": "escortee", "id": "acc", "to": "side-door", "metres": 8},
+        {"p": "squad", "id": "guards", "at": "alley", "faction": "contractors", "count": 6, "hostile": false},
+        {"p": "unseen", "id": "sneak", "squad": "guards", "at": "side-door"},
+        {"p": "remote"}
+      ],
+      "script": [{"when": "unseen:sneak:spotted", "say": "R3.bark.seen.a", "bark": true}],
+      "choices": [
+        {"id": "spotted", "on": "event:unseen:sneak:spotted", "next": "door-loud"},
+        {"id": "clean", "on": "event:escortee:acc:arrived", "next": "door-clean"},
+        {"id": "lost", "on": "event:escortee:acc:lost", "next": "lost-client"}
+      ],
+      "timeout": {"gameHours": 2, "next": "lost-client"}
+    },
+    {
+      "id": "door-clean",
+      "type": "play",
+      "label": "Rogue pays and asks the fifth question",
+      "know": "The client went through the side door unseen. You pay V, and you have the fifth question ready. You ask it as a rule, not as a joke.",
+      "wants": "V to answer the fifth question, or to be silent.",
+      "do": [{"p": "place", "at": "side-door"}],
+      "script": [
+        {"when": "place:side-door:arrived", "gap": "g2"},
+        {"when": "gap:g2:honest", "say": "R3.close.02"},
+        {"when": "gap:g2:joke", "say": "R3.close.03"}
+      ],
+      "choices": [
+        {"id": "honest", "on": "event:gap:g2:honest", "next": "clean"},
+        {"id": "joke", "on": "event:gap:g2:joke", "next": "clean"}
+      ],
+      "timeout": {"gameHours": 1, "next": "clean"}
+    },
+    {
+      "id": "door-loud",
+      "type": "play",
+      "label": "Rogue pays and asks the fifth question, after a fight",
+      "know": "The client came out alive, after a fight. You pay V, and you have the fifth question ready. You ask it as a rule, not as a joke.",
+      "wants": "V to answer the fifth question, or to be silent.",
+      "do": [
+        {"p": "place", "at": "side-door"},
+        {"p": "escortee", "id": "acc", "to": "side-door", "metres": 8}
+      ],
+      "script": [
+        {"when": "place:side-door:arrived", "gap": "g2"},
+        {"when": "gap:g2:honest", "say": "R3.close.02"},
+        {"when": "gap:g2:joke", "say": "R3.close.03"}
+      ],
+      "choices": [
+        {"id": "honest", "on": "event:gap:g2:honest", "next": "loud"},
+        {"id": "joke", "on": "event:gap:g2:joke", "next": "loud"},
+        {"id": "lost", "on": "event:escortee:acc:lost", "next": "lost-client"}
+      ],
+      "timeout": {"gameHours": 1, "next": "loud"}
+    }
+  ],
+  "endings": {
+    "clean": {
+      "memory": "You got a nervous accountant out of Northside unseen, on a route Rogue's four questions picked.",
+      "bond": 60,
+      "script": [{"when": "ending:clean", "text": "R3.close.01", "image": "four-questions-door"}]
+    },
+    "loud": {
+      "memory": "You got a nervous accountant out of Northside after a fight, and he is alive.",
+      "bond": 45
+    },
+    "lost-client": {
+      "memory": "You brought back the story but not the man, and Rogue did not blame you.",
+      "bond": 10
+    },
+    "car": {
+      "memory": "You argued for a car against Rogue's orders and went by car anyway, and she said nothing.",
+      "bond": 30
+    },
+    "no": {
+      "memory": "You said no to Rogue's extraction, and she did it another way.",
+      "bond": 0
+    }
+  }
+}

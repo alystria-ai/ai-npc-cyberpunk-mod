@@ -1,0 +1,80 @@
+{
+  "format": 2,
+  "id": "viktor-hangout-fake-patients",
+  "kind": "hangout",
+  "character": "viktor-vektor",
+  "title": "Fake Patients",
+  "summary": "Three people in a taco truck queue each claim a symptom, and V has to pick the one who is lying.",
+  "requires": {"bond": 3, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true, "eddies": true},
+  "start": {
+    "channels": ["phone", "own"],
+    "chance": 1,
+    "bringUp": "Viktor invites V to the taco truck lot in the Glen, where three people in the queue claim one symptom each and only one of them is lying."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "runner", "know": "The faker is a runner dodging a debt."},
+      {"id": "honest", "know": "All three are honest, and the trap is trying to find a liar."},
+      {"id": "swapped", "know": "V plays the patient and Viktor guesses which of the three is the faker."}
+    ]
+  },
+  "places": {
+    "lot": {"name": "the taco truck lot in the Glen", "radius": 15},
+    "queue": {"name": "the queue at the taco truck", "radius": 6}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Who did you pick, and what made you doubt the other two?",
+      "know": "The three claims, and the true story.",
+      "secret": "He knew in the first minute.",
+      "wants": "V to say how he questioned them.",
+      "idle": "lean",
+      "tags": [{"id": "pick", "kind": "honest"}]
+    },
+    "g2": {
+      "asks": "Do you tell him you know?",
+      "know": "The twist: the faker is the sickest of the three and hides it because he cannot pay.",
+      "secret": "He has done it both ways and regrets both.",
+      "wants": "V's instinct on dignity.",
+      "idle": "lean",
+      "tags": [{"id": "tell", "kind": "yes"}, {"id": "keep", "kind": "no"}]
+    }
+  },
+  "stages": [
+    {
+      "id": "queue",
+      "type": "play",
+      "label": "V questions three people in the taco truck queue",
+      "know": "Viktor waits on the side of the lot while you talk to three people in the queue. Each claims a symptom. One of them is a faker, and the sickest of the three may be the one hiding it.",
+      "wants": "V to pick the faker and to see who needs help.",
+      "do": [
+        {"p": "pin", "at": "lot"},
+        {"p": "place", "at": "lot"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "lot", "carry": true},
+        {"p": "place", "at": "queue"},
+        {"p": "cast", "id": "q1", "who": "extra", "at": "queue", "archetype": "queuer"},
+        {"p": "cast", "id": "q2", "who": "extra", "at": "queue", "archetype": "queuer"},
+        {"p": "cast", "id": "q3", "who": "extra", "at": "queue", "archetype": "queuer"},
+        {"p": "npc-react", "id": "n1", "cast": "q1"},
+        {"p": "timer", "id": "reveal", "seconds": 180},
+        {"p": "pay", "id": "treat", "to": "q3", "amount": 400, "min": 200, "reason": "tab"}
+      ],
+      "script": [
+        {"when": "place:queue:arrived", "gap": "g1"},
+        {"when": "timer:reveal", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "named", "on": "tag", "kind": "honest", "means": "V names the faker and says how he questioned the other two.", "next": "done"},
+        {"id": "paid", "on": "event:pay:treat:paid", "next": "paid"}
+      ],
+      "timeout": {"gameHours": 2, "next": "done"}
+    }
+  ],
+  "endings": {
+    "done": {"memory": "You questioned three people in the Glen queue, picked one, and told Viktor how you knew.", "bond": 4},
+    "paid": {"memory": "You paid for a stranger's treatment at a taco truck in the Glen, and Viktor did not say a word about it.", "bond": 6}
+  }
+}

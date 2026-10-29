@@ -1,0 +1,204 @@
+{
+  "format": 2,
+  "id": "kerry-tomorrow-tokyo",
+  "character": "kerry-eurodyne",
+  "title": "Tomorrow in Tokyo",
+  "summary": "Kerry's kids are in Tokyo, where it is already tomorrow, and he asks you to keep your distance on his boat while he makes the call.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/side_quest/sq028_kerry_romance"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Kerry has a call to Tokyo tonight, where it is already tomorrow, and he is more nervous about it than about any stage. He wants you on his boat at the marina while he takes it, not listening and not leaving. Ask V to come at dusk, in your own words, and say that nobody will ask what is said."
+  },
+  "places": {
+    "pier": {"name": "the marina pier where Kerry's boat is moored", "radius": 20}
+  },
+  "images": {
+    "tokyo-marina": {"file": "images/tokyo-marina.png", "width": 1024, "height": 576},
+    "tokyo-pier": {"file": "images/tokyo-pier.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "K5.open.01": {"text": "Marina. Dusk. The boat.", "emotion": "neutral"},
+    "K5.open.02": {"text": "I've got a call. Tokyo. The kids. I need someone near.", "emotion": "sad"},
+    "K5.open.03": {"text": "Don't listen. Don't leave. Don't be weird about it.", "emotion": "emphatic"},
+    "K5.stage.deck.01": {"text": "There she is. Not much of a boat. Sit. Have a coffee.", "emotion": "neutral"},
+    "K5.stage.deck.02": {"text": "It's already tomorrow there. They're eating breakfast while I'm having dinner.", "emotion": "sad"},
+    "K5.stage.deck.03": {"text": "The boat's no yacht. I'm not a sailor. I just like rope on metal.", "emotion": "neutral"},
+    "K5.stage.call.01": {"text": "I'm going to the stern. Stay where I can see you.", "emotion": "nod", "gesture": "nod"},
+    "K5.stage.call.02": {"text": "If I come back angry, it's not you. It's the distance.", "emotion": "sad"},
+    "K5.bark.eavesdrop.a": {"text": "Hey. Too close. Give me my space.", "emotion": "angry"},
+    "K5.stage.after.01": {"text": "They asked about the guitars. That's all I'll say.", "emotion": "sad"},
+    "K5.stage.after.02": {"text": "Sorry. I'm not good at this. Sit down.", "emotion": "nod", "gesture": "nod"},
+    "K5.stage.after.03": {"text": "I'm better. Slightly. Sit.", "emotion": "nod", "gesture": "nod"},
+    "K5.stage.water.01": {"text": "Come sit on the pier. Feet over the edge. It's the only way to watch the lights come on.", "emotion": "nod", "gesture": "nod"},
+    "K5.stage.water.02": {"text": "The lights come on one by one. It's the closest I get to an audience that wants nothing.", "emotion": "sad"},
+    "K5.stage.water.03": {"text": "Thank you for staying close. And for not coming closer.", "emotion": "nod", "gesture": "nod"},
+    "K5.close.01": {"text": "That's a good thing to say. Say it, soon. Not to me. To them.", "emotion": "sad"},
+    "K5.close.02": {"text": "Quiet's fine. I've never been good at the words either.", "emotion": "nod", "gesture": "nod"},
+    "K5.close.03": {"text": "I'm angry, and I'll be sorry tomorrow. Go home.", "emotion": "angry"},
+    "K5.close.04": {"text": "Go home. Sleep. I'll text in the morning.", "emotion": "nod", "gesture": "nod"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you come? I'm more nervous about this than any stage.",
+      "know": "You are meeting Kerry at the marina pier at dusk, where his boat is moored. The call to Tokyo is private, and its content is never shown to you. You are to keep outside 5 metres and inside 15 metres while he is on the call.",
+      "secret": "He fears the call will be short.",
+      "wants": "V to come and stay quiet.",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 3600,
+      "resumeOn": ["place:pier:arrived"]
+    },
+    "g2": {
+      "asks": "Do you ever call someone far away and not know what to say? ... Yeah. Me every time.",
+      "know": "The call is soon and Kerry is nervous. You are both on the deck with coffee, and V is allowed to answer.",
+      "secret": "The kids don't always pick up.",
+      "wants": "V to calm him down.",
+      "idle": "stool",
+      "tags": [{"id": "ease", "kind": "honest"}, {"id": "quiet", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    },
+    "g3": {
+      "asks": "If you could say one thing to someone far away, what would it be? Say it to me.",
+      "know": "The call is over and its content was never shown to you. Kerry is quiet, and you may answer or stay silent.",
+      "secret": "He wants V to be the person he can say these things to.",
+      "wants": "V's honest answer.",
+      "idle": "stool",
+      "tags": [{"id": "answer", "kind": "honest"}, {"id": "silent", "kind": "no"}],
+      "resumeAfterSeconds": 480
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Kerry asks V to come to the marina",
+      "know": "You are at the marina pier at dusk, where Kerry's boat is moored. Kerry has asked you to stay near him while he takes a call to Tokyo.",
+      "wants": "V to come to the pier.",
+      "do": [
+        {"p": "pin", "at": "pier"},
+        {"p": "place", "at": "pier"},
+        {"p": "cast", "id": "kerry", "who": "self", "at": "pier", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K5.open.01"},
+        {"when": "line:K5.open.01:done", "say": "K5.open.02"},
+        {"when": "line:K5.open.02:done", "say": "K5.open.03"},
+        {"when": "line:K5.open.03:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "event:gap:g1:yes", "next": "deck"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 3, "next": "stood-up"}
+    },
+    {
+      "id": "deck",
+      "type": "play",
+      "label": "Kerry and V sit on the deck with coffee",
+      "know": "You are sitting on the deck of Kerry's boat with him. He is preparing for the call, drinking his coffee and checking the time.",
+      "wants": "V to sit with him until the call.",
+      "do": [
+        {"p": "place", "at": "pier"},
+        {"p": "seat"},
+        {"p": "together", "id": "deck-sit", "minutes": 10, "metres": 5, "seated": true, "at": "pier", "breakSeconds": 120}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K5.stage.deck.02"},
+        {"when": "line:K5.stage.deck.02:done", "gap": "g2"},
+        {"when": "place:pier:arrived", "say": "K5.stage.deck.01"},
+        {"when": "line:K5.stage.deck.01:done", "say": "K5.stage.deck.03"}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:together:deck-sit:done", "next": "call"},
+        {"id": "gone", "on": "event:together:deck-sit:broken", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    },
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Kerry takes the call at the stern, and V keeps their distance",
+      "know": "Kerry has gone to the stern of the boat to take his call to Tokyo. You must stay outside 5 metres and inside 15 metres for 10 game minutes. Coming closer ends the call.",
+      "wants": "V to stay in the ring and not listen.",
+      "do": [
+        {"p": "place", "at": "pier"},
+        {"p": "apart", "id": "ring", "at": "pier", "inner": 5, "outer": 15, "minutes": 10, "breakSeconds": 120}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K5.stage.call.01"},
+        {"when": "line:K5.stage.call.01:done", "say": "K5.stage.call.02"},
+        {"when": "apart:ring:near", "say": "K5.bark.eavesdrop.a"}
+      ],
+      "choices": [
+        {"id": "done", "on": "event:apart:ring:done", "next": "after"},
+        {"id": "near", "on": "event:apart:ring:near", "next": "eavesdrop"},
+        {"id": "broken", "on": "event:apart:ring:broken", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    },
+    {
+      "id": "after",
+      "type": "play",
+      "label": "Kerry comes back quiet and asks V a question",
+      "know": "The call is done and its content was never shown to you. Kerry is back beside you on the deck, quiet, and he asks what you would say to someone far away.",
+      "wants": "V's honest answer, or silence.",
+      "do": [
+        {"p": "place", "at": "pier"},
+        {"p": "seat"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "K5.stage.after.01", "image": "tokyo-marina"},
+        {"when": "line:K5.stage.after.01:done", "say": "K5.stage.after.03"},
+        {"when": "line:K5.stage.after.03:done", "say": "K5.stage.after.02"},
+        {"when": "line:K5.stage.after.02:done", "gap": "g3"},
+        {"when": "gap:g3:answer", "say": "K5.close.01"},
+        {"when": "gap:g3:silent", "say": "K5.close.02"}
+      ],
+      "choices": [
+        {"id": "answer", "on": "event:gap:g3:answer", "next": "water"},
+        {"id": "silent", "on": "event:gap:g3:silent", "next": "water"}
+      ],
+      "timeout": {"gameHours": 2, "next": "water"}
+    },
+    {
+      "id": "water",
+      "type": "play",
+      "label": "V and Kerry sit with feet over the pier",
+      "know": "You are sitting on the edge of the marina pier with Kerry, feet over the water, waiting for the lights to come on across the marina.",
+      "wants": "To watch the lights come on together.",
+      "do": [
+        {"p": "place", "at": "pier"},
+        {"p": "seat"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "K5.stage.water.02", "image": "tokyo-pier"},
+        {"when": "stage:enter", "say": "K5.stage.water.01"},
+        {"when": "line:K5.stage.water.01:done", "say": "K5.stage.water.03"}
+      ],
+      "timeout": {"gameHours": 1, "next": "after-call"}
+    }
+  ],
+  "endings": {
+    "after-call": {
+      "memory": "Kerry took a call from Tokyo at the stern of his boat while you kept your distance, and afterwards he asked you a question.",
+      "history": "He mentions the stern when he trusts V.",
+      "bond": 90,
+      "script": [{"when": "ending:after-call", "text": "K5.close.04"}]
+    },
+    "eavesdrop": {
+      "memory": "You came too close to Kerry's call from Tokyo, and he sent you off angry, saying he would be sorry tomorrow.",
+      "bond": 40,
+      "script": [{"when": "ending:eavesdrop", "text": "K5.close.03"}]
+    },
+    "stood-up": {
+      "memory": "You did not stay on Kerry's boat for the call, and he made it alone at the stern.",
+      "bond": -5
+    }
+  }
+}

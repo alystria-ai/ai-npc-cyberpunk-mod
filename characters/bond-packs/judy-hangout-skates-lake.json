@@ -1,0 +1,80 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "judy-hangout-skates-lake",
+  "character": "judy-alvarez",
+  "title": "Skates at the Lake",
+  "summary": "Judy has found her old rollerblades, they do not fit, and she is going to play street hockey at the Laguna Bend boat ramp anyway.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Judy has found her old rollerblades and is going to play street hockey by the Laguna Bend boat ramp with a can and two crates. Bring up, in your own way, that you want V to come and kick the can with her."
+  },
+  "places": {
+    "boat-ramp": {"name": "the empty car park by the Laguna Bend boat ramp", "radius": 30}
+  },
+  "lines": {
+    "JH4.invite.01": {"text": "Found my old rollerblades. They don't fit. I'm going anyway.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Were you a sports kid or a fighting kid?",
+      "know": "The shoot-out so far, the can and the two crates used as a goal.",
+      "wants": "V's answer.",
+      "idle": "lean",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "shootout",
+      "type": "play",
+      "label": "Judy and V play a shoot-out at the Laguna Bend boat ramp",
+      "know": "Judy cannot skate, so you are playing street hockey by the boat ramp. You kick a can into a goal made of two crates while she counts your kicks and laughs at her own commentary.",
+      "wants": "V to take shots with her at the crates.",
+      "do": [
+        {"p": "pin", "at": "boat-ramp"},
+        {"p": "place", "at": "boat-ramp"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "boat-ramp"},
+        {"p": "together", "id": "shootout", "minutes": 10, "metres": 3, "breakSeconds": 120, "at": "boat-ramp"},
+        {"p": "timer", "id": "shots-end", "seconds": 600, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JH4.invite.01"},
+        {"when": "timer:shots-end", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "played", "on": "event:together:shootout:done", "next": "played"},
+        {"id": "left", "on": "event:together:shootout:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "played": {
+      "memory": "You played street hockey with Judy at the Laguna Bend boat ramp, with no skates and a can for a puck.",
+      "bond": 6
+    },
+    "left": {
+      "memory": "You left Judy at the Laguna Bend boat ramp before the shoot-out was over.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "dusk", "know": "Dusk over the car park, and the light is going while you play.", "wants": "V's shots in the failing light.", "places": {"boat-ramp": "boat-ramp"}},
+      {"id": "rain", "know": "Rain on the car park, and the can keeps sliding away from both of you.", "wants": "V's shots in the rain.", "places": {"boat-ramp": "boat-ramp"}},
+      {"id": "local-kids", "know": "Two local kids have turned up and want to play too, and Judy is pretending she does not mind.", "wants": "V's pick of team.", "places": {"boat-ramp": "boat-ramp"}}
+    ]
+  }
+}

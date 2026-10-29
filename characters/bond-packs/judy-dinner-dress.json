@@ -3,7 +3,7 @@
   "id": "judy-dinner-dress",
   "character": "judy-alvarez",
   "title": "Dressed for Dinner",
-  "summary": "Judy has a dress she never wore and a dinner party with her Mox friends; she wants V's honest eye, and maybe V at the table.",
+  "summary": "Judy has a dress she never wore and a dinner party with her Mox friends, she wants V's honest eye, and maybe V at the table.",
   "requires": {
     "bond": 6,
     "questsFinished": [
@@ -17,7 +17,7 @@
   "start": {
     "channels": ["own", "phone", "holocall"],
     "chance": 0.35,
-    "bringUp": "You have a dinner party coming up and a dress you have never worn, and you are nervous about it, which annoys you. Bring it up in this reply, briefly, in your own way. If you and V are together, it is your evening; if not, you are in the city for a few days and want a friend's honest eye."
+    "bringUp": "You have a dinner party coming up and a dress you have never worn, and you are nervous about it, which annoys you. Bring it up in this reply, briefly, in your own way. If you and V are together, it is your evening, if not, you are in the city for a few days and want a friend's honest eye."
   },
   "stages": [
     {
@@ -52,7 +52,7 @@
     {
       "id": "dinner",
       "label": "She asks you to come to the dinner",
-      "know": "The dress is decided. The dinner at Lizzie's is in about an hour. Going alone means a table of Mox asking questions; going with V would make it easier, though you would never say it like that.",
+      "know": "The dress is decided. The dinner at Lizzie's is in about an hour. Going alone means a table of Mox asking questions, going with V would make it easier, though you would never say it like that.",
       "wants": "V to come to the dinner with you, as your plus-one or as moral support.",
       "say": {"en": "Dinner's in an hour. You could... come. As moral support. Or whatever."},
       "meet": {"where": "here", "inGameHours": 1},
@@ -76,6 +76,6 @@
   "endings": {
     "together": {"memory": "You wore the dress you had never worn to the Mox dinner at Lizzie's, and V came with you.", "bond": 70},
     "dress-only": {"memory": "V came over before the Mox dinner and told you what they really thought of your dress.", "bond": 40},
-    "missed": {"memory": "V could not make it before the Mox dinner at Lizzie's; you wore the dress anyway and had a great night.", "bond": -5}
+    "missed": {"memory": "V could not make it before the Mox dinner at Lizzie's, you wore the dress anyway and had a great night.", "bond": -5}
   }
 }

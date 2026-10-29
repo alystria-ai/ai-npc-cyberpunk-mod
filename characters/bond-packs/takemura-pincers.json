@@ -1,0 +1,178 @@
+{
+  "format": 2,
+  "id": "takemura-pincers",
+  "character": "takemura",
+  "title": "Pincers",
+  "summary": "Takemura walks V through the back lanes of Japantown naming every exit, then a thin teenager takes his notebook and runs, and V must catch him.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/main_quest/act_01/q113_rescuing_hanako"],
+    "notActive": ["quests/main_quest/act_01/q112", "quests/main_quest/act_01/q113"],
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true,
+    "facts": {"takemura-alive": true}
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "A guard who does not know the exits is only a man in a coat, and Takemura has decided to learn the back lanes of Japantown the way he once learned the Arasaka estate. He will walk you through them at dusk and name every door in a black notebook. He asks you to meet him at the start of the lanes and says so as if it were a small matter."
+  },
+  "places": {
+    "lanes": {"name": "the start of the back lanes in Japantown", "radius": 25},
+    "lane2": {"name": "the second back lane in Japantown", "radius": 12},
+    "stairs": {"name": "the quiet staircase at the end of the lane", "radius": 8},
+    "market": {"name": "the crowd at the market in Japantown", "radius": 25}
+  },
+  "images": {
+    "pincers-steps": {"file": "images/pincers-steps.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "T3.open.01": {"text": "Good evening. We will walk the lanes. I wish to learn each exit.", "emotion": "nod"},
+    "T3.open.02": {"text": "A lane has a front door, a back door, and a third door nobody tells you about.", "emotion": "emphatic"},
+    "T3.open.03": {"text": "Repeat each exit after me. Quietly. Walls listen.", "emotion": "nod"},
+    "T3.open.04": {"text": "Which exit would you take if I said now? Show me, do not tell me.", "emotion": "neutral"},
+    "T3.bark.snatch.a": {"text": "He took it. Left. The stairs.", "emotion": "angry"},
+    "T3.bark.snatch.b": {"text": "My notebook. Do not shout. Cut across.", "emotion": "emphatic"},
+    "T3.bark.chase.a": {"text": "He goes to the market. Cut across.", "emotion": "emphatic", "channel": "remote"},
+    "T3.bark.chase.b": {"text": "Left. The stairs. Do not shout.", "emotion": "emphatic", "channel": "remote"},
+    "T3.bark.caught.a": {"text": "Stand still. I am not going to hurt you.", "emotion": "nod"},
+    "T3.bark.caught.b": {"text": "Good. You found him.", "emotion": "happy"},
+    "T3.steps.01": {"text": "Sit. I am not angry. Where are you from?", "emotion": "neutral"},
+    "T3.close.01": {"text": "Caught, fed, and lectured. A good evening.", "emotion": "happy"},
+    "T3.close.02": {"text": "Return to your lane, boy. Do not come back.", "emotion": "neutral"},
+    "T3.close.03": {"text": "A good guard loses a notebook. A better guard has already memorised it.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which exit would you take if I said now? Show me.",
+      "know": "You have just walked two lanes with Takemura and you know their shape, each door and each stair.",
+      "secret": "The notebook is the one thing he would hate to lose, and he has not told you that.",
+      "wants": "You to move correctly.",
+      "idle": "takemura",
+      "resumeAfterSeconds": 60,
+      "resumeOn": ["place:stairs:arrived"]
+    },
+    "g2": {
+      "asks": "Where does he sleep tonight? Ask him in your way.",
+      "know": "The boy sits on the stairs with his silence and his body language, and he has said almost nothing.",
+      "secret": "He knows the boy comes from Chiba-11, the same kind of place he came from.",
+      "wants": "You to see the boy as a person.",
+      "idle": "lean",
+      "tags": [{"id": "scold", "kind": "no"}, {"id": "walk", "kind": "honest"}, {"id": "fed", "kind": "yes"}]
+    }
+  },
+  "stages": [
+    {
+      "id": "walk",
+      "type": "play",
+      "label": "Takemura walks V through the back lanes, naming every exit",
+      "know": "You are at the start of the back lanes in Japantown with Takemura. He will walk you through two lanes and name each exit, and he will have you repeat them quietly.",
+      "wants": "V to walk with him and repeat each exit.",
+      "do": [
+        {"p": "pin", "at": "lanes"},
+        {"p": "place", "at": "lanes"},
+        {"p": "cast", "id": "takemura", "who": "self", "at": "lanes", "carry": true},
+        {"p": "party"},
+        {"p": "place", "at": "lane2"},
+        {"p": "together", "id": "walk", "minutes": 10, "metres": 5, "breakSeconds": 90}
+      ],
+      "script": [
+        {"when": "place:lanes:arrived", "say": "T3.open.01"},
+        {"when": "line:T3.open.01:done", "say": "T3.open.02"},
+        {"when": "line:T3.open.02:done", "say": "T3.open.03"},
+        {"when": "line:T3.open.03:done", "say": "T3.open.04"},
+        {"when": "line:T3.open.04:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "walked", "on": "event:together:walk:done", "next": "snatch"},
+        {"id": "wandered", "on": "event:together:walk:broken", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    },
+    {
+      "id": "snatch",
+      "type": "play",
+      "label": "A teenager takes Takemura's notebook and runs",
+      "know": "A thin seventeen-year-old in an oversized jacket has taken Takemura's notebook and is running through the lanes. Takemura is already giving chase, and you can cut across before the boy reaches the crowd at the market.",
+      "wants": "V to catch the boy before he reaches the market.",
+      "do": [
+        {"p": "cast", "id": "boy", "who": "a thin seventeen-year-old in an oversized jacket", "at": "lane2"},
+        {"p": "runner", "id": "run", "route": ["lane2", "stairs", "market"], "caughtMetres": 3, "stoppedSeconds": 10},
+        {"p": "npc-react", "id": "boy-react", "cast": "boy"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T3.bark.snatch.a"},
+        {"when": "line:T3.bark.snatch.a:done", "say": "T3.bark.snatch.b"}
+      ],
+      "choices": [
+        {"id": "caught", "on": "event:runner:run:caught", "next": "steps"},
+        {"id": "lost", "on": "event:runner:run:lost", "next": "redraw"}
+      ],
+      "timeout": {"gameHours": 1, "next": "redraw"}
+    },
+    {
+      "id": "steps",
+      "type": "play",
+      "label": "Takemura sits the boy down on the stairs and asks where he is from",
+      "know": "The boy is caught and sitting on the stairs. Takemura does not punish him. He asks where he is from, and you can buy him a steamed bun and a drink or let them talk.",
+      "wants": "V to pick a tone with the boy.",
+      "do": [
+        {"p": "place", "at": "stairs"},
+        {"p": "cast", "id": "boy", "who": "the boy sitting on the stairs", "at": "stairs"},
+        {"p": "seat"},
+        {"p": "pay", "id": "bun", "to": "boy", "amount": 12, "min": 8, "reason": "tab"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T3.bark.caught.a"},
+        {"when": "line:T3.bark.caught.a:done", "say": "T3.bark.caught.b"},
+        {"when": "line:T3.bark.caught.b:done", "say": "T3.steps.01"},
+        {"when": "line:T3.steps.01:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:bun:paid", "next": "caught-fed"},
+        {"id": "scold", "on": "event:gap:g2:scold", "next": "caught"},
+        {"id": "walk", "on": "event:gap:g2:walk", "next": "caught"}
+      ],
+      "timeout": {"gameHours": 1, "next": "caught"}
+    },
+    {
+      "id": "redraw",
+      "type": "play",
+      "label": "Takemura sits on the wall and redraws the lanes from memory",
+      "know": "The boy got away into the crowd at the market. Takemura sits on the wall and tries to redraw the lanes from memory, and he is laughing quietly at himself.",
+      "wants": "V to correct him where he is wrong.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "redraw", "minutes": 3, "metres": 5, "seated": true, "breakSeconds": 60}
+      ],
+      "choices": [
+        {"id": "redrawn", "on": "event:together:redraw:done", "next": "lost"},
+        {"id": "gone", "on": "event:together:redraw:broken", "next": "lost"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost"}
+    }
+  ],
+  "endings": {
+    "caught-fed": {
+      "memory": "You and Takemura ran a thief down through Japantown, and you paid for a meal so that the boy ate before he was lectured.",
+      "history": "Takemura now calls you the second pincer.",
+      "bond": 65,
+      "script": [{"when": "ending:caught-fed", "text": "T3.close.01", "image": "pincers-steps"}]
+    },
+    "caught": {
+      "memory": "You and Takemura caught the thief in Japantown, and Takemura sent the boy back to his lane with a stern bow.",
+      "bond": 50,
+      "script": [{"when": "ending:caught", "say": "T3.close.02"}]
+    },
+    "lost": {
+      "memory": "The boy got away into the crowd at the market, and Takemura laughed quietly and redrew the lanes from memory.",
+      "bond": 35,
+      "script": [{"when": "ending:lost", "say": "T3.close.03"}]
+    },
+    "stood-up": {
+      "memory": "You never came to walk the lanes with Takemura.",
+      "bond": -5
+    }
+  }
+}

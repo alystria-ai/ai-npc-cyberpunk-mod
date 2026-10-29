@@ -1,0 +1,249 @@
+{
+  "format": 2,
+  "id": "river-until-dawn",
+  "character": "river-ward",
+  "title": "Until the Sun Comes Up",
+  "summary": "River needs you to hold a Badlands farmhouse until dawn for a nineteen-year-old witness the ring wants dead.",
+  "requires": {
+    "bond": 8,
+    "after": ["river-polite-distance"],
+    "questsFinished": ["quests/side_quest/sq029_sobchak_romance"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "The ring's youngest phone man wants out and will testify, and River promised him a safe place until dawn. He is bad at promises and needs a second gun. Bring it up as a favour, and do not joke about it."
+  },
+  "places": {
+    "meet": {"name": "the Heywood meeting place", "radius": 25},
+    "farm": {"name": "the Badlands farm outside the city", "radius": 25},
+    "porch": {"name": "the porch of the Badlands farmhouse", "radius": 25},
+    "cellar": {"name": "the cellar of the farmhouse", "radius": 8},
+    "door": {"name": "the farmhouse front door", "radius": 8},
+    "loft": {"name": "the barn loft", "radius": 8},
+    "yard": {"name": "the yard by the barn", "radius": 25},
+    "kitchen": {"name": "the farmhouse kitchen window", "radius": 8}
+  },
+  "images": {
+    "until-dawn-farmhouse": {"file": "images/until-dawn-farmhouse.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "RW5.open.01": {"text": "V. I need you for one night.", "emotion": "neutral", "channel": "holocall"},
+    "RW5.open.02": {"text": "A witness. Nineteen, scared, ready to talk about the ring.", "emotion": "emphatic", "channel": "holocall"},
+    "RW5.open.03": {"text": "I promised him a safe place until dawn. I'm bad at promises.", "emotion": "sad", "channel": "holocall"},
+    "RW5.open.04": {"text": "Can you stay up with me? All night. No guarantees.", "emotion": "neutral", "channel": "holocall"},
+    "RW5.open.05": {"text": "Farm outside the city. Pin's coming. Bring ammo, not coffee.", "emotion": "nod", "channel": "holocall"},
+    "RW5.s2.01": {"text": "I was late once. A kid waited at a window. I don't talk about it.", "emotion": "sad"},
+    "RW5.s2.02": {"text": "That's it. A house, a barn, a lot of dark.", "emotion": "neutral"},
+    "RW5.s3.02": {"text": "Cellar. Door shut. Nobody opens it but me.", "emotion": "emphatic"},
+    "RW5.s3.03": {"text": "Door, loft, or yard. Pick one. I'll cover the window.", "emotion": "neutral"},
+    "RW5.s3.04": {"text": "Which do you trust more, your aim or your ears?", "emotion": "neutral"},
+    "RW5.h1.01": {"text": "Car on the road. Three. Wait for the lights.", "emotion": "emphatic"},
+    "RW5.h1.03": {"text": "On foot, through the field. They're counting on the dark.", "emotion": "emphatic"},
+    "RW5.h1.04": {"text": "An hour to dawn. Hold.", "emotion": "nod"},
+    "RW5.h1.05": {"text": "Truck. Two heavies. Don't waste ammo on the truck.", "emotion": "angry"},
+    "RW5.h1.06": {"text": "Cellar! Cellar! Get down there!", "emotion": "fear"},
+    "RW5.h1.07": {"text": "Why did I take the first case? Want to hear it? I won't ask twice.", "emotion": "neutral"},
+    "RW5.bark.down.a": {"text": "One less. Keep your head down.", "emotion": "emphatic"},
+    "RW5.d.01": {"text": "Sun's up. We held. He's alive.", "emotion": "happy"},
+    "RW5.d.02": {"text": "He's here."},
+    "RW5.d.03": {"text": "Joss says I'm bad at being present. Tonight I was.", "emotion": "sad"},
+    "RW5.d.04": {"text": "What does being present look like to you?", "emotion": "neutral"},
+    "RW5.close.01": {"text": "We kept it. Thank you. For tonight.", "emotion": "happy"},
+    "RW5.close.02": {"text": "I'll call. Not today.", "emotion": "sad"},
+    "RW5.close.03": {"text": "It's fine. It's fine.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you stay up with me? All night.",
+      "know": "You know the case, the witness and the farm.",
+      "secret": "The promise you broke.",
+      "wants": "V to commit without being talked into it.",
+      "idle": "talk",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g2": {
+      "asks": "Which do you trust more, your aim or your ears?",
+      "know": "You know the three positions and their sightlines.",
+      "secret": "You think V should take the loft.",
+      "wants": "V to choose from knowledge.",
+      "idle": "talk",
+      "resumeAfterSeconds": 60
+    },
+    "g3": {
+      "asks": "Why did I take the first case? Want to hear it?",
+      "know": "You know nothing of your parents' case beyond the profile.",
+      "secret": "The ghost behind every case, whose name you do not say.",
+      "wants": "To say it quietly to someone who stays.",
+      "idle": "talk",
+      "resumeAfterSeconds": 30
+    },
+    "g4": {
+      "asks": "What does being present look like to you?",
+      "know": "You know how the night ended and Joss's complaint.",
+      "secret": "You are afraid you only learn this on nights like this.",
+      "wants": "V's idea of it.",
+      "idle": "talk",
+      "resumeAfterSeconds": 60
+    }
+  },
+  "calls": {
+    "night-call": {
+      "caller": "self",
+      "picture": "live",
+      "steps": [
+        {"say": "RW5.open.01"},
+        {"say": "RW5.open.02"},
+        {"say": "RW5.open.03"},
+        {"say": "RW5.open.04"},
+        {"gap": "g1"},
+        {"say": "RW5.open.05"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "River asks for one night",
+      "know": "You are calling V from the Heywood meeting place. You promised a witness a safe place until dawn, and you are bad at promises.",
+      "wants": "V to come to the Heywood meeting place and stay up all night.",
+      "do": [
+        {"p": "pin", "at": "meet"},
+        {"p": "place", "at": "meet"},
+        {"p": "call-in", "id": "ring", "call": "night-call", "ringSeconds": 30}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:meet:arrived", "next": "drive"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "declined"}
+      ],
+      "timeout": {"gameHours": 1, "next": "declined"}
+    },
+    {
+      "id": "drive",
+      "type": "play",
+      "label": "V drives River to the farm",
+      "know": "V is driving out of the city toward the Badlands farm, twenty-five game minutes away. River is in the passenger seat with the witness on his mind.",
+      "wants": "V to get to the farm before the light goes.",
+      "do": [
+        {"p": "ride", "to": "farm", "limitMinutes": 25}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW5.s2.01"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "prep"},
+        {"id": "timed-out", "on": "event:ride:timeout", "next": "left"},
+        {"id": "abandoned", "on": "event:ride:abandoned", "next": "left"}
+      ],
+      "timeout": {"gameHours": 2, "next": "left"}
+    },
+    {
+      "id": "prep",
+      "type": "play",
+      "label": "V picks a position at the farmhouse",
+      "know": "You are at the farmhouse. The witness is in the cellar, and you will take the kitchen window. V picks one of three positions, and you tell V the sightlines.",
+      "wants": "V to pick a position and tell you which one.",
+      "do": [
+        {"p": "place", "at": "door"},
+        {"p": "place", "at": "loft"},
+        {"p": "place", "at": "yard"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW5.s2.02"},
+        {"when": "line:RW5.s2.02:done", "say": "RW5.s3.02"},
+        {"when": "line:RW5.s3.02:done", "say": "RW5.s3.03"},
+        {"when": "line:RW5.s3.03:done", "say": "RW5.s3.04"},
+        {"when": "line:RW5.s3.04:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "door", "on": "event:place:door:arrived", "next": "hold"},
+        {"id": "loft", "on": "event:place:loft:arrived", "next": "hold"},
+        {"id": "yard", "on": "event:place:yard:arrived", "next": "hold"}
+      ],
+      "timeout": {"gameHours": 1, "next": "hold"}
+    },
+    {
+      "id": "hold",
+      "type": "play",
+      "label": "River holds the farm until dawn",
+      "know": "The ring is sending three attacks before dawn: a car of three on the road, four on foot through the field, then two heavies behind a stolen truck. The witness must still be alive at six.",
+      "wants": "V to hold the farm and keep the witness alive until the sun comes up.",
+      "do": [
+        {"p": "place", "at": "cellar"},
+        {"p": "cast", "id": "witness", "who": "witness", "at": "cellar"},
+        {"p": "hostage", "id": "witness", "at": "cellar", "cast": "witness"},
+        {"p": "post", "id": "kitchen-post", "at": "kitchen", "stance": "stand"},
+        {"p": "squad", "id": "hold", "at": "yard", "faction": "ring", "count": 3, "hostile": true, "waves": [{"after": 1200, "count": 4}, {"after": 2400, "count": 2}]},
+        {"p": "hold-until", "id": "dawn", "hour": 6, "squad": "hold", "witness": "witness"},
+        {"p": "timer", "id": "hour-five", "seconds": 3600, "clock": "game"},
+        {"p": "timer", "id": "dark", "seconds": 5400, "clock": "game"}
+      ],
+      "script": [
+        {"when": "squad:hold:spawned", "say": "RW5.h1.01"},
+        {"when": "squad:hold:wave1", "say": "RW5.h1.03"},
+        {"when": "squad:hold:wave2", "say": "RW5.h1.05"},
+        {"when": "timer:hour-five", "say": "RW5.h1.04"},
+        {"when": "hostage:witness:down", "say": "RW5.h1.06"},
+        {"when": "squad:hold:down", "say": "RW5.bark.down.a"},
+        {"when": "timer:dark", "say": "RW5.h1.07"},
+        {"when": "line:RW5.h1.07:done", "gap": "g3"}
+      ],
+      "choices": [
+        {"id": "dawn", "on": "event:hold-until:dawn:reached", "next": "sunrise"},
+        {"id": "dead", "on": "event:hostage:witness:dead", "next": "lost"},
+        {"id": "failed", "on": "event:hold-until:dawn:failed", "next": "lost"}
+      ],
+      "timeout": {"gameHours": 3, "next": "lost"}
+    },
+    {
+      "id": "sunrise",
+      "type": "play",
+      "label": "River and V on the porch at dawn",
+      "know": "The sun is up and the witness is alive. Han's car is on its way for him. You are sitting on the porch with V.",
+      "wants": "V to sit with you on the porch for a while.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "porch", "minutes": 10, "seated": true, "at": "porch"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW5.d.01"},
+        {"when": "stage:enter", "text": "RW5.d.02", "image": "until-dawn-farmhouse"},
+        {"when": "line:RW5.d.01:done", "say": "RW5.d.03"},
+        {"when": "line:RW5.d.03:done", "say": "RW5.d.04"},
+        {"when": "line:RW5.d.04:done", "gap": "g4"}
+      ],
+      "choices": [
+        {"id": "sat", "on": "event:together:porch:done", "next": "dawn"},
+        {"id": "left", "on": "event:together:porch:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "dawn"}
+    }
+  ],
+  "endings": {
+    "dawn": {
+      "memory": "You and River held a Badlands farmhouse until dawn for a witness, and his promise was kept.",
+      "history": "the farmhouse",
+      "bond": 85,
+      "script": [{"when": "ending:dawn", "say": "RW5.close.01"}]
+    },
+    "lost": {
+      "memory": "The witness did not live to see the sun come up, and River stopped texting you first.",
+      "bond": 20,
+      "script": [{"when": "ending:lost", "text": "RW5.close.02"}]
+    },
+    "left": {
+      "memory": "You left the Badlands farm before dawn, and River said it was fine.",
+      "bond": 0,
+      "script": [{"when": "ending:left", "say": "RW5.close.03"}]
+    },
+    "declined": {
+      "memory": "You said no to the farm, and River said he would work out another way to keep the witness safe.",
+      "bond": 0
+    }
+  }
+}

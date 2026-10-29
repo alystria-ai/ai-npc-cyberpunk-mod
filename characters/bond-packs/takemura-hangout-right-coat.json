@@ -1,0 +1,68 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "takemura-hangout-right-coat",
+  "character": "takemura",
+  "title": "The Right Coat",
+  "summary": "Takemura takes you to a tailor in Heywood's Wellsprings, where you pick him a coat from three while the tailor prices it absurdly.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/main_quest/act_01/q112_01_old_friend"],
+    "relationship": "any",
+    "invitations": true,
+    "facts": {"takemura-alive": true}
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Takemura says he has one coat, that a man with one coat is a man in trouble, and asks you to accompany him to a tailor."
+  },
+  "places": {
+    "spot": {"name": "the tailor boutique in Heywood's Wellsprings", "radius": 10}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which of the three would Saburo have approved?",
+      "know": "Three coats are on the rail, and the tailor has priced the one you like absurdly.",
+      "secret": "None of them.",
+      "wants": "V's taste.",
+      "idle": "takemura",
+      "resumeAfterSeconds": 40
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 1,
+    "stoodUp": -5,
+    "variations": [
+      {"id": "suit", "know": "The tailor has a suit on the rail in place of a coat.", "wants": "A suit that fits him."},
+      {"id": "summer-coat", "know": "The coats on the rail are light summer ones, and the weather is warm.", "wants": "A coat for the heat."},
+      {"id": "v-dressed", "know": "Takemura is choosing a coat for you this time.", "wants": "V to accept his choice."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "V and Takemura choose a coat at the tailor",
+      "know": "You are at a tailor boutique in Heywood's Wellsprings with Takemura. The tailor is ready to haggle, and Takemura is watching in silence.",
+      "wants": "V to pick a coat for him, and to haggle.",
+      "meet": {"where": "waypoint", "inGameHours": 2},
+      "do": [{"p": "place", "at": "spot"}],
+      "script": [{"when": "place:spot:arrived", "gap": "g1"}],
+      "choices": [
+        {"id": "met", "on": "meet:met", "next": "done"},
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"}
+      ]
+    }
+  ],
+  "endings": {
+    "done": {
+      "memory": "You went to a tailor in Heywood's Wellsprings with Takemura and helped him choose a coat from three, while he watched the price.",
+      "bond": 8
+    },
+    "stood-up": {
+      "memory": "You did not come to the tailor, and Takemura left with the one coat he has."
+    }
+  }
+}

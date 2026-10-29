@@ -1,0 +1,247 @@
+{
+  "format": 2,
+  "id": "jackie-the-bottle",
+  "character": "jackie-welles",
+  "title": "The Bottle",
+  "summary": "The night before the big job, Jackie wants to see Misty, call his mother, and sit on a Little China roof with you while a sealed bottle waits between you.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex", "quests/main_quest/prologue/q004_braindance"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie texts you late at night. The big job is close, he can't sleep, and he wants you at Misty's shop in Little China. He has a sealed bottle he has kept for a big win, and he doesn't plan to open it tonight."
+  },
+  "places": {
+    "shop": {"name": "Misty's Esoterica in Little China", "radius": 8},
+    "roof": {"name": "a Little China rooftop with a view of the bay", "radius": 12},
+    "corner": {"name": "the corner of V's lane in Little China", "radius": 10}
+  },
+  "lines": {
+    "JW6.open.01": {"text": "Tomorrow's the big one, hermano. I can't sleep.", "emotion": "happy"},
+    "JW6.open.02": {"text": "Misty's shop, nine tonight. Come say hi to my girl.", "emotion": "neutral"},
+    "JW6.open.03": {"text": "And bring nothing. I've got the bottle.", "emotion": "happy"},
+    "JW6.stage.shop.01": {"text": "Misty! This is V. V, this is the best thing in Night City.", "emotion": "happy"},
+    "JW6.stage.shop.02": {"text": "She reads the cards. I don't understand them. I just like how she's quiet over them.", "emotion": "nod"},
+    "JW6.stage.shop.04": {"text": "She gave me a pendant. Luck. I'm hanging it on the bike.", "emotion": "happy"},
+    "JW6.stage.call.01": {"text": "I gotta call Mama. Give me a minute, choom. Walk if you want.", "emotion": "neutral"},
+    "JW6.call.half.01": {"text": "Mama? Yeah, it's me. I ate. Of course I ate.", "emotion": "happy", "channel": "remote"},
+    "JW6.call.half.02": {"text": "A job. A good one. No, nothing dangerous. It's a gig, Mama, we've done a hundred.", "emotion": "emphatic", "channel": "remote"},
+    "JW6.call.half.03": {"text": "I love you too. Lock the door. I'll see you soon.", "emotion": "sad", "channel": "remote"},
+    "JW6.bark.call-end.a": {"text": "She says hello. She always says to be careful.", "emotion": "nod"},
+    "JW6.bark.call-end.b": {"text": "Lied badly. She knows. Moms always know.", "emotion": "shrug"},
+    "JW6.stage.roof.01": {"text": "Up here. Sit. Look at that bay. Tell me it isn't ours.", "emotion": "happy"},
+    "JW6.stage.roof.02": {"text": "The bottle. Sealed. Sacred. We open it when it's won.", "emotion": "emphatic"},
+    "JW6.stage.roof.03": {"text": "After this, a house for Mama. A lock on her door. Lights for Misty. The Afterlife.", "emotion": "happy"},
+    "JW6.stage.roof.04": {"text": "Yeah. That. We'll get it. Both of us.", "emotion": "nod"},
+    "JW6.stage.roof.05": {"text": "Promise me. We open this bottle together when we win.", "emotion": "emphatic"},
+    "JW6.close.01": {"text": "There. Deal. Big money, big bottle, big day.", "emotion": "happy"},
+    "JW6.close.02": {"text": "Maybe? I'll take maybe. I'll hold you to it anyway.", "emotion": "happy"},
+    "JW6.stage.home.01": {"text": "Walk me to the corner. See you at Dex's, hermano.", "emotion": "nod"},
+    "JW6.close.03": {"text": "Hey. Thanks for tonight. I mean it. Now go to sleep.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You coming? And if your head's busy, come anyway, we can be busy together.",
+      "know": "The plan for the evening is Misty's shop, a call to Mama, and a roof. Jackie is excited and a little wired, and says he is not afraid.",
+      "secret": "He wants V there more than the plan needs.",
+      "wants": "V to say yes.",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "short", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    },
+    "g2": {
+      "asks": "Does Misty seem worried to you? You're good at reading people.",
+      "know": "Misty pulled a card and put it face down. Jackie waves it away.",
+      "secret": "Misty's silence bothers him, and he is pretending it doesn't.",
+      "wants": "V to say it's fine.",
+      "idle": "jackie",
+      "tags": [{"id": "unease", "kind": "honest"}, {"id": "fine", "kind": "yes"}],
+      "resumeAfterSeconds": 300
+    },
+    "g3": {
+      "asks": "What's yours? What do you want out of all this, V? Say it out loud, I won't tell.",
+      "know": "V and Jackie sit on a Little China roof. The bottle stands unopened between them. It is night, and he is being open.",
+      "secret": "He is not afraid, and is quietly afraid anyway.",
+      "wants": "V's honest dream.",
+      "idle": "stool",
+      "tags": [{"id": "dream", "kind": "yes"}, {"id": "joke", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    },
+    "g4": {
+      "asks": "Promise? Swear on the bottle. I'll hold you to it.",
+      "know": "Jackie asks V to promise they will open the bottle together when they have won.",
+      "secret": "He believes it completely.",
+      "wants": "A promise.",
+      "idle": "jackie_hips",
+      "tags": [{"id": "promise", "kind": "yes"}, {"id": "maybe", "kind": "no"}],
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Jackie texts V to come to Misty's shop",
+      "know": "Jackie texted you late at night. He wants you at Misty's shop in Little China, and he says he is not afraid.",
+      "wants": "V to say yes and come to the shop.",
+      "do": [
+        {"p": "pin", "at": "shop"},
+        {"p": "place", "at": "shop"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "JW6.open.01"},
+        {"when": "line:JW6.open.01:done", "text": "JW6.open.02"},
+        {"when": "line:JW6.open.02:done", "text": "JW6.open.03"},
+        {"when": "line:JW6.open.03:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "came", "on": "event:place:shop:arrived", "next": "shop"},
+        {"id": "yes", "on": "event:gap:g1:yes", "next": "shop"},
+        {"id": "short", "on": "event:gap:g1:short", "next": "shop"}
+      ],
+      "timeout": {"gameHours": 3, "next": "stood-up"}
+    },
+    {
+      "id": "shop",
+      "type": "play",
+      "label": "V has tea with Misty at her shop",
+      "know": "You are at Misty's Esoterica in Little China. Misty is pouring tea and reading cards, and Jackie is hanging a pendant on his bike.",
+      "wants": "V to sit with Jackie and Misty.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "shop"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW6.stage.shop.01"},
+        {"when": "line:JW6.stage.shop.01:done", "say": "JW6.stage.shop.02"},
+        {"when": "line:JW6.stage.shop.02:done", "say": "JW6.stage.shop.04"},
+        {"when": "line:JW6.stage.shop.04:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "unease", "on": "event:gap:g2:unease", "next": "call"},
+        {"id": "fine", "on": "event:gap:g2:fine", "next": "call"}
+      ],
+      "timeout": {"gameHours": 0.1, "next": "call"}
+    },
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Jackie calls his mother outside the shop",
+      "know": "Outside the shop you hear only Jackie's half of the call. He is short, loud and loving with his mother, and his lie about the plan is not very good.",
+      "wants": "V to wait or to give him room.",
+      "do": [
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW6.stage.call.01"},
+        {"when": "line:JW6.stage.call.01:done", "say": "JW6.call.half.01"},
+        {"when": "line:JW6.call.half.01:done", "say": "JW6.call.half.02"},
+        {"when": "line:JW6.call.half.02:done", "say": "JW6.call.half.03"},
+        {"when": "line:JW6.call.half.03:done", "say": "JW6.bark.call-end.a"},
+        {"when": "line:JW6.bark.call-end.a:done", "say": "JW6.bark.call-end.b"}
+      ],
+      "choices": [
+        {"id": "stay", "on": "tag", "means": "V stays close and waits while Jackie talks to his mother", "kind": "yes", "next": "roof"},
+        {"id": "step-away", "on": "tag", "means": "V steps away to give Jackie room for his call", "kind": "honest", "next": "roof"}
+      ],
+      "timeout": {"gameHours": 1, "next": "roof"}
+    },
+    {
+      "id": "roof",
+      "type": "play",
+      "label": "V and Jackie sit on a Little China rooftop",
+      "know": "You are on a Little China rooftop with a view of the bay. The bottle stands unopened between you. Jackie lays out the plan: the Afterlife, a house, a lock on his mother's door.",
+      "wants": "V to sit with him and make a promise about the bottle.",
+      "do": [
+        {"p": "place", "at": "roof"},
+        {"p": "workspot", "id": "sit", "who": "self", "at": "roof", "key": "sit-ground", "fallback": "stool"},
+        {"p": "together", "id": "talk", "minutes": 20, "metres": 4, "breakSeconds": 300, "at": "roof"}
+      ],
+      "script": [
+        {"when": "place:roof:arrived", "say": "JW6.stage.roof.01"},
+        {"when": "line:JW6.stage.roof.01:done", "say": "JW6.stage.roof.02"},
+        {"when": "line:JW6.stage.roof.02:done", "say": "JW6.stage.roof.03"},
+        {"when": "line:JW6.stage.roof.03:done", "gap": "g3"},
+        {"when": "gap:g3:dream", "say": "JW6.stage.roof.04"},
+        {"when": "gap:g3:joke", "say": "JW6.stage.roof.04"},
+        {"when": "gap:g3:resume", "say": "JW6.stage.roof.04"},
+        {"when": "line:JW6.stage.roof.04:done", "say": "JW6.stage.roof.05"},
+        {"when": "line:JW6.stage.roof.05:done", "gap": "g4"},
+        {"when": "gap:g4:promise", "say": "JW6.close.01"},
+        {"when": "gap:g4:maybe", "say": "JW6.close.02"},
+        {"when": "gap:g4:resume", "say": "JW6.close.02"}
+      ],
+      "choices": [
+        {"id": "promise", "on": "event:line:JW6.close.01:done", "next": "walk-promise"},
+        {"id": "maybe", "on": "event:line:JW6.close.02:done", "next": "walk-maybe"}
+      ],
+      "timeout": {"gameHours": 2, "next": "roof-skipped"}
+    },
+    {
+      "id": "walk-promise",
+      "type": "play",
+      "label": "Jackie walks V back after the promise",
+      "know": "You promised Jackie you would open the bottle together when you have won. He is walking you back to the corner of your lane.",
+      "wants": "V to walk back with him.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "corner"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW6.stage.home.01"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:corner:arrived", "next": "home-promise"}
+      ],
+      "timeout": {"gameHours": 1, "next": "home-promise"}
+    },
+    {
+      "id": "walk-maybe",
+      "type": "play",
+      "label": "Jackie walks V back after a maybe",
+      "know": "You said maybe to the promise, and Jackie said he would hold you to it anyway. He is walking you back to the corner of your lane.",
+      "wants": "V to walk back with him.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "corner"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "JW6.stage.home.01"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:corner:arrived", "next": "home-maybe"}
+      ],
+      "timeout": {"gameHours": 1, "next": "home-maybe"}
+    }
+  ],
+  "endings": {
+    "home-promise": {
+      "memory": "The night before The Heist you sat on a roof in Little China with Jackie and a bottle he wouldn't open, and you promised to drink it with him when it was over.",
+      "bond": 90,
+      "script": [{"when": "ending:home-promise", "say": "JW6.close.03"}]
+    },
+    "home-maybe": {
+      "memory": "The night before The Heist you sat on a roof in Little China with Jackie. He asked you to promise to drink the bottle with him, and you said maybe, and he said he would hold you to it anyway.",
+      "bond": 80,
+      "script": [{"when": "ending:home-maybe", "say": "JW6.close.03"}]
+    },
+    "roof-skipped": {
+      "memory": "Jackie asked you up to a roof in Little China the night before The Heist, and you never sat with him to talk about the bottle.",
+      "bond": 40
+    },
+    "stood-up": {
+      "memory": "Jackie waited at Misty's shop in Little China the night before The Heist, and you never came.",
+      "bond": -5
+    },
+    "unfinished": {
+      "memory": "Jackie asked you to a roof in Little China, and you were going to sit with him, and then you had to go.",
+      "bond": 0
+    }
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

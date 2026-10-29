@@ -1,0 +1,160 @@
+{
+  "format": 2,
+  "id": "judy-claws-calling",
+  "character": "judy-alvarez",
+  "title": "The Claws Come Calling",
+  "summary": "After Pisces, the Tyger Claws come for Lizzie's, and Judy calls V to hold the street with her.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq026_04_hiromi"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "The Tyger Claws sent a message that they are coming to wreck Lizzie's tonight. Bring up, in your own way, that you are scared and you need V there, and that you are not leaving your workshop."
+  },
+  "places": {
+    "front": {"name": "the street in front of Lizzie's Bar", "radius": 25},
+    "door": {"name": "the inside of Lizzie's front door", "radius": 6},
+    "sign": {"name": "the sign over Lizzie's front door", "radius": 10}
+  },
+  "images": {
+    "claws-calling-aftermath": {"file": "images/claws-calling-aftermath.png", "width": 1024, "height": 576}
+  },
+  "calls": {
+    "claws-call": {
+      "caller": "self",
+      "picture": "live",
+      "steps": [
+        {"say": "J4.call.01"},
+        {"say": "J4.call.02"},
+        {"say": "J4.call.03"},
+        {"say": "J4.call.04"}
+      ]
+    }
+  },
+  "lines": {
+    "J4.call.01": {"text": "V. Susie got a message. The Claws are coming for Lizzie's. Tonight.", "emotion": "fear", "gesture": "judy", "channel": "holocall"},
+    "J4.call.02": {"text": "Because of the Clouds. Because of everything.", "emotion": "angry", "channel": "holocall"},
+    "J4.call.03": {"text": "I'm not leaving my workshop. I'm not much in a fight, but I'm not leaving.", "emotion": "emphatic", "channel": "holocall"},
+    "J4.call.04": {"text": "They're coming. Tonight. Please.", "emotion": "fear", "channel": "holocall"},
+    "J4.hold.01": {"text": "You came. Okay. Okay. Mox are inside, I'm at the door.", "emotion": "sad", "gesture": "post"},
+    "J4.hold.02": {"text": "I've got a pistol and a really bad attitude. That's the plan.", "emotion": "shrug"},
+    "J4.hold.03": {"text": "Car. That's them.", "emotion": "fear"},
+    "J4.hold.04": {"text": "On foot, three of them, from the corner!", "emotion": "fear"},
+    "J4.hold.06": {"text": "Car! They're getting out!", "emotion": "emphatic"},
+    "J4.hold.08": {"text": "That one's big. That one's really big.", "emotion": "fear"},
+    "J4.hold.09": {"text": "...Is it over? Tell me it's over.", "emotion": "fear"},
+    "J4.after.01": {"text": "Walk with me. I need to see it.", "emotion": "sad"},
+    "J4.after.02": {"text": "The sign's shot through. Rox is going to have a stroke.", "emotion": "happy", "gesture": "point"},
+    "J4.after.03": {"text": "It's not the Claws I'm mad at. Not really.", "emotion": "sad"},
+    "J4.after.04": {"text": "Thank you. I'm really bad at saying that, so I'm saying it twice. Thank you.", "emotion": "sad", "gesture": "calm_down__happy"},
+    "J4.end.01": {"text": "Susie says you drink free here. Forever. I said that's a lot of drinks.", "emotion": "happy"},
+    "J4.end.02": {"text": "Nobody died. That's the part I'm holding on to.", "emotion": "sad"},
+    "J4.end.03": {"text": "We're okay. The bar isn't. I'm okay. I'm fine. I'm okay.", "emotion": "sad"},
+    "J4.fix.01": {"text": "Repainting. Come hold a brush if you want.", "emotion": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Have you done this before? Hold a place?",
+      "know": "The Claws are coming in waves, the bar's layout, and two Mox fighters inside with you.",
+      "secret": "She is shaking, and her pistol is not loaded properly. She will say so if V asks.",
+      "wants": "V's calm.",
+      "idle": "judy",
+      "resumeAfterSeconds": 120
+    },
+    "g2": {
+      "asks": "Did I do the right thing at Pisces? You were there.",
+      "know": "What V chose at Pisces, from the save's facts.",
+      "secret": "Maiko, and how much it still hurts.",
+      "wants": "V's honest view.",
+      "idle": "judy",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Judy calls V: the Claws are coming for Lizzie's",
+      "know": "Susie Q got a message that the Tyger Claws are coming to Lizzie's tonight, because of the Clouds and because of what happened at Pisces.",
+      "wants": "V to get to Lizzie's street before the Claws do.",
+      "do": [
+        {"p": "pin", "at": "front"},
+        {"p": "place", "at": "front"},
+        {"p": "call-in", "id": "claws-ring", "call": "claws-call", "ringSeconds": 30, "text": true}
+      ],
+      "choices": [{"id": "came", "on": "event:place:front:arrived", "next": "hold"}],
+      "timeout": {"gameHours": 1, "next": "late-end"}
+    },
+    {
+      "id": "hold",
+      "type": "play",
+      "label": "Hold Lizzie's street against the Tyger Claws",
+      "know": "Three waves of Tyger Claws are coming: three on foot, three from a car, then two with a heavier fighter. Judy is inside the door with a pistol, and two Mox fighters are with you.",
+      "wants": "V to hold the street and keep the Claws out of Lizzie's.",
+      "do": [
+        {"p": "place", "at": "front"},
+        {"p": "cast", "id": "mox-a", "who": "Mox fighter", "at": "door", "archetype": "mox"},
+        {"p": "cast", "id": "mox-b", "who": "Mox fighter", "at": "door", "archetype": "mox"},
+        {"p": "post", "id": "judy-door", "at": "door", "stance": "stand", "fightFrom": true},
+        {"p": "squad", "id": "claws", "at": "front", "faction": "Tyger Claws", "count": 3, "hostile": true, "alertAfterSeconds": 120, "waves": [{"count": 3, "kind": "foot"}, {"count": 3, "kind": "car"}, {"count": 2, "kind": "heavy"}]}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J4.hold.01"},
+        {"when": "line:J4.hold.01:done", "gap": "g1"},
+        {"when": "gap:g1:resume", "say": "J4.hold.03"},
+        {"when": "squad:claws:wave1", "say": "J4.hold.04"},
+        {"when": "squad:claws:wave2", "say": "J4.hold.06"},
+        {"when": "squad:claws:wave3", "say": "J4.hold.08"},
+        {"when": "squad:claws:down", "say": "J4.hold.09"}
+      ],
+      "choices": [
+        {"id": "held", "on": "event:squad:claws:down", "next": "after"},
+        {"id": "wrecked", "on": "event:squad:claws:fled", "next": "wrecked"}
+      ],
+      "timeout": {"gameHours": 1, "next": "wrecked"}
+    },
+    {
+      "id": "after",
+      "type": "play",
+      "label": "Judy and V walk the street after the fight",
+      "know": "The Claws are gone. You and V are walking the street to look at the damage, and the workshop is fine.",
+      "wants": "V to walk with you and see what the Claws did.",
+      "do": [
+        {"p": "place", "at": "sign"},
+        {"p": "together", "id": "walk-front", "minutes": 10, "metres": 4, "breakSeconds": 60, "at": "front"},
+        {"p": "timer", "id": "after-5", "seconds": 300, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J4.after.01"},
+        {"when": "place:sign:arrived", "say": "J4.after.02"},
+        {"when": "timer:after-5", "say": "J4.after.03"},
+        {"when": "line:J4.after.03:done", "gap": "g2"},
+        {"when": "gap:g2:resume", "say": "J4.after.04"}
+      ],
+      "choices": [{"id": "walked", "on": "event:together:walk-front:done", "next": "held"}],
+      "timeout": {"gameHours": 1, "next": "held"}
+    }
+  ],
+  "endings": {
+    "held": {
+      "memory": "You held Lizzie's street with Judy against the Tyger Claws after Pisces, and nobody on your side was lost.",
+      "bond": 70,
+      "history": "The Mox at Lizzie's give you free drinks for life, since you held the street with Judy.",
+      "script": [{"when": "ending:held", "text": "J4.fix.01", "image": "claws-calling-aftermath"}]
+    },
+    "wrecked": {
+      "memory": "The Claws wrecked the front of Lizzie's even with you there. Nobody died, and Judy holds on to that.",
+      "bond": 40,
+      "script": [{"when": "ending:wrecked", "say": "J4.end.02"}]
+    },
+    "late-end": {
+      "memory": "The Claws hit Lizzie's while you were not there. Judy is fine, and she says so too often.",
+      "bond": -15,
+      "script": [{"when": "ending:late-end", "say": "J4.end.03"}]
+    }
+  }
+}

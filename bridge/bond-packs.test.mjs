@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {validatePack, packGate, shippedPacks, blockingPrefixes, PACK_LIMITS} from './bond-packs.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
+import {textProblem} from './reach-outs.mjs';
 
 const roster = new Set(JSON.parse(readFileSync(new URL('../characters/roster.json', import.meta.url), 'utf8')).map(row => row.key));
 const packs = shippedPacks();
@@ -18,8 +19,10 @@ function journal(rows, {complete = true} = {}) {
       state, lane: state === 'active' ? 'active' : 'history', observedAtMs: 1000, objectivesComplete: state !== 'active', objectives: []}))});
 }
 
-test('the three example packs and the pilot quest are shipped and pass the validator', () => {
-  assert.deepEqual(packs.map(({pack}) => pack.id).sort(), ['judy-dinner-dress', 'kerry-new-song', 'panam-sunset-coffee', 'panam-truck-ransom']);
+test('the example packs, the pilot quest and the converted quests and hangouts are shipped and pass the validator', () => {
+  const shipped = packs.map(({pack}) => pack.id);
+  for (const id of ['judy-dinner-dress', 'kerry-new-song', 'panam-sunset-coffee', 'panam-truck-ransom']) assert(shipped.includes(id), id);
+  assert.equal(new Set(shipped).size, shipped.length, 'pack ids are unique');
   for (const {file, pack} of packs) {
     assert.equal(file, `${pack.id}.json`);
     const result = validatePack(pack, {characters: roster});
@@ -87,4 +90,26 @@ test('the gate: open only after the character\'s story, at the bond, on one of t
   const partner = {...judy, requires: {...judy.requires, relationship: 'partner'}};
   assert.equal(packGate(partner, {...open, journalHistory: journal(judyDone)}).why, 'relationship');
   assert.equal(packGate(partner, {...open, romance: 'partner', journalHistory: journal(judyDone)}).open, true);
+});
+
+test('the converted quests and hangouts: ten story characters, six quests and five hangouts each, English text with no semicolon or dash, every after names a pack', () => {
+  const roleOf = {};
+  for (const {pack} of packs) (roleOf[pack.character] ??= {quest: 0, hangout: 0})[pack.kind === 'hangout' ? 'hangout' : 'quest']++;
+  for (const key of ['panam-palmer', 'judy-alvarez', 'johnny-silverhand', 'viktor-vektor', 'jackie-welles', 'rogue-amendiares', 'kerry-eurodyne', 'river-ward', 'takemura', 'songbird']) {
+    assert(roleOf[key].quest >= 6, `${key}: ${roleOf[key].quest} quests`);
+    assert.equal(roleOf[key].hangout, 5, `${key}: hangouts`);
+  }
+  const strings = (value, path, out) => {
+    if (typeof value === 'string') out.push([path, value]);
+    else if (Array.isArray(value)) value.forEach((item, index) => strings(item, `${path}[${index}]`, out));
+    else if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) strings(item, `${path}.${key}`, out);
+    return out;
+  };
+  for (const {file, pack} of packs) {
+    for (const id of pack.requires.after ?? []) assert(byId[id] && byId[id].character === pack.character, `${file}: after ${id}`);
+    for (const [path, value] of strings({summary: pack.summary, title: pack.title, lines: pack.lines, start: pack.start, endings: pack.endings, gaps: pack.gaps, stages: pack.stages.map(stage => ({know: stage.know, wants: stage.wants, label: stage.label}))}, '', [])) {
+      if (/.(id|on|when|next|kind|key|at|tag|bond|emotion)$/.test(path)) continue;
+      assert.equal(textProblem(value, 1000), null, `${file} ${path}`);
+    }
+  }
 });

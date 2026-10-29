@@ -1,0 +1,86 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "river-hangout-tin-can-alley",
+  "character": "river-ward",
+  "title": "Tin Can Alley",
+  "summary": "River takes you to a dry gulch off the Red Peaks road to knock down tin cans and keep score, and he is a bad loser about it.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "River invites V to shoot tin cans at a dry gulch off the Red Peaks road. He keeps score and asks for a rematch if V wins."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "pulley", "know": "The targets now run along a pulley rail, so each can moves while you aim at it, and the rail squeaks on every pass.", "wants": "A clean hit on a moving can."},
+      {"id": "dusk", "know": "The gulch is at dusk, lit by one lantern on the rock ledge, and the cans are hard to see past the shadows.", "wants": "A hit in bad light."},
+      {"id": "pistols", "know": "Only pistols are allowed today, and River has put his rifle back in the truck.", "wants": "A pistol score that beats his."}
+    ]
+  },
+  "places": {
+    "gulch": {"name": "the dry gulch off the Red Peaks road", "radius": 25}
+  },
+  "images": {
+    "tin-can-alley": {"file": "images/tin-can-alley.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "RWH1.inv": {"text": "Dry gulch off the Red Peaks road. Tin cans, two guns, one bad loser. Me.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Worst shot you ever took?",
+      "know": "You have finished round one at the gulch, and you know your score so far. River is watching you from the rail.",
+      "secret": "His worst shot was a case he could not close.",
+      "wants": "A story from V.",
+      "idle": "lean",
+      "resumeAfterSeconds": 120
+    }
+  },
+  "stages": [
+    {
+      "id": "rounds",
+      "type": "play",
+      "label": "River and V shoot tin cans at the gulch",
+      "know": "You are at the dry gulch off the Red Peaks road with eight tin cans on the rail and two guns. You are shooting for score, and River is keeping count.",
+      "wants": "V to knock the cans down and tell River a story.",
+      "do": [
+        {"p": "cast", "id": "river", "who": "self", "at": "gulch", "carry": true},
+        {"p": "place", "at": "gulch"},
+        {"p": "squad", "id": "targets", "at": "gulch", "faction": "scav", "count": 8, "hostile": false},
+        {"p": "timer", "id": "round-one", "seconds": 30},
+        {"p": "timer", "id": "round-two", "seconds": 90}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RWH1.inv", "image": "tin-can-alley"},
+        {"when": "timer:round-one", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "all-down", "on": "event:squad:targets:down", "next": "all-down"},
+        {"id": "time-up", "on": "event:timer:round-two", "next": "some-down"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "all-down": {
+      "memory": "You knocked down all eight cans in the dry gulch off the Red Peaks road, and River said he would get you next time.",
+      "bond": 8
+    },
+    "some-down": {
+      "memory": "You knocked down some of the cans in the dry gulch, and River kept score with a bad loser's grin.",
+      "bond": 4
+    },
+    "stood-up": {
+      "memory": "You never came to the dry gulch, and River shot the cans alone."
+    }
+  }
+}

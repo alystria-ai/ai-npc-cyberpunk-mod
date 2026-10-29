@@ -1,0 +1,81 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "kerry-hangout-garden-party-crashers",
+  "character": "kerry-eurodyne",
+  "title": "Garden Party Crashers",
+  "summary": "Kerry has talked his way into a neighbour's garden party in North Oak as your cousin, and asks you to commit to the story while the host watches for famous faces.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/side_quest/sq011_kerry"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "Kerry wants to crash a neighbour's garden party in North Oak as plus-ones, and needs V to be his cousin. Ask V to come and say they are the cousin."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "costume-party", "know": "The garden party in North Oak is a costume party, and Kerry is dressed as someone you cannot quite place. The host still watches for famous faces.", "wants": "To keep the cousin story while everyone is in costume."},
+      {"id": "charity-gala", "know": "The garden party in North Oak is a charity gala with a donation table, and the host is raising money from the guests. Kerry is trying not to look like a donor.", "wants": "To keep the cousin story at the donation table."},
+      {"id": "wedding", "know": "The garden party in North Oak is a wedding reception, and the guests have been told that you and Kerry are with the other side of the family.", "wants": "To keep the cousin story for the whole reception."}
+    ]
+  },
+  "places": {
+    "garden": {"name": "the back garden of a neighbour's party in North Oak", "radius": 25}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What are we? Cousins? Business partners? Tell the next one the story.",
+      "know": "You have crashed a neighbour's garden party in North Oak with Kerry, and the host recognizes famous faces. A guest by the drinks table has just come over to talk to you.",
+      "secret": "He has been to this house before and was bored.",
+      "wants": "V to commit to a story.",
+      "idle": "kerry",
+      "tags": [{"id": "cousin", "kind": "yes"}, {"id": "vague", "kind": "no"}],
+      "resumeAfterSeconds": 900
+    }
+  },
+  "stages": [
+    {
+      "id": "party",
+      "type": "play",
+      "label": "Kerry and V mingle at a North Oak garden party",
+      "know": "You are in the back garden of a neighbour's party in North Oak, where you are not invited. Kerry has a drink in his hand, and the host is watching for famous faces.",
+      "wants": "V to keep the cover story and stay away from the host.",
+      "do": [
+        {"p": "cast", "id": "kerry", "who": "self", "at": "garden", "carry": true},
+        {"p": "place", "at": "garden"},
+        {"p": "cast", "id": "host", "who": "the host, who recognizes famous faces", "at": "garden"},
+        {"p": "cast", "id": "guest", "who": "a guest by the drinks table", "at": "garden"}
+      ],
+      "script": [
+        {"when": "cast:guest:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "in-story", "on": "event:gap:g1:cousin", "next": "in-story"},
+        {"id": "dodge", "on": "event:gap:g1:vague", "next": "dodge"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "in-story": {
+      "memory": "You committed to the cousin story at a North Oak garden party and kept it all night.",
+      "bond": 10
+    },
+    "dodge": {
+      "memory": "You dodged Kerry's question about who you were at a North Oak garden party, and you left early.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You did not make it to the North Oak garden party, and Kerry crashed it alone.",
+      "bond": 0
+    }
+  }
+}

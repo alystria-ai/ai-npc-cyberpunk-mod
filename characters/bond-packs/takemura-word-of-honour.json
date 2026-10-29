@@ -1,0 +1,258 @@
+{
+  "format": 2,
+  "id": "takemura-word-of-honour",
+  "character": "takemura",
+  "title": "Word of Honour",
+  "summary": "A frightened security clerk needs to leave Night City, Takemura gave his word, and V is asked to be his second on the walk to the pier.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/main_quest/act_01/q113_rescuing_hanako"],
+    "notActive": ["quests/main_quest/act_01/q112", "quests/main_quest/act_01/q113"],
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true,
+    "facts": {"takemura-alive": true}
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "live",
+      "text": "T4.call.text",
+      "onHangUp": "call:ring:hung-up",
+      "steps": [
+        {"say": "T4.open.01"},
+        {"say": "T4.open.02"},
+        {"say": "T4.open.03"},
+        {"say": "T4.open.04"},
+        {"gap": "g1"},
+        {"say": "T4.open.05"},
+        {"say": "T4.open.06"}
+      ]
+    }
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "Takemura gave his word to a clerk who wants to leave the city, and he cannot move a frightened man through three districts and still watch the rear. He calls you on a formal holocall, asks you to be his second, and waits for your answer before he says anything else."
+  },
+  "places": {
+    "teashop": {"name": "the tea shop in Japantown", "radius": 8},
+    "leg1": {"name": "the Charter Hill street on the way to the pier", "radius": 25},
+    "leg2": {"name": "the Kabuki street on the way to the pier", "radius": 25},
+    "pier": {"name": "the pier at the Arasaka Waterfront", "radius": 25}
+  },
+  "images": {
+    "word-of-honour-pier": {"file": "images/word-of-honour-pier.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "T4.call.text": {"text": "I will wait at the tea shop one hour."},
+    "T4.open.01": {"text": "V. This is Goro Takemura. I request your time.", "emotion": "neutral", "channel": "holocall"},
+    "T4.open.02": {"text": "A man asked for help to leave the city. I gave my word.", "emotion": "emphatic", "channel": "holocall"},
+    "T4.open.03": {"text": "He is frightened. I cannot move him and watch the rear.", "emotion": "sad", "channel": "holocall"},
+    "T4.open.04": {"text": "Will you be my second? Consider what a word costs before you answer.", "emotion": "neutral", "channel": "holocall"},
+    "T4.open.05": {"text": "The tea shop in Japantown. One hour. Come unarmed to the door.", "emotion": "nod", "channel": "holocall"},
+    "T4.open.06": {"text": "Thank you. I do not say it often.", "emotion": "happy", "channel": "holocall"},
+    "T4.s2.01": {"text": "This is V. My second. You may speak freely.", "emotion": "nod"},
+    "T4.s2.03": {"text": "A man's baggage is his own affair when I have given my word.", "emotion": "nod"},
+    "T4.s3.01": {"text": "Slow. Wait. Check twice. Then move.", "emotion": "emphatic"},
+    "T4.s3.02": {"text": "Stop. Counting. Three seconds. Go.", "emotion": "emphatic"},
+    "T4.s3.03": {"text": "Second leg. He is breathing too fast. Breathe with me.", "emotion": "nod"},
+    "T4.s3.05": {"text": "You carry a suitcase. Nothing else. Walk.", "emotion": "emphatic"},
+    "T4.s3.06": {"text": "Push, wait, or rest? Decide as a second.", "emotion": "neutral"},
+    "T4.s3.07": {"text": "Hold. Do not move.", "emotion": "neutral"},
+    "T4.s4.02": {"text": "My word has carried heavier men.", "emotion": "emphatic"},
+    "T4.s4.03": {"text": "Pay him or persuade him, V. I will watch the rear.", "emotion": "nod"},
+    "T4.s4.05": {"text": "A word is a door you cannot close behind you.", "emotion": "sad"},
+    "T4.s4.06": {"text": "What is the heaviest promise you have kept?", "emotion": "neutral"},
+    "T4.bark.arrive.a": {"text": "Quiet. We are close.", "emotion": "nod"},
+    "T4.bark.arrive.b": {"text": "Good pace. Do not rush the next corner.", "emotion": "nod"},
+    "T4.bark.down.a": {"text": "That was not my method. It will do.", "emotion": "shrug"},
+    "T4.bark.down.b": {"text": "They will wake with headaches. Move.", "emotion": "emphatic"},
+    "T4.bark.unseen.a": {"text": "Good. They did not see us.", "emotion": "nod"},
+    "T4.bark.unseen.b": {"text": "Patience. It is the whole art.", "emotion": "emphatic"},
+    "T4.close.01": {"text": "The boat leaves. He is gone. You were the right second.", "emotion": "happy"},
+    "T4.close.02": {"text": "He lives. I am in your debt. This costs me.", "emotion": "nod"},
+    "T4.close.03": {"text": "He was taken. This is my failure, not yours. Do not argue.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Will you be my second?",
+      "know": "Takemura is on a holocall with a plain wall and a cup of tea behind him. A clerk is waiting for a route through three districts to the pier.",
+      "secret": "He has never asked anyone to be his second before.",
+      "wants": "A considered answer, not a quick yes.",
+      "idle": "takemura",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    },
+    "g2": {
+      "asks": "Push, wait, or rest?",
+      "know": "The clerk has broken down in the street, and a patrol of corporate contractors is somewhere ahead of you.",
+      "secret": "He would wait, and he has already decided that he will.",
+      "wants": "Your decision as a second.",
+      "idle": "bodyguard_front",
+      "tags": [{"id": "push", "kind": "no"}, {"id": "wait", "kind": "honest"}, {"id": "rest", "kind": "yes"}],
+      "resumeAfterSeconds": 60
+    },
+    "g3": {
+      "asks": "What is the heaviest promise you have kept?",
+      "know": "The clerk is on the boat and the harbour is quiet behind you.",
+      "secret": "His answer is Saburo, and he lost that promise to protect him.",
+      "wants": "To hear your answer.",
+      "idle": "bodyguard_back",
+      "resumeAfterSeconds": 45
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Takemura calls V and asks them to be his second",
+      "know": "Takemura calls on a formal holocall with a plain wall and a cup of tea behind him. A clerk who knows him only by reputation asked him for help to leave the city, and he gave his word. He wants you as his second and will hang up after he has asked.",
+      "wants": "V to decide whether to be his second.",
+      "do": [{"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "teashop"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "declined"},
+        {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "hung-up"},
+        {"id": "missed", "on": "event:call:ring:missed", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    },
+    {
+      "id": "teashop",
+      "type": "play",
+      "label": "V meets the clerk at the tea shop",
+      "know": "You are at the tea shop in Japantown with Takemura at a back table. The clerk sits beside him with a suitcase on his knees, and Takemura introduces you as his second.",
+      "wants": "V to walk the clerk out of Japantown.",
+      "do": [
+        {"p": "pin", "at": "teashop"},
+        {"p": "place", "at": "teashop"},
+        {"p": "cast", "id": "takemura", "who": "self", "at": "teashop", "carry": true},
+        {"p": "cast", "id": "clerk", "who": "a frightened clerk with a suitcase", "at": "teashop", "carry": true},
+        {"p": "party"}
+      ],
+      "script": [
+        {"when": "place:teashop:arrived", "say": "T4.s2.01"},
+        {"when": "line:T4.s2.01:done", "say": "T4.s2.03"}
+      ],
+      "choices": [{"id": "walk", "on": "event:line:T4.s2.03:done", "next": "walk"}],
+      "timeout": {"gameHours": 1, "next": "walk"}
+    },
+    {
+      "id": "walk",
+      "type": "play",
+      "label": "Takemura walks V and the clerk across three districts",
+      "know": "You are walking the clerk from Japantown to Charter Hill and on to Kabuki, with two relaxed corporate patrols on the way. Takemura moves slowly and checks twice before each street.",
+      "wants": "V to get the clerk to the pier without being seen.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "leg1"},
+        {"p": "squad", "id": "patrol", "at": "leg1", "faction": "corporate", "count": 3, "hostile": false},
+        {"p": "squad", "id": "patrol2", "at": "leg2", "faction": "corporate", "count": 2, "hostile": false},
+        {"p": "unseen", "id": "sneak", "squad": "patrol", "at": "leg2"},
+        {"p": "place", "at": "leg2"},
+        {"p": "timer", "id": "breath", "seconds": 45}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T4.s3.01"},
+        {"when": "place:leg1:arrived", "say": "T4.bark.arrive.a"},
+        {"when": "place:leg2:arrived", "say": "T4.s3.03"},
+        {"when": "unseen:sneak:spotted", "say": "T4.s3.02"},
+        {"when": "squad:patrol:hostile", "say": "T4.s3.07"},
+        {"when": "squad:patrol:down", "say": "T4.bark.down.a"},
+        {"when": "line:T4.bark.down.a:done", "say": "T4.bark.down.b"},
+        {"when": "unseen:sneak:reached", "say": "T4.bark.unseen.a"},
+        {"when": "line:T4.bark.unseen.a:done", "say": "T4.bark.unseen.b"},
+        {"when": "timer:breath", "say": "T4.s3.05"},
+        {"when": "line:T4.s3.05:done", "say": "T4.s3.06"},
+        {"when": "line:T4.s3.06:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "quiet", "on": "event:unseen:sneak:reached", "next": "pier"},
+        {"id": "arrived", "on": "event:place:leg2:arrived", "next": "pier"},
+        {"id": "fought", "on": "event:squad:patrol:down", "next": "pier-fight"},
+        {"id": "pushed", "on": "event:gap:g2:push", "next": "lost-him"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost-him"}
+    },
+    {
+      "id": "pier",
+      "type": "play",
+      "label": "V pays the captain so the clerk can board",
+      "know": "The captain of a small ferry at the Arasaka Waterfront wants 1,500 eddies up front. Takemura has offered his word, and the captain has refused it.",
+      "wants": "V to pay, persuade, or pull rank so the clerk boards.",
+      "do": [
+        {"p": "place", "at": "pier"},
+        {"p": "cast", "id": "captain", "who": "the captain of a small ferry with his arms crossed", "at": "pier"},
+        {"p": "npc-react", "id": "react", "cast": "captain"},
+        {"p": "pay", "id": "fare", "to": "captain", "amount": 1500, "min": 1000, "reason": "tab"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "T4.s4.02"},
+        {"when": "line:T4.s4.02:done", "say": "T4.s4.03"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:fare:paid", "next": "after"},
+        {"id": "obeyed", "on": "event:npc:react:obey", "next": "after"},
+        {"id": "brawl", "on": "event:npc:react:brawl", "next": "pier-fight"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost-him"}
+    },
+    {
+      "id": "pier-fight",
+      "type": "play",
+      "label": "The clerk boards after a fight on the pier",
+      "know": "The captain has been dealt with, and the clerk is boarding the boat with a patrol somewhere behind you.",
+      "wants": "V to get the clerk onto the boat.",
+      "do": [{"p": "place", "at": "pier"}],
+      "choices": [{"id": "boarded", "on": "event:place:pier:arrived", "next": "delivered-fight"}],
+      "timeout": {"gameHours": 0.5, "next": "delivered-fight"}
+    },
+    {
+      "id": "after",
+      "type": "play",
+      "label": "Takemura explains a word on the pier as the boat leaves",
+      "know": "The boat has left with the clerk on it, and Takemura stands at the end of the pier with his back to you. He is about to tell you what a word is.",
+      "wants": "V to hear what a word is.",
+      "do": [{"p": "place", "at": "pier"}],
+      "script": [
+        {"when": "stage:enter", "say": "T4.s4.05"},
+        {"when": "line:T4.s4.05:done", "say": "T4.s4.06"},
+        {"when": "line:T4.s4.06:done", "gap": "g3"}
+      ],
+      "choices": [{"id": "answered", "on": "event:gap:g3:resume", "next": "delivered"}],
+      "timeout": {"gameHours": 1, "next": "delivered"}
+    }
+  ],
+  "endings": {
+    "delivered": {
+      "memory": "You and Takemura walked a frightened man across three districts and onto a boat without a shot.",
+      "history": "Takemura remembers the pier as the day you were the right second.",
+      "bond": 80,
+      "script": [{"when": "ending:delivered", "text": "T4.close.01", "image": "word-of-honour-pier"}]
+    },
+    "delivered-fight": {
+      "memory": "You and Takemura got a frightened man onto a boat after a fight, with a patrol behind you.",
+      "bond": 65,
+      "script": [{"when": "ending:delivered-fight", "say": "T4.close.02"}]
+    },
+    "lost-him": {
+      "memory": "The clerk was taken before he reached the boat, and Takemura said the failure was his, not yours.",
+      "bond": 25,
+      "script": [{"when": "ending:lost-him", "say": "T4.close.03"}]
+    },
+    "declined": {
+      "memory": "You declined to be Takemura's second, and the call ended with his request unanswered.",
+      "bond": 0
+    },
+    "hung-up": {
+      "memory": "You hung up on Takemura before he finished his request for a second.",
+      "bond": -5,
+      "script": [{"when": "ending:hung-up", "text": "T4.call.text"}]
+    },
+    "stood-up": {
+      "memory": "You never came to the tea shop, and Takemura waited there alone.",
+      "bond": -5
+    }
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "format": 2,
+  "id": "kerry-first-string",
+  "character": "kerry-eurodyne",
+  "title": "First String",
+  "summary": "Kerry's first guitar, with his initials cut into the headstock, vanished in the bad years, and he asks you to look for it with him.",
+  "requires": {
+    "bond": 10,
+    "after": ["kerry-tomorrow-tokyo"],
+    "questsFinished": ["quests/side_quest/sq028_kerry_romance"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Kerry lost his first guitar in the bad years, a cheap one with his initials cut into the headstock, and he has never looked for it. He cannot stand to learn it is gone, and he does not want to look alone. Ask V to help in your own words, and say that you will tell him straight."
+  },
+  "places": {
+    "underpass": {"name": "the Metro underpass in Watson", "radius": 20},
+    "entrance": {"name": "the entrance of the Metro underpass in Watson", "radius": 10}
+  },
+  "images": {
+    "first-string-pawn": {"file": "images/first-string-pawn.png", "width": 1024, "height": 576},
+    "first-string-headstock": {"file": "images/first-string-headstock.png", "width": 1024, "height": 576},
+    "first-string-case": {"file": "images/first-string-case.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "K6.open.01": {"text": "I want you to find something. My first guitar.", "emotion": "neutral"},
+    "K6.open.02": {"text": "Cheap, scratched, my initials on the headstock. It vanished in the bad years.", "emotion": "sad"},
+    "K6.open.03": {"text": "I never looked. I can't stand the idea it's gone. And I can't stand finding it alone.", "emotion": "sad"},
+    "K6.stage.leads.01": {"text": "Is it in there? Tell me what you see.", "emotion": "neutral"},
+    "K6.stage.underpass.01": {"text": "There. That's the headstock. ... That's my K.", "emotion": "sad"},
+    "K6.stage.underpass.02": {"text": "Don't go near. Let me hear it from here.", "emotion": "emphatic", "gesture": "lean"},
+    "K6.stage.underpass.03": {"text": "He's not good. He's a kid with a cheap guitar. It's perfect.", "emotion": "sad"},
+    "K6.bark.buy": {"text": "Whatever he asks. Pay it.", "emotion": "emphatic"},
+    "K6.close.01": {"text": "Leave it. All I needed to know is that it still gets played.", "emotion": "nod", "gesture": "nod"},
+    "K6.close.02": {"text": "Alright. Buy it. Then I'll give it back. Don't ask me why.", "emotion": "shrug"},
+    "K6.close.03": {"text": "Tell him. Let him look at me. I can take a kid looking.", "emotion": "emphatic"},
+    "K6.stage.walk.01": {"text": "Walk with me. I need to put my feet on something that moves.", "emotion": "neutral"},
+    "K6.close.04": {"text": "That's the nicest thing anyone's said to me in a year. Don't tell anyone.", "emotion": "happy"},
+    "K6.close.05": {"text": "Honest. Good. That's why I trust you.", "emotion": "nod", "gesture": "nod"},
+    "K6.close.06": {"text": "You gave me a reason to stop looking. That's a gift.", "emotion": "sad"},
+    "K6.close.07": {"text": "It's gone. Fine. I needed to know. Thanks.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Will you look? And if it's gone, you tell me straight.",
+      "know": "Kerry wants you to find his first guitar, a cheap acoustic with his initials on the headstock. There are three leads: a pawn shop in Little China, a repair shop in Westbrook, and a street instrument stall in Kabuki. There is no music in this quest.",
+      "secret": "Finding it would mean something about the man he was.",
+      "wants": "V to say yes.",
+      "idle": "kerry",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 3600
+    },
+    "g2": {
+      "asks": "What's the name of the street? Say it. I'll meet you there.",
+      "know": "A shopkeeper said a kid in a Watson underpass plays a battered guitar with carved initials. V has the street, and Kerry is on the phone, nervous.",
+      "secret": "He is already walking toward it.",
+      "wants": "V to confirm the street.",
+      "tags": [{"id": "hopeful", "kind": "honest"}, {"id": "anxious", "kind": "no"}],
+      "resumeAfterSeconds": 180
+    },
+    "g3": {
+      "asks": "Do I buy it back? Or do I let a kid keep the thing that made me?",
+      "know": "You are in the underpass and the guitar is in a young busker's hands. You can buy it for 500 to 1,500 eddies, tell Kerry, or leave it be. Kerry is waiting at the entrance in Guinevere and hears the guitar from across the street.",
+      "secret": "He already knows what he wants and needs V to say it first.",
+      "wants": "V's opinion.",
+      "idle": "lean",
+      "tags": [{"id": "buy", "kind": "yes"}, {"id": "tell", "kind": "honest"}, {"id": "quiet", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    },
+    "g4": {
+      "asks": "What did it feel like, watching me find it? I'm not good at seeing myself.",
+      "know": "The guitar is found, the choice is made, and Kerry is quiet beside you as you walk.",
+      "secret": "He is afraid the public version of himself is eating the private one.",
+      "wants": "V to say what V saw.",
+      "idle": "kerry",
+      "tags": [{"id": "warm", "kind": "honest"}, {"id": "blunt", "kind": "no"}],
+      "resumeAfterSeconds": 360
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "label": "Kerry asks V to look for his first guitar",
+      "know": "Kerry has asked you to find his first guitar, lost in the bad years. He cannot stand to learn it is gone, and he does not want to look alone.",
+      "wants": "V to say yes and look for the guitar.",
+      "script": [
+        {"when": "stage:enter", "say": "K6.open.01"},
+        {"when": "line:K6.open.01:done", "say": "K6.open.02"},
+        {"when": "line:K6.open.02:done", "say": "K6.open.03"},
+        {"when": "line:K6.open.03:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "leads"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 6, "next": "no"}
+    },
+    {
+      "id": "leads",
+      "label": "Kerry sends V after the guitar's leads",
+      "know": "You have three leads: a pawn shop in Little China, a repair shop in Westbrook, and a street instrument stall in Kabuki. The shopkeepers do not know Kerry. Their answers point to a busker in a Watson underpass.",
+      "wants": "V to follow the leads to the street name.",
+      "script": [
+        {"when": "stage:enter", "text": "K6.stage.leads.01", "image": "first-string-pawn"},
+        {"when": "stage:enter", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "hopeful", "on": "event:gap:g2:hopeful", "next": "underpass"},
+        {"id": "anxious", "on": "event:gap:g2:anxious", "next": "underpass"}
+      ],
+      "timeout": {"gameHours": 6, "next": "not-found"}
+    },
+    {
+      "id": "underpass",
+      "type": "play",
+      "label": "V finds the busker in the Watson underpass",
+      "know": "A young busker sits on a milk crate in the Watson underpass with a battered acoustic. You can see the headstock, with a carved K.E. and a duct-tape repair. Kerry waits at the entrance in Guinevere.",
+      "wants": "V to decide what to do with the guitar.",
+      "do": [
+        {"p": "place", "at": "underpass"},
+        {"p": "cast", "id": "busker", "who": "young busker with a battered acoustic", "at": "underpass"},
+        {"p": "workspot", "id": "busker-play", "who": "busker", "at": "underpass", "key": "guitar"},
+        {"p": "cast", "id": "kerry", "who": "self", "at": "entrance"},
+        {"p": "post", "id": "kerry", "at": "entrance", "stance": "car"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "K6.stage.underpass.03", "image": "first-string-headstock"},
+        {"when": "stage:enter", "say": "K6.stage.underpass.02"},
+        {"when": "line:K6.stage.underpass.02:done", "gap": "g3"},
+        {"when": "place:underpass:arrived", "say": "K6.stage.underpass.01"}
+      ],
+      "choices": [
+        {"id": "buy", "on": "event:gap:g3:buy", "next": "purchase"},
+        {"id": "tell", "on": "event:gap:g3:tell", "next": "walk-told"},
+        {"id": "quiet", "on": "event:gap:g3:quiet", "next": "walk-quiet"}
+      ],
+      "timeout": {"gameHours": 1, "next": "walk-quiet"}
+    },
+    {
+      "id": "purchase",
+      "type": "play",
+      "label": "V offers the busker money for the guitar",
+      "know": "You are in the Watson underpass and can offer the busker between 500 and 1,500 eddies for the guitar. He has said it is not for sale, and he may refuse.",
+      "wants": "To buy the guitar back for Kerry.",
+      "do": [
+        {"p": "place", "at": "underpass"},
+        {"p": "cast", "id": "busker", "who": "young busker with a battered acoustic", "at": "underpass"},
+        {"p": "pay", "id": "busker-buy", "to": "busker", "amount": 1000, "min": 500, "reason": "haggle"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K6.bark.buy"},
+        {"when": "line:K6.bark.buy:done", "say": "K6.close.02"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:busker-buy:paid", "next": "walk-bought"},
+        {"id": "declined", "on": "event:pay:busker-buy:declined", "next": "walk-quiet"},
+        {"id": "short", "on": "event:pay:busker-buy:short", "next": "walk-quiet"},
+        {"id": "broke", "on": "event:pay:busker-buy:broke", "next": "walk-quiet"}
+      ],
+      "timeout": {"gameHours": 1, "next": "walk-quiet"}
+    },
+    {
+      "id": "walk-quiet",
+      "label": "V leaves the guitar with the busker and walks with Kerry",
+      "know": "The guitar is still in the kid's hands in the Watson underpass. You have chosen to leave it there. Kerry wants to walk.",
+      "wants": "To walk with Kerry.",
+      "script": [
+        {"when": "stage:enter", "say": "K6.close.01"},
+        {"when": "line:K6.close.01:done", "say": "K6.stage.walk.01"},
+        {"when": "line:K6.stage.walk.01:done", "gap": "g4"},
+        {"when": "gap:g4:warm", "say": "K6.close.04"},
+        {"when": "gap:g4:blunt", "say": "K6.close.05"}
+      ],
+      "choices": [
+        {"id": "warm", "on": "event:gap:g4:warm", "next": "quiet"},
+        {"id": "blunt", "on": "event:gap:g4:blunt", "next": "quiet"}
+      ],
+      "timeout": {"gameHours": 2, "next": "quiet"}
+    },
+    {
+      "id": "walk-told",
+      "label": "V tells Kerry where the guitar is and walks with him",
+      "know": "You have told Kerry that the guitar is in the Watson underpass, in a kid's hands. He wants to walk.",
+      "wants": "To walk with Kerry.",
+      "script": [
+        {"when": "stage:enter", "say": "K6.close.03"},
+        {"when": "line:K6.close.03:done", "say": "K6.stage.walk.01"}
+      ],
+      "timeout": {"gameHours": 1, "next": "told"}
+    },
+    {
+      "id": "walk-bought",
+      "label": "V has bought the guitar, and Kerry hands it back to the kid",
+      "know": "You have paid the busker for the guitar. Kerry takes it, and then awkwardly puts it back in the kid's hands.",
+      "wants": "To walk with Kerry.",
+      "script": [
+        {"when": "stage:enter", "say": "K6.stage.walk.01"}
+      ],
+      "timeout": {"gameHours": 1, "next": "bought"}
+    }
+  ],
+  "endings": {
+    "quiet": {
+      "memory": "You found Kerry's first guitar in a Watson underpass, in a kid's hands, and he asked you to leave it there.",
+      "history": "When asked what V gave him, he says a reason to stop looking.",
+      "bond": 100,
+      "script": [{"when": "ending:quiet", "text": "K6.close.06"}]
+    },
+    "told": {
+      "memory": "You told Kerry where his first guitar was, and he went to look at the kid playing it.",
+      "bond": 95,
+      "script": [{"when": "ending:told", "text": "K6.close.06"}]
+    },
+    "bought": {
+      "memory": "You paid a busker in a Watson underpass for Kerry's first guitar, and Kerry gave it straight back.",
+      "bond": 90,
+      "script": [{"when": "ending:bought", "text": "K6.close.06", "image": "first-string-case"}]
+    },
+    "not-found": {
+      "memory": "You never found Kerry's first guitar. He said it was fine and that he needed to know.",
+      "bond": 45,
+      "script": [{"when": "ending:not-found", "text": "K6.close.07"}]
+    },
+    "no": {
+      "memory": "You said no to Kerry's search for his first guitar, and he said he understood.",
+      "bond": 0
+    }
+  }
+}

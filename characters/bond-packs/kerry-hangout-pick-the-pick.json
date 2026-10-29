@@ -1,0 +1,87 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "kerry-hangout-pick-the-pick",
+  "character": "kerry-eurodyne",
+  "title": "Pick the Pick",
+  "summary": "Kerry wants a witness for a blind guitar match in a North Oak instrument shop, where you pick the guitar that sounds warm and sad.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/side_quest/sq011_kerry"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "Kerry needs a witness for a blind guitar match at a North Oak instrument shop. Ask V to come, in your own words, and mention the little shop with the bad sign."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "strings", "know": "The shop has a rack of strings in place of the guitars: thin, thick and rusty. Kerry describes each set in the same way, and you can only go by his words.", "wants": "V to pick the string set that sounds warm and sad."},
+      {"id": "amp-knobs", "know": "The shop has three amplifiers on the wall with their knobs set differently. Kerry describes each setting, and no sound is played.", "wants": "V to pick the amplifier setting that sounds warm and sad."},
+      {"id": "old-picks", "know": "The shop has three old picks in a glass case. Kerry describes the tone of each one, and no sound is played.", "wants": "V to pick the old pick that sounds warm and sad."}
+    ]
+  },
+  "places": {
+    "shop": {"name": "the vintage instrument shop in North Oak", "radius": 15}
+  },
+  "lines": {
+    "KH1.end.right": {"text": "You have ears.", "emotion": "happy"},
+    "KH1.end.wrong": {"text": "Close. I was trying to trick you.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What does 'warm and sad' look like to you? Pick one and tell me why.",
+      "know": "You are in the North Oak shop with three guitars on the wall. Kerry has described a tone, and you can only go by his words, because no sound is played. The shopkeeper recognizes Kerry and pretends not to.",
+      "secret": "He once chose a guitar by its colour, not its tone, and it was perfect.",
+      "wants": "V's reasoning.",
+      "idle": "lean",
+      "tags": [{"id": "right", "kind": "yes"}, {"id": "wrong", "kind": "no"}],
+      "resumeAfterSeconds": 3600
+    }
+  },
+  "stages": [
+    {
+      "id": "pick",
+      "type": "play",
+      "label": "Kerry asks V to pick the guitar that sounds warm and sad",
+      "know": "You are in a vintage instrument shop in North Oak with Kerry. Three guitars hang on the wall, and you can only compare their descriptions, because no sound is played. The shopkeeper recognizes Kerry and pretends not to.",
+      "wants": "V to pick a guitar and say why.",
+      "do": [
+        {"p": "place", "at": "shop"},
+        {"p": "cast", "id": "kerry", "who": "self", "at": "shop", "carry": true},
+        {"p": "cast", "id": "shopkeeper", "who": "the shopkeeper behind the counter", "at": "shop"},
+        {"p": "npc-react", "id": "shopkeeper", "cast": "shopkeeper"}
+      ],
+      "script": [
+        {"when": "place:shop:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "right", "on": "event:gap:g1:right", "next": "right"},
+        {"id": "wrong", "on": "event:gap:g1:wrong", "next": "wrong"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "right": {
+      "memory": "You picked the guitar that sounded warm and sad to you in a North Oak shop, and Kerry said you have ears.",
+      "bond": 9,
+      "script": [{"when": "ending:right", "text": "KH1.end.right"}]
+    },
+    "wrong": {
+      "memory": "You picked the wrong guitar in a North Oak shop, and Kerry said he had been trying to trick you.",
+      "bond": 6,
+      "script": [{"when": "ending:wrong", "text": "KH1.end.wrong"}]
+    },
+    "stood-up": {
+      "memory": "You did not show up to the guitar shop in North Oak, and Kerry went in alone.",
+      "bond": 0
+    }
+  }
+}

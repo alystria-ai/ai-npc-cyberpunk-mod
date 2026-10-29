@@ -3,7 +3,7 @@
   "id": "panam-truck-ransom",
   "character": "panam-palmer",
   "title": "Ransom for the Mackinaw",
-  "summary": "Panam's truck is stolen by a scav crew and held for ransom; V can pay, help her take it back, or leave her to it.",
+  "summary": "Panam's truck is stolen by a scav crew and held for ransom, V can pay, help her take it back, or leave her to it.",
   "requires": {
     "bond": 5,
     "questsFinished": ["quests/side_quest/sq027_02_raffen_shiv_attack"],
@@ -37,7 +37,7 @@
     {
       "id": "recover",
       "label": "Planning to take the truck back with you",
-      "know": "V offered to take the truck back with you. The junkyard near Rocky Ridge has a handful of scavs and one gate; you have watched it. You want to go at night, quietly first, loud if you must.",
+      "know": "V offered to take the truck back with you. The junkyard near Rocky Ridge has a handful of scavs and one gate, you have watched it. You want to go at night, quietly first, loud if you must.",
       "wants": "V to meet you near the junkyard, armed, at the place V marks on the map.",
       "say": {"en": "Mark the spot near the junkyard and meet me there tonight. Bring something loud, just in case."},
       "meet": {"where": "waypoint", "inGameHours": 3},
@@ -80,6 +80,6 @@
   "endings": {
     "repaid": {"memory": "When scavs stole your truck and held it for ransom, V lent you the 6,000 to get it back, and you paid every eddie back.", "bond": 60},
     "together": {"memory": "When scavs stole your truck, V went with you to the junkyard near Rocky Ridge and you took it back together.", "bond": 80},
-    "alone-end": {"memory": "When scavs stole your truck V would not help; you got it back yourself, and it cost you a favour to a rival clan.", "bond": -10}
+    "alone-end": {"memory": "When scavs stole your truck V would not help, you got it back yourself, and it cost you a favour to a rival clan.", "bond": -10}
   }
 }

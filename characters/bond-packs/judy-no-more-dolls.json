@@ -1,0 +1,253 @@
+{
+  "format": 2,
+  "id": "judy-no-more-dolls",
+  "character": "judy-alvarez",
+  "title": "No More Dolls",
+  "summary": "A scav crew has taken Rina, the girl Judy got out of the Clouds, and Judy is going into their den with V.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/side_quest/sq026_04_hiromi"],
+    "after": ["judy-stolen-signal"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "Scavs are making XBDs in Northside again, and they have taken Rina, the girl you got out of the Clouds. Bring up, in your own way, that you are going in and you need V with you."
+  },
+  "places": {
+    "den": {"name": "the scav den in a dead parking garage in Northside", "radius": 30},
+    "chair": {"name": "the top floor of the garage, where the rig is", "radius": 6},
+    "van": {"name": "Judy's van outside the garage", "radius": 15},
+    "basement": {"name": "Lizzie's basement workshop", "radius": 15}
+  },
+  "images": {
+    "no-more-dolls-key": {"file": "images/no-more-dolls-key.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "J5.found.01": {"text": "Scavs are making XBDs again. In Northside. Like the power plant.", "emotion": "angry", "gesture": "judy"},
+    "J5.found.02": {"text": "They took Rina. The girl I got out of the Clouds.", "emotion": "fear"},
+    "J5.found.04": {"text": "I'm coming with you. Don't. Don't say it.", "emotion": "emphatic", "gesture": "no"},
+    "J5.found.05": {"text": "Okay. Then we go now.", "emotion": "neutral"},
+    "J5.found.06": {"text": "Fine. I'll be in the van. In your ear. Every second.", "emotion": "angry"},
+    "J5.in.01": {"text": "That's the garage. Two floors. The rig's at the top.", "emotion": "neutral"},
+    "J5.in.02": {"text": "They don't post guards on the ramp. Idiots. Use it.", "emotion": "neutral"},
+    "J5.in.04": {"text": "They know! Move, V, they'll go for her!", "emotion": "fear"},
+    "J5.in.05": {"text": "They're going for the chair!", "emotion": "fear"},
+    "J5.chair.01": {"text": "Rina. Rina, it's Judy. You're okay.", "emotion": "sad"},
+    "J5.chair.02": {"text": "Give me ten seconds with this rig.", "emotion": "angry", "gesture": "mechanic"},
+    "J5.chair.03": {"text": "Don't look at the screens. I'm not looking at the screens.", "emotion": "sad", "gesture": "no"},
+    "J5.chair.04": {"text": "She's walking. We're going.", "emotion": "emphatic"},
+    "J5.out.01": {"text": "Stairs, then the van. Don't stop.", "emotion": "emphatic"},
+    "J5.out.02": {"text": "Clear. Keep walking, sweetie.", "emotion": "neutral"},
+    "J5.out.03": {"text": "In. Lie down. I've got you.", "emotion": "sad"},
+    "J5.after.01": {"text": "She's asleep. Finally.", "emotion": "sad"},
+    "J5.after.02": {"text": "Sit with me. I don't want to be alone with what I saw.", "emotion": "sad"},
+    "J5.after.03": {"text": "Evelyn was in a chair like that. I got there late. I got there late, V.", "emotion": "sad", "gesture": "sad"},
+    "J5.after.04": {"text": "Not today. Today I wasn't late.", "emotion": "sad"},
+    "J5.end.01": {"text": "Here. Key to my workshop. You never need to knock.", "emotion": "happy", "gesture": "generic_hold"},
+    "J5.end.02": {"text": "Nobody fired a shot. How do you even do that?", "emotion": "surprise"},
+    "J5.end.03": {"text": "I can't. I can't talk right now. Stay?", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "So are you going to let me come, or do I follow you anyway?",
+      "know": "The den, Rina, the XBD trade, and the outcome of the Mox testimonies with Stolen Signal.",
+      "secret": "She does not know if she can stand in that room.",
+      "wants": "To come.",
+      "idle": "judy",
+      "resumeAfterSeconds": 900
+    },
+    "g2": {
+      "asks": "Quiet or loud? Quiet keeps her alive longer.",
+      "know": "The 45 second rule, two floors, six scavs, and a netrunner.",
+      "wants": "Quiet.",
+      "idle": "judy",
+      "resumeOn": ["place:den:arrived"]
+    },
+    "g3": {
+      "asks": "Why did you come? Really.",
+      "know": "The rescue, the screens, and Evelyn's history with the power plant.",
+      "secret": "She has never told anyone she blames herself for the time it took to find Evelyn.",
+      "wants": "To be heard.",
+      "idle": "judy",
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "found",
+      "type": "talk",
+      "label": "Judy has found the scav den and wants in",
+      "know": "The scavs took Rina. You know where their den is, a dead parking garage in Northside, and Judy is pacing with her arms tight around herself.",
+      "wants": "V to decide whether Judy comes along.",
+      "tags": [{"id": "together", "kind": "yes"}, {"id": "alone", "kind": "no"}],
+      "script": [
+        {"when": "stage:enter", "say": "J5.found.01"},
+        {"when": "line:J5.found.01:done", "say": "J5.found.02"},
+        {"when": "line:J5.found.02:done", "say": "J5.found.04"},
+        {"when": "line:J5.found.04:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "together", "on": "tag", "means": "V lets Judy come along to the den", "kind": "yes", "next": "together-go"},
+        {"id": "alone", "on": "tag", "means": "V tells Judy to stay out and keep the van", "kind": "no", "next": "den"}
+      ],
+      "timeout": {"gameHours": 0.5, "next": "together-go"}
+    },
+    {
+      "id": "together-go",
+      "type": "talk",
+      "label": "Judy agrees to come in with V",
+      "know": "Judy is coming into the den with you.",
+      "wants": "V to go in now.",
+      "script": [{"when": "stage:enter", "say": "J5.found.05"}],
+      "choices": [{"id": "go", "on": "event:line:J5.found.05:done", "next": "den"}],
+      "timeout": {"gameHours": 0.5, "next": "den"}
+    },
+    {
+      "id": "den",
+      "type": "play",
+      "label": "V goes into the scav den",
+      "know": "The scav den is a dead parking garage in Northside with two floors. Six scavs are relaxed inside, and one of them is a netrunner. Rina is in the chair at the top.",
+      "wants": "V to reach Rina, quietly if possible.",
+      "do": [
+        {"p": "pin", "at": "den"},
+        {"p": "place", "at": "den"},
+        {"p": "place", "at": "chair"},
+        {"p": "squad", "id": "scavs", "at": "den", "faction": "scav", "count": 6, "hostile": false, "alertAfterSeconds": 45},
+        {"p": "hostage", "id": "rina", "at": "chair", "kind": "floor", "hold": 45},
+        {"p": "unseen", "id": "sneak", "squad": "scavs", "at": "chair"},
+        {"p": "timer", "id": "chair-threat", "seconds": 45, "clock": "real"},
+        {"p": "party"}
+      ],
+      "script": [
+        {"when": "stage:enter", "gap": "g2"},
+        {"when": "place:den:arrived", "say": "J5.in.01"},
+        {"when": "unseen:sneak:spotted", "say": "J5.in.04"},
+        {"when": "timer:chair-threat", "say": "J5.in.05"}
+      ],
+      "choices": [
+        {"id": "sneaked", "on": "event:unseen:sneak:reached", "next": "chair-quiet"},
+        {"id": "fought", "on": "event:place:chair:arrived", "next": "chair"},
+        {"id": "dead", "on": "event:hostage:rina:dead", "next": "too-late"}
+      ],
+      "timeout": {"gameHours": 1, "next": "too-late"}
+    },
+    {
+      "id": "chair-quiet",
+      "type": "play",
+      "label": "V reaches Rina without a shot fired",
+      "know": "The scavs have not noticed you yet. Rina is in the chair, and you are close enough to take her out.",
+      "wants": "V to bring Rina out alive.",
+      "do": [
+        {"p": "hostage", "id": "rina", "at": "chair", "kind": "floor", "hold": 45}
+      ],
+      "choices": [
+        {"id": "freed", "on": "event:hostage:rina:freed", "next": "saved-unseen"},
+        {"id": "dead", "on": "event:hostage:rina:dead", "next": "too-late"}
+      ],
+      "timeout": {"gameHours": 1, "next": "too-late"}
+    },
+    {
+      "id": "chair",
+      "type": "play",
+      "label": "V reaches Rina in the chair",
+      "know": "The fight is on and Rina is in the chair at the top of the garage. Judy is at the rig, and she is not looking at the screens.",
+      "wants": "V to get Rina out of the chair.",
+      "do": [
+        {"p": "place", "at": "chair"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "chair", "carry": true},
+        {"p": "workspot", "id": "rig", "who": "judy", "at": "chair", "key": "mechanic"},
+        {"p": "hostage", "id": "rina", "at": "chair", "kind": "floor", "hold": 45}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J5.chair.01"},
+        {"when": "line:J5.chair.01:done", "say": "J5.chair.02"},
+        {"when": "line:J5.chair.02:done", "say": "J5.chair.03"},
+        {"when": "hostage:rina:freed", "say": "J5.chair.04"}
+      ],
+      "choices": [
+        {"id": "freed", "on": "event:hostage:rina:freed", "next": "out"},
+        {"id": "dead", "on": "event:hostage:rina:dead", "next": "too-late"}
+      ],
+      "timeout": {"gameHours": 1, "next": "too-late"}
+    },
+    {
+      "id": "out",
+      "type": "play",
+      "label": "V walks Rina down to Judy's van",
+      "know": "Rina is following you out. The scavs who are left are chasing you down the stairs.",
+      "wants": "V to get Rina to the van.",
+      "do": [
+        {"p": "place", "at": "van"},
+        {"p": "escortee", "id": "rina", "to": "van"},
+        {"p": "squad", "id": "chasers", "at": "den", "faction": "scav", "count": 3, "hostile": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J5.out.01"},
+        {"when": "squad:chasers:down", "say": "J5.out.02"},
+        {"when": "place:van:arrived", "say": "J5.out.03"}
+      ],
+      "choices": [
+        {"id": "van", "on": "event:place:van:arrived", "next": "ride"},
+        {"id": "lost", "on": "event:escortee:rina:lost", "next": "too-late"}
+      ],
+      "timeout": {"gameHours": 1, "next": "too-late"}
+    },
+    {
+      "id": "ride",
+      "type": "play",
+      "label": "V drives Rina to Lizzie's",
+      "know": "Rina is in the van with you. Lizzie's basement is across the city.",
+      "wants": "V to drive Rina to Lizzie's.",
+      "do": [
+        {"p": "ride", "to": "basement", "limitMinutes": 30}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "after"},
+        {"id": "timed", "on": "event:ride:timeout", "next": "after"}
+      ],
+      "timeout": {"gameHours": 1, "next": "after"}
+    },
+    {
+      "id": "after",
+      "type": "play",
+      "label": "V sits with Judy in Lizzie's basement",
+      "know": "Rina is asleep upstairs. You and Judy are in the basement, and she has never been this open with you before.",
+      "wants": "V to stay and listen.",
+      "do": [
+        {"p": "place", "at": "basement"},
+        {"p": "seat"},
+        {"p": "together", "id": "after-sit", "minutes": 20, "metres": 3, "breakSeconds": 60, "seated": true, "at": "basement"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J5.after.01"},
+        {"when": "line:J5.after.01:done", "say": "J5.after.02"},
+        {"when": "line:J5.after.02:done", "gap": "g3"},
+        {"when": "gap:g3:resume", "say": "J5.after.03"},
+        {"when": "line:J5.after.03:done", "say": "J5.after.04"}
+      ],
+      "choices": [{"id": "sat", "on": "event:together:after-sit:done", "next": "saved"}],
+      "timeout": {"gameHours": 1, "next": "saved"}
+    }
+  ],
+  "endings": {
+    "saved": {
+      "memory": "You and Judy got Rina out of a scav XBD den in Northside, and Judy tore the rig out of the chair herself.",
+      "bond": 90,
+      "history": "Judy gave you the key to her workshop. You never need to knock.",
+      "script": [{"when": "ending:saved", "text": "J5.end.01", "image": "no-more-dolls-key"}]
+    },
+    "saved-unseen": {
+      "memory": "You went into the scav den so quietly that nobody fired a shot, and you brought Rina out of it alive.",
+      "bond": 95,
+      "script": [{"when": "ending:saved-unseen", "say": "J5.end.02"}]
+    },
+    "too-late": {
+      "memory": "Rina died in the scav den before you and Judy reached her, and Judy needs you around for a while.",
+      "bond": 30,
+      "script": [{"when": "ending:too-late", "say": "J5.end.03"}]
+    }
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "rogue-hangout-pretty-things",
+  "character": "rogue-amendiares",
+  "title": "Pretty Things",
+  "summary": "Rogue takes V to a Charter Hill gallery opening to look at what rich people buy, and asks which piece Johnny would hate.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": [
+      "quests/side_quest/sq031_rogue",
+      "quests/side_quest/sq031_smack_my_bitch_up"
+    ],
+    "notActive": [
+      "quests/main_quest/act_01/q103",
+      "quests/side_quest/sq031",
+      "quests/main_quest/act_01/q115"
+    ],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": [
+      "own",
+      "phone",
+      "holocall"
+    ],
+    "chance": 0.05,
+    "bringUp": "You want V at a Charter Hill gallery opening tonight to look at the art and the people buying it. Bring up, briefly and in your own way, that you like to see what rich people buy."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {
+        "id": "auction",
+        "know": "The show is an auction, and the bids climb as each work comes up.",
+        "places": {
+          "gallery": "auction-hall"
+        }
+      },
+      {
+        "id": "sculpture-garden",
+        "know": "The works stand on lawns, and the dealer is a sculptor's agent.",
+        "places": {
+          "gallery": "sculpture-garden"
+        }
+      },
+      {
+        "id": "retrospective",
+        "know": "The show is a retrospective of a painter Rogue dislikes.",
+        "places": {
+          "gallery": "retrospective-hall"
+        }
+      }
+    ]
+  },
+  "places": {
+    "gallery": {
+      "name": "the Charter Hill gallery, opening tonight",
+      "radius": 8
+    },
+    "auction-hall": {
+      "name": "the Charter Hill auction hall",
+      "radius": 8
+    },
+    "sculpture-garden": {
+      "name": "the sculpture garden behind the gallery",
+      "radius": 25
+    },
+    "retrospective-hall": {
+      "name": "the retrospective hall of the gallery",
+      "radius": 8
+    },
+    "work-1": {
+      "name": "the bright abstract canvas, the largest work",
+      "radius": 8
+    },
+    "work-2": {
+      "name": "the small framed portrait",
+      "radius": 8
+    },
+    "work-3": {
+      "name": "the mid-price landscape",
+      "radius": 8
+    },
+    "work-4": {
+      "name": "the sculpture on a plinth",
+      "radius": 8
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which one would Johnny hate? And which would he secretly want?",
+      "know": "There are four works in the gallery and the dealer has pitched one of them. Johnny is in V's head and will hear the answer.",
+      "secret": "That you once bought him a painting that he never hung.",
+      "wants": "A real answer.",
+      "idle": "lean",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "view",
+      "type": "play",
+      "label": "Rogue walks V past four works and asks about Johnny",
+      "know": "You are at a gallery opening with V. There are four works: a bright abstract canvas, a small framed portrait, a mid-price landscape and a sculpture on a plinth. A dealer pitches one piece to V, and you ask which work Johnny would hate.",
+      "wants": "V to walk past the four works and answer the question about Johnny.",
+      "do": [
+        {
+          "p": "pin",
+          "at": "gallery"
+        },
+        {
+          "p": "place",
+          "at": "gallery"
+        },
+        {
+          "p": "place",
+          "at": "work-1"
+        },
+        {
+          "p": "place",
+          "at": "work-2"
+        },
+        {
+          "p": "place",
+          "at": "work-3"
+        },
+        {
+          "p": "place",
+          "at": "work-4"
+        },
+        {
+          "p": "cast",
+          "id": "dealer",
+          "who": "gallery dealer who pitches one piece to V",
+          "at": "gallery"
+        },
+        {
+          "p": "cast",
+          "id": "rogue",
+          "who": "self",
+          "at": "gallery"
+        }
+      ],
+      "script": [
+        {
+          "when": "stage:enter",
+          "gap": "g1"
+        }
+      ],
+      "choices": [
+        {
+          "id": "hate-canvas",
+          "on": "tag",
+          "means": "V names the bright abstract canvas or the small framed portrait",
+          "kind": "yes",
+          "next": "named"
+        },
+        {
+          "id": "hate-landscape",
+          "on": "tag",
+          "means": "V names the mid-price landscape",
+          "kind": "flatter",
+          "next": "named"
+        },
+        {
+          "id": "no-answer",
+          "on": "tag",
+          "means": "V will not answer the question",
+          "kind": "no",
+          "next": "refused"
+        },
+        {
+          "id": "stood",
+          "on": "meet:stood-up",
+          "next": "stood-up"
+        }
+      ],
+      "meet": {
+        "where": "waypoint",
+        "inGameHours": 3
+      },
+      "timeout": {
+        "gameHours": 1,
+        "next": "refused"
+      }
+    }
+  ],
+  "endings": {
+    "named": {
+      "memory": "You answered Rogue's question about Johnny and the paintings, and she said it was the right kind of answer.",
+      "bond": 8
+    },
+    "refused": {
+      "memory": "You walked the gallery with Rogue and would not say which piece Johnny would hate.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "V did not come to the gallery opening, and Rogue looked at the paintings alone."
+    }
+  }
+}

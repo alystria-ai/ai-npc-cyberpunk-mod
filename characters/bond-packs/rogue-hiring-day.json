@@ -1,0 +1,156 @@
+{
+  "format": 2,
+  "id": "rogue-hiring-day",
+  "character": "rogue-amendiares",
+  "title": "Hiring Day",
+  "summary": "Rogue has three candidates for a courier escort and wants V to read them in the Afterlife booth.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up"],
+    "notActive": ["quests/main_quest/act_01/q103", "quests/side_quest/sq031", "quests/main_quest/act_01/q115"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "You have a courier job for three days that you cannot staff yourself, and you trust how V reads people. Bring up, briefly and in your own way, that you need V in the Afterlife booth to help you pick someone."
+  },
+  "places": {
+    "booth": {"name": "the private booth upstairs at the Afterlife", "radius": 8}
+  },
+  "images": {
+    "hiring-booth": {"file": "images/hiring-booth.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "R2.open.01": {"text": "Three people. One job. Courier escort, three days, no questions.", "emotion": "neutral"},
+    "R2.open.02": {"text": "I don't hire on charm. You read people better than the Afterlife does.", "emotion": "neutral"},
+    "R2.open.03": {"text": "Sit. Ask two questions each. Watch their hands.", "emotion": "emphatic"},
+    "R2.stage.interview.01": {"text": "First one. Watch his hands.", "emotion": "emphatic"},
+    "R2.stage.interview.02": {"text": "Next. Don't let him charm you.", "emotion": "emphatic"},
+    "R2.stage.interview.03": {"text": "Last one. Quiet types hide the most.", "emotion": "neutral"},
+    "R2.stage.choice.01": {"text": "Well? Who gets the job. Or none. Don't hedge.", "emotion": "neutral"},
+    "R2.result.good": {"text": "The job went clean. Your pick delivered. Come by for your cut.", "emotion": "nod"},
+    "R2.result.bad": {"text": "He walked. Left the client in a car park. Come by, I'll tell you what I'd have seen.", "emotion": "neutral"},
+    "R2.close.01": {"text": "Good eye. Don't let it go to your head.", "emotion": "nod"},
+    "R2.close.02": {"text": "Now you know what it looks like. Learn it.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What do you look at first when someone walks in? Their face, their hands or their shoes?",
+      "know": "You have three candidates for a courier escort, three days, no questions. V can ask two questions of each one. You say little and you watch.",
+      "secret": "Which of the three is the informant, and which one will walk.",
+      "wants": "V's honest read of the three.",
+      "idle": "chair",
+      "resumeAfterSeconds": 180
+    }
+  },
+  "stages": [
+    {
+      "id": "seat",
+      "type": "play",
+      "label": "Rogue briefs the courier job in the booth",
+      "know": "V is in the Afterlife's private booth upstairs. You have briefed the job in two sentences: a courier escort, three days, no questions. You want V to read the candidates, and you will not hire on charm.",
+      "wants": "V in the booth, reading the candidates.",
+      "do": [
+        {"p": "pin", "at": "booth"},
+        {"p": "place", "at": "booth"},
+        {"p": "cast", "id": "rogue", "who": "self", "at": "booth", "carry": true}
+      ],
+      "script": [
+        {"when": "place:booth:arrived", "say": "R2.open.01"},
+        {"when": "line:R2.open.01:done", "say": "R2.open.02"},
+        {"when": "line:R2.open.02:done", "say": "R2.open.03"},
+        {"when": "line:R2.open.03:done", "gap": "g1"}
+      ],
+      "choices": [{"id": "begin", "on": "event:gap:g1:resume", "next": "interview-1"}],
+      "timeout": {"gameHours": 2, "next": "unseated"}
+    },
+    {
+      "id": "interview-1",
+      "type": "play",
+      "label": "First candidate: the loud solo",
+      "know": "The first candidate is a loud solo with a wall of references. He is a glory hound who will walk if the job gets hard. V asks two questions and you watch V read him.",
+      "wants": "V to read the loud solo honestly.",
+      "do": [
+        {"p": "cast", "id": "cand-1", "who": "loud solo with a wall of references", "at": "booth", "archetype": "solo"},
+        {"p": "npc-react", "id": "q-1", "cast": "cand-1"},
+        {"p": "timer", "id": "t-1", "seconds": 300, "clock": "game"}
+      ],
+      "script": [{"when": "stage:enter", "say": "R2.stage.interview.01"}],
+      "choices": [{"id": "next", "on": "event:timer:t-1", "next": "interview-2"}],
+      "timeout": {"gameHours": 2, "next": "unseated"}
+    },
+    {
+      "id": "interview-2",
+      "type": "play",
+      "label": "Second candidate: the polite ex-corporate",
+      "know": "The second candidate is a polite ex-corporate security man. He is an informant for a rival of the client, and you know it without saying so. V asks two questions.",
+      "wants": "V to read the polite ex-corporate honestly.",
+      "do": [
+        {"p": "cast", "id": "cand-2", "who": "polite ex-corporate security man", "at": "booth", "archetype": "corporate"},
+        {"p": "npc-react", "id": "q-2", "cast": "cand-2"},
+        {"p": "timer", "id": "t-2", "seconds": 300, "clock": "game"}
+      ],
+      "script": [{"when": "stage:enter", "say": "R2.stage.interview.02"}],
+      "choices": [{"id": "next", "on": "event:timer:t-2", "next": "interview-3"}],
+      "timeout": {"gameHours": 2, "next": "unseated"}
+    },
+    {
+      "id": "interview-3",
+      "type": "play",
+      "label": "Third candidate: the quiet netrunner",
+      "know": "The third candidate is a quiet netrunner with covered hands. This is the one who would deliver, though you do not say so. V asks two questions.",
+      "wants": "V to read the quiet netrunner honestly.",
+      "do": [
+        {"p": "cast", "id": "cand-3", "who": "quiet netrunner with covered hands", "at": "booth", "archetype": "netrunner"},
+        {"p": "npc-react", "id": "q-3", "cast": "cand-3"},
+        {"p": "timer", "id": "t-3", "seconds": 300, "clock": "game"}
+      ],
+      "script": [{"when": "stage:enter", "say": "R2.stage.interview.03"}],
+      "choices": [{"id": "next", "on": "event:timer:t-3", "next": "choice"}],
+      "timeout": {"gameHours": 2, "next": "unseated"}
+    },
+    {
+      "id": "choice",
+      "type": "talk",
+      "label": "Rogue asks V who gets the job",
+      "know": "V has seen all three candidates. You want one pick, or none, and you do not want a hedge. The loud solo and the polite ex-corporate are the wrong people for this job. The quiet netrunner is the one who delivers.",
+      "wants": "V to pick one candidate, or none.",
+      "script": [{"when": "stage:enter", "say": "R2.stage.choice.01"}],
+      "choices": [
+        {"id": "pick-a", "on": "tag", "means": "V picks the loud solo for the courier job", "kind": "yes", "next": "bad-hire"},
+        {"id": "pick-b", "on": "tag", "means": "V picks the polite ex-corporate security man", "kind": "honest", "next": "bad-hire"},
+        {"id": "pick-c", "on": "tag", "means": "V picks the quiet netrunner for the courier job", "kind": "flatter", "next": "good-hire"},
+        {"id": "none", "on": "tag", "means": "V says none of the three is right for the job", "kind": "no", "next": "none"}
+      ],
+      "timeout": {"gameHours": 1, "next": "unseated"}
+    }
+  ],
+  "endings": {
+    "good-hire": {
+      "memory": "You helped Rogue pick the right solo for a courier escort, and the job went as it should.",
+      "bond": 55,
+      "script": [
+        {"when": "ending:good-hire", "text": "R2.result.good", "image": "hiring-booth"},
+        {"when": "ending:good-hire", "say": "R2.close.01"}
+      ]
+    },
+    "bad-hire": {
+      "memory": "You picked the wrong one for Rogue's courier job, and she told you what she would have looked for.",
+      "bond": 35,
+      "script": [
+        {"when": "ending:bad-hire", "text": "R2.result.bad", "image": "hiring-booth"},
+        {"when": "ending:bad-hire", "say": "R2.close.02"}
+      ]
+    },
+    "none": {
+      "memory": "You said none of the three for Rogue's courier job, and she did it herself, and it went fine.",
+      "bond": 30
+    },
+    "unseated": {
+      "memory": "You left Rogue's booth before she could make a pick.",
+      "bond": -5
+    }
+  }
+}

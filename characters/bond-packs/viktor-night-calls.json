@@ -1,0 +1,189 @@
+{
+  "format": 2,
+  "id": "viktor-night-calls",
+  "character": "viktor-vektor",
+  "title": "Night Calls",
+  "summary": "Viktor has stopped driving after dark, so he asks V for the car and a free night to see three patients.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/minor_quest/mq045_victor_debt"],
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "Viktor does house calls after midnight for people who cannot or will not come to a clinic, and he has stopped driving after dark in this town. He has three calls tonight and wants a lift, the way someone asks a friend for a ride to the airport. Bring it up, briefly and in your own way, that you have a car and a free night."
+  },
+  "places": {
+    "corner": {"name": "the noodle bar corner in Little China, a block from the clinic", "radius": 25},
+    "kabuki": {"name": "the back room behind a Kabuki stall", "radius": 8},
+    "dock": {"name": "the dock locker room in Northside Industrial", "radius": 8},
+    "heywood": {"name": "a flat in Heywood", "radius": 8}
+  },
+  "images": {
+    "night-calls-case": {"file": "images/night-calls-case.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "V2.open.01": {"text": "Got a car and a free night? Bring both.", "emotion": "neutral"},
+    "V2.open.02": {"text": "Three calls. Kabuki first. Drive like there is a patient in the car.", "emotion": "nod"},
+    "V2.open.03": {"text": "Rule one. Ask what changed. Not what hurts. Hurt is a given.", "emotion": "emphatic"},
+    "V2.open.04": {"text": "While we drive. Why do people come to me and not a showroom?", "emotion": "neutral"},
+    "V2.bark.arrive.a": {"text": "Wait here. Or come in and stay quiet. Both help.", "emotion": "nod"},
+    "V2.bark.arrive.b": {"text": "Bag is heavy. Don't offer to carry it. I'll say no.", "emotion": "shrug"},
+    "V2.bark.leave.a": {"text": "Better. Not good. Better.", "emotion": "neutral"},
+    "V2.bark.leave.b": {"text": "She'll live. That's the job, mostly.", "emotion": "nod"},
+    "V2.tab.00": {"text": "Third flat. Tell me what you saw before I tell you.", "emotion": "neutral"},
+    "V2.tab.01": {"text": "That is not how a tab works.", "emotion": "angry"},
+    "V2.close.01": {"text": "Three for three. You drive worse than you think and better than you act.", "emotion": "nod"},
+    "V2.close.02": {"text": "Sun's up. Two out of three. The third will understand.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Why do people come to me and not a showroom?",
+      "know": "You know Viktor's own chrome and how he got it. The 21,000 eddies V owed him is settled.",
+      "secret": "It is partly because he never shows prices on a wall.",
+      "wants": "V to notice that care is a different product.",
+      "idle": "chair",
+      "tags": [{"id": "cynical", "kind": "no"}, {"id": "warm", "kind": "honest"}],
+      "resumeAfterSeconds": 240
+    },
+    "g2": {
+      "asks": "Third flat. What did you see?",
+      "know": "You know the patient's flat: a cat bowl, a framed photo, no heater. You know the stop dialogue.",
+      "secret": "You noticed the missing heater first and decided to say nothing.",
+      "wants": "V to see the person, not the symptom.",
+      "idle": "generic_front",
+      "tags": [{"id": "heater", "kind": "honest"}, {"id": "implant", "kind": "flatter"}, {"id": "paid", "kind": "yes"}],
+      "resumeAfterSeconds": 120
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Viktor is waiting on the noodle bar corner",
+      "know": "You asked V for a ride and you are waiting on the corner in Little China with your medical bag. You need the car tonight and you will not say why it matters.",
+      "wants": "V to pick you up on the corner for three calls.",
+      "do": [
+        {"p": "pin", "at": "corner"},
+        {"p": "place", "at": "corner"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "corner", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "V2.open.01"},
+        {"when": "place:corner:arrived", "say": "V2.open.02"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:corner:arrived", "next": "calls"}],
+      "timeout": {"gameHours": 2, "next": "no-ride"}
+    },
+    {
+      "id": "calls",
+      "type": "play",
+      "label": "Viktor is riding with V to three house calls",
+      "know": "V is driving you through the night. You are teaching by doing: ask what changed, not what hurts. The Kabuki stall is first, then the dock worker and then a grandmother in Heywood whose heart implant skips.",
+      "wants": "V to drive all three calls before the night runs out.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "heywood", "checkpoints": ["kabuki", "dock"], "limitMinutes": 90},
+        {"p": "cast", "id": "vendor", "who": "extra", "at": "kabuki", "archetype": "vendor"},
+        {"p": "cast", "id": "worker", "who": "extra", "at": "dock", "archetype": "dock-worker"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V2.open.03"},
+        {"when": "line:V2.open.03:done", "say": "V2.open.04"},
+        {"when": "line:V2.open.04:done", "gap": "g1"},
+        {"when": "ride:checkpoint:kabuki", "say": "V2.bark.arrive.a"},
+        {"when": "line:V2.bark.arrive.a:done", "say": "V2.bark.leave.a"},
+        {"when": "ride:checkpoint:dock", "say": "V2.bark.arrive.b"},
+        {"when": "line:V2.bark.arrive.b:done", "say": "V2.bark.leave.b"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "tab"},
+        {"id": "late", "on": "event:ride:timeout", "next": "dawn"},
+        {"id": "abandoned", "on": "event:ride:abandoned", "next": "dawn"}
+      ],
+      "timeout": {"gameHours": 6, "next": "dawn"}
+    },
+    {
+      "id": "tab",
+      "type": "play",
+      "label": "The grandmother says put it on my tab",
+      "know": "At the third flat the patient cannot pay and says put it on my tab. Viktor says nothing and waits to see what V does. He has carried worse tabs than hers, and he means that lightly.",
+      "wants": "V to pay the patient's share or to stay out of it, but to decide.",
+      "do": [
+        {"p": "party"},
+        {"p": "cast", "id": "grandmother", "who": "extra", "at": "heywood", "archetype": "grandmother"},
+        {"p": "pay", "id": "tab", "to": "grandmother", "amount": 600, "min": 300, "reason": "tab"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V2.tab.00"},
+        {"when": "line:V2.tab.00:done", "gap": "g2"},
+        {"when": "pay:tab:paid", "say": "V2.tab.01"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:tab:paid", "next": "drop-paid"},
+        {"id": "stayed-out", "on": "event:pay:tab:declined", "next": "drop"},
+        {"id": "short", "on": "event:pay:tab:short", "next": "drop"},
+        {"id": "broke", "on": "event:pay:tab:broke", "next": "drop"}
+      ],
+      "timeout": {"gameHours": 1, "next": "drop"}
+    },
+    {
+      "id": "drop",
+      "type": "play",
+      "label": "Viktor asks V to drive him back to the corner",
+      "know": "The third call is done and you are driving back to the corner where V picked you up. You are quiet on the way, and you ask V three questions about V, none of them about the chrome.",
+      "wants": "V to drive you home safely.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "corner", "limitMinutes": 40}
+      ],
+      "choices": [
+        {"id": "dropped", "on": "event:ride:arrived", "next": "all-three"},
+        {"id": "late", "on": "event:ride:timeout", "next": "dawn"}
+      ],
+      "timeout": {"gameHours": 2, "next": "dawn"}
+    },
+    {
+      "id": "drop-paid",
+      "type": "play",
+      "label": "Viktor asks V to drive him back, after V paid the tab",
+      "know": "V paid the grandmother's tab without being asked. You said nothing about it, and you are driving back to the corner. You will take the empty paper cup out of V's hand when you get out of the car.",
+      "wants": "V to drive you home safely.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "corner", "limitMinutes": 40}
+      ],
+      "choices": [
+        {"id": "dropped", "on": "event:ride:arrived", "next": "all-three-paid"},
+        {"id": "late", "on": "event:ride:timeout", "next": "dawn"}
+      ],
+      "timeout": {"gameHours": 2, "next": "dawn"}
+    }
+  ],
+  "endings": {
+    "all-three": {
+      "memory": "You drove Viktor on three house calls through the night.",
+      "history": "He sometimes calls V my driver.",
+      "bond": 55,
+      "script": [{"when": "ending:all-three", "say": "V2.close.01"}]
+    },
+    "all-three-paid": {
+      "memory": "You drove Viktor on three house calls through the night, and V paid a stranger's tab without being asked.",
+      "history": "He sometimes calls V my driver.",
+      "bond": 60,
+      "script": [{"when": "ending:all-three-paid", "say": "V2.close.01"}]
+    },
+    "dawn": {
+      "memory": "V drove you on your calls but the night ran out before the third.",
+      "bond": 25,
+      "script": [{"when": "ending:dawn", "say": "V2.close.02"}]
+    },
+    "no-ride": {
+      "memory": "You asked V for a ride and they never came.",
+      "bond": -5
+    }
+  }
+}

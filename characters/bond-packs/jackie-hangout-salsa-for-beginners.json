@@ -1,0 +1,86 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "jackie-hangout-salsa-for-beginners",
+  "character": "jackie-welles",
+  "title": "Salsa for Beginners",
+  "summary": "Jackie teaches you three dance moves at a Kabuki corner club, while a crowd claps if you keep up.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie invites you to a dance lesson at a club in Kabuki tonight at ten. He says you are terrible and he is free."
+  },
+  "places": {
+    "club": {"name": "the corner club in Kabuki", "radius": 15}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you feel the beat? No? Close your eyes. What does it sound like to you?",
+      "know": "You are at the club in Kabuki with Jackie. A stranger has asked Jackie to dance and taken the lead, and you have missed one move.",
+      "secret": "Dancing makes him feel closest to his mother.",
+      "wants": "V to try.",
+      "idle": "jackie_hips",
+      "tags": [{"id": "poetic", "kind": "yes"}, {"id": "flat", "kind": "no"}],
+      "resumeAfterSeconds": 240
+    }
+  },
+  "stages": [
+    {
+      "id": "dance",
+      "type": "play",
+      "label": "Jackie teaches V three moves in a Kabuki club",
+      "know": "You are in a corner club in Kabuki. Jackie is dancing and naming three moves, and a crowd is clapping when you keep up.",
+      "wants": "V to keep up with the lesson.",
+      "do": [
+        {"p": "place", "at": "club"},
+        {"p": "party"},
+        {"p": "workspot", "id": "dance", "who": "self", "at": "club", "key": "dance", "fallback": "jackie_hips"},
+        {"p": "cast", "id": "crowd", "who": "four club regulars who clap if V keeps up", "at": "club"},
+        {"p": "cast", "id": "stranger", "who": "a stranger who asks Jackie to dance and takes the lead", "at": "club"},
+        {"p": "timer", "id": "second", "seconds": 180, "clock": "game"},
+        {"p": "together", "id": "lesson", "minutes": 6, "metres": 4, "breakSeconds": 180, "at": "club"}
+      ],
+      "script": [
+        {"when": "timer:second", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stayed", "on": "event:together:lesson:done", "next": "stayed"},
+        {"id": "left", "on": "event:together:lesson:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "stayed": {
+      "memory": "You stayed through Jackie's dance lesson at a Kabuki club, and the crowd clapped when you kept up.",
+      "bond": 10
+    },
+    "left": {
+      "memory": "You and Jackie tried a dance lesson at a Kabuki club, and you left before the end.",
+      "bond": 6
+    },
+    "unfinished": {
+      "memory": "You and Jackie were doing something light, and it ended there.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "rooftop", "know": "A rooftop dance with the city lights behind you.", "wants": "To keep up with the moves.", "places": {"club": "club"}},
+      {"id": "radio", "know": "A quiet bar with only a radio playing, and nobody else dancing.", "wants": "To keep up with the moves.", "places": {"club": "club"}},
+      {"id": "dawn", "know": "A street corner at dawn, with a radio on a shop step.", "wants": "To keep up with the moves.", "places": {"club": "club"}}
+    ]
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

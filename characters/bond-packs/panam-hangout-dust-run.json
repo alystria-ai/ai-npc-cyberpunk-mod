@@ -1,0 +1,72 @@
+{
+  "kind": "hangout",
+  "format": 2,
+  "id": "panam-hangout-dust-run",
+  "character": "panam-palmer",
+  "title": "Dust Run",
+  "summary": "Panam challenges V to a short sprint across the dry lakebed, side by side, with no checkpoints.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/side_quest/sq004_riders_on_the_storm"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.3,
+    "bringUp": "Bikes and a lakebed, and the loser buys the fuel. Bring up, in your own way, that you want a short race across the dry lakebed east of the dam road."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "dawn", "know": "It is dawn, and the lakebed is cold and grey.", "wants": "V to get a clean start."},
+      {"id": "dusk", "know": "It is dusk, and the dust is catching the last of the light.", "wants": "V to keep up with her bike in the dust."},
+      {"id": "headlights", "know": "It is night and they race by headlights only.", "wants": "V to find the line in the dark."}
+    ]
+  },
+  "places": {
+    "start": {"name": "the start line on the dry lakebed east of Laguna Bend's dam road", "radius": 30},
+    "finish": {"name": "the finish line on the lakebed, one straight leg away", "radius": 30}
+  },
+  "stages": [
+    {
+      "id": "run",
+      "type": "play",
+      "label": "V races Panam across the dry lakebed",
+      "know": "V and Panam line up side by side on the dry lakebed. Panam is on her bike and has her own idea of a head start.",
+      "wants": "V to beat Panam to the finish line.",
+      "meet": {"where": "waypoint", "inGameHours": 4},
+      "do": [
+        {"p": "pin", "at": "start"},
+        {"p": "place", "at": "start"},
+        {"p": "race", "id": "run", "from": "start", "to": "finish", "vehicle": "bike", "limitMinutes": 4, "stillSeconds": 20}
+      ],
+      "choices": [
+        {"id": "won", "on": "event:race:run:won", "next": "won"},
+        {"id": "lost", "on": "event:race:run:lost", "next": "lost"},
+        {"id": "late", "on": "event:race:run:timeout", "next": "left"},
+        {"id": "stood-up", "on": "meet:stood-up", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 3, "next": "left"}
+    }
+  ],
+  "endings": {
+    "won": {
+      "memory": "You beat Panam across the lakebed, and she is already asking for a rematch.",
+      "bond": 14
+    },
+    "lost": {
+      "memory": "Panam beat you across the lakebed and has not let you forget the head start.",
+      "bond": 11
+    },
+    "left": {
+      "memory": "You left the lakebed before the race was finished.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You never came to the lakebed, and Panam ran the course alone."
+    }
+  }
+}

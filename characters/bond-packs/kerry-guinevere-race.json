@@ -1,0 +1,128 @@
+{
+  "format": 2,
+  "id": "kerry-guinevere-race",
+  "character": "kerry-eurodyne",
+  "title": "Guinevere Wants to Run",
+  "summary": "Kerry wants to run his Rayfield Aerondight Guinevere against your car from North Oak to the stadium lot in Heywood, and the winner picks the radio.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/side_quest/sq017_kerry", "quests/side_quest/sq017_01_riot_club"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "Guinevere has not been pushed in years and you know she is bored. Challenge V to a race from your gate to the stadium lot, with a stake: the winner picks what plays on the radio for the drive home. Say it the way you say everything, loud and a little rude, and make it sound like a dare."
+  },
+  "places": {
+    "gate": {"name": "the gate of Kerry's villa in North Oak", "radius": 25},
+    "finish": {"name": "the Atlantis Stadium lot in Heywood", "radius": 40}
+  },
+  "images": {
+    "guinevere-run": {"file": "images/guinevere-run.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "K3.open.01": {"text": "She hasn't run in years. Guinevere. I think she's bored.", "emotion": "neutral"},
+    "K3.open.02": {"text": "You, your car, me, her. From my gate to the stadium lot. First one wins the radio.", "emotion": "emphatic"},
+    "K3.open.03": {"text": "No ramming, no cops. If the heat comes, it's void.", "emotion": "emphatic"},
+    "K3.stage.start.01": {"text": "Three. Two. One. Go!", "emotion": "emphatic", "channel": "remote"},
+    "K3.bark.won.a": {"text": "Ha! Guinevere never loses! Pick your station, old rival.", "emotion": "happy"},
+    "K3.bark.won.b": {"text": "Damn it! You beat her! ... Fine. You pick.", "emotion": "angry"},
+    "K3.bark.void.a": {"text": "Cops. Void. We'll do it again properly.", "emotion": "shrug"},
+    "K3.bark.void.b": {"text": "Heat. Void. Let's go slowly home.", "emotion": "shrug"},
+    "K3.close.02": {"text": "My age shows. Doesn't matter. Great run.", "emotion": "happy", "gesture": "happy"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What are you driving? And be honest, I want a fair fight.",
+      "know": "You know the race rules: no ramming, no cops, and the race is void if the heat comes up. The finish is the Atlantis Stadium lot in Heywood. Kerry drives Guinevere, and he drives like a man who has a lot to prove.",
+      "secret": "You are a little scared of how hard Kerry wants to win.",
+      "wants": "The race.",
+      "idle": "lean",
+      "tags": [{"id": "race", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    }
+  },
+  "stages": [
+    {
+      "id": "dare",
+      "label": "Kerry lays out the race rules",
+      "know": "You have challenged V to a race from your North Oak gate to the Atlantis Stadium lot, with the winner picking the radio. Heat must stay at zero or the race is void.",
+      "wants": "V to accept the race.",
+      "script": [
+        {"when": "stage:enter", "say": "K3.open.01"},
+        {"when": "line:K3.open.01:done", "say": "K3.open.02"},
+        {"when": "line:K3.open.02:done", "say": "K3.open.03"},
+        {"when": "line:K3.open.03:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "race", "on": "event:gap:g1:race", "next": "start"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 6, "next": "no"}
+    },
+    {
+      "id": "start",
+      "type": "play",
+      "label": "Kerry is at the gate with Guinevere",
+      "know": "You are at your North Oak gate with Guinevere idling. You want the race to start clean, with no heat on the road.",
+      "wants": "V at the gate, ready to race.",
+      "do": [
+        {"p": "pin", "at": "gate"},
+        {"p": "place", "at": "gate"},
+        {"p": "cast", "id": "kerry", "who": "self", "at": "gate", "carry": true},
+        {"p": "check", "id": "heat", "what": "heat"}
+      ],
+      "choices": [
+        {"id": "ready", "on": "event:place:gate:arrived", "next": "race"}
+      ],
+      "timeout": {"gameHours": 1, "next": "no"}
+    },
+    {
+      "id": "race",
+      "type": "play",
+      "label": "Kerry races Guinevere to the stadium lot",
+      "know": "The race is on from the North Oak gate to the Atlantis Stadium lot in Heywood. Guinevere is in front of you or behind you, and a wanted level would void the race.",
+      "wants": "To beat V to the lot, or to lose to them and be proud of it.",
+      "do": [
+        {"p": "race", "id": "dash", "from": "gate", "to": "finish", "heat": true, "limitMinutes": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K3.stage.start.01"},
+        {"when": "line:K3.stage.start.01:done", "event": "race:dash:go"},
+        {"when": "race:dash:won", "say": "K3.bark.won.b"},
+        {"when": "race:dash:lost", "say": "K3.bark.won.a"},
+        {"when": "race:dash:void", "say": "K3.bark.void.a"},
+        {"when": "race:dash:timeout", "say": "K3.bark.void.b"}
+      ],
+      "choices": [
+        {"id": "v-won", "on": "event:race:dash:won", "next": "won-by-v"},
+        {"id": "k-won", "on": "event:race:dash:lost", "next": "won-by-kerry"},
+        {"id": "void", "on": "event:race:dash:void", "next": "void"},
+        {"id": "timed-out", "on": "event:race:dash:timeout", "next": "void"}
+      ],
+      "timeout": {"gameHours": 1, "next": "void"}
+    }
+  ],
+  "endings": {
+    "won-by-v": {
+      "memory": "You beat Kerry's Guinevere on the road from North Oak, and you picked the station.",
+      "bond": 50
+    },
+    "won-by-kerry": {
+      "memory": "Guinevere beat you to the Atlantis Stadium lot, and Kerry is already asking for a rematch.",
+      "bond": 45,
+      "script": [{"when": "ending:won-by-kerry", "text": "K3.close.02", "image": "guinevere-run"}]
+    },
+    "void": {
+      "memory": "The heat came up on the road, the race was void, and you drove home slowly.",
+      "bond": 10
+    },
+    "no": {
+      "memory": "You turned down Kerry's race, and he took Guinevere out on the road alone.",
+      "bond": 0
+    }
+  }
+}

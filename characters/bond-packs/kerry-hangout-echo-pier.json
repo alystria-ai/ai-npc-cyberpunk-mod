@@ -1,0 +1,79 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "kerry-hangout-echo-pier",
+  "character": "kerry-eurodyne",
+  "title": "Echo Pier",
+  "summary": "Kerry takes you to an old pier at Pacifica with a great echo, and asks what word you would shout if you did not care who heard.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq011_kerry"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "Kerry knows an old pier at Pacifica with a great echo. Ask V to come and bring their voice, not for singing."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "fog", "know": "Fog lies on the water around the old pier at Pacifica, so the echo comes back softly and from nowhere in particular.", "wants": "A word that the fog will carry."},
+      {"id": "tunnel", "know": "The old pier at Pacifica has a tunnel under it, and the echo inside the tunnel is loud and rough.", "wants": "A word that sounds good under the pier."},
+      {"id": "sea-cave", "know": "You are in a sea cave at the foot of the old pier at Pacifica, and the echo bounces off the rock for a long time.", "wants": "A word that the cave can hold."}
+    ]
+  },
+  "places": {
+    "pier": {"name": "the old pier at Pacifica with the great echo", "radius": 20}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What word would you shout, if you didn't care who heard?",
+      "know": "You are at the old pier at Pacifica with Kerry. The echo comes back loud off the water, and the planks are old under your feet.",
+      "secret": "A word he shouts here is a name.",
+      "wants": "V's word.",
+      "idle": "lean",
+      "tags": [{"id": "shout", "kind": "honest"}, {"id": "quiet", "kind": "no"}],
+      "resumeAfterSeconds": 900
+    }
+  },
+  "stages": [
+    {
+      "id": "echo",
+      "type": "play",
+      "label": "Kerry asks V to shout on the old pier",
+      "know": "You are at the old pier at Pacifica, where the echo is good. Kerry is leaning on a rail beside you, waiting to hear what you shout.",
+      "wants": "V to shout a word and mean it.",
+      "do": [
+        {"p": "cast", "id": "kerry", "who": "self", "at": "pier", "carry": true},
+        {"p": "place", "at": "pier"}
+      ],
+      "script": [
+        {"when": "place:pier:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "shouted", "on": "event:gap:g1:shout", "next": "shouted"},
+        {"id": "quiet", "on": "event:gap:g1:quiet", "next": "quiet"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "shouted": {
+      "memory": "You shouted a word off the old pier at Pacifica, and the echo came back to you.",
+      "bond": 10
+    },
+    "quiet": {
+      "memory": "You stood on the old pier at Pacifica with Kerry and said nothing into the echo.",
+      "bond": 6
+    },
+    "stood-up": {
+      "memory": "You never came to the old pier at Pacifica, and Kerry shouted at the water alone.",
+      "bond": 0
+    }
+  }
+}

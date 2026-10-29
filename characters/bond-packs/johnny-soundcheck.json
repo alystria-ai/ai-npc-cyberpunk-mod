@@ -1,0 +1,256 @@
+{
+  "format": 2,
+  "id": "johnny-soundcheck",
+  "character": "johnny-silverhand",
+  "title": "Soundcheck",
+  "summary": "Johnny asks V to stand on an empty club stage at dawn, say one word into the mic, and give him one line in V's own voice.",
+  "requires": {
+    "bond": 10,
+    "questsFinished": ["quests/side_quest/sq031_rogue"],
+    "notActive": ["quests/main_quest/act_01/q108", "quests/side_quest/sq011", "quests/side_quest/sq031"],
+    "relationship": "any",
+    "invitations": true,
+    "after": ["johnny-the-count"]
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 0.3,
+    "bringUp": "You have wanted to stand on a stage once more with nobody watching. Bring up, in your own way and without a joke, that V should go to the Totentanz stage in Westbrook at five in the morning and stand by the mic."
+  },
+  "places": {
+    "stage": {"name": "the Totentanz stage in Westbrook, empty at five in the morning", "radius": 3, "district": "Westbrook"},
+    "street": {"name": "a Westbrook street at first light, outside the club", "radius": 25, "district": "Westbrook"}
+  },
+  "images": {
+    "soundcheck-mirror": {"file": "images/soundcheck-mirror.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "SH6.open.01": {"text": "I'm not asking for a favour. I'm asking for a room.", "emotion": "neutral", "channel": "head"},
+    "SH6.open.02": {"text": "An empty stage. Five in the morning. No crowd. No band. Just a soundcheck.", "emotion": "sad", "channel": "head"},
+    "SH6.open.03": {"text": "You've been carrying me around for weeks. I never asked. I'm asking.", "emotion": "sad", "channel": "head"},
+    "SH6.open.04": {"text": "Totentanz. The stage. It's close.", "emotion": "neutral", "channel": "head"},
+    "SH6.stage.venue.01": {"text": "There it is. Mic's where it always was. Stand by it.", "emotion": "nod"},
+    "SH6.stage.venue.02": {"text": "Smell that? Spilled beer and cables. Nobody ever bottled that.", "emotion": "happy"},
+    "SH6.stage.check.01": {"text": "Soundcheck. The part nobody sees. You hear the room breathe.", "emotion": "neutral"},
+    "SH6.stage.check.02": {"text": "Say one word into it. Anything. Your name.", "emotion": "neutral"},
+    "SH6.stage.check.03": {"text": "That's your voice, V. Not mine. It sounds fine.", "emotion": "nod"},
+    "SH6.stage.check.04": {"text": "Quiet's good. You can feel it work.", "emotion": "nod"},
+    "SH6.stage.wheel.01": {"text": "Listen. I've used your body for weeks. Walked it, watched it, never asked once.", "emotion": "sad"},
+    "SH6.stage.wheel.02": {"text": "I won't take the wheel. Not unless you hand it to me. One line. Your mouth. Your call.", "emotion": "sad"},
+    "SH6.stage.wheel.03": {"text": "You can say no. I'd respect that more than a yes.", "emotion": "emphatic"},
+    "SH6.stage.wheel.04": {"text": "Thanks. Mine's short. Alt. Just the name, said right, once.", "emotion": "sad", "channel": "head"},
+    "SH6.stage.wheel.05": {"text": "No. Good. I'm relieved, which surprises me. You're not my vehicle, V.", "emotion": "nod"},
+    "SH6.stage.wheel.06": {"text": "Turns, then. You pick one, I pick another. We'll call it a duet and never say so.", "emotion": "happy", "channel": "head"},
+    "SH6.stage.out.01": {"text": "Let's go. The lights will come on soon. I don't want to see it.", "emotion": "neutral"},
+    "SH6.stage.out.02": {"text": "Look at that. Dawn on a Westbrook street. I used to hate it.", "emotion": "sad"},
+    "SH6.wheel.caption": {"text": "Don't look. It's only the mirror.", "emotion": "neutral"},
+    "SH6.close.01": {"text": "Whatever's left of me, I owe you a line. That was it.", "emotion": "sad"},
+    "SH6.close.02": {"text": "You told me no. Nobody does that. I'm keeping it.", "emotion": "nod"},
+    "SH6.close.03": {"text": "You left before the end. That's alright. The room's still there.", "emotion": "shrug"},
+    "SH6.close.04": {"text": "No. Alright. Not tonight, then.", "emotion": "sad", "channel": "head"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Will you take me? No jokes from me tonight. I promise.",
+      "know": "The Totentanz stage in Westbrook at five in the morning, and the club is empty. Johnny is asking, not taking, and V can say no.",
+      "secret": "He has already thought about the question he will ask on stage.",
+      "wants": "A yes.",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    },
+    "g2": {
+      "asks": "What's it feel like, standing up there with the lights off? Tell me. I forgot.",
+      "know": "V is at the mic stand for ten minutes. Johnny is walking the edge of the stage, and V may say a word or stay silent.",
+      "secret": "He is a little afraid of the quiet.",
+      "wants": "V to speak, or not, and for him to hear the room.",
+      "tags": [{"id": "word", "kind": "yes"}, {"id": "silent", "kind": "no"}],
+      "resumeAfterSeconds": 300,
+      "resumeOn": ["together:check:done"]
+    },
+    "g3": {
+      "asks": "One line, from your mouth, in your words. Do I get it?",
+      "know": "Three options: yes, where V writes the line in chat and Johnny answers in his own voice, no, or together, where you take turns on a line. The mod never moves V.",
+      "secret": "He is afraid this body will outlast him and that V will keep carrying his voice.",
+      "wants": "V's own decision.",
+      "idle": "johnny_shades",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}, {"id": "together", "kind": "honest"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "talk",
+      "label": "Johnny asks V for a soundcheck",
+      "know": "Johnny is asking V for a soundcheck on the Totentanz stage at five in the morning. He is asking, not taking, and V can say no.",
+      "wants": "V to say yes or no.",
+      "script": [
+        {"when": "stage:enter", "say": "SH6.open.01"},
+        {"when": "line:SH6.open.01:done", "say": "SH6.open.02"},
+        {"when": "line:SH6.open.02:done", "say": "SH6.open.03"},
+        {"when": "line:SH6.open.03:done", "say": "SH6.open.04"},
+        {"when": "line:SH6.open.04:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "event:gap:g1:yes", "next": "venue"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 6, "next": "no"}
+    },
+    {
+      "id": "venue",
+      "type": "play",
+      "label": "Stand by the mic on the Totentanz stage",
+      "know": "V is going to the Totentanz stage in Westbrook, empty at five in the morning. Johnny is waiting, and the mic stand is where it always was.",
+      "wants": "V to stand on the stage within reach of the mic stand.",
+      "do": [
+        {"p": "pin", "at": "stage"},
+        {"p": "place", "at": "stage"}
+      ],
+      "script": [
+        {"when": "place:stage:arrived", "say": "SH6.stage.venue.01"},
+        {"when": "line:SH6.stage.venue.01:done", "say": "SH6.stage.venue.02"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:place:stage:arrived", "next": "check"}],
+      "timeout": {"gameHours": 6, "next": "venue-left"}
+    },
+    {
+      "id": "check",
+      "type": "play",
+      "label": "Stand on the stage during the soundcheck",
+      "know": "V is on the Totentanz stage at five in the morning, near the mic stand. Johnny walks the edge of the stage and tells V what the room used to sound like. He is a little afraid of the quiet.",
+      "wants": "V to say one word into the mic, or to stay silent and let him hear the room.",
+      "do": [
+        {"p": "place", "at": "stage"},
+        {"p": "together", "id": "check", "minutes": 10, "metres": 2, "breakSeconds": 600, "at": "stage"},
+        {"p": "check", "id": "hour", "what": "hour"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH6.stage.check.01"},
+        {"when": "line:SH6.stage.check.01:done", "say": "SH6.stage.check.02"},
+        {"when": "line:SH6.stage.check.02:done", "gap": "g2"},
+        {"when": "gap:g2:word", "say": "SH6.stage.check.03"},
+        {"when": "gap:g2:silent", "say": "SH6.stage.check.04"}
+      ],
+      "choices": [
+        {"id": "word", "on": "event:gap:g2:word", "next": "wheel"},
+        {"id": "silent", "on": "event:gap:g2:silent", "next": "wheel"},
+        {"id": "done", "on": "event:together:check:done", "next": "wheel"},
+        {"id": "broken", "on": "event:together:check:broken", "next": "venue-left"}
+      ],
+      "timeout": {"gameHours": 3, "next": "wheel"}
+    },
+    {
+      "id": "wheel",
+      "type": "talk",
+      "label": "Johnny asks for one line in V's own voice",
+      "know": "Johnny has used V's body for weeks and never asked. Now he asks for one line, spoken by V's mouth. V may say yes, say no, or take turns with him. Alt's name may come up in the answer to yes.",
+      "wants": "V to decide: yes, no, or together.",
+      "script": [
+        {"when": "stage:enter", "text": "SH6.wheel.caption", "image": "soundcheck-mirror"},
+        {"when": "stage:enter", "say": "SH6.stage.wheel.01"},
+        {"when": "line:SH6.stage.wheel.01:done", "say": "SH6.stage.wheel.02"},
+        {"when": "line:SH6.stage.wheel.02:done", "say": "SH6.stage.wheel.03"},
+        {"when": "line:SH6.stage.wheel.03:done", "gap": "g3"},
+        {"when": "gap:g3:yes", "say": "SH6.stage.wheel.04"},
+        {"when": "gap:g3:no", "say": "SH6.stage.wheel.05"},
+        {"when": "gap:g3:together", "say": "SH6.stage.wheel.06"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "event:gap:g3:yes", "next": "out-yes"},
+        {"id": "no", "on": "event:gap:g3:no", "next": "out-no"},
+        {"id": "together", "on": "event:gap:g3:together", "next": "out-together"}
+      ],
+      "timeout": {"gameHours": 0.17, "next": "out-no"}
+    },
+    {
+      "id": "out-yes",
+      "type": "play",
+      "label": "Walk out to the street at dawn",
+      "know": "The soundcheck is over and V has given Johnny the line. The lights are coming on soon, and he is quiet.",
+      "wants": "V to walk out by the front onto the street.",
+      "do": [
+        {"p": "pin", "at": "street"},
+        {"p": "place", "at": "street"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH6.stage.out.01"},
+        {"when": "place:street:arrived", "say": "SH6.stage.out.02"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-yes"}],
+      "timeout": {"gameHours": 6, "next": "wheel-yes"}
+    },
+    {
+      "id": "out-together",
+      "type": "play",
+      "label": "Walk out to the street at dawn",
+      "know": "The soundcheck is over and you and Johnny have traded the line in turns. The lights are coming on soon, and he is quiet.",
+      "wants": "V to walk out by the front onto the street.",
+      "do": [
+        {"p": "pin", "at": "street"},
+        {"p": "place", "at": "street"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH6.stage.out.01"},
+        {"when": "place:street:arrived", "say": "SH6.stage.out.02"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-together"}],
+      "timeout": {"gameHours": 6, "next": "wheel-together"}
+    },
+    {
+      "id": "out-no",
+      "type": "play",
+      "label": "Walk out to the street at dawn",
+      "know": "The soundcheck is over and V has told Johnny no. The lights are coming on soon, and he is quiet.",
+      "wants": "V to walk out by the front onto the street.",
+      "do": [
+        {"p": "pin", "at": "street"},
+        {"p": "place", "at": "street"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH6.stage.out.01"},
+        {"when": "place:street:arrived", "say": "SH6.stage.out.02"}
+      ],
+      "choices": [{"id": "arrived", "on": "event:place:street:arrived", "next": "wheel-no"}],
+      "timeout": {"gameHours": 6, "next": "wheel-no"}
+    }
+  ],
+  "endings": {
+    "wheel-yes": {
+      "memory": "In an empty club at dawn Johnny asked for a line instead of taking it, and you gave him one in your own voice.",
+      "history": "He never says 'my body' of V's again.",
+      "bond": 100,
+      "script": [
+        {"when": "ending:wheel-yes", "say": "SH6.close.01"}
+      ]
+    },
+    "wheel-together": {
+      "memory": "In an empty club at dawn you and Johnny took turns with one line each, and he called it a duet.",
+      "bond": 100,
+      "script": [
+        {"when": "ending:wheel-together", "say": "SH6.close.01"}
+      ]
+    },
+    "wheel-no": {
+      "memory": "You told Johnny no in an empty club at dawn, and he respected it more than a yes.",
+      "bond": 90,
+      "script": [
+        {"when": "ending:wheel-no", "say": "SH6.close.02"}
+      ]
+    },
+    "venue-left": {
+      "memory": "You left Johnny before the soundcheck was over.",
+      "bond": 40,
+      "script": [
+        {"when": "ending:venue-left", "say": "SH6.close.03"}
+      ]
+    },
+    "no": {
+      "memory": "You said no to Johnny's soundcheck, and he said not tonight.",
+      "bond": 0,
+      "script": [
+        {"when": "ending:no", "say": "SH6.close.04"}
+      ]
+    }
+  }
+}

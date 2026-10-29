@@ -1,0 +1,86 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "river-hangout-scrapyard-appraisal",
+  "character": "river-ward",
+  "title": "Scrapyard Appraisal",
+  "summary": "River takes you to a wreck field south of the city for a quiz on five cars, and the loser buys the coffee.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "River wants to take V to a scrapyard south of the city for a quiz about five wrecks. He says the loser buys the coffee."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "flashlight", "know": "The scrapyard is dark, and you work the wrecks with a flashlight that flickers over the rust.", "wants": "Answers that hold up in the dark."},
+      {"id": "rain", "know": "A rainstorm has turned the yard to mud, and the wrecks drip as you walk between them.", "wants": "A quick, dry answer."},
+      {"id": "v-quizzes", "know": "V asks River the quiz questions this time, and River gets to pick the wreck.", "wants": "V's questions to stump River."}
+    ]
+  },
+  "places": {
+    "wreck-1": {"name": "the rusted sedan in the scrapyard south of the city", "radius": 15},
+    "wreck-2": {"name": "the station wagon with no doors", "radius": 15},
+    "wreck-3": {"name": "the bus shell on its side", "radius": 15},
+    "wreck-4": {"name": "the old patrol car with a sealed trunk", "radius": 15},
+    "wreck-5": {"name": "the motorbike frame under a tarp", "radius": 15}
+  },
+  "images": {
+    "scrapyard-appraisal": {"file": "images/scrapyard-appraisal.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "RWH3.inv": {"text": "Scrapyard south of the city. Five wrecks, one quiz. Loser buys the coffee.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which one of these cars would you want to be buried in?",
+      "know": "You have walked past four wrecks with River, and you know the quiz answers you have given so far.",
+      "secret": "He has a story about his own car.",
+      "wants": "To hear V's taste.",
+      "idle": "lean",
+      "resumeAfterSeconds": 120
+    }
+  },
+  "stages": [
+    {
+      "id": "quiz",
+      "type": "play",
+      "label": "River quizzes V on five wrecks",
+      "know": "You are in the scrapyard south of the city with River. He is quizzing you on the make, year and history of five wrecks.",
+      "wants": "V to answer the quiz for each wreck and find out who buys the coffee.",
+      "do": [
+        {"p": "cast", "id": "river", "who": "self", "at": "wreck-1", "carry": true},
+        {"p": "place", "at": "wreck-1"},
+        {"p": "place", "at": "wreck-2"},
+        {"p": "place", "at": "wreck-3"},
+        {"p": "place", "at": "wreck-4"},
+        {"p": "place", "at": "wreck-5"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RWH3.inv", "image": "scrapyard-appraisal"},
+        {"when": "place:wreck-4:arrived", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "appraised", "on": "event:place:wreck-5:arrived", "next": "appraised"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "appraised": {
+      "memory": "You got through River's quiz at the scrapyard south of the city, and he owes you the coffee.",
+      "bond": 8
+    },
+    "stood-up": {
+      "memory": "You never came to the scrapyard south of the city, and River appraised the wrecks alone."
+    }
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "format": 2,
+  "id": "judy-spare-parts",
+  "character": "judy-alvarez",
+  "title": "Spare Parts",
+  "summary": "Judy asks V to walk Kabuki Market with her to buy a matrix from a stall owner who likes mercs.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/act_01/q105_04_judys"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any",
+    "eddies": true,
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "Judy is fixing a rig and needs a matrix that is not sold anywhere respectable. Bring up, casually and in your own way, that you want V at Kabuki Market for a couple of hours to walk around and haggle. Say the stall owner likes mercs better than editors."
+  },
+  "places": {
+    "market": {"name": "the central stairs of Kabuki Market", "radius": 25},
+    "stall": {"name": "the matrix stall in Kabuki Market", "radius": 10}
+  },
+  "images": {
+    "spare-parts-market": {"file": "images/spare-parts-market.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "J1.ask.01": {"text": "Fried a matrix. The guy who sells them likes mercs better than editors. You're a merc.", "emotion": "shrug", "gesture": "judy"},
+    "J1.ask.02": {"text": "Kabuki Market, couple hours? I'll buy you noodles. Bad ones.", "emotion": "happy"},
+    "J1.stalls.01": {"text": "Okay. Rule one, don't touch anything that's humming.", "emotion": "emphatic", "gesture": "judy_coffee"},
+    "J1.stalls.02": {"text": "See this? Pre-unification BD wreath. Owned by a war hero. ...Nah, it's a hairnet.", "emotion": "happy", "gesture": "point"},
+    "J1.stalls.03": {"text": "That stall sold me my first scanner. I was fourteen and broke. Grandpa paid.", "emotion": "sad", "gesture": "describe"},
+    "J1.haggle.01": {"text": "That's him. Let you do the talking. I'll do the looking unimpressed.", "emotion": "neutral", "gesture": "judy"},
+    "J1.haggle.02": {"text": "You're terrifying. Do that to my landlord.", "emotion": "happy"},
+    "J1.hand.01": {"text": "Here. Made it last night. Don't say it's cute.", "emotion": "happy", "gesture": "generic_hold"},
+    "J1.end.01": {"text": "Got the matrix myself. Paid full price. Thanks for nothing, merc.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What about you, ever had someone who paid for your dumb stuff?",
+      "know": "You are walking Kabuki Market with V. The matrix is on a stall, and your grandfather paid for your first scanner.",
+      "wants": "A story back from V.",
+      "idle": "judy_coffee",
+      "resumeAfterSeconds": 480,
+      "resumeOn": ["place:stall:arrived"]
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Judy is waiting at the Kabuki Market stairs",
+      "know": "Your rig fried a matrix, and the stall owner who has one likes mercs. You are waiting on the central stairs of Kabuki Market, and you will never say that you want the company.",
+      "wants": "V to come to Kabuki Market for a couple of hours.",
+      "do": [
+        {"p": "pin", "at": "market"},
+        {"p": "place", "at": "market"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "market", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "J1.ask.01"},
+        {"when": "line:J1.ask.01:done", "text": "J1.ask.02"},
+        {"when": "place:market:arrived", "say": "J1.stalls.01"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:market:arrived", "next": "stalls"}],
+      "timeout": {"gameHours": 3, "next": "stood-up"}
+    },
+    {
+      "id": "stalls",
+      "type": "play",
+      "label": "Judy is walking V through the stalls",
+      "know": "You and V are walking Kabuki Market. You turn junk into treasure stories and then ruin them, and you are steering V toward the stall that has the matrix.",
+      "wants": "V to keep walking the market with you.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "stall"},
+        {"p": "together", "id": "walk", "minutes": 20, "metres": 6, "breakSeconds": 120, "at": "market"},
+        {"p": "timer", "id": "stall-5", "seconds": 300, "clock": "game"},
+        {"p": "timer", "id": "stall-10", "seconds": 600, "clock": "game"}
+      ],
+      "script": [
+        {"when": "timer:stall-5", "say": "J1.stalls.02"},
+        {"when": "timer:stall-10", "say": "J1.stalls.03"},
+        {"when": "line:J1.stalls.03:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stall", "on": "event:place:stall:arrived", "next": "haggle"},
+        {"id": "wandered", "on": "event:together:walk:broken", "next": "judy-pays"}
+      ],
+      "timeout": {"gameHours": 2, "next": "judy-pays"}
+    },
+    {
+      "id": "haggle",
+      "type": "play",
+      "label": "Judy waits while V haggles for the matrix",
+      "know": "The trader has the matrix at his stall and wants more than it is worth. He takes less from a merc who talks well. You are watching V work the deal and trying not to look impressed.",
+      "wants": "V to talk the price down or pay it.",
+      "do": [
+        {"p": "cast", "id": "stall", "who": "Kabuki trader", "at": "stall", "archetype": "market-stall"},
+        {"p": "pay", "id": "matrix", "to": "stall", "amount": 400, "min": 300, "reason": "haggle"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J1.haggle.01"},
+        {"when": "pay:matrix:paid", "text": "J1.haggle.02", "image": "spare-parts-market"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:matrix:paid", "next": "hand"},
+        {"id": "short", "on": "event:pay:matrix:short", "next": "judy-pays"},
+        {"id": "broke", "on": "event:pay:matrix:broke", "next": "judy-pays"},
+        {"id": "declined", "on": "event:pay:matrix:declined", "next": "judy-pays"}
+      ],
+      "timeout": {"gameHours": 1, "next": "judy-pays"}
+    },
+    {
+      "id": "hand",
+      "type": "play",
+      "label": "Judy hands V a keychain she made",
+      "know": "The matrix is in hand. You made a holo-keychain last night and you are handing it over at the end of the walk. You will not say it is a gift.",
+      "wants": "V to take it.",
+      "script": [
+        {"when": "stage:enter", "say": "J1.hand.01"}
+      ],
+      "choices": [{"id": "taken", "on": "event:line:J1.hand.01:done", "next": "bargain"}],
+      "timeout": {"gameHours": 1, "next": "bargain"}
+    },
+    {
+      "id": "judy-pays",
+      "type": "play",
+      "label": "Judy pays for the matrix herself",
+      "know": "The matrix did not come out of V's money, so you paid the trader yourself. You grumble about it and you will tease V about it later.",
+      "wants": "Nothing from V.",
+      "do": [
+        {"p": "timer", "id": "pays", "seconds": 60, "clock": "game"}
+      ],
+      "timeout": {"gameHours": 0.5, "next": "judy-paid"}
+    }
+  ],
+  "endings": {
+    "bargain": {
+      "memory": "You haggled the stall owner at Kabuki Market down for Judy's matrix, and she has not stopped telling people.",
+      "bond": 40
+    },
+    "judy-paid": {
+      "memory": "Judy paid for her matrix at Kabuki Market herself and teased you for being cheap.",
+      "bond": 30
+    },
+    "stood-up": {
+      "memory": "You never came to Kabuki Market, so Judy got the matrix herself at full price.",
+      "bond": -5,
+      "script": [{"when": "ending:stood-up", "text": "J1.end.01"}]
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "river-hangout-cover-story",
+  "character": "river-ward",
+  "title": "Cover Story",
+  "summary": "River gives you an alias at a Santo Domingo night market and bets you cannot get a free coffee with it.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 1,
+    "bringUp": "River wants to test V's cover story at the Santo Domingo night market. He gives V an alias and bets V cannot get a free coffee with it."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "v-alias", "know": "V invents the alias this time, and River waits to see whether it holds at the vendor's stall.", "wants": "An alias V can keep straight."},
+      {"id": "river-fails", "know": "River tries the alias on the vendor himself, and the vendor is not impressed.", "wants": "A laugh from V."},
+      {"id": "rival", "know": "A stranger in the next stall is running a cover story too, and the two of you are trying to outdo each other.", "wants": "A better story than the stranger's."}
+    ]
+  },
+  "places": {
+    "market": {"name": "the night market in Santo Domingo", "radius": 25}
+  },
+  "lines": {
+    "RWH5.inv": {"text": "Santo Domingo night market. I'll give you an alias. Get a free coffee with it. If you can.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Which part of the story did you almost believe yourself?",
+      "know": "You have tried the alias on the vendor, and you know how the vendor reacted.",
+      "secret": "He learned to lie from the job and misses nothing about it.",
+      "wants": "An honest answer.",
+      "idle": "chair",
+      "resumeAfterSeconds": 120
+    }
+  },
+  "stages": [
+    {
+      "id": "market",
+      "type": "play",
+      "label": "V tries the alias on a night market vendor",
+      "know": "You are at the night market in Santo Domingo with River. He has given you an alias, and a vendor is behind the coffee stall.",
+      "wants": "V to get a free coffee with the story.",
+      "do": [
+        {"p": "cast", "id": "river", "who": "self", "at": "market", "carry": true},
+        {"p": "place", "at": "market"},
+        {"p": "cast", "id": "vendor", "who": "extra", "at": "market"},
+        {"p": "npc-react", "id": "vendor-react", "cast": "vendor"},
+        {"p": "timer", "id": "attempt", "seconds": 60}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RWH5.inv"},
+        {"when": "timer:attempt", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "coffee", "on": "event:npc:vendor-react:obey", "next": "coffee"},
+        {"id": "caught", "on": "event:npc:vendor-react:leave", "next": "caught"}
+      ],
+      "timeout": {"gameHours": 2, "next": "stood-up"}
+    }
+  ],
+  "endings": {
+    "coffee": {
+      "memory": "You got a free coffee at the Santo Domingo night market with River's alias, even though the vendor saw through it.",
+      "bond": 8
+    },
+    "caught": {
+      "memory": "The vendor at the Santo Domingo night market saw through your alias within a minute, but the story kept River laughing.",
+      "bond": 4
+    },
+    "stood-up": {
+      "memory": "You never came to the Santo Domingo night market, and River told his alias to the vendor alone."
+    }
+  }
+}

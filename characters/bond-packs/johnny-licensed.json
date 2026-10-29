@@ -1,0 +1,163 @@
+{
+  "format": 2,
+  "id": "johnny-licensed",
+  "character": "johnny-silverhand",
+  "title": "Licensed to Thrill",
+  "summary": "Johnny sees his face on a shop window in Japantown and wants to know who signed the licence. V can follow the delivery car.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq011_concert"],
+    "notActive": ["quests/main_quest/act_01/q108", "quests/side_quest/sq011", "quests/side_quest/sq031"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 0.5,
+    "bringUp": "You walk past a shop window in Japantown and see your own face on a cheap shirt, a keychain and a can of Silverhand Ultra. Bring up, in your own way and furious, that V should stop and look, and that someone signed a licence for it."
+  },
+  "places": {
+    "window": {"name": "the Japantown shop window with the printed merchandise", "radius": 8, "district": "Japantown"},
+    "junction-1": {"name": "the first junction on the rep's route, a left turn", "radius": 25},
+    "redlight": {"name": "a long red light on the rep's route", "radius": 25},
+    "lastturn": {"name": "the last turn before the licensing office", "radius": 25},
+    "office": {"name": "the licensing office on a City Center lobby street", "radius": 25, "district": "City Center"}
+  },
+  "images": {
+    "licensed-can": {"file": "images/licensed-can.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "SH4.open.01": {"text": "Stop. Back up. Is that my face on a mug?", "emotion": "surprise"},
+    "SH4.open.02": {"text": "A keychain. A shirt. A can of Silverhand Ultra. Ultra! I didn't even drink energy drinks.", "emotion": "angry"},
+    "SH4.open.03": {"text": "That's the wrong side of my face, by the way. The good side doesn't exist, but still.", "emotion": "disgust"},
+    "SH4.open.04": {"text": "Somebody signed off on this. Somebody got paid. I want a name.", "emotion": "emphatic"},
+    "SH4.stage.tail.01": {"text": "There. The grey sedan. Stay back. A tail is a conversation he doesn't know he's in.", "emotion": "neutral"},
+    "SH4.stage.tail.02": {"text": "First junction. Left. Don't ride his bumper, you're not in a hurry.", "emotion": "neutral"},
+    "SH4.stage.tail.03": {"text": "Long light. Good. Let him get comfortable.", "emotion": "nod"},
+    "SH4.stage.tail.04": {"text": "Last turn. Now you look like a driver, not a hunter.", "emotion": "neutral"},
+    "SH4.bark.close.a": {"text": "Too close. Ease off, he's looking.", "emotion": "emphatic"},
+    "SH4.stage.office.01": {"text": "There. Don't threaten him yet. Ask him who signed.", "emotion": "neutral"},
+    "SH4.stage.office.02": {"text": "A department. Of course. A building full of people with my face in their pocket.", "emotion": "disgust"},
+    "SH4.stage.office.03": {"text": "Easy. He's a man with a paycheck. I know the type. I was one, in the army.", "emotion": "nod"},
+    "SH4.close.01": {"text": "Fine. Nothing happened and I hate it. Kerry would've cashed the cheque. And he'd have been right.", "emotion": "shrug"},
+    "SH4.close.03": {"text": "Let it go, you said. Easy to say. It's not your face on the can.", "emotion": "angry"},
+    "SH4.close.04": {"text": "You made it an incident. Good. A little noise never hurt anyone. Run.", "emotion": "emphatic"},
+    "SH4.sent.caption": {"text": "Even the can is lying.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Who sells a dead man's face? Tell me you want to know as badly as I do.",
+      "know": "A licensing rep drives a delivery car away from this shop. You can follow him, and heat is zero. You hate the can, and you cannot ask the shop owner anything.",
+      "secret": "Part of you is a little flattered.",
+      "wants": "V to follow the car.",
+      "idle": "johnny_crossed",
+      "tags": [{"id": "follow", "kind": "yes"}, {"id": "leave", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    }
+  },
+  "stages": [
+    {
+      "id": "window",
+      "type": "play",
+      "label": "V stops at the Japantown shop window",
+      "know": "V has stopped at the shop window for at least ten seconds, and you are ranting about the shirt, the keychain and the can.",
+      "wants": "V to say they will find out who signed, or to leave it.",
+      "do": [
+        {"p": "pin", "at": "window"},
+        {"p": "place", "at": "window", "dwell": 10}
+      ],
+      "script": [
+        {"when": "place:window:arrived", "say": "SH4.open.01"},
+        {"when": "line:SH4.open.01:done", "say": "SH4.open.02"},
+        {"when": "line:SH4.open.02:done", "say": "SH4.open.03"},
+        {"when": "line:SH4.open.03:done", "say": "SH4.open.04"},
+        {"when": "line:SH4.open.04:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "follow", "on": "event:gap:g1:follow", "next": "tail"},
+        {"id": "leave", "on": "event:gap:g1:leave", "next": "shrug"}
+      ],
+      "timeout": {"gameHours": 4, "next": "shrug"}
+    },
+    {
+      "id": "tail",
+      "type": "play",
+      "label": "Follow the licensing rep across Night City",
+      "know": "A grey sedan with a licensing rep inside is driving from Westbrook to City Center. You want V to stay back and not be seen.",
+      "wants": "V to follow the grey sedan to the licensing office without being spotted or losing it.",
+      "do": [
+        {"p": "pin", "at": "office"},
+        {"p": "place", "at": "junction-1"},
+        {"p": "place", "at": "redlight"},
+        {"p": "place", "at": "lastturn"},
+        {"p": "place", "at": "office"},
+        {"p": "runner", "id": "rep", "route": ["junction-1", "redlight", "lastturn", "office"], "vehicle": "grey sedan"},
+        {"p": "tail", "id": "watch", "vehicle": "grey sedan", "gap": 40, "noticeMetres": 15, "lostMetres": 150, "at": "office"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH4.stage.tail.01"},
+        {"when": "place:junction-1:arrived", "say": "SH4.stage.tail.02"},
+        {"when": "place:redlight:arrived", "say": "SH4.stage.tail.03"},
+        {"when": "place:lastturn:arrived", "say": "SH4.stage.tail.04"},
+        {"when": "tail:watch:noticed", "say": "SH4.bark.close.a", "bark": true}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:office:arrived", "next": "lobby"},
+        {"id": "lost", "on": "event:tail:watch:lost", "next": "lost"}
+      ],
+      "timeout": {"gameHours": 4, "next": "lost"}
+    },
+    {
+      "id": "lobby",
+      "type": "play",
+      "label": "Johnny talks V through the licensing office",
+      "know": "The rep has got out of the sedan at the licensing office. He is a small contractor with no power, a man with a paycheck. You want V to ask who signed, and to do it quickly.",
+      "wants": "V to ask who signed the licence, or to threaten, or to walk away.",
+      "do": [
+        {"p": "cast", "id": "rep", "who": "licensing contractor", "at": "office", "archetype": "corporate"},
+        {"p": "npc-react", "id": "react", "cast": "rep"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH4.stage.office.01"},
+        {"when": "stage:enter", "text": "SH4.sent.caption", "image": "licensed-can"},
+        {"when": "npc:react:leave", "say": "SH4.stage.office.02"},
+        {"when": "npc:react:cower", "say": "SH4.stage.office.03"},
+        {"when": "npc:react:call-police", "say": "SH4.stage.office.03"}
+      ],
+      "choices": [
+        {"id": "left", "on": "event:npc:react:leave", "next": "office"},
+        {"id": "cowered", "on": "event:npc:react:cower", "next": "heat"},
+        {"id": "police", "on": "event:npc:react:call-police", "next": "heat"}
+      ],
+      "timeout": {"gameHours": 2, "next": "shrug"}
+    }
+  ],
+  "endings": {
+    "office": {
+      "memory": "You tailed a licensing rep across Night City for Johnny, and nobody got hurt over a can.",
+      "history": "He calls any advert he sees 'licensed'.",
+      "bond": 50,
+      "script": [
+        {"when": "ending:office", "say": "SH4.close.01"}
+      ]
+    },
+    "heat": {
+      "memory": "You made Johnny's licence visit an incident on a corporate lobby street.",
+      "bond": 15,
+      "script": [
+        {"when": "ending:heat", "say": "SH4.close.04"}
+      ]
+    },
+    "shrug": {
+      "memory": "You let the licensed face go, and Johnny said it was not your face on the can.",
+      "bond": 5,
+      "script": [
+        {"when": "ending:shrug", "say": "SH4.close.03"}
+      ]
+    },
+    "lost": {
+      "memory": "You lost the licensing rep's grey sedan somewhere across Night City.",
+      "bond": 10
+    }
+  }
+}

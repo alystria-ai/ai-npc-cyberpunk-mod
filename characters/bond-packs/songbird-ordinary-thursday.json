@@ -1,0 +1,148 @@
+{
+  "format": 2,
+  "id": "songbird-ordinary-thursday",
+  "character": "songbird",
+  "title": "Ordinary Thursday",
+  "summary": "Songbird asks V to walk a street that sounds like her old Brooklyn and tell her what is on it.",
+  "requires": {
+    "bond": 2,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "It is a Thursday where Songbird is, and it has been a bad week for her. You are not on a job. She does not want a mission, a plan or a swap of secrets. She asks you, as if it were an embarrassing favour, to walk down a street that sounds like one she knew and tell her what is on it."
+  },
+  "places": {
+    "stoop": {"name": "an old brownstone stoop with a fire escape", "radius": 25},
+    "corner": {"name": "the corner stand on that street", "radius": 25}
+  },
+  "images": {
+    "thursday-stoop": {"file": "images/thursday-stoop.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "S1.open.01": {"text": "Hey. Are you somewhere you can hear me properly?", "emotion": "neutral", "channel": "holocall"},
+    "S1.open.02": {"text": "Could we talk about something that doesn't have an extraction plan? Just for a minute.", "emotion": "sad", "channel": "holocall"},
+    "S1.open.03": {"text": "Is there a street near you with old stoops? Steps, a fire escape?", "emotion": "neutral", "channel": "holocall"},
+    "S1.bark.stoop.a": {"text": "Stop there. Tell me what's on it.", "emotion": "nod", "channel": "remote"},
+    "S1.bark.stoop.b": {"text": "I can almost hear it. Say more.", "emotion": "happy", "channel": "remote"},
+    "S1.bark.song.a": {"text": "Turn it up. A little. There.", "emotion": "happy", "channel": "remote"},
+    "S1.bark.song.b": {"text": "Not that. Something with bass.", "emotion": "disgust", "channel": "remote"},
+    "S1.sit.01": {"text": "What do you hear? Not what you see. What you hear.", "emotion": "neutral", "channel": "remote"},
+    "S1.close.01": {"text": "Thank you. That is the best Thursday I've had in a while.", "emotion": "happy", "channel": "holocall"},
+    "S1.close.02": {"text": "It's fine. Go. I'll still be here.", "emotion": "neutral"},
+    "S1.close.03": {"text": "Thursday.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Is there a street near you with old stoops? Steps, a fire escape?",
+      "know": "You know which district V is in, the Brooklyn fragments you still hold, and how tired you sound tonight.",
+      "secret": "You are lonely in a way you cannot say yet.",
+      "wants": "V to go to a street like that and be there.",
+      "tags": [{"id": "named", "kind": "yes"}]
+    },
+    "g2": {
+      "asks": "What do you hear? Not what you see.",
+      "know": "You can hear the street and the song if one is playing. You remember a fire escape, a scopdog seller and bonfire smoke.",
+      "secret": "You lose a word in the middle of a sentence and hide it.",
+      "wants": "Sound, not a description.",
+      "tags": [{"id": "vivid", "kind": "honest"}],
+      "resumeAfterSeconds": 45
+    }
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "voice",
+      "text": "S1.close.02",
+      "onHangUp": "call:ring:hung-up",
+      "steps": [
+        {"say": "S1.open.01"},
+        {"say": "S1.open.02"},
+        {"say": "S1.open.03"},
+        {"gap": "g1"}
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Songbird calls about a street with old stoops",
+      "know": "You are calling V on a bad week. You do not want a mission, a plan or a secret swap. You want V to walk a street that sounds like one you knew, and you will ask it as a favour you are embarrassed to ask.",
+      "wants": "V to say yes to a street with old stoops.",
+      "do": [{"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30}],
+      "choices": [
+        {"id": "named", "on": "event:gap:g1:named", "next": "street"},
+        {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "cut-short"},
+        {"id": "missed", "on": "event:call:ring:missed", "next": "missed-call"}
+      ],
+      "timeout": {"gameHours": 2, "next": "missed-call"}
+    },
+    {
+      "id": "street",
+      "type": "play",
+      "label": "Songbird walks V to a stoop and listens",
+      "know": "V is on the way to the street you asked for. You want V to stop at the stoop and say what is on it. You are not sure how much of the old street is still real in your head.",
+      "wants": "V to stop on the stoop and say what is there.",
+      "do": [{"p": "remote"}, {"p": "place", "at": "stoop"}],
+      "script": [
+        {"when": "place:stoop:arrived", "say": "S1.bark.stoop.a"},
+        {"when": "line:S1.bark.stoop.a:done", "say": "S1.bark.stoop.b"}
+      ],
+      "choices": [{"id": "on-the-stoop", "on": "event:line:S1.bark.stoop.b:done", "next": "funk"}],
+      "timeout": {"gameHours": 2, "next": "cut-short"}
+    },
+    {
+      "id": "funk",
+      "type": "play",
+      "label": "Songbird asks V to put on something with bass",
+      "know": "You are with V at the corner stand. You want something with a bass line, and whatever song V picks, you will react to its name with delight or disdain.",
+      "wants": "V to put on a song with a bass line.",
+      "do": [{"p": "remote"}, {"p": "place", "at": "corner"}, {"p": "check", "id": "funk", "what": "radio"}],
+      "script": [
+        {"when": "check:funk:song", "say": "S1.bark.song.a"},
+        {"when": "line:S1.bark.song.a:done", "say": "S1.bark.song.b"}
+      ],
+      "choices": [{"id": "sang", "on": "event:line:S1.bark.song.b:done", "next": "sit"}],
+      "timeout": {"gameHours": 1, "next": "sit"}
+    },
+    {
+      "id": "sit",
+      "type": "play",
+      "label": "Songbird tells V the Thursday she remembers",
+      "know": "You are back on the stoop with V, telling the Thursday you remember: a fire escape, funk from a stoop, laughter in the street, a scopdog seller, bonfire smoke. It is not a story with a point. You are homesick for a street, not for a person.",
+      "wants": "V to stay on the stoop and tell you what you hear.",
+      "do": [{"p": "remote"}, {"p": "place", "at": "stoop", "dwell": 600}],
+      "script": [
+        {"when": "stage:enter", "say": "S1.sit.01"},
+        {"when": "line:S1.sit.01:done", "gap": "g2"}
+      ],
+      "choices": [{"id": "left", "on": "event:place:stoop:left", "next": "thursday"}],
+      "timeout": {"gameHours": 2, "next": "thursday"}
+    }
+  ],
+  "endings": {
+    "thursday": {
+      "memory": "You walked a street that sounded like Brooklyn while Songbird listened from far away.",
+      "history": "She calls it our Thursday.",
+      "bond": 35,
+      "script": [
+        {"when": "ending:thursday", "say": "S1.close.01"},
+        {"when": "ending:thursday", "text": "S1.close.03", "image": "thursday-stoop"}
+      ]
+    },
+    "cut-short": {
+      "memory": "You had somewhere to be, and Songbird said it was fine.",
+      "bond": 10,
+      "script": [{"when": "ending:cut-short", "text": "S1.close.02"}]
+    },
+    "missed-call": {
+      "memory": "Songbird called on a Thursday and you did not pick up, so she does not call again for a while.",
+      "bond": -5
+    }
+  }
+}

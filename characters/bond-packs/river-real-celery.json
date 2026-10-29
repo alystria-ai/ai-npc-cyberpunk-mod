@@ -1,0 +1,209 @@
+{
+  "format": 2,
+  "id": "river-real-celery",
+  "character": "river-ward",
+  "title": "The Case of the Real Celery",
+  "summary": "River needs a second pair of eyes to find real celery and tomatoes for Randy's jambalaya, and he calls it a case.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/side_quest/sq021_sick_dreams"],
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "You have spent two weeks chasing real celery and tomatoes for Randy's jambalaya, with a list of leads and no transport. Bring it up in your own way, as a case, and ask V not to laugh."
+  },
+  "places": {
+    "diner": {"name": "the diner in Heywood", "radius": 25},
+    "santo-domingo": {"name": "the delivery driver's stop in Santo Domingo", "radius": 25},
+    "badlands-edge": {"name": "the jar seller at the Badlands edge", "radius": 25},
+    "greenhouse": {"name": "the lean-to greenhouse stall by the roadside", "radius": 25}
+  },
+  "images": {
+    "real-celery-basket": {"file": "images/real-celery-basket.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "RW1.open.01": {"text": "Need a second pair of eyes. It's a case. Don't laugh.", "emotion": "neutral"},
+    "RW1.open.02": {"text": "Okay. The case. Somebody in this city grows celery. I want to shake his hand.", "emotion": "emphatic"},
+    "RW1.open.03": {"text": "One rule. Never ask what they know. Ask what they saw.", "emotion": "nod"},
+    "RW1.open.04": {"text": "Where would you hide a real tomato in this town? Think like the grower.", "emotion": "neutral"},
+    "RW1.bark.lead.a": {"text": "Write that down. The small details are the case.", "emotion": "nod"},
+    "RW1.bark.lead.b": {"text": "Dead end. Dead ends are information too.", "emotion": "shrug"},
+    "RW1.bark.found.a": {"text": "That is a greenhouse. A real one. Don't look excited, he'll double the price.", "emotion": "surprise"},
+    "RW1.bark.found.b": {"text": "Okay. Okay! Breathe. Pretend we're buying a lamp.", "emotion": "happy"},
+    "RW1.s3.01": {"text": "How much would you pay for an onion you couldn't get anywhere else?", "emotion": "neutral"},
+    "RW1.bark.haggle.a": {"text": "Good. Wear him down. Politely.", "emotion": "nod"},
+    "RW1.bark.haggle.b": {"text": "Fine, I'll pay. Say nothing.", "emotion": "shrug"},
+    "RW1.close.01": {"text": "Case closed. Sunday, Randy gets his bowl.", "emotion": "happy"},
+    "RW1.close.02": {"text": "We tried. Randy will never know. That's the real secret ingredient.", "emotion": "shrug"},
+    "RW1.close.03": {"text": "Went alone. Found the stall. You missed it.", "emotion": "neutral"},
+    "RW1.table.01": {"text": "Evidence.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Where would you hide a real tomato in this town?",
+      "know": "You know the three leads: a diner cook in Heywood, a delivery driver in Santo Domingo, and a kid selling jars at the Badlands edge. Real vegetables are rare, and Randy loves his jambalaya.",
+      "secret": "You are a little embarrassed that this case matters more to you than the arrests you made.",
+      "wants": "V to think about the grower, not the tomato. If V has an idea, you take it seriously.",
+      "idle": "talk",
+      "tags": [{"id": "idea", "kind": "honest"}, {"id": "quip", "kind": "flatter"}],
+      "resumeAfterSeconds": 40
+    },
+    "g2": {
+      "asks": "How much would you pay for an onion you couldn't get anywhere else?",
+      "know": "The grower wants 400 eddies for one basket. You have already decided you will pay whatever it costs, and you are waiting to see if V values the thing before haggling.",
+      "secret": "You already decided to pay whatever it costs.",
+      "wants": "V to value the thing before haggling.",
+      "idle": "talk",
+      "tags": [{"id": "value", "kind": "honest"}, {"id": "light", "kind": "flatter"}],
+      "resumeAfterSeconds": 40
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "River is waiting at the diner in Heywood",
+      "know": "You texted V a case and asked them to meet you at the diner in Heywood. You are waiting at a corner table, and you have a list of leads and no transport. You do not think this is funny, and you know V will.",
+      "wants": "V to come to the diner and hear you out.",
+      "do": [
+        {"p": "pin", "at": "diner"},
+        {"p": "place", "at": "diner"},
+        {"p": "cast", "id": "river", "who": "self", "at": "diner", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RW1.open.01"},
+        {"when": "place:diner:arrived", "say": "RW1.open.02"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:diner:arrived", "next": "leads"}],
+      "timeout": {"gameHours": 3, "next": "no-case"}
+    },
+    {
+      "id": "leads",
+      "type": "play",
+      "label": "River canvasses for the real vegetables",
+      "know": "You and V are working the three leads, one after another. Your rule is never to ask what they know, only what they saw. You keep a notebook on your knee and write down the small details.",
+      "wants": "V to ask good questions and keep the leads honest.",
+      "do": [
+        {"p": "ride", "to": "greenhouse", "checkpoints": ["santo-domingo", "badlands-edge"], "limitMinutes": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW1.open.03"},
+        {"when": "line:RW1.open.03:done", "say": "RW1.open.04"},
+        {"when": "line:RW1.open.04:done", "gap": "g1"},
+        {"when": "ride:checkpoint:santo-domingo", "say": "RW1.bark.lead.a"},
+        {"when": "ride:checkpoint:badlands-edge", "say": "RW1.bark.lead.b"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "grower"},
+        {"id": "timed-out", "on": "event:ride:timeout", "next": "store-bought"},
+        {"id": "failed-heat", "on": "event:ride:failed-heat", "next": "store-bought"},
+        {"id": "abandoned", "on": "event:ride:abandoned", "next": "store-bought"}
+      ],
+      "timeout": {"gameHours": 3, "next": "store-bought"}
+    },
+    {
+      "id": "grower",
+      "type": "play",
+      "label": "River haggles with the greenhouse grower",
+      "know": "You are at the lean-to greenhouse with a grower and two scavs eyeing the crop. Real food is rare, and this man grows it on purpose. The grower wants 400 eddies for one basket.",
+      "wants": "V to talk the scavs down and to deal with the grower fairly.",
+      "do": [
+        {"p": "place", "at": "greenhouse"},
+        {"p": "cast", "id": "grower", "who": "extra", "at": "greenhouse", "carry": true},
+        {"p": "squad", "id": "scavs", "at": "greenhouse", "faction": "scav", "count": 2, "hostile": false},
+        {"p": "npc-react", "id": "scavs-off", "cast": "grower"},
+        {"p": "pay", "id": "basket", "to": "grower", "amount": 400, "min": 300, "reason": "haggle"}
+      ],
+      "script": [
+        {"when": "place:greenhouse:arrived", "say": "RW1.bark.found.a"},
+        {"when": "line:RW1.bark.found.a:done", "say": "RW1.bark.found.b"},
+        {"when": "line:RW1.bark.found.b:done", "say": "RW1.s3.01"},
+        {"when": "line:RW1.s3.01:done", "gap": "g2"},
+        {"when": "pay:basket:paid", "say": "RW1.bark.haggle.a"},
+        {"when": "pay:basket:broke", "say": "RW1.bark.haggle.b"}
+      ],
+      "choices": [
+        {"id": "quiet", "on": "event:npc:scavs-off:leave", "next": "grower-quiet"},
+        {"id": "paid", "on": "event:pay:basket:paid", "next": "table"},
+        {"id": "broke", "on": "event:pay:basket:broke", "next": "table"},
+        {"id": "declined", "on": "event:pay:basket:declined", "next": "store-bought"}
+      ],
+      "timeout": {"gameHours": 2, "next": "store-bought"}
+    },
+    {
+      "id": "grower-quiet",
+      "type": "play",
+      "label": "River haggles after the scavs have left",
+      "know": "The scavs left the greenhouse without a fight. The grower still wants 400 eddies for one basket, and you are ready to pay whatever it costs.",
+      "wants": "V to settle with the grower and walk away with the basket.",
+      "do": [
+        {"p": "cast", "id": "grower", "who": "extra", "at": "greenhouse"},
+        {"p": "pay", "id": "basket", "to": "grower", "amount": 400, "min": 300, "reason": "haggle"}
+      ],
+      "script": [
+        {"when": "pay:basket:paid", "say": "RW1.bark.haggle.a"},
+        {"when": "pay:basket:broke", "say": "RW1.bark.haggle.b"}
+      ],
+      "choices": [
+        {"id": "paid", "on": "event:pay:basket:paid", "next": "table-quiet"},
+        {"id": "broke", "on": "event:pay:basket:broke", "next": "table-quiet"},
+        {"id": "declined", "on": "event:pay:basket:declined", "next": "store-bought"}
+      ],
+      "timeout": {"gameHours": 2, "next": "store-bought"}
+    },
+    {
+      "id": "table",
+      "type": "play",
+      "label": "River closes the case with the basket",
+      "know": "You have the basket of real celery and tomatoes. The case is closed, and you know what you are cooking on Sunday.",
+      "wants": "V to walk away from the greenhouse with you.",
+      "do": [{"p": "place", "at": "greenhouse"}],
+      "choices": [{"id": "left", "on": "event:place:greenhouse:left", "next": "found"}],
+      "timeout": {"gameHours": 1, "next": "found"}
+    },
+    {
+      "id": "table-quiet",
+      "type": "play",
+      "label": "River closes the case after the scavs left",
+      "know": "You have the basket of real celery and tomatoes, and the scavs left without a fight. The case is closed.",
+      "wants": "V to walk away from the greenhouse with you.",
+      "do": [{"p": "place", "at": "greenhouse"}],
+      "choices": [{"id": "left", "on": "event:place:greenhouse:left", "next": "found-quiet"}],
+      "timeout": {"gameHours": 1, "next": "found-quiet"}
+    }
+  ],
+  "endings": {
+    "found": {
+      "memory": "You and V tracked down a roadside grower with real celery and tomatoes for Randy's jambalaya.",
+      "history": "River calls you his partner on the vegetable case.",
+      "bond": 50,
+      "script": [
+        {"when": "ending:found", "say": "RW1.close.01"},
+        {"when": "ending:found", "text": "RW1.table.01", "image": "real-celery-basket"}
+      ]
+    },
+    "found-quiet": {
+      "memory": "You and V tracked down a roadside grower with real celery and tomatoes, and talked two scavs into leaving without a fight.",
+      "history": "River says you have a gift for talking people out of doing stupid things.",
+      "bond": 55,
+      "script": [
+        {"when": "ending:found-quiet", "say": "RW1.close.01"},
+        {"when": "ending:found-quiet", "text": "RW1.table.01", "image": "real-celery-basket"}
+      ]
+    },
+    "store-bought": {
+      "memory": "You could not find real celery in time and made do with store-bought, and River was quietly gracious about it.",
+      "bond": 25,
+      "script": [{"when": "ending:store-bought", "say": "RW1.close.02"}]
+    },
+    "no-case": {
+      "memory": "You stood River up at the Heywood diner, and he went to find the stall alone.",
+      "bond": -5,
+      "script": [{"when": "ending:no-case", "text": "RW1.close.03"}]
+    }
+  }
+}

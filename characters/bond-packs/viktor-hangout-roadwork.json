@@ -1,0 +1,70 @@
+{
+  "format": 2,
+  "id": "viktor-hangout-roadwork",
+  "kind": "hangout",
+  "character": "viktor-vektor",
+  "title": "Roadwork",
+  "summary": "Viktor runs the courtyard loop around Megabuilding H10 at dawn, then sprints for the last checkpoint.",
+  "requires": {"bond": 4, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true},
+  "start": {
+    "channels": ["phone", "own"],
+    "chance": 1,
+    "bringUp": "Viktor invites V to a roadwork run at dawn around the courtyard by Megabuilding H10 in Little China."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "dusk", "know": "A dusk lap with the lights on."},
+      {"id": "rain", "know": "It is raining, and the courtyard is slick."},
+      {"id": "lead", "know": "V leads and sets the pace, and Viktor follows."}
+    ]
+  },
+  "places": {
+    "start": {"name": "the courtyard loop around Megabuilding H10 in Little China", "radius": 10},
+    "c1": {"name": "the first checkpoint on the courtyard loop", "radius": 6},
+    "c2": {"name": "the half-way checkpoint on the courtyard loop", "radius": 6},
+    "c3": {"name": "the third checkpoint on the courtyard loop", "radius": 6},
+    "finish": {"name": "the last checkpoint, where the sprint ends", "radius": 6}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Quick answer. What do you run toward?",
+      "know": "The loop, and V's recent fights.",
+      "secret": "He runs because he cannot box anymore.",
+      "wants": "V to answer without thinking.",
+      "idle": "lean",
+      "tags": [{"id": "quick", "kind": "honest"}]
+    }
+  },
+  "stages": [
+    {
+      "id": "run",
+      "type": "play",
+      "label": "V runs the courtyard loop with Viktor and sprints the last stretch",
+      "know": "You run the courtyard loop around Megabuilding H10 with Viktor, staying within five metres of him for eight game minutes. At the last checkpoint he sprints, and you chase him down if you can.",
+      "wants": "V to keep up for the loop and to reach the finish.",
+      "do": [
+        {"p": "pin", "at": "start"},
+        {"p": "place", "at": "start"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "start", "carry": true},
+        {"p": "party"},
+        {"p": "together", "id": "jog", "minutes": 8, "metres": 5},
+        {"p": "place", "at": "c1"},
+        {"p": "place", "at": "c2"},
+        {"p": "place", "at": "c3"},
+        {"p": "place", "at": "finish"}
+      ],
+      "script": [{"when": "place:c2:arrived", "gap": "g1"}],
+      "choices": [
+        {"id": "sprint", "on": "event:place:finish:arrived", "next": "sprint"}
+      ],
+      "timeout": {"gameHours": 2, "next": "loop"}
+    }
+  ],
+  "endings": {
+    "sprint": {"memory": "You sprinted the last stretch of the courtyard loop with Viktor and reached the final checkpoint with him.", "bond": 8},
+    "loop": {"memory": "You finished the courtyard loop with Viktor, and he did not wait for you at the end.", "bond": 4}
+  }
+}

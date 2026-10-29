@@ -1,0 +1,235 @@
+{
+  "format": 2,
+  "id": "panam-relay-ghost",
+  "character": "panam-palmer",
+  "title": "Ghost on the Wire",
+  "summary": "Someone is listening to the family's radio. Panam wants Carol's device planted on the Raffen relay above Vasquez Pass, unseen.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq027_01_basilisk_convoy"],
+    "notActive": ["quests/side_quest/sq004", "quests/side_quest/sq027"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "The Raffen hear every run the family plans. Carol traced it to a relay mast above Vasquez Pass. Bring up, in your own way, that you want to plant Carol's device on it quietly."
+  },
+  "places": {
+    "meet": {"name": "the camp where the trucks are parked", "radius": 25},
+    "ridge-foot": {"name": "the foot of the ridge above Vasquez Pass", "radius": 20},
+    "relay": {"name": "the Raffen relay mast on the ridge above Vasquez Pass", "radius": 20},
+    "hut": {"name": "the junction hut at the foot of the relay mast", "radius": 3},
+    "highway": {"name": "the highway below Vasquez Pass", "radius": 30}
+  },
+  "lines": {
+    "P4.call.01": {"text": "Someone's listening to the family's radio. Every run we plan, the Raffen are waiting.", "emotion": "angry", "gesture": "panam", "channel": "holocall"},
+    "P4.call.02": {"text": "Carol traced it. A relay mast on the ridge above Vasquez Pass.", "emotion": "neutral", "gesture": "describe", "channel": "holocall"},
+    "P4.call.03": {"text": "I don't want it blown up. I want it lying for us.", "emotion": "emphatic", "gesture": "talk", "channel": "holocall"},
+    "P4.call.04": {"text": "Carol built a box. Somebody plants it, nobody sees, and the Raffen hear what we want them to.", "emotion": "neutral", "channel": "holocall"},
+    "P4.call.05": {"text": "Then come to the camp. I'll show you the box.", "emotion": "happy", "gesture": "nod", "channel": "holocall"},
+    "P4.brief.01": {"text": "This is it. Tape it to the junction box in the hut, hold it there ten seconds.", "emotion": "neutral", "gesture": "generic_hold", "channel": "own"},
+    "P4.brief.02": {"text": "If they see you, it's useless. If they see you, you also die. Mostly the first part bothers me.", "emotion": "happy", "gesture": "shrug", "channel": "own"},
+    "P4.brief.03": {"text": "When I was a kid the Raffen took a friend of mine. Cassidy got her back. Quietly.", "emotion": "sad", "gesture": "sad", "channel": "own"},
+    "P4.brief.04": {"text": "Forget that. Point is, quiet works.", "emotion": "neutral", "gesture": "no", "channel": "own"},
+    "P4.approach.01": {"text": "I stay with the truck, lights off. You climb. I'll be in your ear.", "emotion": "neutral", "gesture": "post", "channel": "own"},
+    "P4.plant.01": {"text": "Two on the path, one in the hut. They swap every couple of minutes.", "emotion": "neutral", "channel": "remote"},
+    "P4.plant.02": {"text": "Swap's now. Go.", "emotion": "emphatic", "channel": "remote"},
+    "P4.plant.03": {"text": "You're in. Ten seconds. Breathe.", "emotion": "fear", "channel": "remote"},
+    "P4.plant.04": {"text": "It's talking. Carol says it's talking. Get out of there.", "emotion": "happy", "channel": "remote"},
+    "P4.plant.05": {"text": "They've got you. Forget the box, I'm coming up.", "emotion": "fear", "channel": "remote"},
+    "P4.exfil.01": {"text": "In. Head down. No lights till the highway.", "emotion": "emphatic", "gesture": "driving", "channel": "own"},
+    "P4.exfil.02": {"text": "Ghosts. They'll be chasing ghosts for a month.", "emotion": "happy", "channel": "own"},
+    "P4.exfil.03": {"text": "My plan, my mistake. Not yours. Don't argue.", "emotion": "sad", "gesture": "sad", "channel": "own"},
+    "P4.exfil.04": {"text": "First lie's going out tonight. Want to pick it?", "emotion": "happy", "gesture": "question", "channel": "own"},
+    "P4.end.01": {"text": "Carol wants to kiss you. I told her to get in line.", "emotion": "happy", "channel": "own"},
+    "P4.end.02": {"text": "Next time we plan it together. Properly.", "emotion": "sad", "channel": "own"},
+    "P4.end.03": {"text": "Mitch went up the ridge instead. He's too old for it and too stubborn to say.", "emotion": "shrug", "channel": "own"},
+    "P4.bark.01a": {"text": "That's the last of them. Breathe.", "emotion": "neutral", "channel": "remote"},
+    "P4.bark.03": {"text": "Still there? Talk to me, V.", "emotion": "fear", "channel": "remote"}
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "live",
+      "text": "P4.call.01",
+      "steps": [
+        {"say": "P4.call.01"},
+        {"say": "P4.call.02"},
+        {"say": "P4.call.03"},
+        {"say": "P4.call.04"},
+        {"gap": "g1"},
+        {"say": "P4.call.05"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you do quiet? Honestly.",
+      "know": "A relay mast above Vasquez Pass feeds the Raffen everything the family plans. Carol built a device that can lie for them. Five Raffen patrol the ridge. You want no war and no dead Aldecaldos.",
+      "secret": "She would go up herself if she trusted her own patience.",
+      "wants": "V's honest answer.",
+      "idle": "panam",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "loud", "kind": "honest"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    },
+    "g2": {
+      "asks": "Any questions before you go up there and get yourself shot?",
+      "know": "The patrol, the hut, and the ten seconds the device needs at the junction box.",
+      "secret": "The childhood friend. She only says it after this gap.",
+      "wants": "V calm and ready.",
+      "idle": "panam_hips",
+      "resumeAfterSeconds": 180
+    },
+    "g3": {
+      "asks": "What lie are we feeding them tonight? Make it ridiculous.",
+      "know": "The device works, and the Raffen will hear whatever the family sends them.",
+      "wants": "V's invented lie, the more ridiculous the better.",
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Panam calls about the relay",
+      "know": "Panam has traced a Raffen relay above Vasquez Pass that hears every family run. She wants to plant Carol's device on it and has a question for V.",
+      "wants": "V to say yes, say loud, or refuse.",
+      "do": [
+        {"p": "pin", "at": "meet"},
+        {"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "brief"},
+        {"id": "loud", "on": "event:gap:g1:loud", "next": "brief"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "nobody"}
+      ],
+      "timeout": {"gameHours": 4, "next": "nobody"}
+    },
+    {
+      "id": "brief",
+      "type": "play",
+      "label": "Panam briefs V on the plant",
+      "know": "Carol's device goes on the junction box in the hut at the relay foot. Five Raffen patrol the ridge and one netrunner works the hut.",
+      "wants": "V calm and ready to go up.",
+      "do": [
+        {"p": "pin", "at": "meet"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P4.brief.01"},
+        {"when": "stage:enter", "say": "P4.brief.02"},
+        {"when": "line:P4.brief.02:done", "gap": "g2"},
+        {"when": "gap:g2:resume", "say": "P4.brief.03"},
+        {"when": "gap:g2:resume", "say": "P4.brief.04"}
+      ],
+      "choices": [
+        {"id": "ready", "on": "event:gap:g2:resume", "next": "approach"}
+      ],
+      "timeout": {"gameHours": 2, "next": "approach"}
+    },
+    {
+      "id": "approach",
+      "type": "play",
+      "label": "Panam drives V to the ridge foot",
+      "know": "V drives to the foot of the ridge. Panam takes the getaway seat in the truck, lights off, and V climbs alone.",
+      "wants": "V to climb.",
+      "do": [
+        {"p": "ride", "to": "ridge-foot"},
+        {"p": "post", "id": "getaway", "at": "ridge-foot", "stance": "car"}
+      ],
+      "script": [
+        {"when": "ride:arrived", "say": "P4.approach.01"}
+      ],
+      "choices": [
+        {"id": "climb", "on": "event:line:P4.approach.01:done", "next": "plant"}
+      ],
+      "timeout": {"gameHours": 2, "next": "plant"}
+    },
+    {
+      "id": "plant",
+      "type": "play",
+      "label": "V climbs to the relay hut and plants the device",
+      "know": "The relay mast sits on the ridge above Vasquez Pass. Five Raffen patrol two spots, and a netrunner works the hut at the mast's foot. V must reach the hut's junction box unseen and stay ten seconds.",
+      "wants": "V to plant the box and get out unseen.",
+      "do": [
+        {"p": "remote"},
+        {"p": "squad", "id": "raffen", "at": "relay", "faction": "raffen", "count": 5, "hostile": false},
+        {"p": "unseen", "id": "stealth", "squad": "raffen", "at": "hut"},
+        {"p": "place", "at": "hut", "dwell": 10},
+        {"p": "timer", "id": "swap", "seconds": 120, "clock": "game"},
+        {"p": "timer", "id": "long", "seconds": 300, "clock": "game"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P4.plant.01"},
+        {"when": "timer:swap", "say": "P4.plant.02"},
+        {"when": "place:hut:arrived", "say": "P4.plant.03"},
+        {"when": "unseen:stealth:spotted", "say": "P4.plant.05"},
+        {"when": "squad:raffen:down", "say": "P4.bark.01a"},
+        {"when": "timer:long", "say": "P4.bark.03"}
+      ],
+      "choices": [
+        {"id": "planted", "on": "event:place:hut:arrived", "next": "exfil-planted"},
+        {"id": "burned", "on": "event:unseen:stealth:spotted", "next": "exfil-burned"}
+      ],
+      "timeout": {"gameHours": 1, "next": "nobody"}
+    },
+    {
+      "id": "exfil-planted",
+      "type": "play",
+      "label": "Panam drives V off the ridge, lights off",
+      "know": "The device is planted and nobody saw. Panam drives V down to the highway with the lights off.",
+      "wants": "V to pick the first lie for the Raffen to hear.",
+      "do": [
+        {"p": "ride", "to": "highway"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P4.plant.04"},
+        {"when": "stage:enter", "say": "P4.exfil.01"},
+        {"when": "stage:enter", "say": "P4.exfil.04"},
+        {"when": "line:P4.exfil.04:done", "gap": "g3"},
+        {"when": "ride:arrived", "say": "P4.exfil.02"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "planted"}
+      ],
+      "timeout": {"gameHours": 1, "next": "planted"}
+    },
+    {
+      "id": "exfil-burned",
+      "type": "play",
+      "label": "Panam pulls V out after the Raffen spot the car",
+      "know": "The Raffen spotted V at the relay. The device is useless. Panam is driving V out with the lights off.",
+      "wants": "V to get clear.",
+      "do": [
+        {"p": "ride", "to": "highway"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "P4.exfil.01"},
+        {"when": "ride:arrived", "say": "P4.exfil.03"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "burned"}
+      ],
+      "timeout": {"gameHours": 1, "next": "burned"}
+    }
+  ],
+  "endings": {
+    "planted": {
+      "memory": "You and Panam turned the Raffen's own relay against them, and now they hear only what the family wants them to hear.",
+      "bond": 65,
+      "script": [{"when": "ending:planted", "say": "P4.end.01"}]
+    },
+    "burned": {
+      "memory": "You were spotted at the Raffen relay and Panam pulled you out. The plan failed, and she blames herself for it.",
+      "bond": 40,
+      "script": [{"when": "ending:burned", "say": "P4.end.02"}]
+    },
+    "nobody": {
+      "memory": "You turned down Panam's relay plan, so Mitch went up the ridge instead.",
+      "bond": -5,
+      "script": [{"when": "ending:nobody", "text": "P4.end.03"}]
+    }
+  }
+}

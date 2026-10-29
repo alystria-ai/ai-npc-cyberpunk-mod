@@ -1,0 +1,79 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "johnny-hangout-shakedown",
+  "character": "johnny-silverhand",
+  "title": "Shakedown",
+  "summary": "Three ganger types lean on a cart vendor in Heywood, and V decides whether to talk them off or fight.",
+  "requires": {
+    "bond": 7,
+    "questsFinished": ["quests/side_quest/sq011_concert"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 1,
+    "bringUp": "Johnny sees a cart vendor being leaned on in Heywood. Bring up, in your own way and blunt, that V should walk over to the street cart in Vista del Rey, because it is V's call and not his."
+  },
+  "places": {
+    "cart": {"name": "a street cart in Vista del Rey, Heywood", "radius": 12, "district": "Heywood"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Hit them or talk them? I'd hit them. That's why I'm dead.",
+      "know": "Three punks are leaning on the cart vendor for protection money. They may be teens with toy guns. V can talk them off or fight, and the vendor must end unhurt.",
+      "secret": "Part of him wants V to lose his temper.",
+      "wants": "V's own decision.",
+      "idle": "johnny_crossed",
+      "tags": [{"id": "talk", "kind": "yes"}, {"id": "fight", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "cart",
+      "type": "play",
+      "label": "Deal with the three punks at the cart",
+      "know": "Three ganger types lean on a cart vendor for money. They are relaxed until someone starts a fight, and the vendor is frightened but unhurt.",
+      "wants": "V to talk the punks off or fight them, with the vendor unhurt.",
+      "do": [
+        {"p": "pin", "at": "cart"},
+        {"p": "place", "at": "cart"},
+        {"p": "cast", "id": "vendor", "who": "a cart vendor", "at": "cart", "archetype": "street vendor"},
+        {"p": "cast", "id": "punk", "who": "the leader of three ganger types", "at": "cart", "archetype": "street gang"},
+        {"p": "npc-react", "id": "react-punk", "cast": "punk"},
+        {"p": "squad", "id": "punks", "at": "cart", "faction": "gang", "count": 3, "hostile": false, "alertAfterSeconds": 90}
+      ],
+      "script": [
+        {"when": "squad:punks:hostile", "gap": "g1"},
+        {"when": "npc:react-punk:leave", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "talk", "on": "event:gap:g1:talk", "next": "talk"},
+        {"id": "fight", "on": "event:gap:g1:fight", "next": "fight"}
+      ],
+      "timeout": {"gameHours": 2, "next": "fight"}
+    }
+  ],
+  "endings": {
+    "talk": {
+      "memory": "You talked three punks off a cart vendor in Heywood, and Johnny gave you a grudging nod.",
+      "bond": 10
+    },
+    "fight": {
+      "memory": "You fought three punks on a cart vendor's street in Heywood, and Johnny warned you about it.",
+      "bond": 8
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "flowers", "know": "A flower stall stands in place of the cart, and the punks want the stall owner's money."},
+      {"id": "food-truck", "know": "A food truck at night stands in place of the cart, with the same three punks."},
+      {"id": "courier", "know": "A fixer's courier is ambushed instead of the vendor, and the punks want the package."}
+    ]
+  }
+}

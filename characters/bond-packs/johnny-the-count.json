@@ -1,0 +1,190 @@
+{
+  "format": 2,
+  "id": "johnny-the-count",
+  "character": "johnny-silverhand",
+  "title": "The Count",
+  "summary": "Johnny asks V to walk him to a quiet shrine above Corpo Plaza, where a stranger sits who hated him.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/side_quest/sq031_rogue"],
+    "notActive": ["quests/main_quest/act_01/q108", "quests/side_quest/sq011", "quests/side_quest/sq031"],
+    "relationship": "any",
+    "invitations": true,
+    "after": ["johnny-field-manual"]
+  },
+  "start": {
+    "channels": ["own"],
+    "chance": 0.35,
+    "bringUp": "You have never said how many people the tower took, and tonight you want to hear it said aloud by someone who is not your enemy. Bring up, in your own way and without a joke, that V should walk you to the quiet shrine above Corpo Plaza."
+  },
+  "places": {
+    "transit": {"name": "the transit stop nearest to V on foot", "radius": 25, "district": "City Center"},
+    "halfway": {"name": "a point halfway along the walk to the plaza", "radius": 25},
+    "plaza-edge": {"name": "the edge of the plaza, the upper terrace", "radius": 12, "district": "City Center"},
+    "shrine": {"name": "the small memorial lookout over Corpo Plaza", "radius": 8, "district": "City Center"}
+  },
+  "lines": {
+    "SH5.open.01": {"text": "V. No jokes tonight. I need you to walk somewhere with me.", "emotion": "neutral", "channel": "head"},
+    "SH5.open.02": {"text": "A shrine. Above the plaza. I've never gone.", "emotion": "sad", "channel": "head"},
+    "SH5.open.03": {"text": "There's a number. People say it. I never counted. I want to hear it said by someone who isn't trying to kill me.", "emotion": "sad", "channel": "head"},
+    "SH5.open.04": {"text": "Will you take me?", "emotion": "neutral", "channel": "head"},
+    "SH5.stage.walk.01": {"text": "Thanks. Don't talk. Not yet.", "emotion": "nod"},
+    "SH5.stage.walk.02": {"text": "They rebuilt it bigger. Funny how that works.", "emotion": "sad"},
+    "SH5.stage.walk.03": {"text": "There's someone on the bench. An old man. With a candle.", "emotion": "neutral"},
+    "SH5.stage.walk.04": {"text": "People don't look up here. The tower looks down enough for all of us.", "emotion": "neutral"},
+    "SH5.bark.silence.a": {"text": "Don't fill the quiet. It's the only respect I've got left.", "emotion": "sad"},
+    "SH5.stage.elder.01": {"text": "If he curses me, let him. Don't correct him.", "emotion": "emphatic"},
+    "SH5.bark.elder.b": {"text": "He's going. Don't stop him. He earned the quiet.", "emotion": "sad"},
+    "SH5.stage.count.01": {"text": "Now the number. Say it with me. I won't make it a speech.", "emotion": "sad"},
+    "SH5.stage.count.02": {"text": "I was right about them. I was wrong about us. And the people in the wrong are the ones who count.", "emotion": "sad"},
+    "SH5.close.01": {"text": "Thank you. That's all. Don't make it a cause, V. Just remember it.", "emotion": "sad"},
+    "SH5.close.02": {"text": "You sat. That's more than most.", "emotion": "nod"},
+    "SH5.close.03": {"text": "Silence is fair. Let's go home.", "emotion": "sad"},
+    "SH5.close.04": {"text": "You left. I understand. Next time I'll ask less.", "emotion": "sad"},
+    "SH5.close.05": {"text": "No. Fine. I won't ask again for a while.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Will you walk with me? It's a long way and it's a quiet one.",
+      "know": "The walk is on foot with no fights. The shrine is over Corpo Plaza, and an old man may be there. You are not joking.",
+      "secret": "You have been to the plaza before, on a different day.",
+      "wants": "A plain yes or no.",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 7200
+    },
+    "g2": {
+      "asks": "Do you think it can be forgiven? Not by them. By anyone?",
+      "know": "The count is done or not yet started, and no figure is ever given. V has chosen whether to say the number with you or to sit.",
+      "secret": "You do not want forgiveness. You want to be held to it.",
+      "wants": "An honest answer, short.",
+      "idle": "johnny_shades",
+      "tags": [{"id": "with", "kind": "yes"}, {"id": "sit", "kind": "honest"}, {"id": "silence", "kind": "no"}],
+      "resumeAfterSeconds": 360
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "talk",
+      "label": "Johnny asks V to walk him to the shrine",
+      "know": "You ask V for something plain, with no jokes. You want to be walked to a shrine above Corpo Plaza that you have never visited.",
+      "wants": "V to say yes or no.",
+      "script": [
+        {"when": "stage:enter", "say": "SH5.open.01"},
+        {"when": "line:SH5.open.01:done", "say": "SH5.open.02"},
+        {"when": "line:SH5.open.02:done", "say": "SH5.open.03"},
+        {"when": "line:SH5.open.03:done", "say": "SH5.open.04"},
+        {"when": "line:SH5.open.04:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "event:gap:g1:yes", "next": "walk"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"}
+      ],
+      "timeout": {"gameHours": 4, "next": "no"}
+    },
+    {
+      "id": "walk",
+      "type": "play",
+      "label": "Walk to the shrine above Corpo Plaza",
+      "know": "V is walking with you from the transit stop to the shrine. It is a long way and a quiet one, and you do not want to talk yet.",
+      "wants": "V to keep walking with you in silence.",
+      "do": [
+        {"p": "party"},
+        {"p": "pin", "at": "shrine"},
+        {"p": "place", "at": "halfway"},
+        {"p": "place", "at": "plaza-edge"},
+        {"p": "place", "at": "shrine"},
+        {"p": "timer", "id": "quiet", "seconds": 300},
+        {"p": "together", "id": "walk", "minutes": 12, "metres": 10, "breakSeconds": 600}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH5.stage.walk.01"},
+        {"when": "place:halfway:arrived", "say": "SH5.stage.walk.02"},
+        {"when": "place:plaza-edge:arrived", "say": "SH5.stage.walk.04"},
+        {"when": "place:shrine:arrived", "say": "SH5.stage.walk.03"},
+        {"when": "timer:quiet", "say": "SH5.bark.silence.a", "bark": true}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:place:shrine:arrived", "next": "elder"},
+        {"id": "walked-away", "on": "event:together:walk:broken", "next": "walked-away"}
+      ],
+      "timeout": {"gameHours": 3, "next": "walked-away"}
+    },
+    {
+      "id": "elder",
+      "type": "play",
+      "label": "Sit at the shrine beside an old man",
+      "know": "An old man with a candle is on the bench at the shrine. He lost someone in 2023 and hates the rockerboy. He does not know V. You can hear all of it, and you cannot be heard.",
+      "wants": "V to let the old man have his night, and not to defend you.",
+      "do": [
+        {"p": "place", "at": "shrine"},
+        {"p": "cast", "id": "elder", "who": "an old man with a candle", "at": "shrine", "archetype": "corporate-district resident"},
+        {"p": "npc-react", "id": "elder-react", "cast": "elder"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "SH5.stage.elder.01"},
+        {"when": "npc:elder-react:leave", "say": "SH5.bark.elder.b", "bark": true}
+      ],
+      "choices": [
+        {"id": "leave", "on": "event:npc:elder-react:leave", "next": "count"}
+      ],
+      "timeout": {"gameHours": 2, "next": "count"}
+    },
+    {
+      "id": "count",
+      "type": "talk",
+      "label": "Say the number out loud with Johnny",
+      "know": "The old man has gone or not. You ask V to say the number out loud with you, for a count you never made. You will not narrate the day, and no figure is given.",
+      "wants": "V to say the number with you, or to just sit.",
+      "script": [
+        {"when": "stage:enter", "say": "SH5.stage.count.01"},
+        {"when": "line:SH5.stage.count.01:done", "say": "SH5.stage.count.02"},
+        {"when": "line:SH5.stage.count.02:done", "gap": "g2"}
+      ],
+      "choices": [
+        {"id": "with", "on": "event:gap:g2:with", "next": "count-with"},
+        {"id": "sit", "on": "event:gap:g2:sit", "next": "count-sit"},
+        {"id": "silence", "on": "event:gap:g2:silence", "next": "silence"}
+      ],
+      "timeout": {"gameHours": 6, "next": "silence"}
+    }
+  ],
+  "endings": {
+    "count-with": {
+      "memory": "At a quiet shrine above Corpo Plaza you sat beside a stranger who hated Johnny and said what Johnny never counted.",
+      "history": "He never makes the joke again.",
+      "bond": 80,
+      "script": [
+        {"when": "ending:count-with", "say": "SH5.close.01"}
+      ]
+    },
+    "count-sit": {
+      "memory": "At a quiet shrine above Corpo Plaza you sat beside a stranger who hated Johnny, and you did not say the number.",
+      "bond": 70,
+      "script": [
+        {"when": "ending:count-sit", "say": "SH5.close.02"}
+      ]
+    },
+    "silence": {
+      "memory": "At the shrine you let the old man have his night and did not say anything.",
+      "bond": 60,
+      "script": [
+        {"when": "ending:silence", "say": "SH5.close.03"}
+      ]
+    },
+    "walked-away": {
+      "memory": "You left Johnny on the walk to the shrine, and he said he would ask less next time.",
+      "bond": 15,
+      "script": [
+        {"when": "ending:walked-away", "say": "SH5.close.04"}
+      ]
+    },
+    "no": {
+      "memory": "You said no to Johnny's walk, and he said he would not ask for a while.",
+      "bond": 0,
+      "script": [
+        {"when": "ending:no", "say": "SH5.close.05"}
+      ]
+    }
+  }
+}

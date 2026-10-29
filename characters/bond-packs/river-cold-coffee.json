@@ -1,0 +1,176 @@
+{
+  "format": 2,
+  "id": "river-cold-coffee",
+  "character": "river-ward",
+  "title": "Cold Coffee",
+  "summary": "River needs an unmarked car and a second person to watch a Northside tower lobby for a courier collecting money from a ring.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/minor_quest/mq057_motorbreath"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "You have traced the money from a ring that phones families of missing children to a courier who collects it every Thursday in a Northside tower lobby. You have no car and no police backup, and a stakeout is mostly sitting still. Bring it up as a favour, and admit you are bad at waiting."
+  },
+  "places": {
+    "cart": {"name": "the coffee cart on the Northside street", "radius": 25},
+    "park-spot": {"name": "a parking spot in sight of the Northside tower entrance", "radius": 25},
+    "tower": {"name": "the lobby of the Northside tower", "radius": 8},
+    "alley": {"name": "the alley mouth beside the Northside tower", "radius": 25}
+  },
+  "lines": {
+    "RW2.open.01": {"text": "Thursday. Northside. Bring a car and patience. I'll bring the coffee.", "emotion": "neutral"},
+    "RW2.open.02": {"text": "Park where you can see the lobby, not where it can see you.", "emotion": "nod"},
+    "RW2.open.03": {"text": "Engine off. Lights off. Nobody says anything that matters.", "emotion": "emphatic"},
+    "RW2.open.04": {"text": "How long can you sit still before you start talking? Be honest.", "emotion": "neutral"},
+    "RW2.watch.01": {"text": "Cold coffee is the tax. Tell me something while we wait. Not about the job.", "emotion": "shrug"},
+    "RW2.bark.lure.a": {"text": "Don't. That is what it's for.", "emotion": "emphatic"},
+    "RW2.bark.lure.b": {"text": "Let him knock. He's not the point.", "emotion": "shrug"},
+    "RW2.bark.courier.a": {"text": "There. Grey jacket, satchel. Don't point.", "emotion": "emphatic"},
+    "RW2.bark.courier.b": {"text": "She's early. Remember that.", "emotion": "nod"},
+    "RW2.bark.follow.a": {"text": "Stay in the car. I've got her.", "emotion": "nod"},
+    "RW2.bark.follow.b": {"text": "Plate. Got it. Say it back to me.", "emotion": "emphatic"},
+    "RW2.close.01": {"text": "A plate. That's a name by Friday. Thanks for sitting.", "emotion": "happy"},
+    "RW2.close.02": {"text": "You went in loud. I'd have waited too long. Thanks for that.", "emotion": "nod"},
+    "RW2.close.03": {"text": "You left. That's fine. I'll come next Thursday.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "How long can you sit still before you start talking?",
+      "know": "You know the stakeout rules: no leaving the car, no engine, no honking. You know the ring's scheme and what it costs a family.",
+      "secret": "You came because you cannot sit still anywhere else.",
+      "wants": "An honest number from V.",
+      "idle": "chair",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "light", "kind": "flatter"}],
+      "resumeAfterSeconds": 30
+    },
+    "g2": {
+      "asks": "Tell me something while we wait. Do you have anyone who waits for you?",
+      "know": "You know the ninety-minute clock and what V has told you about the people in their life. You feel the guilt about Joss in the quiet of the car.",
+      "secret": "The guilt about Joss.",
+      "wants": "A real answer to fill the silence, not chatter. If V mentions someone, you file it away for later.",
+      "idle": "chair",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "light", "kind": "flatter"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "River is waiting at the Northside coffee cart",
+      "know": "You texted V a Thursday, an address in Northside and an hour. You are at the coffee cart with two cups, and the coffee is already going cold.",
+      "wants": "V to come to the Northside cart with a car and patience.",
+      "do": [
+        {"p": "pin", "at": "cart"},
+        {"p": "place", "at": "cart"},
+        {"p": "cast", "id": "river", "who": "self", "at": "cart", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "RW2.open.01"},
+        {"when": "place:cart:arrived", "say": "RW2.open.02"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:cart:arrived", "next": "park"}],
+      "timeout": {"gameHours": 2, "next": "no-show"}
+    },
+    {
+      "id": "park",
+      "type": "play",
+      "label": "River sets the rules for the stakeout",
+      "know": "You are in V's car in Northside, parked where you can see the tower lobby. You have set the rules: engine off, lights off, nobody says anything that matters.",
+      "wants": "V to park and keep quiet.",
+      "do": [
+        {"p": "place", "at": "park-spot"},
+        {"p": "seat"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW2.open.03"},
+        {"when": "line:RW2.open.03:done", "say": "RW2.open.04"},
+        {"when": "line:RW2.open.04:done", "gap": "g1"}
+      ],
+      "choices": [{"id": "parked", "on": "event:place:park-spot:arrived", "next": "watch"}],
+      "timeout": {"gameHours": 2, "next": "no-show"}
+    },
+    {
+      "id": "watch",
+      "type": "play",
+      "label": "River and V watch the tower lobby",
+      "know": "You are sitting in the car with V, watching the Northside tower lobby. The courier is due around the hour mark, and the cover holds only while nobody gets out, honks or starts the engine.",
+      "wants": "V to sit still with you until the courier leaves the lobby.",
+      "do": [
+        {"p": "together", "id": "stakeout", "minutes": 90, "metres": 5, "seated": true, "breakSeconds": 300, "at": "park-spot"},
+        {"p": "timer", "id": "watch45", "seconds": 45},
+        {"p": "timer", "id": "lure-one", "seconds": 1200},
+        {"p": "timer", "id": "lure-two", "seconds": 2700},
+        {"p": "timer", "id": "courier-in", "seconds": 3900},
+        {"p": "timer", "id": "courier-out", "seconds": 4200},
+        {"p": "cast", "id": "courier", "who": "extra", "at": "tower"},
+        {"p": "cast", "id": "kid", "who": "extra", "at": "park-spot"},
+        {"p": "cast", "id": "ganger", "who": "extra", "at": "park-spot"}
+      ],
+      "script": [
+        {"when": "timer:watch45", "say": "RW2.watch.01"},
+        {"when": "line:RW2.watch.01:done", "gap": "g2"},
+        {"when": "timer:lure-one", "say": "RW2.bark.lure.a"},
+        {"when": "timer:lure-two", "say": "RW2.bark.lure.b"},
+        {"when": "timer:courier-in", "say": "RW2.bark.courier.a"},
+        {"when": "line:RW2.bark.courier.a:done", "say": "RW2.bark.courier.b"}
+      ],
+      "choices": [
+        {"id": "blown", "on": "event:together:stakeout:broken", "next": "blown"},
+        {"id": "courier-left", "on": "event:timer:courier-out", "next": "follow"}
+      ],
+      "timeout": {"gameHours": 2, "next": "blown"}
+    },
+    {
+      "id": "follow",
+      "type": "play",
+      "label": "River follows the courier on foot",
+      "know": "The courier has left the lobby and is heading for an alley. You are following her on foot, and V is in the car. Your plan is to read the plate of the van she hands the satchel to.",
+      "wants": "V to stay in the car and let you read the plate.",
+      "do": [
+        {"p": "party"},
+        {"p": "timer", "id": "plate", "seconds": 30},
+        {"p": "timer", "id": "follow", "seconds": 60},
+        {"p": "cast", "id": "courier", "who": "extra", "at": "alley"},
+        {"p": "npc-react", "id": "courier-react", "cast": "courier"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "RW2.bark.follow.a"},
+        {"when": "timer:plate", "say": "RW2.bark.follow.b"}
+      ],
+      "choices": [
+        {"id": "quiet", "on": "event:timer:follow", "next": "noted"},
+        {"id": "left", "on": "event:npc:courier-react:leave", "next": "grabbed"},
+        {"id": "cowered", "on": "event:npc:courier-react:cower", "next": "grabbed"},
+        {"id": "fought", "on": "event:npc:courier-react:attack", "next": "grabbed"}
+      ],
+      "timeout": {"gameHours": 1, "next": "noted"}
+    }
+  ],
+  "endings": {
+    "noted": {
+      "memory": "You and V sat out ninety minutes in a car in Northside and got the plate of the ring's van.",
+      "history": "The plate, which River kept for the next case.",
+      "bond": 60,
+      "script": [{"when": "ending:noted", "say": "RW2.close.01"}]
+    },
+    "grabbed": {
+      "memory": "You went after the courier in Northside, and she ran before the van could be read.",
+      "bond": 45,
+      "script": [{"when": "ending:grabbed", "say": "RW2.close.02"}]
+    },
+    "blown": {
+      "memory": "V left the stakeout before the courier arrived.",
+      "bond": 15,
+      "script": [{"when": "ending:blown", "text": "RW2.close.03"}]
+    },
+    "no-show": {
+      "memory": "You did not come to the Northside cart, and River drank his cold coffee alone.",
+      "bond": -5
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "format": 2,
+  "id": "songbird-hangout-keep-watch",
+  "kind": "hangout",
+  "character": "songbird",
+  "title": "Keep Watch",
+  "summary": "Songbird asks V to keep watch on a Dogtown water tower roof while she sleeps, and to say honestly what she said.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["ep1/quests/main_quest/q306_somi_epilogue", "ep1/quests/main_quest/q306_postcontent"],
+    "notBegun": ["ep1/quests/main_quest/q306_reed_epilogue"],
+    "notActive": ["ep1/quests/main_quest/q30"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Songbird has not slept in two days, and she asks V to stay on a roof and keep watch so she can sleep."
+  },
+  "places": {
+    "spot": {"name": "the rooftop of a water tower in Dogtown", "radius": 25},
+    "spot-b": {"name": "a second roof beside the water tower", "radius": 25}
+  },
+  "lines": {
+    "SBH5.ask.01": {"text": "Did I say anything? Tell me honestly.", "emotion": "neutral", "channel": "remote"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Did I say anything? Tell me honestly.",
+      "know": "What you heard her say in her sleep, a street name and a name.",
+      "secret": "She dreams of the chair.",
+      "wants": "Honesty.",
+      "tags": [{"id": "honest", "kind": "honest"}, {"id": "flatter", "kind": "flatter"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 60
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "rain", "know": "It is raining, and the roof is wet under your boots.", "places": {"spot": "spot-b"}},
+      {"id": "loud", "know": "The night is loud, and the streets carry the noise up to the roof."},
+      {"id": "asleep", "wants": "V falls asleep first, and she watches over V."}
+    ]
+  },
+  "stages": [
+    {
+      "id": "hangout",
+      "type": "play",
+      "label": "Songbird sleeps while V keeps watch",
+      "know": "V is on the water tower roof in Dogtown. You are going to sleep for the first time in two days, and you are glad it is V who is watching.",
+      "wants": "V to keep watch quietly and tell you honestly what you said.",
+      "meet": {"where": "waypoint", "inGameHours": 3},
+      "do": [
+        {"p": "pin", "at": "spot"},
+        {"p": "place", "at": "spot"},
+        {"p": "timer", "id": "watch", "seconds": 1800},
+        {"p": "check", "id": "heat", "what": "heat"},
+        {"p": "remote"}
+      ],
+      "script": [
+        {"when": "timer:watch", "say": "SBH5.ask.01"},
+        {"when": "line:SBH5.ask.01:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stood", "on": "meet:stood-up", "next": "stood-up"},
+        {"id": "honest", "on": "event:gap:g1:honest", "next": "honest"},
+        {"id": "flatter", "on": "event:gap:g1:flatter", "next": "flattered"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "left"}
+      ],
+      "timeout": {"gameHours": 3, "next": "left"}
+    }
+  ],
+  "endings": {
+    "honest": {
+      "memory": "You kept watch on the water tower roof while Songbird slept, and told her the truth when she woke.",
+      "bond": 8
+    },
+    "flattered": {
+      "memory": "You kept watch on the water tower roof while Songbird slept, and told her nothing had been said when something had.",
+      "bond": 6
+    },
+    "left": {
+      "memory": "You left the water tower roof before Songbird woke, and she never asked what you heard."
+    },
+    "stood-up": {
+      "memory": "You never climbed to the water tower roof in Dogtown, and Songbird slept without anyone watching."
+    }
+  }
+}

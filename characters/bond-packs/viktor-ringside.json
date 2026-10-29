@@ -1,0 +1,161 @@
+{
+  "format": 2,
+  "id": "viktor-ringside",
+  "character": "viktor-vektor",
+  "title": "Ringside",
+  "summary": "Viktor asks V to the Friday amateur card at the old Devils gym, to the seat he has kept empty for years.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor"],
+    "relationship": "any",
+    "invitations": true,
+    "eddies": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "The old Devils gym in Watson runs an amateur card on the first Friday of the month, and Viktor goes alone, to the same folding chair, every time. He mentions it as an afterthought, sure that V would hate it. Bring it up, briefly and in your own way, that the card is on Friday and that you saved a seat, though you do not say why. It is the first time you ask anybody to sit next to you."
+  },
+  "places": {
+    "gym": {"name": "the old Devils gym in Watson", "radius": 8},
+    "bag": {"name": "the heavy bag corner of the old Devils gym", "radius": 3}
+  },
+  "images": {
+    "ringside-ropes": {"file": "images/ringside-ropes.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "V1.open.01": {"text": "Friday card at the old gym. Free seats, bad coffee. You'd hate it.", "emotion": "neutral"},
+    "V1.open.02": {"text": "You came. Good. That chair is taken, has been for years. Sit here.", "emotion": "nod"},
+    "V1.open.03": {"text": "Three bouts. Watch the feet, not the gloves. Gloves lie.", "emotion": "emphatic"},
+    "V1.open.04": {"text": "First bout. Who takes it, and why?", "emotion": "neutral"},
+    "V1.bag.01": {"text": "Last thing. When you are scared in a fight, what do you do?", "emotion": "neutral"},
+    "V1.bark.bout.a": {"text": "Dropped his left again. They always do.", "emotion": "shrug"},
+    "V1.bark.bout.b": {"text": "Good finish. Wrong reason, but good.", "emotion": "nod"},
+    "V1.bark.bet.a": {"text": "I said I'm not betting. I never said you couldn't.", "emotion": "shrug"},
+    "V1.bark.bet.b": {"text": "Your money. Don't tell Misty, she'll read it in the cards.", "emotion": "neutral"},
+    "V1.bark.bag.a": {"text": "Hands up. Chin down. Breathe out when you hit.", "emotion": "emphatic"},
+    "V1.bark.bag.b": {"text": "Don't muscle it. The bag isn't your enemy.", "emotion": "nod"},
+    "V1.close.01": {"text": "Not bad for a first card. Same seat next month, if you can stand the coffee.", "emotion": "nod"},
+    "V1.close.02": {"text": "Your pick lost. Mine didn't.", "emotion": "happy"},
+    "V1.close.03": {"text": "Kept a seat free. It's fine. Chairs don't mind.", "emotion": "neutral"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "First bout. Who takes it, and why?",
+      "know": "You know the two amateurs. One leads with the jab and the other drops his left. You know how close you and V are, and whether Jackie is still alive in this save.",
+      "secret": "You already think the one who drops his left will win by a lucky shot.",
+      "wants": "V to look at the feet, not the faces.",
+      "idle": "chair",
+      "tags": [{"id": "red", "kind": "honest"}, {"id": "blue", "kind": "flatter"}],
+      "resumeAfterSeconds": 45
+    },
+    "g2": {
+      "asks": "When you are scared in a fight, what do you do?",
+      "know": "You know the answer V gave in the first gap and how V has been fighting lately.",
+      "secret": "You are always scared, and it never stopped.",
+      "wants": "An honest answer, not a brave one.",
+      "idle": "generic_arms_crossed",
+      "tags": [{"id": "freeze", "kind": "honest"}, {"id": "tough", "kind": "no"}],
+      "resumeAfterSeconds": 40
+    }
+  },
+  "stages": [
+    {
+      "id": "invite",
+      "type": "play",
+      "label": "Viktor is waiting at the old Devils gym",
+      "know": "You asked V to the Friday card at the old Devils gym in Watson. You will sit in the same folding chair you always take, and you are sure V will hate the coffee. You have never asked anybody to sit next to you before.",
+      "wants": "V to come to the gym and take the seat beside you.",
+      "do": [
+        {"p": "pin", "at": "gym"},
+        {"p": "place", "at": "gym"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "gym", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "V1.open.01"},
+        {"when": "place:gym:arrived", "say": "V1.open.02"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:gym:arrived", "next": "card"}],
+      "timeout": {"gameHours": 4, "next": "empty-seat"}
+    },
+    {
+      "id": "card",
+      "type": "play",
+      "label": "Viktor calls the bouts from ringside",
+      "know": "V is in the folding chair beside you at the old Devils gym. Three amateur bouts are on, and you call the punches under your breath, saying what each fighter does wrong and what you would have done at their age. You are not betting and you say so. You watch for the moment a man stops pretending the glove is a wall.",
+      "wants": "V to pick a corner for each bout and to watch the feet, not the faces.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "card", "minutes": 30, "metres": 5, "seated": true, "breakSeconds": 120},
+        {"p": "cast", "id": "amateur-red", "who": "extra", "at": "gym"},
+        {"p": "cast", "id": "amateur-blue", "who": "extra", "at": "gym"},
+        {"p": "cast", "id": "amateur-green", "who": "extra", "at": "gym"},
+        {"p": "cast", "id": "amateur-white", "who": "extra", "at": "gym"},
+        {"p": "cast", "id": "bookie", "who": "extra", "at": "gym"},
+        {"p": "bout", "id": "b1", "a": "amateur-red", "b": "amateur-blue", "rounds": 1, "roundSeconds": 90, "floor": 25},
+        {"p": "bout", "id": "b2", "a": "amateur-green", "b": "amateur-white", "rounds": 1, "roundSeconds": 90, "floor": 25},
+        {"p": "bout", "id": "b3", "a": "amateur-red", "b": "amateur-white", "rounds": 1, "roundSeconds": 90, "floor": 25},
+        {"p": "timer", "id": "t10", "seconds": 600},
+        {"p": "pay", "id": "bet", "to": "bookie", "amount": 100, "min": 100, "reason": "toll"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V1.open.03"},
+        {"when": "line:V1.open.03:done", "say": "V1.open.04"},
+        {"when": "line:V1.open.04:done", "gap": "g1"},
+        {"when": "stage:enter", "event": "bout:b1:go"},
+        {"when": "timer:t10", "event": "bout:b2:go"},
+        {"when": "bout:b2:ended", "event": "bout:b3:go"},
+        {"when": "bout:b1:ended", "say": "V1.bark.bout.a"},
+        {"when": "bout:b2:ended", "say": "V1.bark.bout.b"},
+        {"when": "pay:bet:paid", "say": "V1.bark.bet.a"},
+        {"when": "line:V1.bark.bet.a:done", "say": "V1.bark.bet.b"}
+      ],
+      "choices": [
+        {"id": "watched", "on": "event:together:card:done", "next": "bag"},
+        {"id": "wandered", "on": "event:together:card:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 2, "next": "left"}
+    },
+    {
+      "id": "bag",
+      "type": "play",
+      "label": "Viktor corrects V's stance at the heavy bag",
+      "know": "The last bout is over and you walk V to the heavy bag corner. You will correct the stance and the breathing in words and show it yourself on the bag. You grade only what V says and where V stands, and you ask one question about fear.",
+      "wants": "V to stand at the bag and answer honestly.",
+      "do": [
+        {"p": "place", "at": "bag", "dwell": 120}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V1.bag.01"},
+        {"when": "line:V1.bag.01:done", "gap": "g2"},
+        {"when": "stage:enter", "say": "V1.bark.bag.a"},
+        {"when": "line:V1.bark.bag.a:done", "say": "V1.bark.bag.b"}
+      ],
+      "choices": [
+        {"id": "freeze", "on": "event:gap:g2:freeze", "next": "stayed"},
+        {"id": "tough", "on": "event:gap:g2:tough", "next": "stayed"}
+      ],
+      "timeout": {"gameHours": 1, "next": "stayed"}
+    }
+  ],
+  "endings": {
+    "stayed": {
+      "memory": "You took V to the Friday card at the old Devils gym and talked them through three bouts.",
+      "history": "He calls it the Friday seat.",
+      "bond": 45,
+      "script": [
+        {"when": "ending:stayed", "say": "V1.close.01"},
+        {"when": "ending:stayed", "text": "V1.close.02", "image": "ringside-ropes"}
+      ]
+    },
+    "left": {
+      "memory": "V came to the fights but did not stay for the last bout.",
+      "bond": 15
+    },
+    "empty-seat": {
+      "memory": "You kept a seat free and V never sat in it.",
+      "bond": -5,
+      "script": [{"when": "ending:empty-seat", "text": "V1.close.03"}]
+    }
+  }
+}

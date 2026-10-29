@@ -1,0 +1,83 @@
+{
+  "format": 2,
+  "kind": "hangout",
+  "id": "jackie-hangout-grease-monkeys",
+  "character": "jackie-welles",
+  "title": "Grease Monkeys",
+  "summary": "Jackie's bike is coughing, so he asks you to hold the light in a Kabuki back-alley garage while you both listen for the fault.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {"allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"], "untracked": true},
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["phone"],
+    "chance": 0.5,
+    "bringUp": "Jackie's bike is coughing, and he asks you to come to his garage in Kabuki, hold the light and help him listen. He says you will learn something."
+  },
+  "places": {
+    "garage": {"name": "the back-alley garage in Kabuki", "radius": 8}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "What does it sound like to you? And don't say 'broken'.",
+      "know": "There are three possible causes: fuel, the plug or the air. Jackie has revved the bike twice, and you are close to the engine.",
+      "secret": "He talks to the bike when no one is listening.",
+      "wants": "V's guess.",
+      "idle": "lean",
+      "tags": [{"id": "fuel", "kind": "yes"}, {"id": "plug", "kind": "no"}, {"id": "air", "kind": "honest"}],
+      "resumeAfterSeconds": 300
+    }
+  },
+  "stages": [
+    {
+      "id": "garage",
+      "type": "play",
+      "label": "Jackie listens to the bike in the Kabuki garage",
+      "know": "You are in a back-alley garage in Kabuki with Jackie and his bike on a lift. He has revved the engine, and you are listening for the fault.",
+      "wants": "V to stay close and help him find the fault.",
+      "do": [
+        {"p": "place", "at": "garage"},
+        {"p": "workspot", "id": "fix", "who": "self", "at": "garage", "key": "mechanic", "fallback": "lean"},
+        {"p": "timer", "id": "rev", "seconds": 240, "clock": "game"},
+        {"p": "together", "id": "hold", "minutes": 10, "metres": 2, "breakSeconds": 180, "at": "garage"}
+      ],
+      "script": [
+        {"when": "timer:rev", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "stayed", "on": "event:together:hold:done", "next": "stayed"},
+        {"id": "left", "on": "event:together:hold:broken", "next": "left"}
+      ],
+      "timeout": {"gameHours": 1, "next": "left"}
+    }
+  ],
+  "endings": {
+    "stayed": {
+      "memory": "You held the light in Jackie's Kabuki garage for ten minutes and helped him listen to the bike.",
+      "bond": 10
+    },
+    "left": {
+      "memory": "You and Jackie tried to fix a bike in a Kabuki garage, and you left before it was done.",
+      "bond": 6
+    },
+    "unfinished": {
+      "memory": "You and Jackie were doing something light, and it ended there.",
+      "bond": 0
+    }
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "flat-tire", "know": "A flat tire on the bike, and Jackie sure it is not the engine at all.", "wants": "V's guess.", "places": {"garage": "garage"}},
+      {"id": "chain", "know": "A chain problem, with grease on both of your hands.", "wants": "V's guess.", "places": {"garage": "garage"}},
+      {"id": "rattle", "know": "A mystery rattle with no right answer, and Jackie laughing at every guess.", "wants": "V's guess.", "places": {"garage": "garage"}}
+    ]
+  },
+  "unfinishedWhen": {"finished": "quests/main_quest/prologue/q005_heist", "ending": "unfinished"}
+}

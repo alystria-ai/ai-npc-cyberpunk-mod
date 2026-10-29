@@ -1,0 +1,145 @@
+{
+  "format": 2,
+  "id": "kerry-caliente",
+  "character": "kerry-eurodyne",
+  "title": "Caliente Mornings",
+  "summary": "Kerry wants a coffee where nobody knows his name, so he takes you to the diner he remembers from the SAMURAI days.",
+  "requires": {
+    "bond": 3,
+    "questsFinished": ["quests/side_quest/sq011_kerry"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.5,
+    "bringUp": "You are up early in a villa that echoes, bored, and you want a coffee somewhere nobody knows your name. You remember a diner from the SAMURAI days where you drank too much coffee, and it may not exist any more. Text V about it in your own way and ask if they want to come and find out."
+  },
+  "places": {
+    "gate": {"name": "the gate of Kerry's villa in North Oak", "radius": 25},
+    "corner": {"name": "the corner where the old SAMURAI diner stood", "radius": 12}
+  },
+  "images": {
+    "caliente-cups": {"file": "images/caliente-cups.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "K1.open.01": {"text": "Morning. Bored. Villa echoes. Need coffee somewhere nobody knows my name.", "emotion": "neutral"},
+    "K1.open.02": {"text": "Double espresso, Jamaican blend, no sugar. If you say sugar I'm leaving.", "emotion": "emphatic"},
+    "K1.open.03": {"text": "Gate, eight. I'll drive.", "emotion": "neutral"},
+    "K1.stage.ride.01": {"text": "Early gigs, we drank so much coffee the bassist shook. Never again. Twice a week.", "emotion": "happy", "gesture": "happy"},
+    "K1.stage.corner.01": {"text": "It's... a laundromat now. Of course it is.", "emotion": "sad"},
+    "K1.stage.corner.02": {"text": "Stand here with me a minute. Don't say anything clever.", "emotion": "neutral"},
+    "K1.bark.order.a": {"text": "Double espresso. Jamaican. No sugar. You? ... Sugar? Seriously?", "emotion": "surprise"},
+    "K1.bark.order.b": {"text": "Good choice. You're allowed to stay.", "emotion": "nod", "gesture": "nod"},
+    "K1.close.01": {"text": "Strings, coffee, rough rooms. That's what we ate. Thanks for finding the corner with me.", "emotion": "happy"},
+    "K1.close.02": {"text": "Next time you pick. But no sugar.", "emotion": "nod", "gesture": "nod"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "You coming? And what's your coffee, so I know who I'm dealing with?",
+      "know": "You will meet V at your villa gate in North Oak at 8 am. You will drive V to an old diner from the SAMURAI days that may not exist.",
+      "secret": "The diner matters more to you than the coffee does.",
+      "wants": "V to say yes.",
+      "tags": [{"id": "yes", "kind": "yes"}],
+      "resumeAfterSeconds": 3600,
+      "resumeOn": ["place:gate:arrived"]
+    },
+    "g2": {
+      "asks": "Double espresso. Jamaican. No sugar. You?",
+      "know": "You and V are at the counter with two cups in front of you. You have already told V your order and you are waiting to hear theirs.",
+      "wants": "V's order, and a reason if it is sugar.",
+      "tags": [{"id": "plain", "kind": "honest"}, {"id": "sugar", "kind": "flatter"}, {"id": "other", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Kerry is waiting at his villa gate for coffee",
+      "know": "You texted V from your villa in North Oak. You will drive them to an old diner from the SAMURAI days that may not exist. You want a cup of coffee where nobody knows your name.",
+      "wants": "V to meet you at the villa gate at 8 am.",
+      "do": [
+        {"p": "pin", "at": "gate"},
+        {"p": "place", "at": "gate"},
+        {"p": "cast", "id": "kerry", "who": "self", "at": "gate", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "K1.open.01"},
+        {"when": "line:K1.open.01:done", "text": "K1.open.02"},
+        {"when": "line:K1.open.02:done", "text": "K1.open.03"},
+        {"when": "line:K1.open.03:done", "gap": "g1"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:gate:arrived", "next": "ride"}],
+      "timeout": {"gameHours": 1, "next": "stood-up"}
+    },
+    {
+      "id": "ride",
+      "type": "play",
+      "label": "Kerry walks you to the corner where the diner was",
+      "know": "You and V are on the corner where the SAMURAI diner used to stand. It is a laundromat now. You want V to stand there with you for a minute.",
+      "wants": "V to stand with you and say nothing clever.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "corner"},
+        {"p": "together", "id": "corner-wait", "minutes": 5, "metres": 5, "at": "corner", "breakSeconds": 90}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K1.stage.ride.01"},
+        {"when": "place:corner:arrived", "say": "K1.stage.corner.01"},
+        {"when": "line:K1.stage.corner.01:done", "say": "K1.stage.corner.02"}
+      ],
+      "choices": [
+        {"id": "waited", "on": "event:together:corner-wait:done", "next": "sit"},
+        {"id": "wandered", "on": "event:together:corner-wait:broken", "next": "half"}
+      ],
+      "timeout": {"gameHours": 1, "next": "half"}
+    },
+    {
+      "id": "sit",
+      "type": "play",
+      "label": "Kerry orders coffee and asks what you want",
+      "know": "The laundromat is behind you and you are at the counter where a diner could have been. You have ordered your double espresso with no sugar and you are waiting on V's order.",
+      "wants": "V's order.",
+      "do": [
+        {"p": "party"},
+        {"p": "seat"},
+        {"p": "together", "id": "order-sit", "minutes": 10, "metres": 5, "seated": true, "breakSeconds": 120}
+      ],
+      "script": [
+        {"when": "stage:enter", "gap": "g2"},
+        {"when": "gap:g2:sugar", "say": "K1.bark.order.a"},
+        {"when": "gap:g2:plain", "say": "K1.bark.order.b"}
+      ],
+      "choices": [
+        {"id": "plain", "on": "event:gap:g2:plain", "next": "order"},
+        {"id": "sugar", "on": "event:gap:g2:sugar", "next": "order-sugar"},
+        {"id": "other", "on": "event:gap:g2:other", "next": "order"},
+        {"id": "gone", "on": "event:together:order-sit:broken", "next": "half"}
+      ],
+      "timeout": {"gameHours": 2, "next": "half"}
+    }
+  ],
+  "endings": {
+    "order": {
+      "memory": "Kerry took you to the place he remembered from the SAMURAI days, and you drank coffee on the corner where it used to be.",
+      "history": "He calls any cheap coffee \"caliente\".",
+      "bond": 45,
+      "script": [{"when": "ending:order", "text": "K1.close.01", "image": "caliente-cups"}]
+    },
+    "order-sugar": {
+      "memory": "You had coffee with Kerry on the corner where his old diner stood, and you put sugar in yours. He will never let it go.",
+      "bond": 40,
+      "script": [{"when": "ending:order-sugar", "text": "K1.close.02"}]
+    },
+    "half": {
+      "memory": "Kerry showed you the corner where his SAMURAI diner used to stand, and you left before the coffee.",
+      "bond": 25
+    },
+    "stood-up": {
+      "memory": "You never came to Kerry's gate for coffee, and he drank his alone.",
+      "bond": -5
+    }
+  }
+}

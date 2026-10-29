@@ -1,0 +1,223 @@
+{
+  "format": 2,
+  "id": "rogue-whos-listening",
+  "character": "rogue-amendiares",
+  "title": "Who's Listening",
+  "summary": "Rogue hides a client in a Kabuki capsule hotel for one night and needs V to find the leak among three staff before the other side arrives.",
+  "requires": {
+    "bond": 8,
+    "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up", "quests/side_quest/sq031_cinema"],
+    "notActive": ["quests/main_quest/act_01/q103", "quests/side_quest/sq031", "quests/main_quest/act_01/q115"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "You are hiding a client in Kabuki tonight, and someone has told the other side where. Bring up, briefly and in your own way, that you need V to come and watch the staff."
+  },
+  "places": {
+    "hotel": {"name": "the capsule hotel in Kabuki", "radius": 8},
+    "corridor": {"name": "the seventh floor corridor of the capsule hotel", "radius": 8}
+  },
+  "images": {
+    "listening-lobby": {"file": "images/listening-lobby.png", "width": 1024, "height": 576},
+    "listening-dawn": {"file": "images/listening-dawn.png", "width": 1024, "height": 576}
+  },
+  "lines": {
+    "R5.call.01": {"text": "Kabuki. Capsule hotel. Wear nothing you'd miss.", "emotion": "neutral", "channel": "holocall"},
+    "R5.call.02": {"text": "I'm hiding a client tonight. The other side knows where.", "emotion": "emphatic", "channel": "holocall"},
+    "R5.call.03": {"text": "It's one of three staff. I can't ask anyone I pay.", "emotion": "emphatic", "channel": "holocall"},
+    "R5.call.04": {"text": "You're the only one I can ask. Be there in an hour.", "emotion": "neutral", "channel": "holocall"},
+    "R5.call.05": {"text": "Fine. I'll take that as no.", "emotion": "angry", "channel": "holocall"},
+    "R5.stage.lobby.01": {"text": "Check in. Look bored. Count who leaves their post.", "emotion": "emphatic"},
+    "R5.stage.lobby.02": {"text": "Clerk, cleaner, bellhop. One of them is on someone's payroll.", "emotion": "neutral"},
+    "R5.stage.corridor.01": {"text": "Client's behind that door. Seventh floor. Nobody opens it but me.", "emotion": "neutral"},
+    "R5.bark.waiting.a": {"text": "Ten minutes. Anyone moved?", "emotion": "neutral"},
+    "R5.bark.waiting.b": {"text": "Keep watching. They're patient. We're more patient.", "emotion": "neutral"},
+    "R5.bark.caught.a": {"text": "Ah. Underpaid. It's always the underpaid.", "emotion": "sad"},
+    "R5.bark.caught.b": {"text": "I'll deal with him. Go back to the lobby.", "emotion": "nod"},
+    "R5.leaker.01": {"text": "I didn't want to! They said they'd hurt my family!", "emotion": "fear"},
+    "R5.bark.missed.a": {"text": "They're here. Hold the corridor.", "emotion": "angry"},
+    "R5.bark.missed.b": {"text": "Damn. Too late. Fight, V. Fight.", "emotion": "angry"},
+    "R5.bark.down.a": {"text": "That's the last. Check the client.", "emotion": "neutral"},
+    "R5.bark.down.b": {"text": "Done. Breathe.", "emotion": "neutral"},
+    "R5.close.01": {"text": "Good. Loyalty's cheap until it costs you.", "emotion": "nod"},
+    "R5.close.02": {"text": "Practical. I'd have said the same. Hate that I would.", "emotion": "shrug"},
+    "R5.close.03": {"text": "We lost the client. That's mine, not yours.", "emotion": "sad"}
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "voice",
+      "text": "R5.call.01",
+      "onHangUp": "call:ci:hung-up",
+      "steps": [
+        {"say": "R5.call.01"},
+        {"say": "R5.call.02"},
+        {"say": "R5.call.03"},
+        {"say": "R5.call.04"},
+        {"gap": "g1"}
+      ]
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Can you do it? Because if you can't, I'll find another way, and you'll never know I asked.",
+      "know": "A Kabuki capsule hotel, one hour away, three staff: a night clerk, a cleaner and a bellhop. The client is behind a seventh floor door, and a short squad fight follows if you miss the leaker.",
+      "secret": "You suspect one of the three, and you will not say which.",
+      "wants": "A yes, quickly.",
+      "idle": "chair",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 600
+    },
+    "g2": {
+      "asks": "Who do you trust least? Go with your gut. I'll tell you if it's wrong.",
+      "know": "Three staff at the hotel, one of them the leaker, a 25 game minute window before the call goes out. V can watch and question.",
+      "secret": "Which one it is. If V asks, you answer in riddles.",
+      "wants": "V's instinct.",
+      "idle": "arms-crossed",
+      "resumeAfterSeconds": 1500
+    },
+    "g3": {
+      "asks": "If it had been Panam, or Nix, or one of my own, what would you have done?",
+      "know": "The client leaves at dawn by car. The night ended with the leak caught or a fight in the corridor.",
+      "secret": "You do not know what you would have done either.",
+      "wants": "A real answer.",
+      "idle": "lean",
+      "tags": [{"id": "loyal", "kind": "honest"}, {"id": "cold", "kind": "no"}],
+      "resumeAfterSeconds": 360
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Rogue calls V about the capsule hotel",
+      "know": "You call V from the Afterlife. You have a client hiding at a Kabuki capsule hotel for one night, and one of three staff has told the other side where. You can only ask V.",
+      "wants": "V to say yes.",
+      "do": [
+        {"p": "call-in", "id": "ci", "call": "c1", "ringSeconds": 30, "text": true}
+      ],
+      "script": [
+        {"when": "call:ci:hung-up", "say": "R5.call.05"}
+      ],
+      "choices": [
+        {"id": "yes", "on": "event:gap:g1:yes", "next": "lobby"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "stood-up"},
+        {"id": "hangup", "on": "event:call:ci:hung-up", "next": "stood-up"}
+      ],
+      "timeout": {"gameHours": 1, "next": "stood-up"}
+    },
+    {
+      "id": "lobby",
+      "type": "play",
+      "label": "V checks into the capsule hotel and watches the staff",
+      "know": "V is at the Kabuki capsule hotel. The clerk, the cleaner and the bellhop go about their routine. One of them will step out and make a call within 25 game minutes, and you are in the corridor with the client behind your door.",
+      "wants": "V to find the leaker before the call goes out.",
+      "do": [
+        {"p": "pin", "at": "hotel"},
+        {"p": "place", "at": "hotel"},
+        {"p": "cast", "id": "clerk", "who": "night clerk at the capsule hotel desk, a phone half-hidden under the counter", "at": "hotel", "archetype": "street-solo"},
+        {"p": "cast", "id": "cleaner", "who": "cleaner with a mop and cart, pale tube light overhead", "at": "hotel", "archetype": "street-solo"},
+        {"p": "cast", "id": "bellhop", "who": "bellhop in a worn uniform by the lift", "at": "hotel", "archetype": "street-solo"},
+        {"p": "npc-react", "id": "leak-react", "cast": "clerk"},
+        {"p": "post", "id": "rogue-post", "at": "corridor", "stance": "stand", "fightFrom": true},
+        {"p": "timer", "id": "watch", "seconds": 1500, "clock": "game"}
+      ],
+      "script": [
+        {"when": "place:hotel:arrived", "text": "R5.stage.lobby.01", "image": "listening-lobby"},
+        {"when": "line:R5.stage.lobby.01:done", "say": "R5.stage.lobby.02"},
+        {"when": "stage:enter", "say": "R5.stage.corridor.01"},
+        {"when": "line:R5.stage.lobby.02:done", "gap": "g2"},
+        {"when": "timer:watch", "say": "R5.bark.waiting.a"},
+        {"when": "line:R5.bark.waiting.a:done", "say": "R5.bark.waiting.b"},
+        {"when": "npc:leak-react:cower", "say": "R5.leaker.01"}
+      ],
+      "choices": [
+        {"id": "confess", "on": "event:npc:leak-react:obey", "next": "dawn-caught"},
+        {"id": "fight", "on": "event:npc:leak-react:attack", "next": "catch"},
+        {"id": "missed", "on": "event:timer:watch", "next": "catch"}
+      ],
+      "timeout": {"gameHours": 1, "next": "catch"}
+    },
+    {
+      "id": "catch",
+      "type": "play",
+      "label": "The call went out and the squad is on its way",
+      "know": "The leaker made the call. A squad of four is coming by car to the capsule hotel, and you and Rogue hold the corridor from her post. The fight is short, in the lobby and the corridor.",
+      "wants": "V to hold the corridor until the squad is down.",
+      "do": [
+        {"p": "place", "at": "corridor"},
+        {"p": "post", "id": "rogue-post", "at": "corridor", "stance": "stand", "fightFrom": true},
+        {"p": "squad", "id": "hotel-squad", "at": "hotel", "faction": "gang", "count": 4, "hostile": true, "alertAfterSeconds": 240}
+      ],
+      "script": [
+        {"when": "squad:hotel-squad:spawned", "say": "R5.bark.missed.a"},
+        {"when": "line:R5.bark.missed.a:done", "say": "R5.bark.missed.b"},
+        {"when": "squad:hotel-squad:down", "say": "R5.bark.down.a"},
+        {"when": "line:R5.bark.down.a:done", "say": "R5.bark.down.b"}
+      ],
+      "choices": [
+        {"id": "held", "on": "event:squad:hotel-squad:down", "next": "dawn-fought"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost-client"}
+    },
+    {
+      "id": "dawn-caught",
+      "type": "talk",
+      "label": "Dawn: the client leaves and Rogue asks V a real question",
+      "know": "The client leaves at dawn in a car, and you have caught the leak before the other side arrived. You ask V a real question about what V would have done for someone close to you.",
+      "wants": "V's honest answer.",
+      "script": [
+        {"when": "stage:enter", "say": "R5.bark.caught.a"},
+        {"when": "line:R5.bark.caught.a:done", "say": "R5.bark.caught.b"},
+        {"when": "line:R5.bark.caught.b:done", "gap": "g3"},
+        {"when": "gap:g3:loyal", "say": "R5.close.01"},
+        {"when": "gap:g3:cold", "say": "R5.close.02"}
+      ],
+      "choices": [
+        {"id": "loyal", "on": "event:gap:g3:loyal", "next": "caught"},
+        {"id": "cold", "on": "event:gap:g3:cold", "next": "caught"}
+      ],
+      "timeout": {"gameHours": 1, "next": "caught"}
+    },
+    {
+      "id": "dawn-fought",
+      "type": "talk",
+      "label": "Dawn after the fight: the client leaves and Rogue asks V a real question",
+      "know": "The client leaves at dawn in a car, after a short fight in the corridor. You ask V a real question about what V would have done for someone close to you.",
+      "wants": "V's honest answer.",
+      "script": [
+        {"when": "stage:enter", "gap": "g3"},
+        {"when": "gap:g3:loyal", "say": "R5.close.01"},
+        {"when": "gap:g3:cold", "say": "R5.close.02"}
+      ],
+      "choices": [
+        {"id": "loyal", "on": "event:gap:g3:loyal", "next": "fought"},
+        {"id": "cold", "on": "event:gap:g3:cold", "next": "fought"}
+      ],
+      "timeout": {"gameHours": 1, "next": "fought"}
+    }
+  ],
+  "endings": {
+    "caught": {
+      "memory": "You found the leak in a Kabuki capsule hotel before the other side arrived, and Rogue's client left at dawn.",
+      "history": "Rogue tells her staff that V was useful on the night of the Kabuki hotel.",
+      "bond": 75
+    },
+    "fought": {
+      "memory": "You found out too late, and you and Rogue held the capsule hotel corridor until the squad was down.",
+      "bond": 55
+    },
+    "lost-client": {
+      "memory": "You did not find the leak in time, and Rogue's client was taken from the hotel.",
+      "bond": 15,
+      "script": [{"when": "ending:lost-client", "say": "R5.close.03"}]
+    },
+    "stood-up": {
+      "memory": "You did not answer Rogue's call for help, and she found another way.",
+      "bond": -5
+    }
+  }
+}

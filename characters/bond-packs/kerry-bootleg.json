@@ -1,0 +1,254 @@
+{
+  "format": 2,
+  "id": "kerry-bootleg",
+  "character": "kerry-eurodyne",
+  "title": "Bootleg",
+  "summary": "A collector who calls himself Kerry's biggest fan has taken Kerry's guitar tech to a private museum, and Kerry calls you to get him out.",
+  "requires": {
+    "bond": 6,
+    "questsFinished": ["quests/side_quest/sq017_02_lounge"],
+    "notActive": ["quests/side_quest/sq011", "quests/side_quest/sq017", "quests/side_quest/sq028"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "A collector has taken the guitar tech who has worked for you for thirty years to a private museum, and you are furious and a little ashamed that it is your own fans. You do not want the police and you do not want it on the news. Call V and ask for help, and say thanks, even if it comes out as an insult."
+  },
+  "places": {
+    "gate": {"name": "the gate of Kerry's villa in North Oak", "radius": 25},
+    "theatre": {"name": "the closed theatre in Westbrook", "radius": 25},
+    "front-door": {"name": "the front door of the theatre", "radius": 8},
+    "side-door": {"name": "the side door of the theatre", "radius": 8},
+    "display-room": {"name": "the display room on the second floor of the theatre", "radius": 8}
+  },
+  "lines": {
+    "K4.call.01": {"text": "They took my tech. My guitar tech. Thirty years with me.", "emotion": "angry", "channel": "holocall"},
+    "K4.call.02": {"text": "Some fan. A collector. Says he wants a private show.", "emotion": "angry", "channel": "holocall"},
+    "K4.call.03": {"text": "No cops. I can't have it on the news. Can you come?", "emotion": "fear", "channel": "holocall"},
+    "K4.call.04": {"text": "Villa gate, one hour. And V... thanks.", "emotion": "sad", "channel": "holocall"},
+    "K4.call.05": {"text": "...Right. I'll do it myself.", "emotion": "sad", "channel": "holocall"},
+    "K4.stage.ride.01": {"text": "I'm going in the front. They love me. That's the problem, and it's useful.", "emotion": "emphatic"},
+    "K4.stage.museum.01": {"text": "Wait here. Count thirty. Then go around the side.", "emotion": "neutral"},
+    "K4.stage.museum.02": {"text": "Gentlemen! Kerry Eurodyne. Which of you wants an autograph first?", "emotion": "happy"},
+    "K4.bark.sneak.a": {"text": "Almost. Don't rush. I'll keep them busy.", "emotion": "emphatic"},
+    "K4.bark.sneak.b": {"text": "Quiet. Stairs on the left. Go.", "emotion": "emphatic"},
+    "K4.bark.loud.a": {"text": "Shit, they turned! Cover! Get him out!", "emotion": "fear"},
+    "K4.bark.loud.b": {"text": "I'm behind the column! Hit them!", "emotion": "emphatic"},
+    "K4.bark.freed.a": {"text": "You've got him! Bring him out!", "emotion": "happy"},
+    "K4.bark.freed.b": {"text": "Thank God. Get him in the car.", "emotion": "happy"},
+    "K4.bark.down.a": {"text": "They're down. Is he hurt? Is he alright?", "emotion": "fear"},
+    "K4.bark.down.b": {"text": "Done. Check on him.", "emotion": "emphatic"},
+    "K4.close.01": {"text": "Thanks. Next time I'll sign something and we all go home.", "emotion": "happy", "gesture": "lean"},
+    "K4.close.02": {"text": "Fine. Go. I'll call.", "emotion": "shrug"},
+    "K4.close.03": {"text": "He's gone. I let this happen. ... Go home, V.", "emotion": "sad"}
+  },
+  "calls": {
+    "c1": {
+      "caller": "self",
+      "picture": "live",
+      "text": "K4.call.01",
+      "onHangUp": "call:ring:hung-up",
+      "steps": [
+        {"say": "K4.call.01"},
+        {"say": "K4.call.02"},
+        {"say": "K4.call.03"},
+        {"say": "K4.call.04"},
+        {"gap": "g1"},
+        {"hangup": true}
+      ]
+    }
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Tell me you're in. And tell me you're not going to say 'I told you so' about fans.",
+      "know": "You know the collector has a closed theatre in Westbrook. Kerry is the bait at the front, and you go around the side. The guards are fans, six of them, and the tech is on the second floor.",
+      "secret": "Kerry is a little ashamed that it is his own fans.",
+      "wants": "V in.",
+      "idle": "kerry",
+      "tags": [{"id": "in", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 3600
+    },
+    "g2": {
+      "asks": "Keep them talking or hit them? I'm an old man with a guitar. Tell me what you see.",
+      "know": "The guards hesitate for thirty seconds. You are going around the side, Kerry stands at the front door behind a column, and the tech is upstairs.",
+      "secret": "Kerry has not been this scared in years and is faking calm.",
+      "wants": "V to move fast.",
+      "idle": "kerry",
+      "tags": [{"id": "quiet", "kind": "honest"}, {"id": "loud", "kind": "no"}],
+      "resumeAfterSeconds": 180
+    },
+    "g3": {
+      "asks": "Stay a while. Please. I don't want to be alone with that museum in my head.",
+      "know": "The tech is safe, or the collector's guards are down, and the job is over. You are at the villa gate with Kerry.",
+      "secret": "Kerry does not want the tech to see him shake.",
+      "wants": "Company.",
+      "idle": "lean",
+      "tags": [{"id": "yes", "kind": "yes"}, {"id": "no", "kind": "no"}],
+      "resumeAfterSeconds": 360
+    }
+  },
+  "stages": [
+    {
+      "id": "call",
+      "type": "play",
+      "label": "Kerry calls you about his guitar tech",
+      "know": "Kerry has called you from his villa in North Oak. His guitar tech has been taken to a private museum, and he wants you to come to the villa gate within the hour.",
+      "wants": "V to answer him.",
+      "do": [
+        {"p": "call-in", "id": "ring", "call": "c1", "ringSeconds": 30, "text": true}
+      ],
+      "choices": [
+        {"id": "in", "on": "event:gap:g1:in", "next": "meet"},
+        {"id": "no", "on": "event:gap:g1:no", "next": "no"},
+        {"id": "hung-up", "on": "event:call:ring:hung-up", "next": "no"}
+      ],
+      "timeout": {"gameHours": 1, "next": "no"}
+    },
+    {
+      "id": "meet",
+      "type": "play",
+      "label": "Kerry is waiting at the villa gate",
+      "know": "You are at the villa gate in North Oak, and Kerry is waiting with you to drive out to Westbrook. You need to get to the gate within the hour.",
+      "wants": "V at the gate.",
+      "do": [
+        {"p": "pin", "at": "gate"},
+        {"p": "place", "at": "gate"},
+        {"p": "cast", "id": "kerry", "who": "self", "at": "gate", "carry": true}
+      ],
+      "choices": [
+        {"id": "came", "on": "event:place:gate:arrived", "next": "ride"}
+      ],
+      "timeout": {"gameHours": 1, "next": "no"}
+    },
+    {
+      "id": "ride",
+      "type": "play",
+      "label": "You drive Kerry to the theatre in Westbrook",
+      "know": "You are driving Kerry to a closed theatre in Westbrook where the collector has his museum. He is going in the front, and he is nervous about it.",
+      "wants": "V to get there in one piece.",
+      "do": [
+        {"p": "party"},
+        {"p": "ride", "to": "theatre", "limitMinutes": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K4.stage.ride.01"},
+        {"when": "ride:arrived", "say": "K4.stage.museum.01"}
+      ],
+      "choices": [
+        {"id": "arrived", "on": "event:ride:arrived", "next": "museum"},
+        {"id": "stopped", "on": "event:ride:abandoned", "next": "no"}
+      ],
+      "timeout": {"gameHours": 1, "next": "no"}
+    },
+    {
+      "id": "museum",
+      "type": "play",
+      "label": "Kerry walks into the museum to draw the guards",
+      "know": "Kerry is at the front door of the theatre and the collector's guards, who are fans, are staring at him. You are going around the side while they hesitate. The tech is on the second floor in the display room.",
+      "wants": "V to reach the tech before the guards turn.",
+      "do": [
+        {"p": "post", "id": "kerry", "at": "front-door", "stance": "stand"},
+        {"p": "cast", "id": "guard", "who": "collector's guard", "at": "front-door"},
+        {"p": "npc-react", "id": "guard", "cast": "guard"},
+        {"p": "squad", "id": "guards", "at": "theatre", "faction": "fans", "count": 6, "hostile": false},
+        {"p": "hostage", "id": "tech", "at": "display-room", "kind": "floor"},
+        {"p": "place", "at": "side-door"},
+        {"p": "unseen", "id": "sneak", "squad": "guards", "at": "side-door"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K4.stage.museum.02"},
+        {"when": "line:K4.stage.museum.02:done", "gap": "g2"},
+        {"when": "place:side-door:arrived", "say": "K4.bark.sneak.a"},
+        {"when": "line:K4.bark.sneak.a:done", "say": "K4.bark.sneak.b"},
+        {"when": "squad:guards:hostile", "say": "K4.bark.loud.a"},
+        {"when": "line:K4.bark.loud.a:done", "say": "K4.bark.loud.b"},
+        {"when": "squad:guards:down", "say": "K4.bark.down.a"},
+        {"when": "line:K4.bark.down.a:done", "say": "K4.bark.down.b"},
+        {"when": "hostage:tech:freed", "say": "K4.bark.freed.a"}
+      ],
+      "choices": [
+        {"id": "freed", "on": "event:hostage:tech:freed", "next": "out"},
+        {"id": "loud", "on": "event:squad:guards:hostile", "next": "out-loud"},
+        {"id": "dead", "on": "event:hostage:tech:dead", "next": "lost"}
+      ],
+      "timeout": {"gameHours": 1, "next": "lost"}
+    },
+    {
+      "id": "out",
+      "type": "play",
+      "label": "Kerry's tech follows you out of the museum",
+      "know": "The tech is out of the room and following you. You are taking him back to the villa gate in Kerry's car.",
+      "wants": "To get out of the museum.",
+      "do": [
+        {"p": "escortee", "id": "tech-e", "from": "tech"},
+        {"p": "ride", "to": "gate", "limitMinutes": 30}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "K4.bark.freed.b"}
+      ],
+      "choices": [
+        {"id": "home", "on": "event:ride:arrived", "next": "after"},
+        {"id": "stopped", "on": "event:ride:abandoned", "next": "after"}
+      ],
+      "timeout": {"gameHours": 1, "next": "after"}
+    },
+    {
+      "id": "out-loud",
+      "type": "play",
+      "label": "You get the tech out with the guards shouting",
+      "know": "The guards turned on you. Kerry is behind a column shouting instructions, and you are getting the tech out through the side.",
+      "wants": "To get the tech out of the museum.",
+      "do": [
+        {"p": "escortee", "id": "tech-e", "from": "tech"},
+        {"p": "ride", "to": "gate", "limitMinutes": 30}
+      ],
+      "choices": [
+        {"id": "home", "on": "event:ride:arrived", "next": "loud"},
+        {"id": "stopped", "on": "event:ride:abandoned", "next": "loud"}
+      ],
+      "timeout": {"gameHours": 1, "next": "loud"}
+    },
+    {
+      "id": "after",
+      "label": "Kerry asks you to stay at the villa gate",
+      "know": "You are back at the villa gate with Kerry. The tech has gone in. Kerry wants you to stay a while.",
+      "wants": "V to stay.",
+      "script": [
+        {"when": "stage:enter", "gap": "g3"}
+      ],
+      "choices": [
+        {"id": "stayed", "on": "event:gap:g3:yes", "next": "clean"},
+        {"id": "left", "on": "event:gap:g3:no", "next": "clean-cold"}
+      ],
+      "timeout": {"gameHours": 1, "next": "clean-cold"}
+    }
+  ],
+  "endings": {
+    "clean": {
+      "memory": "A collector took Kerry's guitar tech to a private museum, and Kerry's face bought you thirty seconds to get him out.",
+      "bond": 75,
+      "script": [{"when": "ending:clean", "text": "K4.close.01"}]
+    },
+    "clean-cold": {
+      "memory": "A collector took Kerry's guitar tech to a private museum, and you got the tech out before you said no to staying at the gate.",
+      "bond": 75,
+      "script": [{"when": "ending:clean-cold", "text": "K4.close.02"}]
+    },
+    "loud": {
+      "memory": "You got Kerry's tech out of the Westbrook museum, but the collectors turned on you and Kerry shouted from behind a column.",
+      "bond": 55
+    },
+    "lost": {
+      "memory": "The tech did not make it out of the Westbrook museum, and Kerry did not talk for days.",
+      "bond": 20,
+      "script": [{"when": "ending:lost", "text": "K4.close.03"}]
+    },
+    "no": {
+      "memory": "You hung up on Kerry's call, and he went to the police in the end.",
+      "bond": -5,
+      "script": [{"when": "ending:no", "text": "K4.call.05"}]
+    }
+  }
+}

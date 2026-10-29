@@ -23,7 +23,7 @@
     {
       "id": "text",
       "label": "He wrote a new song",
-      "know": "Three nights ago you wrote a song at four in the morning: slow, ugly-beautiful, about outliving everyone. Nobody has heard it. Your manager would want it polished into a single; you want to know if it is any good before anyone gets near it.",
+      "know": "Three nights ago you wrote a song at four in the morning: slow, ugly-beautiful, about outliving everyone. Nobody has heard it. Your manager would want it polished into a single, you want to know if it is any good before anyone gets near it.",
       "wants": "V to come over and listen to it, at your villa or wherever V is.",
       "say": {"en": "Wrote something. New, not Samurai. Don't make it weird. Come over and listen?"},
       "text": {"when": "start", "line": {"en": "Wrote a thing. First new thing in years. You're hearing it first, don't make it weird."}},
@@ -75,8 +75,8 @@
     }
   ],
   "endings": {
-    "setlist": {"memory": "V was the first to hear your new song and told you the truth about it; you rewrote the bridge and it made the setlist.", "bond": 80},
-    "drawer": {"memory": "V heard your new song first but was only polite about it; the song is still in a drawer.", "bond": 20},
-    "file": {"memory": "You sent V your new song as a file; you never heard what V thought of it.", "bond": 10}
+    "setlist": {"memory": "V was the first to hear your new song and told you the truth about it, you rewrote the bridge and it made the setlist.", "bond": 80},
+    "drawer": {"memory": "V heard your new song first but was only polite about it, the song is still in a drawer.", "bond": 20},
+    "file": {"memory": "You sent V your new song as a file, you never heard what V thought of it.", "bond": 10}
   }
 }

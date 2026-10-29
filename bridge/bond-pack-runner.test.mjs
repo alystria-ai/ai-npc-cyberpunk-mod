@@ -14,6 +14,8 @@ const DAY = 86400, HOUR = 3600;
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const roster = new Set(JSON.parse(read('../characters/roster.json')).map(row => row.key));
 const packs = Object.fromEntries(shippedPacks().map(({pack}) => [pack.id, pack]));
+// These tests are about the four example packs, so the dice have no other pack of the same character to pick (the quest and hangout packs ship beside them).
+const EXAMPLES = ['judy-dinner-dress', 'kerry-new-song', 'panam-sunset-coffee', 'panam-truck-ransom'].map(id => packs[id]);
 
 function journal(rows) {
   const coverage = {status: 'complete', ageSeconds: 1, windowSeconds: 30, observed: rows.length, omitted: 0, unstable: false};
@@ -30,7 +32,7 @@ const turn = (profileKey, gameSeconds, extra = {}, bondsBlock = {}) => ({request
   turnContext: {gameTime: gameSeconds}, bonds: {on: true, copy: 'party', packs: true, eddies: true, invitations: true, ...bondsBlock}, ...extra});
 const make = (options = {}) => {
   const lines = [], written = [];
-  const runner = new BondPacks({characters: roster, random: () => 0, log: line => lines.push(line), write: async (file, text) => { written.push([file, JSON.parse(text)]); },
+  const runner = new BondPacks({packs: EXAMPLES, characters: roster, random: () => 0, log: line => lines.push(line), write: async (file, text) => { written.push([file, JSON.parse(text)]); },
     path: 'packs.json', effectsPath: 'effects.json', debounceMs: 0, ...options});
   return {runner, lines, written};
 };

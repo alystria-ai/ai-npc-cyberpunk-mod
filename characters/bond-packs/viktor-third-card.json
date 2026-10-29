@@ -1,0 +1,141 @@
+{
+  "format": 2,
+  "id": "viktor-third-card",
+  "character": "viktor-vektor",
+  "title": "The Third Card",
+  "summary": "Viktor needs V to keep Misty at her card table long enough for him to finish a windchime for her.",
+  "requires": {
+    "bond": 5,
+    "questsFinished": ["quests/minor_quest/mq033_tarot", "quests/minor_quest/mq045_victor_debt"],
+    "relationship": "any",
+    "invitations": true
+  },
+  "start": {
+    "channels": ["own", "phone", "holocall"],
+    "chance": 0.35,
+    "bringUp": "Viktor has been building something out of retired implant casings and brass that rings when a door opens. It is ugly and he knows it, and he cannot finish it with Misty anywhere near. Bring it up, briefly and in your own way, that he asked you for one thing he is bad at: keeping Misty busy for fifteen minutes."
+  },
+  "places": {
+    "home": {"name": "V's flat", "radius": 8},
+    "table": {"name": "the card table in the Little China night market", "radius": 25},
+    "courtyard": {"name": "a courtyard a few hundred metres from the night market", "radius": 25}
+  },
+  "lines": {
+    "V3.open.01": {"text": "Don't laugh. I made something. It's ugly. I need Misty in her chair for fifteen minutes.", "emotion": "shrug"},
+    "V3.open.02": {"text": "She reads cards. You sit. She talks. I'll be in the alley with a soldering iron.", "emotion": "nod"},
+    "V3.open.03": {"text": "Pick a question you want her to read for you. Make it one she can't finish in a minute.", "emotion": "neutral"},
+    "V3.bark.reveal.a": {"text": "Don't say it's ugly. She will. Let her.", "emotion": "fear"},
+    "V3.bark.reveal.b": {"text": "Misty. This is, ah. This is yours.", "emotion": "fear"},
+    "V3.bark.alley.a": {"text": "Solder's hot. Keep her talking.", "emotion": "emphatic"},
+    "V3.bark.alley.b": {"text": "One more joint. Then the cord. Go.", "emotion": "nod"},
+    "V3.close.01": {"text": "It's ugly. I know. She said both words. I'll live on that for a year.", "emotion": "happy"},
+    "V3.close.02": {"text": "She found me with the iron in my hand. Never been so embarrassed. Never been so glad.", "emotion": "happy"},
+    "V3.close.03": {"text": "Next time. She's patient. More than I am.", "emotion": "shrug"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Pick a question you want her to read for you.",
+      "know": "You know Misty's method of reading past, expectation and intuition. You know the plan and V's tarot history from the tarot graffiti job.",
+      "secret": "You want V to ask about you.",
+      "wants": "A long, interesting topic for Misty.",
+      "idle": "generic_arms_crossed",
+      "tags": [{"id": "stated", "kind": "honest"}],
+      "resumeAfterSeconds": 40
+    }
+  },
+  "stages": [
+    {
+      "id": "plot",
+      "type": "play",
+      "label": "Viktor asks V to keep Misty busy",
+      "know": "Viktor is at your flat, explaining the chime sheepishly. He wants you to keep Misty in her chair for fifteen minutes while he finishes it, and he expects you to say no to a favour he has never asked for before.",
+      "wants": "V to take the job, or at least to try it with him.",
+      "do": [
+        {"p": "pin", "at": "home"},
+        {"p": "place", "at": "home"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "home", "carry": true}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V3.open.01"},
+        {"when": "line:V3.open.01:done", "say": "V3.open.02"},
+        {"when": "line:V3.open.02:done", "say": "V3.open.03"},
+        {"when": "line:V3.open.03:done", "gap": "g1"}
+      ],
+      "choices": [
+        {"id": "in", "on": "tag", "kind": "yes", "means": "V takes the job and keeps Misty in her chair.", "next": "reading"},
+        {"id": "no", "on": "tag", "kind": "no", "means": "V says just give it to her, then agrees to try it with Viktor.", "next": "reading"}
+      ],
+      "timeout": {"gameHours": 6, "next": "reading"}
+    },
+    {
+      "id": "reading",
+      "type": "play",
+      "label": "Misty reads three cards for V at the night market",
+      "know": "Misty is at her card table in the Little China night market, giving you a three-card reading, one card for each third. Viktor works out of sight in a courtyard a few hundred metres away. Every few minutes she could remember something at the shop, and you have to keep her in her chair by talk.",
+      "wants": "V to keep Misty in her chair for fifteen minutes.",
+      "do": [
+        {"p": "seat"},
+        {"p": "together", "id": "reading", "minutes": 15, "metres": 8, "seated": true, "breakSeconds": 120},
+        {"p": "cast", "id": "misty", "who": "extra", "at": "table"},
+        {"p": "post", "id": "viktor-watch", "at": "courtyard"},
+        {"p": "workspot", "id": "solder", "who": "self", "at": "courtyard", "key": "mechanic", "fallback": "lean"}
+      ],
+      "script": [
+        {"when": "post:viktor-watch:set", "say": "V3.bark.alley.a"},
+        {"when": "line:V3.bark.alley.a:done", "say": "V3.bark.alley.b"}
+      ],
+      "choices": [
+        {"id": "read", "on": "event:together:reading:done", "next": "scene"},
+        {"id": "walked", "on": "event:together:reading:broken", "next": "walked-off"},
+        {"id": "spoiled", "on": "event:post:viktor-watch:lost", "next": "spoiled"}
+      ],
+      "timeout": {"gameHours": 2, "next": "walked-off"}
+    },
+    {
+      "id": "scene",
+      "type": "play",
+      "label": "Viktor arrives with the chime in a paper bag",
+      "know": "The reading is over and Viktor walks up with the chime in a paper bag. He says it badly. Misty's reaction is the heart of this, and you are standing at her table watching it.",
+      "wants": "Viktor to say it, and Misty to say both words, ugly and beautiful.",
+      "do": [
+        {"p": "timer", "id": "reveal", "seconds": 120}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "V3.bark.reveal.a"},
+        {"when": "line:V3.bark.reveal.a:done", "say": "V3.bark.reveal.b"}
+      ],
+      "choices": [{"id": "shown", "on": "event:timer:reveal", "next": "hang"}],
+      "timeout": {"gameHours": 1, "next": "hang"}
+    },
+    {
+      "id": "hang",
+      "type": "play",
+      "label": "Misty hangs the chime at her door",
+      "know": "The chime is hung in her doorframe. Misty will mention it later, and you will hear about it from Viktor when she does.",
+      "wants": "Misty to keep the chime.",
+      "do": [
+        {"p": "memory-share", "id": "tell", "to": "misty-olszewski", "note": "Viktor made you a windchime from brass and implant casings."}
+      ],
+      "choices": [{"id": "told", "on": "event:memory-share:tell:done", "next": "reveal"}],
+      "timeout": {"gameHours": 1, "next": "reveal"}
+    }
+  ],
+  "endings": {
+    "reveal": {
+      "memory": "You kept Misty at her table long enough for Viktor to finish his gift.",
+      "history": "The chime exists, hung at her door.",
+      "bond": 65,
+      "script": [{"when": "ending:reveal", "say": "V3.close.01"}]
+    },
+    "spoiled": {
+      "memory": "Misty found Viktor soldering behind the stall and laughed until she cried.",
+      "bond": 45,
+      "script": [{"when": "ending:spoiled", "say": "V3.close.02"}]
+    },
+    "walked-off": {
+      "memory": "You left the table, and the surprise went wrong.",
+      "bond": 15,
+      "script": [{"when": "ending:walked-off", "say": "V3.close.03"}]
+    }
+  }
+}

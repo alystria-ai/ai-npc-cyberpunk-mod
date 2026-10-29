@@ -1,0 +1,172 @@
+{
+  "format": 2,
+  "id": "judy-door-duty",
+  "character": "judy-alvarez",
+  "title": "Door Duty",
+  "summary": "Judy's door man got hurt, so she asks V to stand Lizzie's door with her for one night.",
+  "requires": {
+    "bond": 4,
+    "questsFinished": ["quests/side_quest/sq026_01_suicide"],
+    "notActive": ["quests/side_quest/sq026", "quests/side_quest/sq030", "quests/main_quest/act_01/q105"],
+    "relationship": "any"
+  },
+  "start": {
+    "channels": ["own", "phone"],
+    "chance": 0.5,
+    "bringUp": "Judy's door man got stabbed and Susie Q put her on the door tonight. Bring up, in your own way, that you want V to stand the door with you for an hour, and that V is scarier than you are."
+  },
+  "places": {
+    "door": {"name": "the front door of Lizzie's Bar", "radius": 8},
+    "bar": {"name": "the bar inside Lizzie's Bar", "radius": 6}
+  },
+  "lines": {
+    "J2.ask.01": {"text": "Our door guy got stabbed. He's fine. Susie wants me on the door tonight. Me.", "emotion": "surprise", "gesture": "judy"},
+    "J2.ask.02": {"text": "You're scarier than me and I'm meaner than you. Stand with me for an hour?", "emotion": "happy"},
+    "J2.shift.01": {"text": "Rules. No Claws, no creeps, no corpo who thinks he's funny.", "emotion": "emphatic", "gesture": "lean"},
+    "J2.shift.02": {"text": "Here we go. Your turn, tough guy.", "emotion": "happy"},
+    "J2.shift.03": {"text": "Gone. You didn't even yell. Weird.", "emotion": "surprise"},
+    "J2.shift.04": {"text": "Okay, that's one way. Shake it off.", "emotion": "shrug"},
+    "J2.shift.05": {"text": "That one's taking pictures. Claw. I can smell the cologne.", "emotion": "angry"},
+    "J2.shift.06": {"text": "Wait. I know her. She's from the Clouds.", "emotion": "fear"},
+    "J2.shift.07": {"text": "Come on, sweetie. Inside. Nobody's touching you here.", "emotion": "sad", "gesture": "calm_down__happy"},
+    "J2.shift.08": {"text": "You sent her away. We need to talk about that. Not now.", "emotion": "angry", "gesture": "no"},
+    "J2.close.01": {"text": "Shift's over. I'm buying. Don't argue, it's free for me.", "emotion": "happy"},
+    "J2.close.02": {"text": "Thanks for tonight. For real.", "emotion": "sad"}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Why do you think she came here? Of all places.",
+      "know": "The three incidents at the door and how each ended, and the doll's state. Susie Q put you on the door, and you are not sure you are any good at it.",
+      "secret": "She wonders whether she is any good at being Mox, or just angry.",
+      "wants": "V's honest view of the Mox.",
+      "idle": "bar",
+      "resumeAfterSeconds": 600
+    }
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "type": "play",
+      "label": "Judy is waiting at Lizzie's front door",
+      "know": "Your door man got stabbed and Susie Q put you on the door tonight. You hate needing help, and you will not say so.",
+      "wants": "V to stand the door with you for an hour.",
+      "do": [
+        {"p": "pin", "at": "door"},
+        {"p": "place", "at": "door"},
+        {"p": "cast", "id": "judy", "who": "self", "at": "door"}
+      ],
+      "script": [
+        {"when": "stage:enter", "text": "J2.ask.01"},
+        {"when": "line:J2.ask.01:done", "text": "J2.ask.02"}
+      ],
+      "choices": [{"id": "came", "on": "event:place:door:arrived", "next": "shift1"}],
+      "timeout": {"gameHours": 2, "next": "left-early"}
+    },
+    {
+      "id": "shift1",
+      "type": "play",
+      "label": "A drunk corpo tests the door",
+      "know": "You and V are on Lizzie's door. A drunk corpo is weaving up the street and wants in, and the rules are no corpo who thinks he's funny.",
+      "wants": "V to deal with the drunk.",
+      "do": [
+        {"p": "party"},
+        {"p": "place", "at": "door"},
+        {"p": "cast", "id": "drunk", "who": "drunk corpo", "at": "door", "archetype": "corpo"},
+        {"p": "npc-react", "id": "drunk", "cast": "drunk"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J2.shift.01"},
+        {"when": "cast:drunk:arrived", "say": "J2.shift.02"},
+        {"when": "npc:drunk:leave", "say": "J2.shift.03"},
+        {"when": "npc:drunk:brawl", "say": "J2.shift.04"}
+      ],
+      "choices": [
+        {"id": "left", "on": "event:npc:drunk:leave", "next": "shift2"},
+        {"id": "brawl", "on": "event:npc:drunk:brawl", "next": "rough-night"}
+      ],
+      "timeout": {"gameHours": 1, "next": "shift2"}
+    },
+    {
+      "id": "shift2",
+      "type": "play",
+      "label": "A Tyger Claw scout photographs the bar",
+      "know": "A Tyger Claw scout is taking pictures of Lizzie's from across the street. He is not here to drink.",
+      "wants": "V to get the scout to leave, one way or another.",
+      "do": [
+        {"p": "place", "at": "door"},
+        {"p": "cast", "id": "scout", "who": "Tyger Claw scout", "at": "door", "archetype": "claw"},
+        {"p": "npc-react", "id": "scout", "cast": "scout"}
+      ],
+      "script": [
+        {"when": "cast:scout:arrived", "say": "J2.shift.05"}
+      ],
+      "choices": [
+        {"id": "cowered", "on": "event:npc:scout:cower", "next": "shift3"},
+        {"id": "left", "on": "event:npc:scout:leave", "next": "shift3"},
+        {"id": "brawl", "on": "event:npc:scout:brawl", "next": "rough-night"}
+      ],
+      "timeout": {"gameHours": 1, "next": "shift3"}
+    },
+    {
+      "id": "shift3",
+      "type": "play",
+      "label": "A scared girl from the Clouds asks for Judy",
+      "know": "A young doll from the Clouds is standing at the door asking for Judy by name. She is not a fighter and she is not a threat.",
+      "wants": "V and Judy to decide whether she comes in.",
+      "do": [
+        {"p": "place", "at": "door"},
+        {"p": "cast", "id": "doll", "who": "young doll from the Clouds", "at": "door", "archetype": "doll"},
+        {"p": "npc-react", "id": "doll", "cast": "doll"}
+      ],
+      "script": [
+        {"when": "cast:doll:arrived", "say": "J2.shift.06"},
+        {"when": "npc:doll:obey", "say": "J2.shift.07"},
+        {"when": "npc:doll:leave", "say": "J2.shift.08"}
+      ],
+      "choices": [
+        {"id": "doll-in", "on": "event:npc:doll:obey", "next": "close"},
+        {"id": "doll-away", "on": "event:npc:doll:leave", "next": "doll-turned-away"}
+      ],
+      "timeout": {"gameHours": 1, "next": "doll-turned-away"}
+    },
+    {
+      "id": "close",
+      "type": "play",
+      "label": "Judy buys V a drink after the shift",
+      "know": "The shift is over and you are inside Lizzie's. You are buying V a drink, and you will say it is free for you.",
+      "wants": "V to stay and talk with you for a while.",
+      "do": [
+        {"p": "place", "at": "bar"},
+        {"p": "together", "id": "close-talk", "minutes": 10, "metres": 3, "breakSeconds": 60, "seated": true, "at": "bar"}
+      ],
+      "script": [
+        {"when": "stage:enter", "say": "J2.close.01"},
+        {"when": "line:J2.close.01:done", "gap": "g1"},
+        {"when": "gap:g1:resume", "say": "J2.close.02"}
+      ],
+      "choices": [
+        {"id": "talked", "on": "event:together:close-talk:done", "next": "quiet-door"},
+        {"id": "left", "on": "event:together:close-talk:broken", "next": "quiet-door"}
+      ],
+      "timeout": {"gameHours": 1, "next": "quiet-door"}
+    }
+  ],
+  "endings": {
+    "quiet-door": {
+      "memory": "You and Judy worked Lizzie's door for a night, and the girl from the Clouds walked in safe.",
+      "bond": 55
+    },
+    "rough-night": {
+      "memory": "You and Judy held Lizzie's door through a brawl, and she tells the story with more blood every time.",
+      "bond": 45
+    },
+    "doll-turned-away": {
+      "memory": "You sent the girl from the Clouds away from Lizzie's door, and Judy is still short with you about it.",
+      "bond": 15
+    },
+    "left-early": {
+      "memory": "You left Lizzie's door before the shift was over, and Judy finished it alone.",
+      "bond": 5
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "format": 2,
+  "id": "viktor-hangout-name-that-beat",
+  "kind": "hangout",
+  "character": "viktor-vektor",
+  "title": "Name That Beat",
+  "summary": "On a rooftop in the Glen at dusk, V tunes a radio and Viktor guesses the decade and genre of each song before the title shows.",
+  "requires": {"bond": 5, "questsFinished": ["quests/main_quest/prologue/q001_01_victor"], "relationship": "any", "invitations": true},
+  "start": {
+    "channels": ["phone", "own"],
+    "chance": 1,
+    "bringUp": "Viktor invites V to a rooftop in the Glen at dusk, with a portable radio and an opinion about the music."
+  },
+  "hangout": {
+    "repeatDays": 3,
+    "capPerDay": 20,
+    "stoodUp": -10,
+    "variations": [
+      {"id": "station", "know": "V picks the station."},
+      {"id": "fighters", "know": "V picks songs for three imaginary fighters."},
+      {"id": "hum", "know": "There is no radio. V hums a tune and Viktor guesses the decade and the genre."}
+    ]
+  },
+  "places": {
+    "roof": {"name": "a rooftop in the Glen at dusk", "radius": 8}
+  },
+  "gaps": {
+    "g1": {
+      "asks": "Pick a walkout song for me. Defend it.",
+      "know": "The songs played so far.",
+      "secret": "He already has one.",
+      "wants": "V's argument.",
+      "idle": "lean",
+      "tags": [{"id": "pick", "kind": "honest"}]
+    }
+  },
+  "stages": [
+    {
+      "id": "beat",
+      "type": "play",
+      "label": "V tunes the radio on the Glen rooftop",
+      "know": "Viktor sits on the ledge with a portable radio while the city haze turns orange. He guesses the decade and the genre of each song before the title shows, and so do you.",
+      "wants": "V to match the songs with Viktor and to defend a walkout song.",
+      "do": [
+        {"p": "pin", "at": "roof"},
+        {"p": "place", "at": "roof"},
+        {"p": "cast", "id": "viktor", "who": "self", "at": "roof", "carry": true},
+        {"p": "seat"},
+        {"p": "check", "id": "radio", "what": "radio"},
+        {"p": "timer", "id": "songs", "seconds": 240},
+        {"p": "timer", "id": "songs2", "seconds": 600}
+      ],
+      "script": [{"when": "timer:songs", "gap": "g1"}],
+      "choices": [{"id": "done", "on": "event:timer:songs2", "next": "done"}],
+      "timeout": {"gameHours": 1, "next": "done"}
+    }
+  ],
+  "endings": {
+    "done": {"memory": "You and Viktor argued over the songs on a rooftop in the Glen at dusk, and you matched the decades together.", "bond": 6}
+  }
+}
