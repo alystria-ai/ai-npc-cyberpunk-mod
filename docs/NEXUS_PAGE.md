@@ -85,7 +85,7 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)[list]
 [*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left. A dropped connection is retried once by itself before the reply starts.
 [*][b]Mistral (with your own key):[/b] Mistral stopped giving free API keys to new accounts, so a new key needs a paid [url=https://console.mistral.ai]Mistral[/url] plan. Have a key? Choose [b]Mistral[/b] and paste it once.
-[*][b]More free turns (a free Gemini or Groq key):[/b] open Settings > Conversation provider > Custom endpoint and press [b]Use[/b] on [b]Google Gemini (free)[/b] or [b]Groq (free)[/b]. That fills in the address and the model, so you only paste a free key from [url=https://aistudio.google.com/apikey]Google AI Studio[/url] or [url=https://console.groq.com/keys]Groq[/url] (no card), test it and choose [b]Custom (OpenAI-compatible)[/b]. Both have daily limits and are not offered in every country, and Google may use free-plan chats to improve its products.
+[*][b]More free turns (a free Gemini key):[/b] open Settings > Conversation provider > Custom endpoint and press [b]Use[/b] on [b]Google Gemini (free)[/b]. That fills in the address and the model, so you only paste a free key from [url=https://aistudio.google.com/apikey]Google AI Studio[/url] (no card), test it and choose [b]Custom (OpenAI-compatible)[/b]. It has a daily limit and is not offered in every country, and Google may use free-plan chats to improve its products.
 [*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters. If Voxtral cannot speak (no key, a limit, a Mistral plan that does not include it), replies show as text until it can: the mod never switches your voice to another one.
 [/list][b]2. Local: no internet, no account, no limit[/b][list]
 [*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card the model may not fit whole: Local AI then runs part of it on your processor, which works but is slower, and tells you once. Cloud text is faster there.
@@ -285,7 +285,7 @@ Update for older game 2.31, for manual installs only: extract it into the game f
 ## 3. Short summary (brief overview field)
 
 ```text
-Talk to Cyberpunk 2077 characters by voice or text, and hear companions answer in their own voices. Run it fully on your own PC with Local AI, free, with no account and no internet. Or use the Convai free tier, or a free Google Gemini or Groq key. Pocket TTS voices need no setup.
+Talk to Cyberpunk 2077 characters by voice or text, and hear companions answer in their own voices. Run it fully on your own PC with Local AI, free, with no account and no internet. Or use the Convai free tier, or a free Google Gemini key. Pocket TTS voices need no setup.
 ```
 
 Character count of the summary (including spaces and punctuation): 265

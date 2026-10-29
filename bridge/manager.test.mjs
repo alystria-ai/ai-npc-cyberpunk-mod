@@ -6346,10 +6346,10 @@ test('Custom endpoint is one button after the Mistral key row that opens a page 
     assert(page and page.name == 'Custom endpoint', 'the page category')
     local ids = {}
     for _, item in ipairs(page.settings) do ids[#ids + 1] = item.id end
-    assert(table.concat(ids, ',') == 'custom-preset-gemini,custom-preset-groq,custom-url,custom-key,custom-model,custom-test', table.concat(ids, ','))
+    assert(table.concat(ids, ',') == 'custom-preset-gemini,custom-url,custom-key,custom-model,custom-test', table.concat(ids, ','))
     for _, item in ipairs(page.settings) do assert(item.type == 'action', item.id) end
     local rows = dofile('custom-provider.lua').new({readJSON = function() return nil end}).rows()
-    assert(#rows == 6, 'the module has six rows')
+    assert(#rows == 5, 'the module has five rows')
     for index, item in ipairs(rows) do assert(page.settings[index].id == item.id and page.settings[index].label == item.label, item.id) end
     local back = row('custom-endpoint:back')
     assert(back, 'a Back action at the top of the page')

@@ -57,7 +57,7 @@
     ]
   },
   "counts": {
-    "strings": 1755,
+    "strings": 1752,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -370,7 +370,6 @@
     "Copy the report path to the clipboard so you can paste it into a message.": "Copy the report path to the clipboard so you can paste it into a message.",
     "Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.": "Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.",
     "Copy your free key from aistudio.google.com/apikey first (a Google account is enough, no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite) and saves your key from the clipboard.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.": "Copy your free key from aistudio.google.com/apikey first (a Google account is enough, no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite) and saves your key from the clipboard.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.",
-    "Copy your free key from console.groq.com/keys first (no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Groq (Qwen) and saves your key from the clipboard.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.": "Copy your free key from console.groq.com/keys first (no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Groq (Qwen) and saves your key from the clipboard.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.",
     "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.": "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.",
     "Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.": "Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.",
     "Copying the path needs the conversation service, which is not running. The report file is at: {path}": "Copying the path needs the conversation service, which is not running. The report file is at: {path}",
@@ -533,7 +532,6 @@
     "Go back to the usual look and moves for {name}? Your choices on this part are removed.": "Go back to the usual look and moves for {name}? Your choices on this part are removed.",
     "Google Gemini (free)": "Google Gemini (free)",
     "Graphics card": "Graphics card",
-    "Groq (free)": "Groq (free)",
     "Group chat needs two characters nearby. Use {key} for one person.": "Group chat needs two characters nearby. Use {key} for one person.",
     "Group text chat": "Group text chat",
     "Group voice chat": "Group voice chat",
@@ -755,7 +753,6 @@
     "New character": "New character",
     "Next page": "Next page",
     "Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.": "Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.",
-    "Next step: copy your Groq key from console.groq.com/keys, then press Paste API key.": "Next step: copy your Groq key from console.groq.com/keys, then press Paste API key.",
     "No API key is saved yet. Copy your key from your provider, press Paste API key, then test again.": "No API key is saved yet. Copy your key from your provider, press Paste API key, then test again.",
     "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.": "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.",
     "No clear, reachable companion space on this floor. Move to a wider spot and try again.": "No clear, reachable companion space on this floor. Move to a wider spot and try again.",
@@ -2851,7 +2848,6 @@
       "Copy the report path to the clipboard so you can paste it into a message.",
       "Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.",
       "Copy your free key from aistudio.google.com/apikey first (a Google account is enough, no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite) and saves your key from the clipboard.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.",
-      "Copy your free key from console.groq.com/keys first (no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Groq (Qwen) and saves your key from the clipboard.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.",
       "Copying the path needs the conversation service, which is not running. The report file is at: {path}",
       "Corpo Plaza",
       "Could not invite: {names}.",
@@ -2944,7 +2940,6 @@
       "Go back to the usual look and moves for {name}? Your choices on this part are removed.",
       "Google Gemini (free)",
       "Graphics card",
-      "Groq (free)",
       "Group chat needs two characters nearby. Use {key} for one person.",
       "Group text chat",
       "Group voice chat",
@@ -3084,7 +3079,6 @@
       "New character",
       "Next page",
       "Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.",
-      "Next step: copy your Groq key from console.groq.com/keys, then press Paste API key.",
       "No API key is saved yet. Copy your key from your provider, press Paste API key, then test again.",
       "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.",
       "No clip yet.",
@@ -4061,7 +4055,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:332"
+        "mod/custom-provider.lua:329"
       ]
     },
     "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.": {
@@ -4450,7 +4444,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:302",
+        "mod/custom-provider.lua:300",
         "mod/manager-ui.lua:858"
       ]
     },
@@ -6242,7 +6236,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:374"
+        "mod/custom-provider.lua:371"
       ]
     },
     "Convai’s payment page is open in your browser. Your plan is active about 15 seconds after you pay.": {
@@ -6440,7 +6434,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:289"
+        "mod/custom-provider.lua:287"
       ]
     },
     "Copy the model ID from your provider first, for example meta-llama/llama-3.1-8b-instruct on OpenRouter or llama3.2 on Ollama. It is read from the clipboard once and saved on this computer.": {
@@ -6448,7 +6442,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:331"
+        "mod/custom-provider.lua:328"
       ]
     },
     "Copy the report path to the clipboard so you can paste it into a message.": {
@@ -6464,7 +6458,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:309"
+        "mod/custom-provider.lua:307"
       ]
     },
     "Copy your free key from aistudio.google.com/apikey first (a Google account is enough, no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite) and saves your key from the clipboard.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.": {
@@ -6473,14 +6467,6 @@
       ],
       "references": [
         "mod/custom-provider.lua:274"
-      ]
-    },
-    "Copy your free key from console.groq.com/keys first (no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Groq (Qwen) and saves your key from the clipboard.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/custom-provider.lua:276"
       ]
     },
     "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.": {
@@ -6647,7 +6633,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:316"
+        "mod/custom-provider.lua:313"
       ]
     },
     "Custom endpoint": {
@@ -6665,7 +6651,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:292"
+        "mod/custom-provider.lua:290"
       ]
     },
     "Custom model ID": {
@@ -6673,7 +6659,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:335"
+        "mod/custom-provider.lua:332"
       ]
     },
     "Custom models are ones you added; they join the default choice by size.": {
@@ -6689,7 +6675,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:390",
+        "mod/custom-provider.lua:387",
         "mod/init.lua:5966"
       ]
     },
@@ -6708,7 +6694,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:366"
+        "mod/custom-provider.lua:363"
       ]
     },
     "Custom: key not accepted": {
@@ -6716,7 +6702,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:367"
+        "mod/custom-provider.lua:364"
       ]
     },
     "Custom: model unavailable": {
@@ -6724,7 +6710,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:368"
+        "mod/custom-provider.lua:365"
       ]
     },
     "Custom: out of credits": {
@@ -6732,7 +6718,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:369"
+        "mod/custom-provider.lua:366"
       ]
     },
     "Custom: rate limited for now": {
@@ -6740,7 +6726,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:365"
+        "mod/custom-provider.lua:362"
       ]
     },
     "Custom: {model} at {host}": {
@@ -6917,7 +6903,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:286"
+        "mod/custom-provider.lua:284"
       ]
     },
     "Deletes the saved key.": {
@@ -6942,7 +6928,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:306"
+        "mod/custom-provider.lua:304"
       ]
     },
     "Deletes the saved model ID. The custom provider needs one to answer.": {
@@ -6950,7 +6936,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:329"
+        "mod/custom-provider.lua:326"
       ]
     },
     "Deletes the saved server address. Remote OmniVoice needs one to speak.": {
@@ -7366,7 +7352,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:351",
+        "mod/custom-provider.lua:348",
         "mod/omni-amd.lua:208",
         "mod/omni-amd.lua:213",
         "mod/remote-omni.lua:222"
@@ -7823,14 +7809,6 @@
       ],
       "references": [
         "mod/setup-check.lua:822"
-      ]
-    },
-    "Groq (free)": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/custom-provider.lua:275"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -8478,7 +8456,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:349"
+        "mod/custom-provider.lua:346"
       ]
     },
     "It answers in {ms} ms.": {
@@ -9457,7 +9435,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:328"
+        "mod/custom-provider.lua:325"
       ]
     },
     "Model browser": {
@@ -9644,7 +9622,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:312"
+        "mod/custom-provider.lua:310"
       ]
     },
     "New character": {
@@ -9668,15 +9646,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:314"
-      ]
-    },
-    "Next step: copy your Groq key from console.groq.com/keys, then press Paste API key.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/custom-provider.lua:315"
+        "mod/custom-provider.lua:312"
       ]
     },
     "No API key is saved yet. Copy your key from your provider, press Paste API key, then test again.": {
@@ -9959,9 +9929,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:283",
-        "mod/custom-provider.lua:303",
-        "mod/custom-provider.lua:325",
+        "mod/custom-provider.lua:281",
+        "mod/custom-provider.lua:301",
+        "mod/custom-provider.lua:322",
         "mod/manager-ui.lua:859",
         "mod/remote-omni.lua:191"
       ]
@@ -10130,7 +10100,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:348",
+        "mod/custom-provider.lua:345",
         "mod/remote-omni.lua:212",
         "mod/setup-check.lua:468"
       ]
@@ -10810,7 +10780,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:317"
+        "mod/custom-provider.lua:314"
       ]
     },
     "Paste address": {
@@ -10826,7 +10796,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:293"
+        "mod/custom-provider.lua:291"
       ]
     },
     "Paste model ID": {
@@ -10834,7 +10804,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:336"
+        "mod/custom-provider.lua:333"
       ]
     },
     "Pause": {
@@ -11454,9 +11424,9 @@
       ],
       "references": [
         "mod/custom-provider.lua:270",
-        "mod/custom-provider.lua:293",
-        "mod/custom-provider.lua:317",
-        "mod/custom-provider.lua:336",
+        "mod/custom-provider.lua:291",
+        "mod/custom-provider.lua:314",
+        "mod/custom-provider.lua:333",
         "mod/manager-ui.lua:1629",
         "mod/manager-ui.lua:869",
         "mod/omni-amd.lua:262",
@@ -12043,7 +12013,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:307",
+        "mod/custom-provider.lua:305",
         "mod/manager-ui.lua:863"
       ]
     },
@@ -12274,7 +12244,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:354"
+        "mod/custom-provider.lua:351"
       ]
     },
     "Server address": {
@@ -13149,7 +13119,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:357",
+        "mod/custom-provider.lua:354",
         "mod/remote-omni.lua:227"
       ]
     },
@@ -13158,7 +13128,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:356",
+        "mod/custom-provider.lua:353",
         "mod/remote-omni.lua:226"
       ]
     },
@@ -13185,7 +13155,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:346",
+        "mod/custom-provider.lua:343",
         "mod/omni-amd.lua:200",
         "mod/omni-amd.lua:215",
         "mod/remote-omni.lua:210"
@@ -13932,7 +13902,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:348"
+        "mod/custom-provider.lua:345"
       ]
     },
     "The conversation connection did not open. Check your connection, then invite again.": {
@@ -14039,7 +14009,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:344",
+        "mod/custom-provider.lua:341",
         "mod/remote-omni.lua:208"
       ]
     },
@@ -14151,7 +14121,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:378",
+        "mod/custom-provider.lua:375",
         "mod/init.lua:5849",
         "mod/phone-chat-style.lua:58",
         "mod/phone-chat.lua:25"
@@ -14163,7 +14133,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:388",
+        "mod/custom-provider.lua:385",
         "mod/init.lua:5866",
         "mod/phone-chat-style.lua:64",
         "mod/phone-chat.lua:31"
@@ -14175,7 +14145,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:380",
+        "mod/custom-provider.lua:377",
         "mod/init.lua:5853",
         "mod/phone-chat-style.lua:60",
         "mod/phone-chat.lua:27"
@@ -14186,7 +14156,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:389",
+        "mod/custom-provider.lua:386",
         "mod/init.lua:5964"
       ]
     },
@@ -14196,7 +14166,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:381",
+        "mod/custom-provider.lua:378",
         "mod/init.lua:5855",
         "mod/phone-chat-style.lua:61",
         "mod/phone-chat.lua:28"
@@ -14208,7 +14178,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:379",
+        "mod/custom-provider.lua:376",
         "mod/init.lua:5851",
         "mod/phone-chat-style.lua:59",
         "mod/phone-chat.lua:26"
@@ -14424,7 +14394,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:240",
-        "mod/custom-provider.lua:384",
+        "mod/custom-provider.lua:381",
         "mod/init.lua:5860"
       ]
     },
@@ -14434,7 +14404,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:241",
-        "mod/custom-provider.lua:385",
+        "mod/custom-provider.lua:382",
         "mod/init.lua:5862"
       ]
     },
@@ -14821,7 +14791,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:352"
+        "mod/custom-provider.lua:349"
       ]
     },
     "The recording is distorted. Record it again, a little quieter.": {
@@ -15217,7 +15187,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:287"
+        "mod/custom-provider.lua:285"
       ]
     },
     "This character has only one look in the game files, so there is no outfit to choose.": {
@@ -15402,7 +15372,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:243",
-        "mod/custom-provider.lua:387",
+        "mod/custom-provider.lua:384",
         "mod/init.lua:5864"
       ]
     },
@@ -16470,7 +16440,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:346"
+        "mod/custom-provider.lua:343"
       ]
     },
     "Waiting for the existing companion after vehicle exit.": {

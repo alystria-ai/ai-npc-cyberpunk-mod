@@ -292,7 +292,7 @@ test('the real file is written with the key in it, nowhere else, and is read bac
 const command = (id, action, issuedAt = 1_000_000) => JSON.stringify({version: 1, id, action, issuedAt});
 
 test('commands: only the known actions, a well-formed id and a recent time are accepted', () => {
-  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'preset-groq', 'clear-preset-gemini', 'clear-preset-groq']);
+  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'clear-preset-gemini']);
   for (const action of COMMANDS) assert.deepEqual(parseCustomCommand(command('s:cust:1', action), 1_000_100), {id: 's:cust:1', action});
   assert.equal(parseCustomCommand(command('s:cust:1', 'paste'), 1_000_100), null);
   assert.equal(parseCustomCommand(command('bad id', 'test'), 1_000_100), null);
@@ -364,7 +364,7 @@ test('the settings page: three pastes, each checked and saved, and the status it
 });
 
 test('the free setups: Add saves the endpoint, the model id and the key from the clipboard in one press, Remove deletes all three, and the request is the usual one', async () => {
-  assert.deepEqual(Object.keys(PRESETS), ['gemini', 'groq']);
+  assert.deepEqual(Object.keys(PRESETS), ['gemini']);
   for (const preset of Object.values(PRESETS)) {
     assert.equal(parseEndpointUrl(preset.endpoint).endpoint, preset.endpoint, 'the address is accepted as it is');
     assert.ok(parseModelId(preset.model), 'the model id is accepted');
@@ -407,24 +407,25 @@ test('the free setups: Add saves the endpoint, the model id and the key from the
   assert.equal(requests[0].body.model, 'gemini-flash-lite-latest');
   assert.equal(requests[0].body.reasoning_effort, undefined, 'Gemini refuses reasoning_effort none, and the model id does not look like a reasoning model');
   assert.equal(new Headers(requests[0].headers).get('x-title'), null, 'the attribution headers are OpenRouter only');
-  // Add again with the key still copied: the same values. Another plan is another host, and its own key from the clipboard replaces the Google one.
-  status = await c.send('preset-gemini');
-  assert.deepEqual([status.preset, status.keySaved], ['gemini', true]);
+  // Add again with another key on the clipboard: the same address and model, the new key replaces the old one.
   c.clipboard(async () => KEY);
-  status = await c.send('preset-groq');
-  assert.deepEqual([status.host, status.model, status.preset, status.keySaved, status.keyForgotten], ['api.groq.com', 'qwen/qwen3.8-27b', 'groq', true, undefined]);
-  assert.ok(!c.s.text.includes(GOOGLE), 'the Google key is not kept beside Groq\'s address');
-  assert.match(c.s.text, /endpoint=https:\/\/api\.groq\.com\/openai\/v1\n/);
+  status = await c.send('preset-gemini');
+  assert.deepEqual([status.host, status.model, status.preset, status.keySaved, status.keyForgotten], ['generativelanguage.googleapis.com', 'gemini-flash-lite-latest', 'gemini', true, undefined]);
+  assert.ok(!c.s.text.includes(GOOGLE), 'the first key is replaced');
   assert.match(c.s.text, new RegExp(`api-key=${KEY}\\n`));
-  // Remove on a plan that is not the saved one changes nothing. Remove on the saved plan deletes its endpoint, model id and key, and the file.
+  // Remove on a setup that is not the saved one changes nothing (an address of the player's own is no plan). Remove on the saved plan deletes its endpoint, model id and key, and the file.
+  c.clipboard(async () => 'https://example.com/v1');
+  await c.send('paste-url');
   status = await c.send('clear-preset-gemini');
-  assert.deepEqual([status.result.state, status.preset, status.keySaved], ['cleared', 'groq', true]);
-  status = await c.send('clear-preset-groq');
+  assert.deepEqual([status.result.state, status.preset, status.host], ['cleared', null, 'example.com'], 'a stale Remove deletes nothing');
+  c.clipboard(async () => KEY);
+  await c.send('preset-gemini');
+  status = await c.send('clear-preset-gemini');
   assert.deepEqual([status.result.field, status.result.state, status.host, status.model, status.keySaved, status.preset, status.ready], ['preset', 'cleared', null, null, false, null, false]);
   assert.equal(c.s.text, null, 'nothing left: the file is gone');
   // Changing a field by hand leaves no plan marked.
   c.clipboard(async () => KEY);
-  await c.send('preset-groq');
+  await c.send('preset-gemini');
   c.clipboard(async () => 'llama3.2');
   status = await c.send('paste-model');
   assert.equal(status.preset, null);

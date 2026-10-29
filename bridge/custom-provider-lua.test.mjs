@@ -79,8 +79,8 @@ test('nothing published yet: four rows to paste into, a Test row that waits for 
   assert(state.available == false and state.ready == false and state.host == nil and state.model == nil and state.keySaved == false
     and state.tail == nil and state.result == nil and state.test == nil and state.limit == nil and state.action == nil)
   local items = provider.rows()
-  assert(#items == 6 and items[1].id == 'custom-preset-gemini' and items[2].id == 'custom-preset-groq' and items[3].id == 'custom-url'
-    and items[4].id == 'custom-key' and items[5].id == 'custom-model' and items[6].id == 'custom-test')
+  assert(#items == 5 and items[1].id == 'custom-preset-gemini' and items[2].id == 'custom-url'
+    and items[3].id == 'custom-key' and items[4].id == 'custom-model' and items[5].id == 'custom-test')
   local rows = rowsOf(provider)
   assert(rows['custom-url'].label == 'Custom endpoint URL' and rows['custom-url'].value == 'Paste endpoint URL' and rows['custom-url'].action == 'paste-url'
     and rows['custom-url'].enabled == true and rows['custom-url'].field == 'url')
@@ -103,44 +103,40 @@ test('nothing published yet: four rows to paste into, a Test row that waits for 
   assert(provider.lastCommand() == nil)
 `));
 
-test('the two free setups come first: one press sends its command, the service says which one is saved, and a failed save is told on their rows', () => run(`${moduleFixture}
+test('the free setup comes first: one press sends its command, the service says it is saved, and a failed save is told on its row', () => run(`${moduleFixture}
   local provider = make()
   local rows = rowsOf(provider)
   assert(rows['custom-preset-gemini'].label == 'Google Gemini (free)' and rows['custom-preset-gemini'].value == 'Add' and rows['custom-preset-gemini'].action == 'preset-gemini'
     and rows['custom-preset-gemini'].enabled == true and rows['custom-preset-gemini'].field == 'preset')
-  assert(rows['custom-preset-groq'].label == 'Groq (free)' and rows['custom-preset-groq'].value == 'Add' and rows['custom-preset-groq'].action == 'preset-groq')
   -- Each help names where the free key is made, that it is copied first and Add saves it from the clipboard, and what the plan costs the player in limits.
   for _, part in ipairs({'aistudio.google.com/apikey', 'no card', 'press Add', 'saves your key from the clipboard', 'daily limit', 'not offered in every country', 'improve its products'}) do
     assert(rows['custom-preset-gemini'].help:find(part, 1, true), 'Gemini help lacks: ' .. part)
   end
-  for _, part in ipairs({'console.groq.com/keys', 'no card', 'press Add', 'saves your key from the clipboard', 'one reply a minute', 'not offered in every country'}) do
-    assert(rows['custom-preset-groq'].help:find(part, 1, true), 'Groq help lacks: ' .. part)
-  end
-  for _, id in ipairs({'custom-preset-gemini', 'custom-preset-groq'}) do
+  assert(rows['custom-preset-groq'] == nil, 'no Groq row')
+  for _, id in ipairs({'custom-preset-gemini'}) do
     assert(not rows[id].help:lower():find('recommend', 1, true) and not rows[id].label:lower():find('recommend', 1, true), id)
   end
   -- Pressing one writes its command; nothing else changes until the service answers.
   local ok, message = provider.request('preset-gemini')
   assert(ok == true and lastCommand().action == 'preset-gemini' and provider.lastCommand().action == 'preset-gemini', tostring(message))
-  assert(provider.request('preset-groq') and lastCommand().action == 'preset-groq')
+  assert(provider.request('preset-groq') == false, 'the Groq setup is gone: its command is not sent')
   assert(provider.request('preset-nothing') == false, 'an unknown setup is not sent')
   -- The service names the saved plan (only a known name counts); the row says Added and the others do not.
-  publish(base({host = 'api.groq.com', model = 'qwen/qwen3.8-27b', preset = 'groq', keySaved = false, tail = NONE}))
+  publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini', keySaved = false, tail = NONE}))
   rows = rowsOf(provider)
-  -- The saved plan's button turns into Remove and sends the clear command (not a dead "Added"); the other keeps Add.
-  assert(rows['custom-preset-groq'].value == 'Remove' and rows['custom-preset-groq'].action == 'clear-preset-groq' and rows['custom-preset-gemini'].value == 'Add'
-    and rows['custom-preset-gemini'].action == 'preset-gemini' and rows['custom-preset-groq'].label == 'Groq (free)')
-  assert(first(rows['custom-preset-groq'].help) == 'Deletes this free setup: the endpoint URL, the model ID and the API key saved with it.', rows['custom-preset-groq'].help)
-  assert(provider.request('clear-preset-groq') and lastCommand().action == 'clear-preset-groq')
+  -- The saved plan's button turns into Remove and sends the clear command (not a dead "Added").
+  assert(rows['custom-preset-gemini'].value == 'Remove' and rows['custom-preset-gemini'].action == 'clear-preset-gemini' and rows['custom-preset-gemini'].label == 'Google Gemini (free)')
+  assert(first(rows['custom-preset-gemini'].help) == 'Deletes this free setup: the endpoint URL, the model ID and the API key saved with it.', rows['custom-preset-gemini'].help)
   assert(provider.request('clear-preset-gemini') and lastCommand().action == 'clear-preset-gemini')
-  assert(provider.state().preset == 'groq')
-  for _, bad in ipairs({'other', '', 7, true, {}}) do
+  assert(provider.request('clear-preset-groq') == false, 'the Groq command is gone')
+  assert(provider.state().preset == 'gemini')
+  for _, bad in ipairs({'other', '', 7, true, {}, 'groq'}) do
     publish(base({preset = bad}))
     assert(provider.state().preset == nil, tostring(bad))
-    assert(rowsOf(provider)['custom-preset-groq'].value == 'Add')
+    assert(rowsOf(provider)['custom-preset-gemini'].value == 'Add')
   end
-  local before = (publish(base({preset = 'gemini'})) or provider.signature())
-  local after = (publish(base({preset = 'groq'})) or provider.signature())
+  local before = (publish(base({preset = NONE})) or provider.signature())
+  local after = (publish(base({preset = 'gemini'})) or provider.signature())
   assert(before ~= after, 'a new saved plan redraws the page')
   -- The answer to the latest press: saved shows nothing odd, failed puts its sentence first on the free-setup rows.
   assert(provider.request('preset-gemini'))
@@ -154,15 +150,13 @@ test('the two free setups come first: one press sends its command, the service s
   -- An answer that belongs to an older press is not shown.
   publish(base({result = {id = 'sess-1:cust:999', field = 'preset', state = 'failed'}}))
   assert(provider.state().result == nil)
-  -- Right after a plan is added with no key, the key row says the key is the next step (Google Gemini, Groq); a saved key, or no plan, shows the usual text.
+  -- Right after a plan is added with no key, the key row says the key is the next step (Google Gemini); a saved key, or no plan, shows the usual text.
   publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini', keySaved = false, tail = NONE}))
   local keyRow = rowsOf(provider)['custom-key']
   assert(first(keyRow.help) == 'Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.', keyRow.help)
   assert(keyRow.label == 'Custom API key (Not added)' and keyRow.value == 'Paste API key' and keyRow.action == 'paste-key', keyRow.label)
   assert(keyRow.help:find('read from the clipboard once', 1, true), 'the usual key help follows')
-  publish(base({host = 'api.groq.com', model = 'qwen/qwen3.8-27b', preset = 'groq', keySaved = false, tail = NONE}))
-  assert(first(rowsOf(provider)['custom-key'].help) == 'Next step: copy your Groq key from console.groq.com/keys, then press Paste API key.')
-  publish(base({host = 'api.groq.com', model = 'qwen/qwen3.8-27b', preset = 'groq'}))
+  publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini'}))
   keyRow = rowsOf(provider)['custom-key']
   assert(keyRow.value == 'Remove' and not keyRow.help:find('Next step', 1, true), 'a saved key needs no next step')
   publish(base({keySaved = false, tail = NONE}))
@@ -212,7 +206,7 @@ test('malformed state never throws and never invents a value: every field and ev
     local ok, err = pcall(provider.state); assert(ok, label .. ' state: ' .. tostring(err))
     ok, err = pcall(provider.rows); assert(ok, label .. ' rows: ' .. tostring(err))
     ok, err = pcall(provider.signature); assert(ok, label .. ' signature: ' .. tostring(err))
-    assert(#provider.rows() == 6 and type(provider.signature()) == 'string', label)
+    assert(#provider.rows() == 5 and type(provider.signature()) == 'string', label)
   end
   for round = 1, 2 do
     if round == 2 then
@@ -246,7 +240,7 @@ test('malformed state never throws and never invents a value: every field and ev
   shown = nil; clock = clock + 2; check('nothing')
   -- A reader that raises is the same as no file.
   local broken = make({readJSON = function() error('disk') end})
-  assert(broken.state().available == false and #broken.rows() == 6)
+  assert(broken.state().available == false and #broken.rows() == 5)
 `));
 
 test('a failed paste puts its reason first in the help of its own row; an answer for another row, an older command or an unknown state is not shown', () => run(`${moduleFixture}
@@ -716,8 +710,8 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custo
   for _, category in ipairs(loaded.categories) do
     if category.id == 'custom-endpoint' then for _, item in ipairs(category.settings) do pageIds[#pageIds + 1] = item.id end end
   end
-  assert(table.concat(pageIds, ',') == 'custom-preset-gemini,custom-preset-groq,custom-url,custom-key,custom-model,custom-test', table.concat(pageIds, ','))
-  for _, id in ipairs({'custom-preset-gemini', 'custom-preset-groq', 'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do
+  assert(table.concat(pageIds, ',') == 'custom-preset-gemini,custom-url,custom-key,custom-model,custom-test', table.concat(pageIds, ','))
+  for _, id in ipairs({'custom-preset-gemini', 'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do
     assert(row(id).type == 'action', id)
     assert(not (row(id).description .. row(id).label .. row(id).value):lower():find('recommend', 1, true), id)
   end
