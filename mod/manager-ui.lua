@@ -922,14 +922,25 @@ local function customVoicesRows(snapshot)
 end
 
 -- Settings > Voices > Microphone: 1 Windows default (stored as no choice), then each input the conversation service listed, by its name. A saved input that is not
--- listed (unplugged, or the list has not arrived yet) follows as "name (not connected)" so the row never shows a choice that is not the saved one.
--- Returns the labels, the stored value of each position ('' for the default) and the position of the saved choice.
+-- listed (unplugged, or the list has not arrived yet) follows as "name (not connected)" so the row never shows a choice that is not the saved one. An input whose name
+-- looks like a loopback or virtual device (the service decides, bridge/mic-match.mjs) carries " (!)" and the description explains it; it is only marked, never left out
+-- and never chosen by the mod.
+-- Returns the labels, the stored value of each position ('' for the default), the position of the saved choice, whether any listed input is marked and whether the
+-- saved choice is.
+local MIC_MARK = ' (!)'
+local function withMarker(name, marker)
+    if optionUnits(name) + optionUnits(marker) <= OPTION_BUDGET then return name .. marker end
+    return cutToUnits(name, OPTION_BUDGET - optionUnits(marker)) .. marker
+end
 local function microphoneChoices(settings)
     local labels, values, saved, seen = {ui.t('Windows default')}, {''}, settings.micDevice, {}
     local listed = manager.microphoneInputs()
+    local anyMarked, savedMarked = false, false
     for _, name in ipairs(listed.inputs) do
         seen[name] = true
-        labels[#labels + 1], values[#values + 1] = name, name
+        local marked = listed.loopback and listed.loopback[name] == true
+        if marked then anyMarked = true; if name == saved then savedMarked = true end end
+        labels[#labels + 1], values[#values + 1] = marked and withMarker(name, MIC_MARK) or name, name
     end
     if saved and not seen[saved] then
         -- The name is cut, not the marker: a long device name would otherwise push "(not connected)" out of the row. Said only once the service has
@@ -940,7 +951,7 @@ local function microphoneChoices(settings)
     end
     local index = 1
     for position, value in ipairs(values) do if value == (saved or '') then index = position end end
-    return labels, values, index
+    return labels, values, index, anyMarked, savedMarked
 end
 
 -- Settings > Voices > OmniVoice for AMD: the setup and remove rows (their texts come from mod/omni-amd.lua) and the MIOpen choice, a saved setting like any other.
@@ -2318,7 +2329,7 @@ local function schema()
         local voiceRange = manager.voiceVolumeRange()
         -- The microphone list is asked for when this page is built (at most once in 15 s; the answer redraws the page): never per frame, never per turn.
         pcall(manager.requestMicrophoneInputs)
-        local micLabels, _, micIndex = microphoneChoices(snapshot.settings)
+        local micLabels, _, micIndex, micAnyMarked, micSavedMarked = microphoneChoices(snapshot.settings)
         -- Voice language: English (the default), Automatic, then the mod's other languages, in the bridge's order (manager.replyLanguageChoices).
         local replyCodes, replyLabels, replyIndex = manager.replyLanguageChoices(), {}, 1
         for index, code in ipairs(replyCodes) do
@@ -2373,10 +2384,13 @@ local function schema()
             setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
                 'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
-            -- The input device for every way of talking (key, Voice activation, controller). The list comes from the voice browser's capture page.
+            -- The input device for every way of talking (key, Voice activation). The list comes from the voice browser's capture page. Inputs that look like a loopback
+            -- or virtual device are marked and explained below the usual text (only when one is listed or chosen), and the chosen one gets a plain warning.
             setting('micDevice', 'Microphone', 'select', micIndex, 1,
-                'The input the mod listens to for the talk keys and Voice activation.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.',
-                micLabels, {elements = true}),
+                ui.t('The input the mod listens to for the talk keys and Voice activation.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.')
+                    .. (micAnyMarked and '\n\n' .. ui.t('An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself.') or '')
+                    .. (micSavedMarked and '\n\n' .. ui.t('The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone.') or ''),
+                micLabels, {elements = true, description = true}),
             -- Off by default: talk with no key (docs/VOICE_INPUT.md). The microphone is closed while it is off.
             setting('voiceActivation', 'Voice activation', 'bool', snapshot.settings.voiceActivation == true, false,
                 'Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.'),

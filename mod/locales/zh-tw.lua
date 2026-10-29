@@ -1734,4 +1734,7 @@ return {
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "按下按鍵時按住 Shift、Ctrl 或 Alt，可以設定像 Shift+F5 這樣的組合鍵。組合鍵只在恰好按住這些鍵時才會觸發，一般按鍵在按住其中任何一個時不會觸發。遊戲中 Shift 用於衝刺，Ctrl 用於閃避，Alt 用於開啟武器輪盤，所以 V 也會做出這些動作。",
     ["Disk space"] = "磁碟空間",
     ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "你的 {drive} 磁碟快滿了（剩餘 {free} GB）。請騰出空間，讓模組能儲存日誌和記憶。",
+    ["An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself."] = "標示 (!) 的輸入看起來像是迴路或虛擬輸入，例如 Stereo Mix、CABLE Output 或混音器的輸出。它可能會傳入其他應用程式的聲音，例如通話另一端的聲音，所以模組從不自行選擇這類輸入。",
+    ["The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone."] = "你選擇的輸入看起來不只傳入你的聲音，還會傳入電腦的聲音。如果角色聽得到你的通話，請選擇你真正的麥克風。",
+    ["{name} looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone."] = "{name}，看起來不只傳入你的聲音，還會傳入通話等電腦聲音。請在 設定 > 語音 > 麥克風 中選擇你真正的麥克風。",
 }

@@ -718,6 +718,8 @@ local function bridgeLines(out)
         local label, name = ui.t('Microphone'), text(microphone.device, 100) or '?'
         if microphone.code == 'missing' then
             out[#out + 1] = line('microphone', label, 'note', ui.t('The microphone you chose in Settings ({chosen}) is not connected, so the Windows default input is used: {name}.', {chosen = text(microphone.chosen, 100) or '?', name = name}))
+        elseif microphone.code == 'loopback' then
+            out[#out + 1] = line('microphone', label, 'note', ui.t('{name} looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone.', {name = name}))
         elseif microphone.code == 'chosen' then
             out[#out + 1] = line('microphone', label, 'ok', ui.t('{name}, chosen in Settings > Voices.', {name = name}))
         elseif microphone.code == 'default' then

@@ -1579,19 +1579,23 @@ end
 -- Settings > Voices > Microphone: the audio inputs the conversation service lists (runtime/microphone-devices.json, bridge/mic-devices-control.mjs). The page asks
 -- for the list when it is built (requestMicrophoneInputs, at most once in 15 s) and reads the answer at most every 1.5 s; nothing here runs per frame.
 local MIC_LIST, MIC_ASK = 'runtime/microphone-devices.json', 'runtime/microphone-devices-command.json'
-local micInputs, micReadAt, micAskedAt, micAsks = {inputs = {}, state = 'idle'}, nil, nil, 0
+local micInputs, micReadAt, micAskedAt, micAsks = {inputs = {}, loopback = {}, state = 'idle'}, nil, nil, 0
 function M.microphoneInputs(force)
     local now = os.clock()
     if not force and micReadAt and now >= micReadAt and now - micReadAt < 1.5 then return micInputs end
     micReadAt = now
     local value = readJSON(MIC_LIST)
-    local list, seen = {}, {}
+    local list, seen, loopback = {}, {}, {}
     if value and value.version == 1 and type(value.inputs) == 'table' then
         for _, label in ipairs(value.inputs) do
             if validMicLabel(label) and not seen[label] and #list < 32 then seen[label] = true; list[#list + 1] = label end
         end
+        -- The inputs whose name looks like a loopback or virtual device (bridge/mic-match.mjs decides): the row marks them, nothing picks or refuses by it.
+        if type(value.loopback) == 'table' then
+            for _, label in ipairs(value.loopback) do if seen[label] then loopback[label] = true end end
+        end
     end
-    micInputs = {inputs = list, state = value and value.state == 'failed' and 'failed' or value and value.state == 'ok' and 'ok' or 'idle'}
+    micInputs = {inputs = list, loopback = loopback, state = value and value.state == 'failed' and 'failed' or value and value.state == 'ok' and 'ok' or 'idle'}
     return micInputs
 end
 function M.requestMicrophoneInputs()

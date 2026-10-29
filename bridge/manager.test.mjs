@@ -3167,6 +3167,39 @@ test('Microphone is a Voices select: Windows default first, then the listed inpu
   `);
 });
 
+test('Microphone: inputs the service flags as loopbacks carry (!) and the description explains it, the chosen one is warned about, nothing is left out or picked by the mod', () => {
+  run(`${nsuiFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    registered.loadMod('manager')
+    local plain = assert(row('micDevice'))
+    assert(not plain.description:find('(!)', 1, true), 'no flagged input listed: the usual text only')
+    jsonFixtures['mics-lb'] = {version = 1, state = 'ok', inputs = {'Microphone (Realtek(R) Audio)', 'Stereo Mix (Realtek(R) Audio)', 'CABLE Output (VB-Audio Virtual Cable)'},
+      loopback = {'Stereo Mix (Realtek(R) Audio)', 'CABLE Output (VB-Audio Virtual Cable)', 'Not Listed'}}
+    files['runtime/microphone-devices.json'] = 'mics-lb'; clock = clock + 2
+    registered.loadMod('manager')
+    local item = assert(row('micDevice'))
+    assert(#item.elements == 4, 'every input stays listed: ' .. table.concat(item.elements, '|'))
+    assert(item.elements[2] == 'Microphone (Realtek(R) Audio)' and not item.elements[2]:find('(!)', 1, true), 'a real microphone is not marked')
+    assert(item.elements[3]:find('(!)', 1, true) and item.elements[4]:find('(!)', 1, true), table.concat(item.elements, '|'))
+    assert(item.description:find('An input marked (!) looks like a loopback', 1, true), 'the description explains the mark')
+    assert(not item.description:find('The input you chose looks like', 1, true), 'nothing flagged is chosen yet')
+    assert(item.value == 1, 'the mod keeps the Windows default: it never picks a flagged input')
+    -- Choosing a flagged one saves its real name (not the marked label) and the description warns about the choice.
+    assert(registered.applyBatch('manager', {{id = 'micDevice', value = 3}}).ok)
+    assert(manager.snapshot(player).settings.micDevice == 'Stereo Mix (Realtek(R) Audio)')
+    registered.loadMod('manager')
+    item = assert(row('micDevice'))
+    assert(item.value == 3 and item.description:find('The input you chose looks like it carries PC sound', 1, true), item.description)
+    -- A long name is cut before its mark, never the other way round.
+    jsonFixtures['mics-long'] = {version = 1, state = 'ok', inputs = {'Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO) Extended Name'}, loopback = {'Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO) Extended Name'}}
+    files['runtime/microphone-devices.json'] = 'mics-long'; clock = clock + 2
+    registered.loadMod('manager')
+    item = assert(row('micDevice'))
+    assert(item.elements[2]:sub(-4) == ' (!)', item.elements[2])
+  `);
+});
+
 test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and milliseconds saved for the bridge', () => {
   run(`${nsuiFixture}
     assert(manager.snapshot(player).settings.audioDelay == 'auto')

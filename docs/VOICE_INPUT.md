@@ -193,7 +193,22 @@ the local recogniser). They all open the device in one place, the capture page o
   game says it once per session (`mic-device-gone`, mod/notices.lua). The row keeps the saved name and marks it "(not connected)".
 - **Report**: the setup check has a Microphone row (`microphone`: `default`, `chosen`, `missing`) and the report's `bridge.microphone` and setup lines carry the label of the input in
   use (`device=`), never an id. The log line of each open names the input and whether it was chosen.
-- **Not covered**: the Convai page's own microphone path (the fallback when the relay cannot open) uses the browser default; it is only reached when the relay itself fails.
+- **The Convai page's own microphone** (the fallback when the relay cannot open) gets the same choice: `RealtimeHost` hands the label to `beginVoice` (`micDevice`), and the page rewrites the SDK's
+  `getUserMedia` request while it enables audio (`chosenInputConstraints` in `bridge/realtime-client.mjs`): the input matched by label as an exact device (`bridge/mic-match.mjs`
+  `matchInput`, the one function the capture page embeds too), a retry on the default if the browser refuses it. Without a choice the SDK asks exactly as before.
+- **Echo cancellation, noise suppression and gain control are on for every open** (the capture page's constraints, the fallback's rewritten request, the SDK's own defaults). The log
+  line of each open prints what the browser applied (`echoCancellation=true ...`) and says so when it is NOT active. They change nothing measurable in the time to the first frame
+  (see the table above), so there is no reason to turn them off. They do not remove a call's far side, though: the browser can only cancel sound the hidden browser itself plays (the
+  mod's own replies). Sound that reaches the chosen input from another program is not an echo to it.
+- **Why the far side of a call can be heard (player report, 2026-10-29).** The mod does not capture system audio. It opens one input device. With no choice made that is the Windows
+  default input, and when the default is a loopback or virtual input (Stereo Mix, What U Hear, CABLE Output, a VoiceMeeter or GoXLR mix, Wave Link's stream) Windows hands the browser
+  whatever that device mixes, including a call's other side. The Volume Mixer or a mixer app can also route the apps' sound into the default input. Choosing the real microphone in
+  Settings > Voices > Microphone fixes it. The same applies to the "several sources" a player sees in their audio software: the hidden browser is the only program that records, and
+  its capture page and the Convai page (fallback only) are two pages of one browser process.
+- **Loopback inputs are marked, never picked** (`looksLikeLoopback` in `bridge/mic-match.mjs`, a name test, "likely" only). The list file carries `loopback: [label]` beside `inputs`. The row
+  shows " (!)" after such a name and explains it in its description (and warns plainly when the saved choice is one). The setup check row says `loopback` (a note, not a problem) for the
+  input in use. A recording that opened a loopback-looking Windows default carries the note `mic-loopback` and the game says so once a session (`mic-loopback`). Nothing is left out
+  of the list and nothing is switched automatically.
 
 ## Performance
 
