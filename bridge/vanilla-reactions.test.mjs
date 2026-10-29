@@ -457,8 +457,9 @@ test('the bark window is opened by the talk key, the sent line and every AI line
 test('Engagement.reds drops only the four ambient contexts, only inside the window and the radius, never in combat', () => {
   const reds = readFileSync(new URL('../r6/scripts/CyberpunkConvai/Engagement.reds', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const wrap = reds.slice(reds.indexOf('@wrapMethod(GameObject)'));
-  assert.match(wrap, /^@wrapMethod\(GameObject\)\npublic static func PlayVoiceOver\(self: ref<GameObject>, voName: CName, debugInitialContext: CName, opt delay: Float, opt answeringEntityId: EntityID, opt ignoreFrustumCheck: Bool\) -> Void \{/);
-  assert.match(wrap, /if ConvaiBarkGate\.Ambient\(voName\) && ConvaiBarkGate\.Muted\(self\) \{ return; \};\n\s+wrappedMethod\(self, voName, debugInitialContext, delay, answeringEntityId, ignoreFrustumCheck\);/);
+  // The game's own signature, DelayID return included (a wrapper declared -> Void broke other mods that wrap it: a8aae256, bridge/redscript-compat.test.mjs).
+  assert.match(wrap, /^@wrapMethod\(GameObject\)\npublic final static func PlayVoiceOver\(self: ref<GameObject>, voName: CName, debugInitialContext: CName, opt delay: Float, opt answeringEntityID: EntityID, opt canPlayInVehicle: Bool\) -> DelayID \{/);
+  assert.match(wrap, /if ConvaiBarkGate\.Ambient\(voName\) && ConvaiBarkGate\.Muted\(self\) \{\n\s+let dropped: DelayID;\n\s+return dropped;\n\s+\};\n\s+return wrappedMethod\(self, voName, debugInitialContext, delay, answeringEntityID, canPlayInVehicle\);/);
   const ambient = reds.slice(reds.indexOf('public static func Ambient'), reds.indexOf('public static func Muted'));
   const names = [...ambient.matchAll(/n"([a-z_]+)"/g)].map(m => m[1]).sort();
   assert.deepEqual(names, ['bump', 'fear_foll', 'greeting', 'stlh_curious_grunt']);
