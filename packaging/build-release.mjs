@@ -75,7 +75,8 @@ import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {packFiles, packTitle} from './lib/pack-names.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, forGame, gameOverlay} from './lib/game-variants.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
-import {nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
+import {PYTHON_SKIP, nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
+import {assertPythonShipped, assertStdlibUnzipped} from './lib/python-stdlib.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
 import {BASE_MARKER, forbiddenEntry} from './lib/package-guards.mjs';
@@ -333,7 +334,10 @@ async function installPython(spec, lockFile, target, pthExtra, {unzipStdlib = fa
   await extractZip(zip, target);
   const stdlibZip = 'python' + spec.version.split('.').slice(0, 2).join('') + '.zip';
   if (unzipStdlib) {
+    // Every file of the zip must be on the disk afterwards: a Lib that lost a folder (report 0b8367fd0ebd2f2f: no Lib/urllib on a player's PC) is a Runtime with no voice.
+    const zipNames = (await listZip(resolve(target, stdlibZip))).map(entry => entry.name);
     await extractZip(resolve(target, stdlibZip), resolve(target, 'Lib'));
+    assertStdlibUnzipped(zipNames, await walk(resolve(target, 'Lib')), {zip: stdlibZip});
     await rm(resolve(target, stdlibZip));
   }
   const sitePackages = resolve(target, 'Lib/site-packages');
@@ -347,13 +351,6 @@ async function installPython(spec, lockFile, target, pthExtra, {unzipStdlib = fa
   const pth = [unzipStdlib ? 'Lib' : stdlibZip, '.','Lib\\site-packages', ...pthExtra, 'import site', ''];
   await writeFile(resolve(target, spec.pth), pth.join('\r\n'));
 }
-
-// Files a Python worker never loads at run time: C/C++ headers, link libraries, CMake files, caches.
-// A .pyc outside site-packages is the unzipped standard library itself (sourceless, see installPython), so it is kept.
-const PYTHON_SKIP = rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel) || /^Lib\/site-packages\/.*\.pyc$/.test(rel)
-  || /^Lib\/site-packages\/torch\/(?:include|share)\//.test(rel) || /^Lib\/site-packages\/torch\/lib\/[^/]+\.lib$/i.test(rel)
-  // Build tools inside wheels: setuptools' script-launcher stubs and PyTorch's protobuf compiler.
-  || /^Lib\/site-packages\/setuptools\/(?:cli|gui)[^/]*\.exe$/i.test(rel) || /^Lib\/site-packages\/torch\/bin\/[^/]+\.exe$/i.test(rel);
 
 async function scriptsPackage(source, config) {
   const pkg = new Package('scripts');
@@ -532,6 +529,8 @@ async function runtimePackage(source, config, models, auth) {
   // Besides PYTHON_SKIP, the Runtime leaves out what nothing loads (packaging/lib/runtime-prune.mjs): the sherpa-onnx wheel's second DLL copy, torch/bin's
   // duplicates and the packages' own tests folders.
   await pkg.tree(`${app}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || pythonPruned(rel)});
+  // What the package now holds of the Python is exactly what a player gets: it must have every file the voice workers import (the skip and prune rules took nothing they load).
+  assertPythonShipped([...pkg.entries.keys()].filter(name => name.startsWith(`${app}/python/`)).map(name => name.slice(`${app}/python/`.length)), {what: 'the Runtime'});
   notices.push(`Python ${tool.python.version} embeddable distribution - PSF License: app/python/LICENSE.txt - ${tool.python.url}`);
   notices.push(`Python packages (${basename(tool.python.lock)}) - each package's licence is in its *.dist-info folder under app/python/Lib/site-packages`);
 
