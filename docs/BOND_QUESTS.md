@@ -1919,7 +1919,7 @@ All gated by the standard Jackie gate (SG). Channel as listed. Cooldown is per t
 
 | id | Trigger | Channel | Opening line(s) | Cooldown | What the LLM knows when V answers |
 |---|---|---|---|---|---|
-| JWR.01 | Bond level-up 4 to 8 | text | "Hey, choom. Level up! That's friendship, hermano. Real. Let's celebrate." | 1 per level | the new level title, he is excited, he suggests a hangout |
+| JWR.01 | Bond level-up 2 to 6 | text | "Hey, choom. Level up! That's friendship, hermano. Real. Let's celebrate." | 1 per level | the new level title, he is excited, he suggests a hangout |
 | JWR.02 | 12:00 to 14:00 and V has not eaten (a `check` on the hour only) | text | "Noon and I'm starving. Where are you? Let's eat. I'm buying. ... Okay, you're buying." | 24 game hours | the hour, food as love, he knows no place by name except Little China |
 | JWR.03 | After `q003_maelstrom` (The Pickup) | holocall | "That job. The Maelstrom. Hermano, I've seen that crowd. Be careful, yeah?" | once | The Pickup result, his distrust of the Maelstrom, the Valentino code |
 | JWR.04 | Evening 19:00 to 22:00 | text | "Misty's making tea. Come by. Bring nothing. Or bring tacos." | 36 game hours | Misty's shop in Little China, Viktor's clinic behind it, his plans |
@@ -1931,7 +1931,7 @@ All gated by the standard Jackie gate (SG). Channel as listed. Cooldown is per t
 
 Every Jackie hangout also carries the SG gate and an `unfinished` end: if The Heist happens during one, it simply ends and its memory line is "You and Jackie were doing something light, and it ended there."
 
-#### JWH1. Slowest Wins (Northside back roads), bond 4
+#### JWH1. Slowest Wins (Northside back roads), bond 2
 
 * **Invitation** (text): "Race. But backwards. Last one to the finish wins. No stopping, no putting a foot down. I'll beat you at going slow."
 * **Activity**: **reversed `race`**. Jackie rides his bike (`her-car` copy) and V drives any vehicle to a finish `place` on a Northside waterfront lot. The slowest to arrive wins, but a slow watch (1 Hz, only while this runs) fails anyone who stops moving for 5 seconds.
@@ -1949,7 +1949,7 @@ Every Jackie hangout also carries the SG gate and an `unfinished` end: if The He
 * **Image**: none.
 * **Build**: `race` (reversed), `her-car` (his bike), a slow watch, `check` (hour).
 
-#### JWH2. Gone Fishing (Arasaka Waterfront, a pier), bond 4
+#### JWH2. Gone Fishing (Arasaka Waterfront, a pier), bond 2
 
 * **Invitation** (text): "Pier. Bring patience. I brought a line and a bad attitude."
 * **Activity**: **timed presence, `together` 20 game minutes on the pier**, with a `check` of the hour and weather. The "catch" is a data roll: dawn and dusk give better odds. Results are small gags (a boot, a shard, a rusted can, a real fish at best). Items are narrative only, with an `image` for rare ones.
@@ -1967,7 +1967,7 @@ Every Jackie hangout also carries the SG gate and an `unfinished` end: if The He
 * **Image**: 1, `gone-fishing.png`, V's own shot: two lines over a pier rail at dusk, a lantern, cargo cranes far off.
 * **Build**: `together`, `check` (hour, weather), `cast`, `image`.
 
-#### JWH3. Salsa for Beginners (Kabuki, a corner club, verify), bond 5
+#### JWH3. Salsa for Beginners (Kabuki, a corner club, verify), bond 3
 
 * **Invitation** (text): "Dance lesson. Tonight. You're terrible, I'm free. Kabuki, ten."
 * **Activity**: **dance lesson, `workspot` and `together`**. Jackie dances (`jackie_hips`, or a dance workspot "(verify)") at a club `place`. He names three moves over 6 game minutes. V says each back as a tag (`step`, `turn`, `dip`). A crowd (`cast`, 4) forms and claps if V keeps up.
@@ -1985,7 +1985,7 @@ Every Jackie hangout also carries the SG gate and an `unfinished` end: if The He
 * **Image**: none.
 * **Build**: `workspot` (dance, `verify`), `together`, `cast`, `gestures`.
 
-#### JWH4. Grease Monkeys (Kabuki, a back-alley garage, verify), bond 6
+#### JWH4. Grease Monkeys (Kabuki, a back-alley garage, verify), bond 4
 
 * **Invitation** (text): "My bike is coughing. Come hold the light and help me listen. You'll learn something."
 * **Activity**: **diagnose by ear**. Jackie works on the bike (an idle workspot, "fixing the bike"). V stays within 2 m for 10 game minutes. He revs it three times. After each, V names a cause (tags `fuel`, `plug`, `air`). A data roll decides the real one. A right guess earns a thumbs up.
@@ -2003,7 +2003,7 @@ Every Jackie hangout also carries the SG gate and an `unfinished` end: if The He
 * **Image**: 1, `grease-monkeys.png`, V's own shot: a bike on a lift, a work lamp, a hand holding a spark plug up to the light.
 * **Build**: `together` (2 m), a repair `workspot` (verify), tag picks, `image`.
 
-#### JWH5. Constellations of Northside (Northside, a rooftop), bond 7
+#### JWH5. Constellations of Northside (Northside, a rooftop), bond 5
 
 * **Invitation** (text): "Rooftop. Northside. Bring a jacket. I'm naming stars."
 * **Activity**: **name constellations**. `seat` on a rooftop, `together` 15 game minutes, `check` of the weather and the hour. Jackie invents three constellations (The Big Taco, The Wrench, Mama's Pot). V invents one. If the sky is smoggy, he does "smog shapes" instead.
@@ -4159,11 +4159,11 @@ twist and talk gaps, repeatable with variations, and none duplicating a quest.
 | SHH3 | Johnny | Wardrobe Veto | 5 | City Center, the shopping levels near Corpo Plaza, verify |
 | SHH4 | Johnny | What Do I Know About You | 6 | Heywood, Wellsprings bar, verify |
 | SHH5 | Johnny | Shakedown | 7 | Heywood, a street cart in Vista del Rey, verify |
-| JWH1 | Jackie | Slowest Wins | 4 | Northside back roads |
-| JWH2 | Jackie | Gone Fishing | 4 | Arasaka Waterfront, a pier |
-| JWH3 | Jackie | Salsa for Beginners | 5 | Kabuki, a corner club, verify |
-| JWH4 | Jackie | Grease Monkeys | 6 | Kabuki, a back-alley garage, verify |
-| JWH5 | Jackie | Constellations of Northside | 7 | Northside, a rooftop |
+| JWH1 | Jackie | Slowest Wins | 2 | Northside back roads |
+| JWH2 | Jackie | Gone Fishing | 2 | Arasaka Waterfront, a pier |
+| JWH3 | Jackie | Salsa for Beginners | 3 | Kabuki, a corner club, verify |
+| JWH4 | Jackie | Grease Monkeys | 4 | Kabuki, a back-alley garage, verify |
+| JWH5 | Jackie | Constellations of Northside | 5 | Northside, a rooftop |
 | RH1 | Rogue | Spot the Plant | 3 | Charter Hill, a cafe terrace, verify |
 | RH2 | Rogue | Table for Two | 4 | City Center Downtown, a busy restaurant, verify |
 | RH3 | Rogue | Pretty Things | 5 | Charter Hill, a gallery, verify |
