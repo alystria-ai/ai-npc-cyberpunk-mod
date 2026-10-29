@@ -43,10 +43,10 @@ import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
 import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
-import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
+import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, engineMissingForOwnModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies, usableModels} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
-  'not-installed': 'the Local AI pack is not installed',
+  'not-installed': 'no Local AI model is installed',
   'low-memory': 'not enough free graphics memory',
   'mature-off': 'only Mature models are installed and Mature content is off',
   'no-gpu': 'no discrete graphics card was found',
@@ -59,6 +59,8 @@ const REASON_TEXT = Object.freeze({
 export const TOO_SMALL = 'too-small';
 /** The `detail` of a 'start-failed' refusal: the part of the model that runs on the processor (and its cache) does not fit the free system memory. */
 export const LOW_RAM = 'low-ram';
+/** The `detail` of a 'not-installed' refusal when the player has a model file of their own but the Runtime has no engine (llama-server) to run it: the Runtime is incomplete or older than 0.2.7. */
+export const NO_ENGINE = 'no-engine';
 /** The `detail` of a 'start-failed' for a server the player runs, by what its first look found (bridge/local-llm-server.mjs #lookAtServer): it does not answer, refuses the key, or the address is not an OpenAI-style one. */
 export const SERVER_DETAILS = Object.freeze({unreachable: 'server-unreachable', blocked: 'server-blocked', 'key-refused': 'server-key-refused', 'bad-address': 'server-bad-address'});
 /** The words for a server the player runs when something on the PC refuses our connection to it (connect failed with EACCES or EPERM: a firewall, an antivirus web shield, a security program). The game shows
@@ -95,7 +97,7 @@ export class LocalAiUnavailable extends Error {
 // Why Local AI cannot be used, in one plain English phrase the game shows after its own sentence (docs/NOTIFICATIONS.md, local-unavailable): short,
 // printable ASCII, no path and no key. `detail` is the start's own word ('exited', 'timeout', ...), when it has one.
 const PLAYER_REASON = Object.freeze({
-  'not-installed': 'the Local AI pack is not installed',
+  'not-installed': 'no Local AI model is installed: add the Local AI pack or a model of your own',
   'low-memory': 'there is not enough free graphics memory',
   'mature-off': 'only Mature models are installed and Mature content is off',
   'no-gpu': 'no discrete graphics card was found',
@@ -107,6 +109,7 @@ export function unavailableDetail(reason, detail) {
   if (reason === 'low-memory' && detail === TOO_SMALL) return 'this graphics card is too small for the model: choose a smaller model in Settings, or use the Custom provider';
   if (reason === 'start-failed' && detail === LOW_RAM) return 'not enough free system memory to run this model on the processor: close programs, or choose a smaller model or the Custom provider';
   if (reason === 'start-failed' && SERVER_DETAIL_TEXT[detail]) return SERVER_DETAIL_TEXT[detail];
+  if (reason === 'not-installed' && detail === NO_ENGINE) return 'your own model needs the Local AI engine of the Runtime and it is missing: update or reinstall the Runtime';
   // The same advice as the Help rows (mod/setup-check.lua): restarting changes nothing until the player chooses a cloud provider.
   if (reason === 'start-failed' && detail === BLOCKED) return 'Windows (Smart App Control or an Application Control policy) blocks a file of the model server, so Local AI cannot run: use a cloud provider';
   const text = PLAYER_REASON[reason];
@@ -802,7 +805,7 @@ export class LocalLlmServer extends EventEmitter {
           // through the failure itself (a local notice: smaller model or Custom provider); any other lack of room is the step-down's own event, as before.
           const tooSmall = error.detail === TOO_SMALL || error.detail === LOW_RAM;
           if (this.#stepFrom) { this.#stepFrom = null; if (!tooSmall) this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
-          this.#fail(error.reason, tooSmall || error.detail === BLOCKED || SERVER_DETAIL_TEXT[error.detail] ? error.detail : null);
+          this.#fail(error.reason, tooSmall || error.detail === BLOCKED || error.detail === NO_ENGINE || SERVER_DETAIL_TEXT[error.detail] ? error.detail : null);
         }
         throw error;
       });
@@ -1000,16 +1003,18 @@ export class LocalLlmServer extends EventEmitter {
       + (choice.model.uncensored ? ' (Mature content never uses a censored model)' : ''));
   }
 
-  // The models to choose from now. Without an installed pack there is no llama-server of ours, so only the servers the player runs can answer.
+  // The models to choose from now. Without an installed pack only what needs no pack can answer: the servers the player runs, and the player's own model files when the Runtime's
+  // engine is there to run them (usableModels). `ownEngineMissing`: the player has a model file of their own and there is no engine to run it.
   // A custom model that failed to start (until its file changes or reset()) is marked broken.
   #selected(pack) {
     let picked = null;
     try { picked = typeof this.selection === 'function' ? this.selection() : null; } catch { /* a broken hook means no choice */ }
     let models = listLocalModels({pack, matureModels: picked?.matureModels, customModels: picked?.customModels});
-    if (!pack?.installed) models = externalModels(models);
+    const ownEngineMissing = engineMissingForOwnModel({pack, customModels: picked?.customModels});
+    models = usableModels(models, pack);
     for (const model of models) if (model.custom && this.#broken.get(model.id) === this.#sizeKey(model)) model.broken = true;
     for (const model of models) if (this.#stalled.has(model.id)) model.stalled = true;
-    return {models, pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true};
+    return {models, pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true, ownEngineMissing};
   }
 
   // Is the choice a server the player runs? Decided without the graphics card (such a server uses none of ours): a pinned server, or one
@@ -1104,12 +1109,20 @@ export class LocalLlmServer extends EventEmitter {
     const pack = this.pack;
     const selected = this.#selected(pack);
     const early = this.#externalChoice(selected);
-    // No pack and no server of the player's to use: not installed. A server that was tried and failed is that server's failure; one marked uncensored is
-    // not the default while Mature content is off (it runs when it is chosen in the row, or once Mature content is on: clearLocalFailure('mature-off')).
-    if (!early && !pack?.installed) {
-      if (!selected.models.length) throw new LocalAiUnavailable('not-installed');
-      throw selected.models.some(model => model.broken) ? new LocalAiUnavailable('start-failed', this.#serverWhy ?? SERVER_DETAILS.unreachable)
-        : new LocalAiUnavailable('mature-off', 'the server you added is marked uncensored: choose it in the Local AI model row, or turn Mature content on');
+    // No pack, no model file of the player's own that can start and no server of theirs to use: not installed. The player's own model files count (2026-10-29): the Runtime's engine runs them with
+    // no pack. A server that was tried and failed is that server's failure; one marked uncensored is not the default while Mature content is off (it runs when it is chosen in the row, or once
+    // Mature content is on: clearLocalFailure('mature-off')).
+    // An uncensored file of theirs is not the default while Mature content is off (it runs when it is chosen in the row, or once Mature content is on), like an uncensored server.
+    const ownFiles = selected.models.filter(model => model.external !== true && model.broken !== true && (model.id === selected.pin || selected.matureOn || model.uncensored !== true));
+    if (!early && !pack?.installed && !ownFiles.length) {
+      if (!selected.models.length) {
+        if (selected.ownEngineMissing) this.log('[local] your own model cannot run: the Runtime has no Local AI engine (llama-server in app/llama-cpp is missing, or the Runtime is older than 0.2.7): update or reinstall the Runtime');
+        else this.log('[local] no Local AI model is installed: no Local AI pack, no model file of your own and no server of yours is listed');
+        throw new LocalAiUnavailable('not-installed', selected.ownEngineMissing ? NO_ENGINE : undefined);
+      }
+      const brokenServer = selected.models.some(model => model.broken && model.external === true);
+      if (selected.models.some(model => model.broken)) throw new LocalAiUnavailable('start-failed', brokenServer ? this.#serverWhy ?? SERVER_DETAILS.unreachable : undefined);
+      throw new LocalAiUnavailable('mature-off', 'the model you added is marked uncensored: choose it in the Local AI model row, or turn Mature content on');
     }
     this.#setState('starting');
     const failedPin = this.#failedPin; this.#failedPin = null;

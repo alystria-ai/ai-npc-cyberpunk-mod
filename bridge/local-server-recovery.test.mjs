@@ -107,7 +107,7 @@ test('unavailableDetail says why Local AI cannot be used, in a few plain words',
   assert.equal(unavailableDetail('start-failed', 'exited'), 'the model server did not start (exited)');
   assert.equal(unavailableDetail('start-failed', 'could not list the graphics devices'), 'the model server did not start', 'only a one-word code is added');
   assert.equal(unavailableDetail('no-gpu'), 'no discrete graphics card was found');
-  assert.equal(unavailableDetail('not-installed', 'no model'), 'the Local AI pack is not installed');
+  assert.equal(unavailableDetail('not-installed', 'no model'), 'no Local AI model is installed: add the Local AI pack or a model of your own');
   assert.equal(unavailableDetail('stopped'), undefined);
   assert.equal(unavailableDetail(undefined), undefined);
   for (const reason of ['not-installed', 'low-memory', 'mature-off', 'no-gpu', 'start-failed', 'crashed']) {

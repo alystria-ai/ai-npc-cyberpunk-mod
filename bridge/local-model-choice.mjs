@@ -121,6 +121,29 @@ export function listLocalModels({pack, matureModels = [], customModels = []} = {
 /** The models that are servers the player runs. */
 export const externalModels = models => (Array.isArray(models) ? models : []).filter(model => model?.external === true);
 
+/**
+ * The models Local AI may start now. With an installed pack (a Local AI pack with a chat model, or a Mature pack alone) every listed model. Without one, only what needs no pack: a server the
+ * player runs, and a GGUF file of the player's own (`custom:<name>`) when the Runtime's engine (`pack.server`, app/llama-cpp) is there to run it. 2026-10-29: a player with no pack and a model
+ * of their own got 'not-installed' (error report: localModel custom:gemma-4-12b-it-qat-ud-q4_k_xl, localAi not-installed) because `installed` means "an engine AND a pack chat model".
+ */
+export function usableModels(models, pack) {
+  const list = Array.isArray(models) ? models : [];
+  if (pack?.installed) return list;
+  return list.filter(model => model?.external === true || (model?.custom === true && Boolean(model.file) && Boolean(pack?.server)));
+}
+
+/** The player's own GGUF files in a list of models (not servers): the models that need the Runtime's engine and no pack. */
+export const ownFileModels = models => (Array.isArray(models) ? models : []).filter(model => model?.custom === true && model.external !== true && Boolean(model.file));
+
+/**
+ * Can Local AI answer at all? An installed pack, a server the player runs, or a file of the player's own with the Runtime's engine to run it. `customModels` are the `models` of the custom
+ * scan (bridge/custom-models.mjs). One answer for every gate: the settings status, the setup check, the start, the retry after an install.
+ */
+export const localAiAvailable = ({pack, customModels = []} = {}) => Boolean(pack?.installed) || usableModels(listLocalModels({pack, customModels}), pack).length > 0;
+
+/** True when the player has a model file of their own but the Runtime has no engine to run it (no `pack.server`): the log and the failure detail say the engine is missing. */
+export const engineMissingForOwnModel = ({pack, customModels = []} = {}) => !pack?.installed && !pack?.server && ownFileModels(listLocalModels({pack, customModels})).length > 0;
+
 /** The headroom profile ('standard' or 'lite') of a model: its tier; a Mature model's `good` is standard and its `lite` is lite; a custom model by size. */
 export const profileOf = (model, sizeMiB) => model.tier ?? (model.matureTier === 'good' ? 'standard' : model.matureTier === 'lite' ? 'lite' : sizeMiB >= BIG_MODEL_MIB ? 'standard' : 'lite');
 

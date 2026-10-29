@@ -124,7 +124,7 @@ import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
 import {BLOCKED as LOCAL_AI_BLOCKED, LocalLlmServer, isPlayerServerDetail, nvidiaFreeMiB, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
 import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
-import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
+import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, localAiAvailable, matureOffBlocks, normalisePin, ownFileModels} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {ChildRegistry, CHILDREN_FILE, reapChildren} from './child-registry.mjs';
@@ -664,9 +664,13 @@ function refreshLocalPack(force = false) {
 // A server the player already runs (an `endpoint` entry of manifest.custom.json, docs/LOCAL_AI.md "Use your own server") can answer Local AI with no
 // pack at all. Read from the last scan of the manifest (the settings poll, at most every 5 s): no file is read here.
 const ownServerListed = () => externalModels(customScan.models).length > 0;
+// Can Local AI answer at all: an installed pack, a server of the player's, or a GGUF file of their own with the Runtime's engine to run it (no pack needed, 2026-10-29).
+const localAiUsable = pack => localAiAvailable({pack, customModels: customScan.models});
+// The player has a model file of their own and the Runtime's engine is there to run it (no pack needed): the setup check counts that as installed.
+const ownModelRunnable = pack => Boolean(pack?.server) && ownFileModels(listLocalModels({pack, customModels: customScan.models})).length > 0;
 // The status the settings page shows: ready, warming up, not installed, not enough graphics memory, or unavailable.
 function localAiStatus() {
-  if (!refreshLocalPack().installed && !ownServerListed()) return 'not-installed';
+  if (!localAiUsable(refreshLocalPack())) return 'not-installed';
   const {state, reason} = localServer.status();
   if (state === 'failed') return reason === 'low-memory' ? 'no-memory' : reason === 'not-installed' ? 'not-installed' : 'failed';
   return state === 'starting' || state === 'warming' ? 'warming' : 'ready';
@@ -676,9 +680,9 @@ const localAiReason = () => { const {state, reason} = localServer.status(); retu
 // Choosing Local: look for the pack, clear an earlier failure, and load the model in the background so the shader compile of a
 // first start is over before the first conversation. A missing pack or a failed start leaves the provider on Local AI, and its turns say why.
 function prepareLocal() {
-  const packInstalled = refreshLocalPack(true).installed;
-  if (!packInstalled) scanCustomModels();   // a pack-less install can still have a server of its own listed
-  if (!packInstalled && !ownServerListed()) { mistral.noteLocalFailure('not-installed'); return; }
+  const pack = refreshLocalPack(true);
+  if (!pack.installed) scanCustomModels();   // a pack-less install can still have a server or a model file of its own listed
+  if (!localAiUsable(pack)) { mistral.noteLocalFailure('not-installed'); return; }
   localServer.reset();
   void localServer.ensure({background: true}).catch(() => {});
 }
@@ -3823,7 +3827,7 @@ function syncLocalModelChoice(settings) {
 function retryLocalAfterInstall() {
   const why = mistral.localBroken;
   if (mistral.preference !== 'local' || (why !== 'not-installed' && why !== 'mature-off')) return;
-  const lifted = why === 'not-installed' ? localPack.installed || ownServerListed()
+  const lifted = why === 'not-installed' ? localAiUsable(localPack)
     : !matureOffBlocks(listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}), matureContent.enabled);
   if (lifted && mistral.clearLocalFailure(why)) {
     console.error(`[LocalAI] ${why === 'not-installed' ? 'a model was installed' : 'a model that needs no Mature content was installed'}: starting the local model`);
@@ -4074,7 +4078,7 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     localAi: () => {
       const pack = refreshLocalPack(), matureInstalled = maturePackInstalled(), {state, reason, detail} = localServer.status();
       return {status: localAiStatus(), reason: state === 'failed' ? reason ?? null : null, packInstalled: pack.installed, tiers: pack.tiers,
-        matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), models: maturePackModels,
+        matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), ownModel: ownModelRunnable(pack), models: maturePackModels,
         // The start failed because the server the player runs does not answer, is blocked, refuses the key or is no OpenAI-style address: their setup, so no error report (error-events.mjs setupChecked).
         playerServer: state === 'failed' && reason === 'start-failed' && isPlayerServerDetail(detail),
         // Windows blocked a file of the model server (Smart App Control / Application Control): the Help row names it.

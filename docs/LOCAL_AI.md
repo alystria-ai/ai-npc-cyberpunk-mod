@@ -134,7 +134,7 @@ chosen provider, and the next turn asks it again.
 You can add chat models of your own to the **Local AI model** row. There is no screen for it: you copy the model file into a folder and
 list it in a small text file. The model then appears in the row among the others (sorted by file size), marked "(custom)", and you can pick it there.
 There are two folders you can use; the first survives reinstalls and mod managers.
-Only one model is ever loaded, so nothing else changes. Your model runs on the engine of an installed pack, so a Local AI pack (a Mature pack counts as well) is needed; without one the model is listed but cannot start.
+Only one model is ever loaded, so nothing else changes. Your model runs on the Runtime's own engine (`app/llama-cpp`), so no Local AI pack is needed (2026-10-29; before that a pack was required and a player with only a model of their own got "Local AI is unavailable (not-installed)"). With no pack and no model of your own, Local AI says no Local AI model is installed.
 
 **1. Open your models folder** (it survives reinstalls and mod managers): `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`. Paste that into the Explorer
 address bar; if Windows says the folder does not exist, make it (`AiNpcCyberpunkMod` is the folder that already holds your memories and logs; make `local-ai`
@@ -847,7 +847,7 @@ What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`
 - A turn that does not get a new server in time ends with `the model server stopped working and was still starting again` (reason `restarting`).
 - A server that cannot be started again (two attempts) is the old `crashed` failure: the turn says
   `Local AI could not start...` with the reason in brackets (`the model server stopped working and did not start again`, `no discrete graphics card was found`,
-  `the Local AI pack is not installed`, from `unavailableDetail`).
+  `no Local AI model is installed: add the Local AI pack or a model of your own`, from `unavailableDetail`; the wording was "the Local AI pack is not installed" until 2026-10-29).
 - The listing of the graphics devices (`llama-server --list-devices`) that fails to run is logged with its error code and message (`[local] could not list the graphics devices (try 1 of 2): code UNKNOWN: spawn UNKNOWN`, the file name only), tried once more after 1.5 s (`deviceListRetryMs`) and then ends the start. When the error is `UNKNOWN`, `EPERM` or `EACCES` or names an Application Control policy (Smart App Control or a company's or school's WDAC rule refusing an unsigned file; error reports b6014b54 and 1aa616f1), the log adds `(looks like Windows blocking the file)` and the reason in brackets is `Windows blocked a file of the model server (Smart App Control or an Application Control policy), so Local AI cannot run on this PC` (detail `windows-blocked`). The same words follow a `llama-server` start that fails to spawn with those codes. No cloud provider takes the turn; the next turn tries again.
 - A turn that ends with "the model was still loading" (the 80 s budget ran out while the server was starting; error report d8c0d2f9) writes one log line with the cause, from `LocalLlmServer.loadProgress()`:
   `[TextProvider] The local AI is still loading the model: this turn waited 80.0 s for it; server state warming; this start has run 95.4 s; waiting on: <stage> for 41.3 s`. The stages are
@@ -1168,6 +1168,33 @@ reloads before the change (in the world).
 **Not measured:** a 24 GB card and game 2.31 (the report's), a voice turn through the talk key (the test sent typed turns through the request file, so the game's
 own key handling was not part of it), a model the player added (not tried; one that failed to start would take the existing start-failed path).
 Tests: `bridge/local-llm-server.test.mjs` (the variable reaches the server; a value already set is kept).
+
+### Your own model with no pack (2026-10-29: "Local AI is unavailable (not-installed)" with a model of the player's own)
+
+The error report: settings `localModel` `custom:gemma-4-12b-it-qat-ud-q4_k_xl`, `localAi` `not-installed`, no Local AI pack. The model is listed (the model row and the scan read the player's files
+with or without a pack), and the engine ships in the Runtime (`app/llama-cpp`, so `detectLocalAiPack` returns a non-null `server` with no pack), but `installed` means "an engine AND a pack chat
+model" and every gate took that for "no model is possible": `LocalLlmServer.#selected` kept only the servers the player runs when `!pack.installed`, `#startOnce` threw `not-installed` for the same
+reason, the bridge's `localAiStatus`, `prepareLocal`, the retry after an install and the setup check (`packInstalled || ownServer`) all asked the same question, and the model row's Mature and
+provider logic read the status. A player with an own model file and a server of their own (an `endpoint` entry) was fine; one with only a file was not.
+
+- **One helper, `bridge/local-model-choice.mjs`.** `usableModels(models, pack)` (everything with an installed pack; without one the servers the player runs and the player's own files when
+  `pack.server` is there), `ownFileModels`, `localAiAvailable({pack, customModels})` (pack, server, or own file with the engine) and `engineMissingForOwnModel`. Every gate uses them: the
+  supervisor's model list and start, `localAiStatus`, `prepareLocal`, `retryLocalAfterInstall`, and the setup check (the bridge sends `ownModel`; `localAiCheck` counts it as installed and as
+  something that lifts `mature-off`). `installed` itself is unchanged (the Mature and packs logic, the support report and the packaging tests read it).
+- **What the start does.** No pack and a startable file of their own: the normal start (device, free memory, the choice, fit, context). Their file that fails is that model's failure
+  (`start-failed`, the retry's `model-fallback`), never "not installed". An uncensored file of theirs is not the default with Mature content off: `mature-off`, as for an uncensored server;
+  chosen in the row, or with Mature content on, it runs. A server of theirs behaves as before (no engine needed).
+- **When nothing can run.** No pack, no file, no server: `not-installed`, the log says `[local] no Local AI model is installed: no Local AI pack, no model file of your own and no server of yours is listed`
+  and the turn's bracket says `no Local AI model is installed: add the Local AI pack or a model of your own` (it said `the Local AI pack is not installed`; the game shows the bracket as the bridge's
+  own words after its translated sentence, like every other detail). A file of theirs but **no engine** (the Runtime older than 0.2.7 or its `llama-server.exe` gone) is `not-installed` with the
+  detail `no-engine`: the log says `your own model cannot run: the Runtime has no Local AI engine ...: update or reinstall the Runtime` and the bracket says so.
+- **Memory still works without a pack.** The embedder needs the pack's embedding model (`pack.embed`), which a pack-less install does not have: memory falls back to the recent exchanges and the
+  summary, as it always did (this is documented above, "Memory"). Nothing was changed there.
+- **Docs and text changed:** "Add your own model" here, `docs/NEXUS_PAGE.md` (the sentence "a Local AI or Mature pack must be installed" next to the own-file example) and
+  `packaging/PLAYER_README.md` said a pack was needed. The Nexus text changed, so the owner pastes the new sentence.
+- **Tests:** `bridge/own-model-no-pack.test.mjs` (the helper, the real detection, the supervisor on the fake llama-server with a file, a pin, no engine, a failing file, an uncensored file, a server,
+  the setup check, and a real bridge process with the engine and a file: it starts the file and does not say `not-installed`; the same with nothing: it does).
+- **Not verified in the game:** the report's PC (an RTX 5090 Laptop) and a real GGUF loading with no pack on the Runtime's real `llama-server`; everything above ran on the fake server.
 
 ### Convai audio labelled with the wrong sample rate (2026-10-21)
 

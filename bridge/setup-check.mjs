@@ -421,12 +421,14 @@ const LOCAL_REASONS = Object.freeze({'low-memory': 'no-memory', 'no-gpu': 'no-gp
 export function localAiCheck(settings, info = {}) {
   const selected = settings?.conversationProvider === 'local';
   const ownServer = info.ownServer === true;
-  const installed = info.packInstalled === true || ownServer;
+  // A model file of the player's own runs on the Runtime's engine with no pack (2026-10-29), so it counts as installed like a server of theirs.
+  const ownModel = info.ownModel === true;
+  const installed = info.packInstalled === true || ownServer || ownModel;
   if (!selected) return {state: 'ok', code: 'not-used', selected: false, installed};
   let code;
   if (!installed) code = 'not-installed';
   // Only Mature models are installed and Mature content is off: nothing starts, even though no start has been tried yet.
-  else if (info.reason === 'mature-off' || (info.matureOnly === true && settings.matureContent !== true && !ownServer)) code = 'mature-off';
+  else if (info.reason === 'mature-off' || (info.matureOnly === true && settings.matureContent !== true && !ownServer && !ownModel)) code = 'mature-off';
   else if (info.status === 'ready' || info.status === 'warming') code = info.status;
   else if (info.status === 'no-memory') code = 'no-memory';
   else if (info.status === 'not-installed') code = 'not-installed';
@@ -441,7 +443,7 @@ const text = (value, size) => clip(value, size) ?? '';
 /**
  * Builds runtime/setup-check.json's document (the schema is in docs/ and mod/setup-check.lua reads it). Options (all injectable):
  *   game, modRoot, project, stateDirectory, plugin; settings (an object, or a function returning one)
- *   localAi() -> {status, reason, packInstalled, tiers, matureOnly, ownServer, models}   omniPack() -> {installed, missing}
+ *   localAi() -> {status, reason, packInstalled, tiers, matureOnly, ownServer, ownModel, models}   omniPack() -> {installed, missing}
  *   browser() -> name|null   graphics() -> [{name, memoryMiB}]   modManagers() -> {managers}   reach(host) -> code
  *   omniPython({light}) -> null | {used, backend, reason, module, device, vramMiB, testing?} (only with omni-python.txt)
  *   nestedPacks() -> [{pack, folder}]   placement() -> {fixed, conflicts, errors}|null   voice() -> null | {engine, reason} (the Pocket voice failed to start)
