@@ -5793,19 +5793,19 @@ local function dailyLimitText()
     local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
     if at then
         if type(limit) == 'number' then
-            return ui.t('Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit, time = at})
+            return ui.t('Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).', {limit = limit, time = at})
         end
-        return ui.t('Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {time = at})
+        return ui.t('Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).', {time = at})
     end
     if type(limit) == 'number' then
-        return ui.t('Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit})
+        return ui.t('Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).', {limit = limit})
     end
-    return ui.t('Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).')
+    return ui.t('Today’s Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).')
 end
 
 local function keyNoticeText(code)
     if code == 'quota-shared' then
-        return ui.t('The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.')
+        return ui.t('The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.')
     elseif code == 'quota-own' then
         return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.')
     elseif code == 'key-rejected' then
@@ -5839,7 +5839,7 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'mistral-key' then
         return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Conversation provider.')
     elseif reply.errorCode == 'mistral-limit' then
-        return 'mistral-limit', ui.t('Mistral’s free limit is reached for now. Try again in a moment.')
+        return 'mistral-limit', ui.t('Mistral’s limit is reached for now. Try again in a moment.')
     elseif reply.errorCode == 'mistral-model' then
         return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end

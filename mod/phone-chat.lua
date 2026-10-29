@@ -6,10 +6,10 @@ local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}, names 
 pcall(dofile, 'favorites.lua')
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
-local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
+local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.'
 -- The same with the time it resets (the next 00:00 UTC on this computer's clock, ui-locale dailyResetClock); the status row shows it filled in, and
 -- phone-chat-style.lua translates it from this template. DAILY_LIMIT_STATUS stays for a clock that cannot be read.
-local DAILY_LIMIT_STATUS_AT = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
+local DAILY_LIMIT_STATUS_AT = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.'
 -- The status row's text for a daily-limit reply, worked out when the reply arrives (never per frame).
 local function dailyLimitStatus()
     local locale = convaiUiLocale
@@ -20,7 +20,7 @@ end
 -- The same for the Mistral failures the bridge names; other failures keep the provider's text.
 local MISTRAL_STATUS = {
     ['mistral-key'] = 'Mistral did not accept your key. Check it in Settings > Conversation provider.',
-    ['mistral-limit'] = 'Mistral’s free limit is reached for now. Try again in a moment.',
+    ['mistral-limit'] = 'Mistral’s limit is reached for now. Try again in a moment.',
     ['mistral-model'] = 'The Mistral model is unavailable right now. Try again in a minute.',
     ['custom-key'] = 'The custom provider did not accept your key. Check it in Settings > Conversation provider.',
     ['custom-credits'] = 'The custom provider says your account is out of credits. Add credits there, then try again.',
@@ -31,7 +31,7 @@ local MISTRAL_STATUS = {
     ['custom-unreachable'] = 'The custom provider did not answer. Check its address in Settings, or try again.',
     ['local-fallback'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
     -- Convai's own limits, in the words of the game's notices (init.lua keyNoticeText).
-    ['quota-shared'] = 'The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.',
+    ['quota-shared'] = 'The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.',
     ['quota-own'] = 'Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.',
     ['key-rejected'] = 'Convai did not accept your API key. Check it in Settings > Conversation provider.',
     ['key-memory-needed'] = 'Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.',
