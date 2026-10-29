@@ -1905,7 +1905,7 @@ export class LocalLlmServer extends EventEmitter {
     try {
       const generation = this.#generation;
       let free = null;
-      try { free = Number(await this.freeVramMiB()); } catch { /* unknown */ }
+      try { const read = await this.freeVramMiB(); free = read === null || read === undefined ? NaN : Number(read); } catch { /* unknown */ }
       if (!this.#homeValid(home) || generation !== this.#generation) return;
       home.lastFreeMiB = Number.isFinite(free) ? Math.round(free) : null;
       let voiceMiB = 0;

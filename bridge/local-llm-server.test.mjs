@@ -2169,3 +2169,16 @@ test('back to the card: a stop while the new server is loading ends both servers
   assert.equal(capped.logs.filter(line => /is not wholly on the graphics card/.test(line)).length, 1, 'no second watch');
   assert.deepEqual([capped.server.homeState().watching, capped.server.homeState().returns], [false, 1]);
 });
+
+test('back to the card: a card whose free memory cannot be read (no nvidia-smi) is never moved, and says so in the log', async t => {
+  const state = {unknown: false};
+  const h = homeHarness(t);
+  // The reading is answered by the harness; swap it for one that has none once the watch runs.
+  const original = h.server.freeVramMiB;
+  h.server.freeVramMiB = async () => (state.unknown ? null : original());
+  await spilledAndKept(h);
+  state.unknown = true;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\): the free graphics memory is unknown/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.deepEqual([h.calls.length, h.returned.length], [1, 0]);
+});
