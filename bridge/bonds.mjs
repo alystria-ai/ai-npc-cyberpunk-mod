@@ -113,17 +113,31 @@ export function inventoryComplete(history) {
 
 // The quests of an inventory by path, worked out once per parsed inventory (they are frozen and shared between turns).
 const questIndex = new WeakMap();
-/** {path -> state} of an inventory; a row without `nativePath` is known by its id as the last part of a path. */
+/**
+ * Whether an active quest has not really begun: every objective still open is in its `00_hook` stage (the game's own wait for a call or a text, like Phantom Liberty's
+ * `q307_before_tomorrow` waiting for V to call Reed, which a finished save can leave open for good). A quest with no open objective row is not idle.
+ */
+function hookOnly(quest) {
+  const open = (Array.isArray(quest?.objectives) ? quest.objectives : []).filter(objective => objective?.state === 'active');
+  return open.length > 0 && open.every(objective => objective.questRelativePath?.[1] === '00_hook');
+}
+/**
+ * {byPath, byId, paths, idle} of an inventory: {path -> state} (a row without `nativePath` is known by its id as the last part of a path) and `idle`, the paths of the
+ * active quests that still sit at their hook (hookOnly).
+ */
 export function questStates(history) {
   if (!history || typeof history !== 'object') return null;
   let index = questIndex.get(history);
   if (index) return index;
-  const byPath = new Map(), byId = new Map();
+  const byPath = new Map(), byId = new Map(), idle = new Set();
   for (const quest of Array.isArray(history.quests) ? history.quests : []) {
-    if (typeof quest?.nativePath === 'string') byPath.set(quest.nativePath, quest.state);
+    if (typeof quest?.nativePath === 'string') {
+      byPath.set(quest.nativePath, quest.state);
+      if (quest.state === 'active' && hookOnly(quest)) idle.add(quest.nativePath);
+    }
     if (typeof quest?.nativeId === 'string') byId.set(quest.nativeId, quest.state);
   }
-  index = {byPath, byId, paths: [...byPath.keys()]};
+  index = {byPath, byId, paths: [...byPath.keys()], idle};
   questIndex.set(history, index);
   return index;
 }

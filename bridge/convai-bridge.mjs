@@ -1277,6 +1277,8 @@ const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-s
 // (<state>/bond-packs.json, every step stamped with the game clock); what the game is asked to do goes to runtime/bond-effects.json.
 const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)), path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json'),
   bonds, log: line => console.error('[BondPacks] ' + line),
+  // Developer mode: a pack that does not start says why (once per pack per game day).
+  explain: () => replyCapture.enabled,
   // The quest facts the game reports (runtime/quest-facts.json, bridge/quest-facts.mjs): looked at only when a gate asks, and then at most every few seconds.
   readFacts: createFactsReader({path: resolve(runtime, 'quest-facts.json')})});
 await bondPacks.load().catch(() => {});

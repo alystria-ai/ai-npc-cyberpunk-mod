@@ -16,7 +16,7 @@ import {existsSync} from 'node:fs';
 import {resolve as resolvePath, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {atomicFile} from './guarded-file.mjs';
-import {packGate, validatePack, shippedPacks, blockingQuest, trackedPathOf, KNOWN_STAGE_TYPES, CHANNELS, HANGOUT_DEFAULTS} from './bond-packs.mjs';
+import {packGate, explainGate, validatePack, shippedPacks, blockingQuest, trackedPathOf, KNOWN_STAGE_TYPES, CHANNELS, HANGOUT_DEFAULTS} from './bond-packs.mjs';
 import {intentKind} from './bond-intent.mjs';
 import {debts} from './eddies.mjs';
 import {channelOf} from './bonds.mjs';
@@ -83,12 +83,14 @@ export class BondPacks {
    * packs     the packs (validated here; an invalid one is left out and logged)    characters   the roster keys (a Set) for the validator
    * path      <state>/bond-packs.json                                              effectsPath  runtime/bond-effects.json
    * bonds     the Bonds object (award points, publish the status)                  random, now, read, write, timers   injectable for tests
+   * explain   () -> true while Developer mode is on: a pack that does not start says why in the log, once per pack per game day
    */
   constructor({packs = shippedOrNone(), characters = null, path = null, effectsPath = null, bonds = null, random = Math.random,
     now = Date.now, read = file => readFile(file, 'utf8'), write = (file, text) => atomicFile(file, text), log = () => {}, debounceMs = 5000,
-    packFolder = SHIPPED_PACK_FOLDER, exists = file => existsSync(file), readFacts = null, reach = undefined, levelsOf = null,
+    packFolder = SHIPPED_PACK_FOLDER, exists = file => existsSync(file), readFacts = null, reach = undefined, levelsOf = null, explain = null,
     timers = {set: (fn, ms) => setTimeout(fn, ms), clear: handle => clearTimeout(handle)}} = {}) {
-    Object.assign(this, {path, effectsPath, bonds, random, now, read, write, log, debounceMs, timers, characters, packFolder, exists, readFacts, levelsOf});
+    Object.assign(this, {path, effectsPath, bonds, random, now, read, write, log, debounceMs, timers, characters, packFolder, exists, readFacts, levelsOf, explain});
+    this.explained = new Map();    // pack id (or profile key) -> the game day its reason was last logged
     this.packs = new Map();
     for (const pack of packs) {
       const result = validatePack(pack, {characters});
@@ -413,6 +415,17 @@ export class BondPacks {
     if (facts.romance !== undefined && meta.romance !== romance) { meta.romance = romance; this.#schedule(); }
   }
 
+  /** Developer mode only: why a pack did not start for a character on this turn, once per pack per game day ("panam-sunset-coffee waits: q307_before_tomorrow still active"). Never throws. */
+  #waits(key, gameSeconds, text) {
+    try {
+      if (typeof this.explain !== 'function' || this.explain() !== true) return;
+      const day = whole(gameSeconds) ? Math.floor(gameSeconds / DAY) : -1;
+      if (this.explained.get(key) === day) return;
+      this.explained.set(key, day);
+      this.log(`${key} waits: ${text}`);
+    } catch {}
+  }
+
   /** "panam-palmer" -> "Panam Palmer" (a lasting line from another character says who it is from). */
   #nameOf(key) { return String(key).split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '); }
 
@@ -487,6 +500,8 @@ export class BondPacks {
         lines.unshift(`${start.pack.start.bringUp} ${this.#stageNote(start.pack, start.pack.stages[0], {channel, settings: {invitations: bonds.invitations === true}}, null, start.variation)}`);
         decision.story = this.#storyFacts(start.pack, start.pack.stages[0], null, {channel, gameSeconds, eddies: bonds.eddies === true});
       }
+    } else if (!activeRow) {
+      this.#waits(profile, gameSeconds, !allowed ? `${channel} never starts a pack (a pack starts on one of V's own copies, a phone chat or a holocall)` : input.group ? 'a group round never starts a pack' : 'the game clock is not known yet');
     }
     decision.note = lines.join('\n');
     return decision;
@@ -502,7 +517,7 @@ export class BondPacks {
 
   #tryStart(mine, input, {channel, gameSeconds, level, romance}) {
     const profile = input.profileKey, meta = this.#meta(profile);
-    if (this.#active().length >= MAX_ACTIVE) return null;
+    if (this.#active().length >= MAX_ACTIVE) { this.#waits(profile, gameSeconds, `${MAX_ACTIVE} quests are already running`); return null; }
     const today = Math.floor(gameSeconds / DAY);
     // A reach-out sent a pack's offer: that pack starts on this talk without the dice and the quiet days (its gate still applies). It expires after a game day.
     const offer = meta.offer && gameSeconds >= meta.offer.at && gameSeconds - meta.offer.at <= OFFER_HOURS * HOUR ? meta.offer : null;
@@ -516,18 +531,18 @@ export class BondPacks {
       const hangout = pack.kind === 'hangout', offered = offer?.pack === pack.id, entry = this.entries.get(pack.id);
       if (hangout) {
         // At most one a game day per character; a finished one comes back after repeatDays game days.
-        if (meta.hangoutDay === today) continue;
+        if (meta.hangoutDay === today) { this.#waits(pack.id, gameSeconds, 'a hangout already ran today'); continue; }
         const repeat = (pack.hangout?.repeatDays ?? HANGOUT_DEFAULTS.repeatDays) * DAY;
-        if (entry && !(entry.status === 'done' && whole(entry.trail.at(-1).at) && gameSeconds >= entry.trail.at(-1).at + repeat)) continue;
-      } else if (entry || (quiet && !offered)) continue;
-      if (!offered && meta.rolled === today) continue;
+        if (entry && !(entry.status === 'done' && whole(entry.trail.at(-1).at) && gameSeconds >= entry.trail.at(-1).at + repeat)) { this.#waits(pack.id, gameSeconds, 'played not long ago'); continue; }
+      } else if (entry || (quiet && !offered)) { this.#waits(pack.id, gameSeconds, entry ? `already ${entry.status === 'done' ? 'played' : 'running'}` : `quiet days after the last quest (${COOLDOWN_DAYS} game days)`); continue; }
+      if (!offered && meta.rolled === today) { this.#waits(pack.id, gameSeconds, 'the dice already rolled today'); continue; }
       const gate = packGate(pack, {level, journalHistory: input.journalHistory, romance, channel, finishedPacks, busy: bonds.busy === true,
         settings: {eddies: bonds.eddies === true, invitations: bonds.invitations === true}, facts: pack.requires?.facts ? this.#facts() : null});
-      if (!gate.open) continue;
+      if (!gate.open) { this.#waits(pack.id, gameSeconds, explainGate(gate, pack, {level, channel, romance})); continue; }
       // The dice are thrown once a game day per character, only when a pack could start.
       if (!offered) {
         meta.rolled = today; this.#schedule();
-        if (this.random() >= pack.start.chance) return null;
+        if (this.random() >= pack.start.chance) { this.#waits(pack.id, gameSeconds, `the dice said no today (chance ${pack.start.chance})`); return null; }
       }
       return {pack, offered, restart: !!entry, variation: hangout ? this.#nextVariation(pack, meta) : null};
     }

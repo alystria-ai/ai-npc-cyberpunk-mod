@@ -311,9 +311,12 @@ export function trackedPathOf(history) {
 export function blockingQuest(pack, index, {tracked, arcs = shippedBondArcs()} = {}) {
   const window = pack?.requires?.window;
   const allow = window?.untracked === true && Array.isArray(window.allowActive) ? window.allowActive : [];
+  const own = [...(pack?.requires?.notActive ?? []), ...(arcs?.arcs?.[pack?.character]?.active ?? [])];
   for (const prefix of blockingPrefixes(pack, arcs)) {
     for (const [path, state] of index.byPath) {
       if (state !== 'active' || !path.startsWith(prefix)) continue;
+      // The end of the story stops a pack only once V is in it: a finale quest still waiting at its hook (V never called Reed) is not the finale.
+      if (index.idle?.has(path) && !own.some(item => path.startsWith(item))) continue;
       if (allow.some(allowed => path.startsWith(allowed)) && tracked !== undefined && path !== tracked) continue;
       return path;
     }
@@ -328,12 +331,13 @@ export function blockingQuest(pack, index, {tracked, arcs = shippedBondArcs()} =
 export function journalGate(pack, {journalHistory = null, facts = null, tracked, arcs = shippedBondArcs()} = {}) {
   const requires = pack?.requires ?? {};
   if (!inventoryComplete(journalHistory)) return {open: false, why: 'journal-unknown'};
-  for (const path of requires.questsFinished ?? []) if (!finished(questState(journalHistory, path))) return {open: false, why: 'quest-not-finished'};
-  for (const path of requires.questsSucceeded ?? []) if (questState(journalHistory, path) !== 'succeeded') return {open: false, why: 'quest-not-succeeded'};
-  for (const path of requires.before ?? []) if (finished(questState(journalHistory, path))) return {open: false, why: 'before'};
-  for (const path of requires.notBegun ?? []) if (questState(journalHistory, path) !== undefined) return {open: false, why: 'begun'};
-  for (const [id, expected] of Object.entries(requires.facts ?? {})) if (!factMatches(facts, id, expected)) return {open: false, why: 'fact'};
-  if (blockingQuest(pack, questStates(journalHistory), {tracked: tracked === undefined ? trackedPathOf(journalHistory) : tracked, arcs})) return {open: false, why: 'quest-active'};
+  for (const path of requires.questsFinished ?? []) if (!finished(questState(journalHistory, path))) return {open: false, why: 'quest-not-finished', path};
+  for (const path of requires.questsSucceeded ?? []) if (questState(journalHistory, path) !== 'succeeded') return {open: false, why: 'quest-not-succeeded', path};
+  for (const path of requires.before ?? []) if (finished(questState(journalHistory, path))) return {open: false, why: 'before', path};
+  for (const path of requires.notBegun ?? []) if (questState(journalHistory, path) !== undefined) return {open: false, why: 'begun', path};
+  for (const [id, expected] of Object.entries(requires.facts ?? {})) if (!factMatches(facts, id, expected)) return {open: false, why: 'fact', path: id};
+  const blocking = blockingQuest(pack, questStates(journalHistory), {tracked: tracked === undefined ? trackedPathOf(journalHistory) : tracked, arcs});
+  if (blocking) return {open: false, why: 'quest-active', path: blocking};
   return {open: true};
 }
 
@@ -360,6 +364,30 @@ export function packGate(pack, {level = 0, journalHistory = null, romance = null
   if (requires.relationship === 'not-partner' && romance === 'partner') return {open: false, why: 'relationship'};
   for (const id of requires.after ?? []) if (!finishedPacks.has(id)) return {open: false, why: 'after'};
   return journalGate(pack, {journalHistory, facts, tracked, arcs});
+}
+
+/**
+ * A closed gate in words, for the Developer-mode log ("q307_before_tomorrow still active"). `gate` is packGate's {open: false, why, path?}; `level` and `channel` are the
+ * turn's. The wording names a quest by the last part of its path only.
+ */
+export function explainGate(gate, pack, {level = 0, channel = 'story', romance = null} = {}) {
+  const name = typeof gate?.path === 'string' ? gate.path.slice(gate.path.lastIndexOf('/') + 1) : 'a quest';
+  switch (gate?.why) {
+    case 'busy': return 'the game is busy (a scene, a choice, a fight or a call)';
+    case 'channel': return `${channel} does not start it (it starts on ${(pack?.start?.channels ?? []).join(', ') || 'no channel'})`;
+    case 'bond': return `bond level ${level} is under ${pack?.requires?.bond}`;
+    case 'eddies-off': return 'Eddies with characters is off';
+    case 'relationship': return `the relationship (${romance ?? 'none'}) does not fit`;
+    case 'after': return 'an earlier pack of the character is not finished';
+    case 'journal-unknown': return 'the quest journal is not complete yet';
+    case 'quest-not-finished': return `${name} is not finished`;
+    case 'quest-not-succeeded': return `${name} is not succeeded`;
+    case 'before': return `${name} is already finished`;
+    case 'begun': return `${name} was already begun`;
+    case 'fact': return `the quest fact ${name} is not known or does not match`;
+    case 'quest-active': return `${name} still active`;
+    default: return String(gate?.why ?? 'closed');
+  }
 }
 
 /** The shipped packs (characters/bond-packs/*.json), parsed, in file-name order: [{file, pack}]. */
