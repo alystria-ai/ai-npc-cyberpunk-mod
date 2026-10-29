@@ -14,7 +14,7 @@
   },
   "runtimeBase": {
     "required": "0.3.3",
-    "previousRelease": "0.3.3",
+    "previousRelease": "0.3.4",
     "notes": "previousRelease: the release before the one being built (the release script sets it with every version). It names the Update zip: when `required` equals it the update covers one release and is AI-NPC-LLM-Companions-Update-<required>-to-<version>.zip, when `required` is older it covers several and is AI-NPC-LLM-Companions-Update-any-to-<version>.zip (packaging/lib/full-package.mjs updateFrom; a Scripts build stops when previousRelease is missing or does not fit). required: The oldest Runtime base these Scripts run on (written as runtimeBase into the Scripts' release.json and code.json). From 0.3.4 the Scripts carry all of the mod's code (docs/PACKAGING.md, 'Code in the Scripts') and the Runtime is the base: Node, Python, llama.cpp, vgmstream, Playwright, the models, the voices, the game archives. Raise it to the new version only in a release that changes the base (a new Runtime update zip in updates/ then carries the change); the setup check and the version notice name it to a player whose Runtime is older. 0.3.3: a Runtime of 0.3.3 holds everything the 0.3.4 code needs (its own old code is replaced at the first start)."
   },
   "limits": {

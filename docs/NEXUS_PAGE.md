@@ -1,4 +1,4 @@
-# Nexus Mods page: AI NPC LLM Companions (launch 18 Oct 2026, page text synced to the final 0.3.4 page, file descriptions for 0.3.4)
+# Nexus Mods page: AI NPC LLM Companions (launch 18 Oct 2026, page text for 0.3.5, file descriptions for 0.3.5)
 
 ## 1. Page description (Nexus BBCode)
 
@@ -256,7 +256,7 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 
 ## 2. File descriptions (the four uploads)
 
-Game 2.5 is the default: the full install is the main file and its update sits under Updates. Game 2.31 is two optional files ("Optional files", not "Old versions"), the same version number. `<from>` is runtimeBase.required (0.3.3 for 0.3.4), or `any` when the update covers several releases. Each description at most 255 characters.
+Game 2.5 is the default: the full install is the main file and its update sits under Updates. Game 2.31 is two optional files ("Optional files", not "Old versions"), the same version number. `<from>` is runtimeBase.required, or `any` when the update covers several releases: for 0.3.5 the name is Update-any-to-0.3.5 and it needs the Runtime 0.3.3 or newer. Each description at most 255 characters.
 
 AI NPC LLM Companions (the main file, game 2.5, zip AI-NPC-LLM-Companions-<version>.zip):
 
@@ -264,7 +264,7 @@ AI NPC LLM Companions (the main file, game 2.5, zip AI-NPC-LLM-Companions-<versi
 Full install for game 2.5, everything in one zip. Extract it into your Cyberpunk 2077 folder, or add it as one mod in Vortex or Mod Organizer 2. New: content packs, key bindings, car invitations, housemates, outfits, Music and TV info.
 ```
 
-Update <from> to <version> (an update file, game 2.5, zip AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, for example Update 0.3.3 to 0.3.4):
+Update <from> to <version> (an update file, game 2.5, zip AI-NPC-LLM-Companions-Update-<from>-to-<version>.zip, for example Update 0.3.3 to 0.3.4, and Update any to 0.3.5 for this release):
 
 ```text
 Update for game 2.5, for manual installs only: extract it into the game folder. Not for Vortex or Mod Organizer 2, they use the main file. Needs the Runtime <from> or newer. New: content packs, key bindings, car invitations, housemates.

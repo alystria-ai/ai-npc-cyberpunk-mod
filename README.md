@@ -4,7 +4,7 @@
 Speak to Cyberpunk 2077's characters in your own voice and hear them answer in theirs.</p>
 
 <p align="center">
-  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main"><img alt="Version 0.3.3" src="https://img.shields.io/badge/VERSION-0.3.3-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main"><img alt="Version 0.3.5" src="https://img.shields.io/badge/VERSION-0.3.5-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Cyberpunk 2077 2.5 and 2.31" src="https://img.shields.io/badge/CYBERPUNK_2077-2.5_and_2.31-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/PLATFORM-WINDOWS_10_%7C_11-00F0FF?style=for-the-badge&labelColor=000000"></a>
   <a href="LICENSE"><img alt="AI NPC Cyberpunk Mod Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>
@@ -47,7 +47,7 @@ Close the game. Extract each download into your Cyberpunk 2077 folder (the one w
 | # | Download | Where from | Size | Needed? |
 |---|---|---|---|---|
 | 1 | **Full install** (`AI-NPC-LLM-Companions-<v>.zip`) | Nexus Mods (main file for game 2.5, optional file for the older game 2.31) | about 1.1 GB, about 3 GB free space | Yes, for a new install. It is the mod and the Runtime in one zip: the code, the launcher, the native plugin, and the base (Node, Python, voices, models, the Pocket TTS voices) |
-| 2 | **Update** (`AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip`) | Nexus Mods (in Updates for game 2.5, in Optional files for the older game 2.31) | small | For manual installs only (extracted into the game folder), on an install that already has the Runtime of version `<from>` (0.3.3 for 0.3.4) or newer: it carries all of the mod's code. An older install takes the full install again. Vortex and Mod Organizer 2 always take the full install |
+| 2 | **Update** (`AI-NPC-LLM-Companions-Update-<from>-to-<v>.zip`) | Nexus Mods (in Updates for game 2.5, in Optional files for the older game 2.31) | small | For manual installs only (extracted into the game folder), on an install that already has the Runtime of version `<from>` (0.3.3 for 0.3.5, written as `any` in the file name) or newer: it carries all of the mod's code. An older install takes the full install again. Vortex and Mod Organizer 2 always take the full install |
 | 3 | **OmniVoice pack** | [voice/OmniPack-OmniVoice-0.6B.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/voice/OmniPack-OmniVoice-0.6B.zip) | about 13 GB free while installing, 7.4 GB installed | Optional: a richer voice for NVIDIA cards |
 | 4 | **Local AI standard** | [local-ai/LocalAI-Standard-Gemma-4-E4B.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Standard-Gemma-4-E4B.zip) | about 5.3 GB | Optional: fully local conversations, best replies. Needs the Runtime of version 0.2.7 or newer |
 | 5 | **Local AI lite** | [local-ai/LocalAI-Lite-Bonsai-2-4B.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Lite-Bonsai-2-4B.zip) | about 1.3 GB | Optional: fully local conversations on smaller cards |

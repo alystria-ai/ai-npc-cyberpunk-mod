@@ -2,6 +2,21 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.3.5
+
+- **Companions can see, with any provider (off by default)**: Settings > Conversations > Companions can see. With it on, the picture of what V is looking at goes along with the turn on Convai, Mistral, Local AI and a Custom endpoint. Local AI pictures use a small vision file per model (Gemma 4 E4B, Bonsai 2 4B, Qwen3.5 4B), a separate download from the `vision` folder next to the Local AI packs on Hugging Face. The game tells you once if the file is missing.
+- **Convai voices in other languages**: the multilingual voices (Ukrainian, Russian and the rest) were played too fast and too high, and many lines never finished. They now play at the right speed and end properly.
+- **Free Google Gemini setup**: the Custom endpoint page has a Google Gemini (free) row. Copy your Google account's access code, press Add, and the address, the model and the code are saved in one press. Remove deletes all three. A missing or refused code says so. Mistral is no longer listed as free, because Mistral stopped its free plan for new accounts.
+- **Characters know where V is**: V's position is read when a turn starts and named places are told to the character, such as the Afterlife or a flat in Corpo Plaza, instead of only the district.
+- **Story characters know the main plot as V gets there**: the ten story characters know about the Relic, Johnny in V's head, Arasaka, Hellman and Mikoshi once the quest for it is finished in your journal.
+- **Local AI**: a long talk with one character no longer makes the model read the whole prompt again every turn. A model file of your own runs with no Local AI pack. A 24 GB card fits its model again. If the game pushed the model into system memory, it goes back to the graphics card when there is room, and you are told once. New setting Allow Local AI to use RAM (off by default): keep the model you chose and let part of it run on the processor, with slower replies, instead of a smaller model.
+- **Full disk**: a full drive no longer stops the conversation service. Settings > Help has a Disk space row and the game warns once when the game or data drive has under 2 GB free.
+- **Microphone**: inputs that look like a loopback or a virtual device (Stereo Mix, CABLE Output, VoiceMeeter) are marked in the list and named in the setup check, because they can carry the far side of a call back to the mod.
+- **Safer with other mods**: another Cyber Engine Tweaks mod that replaces the game's player getter no longer stops this mod.
+- **Python files check**: Settings > Help has a Voice files row. If the packed Python lacks a file the voices need, the game says to reinstall the full install from Nexus Mods.
+- **Developer mode transcript**: with Developer mode on, each turn is written to a transcript file in the data folder (never sent in a report).
+- **Error reports and limits**: a report for a setup problem or a script error also carries the lines of Cyber Engine Tweaks' log that name an error or a failed load. The daily limit on the free Convai turns counts per UTC day like the server, and the message says when the turns come back in your own time.
+
 ## What's new in 0.3.4
 
 - **Default bindings**: F7 talk by voice, F6 talk by text, F10 group voice chat, F8 group text chat and F4 the Companion Manager are set from the start, so a new install works at once. A binding you set before stays yours, the mod only fills actions that had none. Change, clear or restore them on the bindings page of the Companion Manager. A binding can be a combination too: hold Shift, Ctrl or Alt while you press it, for example Shift+F5. The game itself uses Shift to sprint, Ctrl to dodge and Alt for the weapon wheel, so V does that as well while you hold one.

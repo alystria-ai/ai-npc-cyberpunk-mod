@@ -131,8 +131,8 @@ test('the update is named from the base it needs: <from> is that version when it
   assert.throws(() => updateFrom({runtimeBase: {required: '0.3.3'}}), /previousRelease/);
   assert.throws(() => updateFrom(at('0.3.4', '0.3.3')), /newer than the previous release/);
   assert.throws(() => updateFrom(at('latest', '0.3.3')), /not a version/);
-  // The real config is the 0.3.4 one.
-  assert.equal(updateFrom(config), '0.3.3');
+  // The real config is the 0.3.5 one: the base is still 0.3.3, the release before is 0.3.4, so the update covers two releases.
+  assert.equal(updateFrom(config), 'any');
   assert.equal(updateBaseName('any', '0.3.5', '2.5'), 'AI-NPC-LLM-Companions-Update-any-to-0.3.5');
 });
 
