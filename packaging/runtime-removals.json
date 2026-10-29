@@ -9,6 +9,8 @@
   "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-steering.mjs",
   "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-voice.mjs",
   "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/speech-stream.mjs",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/follow-up.mjs",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/phone-analysis-worker.py",
   "r6/audioware/CyberpunkConvai/speech.yml",
   "r6/audioware/CyberpunkConvai/reply-0.wav",
   "r6/audioware/CyberpunkConvai/reply-1.wav",
