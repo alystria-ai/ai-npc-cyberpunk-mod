@@ -477,9 +477,9 @@ convaiQuestAttach(nil)
 `));
 
 test('init.lua: both private turn paths (spoken and typed) call the pay stage hook right after the Eddies block, never for a reaction, a group round or Johnny in V\'s head', () => {
-  const calls = init.match(/if not context\.reaction and not context\.group and not context\.head then convaiQuestAttach\(context\) end/g) || [];
+  const calls = init.match(/if not context\.reaction and not context\.group and not context\.head and convaiQuestAttach then convaiQuestAttach\(context\) end/g) || [];
   assert.equal(calls.length, 2);
-  assert.equal([...init.matchAll(/convaiEddiesAttach\(context\) end\s+(?:--[^\n]*\n\s+)+if not context\.reaction and not context\.group and not context\.head then convaiQuestAttach\(context\) end/g)].length, 2);
+  assert.equal([...init.matchAll(/convaiEddiesAttach\(context\) end\s+(?:--[^\n]*\n\s+)+if not context\.reaction and not context\.group and not context\.head and convaiQuestAttach then convaiQuestAttach\(context\) end/g)].length, 2);
 });
 
 test('the developer probe checks the gift allowlist against the game and writes the check file; it needs no quest module', () => run(`

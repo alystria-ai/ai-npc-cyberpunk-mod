@@ -492,7 +492,7 @@ microphone.captureActions = function(context)
     -- Eddies with characters (docs/EDDIES.md): the spoken turn's block, before any return below (a game-placed character talks about money too).
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
     -- A pay stage of a bond quest (docs/QUEST_PRIMITIVES.md section 10.2): quest = {pack, cast} when the target is its cast member.
-    if not context.reaction and not context.group and not context.head then convaiQuestAttach(context) end
+    if not context.reaction and not context.group and not context.head and convaiQuestAttach then convaiQuestAttach(context) end
     -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): the spoken turn's block too (a game-placed character has a bond as well, and a group
     -- round turn carries its speaker's own block). Johnny in V's head and reactions have none.
     if not context.reaction and not context.head then convaiBondsAttach(context) end
@@ -3721,7 +3721,7 @@ local function sendRequest(context)
     -- Eddies with characters (docs/EDDIES.md): one boolean while it is off.
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
     -- A pay stage of a bond quest: quest = {pack, cast} when the target is its cast member (one nil check while none is armed).
-    if not context.reaction and not context.group and not context.head then convaiQuestAttach(context) end
+    if not context.reaction and not context.group and not context.head and convaiQuestAttach then convaiQuestAttach(context) end
     local encodedOk, encoded = pcall(json.encode, context)
     if not encodedOk then
         gameplayActions.revoke('request-write-failed', context.requestId)

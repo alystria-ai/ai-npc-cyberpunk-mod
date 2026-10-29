@@ -2984,7 +2984,6 @@ const noteSubmitted = requestId => { submittedRequests.delete(requestId); submit
 const preparedRequests = new Map();
 
 async function tick() {
-  mediaLink.maybePoll();
   if (polling || stopped || voiceRouteReservation || relationshipRouteReservation) return;
   polling = true;
   try {
@@ -3486,7 +3485,6 @@ const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: 
 const mediaLink = new MediaLink({path: resolve(runtime, 'media-command.json'), bondPacks, audio: preparedAudio, fs: {stat, readFile},
   host: () => realtime.mediaHost(), peek: () => realtime.peekMedia(), wanted: () => questPoller.armed || realtime.mediaBusy,
   log: message => console.error('[Media] ' + message)});
-await mediaLink.open();
 const MEDIA_IDLE_MS = 30_000;
 const scriptedLogged = new Set();
 // One ERROR line per pack and line (the pack id and the line id are in it), however often the line is asked for.
@@ -4312,7 +4310,9 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 questSync();
 // A poll is one stat of the request file until Lua replaces it, so a short
 // interval costs little and removes up to 150 ms from every turn's start.
-const timer = setInterval(tick, 50);
+await mediaLink.open();   // remembers the command file of an earlier session, which is never played
+// The media link looks at its command file from this loop, not awaited, only while a quest runs or a sound plays (bridge/media-link.mjs).
+const timer = setInterval(() => { mediaLink.maybePoll(); return tick(); }, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)); }, 150);
 // The key's down and up edges and the "listen for speech" request (microphone-live.json, mod/microphone.lua): read the moment the game writes it.
 const liveTimer = setInterval(() => { void micLive.poll().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)); }, 500);

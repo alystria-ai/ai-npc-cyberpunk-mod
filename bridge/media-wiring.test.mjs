@@ -12,7 +12,7 @@ const code = text => text.split('\n').filter(line => !/^\s*\/\//.test(line)).joi
 test('the bridge reads the media request file from its existing loop, gated, with no timer of its own', () => {
   assert.match(bridge, /const mediaLink = new MediaLink\(\{path: resolve\(runtime, 'media-command\.json'\), bondPacks, audio: preparedAudio/, 'its own file, not the request file');
   assert.match(bridge, /wanted: \(\) => questPoller\.armed \|\| realtime\.mediaBusy/, 'looked at only while a quest runs or a sound plays');
-  assert.match(between(bridge, 'async function tick() {', 'if (polling'), /mediaLink\.maybePoll\(\);/, 'called from the existing 50 ms loop, not awaited');
+  assert.match(bridge, /setInterval\(\(\) => \{ mediaLink\.maybePoll\(\); return tick\(\); \}, 50\)/, 'called from the existing 50 ms loop, not awaited');
   assert.ok(!/setInterval\([^)]*media/i.test(code(bridge)), 'no media interval');
   assert.ok(!/setInterval|setTimeout/.test(code(read('./media-link.mjs'))), 'the link creates no timer');
   assert.ok(!/setInterval/.test(code(read('./media-host.mjs'))), 'the host creates no interval');
