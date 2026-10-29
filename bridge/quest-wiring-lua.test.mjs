@@ -354,3 +354,98 @@ test('the seating controller answers the phase of a copy for the seated-together
   const seating = source('companion-seating.lua');
   assert.match(seating, /function self\.phaseOf\(serial\)\s+local s = self\.states\[serial\]\s+return s ~= nil and s\.phase ~= 'off' and s\.phase or nil\s+end/);
 });
+
+// ---- round 2: the facts reader and the pay stage's turn field ----------------------------------------------------------------------------------------------
+test('glue: with no fact wanted the reader is never loaded, a wanted fact loads it once and feeds it the delta, a failing load latches, a world change resets it', () => withGlue(`
+local reader = {updates = {}, resets = 0}
+modules['quest-facts.lua'] = {new = function(options) game.built.facts = options; return {update = function(delta) reader.updates[#reader.updates + 1] = delta end, reset = function() reader.resets = reader.resets + 1 end} end}
+convaiQuestTick('V', 0.1)
+convaiQuestPlay.factsWanted = function() return game.wanted end
+convaiQuestTick('V', 0.1)
+local loads = #game.loads
+for _, name in ipairs(game.loads) do assert(name ~= 'quest-facts.lua', 'not loaded while nothing is wanted') end
+game.wanted = {{id = 'a', names = {'x'}, kind = 'bool'}}
+convaiQuestTick('V', 0.1); convaiQuestTick('V', 0.2)
+assert(game.loads[#game.loads] == 'quest-facts.lua' and #game.loads == loads + 1, 'loaded once')
+assert(#reader.updates == 2 and reader.updates[2] == 0.2)
+local options = game.built.facts
+assert(options.enabled() == true and options.wanted() == game.wanted and options.clock == os.clock, 'the options of the reader')
+game.on = false; assert(options.enabled() == false, 'the setting is read each time'); game.on = true
+convaiQuestReset('load'); assert(reader.resets == 1 and convaiQuestDue == true)
+game.wanted = nil; convaiQuestTick('V', 0.1); local seen = #reader.updates; convaiQuestTick('V', 0.1)
+assert(#reader.updates == seen, 'nothing wanted again: not called')
+`));
+
+test('glue: a reader that cannot be built latches and is logged once, and one that raises is guarded', () => withGlue(`
+modules['quest-facts.lua'] = {new = function() error('no reader') end}
+convaiQuestTick('V', 0.1)
+convaiQuestPlay.factsWanted = function() return {{id = 'a', names = {'x'}, kind = 'bool'}} end
+local loads = #game.loads
+convaiQuestTick('V', 0.1); convaiQuestTick('V', 0.1); convaiQuestTick('V', 0.1)
+assert(loggedOnce['quest-facts'] == 1 and #game.loads == loads + 1 and convaiQuestFacts == nil, 'loaded and logged once')
+convaiQuestFactsFailed = false
+modules['quest-facts.lua'] = {new = function() return {update = function() error('read broke') end, reset = function() end} end}
+convaiQuestTick('V', 0.1); convaiQuestTick('V', 0.1)
+assert(loggedOnce['quest-facts-tick'] == 2)
+`));
+
+test('glue: a turn to the cast member of a pay stage carries quest = {pack, cast}, any other turn, a missing registry, a raising lookup or no pay stage leaves it out', () => withGlue(`
+convaiQuestTick('V', 0.1)
+local asked = {}
+convaiQuestPrims.payTargetFor = function(entity, key) asked[#asked + 1] = tostring(entity) .. '/' .. tostring(key); if entity == '55' then return {pack = 'toll-road', cast = 'guard', extra = 'x'} end return nil end
+local context = {entity = '55', profileKey = 'nobody'}
+convaiQuestAttach(context)
+assert(context.quest and context.quest.pack == 'toll-road' and context.quest.cast == 'guard' and context.quest.extra == nil and asked[1] == '55/nobody')
+local other = {entity = '77'}; convaiQuestAttach(other); assert(other.quest == nil)
+local bare = {}; convaiQuestAttach(bare); assert(bare.quest == nil and #asked == 2, 'no entity: not asked')
+convaiQuestPrims.payTargetFor = function() error('lookup broke') end
+local raised = {entity = '55'}; convaiQuestAttach(raised); assert(raised.quest == nil)
+convaiQuestPrims.payTargetFor = nil
+local none = {entity = '55'}; convaiQuestAttach(none); assert(none.quest == nil)
+convaiQuestPrims = nil
+convaiQuestAttach({entity = '55'})
+convaiQuestAttach(nil)
+`));
+
+test('init.lua: both private turn paths (spoken and typed) call the pay stage hook right after the Eddies block, never for a reaction, a group round or Johnny in V\'s head', () => {
+  const calls = init.match(/if not context\.reaction and not context\.group and not context\.head then convaiQuestAttach\(context\) end/g) || [];
+  assert.equal(calls.length, 2);
+  assert.equal([...init.matchAll(/convaiEddiesAttach\(context\) end\s+(?:--[^\n]*\n\s+)+if not context\.reaction and not context\.group and not context\.head then convaiQuestAttach\(context\) end/g)].length, 2);
+});
+
+test('the developer probe checks the gift allowlist against the game and writes the check file; it needs no quest module', () => run(`
+${base}
+local files = {}
+local missing = {['Items.Gone'] = true}
+TweakDB = {GetRecord = function(_, id) if missing[id] then return nil end return {} end}
+json = {encode = serialize, decode = decode}
+local real_open = io.open
+io.open = function(path, mode)
+  if mode == 'rb' then
+    if not files[path] then return nil end
+    return {read = function() return files[path] end, close = function() end}
+  end
+  return {write = function(self, text) files[path] = text end, close = function() end}
+end
+local M = (function() ${source('quest-probe.lua')} end)()
+assert(M.ACTIONS.gifts == true and M.ALLOWLIST == 'runtime/quest-gift-allowlist.json' and M.GIFT_CHECK == 'runtime/quest-gift-check.json')
+local lines = {}
+local env = {log = function(line) lines[#lines + 1] = line end}
+assert(not pcall(M.run, 'gifts', env), 'no allowlist file yet')
+files[M.ALLOWLIST] = serialize({version = 1, ids = {'Items.Beer', 'Items.Gone', 'Items.Gun', 'bad id!', 42, 'Items.Gone2'}})
+missing['Items.Gone2'] = true
+local report = M.run('gifts', env)
+assert(report.checked == 4 and #report.missing == 2 and report.okCount == 2 and report.file == M.GIFT_CHECK, 'checked ' .. report.checked)
+local written = decode(files[M.GIFT_CHECK])
+assert(written.version == 1 and written.checked == 4 and #written.missing == 2 and written.missing[1] == 'Items.Gone' and written.missing[2] == 'Items.Gone2' and #written.ok == 2)
+assert(#lines == 2 and lines[1]:find('Items.Gone', 1, true) and lines[2]:find('Items.Gone2', 1, true), 'one log line per missing id')
+files[M.ALLOWLIST] = serialize({version = 2, ids = {}})
+assert(not pcall(M.run, 'gifts', env), 'a wrong version is refused')
+files[M.ALLOWLIST] = serialize({version = 1, ids = {}})
+assert(M.run('gifts', env).checked == 0)
+-- A TweakDB that raises counts the id as missing.
+TweakDB = {GetRecord = function() error('no db') end}
+files[M.ALLOWLIST] = serialize({version = 1, ids = {'Items.Beer'}})
+assert(#M.run('gifts', env).missing == 1)
+io.open = real_open
+`));

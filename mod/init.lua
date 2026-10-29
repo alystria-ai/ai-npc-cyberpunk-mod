@@ -491,6 +491,8 @@ convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
     -- Eddies with characters (docs/EDDIES.md): the spoken turn's block, before any return below (a game-placed character talks about money too).
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
+    -- A pay stage of a bond quest (docs/QUEST_PRIMITIVES.md section 10.2): quest = {pack, cast} when the target is its cast member.
+    if not context.reaction and not context.group and not context.head then convaiQuestAttach(context) end
     -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): the spoken turn's block too (a game-placed character has a bond as well, and a group
     -- round turn carries its speaker's own block). Johnny in V's head and reactions have none.
     if not context.reaction and not context.head then convaiBondsAttach(context) end
@@ -3718,6 +3720,8 @@ local function sendRequest(context)
     if not context.reaction and not context.head then convaiBondsAttach(context) end
     -- Eddies with characters (docs/EDDIES.md): one boolean while it is off.
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
+    -- A pay stage of a bond quest: quest = {pack, cast} when the target is its cast member (one nil check while none is armed).
+    if not context.reaction and not context.group and not context.head then convaiQuestAttach(context) end
     local encodedOk, encoded = pcall(json.encode, context)
     if not encodedOk then
         gameplayActions.revoke('request-write-failed', context.requestId)
@@ -6886,6 +6890,8 @@ end
 -- with Character bonds and Story packs On, nothing is loaded otherwise. The tick is one nil check while no quest is armed. Globals and one do-block, as for
 -- Eddies and bonds: the main chunk is near Lua's limit of locals.
 convaiQuestPlay, convaiQuestLines, convaiQuestWorld, convaiQuestSpeaker = nil, nil, nil, nil
+-- The primitive registry (the pay stage lookup of a turn) and the facts reader (mod/quest-facts.lua, built the first time the play file wants a fact).
+convaiQuestPrims, convaiQuestFacts, convaiQuestFactsFailed = nil, nil, false
 convaiQuestDue = true
 -- What an ordinary person did after what V said (mod/npc-reactions.lua calls options.onOutcome(kind, entityKey) where a reaction starts). The npc-react primitive
 -- (mod/quest-prims-scene.lua) adds a listener to convaiQuestNpcSinks through the scene world calls and takes it away with its stage. With no quest the list is empty.
@@ -6936,12 +6942,12 @@ do
                 emit = function(pack, name) if convaiQuestPlay then convaiQuestPlay.emitPack(pack, name) end end,
                 onChange = function() if convaiQuestPlay then convaiQuestPlay.rearm() end end})
             local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log})
-            convaiQuestWorld, convaiQuestLines = world, lines
+            convaiQuestWorld, convaiQuestLines, convaiQuestPrims = world, lines, prims
             return play
         end)
         if not built then
             failed = true
-            convaiQuestWorld, convaiQuestLines = nil, nil
+            convaiQuestWorld, convaiQuestLines, convaiQuestPrims = nil, nil, nil
             convaiLogOnce('quest-build', 'Bond quests are unavailable: ' .. tostring(play))
             return nil
         end
@@ -6965,6 +6971,31 @@ do
         if not play then return end
         local ok, problem = pcall(play.update, player, delta)
         if not ok then convaiLogOnce('quest-tick', 'Bond quests update failed: ' .. tostring(problem)) end
+        -- The facts the packs want read (runtime/quest-facts.json): a nil check while the play file wants none. The reader looks at its clock every 5 s and reads every 300 s.
+        if play.factsWanted ~= nil and play.factsWanted() ~= nil and not convaiQuestFactsFailed then
+            if convaiQuestFacts == nil then
+                local loaded, module = pcall(dofile, 'quest-facts.lua')
+                local built, reader = false, nil
+                if loaded and type(module) == 'table' and type(module.new) == 'function' then
+                    built, reader = pcall(module.new, {enabled = settingOn, wanted = function() return convaiQuestPlay and convaiQuestPlay.factsWanted() end,
+                        clock = os.clock, gameTime = gameClock, log = log})
+                end
+                if built and type(reader) == 'table' then convaiQuestFacts = reader
+                else convaiQuestFactsFailed = true; convaiLogOnce('quest-facts', 'Quest facts are unavailable: ' .. tostring(reader or module)) end
+            end
+            if convaiQuestFacts ~= nil then
+                local okFacts, problemFacts = pcall(convaiQuestFacts.update, delta)
+                if not okFacts then convaiLogOnce('quest-facts-tick', 'Quest facts update failed: ' .. tostring(problemFacts)) end
+            end
+        end
+    end
+    -- A private turn to an ordinary cast member of an armed pay stage carries quest = {pack, cast} so the bridge reads V's words against what the stage waits for
+    -- (docs/QUEST_PRIMITIVES.md section 10.1). One nil check while no pay stage is armed. The cast member is looked up by its entity ID, nothing is kept.
+    function convaiQuestAttach(context)
+        local prims = convaiQuestPrims
+        if prims == nil or type(prims.payTargetFor) ~= 'function' or type(context) ~= 'table' or context.entity == nil then return end
+        local ok, target = pcall(prims.payTargetFor, context.entity, context.profileKey)
+        if ok and type(target) == 'table' then context.quest = {pack = target.pack, cast = target.cast} end
     end
     -- The bridge says the play file changed (runtime/bonds-status.json, mod/bonds.lua): read it now.
     function convaiQuestPlayRevision()
@@ -6978,6 +7009,7 @@ do
     function convaiQuestReset(reason)
         convaiQuestDue = true
         convaiQuestSpeaker = nil
+        if convaiQuestFacts then pcall(convaiQuestFacts.reset) end   -- the facts are read again in the new world
         if convaiQuestPlay then pcall(convaiQuestPlay.abandon) end
     end
     -- The pose of a talk gap (mod/quest-lines.lua asks once at the gap's start and once at its end): the copy takes the gap's idle, or the one its situation stands

@@ -10,17 +10,21 @@
 --   P.restore()               session start: read the play file once and arm what it names (a quest ending is not played again)
 --   P.worldChanged()          a save was loaded or the world ended: every pin is dead (forgotten without asking the system), every ctx is reaped, the file is
 --                             read again from the saved stage
---   P.emit(quest, name)       an event of a quest. P.inject(name) is the developer probe, it injects one for every armed quest
+--   P.emit(quest, name, opts) an event of a quest, opts {report = false, data = {...}}. P.inject(name) is the developer probe, it injects one for every armed quest
+--   P.factsWanted()           the facts the bridge wants read (the play file's factsWanted, cleaned), or nil when there are none (mod/quest-facts.lua)
 --   P.status()                what the module holds
 --
--- ctx (the single cleanup owner of a quest stage): ctx:track(kind, handle, undo), ctx:after(seconds, fn), ctx:every(seconds, fn), ctx:on(event, fn),
--- ctx:emit(name), ctx:reap() (LIFO, idempotent). A stage change reaps the old stage's ctx and starts the new one. A quest that leaves the file, the setting
+-- Event data: an event may carry `data`, a flat table of at most 6 keys whose values are numbers, booleans or strings of at most 80 characters (anything else is
+-- dropped). It goes to the bridge in runtime/quest-events.json with the event, and a bridge command may carry it too (it reaches the listeners).
+--
+-- ctx (the single cleanup owner of a quest stage): ctx:track(kind, handle, undo), ctx:after(seconds, fn), ctx:every(seconds, fn), ctx:on(event, fn(name, data)),
+-- ctx:emit(name, data), ctx:reap() (LIFO, idempotent). A stage change reaps the old stage's ctx and starts the new one. A quest that leaves the file, the setting
 -- going off and a quest stamped later than the loaded save's clock + 120 s (it belongs to a save that was loaded away from) are handled the same way.
 --
 -- options: enabled() -> bool, clock() -> seconds (monotonic real clock), gameTime() -> the game clock in seconds | nil, read(path), write(path, text),
 --   encode, decode, places (mod/quest-places.lua), lines (mod/quest-lines.lua), prims (mod/quest-prims.lua), session (a fixed session id, for tests), log(line).
 local M = {PLAY = 'runtime/quest-play.json', EVENTS = 'runtime/quest-events.json', TAG = 'CyberpunkConvaiQuest', STEP = 1, SLACK = 120, MAX_FILE = 262144,
-    MAX_QUESTS = 8, MAX_EVENTS = 32, MAX_DRAIN = 64, MAX_DO = 16, MAX_ROWS = 64, MAX_FAILS = 3, MAX_SEEN = 256}
+    MAX_QUESTS = 8, MAX_EVENTS = 32, MAX_DRAIN = 64, MAX_DO = 16, MAX_ROWS = 64, MAX_FAILS = 3, MAX_SEEN = 256, MAX_DATA = 6, MAX_FACTS = 32, MAX_FACT_NAMES = 8}
 
 local function plainId(value) return type(value) == 'string' and #value > 0 and #value <= 80 and value:match('^[%w][%w%.:_%-]*$') ~= nil end
 local function eventName(value) return type(value) == 'string' and #value > 0 and #value <= 120 and value:match('^[%w][%w:%-_%.]*$') ~= nil end
@@ -29,6 +33,50 @@ local function whole(value, low, high)
     return type(value) == 'number' and value == value and value == math.floor(value) and value >= low and value <= high
 end
 local function list(value) return type(value) == 'table' and value or {} end
+
+-- Event data (docs/QUEST_PRIMITIVES.md section 10.1): a flat table of at most 6 keys, each value a finite number, a boolean or a string of at most 80 characters.
+-- Returns a fresh clean table, or nil when nothing is left. Keys are short plain names.
+function M.cleanData(value)
+    if type(value) ~= 'table' then return nil end
+    local out, count = {}, 0
+    for key, item in pairs(value) do
+        if type(key) == 'string' and #key > 0 and #key <= 32 and key:match('^[%w_%-]+$') then
+            local kind, keep = type(item), nil
+            if kind == 'number' and item == item and item ~= math.huge and item ~= -math.huge then keep = item
+            elseif kind == 'boolean' then keep = item
+            elseif kind == 'string' then keep = #item <= 80 and item or item:sub(1, 80):gsub('[\128-\191]+$', '') end
+            if keep ~= nil and count < M.MAX_DATA then out[key], count = keep, count + 1 end
+        end
+    end
+    return count > 0 and out or nil
+end
+
+-- The facts the bridge wants read: {id, names = {...}, kind = 'bool' | 'enum', values = {...}}. At most 32 facts of 8 names each, names of 80 characters.
+local function cleanFacts(value)
+    local out = {}
+    for _, row in ipairs(list(value)) do
+        if #out >= M.MAX_FACTS then break end
+        if type(row) == 'table' and plainId(row.id) and (row.kind == 'bool' or row.kind == 'enum') and type(row.names) == 'table' then
+            local names = {}
+            for _, name in ipairs(row.names) do
+                if #names < M.MAX_FACT_NAMES and type(name) == 'string' and #name > 0 and #name <= 80 and name:match('^[%w_%.:%-]+$') then names[#names + 1] = name end
+            end
+            if #names > 0 then
+                local values
+                if row.kind == 'enum' and type(row.values) == 'table' then
+                    values = {}
+                    for index, name in ipairs(names) do
+                        local text = row.values[index]
+                        if text == nil then text = row.values[name] end
+                        if type(text) == 'string' and #text > 0 and #text <= 80 then values[index] = text end
+                    end
+                end
+                out[#out + 1] = {id = row.id, names = names, kind = row.kind, values = values}
+            end
+        end
+    end
+    return #out > 0 and out or nil
+end
 
 function M.new(options)
     options = options or {}
@@ -45,6 +93,7 @@ function M.new(options)
     local closingScopes = {}     -- pack -> the scope of an ended quest, so the events of its ending lines still reach the bridge
     local logged = {}
     local places, lines, prims = options.places, options.lines, options.prims
+    local wantedFacts = nil      -- the play file's factsWanted, cleaned (mod/quest-facts.lua reads them), nil when there are none
 
     -- ---- the game's calls, all guarded --------------------------------------------------------------------------------------------------
     local function clock()
@@ -107,9 +156,9 @@ function M.new(options)
         end
     end
 
-    local function record(q, name)
+    local function record(q, name, data)
         seq = seq + 1
-        events[#events + 1] = {seq = seq, pack = q.pack, serial = q.serial, name = name, at = gameTime() or 0}
+        events[#events + 1] = {seq = seq, pack = q.pack, serial = q.serial, name = name, at = gameTime() or 0, data = data}
         while #events > M.MAX_EVENTS do table.remove(events, 1) end
         eventsDirty = true
     end
@@ -128,9 +177,9 @@ function M.new(options)
     local function handle(item)
         local q, name = item.q, item.name
         if q.dead then return end
-        if item.report then record(q, name) end
+        if item.report then record(q, name, item.data) end
         if lines then lines.onEvent(q.pack, name) end
-        if q.ctx then q.ctx:dispatch(name) end
+        if q.ctx then q.ctx:dispatch(name, item.data) end
         for index, row in ipairs(q.rows) do
             if index > M.MAX_ROWS then break end
             if not q.fired[index] and type(row) == 'table' and row.when == name then
@@ -145,7 +194,7 @@ function M.new(options)
     -- rows (each once per stage visit, in file order). Events raised while one is handled wait their turn.
     function P.emit(q, name, opts)
         if type(q) ~= 'table' or q.dead or not eventName(name) then return false end
-        queue[#queue + 1] = {q = q, name = name, report = not (opts and opts.report == false)}
+        queue[#queue + 1] = {q = q, name = name, report = not (opts and opts.report == false), data = opts and M.cleanData(opts.data) or nil}
         if draining then return true end
         draining = true
         local guard = 0
@@ -165,7 +214,7 @@ function M.new(options)
     -- ---- the ctx ------------------------------------------------------------------------------------------------------------------------
     local function newCtx(q)
         local ctx = {pack = q.pack, character = q.character, serial = q.serial, stage = q.stage, places = q.places, tag = M.TAG .. ':' .. q.pack,
-            tracked = {}, timers = {}, listeners = {}, prims = {}, reaped = false}
+            gifts = q.gifts, tracked = {}, timers = {}, listeners = {}, prims = {}, reaped = false}
         function ctx:track(kind, handle, undo)
             if self.reaped then
                 if type(undo) == 'function' then pcall(undo, handle) end
@@ -206,15 +255,15 @@ function M.new(options)
             self.listeners[#self.listeners + 1] = {name = name, fn = fn}
             return fn
         end
-        function ctx:dispatch(name)
+        function ctx:dispatch(name, data)
             if self.reaped or #self.listeners == 0 then return end
             local snapshot = {}
             for index, l in ipairs(self.listeners) do snapshot[index] = l end
             for _, l in ipairs(snapshot) do
-                if l.name == name and not self.reaped then pcall(l.fn, name) end
+                if l.name == name and not self.reaped then pcall(l.fn, name, data) end
             end
         end
-        function ctx:emit(name) if not self.reaped then P.emit(q, name) end end
+        function ctx:emit(name, data) if not self.reaped then P.emit(q, name, data ~= nil and {data = data} or nil) end end
         -- The world is gone (a load, a detach): nothing is asked of it any more, the ctx just lets go.
         function ctx:forget()
             self.reaped = true
@@ -312,6 +361,7 @@ function M.new(options)
         return {pack = q.pack, character = q.character, stage = q.stage, serial = q.serial, since = q.since,
             places = type(q.places) == 'table' and q.places or {}, doList = list(q['do']), rows = list(q.script), lines = list(q.lines),
             gaps = list(q.gaps), images = list(q.images), gap = type(q.gap) == 'table' and q.gap or nil,
+            gifts = type(q.gifts) == 'table' and q.gifts or nil,   -- the character's likes rules for a gift primitive (loved, liked, disliked)
             timeoutAt = type(q.timeoutAt) == 'number' and q.timeoutAt == q.timeoutAt and q.timeoutAt >= 0 and q.timeoutAt or nil}
     end
 
@@ -385,7 +435,7 @@ function M.new(options)
 
     local function runCommand(q, c)
         if c.cmd == 'event' and eventName(c.name) then
-            P.emit(q, c.name, {report = false})
+            P.emit(q, c.name, {report = false, data = c.data})
         elseif c.cmd == 'resume' and lines then
             lines.closeGap(q.pack, plainId(c.gap) and c.gap or nil, true)
         end
@@ -393,6 +443,7 @@ function M.new(options)
 
     -- Apply a decoded play file. startup: the quest's ending rows and commands already in the file belong to a time before this one (they are not played).
     local function apply(value, startup)
+        wantedFacts = cleanFacts(value.factsWanted)
         local wanted, fresh_ = {}, {}
         for _, q in ipairs(list(value.quests)) do
             if #fresh_ >= M.MAX_QUESTS then break end
@@ -443,7 +494,7 @@ function M.new(options)
     local function readPlay(startup)
         local raw = read(M.PLAY)
         if type(raw) ~= 'string' or raw == '' or #raw > M.MAX_FILE then
-            if raw == nil and next(quests) ~= nil and lastRaw ~= nil then lastRaw = nil; reapAll() end   -- the file is gone: no quest
+            if raw == nil and lastRaw ~= nil then lastRaw, wantedFacts = nil, nil; if next(quests) ~= nil then reapAll() end end   -- the file is gone: no quest, no facts
             return
         end
         if raw == lastRaw then return end
@@ -545,6 +596,9 @@ function M.new(options)
 
     function P.armed() return armed end
 
+    -- The facts the bridge wants read (mod/quest-facts.lua), a list of {id, names, kind, values}, or nil. Held from the last play file applied, so asking is free.
+    function P.factsWanted() return wantedFacts end
+
     function P.status()
         local rows = {}
         for pack, q in pairs(quests) do
@@ -553,7 +607,7 @@ function M.new(options)
                 timers = #ctx.timers, fired = (function() local n = 0 for _ in pairs(q.fired) do n = n + 1 end return n end)()}
         end
         table.sort(rows, function(a, b) return a.pack < b.pack end)
-        return {armed = armed, session = session, seq = seq, quests = rows, events = #events,
+        return {armed = armed, session = session, seq = seq, quests = rows, events = #events, facts = wantedFacts and #wantedFacts or 0,
             lines = lines and lines.status() or nil, places = places and places.status() or nil}
     end
 

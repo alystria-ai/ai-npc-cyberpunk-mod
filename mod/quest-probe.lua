@@ -9,9 +9,12 @@
 --   event:<name>                 an event as if the game saw it (every armed quest gets it: its rows fire, its gap can end)
 --   line:<pack>:<lineId>         one scripted line of an armed quest now, as a plot line
 --   reap                         every ctx, pin, spawn, timer and line is cleaned up now
+--   gifts                        checks every id of runtime/quest-gift-allowlist.json (the bridge writes {version = 1, ids = [...]}) against the game with TweakDB:GetRecord,
+--                                logs a line per missing id and writes runtime/quest-gift-check.json {version = 1, checked, missing = [...], ok = [...]}
 local M = {}
 M.CAPTURE = 'runtime/quest-place-capture.json'
-M.ACTIONS = {status = true, capture = true, event = true, line = true, reap = true}
+M.ACTIONS = {status = true, capture = true, event = true, line = true, reap = true, gifts = true}
+M.ALLOWLIST, M.GIFT_CHECK, M.MAX_GIFT_IDS = 'runtime/quest-gift-allowlist.json', 'runtime/quest-gift-check.json', 400
 M.OUTDOOR_RADIUS, M.INDOOR_RADIUS = 25, 8
 
 local function round(value) return math.floor(value * 100 + 0.5) / 100 end
@@ -25,10 +28,39 @@ local function readCapture()
     return {version = 1, places = {}}
 end
 
+-- The gift allowlist against the game: every id is looked up once with TweakDB:GetRecord (guarded), nothing is kept. Developer probe only.
+local function checkGifts(env)
+    local file = io.open(M.ALLOWLIST, 'rb')
+    if not file then error('no ' .. M.ALLOWLIST .. ' (the bridge writes it)') end
+    local raw = file:read('*a'); file:close()
+    local okDecode, value = pcall(json.decode, raw)
+    if not okDecode or type(value) ~= 'table' or value.version ~= 1 or type(value.ids) ~= 'table' then error(M.ALLOWLIST .. ' is not {version = 1, ids = [...]}') end
+    local report = {version = 1, checked = 0, missing = {}, ok = {}}
+    for _, id in ipairs(value.ids) do
+        if report.checked >= M.MAX_GIFT_IDS then break end
+        if type(id) == 'string' and #id <= 120 and id:match('^[%a][%w_%.]*$') then
+            report.checked = report.checked + 1
+            local okRecord, record = pcall(function() return TweakDB:GetRecord(id) end)
+            if okRecord and record ~= nil then
+                report.ok[#report.ok + 1] = id
+            else
+                report.missing[#report.missing + 1] = id
+                local say = env and env.log
+                if type(say) == 'function' then pcall(say, 'Quest gifts: the gift record ' .. id .. ' is not in the game') end
+            end
+        end
+    end
+    local out = io.open(M.GIFT_CHECK, 'wb')
+    if not out then error('the check file cannot be written') end
+    out:write(json.encode(report)); out:close()
+    return {checked = report.checked, missing = report.missing, okCount = #report.ok, file = M.GIFT_CHECK}
+end
+
 function M.run(action, env)
     local verb, rest = tostring(action):match('^(%a+):?(.*)$')
     if not M.ACTIONS[verb or ''] then error('unknown action ' .. tostring(action)) end
     local play = convaiQuestPlay
+    if verb == 'gifts' then return checkGifts(env) end
     if verb == 'status' then
         return {loaded = play ~= nil, status = play and play.status() or nil, world = convaiQuestWorld ~= nil}
     end
