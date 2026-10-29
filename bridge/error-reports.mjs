@@ -49,7 +49,7 @@ const LINE_LIMIT = 300;
 // `engine` and the graphics-memory numbers are what ErrorEvents.voiceFailed records (they never reached a report before: the voice reports of 2026-10-22 all had an empty detail), the `empty*` ones
 // how a server the player runs ended an answer with no text (emptyAnswerDetail in bridge/error-events.mjs): a short word and counts, never text.
 const DETAIL_KEYS = new Set(['provider', 'errorCode', 'localReason', 'microphone', 'log', 'context', 'scripts', 'runtime', 'detail',
-  'scriptsGame', 'runtimeGame', 'engine', 'gpuDedicatedMiB', 'gpuSharedMiB', 'emptyFinish', 'emptyEvents', 'emptyPieces', 'emptyThinking', 'emptyTokens', 'emptyMs',
+  'scriptsGame', 'runtimeGame', 'missingModules', 'engine', 'gpuDedicatedMiB', 'gpuSharedMiB', 'emptyFinish', 'emptyEvents', 'emptyPieces', 'emptyThinking', 'emptyTokens', 'emptyMs',
   // Why the sign-in backend could not be reached: one network code (ENOTFOUND, ECONNRESET, UND_ERR_CONNECT_TIMEOUT, TimeoutError ...), bridge/error-events.mjs authCauseDetail.
   'authCause']);
 // The game's setup row "service never" says that, when the game loaded its save, nothing of this game session had started the conversation service (the Runtime or its

@@ -9,6 +9,7 @@ import {atomicFile} from './guarded-file.mjs';
 import {browserNameFor, systemBrowserCandidates} from './system-browser.mjs';
 import {amdRoute, gpuVendors} from './gpu-vendors.mjs';
 import {checkRuntimeSteps} from './runtime-steps.mjs';
+import {checkRuntimePython} from './runtime-python.mjs';
 
 // Setup check (Settings > Help): what the Node side can tell the player about their installation, as codes the game's Lua turns into
 // translated text. runtime/setup-check-request.json (written by the Help page) asks, runtime/setup-check.json answers; neither is shipped
@@ -348,6 +349,18 @@ const caches = {graphics: null, browser: undefined, managers: null, memory: null
 export function cachedGraphicsCards(options) { return caches.graphics ??= detectGraphicsCards(options); }
 export function cachedBrowserName(options) { return caches.browser === undefined ? (caches.browser = detectBrowserName(options)) : caches.browser; }
 export function cachedModManagers(options) { return caches.managers ??= detectModManagers(options); }
+// The Runtime's Python (bridge/runtime-python.mjs): the folders are read every time (a few milliseconds); the Python itself is asked only by a full run, and an
+// answer of 'ok' stands for ten minutes (the files of a started Runtime do not change by themselves). A problem is never kept: the next run asks again.
+const PYTHON_OK_MS = 10 * 60 * 1000;
+export async function cachedRuntimePython({project, light = false, now = Date.now, check = checkRuntimePython} = {}) {
+  const key = String(project);
+  const kept = caches.python?.get(key);
+  if (!light && kept && now() - kept.at < PYTHON_OK_MS) return kept.value;
+  const found = await check({project, import: !light});
+  if (!light && found?.state === 'ok') (caches.python ??= new Map()).set(key, {at: now(), value: found});
+  return found;
+}
+export function resetRuntimePythonCache() { caches.python = undefined; }
 export function cachedMemoryFacts(options) { return caches.memory ??= detectMemoryFacts(options); }
 /** For tests: forget what the caches hold. */
 export function resetSetupCheckCaches() { caches.graphics = null; caches.browser = undefined; caches.managers = null; caches.memory = null; }
@@ -450,6 +463,7 @@ const text = (value, size) => clip(value, size) ?? '';
  *   game, modRoot, project, stateDirectory, plugin; settings (an object, or a function returning one)
  *   localAi() -> {status, reason, packInstalled, tiers, matureOnly, ownServer, ownModel, models}   omniPack() -> {installed, missing}
  *   browser() -> name|null   graphics() -> [{name, memoryMiB}]   modManagers() -> {managers}   reach(host) -> code
+ *   python({light}) -> {state, missing[], missingCount, layout} (the Runtime's Python has its files; default: bridge/runtime-python.mjs)
  *   omniPython({light}) -> null | {used, backend, reason, module, device, vramMiB, testing?} (only with omni-python.txt)
  *   nestedPacks() -> [{pack, folder}]   placement() -> {fixed, conflicts, errors}|null   voice() -> null | {engine, reason} (the Pocket voice failed to start)
  *   now, request (the id this run answers, or null), light (no process started, no connection made: the graphics card, the browser
@@ -606,6 +620,19 @@ export async function collectSetupCheck(options = {}) {
     return await exists(join(game, 'engine', 'tools', 'scc.exe'), 'file') ? {state: 'ok', code: 'found'} : {state: 'problem', code: 'missing'};
   });
 
+  // The Python of the voice workers (app/python: Pocket, V's voice, the local speech recognition) has every file they import (bridge/runtime-python.mjs; report
+  // 0b8367fd0ebd2f2f: the folder Lib/urllib was gone, Python started, the voice never could). The light run reads the folders (no process); a full run also asks the Python itself,
+  // once per bridge process while it answers well (a result that is a problem is asked again every time: the player may have reinstalled). Codes: 'ok' | 'incomplete';
+  // `missing` is up to eight module names (never a folder), `missingCount` how many.
+  const python = () => guarded('python', async () => {
+    if (!project && typeof options.python !== 'function') return {state: 'unknown', code: 'unknown', layout: null, missing: [], missingCount: 0};
+    const found = await (typeof options.python === 'function' ? call('python', {light}) : cachedRuntimePython({project, light}));
+    const missing = (Array.isArray(found?.missing) ? found.missing : []).slice(0, 8).map(name => clip(name, 60)).filter(Boolean);
+    const state = found?.state === 'ok' || found?.state === 'problem' ? found.state : 'unknown';
+    return {state, code: state === 'problem' ? 'incomplete' : state === 'ok' ? 'ok' : 'unknown', layout: found?.layout === 'lib' || found?.layout === 'zip' ? found.layout : null,
+      missing, missingCount: Number.isFinite(found?.missingCount) ? Math.max(0, Math.round(found.missingCount)) : missing.length};
+  });
+
   // The Pocket voice (V's voice, and the companions' when Pocket is the voice they use): a problem only while a worker has failed and has not loaded
   // again. Only the bridge knows (voice() -> null | {engine, reason, cause?}); a run without it has no such row. The row gives the engine, never the reason's
   // words (they can hold a folder): the reason is in the log and the error report. `cause: 'blocked'` (Windows refused to load a file of the voice) and
@@ -613,7 +640,7 @@ export async function collectSetupCheck(options = {}) {
   const voice = () => guarded('voice', async () => {
     const problem = await call('voice');
     if (!problem) return {state: 'ok', code: 'ok'};
-    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(problem.cause === 'blocked' || problem.cause === 'virtual-memory' ? {cause: problem.cause} : {})};
+    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(['blocked', 'virtual-memory', 'missing-files'].includes(problem.cause) ? {cause: problem.cause} : {})};
   });
 
   // The player's own Python for OmniVoice (<data>/omni-python.txt, docs/OMNIVOICE_AMD.md): a row only when the file names one. omniPython({light}) -> null |
@@ -658,7 +685,7 @@ export async function collectSetupCheck(options = {}) {
     return null;
   };
 
-  const checks = (await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(), disk(),
+  const checks = (await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(), disk(), python(),
     ...(typeof options.voice === 'function' ? [voice()] : []), ...(typeof options.omniPython === 'function' ? [omniPython()] : []),
     ...(typeof options.microphone === 'function' ? [microphone()] : [])])).filter(Boolean);
   return {version: 1, updated: now(), bridgePid: process.pid, request, checks};

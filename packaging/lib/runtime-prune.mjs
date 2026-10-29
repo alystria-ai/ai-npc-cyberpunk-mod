@@ -24,6 +24,14 @@ export const PYTHON_PRUNE_RULES = Object.freeze([
   {id: 'package-tests', test: rel => TESTS_FOLDER.test(rel)},
 ]);
 
+// Files a Python worker never loads at run time: C/C++ headers, link libraries, CMake files, caches. Applied to every Python the release builds (the Runtime's and the
+// OmniPack's). A .pyc outside site-packages is the unzipped standard library itself (sourceless, packaging/build-release.mjs installPython), so it is kept (the rule
+// before the unzip skipped every .pyc, which with an unzipped Lib ships no standard library; packaging/runtime-python.test.mjs holds the rule against the files the voice workers load).
+export const PYTHON_SKIP = rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel) || /^Lib\/site-packages\/.*\.pyc$/.test(rel)
+  || /^Lib\/site-packages\/torch\/(?:include|share)\//.test(rel) || /^Lib\/site-packages\/torch\/lib\/[^/]+\.lib$/i.test(rel)
+  // Build tools inside wheels: setuptools' script-launcher stubs and PyTorch's protobuf compiler.
+  || /^Lib\/site-packages\/setuptools\/(?:cli|gui)[^/]*\.exe$/i.test(rel) || /^Lib\/site-packages\/torch\/bin\/[^/]+\.exe$/i.test(rel);
+
 /** True for a file of the Runtime's Python that the build leaves out (in addition to the build's own PYTHON_SKIP). */
 export const pythonPruned = rel => PYTHON_PRUNE_RULES.some(rule => rule.test(rel));
 

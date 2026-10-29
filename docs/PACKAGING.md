@@ -673,6 +673,19 @@ The OmniPack is not changed by this: its Python (3.11, CUDA torch) is built by t
 
 How it reaches a player who has the files: the update zip's removal list holds every path the old Runtime had and the new one has not (about 2,400 paths for this change), the start step deletes them one by one under the folders a Runtime installs into (`app/python/`, `app/pocket-tts/` and `app/node_modules/` are all under `app/`) and removes the folders it empties. A list this long is applied within one start (the budget is eight seconds and the rest waits for the next start; `packaging/runtime-prune.test.mjs` runs the chain on fixture zips, and `packaging/test-release-install.mjs --update-from` runs it on the real ones). A player on an older Runtime who extracts the full Runtime keeps the old files (extracting adds, never deletes) and they are harmless. What is not removed from an existing install: the Lua files the Scripts zip no longer carries (`devOnlyLua`, below), because the start step only deletes under the Runtime's folders.
 
+### The Python standard library (0.3.4, and the check for it)
+
+The Runtime's Python is the embeddable package with its standard library unzipped into `app/python/Lib/` as sourceless `.pyc` and a `python312._pth` that lists `Lib`, `.`, `Lib\site-packages`, `..\bridge` and `import site` (`installPython` with `unzipStdlib` in `packaging/build-release.mjs`; Nexus Mods quarantines an upload that carries a zip inside the zip, so the package's own `python312.zip` is not shipped). A player who had an earlier 0.3.4 Full zip keeps an unused `python312.zip`; both layouts work, and a Runtime older than the unzip keeps the standard library in the zip.
+
+What the build refuses (report 0b8367fd0ebd2f2f, a player's `app/python` had no `Lib/urllib` and the voice never started; the shipped zips were complete, so this is the guard against a build or an extraction that is not):
+- the unzip must leave every file of the standard library zip on the disk (`assertStdlibUnzipped`, compared with the zip's own directory);
+- after the files of the Python are added to the package, every standard library file and site-package the voice workers import must be in it (`assertPythonShipped`, `packaging/lib/python-stdlib.mjs`), so a skip or prune rule that takes one fails the build (`PYTHON_SKIP` lives in `packaging/lib/runtime-prune.mjs`, held by `packaging/runtime-python.test.mjs`);
+- the install test runs `bridge/runtime-python.mjs` against the extracted Runtime and asks the packaged Python itself to find every module (`python.exe -I`), before the Pocket voice speaks.
+
+The list of files is `STDLIB_FILES` and `SITE_PACKAGES` in `bridge/runtime-python.mjs`: the closure of what `pocket-voice-worker.py`, `pocket_voice_runtime.py`, `local-stt-worker.py` and `resident-voice-worker.py` load on Python 3.12 (measured with `sys.modules`; modules frozen into `python312.dll` have no file and are not listed). A new Python version or a worker that imports more changes that list, and `packaging/runtime-python.test.mjs` checks it against the embeddable package's own zip when it is cached.
+
+The running bridge uses the same list for the setup check's `python` row: the folders of the `_pth` are read in every run (a few milliseconds, no process) and a full run also starts `python.exe -I` once to find every module (the result is kept ten minutes while it is good, never while it is a problem). A problem is the Help page's **Voice files** row and the first-load notice "The voice files are incomplete. Reinstall the Full download from Nexus Mods." (15 languages), and a setup-problem report event `python incomplete` with `missingModules`.
+
 ### Runtime update zip
 
 From 0.3.4 the code is in the Scripts and a release ships a Runtime update zip only when it changes the base (and raises `runtimeBase`); the chain

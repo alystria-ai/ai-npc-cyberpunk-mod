@@ -235,6 +235,8 @@ function answer(checks, request)
   if checks and checks['omni-python'] then document.checks[#document.checks + 1] = checks['omni-python'] end
   -- and the 'disk' check when a test gives one (the real service always answers it)
   if checks and checks.disk then document.checks[#document.checks + 1] = checks.disk end
+  -- and the 'python' check (the Runtime's Python has its files) when a test gives one
+  if checks and checks.python then document.checks[#document.checks + 1] = checks.python end
   -- and the 'microphone' check once an input was opened or chosen
   if checks and checks.microphone then document.checks[#document.checks + 1] = checks.microphone end
   put('runtime/setup-check.json', document)
