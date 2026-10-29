@@ -11,7 +11,8 @@ export const LOCAL_VISION = Object.freeze({
   imageMaxTokens: 320,
   // What one picture takes out of the prompt budget (bridge/prompt-budget.mjs): the image tokens plus the markers around them. The prompt is fitted to the context less this.
   imageReserveTokens: 400,
-  // Graphics memory the projector takes beyond its file: the compute buffer of the image encoder (an estimate, not measured: the projector files are not on the development machine).
+  // Graphics memory the projector takes beyond its file: the compute buffer of the image encoder. A safe upper bound: measured on 2026-10-29 (RTX 4080 Laptop, b11782, whole card minus idle) the Q8_0 projectors cost
+  // 759 MiB for the Gemma 4 E4B one (file 534 MiB, so 225 MiB beyond it) and 393 MiB for the Bonsai 2 4B one (file 350 MiB, so 43 MiB beyond it). Kept at 384 so a start never fits a model too tightly beside the game.
   computeHeadroomMiB: 384,
 });
 

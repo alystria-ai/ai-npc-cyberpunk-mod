@@ -69,6 +69,7 @@ import {RUNTIME_FOLDER_NOTE} from './lib/runtime-exchange.mjs';
 import {shippedButWritten} from './lib/package-writes.mjs';
 import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
+import {PROJECTOR_FOLDER, projectorField, projectorNotice, projectorReceipt, projectorUrl, tierProjector, verifyProjectorFile} from './lib/pack-projector.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
@@ -865,6 +866,15 @@ async function localAiFile(spec, url, cacheName) {
   return download(url, resolve(cache, 'local-ai', cacheName), spec.sha256, log);
 }
 
+// The vision projector of a model (packaging/lib/pack-projector.mjs): fetched like the model (the developer folder, else the pinned revision on Hugging Face), checked against its
+// pinned size and SHA-256, written into models/ beside the model. The caller names it in the pack's manifest (projectorField). Returns the pin, or null for a model with none.
+async function addProjector(pkg, root, tier, label) {
+  const spec = tierProjector(tier, label);
+  if (!spec) return null;
+  pkg.file(`${root}/${PROJECTOR_FOLDER}/${spec.file}`, await verifyProjectorFile(await localAiFile(spec, projectorUrl(spec), spec.file), spec));
+  return spec;
+}
+
 // The llama.cpp files that ship: the official Windows Vulkan release (unmodified), only the server, llama-fit-params and the libraries they load (localAi.server
 // keep/drop/require in release.config.json). The Runtime carries them in app/llama-cpp/ (addRuntimeEngine); the packs carry a second copy in the Local AI folder's
 // llama/ while localAi.server.inPacks is true (addEngine).
@@ -970,8 +980,10 @@ async function localAiPackage(source, config, tierKey) {
   const engine = await addEngine(pkg, source, config);
   const chatPath = await localAiFile(tier, huggingFace(tier), tier.file);
   pkg.file(`${root}/models/${tier.file}`, chatPath);
+  // Its vision projector, named in the manifest so the bridge loads it (only while Companions can see is on) without guessing.
+  const projector = await addProjector(pkg, root, tier, `Local AI ${tierKey}`);
 
-  pkg.json(`${root}/manifest.${tierKey}.json`, {version: 1, ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${tier.file}`, name: tier.name}, embed: engine.embed});
+  pkg.json(`${root}/manifest.${tierKey}.json`, {version: 1, ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${tier.file}`, name: tier.name, ...projectorField(projector)}, embed: engine.embed});
 
   // Notices. The same bytes in both Local AI packs.
   const standard = spec.tiers.standard, lite = spec.tiers.lite;
@@ -983,6 +995,7 @@ async function localAiPackage(source, config, tierKey) {
     `${lite.name} (ternary Q2_0 GGUF, a Qwen3.5-based model; Local AI lite only) - ${lite.publisher}, ${lite.license}: licenses/Apache-2.0.txt;`
       + ' it derives from Qwen3.5 (Alibaba Cloud, Apache-2.0)'
       + ` - https://huggingface.co/${lite.repository}`,
+    ...[[standard, 'Google'], [lite, 'PrismML']].filter(([model]) => model.mmproj).map(([model, owner]) => projectorNotice(model.mmproj, owner)),
     embedNotice,
     ...(spec.server.inPacks === false ? ['This pack carries models only and needs the Runtime of version 0.2.7 or newer: the llama.cpp engine that runs the models is part of the Runtime, not of this pack.'] : []),
     'The model files are the unmodified converted files of the publishers named above.',
@@ -991,7 +1004,7 @@ async function localAiPackage(source, config, tierKey) {
   pkg.text(`${root}/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod Local AI packs - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.json(`${root}/local-ai-${tierKey}.json`, {product: config.product, package: `localai-${tierKey}`, version, commit: '' + source.commit,
     llamaCpp: spec.server.version, model: `${tier.repository}@${tier.revision}`, modelFile: tier.file, modelSha256: tier.sha256,
-    embedModel: `${spec.embed.repository}@${spec.embed.revision}`});
+    embedModel: `${spec.embed.repository}@${spec.embed.revision}`, ...projectorReceipt(projector)});
   return pkg;
 }
 
@@ -1030,14 +1043,18 @@ async function maturePackage(source, config, tierKey) {
   const engine = await addEngine(pkg, source, config);
   const mirrored = modelSource === 'hf' ? await matureMirror(source, tierKey) : new Map();
   pkg.file(`${root}/models/${model.file}`, mirrored.get(model.file) ?? await localAiFile(model, huggingFace(model), model.file));
+  // The projector of the model when the pin has one (the Gemma 4 E4B one for the standard pack; the same file, at the same path, as the Local AI standard pack's). The marker names it,
+  // because a Mature model is never given a projector by looking beside it (bridge/mature-pack.mjs).
+  const projector = await addProjector(pkg, root, model, `Mature ${packKey}`);
   // This pack's own marker, so the other pack's marker is never overwritten and either one alone is detected. It names the server and the
   // embedding model too (bridge/local-ai-pack.mjs reads those two fields), so a Mature-only install counts as installed.
-  pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family}, embed: engine.embed});
+  pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family, ...projectorField(projector)}, embed: engine.embed});
   pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));
   for (const licence of spec.licenceFiles) pkg.file(`${root}/${spec.directory}/licenses/${basename(licence)}`, resolve(source.root, licence));
   const [llamaNotice, embedNotice] = engineNotices(config.localAi, 'every Local AI pack and Mature pack');
   pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${packKey}.txt`, [`AI NPC Cyberpunk Mod Mature ${packKey} pack - third-party components`, '',
     `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`,
+    ...(projector ? [`- ${projectorNotice(projector, 'Google')}`] : []),
     `- The model is a community fine-tune of the Apache-2.0 base model named above.${tierKey === 'good' ? ' Google also publishes a prohibited use policy for Gemma: https://ai.google.dev/gemma/prohibited_use_policy' : ''}`,
     `- ${llamaNotice}`, `- ${embedNotice}`,
     config.localAi.server.inPacks === false
@@ -1046,7 +1063,7 @@ async function maturePackage(source, config, tierKey) {
     '- The licence paths above (licenses/...) are in the Local AI folder, one level up from this folder; the Apache-2.0 text is also in mature/licenses/.',
     '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see ../LICENSE.txt.', ''].join('\r\n'));
   pkg.json(`${root}/${spec.directory}/mature-pack-${packKey}.json`, {product: config.product, package: `mature-${packKey}`, version, commit: '' + source.commit,
-    models: [{tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256}]});
+    models: [{tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256, ...projectorReceipt(projector)}]});
   return pkg;
 }
 
