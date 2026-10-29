@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Read-only observations of the current world. This module never interprets
 -- quest outcomes, changes facts, retains native handles, or writes memory.
 -- Call reset on every world transition; generation is a LOAD generation, not
@@ -98,7 +99,7 @@ end
 -- These functions reacquire game systems on each call. No player, journal,
 -- entry, system, enum, or record handle escapes the call that acquired it.
 local function nativeReady()
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player or not player:IsAttached() or player:IsDeadNoStatPool()
         or Game.GetSystemRequestsHandler():IsPreGame() then return false end
     local journal = Game.GetJournalManager()
@@ -232,7 +233,7 @@ local function nativeJournal(key, selector, depthLimit, knownValue)
     return nil, 'journal-depth-limit'
 end
 local function nativeLifepath()
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     local system = Game.GetScriptableSystemsContainer():Get('PlayerDevelopmentSystem')
     if not player or not system then return nil end
     local path = system:GetLifePath(player)

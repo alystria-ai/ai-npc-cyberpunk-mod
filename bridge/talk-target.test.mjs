@@ -12,7 +12,7 @@ const targeting = init.slice(init.indexOf('convaiEntityKey = function'), init.in
 function run(code) {
   const state = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(state);
-  const status = lauxlib.luaL_dostring(state, to_luastring(code));
+  const status = lauxlib.luaL_dostring(state, to_luastring('convaiPlayer = function() return Game.GetPlayer() end ' + code));
   const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state);
   assert.equal(status, lua.LUA_OK, error);

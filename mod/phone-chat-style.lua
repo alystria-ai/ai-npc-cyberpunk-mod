@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Native phone presentation, also installable into an already-open phone.
 -- Keep state on the owned widgets, never in retained native widget handles.
 local M = convaiPhoneChatStyle or {}
@@ -482,7 +483,7 @@ local function childCount(widget) return widget:GetNumChildren() end
 -- phone work); with no player (a wrapped manager update) it asks for itself.
 function M.refresh(force, player, open)
     if player == nil then
-        player = Game.GetPlayer()
+        player = convaiPlayer()
         open = player and player:ConvaiPhoneIsOpen()
     end
     if not player or not open then

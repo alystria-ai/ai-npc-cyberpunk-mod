@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The raw phone shortcut callback cannot consume native game actions. Gate
 -- their menu destination separately, without changing the user's key bindings.
 -- This module can also be installed into an existing CET session once.
@@ -15,7 +16,7 @@ local function queryOpen(player) return player:ConvaiPhoneIsOpen() end
 local function phoneState()
     local now = os.clock()
     if stateAt and now >= stateAt and now - stateAt < (stateAbsent and ABSENT_SECONDS or STATE_SECONDS) then return stateTyping, stateOpen end
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     local okTyping, typing, okOpen, open = false, false, false, false
     if player then
         okTyping, typing = pcall(queryTyping, player)

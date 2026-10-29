@@ -12,7 +12,7 @@ const initLua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8'
 function runLua(program) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
-  const result = lauxlib.luaL_dostring(vm, to_luastring(program));
+  const result = lauxlib.luaL_dostring(vm, to_luastring('convaiPlayer = function() return Game.GetPlayer() end ' + program));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
   lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
 }

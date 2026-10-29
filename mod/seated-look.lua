@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Free look while V sits (docs/COMPANION_SEATING.md, "Looking at her").
 --
 -- The game clamps V's first-person camera inside a workspot with a named
@@ -147,7 +148,7 @@ function M.install(options)
     options = options or {}
     local native = {classify = options.classify, log = options.log, now = options.now}
     function native.seat()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         local seat = {}
         pcall(function()
             local defs = Game.GetAllBlackboardDefs().PlayerStateMachine
@@ -169,9 +170,9 @@ function M.install(options)
         for key, value in pairs(limits) do ev[key] = value end
         return ev
     end
-    function native.queue(limits, set) Game.GetPlayer():QueueEvent(event(limits, set)) end
+    function native.queue(limits, set) convaiPlayer():QueueEvent(event(limits, set)) end
     function native.delay(limits, set, seconds)
-        return Game.GetDelaySystem():DelayEvent(Game.GetPlayer(), event(limits, set), seconds, false)
+        return Game.GetDelaySystem():DelayEvent(convaiPlayer(), event(limits, set), seconds, false)
     end
     function native.cancel(id) Game.GetDelaySystem():CancelDelay(id) end
     local controller = M.new(native)

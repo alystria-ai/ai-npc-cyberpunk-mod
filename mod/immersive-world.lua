@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of immersive invitations (docs/IMMERSIVE_INVITATIONS.md): V's position and what holds V, the meeting place and the
 -- words for it, the map waypoint, and the hidden spot a visitor appears at. Everything here is read when an appointment asks (an
 -- offer, a spot search, a step of a visitor), never per frame, and every game call is guarded: a failed read is "unknown", never an error
@@ -74,7 +75,7 @@ function M.new(deps)
     end
 
     function W.state()
-        local ok, player = pcall(Game.GetPlayer)
+        local ok, player = pcall(convaiPlayer)
         if not ok or not player then return {running = false} end
         local position = point(player:GetWorldPosition())
         local held
@@ -186,7 +187,7 @@ function M.new(deps)
     -- nearest first, and how many vehicles were seen. One targeting query, asked once per appointment when the engine's road lookup says nothing.
     local function trafficLanes(from)
         local ok, rows, count = pcall(function()
-            local player = Game.GetPlayer()
+            local player = convaiPlayer()
             local query = TSQ_ALL()
             query.testedSet = Enum.new('TargetingSet', 'Complete')
             query.maxDistance = TRAFFIC_RADIUS
@@ -363,7 +364,7 @@ function M.new(deps)
     -- glue while Car is the arrival method, only while V is in a moving vehicle.
     function W.sampleTrail()
         pcall(function()
-            local player = Game.GetPlayer()
+            local player = convaiPlayer()
             local car = player and player:GetMountedVehicle()
             if not car then return end
             local speed = car:GetCurrentSpeed()
@@ -413,7 +414,7 @@ function M.new(deps)
         local ok, entity = pcall(function()
             local found = Game.FindEntityByID(handle.entityID)
             if not found or not found:IsAttached() or found:IsDestroyed() then return nil end
-            local player = Game.GetPlayer()
+            local player = convaiPlayer()
             local from, to = player:GetWorldPosition(), found:GetWorldPosition()
             if math.sqrt((from.x - to.x) ^ 2 + (from.y - to.y) ^ 2) > (radius or 25) then return nil end
             return found

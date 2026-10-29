@@ -19,7 +19,7 @@ const block = between('-- Companions and Johnny speak up on their own (docs/COMP
 
 function run(code) {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
-  const result = lauxlib.luaL_dostring(state, to_luastring(code));
+  const result = lauxlib.luaL_dostring(state, to_luastring('convaiPlayer = function() return Game.GetPlayer() end ' + code));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 }

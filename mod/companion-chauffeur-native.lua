@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Cyberpunk 2.31 NPC vehicle-AI boundary. The coordinator owns a temporary driving
 -- lease; this adapter never spawns, deletes, unlocks or persists a player car.
 local M={}
@@ -360,7 +361,7 @@ function M.retarget(operation,car,pin)
         or drive.entity:IsPlayerDriver() or drive.entity:IsPerformingSceneAnimation() then
         return false,drive.error or 'The owned driving command is unavailable for a destination update.'
     end
-    local player=Game.GetPlayer()
+    local player=convaiPlayer()
     if not player or entityID(player:GetEntityID())~=operation.playerId
         or not enum(PlayerPuppet.GetCurrentVehicleState(player),'gamePSMVehicle','Passenger') then
         return false,'V left the reserved passenger seat.'

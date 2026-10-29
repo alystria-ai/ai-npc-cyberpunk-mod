@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Developer probe for Music and TV (docs/DYNAMIC_INFO.md "Music and TV", mod/media-context.lua): the live evidence the offline tests cannot give. In ONE run it
 -- dumps the raw value of every candidate read, so the real shapes are known after one session: the car receiver (active, station and track CNames, both
 -- localisation resolvers), the station records and the station names by index, the pocket radio, the TV V looks at, every object a targeting query
@@ -220,7 +221,7 @@ function M.run(action, env)
     if not M.ACTIONS[name] then error('unknown media probe action ' .. tostring(action) .. ' (read, car, pocket, stations, tv, ring, production)') end
     local loaded, module = pcall(dofile, 'media-context.lua')
     media = loaded and type(module) == 'table' and module or nil
-    local player = env and env.player or Game.GetPlayer()
+    local player = env and env.player or convaiPlayer()
     local report = {action = name, loaded = media ~= nil, timingsMs = {}}
     local function section(key, fn)
         if name ~= 'read' and name ~= key then return end

@@ -611,6 +611,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/state-restore.lua"
     },
     {
+      "source": "mod/player-guard.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-guard.lua"
+    },
+    {
       "source": "mod/error-reports.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/error-reports.lua"
     },

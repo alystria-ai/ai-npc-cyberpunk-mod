@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Read only the tracked quest and active objectives already revealed in this save.
 -- Native journal handles remain local to a capture, never across frames or loads.
 local M = convaiQuestContext or {}
@@ -101,7 +102,7 @@ end
 
 function M.capture()
     local ok, result = pcall(function()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player or not player:IsAttached() or player:IsDeadNoStatPool()
             or Game.GetSystemRequestsHandler():IsPreGame() then
             return {version = 1, status = 'unavailable'}

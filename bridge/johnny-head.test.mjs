@@ -321,7 +321,7 @@ test('talk keys: his turn has no face, gaze, actions or add-on blocks, and the r
   assert.match(init, /\(not primary\.voiceOnly or primary\.head\) and autoConnect\.talkNotice\(key, name\)/, 'the typed path says when he is still connecting');
   assert.match(init, /holocall = primary\.holocall, head = primary\.head\}/);
   assert.match(init, /voiceOnly = primary\.voiceOnly, holocall = primary\.holocall, head = primary\.head\}/);
-  assert.match(init, /if primary\.head then\s+local head = type\(convaiJohnnyHeadService\) == 'function' and convaiJohnnyHeadService\(\) or nil\s+return head ~= nil and head:refusal\(Game\.GetPlayer\(\)\) == nil\s+end\s+if primary\.voiceOnly then/);
+  assert.match(init, /if primary\.head then\s+local head = type\(convaiJohnnyHeadService\) == 'function' and convaiJohnnyHeadService\(\) or nil\s+return head ~= nil and head:refusal\(convaiPlayer()\(\)\) == nil\s+end\s+if primary\.voiceOnly then/);
   assert.match(init, /elseif context\.head then\s+-- Johnny in V's head has no body[^\n]*\s+elseif context\.voiceOnly then/);
   assert.match(init, /if type\(context\.head\) == 'table' then return false end\s+if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
   // The add-on decorate step adds blocks only for an add-on speaker's profile, so his turn passes through it untouched.

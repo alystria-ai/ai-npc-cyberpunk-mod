@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The only file/native boundary for save identity. Loading this module does
 -- nothing; the owner explicitly constructs it and calls update/invalidate.
 -- All published values are plain readbacks. No game handle survives a call.
@@ -50,7 +51,7 @@ local function worldToken(value)
     return prefix .. ':unclaimed'
 end
 local function nativeSystem()
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player or not player:IsAttached() or player:IsDeadNoStatPool()
         or Game.GetSystemRequestsHandler():IsPreGame() then return nil end
     return Game.GetScriptableSystemsContainer():Get('CyberpunkConvai.ConvaiKnowledgeState')

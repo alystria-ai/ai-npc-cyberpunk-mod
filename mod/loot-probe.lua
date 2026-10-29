@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Opt-in evidence only. Observe callbacks never replace native behavior.
 -- No native reference survives a callback, and this module writes no files.
 local M = convaiLootProbe or {active = false, events = {}, hooks = {}, serial = 0}
@@ -42,7 +43,7 @@ end
 local function objectInfo(object)
     if not object then return {id = unavailable, kind = unavailable, localPlayer = unavailable} end
     local id = display(function() return object:GetEntityID().hash end)
-    local playerId = display(function() return Game.GetPlayer():GetEntityID().hash end)
+    local playerId = display(function() return convaiPlayer():GetEntityID().hash end)
     local isPlayer = boolean(function() return object:IsPlayer() end)
     local isStash = boolean(function() return object:IsPlayerStash() end)
     local isVehicle = boolean(function() return object:IsVehicle() end)
@@ -70,7 +71,7 @@ local function itemInfo(id, data)
         iconic = boolean(function() return RPGManager.IsItemIconic(data) end),
         broken = boolean(function() return RPGManager.IsItemBroken(data) end),
         preview = boolean(function() return ItemID.HasFlag(id, Enum.new('gameEItemIDFlag', 'Preview')) end),
-        ownedByPlayer = boolean(function() return Game.GetTransactionSystem():HasItem(Game.GetPlayer(), id) end),
+        ownedByPlayer = boolean(function() return Game.GetTransactionSystem():HasItem(convaiPlayer(), id) end),
         name = text(function() return UIItemsHelper.GetItemName(TweakDBInterface.GetItemRecord(ItemID.GetTDBID(id)), data) end),
         tags = {}}
     for _, tag in ipairs({'SkipActivityLog', 'SkipActivityLogOnLoot', 'Currency', 'Recipe', 'IconicRecipe', 'Quest'}) do
@@ -128,7 +129,7 @@ end
 local function vendorEvent(kind, controller, data, amount, requestId)
     return {kind = kind, evidence = 'request-intent',
         source = objectInfo(native(function() return controller:GetVendorInstance() end)),
-        target = objectInfo(native(function() return Game.GetPlayer() end)),
+        target = objectInfo(native(function() return convaiPlayer() end)),
         item = itemInfo(native(function() return data:GetID() end), data),
         amount = number(function() return amount end), request = number(function() return requestId end), success = unavailable}
 end

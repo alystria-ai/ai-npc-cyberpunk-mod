@@ -1,8 +1,9 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Explicit read-only qualification. No facts, journal state or save data writes.
 -- This small symbol probe is not a semantic rule pack and never reaches Convai.
 local report = {version = 1, capturedAt = os.date('!%Y-%m-%dT%H:%M:%SZ')}
 local ok, problem = pcall(function()
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     assert(player and player:IsAttached() and not player:IsDeadNoStatPool(), 'Player unavailable')
     local version = Game.GetSystemRequestsHandler():GetGameVersion()
     report.gameVersion = version

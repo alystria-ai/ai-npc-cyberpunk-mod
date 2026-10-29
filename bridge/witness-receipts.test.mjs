@@ -380,7 +380,7 @@ test('the module is optional: the setting defaults to on, is a boolean, and init
   assert.match(initSource, /pcall\(dofile, 'witness-receipts\.lua'\)/);
   assert.match(initSource, /worldKnowledge\.edgesWanted = function\(\) return convaiWitnessReceipts:on\(\) end/);
   assert.match(initSource, /worldKnowledge\.onEdges = /);
-  assert.match(initSource, /conversationCandidates\(Game\.GetPlayer\(\), radius\)/);
+  assert.match(initSource, /conversationCandidates\(convaiPlayer()\(\), radius\)/);
 });
 
 test('the changed Lua files still compile', () => {

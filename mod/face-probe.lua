@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Bounded development proof for the native facial layer. This does not hook
 -- movement, turn an actor, play audio or change a shared facial resource.
 local M = convaiFaceProbe or {}
@@ -116,7 +117,7 @@ local function closureAt(at)
 end
 
 local function playerReady()
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player or not player:IsAttached() or player:IsDeadNoStatPool() then return nil end
     return player
 end

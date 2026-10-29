@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Read-only acquisition evidence. Native values stay inside observer callbacks.
 -- A positive inventory event alone is never provenance for a world pickup.
 local M = {}
@@ -118,7 +119,7 @@ local function localPlayer(player)
     if frame ~= nil and frame == checkedFrame then return checkedValue end
     local value = false
     if player:IsAttached() == true and player:IsDeadNoStatPool() == false then
-        local live = Game.GetPlayer()
+        local live = convaiPlayer()
         local id = entity(player)
         value = id ~= nil and id == entity(live) and (not owner or id == owner)
     end
@@ -249,7 +250,7 @@ end
 local function onIntent(inventory, event)
     if not event or not inventory then return end
     if settingOff() then suspend(); return end
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player or player:IsAttached() ~= true or player:IsDeadNoStatPool() ~= false
         or entity(event.activator) ~= entity(player) then return end
     -- This fires for every interaction in the world (a door, a lift, a vendor), so the cheap checks of what was used come first and the
@@ -340,7 +341,7 @@ local function onTransfer(_, source, target, data)
     if not context or context.available ~= true then return end
     -- Off: the vetoes this would record are cleared by the next update (suspend) before anything could use them.
     if settingOff() then return end
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not localPlayer(player) then return end
     local who = entity(player)
     if entity(source) ~= who and entity(target) ~= who then return end
@@ -372,7 +373,7 @@ function M.update(value)
     prune()
     if not baselineNeeded then return end
     local ok = pcall(function()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not localPlayer(player) then return end
         owner = entity(player)
         baseline(player)

@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Explicit read-only save identity qualification. Dispatch from diagnostics:
 -- save-identity:inspect:<unique nonce>. This file never claims, seeds, advances,
 -- forks, resumes, saves, or loads. Real mutations belong to the coordinator.
@@ -45,7 +46,7 @@ local ok, problem = pcall(function()
     assert(action == 'inspect' and nonce and #nonce >= 8 and #nonce <= 64,
         'Only save-identity:inspect:<8-64 character nonce> is permitted; mutations require the coordinator')
     report.action, report.nonce = action, nonce
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     assert(player and player:IsAttached() and not player:IsDeadNoStatPool(), 'Attached living player unavailable')
     assert(not Game.GetSystemRequestsHandler():IsPreGame(), 'Game is in pregame')
     local function getSystem()

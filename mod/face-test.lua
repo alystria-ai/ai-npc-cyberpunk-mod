@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Development probe: does a deliberately EXTREME facial pose become visible on a
 -- companion? Inert until a request arrives in runtime/face-test-request.txt
 --   line 1: a fresh nonce, line 2: face-test <who> <pose> [seconds] [mode]
@@ -146,7 +147,7 @@ commands['say'] = function(rest, context)
     if not who then return false, 'usage: say <who> <text>' end
     local row = rowFor(context, who)
     if not row then return false, 'no owned companion matching ' .. who .. ' in range' end
-    local speech, player = convaiSpeech, Game.GetPlayer()
+    local speech, player = convaiSpeech, convaiPlayer()
     if not speech or type(speech.devSay) ~= 'function' or not player then return false, 'speech adapter unavailable' end
     local ok, sent, detail = pcall(speech.devSay, player, row.npc, text)
     if not ok then return false, tostring(sent) end
@@ -355,7 +356,7 @@ local function lookAtV(stage, on)
         if stage.lookEvent then return true end
         local ok = pcall(function()
             local event = LookAtAddEvent.new()
-            event:SetEntityTarget(Game.GetPlayer(), CName.new('pla_default_tgt'), Vector4.new(0, 0, 0, 0))
+            event:SetEntityTarget(convaiPlayer(), CName.new('pla_default_tgt'), Vector4.new(0, 0, 0, 0))
             event:SetStyle(Enum.new('animLookAtStyle', 'Normal'))
             event.bodyPart = CName.new('Eyes')
             event.request.limits.softLimitDegrees = 90
@@ -387,7 +388,7 @@ end
 
 local function stageTarget(distance)
     distance = distance or M.stageDistance
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     if not player then return nil, 'no player' end
     local ok, _, forward = pcall(function() return crosshairData(Game.GetTargetingSystem(), player) end)
     if not ok or not forward then forward = player:GetWorldForward() end
@@ -522,7 +523,7 @@ local function stageTick(context)
     else for _, other in ipairs(context and context.actors or {}) do if other.entity == stage.entity then current = other end end end
     if not current then endStage(stage, 'lost'); log('stage-lost', {who = stage.who}); return end
     -- V moved (a collision pushed V, V walked or was teleported): stop instead of following V's new position.
-    local player = Game.GetPlayer()
+    local player = convaiPlayer()
     local pat = player and player:GetWorldPosition()
     if not pat then endStage(stage, 'failed'); stage.error = 'no player'; return end
     local origin = stage.origin
