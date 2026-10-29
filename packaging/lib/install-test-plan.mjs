@@ -55,11 +55,27 @@ export function upgradeZips({names, version, game, updateName}) {
   };
 }
 
-/** What the package folder must hold for a path: the zip it extracts and (for the Full zip) the listing the files are checked against. */
+/**
+ * What the package folder must hold for a path: the zip it extracts. The listing the files are checked against (the Full zip's .files.json) is NOT
+ * required: a staging folder that kept the zips but lost the lists is fine, listingSource() below works the list out from the zip. `listing` is
+ * reported only so a caller can say which one it found.
+ */
 export function packagesForPath(path, zips) {
   if (path === 'update') return {zip: zips.update, listing: null, missing: zips.update ? [] : ['the Update zip']};
-  if (path === 'full') return {zip: zips.full, listing: zips.fullListing, missing: [...(zips.full ? [] : ['the Full zip']), ...(zips.fullListing ? [] : ['the Full zip\'s .files.json'])]};
+  if (path === 'full') return {zip: zips.full, listing: zips.fullListing, missing: zips.full ? [] : ['the Full zip']};
   throw Error(`Unknown upgrade path ${path}`);
+}
+
+/**
+ * Where a package's file list ({path, bytes, sha256} rows) comes from. The build writes <base>.files.json beside each zip, but a folder made by hand
+ * (the 0.3.4 staging folder: a patched Runtime, an Update zip taken from another folder) may hold the zip without it. `bases` are the file names the
+ * package may have (without extension), `folders` the places to look, each {dir, names} (the file names in it). The list file wins, then the zip
+ * (the caller works the rows out from it), then null: only then is the list really missing.
+ */
+export function listingSource({bases, folders}) {
+  for (const {dir, names} of folders) for (const base of bases) if (names.includes(`${base}.files.json`)) return {kind: 'listing', dir, base, file: `${base}.files.json`};
+  for (const {dir, names} of folders) for (const base of bases) if (names.includes(`${base}.zip`)) return {kind: 'zip', dir, base, file: `${base}.zip`};
+  return null;
 }
 
 /**
