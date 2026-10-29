@@ -1,13 +1,19 @@
 // Format 2 of a story pack (docs/QUEST_PRIMITIVES.md section 2): the places, lines, gaps and images of a pack, and the `do` and `script` of its stages. The checks
 // the validator in bridge/bond-packs.mjs calls. Pure. Every problem is a short English sentence that says where it is.
-import {checkPrimitive, raisable, isCoreEvent, isEventName, isId, PRIMITIVES} from './quest-primitives.mjs';
+import {checkPrimitive, raisable, isCoreEvent, isEventName, isId, PRIMITIVES, TRUSTED_ONLY} from './quest-primitives.mjs';
 import {CHOICE_KINDS} from './bond-packs.mjs';
 
 export const QUEST_LIMITS = Object.freeze({places: 24, lines: 80, gaps: 8, images: 8, script: 24, doEntries: 12, gapNote: 600, history: 200, ask: 240, lineText: 300,
-  placeName: 80, resumeMin: 10, resumeMax: 7200});
+  placeName: 80, resumeMin: 10, resumeMax: 7200, calls: 8, callSteps: 24, audioStages: 8, shares: 4});
 export const LINE_CHANNELS = Object.freeze(['own', 'holocall', 'head', 'remote']);
 export const EMOTIONS = Object.freeze(['neutral', 'happy', 'sad', 'angry', 'fear', 'surprise', 'shrug', 'emphatic', 'nod', 'disgust', 'joy', 'calm']);
-export const AUDIO_FILE = /^audio\/[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.wav$/;
+export const AUDIO_FILE = /^audio\/[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(?:wav|ogg|opus)$/;
+export const MEDIA_FILE = /^(?:music|sfx)\/[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(?:wav|ogg|opus)$/;
+/** What a stage or a gap feels like: the idle and the gesture bias the game picks (docs/BOND_QUESTS.md 19.1). */
+export const SITUATIONS = Object.freeze(['nervous', 'celebrating', 'grieving', 'angry', 'relaxed', 'working']);
+const RADIO_SOURCE = /^radio:[A-Za-z0-9][A-Za-z0-9 _.-]{1,40}$/;
+const GAME_SOUND = /^game:[A-Za-z0-9_]{3,80}$/;
+const SFX_AT = /^(?:v|copy|bed|place:[a-z][a-z0-9-]{0,31})$/;
 const LINE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
 const IMAGE_KEY = /^[a-z][a-z0-9-]{1,31}$/;
 const DISTRICT = /^[A-Za-z][A-Za-z0-9_ ]{1,40}$/;
@@ -29,8 +35,8 @@ export function placesOf(entries) {
   const add = value => { if (typeof value === 'string') found.add(value); };
   for (const spec of Array.isArray(entries) ? entries : []) {
     if (!plain(spec)) continue;
-    for (const key of ['at', 'to', 'deadZone']) add(spec[key]);
-    for (const key of ['checkpoints', 'route']) if (Array.isArray(spec[key])) spec[key].forEach(add);
+    for (const key of ['at', 'to', 'deadZone', 'from']) add(spec[key]);
+    for (const key of ['checkpoints', 'route', 'reroute']) if (Array.isArray(spec[key])) spec[key].forEach(add);
   }
   return [...found];
 }
@@ -110,6 +116,7 @@ export function checkPackExtras(pack, fail, warn) {
       const total = (gap.asks?.length ?? 0) + (gap.know?.length ?? 0) + (gap.secret?.length ?? 0) + (gap.wants?.length ?? 0);
       if (total > QUEST_LIMITS.gapNote + QUEST_LIMITS.ask) fail(`${where}: asks, know, secret and wants together are too long for the note (${total} characters)`);
       if (gap.idle !== undefined && !(typeof gap.idle === 'string' && /^[a-z][a-z0-9_-]{1,31}$/.test(gap.idle))) fail(`${where}: idle is not a seat kind or gesture name`);
+      if (gap.situation !== undefined && !SITUATIONS.includes(gap.situation)) fail(`${where}: situation must be one of ${SITUATIONS.join(', ')}`);
       if (gap.resumeAfterSeconds !== undefined && !finite(gap.resumeAfterSeconds, QUEST_LIMITS.resumeMin, QUEST_LIMITS.resumeMax)) fail(`${where}: resumeAfterSeconds must be from ${QUEST_LIMITS.resumeMin} to ${QUEST_LIMITS.resumeMax}`);
       if (gap.resumeOn !== undefined && (!Array.isArray(gap.resumeOn) || gap.resumeOn.length > 6 || gap.resumeOn.some(name => !isEventName(name)))) fail(`${where}: resumeOn must be a list of up to 6 event names`);
       if (gap.tags !== undefined) {
@@ -123,6 +130,34 @@ export function checkPackExtras(pack, fail, warn) {
         }
       }
       if (gap.resumeAfterSeconds === undefined && gap.resumeOn === undefined && gap.tags === undefined) warn(`${where}: nothing ends it (no timer, event or tag)`);
+    }
+  }
+  // Scripted holocalls (call-script, docs/BOND_QUESTS.md 14.3): a call is a list of steps, each one a line (channel holocall), a gap, an event or the hang-up.
+  ctx.calls = new Map();
+  if (pack.calls !== undefined) {
+    if (!plain(pack.calls) || Object.keys(pack.calls).length > QUEST_LIMITS.calls) fail(`calls must be an object of up to ${QUEST_LIMITS.calls} calls`);
+    else for (const [id, call] of Object.entries(pack.calls)) {
+      const where = `call ${id}`;
+      if (!isId(id)) { fail(`${where}: the id must be lowercase letters, digits or hyphens`); continue; }
+      ctx.calls.set(id, call);
+      if (!plain(call)) { fail(`${where} must be an object`); continue; }
+      if (call.caller !== undefined && !['self', 'v'].includes(call.caller)) fail(`${where}: caller must be self or v`);
+      if (call.picture !== undefined && !['live', 'voice'].includes(call.picture)) fail(`${where}: picture must be live or voice`);
+      if (call.text !== undefined && !(typeof call.text === 'string' && ctx.lines.has(call.text))) fail(`${where}: text must be one of the pack's lines (the opening text of the fallback)`);
+      if (call.onHangUp !== undefined && !isEventName(call.onHangUp)) fail(`${where}: onHangUp is not an event name`);
+      if (!Array.isArray(call.steps) || call.steps.length === 0 || call.steps.length > QUEST_LIMITS.callSteps) { fail(`${where}: steps must be a list of 1 to ${QUEST_LIMITS.callSteps}`); continue; }
+      call.steps.forEach((step, index) => {
+        const here = `${where} step ${index + 1}`;
+        const keys = plain(step) ? ['say', 'gap', 'event', 'hangup'].filter(key => step[key] !== undefined) : [];
+        if (keys.length !== 1) { fail(`${here} needs exactly one of say, gap, event or hangup`); return; }
+        if (step.say !== undefined) {
+          if (!ctx.lines.has(step.say)) fail(`${here}: say ${JSON.stringify(step.say).slice(0, 40)} is not one of the pack's lines`);
+          else if ((ctx.lines.get(step.say)?.channel ?? 'own') !== 'holocall') warn(`${here}: the line ${step.say} should have channel holocall`);
+        }
+        if (step.gap !== undefined && !ctx.gaps.has(step.gap)) fail(`${here}: gap ${JSON.stringify(step.gap).slice(0, 40)} is not one of the pack's gaps`);
+        if (step.event !== undefined && !isEventName(step.event)) fail(`${here}: event is not an event name`);
+        if (step.hangup !== undefined && step.hangup !== true) fail(`${here}: hangup must be true`);
+      });
     }
   }
   return ctx;
@@ -191,7 +226,68 @@ export function checkStagePlay(stage, ctx, where, fail, warn) {
       });
     }
   } else if (stage.type === 'play') warn(`${where}: a play stage with no do only runs its script`);
+  if (Array.isArray(stage.do)) checkReferences(stage.do, ctx, where, fail);
   if (stage.script !== undefined) checkRows(stage.script, stage, ctx, where, fail);
+  if (stage.situation !== undefined && !SITUATIONS.includes(stage.situation)) fail(`${where}: situation must be one of ${SITUATIONS.join(', ')}`);
+  if (stage.music !== undefined) checkSounds(stage.music, 'music', stage, ctx, where, fail);
+  if (stage.sfx !== undefined) checkSounds(stage.sfx, 'sfx', stage, ctx, where, fail);
+}
+
+const PROFILE_KEY = /^[a-z0-9][a-z0-9-]{0,79}$/;
+const OBJECT_REFS = [['bout', 'a', ['cast', 'self']], ['bout', 'b', ['cast', 'self']], ['npc-react', 'cast', ['cast']], ['pay', 'to', ['cast']], ['workspot', 'who', ['cast', 'self']],
+  ['hold-until', 'squad', ['squad']], ['hold-until', 'witness', ['escortee', 'hostage']], ['unseen', 'squad', ['squad']]];
+
+/** The cross references of a stage's primitives: the ids they name must be made by another primitive of the same stage, and the community may not use a trusted-only one. */
+function checkReferences(entries, ctx, where, fail) {
+  const made = new Map();
+  const add = (kind, id) => { if (!made.has(kind)) made.set(kind, new Set()); made.get(kind).add(id); };
+  for (const spec of entries) if (plain(spec) && typeof spec.id === 'string') add(spec.p, spec.id);
+  for (const spec of entries) {
+    if (!plain(spec) || !PRIMITIVES[spec.p]) continue;
+    if (ctx.community === true && TRUSTED_ONLY.has(spec.p)) fail(`${where}: ${spec.p} is only for the packs shipped with the mod`);
+    for (const [name, field, kinds] of OBJECT_REFS) {
+      const value = spec.p === name ? spec[field] : undefined;
+      if (value === undefined) continue;
+      if (value === 'self' && kinds.includes('self')) continue;
+      const made_ = kinds.filter(kind => kind !== 'self');
+      if (!made_.some(kind => made.get(kind)?.has(value))) fail(`${where}: ${name}.${field} ${JSON.stringify(String(value)).slice(0, 40)} is not made by a ${made_.join(' or ')} of this stage`);
+    }
+    if ((spec.p === 'call-in' || spec.p === 'call-script') && spec.call !== undefined && !ctx.calls?.has(spec.call)) fail(`${where}: ${spec.p}.call ${JSON.stringify(String(spec.call)).slice(0, 40)} is not one of the pack's calls`);
+    if (spec.p === 'memory-share' && !(typeof spec.to === 'string' && PROFILE_KEY.test(spec.to))) fail(`${where}: memory-share.to must be a profile key`);
+    if (spec.p === 'gift' && spec.dir === 'receive' && spec.tier === undefined && spec.item === undefined) fail(`${where}: a gift the character gives needs a tier or an item`);
+    if (spec.p === 'pay' && spec.min !== undefined && spec.min > spec.amount) fail(`${where}: pay.min is above the amount`);
+    if (spec.p === 'apart' && spec.inner !== undefined && spec.outer !== undefined && spec.inner >= spec.outer) fail(`${where}: apart.inner must be below apart.outer`);
+    if (spec.p === 'bout' && spec.a === spec.b) fail(`${where}: a bout needs two different fighters`);
+  }
+}
+
+/** A stage's music or sound effects: a game station or sound event, or a file of the pack (music/ or sfx/), started and stopped by events the stage raises. */
+function checkSounds(list, kind, stage, ctx, where, fail) {
+  const most = kind === 'music' ? 3 : 6;
+  if (!Array.isArray(list) || list.length === 0 || list.length > most) { fail(`${where}: ${kind} must be a list of 1 to ${most}`); return; }
+  list.forEach((item, index) => {
+    const here = `${where} ${kind} ${index + 1}`;
+    if (!plain(item)) { fail(`${here} must be an object`); return; }
+    const allowed = ['source', 'start', 'stop', 'fadeIn', 'fadeOut', 'volume', ...(kind === 'music' ? ['duck'] : ['at', 'loop'])];
+    for (const key of Object.keys(item)) if (!allowed.includes(key)) fail(`${here}: unknown field ${JSON.stringify(key).slice(0, 30)}`);
+    const source = item.source;
+    const sourceOk = typeof source === 'string' && ((kind === 'music' && RADIO_SOURCE.test(source)) || GAME_SOUND.test(source)
+      || (source.startsWith(`file:${kind}/`) && MEDIA_FILE.test(source.slice(5))));
+    if (!sourceOk) fail(`${here}: source must be ${kind === 'music' ? 'radio:<station>, ' : ''}game:<event> or file:${kind}/<name>.ogg inside the pack`);
+    for (const key of ['start', 'stop']) {
+      if (item[key] === undefined) continue;
+      const problem = eventProblem(item[key], stage, ctx);
+      if (problem) fail(`${here}: ${key} ${JSON.stringify(String(item[key])).slice(0, 40)} ${problem}`);
+    }
+    for (const key of ['fadeIn', 'fadeOut']) if (item[key] !== undefined && !finite(item[key], 0, 10)) fail(`${here}: ${key} must be from 0 to 10 seconds`);
+    if (item.volume !== undefined && !finite(item.volume, 0, 1)) fail(`${here}: volume must be from 0 to 1`);
+    if (item.duck !== undefined && typeof item.duck !== 'boolean') fail(`${here}: duck must be true or false`);
+    if (item.loop !== undefined && typeof item.loop !== 'boolean') fail(`${here}: loop must be true or false`);
+    if (item.at !== undefined) {
+      if (typeof item.at !== 'string' || !SFX_AT.test(item.at)) fail(`${here}: at must be v, copy, bed or place:<id>`);
+      else if (item.at.startsWith('place:') && !ctx.places.has(item.at.slice(6))) fail(`${here}: at names a place the pack does not have`);
+    }
+  });
 }
 
 /** An ending's `history` and `script`. */
@@ -200,4 +296,12 @@ export function checkEndingPlay(ending, id, ctx, where, fail) {
   if (ending.history !== undefined && !text(ending.history, QUEST_LIMITS.history)) fail(`${where}: history must be 1 to ${QUEST_LIMITS.history} characters`);
   if (typeof ending.history === 'string' && ending.history.includes(';')) fail(`${where}: history has a semicolon`);
   if (ending.script !== undefined) checkRows(ending.script, {}, ctx, where, fail, {ending: id});
+  if (ending.share !== undefined) {
+    if (!Array.isArray(ending.share) || ending.share.length === 0 || ending.share.length > QUEST_LIMITS.shares) fail(`${where}: share must be a list of 1 to ${QUEST_LIMITS.shares}`);
+    else for (const item of ending.share) {
+      if (!plain(item) || !(typeof item.to === 'string' && PROFILE_KEY.test(item.to)) || (item.note !== undefined && !text(item.note, 300))) fail(`${where}: a share needs to (a profile key) and an optional note of up to 300 characters`);
+      else if (typeof item.note === 'string' && item.note.includes(';')) fail(`${where}: a share note has a semicolon`);
+    }
+  }
+  if (ending.situation !== undefined && !SITUATIONS.includes(ending.situation)) fail(`${where}: situation must be one of ${SITUATIONS.join(', ')}`);
 }

@@ -6912,7 +6912,7 @@ do
                 seating = function() return convaiSeating end, district = function() return currentDistrict() end, log = log})
             local places = modules[2].new({world = world, clock = os.clock, log = log})
             local prims = modules[3].new({places = places, world = world, clock = os.clock, gameTime = gameClock, log = log})
-            for _, extra in ipairs({'quest-prims-action.lua', 'quest-prims-drive.lua'}) do
+            for _, extra in ipairs({'quest-prims-action.lua', 'quest-prims-drive.lua', 'quest-prims-race.lua', 'quest-prims-scene.lua', 'quest-prims-systems.lua'}) do
                 local okExtra, extension = pcall(dofile, extra)
                 if okExtra and type(prims.extend) == 'function' then prims.extend(extension) end
             end
