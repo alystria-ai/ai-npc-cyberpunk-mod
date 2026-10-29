@@ -64,7 +64,7 @@ import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
-import {detectOmniPack} from './omni-pack.mjs';
+import {detectOmniPack, missingOmniClips, missingOmniClipsLine} from './omni-pack.mjs';
 import {ownPythonLine, ownPythonSummary, readOwnPythonSetting, resolveOwnPython} from './omni-own-python.mjs';
 import {OmniAmdSetup} from './omni-amd-setup.mjs';
 import {REMOTE_FILE, RemoteOmniAddress, RemoteOmniControl} from './remote-omni-control.mjs';
@@ -320,6 +320,17 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
+// An OmniVoice pack that is installed but short of reference clips (an extraction that stopped, a folder a mod manager cleared) leaves some characters
+// without an OmniVoice voice; say so once in the log (bridge/omni-pack.mjs). File checks only, once, at start.
+try {
+  if (detectOmniPack({project, config: omniVoiceConfigs.long}).installed) {
+    for (const mode of ['short', 'long']) {
+      const line = missingOmniClipsLine(missingOmniClips({config: omniVoiceConfigs[mode],
+        referenceDirectory: process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(project, 'runtime/voice-references')}), mode);
+      if (line) console.error(line);
+    }
+  }
+} catch (error) { console.error('[OmniPack] clip check failed:', error?.message ?? error); }
 // The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md, bridge/pocket-language-models.mjs): <Pocket references>/multilingual-pocket/<lang>, the folder the Pocket worker reads;
 // found and checked once here (file sizes only), looked at again by the settings poll, and asked for from memory per reply.
 const pocketLanguages = new PocketLanguageModels({roots: [voiceConfig.runtime?.referenceDirectory], packs: languagePacks, log: line => console.error('[PocketLanguages] ' + line)});

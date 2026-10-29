@@ -13,7 +13,7 @@ import {readFileSync} from 'node:fs';
 // Fake keys only, never a credential.
 const FIXTURE = 'fixture-shared-key-0123456789abcdef';
 const clockAt = start => { const clock = {at: start, now: () => clock.at, advance: ms => { clock.at += ms; }}; return clock; };
-const noon = new Date(2026, 9, 11, 12, 0, 0).getTime();
+const noon = Date.UTC(2026, 9, 11, 12, 0, 0); // noon UTC: the day is the sign-in backend's UTC day, whatever time zone the test runs in
 const DAY = 24 * 3600 * 1000;
 
 // ---------------------------------------------------------------- the key file
@@ -70,7 +70,7 @@ test('limit 0 switches the guard off, as the development switch does', () => {
   assert.equal(limitFromEnvironment('', 0), 0); assert.equal(limitFromEnvironment('lots', 100), 100);
 });
 
-test('the allowance comes back at local midnight and a clock set back does not give it back early', () => {
+test('the allowance comes back at 00:00 UTC, the backend day boundary, and a clock set back does not give it back early', () => {
   const clock = clockAt(noon), guard = guardWith(clock, {limit: 3});
   drain(guard, clock, 3);
   assert.equal(guard.snapshot().blocked, true);
@@ -78,10 +78,33 @@ test('the allowance comes back at local midnight and a clock set back does not g
   assert.equal(guard.snapshot().blocked, true, 'still today');
   clock.at = noon + 2 * 3600 * 1000; // two hours later, same day
   assert.equal(guard.snapshot().blocked, true);
-  clock.at = new Date(2026, 9, 12, 0, 0, 1).getTime(); // just after local midnight
+  clock.at = Date.UTC(2026, 9, 11, 23, 59, 59); // one second before the UTC midnight (5:29:59 AM on the 12th in India)
+  assert.equal(dayOf(clock.at), '2026-10-11');
+  assert.equal(guard.snapshot().blocked, true);
+  clock.at = Date.UTC(2026, 9, 12, 0, 0, 1); // just after it
   assert.equal(dayOf(clock.at), '2026-10-12');
   assert.deepEqual(guard.snapshot(), {limit: 3, left: 3, blocked: false});
   guard.admit(); assert.equal(guard.snapshot().left, 2);
+});
+
+test('the guard and the backend change day at the same instant: the UTC day, not the local one', () => {
+  // The backend counts a player's reported turns per UTC day (auth-backend/api/_lib/token-handler.js, isoDay). A local-day guard showed turns left
+  // for hours after the backend, whose day began later, had already refused new tokens (east of UTC), so both use one boundary.
+  const backendDay = ms => new Date(ms).toISOString().slice(0, 10);
+  for (const at of [Date.UTC(2026, 0, 1, 0, 0, 0), Date.UTC(2026, 9, 11, 18, 29, 59), Date.UTC(2026, 9, 11, 18, 30, 0), Date.UTC(2026, 9, 11, 23, 59, 59),
+    Date.UTC(2026, 9, 12, 0, 0, 0), Date.UTC(2026, 11, 31, 23, 59, 59)]) assert.equal(dayOf(at), backendDay(at), new Date(at).toISOString());
+});
+
+test('a counter an earlier release wrote with the local day moves onto the UTC day it was last used in', async () => {
+  const memory = memoryFiles();
+  // 29 October 01:00 IST = 28 October 19:30 UTC: the old release named the day 2026-10-29, the backend was still on the 28th.
+  const used = Date.UTC(2026, 9, 28, 19, 30, 0);
+  await storeOver(memory).save({day: '2026-10-29', count: 3, seen: used});
+  const clock = clockAt(used + 60_000);
+  const guard = await guardWith(clock, {limit: 3, store: storeOver(memory)}).load();
+  assert.deepEqual(guard.snapshot(), {limit: 3, left: 0, blocked: true}, 'still used up at the same moment');
+  clock.at = Date.UTC(2026, 9, 29, 0, 0, 1);
+  assert.deepEqual(guard.snapshot(), {limit: 3, left: 3, blocked: false}, 'and free at the next UTC day, not a day later');
 });
 
 test('turns are never limited by speed: any number at the same instant count one each, up to the cap, and no kind of turn has its own share', () => {

@@ -1103,7 +1103,13 @@ local function ownKeyRows(snapshot)
         -- several languages) and what to do goes into the Mistral key row's help (the real limit comes from the sign-in backend,
         -- bridge/shared-key-guard.mjs).
         note = ui.t('Convai free tier: daily limit reached')
-        limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).', {limit = own.daily.limit})
+        -- When they come back: the next 00:00 UTC on this computer's clock (ui.dailyResetClock), else "tomorrow".
+        local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
+        if at then
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).', {limit = own.daily.limit, time = at})
+        else
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).', {limit = own.daily.limit})
+        end
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt

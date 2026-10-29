@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {MODES, baseVerdict, chooseMode, hadRetiredDlls, packagesForPath, runtimeUpdateZips, setupCheckVerdict, staleCode, upgradePathsFor, upgradeZips} from './lib/install-test-plan.mjs';
+import {MODES, baseVerdict, chooseMode, hadRetiredDlls, listingSource, packagesForPath, runtimeUpdateZips, setupCheckVerdict, staleCode, upgradePathsFor, upgradeZips} from './lib/install-test-plan.mjs';
 import {RETIRED_DLLS} from './lib/code-payload.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -63,12 +63,12 @@ test('each upgrade path finds its zip, and the Full zip its listing, for both ga
   assert.equal(upgradeZips({names: NEW_25, version: '0.3.4', game: '2.31', updateName: update231}).full, null);
 });
 
-test('a path with a missing zip or listing says what is missing', () => {
+test('a path with a missing zip says what is missing, a missing listing is not a missing package', () => {
   const half = upgradeZips({names: ['AI-NPC-LLM-Companions-0.3.4.zip'], version: '0.3.4', game: '2.5', updateName: 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip'});
   assert.deepEqual(packagesForPath('update', half).missing, ['the Update zip']);
-  assert.deepEqual(packagesForPath('full', half).missing, ['the Full zip\'s .files.json']);
+  assert.deepEqual(packagesForPath('full', half).missing, [], 'the Full zip without its .files.json is enough: the list is worked out from the zip');
   const none = upgradeZips({names: [], version: '0.3.4', game: '2.5', updateName: undefined});
-  assert.equal(packagesForPath('full', none).missing.length, 2);
+  assert.deepEqual(packagesForPath('full', none).missing, ['the Full zip']);
   assert.throws(() => packagesForPath('both', none), /Unknown upgrade path/);
 });
 
@@ -122,4 +122,22 @@ test('the install test wires the plan in: both paths by default, the old Runtime
   assert.match(script, /mkdtemp\(join\(tmpdir\(\), 'convai install test '\)\)/);
   assert.match(script, /dataHome = join\(work, 'LocalAppData', 'AiNpcCyberpunkMod'\)/);
   assert.match(script, /CYBERPUNK_CONVAI_DATA_HOME: dataHome/);
+});
+
+test('a file list comes from the .files.json, else from the zip itself, and is missing only when neither is there', () => {
+  const stage = {dir: 'full-v2', names: ['Runtime-0.3.4.zip', 'Runtime-0.3.4.files.json', 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip']};
+  const packages = {dir: 'packages', names: ['AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.zip', 'AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4.files.json']};
+  // The list file beside the zip is used.
+  assert.deepEqual(listingSource({bases: ['Runtime-0.3.4'], folders: [stage]}), {kind: 'listing', dir: 'full-v2', base: 'Runtime-0.3.4', file: 'Runtime-0.3.4.files.json'});
+  // The staging folder (the 0.3.4 release) held the Update zip without its list: the list beside the zip's other copy is found, or else the zip is read.
+  const update = ['AI-NPC-LLM-Companions-Update-0.3.3-to-0.3.4'];
+  assert.equal(listingSource({bases: update, folders: [stage, packages]}).dir, 'packages');
+  assert.deepEqual(listingSource({bases: update, folders: [stage]}), {kind: 'zip', dir: 'full-v2', base: update[0], file: update[0] + '.zip'});
+  // A list file anywhere beats a zip, whatever the folder order.
+  assert.equal(listingSource({bases: update, folders: [stage, packages]}).kind, 'listing');
+  // Several names a package may have (an older title): the first that exists.
+  assert.equal(listingSource({bases: ['OmniPack-0.3.4', 'Runtime-0.3.4'], folders: [stage]}).base, 'Runtime-0.3.4');
+  // Neither: only then is it missing.
+  assert.equal(listingSource({bases: ['Nothing-0.3.4'], folders: [stage, packages]}), null);
+  assert.equal(listingSource({bases: [], folders: [stage]}), null);
 });

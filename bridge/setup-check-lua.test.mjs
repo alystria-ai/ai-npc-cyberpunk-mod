@@ -328,11 +328,11 @@ test('the service answer is shown only from this game session and every check be
   -- Scripts and Runtime of different versions
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   -- the Scripts are the older one: update whichever is older, the Scripts from Nexus Mods
-  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'Scripts 0.2 and Runtime 0.2.1 do not match. If the Scripts are older, install the update zip from Nexus Mods or Hugging Face. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.')
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'Scripts 0.2 and Runtime 0.2.1 do not match. If the Scripts are older, install the update zip from Nexus Mods. If the Runtime is older, install the full install zip (AI-NPC-LLM-Companions). Extract into the Cyberpunk 2077 folder, then restart the game.')
   -- the Runtime is the older one (nearly every report): the full install zip, no steps to apply in order. No version number in the instruction.
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}}); check.run()
   local older = lineOf('versions').description
-  assert(older == 'Scripts 0.2.8 and Runtime 0.2.4 do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', older)
+  assert(older == 'Scripts 0.2.8 and Runtime 0.2.4 do not match: the Runtime is out of date. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', older)
   assert(not older:sub(older:find('out of date')):find('%d%.%d'), 'no version number after the status')
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.10', runtime = '0.2.9'}}); check.run()
   assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
@@ -348,11 +348,11 @@ test('the service answer is shown only from this game session and every check be
   -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
   local gap = lineOf('versions').description
-  assert(lineOf('versions').state == 'problem' and gap == 'The Runtime update from 0.2.7 to 0.2.8 was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder, then restart the game.', gap)
+  assert(lineOf('versions').state == 'problem' and gap == 'The Runtime update from 0.2.7 to 0.2.8 was never applied, so some Runtime files are old. Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder, then restart the game.', gap)
   assert(not gap:sub(gap:find('never applied')):find('%d%.%d'), 'no version number after the naming')
   assert(table.concat(check.problems(), ',') == 'versions')
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.8', runtime = '0.2.8'}}); check.run()
-  assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods and Hugging Face) into the Cyberpunk 2077 folder again', 1, true))
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('Extract the full install zip (AI-NPC-LLM-Companions, on Nexus Mods) into the Cyberpunk 2077 folder again', 1, true))
   -- from 0.3.4 the code is in the Scripts and the Runtime is the base: the row names the base, and an older base the base needed
   answer({versions = {id = 'versions', state = 'ok', code = 'match', scripts = '0.3.4', runtime = '0.3.3', required = '0.3.3', base = true}}); check.run()
   assert(lineOf('versions').state == 'ok' and lineOf('versions').description == 'Scripts 0.3.4 on Runtime base 0.3.3.', lineOf('versions').description)
@@ -449,7 +449,7 @@ test('the browser, Local AI and the internet: every state has its own line and f
   -- Windows refused to load a file of the voice: restarting cannot help, so the line names what blocked it and offers another voice.
   answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'pocket', cause = 'blocked'}}); check.run()
   assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('blocks the files of the voice', 1, true) and lineOf('voice').description:find('Smart App Control', 1, true)
-    and lineOf('voice').description:find('Turn Smart App Control off, or choose a cloud voice (Voxtral)', 1, true) and not lineOf('voice').description:find('OmniVoice', 1, true)
+    and lineOf('voice').description:find('Choose a cloud voice (Voxtral) in Settings', 1, true) and not lineOf('voice').description:find('OmniVoice', 1, true)
     and not lineOf('voice').description:find('Restart', 1, true), tostring(lineOf('voice').description))
   assert(#check.problems() == 0)
   -- Windows ran out of memory it can promise (error 1455): restarting cannot help, a larger paging file or fewer programs can; the same sentence as the in-game notice.
@@ -459,7 +459,7 @@ test('the browser, Local AI and the internet: every state has its own line and f
   -- Local AI whose model server Windows would not run: the same advice, for a cloud conversation provider; a plain start failure keeps its own line.
   answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true, cause = 'blocked'}}); check.run()
   assert(lineOf('local-ai').state == 'problem' and lineOf('local-ai').description:find('blocks the files of the model server', 1, true)
-    and lineOf('local-ai').description:find('Turn Smart App Control off, or choose a cloud conversation provider', 1, true) and not lineOf('local-ai').description:find('OmniVoice', 1, true), tostring(lineOf('local-ai').description))
+    and lineOf('local-ai').description:find('Choose a cloud conversation provider in Settings', 1, true) and not lineOf('local-ai').description:find('OmniVoice', 1, true), tostring(lineOf('local-ai').description))
   answer({['local-ai'] = {id = 'local-ai', state = 'problem', code = 'start-failed', selected = true}}); check.run()
   assert(lineOf('local-ai').description:find('Local AI could not start', 1, true), 'without the cause the generic line stays')
   answer({voice = {id = 'voice', state = 'unknown', code = 'unknown'}}); check.run()

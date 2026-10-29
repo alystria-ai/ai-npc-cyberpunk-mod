@@ -914,7 +914,7 @@ test('the README and the release notes send players to Hugging Face for every op
   assert(heading('Install') > 0 && heading('Install') < heading('What you can do') && heading('What you can do') < heading('Requirements'), 'Install comes first');
   assert(heading('Install') < 6000, 'near the top of the page');
   const install = readme.slice(heading('Install'), heading('What you can do'));
-  assert.match(install, /The full install and the update come from Nexus Mods \(the same files are on Hugging Face too\)\. The optional packs are on the mod's/);
+  assert.match(install, /The full install and the update come from Nexus Mods\. The optional packs are on the mod's/);
   assert.match(install, /Each pack is one zip file/);
   // No parts, anywhere in what players read.
   for (const [name, text] of [['README', readme], ['PLAYER_README', player]]) {

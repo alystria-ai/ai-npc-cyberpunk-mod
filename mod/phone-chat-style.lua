@@ -74,6 +74,25 @@ local statusSources = {
     ["Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."] = true,
     ["Your model server's context is too small for this character. Raise the context length in your server (8192 or more)."] = true,
 }
+-- A status that carries a value is a template: the stored text has the value filled in, so it is matched against the template (the
+-- value is the reset time "HH:MM" of the Convai daily limit, phone-chat.lua DAILY_LIMIT_STATUS_AT) and translated from the template.
+local statusTemplates = {
+    {source = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'},
+}
+for _, entry in ipairs(statusTemplates) do
+    local escaped = entry.source:gsub('[%^%$%(%)%%%.%[%]%*%+%-%?]', '%%%0')
+    entry.pattern = '^' .. escaped:gsub('{time}', '(%%d%%d:%%d%%d)') .. '$'
+end
+-- The source key and values of a status message: the message itself for a plain status, the template and its time for a filled-in one, nil for anything else.
+local function statusKey(message)
+    if statusSources[message] then return message end
+    if type(message) ~= 'string' or #message > 400 then return nil end
+    for _, entry in ipairs(statusTemplates) do
+        local time = message:match(entry.pattern)
+        if time then return entry.source, {time = time} end
+    end
+    return nil
+end
 local feedbackSources = {
     ['INVITE QUEUED - CLOSE PHONE'] = true,
     ['DISMISS QUEUED - CLOSE PHONE'] = true,
@@ -381,8 +400,9 @@ function M.composer(controller, status)
             source = M.statusSource
         end
         local statusVisible = source ~= '' and not source:match('^ENTER')
-        if statusSources[source] then
-            local rendered = text(source)
+        local key, values = statusKey(source)
+        if key then
+            local rendered = text(key, values)
             hint:SetText(rendered)
             M.statusContact, M.statusSource, M.statusRendered = contact, source, rendered
         else

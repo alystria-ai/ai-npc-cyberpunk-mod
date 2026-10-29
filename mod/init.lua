@@ -5788,6 +5788,14 @@ end
 local function dailyLimitText()
     local ok, own = pcall(manager.ownKey)
     local limit = ok and type(own) == 'table' and type(own.daily) == 'table' and own.daily.limit or nil
+    -- When the turns come back, on this computer's clock (next 00:00 UTC, ui.dailyResetClock), if the clock can be read.
+    local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
+    if at then
+        if type(limit) == 'number' then
+            return ui.t('Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit, time = at})
+        end
+        return ui.t('Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {time = at})
+    end
     if type(limit) == 'number' then
         return ui.t('Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).', {limit = limit})
     end

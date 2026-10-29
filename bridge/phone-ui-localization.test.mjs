@@ -376,6 +376,24 @@ local before=#calls;n.contact='';m.composer(n,status)
 assert(#calls==before and hint.text==external)
 `));
 
+test('the daily-limit status with its reset time is translated from its template, in the language chosen later, and a look-alike is left alone', () => runLua(setup + `
+local m=(function()${phone}end)()
+local n,c,hint=popup('judy')
+local template='You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
+translations.fr[template]='Limite atteinte. Retour à {time}.'
+translations.ja[template]='上限です。{time}に戻ります。'
+local status=template:gsub('{time}','05:30')
+m.composer(n,status)
+assert(hint.text=='Limite atteinte. Retour à 05:30.' and hint.visible, hint.text)
+language='ja';generation=2;m.composer(n)
+assert(hint.text=='上限です。05:30に戻ります。' and m.statusSource==status, hint.text)
+-- Only a real clock time fills the template: anything else stays untranslated provider text.
+for _,other in ipairs({template:gsub('{time}','tomorrow'),template:gsub('{time}','5:30 AM'),template:gsub('{time}','05:30')..' Extra.', 'x'..template:gsub('{time}','05:30')}) do
+  hint.text=other;m.composer(n,other)
+  assert(hint.text==other and m.statusSource==nil, other)
+end
+`));
+
 test('the favorite hint label of the Chat list (the game\'s Show all label, drawn by the scripts in English) is translated only while it holds that text', () => runLua(setup + `
 local m=(function()${phone}end)();m.install()
 local action={m_acceptButtonLabel=widget('acceptLabel'),m_showAllLabel=widget('showAllLabel')}

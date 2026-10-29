@@ -286,6 +286,7 @@ const reviewed = {
     'This character needs Mistral, Local AI or Custom to answer.',
     'Opening chat. Waiting for the conversation service.',
     'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.',
+    'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.',
     'Mistral did not accept your key. Check it in Settings > Conversation provider.',
     'Mistral’s free limit is reached for now. Try again in a moment.',
     'The Mistral model is unavailable right now. Try again in a minute.',
