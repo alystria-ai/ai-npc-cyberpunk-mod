@@ -13,6 +13,7 @@ import {existsSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 
 export const FIT_LIMITS = Object.freeze({
+  swaFullMinGainMiB: 64,   // `--swa-full` (docs/LOCAL_AI.md, "Judy's prompt was read again on every turn"): a model whose projection grows by less than this has no sliding-window cache (Qwen, Bonsai), the flag changes nothing and is not passed
   marginMiB: 512,          // free memory that must remain beyond the projection for the whole model to be loaded on the card (the projection itself is about 330 MiB above what is used)
   refitMarginMiB: 1024,    // the same after the driver spilled the model into shared memory: the game showed it wants the room
   offloadTargetMiB: 1024,  // llama-server's own default `--fit-target`: the room its fit pass leaves when layers go to the CPU
@@ -57,9 +58,9 @@ export function fitToolPath(serverCommand, {exists = existsSync, platform = proc
  * a layer split when the model does not fit, which takes 10 s and more, so it is stopped at its first projection line.
  * `spawnImpl` and `timers` are injectable for tests.
  */
-export function probeProjectedMiB({exe, model, contextSize, kvType = null, device, timeoutMs = FIT_LIMITS.probeMs, spawnImpl = spawn, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+export function probeProjectedMiB({exe, model, contextSize, kvType = null, swaFull = false, device, timeoutMs = FIT_LIMITS.probeMs, spawnImpl = spawn, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   if (!exe || !model || !device) return Promise.resolve(null);
-  const args = ['-m', model, '-c', String(contextSize), '-fa', 'on', '--device', device, '-fitt', '0', '-lv', '4', ...(kvType ? ['-ctk', kvType, '-ctv', kvType] : [])];
+  const args = ['-m', model, '-c', String(contextSize), '-fa', 'on', '--device', device, '-fitt', '0', '-lv', '4', ...(kvType ? ['-ctk', kvType, '-ctv', kvType] : []), ...(swaFull ? ['--swa-full'] : [])];
   return new Promise(resolveProbe => {
     let child, text = '', done = false, timer = null;
     const finish = value => {

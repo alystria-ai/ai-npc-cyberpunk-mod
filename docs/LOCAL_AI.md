@@ -516,7 +516,7 @@ budget rebuilds the prompt with less in it instead of cutting a string.
   history started one exchange later each turn and the server read it all again (an RX 6700 XT re-read about 4,650 tokens with 0 cached on several turns, 22 to 26 s
   to the first word; the simulation in `bridge/prompt-budget.test.mjs` showed the start of the history moving on every turn). The count dropped is now rounded up to
   a whole block (`BUDGET.trimBlock`, 3, never below `keepExchanges`), so the history starts at the same exchange for up to three turns while it grows and the
-  prefix (persona, world blocks, kept history) is byte-identical turn to turn apart from the appended exchanges. The log line says `older-exchanges:block` when
+  prefix (persona, world blocks, kept history) is byte-identical turn to turn apart from the appended exchanges (the history and world-fact blocks are ranked by the words of the whole talk since 2026-10-29, see 'Judy's prompt was read again on every turn'). The log line says `older-exchanges:block` when
   the block rounding dropped more than the fit needed (at most two exchanges). Not measured live: the check is the `cached` figure of consecutive `[LocalTurn]` lines.
 - **A refusal anyway.** If the server still refuses (`error.overflow`: its `n_prompt_tokens` and `n_ctx`), the count is learned into the
   meter and the same turn is fitted again and sent once more. A second refusal is final.
@@ -1169,6 +1169,47 @@ reloads before the change (in the world).
 **Not measured:** a 24 GB card and game 2.31 (the report's), a voice turn through the talk key (the test sent typed turns through the request file, so the game's
 own key handling was not part of it), a model the player added (not tried; one that failed to start would take the existing start-failed path).
 Tests: `bridge/local-llm-server.test.mjs` (the variable reaches the server; a value already set is kept).
+
+### Judy's prompt was read again on every turn (2026-10-29: "the game stutters from the end of my sentence until Judy answers", RTX 5090 Laptop, Gemma 4 12B, OmniVoice)
+
+The report: stutter from the moment V stops speaking until Judy replies, the GPU going from 50 to 100 %, worst with Judy, almost none with random NPCs, milder with the lite model, the same with or without the High
+priority. Priority is a CPU matter and the stutter is the GPU's: while llama-server reads a prompt the card is busy with it, and a game frame behind it waits. The only lever is to read less.
+
+**Measured** (29 Oct, RTX 4080 Laptop, standard model Gemma 4 E4B and lite Bonsai 2 4B, the bridge's own `LocalLlmServer`, `TextProviderHost` and `PlayerKnowledge` over a copy of a real save, Judy as a recruited
+companion, four typed turns after the talk key's persona warm-up, llama-server's own `timings`; the game was not running). The laptop was in a reduced clock state (about 900 prompt tokens a second instead of 2,000
+and more) and both sides ran back to back in it, because the owner switches the power profile: only same-session numbers are compared. Judy's system message is about 7,400 tokens (persona 2,359, world zone
+4,295, right-now block 236) against about 2,200 for a street resident. Turns 2 to 4 read 6,521 / 5,436 / 5,049 new tokens (7.1 / 5.8 / 5.6 s of prompt reading) with 1,857 reused, against 793 to 817 for the street
+resident. Two things broke the shared start:
+
+- **The text of two world blocks changed on every turn, in the middle of the system message.** The journal `history` block (1,764 tokens in the test save) carried `observedSecondsAgo` per quest and the
+  `ageSeconds` of both lanes, numbers that count up with the clock, and its quests were picked by the words of V's last sentence. The `knowledge` block (1,115 tokens) is ranked by the same words. Everything after the
+  first changed token was new to the model every time.
+- **Gemma resumes only from a checkpoint.** Its sliding-window layers cannot be rewound, so llama-server continues a prompt from a saved checkpoint (near the end of each earlier prompt, and the persona warm-up's),
+  never from the place where this turn's text stops matching. A text that changed in the middle of the prompt left only the persona (1,857 tokens) to reuse, however long the rest matched. Qwen and Bonsai are hybrid
+  and resume from checkpoints the same way.
+
+**Fixes.**
+
+1. `bridge/topic-words.mjs`: the history and the world facts are ranked by the words of the whole talk with the character (every word V said to it since the talk began, 40 at most, forgotten after ten quiet
+   minutes), not by the last sentence. The blocks change only when V brings up a topic that is new to the talk, and a quest or fact V asked about stays in. Memory only, per character.
+2. `bridge/journal-history.mjs`: no ages in the text (`observedSecondsAgo`, the lanes' `ageSeconds`). Freshness is still judged from them, before the text is made.
+3. `--swa-full` (`buildServerArgs`, `LocalLlmServer #swaFullPlan`): with a full-size cache for the sliding-window layers any shared start of the prompt can be reused, not only the checkpoints. `llama-fit-params` is run
+   with and without the flag for the context and cache the load uses (1 to 3 s at a model start, nothing allocated). The flag is passed when the projection grows by 64 MiB or more (a model with no sliding-window layers,
+   Qwen and Bonsai, projects the same and gets nothing) and the larger projection plus the usual 512 MiB margin fits what the model may take. Gemma 4 E4B at 16,384: 3,562 MiB without, 4,177 MiB with. No tool or no
+   reading: no flag, as before. The log line `[local] full sliding-window cache (--swa-full): ...` and `engine.swaFull` in the diagnostics say what was done.
+
+**After** (same session, same machine state, standard model): Judy's turns 2 to 4 read **948 / 1,107 / 924** new tokens (1.08 / 1.37 / 1.09 s) with 7,435 / 7,268 / 7,513 reused, against 6,521 / 5,436 / 5,049 (7.1 / 5.8 /
+5.6 s) before: 82 to 85 % fewer tokens and prompt time, and the whole turn 3.3 to 4.0 s instead of 7.4 to 8.9 s. A street resident is unchanged (about 800). Turn 1 of a talk is unchanged (5,982 new: the stable world
+blocks are read once). Lite (Bonsai): turn 4 reads 944, turns 2 and 3 still read about 6,470, because a hybrid model resumes only from a checkpoint and the right-now block's wording (V's clothes, "right now" then
+"still") changes once early in a talk. Gemma does not have that limit with the flag.
+
+**Also measured, and not changed.** `-ub` 64 / 128 / 256 / 512 / 1024 with a second GPU process standing in for the game: the other process saw about 2.7 times its normal latency for the whole prefill at every
+setting and no stall over 45 ms, and smaller batches only slow the prefill (888 / 1,256 / 2,285 / 2,670 prompt tokens a second at 64 / 128 / 256 / 512). `-fa off` halves the speed. A lower GPU scheduling class for
+llama-server: no gain. Speech to text (sherpa-onnx, CPU), the memory embedder (CPU, `--device none`) and vision (Convai only) are not on the GPU at the end of speech. The companion action decision is a second, short
+request whose prompt `--cache-ram` keeps (72 to 84 new tokens after the first). The persona warm-up at the talk key reads the persona on the GPU while V is still speaking and is skipped when the slot holds it.
+
+**Not verified in the game:** the player's 12B model and 5090 (the cost of the full cache for a 12B is probed at the start, not assumed), frame times during a turn, OmniVoice synthesis overlapping the model's writing.
+Tests: `bridge/topic-words.test.mjs`, `bridge/journal-history.test.mjs`, `bridge/quest-context.test.mjs`, `bridge/local-llm-server.test.mjs`.
 
 ### Your own model with no pack (2026-10-29: "Local AI is unavailable (not-installed)" with a model of the player's own)
 

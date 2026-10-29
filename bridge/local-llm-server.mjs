@@ -210,13 +210,16 @@ export function withoutKeyFile(args) {
 // `offload` (a model that does not fully fit the free graphics memory, bridge/local-model-choice.mjs; the caller gives it the context 8,192, the 8-bit cache, `fitTargetMiB` and `threads`
 // below): no layer count is given and the fit pass is on, so llama-server keeps as many layers on the card as fit, leaves `fitTargetMiB` of it free for the game and runs the rest on
 // the CPU (the context is given, so it stays).
+// `swaFull`: `--swa-full`, a full-size cache for the sliding-window layers (Gemma). Without it llama-server can continue a prompt only from a saved checkpoint, and a saved checkpoint
+// is never at the place where the last turn's text stopped matching this turn's, so a turn read its whole prompt again after the first change (Judy: 5,000 to 6,500 tokens a turn). With it any
+// shared start of the prompt is reused. It costs graphics memory (615 MiB for Gemma 4 E4B at 16,384), so only when the card has it (LocalLlmServer #swaFullPlan).
 // `kvType` ('q8_0'): the KV cache type, only when the free-memory fit (bridge/local-vram-fit.mjs) needed the smaller cache to keep the whole model on the card.
 // `fitTargetMiB` / `threads` (an offloaded load only; nothing changes for a model that is wholly on the card): `-fitt`, the free memory the fit pass leaves on the card for the game
 // (llama-server's own default is 1,024), and `-t`, the CPU threads (about half the physical cores, so the game's CPU is not starved by the layers that run on it).
 export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1', chatTemplate = null, offload = false, kvType = null,
-    fitTargetMiB = null, threads = null}) {
+    fitTargetMiB = null, threads = null, swaFull = false}) {
   if (!model || !port || !keyFile || !device) throw TypeError('model, port, keyFile and device are required');
-  return ['-m', model, ...(offload ? [] : ['-ngl', '99']), '-fa', 'on', '-c', String(contextSize), ...(kvType ? ['-ctk', String(kvType), '-ctv', String(kvType)] : []), '-np', '1', '--reasoning', 'off',
+  return ['-m', model, ...(offload ? [] : ['-ngl', '99']), '-fa', 'on', ...(swaFull ? ['--swa-full'] : []), '-c', String(contextSize), ...(kvType ? ['-ctk', String(kvType), '-ctv', String(kvType)] : []), '-np', '1', '--reasoning', 'off',
     // -fit off: the layers, context and device are all given, so llama-server's fit pass (which loads the model a second time to
     // measure the devices) only costs start time (see bridge/local-embed.mjs).
     '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '-fit', offload ? 'on' : 'off',
@@ -994,6 +997,21 @@ export class LocalLlmServer extends EventEmitter {
     } catch { return null; }
   }
 
+  // `--swa-full` (see buildServerArgs): whether to pass it for this load. llama-fit-params projects the memory with and without it for the context and cache this load uses; the flag is passed
+  // when the projection grows (the model has a sliding-window cache at all) and the larger one still fits `availableMiB` (what the model may take) with the usual margin. No tool, no
+  // reading or no room: no flag, and the load is as it was. One or two runs of the tool (1 to 3 s, nothing allocated), at a model start only. Never throws.
+  async #swaFullPlan(model, contextSize, kvType, device, availableMiB) {
+    if (typeof this.fitProbe !== 'function' || !model?.file || !device?.id || !Number.isFinite(availableMiB)) return false;
+    try {
+      const probe = swaFull => this.fitProbe({model: model.file, contextSize, kvType, device: device.id, swaFull});
+      const [plain, full] = await Promise.all([probe(false), probe(true)]);
+      if (!Number.isFinite(plain) || !Number.isFinite(full) || full - plain < FIT_LIMITS.swaFullMinGainMiB) return false;
+      const fits = full + FIT_LIMITS.marginMiB <= availableMiB;
+      this.log('[local] full sliding-window cache (--swa-full): ' + plain + ' MiB projected without it, ' + full + ' MiB with it, ' + Math.round(availableMiB) + ' MiB available: ' + (fits ? 'used, so a turn reads only what is new in its prompt' : 'not used, there is no room for it'));
+      return fits;
+    } catch { return false; }
+  }
+
   // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
   #announce(choice, selected, memory = null) {
     // 'too-slow' is the step-down (noteStall): it has its own event and notice, emitted when the smaller model is loaded.
@@ -1186,6 +1204,8 @@ export class LocalLlmServer extends EventEmitter {
     const kvType = placement ? placement.kvType : fitted?.kvType ?? null;
     const contextSize = tier.contextSize ?? this.contextSize ?? (placement ? placement.contextSize : fitted?.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB}));
     const threads = placement ? offloadThreads(Number(this.cpuCount())) : null;
+    const swaFull = !placement && choice.offload !== true ? await this.#swaFullPlan(tier, contextSize, kvType, device, modelFreeMiB) : false;
+    this.#guard(generation);
     if (placement) this.log('[local] partial offload: ' + (tier.loadedName ?? tier.name) + ', ' + (placement.share === null ? 'the share of its layers on the card is unknown' : 'about ' + Math.round(placement.share * 100) + '% of its layers on the card')
       + (placement.projectedMiB === null ? '' : ' (' + (placement.estimated ? 'estimated from the file, ' : 'projected ') + placement.projectedMiB + ' MiB at ' + placement.contextSize + ' ' + placement.kvType + ' against ' + (Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?') + ' MiB free)')
       + ', context ' + contextSize + ', ' + kvType + ' cache, fit target ' + placement.targetMiB + ' MiB kept free for the game, ' + threads + ' CPU threads');
@@ -1205,7 +1225,7 @@ export class LocalLlmServer extends EventEmitter {
       tier: tierKey, sizeMiB: Math.round(Number(choice.sizeMiB) || 0), device: {id: device.id, name: device.name, freeMiB: Number.isFinite(freeMiB) ? Math.round(freeMiB) : null},
       contextSize, cacheRamMiB, priority: 'normal', loadPriority: this.processOptions?.raiseLevel === 'high' ? (this.processOptions.gate ?? priorityGate).level('high') : 'normal', turnPriority: this.processOptions?.raiseLevel === 'high' ? 'high' : 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
       template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null,
-      kvType, fit: fit ? {pick: fit.pick ? {contextSize: fit.pick.contextSize, kvType: fit.pick.kvType, projectedMiB: fit.pick.projectedMiB} : null, share: fit.share ?? null, marginMiB: fit.marginMiB ?? null} : null,
+      kvType, swaFull, fit: fit ? {pick: fit.pick ? {contextSize: fit.pick.contextSize, kvType: fit.pick.kvType, projectedMiB: fit.pick.projectedMiB} : null, share: fit.share ?? null, marginMiB: fit.marginMiB ?? null} : null,
       gpuShare: choice.offload === true && Number.isFinite(placement?.share) ? placement.share : null,
       forcedOffload: forced !== null && forced === choice.model.id,
       offloadPlan: placement ? {share: placement.share === null ? null : Math.round(placement.share * 100) / 100, projectedMiB: placement.projectedMiB, estimated: placement.estimated, fitTargetMiB: placement.targetMiB, threads} : null};
@@ -1213,7 +1233,7 @@ export class LocalLlmServer extends EventEmitter {
     const began = this.now();
     const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
       startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
-      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true, kvType,
+      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true, kvType, swaFull,
         fitTargetMiB: placement?.targetMiB ?? null, threads}),
       ...this.processOptions, env: {...serverEnvironment(process.env), ...(this.processOptions?.env ?? {})}});
     this.#proc = proc;
@@ -1413,7 +1433,7 @@ export class LocalLlmServer extends EventEmitter {
         custom: loaded.custom, ...(loaded.external ? {external: true} : {})},
       engine: {build: loaded.build, ftype: loaded.ftype, device: loaded.device ? {id: loaded.device.id, name: String(loaded.device.name ?? '').slice(0, 60), freeMiB: loaded.device.freeMiB} : null,
         contextSize: loaded.contextSize, cacheRamMiB: loaded.cacheRamMiB, priority: loaded.priority ?? null, ram: loaded.ram ?? null,
-        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.offloadPlan ? {offloadPlan: loaded.offloadPlan} : {}), ...(loaded.spill ? {spill: loaded.spill} : {}), ...(loaded.spillKept ? {spillKept: loaded.spillKept} : {})},
+        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.swaFull ? {swaFull: true} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.offloadPlan ? {offloadPlan: loaded.offloadPlan} : {}), ...(loaded.spill ? {spill: loaded.spill} : {}), ...(loaded.spillKept ? {spillKept: loaded.spillKept} : {})},
       template: loaded.template ? {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf', ...loaded.template} : {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported'},
       tokens: {bos: loaded.bos, eos: loaded.eos},
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},

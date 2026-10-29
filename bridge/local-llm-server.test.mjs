@@ -1131,8 +1131,13 @@ test('on a small card a model that leaves the game under 3000 MiB steps down at 
 // ---- Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs) ------------------------------------------------------------------------------
 // llama-fit-params' projections of a Gemma 4 E4B model by context (16,384 / 8,192 / 8,192 with the 8-bit cache), measured 2026-10-20: the file-size rule says 6,600 MiB for the 5,400 MiB file, the projection 3,734.
 const PROJECTED = {'big-u.gguf': {16384: 3734, 8192: 3598, q8: 3520}, 'q4.gguf': {16384: 3562, 8192: 3426, q8: 3348}, 'q2.gguf': {16384: 2228, 8192: 1964, q8: 1844}};
-function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], table = PROJECTED, ...options} = {}) {
-  const fitProbe = async args => { probes.push(args); return table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null; };
+function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], swaProbes = [], swaGain = 0, table = PROJECTED, ...options} = {}) {
+  // The runs for `--swa-full` (a load looks at what the full sliding-window cache would cost) are kept apart from the runs that decide which model is loaded.
+  const fitProbe = async args => {
+    const projected = table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null;
+    if (args.swaFull !== undefined) { swaProbes.push(args); return projected === null ? null : projected + (args.swaFull ? swaGain : 0); }
+    probes.push(args); return projected;
+  };
   const gpuMemory = spill ? async () => spill.value : null;
   // `free.value` is the graphics memory that is free with none of our model loaded; while a model of ours runs, what it holds on the card (the spill counters' dedicated MiB) is not free, and
   // goes back when it stops. That is how a spill decision (it adds the model's own memory to what is free) and the start after the stop both see the same room.
@@ -1141,7 +1146,7 @@ function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000
   const freeVramMiB = () => free.value - (spill && running() ? Number(spill.value.dedicatedMiB) || 0 : 0);
   const h = stepHarness(t, {freeVramMiB, fitProbe, gpuMemory, now: () => clock.now, ...options});
   created = h;
-  return {...h, free, probes, clock, spill};
+  return {...h, free, probes, swaProbes, clock, spill};
 }
 const argValue = (call, flag) => call.args[call.args.indexOf(flag) + 1];
 // A Mature pack with only its good model (the 2026-10-20 8 GB reports had no smaller model to fall back to): the pin that does not fit is loaded anyway.
@@ -1923,4 +1928,32 @@ test('the pinned model\'s projection is looked at when the file-size rule passes
   const roomy = laptopHarness(t, {gameRoom: null, free: {value: 22000}, listDevices: async () => RTX5090_LAPTOP(22000)});
   await roomy.server.ensure();
   assert.deepEqual(roomy.probes, []);
+});
+
+test('buildServerArgs: --swa-full is given only when the load asked for it', () => {
+  const base = {model: 'm.gguf', port: 1, keyFile: 'k', device: 'Vulkan1'};
+  assert.ok(!buildServerArgs(base).includes('--swa-full'));
+  const args = buildServerArgs({...base, swaFull: true});
+  assert.ok(args.includes('--swa-full') && args.indexOf('--swa-full') > args.indexOf('-fa'));
+});
+
+test('a model with a sliding-window cache gets --swa-full when the larger projection still fits the room, and not when it grows by nothing or does not fit', async t => {
+  // Standard (q4.gguf) projects 3,000 to 3,600 MiB in the table; the full cache adds 615 MiB (Gemma 4 E4B, llama-fit-params, 16,384).
+  const roomy = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 615});
+  await roomy.server.ensure();
+  assert.ok(roomy.calls[0].args.includes('--swa-full'), 'room for the full cache: used');
+  assert.deepEqual(roomy.swaProbes.map(probe => probe.swaFull).sort(), [false, true], 'one run without and one with, nothing else');
+  assert.equal(roomy.server.diagnostics().engine.swaFull, true);
+  // A model with no sliding-window layers projects the same with the flag: it is not passed.
+  const plain = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 0});
+  await plain.server.ensure();
+  assert.ok(!plain.calls[0].args.includes('--swa-full'));
+  // No run of the tool gives a number: no flag, the load is as it was.
+  const blind = fitHarness(t, {mature: false, free: {value: 24000}, table: {}});
+  await blind.server.ensure();
+  assert.ok(!blind.calls[0].args.includes('--swa-full'));
+  // The larger projection does not fit what the model may take (with the usual margin): not passed.
+  const tight = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 30000});
+  await tight.server.ensure();
+  assert.ok(!tight.calls[0].args.includes('--swa-full'));
 });

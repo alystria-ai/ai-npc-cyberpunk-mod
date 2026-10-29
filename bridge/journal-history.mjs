@@ -182,7 +182,7 @@ export function freshQuest(history, row, age, now) {
 }
 
 /** Filtered context only. No durable-memory events are produced by this layer. */
-export function selectJournalHistory({snapshot, generation, worldToken, profileKey, query = '', questCatalog = [],
+export function selectJournalHistory({snapshot, generation, worldToken, profileKey, query = '', topics, questCatalog = [],
   maxChars = 6000, now = Date.now(), trackedQuestId, bound: given} = {}) {
   const limit = Number.isSafeInteger(maxChars) ? Math.max(0, Math.min(maxChars, LIMIT.output)) : 6000;
   const diagnostics = {status: 'unavailable', selected: [], omitted: 0};
@@ -192,7 +192,8 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
   if (bound.status !== 'ready') return unavailable(bound.reason);
   const current = bound.history, age = bound.age;
   query = typeof query === 'string' ? query.slice(0, 4096) : '';
-  const tokens = words(query); const historyQuestion = /\b(completed|finished|failed|past|history|previous)\b/iu.test(query);
+  // `topics`: the words of the whole talk (bridge/topic-words.mjs) rank the quests, so the block stays as it was until V brings up something new (a stable prefix for the model's cache).
+  const tokens = words(typeof topics === 'string' && topics ? topics : query); const historyQuestion = /\b(completed|finished|failed|past|history|previous)\b/iu.test(query);
   const ranked = current.quests.map(row => {
     if (!freshQuest(current, row, age, now)) return null;
     const titleHits = matching(row.title, tokens);
@@ -211,7 +212,9 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
       + (isRelated ? 40 : 0) + (row.state === 'active' ? 10 : historyQuestion ? 2 : 0);
     return score > 0 ? {row, score, isTracked, isRelated} : null;
   }).filter(Boolean).sort((a, b) => b.score - a.score || b.row.observedAtMs - a.row.observedAtMs || a.row.id.localeCompare(b.row.id));
-  const document = {tracked: current.tracked, inventory: current.coverage, quests: []};
+  // No ages in the text: they count up from one turn to the next and would make the block (and everything after it in the prompt) new to the model every time. Freshness is judged above.
+  const stable = lane => { if (!lane || lane.ageSeconds === undefined) return lane; const {ageSeconds, ...rest} = lane; return rest; };
+  const document = {tracked: current.tracked, inventory: {active: stable(current.coverage.active), history: stable(current.coverage.history)}, quests: []};
   const render = () => FRAMING + JSON.stringify(document);
   if (render().length > limit) return unavailable('context-budget');
   for (const candidate of ranked) {
@@ -221,7 +224,6 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
       (current.tracked.objectiveId === objective.id ? 1000 : 0) + matching(objective.text, tokens) * 20
       + (objective.state === 'active' ? 10 : 0)})).sort((a, b) => b.score - a.score || a.objective.id.localeCompare(b.objective.id));
     const item = {journalId: row.id, title: row.title, status: row.state, tracked: isTracked,
-      observedSecondsAgo: Math.max(0, Math.round((now - row.observedAtMs) / 1000)),
       observedObjectiveCount: row.objectives.length, objectivesComplete: row.objectivesComplete, objectives: []};
     document.quests.push(item);
     if (render().length > limit) { document.quests.pop(); continue; }

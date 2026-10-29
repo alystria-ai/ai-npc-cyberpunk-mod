@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot, resolveKnowledge, validateKnowledgePack, warmKnowledgePack} from './world-knowledge.mjs';
 import {parseJournal, withConversationKnowledge} from './quest-context.mjs';
+import {topicWords} from './topic-words.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {questPathsFromPack} from './quest-overview.mjs';
 import {isParsed} from './parsed-snapshot.mjs';
@@ -266,7 +267,7 @@ export class PlayerKnowledge {
         } catch { receipts = undefined; }
       }
       const projection = resolveKnowledge({pack: this.pack, snapshot: {...snapshot, identity: {status: 'unknown'}},
-        profileKey: route.profileKey, query: frozen.text, maxChars: 8000 - (picks ? picks.length + 1 : 0), witnessReceipts: receipts});
+        profileKey: route.profileKey, query: topicWords.fold(route.profileKey, frozen.text, capturedAt), maxChars: 8000 - (picks ? picks.length + 1 : 0), witnessReceipts: receipts});
       if (projection.diagnostics.status === 'ready') {
         knowledgeContext = picks ? projection.context + '\n' + picks : projection.context; sharedEvents = projection.shared;
       }
