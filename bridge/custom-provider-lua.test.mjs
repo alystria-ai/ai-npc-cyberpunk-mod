@@ -634,7 +634,7 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custo
   assert(invoke('tab:settings').ok)
   local provider = row('conversationProvider')
   assert(provider.type == 'select' and #provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
-    and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
+    and provider.elements[3] == 'Mistral' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
   assert(provider.value == 1 and provider.defaultValue == 1)
   assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,custom-endpoint,own-key', providerIds())
   for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is not on the Settings page any more') end
@@ -822,7 +822,7 @@ test('the provider row starts with the note of the custom provider: its limits, 
   -- The other providers keep their notes; Convai selected with Custom in the state file adds nothing.
   assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok); loaded = registered.loadMod('manager')
   bridge('mistral-limit', {provider = 'mistral', effective = 'mistral', saved = true, limit = 'rate'})
-  assert(firstParagraph(row('conversationProvider').description) == 'Mistral: free limit reached for now')
+  assert(firstParagraph(row('conversationProvider').description) == 'Mistral: limit reached for now')
   bridge('mistral-credits', {provider = 'mistral', effective = 'mistral', saved = true, limit = 'credits'})
   assert(row('conversationProvider').description == base, 'a credits limit is only a note for Custom')
   assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 1}}).ok); loaded = registered.loadMod('manager')

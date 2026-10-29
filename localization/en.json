@@ -57,7 +57,7 @@
     ]
   },
   "counts": {
-    "strings": 1742,
+    "strings": 1741,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -367,8 +367,8 @@
     "Copy the model ID from your provider first, for example meta-llama/llama-3.1-8b-instruct on OpenRouter or llama3.2 on Ollama. It is read from the clipboard once and saved on this computer.": "Copy the model ID from your provider first, for example meta-llama/llama-3.1-8b-instruct on OpenRouter or llama3.2 on Ollama. It is read from the clipboard once and saved on this computer.",
     "Copy the report path to the clipboard so you can paste it into a message.": "Copy the report path to the clipboard so you can paste it into a message.",
     "Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.": "Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.",
-    "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day.": "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day.",
     "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.": "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.",
+    "Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.": "Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.",
     "Copying the path needs the conversation service, which is not running. The report file is at: {path}": "Copying the path needs the conversation service, which is not running. The report file is at: {path}",
     "Corpo Plaza": "Corpo Plaza",
     "Could not invite: {names}.": "Could not invite: {names}.",
@@ -701,20 +701,19 @@
     "Missing: {files}. Extract the Scripts zip into the Cyberpunk 2077 folder again and let it replace the files.": "Missing: {files}. Extract the Scripts zip into the Cyberpunk 2077 folder again and let it replace the files.",
     "Missing: {names}. Install them and restart the game.": "Missing: {names}. Install them and restart the game.",
     "Mistral": "Mistral",
-    "Mistral (free plan)": "Mistral (free plan)",
+    "Mistral API key": "Mistral API key",
     "Mistral and Local AI": "Mistral and Local AI",
     "Mistral cloud voice (Voxtral)": "Mistral cloud voice (Voxtral)",
     "Mistral did not accept that key.": "Mistral did not accept that key.",
     "Mistral did not accept your key. Check it in Settings > Conversation provider.": "Mistral did not accept your key. Check it in Settings > Conversation provider.",
     "Mistral does not take this setting.": "Mistral does not take this setting.",
-    "Mistral free API key": "Mistral free API key",
     "Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.": "Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.",
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": "Mistral replies are spoken by a local voice instead of the Convai cloud voice.",
     "Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.": "Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.",
-    "Mistral: free limit reached for now": "Mistral: free limit reached for now",
     "Mistral: key not accepted": "Mistral: key not accepted",
+    "Mistral: limit reached for now": "Mistral: limit reached for now",
     "Mistral: model unavailable": "Mistral: model unavailable",
-    "Mistral’s free limit is reached for now. Try again in a moment.": "Mistral’s free limit is reached for now. Try again in a moment.",
+    "Mistral’s limit is reached for now. Try again in a moment.": "Mistral’s limit is reached for now. Try again in a moment.",
     "Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.": "Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.",
     "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Install the full install zip as one mod and update that mod with each new full install zip. Extract multilingual packs into that mod’s folder, not as new mods. Mention Mod Organizer 2 when you send a report.": "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Install the full install zip as one mod and update that mod with each new full install zip. Extract multilingual packs into that mod’s folder, not as new mods. Mention Mod Organizer 2 when you send a report.",
     "Mod files": "Mod files",
@@ -1253,7 +1252,7 @@
     "The connection test failed.": "The connection test failed.",
     "The connection works. The endpoint accepted your model and key.": "The connection works. The endpoint accepted your model and key.",
     "The conversation connection did not open. Check your connection, then invite again.": "The conversation connection did not open. Check your connection, then invite again.",
-    "The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.": "The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.",
+    "The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.": "The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.",
     "The conversation service cannot reach the internet. See Help in Settings.": "The conversation service cannot reach the internet. See Help in Settings.",
     "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.": "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.",
     "The conversation service cannot see this mod’s folder in the game: a mod manager’s virtual folders, or a folder it may not read. Extract the Runtime straight into the Cyberpunk 2077 folder, or start the game from the mod manager that holds the Runtime.": "The conversation service cannot see this mod’s folder in the game: a mod manager’s virtual folders, or a folder it may not read. Extract the Runtime straight into the Cyberpunk 2077 folder, or start the game from the mod manager that holds the Runtime.",
@@ -1435,10 +1434,10 @@
     "This text is too long. Keep it under {max} characters.": "This text is too long. Keep it under {max} characters.",
     "Time and weather": "Time and weather",
     "Time since last talk": "Time since last talk",
-    "Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
-    "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
-    "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
-    "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
+    "Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).": "Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).",
+    "Today’s Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).": "Today’s Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).",
+    "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).": "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).",
+    "Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).": "Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).",
     "Tone line": "Tone line",
     "Too many display names. Keep {max} or fewer.": "Too many display names. Keep {max} or fewer.",
     "Too many example lines. Keep {max} or fewer.": "Too many example lines. Keep {max} or fewer.",
@@ -1588,8 +1587,8 @@
     "Who else is with V, whether V is on foot or in a vehicle, and what a companion is doing beside V.\n\nOff: none of this is sent, and the mod stops reading it from the game.": "Who else is with V, whether V is on foot or in a vehicle, and what a companion is doing beside V.\n\nOff: none of this is sent, and the mod stops reading it from the game.",
     "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
     "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
     "Whose memories": "Whose memories",
     "Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Choose a cloud conversation provider in Settings.": "Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Choose a cloud conversation provider in Settings.",
     "Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Choose a cloud voice (Voxtral) in Settings.": "Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Choose a cloud voice (Voxtral) in Settings.",
@@ -1613,8 +1612,8 @@
     "You have changes that are not saved. Leave without saving?": "You have changes that are not saved. Leave without saving?",
     "You have made as many characters as the editor keeps ({max}). Delete one first.": "You have made as many characters as the editor keeps ({max}). Delete one first.",
     "You have too many favorites. Remove one first.": "You have too many favorites. Remove one first.",
-    "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).": "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
-    "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).": "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
+    "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).": "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).",
+    "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).": "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).",
     "You moved away from the car. The trip was cancelled.": "You moved away from the car. The trip was cancelled.",
     "You: {text}": "You: {text}",
     "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.": "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.",
@@ -1668,8 +1667,8 @@
     "Your saved parties could not be written to disk, so they last only until the game closes.": "Your saved parties could not be written to disk, so they last only until the game closes.",
     "Your typed lines are spoken out loud too, in the V voice that matches yours, then the companion answers. V’s line is always waited for, up to about 30 s without audio.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.": "Your typed lines are spoken out loud too, in the V voice that matches yours, then the companion answers. V’s line is always waited for, up to about 30 s without audio.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.",
     "Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories.": "Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories.",
-    "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.": "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.",
-    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.": "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.",
+    "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.": "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.",
+    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.": "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.",
     "a test on the graphics card failed": "a test on the graphics card failed",
     "after V’s words": "after V’s words",
     "all characters you have talked to": "all characters you have talked to",
@@ -2249,11 +2248,11 @@
     ],
     "page.keyRow": [
       "Convai API key",
-      "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day.",
       "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.",
+      "Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.",
       "Deletes the saved key.",
       "Deletes the saved key. Conversations go back to Convai free tier.",
-      "Mistral free API key"
+      "Mistral API key"
     ],
     "page.memory": [
       "Choose a character",
@@ -2314,7 +2313,7 @@
       "In 2 minutes",
       "In 5 minutes",
       "Local AI",
-      "Mistral (free plan)",
+      "Mistral",
       "Off",
       "On",
       "Right now",
@@ -2604,7 +2603,7 @@
       "Message could not be delivered. Please try again.",
       "Message sent. Waiting for reply.",
       "Mistral did not accept your key. Check it in Settings > Conversation provider.",
-      "Mistral’s free limit is reached for now. Try again in a moment.",
+      "Mistral’s limit is reached for now. Try again in a moment.",
       "No reply received. Your message is in the draft; press Enter to retry.",
       "Opening chat. Waiting for the conversation service.",
       "Press Enter to write  /  Esc to close",
@@ -2624,8 +2623,8 @@
       "Write a message...  /  Enter to send  /  Esc to stop typing",
       "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.",
       "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).",
-      "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.",
-      "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC."
+      "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.",
+      "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key."
     ],
     "phone.feedback": [
       "{name} is not in your group.",
@@ -3036,10 +3035,10 @@
       "Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.",
       "Mistral replies are spoken by a local voice instead of the Convai cloud voice.",
       "Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.",
-      "Mistral: free limit reached for now",
       "Mistral: key not accepted",
+      "Mistral: limit reached for now",
       "Mistral: model unavailable",
-      "Mistral’s free limit is reached for now. Try again in a moment.",
+      "Mistral’s limit is reached for now. Try again in a moment.",
       "Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.",
       "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Install the full install zip as one mod and update that mod with each new full install zip. Extract multilingual packs into that mod’s folder, not as new mods. Mention Mod Organizer 2 when you send a report.",
       "Mod files",
@@ -3404,7 +3403,7 @@
       "The connection test failed.",
       "The connection works. The endpoint accepted your model and key.",
       "The conversation connection did not open. Check your connection, then invite again.",
-      "The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.",
+      "The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.",
       "The conversation service cannot reach the internet. See Help in Settings.",
       "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.",
       "The conversation service cannot see this mod’s folder in the game: a mod manager’s virtual folders, or a folder it may not read. Extract the Runtime straight into the Cyberpunk 2077 folder, or start the game from the mod manager that holds the Runtime.",
@@ -3547,10 +3546,10 @@
       "This option does not get the Mature layer.",
       "This text cannot be empty.",
       "This text is too long. Keep it under {max} characters.",
-      "Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
-      "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
-      "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
-      "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
+      "Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).",
+      "Today’s Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).",
+      "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).",
+      "Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).",
       "Tone line",
       "Too many display names. Keep {max} or fewer.",
       "Too many example lines. Keep {max} or fewer.",
@@ -3625,8 +3624,8 @@
       "Where some notes go in the prompt.",
       "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
       "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
-      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
-      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
+      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
+      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
       "Windows (Smart App Control or an Application Control policy) blocks the files of the model server, so Local AI cannot run on this PC. Choose a cloud conversation provider in Settings.",
       "Windows (Smart App Control or an Application Control policy) blocks the files of the voice, so Pocket cannot run on this PC. Choose a cloud voice (Voxtral) in Settings.",
       "Windows default",
@@ -3645,8 +3644,8 @@
       "You have changes that are not saved. Leave without saving?",
       "You have made as many characters as the editor keeps ({max}). Delete one first.",
       "You have too many favorites. Remove one first.",
-      "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
-      "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
+      "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).",
+      "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).",
       "You: {text}",
       "Your AMD Radeon card ({card}) can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself.",
       "Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.",
@@ -6424,14 +6423,6 @@
         "mod/custom-provider.lua:286"
       ]
     },
-    "Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day.": {
-      "contexts": [
-        "page.keyRow"
-      ],
-      "references": [
-        "mod/manager-ui.lua:1149"
-      ]
-    },
     "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.": {
       "contexts": [
         "page.keyRow"
@@ -6439,6 +6430,14 @@
       "references": [
         "mod/manager-ui.lua:1154",
         "mod/manager-ui.lua:1227"
+      ]
+    },
+    "Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.": {
+      "contexts": [
+        "page.keyRow"
+      ],
+      "references": [
+        "mod/manager-ui.lua:1149"
       ]
     },
     "Copying the path needs the conversation service, which is not running. The report file is at: {path}": {
@@ -9194,18 +9193,20 @@
     },
     "Mistral": {
       "contexts": [
+        "page.options",
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:182"
+        "mod/character-editor.lua:182",
+        "mod/manager-ui.lua:1145"
       ]
     },
-    "Mistral (free plan)": {
+    "Mistral API key": {
       "contexts": [
-        "page.options"
+        "page.keyRow"
       ],
       "references": [
-        "mod/manager-ui.lua:1145"
+        "mod/manager-ui.lua:1148"
       ]
     },
     "Mistral and Local AI": {
@@ -9251,14 +9252,6 @@
         "mod/character-editor.lua:221"
       ]
     },
-    "Mistral free API key": {
-      "contexts": [
-        "page.keyRow"
-      ],
-      "references": [
-        "mod/manager-ui.lua:1148"
-      ]
-    },
     "Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.": {
       "contexts": [
         "ui.localized"
@@ -9283,20 +9276,20 @@
         "mod/character-editor.lua:278"
       ]
     },
-    "Mistral: free limit reached for now": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-ui.lua:1010"
-      ]
-    },
     "Mistral: key not accepted": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
         "mod/manager-ui.lua:1011"
+      ]
+    },
+    "Mistral: limit reached for now": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-ui.lua:1010"
       ]
     },
     "Mistral: model unavailable": {
@@ -9307,7 +9300,7 @@
         "mod/manager-ui.lua:1012"
       ]
     },
-    "Mistral’s free limit is reached for now. Try again in a moment.": {
+    "Mistral’s limit is reached for now. Try again in a moment.": {
       "contexts": [
         "phone.chat",
         "ui.localized"
@@ -13825,7 +13818,7 @@
         "mod/manager-party.lua:118"
       ]
     },
-    "The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.": {
+    "The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.": {
       "contexts": [
         "ui.localized"
       ],
@@ -15375,7 +15368,7 @@
         "mod/manager-ui.lua:1557"
       ]
     },
-    "Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
+    "Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).": {
       "contexts": [
         "ui.localized"
       ],
@@ -15383,7 +15376,7 @@
         "mod/init.lua:5798"
       ]
     },
-    "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
+    "Today’s Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).": {
       "contexts": [
         "ui.localized"
       ],
@@ -15391,7 +15384,7 @@
         "mod/init.lua:5803"
       ]
     },
-    "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
+    "Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).": {
       "contexts": [
         "ui.localized"
       ],
@@ -15399,7 +15392,7 @@
         "mod/init.lua:5796"
       ]
     },
-    "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
+    "Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).": {
       "contexts": [
         "ui.localized"
       ],
@@ -16647,7 +16640,7 @@
         "mod/character-editor.lua:132"
       ]
     },
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": {
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": {
       "contexts": [
         "ui.localized"
       ],
@@ -16655,7 +16648,7 @@
         "mod/manager-ui.lua:1041"
       ]
     },
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": {
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": {
       "contexts": [
         "ui.localized"
       ],
@@ -16850,7 +16843,7 @@
         "mod/manager-ui.lua:1582"
       ]
     },
-    "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).": {
+    "You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).": {
       "contexts": [
         "ui.localized"
       ],
@@ -16858,7 +16851,7 @@
         "mod/manager-ui.lua:1034"
       ]
     },
-    "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).": {
+    "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).": {
       "contexts": [
         "ui.localized"
       ],
@@ -17308,7 +17301,7 @@
         "mod/setup-check.lua:939"
       ]
     },
-    "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.": {
+    "You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.": {
       "contexts": [
         "phone.chat"
       ],
@@ -17317,7 +17310,7 @@
         "mod/phone-chat.lua:12"
       ]
     },
-    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.": {
+    "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.": {
       "contexts": [
         "phone.chat"
       ],

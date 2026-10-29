@@ -1007,7 +1007,7 @@ local function ownKeyRows(snapshot)
     local note, limitHelp
     if mistral.pending then note = ui.t('Waiting for the conversation to end')
     elseif mistral.effective == 'mistral' then
-        if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: free limit reached for now')
+        if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: limit reached for now')
         elseif mistral.limit == 'invalid' then note = ui.t('Mistral: key not accepted')
         elseif mistral.limit == 'model' then note = ui.t('Mistral: model unavailable') end
     elseif mistral.effective == 'custom' then
@@ -1031,15 +1031,15 @@ local function ownKeyRows(snapshot)
         -- When they come back: the next 00:00 UTC on this computer's clock (ui.dailyResetClock), else "tomorrow".
         local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
         if at then
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).', {limit = own.daily.limit, time = at})
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).', {limit = own.daily.limit, time = at})
         else
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).', {limit = own.daily.limit})
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).', {limit = own.daily.limit})
         end
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
-        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     -- The note comes first: the description area holds only so much, and who answers right now is what the player acts on.
     if note then providerHelp = note .. '\n\n' .. providerHelp end
     -- Mature content is part of the main mod (off by default). It works with Local AI and Custom only: turning it on beside Convai or Mistral selects
@@ -1142,11 +1142,11 @@ local function ownKeyRows(snapshot)
     end
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
-            {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
+            {'Convai free tier', 'Convai API key', 'Mistral', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
         matureRow,
         modelRow,
-        keyRow('Mistral free API key',
-            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day.',
+        keyRow('Mistral API key',
+            'Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.',
             'Deletes the saved key.',
             'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage, removeMore = mistralRemoval(snapshot)},
             function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
