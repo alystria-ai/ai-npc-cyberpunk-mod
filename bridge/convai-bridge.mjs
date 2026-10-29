@@ -3477,15 +3477,6 @@ async function runInput(request, prepared, clock) {
 // error in the log. A line whose file is missing (or cannot be decoded) is NEVER spoken by a live voice, in Developer mode too (owner decision of 29 Oct 2026): the reply
 // carries `missingAudio: true` for the game, which shows the subtitle and adds a Phone Chat line.
 // Ogg, FLAC and MP3 files are decoded by bridge/prepared-audio.mjs (ffmpeg, else the Runtime Python); its decoded-sample cache lives in the state folder and is bounded.
-const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
-  onLog: message => console.error('[PreparedAudio] ' + message)});
-// Music and sound effects of a story pack (docs/BOND_QUESTS.md 19.2 and 19.3, bridge/media-link.mjs): the game writes runtime/media-command.json, the bridge decodes the pack's file
-// and plays it on the media page of the hidden browser (a second stream beside the voice, ducked under speech). A file of its own and not the request file, because a media request
-// written over the request of a running talk turn would cancel that turn. No timer: the loop below calls maybePoll(), which looks only while a quest runs or a sound plays.
-const mediaLink = new MediaLink({path: resolve(runtime, 'media-command.json'), bondPacks, audio: preparedAudio, fs: {stat, readFile},
-  host: () => realtime.mediaHost(), peek: () => realtime.peekMedia(), wanted: () => questPoller.armed || realtime.mediaBusy,
-  log: message => console.error('[Media] ' + message)});
-const MEDIA_IDLE_MS = 30_000;
 const scriptedLogged = new Set();
 // One ERROR line per pack and line (the pack id and the line id are in it), however often the line is asked for.
 const scriptedPackError = (input, message) => {
@@ -4310,6 +4301,16 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 questSync();
 // A poll is one stat of the request file until Lua replaces it, so a short
 // interval costs little and removes up to 150 ms from every turn's start.
+// The prepared audio decoder and the media link are made here, after the declarations the voice code above evaluates in its tests (they are only used by calls made later).
+const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
+  onLog: message => console.error('[PreparedAudio] ' + message)});
+// Music and sound effects of a story pack (docs/BOND_QUESTS.md 19.2 and 19.3, bridge/media-link.mjs): the game writes runtime/media-command.json, the bridge decodes the pack's file
+// and plays it on the media page of the hidden browser (a second stream beside the voice, ducked under speech). A file of its own and not the request file, because a media request
+// written over the request of a running talk turn would cancel that turn. No timer: the loop below calls maybePoll(), which looks only while a quest runs or a sound plays.
+const mediaLink = new MediaLink({path: resolve(runtime, 'media-command.json'), bondPacks, audio: preparedAudio, fs: {stat, readFile},
+  host: () => realtime.mediaHost(), peek: () => realtime.peekMedia(), wanted: () => questPoller.armed || realtime.mediaBusy,
+  log: message => console.error('[Media] ' + message)});
+const MEDIA_IDLE_MS = 30_000;
 await mediaLink.open();   // remembers the command file of an earlier session, which is never played
 // The media link looks at its command file from this loop, not awaited, only while a quest runs or a sound plays (bridge/media-link.mjs).
 const timer = setInterval(() => { mediaLink.maybePoll(); return tick(); }, 50);
