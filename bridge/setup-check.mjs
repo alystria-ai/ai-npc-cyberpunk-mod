@@ -1,4 +1,4 @@
-import {readFile, readdir as realReaddir, lstat as realLstat, stat} from 'node:fs/promises';
+import {readFile, readdir as realReaddir, lstat as realLstat, stat, statfs} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {lookup as dnsLookup} from 'node:dns/promises';
 import {connect as netConnect} from 'node:net';
@@ -25,6 +25,11 @@ import {checkRuntimeSteps} from './runtime-steps.mjs';
 export const SETUP_CHECK_FILE = 'setup-check.json';
 export const SETUP_REQUEST_FILE = 'setup-check-request.json';
 
+// A drive with less free space than this (the game's, or the one the mod keeps its data on) is "almost full": the logs, the memories and the voice
+// files the mod writes then fail (error report 1cbe337a5144ebbd, a C: drive with 0.8 GiB free). The check reads the numbers of two folders, no process.
+// The drive letter of a Windows path, or null (the same reading as bridge/system-facts.mjs driveLetter, which is not part of the service's own files).
+const driveLetter = folder => /^([A-Za-z]):[\\/]/.exec(String(folder ?? ''))?.[1]?.toUpperCase() ?? null;
+export const DISK_LOW_BYTES = 2 * 1024 ** 3;
 const REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000, REQUEST_FUTURE_MS = 5000;
 // The language packs one folder too deep are found by their manifests (the same as LANGUAGE_PACKS in the launcher's place-packs.mjs).
 const LANGUAGE_PACK_FOLDERS = [['multilingual', 'manifest.json', 'Multilingual pack'], ['multilingual-pocket', 'pocket-model.json', 'PocketTTS model']];
@@ -497,6 +502,25 @@ export async function collectSetupCheck(options = {}) {
     return {state: 'ok', code: 'match', scripts, runtime, scriptsGame, runtimeGame};
   });
 
+  // The drive the game is on and the one the mod's data is on (the logs, the memories and the settings backups): the one with less free space is
+  // named. Under 2 GiB it is a problem the game announces once per session and the Help page shows; a drive that cannot be read leaves the check unknown.
+  // freeSpace(folder) -> bytes free for this player (a test seam; the real one is statfs, which starts nothing, so a light run does it too).
+  const disk = () => guarded('disk', async () => {
+    const free = options.freeSpace ?? (async folder => { const info = await statfs(folder); return Number(info.bavail) * Number(info.bsize); });
+    let lowest = null;
+    for (const folder of [game, stateDirectory]) {
+      const letter = driveLetter(folder);
+      if (!letter) continue;
+      let bytes = null;
+      try { bytes = await free(folder); } catch { bytes = null; }
+      if (Number.isFinite(bytes) && bytes >= 0 && (lowest === null || bytes < lowest.bytes)) lowest = {letter, bytes};
+    }
+    if (!lowest) return {state: 'unknown', code: 'unknown'};
+    // Rounded down to a tenth: a drive just under the line never reads "2".
+    const freeGiB = Math.floor(lowest.bytes / 1024 ** 3 * 10) / 10;
+    return {state: lowest.bytes < DISK_LOW_BYTES ? 'problem' : 'ok', code: lowest.bytes < DISK_LOW_BYTES ? 'low' : 'enough', drive: lowest.letter, freeGiB};
+  });
+
   const packs = () => guarded('packs', async () => {
     const found = [];
     if (project && (await exists(join(project, 'pocket-tts')) || await exists(join(project, 'models', 'pocket')))) found.push('Pocket TTS');
@@ -630,7 +654,7 @@ export async function collectSetupCheck(options = {}) {
     return null;
   };
 
-  const checks = (await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),
+  const checks = (await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(), disk(),
     ...(typeof options.voice === 'function' ? [voice()] : []), ...(typeof options.omniPython === 'function' ? [omniPython()] : []),
     ...(typeof options.microphone === 'function' ? [microphone()] : [])])).filter(Boolean);
   return {version: 1, updated: now(), bridgePid: process.pid, request, checks};

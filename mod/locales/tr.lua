@@ -1730,4 +1730,6 @@ return {
     ["Ctrl"] = "Ctrl",
     ["Alt"] = "Alt",
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Bir tuşa basarken Shift, Ctrl veya Alt tuşunu basılı tutarak Shift+F5 gibi bir kombinasyon belirle. Kombinasyon yalnızca tam olarak bu tuşlar basılıyken çalışır, düz bir tuş ise bunlardan biri basılıyken çalışmaz. Oyunda Shift koşturur, Ctrl kaçınır, Alt ise silah çarkını açar, bu yüzden V de bunu yapar.",
+    ["Disk space"] = "Disk alanı",
+    ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "{drive} sürücün neredeyse dolu ({free} GB boş). Yer aç, mod günlüklerini ve anılarını kaydedebilsin.",
 }

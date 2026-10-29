@@ -717,6 +717,8 @@ test('the first load names Scripts and Runtime of different versions, a pack one
       'A pack is one folder too deep. See Help in Settings.'],
     ['internet', `{id = 'internet', state = 'problem', code = 'blocked', service = 'convai', host = 'api.convai.com'}`,
       'The conversation service cannot reach the internet. See Help in Settings.'],
+    ['disk', `{id = 'disk', state = 'problem', code = 'low', drive = 'C', freeGiB = 0.8}`,
+      'Your C: drive is almost full (0.8 GB free). Free space so the mod can save logs and memories.'],
     ['files', null, 'Some mod files are missing. Extract the update zip again. See Help in Settings.'],
   ];
   for (const [id, document, expected] of cases) {
@@ -732,6 +734,19 @@ test('the first load names Scripts and Runtime of different versions, a pack one
     `);
   }
 });
+
+test('a drive that is almost full has a Help row and is a problem the first load announces; a drive with room has neither', () => run(String.raw`
+  installFiles(); serviceRunning()
+  answer({disk = {id = 'disk', state = 'ok', code = 'enough', drive = 'C', freeGiB = 120.3}}); check.run()
+  assert(lineOf('disk') == nil and #check.problems() == 0, 'a drive with room needs no row')
+  answer({disk = {id = 'disk', state = 'unknown', code = 'unknown'}}); check.run()
+  assert(lineOf('disk') == nil and #check.problems() == 0, 'a drive that could not be read says nothing')
+  answer({disk = {id = 'disk', state = 'problem', code = 'low', drive = 'D', freeGiB = 1.9}}); check.run()
+  assert(lineOf('disk').state == 'problem' and lineOf('disk').label == 'Disk space', 'the row')
+  assert(lineOf('disk').description == 'Your D: drive is almost full (1.9 GB free). Free space so the mod can save logs and memories.', lineOf('disk').description)
+  assert(table.concat(check.problems(), ',') == 'disk')
+  assert(table.concat(check.reportLines(), '\n'):find('service disk: problem low drive=D freeGiB=1.9', 1, true), 'the short report carries the drive and the free space')
+`));
 
 test('the first load stays silent when only a failed service, Local AI, a missing browser or a mod manager are wrong', () => run(String.raw`
   installFiles()
