@@ -948,6 +948,8 @@ local function loadSettings()
     if type(settings.characterBonds) ~= 'boolean' then settings.characterBonds, settingsNeedSave = false, true end
     -- Off by default: characters can start short story arcs of their own once V is close and their own quests are done (docs/RELATIONSHIPS_AND_QUESTS.md, section 7).
     if type(settings.storyPacks) ~= 'boolean' then settings.storyPacks, settingsNeedSave = false, true end
+    -- On by default: characters you are close to text or call you first now and then, and Johnny speaks up in your head (docs/QUEST_PRIMITIVES.md section 10.7). Only with Story packs.
+    if type(settings.reachOuts) ~= 'boolean' then settings.reachOuts, settingsNeedSave = true, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
@@ -1203,6 +1205,13 @@ end
 function M.storyPacks()
     loadSettings()
     return settings.storyPacks == true
+end
+
+-- Characters text first (Settings > Gameplay, docs/QUEST_PRIMITIVES.md section 10.7): ON by default, a missing or non-boolean value is on. Read once per private turn V sends (the bonds
+-- block carries it as reach) and once a second by the reach timer while it runs (mod/quest-reach.lua), never per frame.
+function M.reachOuts()
+    loadSettings()
+    return settings.reachOuts ~= false
 end
 
 -- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
@@ -2271,6 +2280,7 @@ function M.snapshot(player)
             characterEddies = settings.characterEddies == true,
             characterBonds = settings.characterBonds == true,
             storyPacks = settings.storyPacks == true,
+            reachOuts = settings.reachOuts ~= false,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             companionSpeakUp = M.companionSpeakUp(),
@@ -2437,6 +2447,9 @@ function M.applySettings(player, values)
         elseif key == 'storyPacks' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.storyPacks = value
+        elseif key == 'reachOuts' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.reachOuts = value
         elseif key == 'johnnyInHead' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value

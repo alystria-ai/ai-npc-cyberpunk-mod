@@ -9,11 +9,12 @@
 --   event:<name>                 an event as if the game saw it (every armed quest gets it: its rows fire, its gap can end)
 --   line:<pack>:<lineId>         one scripted line of an armed quest now, as a plot line
 --   reap                         every ctx, pin, spawn, timer and line is cleaned up now
+--   reach                        what Characters text first holds: the timer, the listed items, the caps used, the play file's reach block (mod/quest-reach.lua)
 --   gifts                        checks every id of runtime/quest-gift-allowlist.json (the bridge writes {version = 1, ids = [...]}) against the game with TweakDB:GetRecord,
 --                                logs a line per missing id and writes runtime/quest-gift-check.json {version = 1, checked, missing = [...], ok = [...]}
 local M = {}
 M.CAPTURE = 'runtime/quest-place-capture.json'
-M.ACTIONS = {status = true, capture = true, event = true, line = true, reap = true, gifts = true}
+M.ACTIONS = {status = true, capture = true, event = true, line = true, reap = true, gifts = true, reach = true}
 M.ALLOWLIST, M.GIFT_CHECK, M.MAX_GIFT_IDS = 'runtime/quest-gift-allowlist.json', 'runtime/quest-gift-check.json', 400
 M.OUTDOOR_RADIUS, M.INDOOR_RADIUS = 25, 8
 
@@ -61,6 +62,13 @@ function M.run(action, env)
     if not M.ACTIONS[verb or ''] then error('unknown action ' .. tostring(action)) end
     local play = convaiQuestPlay
     if verb == 'gifts' then return checkGifts(env) end
+    if verb == 'reach' then
+        local block = play and play.reach() or nil
+        local ids = {}
+        for _, item in ipairs(block and block.items or {}) do ids[#ids + 1] = item.id .. ':' .. item.via end
+        return {loaded = convaiReach ~= nil, status = convaiReach and convaiReach.status() or nil,
+            block = block and {enabled = block.enabled, items = #block.items, ids = ids, perHour = block.perHour, perDay = block.perDay} or nil}
+    end
     if verb == 'status' then
         return {loaded = play ~= nil, status = play and play.status() or nil, world = convaiQuestWorld ~= nil}
     end

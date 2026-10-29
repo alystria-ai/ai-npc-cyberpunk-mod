@@ -1617,6 +1617,8 @@ return {
     ["Ride or die"] = "Hasta la muerte",
     ["Story packs"] = "Paquetes de historia",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Cuando estás cerca de un personaje y sus misiones propias han terminado, puede empezar una breve historia suya. Se desarrolla en charlas, mensajes y llamadas, y algunas usan Eddies con personajes e Invitaciones inmersivas.\n\nRequiere Vínculos con personajes. Solo tus personajes y canales, nunca las escenas ni misiones del juego. Desactivado por defecto.",
+    ["Characters text first"] = "Los personajes escriben primero",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "Los personajes con los que tienes confianza pueden escribirte o llamarte primero de vez en cuando, y Johnny puede hablarte dentro de tu cabeza. Solo ocurre en momentos tranquilos, nunca en una pelea, una escena o una llamada, y solo unas pocas veces al día.\n\nRequiere Paquetes de historia. Solo tus personajes y canales. Activado por defecto.",
     ["Bond: level {level}, {title}"] = "Vínculo: nivel {level}, {title}",
     ["Story: {title}"] = "Historia: {title}",
     ["The eddies could not be moved."] = "No se pudieron mover los eddies.",

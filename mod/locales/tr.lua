@@ -1617,6 +1617,8 @@ return {
     ["Ride or die"] = "Ölümüne dost",
     ["Story packs"] = "Hikâye paketleri",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Bir karakterle yakınlaştığında ve onun kendi görevleri bittiğinde kendine ait kısa bir hikâye başlatabilir. Konuşmalarda, mesajlarda ve aramalarda geçer, bazıları Karakterlerle eddies ve Sürükleyici davetleri kullanır.\n\nKarakterlerle bağlar gerekir. Yalnızca kendi karakterlerin ve kanalların, oyunun sahneleri ve görevleri asla. Varsayılan kapalı.",
+    ["Characters text first"] = "Karakterler önce yazar",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "Yakın olduğun karakterler ara sıra sana önce mesaj atabilir veya arayabilir, Johnny de kafanın içinde seslenebilir. Bu yalnızca sakin anlarda olur, asla bir çatışmada, sahnede ya da aramada olmaz ve günde yalnızca birkaç kez olur.\n\nHikâye paketleri gerekir. Yalnızca kendi karakterlerin ve kanalların. Varsayılan açık.",
     ["Bond: level {level}, {title}"] = "Bağ: seviye {level}, {title}",
     ["Story: {title}"] = "Hikâye: {title}",
     ["The eddies could not be moved."] = "Eddies taşınamadı.",

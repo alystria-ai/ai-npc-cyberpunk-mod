@@ -12,6 +12,9 @@
 --                             read again from the saved stage
 --   P.emit(quest, name, opts) an event of a quest, opts {report = false, data = {...}}. P.inject(name) is the developer probe, it injects one for every armed quest
 --   P.factsWanted()           the facts the bridge wants read (the play file's factsWanted, cleaned), or nil when there are none (mod/quest-facts.lua)
+--   P.reach()                 the play file's reach block, cleaned (mod/quest-reach.lua), or nil. options.onReach(block | nil) is called whenever a play file is applied
+--                             (block nil when the file is gone or the world ended). P.refresh() reads the play file now (the reach tick, while it has items to watch)
+--   P.emitReach(id, data)     the event `reach:<id>` of a delivered reach-out, with pack "reach" and serial 0 (it belongs to no quest), written to the events file at once
 --   P.status()                what the module holds
 --
 -- Event data: an event may carry `data`, a flat table of at most 6 keys whose values are numbers, booleans or strings of at most 80 characters (anything else is
@@ -24,7 +27,8 @@
 -- options: enabled() -> bool, clock() -> seconds (monotonic real clock), gameTime() -> the game clock in seconds | nil, read(path), write(path, text),
 --   encode, decode, places (mod/quest-places.lua), lines (mod/quest-lines.lua), prims (mod/quest-prims.lua), session (a fixed session id, for tests), log(line).
 local M = {PLAY = 'runtime/quest-play.json', EVENTS = 'runtime/quest-events.json', TAG = 'CyberpunkConvaiQuest', STEP = 1, SLACK = 120, MAX_FILE = 262144,
-    MAX_QUESTS = 8, MAX_EVENTS = 32, MAX_DRAIN = 64, MAX_DO = 16, MAX_ROWS = 64, MAX_FAILS = 3, MAX_SEEN = 256, MAX_DATA = 6, MAX_FACTS = 32, MAX_FACT_NAMES = 8}
+    MAX_QUESTS = 8, MAX_EVENTS = 32, MAX_DRAIN = 64, MAX_DO = 16, MAX_ROWS = 64, MAX_FAILS = 3, MAX_SEEN = 256, MAX_DATA = 6, MAX_FACTS = 32, MAX_FACT_NAMES = 8,
+    MAX_REACH = 24}
 
 local function plainId(value) return type(value) == 'string' and #value > 0 and #value <= 80 and value:match('^[%w][%w%.:_%-]*$') ~= nil end
 local function eventName(value) return type(value) == 'string' and #value > 0 and #value <= 120 and value:match('^[%w][%w:%-_%.]*$') ~= nil end
@@ -78,6 +82,35 @@ local function cleanFacts(value)
     return #out > 0 and out or nil
 end
 
+-- The reach block of the play file (docs/QUEST_PRIMITIVES.md section 10.7): {enabled, items = [{id, character, via, text, image?, when?, offer?}], perHour?, perDay?}.
+-- Cleaned here (shapes and sizes only, the conditions are judged by mod/quest-reach.lua): at most 24 items, a bad item is dropped, nil when nothing usable is left.
+local REACH_VIAS = {text = true, call = true, voice = true}
+local function cleanReach(value)
+    if type(value) ~= 'table' or type(value.items) ~= 'table' then return nil end
+    local items, seen = {}, {}
+    for _, row in ipairs(value.items) do
+        if #items >= M.MAX_REACH then break end
+        if type(row) == 'table' and type(row.id) == 'string' and row.id:match('^[a-z][a-z0-9%-]+$') and #row.id <= 32 and not seen[row.id]
+            and keyName(row.character) and REACH_VIAS[row.via] and type(row.text) == 'string' and #row.text > 0 and #row.text <= 600 then
+            seen[row.id] = true
+            local when = nil
+            if type(row.when) == 'table' and type(row.when.kind) == 'string' and #row.when.kind <= 24 then
+                when = {}
+                for key, item in pairs(row.when) do
+                    local kind = type(item)
+                    if type(key) == 'string' and #key <= 24 and (kind == 'boolean' or kind == 'string' and #item <= 60
+                        or kind == 'number' and item == item and item ~= math.huge and item ~= -math.huge) then when[key] = item end
+                end
+            end
+            items[#items + 1] = {id = row.id, character = row.character, via = row.via, text = row.text,
+                image = keyName(row.image) and row.image or nil, when = when, offer = plainId(row.offer) and row.offer or nil}
+        end
+    end
+    if #items == 0 then return nil end
+    return {enabled = value.enabled == true, items = items,
+        perHour = whole(value.perHour, 1, 6) and value.perHour or nil, perDay = whole(value.perDay, 1, 12) and value.perDay or nil}
+end
+
 function M.new(options)
     options = options or {}
     local P = {}
@@ -94,6 +127,7 @@ function M.new(options)
     local logged = {}
     local places, lines, prims = options.places, options.lines, options.prims
     local wantedFacts = nil      -- the play file's factsWanted, cleaned (mod/quest-facts.lua reads them), nil when there are none
+    local reachBlock = nil       -- the play file's reach block, cleaned (mod/quest-reach.lua reads it), nil when there is none
 
     -- ---- the game's calls, all guarded --------------------------------------------------------------------------------------------------
     local function clock()
@@ -133,6 +167,15 @@ function M.new(options)
         return written and closedOk and true or false
     end
 
+    -- The reach block (mod/quest-reach.lua): held cleaned, and the owner is told whenever a play file is applied (or the file goes away).
+    local function setReach(block)
+        reachBlock = block
+        if type(options.onReach) == 'function' then
+            local ok, err = pcall(options.onReach, block)
+            if not ok then logOnce('reach', 'the reach block could not be handed over: ' .. tostring(err)) end
+        end
+    end
+
     local function rearm()
         armed = next(quests) ~= nil or eventsDirty
             or (lines ~= nil and lines.pending()) or (places ~= nil and places.active())
@@ -144,7 +187,8 @@ function M.new(options)
     -- read-only folder cannot keep the module busy for ever.
     local function flush()
         if not eventsDirty then return end
-        local raw = encode({version = 1, session = session, seq = seq, events = events})
+        -- `at`: the game clock (seconds) of this write, so the bridge's clocks stay current (left out when the game cannot say).
+        local raw = encode({version = 1, session = session, seq = seq, at = gameTime(), events = events})
         if raw and write(M.EVENTS, raw) then
             eventsDirty, flushFails = false, 0
             return
@@ -444,6 +488,7 @@ function M.new(options)
     -- Apply a decoded play file. startup: the quest's ending rows and commands already in the file belong to a time before this one (they are not played).
     local function apply(value, startup)
         wantedFacts = cleanFacts(value.factsWanted)
+        setReach(cleanReach(value.reach))
         local wanted, fresh_ = {}, {}
         for _, q in ipairs(list(value.quests)) do
             if #fresh_ >= M.MAX_QUESTS then break end
@@ -494,7 +539,7 @@ function M.new(options)
     local function readPlay(startup)
         local raw = read(M.PLAY)
         if type(raw) ~= 'string' or raw == '' or #raw > M.MAX_FILE then
-            if raw == nil and lastRaw ~= nil then lastRaw, wantedFacts = nil, nil; if next(quests) ~= nil then reapAll() end end   -- the file is gone: no quest, no facts
+            if raw == nil and lastRaw ~= nil then lastRaw, wantedFacts = nil, nil; setReach(nil); if next(quests) ~= nil then reapAll() end end   -- the file is gone: no quest, no facts, no reach-outs
             return
         end
         if raw == lastRaw then return end
@@ -561,6 +606,7 @@ function M.new(options)
         if lines then lines.reset() end
         seenCommands, seenCount, queue, draining, closingScopes = {}, 0, {}, false, {}
         lastRaw, acc = nil, 0
+        setReach(nil)
         rearm()
     end
 
@@ -598,6 +644,27 @@ function M.new(options)
 
     -- The facts the bridge wants read (mod/quest-facts.lua), a list of {id, names, kind, values}, or nil. Held from the last play file applied, so asking is free.
     function P.factsWanted() return wantedFacts end
+
+    -- The reach block of the play file (cleaned), or nil. Held from the last play file applied, so asking is free.
+    function P.reach() return reachBlock end
+
+    -- Read the play file now (a file that did not change costs the read and one string compare). The reach tick calls it once a minute while it has items to watch,
+    -- because the play file is otherwise read only while a quest is armed, at a play revision and at a session start.
+    function P.refresh()
+        if not enabled() then return false end
+        readPlay(false)
+        rearm()
+        return true
+    end
+
+    -- A delivered reach-out (docs/QUEST_PRIMITIVES.md section 10.7): the event reach:<id> with pack "reach" and serial 0, written to the events file at once. `data` is optional.
+    function P.emitReach(id, data)
+        if type(id) ~= 'string' or not id:match('^[a-z][a-z0-9%-]+$') or #id > 32 then return false end
+        record({pack = 'reach', serial = 0}, 'reach:' .. id, M.cleanData(data))
+        flush()
+        rearm()
+        return true
+    end
 
     function P.status()
         local rows = {}

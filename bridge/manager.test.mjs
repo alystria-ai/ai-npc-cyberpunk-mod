@@ -6057,8 +6057,8 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
       assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength')
       local gameplay
       for _, category in ipairs(loaded.categories) do if category.id == 'gameplay' then gameplay = category end end
-      assert(gameplay and gameplay.name == 'Gameplay' and #gameplay.settings == 12, 'Gameplay: twelve rows')
-      local want = {'reputation', 'npcThreats', 'companionOutfits', 'characterEddies', 'characterBonds', 'storyPacks', 'immersive-invitations', 'housemates', 'revengeAmbushes', 'voiceChoices', 'battleReactions', 'lootReactions'}
+      assert(gameplay and gameplay.name == 'Gameplay' and #gameplay.settings == 13, 'Gameplay: thirteen rows')
+      local want = {'reputation', 'npcThreats', 'companionOutfits', 'characterEddies', 'characterBonds', 'storyPacks', 'reachOuts', 'immersive-invitations', 'housemates', 'revengeAmbushes', 'voiceChoices', 'battleReactions', 'lootReactions'}
       for index, id in ipairs(want) do assert(gameplay.settings[index].id == id, 'Gameplay row ' .. index .. ': ' .. tostring(gameplay.settings[index].id)) end
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.

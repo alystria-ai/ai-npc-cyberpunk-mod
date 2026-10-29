@@ -2410,6 +2410,9 @@ local function schema()
             -- Off by default (docs/RELATIONSHIPS_AND_QUESTS.md section 7): a close character can start a short story arc of their own once their own quests are done.
             setting('storyPacks', 'Story packs', 'bool', snapshot.settings.storyPacks == true, false,
                 'When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default.'),
+            -- On by default (docs/QUEST_PRIMITIVES.md section 10.7): close characters text or call first at calm moments, and Johnny speaks up in your head. Only with Story packs.
+            setting('reachOuts', 'Characters text first', 'bool', snapshot.settings.reachOuts ~= false, true,
+                'Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default.'),
             action('immersive-invitations', 'Immersive invitations', 'Open',
                 'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
                 function() return navigate('immersive-invitations') end),
@@ -3060,6 +3063,7 @@ function M.apply(changes)
         elseif key == 'characterEddies' then values.characterEddies = change.value
         elseif key == 'characterBonds' then values.characterBonds = change.value
         elseif key == 'storyPacks' then values.storyPacks = change.value
+        elseif key == 'reachOuts' then values.reachOuts = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'npcThreats' then values.npcThreats = change.value
         elseif key == 'revengeAmbushes' then values.revengeAmbushes = change.value

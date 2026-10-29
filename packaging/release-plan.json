@@ -226,6 +226,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-facts.lua"
         },
         {
+          "source": "mod/quest-reach.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-reach.lua"
+        },
+        {
           "source": "mod/quest-lines.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-lines.lua"
         },

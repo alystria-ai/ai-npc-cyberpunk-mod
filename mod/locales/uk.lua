@@ -1617,6 +1617,8 @@ return {
     ["Ride or die"] = "Вірний до кінця",
     ["Story packs"] = "Сюжетні пакети",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Коли ви близькі з персонажем і його власні завдання завершені, він може почати коротку історію. Вона йде в розмовах, повідомленнях і дзвінках, а деякі використовують «Едді з персонажами» та «Занурювальні запрошення».\n\nПотрібні «Зв’язки з персонажами». Лише ваші персонажі й канали, ніколи сцени чи завдання гри. За замовчуванням вимкнено.",
+    ["Characters text first"] = "Персонажі пишуть першими",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "Близькі вам персонажі можуть час від часу першими написати або зателефонувати, а Johnny може озватися у вашій голові. Це буває лише у спокійні моменти, ніколи під час бою, сцени чи дзвінка, і лише кілька разів на день.\n\nПотрібні «Сюжетні пакети». Лише ваші персонажі й канали. За замовчуванням увімкнено.",
     ["Bond: level {level}, {title}"] = "Зв’язок: рівень {level}, {title}",
     ["Story: {title}"] = "Історія: {title}",
     ["The eddies could not be moved."] = "Едді не вдалося перевести.",

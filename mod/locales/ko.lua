@@ -1610,6 +1610,8 @@ return {
     ["Ride or die"] = "끝까지 함께",
     ["Story packs"] = "스토리 팩",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "캐릭터와 가까워지고 그 캐릭터의 퀘스트가 끝나면 자신만의 짧은 이야기를 시작할 수 있습니다. 대화, 문자, 통화 속에서 진행되며, 일부는 “캐릭터와 에디”와 “몰입형 초대”를 사용합니다.\n\n“캐릭터와의 유대”가 필요합니다. 당신의 캐릭터와 채널에서만 작동하며 게임 자체의 장면이나 퀘스트에는 관여하지 않습니다. 기본값은 꺼짐입니다.",
+    ["Characters text first"] = "캐릭터가 먼저 연락",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "가까운 캐릭터가 가끔 먼저 문자를 보내거나 전화를 걸 수 있고, 조니가 머릿속에서 말을 걸 수도 있습니다. 차분한 순간에만 일어나며 전투, 장면, 통화 중에는 절대 일어나지 않고 하루에 몇 번뿐입니다.\n\n“스토리 팩”이 필요합니다. 당신의 캐릭터와 채널에서만 작동합니다. 기본값은 켜짐입니다.",
     ["Bond: level {level}, {title}"] = "유대: 레벨 {level}, {title}",
     ["Story: {title}"] = "이야기: {title}",
     ["The eddies could not be moved."] = "에디를 옮길 수 없었습니다.",

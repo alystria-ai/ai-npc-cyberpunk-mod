@@ -1617,6 +1617,8 @@ return {
     ["Ride or die"] = "Věrný až za hrob",
     ["Story packs"] = "Příběhové oblouky",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Když jsi postavě blízký a její vlastní úkoly jsou hotové, může začít vlastní krátký příběh. Odehrává se v rozhovorech, zprávách a hovorech a některé využívají Eddies s postavami a Pohlcující pozvánky.\n\nVyžaduje Pouta s postavami. Jen tvé vlastní postavy a kanály, nikdy herní scény či úkoly. Ve výchozím stavu vypnuto.",
+    ["Characters text first"] = "Postavy píšou první",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "Postavy, ke kterým máš blízko, ti mohou čas od času napsat nebo zavolat první a Johnny se může ozvat v tvé hlavě. Děje se to jen v klidných chvílích, nikdy v boji, scéně ani hovoru, a jen několikrát za den.\n\nVyžaduje Příběhové oblouky. Jen tvé vlastní postavy a kanály. Ve výchozím stavu zapnuto.",
     ["Bond: level {level}, {title}"] = "Pouto: úroveň {level}, {title}",
     ["Story: {title}"] = "Příběh: {title}",
     ["The eddies could not be moved."] = "Eddies se nepodařilo přesunout.",

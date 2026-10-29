@@ -1617,6 +1617,8 @@ return {
     ["Ride or die"] = "Fedelissimo",
     ["Story packs"] = "Pacchetti di storia",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Quando sei vicino a un personaggio e le sue missioni sono finite, può iniziare una breve storia tutta sua. Si svolge in chiacchierate, messaggi e chiamate, e alcune usano Eddies con i personaggi e Inviti immersivi.\n\nRichiede Legami con i personaggi. Solo i tuoi personaggi e canali, mai scene o missioni del gioco. Disattivato di default.",
+    ["Characters text first"] = "I personaggi scrivono per primi",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "I personaggi a cui sei vicino possono scriverti o chiamarti per primi ogni tanto, e Johnny può farsi sentire nella tua testa. Succede solo nei momenti tranquilli, mai durante uno scontro, una scena o una chiamata, e solo poche volte al giorno.\n\nRichiede Pacchetti di storia. Solo i tuoi personaggi e canali. Attivato di default.",
     ["Bond: level {level}, {title}"] = "Legame: livello {level}, {title}",
     ["Story: {title}"] = "Storia: {title}",
     ["The eddies could not be moved."] = "Non è stato possibile spostare gli eddies.",

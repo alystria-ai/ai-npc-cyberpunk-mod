@@ -352,3 +352,72 @@ test('the quest names no other mod and keeps to plain Lua 5.1 with no semicolon 
   assert.ok(!/\bgoto\b|table\.unpack|bit32/.test(text));
   for (const line of text.split('\n')) assert.ok(!/--.*;/.test(line), 'no semicolon in a comment: ' + line);
 });
+
+// ---- reach-outs: the block, the event and the clock of the events file ---------------------------------------------------------------------------------------
+test('reach: the block of the play file is cleaned and handed over with each applied file, kept for P.reach(), and gone with the file or the world', () => withGame(`
+local handed = {}
+local p = Play.new({enabled = function() return game.enabled end, clock = clock, gameTime = function() return game.gameClock end,
+  read = function(path) game.reads = game.reads + 1; return game.files[path] end, write = function(path, text) game.files[path] = text; return true end,
+  encode = serialize, decode = decode, places = places, lines = lines, prims = prims, session = 'sess2', log = log,
+  onReach = function(block) handed[#handed + 1] = block or false end})
+assert(p.reach() == nil)
+local good = {id = 'pr-bond5', character = 'panam-palmer', via = 'text', text = 'Hey.', image = 'card-wide', when = {kind = 'district', is = 'Watson', minutes = 5, junk = {1}}}
+file({}, {reach = {enabled = true, perHour = 1, perDay = 3, items = {good,
+  {id = 'Bad Id', character = 'panam-palmer', via = 'text', text = 'x'}, {id = 'no-via', character = 'panam-palmer', via = 'sms', text = 'x'},
+  {id = 'no-text', character = 'panam-palmer', via = 'text', text = ''}, {id = 'pr-bond5', character = 'panam-palmer', via = 'text', text = 'twice'},
+  {id = 'bad-who', character = 'Not A Key', via = 'text', text = 'x'}, 'junk', {id = 'voice-one', character = 'johnny-silverhand', via = 'voice', text = 'V.', offer = 'hangout-a'}}}})
+p.restore()
+local block = p.reach()
+assert(block and block.enabled == true and #block.items == 2 and block.perHour == 1 and block.perDay == 3, 'two good items')
+assert(block.items[1].id == 'pr-bond5' and block.items[1].image == 'card-wide' and block.items[1].when.kind == 'district' and block.items[1].when.minutes == 5 and block.items[1].when.junk == nil)
+assert(block.items[2].id == 'voice-one' and block.items[2].offer == 'hangout-a')
+assert(#handed == 1 and handed[1] == block, 'handed over once with the file')
+-- An empty list, no block, a block that is not a table: nothing.
+for _, bad in ipairs({{items = {}}, 'x', {enabled = true}}) do file({}, {reach = bad}); p.onPlayRevision(); assert(p.reach() == nil) end
+-- The file is gone: the owner is told.
+game.files[Play.PLAY] = nil; file({}, {reach = {enabled = true, items = {good}}}); p.onPlayRevision(); assert(p.reach() ~= nil)
+game.files[Play.PLAY] = nil; p.onPlayRevision(); assert(p.reach() == nil and handed[#handed] == false)
+-- The world ended: gone, and read again by restore.
+file({}, {reach = {enabled = true, items = {good}}}); p.restore(); assert(p.reach() ~= nil)
+p.abandon(); assert(p.reach() == nil and handed[#handed] == false)
+p.restore(); assert(p.reach() ~= nil)
+-- A raising owner does not stop the file from being applied.
+local q = Play.new({enabled = function() return true end, clock = clock, gameTime = function() return game.gameClock end, read = function(path) return game.files[path] end,
+  write = function() return true end, encode = serialize, decode = decode, places = places, lines = lines, prims = prims, session = 's3', log = log, onReach = function() error('owner broke') end})
+q.restore(); assert(q.reach() ~= nil and logged('the reach block could not be handed over'))
+`));
+
+test('reach: P.refresh reads the play file now (and only with the setting on), the same file costs the read and a compare', () => withGame(`
+file({}, {reach = {enabled = true, items = {{id = 'a-one', character = 'panam-palmer', via = 'text', text = 'x'}}}})
+assert(play.reach() == nil, 'nothing read yet')
+assert(play.refresh() == true and play.reach() ~= nil)
+local decodes = game.decodes
+play.refresh(); assert(game.decodes == decodes, 'an unchanged file is not decoded again')
+file({}, {reach = {enabled = true, items = {{id = 'b-two', character = 'panam-palmer', via = 'text', text = 'y'}}}})
+play.refresh(); assert(play.reach().items[1].id == 'b-two')
+game.enabled = false; file({}, {}); assert(play.refresh() == false and play.reach().items[1].id == 'b-two', 'the setting is off: not read')
+`));
+
+test('reach: P.emitReach writes the event reach:<id> with pack reach and serial 0 at once, with optional data, and nothing for a bad id', () => withGame(`
+assert(play.emitReach('pr-bond5') == true)
+local value = events()
+assert(#value.events == 1)
+local e = value.events[1]
+assert(e.pack == 'reach' and e.serial == 0 and e.name == 'reach:pr-bond5' and e.seq == 1 and e.at == 100000, e.name)
+assert(play.emitReach('with-data', {minutes = 3, junk = {1}}) == true)
+local second = events().events[2]
+assert(second.name == 'reach:with-data' and second.data.minutes == 3 and second.data.junk == nil)
+for _, bad in ipairs({'', 'Bad Id', 'x', 7, 'a:b', string.rep('a', 40)}) do assert(play.emitReach(bad) == false) end
+assert(#events().events == 2)
+-- No quest, no script row, no armed timer: the write failing is tried again by the steps, and given up after twenty failures.
+game.writeFails = true; assert(play.emitReach('late-one') == true and play.armed())
+game.writeFails = false; step(2); assert(count('reach:late-one') == 1 and not play.armed())
+`));
+
+test('the events file carries the game clock as a top-level at', () => withGame(`
+file({quest({script = {{when = 'stage:enter', event = 'x:y'}}})}); play.restore()
+local value = events()
+assert(value.at == 100000, 'at: ' .. tostring(value.at))
+game.gameClock = 100500; play.inject('probe:z')
+assert(events().at == 100500)
+`));

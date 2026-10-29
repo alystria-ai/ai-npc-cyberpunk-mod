@@ -130,10 +130,10 @@ const block = between('-- ---- Bond quests (docs/QUEST_PRIMITIVES.md, mod/quest-
 const glueHarness = `
 ${base}
 local game = {on = true, loads = {}, failLoad = nil, updates = {}, restores = 0, sweeps = 0, abandons = 0, requests = {}, canceled = {}, notices = {}, subtitles = {}, phones = {}, throwUpdate = false,
-  built = {}}
+  built = {}, reachBlocks = {}, reachUpdates = 0, reachResets = {}, reachEvents = {}}
 local loggedOnce = {}
 convaiLogOnce = function(key, line) loggedOnce[key] = (loggedOnce[key] or 0) + 1 end
-local manager = {characterBonds = function() return game.on end, storyPacks = function() return game.on end}
+local manager = {characterBonds = function() return game.on end, storyPacks = function() return game.on end, reachOuts = function() return game.reach ~= false end}
 local worldKnowledgeModule = {nativeGameTime = function() return 100000 end}
 local currentDistrict = function() return {district = 'Badlands'} end
 local convaiSeating = nil
@@ -159,6 +159,7 @@ local convaiNotices = {send = function(player, kind, text) game.notices[#game.no
 subtitles.showAnyway = function(speaker, text) game.subtitles[#game.subtitles + 1] = speaker .. ': ' .. text; return true end
 phoneChat.deliverScripted = function(key, text, image) game.phones[#game.phones + 1] = key .. ': ' .. text; return not game.phoneFails, 'contact' end
 local Game = {GetPlayer = function() return {ConvaiComposerOpen = function() return game.composer == true end} end}
+function convaiJohnnyHeadService() if game.noHead then return nil end return {name = 'Johnny Silverhand', refusal = function() return game.headRefusal end} end
 local function log(line) end
 local function fakeModule(name, extra)
   return {new = function(options)
@@ -172,7 +173,10 @@ local modules = {
   ['quest-places.lua'] = fakeModule('places'), ['quest-prims.lua'] = fakeModule('prims'),
   ['quest-lines.lua'] = fakeModule('lines', {busy = function() return game.linesBusy == true end, stopped = function(id, reason) game.stopped = id .. ':' .. reason end}),
   ['quest-play.lua'] = fakeModule('play', {restore = function() game.restores = game.restores + 1 end, update = function(player, delta) if game.throwUpdate then error('update broke') end game.updates[#game.updates + 1] = delta end,
-    abandon = function() game.abandons = game.abandons + 1 end, onPlayRevision = function() game.revisions = (game.revisions or 0) + 1 end, emitPack = function() end, rearm = function() end}),
+    abandon = function() game.abandons = game.abandons + 1 end, onPlayRevision = function() game.revisions = (game.revisions or 0) + 1 end, emitPack = function() end, rearm = function() end,
+    emitReach = function(id) game.reachEvents[#game.reachEvents + 1] = id; return true end, refresh = function() game.refreshes = (game.refreshes or 0) + 1 end}),
+  ['quest-reach.lua'] = fakeModule('reach', {setBlock = function(block) game.reachBlocks[#game.reachBlocks + 1] = block or false end, update = function() game.reachUpdates = game.reachUpdates + 1 end,
+    reset = function(why) game.reachResets[#game.reachResets + 1] = why end, districtChanged = function() end, sample = function() end}),
 }
 local function dofile(name)
   game.loads[#game.loads + 1] = name
@@ -194,10 +198,10 @@ convaiQuestPlayRevision(); assert(#game.loads == 0, 'a play revision with the se
 
 test('glue: with the setting on the five modules are built once, the stage is read once (after a sweep), and each tick passes its delta to update', () => withGlue(`
 convaiQuestTick('V', 0.1)
-assert(table.concat(game.loads, ',') == 'quest-world.lua,quest-places.lua,quest-prims.lua,quest-lines.lua,quest-play.lua,quest-prims-action.lua,quest-prims-drive.lua,quest-prims-race.lua,quest-prims-scene.lua,quest-prims-systems.lua', table.concat(game.loads, ','))
+assert(table.concat(game.loads, ',') == 'quest-world.lua,quest-places.lua,quest-prims.lua,quest-lines.lua,quest-play.lua,quest-prims-action.lua,quest-prims-drive.lua,quest-prims-race.lua,quest-prims-scene.lua,quest-prims-systems.lua,quest-reach.lua', table.concat(game.loads, ','))
 assert(game.sweeps == 1 and game.restores == 1 and convaiQuestPlay ~= nil and convaiQuestLines ~= nil and convaiQuestWorld ~= nil)
 convaiQuestTick('V', 0.1); convaiQuestTick('V', 0.2)
-assert(#game.loads == 10 and game.restores == 1 and #game.updates == 3 and game.updates[3] == 0.2)
+assert(#game.loads == 11 and game.restores == 1 and #game.updates == 3 and game.updates[3] == 0.2)
 local options = game.built.play
 assert(options.enabled() == true and options.places and options.lines and options.prims)
 game.on = false; assert(options.enabled() == false, 'the setting is read each time')
@@ -326,6 +330,71 @@ game.phoneFails = true; assert(convaiQuestPhone('panam-palmer', 'x', nil) == fal
 game.phoneFails = false
 convaiQuestPhone('panam-palmer', string.rep('a', 200), nil); assert(game.notices[2]:find('%.%.%.$') and #game.notices[2] < 170)
 `));
+
+// ---- Characters text first: the glue ---------------------------------------------------------------------------------------------------------------------------
+test('glue reach: the module is built with the quest module, the play file hands its block over, the 0.1 s tick drives its update, a world change resets it', () => withGlue(`
+convaiQuestTick('V', 0.1)
+assert(convaiReach ~= nil and game.reachUpdates == 1, 'built once and updated by the tick')
+convaiQuestTick('V', 0.1); assert(game.reachUpdates == 2)
+local play = game.built.play
+play.onReach({enabled = true, items = {{id = 'a'}}}); play.onReach(nil)
+assert(#game.reachBlocks == 2 and game.reachBlocks[1].items[1].id == 'a' and game.reachBlocks[2] == false)
+convaiQuestReset('world'); assert(game.reachResets[1] == 'world')
+`));
+
+test('glue reach: the options are the setting, the clock, the busy test of the line player, the Phone Chat path, the call system when it is there, the caption of Johnny, the event and the refresh', () => withGlue(`
+convaiQuestTick('V', 0.1)
+local o = game.built.reach
+assert(o.enabled() == true and o.gameTime() == 100000 and o.clock == os.clock)
+game.reach = false; assert(o.enabled() == false, 'the Characters text first setting'); game.reach = true
+game.on = false; assert(o.enabled() == false, 'Story packs and Character bonds'); game.on = true
+assert(o.busy() == false); battleSample.combat = true; assert(o.busy() == true, 'the same test the line player uses'); battleSample.combat = nil
+assert(o.text('panam-palmer', 'Hey.', nil) == true and game.phones[#game.phones] == 'panam-palmer: Hey.' and game.notices[#game.notices] == 'immersive-text:Panam Palmer: Hey.')
+assert(o.call({character = 'panam-palmer', text = 'x', id = 'a'}) == nil, 'no call system: nil, the text goes instead')
+local asked
+convaiQuestCallIn = function(key, text, id) asked = key .. '|' .. text .. '|' .. id; return true end
+assert(o.call({character = 'panam-palmer', text = 'x', id = 'a'}) == true and asked == 'panam-palmer|x|a')
+convaiQuestCallIn = function() error('boom') end; assert(o.call({character = 'panam-palmer', text = 'x', id = 'a'}) == false)
+convaiQuestCallIn = nil
+assert(o.voice({text = 'Hey, V.'}) == true and game.subtitles[#game.subtitles] == 'Johnny Silverhand: Hey, V.')
+game.headRefusal = 'combat'; assert(o.voice({text = 'x'}) == false, 'his route is not free'); game.headRefusal = nil
+game.noHead = true; assert(o.voice({text = 'x'}) == false, 'Johnny in your head is off'); game.noHead = nil
+assert(o.emit('a') == true and game.reachEvents[1] == 'a')
+o.refresh(); assert(game.refreshes == 1)
+`));
+
+test('glue reach: a reply that carries missingAudio for a scripted quest line adds the Phone Chat line once, and only then', () => withGlue(`
+convaiQuestTick('V', 0.1)
+local pendingLine = {requestId = 'r1', profileKey = 'panam-palmer', reaction = {kind = 'scripted'}}
+assert(convaiQuestMissingAudio(pendingLine, {text = 'You came.', missingAudio = true}) == true)
+assert(game.phones[#game.phones] == 'panam-palmer: You came.' and game.notices[#game.notices] == 'immersive-text:Panam Palmer: You came.')
+local phones = #game.phones
+assert(convaiQuestMissingAudio(pendingLine, {text = 'You came.', missingAudio = true}) == false and #game.phones == phones, 'once per line')
+assert(convaiQuestMissingAudio({requestId = 'r2', profileKey = 'panam-palmer', reaction = {kind = 'scripted'}}, {text = 'x'}) == false, 'no flag')
+assert(convaiQuestMissingAudio({requestId = 'r3', profileKey = 'panam-palmer', reaction = {kind = 'battle'}}, {text = 'x', missingAudio = true}) == false, 'not a quest line')
+assert(convaiQuestMissingAudio({requestId = 'r4', profileKey = 'panam-palmer'}, {text = 'x', missingAudio = true}) == false, 'an ordinary reply')
+assert(convaiQuestMissingAudio(pendingLine, {text = '', missingAudio = true}) == false)
+game.phoneFails = true
+assert(convaiQuestMissingAudio({requestId = 'r5', profileKey = 'panam-palmer', reaction = {kind = 'scripted'}}, {text = 'Late.', missingAudio = true}) == false)
+`));
+
+test('init.lua: the reach moments are wired: the district hook, the fight sample, the missing audio line, the bonds reach option, no tick of its own', () => {
+  assert.match(init, /if not worldSuspended and convaiReach then pcall\(convaiReach\.districtChanged\) end/);
+  assert.match(init, /if convaiReach then pcall\(convaiReach\.sample, battleSample\.combat == true or battles\.fighting\(\)\) end/);
+  assert.match(init, /speech\.start\(pending, reply\)\s+-- [^\n]*\s+if reply\.missingAudio == true and convaiQuestMissingAudio then pcall\(convaiQuestMissingAudio, pending, reply\) end/);
+  assert.match(init, /reach = function\(\) return type\(manager\.reachOuts\) == 'function' and manager\.reachOuts\(\) end,/);
+  assert.match(init, /local reach = convaiReach\s+if reach ~= nil then\s+local okReach, problemReach = pcall\(reach\.update\)/);
+  // The module is loaded on its own, so a failure there never takes the quests down.
+  assert.match(block, /pcall\(dofile, 'quest-reach\.lua'\)/);
+  assert.doesNotMatch(source('quest-reach.lua'), /registerForEvent|onUpdate|Observe\(|Cron\.|Game\./, 'the module itself touches no native and no hook');
+});
+
+test('quest-reach.lua keeps to plain Lua 5.1, names no other mod and has no semicolon in a comment', () => {
+  const text = source('quest-reach.lua');
+  assert.ok(!/\bgoto\b|table\.unpack|bit32/.test(text));
+  for (const line of text.split('\n')) assert.ok(!/--.*;/.test(line), 'no semicolon in a comment: ' + line);
+  assert.doesNotMatch(text, /AMM/);
+});
 
 // ---- the few lines elsewhere in init.lua ---------------------------------------------------------------------------------------------------------------
 test('init.lua: the tick, the scripted branch, the delivery check, the end of a line, the speech callback, the world change, the busy test and the bonds option are wired', () => {

@@ -5623,6 +5623,8 @@ local function updateBattles(player, elapsed, worldReady)
         if convaiJohnnyFight then convaiJohnnyGuarded('fight watch', convaiJohnnyFightSample, battleSample) end
         -- A Johnny probe acting over time (Developer mode, mod/johnny-probe.lua); nil otherwise.
         if convaiJohnnyProbeTick then pcall(convaiJohnnyProbeTick) end
+        -- Characters text first: the end of a fight is the fall of this verdict, a nil check while its timer does not run (mod/quest-reach.lua).
+        if convaiReach then pcall(convaiReach.sample, battleSample.combat == true or battles.fighting()) end
     end
     local now = os.time()
     battles.update(battleSample, worldReady and elapsed or 0, now, manager.battleReactions(), battlePeople)
@@ -6808,6 +6810,8 @@ do
             built, value = pcall(module.new, {
                 enabled = function() return manager.characterBonds() end,
                 storyPacks = function() return type(manager.storyPacks) == 'function' and manager.storyPacks() end,
+                -- Settings > Gameplay > Characters text first (on by default): the bridge's reach-outs list is shown only while it is on (bonds block field reach).
+                reach = function() return type(manager.reachOuts) == 'function' and manager.reachOuts() end,
                 invitations = function() return manager.immersive().enabled == true end,
                 eddies = function() return type(manager.characterEddies) == 'function' and manager.characterEddies() end,
                 -- Not now (docs/RELATIONSHIPS_AND_QUESTS.md section 8, item 4): a scene, a dialogue choice, a fight or a call of the game's own. Read once,
@@ -6890,6 +6894,8 @@ end
 -- with Character bonds and Story packs On, nothing is loaded otherwise. The tick is one nil check while no quest is armed. Globals and one do-block, as for
 -- Eddies and bonds: the main chunk is near Lua's limit of locals.
 convaiQuestPlay, convaiQuestLines, convaiQuestWorld, convaiQuestSpeaker = nil, nil, nil, nil
+-- Characters text first (mod/quest-reach.lua, built with the quest module): a character texts, calls or Johnny speaks up first at a calm moment.
+convaiReach, convaiQuestMissingSeen = nil, nil
 -- The primitive registry (the pay stage lookup of a turn) and the facts reader (mod/quest-facts.lua, built the first time the play file wants a fact).
 convaiQuestPrims, convaiQuestFacts, convaiQuestFactsFailed = nil, nil, false
 convaiQuestDue = true
@@ -6909,6 +6915,63 @@ do
             and type(manager.storyPacks) == 'function' and manager.storyPacks() == true
     end
     local function gameClock() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end
+    -- Characters text first (docs/QUEST_PRIMITIVES.md section 10.7): the module is loaded on its own, so a failure there never takes the quests down. Its reads of the
+    -- hour, weather, heat and song are the drive natives (mod/quest-world-drive.lua), loaded when the first one is asked for.
+    local driveNatives = nil
+    local function drive()
+        if driveNatives == nil then
+            driveNatives = false
+            local loaded, module = pcall(dofile, 'quest-world-drive.lua')
+            if loaded and type(module) == 'table' and type(module.new) == 'function' then
+                local built, natives = pcall(module.new, {log = log})
+                if built and type(natives) == 'table' then driveNatives = natives end
+            end
+        end
+        return driveNatives or nil
+    end
+    local function reachReads()
+        local function native(name) return function() local natives = drive(); if not natives then return nil end return natives[name]() end end
+        return {hour = native('readHour'), weather = native('readWeather'), heat = native('readHeat'), song = native('readSong'),
+            district = function() return currentDistrict() end,
+            -- V's health pool as a percent (the read mod/turn-context.lua makes), V's place on the ground.
+            health = function()
+                local player = Game.GetPlayer()
+                local pools = player and Game.GetStatPoolsSystem()
+                if not pools then return nil end
+                local id, kind = player:GetEntityID(), Enum.new('gamedataStatPoolType', 'Health')
+                return tonumber(pools:GetStatPoolValue(id, kind, true))
+            end,
+            position = function()
+                local player = Game.GetPlayer()
+                local at = player and player:GetWorldPosition()
+                return at and {x = at.x, y = at.y, z = at.z} or nil
+            end}
+    end
+    local function buildReach()
+        if convaiReach then return end
+        local loaded, module = pcall(dofile, 'quest-reach.lua')
+        if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
+            convaiLogOnce('reach-load', 'Characters text first is unavailable: ' .. tostring(module))
+            return
+        end
+        local built, reach = pcall(module.new, {
+            enabled = function() return settingOn() and type(manager.reachOuts) == 'function' and manager.reachOuts() == true end,
+            clock = os.clock, gameTime = gameClock, log = log, read = reachReads(),
+            -- Not now: the test the scripted line player uses (a scene, a quest dialogue, a game call, a fight or a chase, V talking, a reply on its way).
+            busy = function() return convaiQuestLineBusy() end,
+            text = function(profileKey, text, image) return convaiQuestPhone(profileKey, text, image) end,
+            -- A call: mod/quest-calls.lua provides convaiQuestCallIn when it is there (a nil answer means it is absent, the text goes instead).
+            call = function(item)
+                if type(convaiQuestCallIn) ~= 'function' then return nil end
+                local ok, answer = pcall(convaiQuestCallIn, item.character, item.text, item.id)
+                return ok and answer == true
+            end,
+            voice = function(item) return convaiQuestReachVoice(item.text) end,
+            emit = function(id) return convaiQuestPlay ~= nil and convaiQuestPlay.emitReach(id) end,
+            refresh = function() if convaiQuestPlay then convaiQuestPlay.refresh() end end})
+        if built and type(reach) == 'table' then convaiReach = reach
+        else convaiLogOnce('reach-build', 'Characters text first is unavailable: ' .. tostring(reach)) end
+    end
     local function build()
         if convaiQuestPlay then return convaiQuestPlay end
         if failed then return nil end
@@ -6941,7 +7004,9 @@ do
                 idle = function(profileKey, idleKey, on, situation) return convaiQuestIdle(profileKey, idleKey, on, situation) end,
                 emit = function(pack, name) if convaiQuestPlay then convaiQuestPlay.emitPack(pack, name) end end,
                 onChange = function() if convaiQuestPlay then convaiQuestPlay.rearm() end end})
-            local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log})
+            local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log,
+                -- The play file's reach block (mod/quest-reach.lua): handed over whenever a play file is applied, or nil when it is gone.
+                onReach = function(block) if convaiReach then convaiReach.setBlock(block) end end})
             convaiQuestWorld, convaiQuestLines, convaiQuestPrims = world, lines, prims
             return play
         end)
@@ -6952,6 +7017,7 @@ do
             return nil
         end
         convaiQuestPlay = play
+        buildReach()
         return play
     end
     -- From the 0.1 s tick, only while a quest is armed or the world is new (then once: sweep what a crash left, read the saved stage).
@@ -6971,6 +7037,12 @@ do
         if not play then return end
         local ok, problem = pcall(play.update, player, delta)
         if not ok then convaiLogOnce('quest-tick', 'Bond quests update failed: ' .. tostring(problem)) end
+        -- Characters text first: one nil check while its timer does not run (mod/quest-reach.lua).
+        local reach = convaiReach
+        if reach ~= nil then
+            local okReach, problemReach = pcall(reach.update)
+            if not okReach then convaiLogOnce('reach-tick', 'Characters text first failed: ' .. tostring(problemReach)) end
+        end
         -- The facts the packs want read (runtime/quest-facts.json): a nil check while the play file wants none. The reader looks at its clock every 5 s and reads every 300 s.
         if play.factsWanted ~= nil and play.factsWanted() ~= nil and not convaiQuestFactsFailed then
             if convaiQuestFacts == nil then
@@ -7010,6 +7082,7 @@ do
         convaiQuestDue = true
         convaiQuestSpeaker = nil
         if convaiQuestFacts then pcall(convaiQuestFacts.reset) end   -- the facts are read again in the new world
+        if convaiReach then pcall(convaiReach.reset, reason) end     -- its timer, watches and fired stamps go with the world
         if convaiQuestPlay then pcall(convaiQuestPlay.abandon) end
     end
     -- The pose of a talk gap (mod/quest-lines.lua asks once at the gap's start and once at its end): the copy takes the gap's idle, or the one its situation stands
@@ -7116,6 +7189,25 @@ do
     end
     function convaiQuestSubtitle(profileKey, text)
         return pcall(subtitles.showAnyway, nameOf(profileKey), text, nil, nil)
+    end
+    -- Johnny speaks up first (a reach-out with via voice): only while his route is free (mod/johnny-head.lua refusal: he is in V's head and the game has no floor), his fixed
+    -- words as a caption, no model and no audio. UNVERIFIED in the game.
+    function convaiQuestReachVoice(text)
+        local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
+        local player = Game.GetPlayer()
+        if not head or not player or head:refusal(player) ~= nil then return false end
+        local ok, shown = pcall(subtitles.showAnyway, head.name or 'Johnny Silverhand', text, nil, nil)
+        return ok and shown == true
+    end
+    -- A scripted line whose audio file the bridge could not play (reply.missingAudio): the caption is shown by the reply as always, and the line goes into the character's
+    -- Phone Chat too, once per line (the same path as a text row). Called from the branch of the main tick that reads the reply.
+    function convaiQuestMissingAudio(pending, reply)
+        if type(pending) ~= 'table' or type(reply) ~= 'table' or reply.missingAudio ~= true then return false end
+        local reaction = pending.reaction
+        if type(reaction) ~= 'table' or reaction.kind ~= 'scripted' or type(reply.text) ~= 'string' or reply.text == '' then return false end
+        if convaiQuestMissingSeen == pending.requestId then return false end
+        convaiQuestMissingSeen = pending.requestId
+        return convaiQuestPhone(pending.profileKey, reply.text, nil)
     end
     -- A text row of a quest: into her Phone Chat thread, with a notice like the appointment texts have.
     function convaiQuestPhone(profileKey, text, image)
@@ -7385,6 +7477,8 @@ registerForEvent('onInit', function()
         ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', function()
             if not worldSuspended and convaiSettleWake then convaiSettleWake() end
             if not worldSuspended and convaiHousemateWake then convaiHousemateWake() end
+            -- Characters text first: one evaluation per district change, a nil check while its timer does not run (mod/quest-reach.lua).
+            if not worldSuspended and convaiReach then pcall(convaiReach.districtChanged) end
         end)
     end)
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
@@ -8085,6 +8179,8 @@ registerForEvent('onUpdate', function(delta)
                             pcall(convaiPartyReplyText, pending, reply.text)
                         end
                         speech.start(pending, reply)
+                        -- A scripted quest line the bridge could not voice (its audio file is missing): the caption above, and the line in her Phone Chat too (once).
+                        if reply.missingAudio == true and convaiQuestMissingAudio then pcall(convaiQuestMissingAudio, pending, reply) end
                     end
                 end)
                 if shown then

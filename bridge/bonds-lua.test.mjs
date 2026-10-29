@@ -37,6 +37,7 @@ local function setEffects(value) files[M.EFFECTS] = serialize(value) end
 local options = {
   enabled = function() return game.on end,
   storyPacks = function() return game.packs end,
+  reach = function() return game.reach end,
   invitations = function() return game.invitations end,
   busy = function() return game.busy end,
   ownCopy = function(entity, profileKey) return copies[entity] end,
@@ -70,6 +71,20 @@ tick(5); assert(next(reads) == nil and #notices == 0)
 game.packs = true; setEffects({version = 1, blocked = {{profileKey = 'judy-alvarez'}}, outfits = {{profileKey = 'judy-alvarez'}}})
 assert(bonds.vehicleBlocked('judy-alvarez') == false and bonds.outfitState('judy-alvarez') == nil and bonds.view('judy-alvarez') == nil)
 assert(next(reads) == nil, 'the effects file was not even read')
+`));
+
+test('on: the block carries reach = true only while Characters text first is on (and nothing when there is no such option), whatever else is on', () => withGame(`
+local context = {entity = '7', profileKey = 'judy-alvarez'}
+bonds.attach(context); assert(context.bonds.reach == nil, 'off')
+game.reach = true; context = {entity = '7', profileKey = 'judy-alvarez'}
+bonds.attach(context); assert(context.bonds.reach == true and context.bonds.packs == nil, 'on, with Story packs off: the bridge ANDs them')
+game.packs = true; context = {phone = true, profileKey = 'judy-alvarez'}
+bonds.attach(context); assert(context.bonds.reach == true and context.bonds.packs == true, 'a Phone Chat message too')
+game.reach = 'yes'; context = {entity = '7', profileKey = 'judy-alvarez'}
+bonds.attach(context); assert(context.bonds.reach == nil, 'only a true')
+options.reach = nil
+local plain = M.new(options); context = {entity = '7', profileKey = 'judy-alvarez'}
+plain.attach(context); assert(context.bonds.reach == nil)
 `));
 
 test('on: the block says the copy kind and what is on; a holocall, a phone message or a game-placed character has no copy; the first turn learns where the changes stand', () => withGame(`
@@ -422,4 +437,17 @@ test('the wiring of the Relationships page: Home entry right after the Model bro
       assert(locale.includes(`[${JSON.stringify(text)}] =`), `${code}: ${text}`);
     }
   }
+});
+
+test('Characters text first: ON by default in the settings file, read as on unless false, a row right after Story packs with its own default, set only by a boolean, in the bonds block', () => {
+  const manager = read('../mod/manager.lua');
+  assert.match(manager, /if type\(settings\.reachOuts\) ~= 'boolean' then settings\.reachOuts, settingsNeedSave = true, true end/);
+  assert.match(manager, /function M\.reachOuts\(\)\n\s*loadSettings\(\)\n\s*return settings\.reachOuts ~= false/);
+  assert.match(manager, /reachOuts = settings\.reachOuts ~= false,/);
+  assert.match(manager, /elseif key == 'reachOuts' then\n\s*if type\(value\) ~= 'boolean' then return false, 'This setting must be on or off\.' end\n\s*nextSettings\.reachOuts = value/);
+  const ui = read('../mod/manager-ui.lua');
+  assert.match(ui, /setting\('reachOuts', 'Characters text first', 'bool', snapshot\.settings\.reachOuts ~= false, true,/);
+  assert(ui.indexOf("setting('reachOuts'") > ui.indexOf("setting('storyPacks'") && ui.indexOf("setting('reachOuts'") < ui.indexOf("action('immersive-invitations'"), 'right after Story packs');
+  assert.match(ui, /elseif key == 'reachOuts' then values\.reachOuts = change\.value/);
+  assert.match(read('../mod/init.lua'), /reach = function\(\) return type\(manager\.reachOuts\) == 'function' and manager\.reachOuts\(\) end,/);
 });

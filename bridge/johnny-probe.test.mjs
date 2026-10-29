@@ -109,3 +109,14 @@ test('wiring: the mailbox runs it in Developer mode only; the tick rides the 0.5
   assert.match(script, /diagnostic-request\.txt/);
   assert.doesNotMatch(script, /SendKeys|keybd_event|SendInput|PostMessage/i, 'never game input');
 });
+
+test('the probe script can send the quest feature and its actions (status, capture, event, line, reap, gifts, reach), ids with dots included', () => {
+  const script = read('../scripts/Send-JohnnyProbe.ps1');
+  assert.match(script, /ValidateSet\([^)]*'quest'/);
+  assert.match(script, /\$Action -notmatch '\^\[A-Za-z0-9_:\.-\]\+\$'/, 'a line id such as P1.walk.02 passes the action check');
+  for (const action of ['status', 'capture:<place>', 'event:<name>', 'line:<pack>:<line>', 'reap', 'gifts', 'reach']) assert.ok(script.includes(action), action);
+  // Every action the script lists is one the probe module answers.
+  const questProbe = read('../mod/quest-probe.lua');
+  for (const action of ['status', 'capture', 'event', 'line', 'reap', 'gifts', 'reach']) assert.match(questProbe, new RegExp(`${action} = true`), action);
+  assert.match(script, /"johnny-probe:\$\{Feature\}:\$\{Action\}:"/);
+});

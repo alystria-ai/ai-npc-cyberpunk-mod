@@ -1617,6 +1617,8 @@ return {
     ["Ride or die"] = "Halálig hű",
     ["Story packs"] = "Történetcsomagok",
     ["When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default."] = "Ha közel vagy egy karakterhez, és a saját küldetései véget értek, elindíthat egy rövid saját történetet. A beszélgetésekben, üzenetekben és hívásokban zajlik, néhány használja az Eddies a karakterekkel és a Magával ragadó meghívókat.\n\nKötelékek a karakterekkel szükséges. Csak a saját karaktereid és csatornáid, soha a játék jelenetei vagy küldetései. Alapból kikapcsolva.",
+    ["Characters text first"] = "A karakterek írnak először",
+    ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. On by default."] = "A karakterek, akikhez közel állsz, időnként először írhatnak vagy hívhatnak téged, Johnny pedig megszólalhat a fejedben. Ez csak nyugodt pillanatokban történik, soha harc, jelenet vagy hívás közben, és naponta csak néhányszor.\n\nTörténetcsomagok szükséges. Csak a saját karaktereid és csatornáid. Alapból bekapcsolva.",
     ["Bond: level {level}, {title}"] = "Kötelék: {level}. szint, {title}",
     ["Story: {title}"] = "Történet: {title}",
     ["The eddies could not be moved."] = "Az eddies-átutalás nem sikerült.",
