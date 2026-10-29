@@ -7,6 +7,7 @@
 //   FAKE_LLAMA_NEVER_HEALTHY   /health always answers 503
 //   FAKE_LLAMA_EXIT_AT_START   exit at once with this code
 //   FAKE_LLAMA_EXIT_FOR_MODEL  exit(1) at once when the -m file path contains this text (a model llama.cpp cannot load)
+//   FAKE_LLAMA_EXIT_WITH_MMPROJ  exit(1) at once when --mmproj is among the arguments (a vision projector llama.cpp cannot use)
 //   FAKE_LLAMA_CRASH_AFTER     exit(7) right after answering this many /v1 requests
 //   FAKE_LLAMA_GO_DEAF_AT      the Nth chat request is answered with HTTP 500 and the server then stops listening and drops every connection, while the process stays alive
 //                              (a crashed llama-server that Windows still lists while it writes its crash report: later requests are refused)
@@ -56,6 +57,11 @@ if (process.env.FAKE_LLAMA_EXIT_AT_START) {
 
 if (process.env.FAKE_LLAMA_EXIT_FOR_MODEL && String(options['-m'] ?? '').includes(process.env.FAKE_LLAMA_EXIT_FOR_MODEL)) {
   process.stderr.write('fake-llama: cannot load this model\n');
+  process.exit(1);
+}
+
+if (process.env.FAKE_LLAMA_EXIT_WITH_MMPROJ && options['--mmproj']) {
+  process.stderr.write('fake-llama: failed to load the multimodal projector\n');
   process.exit(1);
 }
 

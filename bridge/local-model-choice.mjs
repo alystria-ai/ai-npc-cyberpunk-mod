@@ -42,6 +42,7 @@ import {basename} from 'node:path';
 import {LocalAiUnavailable, tierNeedMiB} from './local-llm-server.mjs';
 import {FIT_LIMITS} from './local-vram-fit.mjs';
 import {MATURE_TIERS} from './mature-pack.mjs';
+import {defaultProjectorFinder, noProjector} from './local-projector.mjs';
 
 export const AUTO_MODEL = 'auto';
 /** A card of this size or less (MiB; the 8 GB class reports 8,000 to 8,200) leaves the game little room beside a chat model: the default rule keeps SMALL_CARD_GAME_RESERVE_MIB of it for the game. */
@@ -86,12 +87,14 @@ export const safeModelId = safeId;
  * contextSize, chatTemplate, tooLarge}:
  *   tier         'standard' | 'lite' for the Local AI packs' models, null for a Mature model (its headroom follows its size)
  *   loadedName   the name the loaded server reports (what the Mature allowance reads): an uncensored model's name always says so
+ * Every file model also carries `mmproj`: the absolute path of its vision projector, or null (bridge/local-projector.mjs: the one its manifest entry names, else the one beside it. A Mature
+ * model has one only when its marker names it). `findProjector(file, declared, {auto})` is that lookup (the default remembers its answers for a few seconds), `noProjector` skips the disk.
  */
-export function listLocalModels({pack, matureModels = [], customModels = []} = {}) {
+export function listLocalModels({pack, matureModels = [], customModels = [], findProjector = defaultProjectorFinder} = {}) {
   const models = [];
   for (const tier of ['standard', 'lite']) {
     const entry = pack?.tiers?.[tier];
-    if (entry?.file) models.push({id: tier, name: entry.name, file: entry.file, tier, uncensored: false, loadedName: entry.name});
+    if (entry?.file) models.push({id: tier, name: entry.name, file: entry.file, tier, uncensored: false, loadedName: entry.name, mmproj: findProjector(entry.file, entry.mmproj ?? null)});
   }
   const taken = new Set(models.map(model => model.id));
   // The Mature pack has exactly two models, `lite` and `good` (bridge/mature-pack.mjs); their ids are stable (`mature:lite`, `mature:good`), so a
@@ -103,17 +106,18 @@ export function listLocalModels({pack, matureModels = [], customModels = []} = {
     if (taken.has(id)) continue;
     taken.add(id);
     const name = entry.name || basename(entry.file).replace(/\.gguf$/i, '');
-    models.push({id, name, file: entry.file, tier: null, matureTier, uncensored: true, loadedName: UNCENSORED_NAME.test(name) ? name : name + ' (uncensored)'});
+    models.push({id, name, file: entry.file, tier: null, matureTier, uncensored: true, loadedName: UNCENSORED_NAME.test(name) ? name : name + ' (uncensored)',
+      mmproj: findProjector(entry.file, entry.mmproj ?? null, {auto: false})});
   }
   for (const entry of Array.isArray(customModels) ? customModels : []) {
     if (!(entry?.file || (entry?.external === true && entry.endpoint)) || typeof entry.id !== 'string' || taken.has(entry.id)) continue;
     taken.add(entry.id);
     const model = {id: entry.id, name: entry.name, file: entry.file ?? null, tier: null, uncensored: entry.uncensored === true, loadedName: entry.name, custom: true,
       family: entry.family ?? null, contextSize: entry.contextSize ?? null, chatTemplate: entry.chatTemplate ?? null,
-      tooLarge: entry.tooLarge === true};
-    // A server the player runs: where it is, which model to ask for and its key (the supervisor reads these; nothing publishes them).
+      tooLarge: entry.tooLarge === true, mmproj: entry.file ? findProjector(entry.file, entry.mmproj ?? null) : null};
+    // A server the player runs: where it is, which model to ask for and its key (the supervisor reads these; nothing publishes them). It never gets a projector from us.
     if (entry.external === true) Object.assign(model, {file: null, external: true, tooLarge: false, endpoint: entry.endpoint, origin: entry.origin, remote: entry.remote === true,
-      requestModel: entry.model ?? null, apiKey: entry.apiKey ?? null});
+      requestModel: entry.model ?? null, apiKey: entry.apiKey ?? null, mmproj: null});
     models.push(model);
   }
   return models;
@@ -140,10 +144,10 @@ export const ownFileModels = models => (Array.isArray(models) ? models : []).fil
  * Can Local AI answer at all? An installed pack, a server the player runs, or a file of the player's own with the Runtime's engine to run it. `customModels` are the `models` of the custom
  * scan (bridge/custom-models.mjs). One answer for every gate: the settings status, the setup check, the start, the retry after an install.
  */
-export const localAiAvailable = ({pack, customModels = []} = {}) => Boolean(pack?.installed) || usableModels(listLocalModels({pack, customModels}), pack).length > 0;
+export const localAiAvailable = ({pack, customModels = []} = {}) => Boolean(pack?.installed) || usableModels(listLocalModels({pack, customModels, findProjector: noProjector}), pack).length > 0;
 
 /** True when the player has a model file of their own but the Runtime has no engine to run it (no `pack.server`): the log and the failure detail say the engine is missing. */
-export const engineMissingForOwnModel = ({pack, customModels = []} = {}) => !pack?.installed && !pack?.server && ownFileModels(listLocalModels({pack, customModels})).length > 0;
+export const engineMissingForOwnModel = ({pack, customModels = []} = {}) => !pack?.installed && !pack?.server && ownFileModels(listLocalModels({pack, customModels, findProjector: noProjector})).length > 0;
 
 /** The headroom profile ('standard' or 'lite') of a model: its tier; a Mature model's `good` is standard and its `lite` is lite; a custom model by size. */
 export const profileOf = (model, sizeMiB) => model.tier ?? (model.matureTier === 'good' ? 'standard' : model.matureTier === 'lite' ? 'lite' : sizeMiB >= BIG_MODEL_MIB ? 'standard' : 'lite');
@@ -333,11 +337,12 @@ export function stillSatisfies({loadedId, models = [], pin = AUTO_MODEL, matureO
 /**
  * The list the settings page shows, for the bridge to publish: [{id, name, sizeMiB}] by file size, smallest first (sortLocalModels; names
  * are cut to 80 characters). A custom model also has {custom: true, needMiB} (file plus headroom: the graphics memory it needs) and, when
- * the card is too small for it, {tooLarge: true}.
+ * the card is too small for it, {tooLarge: true}. An entry also says `hasVision: true` when the model has a vision projector (never its path).
  */
 export const describeLocalModels = (models, sizeOf = () => 0) => sortLocalModels(models, sizeOf).slice(0, 24).map(model => {
   const sizeMiB = model.external ? 0 : Math.round(Number(sizeOf(model.file)) || 0);
   const entry = {id: model.id, name: String(model.name).slice(0, 80), sizeMiB};
+  if (model.mmproj && model.external !== true) entry.hasVision = true;   // only when true: an entry without the field has no projector
   if (model.custom) {
     entry.custom = true;
     entry.needMiB = sizeMiB > 0 ? modelNeedMiB(model, sizeMiB) : 0;

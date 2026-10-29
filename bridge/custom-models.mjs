@@ -20,6 +20,9 @@
 //   family       optional label (letters, digits, `. _ -` and spaces, at most 40) used for the Mature allowance table (e.g. 'qwen')
 //   contextSize  optional whole number 2048 to 262144: the context the server starts with (else the usual ladder by free memory)
 //   chatTemplate optional name of a llama.cpp built-in chat template (`--chat-template`); for a file without a usable template of its own
+//   mmproj       optional vision projector of the model (docs/LOCAL_AI.md, "Pictures (Companions can see)"): a .gguf path with the same rules as `file`. Loaded only while Companions can see is on.
+//                A projector that is not usable (missing, not a clip file) is ignored with one log line and never makes the model unusable. Without this entry a single
+//                `mmproj` file beside the model, when the model is the only other .gguf in its folder, is found by itself (bridge/local-projector.mjs).
 // An entry can instead name a server the player already runs (KoboldCpp, LM Studio, Ollama, a llama.cpp server, anything with an
 // OpenAI-compatible chat API) with `endpoint` in place of `file`; our own llama-server is then not used for it (docs/LOCAL_AI.md, "Use your own server"):
 //     {endpoint: 'http://127.0.0.1:5001/v1', name: 'KoboldCpp Qwen 9B', model: 'optional model id', apiKey: 'optional', remote: false,
@@ -75,8 +78,8 @@ const fileExists = path => { try { return statSync(path).isFile(); } catch { ret
 const readUtf8 = path => readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
 const statFile = path => { try { const stat = statSync(path); return stat.isFile() ? {size: stat.size, mtimeMs: stat.mtimeMs} : null; } catch { return null; } };
 
-// Reads at most `length` bytes from the start of a file.
-function readHead(path, length) {
+// Reads at most `length` bytes from the start of a file. Also used to look at a vision projector's header (bridge/local-projector.mjs).
+export function readGgufHead(path, length) {
   const handle = openSync(path, 'r');
   try {
     const buffer = Buffer.alloc(length);
@@ -314,7 +317,14 @@ export function validateEntry(root, raw, {allowAbsolute = false} = {}) {
     if (typeof raw.chatTemplate !== 'string' || !TEMPLATE_NAME.test(raw.chatTemplate)) return {error: '"chatTemplate" must be the name of a llama.cpp built-in template (letters, digits, . _ -)'};
     chatTemplate = raw.chatTemplate;
   }
-  return {entry: {file: located.path, name, uncensored, family, contextSize, chatTemplate}};
+  const entry = {file: located.path, name, uncensored, family, contextSize, chatTemplate};
+  // A vision projector (bridge/local-projector.mjs): the same path rules as the model's own file. A bad path is not the model's fault, so it only costs the projector (`mmprojProblem`, logged by the scanner).
+  if (raw.mmproj !== undefined) {
+    const projector = insidePath(root, raw.mmproj, allowAbsolute);
+    if (projector.error) entry.mmprojProblem = '"mmproj": ' + projector.error.replace('needs a "file"', 'needs a path');
+    else entry.mmproj = projector.path;
+  }
+  return {entry};
 }
 
 // A split model: model-00001-of-00003.gguf. Only the first part is named in the manifest; the others sit beside it.
@@ -347,7 +357,7 @@ function shardPaths(file) {
 export class CustomModelScanner {
   #cache = new Map(); #logged = new Set();
 
-  constructor({project, environment = process.env, outside, exists = fileExists, readText = readUtf8, stat = statFile, head = readHead, log = () => {},
+  constructor({project, environment = process.env, outside, exists = fileExists, readText = readUtf8, stat = statFile, head = readGgufHead, log = () => {},
     realPath = realPathFor(environment)} = {}) {
     Object.assign(this, {project, environment, exists, readText, stat, head, log, realPath});
     this.outside = outside === undefined ? outsideLocalAiRoot(environment) : outside ? resolve(outside) : null;
@@ -412,7 +422,8 @@ export class CustomModelScanner {
       if (checked.error) { this.#say(tag + 'skipped ' + label(raw, index) + ': ' + checked.error); return; }
       const entry = checked.entry;
       // Under Mod Organizer 2 the mod's Local AI folder is the merged virtual one: a model file there is used from where it really is (the identity otherwise).
-      if (!entry.external && source.where === 'mod') entry.file = this.realPath(entry.file);
+      if (!entry.external && source.where === 'mod') { entry.file = this.realPath(entry.file); if (entry.mmproj) entry.mmproj = this.realPath(entry.mmproj); }
+      if (entry.mmprojProblem) { this.#say(tag + label(raw, index) + ': the vision projector is ignored (' + entry.mmprojProblem + ')'); delete entry.mmprojProblem; }
       if (entry.external) {
         // A server the player runs: nothing to read from disk, and no network here (it is looked at when the model is chosen).
         const serverKey = (entry.endpoint + '|' + (entry.model ?? '')).toLowerCase();
