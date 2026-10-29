@@ -1766,7 +1766,7 @@ const conversationBlocks = input => {
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
     block('world', bondNote(input, prepared, admitted)),
-    block('volatile', input.bonds ? romanceReminder(bondFacts(input, prepared, admitted).tone) : ''),
+    block('closing', input.bonds ? romanceReminder(bondFacts(input, prepared, admitted).tone) : ''),
     block('volatile', packTurn(input, prepared, admitted)?.note ?? ''),
     // The cast member of an armed pay stage is told what is asked and the least it takes (bridge/quest-pay.mjs); '' for every other turn.
     block('volatile', input.quest ? bondPacks.payNote(input) : ''),
@@ -1802,7 +1802,7 @@ const conversationContext = input => joinedContext(conversationBlocks(input));
 // that only change on game events, so a turn re-reads the facts and not the whole world block.
 const contextPartsOf = blocks => {
   const world = worldBlocksInCacheOrder(blocks.filter(item => item.tier === 'world'));
-  return {...Object.fromEntries(['now', 'notes', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+  return {...Object.fromEntries(['now', 'notes', 'volatile', 'closing'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
     world: joinBlocks(world.map(item => item.text)),
     worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text})), ...freshParts(blocks)};
 };

@@ -38,7 +38,7 @@ function messagesOf(bonds, input, {history = [], tone = null} = {}) {
   const line = input.bonds ? bonds.contextFor(input, {romance: tone, tone}) : input.reaction ? bonds.repeatFor(input) : '';
   const blocks = [...conversationContextBlocks(input), {tier: 'world', text: line}];
   const world = worldBlocksInCacheOrder(blocks.filter(item => item.tier === 'world'));
-  const parts = {...Object.fromEntries(['now', 'notes', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+  const parts = {...Object.fromEntries(['now', 'notes', 'volatile', 'closing'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
     world: joinBlocks(world.map(item => item.text)), worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text}))};
   return buildMessages({persona: book.persona(input.profileKey), history, contextParts: parts, text: input.text, reaction: Boolean(input.reaction)});
 }
@@ -104,9 +104,21 @@ test('a bond level that does not change leaves the line, and so the prompt, alon
 
 // The wiring in the bridge script (a script, not a module: its source is read).
 const bridgeSource = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-test('the bridge wires it: a reaction repeats the bond line, a talk without the block forgets it, the tone follows the romantic delivery only, and the reminder is a volatile note', () => {
+test('the bridge wires it: a reaction repeats the bond line, a talk without the block forgets it, the tone follows the romantic delivery only, and the reminder is a closing note', () => {
   assert.match(bridgeSource, /if \(input\.bonds\) return bonds\.contextFor\(input, bondFacts\(input, prepared, admitted\)\);\n\s+if \(input\.reaction\) return bonds\.repeatFor\(input\);\n\s+if \(!input\.head\) bonds\.dropLine\(input\);/);
   assert.match(bridgeSource, /tone: selection\?\.style === 'romantic' \? romance : null/);
-  assert.match(bridgeSource, /block\('volatile', input\.bonds \? romanceReminder\(bondFacts\(input, prepared, admitted\)\.tone\) : ''\)/);
+  assert.match(bridgeSource, /block\('closing', input\.bonds \? romanceReminder\(bondFacts\(input, prepared, admitted\)\.tone\) : ''\)/);
   assert.match(bridgeSource, /block\('world', bondNote\(input, prepared, admitted\)\)/);
+});
+
+test('the closing note sits right after the words of V and before the closing rules, only on a talk, and never moves the system message', () => {
+  gearMemory.clear();
+  const persona = book.persona('panam-palmer');
+  const parts = {now: '', notes: '', world: 'W', volatile: '', closing: 'Tone with V this reply: partner.'};
+  const talkLast = buildMessages({persona, contextParts: parts, text: 'Hello there'}).at(-1).content;
+  assert.match(talkLast, /V says: Hello there\n\nTone with V this reply: partner\.\n\n\(Reply as /);
+  const plain = buildMessages({persona, contextParts: {...parts, closing: ''}, text: 'Hello there'});
+  assert.doesNotMatch(plain.at(-1).content, /Tone with V/);
+  assert.equal(buildMessages({persona, contextParts: parts, text: 'Hello there'})[0].content, plain[0].content, 'the system message is the same with and without the note');
+  assert.doesNotMatch(buildMessages({persona, contextParts: parts, text: 'A fight', reaction: true}).at(-1).content, /Tone with V/, 'a reaction has no note');
 });

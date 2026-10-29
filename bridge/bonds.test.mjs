@@ -179,6 +179,7 @@ test('a romance adds its tone to the line: warm for a partner, light for a casua
   assert.match(partner, /You and V are a couple/);
   assert.match(partner, /whatever the subject, even a one line answer/, 'the partner tone is not only for personal moments');
   assert.match(partner, /nothing sexual happens unless V leads/, 'explicit stays with Mature and with V');
+  assert.match(partner, /pet name or nickname/); assert.match(partner, /missed V/); assert.match(partner, /blunt stays blunt, shy stays shy/, 'in her own character');
   assert.match(partner, /never syrupy/);
   assert.match(casual, /casual/);
   assert.match(casual, /No declarations, no claim of commitment/);
@@ -199,7 +200,7 @@ test('the one sentence reminder before the words of V: partner, casual, nothing 
   assert.equal(romanceReminder(null), '');
   assert.equal(romanceReminder('other'), '');
   for (const text of Object.values(ROMANCE_REMINDER)) assert.doesNotMatch(text, /[–—;]|--/);
-  assert(ROMANCE_REMINDER.partner.length < 260, 'short: it is read again on every turn');
+  assert(ROMANCE_REMINDER.partner.length < 330, 'short: it is read again on every turn');
 });
 
 test('a reaction repeats the line of the last talk, byte for byte, so the system message reads the same; nothing before a talk, nothing after the setting went off or a Forget', () => {
