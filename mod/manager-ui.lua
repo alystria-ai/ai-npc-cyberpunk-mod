@@ -429,6 +429,92 @@ local function sharedCharacterLines(snapshot)
         pack = manager.omniPack()}
 end
 
+-- How V stands with one character (docs/RELATIONSHIPS_AND_QUESTS.md section 4): "Bond: level 5, Good friend" and, when the character is in a story, "Story: ...".
+-- Nothing while Character bonds is off or no level is known yet. mod/bonds.lua reads runtime/bonds-status.json at most every 5 s, only when a page is built;
+-- the level title is in the menu language, the story title is the pack's own English one.
+local function bondLines(settings, key)
+    if not settings.characterBonds or type(convaiBondsView) ~= 'function' then return nil end
+    local ok, view = pcall(convaiBondsView, key)
+    if not ok or type(view) ~= 'table' or not view.level or not view.title then return nil end
+    local lines = {ui.t('Bond: level {level}, {title}', {level = view.level, title = view.title})}
+    if view.story then lines[#lines + 1] = ui.t('Story: {title}', {title = view.story}) end
+    return lines
+end
+
+-- The Relationships page (Companion Manager home, docs/RELATIONSHIPS_AND_QUESTS.md): the characters V has talked to, each as one row whose description holds
+-- the details, and one line under it for each story pack. The list is mod/bonds.lua's `characters` (one cached read of the status file, when the page is built).
+-- Every figure may be missing: a line is written only from what is there. A description is cut by the host at 420 characters (the whole paragraphs that fit),
+-- so the details stay short and the stories have rows of their own. Never per frame.
+local DAY_MS = 86400000
+-- A figure that is really a number (the page shows what is valid and leaves out the rest), as a whole number.
+local function figure(value)
+    if type(value) ~= 'number' or value ~= value or value == math.huge or value == -math.huge then return nil end
+    return math.floor(value)
+end
+local function wording(value) return type(value) == 'string' and value ~= '' and value or nil end
+local function bondDetails(item, storyOn)
+    local lines = {}
+    local level, title = figure(item.level), wording(item.title)
+    if level and level >= 1 and title then
+        lines[#lines + 1] = ui.t('Bond: level {level}, {title}', {level = level, title = title})
+        local points, needed = figure(item.points), figure(item.next)
+        if level >= 10 then lines[#lines + 1] = ui.t('Highest level')
+        elseif points and needed then
+            lines[#lines + 1] = ui.t('{points} of {needed} points to level {to}', {points = points, needed = needed, to = level + 1})
+        end
+    end
+    local warm = figure(item.warm)
+    if warm then lines[#lines + 1] = ui.t('Warmth: {points}', {points = warm}) end
+    local hurt, hurtDays = figure(item.hurt), figure(item.hurtDays)
+    if hurt and hurt > 0 then
+        if hurtDays and hurtDays > 1 then
+            lines[#lines + 1] = ui.t('Hurt: {points}, gone in about {days} game days', {points = hurt, days = hurtDays})
+        elseif hurtDays then
+            lines[#lines + 1] = ui.t('Hurt: {points}, gone in about a game day', {points = hurt})
+        else
+            lines[#lines + 1] = ui.t('Hurt: {points}', {points = hurt})
+        end
+    end
+    local story, talk = figure(item.story), figure(item.talk)
+    if story and talk then
+        lines[#lines + 1] = ui.t('From their story: {story}, from talking: {talk}', {story = story, talk = talk})
+    end
+    local done, total = figure(item.arcDone), figure(item.arcTotal)
+    if total and total > 0 and done then
+        lines[#lines + 1] = ui.t('Their quests: {done} of {total} finished', {done = math.max(0, math.min(done, total)), total = total})
+    end
+    local lastAt = figure(item.lastAt)
+    if lastAt and lastAt > 0 then
+        -- A float on purpose: the clock in milliseconds is more than a 32-bit integer holds.
+        local days = math.floor((os.time() * 1000.0 - lastAt) / DAY_MS)
+        if days >= 2 then lines[#lines + 1] = ui.t('Last talked: {days} days ago', {days = days})
+        elseif days == 1 then lines[#lines + 1] = ui.t('Last talked: yesterday')
+        else lines[#lines + 1] = ui.t('Last talked: today') end
+    end
+    if storyOn and (type(item.packs) ~= 'table' or #item.packs == 0) then lines[#lines + 1] = ui.t('No story yet') end
+    return table.concat(lines, '\n')
+end
+
+-- The rows of one listed character: the character, then her stories (an active one with what it is about, a finished one marked).
+local function bondRows(rows, index, item, storyOn)
+    local id = 'bond:' .. index
+    local level = figure(item.level)
+    rows[#rows + 1] = readonly(id, wording(item.name) or '?', level and level >= 1 and ui.t('Level {level}', {level = level}) or '', bondDetails(item, storyOn),
+        {label = true, value = true, description = true})
+    if storyOn and type(item.packs) == 'table' then
+        for number, pack in ipairs(item.packs) do
+            local title, label = type(pack) == 'table' and wording(pack.title) or nil, type(pack) == 'table' and wording(pack.label) or nil
+            if title then
+                local text
+                if pack.state == 'done' then text = ui.t('{title} (finished)', {title = title})
+                elseif label then text = ui.t('{title}: {label}', {title = title, label = label})
+                else text = title end
+                rows[#rows + 1] = readonly(id .. ':pack:' .. number, text, '', text, {label = true, value = true, description = true})
+            end
+        end
+    end
+end
+
 -- The Characters sidebar text of one character: its description, then the settings in effect for it. `count` is the
 -- number of copies in the party and `shared` comes from sharedCharacterLines.
 local function profileDescription(profile, snapshot, shared, count)
@@ -458,6 +544,7 @@ local function profileDescription(profile, snapshot, shared, count)
         local remembered = snapshot.memory and snapshot.memory.characters
         if remembered and remembered[profile.key] then lines[#lines + 1] = ui.t('Memory: remembers your conversations') end
     end
+    for _, line in ipairs(bondLines(settings, profile.key) or {}) do lines[#lines + 1] = line end
     if count > 0 then
         lines[#lines + 1] = ui.t('In your party: {count}', {count = count})
         if shared.behavior then lines[#lines + 1] = shared.behavior end
@@ -1350,6 +1437,8 @@ local function pageSignature(snapshot)
         add(settingsDigest(snapshot.settings))
     end
     if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' or view == 'housemates' then add(settingsDigest(snapshot.settings)) end
+    -- The bonds page is built when it opens (the status file is read once, cached 5 s); only the two settings it depends on redraw it.
+    if view == 'bonds' then add('bonds:' .. tostring(snapshot.settings.characterBonds) .. tostring(snapshot.settings.storyPacks)) end
     if view == 'key-bindings' then
         add(settingsDigest(snapshot.settings))
         -- A capture waiting or ended, and the saved keys (the page shows no Cyber Engine Tweaks key, so CET is not asked).
@@ -1889,7 +1978,7 @@ local function schema()
     local canInvite = owner ~= nil
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
-    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
+    local BACK = {characters = 'home', party = 'home', models = 'home', bonds = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
         ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings', ['custom-voices'] = 'settings', ['omni-amd'] = 'settings',
         ['immersive-invitations'] = 'settings', housemates = 'settings'}
     if view == 'home' then
@@ -1897,7 +1986,7 @@ local function schema()
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
         -- the editor module loaded, and above Settings (the owner's order). Built with the page, never per frame.
         for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Parties'},
-            {'models', 'Model browser'}, {'editor'}, {'key-bindings', 'Key bindings'}, {'settings', 'Settings'}}) do
+            {'models', 'Model browser'}, {'bonds', 'Relationships'}, {'editor'}, {'key-bindings', 'Key bindings'}, {'settings', 'Settings'}}) do
             if tab[1] == 'editor' then
                 if editor then
                     nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
@@ -1908,6 +1997,8 @@ local function schema()
                 -- The Model browser lists every character model in the game, so it says that and what joining means.
                 local description = tab[1] == 'models'
                     and ui.t('Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.')
+                    or tab[1] == 'bonds'
+                    and ui.t('See the characters you have talked to and how close each one is to you: the bond level, what raised or hurt it, their quests and the stories they are in.')
                     or tab[1] == 'key-bindings'
                     and ui.t('Choose the keys and controller buttons for talking by voice or text, the group chats and the Companion Manager. They work at once.')
                     or ui.t('Browse {section}. {query}', {section = ui.t(tab[2]):lower(), query = ''})
@@ -2093,6 +2184,28 @@ local function schema()
         end
         if #favorites > 0 then categories[#categories + 1] = category('favorites', 'Favorites', favorites) end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
+    elseif view == 'bonds' then
+        -- Only the characters V has talked to (the bridge lists no one else), most recent first, as it wrote them. Built once, when the page opens or turns.
+        local on = snapshot.settings.characterBonds == true
+        local list = on and type(convaiBondsList) == 'function' and select(2, pcall(convaiBondsList)) or nil
+        if type(list) ~= 'table' then list = {} end
+        -- Whatever the module handed over: only the entries that are tables are rows.
+        local listed = {}
+        for _, item in ipairs(list) do if type(item) == 'table' then listed[#listed + 1] = item end end
+        list = listed
+        if not on then
+            rows[#rows + 1] = readonly('bonds-off', 'Character bonds are off', '',
+                'Bonds are not kept while Character bonds is off, so nobody is listed here. Turn it on in Settings, under Gameplay.')
+        elseif #list == 0 then
+            rows[#rows + 1] = readonly('bonds-empty', 'Nobody yet', '', 'Talk to a character and your bond with them shows here.')
+        else
+            local storyOn = snapshot.settings.storyPacks == true
+            local first, last, pages = pageRange(#list)
+            for _, row in ipairs(pageRows(first, last, pages, function(index) return list[index].name end, 'characters', #list)) do rows[#rows + 1] = row end
+            for index = first, last do bondRows(rows, index, list[index], storyOn) end
+        end
+        categories[#categories + 1] = category('bonds', 'Relationships', rows,
+            'The characters you have talked to and how close each one is to you. The most recent come first.')
     elseif view == 'memory' then
         -- The memory controls, then the list the character is chosen from, on the same page.
         categories[#categories + 1] = category('memory', 'Memory', memorySettings(snapshot))
@@ -2102,9 +2215,12 @@ local function schema()
         for index = first, last do
             local profile = profiles[index]
             local key = profile.key
+            -- Forget resets the talk part of the bond, so the row says where the bond stands (nothing while the setting is off).
+            local bond = bondLines(snapshot.settings, key)
             rows[#rows + 1] = action('memory:select:' .. key, profile.name,
                 snapshot.memory.selectedKey == key and 'Unselect' or 'Choose',
-                ui.t('Select {name} for memory controls. This does not invite them or change their conversation settings.',{name=profile.name}),
+                ui.t('Select {name} for memory controls. This does not invite them or change their conversation settings.',{name=profile.name})
+                    .. (bond and ('\n\n' .. table.concat(bond, '\n')) or ''),
                 function() return manager.selectMemoryCharacter(key) end)
         end
         categories[#categories + 1] = category('memory-characters', 'Whose memories', rows)
@@ -2285,6 +2401,9 @@ local function schema()
             -- Off by default (docs/RELATIONSHIPS_AND_QUESTS.md): a bond with every named character, level 1 to 10, from their quests with V and their talks; one notice per change.
             setting('characterBonds', 'Character bonds', 'bool', snapshot.settings.characterBonds == true, false,
                 'Every named character has a bond with you, level 1 to 10. Quests finished together, a romance, eddies paid back and talking raise it; threats and insults lower it. Closer characters trust you more.\n\nA notice shows each level change. Forget clears the talk part. Off by default.'),
+            -- Off by default (docs/RELATIONSHIPS_AND_QUESTS.md section 7): a close character can start a short story arc of their own once their own quests are done.
+            setting('storyPacks', 'Story packs', 'bool', snapshot.settings.storyPacks == true, false,
+                'When you are close and a character’s own quests are done, they can start a short story of their own. It plays out in talks, texts and calls, and some use Eddies with characters and Immersive invitations.\n\nNeeds Character bonds. Own characters and channels only, never the game’s own scenes or quests. Off by default.'),
             action('immersive-invitations', 'Immersive invitations', 'Open',
                 'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
                 function() return navigate('immersive-invitations') end),
@@ -2561,7 +2680,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
-local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
+local PAGES = {home = true, characters = true, party = true, models = true, bonds = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
     relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['custom-voices'] = true, ['omni-amd'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
 
 function M.view() return view end
@@ -2934,6 +3053,7 @@ function M.apply(changes)
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'characterEddies' then values.characterEddies = change.value
         elseif key == 'characterBonds' then values.characterBonds = change.value
+        elseif key == 'storyPacks' then values.storyPacks = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'npcThreats' then values.npcThreats = change.value
         elseif key == 'revengeAmbushes' then values.revengeAmbushes = change.value

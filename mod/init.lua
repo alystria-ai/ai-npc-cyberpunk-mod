@@ -491,8 +491,9 @@ convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
     -- Eddies with characters (docs/EDDIES.md): the spoken turn's block, before any return below (a game-placed character talks about money too).
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
-    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): the spoken turn's block too (a game-placed character has a bond as well).
-    if not context.reaction and not context.group then convaiBondsAttach(context) end
+    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): the spoken turn's block too (a game-placed character has a bond as well, and a group
+    -- round turn carries its speaker's own block). Johnny in V's head and reactions have none.
+    if not context.reaction and not context.head then convaiBondsAttach(context) end
     -- No actions for a game-placed story character (docs/WORLD_CHARACTERS.md): it is not a party member, so nothing is offered
     -- and it is not even told what it cannot do.
     -- Nor for Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body to follow, fight or drive with.
@@ -1610,6 +1611,8 @@ convaiGateCapture(gameDialogue, 'capture', 'dialogue')
 local function captureGameDialogue() return gameDialogue and gameDialogue:capture() or nil end
 groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
+-- Character bonds (mod/bonds.lua): the block of a message V types in Phone Chat, nil while the setting is Off. No copy: the contact is a text, not a body.
+phoneChat.captureBonds = function(profileKey) return convaiBondsPhone and convaiBondsPhone(profileKey) or nil end
 microphone.captureGameDialogue = captureGameDialogue
 
 -- What V is wearing and carrying, attached to manual turns (docs/PLAYER_GEAR_CONTEXT.md). Read on demand when a turn
@@ -3709,8 +3712,8 @@ local function sendRequest(context)
     -- Encoded first: an encoder that raises after the file was opened for writing left it emptied, its handle open, and the error escaping the caller.
     local providerOk, provider = pcall(function() return chosenProvider() end)
     context.provider = providerOk and provider or nil
-    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): one boolean while it is off.
-    if not context.reaction and not context.group then convaiBondsAttach(context) end
+    -- Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): one boolean while it is off. A group round turn carries its speaker's own block.
+    if not context.reaction and not context.head then convaiBondsAttach(context) end
     -- Eddies with characters (docs/EDDIES.md): one boolean while it is off.
     if not context.reaction and not context.group then convaiEddiesAttach(context) end
     local encodedOk, encoded = pcall(json.encode, context)
@@ -6652,6 +6655,11 @@ function convaiOutfitModule()
         -- The look the player chose for a character in the editor (Look and moves), worn all the time and even with the setting off.
         pinned = function(key) local chosen = convaiCharacterOptions; return chosen and chosen.outfit(key) or nil end,
         anyPinned = function() local chosen = convaiCharacterOptions; return chosen ~= nil and chosen.hasOutfits() end,
+        -- A story pack's look for a copy (mod/bonds.lua, nothing until the bonds service exists and a stage asks for one): another look of the character
+        -- while the stage lasts, her own look again after it.
+        story = function(key) return convaiBonds and convaiBonds.outfitState(key) or nil end,
+        anyStory = function() return convaiBonds ~= nil and convaiBonds.anyOutfit() end,
+        storyDone = function(key) if convaiBonds then convaiBonds.outfitDone(key) end end,
         rows = function() return companions.outfitRows(convaiOutfits.known) end,
         current = function(row) return NameToString(row.npc:GetCurrentAppearanceName()) end,
         prefetch = function(row, name) return companions.changeAppearance(row.serial, name, 'prefetch') end,
@@ -6697,7 +6705,7 @@ function convaiOutfitTick(player, elapsed, ready)
     -- The character choices file is looked at every few seconds, but only for two hours after the editor was opened (mod/character-options.lua).
     local chosen = convaiCharacterOptions
     if chosen then chosen.tick(elapsed) end
-    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) then return end
+    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) and not (convaiBonds and convaiBonds.anyOutfit()) then return end
     local module = convaiOutfitModule()
     if module then module.tick(player, elapsed, ready) end
 end
@@ -6773,6 +6781,19 @@ do
         if loaded and type(module) == 'table' and type(module.new) == 'function' then
             built, value = pcall(module.new, {
                 enabled = function() return manager.characterBonds() end,
+                storyPacks = function() return type(manager.storyPacks) == 'function' and manager.storyPacks() end,
+                invitations = function() return manager.immersive().enabled == true end,
+                -- Not now (docs/RELATIONSHIPS_AND_QUESTS.md section 8, item 4): a scene, a dialogue choice, a fight or a call of the game's own. Read once,
+                -- when a turn is built, from the battle sample the 0.5 s observer already holds: no new polling.
+                busy = function()
+                    local sample = battleSample
+                    if type(sample) == 'table' and (sample.combat or sample.dialogue or sample.choices or sample.call
+                        or (sample.tier ~= nil and sample.tier ~= 1)) then return true end
+                    local ok, fighting = pcall(function() return battles.fighting and battles.fighting() end)
+                    return ok and fighting == true
+                end,
+                -- V's game clock stamps the effects of a pack stage; one of a later clock belongs to a save that was loaded away from.
+                gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
                 ownCopy = function(entity, profileKey) return companions.ownCopy(entity, profileKey) end,
                 notice = function(player, text) convaiNotices.send(player, 'bond-level', text) end,
                 t = function(text, vars) return ui.t(text, vars) end,
@@ -6795,6 +6816,37 @@ do
         local ok, problem = pcall(bonds.attach, context)
         if not ok then convaiLogOnce('bonds-block', 'Bonds block failed: ' .. tostring(problem)) end
     end
+    -- A Phone Chat message V types (no entity, no copy): the same block, put in the request the phone file carries (mod/phone-chat.lua captureBonds).
+    function convaiBondsPhone(profileKey)
+        local context = {phone = true, profileKey = profileKey}
+        convaiBondsAttach(context)
+        return context.bonds
+    end
+    -- Her own car is not available (a pack stage's vehicleBlocked): asked at a decision (the companion car choice, a visitor's car arrival), never per frame.
+    function convaiBondsVehicleBlocked(profileKey)
+        if type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return false end
+        if type(manager.storyPacks) ~= 'function' or not manager.storyPacks() then return false end
+        local bonds = service()
+        if not bonds then return false end
+        local ok, blocked = pcall(bonds.vehicleBlocked, profileKey)
+        return ok and blocked == true
+    end
+    -- The Characters page: the bond level and the story of one character, or nil (the service is built on the first call with the setting On).
+    function convaiBondsView(profileKey)
+        if type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return nil end
+        local bonds = service()
+        if not bonds then return nil end
+        local ok, view = pcall(bonds.view, profileKey)
+        return ok and view or nil
+    end
+    -- The Relationships page: the characters V has talked to with their bond details, or nil (Off, or no usable file). Asked once, when the page is built.
+    function convaiBondsList()
+        if type(manager.characterBonds) ~= 'function' or not manager.characterBonds() then return nil end
+        local bonds = service()
+        if not bonds then return nil end
+        local ok, list = pcall(bonds.characters)
+        return ok and list or nil
+    end
     -- From the 0.1 s tick: nothing unless a level notice is awaited (at most 30 s after a turn).
     function convaiBondsTick(player)
         if not convaiBonds or not player or not convaiBonds.pending() then return end
@@ -6803,10 +6855,14 @@ do
     end
 end
 
+-- A story pack can take a character's own car away for a while (mod/bonds.lua vehicleBlocked): the party car choice (mod/companion-vehicles.lua) and an
+-- invited visitor's car arrival (mod/immersive-world.lua) ask at their decision. One function; the answer is false at once while a setting is Off.
+companions.vehicleBlocked = function(profileKey) return convaiBondsVehicleBlocked(profileKey) end
+
 -- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
 companions.spawnOutfit = function(record, key)
     local chosen = convaiCharacterOptions
-    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) then return nil end
+    if not manager.companionOutfits() and not (chosen and chosen.hasOutfits()) and not (convaiBonds and convaiBonds.anyOutfit()) then return nil end
     local module = convaiOutfitModule()
     return module and module.spawnAppearance(record, key) or nil
 end

@@ -625,6 +625,36 @@ test('every fall back to walking says why in the log: the road lookup, the road 
   assert(logged('Rita will meet V (here, car, 0.0 min, waits 5.0 min, road guess)'))
 `));
 
+test('her own car is not available (a story pack, mod/bonds.lua): she walks although Car is the setting, others still drive, and the log says why', () => run(lines() + `
+  opts.arrival = 'car'
+  fake.blocked = {judy = true}
+  function world.carBlocked(a) return fake.blocked[a.key] == true end
+  ask('judy')
+  assert(ctl.appointment('judy-alvarez').method == 'walk', 'blocked at the invitation')
+  assert(logged('Judy will meet V (here, walk, 0.0 min, waits 5.0 min, walks: car-blocked)'))
+  ask('panam')
+  assert(ctl.appointment('panam-palmer').method == 'car', 'another character is not affected')
+  tick(10)
+  assert(#fake.visitors >= 1)
+`));
+
+test('her car goes away between the invitation and the spot search: she walks instead, asked once per appointment', () => run(lines() + `
+  opts.arrival = 'car'
+  local asked = 0
+  fake.blocked = {}
+  function world.carBlocked(a) asked = asked + 1; return fake.blocked[a.key] == true end
+  ask('panam')
+  local before = asked
+  assert(ctl.appointment('panam-palmer').method == 'car')
+  fake.blocked.panam = true
+  fake.deferNext = true
+  tick(1)
+  assert(ctl.appointment('panam-palmer').method == 'walk' and logged('Panam: no car arrival, walking (car-blocked)'))
+  tick(10)
+  assert(asked == before + 1, 'one more ask, no matter how many ticks the search took: ' .. (asked - before))
+  assert(#fake.cars.created == 0, 'no car was made')
+`));
+
 test('two failed road-spot searches turn the car into a walk and the log says so', () => run(lines() + `
   opts.arrival = 'car'
   fake.spotFail = 2

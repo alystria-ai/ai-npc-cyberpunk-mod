@@ -150,7 +150,7 @@ test('the game writes the provider into the request and the bridge reads only th
   assert.equal(inputIdentity(JSON.parse(request(3, 'same line', 'local'))), inputIdentity(JSON.parse(request(3, 'same line', 'convai'))), 'a prediction does not depend on the provider field');
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('');
   assert.match(lua, /local function chosenProvider\(\)\n\s*local ok, provider = pcall\(function\(\) return manager\.conversationProvider\(\) end\)/);
-  assert.match(lua, /local providerOk, provider = pcall\(function\(\) return chosenProvider\(\) end\)\n\s*context\.provider = providerOk and provider or nil\n(?:\s*--[^\n]*\n|\s*if not context\.reaction and not context\.group then convai(?:Eddies|Bonds)Attach\(context\) end\n)*\s*local encodedOk, encoded = pcall\(json\.encode, context\)/);
+  assert.match(lua, /local providerOk, provider = pcall\(function\(\) return chosenProvider\(\) end\)\n\s*context\.provider = providerOk and provider or nil\n(?:\s*--[^\n]*\n|\s*if not context\.reaction and not context\.(?:group|head) then convai(?:Eddies|Bonds)Attach\(context\) end\n)*\s*local encodedOk, encoded = pcall\(json\.encode, context\)/);
 });
 
 test('a microphone start: its own polling flag does not hold the switch back, a recording for Local AI goes local even while something else runs', async () => {

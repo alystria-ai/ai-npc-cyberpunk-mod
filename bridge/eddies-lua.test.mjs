@@ -216,6 +216,27 @@ test('the ledger survives a reload and drops what is malformed', () => withGame(
   assert(M.new(options).block(context('d')).row.totals.loanToV == 0)
 `));
 
+test('a proposal made for a story keeps its id in the ledger entry and in the row the bridge reads; a malformed id is dropped, the transfer stands', () => withGame(`
+  E.block(context('a'))
+  propose({requestId = 'a', story = 'panam-truck-ransom:ransom-asked'}); tick(3)
+  local entry = ledger().characters['judy-alvarez'].entries[1]
+  assert(entry.r == 'done' and entry.s == 'panam-truck-ransom:ransom-asked', tostring(entry.s))
+  local block = E.block(context('b'))
+  assert(block.row.last.story == 'panam-truck-ransom:ransom-asked' and block.row.last.flow == 'loanToV')
+  -- Reloaded from the file: the field is kept.
+  assert(M.new(options).block(context('c')).row.last.story == 'panam-truck-ransom:ransom-asked')
+  -- A proposal with no story, or with a bad one: no story, the money still moves.
+  E.block(context('d')); propose({requestId = 'd', id = 'ed-2'}); tick(3)
+  assert(E.block(context('e')).row.last.story == nil)
+  for index, bad in ipairs({'Pack:Stage', 'a:', ':b', 'a b:c', 'x:' .. string.rep('y', 100), 7}) do
+    local id = 'f' .. index
+    E.block(context(id)); propose({requestId = id, id = 'ed-' .. id, story = bad}); tick(3)
+    local entries = ledger().characters['judy-alvarez'].entries
+    assert(entries[#entries].s == nil and entries[#entries].r == 'done', tostring(bad))
+  end
+  assert(M.story('a-b:c-d') == 'a-b:c-d' and M.story('') == nil and M.story(nil) == nil)
+`));
+
 test('init.lua wires it once per private turn with one boolean while off, and the tick with one nil check', () => {
   assert.match(init, /microphone\.captureActions = function\(context\)\n[^\n]*\n\s*if not context\.reaction and not context\.group then convaiEddiesAttach\(context\) end/);
   assert.match(init, /if not context\.reaction and not context\.group then convaiEddiesAttach\(context\) end\n\s*local encodedOk, encoded = pcall\(json\.encode, context\)/);

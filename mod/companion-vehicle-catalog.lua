@@ -25,12 +25,20 @@ M.fallback = {record='Vehicle.v_standard2_archer_hella_player',name='Hella'}
 -- Alt Cunningham has a real body (our copy is an ordinary spawned character): she drives like anyone else. She has no car record of
 -- her own, so she gets the fallback car, as anyone without a personal car does.
 -- The car for an overflow trip and the person who drives it: the first in the queue, or the first with a personal car.
-function M.choose(people)
+-- isBlocked(profileKey) is optional (a story pack can take a character's own car away for a while, mod/bonds.lua vehicleBlocked): a blocked person's
+-- personal car is not chosen, the next person with one is, or the fallback car with the first in the queue. Asked only for a person who has a personal car.
+function M.choose(people,isBlocked)
     local first
     for _,person in ipairs(people) do
         first=first or person
         -- Model identity owns the car preference, not an assigned chat profile.
-        local choice=M.preferred[person.entry.key] or M.preferred[modelKeys[person.entry.record]]
+        local owner=M.preferred[person.entry.key] and person.entry.key or modelKeys[person.entry.record]
+        local choice=M.preferred[owner]
+        -- The block follows whose car it is (the profile key of the catalogue entry), not the profile the copy talks as.
+        if choice and isBlocked then
+            local ok,blocked=pcall(isBlocked,owner)
+            if ok and blocked==true then choice=nil end
+        end
         if choice then return choice,person end
     end
     return M.fallback,first

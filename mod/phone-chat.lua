@@ -788,6 +788,8 @@ function M.update(player, delta, phoneOpen)
             M.pending.meetOffer = capture(M.captureMeetOffer, submission.contact, key)
             -- Housemates (mod/housemates.lua): moving in at V's place or moving out, for a contact who may be invited.
             M.pending.homeOffer = capture(M.captureHomeOffer, submission.contact, key)
+            -- Character bonds (mod/bonds.lua): the block a typed message carries, nil while the setting is Off. Read once, when the message is sent.
+            M.pending.bonds = capture(M.captureBonds, key)
             M.sentAt = os.time()
             M.replyWaitSeconds = replyWait()
             M.errors[submission.contact] = nil

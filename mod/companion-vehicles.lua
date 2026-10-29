@@ -379,7 +379,7 @@ local function allocate(s,player)
     local travelling=0
     for _ in pairs(s.people) do travelling=travelling+1 end
     if #s.cars>=math.max(8,2+math.ceil(travelling/4)) then s.error='Party vehicle limit reached.'; return end
-    local choice,driver=catalog.choose(queue)
+    local choice,driver=catalog.choose(queue,s.isBlocked)
     if not driver then
         s.error='No companion is available to drive the next party car.'; return
     end

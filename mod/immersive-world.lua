@@ -379,8 +379,21 @@ function M.new(deps)
     function W.carChoice(a)
         local definition = deps.companions.definition(a.key)
         local catalog = dofile('companion-vehicle-catalog.lua')
-        local choice = catalog.choose({{entry = {key = a.key, record = definition and definition.id}}})
+        local choice = catalog.choose({{entry = {key = a.key, record = definition and definition.id}}}, deps.companions.vehicleBlocked)
         return choice
+    end
+    -- Her own car is not available (a story pack took it away for a while, mod/bonds.lua vehicleBlocked): she arrives on foot. Only a character who has a
+    -- personal car in the catalogue can lose it; everyone else arrives in the ordinary car as before. Asked when the arrival is decided, never per frame.
+    function W.carBlocked(a)
+        local blocked = deps.companions and deps.companions.vehicleBlocked
+        if type(blocked) ~= 'function' then return false end
+        local ok, result = pcall(function()
+            local definition = deps.companions.definition(a.key)
+            local catalog = dofile('companion-vehicle-catalog.lua')
+            local people = {{entry = {key = a.key, record = definition and definition.id}}}
+            return catalog.choose(people) ~= catalog.fallback and catalog.choose(people, blocked) == catalog.fallback
+        end)
+        return ok and result == true
     end
     function W.carCreate(a)
         local sequence = cars()

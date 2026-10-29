@@ -723,6 +723,37 @@ test('the catalog treats Alt Cunningham like anyone else: no personal car, so th
   assert(select(2,catalog.choose({}))==nil)
 `));
 
+// A story pack can take a character's own car away for a while (mod/bonds.lua vehicleBlocked, docs/RELATIONSHIPS_AND_QUESTS.md 7.4).
+test('a blocked personal car is not chosen: the next person with one, or the fallback with the first in the queue',()=>run(`${fixture}
+  local panam={entry={serial=1,key='panam-palmer'}}
+  local judy={entry={serial=2,key='judy-alvarez'}}
+  local plain={entry={serial=3,key='person-3'}}
+  local asked={}
+  local function blocked(key) asked[#asked+1]=tostring(key); return key=='panam-palmer' end
+  local choice,driver=catalog.choose({panam,judy,plain},blocked)
+  assert(driver==judy and choice.name=="Judy's van",'the next person with a car')
+  choice,driver=catalog.choose({panam,plain},blocked); assert(choice==catalog.fallback and driver==panam,'the fallback, the first in the queue drives')
+  choice,driver=catalog.choose({plain,panam},blocked); assert(choice==catalog.fallback and driver==plain)
+  choice,driver=catalog.choose({panam,judy},function() return true end); assert(choice==catalog.fallback and driver==panam,'everyone blocked: the fallback')
+  -- The block follows whose car it is: a copy of Panam's model that talks as someone else still drives Panam's truck, and her block holds.
+  local alias={entry={serial=4,key='someone-else',record='Character.Panam'}}
+  choice=catalog.choose({alias},blocked); assert(choice==catalog.fallback,'Panam is blocked, whoever the copy talks as')
+  choice=catalog.choose({alias},function(key) return key=='someone-else' end); assert(choice.name=="Panam's truck",'only the owner of the car counts')
+  -- Nothing asked: nothing blocked. Only a person with a personal car is asked about. A raising function blocks nothing.
+  assert(catalog.choose({panam}).name=="Panam's truck")
+  asked={}; catalog.choose({plain,plain},blocked); assert(#asked==0,'a person without a personal car is not asked: '..table.concat(asked,','))
+  choice=catalog.choose({panam},function() error('boom') end); assert(choice.name=="Panam's truck")
+`));
+
+test('the fleet asks s.isBlocked when it chooses the next party car',()=>run(`${fixture}
+  party(8); entries[4].key='judy-alvarez'; entries[5].key='panam-palmer'
+  fleet.isBlocked=function(key) return key=='judy-alvarez' end
+  tick(100)
+  assert(#world.spawned>=1)
+  assert(world.spawned[1].record=='Vehicle.v_standard3_thorton_mackinaw_ncu_player' and world.spawned[1].driver==5,'Panam drives, not Judy')
+  for _,car in ipairs(world.spawned) do assert(car.record~='Vehicle.v_standard25_villefort_columbus_player',"Judy's van was not offered") end
+`));
+
 test('Alt is seated in serial order like anyone else and drives the overflow car when she is first to need one',()=>run(`${fixture}
   party(8); entries[8].key='alt-cunningham'; entries[8].record='Character.Alt'
   tick(100)

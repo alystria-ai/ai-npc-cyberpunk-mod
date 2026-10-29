@@ -946,6 +946,8 @@ local function loadSettings()
     if type(settings.characterEddies) ~= 'boolean' then settings.characterEddies, settingsNeedSave = false, true end
     -- Off by default: every named character has a bond with V, level 1 to 10, from the story and their talks (docs/RELATIONSHIPS_AND_QUESTS.md).
     if type(settings.characterBonds) ~= 'boolean' then settings.characterBonds, settingsNeedSave = false, true end
+    -- Off by default: characters can start short story arcs of their own once V is close and their own quests are done (docs/RELATIONSHIPS_AND_QUESTS.md, section 7).
+    if type(settings.storyPacks) ~= 'boolean' then settings.storyPacks, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
@@ -1195,6 +1197,12 @@ end
 function M.characterBonds()
     loadSettings()
     return settings.characterBonds == true
+end
+
+-- Story packs (Settings > Gameplay, docs/RELATIONSHIPS_AND_QUESTS.md section 7): off by default. Read once per turn V sends, when a car or an item effect is decided, never per frame.
+function M.storyPacks()
+    loadSettings()
+    return settings.storyPacks == true
 end
 
 -- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
@@ -2262,6 +2270,7 @@ function M.snapshot(player)
             revengeAmbushes = settings.revengeAmbushes == true,
             characterEddies = settings.characterEddies == true,
             characterBonds = settings.characterBonds == true,
+            storyPacks = settings.storyPacks == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             companionSpeakUp = M.companionSpeakUp(),
@@ -2425,6 +2434,9 @@ function M.applySettings(player, values)
         elseif key == 'characterBonds' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.characterBonds = value
+        elseif key == 'storyPacks' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.storyPacks = value
         elseif key == 'johnnyInHead' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value

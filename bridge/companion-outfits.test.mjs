@@ -230,6 +230,69 @@ test('a change waits until nobody is looking, then loads, schedules and is read 
   f.rolls = {0.9}; at(4, 7); cycle(); assert(#calls.prefetch == 1, 'a roll over the chance: nothing to change')
 `));
 
+// Story packs (mod/bonds.lua, docs/RELATIONSHIPS_AND_QUESTS.md 7.4 `outfit`): a stage dresses a party copy in another look of her own template and puts her back.
+const storyRig = `
+  f.enabled = false
+  local story, done = {}, {}
+  outfits.deps.story = function(key) return story[key] end
+  outfits.deps.anyStory = function() return next(story) ~= nil end
+  -- As mod/bonds.lua does: a 'restore' request is over when the copy shows its own look; a 'wear' request stays while the stage lasts.
+  outfits.deps.storyDone = function(key) done[#done + 1] = key; if story[key] == 'restore' then story[key] = nil end end
+`;
+test('a story look: the first look that is neither her base nor her home clothes, her base to restore, nothing for a character without one', () => runWith(`${fixture}
+  assert(outfits.storyLook('Character.Panam', 'wear') == 'panam_no_jacket')
+  assert(outfits.storyLook('Character.Panam', 'restore') == 'panam_default')
+  assert(outfits.storyLook('Character.Judy', 'wear') == nil, 'Judy has only her home clothes besides her base: no new clothes are invented')
+  assert(outfits.storyLook('Character.Judy', 'restore') == 'judy_default')
+  assert(outfits.storyLook('Character.Nobody', 'wear') == nil and outfits.storyLook('Character.Panam', 'sideways') == nil and outfits.storyLook(nil, 'wear') == nil)
+  for record, character in pairs((function() ${dataSource} end)().characters) do
+    local look = outfits.storyLook(record, 'wear')
+    if look then
+      local kind
+      for _, row in ipairs(character.outfits) do if row[1] == look then kind = row[2] end end
+      assert(kind ~= nil and kind ~= 'home' and look ~= character.base, record .. ': ' .. look)
+    end
+  end
+`));
+
+test('a story look is worn out of view with the setting off, restored after the stage, and costs nothing while nothing is asked', () => runWith(`${fixture}
+  ${storyRig}
+  member(1, 'panam-palmer', 'Character.Panam', 'panam_default')
+  f.seen = false
+  cycle(); cycle(); assert(calls.rows == 0 and #calls.prefetch == 0, 'no request: the module is not even looked at')
+  story['panam-palmer'] = 'wear'
+  cycle(); cycle(20)                                   -- out of view for 5 s: the look is loaded
+  assert(calls.prefetch[1] == '1:panam_no_jacket', tostring(calls.prefetch[1]))
+  cycle(1.0); assert(calls.apply[1] == '1:panam_no_jacket')
+  cycle(1.0); assert(outfits.snapshot()[1].current == 'panam_no_jacket' and logged('(chosen)'))
+  cycle(); assert(#calls.apply == 1, 'she keeps it while the stage lasts (the time of day does not change it)')
+  at(3, 22); cycle(); cycle(20); assert(#calls.apply == 1)
+  -- The stage ends: her own look again, once.
+  story['panam-palmer'] = 'restore'
+  cycle(); cycle(20); cycle(1.0); cycle(1.0)
+  assert(calls.apply[2] == '1:panam_default' and outfits.snapshot()[1].current == 'panam_default')
+  cycle(); assert(done[#done] == 'panam-palmer' and story['panam-palmer'] == nil, 'the request is over')
+  local rows = calls.rows; cycle(); cycle(); assert(calls.rows == rows and #calls.apply == 2, 'and nothing runs for her any more')
+`));
+
+test('a story look: the editor choice of the player in the editor wins, a new copy is made in it, a character with no such look changes nothing, a raising hook asks nothing', () => runWith(`${fixture}
+  ${storyRig}
+  story['panam-palmer'] = 'wear'
+  assert(outfits.spawnAppearance('Character.Panam', 'panam-palmer') == 'panam_no_jacket', 'a new copy comes in it')
+  assert(outfits.spawnAppearance('Character.Panam', 'someone-else') == nil)
+  outfits.deps.pinned = function(key) return 'panam_no_jacket_and_harness' end
+  assert(outfits.spawnAppearance('Character.Panam', 'panam-palmer') == 'panam_no_jacket_and_harness', 'the editor choice wins')
+  outfits.deps.pinned = nil
+  story['judy-alvarez'] = 'wear'
+  assert(outfits.spawnAppearance('Character.Judy', 'judy-alvarez') == nil)
+  member(2, 'judy-alvarez', 'Character.Judy', 'judy_default')
+  f.seen = false; cycle(); cycle(20); cycle(1.0); assert(#calls.prefetch == 0 and #calls.apply == 0)
+  outfits.deps.story = function() error('boom') end
+  assert(outfits.spawnAppearance('Character.Panam', 'panam-palmer') == nil)
+  outfits.deps.anyStory = function() error('boom') end
+  cycle(); cycle()
+`));
+
 test('the camera looks back between the load and the change: the change is dropped and tried again later', () => runWith(`${fixture}
   member(1, 'panam-palmer', 'Character.Panam', 'panam_no_jacket')
   f.seen = true
@@ -594,12 +657,12 @@ test('init.lua: the tick is in the 10 Hz branch after the poll gate, off costs o
   assert.ok(gate > 0 && tick > gate, 'the outfit tick comes after the 0.1 s gate of onUpdate');
   assert.ok(tick < initSource.indexOf('registerForEvent(\'onShutdown\''));
   // (The player's chosen looks of the character editor keep the module running with the setting off, for those characters only: docs/CHARACTER_EDITOR.md "Look and moves".)
-  assert.match(initSource, /function convaiOutfitTick\(player, elapsed, ready\)(?:\s*--[^\n]*)*\s*local chosen = convaiCharacterOptions\s*if chosen then chosen\.tick\(elapsed\) end\s*if not manager\.companionOutfits\(\) and not \(chosen and chosen\.hasOutfits\(\)\) then return end\s*local module = convaiOutfitModule\(\)\s*if module then module\.tick\(player, elapsed, ready\) end/);
+  assert.match(initSource, /function convaiOutfitTick\(player, elapsed, ready\)(?:\s*--[^\n]*)*\s*local chosen = convaiCharacterOptions\s*if chosen then chosen\.tick\(elapsed\) end\s*if not manager\.companionOutfits\(\) and not \(chosen and chosen\.hasOutfits\(\)\) and not \(convaiBonds and convaiBonds\.anyOutfit\(\)\) then return end\s*local module = convaiOutfitModule\(\)\s*if module then module\.tick\(player, elapsed, ready\) end/);
   assert.match(initSource, /pcall\(dofile, 'companion-outfits\.lua'\)/);
   // Only companions.lua's three hooks and the API global leave init.lua; the module is not on the onUpdate path any other way.
   assert.equal([...initSource.matchAll(/convaiOutfitTick/g)].length, 2, 'defined once and called once (the pcall in the 10 Hz branch)');
   assert.match(initSource, /if convaiOutfits and preserveTransit ~= true then pcall\(convaiOutfits\.reset\) end/);
-  assert.match(initSource, /companions\.spawnOutfit = function\(record, key\)\s*local chosen = convaiCharacterOptions\s*if not manager\.companionOutfits\(\) and not \(chosen and chosen\.hasOutfits\(\)\) then return nil end/);
+  assert.match(initSource, /companions\.spawnOutfit = function\(record, key\)\s*local chosen = convaiCharacterOptions\s*if not manager\.companionOutfits\(\) and not \(chosen and chosen\.hasOutfits\(\)\) and not \(convaiBonds and convaiBonds\.anyOutfit\(\)\) then return nil end/);
   assert.match(initSource, /convaiOutfitApi = \{\s*setHome = function\(key, on\)/);
   // The game's own frustum test and the margins its reaction code uses; the world check is the battle observer's.
   assert.match(initSource, /IsInCameraFrustum\(npc, 2\.0, 0\.75\)/);
