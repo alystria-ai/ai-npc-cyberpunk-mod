@@ -86,3 +86,28 @@ both archives), so a difference would come from the engine's atlas loading.
 * The texture format: the import keeps it uncompressed true colour (about 3 MB of video memory per 1024 x 576 picture, about 4 MB for the tall one;
   the archive stores it compressed). For a shipped pack a BC7 import setting is the next step (about a quarter of the video memory).
 * The character's language model sees only the caption text of the row, not the picture (`recentPhoneConversation` sends text only).
+
+## Pictures of story packs (build step, 2026-10-29)
+
+A format 2 story pack lists its pictures in an `images` table (`{"file": "images/<name>.png", "width": 1024, "height": 576}`) and a `text` row of a stage or an ending names one
+with `image`. The pack runner puts the picture into the play file as `{atlas, part, width, height}` and `mod/phone-chat.lua` `deliverScripted` hands that to the Chat row, which
+finds it in the archive. This step builds that archive from the packs, with the same tool chain as the two proof cards.
+
+* **Where the PNGs live.** Beside the pack file: `characters/bond-packs/<pack id>.json` and `characters/bond-packs/<pack id>/images/<name>.png` (the folder the runner also finds
+  `audio/`, `music/` and `sfx/` in). PNG only, 1024 px or less on a side, 2 MB or less, and exactly the width and height the pack states.
+* **The name.** The Chat row looks up `cyberpunk_convai\phone_images\<name>.inkatlas` with one part called `<name>`. `<name>` is `<pack id>_<picture key>` with hyphens as underscores,
+  or the picture key alone when that is longer than 48 characters. This is the rule of `bridge/bond-pack-runner.mjs` `lineTables`, repeated in `scripts/Build-PackImages.mjs`
+  `pictureName` and checked against the runner's real output in `bridge/pack-images.test.mjs`. For example `panam-sunset-coffee` picture `sunset-coffee` is
+  `panam_sunset_coffee_sunset_coffee`.
+* **The command.** `powershell -File scripts\Build-PhoneImages.ps1 -Packs [-Pack <id> ...] [-AllPacks] [-PackFolder <dir>] -VendorDirectory <checkout>\vendor` (a worktree has no
+  `vendor`). Without `-Pack` or `-AllPacks` it takes the packs the release plan ships (`packaging/release.config.json`). The output is
+  `runtime\phone-images\package\convai_pack_images.archive`, a different file from the proof cards' `convai_phone_images.archive`, so both can be installed together.
+* **What it does.** `scripts/Build-PackImages.mjs` reads the packs, checks every picture (it is there, it is a PNG, its size is the stated one, 1024 px and 2 MB at most, no two
+  pictures share a name, the file stays inside the pack's folder) and writes a manifest in the shape of `assets/phone-images/images.json`. One problem stops the build and
+  every problem is printed. Then the existing steps run unchanged: WolvenKit imports each PNG to a texture, `scripts/Build-PhoneImageAtlas.mjs` writes one atlas per picture,
+  WolvenKit packs the folder. Nothing is copied from the proof build.
+* **Dry run.** `-WhatIf` does the checks and prints the plan (the archive name, and for each picture its texture and atlas depot paths and part name) and whether WolvenKit and the
+  .NET runtime are found, then stops. It builds nothing and needs neither the vendor tools nor the game. A real build with the tools missing stops with "WolvenKit CLI is missing at
+  ... See docs/FACIAL_ANIMATION.md".
+* **Not done here.** The WolvenKit build for real (heavy, run by the owner), the archive in a package (it is in no release plan), and the pilot pack's own PNG
+  (`images/sunset-coffee.png` does not exist yet: the dry run says so).
