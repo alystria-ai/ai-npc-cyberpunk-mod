@@ -897,7 +897,7 @@ test('a draw of the tab never rebuilds what has not changed: a value changed fro
 `));
 
 // ---------------------------------------------------------------------------------------------------- settings decisions of 2026-10-20
-const customRows = ['Custom endpoint URL', 'Custom API key', 'Custom model ID', 'Test connection'];
+const customRows = ['Google Gemini (free)', 'Groq (free)', 'Custom endpoint URL', 'Custom API key', 'Custom model ID', 'Test connection'];
 const withoutCustomModule = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'custom-provider.lua'));
 const customState = `
   files['runtime/custom-provider-command.json'] = ''
@@ -921,8 +921,10 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   assert(dense(ns.data[TAB]))
   local shown = {}
   for _, option in ipairs(sections[2].options) do shown[#shown + 1] = option.label end
-  assert(table.concat(shown, ' | ') == 'Custom endpoint URL | Custom API key | Custom model ID | Test connection', table.concat(shown, ' | '))
+  assert(table.concat(shown, ' | ') == 'Google Gemini (free) | Groq (free) | Custom endpoint URL | Custom API key | Custom model ID | Test connection', table.concat(shown, ' | '))
   assert(ns.find('Conversation provider') == nil and ns.find('Subtitles') == nil, 'nothing of Settings is on the page')
+  press('Google Gemini (free)'); assert(command().action == 'preset-gemini', tostring(command() and command().action))
+  press('Groq (free)'); assert(command().action == 'preset-groq', tostring(command() and command().action))
   press('Custom endpoint URL'); assert(command().action == 'paste-url', tostring(command() and command().action))
   press('Custom API key'); assert(command().action == 'paste-key')
   press('Custom model ID'); assert(command().action == 'paste-model')

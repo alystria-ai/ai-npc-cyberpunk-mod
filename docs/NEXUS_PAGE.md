@@ -85,6 +85,7 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)[list]
 [*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left. A dropped connection is retried once by itself before the reply starts.
 [*][b]Mistral (with your own key):[/b] Mistral stopped giving free API keys to new accounts, so a new key needs a paid [url=https://console.mistral.ai]Mistral[/url] plan. Have a key? Choose [b]Mistral[/b] and paste it once.
+[*][b]More free turns (a free Gemini or Groq key):[/b] open Settings > Conversation provider > Custom endpoint and press [b]Use[/b] on [b]Google Gemini (free)[/b] or [b]Groq (free)[/b]. That fills in the address and the model, so you only paste a free key from [url=https://aistudio.google.com/apikey]Google AI Studio[/url] or [url=https://console.groq.com/keys]Groq[/url] (no card), test it and choose [b]Custom (OpenAI-compatible)[/b]. Both have daily limits and are not offered in every country, and Google may use free-plan chats to improve its products.
 [*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters. If Voxtral cannot speak (no key, a limit, a Mistral plan that does not include it), replies show as text until it can: the mod never switches your voice to another one.
 [/list][b]2. Local: no internet, no account, no limit[/b][list]
 [*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card the model may not fit whole: Local AI then runs part of it on your processor, which works but is slower, and tells you once. Cloud text is faster there.
@@ -193,6 +194,15 @@ Make a text file named [b]priority.txt[/b] in %LOCALAPPDATA%\AiNpcCyberpunkMod\d
 [b]Does it change the story?[/b]
 No. Companions are temporary copies that the mod owns. The game's own story characters are left alone unless you turn on Settings > Conversations > Talk to story characters (then reload your save). They then answer with voice and face only.
 
+[b]Can I run the AI on a second PC?[/b]
+Yes. On the second PC (a GTX 1060 6 GB is enough, and it needs no CUDA files) run llama.cpp's server, the Vulkan build, with the Local AI lite model, and start it with [b]--host 0.0.0.0[/b]. Allow it through the Windows firewall on Private and Public networks. Then in the mod choose Custom, open the Custom endpoint page and paste [b]http://169.254.x.x:8080/v1 (its own address)[/b] and the model name you gave the server. A direct network cable works with no router, and Windows gives both PCs 169.254 addresses by itself (run ipconfig to read them). The A to Z guide, with the exact command, is in the README on GitHub: [url=https://github.com/alystria-ai/ai-npc-cyberpunk-mod#run-the-ai-on-another-pc]Run the AI on another PC[/url].
+
+[b]Vortex or Mod Organizer 2 shows three mods since I updated from the separate Scripts and Runtime files.[/b]
+From 0.3.4 the main file holds both, and the mod managers cannot know that it replaces the old two. Remove the old Scripts mod and the old Runtime mod, then install the main file as one mod and deploy. Your memories, saved keys and characters are in %LOCALAPPDATA%\AiNpcCyberpunkMod, outside any mod, and your settings are copied there and put back at the first start, so none of them is lost. Anything you put inside the old Runtime mod's own folder (the multilingual packs, for example) goes with it, so put it into the new mod again.
+
+[b]V never speaks my lines.[/b]
+Lines you type are voiced by default (Settings > Voices > V's voice for typed lines, Pocket). Lines you speak by microphone are not repeated unless [b]V's voice for microphone lines[/b] is on, and it is off by default. If you type a line, the row is not Off and V stays silent, open Settings > Help > Help and support, press Generate report and send it to me.
+
 [b]What leaves my computer?[/b]
 With Convai, your lines go to Convai. With Companions can see on (off by default), a recent picture of only the game window goes with your line to whichever provider you use, so characters can see where you are. It is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved, and with Local AI it never leaves your computer (the Local AI model needs its vision file for that, see Optional packs). With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies. The Runtime carries no Convai key of its own: it signs in for you with short-lived tokens, and if that sign-in fails you get one notice. The Runtime's security was also tightened: the hidden browser runs in a sandbox, sign-in and report handling are stricter, and more personal details are scrubbed from reports.
 
@@ -275,7 +285,7 @@ Update for older game 2.31, for manual installs only: extract it into the game f
 ## 3. Short summary (brief overview field)
 
 ```text
-Talk to Cyberpunk 2077 characters by voice or text, and hear companions answer in their own voices. Run it fully on your own PC with Local AI, free, with no account and no internet. Or use free cloud Mistral or the Convai free tier. Pocket TTS voices need no setup.
+Talk to Cyberpunk 2077 characters by voice or text, and hear companions answer in their own voices. Run it fully on your own PC with Local AI, free, with no account and no internet. Or use the Convai free tier, or a free Google Gemini or Groq key. Pocket TTS voices need no setup.
 ```
 
 Character count of the summary (including spaces and punctuation): 265

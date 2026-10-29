@@ -345,3 +345,40 @@ and Vectorize), `nvidia_nim`, `openrouter` (not tested here).
 5. Speech to text and memory stay local (`docs/LOCAL_STT.md`, local embeddings).
 6. Terms to settle before shipping: Inworld's licence wording (one developer key for all players is likely not allowed) and Mistral's
    free-plan data-use clause.
+
+
+## Update 2026-10-30: a second free cloud text option after Mistral's free keys stopped
+
+Mistral stopped activating API keys of new free accounts around 7 to 12 Oct 2026 (the owner's second Mistral profile shows "Upgrade to activate your API keys" on 29 Oct, one player got a free key without a phone number three days earlier, so it may be partial or regional). The mod already had the Custom provider, so the work was to find the best free OpenAI-compatible plans and make them one-press setups ([CUSTOM_PROVIDER.md](CUSTOM_PROVIDER.md), "Free setups"). Sources: official pages read on 2026-10-30, the developer's own free keys (live requests through the mod's `streamChat`, `provider: 'custom'`), and a web search by a helper agent (third-party roundups are marked UNVERIFIED where nothing official confirmed them).
+
+### Measured live (developer's own free keys, 3 replies each, a 1,000-token persona prompt, streaming, 100 output tokens)
+
+| Plan and model | Time to first token | Notes |
+|---|---|---|
+| Groq `qwen/qwen3.8-27b` | 207 to 315 ms | in character, a few crude words |
+| Groq `openai/gpt-oss-20b` | 291 to 484 ms | hidden reasoning tokens count against the budget |
+| Gemini `gemini-flash-lite-latest` (answers as `gemini-3.5-flash-lite`) | median about 0.9 s over 14 requests: 0.7 to 1.1 s for ten of them, 1.9 to 3.5 s for four. Earlier short runs: 0.6 to 1.6 s with some 5 to 7 s spikes | in character, short. **Chosen** |
+| Gemini `gemini-3.1-flash-lite` | median about 1.1 s over 14 requests, but three took 10.7 to 11.9 s and one 4.3 s | fixed id, spiky: not chosen |
+| Gemini `gemma-4-26b-a4b-it`, `gemma-4-31b-it` | HTTP 500 on 5 of 6, one reply after 18 s | not usable now |
+| OpenRouter `google/gemma-4-26b-a4b-it:free`, `-31b-it:free` | HTTP 429 every time: "temporarily rate-limited upstream", `limit_source: upstream_provider_shared_pool` | shared pool, which is why one player finds it slow |
+| NVIDIA NIM `meta/llama-3.1-8b-instruct` | HTTP 410: end of life 2026-08-26 | |
+
+### Limits and conditions
+
+| Plan | Sign-up and regions | Free limits | Verdict |
+|---|---|---|---|
+| Google Gemini API (AI Studio) | A Google account, no card. Russia is not on Google's list of countries (read 2026-10-30), Ukraine, Germany, France, Poland, the US are. | Docs give no numbers (AI Studio shows them). Measured: 15 requests a minute on `gemini-3.5-flash-lite` (a 429 named `limit: 15`). A third-party roundup says 500 a day (UNVERIFIED). | **Chosen.** Prices page: free tier, "Used to improve our products: Yes". |
+| Groq | Email, Google or GitHub login, no card (third-party). Russia reported restricted (UNVERIFIED). | Headers on the developer's key: 1,000 requests and 8,000 tokens a minute, 200,000 tokens a day for `qwen/qwen3.8-27b` and `gpt-oss-20b`. | **Chosen** as the fast option. The token cap is about one turn a minute and a few dozen turns a day. |
+| OpenRouter `:free` | Free sign-up, no card. Russia: payment and use reported blocked (UNVERIFIED, Habr and Skillbox articles). | 20 requests a minute, 50 a day (1,000 after buying 10 credits). Free ids rotate. | Already usable by hand in Custom. Not a preset: 50 a day, and the shared upstream pool answered 429 for every Gemma request today. |
+| Cerebras | A "Free Trial" with $5 of credit that expires in 30 days and needs a verified payment method (docs). | | Not free. |
+| GitHub Models | Retired 30 Jul 2026 (helper agent's search, one source). | | Dead. |
+| Cloudflare Workers AI | Free plan, 10,000 neurons a day (docs). | About 130,000 output tokens a day on Llama 3.1 8B (UNVERIFIED). | The address holds the player's account ID (`/accounts/<id>/ai/v1`), so it is not a press-and-paste preset. Possible later. |
+| NVIDIA NIM | Phone verification, +7 numbers failed in reports. | About 40 requests a minute (community). | Skip. Its Llama 3.1 8B is end of life. |
+| Pollinations (no key) | The API documentation lists chat completions as needing a key. | | A keyless shared service does not exist in a form worth building. Nothing to report as a Convai-style shared key. |
+| Cohere trial, SambaNova | 1,000 calls a month, and 20 requests a day. | | Too small. |
+
+### Privacy and regions, for the player texts
+
+Google's free tier uses prompts to improve its products (pricing page). Whether that differs in the EEA, the UK and Switzerland is not on the pages read, so the in-game text says only that Google may use free-plan chats to improve its products. No source confirmed a free plan for Russian players: Gemini excludes Russia, the others are unverified.
+
+Sources: https://ai.google.dev/gemini-api/docs/pricing, https://ai.google.dev/gemini-api/docs/rate-limits, https://ai.google.dev/gemini-api/docs/available-regions, https://console.groq.com/docs/rate-limits, https://openrouter.ai/docs/api-reference/limits, https://inference-docs.cerebras.ai/support/rate-limits, https://docs.github.com/en/github-models/prototyping-with-ai-models, https://developers.cloudflare.com/workers-ai/platform/pricing/, https://forums.developer.nvidia.com/t/is-nim-free/369368, https://dev.to/hassann/top-8-free-ai-apis-in-october-2026-5bb5 (roundup), https://habr.com/ru/articles/1034012/, https://skillbox.ru/media/code/polzovateli-pozhalovalis-na-blokirovku-platezhey-v-openrouter-dlya-akkauntov-iz-rossii/.

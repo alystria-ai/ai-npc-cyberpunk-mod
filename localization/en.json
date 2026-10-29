@@ -57,7 +57,7 @@
     ]
   },
   "counts": {
-    "strings": 1741,
+    "strings": 1746,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -478,6 +478,8 @@
     "Favorites": "Favorites",
     "Female": "Female",
     "Filled in from the character you were facing: {name}.": "Filled in from the character you were facing: {name}.",
+    "Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.": "Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.",
+    "Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.": "Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.",
     "Find the log files and create a report to send to the developer if something goes wrong.": "Find the log files and create a report to send to the developer if something goes wrong.",
     "Fine. Call me when you know what you want.": "Fine. Call me when you know what you want.",
     "Finish combat before asking for a ride.": "Finish combat before asking for a ride.",
@@ -526,7 +528,9 @@
     "Go back to the shipped text for {name}? All your changes to this character are removed.": "Go back to the shipped text for {name}? All your changes to this character are removed.",
     "Go back to the shipped text for {name}? Your changes to this part are removed.": "Go back to the shipped text for {name}? Your changes to this part are removed.",
     "Go back to the usual look and moves for {name}? Your choices on this part are removed.": "Go back to the usual look and moves for {name}? Your choices on this part are removed.",
+    "Google Gemini (free)": "Google Gemini (free)",
     "Graphics card": "Graphics card",
+    "Groq (free)": "Groq (free)",
     "Group chat needs two characters nearby. Use {key} for one person.": "Group chat needs two characters nearby. Use {key} for one person.",
     "Group text chat": "Group text chat",
     "Group voice chat": "Group voice chat",
@@ -1481,6 +1485,7 @@
     "Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI": "Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI",
     "Update with current party": "Update with current party",
     "Updating selection": "Updating selection",
+    "Use": "Use",
     "Use Confirm or Cancel for the current memory request.": "Use Confirm or Cancel for the current memory request.",
     "Use a number from {min} to {max}.": "Use a number from {min} to {max}.",
     "Use it if companions seem to look above or below your eyes.": "Use it if companions seem to look above or below your eyes.",
@@ -2889,6 +2894,8 @@
       "Failed",
       "Female",
       "Filled in from the character you were facing: {name}.",
+      "Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.",
+      "Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.",
       "Fine. Call me when you know what you want.",
       "For Mature content",
       "For a speaker with a reply length of its own",
@@ -2922,7 +2929,9 @@
       "Go back to the shipped text for {name}? All your changes to this character are removed.",
       "Go back to the shipped text for {name}? Your changes to this part are removed.",
       "Go back to the usual look and moves for {name}? Your choices on this part are removed.",
+      "Google Gemini (free)",
       "Graphics card",
+      "Groq (free)",
       "Group chat needs two characters nearby. Use {key} for one person.",
       "Group text chat",
       "Group voice chat",
@@ -3575,6 +3584,7 @@
       "Unpacking…",
       "Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.",
       "Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI",
+      "Use",
       "Use a number from {min} to {max}.",
       "Use the Longest reply box for the length of a reply, not “{name}”.",
       "Use the address only: no user name, no path, no #.",
@@ -4033,7 +4043,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:306"
+        "mod/custom-provider.lua:326"
       ]
     },
     "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.": {
@@ -4340,7 +4350,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:225"
+        "mod/custom-provider.lua:228"
       ]
     },
     "Add an example reply": {
@@ -4414,7 +4424,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:279",
+        "mod/custom-provider.lua:265",
+        "mod/custom-provider.lua:299",
         "mod/manager-ui.lua:858"
       ]
     },
@@ -5181,7 +5192,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:201",
+        "mod/custom-provider.lua:204",
         "mod/manager-ui.lua:857",
         "mod/manager.lua:406",
         "mod/manager.lua:465",
@@ -6198,7 +6209,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:348"
+        "mod/custom-provider.lua:368"
       ]
     },
     "Convai’s payment page is open in your browser. Your plan is active about 15 seconds after you pay.": {
@@ -6396,7 +6407,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:266"
+        "mod/custom-provider.lua:286"
       ]
     },
     "Copy the model ID from your provider first, for example meta-llama/llama-3.1-8b-instruct on OpenRouter or llama3.2 on Ollama. It is read from the clipboard once and saved on this computer.": {
@@ -6404,7 +6415,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:305"
+        "mod/custom-provider.lua:325"
       ]
     },
     "Copy the report path to the clipboard so you can paste it into a message.": {
@@ -6420,7 +6431,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:286"
+        "mod/custom-provider.lua:306"
       ]
     },
     "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.": {
@@ -6587,7 +6598,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:290"
+        "mod/custom-provider.lua:310"
       ]
     },
     "Custom endpoint": {
@@ -6605,7 +6616,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:269"
+        "mod/custom-provider.lua:289"
       ]
     },
     "Custom model ID": {
@@ -6613,7 +6624,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:309"
+        "mod/custom-provider.lua:329"
       ]
     },
     "Custom models are ones you added; they join the default choice by size.": {
@@ -6629,7 +6640,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:364",
+        "mod/custom-provider.lua:384",
         "mod/init.lua:5960"
       ]
     },
@@ -6648,7 +6659,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:340"
+        "mod/custom-provider.lua:360"
       ]
     },
     "Custom: key not accepted": {
@@ -6656,7 +6667,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:341"
+        "mod/custom-provider.lua:361"
       ]
     },
     "Custom: model unavailable": {
@@ -6664,7 +6675,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:342"
+        "mod/custom-provider.lua:362"
       ]
     },
     "Custom: out of credits": {
@@ -6672,7 +6683,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:343"
+        "mod/custom-provider.lua:363"
       ]
     },
     "Custom: rate limited for now": {
@@ -6680,7 +6691,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:339"
+        "mod/custom-provider.lua:359"
       ]
     },
     "Custom: {model} at {host}": {
@@ -6857,7 +6868,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:263"
+        "mod/custom-provider.lua:283"
       ]
     },
     "Deletes the saved key.": {
@@ -6882,7 +6893,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:283"
+        "mod/custom-provider.lua:303"
       ]
     },
     "Deletes the saved model ID. The custom provider needs one to answer.": {
@@ -6890,7 +6901,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:303"
+        "mod/custom-provider.lua:323"
       ]
     },
     "Deletes the saved server address. Remote OmniVoice needs one to speak.": {
@@ -7298,7 +7309,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:325",
+        "mod/custom-provider.lua:345",
         "mod/omni-amd.lua:208",
         "mod/omni-amd.lua:213",
         "mod/remote-omni.lua:222"
@@ -7346,6 +7357,22 @@
       ],
       "references": [
         "mod/character-editor.lua:87"
+      ]
+    },
+    "Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/custom-provider.lua:269"
+      ]
+    },
+    "Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/custom-provider.lua:272"
       ]
     },
     "Find the log files and create a report to send to the developer if something goes wrong.": {
@@ -7741,12 +7768,28 @@
         "mod/character-editor.lua:340"
       ]
     },
+    "Google Gemini (free)": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/custom-provider.lua:268"
+      ]
+    },
     "Graphics card": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
         "mod/setup-check.lua:822"
+      ]
+    },
+    "Groq (free)": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/custom-provider.lua:271"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -8394,7 +8437,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:323"
+        "mod/custom-provider.lua:343"
       ]
     },
     "It answers in {ms} ms.": {
@@ -8411,7 +8454,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:208",
+        "mod/custom-provider.lua:211",
         "mod/remote-omni.lua:153"
       ]
     },
@@ -9365,7 +9408,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:302"
+        "mod/custom-provider.lua:322"
       ]
     },
     "Model browser": {
@@ -9552,7 +9595,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:289"
+        "mod/custom-provider.lua:309"
       ]
     },
     "New character": {
@@ -9843,9 +9886,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:260",
         "mod/custom-provider.lua:280",
-        "mod/custom-provider.lua:299",
+        "mod/custom-provider.lua:300",
+        "mod/custom-provider.lua:319",
         "mod/manager-ui.lua:859",
         "mod/remote-omni.lua:191"
       ]
@@ -10014,7 +10057,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:322",
+        "mod/custom-provider.lua:342",
         "mod/remote-omni.lua:212",
         "mod/setup-check.lua:468"
       ]
@@ -10329,7 +10372,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:214"
+        "mod/custom-provider.lua:217"
       ]
     },
     "Only the first {count} favorites are listed here. The others are in the list below.": {
@@ -10686,7 +10729,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:291"
+        "mod/custom-provider.lua:311"
       ]
     },
     "Paste address": {
@@ -10702,7 +10745,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:270"
+        "mod/custom-provider.lua:290"
       ]
     },
     "Paste model ID": {
@@ -10710,7 +10753,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:310"
+        "mod/custom-provider.lua:330"
       ]
     },
     "Pause": {
@@ -11329,9 +11372,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:270",
-        "mod/custom-provider.lua:291",
-        "mod/custom-provider.lua:310",
+        "mod/custom-provider.lua:290",
+        "mod/custom-provider.lua:311",
+        "mod/custom-provider.lua:330",
         "mod/manager-ui.lua:1614",
         "mod/manager-ui.lua:869",
         "mod/omni-amd.lua:262",
@@ -11918,7 +11961,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:284",
+        "mod/custom-provider.lua:304",
         "mod/manager-ui.lua:863"
       ]
     },
@@ -12149,7 +12192,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:328"
+        "mod/custom-provider.lua:348"
       ]
     },
     "Server address": {
@@ -13024,7 +13067,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:331",
+        "mod/custom-provider.lua:351",
         "mod/remote-omni.lua:227"
       ]
     },
@@ -13033,7 +13076,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:330",
+        "mod/custom-provider.lua:350",
         "mod/remote-omni.lua:226"
       ]
     },
@@ -13051,7 +13094,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:197",
+        "mod/custom-provider.lua:200",
         "mod/remote-omni.lua:144"
       ]
     },
@@ -13060,7 +13103,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:320",
+        "mod/custom-provider.lua:340",
         "mod/omni-amd.lua:200",
         "mod/omni-amd.lua:215",
         "mod/remote-omni.lua:210"
@@ -13097,7 +13140,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:244"
+        "mod/custom-provider.lua:247"
       ]
     },
     "That address is a web page, not the API. Use the API address from your provider.": {
@@ -13105,7 +13148,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:245"
+        "mod/custom-provider.lua:248"
       ]
     },
     "That character model is unavailable.": {
@@ -13233,7 +13276,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:216",
+        "mod/custom-provider.lua:219",
         "mod/remote-omni.lua:161"
       ]
     },
@@ -13295,7 +13338,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:219",
+        "mod/custom-provider.lua:222",
         "mod/remote-omni.lua:162"
       ]
     },
@@ -13516,7 +13559,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:227"
+        "mod/custom-provider.lua:230"
       ]
     },
     "The action could not finish: {reason}": {
@@ -13535,7 +13578,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:213"
+        "mod/custom-provider.lua:216"
       ]
     },
     "The address sends you somewhere else. Use the final address from your provider.": {
@@ -13543,7 +13586,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:243"
+        "mod/custom-provider.lua:246"
       ]
     },
     "The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.": {
@@ -13680,7 +13723,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:207",
+        "mod/custom-provider.lua:210",
         "mod/manager-ui.lua:1002",
         "mod/manager-ui.lua:1224",
         "mod/manager-ui.lua:998",
@@ -13701,7 +13744,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:218"
+        "mod/custom-provider.lua:221"
       ]
     },
     "The clipboard does not hold a server address.": {
@@ -13717,7 +13760,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:212"
+        "mod/custom-provider.lua:215"
       ]
     },
     "The clipboard does not hold an API key.": {
@@ -13725,7 +13768,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:217"
+        "mod/custom-provider.lua:220"
       ]
     },
     "The clipboard is empty. Copy it first.": {
@@ -13733,7 +13776,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:211"
+        "mod/custom-provider.lua:214"
       ]
     },
     "The clipboard is empty. Copy the address first.": {
@@ -13798,7 +13841,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:246",
+        "mod/custom-provider.lua:249",
         "mod/remote-omni.lua:177"
       ]
     },
@@ -13807,7 +13850,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:322"
+        "mod/custom-provider.lua:342"
       ]
     },
     "The conversation connection did not open. Check your connection, then invite again.": {
@@ -13914,7 +13957,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:318",
+        "mod/custom-provider.lua:338",
         "mod/remote-omni.lua:208"
       ]
     },
@@ -14026,7 +14069,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:352",
+        "mod/custom-provider.lua:372",
         "mod/init.lua:5849",
         "mod/phone-chat-style.lua:58",
         "mod/phone-chat.lua:25"
@@ -14038,7 +14081,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:362",
+        "mod/custom-provider.lua:382",
         "mod/init.lua:5866",
         "mod/phone-chat-style.lua:64",
         "mod/phone-chat.lua:31"
@@ -14050,7 +14093,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:354",
+        "mod/custom-provider.lua:374",
         "mod/init.lua:5853",
         "mod/phone-chat-style.lua:60",
         "mod/phone-chat.lua:27"
@@ -14061,7 +14104,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:363",
+        "mod/custom-provider.lua:383",
         "mod/init.lua:5958"
       ]
     },
@@ -14071,7 +14114,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:355",
+        "mod/custom-provider.lua:375",
         "mod/init.lua:5855",
         "mod/phone-chat-style.lua:61",
         "mod/phone-chat.lua:28"
@@ -14083,7 +14126,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:353",
+        "mod/custom-provider.lua:373",
         "mod/init.lua:5851",
         "mod/phone-chat-style.lua:59",
         "mod/phone-chat.lua:26"
@@ -14186,7 +14229,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:198"
+        "mod/custom-provider.lua:201"
       ]
     },
     "The endpoint answered with no text. Check the model ID.": {
@@ -14194,7 +14237,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:241"
+        "mod/custom-provider.lua:244"
       ]
     },
     "The endpoint did not accept your API key.": {
@@ -14202,7 +14245,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:226"
+        "mod/custom-provider.lua:229"
       ]
     },
     "The endpoint did not answer. Check its address.": {
@@ -14210,7 +14253,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:238"
+        "mod/custom-provider.lua:241"
       ]
     },
     "The endpoint does not know that model ID.": {
@@ -14218,7 +14261,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:228"
+        "mod/custom-provider.lua:231"
       ]
     },
     "The endpoint is rate limiting you. Try again in a moment.": {
@@ -14226,7 +14269,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:231"
+        "mod/custom-provider.lua:234"
       ]
     },
     "The endpoint is rate limiting you. Wait about {seconds} seconds, then try again.": {
@@ -14234,7 +14277,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:230"
+        "mod/custom-provider.lua:233"
       ]
     },
     "The endpoint refused the request. Check the model ID and the address.": {
@@ -14242,7 +14285,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:242"
+        "mod/custom-provider.lua:245"
       ]
     },
     "The endpoint reported an error on its side. Try again in a moment.": {
@@ -14250,7 +14293,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:240"
+        "mod/custom-provider.lua:243"
       ]
     },
     "The endpoint took too long to answer.": {
@@ -14258,7 +14301,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:239"
+        "mod/custom-provider.lua:242"
       ]
     },
     "The example lines are too long together. Keep them under {max} characters in all.": {
@@ -14298,8 +14341,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:234",
-        "mod/custom-provider.lua:358",
+        "mod/custom-provider.lua:237",
+        "mod/custom-provider.lua:378",
         "mod/init.lua:5860"
       ]
     },
@@ -14308,8 +14351,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:235",
-        "mod/custom-provider.lua:359",
+        "mod/custom-provider.lua:238",
+        "mod/custom-provider.lua:379",
         "mod/init.lua:5862"
       ]
     },
@@ -14560,7 +14603,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:200"
+        "mod/custom-provider.lua:203"
       ]
     },
     "The mod’s key bindings could not be loaded. Open Help for what is wrong.": {
@@ -14696,7 +14739,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:326"
+        "mod/custom-provider.lua:346"
       ]
     },
     "The recording is distorted. Record it again, a little quieter.": {
@@ -14747,8 +14790,8 @@
       ],
       "references": [
         "mod/convai-paid-tier.lua:135",
-        "mod/custom-provider.lua:189",
-        "mod/custom-provider.lua:194",
+        "mod/custom-provider.lua:192",
+        "mod/custom-provider.lua:197",
         "mod/manager.lua:396",
         "mod/manager.lua:455",
         "mod/omni-amd.lua:155",
@@ -15092,7 +15135,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:264"
+        "mod/custom-provider.lua:284"
       ]
     },
     "This character has only one look in the game files, so there is no outfit to choose.": {
@@ -15276,8 +15319,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:237",
-        "mod/custom-provider.lua:361",
+        "mod/custom-provider.lua:240",
+        "mod/custom-provider.lua:381",
         "mod/init.lua:5864"
       ]
     },
@@ -15762,6 +15805,14 @@
         "r6/scripts/CyberpunkConvai/Manager.reds:727"
       ]
     },
+    "Use": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/custom-provider.lua:265"
+      ]
+    },
     "Use Confirm or Cancel for the current memory request.": {
       "contexts": [
         "manager.validation"
@@ -15823,7 +15874,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:215"
+        "mod/custom-provider.lua:218"
       ]
     },
     "Use the character I’m facing": {
@@ -16337,7 +16388,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:320"
+        "mod/custom-provider.lua:340"
       ]
     },
     "Waiting for the existing companion after vehicle exit.": {
@@ -17086,7 +17137,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/custom-provider.lua:199",
+        "mod/custom-provider.lua:202",
         "mod/manager.lua:412",
         "mod/manager.lua:471"
       ]

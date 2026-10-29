@@ -6,7 +6,7 @@ import {mkdtemp, readFile, writeFile, rm, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {CUSTOM_FILE, COMMANDS, CustomControl, CustomEndpoint, OPENROUTER_HEADERS, describeFailure, formatCustomFile, openRouterFix, parseCustomCommand, parseCustomFile,
-  parseCustomKey, parseEndpointUrl, parseModelId, testConnection} from './custom-endpoint.mjs';
+  PRESETS, parseCustomKey, parseEndpointUrl, parseModelId, testConnection} from './custom-endpoint.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {MistralError} from './mistral-client.mjs';
 import {startOpenAiMock} from './openai-mock-server.mjs';
@@ -291,8 +291,8 @@ test('the real file is written with the key in it, nowhere else, and is read bac
 
 const command = (id, action, issuedAt = 1_000_000) => JSON.stringify({version: 1, id, action, issuedAt});
 
-test('commands: only the seven known actions, a well-formed id and a recent time are accepted', () => {
-  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test']);
+test('commands: only the nine known actions, a well-formed id and a recent time are accepted', () => {
+  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'preset-groq']);
   for (const action of COMMANDS) assert.deepEqual(parseCustomCommand(command('s:cust:1', action), 1_000_100), {id: 's:cust:1', action});
   assert.equal(parseCustomCommand(command('s:cust:1', 'paste'), 1_000_100), null);
   assert.equal(parseCustomCommand(command('bad id', 'test'), 1_000_100), null);
@@ -326,7 +326,7 @@ async function control(options = {}) {
 
 test('the settings page: three pastes, each checked and saved, and the status it reads never holds the key', async () => {
   const c = await control();
-  assert.deepEqual({...c.published[0], updated: 0}, {version: 1, updated: 0, ready: false, host: null, secure: false, local: false, model: null, keySaved: false, tail: null, limit: null});
+  assert.deepEqual({...c.published[0], updated: 0}, {version: 1, updated: 0, ready: false, host: null, secure: false, local: false, model: null, keySaved: false, tail: null, preset: null, limit: null});
   c.clipboard(async () => 'https://openrouter.ai/api/v1\n');
   let status = await c.send('paste-url');
   assert.deepEqual([status.result.field, status.result.state, status.host, status.secure, status.ready], ['url', 'saved', 'openrouter.ai', true, false]);
@@ -361,6 +361,56 @@ test('the settings page: three pastes, each checked and saved, and the status it
   assert.deepEqual([status.result.state, status.host, status.ready], ['cleared', null, false]);
   assert.equal(c.s.text, null, 'nothing left: the file is gone');
   assert.ok(!JSON.stringify(c.published).includes(KEY));
+});
+
+test('the free setups: one press fills in the endpoint and the model id (nothing from the clipboard), the key stays only on the same host, and the request is the usual one', async () => {
+  assert.deepEqual(Object.keys(PRESETS), ['gemini', 'groq']);
+  for (const preset of Object.values(PRESETS)) {
+    assert.equal(parseEndpointUrl(preset.endpoint).endpoint, preset.endpoint, 'the address is accepted as it is');
+    assert.ok(parseModelId(preset.model), 'the model id is accepted');
+  }
+  const c = await control();
+  c.clipboard(async () => { assert.fail('a free setup never reads the clipboard'); });
+  let status = await c.send('preset-gemini');
+  assert.deepEqual([status.result.field, status.result.state, status.host, status.model, status.ready, status.preset, status.keySaved],
+    ['preset', 'saved', 'generativelanguage.googleapis.com', 'gemini-flash-lite-latest', true, 'gemini', false]);
+  assert.match(c.s.text, /endpoint=https:\/\/generativelanguage\.googleapis\.com\/v1beta\/openai\n/);
+  assert.match(c.s.text, /model=gemini-flash-lite-latest\n/);
+  assert.equal(c.provider.requested, 'convai', 'a free setup does not choose the provider');
+  // The player pastes a key; it is bound to Google, and the chat request carries it as a Bearer token to the OpenAI-compatible path.
+  c.clipboard(async () => KEY);
+  status = await c.send('paste-key');
+  assert.deepEqual([status.keySaved, status.preset], [true, 'gemini']);
+  const requests = [];
+  const fetchImpl = async (url, init) => {
+    requests.push({url: String(url), headers: init.headers, body: JSON.parse(init.body)});
+    return new Response('data: {"choices":[{"delta":{"content":"OK"}}]}\n\ndata: [DONE]\n\n', {status: 200, headers: {'content-type': 'text/event-stream'}});
+  };
+  const outcome = await testConnection(c.s.endpoint, {fetchImpl});
+  assert.equal(outcome.state, 'ok', JSON.stringify(outcome));
+  assert.equal(requests[0].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+  assert.equal(new Headers(requests[0].headers).get('authorization'), `Bearer ${KEY}`);
+  assert.equal(requests[0].body.model, 'gemini-flash-lite-latest');
+  assert.equal(requests[0].body.reasoning_effort, undefined, 'Gemini refuses reasoning_effort none, and the model id does not look like a reasoning model');
+  assert.equal(new Headers(requests[0].headers).get('x-title'), null, 'the attribution headers are OpenRouter only');
+  assert.ok(!JSON.stringify(c.published).includes(KEY));
+  // The same plan again keeps the key (same host). Another plan is another host: the key is forgotten and the key row says to paste it again.
+  status = await c.send('preset-gemini');
+  assert.equal(status.keySaved, true);
+  status = await c.send('preset-groq');
+  assert.deepEqual([status.host, status.model, status.preset, status.keySaved, status.keyForgotten], ['api.groq.com', 'qwen/qwen3.8-27b', 'groq', false, true]);
+  assert.ok(!c.s.text.includes(KEY), 'the Google key is not kept beside Groq\'s address');
+  assert.match(c.s.text, /endpoint=https:\/\/api\.groq\.com\/openai\/v1\n/);
+  // A key pasted before any address is bound to the plan chosen after it.
+  const d = await control();
+  d.clipboard(async () => KEY);
+  await d.send('paste-key');
+  status = await d.send('preset-groq');
+  assert.deepEqual([status.keySaved, status.keyForgotten, status.preset], [true, undefined, 'groq']);
+  // Changing a field by hand leaves no plan marked.
+  d.clipboard(async () => 'llama3.2');
+  status = await d.send('paste-model');
+  assert.equal(status.preset, null);
 });
 
 test('the settings page: pasting a models openrouter.ai page saves the API address and, when none is saved, the model; a saved model stays', async () => {
