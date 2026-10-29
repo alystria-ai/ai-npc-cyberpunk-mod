@@ -21,6 +21,7 @@ import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
 import {parseEddies} from './eddies.mjs';
 import {parseBonds} from './bonds.mjs';
+import {parseQuestBlock} from './quest-pay.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, driveAdvisoryFor}
   from './companion-actions.mjs';
 
@@ -120,8 +121,10 @@ function parseRequest(raw) {
   const eddies = value.eddies === undefined || group || reaction || holocall || head ? null : parseEddies(value.eddies, profileKey);
   // Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): sent only while the setting is on, for a private turn V sends (a holocall too) or a group round (each speaker has its own line); never a reaction or Johnny in V's head.
   const bonds = value.bonds === undefined || reaction || head ? null : parseBonds(value.bonds);
+  // The cast member of a quest's pay stage (docs/QUEST_PRIMITIVES.md 10.1, bridge/quest-pay.mjs): {pack, cast} on an ordinary private turn only; a malformed block is dropped, the turn stands.
+  const quest = value.quest === undefined || group || reaction || head ? null : parseQuestBlock(value.quest);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
-    ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}), ...(eddies ? {eddies} : {}), ...(bonds ? {bonds} : {}),
+    ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}), ...(eddies ? {eddies} : {}), ...(bonds ? {bonds} : {}), ...(quest ? {quest} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(homeOffer ? {homeOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),

@@ -1,0 +1,123 @@
+{
+  "format": 1,
+  "character": "kerry-eurodyne",
+  "requires": {
+    "questsFinished": [
+      "quests/side_quest/sq011_kerry"
+    ]
+  },
+  "triggers": [
+    {
+      "id": "kr-concert",
+      "via": "text",
+      "text": "Still ringing in my ears. Best night in years. Come by the villa. Bring coffee.",
+      "after": [
+        {
+          "kind": "quest",
+          "path": "quests/side_quest/sq011_concert"
+        }
+      ],
+      "once": true,
+      "note": "The Red Dirt concert and his mixed feelings about Johnny."
+    },
+    {
+      "id": "kr-level-up",
+      "via": "text",
+      "text": "You keep showing up. That's rare. Don't ruin it.",
+      "after": [
+        {
+          "kind": "bond",
+          "levels": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        }
+      ],
+      "note": "The level title. He makes a joke about being liked."
+    },
+    {
+      "id": "kr-riot-club",
+      "via": "call",
+      "text": "Thursday. Riot club. I need a drinking partner who doesn't want an autograph.",
+      "when": {
+        "kind": "hours",
+        "from": 20,
+        "to": 23
+      },
+      "cooldownDays": 7,
+      "note": "The Riot club quest, Us Cracks, and his love of low-key venues."
+    },
+    {
+      "id": "kr-north-oak",
+      "via": "text",
+      "text": "I can see you from the balcony. Come in. Stop loitering.",
+      "when": {
+        "kind": "district",
+        "is": "North Oak",
+        "minutes": 5
+      },
+      "cooldownDays": 1,
+      "note": "North Oak, his villa, and coffee."
+    },
+    {
+      "id": "kr-radio-song",
+      "via": "text",
+      "text": "That's my song. Ha. Were you listening, or did the radio decide?",
+      "when": {
+        "kind": "song",
+        "contains": "SAMURAI"
+      },
+      "cooldownDays": 1,
+      "note": "The song title comes from the radio. He does not quote lyrics and he is ambivalent about it."
+    },
+    {
+      "id": "kr-romance",
+      "via": "text",
+      "text": "Last night was good. Don't overthink it. Overthink it a little.",
+      "after": [
+        {
+          "kind": "quest",
+          "path": "quests/side_quest/sq028_kerry_romance"
+        }
+      ],
+      "once": true,
+      "note": "The marina, the relationship with V, and his bisexuality as a plain fact."
+    },
+    {
+      "id": "kr-low-health",
+      "via": "call",
+      "text": "You alright? You look like hell. Come have a coffee.",
+      "when": {
+        "kind": "fight-end",
+        "healthBelow": 20
+      },
+      "cooldownDays": 1,
+      "note": "V's recent fight. He checks that V is all right, and he is blunt."
+    },
+    {
+      "id": "kr-bond-quest",
+      "via": "text",
+      "text": "That was strange. Good strange. Let's do it again someday.",
+      "after": [
+        {
+          "kind": "pack",
+          "ids": [
+            "kerry-caliente",
+            "kerry-incognito",
+            "kerry-guinevere-race",
+            "kerry-bootleg",
+            "kerry-tomorrow-tokyo",
+            "kerry-first-string"
+          ]
+        }
+      ],
+      "note": "The quest just finished."
+    }
+  ]
+}

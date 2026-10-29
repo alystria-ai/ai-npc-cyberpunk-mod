@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "character": "rogue-amendiares",
+  "requires": {
+    "questsFinished": ["quests/side_quest/sq031_rogue", "quests/side_quest/sq031_smack_my_bitch_up"]
+  },
+  "triggers": [
+    {
+      "id": "rg-after-rogue",
+      "via": "text",
+      "text": "You came out of that alive. That's more than I expected. Come by the Afterlife.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq031_rogue"}],
+      "once": true,
+      "note": "The Smasher hunt and her unresolved bond with Johnny."
+    },
+    {
+      "id": "rg-level-up",
+      "via": "text",
+      "text": "Notice you're around more. Fine. Don't make a habit of it.",
+      "after": [{"kind": "bond", "levels": [4, 5, 6, 8, 10]}],
+      "note": "The level title and her dry acceptance."
+    },
+    {
+      "id": "rg-heat",
+      "via": "call",
+      "text": "Heard you set the city on fire. Do you need a place to hide?",
+      "when": {"kind": "heat", "atLeast": 3},
+      "cooldownDays": 1,
+      "note": "The wanted level, her contacts, and the Afterlife as a place to hide."
+    },
+    {
+      "id": "rg-small-hours",
+      "via": "text",
+      "text": "Can't sleep. Neither can I. Come have a coffee. Keep it quiet.",
+      "when": {"kind": "hours", "from": 4, "to": 6},
+      "cooldownDays": 1.5,
+      "note": "The hour, her fatigue, and the fact that the Afterlife is closing."
+    },
+    {
+      "id": "rg-booth",
+      "via": "call",
+      "text": "I saw you at the door. Come up to the booth when you're done.",
+      "when": {"kind": "district", "is": "Watson", "minutes": 5},
+      "cooldownDays": 0.5,
+      "note": "She can see the front door and wants V for a small job."
+    },
+    {
+      "id": "rg-cinema",
+      "via": "text",
+      "text": "Don't read into the movie. I didn't.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq031_cinema"}],
+      "once": true,
+      "note": "The drive-in and her guarded warmth."
+    },
+    {
+      "id": "rg-bond-quest",
+      "via": "text",
+      "text": "That went fine. Don't tell the others it went well.",
+      "after": [{"kind": "pack", "ids": ["rogue-terms", "rogue-hiring-day", "rogue-four-questions", "rogue-say-left", "rogue-whos-listening", "rogue-never-said"]}],
+      "note": "The quest just finished."
+    }
+  ]
+}

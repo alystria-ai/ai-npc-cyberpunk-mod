@@ -108,6 +108,16 @@ export const BOND_ARCS = {
         "quests/main_quest/act_01/q113"
       ]
     },
+    "songbird": {
+      "quests": {
+        "ep1/quests/main_quest/q306_devils_bargain": 100,
+        "ep1/quests/main_quest/q306_somi_epilogue": 100,
+        "ep1/quests/main_quest/q306_postcontent": 150
+      },
+      "active": [
+        "ep1/quests/main_quest/q30"
+      ]
+    },
     "jackie-welles": {
       "quests": {
         "quests/main_quest/prologue/q001_01_victor": 80,

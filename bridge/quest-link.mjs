@@ -2,10 +2,25 @@
 // execute goes out through runtime/quest-play.json. The quest itself (stages, gap, choices, timers, endings) is the pack runner (bridge/bond-pack-runner.mjs).
 //   poll()    read the events file text, hand every event not seen before to the runner (a session id and a sequence number keep a rewrite from being counted twice)
 //   sync()    write the play file when the runner's play revision moved (a compare of two numbers when it did not)
-//   active()  whether a quest or an ending's closing rows is waiting on the game, so the 500 ms poll (bridge/quest-poller.mjs) runs only then
+//   active()  what the game is waited on for, so the poll (bridge/quest-poller.mjs) runs only then: true (a quest or an ending's closing rows: 500 ms), 'reach' (only
+//             reach-outs may fire: 10 s) or false (no timer at all)
 // Nothing here runs by itself and nothing is read when no quest is active.
 const MAX_FILE = 64 * 1024;
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
+
+/** An event's `data` (docs/QUEST_PRIMITIVES.md 10.1): a flat object of at most 6 keys, each a number, a boolean or a string of at most 80 characters; anything else is dropped. */
+export function cleanData(value) {
+  if (!plain(value)) return undefined;
+  const entries = Object.entries(value);
+  if (entries.length === 0 || entries.length > 6) return undefined;
+  const out = {};
+  for (const [key, item] of entries) {
+    if (!/^[A-Za-z][A-Za-z0-9_]{0,31}$/.test(key)) return undefined;
+    if (typeof item === 'number' ? !Number.isFinite(item) : typeof item === 'string' ? item.length > 80 : typeof item !== 'boolean') return undefined;
+    out[key] = item;
+  }
+  return out;
+}
 
 export class QuestLink {
   constructor({packs, readEvents, writePlay, now = Date.now, log = () => {}} = {}) {
@@ -15,7 +30,12 @@ export class QuestLink {
     this.chain = Promise.resolve();
   }
 
-  active() { try { return this.packs.questActive() === true; } catch { return false; } }
+  active() {
+    try {
+      if (this.packs.questActive() === true) return true;
+      return this.packs.reachWanted?.() === true ? 'reach' : false;
+    } catch { return false; }
+  }
 
   /** Handles the events file. Returns how many events were new. Never throws. */
   async poll() {
@@ -32,7 +52,7 @@ export class QuestLink {
     for (const event of events) {
       newest = Math.max(newest, event.seq);
       try {
-        this.packs.noteEvent({pack: event.pack, serial: event.serial, name: event.name, at: Number.isSafeInteger(event.at) && event.at >= 0 ? event.at : undefined});
+        this.packs.noteEvent({pack: event.pack, serial: event.serial, name: event.name, at: Number.isSafeInteger(event.at) && event.at >= 0 ? event.at : undefined, data: cleanData(event.data)});
         fresh++;
       } catch (error) { this.log(`event ${String(event.name).slice(0, 40)} failed: ${String(error?.message ?? error).slice(0, 100)}`); }
     }

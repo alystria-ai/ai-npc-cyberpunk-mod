@@ -1,0 +1,64 @@
+{
+  "format": 1,
+  "character": "johnny-silverhand",
+  "requires": {
+    "questsFinished": ["quests/main_quest/act_01/q101_01_firestorm"],
+    "notBegun": ["quests/main_quest/act_01/q115_afterlife"]
+  },
+  "triggers": [
+    {
+      "id": "jn-level-up",
+      "via": "voice",
+      "text": "Huh. Level up. You're keeping me around. Fine. Don't make it weird.",
+      "after": [{"kind": "bond", "levels": [3, 4, 5, 6, 8, 10]}],
+      "note": "The new level title. V did not ask him to speak, and he is gruff about being liked."
+    },
+    {
+      "id": "jn-tower",
+      "via": "voice",
+      "text": "That tower. Don't ask me about the tower. ... Ask me about the tower.",
+      "after": [{"kind": "quest", "path": "quests/main_quest/act_01/q101_01_firestorm"}],
+      "once": true,
+      "note": "The 2023 memory V just relived. His guilt is his own testimony, with no figures."
+    },
+    {
+      "id": "jn-radio-song",
+      "via": "voice",
+      "text": "Turn it up. No. Down. This is a copy of a copy of something we did first.",
+      "when": {"kind": "song"},
+      "cooldownDays": 0.5,
+      "note": "The song title from the radio, his critic's ear, no lyrics. The rock filter cannot be checked, so any radio song can trigger it."
+    },
+    {
+      "id": "jn-insomnia",
+      "via": "voice",
+      "text": "You're up. I'm up. We're a pair of insomniacs sharing a skull.",
+      "when": {"kind": "hours", "from": 3, "to": 5, "idle": 3},
+      "cooldownDays": 1,
+      "note": "The hour and V's activity. He may bring up Alt in two sentences if the bond is 5 or more."
+    },
+    {
+      "id": "jn-city-center",
+      "via": "voice",
+      "text": "Look at that tower. Bigger than the last one. They always rebuild bigger.",
+      "when": {"kind": "district", "is": "City Center"},
+      "cooldownDays": 1,
+      "note": "The district, Arasaka, his 2023 guilt, and V's last view of the tower."
+    },
+    {
+      "id": "jn-after-rogue",
+      "via": "voice",
+      "text": "That went... better than I expected. Rogue looked at me. Through you. I felt it.",
+      "after": [{"kind": "quest", "path": "quests/side_quest/sq031_rogue"}],
+      "once": true,
+      "note": "Rogue's role, the hunt for Smasher, and Johnny's unresolved history with her."
+    },
+    {
+      "id": "jn-bond-quest",
+      "via": "voice",
+      "text": "That was fine. I'll deny it. But it was fine.",
+      "after": [{"kind": "pack", "ids": ["johnny-street-poll", "johnny-dial-surf", "johnny-field-manual", "johnny-licensed", "johnny-the-count", "johnny-soundcheck"]}],
+      "note": "The quest just finished, its ending, and what he took from it."
+    }
+  ]
+}
