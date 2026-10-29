@@ -9,7 +9,8 @@
 local M = convaiJohnnyProbe or {modules = {}, ticking = {}}
 convaiJohnnyProbe = M
 
-M.FEATURES = {relic = 'johnny-relic-probe.lua', feats = 'combat-feats-probe.lua', media = 'media-probe.lua'}   -- media: Music and TV (docs/DYNAMIC_INFO.md), not about Johnny
+M.FEATURES = {relic = 'johnny-relic-probe.lua', feats = 'combat-feats-probe.lua', media = 'media-probe.lua',
+    phoneimage = 'phone-image-probe.lua'}   -- media: Music and TV (docs/DYNAMIC_INFO.md), phoneimage: a picture in the phone Chat (docs/PHONE_IMAGES.md), neither about Johnny
 M.RESPONSE = 'runtime/johnny-probe.json'
 local MAX_REQUEST, MAX_REPORT = 200, 262144
 

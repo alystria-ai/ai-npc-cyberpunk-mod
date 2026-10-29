@@ -474,6 +474,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-probe.lua"
         },
         {
+          "source": "mod/phone-image-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-image-probe.lua"
+        },
+        {
           "source": "mod/talk-target.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/talk-target.lua"
         },

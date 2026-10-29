@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory = $true, Position = 0)][ValidateSet('place', 'relic', 'feats', 'media')][string]$Feature,
+    [Parameter(Mandatory = $true, Position = 0)][ValidateSet('place', 'relic', 'feats', 'media', 'phoneimage')][string]$Feature,
     [Parameter(Mandatory = $true, Position = 1)][string]$Action,
     [string]$ModDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod',
     [int]$TimeoutSeconds = 10
@@ -15,6 +15,7 @@ param(
 #   relic    start | status | stop | snapshot
 #   feats    start | status | stop
 #   media    read | car | pocket | stations | tv | ring | production   (Music and TV, mod/media-probe.lua: the raw value of every candidate read; not about Johnny)
+#   phoneimage list | send:<picture>[:<contact>] | text   (a picture in the phone Chat, mod/phone-image-probe.lua: one test message from a character; docs/PHONE_IMAGES.md)
 # Usage: powershell -File scripts\Send-JohnnyProbe.ps1 place read
 $ErrorActionPreference = 'Stop'
 if ($Action -notmatch '^[A-Za-z0-9_:-]+$') { throw 'The action may hold letters, digits, hyphens, underscores and colons only.' }
