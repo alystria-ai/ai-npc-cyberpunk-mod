@@ -134,7 +134,7 @@ chosen provider, and the next turn asks it again.
 You can add chat models of your own to the **Local AI model** row. There is no screen for it: you copy the model file into a folder and
 list it in a small text file. The model then appears in the row among the others (sorted by file size), marked "(custom)", and you can pick it there.
 There are two folders you can use; the first survives reinstalls and mod managers.
-Only one model is ever loaded, so nothing else changes. Your model runs on the engine of an installed pack, so a Local AI pack (a Mature pack counts as well) is needed; without one the model is listed but cannot start.
+Only one model is ever loaded, so nothing else changes. Your model runs on the Runtime's own engine (`app/llama-cpp`), so no Local AI pack is needed (2026-10-29; before that a pack was required and a player with only a model of their own got "Local AI is unavailable (not-installed)"). With no pack and no model of your own, Local AI says no Local AI model is installed.
 
 **1. Open your models folder** (it survives reinstalls and mod managers): `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`. Paste that into the Explorer
 address bar; if Windows says the folder does not exist, make it (`AiNpcCyberpunkMod` is the folder that already holds your memories and logs; make `local-ai`
@@ -516,7 +516,7 @@ budget rebuilds the prompt with less in it instead of cutting a string.
   history started one exchange later each turn and the server read it all again (an RX 6700 XT re-read about 4,650 tokens with 0 cached on several turns, 22 to 26 s
   to the first word; the simulation in `bridge/prompt-budget.test.mjs` showed the start of the history moving on every turn). The count dropped is now rounded up to
   a whole block (`BUDGET.trimBlock`, 3, never below `keepExchanges`), so the history starts at the same exchange for up to three turns while it grows and the
-  prefix (persona, world blocks, kept history) is byte-identical turn to turn apart from the appended exchanges. The log line says `older-exchanges:block` when
+  prefix (persona, world blocks, kept history) is byte-identical turn to turn apart from the appended exchanges (the history and world-fact blocks are ranked by the words of the whole talk since 2026-10-29, see 'Judy's prompt was read again on every turn'). The log line says `older-exchanges:block` when
   the block rounding dropped more than the fit needed (at most two exchanges). Not measured live: the check is the `cached` figure of consecutive `[LocalTurn]` lines.
 - **A refusal anyway.** If the server still refuses (`error.overflow`: its `n_prompt_tokens` and `n_ctx`), the count is learned into the
   meter and the same turn is fitted again and sent once more. A second refusal is final.
@@ -847,7 +847,7 @@ What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`
 - A turn that does not get a new server in time ends with `the model server stopped working and was still starting again` (reason `restarting`).
 - A server that cannot be started again (two attempts) is the old `crashed` failure: the turn says
   `Local AI could not start...` with the reason in brackets (`the model server stopped working and did not start again`, `no discrete graphics card was found`,
-  `the Local AI pack is not installed`, from `unavailableDetail`).
+  `no Local AI model is installed: add the Local AI pack or a model of your own`, from `unavailableDetail`; the wording was "the Local AI pack is not installed" until 2026-10-29).
 - The listing of the graphics devices (`llama-server --list-devices`) that fails to run is logged with its error code and message (`[local] could not list the graphics devices (try 1 of 2): code UNKNOWN: spawn UNKNOWN`, the file name only), tried once more after 1.5 s (`deviceListRetryMs`) and then ends the start. When the error is `UNKNOWN`, `EPERM` or `EACCES` or names an Application Control policy (Smart App Control or a company's or school's WDAC rule refusing an unsigned file; error reports b6014b54 and 1aa616f1), the log adds `(looks like Windows blocking the file)` and the reason in brackets is `Windows blocked a file of the model server (Smart App Control or an Application Control policy), so Local AI cannot run on this PC` (detail `windows-blocked`). The same words follow a `llama-server` start that fails to spawn with those codes. No cloud provider takes the turn; the next turn tries again.
 - A turn that ends with "the model was still loading" (the 80 s budget ran out while the server was starting; error report d8c0d2f9) writes one log line with the cause, from `LocalLlmServer.loadProgress()`:
   `[TextProvider] The local AI is still loading the model: this turn waited 80.0 s for it; server state warming; this start has run 95.4 s; waiting on: <stage> for 41.3 s`. The stages are
@@ -978,6 +978,7 @@ The service starts with the game, before the game has allocated its graphics mem
 - **Applies** on a card of 24,576 MiB or less (12,288 until 2026-10-22 evening, see "Cards of 16 to 24 GB" below), and only on a start that is not a reload after a spill or a step-down (the game is running then and the free memory is real). The bridge turns it on (`gameRoom` option); the server defaults to off. Only the room the game has NOT taken yet is kept back: its footprint is measured from the card (total - free - a resident OmniVoice - `SMALL_CARD_ROOM.desktopMiB`, 1,000 MiB for the desktop) and subtracted from the room. Nothing depends on how long the service has run, so a service restarted mid-play, or a quick Continue with the game and OmniVoice already on the card, keeps nothing back twice (2026-10-22 review, A1: an 8 GB card mid-play got 0 MiB for the model, a 12 GB card after a quick Continue about 0.2 GB).
 - **The game's room** is 55% of the card, at least 3,000 MiB (the old reserve of `local-model-choice.mjs`), at most 4,608 MiB: 4,528 MiB on the 8 GB card (the report showed the game holding about 4.3 GB beside OmniVoice).
 - **Cards above 9 GB (10 and 12 GB), 2026-10-22:** the room is 62% of the card, at most 7,680 MiB (`bigGameShare`, `bigGameCapMiB`; the 8 GB class keeps the numbers above). Report 931d4563 (RTX 4070 12 GB, Qwen3.5-4B, Pocket): card 12,010 MiB, 11,242 MiB free at the service start (768 MiB of desktop), 3,758 MiB free in the world with the model unloaded, so the game held 12,010 - 3,758 - 768 = 7,484 MiB (62%), about 2.9 GB more than the 4,608 MiB cap; the model, placed whole against 6,634 MiB, spilled 993 MiB and was reloaded at 40% of its layers. Now 7,446 MiB are kept on that card and 3,796 MiB go to the model at the start (7,438 / 3,791 on a card that reads 11,997; 6,349 on 10 GB). One report: check the "graphics memory of the model server after ..." lines of 12 GB installs. **No double count with the measured footprint:** `smallCardRoom` subtracts what the game already holds (card total - free - a resident voice engine - 1,000 MiB desktop) from the room, so a reload in the world (the report's 3,758 MiB free: 7,252 MiB measured, 194 MiB kept back) or a service that starts mid-play keeps back only the part the game has not taken yet; reloads after a spill or a step-down skip the room altogether.
+- **2026-10-29: the cap is 10,240 MiB, not 15,360** ("A 12B model on a 24 GB card" below). The numbers of this paragraph are the 2026-10-22 ones; on a card of about 16.5 GB and more the game's room is now 10,240 MiB.
 - **Cards of 16 to 24 GB (2026-10-22 evening, report 8e09af42: RTX 4090 24 GB, 0.2.7, Local AI Mature good = Gemma 4 E4B uncensored, OmniVoice 32 steps).** The reserve used to stop at 12,288 MiB, so this card was given all its free memory at the first placement; the game and OmniVoice then took the card, 3,102 MiB of the model stayed on it and 3,254 MiB sat in shared memory, the first word came after 18.4 s and the turn stalled at the 74 s limit. The step-down then reloaded the model fitted to the 3.9 GB that were free and it ran whole again. Reading that report, the game held about 24,564 - 3,900 - 2,500 (OmniVoice) - 1,000 (desktop) = 17,160 MiB, about 70% of the card (an estimate from one report). Now `SMALL_CARD_ROOM.maxCardMiB` is 24,576 and the same 62% share applies (`bigGameShare`), with the cap raised from 7,680 to 15,360 MiB (`bigGameCapMiB`): 15,230 MiB on a 24,564 MiB card, 15,237 on 24,576, 10,153 on a 16,376 MiB card, 7,619 on 12,288 (62% is under the old cap on every card of 12 GB or less, so those numbers did not move). At the service start a 4090 with OmniVoice still to load keeps 15,230 MiB for the game and 2,500 for the voice: about 5,970 MiB (of 23,700 free) go to the model, and the placement picks a context or a share of layers for that instead of a stall. A card above 24,576 MiB (32 GB) keeps nothing back. **No double count with the measured footprint** (the logic of e9c225dd): the reserve is the room minus what the game already holds (card total - free - a resident OmniVoice - 1,000 MiB desktop), so on that report's card in the world (3,900 MiB free, OmniVoice resident) the game is measured at 17,164 MiB, more than its room, and nothing is kept back: the model gets the 3,900 MiB that are free, which is what the step-down used. A game that has taken half its room keeps only the other half. The cost: a 16 or 24 GB card whose default pick is a model of more than about 6 GB beside OmniVoice now starts with a smaller context or part of its layers on the CPU instead of loading whole and stalling later. One report, so the live check is the `[local] game room on a small card` and `graphics memory of the model server after ...` lines of 16 and 24 GB installs: does the placement match what the game takes there?
 - **A voice engine still to load** takes its size out of the model's room: OmniVoice 2,500 MiB while it is wanted, playback is on and it is not loaded (`omniStillToLoadMiB` in the bridge; V's OmniVoice engine is a job on the same worker and adds nothing, Pocket runs on the CPU).
 - **The model's room** is free memory - voice engine - the part of the game's room not taken yet. Every installed model is looked at against it (one `llama-fit-params` run each, in parallel, only on such a start), the largest that fits whole is loaded whole, else the offload placement runs with the game's room as `-fitt` and the free memory minus the voice engine as what is free: on the 8 GB card with Pocket about 76% of the layers go on the card, with OmniVoice about 0% (said at the start, `offload-slow`, instead of a full load followed by a 52 s reload).
@@ -1168,6 +1169,125 @@ reloads before the change (in the world).
 **Not measured:** a 24 GB card and game 2.31 (the report's), a voice turn through the talk key (the test sent typed turns through the request file, so the game's
 own key handling was not part of it), a model the player added (not tried; one that failed to start would take the existing start-failed path).
 Tests: `bridge/local-llm-server.test.mjs` (the variable reaches the server; a value already set is kept).
+
+### Judy's prompt was read again on every turn (2026-10-29: "the game stutters from the end of my sentence until Judy answers", RTX 5090 Laptop, Gemma 4 12B, OmniVoice)
+
+The report: stutter from the moment V stops speaking until Judy replies, the GPU going from 50 to 100 %, worst with Judy, almost none with random NPCs, milder with the lite model, the same with or without the High
+priority. Priority is a CPU matter and the stutter is the GPU's: while llama-server reads a prompt the card is busy with it, and a game frame behind it waits. The only lever is to read less.
+
+**Measured** (29 Oct, RTX 4080 Laptop, standard model Gemma 4 E4B and lite Bonsai 2 4B, the bridge's own `LocalLlmServer`, `TextProviderHost` and `PlayerKnowledge` over a copy of a real save, Judy as a recruited
+companion, four typed turns after the talk key's persona warm-up, llama-server's own `timings`; the game was not running). The laptop was in a reduced clock state (about 900 prompt tokens a second instead of 2,000
+and more) and both sides ran back to back in it, because the owner switches the power profile: only same-session numbers are compared. Judy's system message is about 7,400 tokens (persona 2,359, world zone
+4,295, right-now block 236) against about 2,200 for a street resident. Turns 2 to 4 read 6,521 / 5,436 / 5,049 new tokens (7.1 / 5.8 / 5.6 s of prompt reading) with 1,857 reused, against 793 to 817 for the street
+resident. Two things broke the shared start:
+
+- **The text of two world blocks changed on every turn, in the middle of the system message.** The journal `history` block (1,764 tokens in the test save) carried `observedSecondsAgo` per quest and the
+  `ageSeconds` of both lanes, numbers that count up with the clock, and its quests were picked by the words of V's last sentence. The `knowledge` block (1,115 tokens) is ranked by the same words. Everything after the
+  first changed token was new to the model every time.
+- **Gemma resumes only from a checkpoint.** Its sliding-window layers cannot be rewound, so llama-server continues a prompt from a saved checkpoint (near the end of each earlier prompt, and the persona warm-up's),
+  never from the place where this turn's text stops matching. A text that changed in the middle of the prompt left only the persona (1,857 tokens) to reuse, however long the rest matched. Qwen and Bonsai are hybrid
+  and resume from checkpoints the same way.
+
+**Fixes.**
+
+1. `bridge/topic-words.mjs`: the history and the world facts are ranked by the words of the whole talk with the character (every word V said to it since the talk began, 40 at most, forgotten after ten quiet
+   minutes), not by the last sentence. The blocks change only when V brings up a topic that is new to the talk, and a quest or fact V asked about stays in. Memory only, per character.
+2. `bridge/journal-history.mjs`: no ages in the text (`observedSecondsAgo`, the lanes' `ageSeconds`). Freshness is still judged from them, before the text is made.
+3. `--swa-full` (`buildServerArgs`, `LocalLlmServer #swaFullPlan`): with a full-size cache for the sliding-window layers any shared start of the prompt can be reused, not only the checkpoints. `llama-fit-params` is run
+   with and without the flag for the context and cache the load uses (1 to 3 s at a model start, nothing allocated). The flag is passed when the projection grows by 64 MiB or more (a model with no sliding-window layers,
+   Qwen and Bonsai, projects the same and gets nothing) and the larger projection plus the usual 512 MiB margin fits what the model may take. Gemma 4 E4B at 16,384: 3,562 MiB without, 4,177 MiB with. No tool or no
+   reading: no flag, as before. The log line `[local] full sliding-window cache (--swa-full): ...` and `engine.swaFull` in the diagnostics say what was done.
+
+**After** (same session, same machine state, standard model): Judy's turns 2 to 4 read **948 / 1,107 / 924** new tokens (1.08 / 1.37 / 1.09 s) with 7,435 / 7,268 / 7,513 reused, against 6,521 / 5,436 / 5,049 (7.1 / 5.8 /
+5.6 s) before: 82 to 85 % fewer tokens and prompt time, and the whole turn 3.3 to 4.0 s instead of 7.4 to 8.9 s. A street resident is unchanged (about 800). Turn 1 of a talk is unchanged (5,982 new: the stable world
+blocks are read once). Lite (Bonsai): turn 4 reads 944, turns 2 and 3 still read about 6,470, because a hybrid model resumes only from a checkpoint and the right-now block's wording (V's clothes, "right now" then
+"still") changes once early in a talk. Gemma does not have that limit with the flag.
+
+**Also measured, and not changed.** `-ub` 64 / 128 / 256 / 512 / 1024 with a second GPU process standing in for the game: the other process saw about 2.7 times its normal latency for the whole prefill at every
+setting and no stall over 45 ms, and smaller batches only slow the prefill (888 / 1,256 / 2,285 / 2,670 prompt tokens a second at 64 / 128 / 256 / 512). `-fa off` halves the speed. A lower GPU scheduling class for
+llama-server: no gain. Speech to text (sherpa-onnx, CPU), the memory embedder (CPU, `--device none`) and vision (Convai only) are not on the GPU at the end of speech. The companion action decision is a second, short
+request whose prompt `--cache-ram` keeps (72 to 84 new tokens after the first). The persona warm-up at the talk key reads the persona on the GPU while V is still speaking and is skipped when the slot holds it.
+
+**Not verified in the game:** the player's 12B model and 5090 (the cost of the full cache for a 12B is probed at the start, not assumed), frame times during a turn, OmniVoice synthesis overlapping the model's writing.
+Tests: `bridge/topic-words.test.mjs`, `bridge/journal-history.test.mjs`, `bridge/quest-context.test.mjs`, `bridge/local-llm-server.test.mjs`.
+
+### Your own model with no pack (2026-10-29: "Local AI is unavailable (not-installed)" with a model of the player's own)
+
+The error report: settings `localModel` `custom:gemma-4-12b-it-qat-ud-q4_k_xl`, `localAi` `not-installed`, no Local AI pack. The model is listed (the model row and the scan read the player's files
+with or without a pack), and the engine ships in the Runtime (`app/llama-cpp`, so `detectLocalAiPack` returns a non-null `server` with no pack), but `installed` means "an engine AND a pack chat
+model" and every gate took that for "no model is possible": `LocalLlmServer.#selected` kept only the servers the player runs when `!pack.installed`, `#startOnce` threw `not-installed` for the same
+reason, the bridge's `localAiStatus`, `prepareLocal`, the retry after an install and the setup check (`packInstalled || ownServer`) all asked the same question, and the model row's Mature and
+provider logic read the status. A player with an own model file and a server of their own (an `endpoint` entry) was fine; one with only a file was not.
+
+- **One helper, `bridge/local-model-choice.mjs`.** `usableModels(models, pack)` (everything with an installed pack; without one the servers the player runs and the player's own files when
+  `pack.server` is there), `ownFileModels`, `localAiAvailable({pack, customModels})` (pack, server, or own file with the engine) and `engineMissingForOwnModel`. Every gate uses them: the
+  supervisor's model list and start, `localAiStatus`, `prepareLocal`, `retryLocalAfterInstall`, and the setup check (the bridge sends `ownModel`; `localAiCheck` counts it as installed and as
+  something that lifts `mature-off`). `installed` itself is unchanged (the Mature and packs logic, the support report and the packaging tests read it).
+- **What the start does.** No pack and a startable file of their own: the normal start (device, free memory, the choice, fit, context). Their file that fails is that model's failure
+  (`start-failed`, the retry's `model-fallback`), never "not installed". An uncensored file of theirs is not the default with Mature content off: `mature-off`, as for an uncensored server;
+  chosen in the row, or with Mature content on, it runs. A server of theirs behaves as before (no engine needed).
+- **When nothing can run.** No pack, no file, no server: `not-installed`, the log says `[local] no Local AI model is installed: no Local AI pack, no model file of your own and no server of yours is listed`
+  and the turn's bracket says `no Local AI model is installed: add the Local AI pack or a model of your own` (it said `the Local AI pack is not installed`; the game shows the bracket as the bridge's
+  own words after its translated sentence, like every other detail). A file of theirs but **no engine** (the Runtime older than 0.2.7 or its `llama-server.exe` gone) is `not-installed` with the
+  detail `no-engine`: the log says `your own model cannot run: the Runtime has no Local AI engine ...: update or reinstall the Runtime` and the bracket says so.
+- **Memory still works without a pack.** The embedder needs the pack's embedding model (`pack.embed`), which a pack-less install does not have: memory falls back to the recent exchanges and the
+  summary, as it always did (this is documented above, "Memory"). Nothing was changed there.
+- **Docs and text changed:** "Add your own model" here, `docs/NEXUS_PAGE.md` (the sentence "a Local AI or Mature pack must be installed" next to the own-file example) and
+  `packaging/PLAYER_README.md` said a pack was needed. The Nexus text changed, so the owner pastes the new sentence.
+- **Tests:** `bridge/own-model-no-pack.test.mjs` (the helper, the real detection, the supervisor on the fake llama-server with a file, a pin, no engine, a failing file, an uncensored file, a server,
+  the setup check, and a real bridge process with the engine and a file: it starts the file and does not say `not-installed`; the same with nothing: it does).
+- **Not verified in the game:** the report's PC (an RTX 5090 Laptop) and a real GGUF loading with no pack on the Runtime's real `llama-server`; everything above ran on the fake server.
+
+### A 12B model on a 24 GB card (2026-10-29: "the mod switches to the lite model with OmniVoice on")
+
+The report: an RTX 5090 Laptop (24,463 MiB), OmniVoice, the player's own `gemma-4-12b-it-qat-ud-q4_k_xl` (a 7 to 8 GB file) chosen in the model row, the lite pack also installed. The mod loaded the lite model.
+The player's workaround: turn OmniVoice off, pick the model, wait for it to load, turn OmniVoice on again. That order works, so the card holds the model, OmniVoice and the game together; the placement refused it.
+
+**Cause (derived from the code and the report's numbers, not measured on that PC).** At the service start the game has allocated nothing, so `smallCardRoom` keeps the game's room back from the free memory
+(`#startOnce`: `modelFreeMiB = room.modelMiB`, which is what `chooseLocalModel` and the fit ladder judge the pin against). The room was 62% of the card, capped at 15,360 MiB: 15,167 MiB on 24,463. With
+24,463 MiB, about 1,000 MiB for the desktop and OmniVoice's 2,500 MiB resident (or still to load: the same sum, never both) the model got 5,796 MiB; with OmniVoice off 8,296 MiB. The 12B asks for 7,600 + 1,200 =
+8,800 MiB by the file-size rule and for at least 8.4 to 9.2 GB by any projection, so it `fellBack` to `low-memory`, the default rule took the model that fits 5.8 GB (the lite model) and the player was told
+a generic "does not fit" with no figure. A plausible reading of why the workaround works (not verified): the room is only held back at the service start, and a reload counts the game's real footprint instead (the play order the player used loads the
+model with the card empty of the game, or reloads it with the game's real footprint).
+The 62% share came from one 12 GB report (931d4563: the game held 62% of that card) and one 24 GB report (8e09af42: about 17 GB derived with the game alone beside OmniVoice and the desktop).
+
+**Checked and not the cause.** *Voice counted twice:* no. `omniStillToLoadMiB` (2,500 while OmniVoice is wanted and not loaded) and `omniResidentMiB` (2,500 while it is loaded) are never both non-zero, and the
+`beforeStart` hook waits until OmniVoice is settled before the free memory is read, so it is normally resident (in the used memory, taken out of the game's footprint) and not also subtracted. *Wrong device or total:*
+`pickDevice` skips the Intel graphics and takes the NVIDIA card; the free memory is the smaller of the Vulkan figure and `nvidia-smi`'s; `#totalMiB` is that device's total (24,463). *Context:* the ladder
+(16,384 / 12,288 / 8,192) is only a cap of `chooseContext` for models that pass the file-size rule, and the fit ladder (16,384 / 8,192 / 8,192 with the 8-bit cache) already ran for the pin whenever the
+file-size rule rejected it (`#probeFits`, `all: room !== null`). *Headroom constants:* 1,200 MiB (standard) were measured on Gemma 4 E4B, whose cache is small; a 12B with a larger cache needs more, which the
+projection covers.
+
+**Measured here (RTX 4080 Laptop, `llama-fit-params` of the installed Runtime, Gemma 4 E4B `gemma-4-E4B_q4_0-it.gguf`, 4,916 MiB file).** Projected 3,562 MiB at 16,384, 3,426 at 8,192, 3,348 at 8,192 with the
+8-bit cache: model 2,696 MiB on the card (2,730 MiB stay in system memory: the per-layer embeddings), cache 296 MiB at 16,384 and 168 at 8,192 (16 MiB per 1,000 tokens, the 17 of `kvMiBPerKToken`),
+compute buffers 570 and 562 MiB. So a projection is far from file plus 1,200 for this family, and the file-size rule is a guess for any other. No 12B model was downloaded: the 12B figures below are
+**derived, not measured**: the file 7,600 MiB, plus about 1.6 GB at 16,384, 1.1 GB at 8,192 and 0.8 GB with the 8-bit cache for a model with mostly sliding-window layers (9,200 / 8,700 / 8,400 MiB, the tests' fixture).
+
+**What changed.**
+- **The game's room stops growing at 10,240 MiB** (`SMALL_CARD_ROOM.bigGameCapMiB`, was 15,360). The 62% share is unchanged, so a card up to about 16.5 GB gets exactly what it got (8 GB: 4,528; 12 GB: 7,438 to
+  7,446; 16 GB: 10,153); only a card of 18 to 24 GB is capped, at the room a 16 GB card already gets. Why that number: Cyberpunk 2077 at 4K with ray tracing needs about 10 to 12 GB of its own, a 16 GB card's room
+  had no report against it, and the 17 GB derived from the 2026-10-22 4090 report is what the game took when it was alone on the card with nothing competing for it. On the player's card: model room
+  10,723 MiB with OmniVoice loaded or still to load (was 5,796), 13,223 MiB with it off (was 8,296). **This is a judgement, not a measurement.** If a 24 GB card spills again, the lines to look at are
+  `[local] game room on a small card` and `graphics memory of the model server after ...`.
+- **A model the player added is judged by its projection** (`prepare` in `bridge/local-model-choice.mjs`): when the fit ladder was looked at, the rungs decide both ways (before, only the file-size rule
+  could keep it and only `pick` could rescue it). The ladder is run for the chosen model whenever the room is not clearly more than the rule asks for (`FIT_LIMITS.pinProbeSlackMiB`, 3,000 MiB): one to three
+  seconds of `llama-fit-params` at a start, nothing allocated. Its `pick` is the context and cache the model is started with (the largest of 16,384 / 8,192 / 8,192 with the 8-bit cache that fits with the 512 MiB
+  margin), so a 12B whose cache is large starts at 8,192 or with the 8-bit cache instead of being rejected. A model of a pack keeps the rule (its constants were measured). The saved choice is never changed.
+- **The notice says why.** `chooseLocalModel` returns `needMiB` (the smallest placement the projection knows plus the margin, else the rule) and `availableMiB` (the memory given to the choice, after the game's
+  room) with a `low-memory` fall-back; the `model-fallback` event is `{pin, reason, model, needMiB, availableMiB}`; the log has `[local] <model> needs N MiB of graphics memory, M MiB are available for it (free F MiB,
+  game room R MiB of G, voice engine V MiB): <model used> is used instead`; the reply carries `keyNoticeNeedMiB` / `keyNoticeAvailableMiB` and the game says "The Local AI model you chose needs about {need} MB of
+  graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead." (new string, 15 languages; `docs/NOTIFICATIONS.md`). A missing or failed model keeps the old sentence.
+- **Nothing swaps a model without saying so.** Read through: `#announce` emits `model-fallback` for every fall-back of the choice except `start-failed` (emitted by the retry, with the model it then uses) and `too-slow`
+  (a step-down, announced as `model-stepdown` with the model loaded instead); a spill refit, a spill offload and a reload for a changed choice keep the same model; `plannedModel` only reads. The one silent case is
+  by design and unchanged: a saved Mature model while Mature content is off is ignored and the default rule runs (the setting is the player's own).
+- **Kept:** the 8 and 12 GB numbers (tests), the spill and step-down safety net (`bridge/gpu-memory.mjs`, `#spillAct`, `#stepDown`, `refitMarginMiB`), and the room of a reload (the game's real footprint).
+- **Tests:** `bridge/local-vram-fit.test.mjs` (the room on 24,463 MiB: before and now, resident, still to load, off; 8 and 12 GB unchanged; every card up to 16 GB unchanged), `bridge/local-model-choice.test.mjs`
+  (the pinned 12B with the projection fixture is chosen in all three voice cases, the largest context; the old room rejects it with the numbers; a truly too large model; projection decides both ways),
+  `bridge/local-llm-server.test.mjs` (the supervisor on the 24,463 MiB laptop: whole at 16,384, the 8,192 and 8-bit steps, the event and the log with the numbers, the probe only when the room is thin),
+  `bridge/mistral-key.test.mjs`, `bridge/manager.test.mjs` (the notice text and odd numbers).
+- **Not verified in the game:** everything above ran on the fake llama-server and fixtures; no 12B model was loaded; the player's PC and a 24 GB card were not available. Live check: on a 24 GB card with OmniVoice
+  on and a 12B model chosen, start the game with Local AI and read `[local] fit of ...`, `[local] game room on a small card: ...` and `graphics memory of the model server after ...` in the bridge log: the model
+  should be the chosen one, whole on the card, with no `shared system memory` after a few minutes of play. A notice with figures appears only when the model really does not fit.
 
 ### Convai audio labelled with the wrong sample rate (2026-10-21)
 

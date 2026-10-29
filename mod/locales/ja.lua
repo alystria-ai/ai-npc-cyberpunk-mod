@@ -641,6 +641,7 @@ return {
     ["No model installed"] = "モデル未インストール",
     ["another model"] = "別のモデル",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "選んだ Local AI モデルがない、空きグラフィックスメモリに収まらない、または起動しなかったため、代わりに {model} が使用されました。",
+    ["The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead."] = "選んだ Local AI モデルには約 {need} MB のグラフィックスメモリが必要ですが、ゲームと並行して使えるのは {available} MB だけなので、代わりに {model} が使用されました。",
     ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AIを{model}に切り替えました：ゲームがグラフィックメモリの大部分を使用しています。",
     ["Choose one of the listed Local AI models."] = "Local AI のモデルを一覧から 1 つ選んでください。",
     ["Characters to invite"] = "招待できるキャラクター",

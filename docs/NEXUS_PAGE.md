@@ -172,7 +172,7 @@ Usual addresses: KoboldCpp http://127.0.0.1:5001/v1, LM Studio http://127.0.0.1:
 
 [b]Your own model file[/b] (any GGUF). Put it in a folder named custom next to the manifest, then:
 [code]{"version":1,"models":[{"file":"custom/MyModel-Q4_K_M.gguf","name":"My Model"}]}[/code]
-This runs on the mod's own engine, so a Local AI or Mature pack must be installed.
+This runs on the mod's own engine, which ships in the Runtime, so no Local AI pack is needed.
 
 Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
 

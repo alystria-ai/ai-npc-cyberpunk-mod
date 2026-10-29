@@ -40,6 +40,7 @@
 // be loaded and when the settings poll sees the choice change (never per frame, never per turn).
 import {basename} from 'node:path';
 import {LocalAiUnavailable, tierNeedMiB} from './local-llm-server.mjs';
+import {FIT_LIMITS} from './local-vram-fit.mjs';
 import {MATURE_TIERS} from './mature-pack.mjs';
 
 export const AUTO_MODEL = 'auto';
@@ -121,6 +122,29 @@ export function listLocalModels({pack, matureModels = [], customModels = []} = {
 /** The models that are servers the player runs. */
 export const externalModels = models => (Array.isArray(models) ? models : []).filter(model => model?.external === true);
 
+/**
+ * The models Local AI may start now. With an installed pack (a Local AI pack with a chat model, or a Mature pack alone) every listed model. Without one, only what needs no pack: a server the
+ * player runs, and a GGUF file of the player's own (`custom:<name>`) when the Runtime's engine (`pack.server`, app/llama-cpp) is there to run it. 2026-10-29: a player with no pack and a model
+ * of their own got 'not-installed' (error report: localModel custom:gemma-4-12b-it-qat-ud-q4_k_xl, localAi not-installed) because `installed` means "an engine AND a pack chat model".
+ */
+export function usableModels(models, pack) {
+  const list = Array.isArray(models) ? models : [];
+  if (pack?.installed) return list;
+  return list.filter(model => model?.external === true || (model?.custom === true && Boolean(model.file) && Boolean(pack?.server)));
+}
+
+/** The player's own GGUF files in a list of models (not servers): the models that need the Runtime's engine and no pack. */
+export const ownFileModels = models => (Array.isArray(models) ? models : []).filter(model => model?.custom === true && model.external !== true && Boolean(model.file));
+
+/**
+ * Can Local AI answer at all? An installed pack, a server the player runs, or a file of the player's own with the Runtime's engine to run it. `customModels` are the `models` of the custom
+ * scan (bridge/custom-models.mjs). One answer for every gate: the settings status, the setup check, the start, the retry after an install.
+ */
+export const localAiAvailable = ({pack, customModels = []} = {}) => Boolean(pack?.installed) || usableModels(listLocalModels({pack, customModels}), pack).length > 0;
+
+/** True when the player has a model file of their own but the Runtime has no engine to run it (no `pack.server`): the log and the failure detail say the engine is missing. */
+export const engineMissingForOwnModel = ({pack, customModels = []} = {}) => !pack?.installed && !pack?.server && ownFileModels(listLocalModels({pack, customModels})).length > 0;
+
 /** The headroom profile ('standard' or 'lite') of a model: its tier; a Mature model's `good` is standard and its `lite` is lite; a custom model by size. */
 export const profileOf = (model, sizeMiB) => model.tier ?? (model.matureTier === 'good' ? 'standard' : model.matureTier === 'lite' ? 'lite' : sizeMiB >= BIG_MODEL_MIB ? 'standard' : 'lite');
 
@@ -156,7 +180,20 @@ function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
   const tooLarge = item => item.model.external !== true && item.model.custom === true
     && (item.model.tooLarge === true || (known(totalMiB) && totalMiB > 0 && modelNeedMiB(item.model, item.sizeMiB) > totalMiB));
   // `realFit[id].pick` (bridge/local-vram-fit.mjs) says the model goes whole onto the card in the free memory though the file-size rule says it does not: it fits.
-  const fits = item => item.model.external === true || (!tooLarge(item) && (!known(freeMiB) || freeMiB >= modelNeedMiB(item.model, item.sizeMiB) || Boolean(realFit[item.model.id]?.pick)));
+  // For a model the player added (a file of unknown architecture: the rule's 1,200 MiB of headroom is a guess for it, too little for a 12B with a large cache) a projection that was looked at
+  // decides in both directions: the rule passing does not make it fit when no rung of the ladder does (2026-10-29).
+  const projected = fit => Array.isArray(fit?.projections) && fit.projections.some(rung => Number.isFinite(rung?.projectedMiB));
+  const ownFile = item => item.model.custom === true && item.model.external !== true;
+  const fits = item => item.model.external === true || (!tooLarge(item) && (!known(freeMiB)
+    || (ownFile(item) && projected(realFit[item.model.id]) ? Boolean(realFit[item.model.id].pick) : freeMiB >= modelNeedMiB(item.model, item.sizeMiB) || Boolean(realFit[item.model.id]?.pick))));
+  // The graphics memory a model needs, in MiB, for the player: the smallest placement the projection knows (its smallest rung plus the margin the fit keeps) when it was looked at, else the file-size rule.
+  const needOf = item => {
+    const fit = realFit[item.model.id], rule = modelNeedMiB(item.model, item.sizeMiB);
+    const rungs = Array.isArray(fit?.projections) ? fit.projections.map(rung => rung?.projectedMiB).filter(Number.isFinite) : [];
+    if (!rungs.length) return rule;
+    const real = Math.min(...rungs) + (Number.isFinite(fit.marginMiB) ? fit.marginMiB : FIT_LIMITS.marginMiB);
+    return ownFile(item) ? real : Math.min(rule, real);
+  };
   // The default rule on a small card keeps room for the game (SMALL_CARD_GAME_RESERVE_MIB); `reserved.applied` says that it changed the pick.
   const smallCard = known(totalMiB) && totalMiB > 0 && totalMiB <= SMALL_CARD_MAX_MIB;
   const roomForGame = item => item.model.external === true || !smallCard || modelNeedMiB(item.model, item.sizeMiB) <= totalMiB - SMALL_CARD_GAME_RESERVE_MIB;
@@ -183,7 +220,7 @@ function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
   // with Mature content on (`allowUncensored`), like everywhere else.
   const offloadable = allowUncensored => bySize(sized.filter(item => item.model.external !== true && item.model.broken !== true && item.model.stalled !== true
     && (allowUncensored || !item.model.uncensored))).at(-1) ?? null;
-  return {sized, fits, pick, pickMature, externals, offloadable, reserved, uncensored: group(item => item.model.uncensored), ordinary: group(item => !item.model.uncensored)};
+  return {sized, fits, needOf, pick, pickMature, externals, offloadable, reserved, uncensored: group(item => item.model.uncensored), ordinary: group(item => !item.model.uncensored)};
 }
 
 /**
@@ -197,7 +234,8 @@ function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
  *   realFit    {modelId: {pick}} from bridge/local-vram-fit.mjs for the models whose file-size need exceeds the free memory but whose projected memory (the real
  *              figure: a Gemma 4 E4B keeps about 1.7 GB of its file in system memory) fits whole: such a model counts as fitting, so a chosen one is kept and
  *              a Mature one is loaded whole instead of with layers on the CPU. The caller probes only the chosen model and the uncensored ones.
- * Returns {model, profile, sizeMiB, pinned, fellBack, offload}: `offload` is true when the model is loaded though it does not fit the free graphics memory (some of its layers
+ * Returns {model, profile, sizeMiB, pinned, fellBack, offload}, and {needMiB, availableMiB} when `fellBack` is 'low-memory' (what the chosen model needs, the projection's smallest placement
+ * when one was looked at, else the file-size rule; and the memory given to the choice): `offload` is true when the model is loaded though it does not fit the free graphics memory (some of its layers
  * then run on the CPU): a Mature model (it never gives way to a censored one), or, when nothing at all fits whole, the smallest installed model of any kind; `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' / 'too-slow' when the pin could
  * not be used and another model was chosen instead (`model.broken`, set by the server, marks a custom model that failed to start; `model.stalled` a model that
  * stalled this session's turns); `gameReserve` is true when the room kept for the game on a small card changed the default pick. Throws
@@ -210,8 +248,8 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
   // Mature content off: a Mature pack model never loads, pinned or not (a pin of it stays in the settings, and is used again when Mature content is on).
   if (!matureOn) { if (matureOffIgnores(pin, models)) pin = AUTO_MODEL; models = models.filter(model => !model.matureTier); }
   pin = resolveServerPin(pin, models);
-  const {sized, fits, pick, pickMature, externals, offloadable, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf, realFit});
-  let fellBack = null, silent = false, want = pin;
+  const {sized, fits, needOf, pick, pickMature, externals, offloadable, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf, realFit});
+  let fellBack = null, silent = false, want = pin, lowMemory = null;
   if (want !== AUTO_MODEL) {
     let item = sized.find(candidate => candidate.model.id === want);
     if (!item && !want.startsWith('custom:')) {
@@ -233,7 +271,7 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
         const target = next ? sized.find(candidate => candidate.model.id === next.id) : null;
         if (target && (target.model.uncensored || fits(target))) return {...target, pinned: false, fellBack: 'too-slow', offload: target.model.uncensored === true && !fits(target)};
         fellBack = 'too-slow';
-      } else if (!fits(item)) fellBack = 'low-memory';
+      } else if (!fits(item)) { fellBack = 'low-memory'; lowMemory = {needMiB: Math.ceil(needOf(item)), ...(known(freeMiB) ? {availableMiB: Math.max(0, Math.floor(freeMiB))} : {})}; }
       else return {...item, pinned: true, fellBack: null, offload: false};
     }
   }
@@ -246,7 +284,9 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
   if (!chosen) throw new LocalAiUnavailable('low-memory');
   // A silent migration, or the pinned model itself loaded anyway (it did not fit): nothing was replaced, so nothing is announced.
   if (silent || chosen.model.id === pin) fellBack = null;
-  return {...chosen, pinned: false, fellBack, offload: whole === null || (chosen.model.uncensored && !fits(chosen)), ...(reserved.applied ? {gameReserve: true} : {})};
+  return {...chosen, pinned: false, fellBack, offload: whole === null || (chosen.model.uncensored && !fits(chosen)), ...(reserved.applied ? {gameReserve: true} : {}),
+    // Why the chosen model was not used, in numbers the player is told: what it needs and what is available for it (after the game's room), both in MiB.
+    ...(fellBack === 'low-memory' && lowMemory ? lowMemory : {})};
 }
 
 /** The installed model a saved `mature:*` id that is in no pack any more stands for: the Mature pack's good model if it fits, else its lite one; null when the pack has none. */

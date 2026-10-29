@@ -648,6 +648,7 @@ return {
     ["No model installed"] = "Nenhum modelo instalado",
     ["another model"] = "outro modelo",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "O modelo Local AI que você escolheu está ausente, não cabe na memória gráfica livre ou não pôde ser iniciado, então {model} foi usado no lugar.",
+    ["The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead."] = "O modelo Local AI que você escolheu precisa de cerca de {need} MB de memória gráfica, mas só há {available} MB disponíveis para ele junto com o jogo, então {model} foi usado no lugar.",
     ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI mudou para {model}: o jogo está usando a maior parte da memória gráfica.",
     ["Choose one of the listed Local AI models."] = "Escolha um dos modelos Local AI listados.",
     ["Characters to invite"] = "Personagens para convidar",

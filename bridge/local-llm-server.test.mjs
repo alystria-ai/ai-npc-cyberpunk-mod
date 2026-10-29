@@ -674,7 +674,7 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
 
   const tooBig = choiceHarness(t, {selected: {pin: 'standard'}, freeMiB: 3000});
   await tooBig.server.ensure();
-  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory', model: 'Qwen3.5-2B'}]], 'the notice names the model that was used');
+  assert.deepEqual([tooBig.loaded(), tooBig.fallbacks], [['q2.gguf'], [{pin: 'standard', reason: 'low-memory', model: 'Qwen3.5-2B', needMiB: 6480, availableMiB: 3000}]], 'the notice names the model that was used, with what the model needs and what was available (2026-10-29)');
   assert.ok(tooBig.logs.some(line => /not usable \(low-memory\)/.test(line)));
 
   // With Mature content on and an uncensored model installed, the fallback of a missing choice is the largest uncensored one that fits.
@@ -867,7 +867,7 @@ test('a custom model takes part in the default choice by size, and is never chos
   const huge = customHarness(t, {selected: {pin: 'custom:huge'}});
   huge.state.customModels = [huge.entry('huge', 'huge-model.gguf')];
   await huge.server.ensure();
-  assert.deepEqual([huge.loaded(), huge.fallbacks], [['q4.gguf'], [{pin: 'custom:huge', reason: 'low-memory', model: 'Qwen3.5-4B'}]]);
+  assert.deepEqual([huge.loaded(), huge.fallbacks], [['q4.gguf'], [{pin: 'custom:huge', reason: 'low-memory', model: 'Qwen3.5-4B', needMiB: 31200, availableMiB: 11229}]]);
   assert.equal(huge.server.totalVramMiB, 11997);
 });
 
@@ -946,7 +946,7 @@ test('Mature content on never loads a censored model: a Mature model that does n
   // A pinned good model that does not fit with the lite one installed too: the lite model fits whole, so it is loaded plainly and the usual notice names it.
   const pinned = choiceHarness(t, {selected: {matureOn: true, pin: 'mature:good'}, freeMiB: 3000});
   await pinned.server.ensure();
-  assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['small-u.gguf'], [{pin: 'mature:good', reason: 'low-memory', model: 'Qwen3.5-2B-Uncensored'}]]);
+  assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['small-u.gguf'], [{pin: 'mature:good', reason: 'low-memory', model: 'Qwen3.5-2B-Uncensored', needMiB: 6600, availableMiB: 3000}]]);
   assert.ok(pinned.calls[0].args.includes('-ngl') && argValue(pinned.calls[0], '-fit') === 'off' && !pinned.calls[0].args.includes('-fitt') && !pinned.calls[0].args.includes('-t'));
   // Fits: the plain start (all layers on the card, fit pass off).
   const roomy = choiceHarness(t, {selected: {matureOn: true}, freeMiB: 3000});
@@ -1131,8 +1131,13 @@ test('on a small card a model that leaves the game under 3000 MiB steps down at 
 // ---- Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs) ------------------------------------------------------------------------------
 // llama-fit-params' projections of a Gemma 4 E4B model by context (16,384 / 8,192 / 8,192 with the 8-bit cache), measured 2026-10-20: the file-size rule says 6,600 MiB for the 5,400 MiB file, the projection 3,734.
 const PROJECTED = {'big-u.gguf': {16384: 3734, 8192: 3598, q8: 3520}, 'q4.gguf': {16384: 3562, 8192: 3426, q8: 3348}, 'q2.gguf': {16384: 2228, 8192: 1964, q8: 1844}};
-function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], table = PROJECTED, ...options} = {}) {
-  const fitProbe = async args => { probes.push(args); return table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null; };
+function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], swaProbes = [], swaGain = 0, table = PROJECTED, ...options} = {}) {
+  // The runs for `--swa-full` (a load looks at what the full sliding-window cache would cost) are kept apart from the runs that decide which model is loaded.
+  const fitProbe = async args => {
+    const projected = table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null;
+    if (args.swaFull !== undefined) { swaProbes.push(args); return projected === null ? null : projected + (args.swaFull ? swaGain : 0); }
+    probes.push(args); return projected;
+  };
   const gpuMemory = spill ? async () => spill.value : null;
   // `free.value` is the graphics memory that is free with none of our model loaded; while a model of ours runs, what it holds on the card (the spill counters' dedicated MiB) is not free, and
   // goes back when it stops. That is how a spill decision (it adds the model's own memory to what is free) and the start after the stop both see the same room.
@@ -1141,7 +1146,7 @@ function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000
   const freeVramMiB = () => free.value - (spill && running() ? Number(spill.value.dedicatedMiB) || 0 : 0);
   const h = stepHarness(t, {freeVramMiB, fitProbe, gpuMemory, now: () => clock.now, ...options});
   created = h;
-  return {...h, free, probes, clock, spill};
+  return {...h, free, probes, swaProbes, clock, spill};
 }
 const argValue = (call, flag) => call.args[call.args.indexOf(flag) + 1];
 // A Mature pack with only its good model (the 2026-10-20 8 GB reports had no smaller model to fall back to): the pin that does not fit is loaded anyway.
@@ -1493,7 +1498,7 @@ test('a changed choice that would end on the model already loaded does not reloa
   h.free.value = 6300; h.state.pin = 'standard';   // 3,000 MiB are free while our 3,300 MiB model runs (the harness subtracts what it holds)
   assert.equal(await h.server.reselect(), false);
   assert.equal(h.calls.length, 1, 'no reload of the same 5 GB model');
-  assert.deepEqual(h.fallbacks, [{pin: 'standard', reason: 'low-memory', model: 'Gemma-4-E4B-uncensored'}]);
+  assert.deepEqual(h.fallbacks, [{pin: 'standard', reason: 'low-memory', model: 'Gemma-4-E4B-uncensored', needMiB: 6480, availableMiB: 6300}]);
   assert.ok(h.logs.some(line => /it stays loaded/.test(line)));
   // With room for the pinned model the reload happens.
   h.free.value = 24000;
@@ -1770,11 +1775,11 @@ test('a card of 12 GB or less with room for both gets the whole model on the car
   const line = big.logs.find(text => text.includes('game room on a small card'));
   assert.ok(line.includes('7438 MiB kept for the game') && line.includes('so 3791 MiB for the model'), line);
   assert.ok(!line.includes('about 0% of its layers'), line);
-  // A 24 GB card (report 8e09af42, an RTX 4090): the game's room is 62% of it, 15,230 MiB, of which the 564 MiB it already holds (card - free - 1,000 desktop) are not kept again, at the start (it used to be none: the model got all the free memory and 3.2 GB of it spilled when the game and OmniVoice arrived).
+  // A 24 GB card (report 8e09af42, an RTX 4090): the game's room is 10,240 MiB since 2026-10-29 (62% of the card, 15,230 MiB, before), of which the 564 MiB it already holds (card - free - 1,000 desktop) are not kept again, at the start (it used to be none: the model got all the free memory and 3.2 GB of it spilled when the game and OmniVoice arrived).
   const card24 = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4090 (24564 MiB, 23000 MiB free)\n', free: {value: 23000}});
   await card24.server.ensure();
   const plan24 = card24.logs.find(text => text.includes('game room on a small card'));
-  assert.ok(plan24.includes('card 24564 MiB, 14666 MiB kept for the game, 23000 MiB free now, so 8334 MiB for the model'), plan24);
+  assert.ok(plan24.includes('card 24564 MiB, 9676 MiB kept for the game, 23000 MiB free now, so 13324 MiB for the model'), plan24);
   // A card above 24 GB (32 GB): no plan line at all.
   const huge = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 5090 (32607 MiB, 31000 MiB free)\n', free: {value: 31000}});
   await huge.server.ensure();
@@ -1842,4 +1847,113 @@ test('with raiseLevel high every start of the model server loads at high priorit
   assert.ok(h.calls.length >= 4);
   for (const {child} of h.calls) assert.equal(levels.get(child.pid)?.[0], HIGH, 'every server ever started loaded at high');
   assert.ok(![...levels.values()].flat().includes(constants.priority.PRIORITY_HIGHEST), 'never the realtime class');
+});
+
+// ---- 2026-10-29: a 12B model of the player's own, pinned, on the 24,463 MiB RTX 5090 Laptop with OmniVoice (the lite and standard pack models also installed) ----------------------------------------
+// Before: the game's room was 62% of the card (15,167 MiB), so the model got 5,796 MiB (OmniVoice resident or still to load) and the pinned 12B (8,800 MiB by the rule, 8,400 at least by its projection) fell
+// back to the lite model with a generic notice. Now the room is 10,240 MiB and the model gets 10,723 MiB. The projections are a fixture (derived: file 7,600 MiB, +1.6 GB at 16,384, +1.1 GB at 8,192).
+const RTX5090_LAPTOP = (free = 23463) => `Available devices:\n  Vulkan0: Intel(R) Arc(TM) Graphics (16000 MiB, 15000 MiB free)\n  Vulkan1: NVIDIA GeForce RTX 5090 Laptop GPU (24463 MiB, ${free} MiB free)\n`;
+const LAPTOP_SIZES = {...CHOICE_SIZES, 'twelve-b.gguf': 7600, 'huge-model.gguf': 31000};
+const LAPTOP_TABLE = {...PROJECTED, 'twelve-b.gguf': {16384: 9200, 8192: 8700, q8: 8400}};
+function laptopHarness(t, {voice = 'resident', pin = 'custom:twelve', table = LAPTOP_TABLE, extra = [], ...options} = {}) {
+  const free = {value: voice === 'resident' ? 20963 : 23463};
+  const gameRoom = {voiceMiB: () => (voice === 'to-load' ? 2500 : 0), residentVoiceMiB: () => (voice === 'resident' ? 2500 : 0)};
+  const h = fitHarness(t, {mature: false, selected: {pin}, free, listDevices: async () => RTX5090_LAPTOP(free.value), gameRoom, table, fileSizeMiB: file => LAPTOP_SIZES[String(file).split(/[\\/]/).pop()] ?? 0, ...options});
+  for (const name of ['twelve-b.gguf', 'huge-model.gguf']) writeFileSync(join(h.directory, name), name);
+  h.state.customModels = [{id: 'custom:twelve', name: 'gemma-4-12b-it-qat-ud-q4_k_xl', file: join(h.directory, 'twelve-b.gguf'), uncensored: false, family: 'gemma', contextSize: null, chatTemplate: null, tooLarge: false},
+    {id: 'custom:huge', name: 'huge-model', file: join(h.directory, 'huge-model.gguf'), uncensored: false, family: 'llama', contextSize: null, chatTemplate: null, tooLarge: false}, ...extra];
+  return h;
+}
+
+test('the 24 GB laptop: the pinned 12B is loaded whole at the largest context its projection fits, with OmniVoice loaded or still to load, and nothing is announced', async t => {
+  for (const voice of ['resident', 'to-load']) {
+    const h = laptopHarness(t, {voice});
+    const info = await h.server.ensure();
+    assert.deepEqual([voice, info.model, h.server.modelId, h.loaded(), h.fallbacks], [voice, 'gemma-4-12b-it-qat-ud-q4_k_xl', 'custom:twelve', ['twelve-b.gguf'], []]);
+    assert.ok(h.calls[0].args.includes('-ngl') && argValue(h.calls[0], '-fit') === 'off', voice + ': the whole model on the card');
+    assert.equal(argValue(h.calls[0], '-c'), '16384');
+    assert.ok(!h.calls[0].args.includes('-ctk'), 'the full-precision cache');
+    const plan = h.logs.find(line => line.includes('game room on a small card'));
+    assert.ok(plan.includes('card 24463 MiB, 10240 MiB kept for the game') && plan.includes('so 10723 MiB for the model') && plan.includes('all of its layers on the card') && plan.includes('context 16384'), plan);
+    assert.ok(h.logs.some(line => /fit of gemma-4-12b-it-qat-ud-q4_k_xl: projected 9200 MiB at 16384, 8700 MiB at 8192, 8400 MiB at 8192 q8_0 against 10723 MiB free/.test(line) && /the whole model fits: context 16384/.test(line)));
+    assert.deepEqual(h.failures, []);
+  }
+});
+
+test('the 24 GB laptop with OmniVoice off: the 12B gets 13.2 GB and the same context; a projection that is a little larger steps down to a smaller context, then the 8-bit cache, before the pin is given up', async t => {
+  const off = laptopHarness(t, {voice: 'off'});
+  await off.server.ensure();
+  assert.ok(off.logs.find(line => line.includes('game room on a small card')).includes('so 13223 MiB for the model'));
+  assert.equal(argValue(off.calls[0], '-c'), '16384');
+  // A 12B with a large cache: 10,300 at 16,384 does not fit 10,723 with the 512 MiB margin, 9,900 at 8,192 does.
+  const smaller = laptopHarness(t, {table: {...LAPTOP_TABLE, 'twelve-b.gguf': {16384: 10300, 8192: 9900, q8: 9700}}});
+  await smaller.server.ensure();
+  assert.deepEqual([smaller.fallbacks, argValue(smaller.calls[0], '-c'), smaller.calls[0].args.includes('-ctk')], [[], '8192', false]);
+  // Only the 8-bit cache fits: 10,100 does, 10,300 and 10,600 do not.
+  const q8 = laptopHarness(t, {table: {...LAPTOP_TABLE, 'twelve-b.gguf': {16384: 10700, 8192: 10600, q8: 10100}}});
+  await q8.server.ensure();
+  assert.deepEqual([q8.fallbacks, argValue(q8.calls[0], '-c'), argValue(q8.calls[0], '-ctk')], [[], '8192', 'q8_0']);
+});
+
+test('a model that truly does not fit the laptop says why: the event and the log carry what it needs and what is available for it, and the model used instead is named', async t => {
+  // A 31,000 MiB file on a 24,463 MiB card: too large for the card whatever the game does.
+  const huge = laptopHarness(t, {pin: 'custom:huge'});
+  await huge.server.ensure();
+  assert.equal(huge.fallbacks.length, 1);
+  assert.deepEqual(huge.fallbacks[0], {pin: 'custom:huge', reason: 'low-memory', model: huge.fallbacks[0].model, needMiB: 32200, availableMiB: 10723});
+  assert.notEqual(huge.fallbacks[0].model, 'huge-model');
+  const line = huge.logs.find(text => /huge-model needs 32200 MiB of graphics memory/.test(text));
+  assert.ok(line && line.includes('10723 MiB are available for it') && line.includes('free 20963 MiB') && line.includes('game room 10240 MiB of 10240') && line.includes('voice engine 0 MiB')
+    && line.endsWith(huge.fallbacks[0].model + ' is used instead'), line);
+  // A 12B whose projection (a model with a big cache) fits no rung of the ladder in the room: the rule would have let it in, the projection does not.
+  const big = laptopHarness(t, {voice: 'to-load', table: {...LAPTOP_TABLE, 'twelve-b.gguf': {16384: 12000, 8192: 11800, q8: 11600}}});
+  await big.server.ensure();
+  assert.deepEqual(big.fallbacks.map(event => [event.pin, event.reason, event.needMiB, event.availableMiB]), [['custom:twelve', 'low-memory', 12112, 10723]]);
+  assert.ok(big.logs.some(text => /gemma-4-12b-it-qat-ud-q4_k_xl needs 12112 MiB of graphics memory, 10723 MiB are available for it \(free 23463 MiB, game room 10240 MiB of 10240, voice engine 2500 MiB\)/.test(text)));
+  // One event per start: the same choice does not announce twice from one start.
+  assert.equal(big.fallbacks.length, 1);
+  // A pin that is simply missing carries no numbers.
+  const gone = laptopHarness(t, {pin: 'custom:gone'});
+  await gone.server.ensure();
+  assert.deepEqual(gone.fallbacks.map(event => [event.reason, 'needMiB' in event]), [['missing', false]]);
+});
+
+test('the pinned model\'s projection is looked at when the file-size rule passes with little to spare (a model of unknown architecture), not on a card with plenty of room', async t => {
+  // Free 22,000 - rule need 8,800: a card with plenty of room and the game's room small (12 GB class card is not this); here no game room (the option is off) and 11,000 MiB free: 11,000 < 8,800 + 3,000.
+  const tight = laptopHarness(t, {gameRoom: null, free: {value: 11000}, listDevices: async () => RTX5090_LAPTOP(11000)});
+  await tight.server.ensure();
+  assert.ok(tight.probes.length > 0 && tight.probes.every(probe => String(probe.model).endsWith('twelve-b.gguf')), 'the pin was looked at: ' + tight.probes.length + ' runs');
+  assert.equal(argValue(tight.calls[0], '-c'), '16384');
+  // Free memory beyond the slack: no run of the tool at all (the old behaviour).
+  const roomy = laptopHarness(t, {gameRoom: null, free: {value: 22000}, listDevices: async () => RTX5090_LAPTOP(22000)});
+  await roomy.server.ensure();
+  assert.deepEqual(roomy.probes, []);
+});
+
+test('buildServerArgs: --swa-full is given only when the load asked for it', () => {
+  const base = {model: 'm.gguf', port: 1, keyFile: 'k', device: 'Vulkan1'};
+  assert.ok(!buildServerArgs(base).includes('--swa-full'));
+  const args = buildServerArgs({...base, swaFull: true});
+  assert.ok(args.includes('--swa-full') && args.indexOf('--swa-full') > args.indexOf('-fa'));
+});
+
+test('a model with a sliding-window cache gets --swa-full when the larger projection still fits the room, and not when it grows by nothing or does not fit', async t => {
+  // Standard (q4.gguf) projects 3,000 to 3,600 MiB in the table; the full cache adds 615 MiB (Gemma 4 E4B, llama-fit-params, 16,384).
+  const roomy = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 615});
+  await roomy.server.ensure();
+  assert.ok(roomy.calls[0].args.includes('--swa-full'), 'room for the full cache: used');
+  assert.deepEqual(roomy.swaProbes.map(probe => probe.swaFull).sort(), [false, true], 'one run without and one with, nothing else');
+  assert.equal(roomy.server.diagnostics().engine.swaFull, true);
+  // A model with no sliding-window layers projects the same with the flag: it is not passed.
+  const plain = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 0});
+  await plain.server.ensure();
+  assert.ok(!plain.calls[0].args.includes('--swa-full'));
+  // No run of the tool gives a number: no flag, the load is as it was.
+  const blind = fitHarness(t, {mature: false, free: {value: 24000}, table: {}});
+  await blind.server.ensure();
+  assert.ok(!blind.calls[0].args.includes('--swa-full'));
+  // The larger projection does not fit what the model may take (with the usual margin): not passed.
+  const tight = fitHarness(t, {mature: false, free: {value: 24000}, swaGain: 30000});
+  await tight.server.ensure();
+  assert.ok(!tight.calls[0].args.includes('--swa-full'));
 });

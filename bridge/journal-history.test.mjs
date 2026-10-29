@@ -366,3 +366,19 @@ options.adapter.isJournalReady=function() journal=journal+1; return true end
 options.sessionProven=function() error('no frame') end
 full=0; local broken=module.new(options); broken:update(context); assert(full==2)
 `));
+
+test('the text of the block does not change with the clock or the age of a capture, so a model that reads it keeps it cached', () => {
+  const at = (now, ageSeconds) => select({query: 'What about Pyramid Song?', now, snapshot: {...snapshot, coverage: {active: {...cover, ageSeconds}, history: {...cover, ageSeconds}}}});
+  const first = at(1000000, 1), later = at(1004000, 3);
+  assert.deepEqual(later.diagnostics.selected, first.diagnostics.selected);
+  assert.equal(later.context, first.context);
+  assert.doesNotMatch(first.context, /ageSeconds|observedSecondsAgo/);
+});
+
+test('ranked by the words of the whole talk (topics), a quest V asked about stays in the block when the next sentence is about something else', () => {
+  const asked = select({query: 'What about Pyramid Song?', topics: 'what about pyramid song'});
+  const next = select({query: 'How are you today?', topics: 'what about pyramid song how are you today'});
+  assert.deepEqual(next.diagnostics.selected, asked.diagnostics.selected);
+  assert.equal(next.context, asked.context);
+  assert.deepEqual(select({query: 'How are you today?'}).diagnostics.selected, ['1'], 'by the last sentence alone the quest is gone again');
+});

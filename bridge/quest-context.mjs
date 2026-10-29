@@ -4,6 +4,7 @@ import {followUpContext} from './conversation-style.mjs';
 import {battleContext} from './battle-context.mjs';
 import {lootContext} from './loot-context.mjs';
 import {WORLD_SNAPSHOT_MAX_AGE_MS, parseWorldSnapshot} from './world-knowledge.mjs';
+import {topicWords} from './topic-words.mjs';
 import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
@@ -143,7 +144,7 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   const bound = result.journalHistory === undefined ? null
     : currentJournalHistory({snapshot: result.journalHistory, generation, worldToken, now});
   const history = bound === null ? '' : selectJournalHistory({snapshot: result.journalHistory, bound,
-    generation, worldToken, profileKey: result.profileKey, query: result.text, questCatalog, now, trackedQuestId}).context;
+    generation, worldToken, profileKey: result.profileKey, query: result.text, topics: topicWords.fold(result.profileKey, result.text, now), questCatalog, now, trackedQuestId}).context;
   const inventory = bound?.status === 'ready' ? bound.history : undefined;
   // Shared events come from the resolver run on this same current snapshot.
   const recency = current && Array.isArray(sharedEvents) ? recentSharedContext({shared: sharedEvents,

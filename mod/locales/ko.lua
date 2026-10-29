@@ -641,6 +641,7 @@ return {
     ["No model installed"] = "설치된 모델이 없습니다",
     ["another model"] = "다른 모델",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "선택한 Local AI 모델이 없거나, 여유 그래픽 메모리에 맞지 않거나, 시작되지 않아 대신 {model}이(가) 사용되었습니다.",
+    ["The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead."] = "선택한 Local AI 모델에는 그래픽 메모리가 약 {need} MB 필요하지만, 게임과 함께 쓸 수 있는 메모리는 {available} MB뿐이어서 대신 {model}이(가) 사용되었습니다.",
     ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI가 {model} 모델로 전환되었습니다: 게임이 그래픽 메모리의 대부분을 사용하고 있습니다.",
     ["Choose one of the listed Local AI models."] = "나열된 Local AI 모델 중 하나를 선택하세요.",
     ["Characters to invite"] = "초대할 캐릭터",

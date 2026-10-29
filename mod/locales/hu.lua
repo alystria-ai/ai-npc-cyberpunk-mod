@@ -648,6 +648,7 @@ return {
     ["No model installed"] = "Nincs telepített modell",
     ["another model"] = "egy másik modell",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "A kiválasztott Local AI-modell hiányzik, nem fér be a szabad grafikus memóriába, vagy nem indult el, ezért helyette ezt használtuk: {model}.",
+    ["The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead."] = "A kiválasztott Local AI-modellnek kb. {need} MB grafikus memóriára van szüksége, de a játék mellett csak {available} MB áll rendelkezésére, ezért helyette ezt használtuk: {model}.",
     ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI átváltott {model} modellre: a játék a videomemória nagy részét használja.",
     ["Choose one of the listed Local AI models."] = "Válassz egyet a felsorolt Local AI-modellek közül.",
     ["Characters to invite"] = "Meghívható karakterek",

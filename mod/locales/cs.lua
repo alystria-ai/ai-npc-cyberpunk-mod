@@ -648,6 +648,7 @@ return {
     ["No model installed"] = "Žádný model nenainstalován",
     ["another model"] = "jiný model",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "Zvolený model Local AI chybí, nevejde se do volné paměti grafiky nebo se nepodařilo ho spustit, proto byl místo něj použit {model}.",
+    ["The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead."] = "Zvolený model Local AI potřebuje asi {need} MB grafické paměti, ale vedle hry je pro něj k dispozici jen {available} MB, proto byl místo něj použit {model}.",
     ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI přepnuta na {model}: hra využívá většinu grafické paměti.",
     ["Choose one of the listed Local AI models."] = "Vyber jeden z uvedených modelů Local AI.",
     ["Characters to invite"] = "Postavy k pozvání",
