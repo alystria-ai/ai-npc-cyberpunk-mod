@@ -1730,4 +1730,6 @@ return {
     ["Ctrl"] = "Ctrl",
     ["Alt"] = "Alt",
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Удерживайте Shift, Ctrl или Alt, нажимая клавишу, чтобы задать сочетание, например Shift+F5. Сочетание срабатывает только при точно этих зажатых клавишах, а простая клавиша не срабатывает, пока зажата любая из них. В игре Shift включает спринт, Ctrl уклонение, а Alt открывает колесо оружия, поэтому V делает это тоже.",
+    ["Disk space"] = "Место на диске",
+    ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "Твой диск {drive} почти заполнен (свободно {free} ГБ). Освободи место для логов и воспоминаний.",
 }

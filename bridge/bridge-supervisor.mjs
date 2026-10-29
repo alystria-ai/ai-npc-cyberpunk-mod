@@ -388,7 +388,8 @@ export class BridgeSupervisor {
     try {
       out = openSync(this.paths.stdout, 'a'); err = openSync(this.paths.stderr, 'a');
       this.readyScan = {offset: fstatSync(out).size, tail: ''};
-      writeSync(err, `--- bridge started by the conversation service supervisor at ${new Date(this.now()).toISOString()} ---\n`);
+      // The marker line is an extra: on a full disk it fails (ENOSPC) and the bridge must still start (error report 1cbe337a5144ebbd).
+      try { writeSync(err, `--- bridge started by the conversation service supervisor at ${new Date(this.now()).toISOString()} ---\n`); } catch { /* no marker */ }
       // Node writes a diagnostic report into <data>/node-reports when the bridge hits a fatal error or an uncaught exception (the supervisor
       // reads the newest one if the bridge ends unexpectedly, bridge/bridge-diagnostics.mjs). Costs nothing until one of those happens.
       const reports = resolve(this.stateDirectory, REPORT_FOLDER);

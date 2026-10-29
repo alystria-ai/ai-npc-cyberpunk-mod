@@ -21,6 +21,7 @@ import {readFile, readdir, writeFile, mkdir, copyFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {basename, dirname, isAbsolute, relative, resolve, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {atomicFile} from './guarded-file.mjs';
 import {readPcmWav} from './speech-audio.mjs';
 import {LEGACY_LOCAL_VOICE_KEYS, PLAYER_REFERENCE_PREFIX, voiceKeyValid, voiceTranscriptValid} from './voice-profile-registry.mjs';
 import {AddonStock} from './addon-stock.mjs';
@@ -831,7 +832,8 @@ export class AddonHost {
     if (!this.journalPath || this.journalTimer) return;
     this.journalTimer = setTimeout(() => {
       this.journalTimer = null;
-      void writeFile(this.journalPath, JSON.stringify(this.journal)).catch(error => this.log(`Add-on journal not saved: ${error.message}`));
+      // Written whole to a temporary file and renamed: a full disk fails the write and leaves the journal as it was (error report 1cbe337a5144ebbd).
+      void atomicFile(this.journalPath, JSON.stringify(this.journal)).catch(error => this.log(`Add-on journal not saved: ${error.message}`));
     }, 2000);
     this.journalTimer.unref?.();
   }

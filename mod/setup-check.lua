@@ -42,7 +42,7 @@ local INCOMPLETE = {['install-incomplete'] = true, ['bridge-missing'] = true, ['
 -- comes first: it is a Problem only when nothing it loads answers (this mod's native plugin, which does not depend on the script
 -- compile, and the probe of Codeware), and without it Codeware's scripts never reach the compile. This mod's scripts come next: when they did not load (a compile error anywhere disables every
 -- redscript mod), nothing below can be judged from them and the log, not a missing framework, is the thing to read.
-local CRITICAL = {'red4ext', 'build', 'redscript', 'codeware', 'nsui', 'files', 'service', 'versions', 'packs', 'internet'}
+local CRITICAL = {'red4ext', 'build', 'redscript', 'codeware', 'nsui', 'files', 'service', 'versions', 'packs', 'internet', 'disk'}
 -- The requirements one first-load notice names together (Native Settings UI has its own notice: its name is long and the notice
 -- fits two lines), and at most this many names in one notice.
 local REQUIREMENT_IDS = {red4ext = true, codeware = true}
@@ -162,6 +162,12 @@ local function gigabytes(mib)
     if type(mib) ~= 'number' or mib <= 0 then return nil end
     local value = string.format('%.1f', mib / 1024)
     return (value:gsub('%.0$', ''))
+end
+
+-- The values of the almost full drive's sentence (the service's 'disk' check): the drive as C: and the free GB with one decimal.
+local function diskValues(check)
+    check = type(check) == 'table' and check or {}
+    return {drive = (text(check.drive, 2) or '?') .. ':', free = string.format('%.1f', tonumber(check.freeGiB) or 0)}
 end
 
 -- The page's signature: every game-side result and the service answer's time.
@@ -789,6 +795,11 @@ local function bridgeLines(out)
         elseif internet.code == 'no-dns' then out[#out + 1] = line('internet', label, 'problem', ui.t('This PC cannot look up {host}. Check your internet connection, then restart the game.', {host = host}))
         else out[#out + 1] = line('internet', label, 'problem', ui.t('The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.', {host = host})) end
     end
+    -- A drive with under 2 GB free (the game's or the one the mod's data is on): the logs, the memories and the voice files then fail to save. Only a problem has a row.
+    local disk = bridgeCheck('disk')
+    if disk and disk.state == 'problem' then
+        out[#out + 1] = line('disk', ui.t('Disk space'), 'problem', ui.t('Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories.', diskValues(disk)))
+    end
     local gpu = bridgeCheck('gpu')
     if gpu and gpu.code == 'found' and text(gpu.name, 80) then
         local size = gigabytes(gpu.memoryMiB)
@@ -883,7 +894,7 @@ end
 -- Every sentence of the first-load notice is in this one function (bridge/setup-notice-fit.test.mjs measures each against the warning
 -- line). id 'redscript': this mod's scripts did not load. id 'requirements': names is the list of two or more requirement names
 -- (old: one of them is installed but too old). ids 'build-runtime', 'build-scripts', 'build-both', 'build-differ': the Scripts, the Runtime and the game are not for
--- the same game version (values: game, other, scripts, runtime). id 'codeware-old': Codeware
+-- the same game version (values: game, other, scripts, runtime). id 'disk': the drive is almost full (values: drive like C:, free in GB). id 'codeware-old': Codeware
 -- without the parts this mod needs. Any other id: one check,
 -- named by PRODUCT or, for an id that has no entry, by `names`.
 local function shortText(id, names, old, values)
@@ -907,6 +918,7 @@ local function shortText(id, names, old, values)
     if id == 'versions' then return ui.t('The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.') end
     if id == 'packs' then return ui.t('A pack is one folder too deep. See Help in Settings.') end
     if id == 'internet' then return ui.t('The conversation service cannot reach the internet. See Help in Settings.') end
+    if id == 'disk' then return ui.t('Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories.', values) end
     return ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = PRODUCT[id] or names or id})
 end
 
@@ -992,6 +1004,7 @@ local function firstLoad()
     -- redscript itself is missing: the sentence of any missing requirement, with its name (there is no compile log to open)
     if first == 'redscript' and game.checks.redscript.code == 'no-compiler' then return shortText('compiler', PRODUCT.redscript) end
     if first == 'nsui' and game.checks.nsui.code == 'mcm-old' then return shortText('mcm-old') end
+    if first == 'disk' then return shortText('disk', nil, nil, diskValues(bridgeCheck('disk'))) end
     -- Scripts and Runtime of different versions: a Runtime that is the older one (nearly every report) is told to take the full install zip. A Runtime that never
     -- answered (0.2.1 and older: no update zips exist for it) has no versions to compare: it gets the generic notice, and the Help line tells it to get the full install zip.
     local versions = bridgeCheck('versions')
@@ -1103,10 +1116,11 @@ function M.reportLines()
         for _, check in ipairs(bridge.checks) do
             if type(check) == 'table' and type(check.id) == 'string' then
                 local extra = {}
-                for _, field in ipairs({'scripts', 'runtime', 'name', 'host', 'service', 'device'}) do
+                for _, field in ipairs({'scripts', 'runtime', 'name', 'host', 'service', 'device', 'drive'}) do
                     if text(check[field], 80) then extra[#extra + 1] = field .. '=' .. text(check[field], 80) end
                 end
                 if type(check.memoryMiB) == 'number' then extra[#extra + 1] = 'memoryMiB=' .. math.floor(check.memoryMiB) end
+                if type(check.freeGiB) == 'number' then extra[#extra + 1] = 'freeGiB=' .. string.format('%.1f', check.freeGiB) end
                 local found = names(check.found)
                 if #found > 0 then extra[#extra + 1] = 'found=' .. table.concat(found, '+') end
                 local nested = names(check.nested, 'folder')

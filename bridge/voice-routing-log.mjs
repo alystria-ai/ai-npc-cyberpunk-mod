@@ -1,5 +1,6 @@
-import {appendFile, readFile, writeFile, mkdir} from 'node:fs/promises';
+import {appendFile, readFile, mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
+import {safeWriteFile} from './guarded-file.mjs';
 
 // One line per spoken reply saying which voice was asked for, which one actually spoke, and why they differ.
 // Routing facts only: no conversation text, no session IDs, no audio. The Convai character the turn went to is named
@@ -239,7 +240,7 @@ export class VoiceRoutingLog {
     // Trim in batches: 10% over the limit costs one rewrite per ~50 replies.
     if (this.count > this.maxLines + Math.ceil(this.maxLines / 10)) {
       const lines = (await readFile(this.path, 'utf8')).split('\n').filter(Boolean).slice(-this.maxLines);
-      await writeFile(this.path, `${lines.join('\n')}\n`, 'utf8');
+      await safeWriteFile(this.path, `${lines.join('\n')}\n`);   // a full disk keeps the old log, never an empty one
       this.count = lines.length;
     }
   }

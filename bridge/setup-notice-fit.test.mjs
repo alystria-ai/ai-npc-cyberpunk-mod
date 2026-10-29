@@ -20,7 +20,8 @@ const notices = [...body[1].matchAll(/ui\.t\('((?:[^'\\]|\\.)*)'/g)].map(match =
 // {name} is RED4ext or Codeware (a product name that stays English in every language); {names} is the widest
 // list the notice can name: both of them (REQUIREMENT_IDS in the module), never Native Settings UI.
 // {game}, {other}, {scripts} and {runtime} are game versions: 2.31 is the widest.
-const filled = text => text.replace('{name}', 'Codeware').replace('{names}', 'RED4ext, Codeware').replace(/\{(game|other|scripts|runtime)\}/g, '2.31');
+// {drive} is a letter and a colon, {free} the widest number the line shows (a drive just under 2 GB prints 1.9, an empty one 0.0).
+const filled = text => text.replace('{name}', 'Codeware').replace('{names}', 'RED4ext, Codeware').replace(/\{(game|other|scripts|runtime)\}/g, '2.31').replace('{drive}', 'C:').replace('{free}', '1.9');
 
 function localeTable(code) {
   const vm = lauxlib.luaL_newstate();
@@ -37,8 +38,8 @@ function localeTable(code) {
   return rows;
 }
 
-test('the notice is one of nineteen short sentences, each catalogued and each within the English budget', () => {
-  assert.equal(notices.length, 19, notices.join('\n'));
+test('the notice is one of twenty short sentences, each catalogued and each within the English budget', () => {
+  assert.equal(notices.length, 20, notices.join('\n'));
   for (const text of notices) {
     assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);
     assert.deepEqual(noticeProblems(filled(text), {english: true}), [], text);

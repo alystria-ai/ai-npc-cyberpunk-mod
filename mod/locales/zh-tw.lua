@@ -1730,4 +1730,6 @@ return {
     ["Ctrl"] = "Ctrl",
     ["Alt"] = "Alt",
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "按下按鍵時按住 Shift、Ctrl 或 Alt，可以設定像 Shift+F5 這樣的組合鍵。組合鍵只在恰好按住這些鍵時才會觸發，一般按鍵在按住其中任何一個時不會觸發。遊戲中 Shift 用於衝刺，Ctrl 用於閃避，Alt 用於開啟武器輪盤，所以 V 也會做出這些動作。",
+    ["Disk space"] = "磁碟空間",
+    ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "你的 {drive} 磁碟快滿了（剩餘 {free} GB）。請騰出空間，讓模組能儲存日誌和記憶。",
 }

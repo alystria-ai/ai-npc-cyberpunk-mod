@@ -1730,4 +1730,6 @@ return {
     ["Ctrl"] = "Ctrl",
     ["Alt"] = "Alt",
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Tartsd lenyomva a Shift, Ctrl vagy Alt billentyűt, miközben megnyomsz egy billentyűt, így kombinációt állítasz be, például Shift+F5. A kombináció csak pontosan ezekkel a lenyomott billentyűkkel fut le, az egyszerű billentyű pedig nem fut le, amíg valamelyik le van nyomva. A játékban a Shift sprintel, a Ctrl kitér, az Alt pedig megnyitja a fegyverkereket, így V is ezt teszi.",
+    ["Disk space"] = "Lemezterület",
+    ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "A {drive} meghajtód majdnem tele ({free} GB szabad). Adj helyet, hogy a mod menthesse naplóit és emlékeit.",
 }

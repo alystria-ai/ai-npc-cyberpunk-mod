@@ -1730,4 +1730,6 @@ return {
     ["Ctrl"] = "Strg",
     ["Alt"] = "Alt",
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "Halte Umschalt, Strg oder Alt gedrückt, während du eine Taste drückst, um eine Kombination wie Umschalt+F5 festzulegen. Eine Kombination läuft nur, wenn genau diese Tasten gehalten werden, und eine einfache Taste läuft nicht, solange eine davon gehalten wird. Im Spiel sprintet Umschalt, Strg weicht aus und Alt öffnet das Waffenrad, also tut V das ebenfalls.",
+    ["Disk space"] = "Speicherplatz",
+    ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "Dein Laufwerk {drive} ist fast voll ({free} GB frei). Gib Platz frei für Logs und Erinnerungen des Mods.",
 }

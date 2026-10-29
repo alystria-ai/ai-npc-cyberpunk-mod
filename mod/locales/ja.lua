@@ -1730,4 +1730,6 @@ return {
     ["Ctrl"] = "Ctrl",
     ["Alt"] = "Alt",
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "キーを押すときに Shift、Ctrl、Alt を押したままにすると、Shift+F5 のような組み合わせを設定できます。組み合わせは、ちょうどそのキーを押している間だけ動作し、単独のキーはいずれかを押している間は動作しません。ゲームでは Shift でダッシュ、Ctrl で回避、Alt でウェポンホイールが開くため、V もそれを行います。",
+    ["Disk space"] = "ディスク容量",
+    ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "ドライブ {drive} の空きがわずか（残り{free}GB）です。ログと記憶を保存できるよう、空けてください。",
 }

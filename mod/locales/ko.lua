@@ -1730,4 +1730,6 @@ return {
     ["Ctrl"] = "Ctrl",
     ["Alt"] = "Alt",
     ["Hold Shift, Ctrl or Alt while you press a key to set a combination such as Shift+F5. A combination runs only with exactly those keys held, and a plain key does not run while one is held. In the game Shift sprints, Ctrl dodges and Alt opens the weapon wheel, so V does that too."] = "키를 누를 때 Shift, Ctrl 또는 Alt를 함께 누르고 있으면 Shift+F5 같은 조합을 설정할 수 있습니다. 조합은 정확히 그 키들을 누르고 있을 때만 작동하고, 단독 키는 그중 하나를 누르고 있으면 작동하지 않습니다. 게임에서는 Shift는 질주, Ctrl은 회피, Alt는 무기 휠 열기에 쓰이므로 V도 그 동작을 합니다.",
+    ["Disk space"] = "디스크 공간",
+    ["Your {drive} drive is almost full ({free} GB free). Free space so the mod can save logs and memories."] = "{drive} 드라이브의 여유 공간이 거의 없어요 ({free} GB 남음). 로그와 기억 저장 공간을 확보하세요.",
 }

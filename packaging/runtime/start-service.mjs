@@ -80,6 +80,9 @@ if (insideVfs === 'yes') {
   try { usvfsCompat = await import('./usvfs-compat.mjs'); usvfsCompat.installUsvfsCompat(); }
   catch (error) { usvfsCompat = null; note(`Mod Organizer 2 support could not be loaded: ${error?.stack || error}`); }
 }
+// A full disk or a closed output never ends this process through a log line (bridge/safe-streams.mjs). The file is part of the code the Scripts
+// install, so a Runtime without it only means no guard.
+try { await import('../bridge/safe-streams-install.mjs'); } catch { /* the guard is an extra */ }
 const canReachGame = existsSync(resolve(gameRoot, MOD_FOLDER, 'init.lua'));
 const insideGame = folder => { const away = relative(resolve(gameRoot), folder); return away === '' || (!away.startsWith('..') && !isAbsolute(away)); };
 // 'inside', 'outside', or 'in an MO2 mod' (started through the game folder, running from its real place elsewhere).

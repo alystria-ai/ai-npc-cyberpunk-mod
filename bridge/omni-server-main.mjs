@@ -22,6 +22,7 @@ import {networkInterfaces} from 'node:os';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFile} from 'node:child_process';
+import {installSafeStreams} from './safe-streams.mjs';
 import {ResidentVoice} from './resident-voice.mjs';
 import {OmniServer} from './omni-server.mjs';
 import {DEFAULT_LISTEN, DEFAULT_PORT} from './omni-remote.mjs';
@@ -178,5 +179,6 @@ export async function main(argv = process.argv.slice(2)) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  installSafeStreams();   // a full disk or a closed window never ends the server through a log line
   main().then(code => { if (code) process.exit(code); }, error => { console.error(error?.stack ?? error); process.exit(1); });
 }
