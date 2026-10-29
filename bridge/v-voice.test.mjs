@@ -824,6 +824,21 @@ test('Voxtral: V\'s line is asked of the cloud voice at once; no Pocket worker i
   for (const name of ['voiceStart', 'ttsSent', 'firstPcm', 'audible', 'ended']) assert.ok(name in calls.reports[0].marks, name);
 });
 
+test('Voxtral: a V line the cloud voice fails (no audio within its time, a refusal, no network) is dropped as failed and shown as text; no Pocket worker is asked for anything', async () => {
+  // Owner rule (2026-10-21): a cloud voice loads no local model, not even as a backup. Report b333a5fbbcd21571 (29 Oct 2026, 'Voxtral gave no audio within 5000 ms')
+  // showed 'voiceActive: pocket' in the choices: that is the label of the route the cloud voice runs on (VoiceSelection.cloudActive), with voiceState 'remote'
+  // (no worker loaded), not a Pocket voice. This pins what V's line does on a failure.
+  for (const message of ['Voxtral gave no audio within 5000 ms [voxtral:timeout]', 'Voxtral refused this line (guardrail) [voxtral:content]', 'Voxtral is unreachable [voxtral:network]']) {
+    const {voice, seen} = engineFeature({engine: 'voxtral', cloudStream: async () => { throw Error(message); }});
+    const made = voice.start(typed(), {clock: new TurnClock()});
+    assert.ok(made, message);
+    await until(() => made.state === 'dropped', 'the failed line to be dropped');
+    assert.equal(made.reason, 'failed', message);
+    assert.match(made.failure, /voxtral/i, 'the failure names the cloud voice');
+    assert.deepEqual(seen.main.concat(seen.own, seen.ownReady, seen.mainPrepare, seen.ownPrepare), [], 'no Pocket worker is asked to say it instead: ' + message);
+  }
+});
+
 test('Voxtral: a line that is not audible when the reply is ready is dropped, never waited for', async () => {
   let release;
   const gate = new Promise(done => { release = done; });
