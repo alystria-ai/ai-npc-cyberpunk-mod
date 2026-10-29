@@ -71,12 +71,14 @@ export function levelOf(points) {
  * The `bonds` block of a request (mod/bonds.lua attach): {version: 1, on: true, copy?}, sent only while the setting is on, for a private turn V sends.
  * `copy`: 'party' | 'visitor' | 'housemate' when the character is one of V's own copies. Phase 2 adds three flags, each present only when true:
  * `packs` (Settings > Gameplay > Story packs is on), `invitations` (Immersive invitations is on), `eddies` (Eddies with characters is on) and `busy` (a scene, a dialogue choice, combat, a game
- * call or a chase: no pack starts or moves now). Returns {on: true, copy, packs?, invitations?, busy?} or null.
+ * call or a chase: no pack starts or moves now). Round 2 adds `reach` (Settings > Gameplay > Characters text first is on: the characters' reach-outs, default on in the game).
+ * Returns {on: true, copy, packs?, invitations?, eddies?, busy?, reach?} or null.
  */
 export function parseBonds(value) {
   if (!plain(value) || value.version !== 1 || value.on !== true) return null;
   return {on: true, copy: COPIES.has(value.copy) ? value.copy : null, ...(value.packs === true ? {packs: true} : {}),
-    ...(value.invitations === true ? {invitations: true} : {}), ...(value.eddies === true ? {eddies: true} : {}), ...(value.busy === true ? {busy: true} : {})};
+    ...(value.invitations === true ? {invitations: true} : {}), ...(value.eddies === true ? {eddies: true} : {}), ...(value.busy === true ? {busy: true} : {}),
+    ...(value.reach === true ? {reach: true} : {})};
 }
 
 /** Who gets a bond: a named character (not an ordinary NPC, an add-on voice or a model-only copy). */

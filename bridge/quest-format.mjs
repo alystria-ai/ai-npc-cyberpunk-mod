@@ -255,6 +255,14 @@ function checkReferences(entries, ctx, where, fail) {
     if ((spec.p === 'call-in' || spec.p === 'call-script') && spec.call !== undefined && !ctx.calls?.has(spec.call)) fail(`${where}: ${spec.p}.call ${JSON.stringify(String(spec.call)).slice(0, 40)} is not one of the pack's calls`);
     if (spec.p === 'memory-share' && !(typeof spec.to === 'string' && PROFILE_KEY.test(spec.to))) fail(`${where}: memory-share.to must be a profile key`);
     if (spec.p === 'gift' && spec.dir === 'receive' && spec.tier === undefined && spec.item === undefined) fail(`${where}: a gift the character gives needs a tier or an item`);
+    if (spec.p === 'gift') {
+      // A shipped pack may name any Items.* record; a community pack only the allowlist (characters/gift-tables.json).
+      for (const field of ['item', 'second']) {
+        if (spec[field] === undefined) continue;
+        if (!/^Items\.[A-Za-z0-9_]{2,80}$/.test(String(spec[field]))) fail(`${where}: gift.${field} must be an Items.* record`);
+        else if (ctx.community === true && !(typeof ctx.giftAllowed === 'function' && ctx.giftAllowed(spec[field]))) fail(`${where}: gift.${field} ${JSON.stringify(String(spec[field])).slice(0, 50)} is not on the gift allowlist`);
+      }
+    }
     if (spec.p === 'pay' && spec.min !== undefined && spec.min > spec.amount) fail(`${where}: pay.min is above the amount`);
     if (spec.p === 'apart' && spec.inner !== undefined && spec.outer !== undefined && spec.inner >= spec.outer) fail(`${where}: apart.inner must be below apart.outer`);
     if (spec.p === 'bout' && spec.a === spec.b) fail(`${where}: a bout needs two different fighters`);

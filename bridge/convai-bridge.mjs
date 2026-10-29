@@ -111,6 +111,8 @@ import {EddiesDecisions, romanceOf} from './eddies.mjs';
 import {Bonds, BondStore} from './bonds.mjs';
 import {BondPacks} from './bond-pack-runner.mjs';
 import {QuestLink} from './quest-link.mjs';
+import {createFactsReader} from './quest-facts.mjs';
+import {syncAllowlist} from './gift-tables.mjs';
 import {createQuestPoller} from './quest-poller.mjs';
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
@@ -1191,8 +1193,12 @@ const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-s
 // Story packs (Settings > Gameplay > Story packs, bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
 // (<state>/bond-packs.json, every step stamped with the game clock); what the game is asked to do goes to runtime/bond-effects.json.
 const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)), path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json'),
-  bonds, log: line => console.error('[BondPacks] ' + line)});
+  bonds, log: line => console.error('[BondPacks] ' + line),
+  // The quest facts the game reports (runtime/quest-facts.json, bridge/quest-facts.mjs): looked at only when a gate asks, and then at most every few seconds.
+  readFacts: createFactsReader({path: resolve(runtime, 'quest-facts.json')})});
 await bondPacks.load().catch(() => {});
+// The gift allowlist the game checks community gifts against (characters/gift-tables.json): written once at the service start, only when it is missing or changed.
+void syncAllowlist({path: resolve(runtime, 'quest-gift-allowlist.json')});
 bonds.packSource = bondPacks.source();
 // Quest primitives (docs/QUEST_PRIMITIVES.md section 4): the quest the game is to execute goes to runtime/quest-play.json (written when the pack state changes), and what the game saw
 // comes back through runtime/quest-events.json. The events file is read every 500 ms only while a quest is active: the timer exists only then (bridge/quest-poller.mjs), so with no quest
@@ -1652,6 +1658,8 @@ const packTurn = (input, prepared, admitted) => {
   return bondPacks.forTurn(input, {...facts, level: bonds.levelFor(input, facts) ?? 0});
 };
 function publishBonds(input, result, proposal = null) {
+  // V's words to a quest's cast member are read once for an amount, yes or no, after the reply is out (bridge/quest-pay.mjs).
+  if (input?.quest && bondPacks.afterPay(input, result?.userText)) questSync();
   if (!input?.bonds) return;
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   bonds.recordTurn(input, result?.userText, bondFacts(input, prepared, admitted));
@@ -1691,6 +1699,8 @@ const conversationBlocks = input => {
     ...addonHost.blocks(input),
     block('world', bondNote(input, prepared, admitted)),
     block('volatile', packTurn(input, prepared, admitted)?.note ?? ''),
+    // The cast member of an armed pay stage is told what is asked and the least it takes (bridge/quest-pay.mjs); '' for every other turn.
+    block('volatile', input.quest ? bondPacks.payNote(input) : ''),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),

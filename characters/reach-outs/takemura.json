@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "character": "takemura",
+  "requires": {
+    "facts": {"takemura-alive": true}
+  },
+  "triggers": [
+    {
+      "id": "tk-rescue",
+      "via": "text",
+      "text": "The estate is quiet. I am not. Meet me when you can.",
+      "after": [{"kind": "quest", "path": "quests/main_quest/act_01/q113_rescuing_hanako"}],
+      "once": true,
+      "note": "The rescue, Hanako's state as the save shows it, and his own oath."
+    },
+    {
+      "id": "tk-bond6",
+      "via": "text",
+      "text": "I have drunk proper tea for seven days. I thought of you. I do not know why.",
+      "after": [{"kind": "bond", "level": 6}],
+      "once": true,
+      "note": "Tea and the last meal quest."
+    },
+    {
+      "id": "tk-dawn",
+      "via": "text",
+      "text": "Sunrise. I take mine standing. You may sit.",
+      "when": {"kind": "hours", "from": 6, "to": 7},
+      "cooldownDays": 5,
+      "note": "The hour and V's last night."
+    },
+    {
+      "id": "tk-japantown",
+      "via": "text",
+      "text": "You are in Japantown. I can smell your coffee from here.",
+      "when": {"kind": "district", "is": "Japantown"},
+      "minBond": 5,
+      "cooldownDays": 4,
+      "note": "The district and V's last visit."
+    },
+    {
+      "id": "tk-heat-trouble",
+      "via": "call",
+      "text": "I heard of the trouble. Report. Briefly.",
+      "when": {"kind": "fight-end", "heatAtLeast": 3},
+      "cooldownDays": 3,
+      "note": "The incident and V's wounds."
+    },
+    {
+      "id": "tk-bond8",
+      "via": "call",
+      "text": "I have been thinking about loyalty. I would like your view. Over tea.",
+      "after": [{"kind": "bond", "level": 8}],
+      "once": true,
+      "note": "The pier, the clerk, and his word."
+    },
+    {
+      "id": "tk-idle",
+      "via": "text",
+      "text": "I wished to say nothing and found it long.",
+      "after": [{"kind": "idle-days", "days": 10}],
+      "cooldownDays": 10,
+      "note": "The last topic."
+    }
+  ]
+}

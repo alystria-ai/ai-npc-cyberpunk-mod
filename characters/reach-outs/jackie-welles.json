@@ -1,0 +1,53 @@
+{
+  "format": 1,
+  "character": "jackie-welles",
+  "requires": {
+    "questsFinished": ["quests/main_quest/prologue/q001_01_victor", "quests/main_quest/prologue/q001_02_dex"],
+    "before": ["quests/main_quest/prologue/q005_heist"],
+    "window": {
+      "allowActive": ["quests/main_quest/prologue/q003", "quests/main_quest/prologue/q004", "quests/main_quest/prologue/q005"],
+      "untracked": true
+    }
+  },
+  "triggers": [
+    {
+      "id": "jk-level-up",
+      "via": "text",
+      "text": "Hey, choom. Level up! That's friendship, hermano. Real. Let's celebrate.",
+      "after": [{"kind": "bond", "levels": [2, 3, 4, 5, 6]}],
+      "note": "The new level title. He is excited and suggests a hangout."
+    },
+    {
+      "id": "jk-noon",
+      "via": "text",
+      "text": "Noon and I'm starving. Where are you? Let's eat. I'm buying. ... Okay, you're buying.",
+      "when": {"kind": "hours", "from": 12, "to": 14},
+      "cooldownDays": 1,
+      "note": "The hour. Food is his way of showing love. He knows no place by name except Little China."
+    },
+    {
+      "id": "jk-pickup",
+      "via": "call",
+      "text": "That job. The Maelstrom. Hermano, I've seen that crowd. Be careful, yeah?",
+      "after": [{"kind": "quest", "path": "quests/main_quest/prologue/q003_maelstrom"}],
+      "once": true,
+      "note": "The result of The Pickup, his distrust of the Maelstrom, and the Valentino code."
+    },
+    {
+      "id": "jk-evening-tea",
+      "via": "text",
+      "text": "Misty's making tea. Come by. Bring nothing. Or bring tacos.",
+      "when": {"kind": "hours", "from": 19, "to": 22},
+      "cooldownDays": 1.5,
+      "note": "Misty's shop in Little China, Viktor's clinic behind it, and his plans."
+    },
+    {
+      "id": "jk-afterlife",
+      "via": "call",
+      "text": "Look at the Afterlife. One day they'll chant my name. Tell me I'm not crazy.",
+      "when": {"kind": "district", "is": "Watson", "minutes": 5},
+      "cooldownDays": 1,
+      "note": "His dream of legend, the Afterlife, and Rogue's booth. No mention of any outcome."
+    }
+  ]
+}

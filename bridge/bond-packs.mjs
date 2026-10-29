@@ -7,6 +7,8 @@ import {readFileSync, readdirSync} from 'node:fs';
 import {EDDIES_CAP, FLOWS} from './eddies.mjs';
 import {shippedBondArcs, inventoryComplete, questState, questStates, finished} from './bonds.mjs';
 import {usesFormat2, checkPackExtras, checkStagePlay, checkEndingPlay, eventProblem} from './quest-format.mjs';
+import {factProblem, factMatches} from './quest-facts.mjs';
+import {isAllowedGift} from './gift-tables.mjs';
 
 export const PACK_FORMAT = 1;
 /** Format 2 adds places, lines, gaps, images, the play stage type with `do` and `script`, event choices and an ending's history (bridge/quest-format.mjs, docs/QUEST_PRIMITIVES.md). */
@@ -23,22 +25,64 @@ export const KNOWN_STAGE_TYPES = Object.freeze(['talk', 'play']);
 const STAGE_TYPE = /^[a-z][a-z0-9-]{1,31}$/;
 /** A stage's picture: a file shipped inside the pack, made ahead of time (nothing is generated while playing). Data only: nothing shows it yet. */
 export const IMAGE_FILE = /^images\/[a-z0-9][a-z0-9_\/-]{0,80}\.(?:png|jpe?g|webp)$/;
+/** A pack is a story `quest` (the default) or a repeatable free-time `hangout` (docs/QUEST_PRIMITIVES.md 10.8). */
+export const PACK_KINDS = Object.freeze(['quest', 'hangout']);
+/** The hangout block's defaults and bounds: repeat after N game days, at most N bond points per character per game day, the bond for being stood up, 1 to 3 variations. */
+export const HANGOUT_DEFAULTS = Object.freeze({repeatDays: 3, capPerDay: 20, stoodUp: -10});
+export const HANGOUT_LIMITS = Object.freeze({repeatDays: [1, 30], capPerDay: [1, 100], stoodUp: [-50, 0], variations: 3, know: 600, wants: 300});
 export const MEET_PLACES = Object.freeze(['here', 'home', 'waypoint']);
 /** How a choice is taken: the character's tag (checked against V's words), an Eddies transfer of a flow, or an invitation's outcome. */
 export const CHOICE_ON = /^(?:tag|eddies:(?:loanToV|loanFromV|repayByV|repayToV|giftFromV|giftToV)|meet:(?:met|stood-up)|event:[A-Za-z0-9][A-Za-z0-9:_.-]{0,79})$/;
 const ID = /^[a-z][a-z0-9-]{2,47}$/;
 const STAGE_ID = /^[a-z][a-z0-9-]{0,31}$/;
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
-const PATH = /^(?:ep1\/)?quests\/[a-z0-9_/]{3,160}$/;
+export const JOURNAL_PATH = /^(?:ep1\/)?quests\/[a-z0-9_/]{3,160}$/;
+const PATH = JOURNAL_PATH;
 const LANGUAGE = /^[a-z]{2}(?:-[a-z]{2})?$/;
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const text = (value, max) => typeof value === 'string' && value.trim() !== '' && value.length <= max && !/[\u0000-\u0008\u000b-\u001f]/.test(value);
 
 /**
- * Checks one pack. `characters`: the profile keys that exist (a Set); `arcs`: the bond arcs data. Returns {ok, errors}: every error found, each a short
- * English sentence with the place ("stage ask: ...").
+ * The generic gate fields of a `requires` object (a pack's or a reach-out file's): quest paths, the bond level and the gate-plus fields.
+ * Returns {done, succeeded}. Pack-only fields (relationship, eddies, invitations, after) are checked by validatePack.
  */
-export function validatePack(pack, {characters = null, arcs = shippedBondArcs()} = {}) {
+export function checkRequires(requires, fail) {
+  const pathList = (value, name, prefixes = false) => {
+    if (value === undefined) return [];
+    if (!Array.isArray(value) || value.length > PACK_LIMITS.paths || value.some(path => typeof path !== 'string' || !PATH.test(path))) {
+      fail(`requires.${name} must be a list of up to ${PACK_LIMITS.paths} journal ${prefixes ? 'path prefixes' : 'paths'}`);
+      return [];
+    }
+    return value;
+  };
+  const done = pathList(requires.questsFinished, 'questsFinished');
+  const succeeded = pathList(requires.questsSucceeded, 'questsSucceeded');
+  pathList(requires.notActive, 'notActive', true);
+  // Gate-plus (docs/QUEST_PRIMITIVES.md 10.9): facts the game reads, quests not yet finished or begun, and a window that lets a quest of some lines be active when it is not tracked.
+  pathList(requires.before, 'before'); pathList(requires.notBegun, 'notBegun');
+  if (requires.facts !== undefined) {
+    if (!plain(requires.facts) || Object.keys(requires.facts).length === 0 || Object.keys(requires.facts).length > 4) fail('requires.facts must be an object of 1 to 4 facts');
+    else for (const [id, expected] of Object.entries(requires.facts)) { const problem = factProblem(id, expected); if (problem) fail(`requires.facts: ${problem}`); }
+  }
+  if (requires.window !== undefined) {
+    const window = requires.window;
+    if (!plain(window) || Object.keys(window).some(key => !['allowActive', 'untracked'].includes(key))) fail('requires.window may only have allowActive and untracked');
+    else {
+      pathList(window.allowActive, 'window.allowActive', true);
+      if (!Array.isArray(window.allowActive) || window.allowActive.length === 0) fail('requires.window.allowActive must list some journal path prefixes');
+      if (window.untracked !== true) fail('requires.window.untracked must be true (a quest of those lines may be active only when V is not tracking it)');
+    }
+  }
+  if (requires.bond !== undefined && !(Number.isInteger(requires.bond) && requires.bond >= 1 && requires.bond <= 10)) fail('requires.bond must be a level from 1 to 10');
+  return {done, succeeded};
+}
+
+/**
+ * Checks one pack. `characters`: the profile keys that exist (a Set); `arcs`: the bond arcs data. Returns {ok, errors}: every error found, each a short
+ * English sentence with the place ("stage ask: ..."). `community`: the pack comes from a content pack, not from the mod: it may not use the trusted-only primitives
+ * (garage) and its gifts may name only items of the allowlist (`giftAllowed`, bridge/gift-tables.mjs).
+ */
+export function validatePack(pack, {characters = null, arcs = shippedBondArcs(), community = false, giftAllowed = isAllowedGift} = {}) {
   const errors = [], warnings = [];
   const fail = message => { errors.push(message); };
   if (!plain(pack)) return {ok: false, errors: ['the pack is not an object']};
@@ -52,23 +96,15 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
 
   // Format 2: the places, lines, gaps and pictures the stages refer to.
   const quest = pack.format === 2 ? checkPackExtras(pack, fail, message => warnings.push(message)) : {places: new Set(), lines: new Map(), gaps: new Map(), images: new Map()};
+  quest.community = community === true;
+  quest.giftAllowed = community === true ? giftAllowed : null;
+  const hangout = checkKind(pack, quest, fail);
 
   // The gate.
   const requires = pack.requires;
   if (!plain(requires)) fail('requires must be an object');
-  const pathList = (value, name, prefixes = false) => {
-    if (value === undefined) return [];
-    if (!Array.isArray(value) || value.length > PACK_LIMITS.paths || value.some(path => typeof path !== 'string' || !PATH.test(path))) {
-      fail(`requires.${name} must be a list of up to ${PACK_LIMITS.paths} journal ${prefixes ? 'path prefixes' : 'paths'}`);
-      return [];
-    }
-    return value;
-  };
-  const done = plain(requires) ? pathList(requires.questsFinished, 'questsFinished') : [];
-  const succeeded = plain(requires) ? pathList(requires.questsSucceeded, 'questsSucceeded') : [];
+  const {done, succeeded} = plain(requires) ? checkRequires(requires, fail) : {done: [], succeeded: []};
   if (plain(requires)) {
-    pathList(requires.notActive, 'notActive', true);
-    if (requires.bond !== undefined && !(Number.isInteger(requires.bond) && requires.bond >= 1 && requires.bond <= 10)) fail('requires.bond must be a level from 1 to 10');
     if (requires.relationship !== undefined && !RELATIONSHIPS.includes(requires.relationship)) fail(`requires.relationship must be one of ${RELATIONSHIPS.join(', ')}`);
     if (requires.eddies !== undefined && typeof requires.eddies !== 'boolean') fail('requires.eddies must be true or false');
     if (requires.invitations !== undefined && typeof requires.invitations !== 'boolean') fail('requires.invitations must be true or false');
@@ -185,6 +221,12 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
     if (pack.format === 2) checkEndingPlay(ending, id, quest, `ending ${id}`, fail);
     if (ending?.bond !== undefined && !(Number.isInteger(ending.bond) && Math.abs(ending.bond) <= PACK_LIMITS.bondReward)) fail(`ending ${id}: bond must be a whole number from -${PACK_LIMITS.bondReward} to ${PACK_LIMITS.bondReward}`);
   }
+  if (pack.unfinishedWhen !== undefined) {
+    const when = pack.unfinishedWhen;
+    if (!plain(when) || Object.keys(when).some(key => !['finished', 'ending'].includes(key)) || typeof when.finished !== 'string' || !PATH.test(when.finished)) {
+      fail('unfinishedWhen needs finished (a journal quest path) and ending');
+    } else if (typeof when.ending !== 'string' || !endingIds.has(when.ending)) fail("unfinishedWhen.ending must be one of the pack's endings");
+  }
   // Every stage is reachable from the first, every ending is reachable, and every stage can reach an ending (the arc always ends).
   if (stages?.length && plain(stages[0]) && targets.size === stageIds.size) {
     const reach = new Set([stages[0].id]), queue = [stages[0].id];
@@ -200,7 +242,42 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
     for (const id of stageIds) if (!ends.has(id)) fail(`stage ${id} never reaches an ending`);
   }
   if (hasMeet && requires?.invitations === false) fail('a pack with a meeting cannot say it does not need invitations');
+  if (hangout && stages?.length !== 1) fail('a hangout is a one-stage pack');
   return {ok: errors.length === 0, errors, warnings};
+}
+
+/** The pack's `kind` and `hangout` block (docs/QUEST_PRIMITIVES.md 10.8). Returns whether the pack is a hangout. */
+function checkKind(pack, quest, fail) {
+  if (pack.kind !== undefined && !PACK_KINDS.includes(pack.kind)) { fail(`kind must be one of ${PACK_KINDS.join(', ')}`); return false; }
+  const isHangout = pack.kind === 'hangout';
+  if (!isHangout) { if (pack.hangout !== undefined) fail('hangout needs kind "hangout"'); return false; }
+  if (pack.format !== 2) fail('a hangout needs format 2');
+  const block = pack.hangout;
+  if (!plain(block)) { fail('a hangout needs a hangout block with its variations'); return true; }
+  const limits = HANGOUT_LIMITS;
+  for (const key of Object.keys(block)) if (!['repeatDays', 'capPerDay', 'stoodUp', 'variations'].includes(key)) fail(`hangout has no field ${JSON.stringify(key).slice(0, 30)}`);
+  for (const [key, [low, high]] of [['repeatDays', limits.repeatDays], ['capPerDay', limits.capPerDay], ['stoodUp', limits.stoodUp]]) {
+    if (block[key] !== undefined && !(Number.isInteger(block[key]) && block[key] >= low && block[key] <= high)) fail(`hangout.${key} must be a whole number from ${low} to ${high}`);
+  }
+  const list = block.variations;
+  if (!Array.isArray(list) || list.length < 1 || list.length > limits.variations) { fail(`hangout.variations must be a list of 1 to ${limits.variations}`); return true; }
+  const seen = new Set();
+  for (const item of list) {
+    if (!plain(item) || typeof item.id !== 'string' || !STAGE_ID.test(item.id) || seen.has(item.id)) { fail('every variation needs its own id'); continue; }
+    seen.add(item.id);
+    const where = `variation ${item.id}`;
+    for (const key of Object.keys(item)) if (!['id', 'know', 'wants', 'places'].includes(key)) fail(`${where}: no field ${JSON.stringify(key).slice(0, 30)}`);
+    if (item.know !== undefined && !text(item.know, limits.know)) fail(`${where}: know must be 1 to ${limits.know} characters`);
+    if (item.wants !== undefined && !text(item.wants, limits.wants)) fail(`${where}: wants must be 1 to ${limits.wants} characters`);
+    if (typeof item.know === 'string' && item.know.includes(';')) fail(`${where}: know has a semicolon`);
+    if (item.places !== undefined) {
+      if (!plain(item.places) || Object.keys(item.places).length === 0 || Object.keys(item.places).length > 8) fail(`${where}: places must map 1 to 8 place ids to place ids`);
+      else for (const [from, to] of Object.entries(item.places)) {
+        if (!quest.places.has(from) || typeof to !== 'string' || !quest.places.has(to)) fail(`${where}: places ${JSON.stringify(from).slice(0, 30)} to ${JSON.stringify(String(to)).slice(0, 30)} must both be places of the pack`);
+      }
+    }
+  }
+  return true;
 }
 
 function checkLine(value, where, fail) {
@@ -216,6 +293,51 @@ export function blockingPrefixes(pack, arcs = shippedBondArcs()) {
 }
 
 /**
+ * The path of V's tracked quest in a parsed journal inventory: a string, `null` (V tracks nothing) or `undefined` (not known: the gate treats that as a no where the
+ * tracked quest matters).
+ */
+export function trackedPathOf(history) {
+  const tracked = history?.tracked;
+  if (tracked?.status === 'untracked') return null;
+  if (tracked?.status !== 'known') return undefined;
+  const row = (Array.isArray(history.quests) ? history.quests : []).find(quest => quest?.id === tracked.questId);
+  return typeof row?.nativePath === 'string' ? row.nativePath : undefined;
+}
+
+/**
+ * The first active quest that stops the pack (or null): one under a blocking prefix (blockingPrefixes). A `requires.window` lets a quest of its `allowActive` lines be
+ * active when it is not the quest V tracks (`tracked`: a path, null or undefined, see trackedPathOf; scenes are the `busy` flag's).
+ */
+export function blockingQuest(pack, index, {tracked, arcs = shippedBondArcs()} = {}) {
+  const window = pack?.requires?.window;
+  const allow = window?.untracked === true && Array.isArray(window.allowActive) ? window.allowActive : [];
+  for (const prefix of blockingPrefixes(pack, arcs)) {
+    for (const [path, state] of index.byPath) {
+      if (state !== 'active' || !path.startsWith(prefix)) continue;
+      if (allow.some(allowed => path.startsWith(allowed)) && tracked !== undefined && path !== tracked) continue;
+      return path;
+    }
+  }
+  return null;
+}
+
+/**
+ * The journal and fact part of a gate (shared by a pack's gate and a character's reach-outs): `requires.questsFinished / questsSucceeded / before / notBegun / facts`,
+ * the quest lines that may not be active (with the window) and the complete-inventory rule. {open: true} or {open: false, why}. Missing data is always a no.
+ */
+export function journalGate(pack, {journalHistory = null, facts = null, tracked, arcs = shippedBondArcs()} = {}) {
+  const requires = pack?.requires ?? {};
+  if (!inventoryComplete(journalHistory)) return {open: false, why: 'journal-unknown'};
+  for (const path of requires.questsFinished ?? []) if (!finished(questState(journalHistory, path))) return {open: false, why: 'quest-not-finished'};
+  for (const path of requires.questsSucceeded ?? []) if (questState(journalHistory, path) !== 'succeeded') return {open: false, why: 'quest-not-succeeded'};
+  for (const path of requires.before ?? []) if (finished(questState(journalHistory, path))) return {open: false, why: 'before'};
+  for (const path of requires.notBegun ?? []) if (questState(journalHistory, path) !== undefined) return {open: false, why: 'begun'};
+  for (const [id, expected] of Object.entries(requires.facts ?? {})) if (!factMatches(facts, id, expected)) return {open: false, why: 'fact'};
+  if (blockingQuest(pack, questStates(journalHistory), {tracked: tracked === undefined ? trackedPathOf(journalHistory) : tracked, arcs})) return {open: false, why: 'quest-active'};
+  return {open: true};
+}
+
+/**
  * The plot-safety gate of a pack (docs section 8): {open: true} or {open: false, why}. Missing data is always a no.
  *   level          the character's bond level now
  *   journalHistory the turn's parsed journal inventory (bridge/journal-history.mjs)
@@ -224,9 +346,11 @@ export function blockingPrefixes(pack, arcs = shippedBondArcs()) {
  *   settings       {eddies, invitations}: whether those settings are on
  *   finishedPacks  the ids of this character's finished packs (a Set)
  *   busy           a scene, a choice, combat, a game call or a chase
+ *   facts          the quest facts the game reported ({id: value}, bridge/quest-facts.mjs); a fact the pack needs and the game has not reported is a no
+ *   tracked        the quest path V tracks (null: none; undefined: worked out from the journal inventory), for `requires.window`
  */
 export function packGate(pack, {level = 0, journalHistory = null, romance = null, channel = 'story', settings = {}, finishedPacks = new Set(), busy = false,
-  arcs = shippedBondArcs()} = {}) {
+  facts = null, tracked, arcs = shippedBondArcs()} = {}) {
   const requires = pack?.requires ?? {};
   if (busy) return {open: false, why: 'busy'};
   if (!CHANNELS.includes(channel) || !(pack?.start?.channels ?? []).includes(channel)) return {open: false, why: 'channel'};
@@ -235,14 +359,7 @@ export function packGate(pack, {level = 0, journalHistory = null, romance = null
   if (requires.relationship === 'partner' && romance !== 'partner') return {open: false, why: 'relationship'};
   if (requires.relationship === 'not-partner' && romance === 'partner') return {open: false, why: 'relationship'};
   for (const id of requires.after ?? []) if (!finishedPacks.has(id)) return {open: false, why: 'after'};
-  if (!inventoryComplete(journalHistory)) return {open: false, why: 'journal-unknown'};
-  for (const path of requires.questsFinished ?? []) if (!finished(questState(journalHistory, path))) return {open: false, why: 'quest-not-finished'};
-  for (const path of requires.questsSucceeded ?? []) if (questState(journalHistory, path) !== 'succeeded') return {open: false, why: 'quest-not-succeeded'};
-  const index = questStates(journalHistory);
-  for (const prefix of blockingPrefixes(pack, arcs)) {
-    for (const [path, state] of index.byPath) if (state === 'active' && path.startsWith(prefix)) return {open: false, why: 'quest-active'};
-  }
-  return {open: true};
+  return journalGate(pack, {journalHistory, facts, tracked, arcs});
 }
 
 /** The shipped packs (characters/bond-packs/*.json), parsed, in file-name order: [{file, pack}]. */
