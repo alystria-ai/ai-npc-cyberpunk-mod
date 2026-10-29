@@ -122,7 +122,7 @@ test('the first load names the half to replace in one notice, once, and the cons
 
 test('the Help page row names both games and where to get the right half, for each combination', () => {
   const cases = [
-    ['2.5', '2.31', '2.5', ['Your game is 2.5 but the Runtime is the one for game 2.31.', 'Get the full install zip for game 2.5 from the mod’s Nexus Mods page', 'game-2.31 folder']],
+    ['2.5', '2.31', '2.5', ['Your game is 2.5 but the Runtime is the one for game 2.31.', 'Get the full install zip for game 2.5 from the mod’s Nexus Mods page', 'optional file for game 2.31']],
     ['2.5', '2.31', '2.31', ['Your game is 2.31 but the Scripts are the build for game 2.5.', 'Get the update zip for game 2.31 from the mod’s Nexus Mods page', 'optional update file']],
     ['2.5', '2.5', '2.31', ['Your game is 2.31 but the Scripts and the Runtime are the build for game 2.5.', 'Get the full install zip for game 2.31']],
     ['2.5', '2.31', null, ['The Scripts are the build for game 2.5 but the Runtime is the build for game 2.31, and the game version matches neither.']],
