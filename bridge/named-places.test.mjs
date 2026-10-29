@@ -10,8 +10,8 @@ import {parseTurnContext, describeTurnContext, turnContextWhere} from './turn-co
 import {stripSnapshot, KINDS} from './dynamic-info.mjs';
 
 const H10 = NAMED_PLACES.find(place => place.id === 'v-apartment-h10');
-// A list with the Afterlife measured, as a capture would make it.
-const MEASURED = new Map([['afterlife', {x: -1000, y: 1300, z: 40}]]);
+// A list with Misty's measured, as a capture would make it.
+const MEASURED = new Map([['mistys-esoterica', {x: -1000, y: 1300, z: 40}]]);
 
 const snapshot = (extra = {}) => ({version: 1, status: 'ready', hour: 23, minute: 5, district: 'Watson', area: 'LittleChina', vehicle: false, motion: 'still',
   party: [{key: 'judy-alvarez', name: 'Judy Alvarez', activity: 'standing'}], ...extra});
@@ -31,10 +31,28 @@ test('the list: every place has an id the probe can record, a phrase, a radius; 
   for (const wanted of ['afterlife', 'lizzies-bar', 'mistys-esoterica', 'victors-clinic', 'v-apartment-h10', 'toms-diner', 'el-coyote-cojo', 'sunset-motel', 'clouds']) {
     assert.ok(ids.includes(wanted), wanted);
   }
-  assert.equal(NAMED_PLACES.filter(place => Number.isFinite(place.x)).map(place => place.id).join(), 'v-apartment-h10', 'H10 is the one verified position');
-  assert.deepEqual(placesToCapture([...NAMED_PLACES], new Map()).map(item => item.id).sort(),
-    ['afterlife', 'clouds', 'el-coyote-cojo', 'lizzies-bar', 'mistys-esoterica', 'sunset-motel', 'toms-diner', 'victors-clinic']);
-  assert.equal(placesToCapture([...NAMED_PLACES], new Map()).find(item => item.id === 'afterlife').probe, 'quest capture:afterlife');
+  const placed = NAMED_PLACES.filter(place => Number.isFinite(place.x)).map(place => place.id).sort();
+  assert.deepEqual(placed, ['afterlife', 'arasaka-tower-ceo', 'clouds', 'el-coyote-cojo', 'judys-apartment', 'lizzies-bar', 'totentanz', 'v-apartment-corpo', 'v-apartment-h10', 'v-apartment-northside', 'wakakos-office']);
+  assert.ok(!ids.includes('embers'), 'Embers was dropped: its cell height does not fit the street next to it');
+  // The ones still to measure in the game, with the probe that does it.
+  assert.deepEqual(placesToCapture([...NAMED_PLACES], new Map()).map(item => item.id).sort(), ['mistys-esoterica', 'sunset-motel', 'toms-diner', 'victors-clinic']);
+  assert.equal(placesToCapture([...NAMED_PLACES], new Map()).find(item => item.id === 'toms-diner').probe, 'quest capture:toms-diner');
+  // A position names its source, a streaming cell says so and is wide in height, and the sources agree with the repo where the repo has a point of its own.
+  for (const place of NAMED_PLACES.filter(item => Number.isFinite(item.x))) {
+    assert.match(place.source, /^(?:repo|teleport|sector grid):/, place.id);
+    if (/^sector grid/.test(place.source)) assert.ok(place.approx === true && place.dz >= 36, `${place.id}: a streaming cell is approximate`);
+    else assert.ok(!place.approx, place.id);
+  }
+  const near = (x, y, place) => Math.hypot(place.x - x, place.y - y);
+  assert.ok(near(-1606.33, 362.66, NAMED_PLACES.find(item => item.id === 'v-apartment-corpo')) < 15, 'the Corpo Plaza flat agrees with the repo survey entry');
+  assert.ok(near(-1503.80, 2224.92, NAMED_PLACES.find(item => item.id === 'v-apartment-northside')) < 6, 'the Northside flat agrees with the repo survey entry');
+  assert.ok(near(-1385.26, 1272.44, NAMED_PLACES.find(item => item.id === 'v-apartment-h10')) < 3, 'H10 holds the repo\'s Johnny spot');
+  // No two places claim the same spot: horizontal reach and height reach both overlap only for a place inside another, which none is.
+  for (const [index, one] of NAMED_PLACES.entries()) for (const two of NAMED_PLACES.slice(index + 1)) {
+    if (![one.x, two.x].every(Number.isFinite)) continue;
+    const overlap = Math.hypot(one.x - two.x, one.y - two.y) < one.radius + two.radius && Math.abs(one.z - two.z) <= one.dz + two.dz;
+    assert.ok(!overlap, `${one.id} and ${two.id} overlap`);
+  }
 });
 
 test('a position: three finite numbers within the world, rounded to a tenth; anything else is none', () => {
@@ -50,28 +68,28 @@ test('V inside the H10 flat is at the verified place, in its radius and floor on
   assert.equal(namedPlaceAt({x: -1384, y: 1271, z: 140}), null, 'another floor of the tower');
   assert.equal(namedPlaceAt({x: -1384, y: 1271, z: 123}, {district: 'Heywood'}), null, 'the game says another district');
   assert.equal(namedPlaceAt({x: -1384, y: 1271, z: 123}, {district: 'Watson'})?.id, 'v-apartment-h10');
-  assert.equal(namedPlaceAt({x: -1602.3, y: 356.2, z: 48.62}), null, 'the Corpo Plaza flat is not H10');
+  assert.equal(namedPlaceAt({x: -1602.3, y: 356.2, z: 48.62})?.id, 'v-apartment-corpo', 'the old "H10" couch seat is the Corpo Plaza flat (docs/HOUSEMATES.md), not H10');
   assert.equal(namedPlaceAt(null), null);
   assert.equal(namedPlaceAt({x: 'a'}), null);
 });
 
 test('a place with no position is never matched; a measured one is, until the shipped list has it, and the deepest of two overlapping places wins', () => {
-  assert.equal(namedPlaceAt({x: -1000, y: 1300, z: 40}, {measured: new Map()}), null, 'the Afterlife is not measured yet');
-  assert.equal(namedPlaceAt({x: -1000, y: 1300, z: 40}, {measured: MEASURED})?.id, 'afterlife');
+  assert.equal(namedPlaceAt({x: -1000, y: 1300, z: 40}, {measured: new Map()}), null, 'Mistys shop is not measured yet');
+  assert.equal(namedPlaceAt({x: -1000, y: 1300, z: 40}, {measured: MEASURED})?.id, 'mistys-esoterica');
   assert.equal(namedPlaceAt({x: -1000, y: 1330, z: 40}, {measured: MEASURED}), null, 'beyond its 25 m');
   assert.equal(namedPlaceAt({x: -1000, y: 1300, z: 52}, {measured: MEASURED}), null, 'another floor');
-  assert.equal(placesWithPositions(NAMED_PLACES, MEASURED).find(place => place.id === 'afterlife').x, -1000);
+  assert.equal(placesWithPositions(NAMED_PLACES, MEASURED).find(place => place.id === 'mistys-esoterica').x, -1000);
   const list = [{id: 'a', phrase: 'a', x: 0, y: 0, z: 0, radius: 20}, {id: 'b', phrase: 'b', x: 8, y: 0, z: 0, radius: 6}];
   assert.equal(namedPlaceAt({x: 7, y: 0, z: 0}, {list})?.id, 'b');
   assert.equal(namedPlaceAt({x: 2, y: 0, z: 0}, {list})?.id, 'a');
 });
 
 test('the developer probe\'s file: measured positions of the known ids only, a guess (captured false) and bad numbers are left out', () => {
-  const file = JSON.stringify({places: {afterlife: {name: 'afterlife', x: -1000.4, y: 1300.2, z: 40, radius: 8, captured: true, district: 'Watson', area: 'LittleChina'},
+  const file = JSON.stringify({places: {'mistys-esoterica': {name: 'mistys-esoterica', x: -1000.4, y: 1300.2, z: 40, radius: 8, captured: true, district: 'Watson', area: 'LittleChina'},
     clouds: {x: 1, y: 2, z: 3, captured: false}, 'toms-diner': {x: 'a', y: 2, z: 3, captured: true}, 'not-a-place': {x: 1, y: 2, z: 3, captured: true}}});
   const found = parseCaptures(file);
-  assert.deepEqual([...found.keys()], ['afterlife']);
-  assert.deepEqual(found.get('afterlife'), {x: -1000.4, y: 1300.2, z: 40});
+  assert.deepEqual([...found.keys()], ['mistys-esoterica']);
+  assert.deepEqual(found.get('mistys-esoterica'), {x: -1000.4, y: 1300.2, z: 40});
   for (const bad of ['', 'not json', '[]', '{"places": 5}', '{"places": []}', null]) assert.equal(parseCaptures(bad).size, 0, String(bad));
 });
 
@@ -83,13 +101,13 @@ test('the capture reader loads the file when it changes, forgets it when it goes
   const reader = captureReader({path, everyMs: 5000, now: () => clock, log: line => lines.push(line)});
   try {
     assert.equal(await reader.poll(), false, 'no file');
-    await writeFile(path, JSON.stringify({places: {afterlife: {x: -1000, y: 1300, z: 40, captured: true}}}));
+    await writeFile(path, JSON.stringify({places: {'mistys-esoterica': {x: -1000, y: 1300, z: 40, captured: true}}}));
     clock = 1000;
     assert.equal(await reader.poll(), false, 'inside the interval nothing is looked at');
     clock = 6000;
     assert.equal(await reader.poll(), true);
-    assert.equal(namedPlaceAt({x: -1000, y: 1300, z: 40})?.id, 'afterlife');
-    assert.ok(lines.some(line => /1 position\(s\) measured in the game \(afterlife\)/.test(line)) && !lines.join().includes('1300'), 'the log names the place, not the position');
+    assert.equal(namedPlaceAt({x: -1000, y: 1300, z: 40})?.id, 'mistys-esoterica');
+    assert.ok(lines.some(line => /1 position\(s\) measured in the game \(mistys-esoterica\)/.test(line)) && !lines.join().includes('1300'), 'the log names the place, not the position');
     clock = 12000;
     assert.equal(await reader.poll(), false, 'unchanged');
     await rm(path);
@@ -100,21 +118,21 @@ test('the capture reader loads the file when it changes, forgets it when it goes
 });
 
 test('the wording: inside a named place when the game says V is indoors, at it otherwise, near it in a vehicle; a record that names an interior is kept', () => {
-  setCaptures(MEASURED);
+  setCaptures(new Map());
   try {
-    const at = extra => describeTurnContext(turnFor(snapshot({position: {x: -1000, y: 1300, z: 40}, ...extra})), {}).text;
+    const at = extra => describeTurnContext(turnFor(snapshot({position: {x: -1455.1, y: 1011, z: 17.8}, ...extra})), {}).text;
     assert.match(at({indoors: true}), /You are inside the Afterlife, a merc bar in Little China, Watson\./);
     assert.match(at({indoors: false}), /You are at the Afterlife, a merc bar in Little China, Watson\./);
     assert.match(at({}), /You are at the Afterlife, a merc bar in Little China, Watson\./, 'the game could not say: "at", no claim of indoors');
     assert.match(at({vehicle: true, motion: undefined}), /near the Afterlife, a merc bar in Little China, Watson\./);
-    assert.doesNotMatch(at({indoors: true}), /1300|1000|somewhere in|which building is not given/);
+    assert.doesNotMatch(at({indoors: true}), /1011|1455|somewhere in|which building is not given/);
     // Out of its radius: the neighbourhood, as before.
-    assert.match(describeTurnContext(turnFor(snapshot({position: {x: -900, y: 1300, z: 40}})), {}).text, /You are somewhere in Little China, Watson; exactly where is not given\./);
+    assert.match(describeTurnContext(turnFor(snapshot({position: {x: -1400, y: 1011, z: 17.8}})), {}).text, /You are somewhere in Little China, Watson; exactly where is not given\./);
     // A record that names the interior wins (the game itself said which place).
-    assert.match(describeTurnContext(turnFor(snapshot({area: 'LittleChina_MistysShop', position: {x: -1000, y: 1300, z: 40}})), {}).text, /You are inside Misty's Esoterica, Watson\./);
+    assert.match(describeTurnContext(turnFor(snapshot({area: 'LittleChina_MistysShop', position: {x: -1455.1, y: 1011, z: 17.8}})), {}).text, /You are inside Misty's Esoterica, Watson\./);
     // Without a position, or with the Location kind switched off, nothing is named.
     assert.match(describeTurnContext(turnFor(snapshot()), {}).text, /somewhere in Little China, Watson/);
-    const off = describeTurnContext(turnFor(snapshot({position: {x: -1000, y: 1300, z: 40}})), {off: new Set(['location'])}).text;
+    const off = describeTurnContext(turnFor(snapshot({position: {x: -1455.1, y: 1011, z: 17.8}})), {off: new Set(['location'])}).text;
     assert.doesNotMatch(off, /Afterlife|Little China/);
   } finally { setCaptures(new Map()); }
 });
@@ -152,4 +170,24 @@ test('turnContextWhere gives the sentence the context carries, for the Developer
   assert.equal(turnContextWhere({text: 'Hey'}), '');
   assert.equal(turnContextWhere(null), '');
   assert.equal(turnContextWhere(turnFor(snapshot()), {off: new Set(['location'])}), '');
+});
+
+test('the places with a position: the exact ones are found at their teleport, a streaming cell only indoors or when the game cannot say, and a district that disagrees stops a match', () => {
+  const at = (id, extra = {}) => { const place = NAMED_PLACES.find(item => item.id === id); return namedPlaceAt({x: place.x, y: place.y, z: place.z}, extra)?.id; };
+  for (const id of ['afterlife', 'clouds', 'v-apartment-corpo', 'v-apartment-northside', 'arasaka-tower-ceo', 'v-apartment-h10']) assert.equal(at(id), id, id);
+  for (const id of ['lizzies-bar', 'el-coyote-cojo', 'judys-apartment', 'totentanz', 'wakakos-office']) {
+    assert.equal(at(id), id, id);
+    assert.equal(at(id, {indoors: true}), id, `${id} indoors`);
+    assert.equal(at(id, {indoors: false}), undefined, `${id}: a streaming cell is not claimed in the open air`);
+  }
+  assert.equal(at('afterlife', {indoors: false}), 'afterlife', 'an exact position is not dropped outdoors (the door is outside)');
+  // Home district is Watson for the Watson places, and another district stops them.
+  assert.equal(at('lizzies-bar', {district: 'Watson'}), 'lizzies-bar');
+  assert.equal(at('lizzies-bar', {district: 'Heywood'}), undefined);
+  assert.equal(at('afterlife', {district: 'Watson'}), 'afterlife');
+  assert.equal(at('afterlife', {district: 'SantoDomingo'}), undefined);
+  // Two places far apart do not mix, and the floor matters: Wakako's office is 100 m below Clouds, about 47 m away.
+  assert.equal(namedPlaceAt({x: -625.4, y: 794.6, z: 132.3})?.id, 'clouds');
+  assert.equal(namedPlaceAt({x: -672, y: 800, z: 32}, {indoors: true})?.id, 'wakakos-office');
+  assert.equal(namedPlaceAt({x: -1455, y: 1011, z: 80}), null, 'forty metres above the Afterlife is not the Afterlife');
 });
