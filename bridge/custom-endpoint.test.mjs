@@ -291,8 +291,8 @@ test('the real file is written with the key in it, nowhere else, and is read bac
 
 const command = (id, action, issuedAt = 1_000_000) => JSON.stringify({version: 1, id, action, issuedAt});
 
-test('commands: only the eight known actions, a well-formed id and a recent time are accepted', () => {
-  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini']);
+test('commands: only the known actions, a well-formed id and a recent time are accepted', () => {
+  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'clear-preset-gemini']);
   for (const action of COMMANDS) assert.deepEqual(parseCustomCommand(command('s:cust:1', action), 1_000_100), {id: 's:cust:1', action});
   assert.equal(parseCustomCommand(command('s:cust:1', 'paste'), 1_000_100), null);
   assert.equal(parseCustomCommand(command('bad id', 'test'), 1_000_100), null);
@@ -363,24 +363,38 @@ test('the settings page: three pastes, each checked and saved, and the status it
   assert.ok(!JSON.stringify(c.published).includes(KEY));
 });
 
-test('the free setup: one press fills in the endpoint and the model id (nothing from the clipboard), the key stays only on the same host, and the request is the usual one', async () => {
+test('the free setups: Add saves the endpoint, the model id and the key from the clipboard in one press, Remove deletes all three, and the request is the usual one', async () => {
   assert.deepEqual(Object.keys(PRESETS), ['gemini']);
   for (const preset of Object.values(PRESETS)) {
     assert.equal(parseEndpointUrl(preset.endpoint).endpoint, preset.endpoint, 'the address is accepted as it is');
     assert.ok(parseModelId(preset.model), 'the model id is accepted');
   }
   const c = await control();
-  c.clipboard(async () => { assert.fail('a free setup never reads the clipboard'); });
+  // Nothing on the clipboard that is a key: nothing is saved, and the player is told (the row says copy the key first).
+  c.clipboard(async () => '   ');
   let status = await c.send('preset-gemini');
-  assert.deepEqual([status.result.field, status.result.state, status.host, status.model, status.ready, status.preset, status.keySaved],
-    ['preset', 'saved', 'generativelanguage.googleapis.com', 'gemini-flash-lite-latest', true, 'gemini', false]);
+  assert.deepEqual([status.result.field, status.result.state, status.result.reason, status.host, status.keySaved, status.preset], ['preset', 'invalid', 'empty', null, false, null]);
+  c.clipboard(async () => 'https://aistudio.google.com/apikey');
+  status = await c.send('preset-gemini');
+  assert.deepEqual([status.result.state, status.result.reason, status.host], ['invalid', 'not-a-key', null], 'a web address is no key');
+  c.clipboard(async () => { throw Error('no clipboard'); });
+  assert.equal((await c.send('preset-gemini')).result.state, 'unreadable');
+  assert.equal(c.s.text, null, 'nothing was written');
+  // Google's newer key format ("AQ.", a dot, 53 characters) is a key like any other.
+  const GOOGLE = 'AQ.' + 'Ab8RN6KjXy_ZqW3-e'.repeat(3).slice(0, 50);
+  assert.equal(GOOGLE.length, 53);
+  assert.equal(parseCustomKey(GOOGLE), GOOGLE);
+  assert.equal(parseCustomKey(`api-key=${GOOGLE}\r\n`), GOOGLE);
+  c.clipboard(async () => `${GOOGLE}\r\n`);
+  status = await c.send('preset-gemini');
+  assert.deepEqual([status.result.field, status.result.state, status.host, status.model, status.ready, status.preset, status.keySaved, status.tail],
+    ['preset', 'saved', 'generativelanguage.googleapis.com', 'gemini-flash-lite-latest', true, 'gemini', true, GOOGLE.slice(-4)]);
   assert.match(c.s.text, /endpoint=https:\/\/generativelanguage\.googleapis\.com\/v1beta\/openai\n/);
   assert.match(c.s.text, /model=gemini-flash-lite-latest\n/);
+  assert.ok(c.s.text.includes(`api-key=${GOOGLE}\n`) && c.s.text.includes('key-origin=https://generativelanguage.googleapis.com'), 'the key is saved, bound to Google');
   assert.equal(c.provider.requested, 'convai', 'a free setup does not choose the provider');
-  // The player pastes a key; it is bound to Google, and the chat request carries it as a Bearer token to the OpenAI-compatible path.
-  c.clipboard(async () => KEY);
-  status = await c.send('paste-key');
-  assert.deepEqual([status.keySaved, status.preset], [true, 'gemini']);
+  assert.ok(!JSON.stringify(c.published).includes(GOOGLE), 'no status ever holds the key');
+  // The chat request carries the key as a Bearer token to the OpenAI-compatible path.
   const requests = [];
   const fetchImpl = async (url, init) => {
     requests.push({url: String(url), headers: init.headers, body: JSON.parse(init.body)});
@@ -389,27 +403,31 @@ test('the free setup: one press fills in the endpoint and the model id (nothing 
   const outcome = await testConnection(c.s.endpoint, {fetchImpl});
   assert.equal(outcome.state, 'ok', JSON.stringify(outcome));
   assert.equal(requests[0].url, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
-  assert.equal(new Headers(requests[0].headers).get('authorization'), `Bearer ${KEY}`);
+  assert.equal(new Headers(requests[0].headers).get('authorization'), `Bearer ${GOOGLE}`);
   assert.equal(requests[0].body.model, 'gemini-flash-lite-latest');
   assert.equal(requests[0].body.reasoning_effort, undefined, 'Gemini refuses reasoning_effort none, and the model id does not look like a reasoning model');
   assert.equal(new Headers(requests[0].headers).get('x-title'), null, 'the attribution headers are OpenRouter only');
-  assert.ok(!JSON.stringify(c.published).includes(KEY));
-  // The same plan again keeps the key (same host). Another address is another host: the key is forgotten and the key row says to paste it again.
+  // Add again with another key on the clipboard: the same address and model, the new key replaces the old one.
+  c.clipboard(async () => KEY);
   status = await c.send('preset-gemini');
-  assert.equal(status.keySaved, true);
-  c.clipboard(async () => 'https://openrouter.ai/api/v1\n');
-  status = await c.send('paste-url');
-  assert.deepEqual([status.host, status.keySaved, status.keyForgotten, status.preset], ['openrouter.ai', false, true, null]);
-  assert.ok(!c.s.text.includes(KEY), "the Google key is not kept beside OpenRouter's address");
-  // A key pasted before any address is bound to the plan chosen after it.
-  const d = await control();
-  d.clipboard(async () => KEY);
-  await d.send('paste-key');
-  status = await d.send('preset-gemini');
-  assert.deepEqual([status.keySaved, status.keyForgotten, status.preset], [true, undefined, 'gemini']);
+  assert.deepEqual([status.host, status.model, status.preset, status.keySaved, status.keyForgotten], ['generativelanguage.googleapis.com', 'gemini-flash-lite-latest', 'gemini', true, undefined]);
+  assert.ok(!c.s.text.includes(GOOGLE), 'the first key is replaced');
+  assert.match(c.s.text, new RegExp(`api-key=${KEY}\\n`));
+  // Remove on a setup that is not the saved one changes nothing (an address of the player's own is no plan). Remove on the saved plan deletes its endpoint, model id and key, and the file.
+  c.clipboard(async () => 'https://example.com/v1');
+  await c.send('paste-url');
+  status = await c.send('clear-preset-gemini');
+  assert.deepEqual([status.result.state, status.preset, status.host], ['cleared', null, 'example.com'], 'a stale Remove deletes nothing');
+  c.clipboard(async () => KEY);
+  await c.send('preset-gemini');
+  status = await c.send('clear-preset-gemini');
+  assert.deepEqual([status.result.field, status.result.state, status.host, status.model, status.keySaved, status.preset, status.ready], ['preset', 'cleared', null, null, false, null, false]);
+  assert.equal(c.s.text, null, 'nothing left: the file is gone');
   // Changing a field by hand leaves no plan marked.
-  d.clipboard(async () => 'llama3.2');
-  status = await d.send('paste-model');
+  c.clipboard(async () => KEY);
+  await c.send('preset-gemini');
+  c.clipboard(async () => 'llama3.2');
+  status = await c.send('paste-model');
   assert.equal(status.preset, null);
 });
 
@@ -487,6 +505,15 @@ test('the connection test: one request, OK or the failure in the words the page 
     mock.requests.length = 0;
     assert.deepEqual(await testConnection({ready: false}), {state: 'failed', code: 'no-setup', ms: 0});
     assert.equal(mock.requests.length, 0);
+    // No key saved and the host is on the internet (a preset, any https address): no request is made, the player is told to paste the key first.
+    // A server on this computer or the home network (local) needs none and is still asked.
+    mock.requests.length = 0;
+    for (const remote of [{...config(null), local: false}, {...config(null), local: false, address: {hostname: 'generativelanguage.googleapis.com'}}]) {
+      assert.deepEqual(await testConnection(remote), {state: 'failed', code: 'no-key', ms: 0});
+    }
+    assert.equal(mock.requests.length, 0, 'no request without a key to a remote host');
+    assert.equal((await testConnection({...config(KEY), local: false})).state, 'ok', 'with a key the remote host is asked');
+    mock.requests.length = 0;
 
     const fails = async (plan, expected) => {
       mock.behave(() => plan);
@@ -505,6 +532,16 @@ test('the connection test: one request, OK or the failure in the words the page 
     await fails({status: 503, body: 'Service Unavailable'}, {code: 'server', status: 503});
     await fails({status: 502, body: '<html><body><h1>502 Bad Gateway</h1></body></html>'}, {code: 'server', detail: '502 Bad Gateway'});
     await fails({status: 400, body: {error: {message: 'messages: too long'}}}, {code: 'request', status: 400, detail: 'messages: too long'});
+    // Google answers a missing or wrong key with a 400 (a list of one error, reason API_KEY_INVALID), not a 401: it reads as a key the endpoint did not accept.
+    await fails({status: 400, body: [{error: {code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT',
+      details: [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'API_KEY_INVALID', domain: 'googleapis.com'}]}}]},
+      {code: 'key', status: 400, detail: 'API key not valid. Please pass a valid API key.'});
+    await fails({status: 400, body: {error: {message: 'Request failed', details: [{reason: 'API_KEY_INVALID'}]}}}, {code: 'key', status: 400});
+    await fails({status: 400, body: {error: {message: 'API key expired. Please renew the API key.'}}}, {code: 'key', status: 400});
+    await fails({status: 400, body: {error: {message: 'Missing API key'}}}, {code: 'key', status: 400});
+    // A 400 that is about something else stays a refused request (and a model it does not know stays a model).
+    await fails({status: 400, body: {error: {message: 'Invalid value for messages[0].role'}}}, {code: 'request', status: 400});
+    await fails({status: 400, body: {error: {message: 'models/nothing is not found for API version v1beta'}}}, {code: 'model', status: 400});
     await fails({redirect: 'http://example.invalid/v1/chat/completions'}, {code: 'redirect'});
     // An HTML page answered where the API should: a web page, not the API (a 200, a 404 or a 405), told apart from a proxy's 5xx page above.
     const html = '<!doctype html><html><head><title>Flint</title></head><body><h1>A model page</h1></body></html>';

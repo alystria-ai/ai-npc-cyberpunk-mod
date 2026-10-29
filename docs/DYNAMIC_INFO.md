@@ -63,6 +63,16 @@ The district and the specific record come from `PreventionSystem:GetCurrentDistr
   only when it matters to what V says"), and an ordinary NPC's district block says "Mention it only when it matters to what V says" (it used to say "let the place flavor
   what you say"). One short sentence each: prompts stay short.
 
+### Named places by position (2026-10-30)
+
+A live test put V in the Afterlife: the game's record for V's position was only `LittleChina`, so the context said "somewhere in Little China, Watson" and Judy answered "but I thought we were in Watson". A record can only name a place when the game has an interior record for it, so the context now also names a place from V's **world position**.
+
+- `bridge/named-places-data.mjs` is the list: id, phrase ("the Afterlife, a merc bar in Little China, Watson"), root district, x, y, z, radius, floor tolerance `dz`. Nine places: the Afterlife, Lizzie's Bar, Misty's Esoterica, Viktor's clinic, V's apartment in Megabuilding H10, Tom's Diner, El Coyote Cojo, the Sunset Motel, Clouds.
+- The position is read by `mod/turn-context.lua` (`N.position`, `player:GetWorldPosition()`) with the rest of the snapshot, when a turn is built and at most every 5 s: one native call, no hook, no timer, never per frame. It is sent as `position {x, y, z}` (rounded to 0.1 m), owned by the Location kind of Dynamic info, and is never worded or logged: only the place's name reaches the prompt.
+- `bridge/named-places.mjs` `namedPlaceAt` finds the place whose radius holds V (and whose floor and root district agree); `describePlace` uses it only when the game's own record is a plain neighbourhood or none. The wording: "You are inside the Afterlife, ..." when the game says V is indoors, "You are at ..." otherwise, "near" in a vehicle.
+- **Verified positions: only V's apartment in H10** (the interior box of docs/HOUSEMATES.md). The other eight have no measured position anywhere in the repo and are never matched until measured: stand in the middle of the place with Developer mode on and run the probe `quest capture:<id>` (ids: afterlife, lizzies-bar, mistys-esoterica, victors-clinic, toms-diner, el-coyote-cojo, sunset-motel, clouds). It writes `runtime/quest-place-capture.json`; the bridge reads that file when it changes (`captureReader`, at most every 5 s, off the turn's path) and uses a measured position at once. Then copy the numbers into `named-places-data.mjs` with their source. The radius there is a first guess.
+- Tests: `bridge/named-places.test.mjs`, and the Lua read in `bridge/turn-context.test.mjs`.
+
 Limits: the game's record for the H10 hallways or a megabuilding lobby may be a plain `LittleChina` record, in which case the sentence is the indoors / somewhere-in
 form above, not the apartment. Only V's own apartment records (`HOME_PLACES` in `bridge/place-names.mjs`) and the named interiors are said by name.
 

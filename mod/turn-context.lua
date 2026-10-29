@@ -340,6 +340,13 @@ local function nativeAdapter()
     -- read only when the turn context is built (never per frame). Plain boolean only: anything else is an error, which the caller logs
     -- once and treats as "not given". CET exposes script globals under Game.; a bare global is the second try.
     local interiorCall
+    -- V's world position (metres): one native call on the player entity, read only when the turn context is built, so the bridge can name the place V stands in
+    -- (bridge/named-places.mjs). Returns x, y, z.
+    function N.position(player)
+        local at = player:GetWorldPosition()
+        if at == nil then return nil end
+        return tonumber(at.x), tonumber(at.y), tonumber(at.z)
+    end
     function N.interior(player)
         if interiorCall == nil then   -- a found function is remembered; "not found" is looked up again on the next read
             local viaGame = Game ~= nil and Game.IsEntityInInteriorArea
@@ -532,6 +539,12 @@ function Instance:read()
     end
     -- Inside a building or not (unconfirmed, optional; it only sharpens the place wording, so it is not counted as something read).
     if snapshot.district then
+        -- V's position, for the named places (bridge/named-places-data.mjs): sent with the snapshot, never worded or logged. Not counted as something read either.
+        local x, y, z = self:optional('position', player)
+        if type(x) == 'number' and type(y) == 'number' and type(z) == 'number' and x == x and y == y and z == z and math.abs(x) < 100000 and math.abs(y) < 100000 and math.abs(z) < 100000 then
+            local function tenth(value) return math.floor(value * 10 + 0.5) / 10 end
+            snapshot.position = {x = tenth(x), y = tenth(y), z = tenth(z)}
+        end
         local inside, insideSource = self:optional('interior', player)
         if type(inside) == 'boolean' then
             snapshot.indoors = inside

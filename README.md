@@ -387,7 +387,7 @@ A few worth knowing:
 - **Subtitles:** Off shows none. Cinematic subtitles use the game's dialogue line; **Above the speaker** floats them over the character.
 - **React to battles / collected loot:** a nearby companion makes one short comment when a fight starts and ends, or after a run of loot pickups, at most once every ten minutes each. Both are on by default (switch either off under Settings > Gameplay; a player who had set one by hand keeps their choice). On the Convai free tier each reaction uses one of the day's 500 turns (a battle is an opening and a closing line per ten minutes, loot is one comment per ten minutes, or per two minutes for newly acquired Legendary gear), and nothing is spent once the day's allowance is used up.
 - **Send error reports automatically:** when something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. See [Error reports](#error-reports) below for what it holds and what it never holds.
-- **Developer mode** is for testing and bug reports: routine popups, diagnostic traces and developer-only experiments. You will not need it to play.
+- **Developer mode** is for testing and bug reports: routine popups, diagnostic traces and developer-only experiments. You will not need it to play. While it is on, the service also writes each turn (who spoke, the provider, your words, the reply, whether a picture went along and where you were) to `dev-transcript.log` in `%LOCALAPPDATA%AiNpcCyberpunkModdata`, about 2 MB at most, with no keys in it. It is never sent anywhere or added to a report, and nothing is written while the setting is off.
 
 ## Microphone packs
 

@@ -574,3 +574,18 @@ test('the default rule on the laptop takes the largest model that fits the new r
   const tight = chooseLocalModel({models: laptopModels, sizeOf: laptopSizeOf, freeMiB: 5796, totalMiB: LAPTOP.total});
   assert.equal(tight.model.id, 'lite', 'the old room: 4,916 + 1,200 = 6,116 > 5,796, so the lite model');
 });
+
+test('keepChosen (Allow Local AI to use RAM): a pinned model that does not fit is kept with offload, instead of the smaller one; no pin, a fitting model and a server of the player are unchanged', () => {
+  const free = needOf('standard') - 1;
+  const kept = pick(stock, {pin: 'standard', freeMiB: free, keepChosen: true});
+  assert.deepEqual([kept.model.id, kept.offload, kept.keptOffload, kept.fellBack, kept.pinned], ['standard', true, true, null, true]);
+  const off = pick(stock, {pin: 'standard', freeMiB: free, keepChosen: false});
+  assert.deepEqual([off.model.id, off.fellBack, off.keptOffload], ['lite', 'low-memory', undefined], 'off by default: the old fallback');
+  assert.equal(pick(stock, {pin: 'standard', freeMiB: free}).model.id, 'lite');
+  // Nothing was chosen: the default rule is as before.
+  const auto = pick(stock, {freeMiB: free, keepChosen: true});
+  assert.deepEqual([auto.model.id, auto.offload, auto.keptOffload], ['lite', false, undefined]);
+  // It fits: whole on the card.
+  const fits = pick(stock, {pin: 'standard', freeMiB: 24000, keepChosen: true});
+  assert.deepEqual([fits.model.id, fits.offload, fits.keptOffload], ['standard', false, undefined]);
+});

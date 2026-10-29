@@ -19,6 +19,7 @@ import {isAmbientProfile} from './protocol.mjs';
 import {snapshotKey} from './parsed-snapshot.mjs';
 import {dynamicInfo} from './dynamic-info.mjs';
 import {questBriefingContext} from './quest-briefing.mjs';
+import {storyKnowledgeContext} from './story-knowledge.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 
@@ -154,8 +155,12 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   // A job briefing (bridge/quest-briefing.mjs): only when V's words ask about a job and this speaker gave it or knows it; '' for every other turn.
   const briefing = inventory && !result.reaction && !result.event ? questBriefingContext({text: result.text, profileKey: result.profileKey,
     history: inventory, age: bound.age, now}) : '';
+  // What this speaker knows of the main story from the quests V has finished (bridge/story-knowledge.mjs): stable for a save, so it rides in the
+  // cached world part. A disclosure V chose to make needs its fact from the current world snapshot; with no current snapshot those lines are left out.
+  const story = inventory ? storyKnowledgeContext({profileKey: result.profileKey, history: inventory, age: bound.age, now,
+    facts: current ? snapshot.facts : undefined, group: !!result.group}) : '';
   result[TRUSTED_KNOWLEDGE] = Object.freeze({identity: contextIdentity(result), knowledgeContext: projected, historyContext: history,
-    recencyContext: recency, jobsContext: jobs, briefingContext: briefing});
+    recencyContext: recency, jobsContext: jobs, briefingContext: briefing, storyContext: story});
   return result;
 }
 
@@ -203,6 +208,8 @@ export function conversationContextBlocks(input) {
     // history of the talk (an earlier answer about V's clothes) cannot outweigh the gear line far above it.
     {tier: 'volatile', text: on('gear') ? gearChangeContext(input, gearMemory) : ''},
     {tier: 'world', key: 'knowledge', text: knowledge},
+    // The main story as this speaker knows it from finished quests: stable for a save (it changes only when a quest finishes).
+    {tier: 'world', key: 'story', text: quest ? trusted?.storyContext : ''},
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: quest ? trusted?.jobsContext : ''},
     {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''},
     // The job briefing is for this turn only (volatile), so it never moves the stable blocks a prefix cache keeps.

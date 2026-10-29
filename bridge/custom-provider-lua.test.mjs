@@ -103,45 +103,65 @@ test('nothing published yet: four rows to paste into, a Test row that waits for 
   assert(provider.lastCommand() == nil)
 `));
 
-test('the free setup comes first: one press sends its command, the service says which one is saved, and a failed save is told on their rows', () => run(`${moduleFixture}
+test('the free setup comes first: one press sends its command, the service says it is saved, and a failed save is told on its row', () => run(`${moduleFixture}
   local provider = make()
   local rows = rowsOf(provider)
-  assert(rows['custom-preset-gemini'].label == 'Google Gemini (free)' and rows['custom-preset-gemini'].value == 'Use' and rows['custom-preset-gemini'].action == 'preset-gemini'
+  assert(rows['custom-preset-gemini'].label == 'Google Gemini (free)' and rows['custom-preset-gemini'].value == 'Add' and rows['custom-preset-gemini'].action == 'preset-gemini'
     and rows['custom-preset-gemini'].enabled == true and rows['custom-preset-gemini'].field == 'preset')
-  -- Each help names where the free key is made, that it is only a key left to paste, and what the plan costs the player in limits.
-  for _, part in ipairs({'aistudio.google.com/apikey', 'no card', 'daily limit', 'not offered in every country', 'improve its products'}) do
+  -- Each help names where the free key is made, that it is copied first and Add saves it from the clipboard, and what the plan costs the player in limits.
+  for _, part in ipairs({'aistudio.google.com/apikey', 'no card', 'press Add', 'saves your key from the clipboard', 'daily limit', 'not offered in every country', 'improve its products'}) do
     assert(rows['custom-preset-gemini'].help:find(part, 1, true), 'Gemini help lacks: ' .. part)
   end
+  assert(rows['custom-preset-groq'] == nil, 'no Groq row')
   for _, id in ipairs({'custom-preset-gemini'}) do
     assert(not rows[id].help:lower():find('recommend', 1, true) and not rows[id].label:lower():find('recommend', 1, true), id)
   end
   -- Pressing one writes its command; nothing else changes until the service answers.
   local ok, message = provider.request('preset-gemini')
   assert(ok == true and lastCommand().action == 'preset-gemini' and provider.lastCommand().action == 'preset-gemini', tostring(message))
+  assert(provider.request('preset-groq') == false, 'the Groq setup is gone: its command is not sent')
   assert(provider.request('preset-nothing') == false, 'an unknown setup is not sent')
   -- The service names the saved plan (only a known name counts); the row says Added and the others do not.
   publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini', keySaved = false, tail = NONE}))
   rows = rowsOf(provider)
-  assert(rows['custom-preset-gemini'].value == 'Added' and rows['custom-preset-gemini'].label == 'Google Gemini (free)')
+  -- The saved plan's button turns into Remove and sends the clear command (not a dead "Added").
+  assert(rows['custom-preset-gemini'].value == 'Remove' and rows['custom-preset-gemini'].action == 'clear-preset-gemini' and rows['custom-preset-gemini'].label == 'Google Gemini (free)')
+  assert(first(rows['custom-preset-gemini'].help) == 'Deletes this free setup: the endpoint URL, the model ID and the API key saved with it.', rows['custom-preset-gemini'].help)
+  assert(provider.request('clear-preset-gemini') and lastCommand().action == 'clear-preset-gemini')
+  assert(provider.request('clear-preset-groq') == false, 'the Groq command is gone')
   assert(provider.state().preset == 'gemini')
   for _, bad in ipairs({'other', '', 7, true, {}, 'groq'}) do
     publish(base({preset = bad}))
     assert(provider.state().preset == nil, tostring(bad))
-    assert(rowsOf(provider)['custom-preset-gemini'].value == 'Use')
+    assert(rowsOf(provider)['custom-preset-gemini'].value == 'Add')
   end
-  local before = (publish(base({preset = 'gemini'})) or provider.signature())
-  local after = (publish(base({preset = 'other'})) or provider.signature())
-  assert(before ~= after, 'a changed saved plan redraws the page')
+  local before = (publish(base({preset = NONE})) or provider.signature())
+  local after = (publish(base({preset = 'gemini'})) or provider.signature())
+  assert(before ~= after, 'a new saved plan redraws the page')
   -- The answer to the latest press: saved shows nothing odd, failed puts its sentence first on the free-setup rows.
   assert(provider.request('preset-gemini'))
   publish(base({result = {id = lastCommand().id, field = 'preset', state = 'saved'}}))
   assert(provider.state().result.field == 'preset' and provider.state().result.state == 'saved')
-  assert(first(rowsOf(provider)['custom-preset-gemini'].help):find('Fills in', 1, true))
+  assert(first(rowsOf(provider)['custom-preset-gemini'].help):find('Copy your free key', 1, true))
+  publish(base({result = {id = lastCommand().id, field = 'preset', state = 'invalid', reason = 'not-a-key'}}))
+  assert(first(rowsOf(provider)['custom-preset-gemini'].help) == 'The clipboard does not hold an API key.', rowsOf(provider)['custom-preset-gemini'].help)
   publish(base({result = {id = lastCommand().id, field = 'preset', state = 'failed'}}))
   assert(first(rowsOf(provider)['custom-preset-gemini'].help) == 'It could not be saved.', rowsOf(provider)['custom-preset-gemini'].help)
   -- An answer that belongs to an older press is not shown.
   publish(base({result = {id = 'sess-1:cust:999', field = 'preset', state = 'failed'}}))
   assert(provider.state().result == nil)
+  -- Right after a plan is added with no key, the key row says the key is the next step (Google Gemini); a saved key, or no plan, shows the usual text.
+  publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini', keySaved = false, tail = NONE}))
+  local keyRow = rowsOf(provider)['custom-key']
+  assert(first(keyRow.help) == 'Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.', keyRow.help)
+  assert(keyRow.label == 'Custom API key (Not added)' and keyRow.value == 'Paste API key' and keyRow.action == 'paste-key', keyRow.label)
+  assert(keyRow.help:find('read from the clipboard once', 1, true), 'the usual key help follows')
+  publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini'}))
+  keyRow = rowsOf(provider)['custom-key']
+  assert(keyRow.value == 'Remove' and not keyRow.help:find('Next step', 1, true), 'a saved key needs no next step')
+  publish(base({keySaved = false, tail = NONE}))
+  keyRow = rowsOf(provider)['custom-key']
+  assert(keyRow.label == 'Custom API key' and not keyRow.help:find('Next step', 1, true), 'no plan, no hint')
 `));
 
 test('saved values: the host, the last four characters or Added, the model; an unencrypted address says so; Test is enabled', () => run(`${moduleFixture}
@@ -326,6 +346,7 @@ test('the Test row: testing, ok, and a plain sentence for every failure code wit
   assert(first(rowsOf(provider)['custom-test'].help) == 'The connection works. The endpoint accepted your model and key.')
   local SENTENCES = {
     ['no-setup'] = 'Add an endpoint URL and a model ID first.',
+    ['no-key'] = 'No API key is saved yet. Copy your key from your provider, press Paste API key, then test again.',
     key = 'The endpoint did not accept your API key.',
     credits = 'The account is out of credits. Add credits with your provider.',
     model = 'The endpoint does not know that model ID.',
@@ -678,7 +699,7 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custo
   assert(provider.type == 'select' and #provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
     and provider.elements[3] == 'Mistral' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
   assert(provider.value == 1 and provider.defaultValue == 1)
-  assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,custom-endpoint,own-key', providerIds())
+  assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,custom-endpoint,own-key', providerIds())
   for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is not on the Settings page any more') end
   assert(row('custom-endpoint').type == 'action' and row('custom-endpoint').value == 'Open' and row('custom-endpoint').label == 'Custom endpoint')
   assert(not (row('custom-endpoint').description .. row('custom-endpoint').label):lower():find('recommend', 1, true))
@@ -718,7 +739,7 @@ test('without the module file (or with a module that fails) the page still shows
   run(`${pageFixture(false)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(#row('conversationProvider').elements == 5)
-    assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
+    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,own-key', providerIds())
     assert(row('custom-endpoint') == nil and not invoke('custom-endpoint').ok, 'the page is not offered without the module')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
     -- No module, no custom notes: the provider row is the same as with no limit at all.
@@ -732,7 +753,7 @@ test('without the module file (or with a module that fails) the page still shows
   const raising = customSource.replace('function self.rows()', 'function self.rows() error("boom") end\n    function self.unusedRows()');
   run(`${pageFixture(true, raising)}${stateFixture}
     assert(invoke('tab:settings').ok)
-    assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,custom-endpoint,own-key', providerIds())
+    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,custom-endpoint,own-key', providerIds())
     assert(invoke('custom-endpoint').ok and managerUi.inspect().view == 'custom-endpoint')
     assert(row('custom-url') == nil and row('custom-test') == nil and row('custom-endpoint:back'), 'the page opens without rows, with its way back')
     assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings')
@@ -741,7 +762,7 @@ test('without the module file (or with a module that fails) the page still shows
   const broken = customSource.replace('function M.new(options)', 'function M.new(options) error("no instance")');
   run(`${pageFixture(true, broken)}${stateFixture}
     assert(invoke('tab:settings').ok)
-    assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
+    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,own-key', providerIds())
   `);
 });
 

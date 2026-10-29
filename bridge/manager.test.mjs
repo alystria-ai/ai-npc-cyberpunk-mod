@@ -1856,6 +1856,36 @@ test('Local AI model: a row with each installed model by its name from the small
       local result = registered.applyBatch('manager', {{id = 'localModel', value = bad}})
       assert(result.ok == false and saved.localModel == 'standard', tostring(bad))
     end
+    -- Allow Local AI to use RAM: off by default, a plain boolean saved for the bridge, a row right after the model row.
+    assert(manager.snapshot(player).settings.localOffload == false and saved.localOffload == false, 'it is not off by default')
+    assert(not manager.applySettings(player, {localOffload = 'on'}) and manager.snapshot(player).settings.localOffload == false, 'a non-boolean was accepted')
+    assert(manager.applySettings(player, {localOffload = true}) and saved.localOffload == true and manager.snapshot(player).settings.localOffload == true)
+    loaded = registered.loadMod('manager')
+    assert(row('localOffload').label == 'Allow Local AI to use RAM' and row('localOffload').value == true, 'the row follows the setting')
+    assert(row('localOffload').description:find('Replies are slower', 1, true) and row('localOffload').description:find('told once', 1, true))
+    assert(registered.applyBatch('manager', {{id = 'localOffload', value = false}}).ok and saved.localOffload == false)
+    -- The model Local AI really loaded: named beside the chosen one when they differ (the choice is not changed), nothing when they are the same, nothing for an id not in the list.
+    state('in-use', {provider = 'local', effective = 'local', localAi = 'ready', saved = false, localModelDefault = 'standard', localModelInUse = 'lite', localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+    loaded = registered.loadMod('manager')
+    assert(manager.localModelInUseId() == 'lite')
+    assert(row('localModel').label == 'Local AI model (Using Qwen3.5-2B)', row('localModel').label)
+    assert(row('localModel').description:find('Qwen3.5-2B is in use because the model you chose did not fit beside the game. Your choice is unchanged.', 1, true) == 1, row('localModel').description)
+    assert(row('localModel').value == 2 and saved.localModel == 'standard', 'the choice itself stays')
+    state('in-use-same', {provider = 'local', effective = 'local', localAi = 'ready', saved = false, localModelDefault = 'standard', localModelInUse = 'standard', localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+    loaded = registered.loadMod('manager')
+    assert(row('localModel').label == 'Local AI model' and not row('localModel').description:find('is in use', 1, true), row('localModel').label)
+    state('in-use-ghost', {provider = 'local', effective = 'local', localAi = 'ready', saved = false, localModelDefault = 'standard', localModelInUse = 'ghost', localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+    loaded = registered.loadMod('manager')
+    assert(manager.localModelInUseId() == nil and row('localModel').label == 'Local AI model')
+    -- Back to the state the rest of this test reads.
+    state('three', {provider = 'local', effective = 'local', saved = false, maturePack = true,
+      localModelDefault = 'standard', localModelMatureDefault = 'mature:big', localModels = {
+      {id = 'standard', name = 'Gemma-4-E4B', sizeMiB = 5280}, {id = 'mature:big', name = 'Gemma-4-E4B-uncensored', sizeMiB = 5400},
+      {id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}}})
+    loaded = registered.loadMod('manager')
     -- A model the player added that is no longer there stays saved (the bridge falls back to the largest model that fits, with one notice); the row shows the default.
     assert(manager.applySettings(player, {localModel = 'custom:gone-model'}) and saved.localModel == 'custom:gone-model')
     loaded = registered.loadMod('manager')
@@ -4478,7 +4508,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
         end
       end
     end
-    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'mistral-key', 'own-key'}, ','),
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'localOffload', 'mistral-key', 'own-key'}, ','),
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
@@ -4734,7 +4764,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,mistral-key,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,own-key', table.concat(order, ','))
     local function refresh() clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager') end
     local function answer(tag, state)
       jsonFixtures['or-state-' .. tag] = state
@@ -6303,7 +6333,7 @@ test('Custom endpoint is one button after the Mistral key row that opens a page 
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,mistral-key,custom-endpoint,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,custom-endpoint,own-key', table.concat(order, ','))
     for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is still on Settings') end
     local button = row('custom-endpoint')
     assert(button.type == 'action' and button.label == 'Custom endpoint' and button.value == 'Open', button.label)

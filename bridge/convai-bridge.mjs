@@ -50,6 +50,8 @@ import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, re
 import {VoiceLanguagePacks} from './voice-language-packs.mjs';
 import {PocketLanguageModels, PocketLanguageNotice} from './pocket-language-models.mjs';
 import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
+import {DevTranscript, TRANSCRIPT_FILE} from './dev-transcript.mjs';
+import {captureReader as placeCaptureReader} from './named-places.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {dynamicInfo} from './dynamic-info.mjs';
@@ -61,7 +63,7 @@ import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic, gearSeen} from './player-gear.mjs';
 import {gearMemory} from './gear-memory.mjs';
-import {turnContextDiagnostic, modsProbeLine, vixenProbeLines} from './turn-context.mjs';
+import {turnContextDiagnostic, turnContextWhere, modsProbeLine, vixenProbeLines} from './turn-context.mjs';
 import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
@@ -293,6 +295,22 @@ const languagePacks = new VoiceLanguagePacks({roots: referenceRoots, log: line =
 await languagePacks.scan().catch(error => console.error('[VoiceLanguagePacks] scan failed:', error?.message ?? error));
 // Developer mode: the last spoken reply's audio and its reference, in <state>/debug (bridge/last-reply-capture.mjs). Off otherwise, and then it costs nothing.
 const replyCapture = new LastReplyCapture({directory: resolve(stateDirectory, CAPTURE_FOLDER), log: line => console.error('[Debug] ' + line)});
+// Developer mode: every turn as text in <state>/dev-transcript.log (bridge/dev-transcript.mjs): the time, who spoke, the provider, V's words, the reply, whether a picture went along and where V was.
+// Nothing is written, and nothing is built for it, while Developer mode is off; a key the bridge holds is replaced by [key]. Not part of any report.
+const devTranscript = new DevTranscript({path: resolve(stateDirectory, TRANSCRIPT_FILE), secrets: () => [...keys.secrets(), ...mistral.secrets()], log: line => console.error('[Debug] ' + line)});
+let devPictures = 0;
+function recordDevTurn(input, profile, result) {
+  if (!devTranscript.enabled) return;
+  try {
+    const sent = companionVision.counters?.turnsWithPicture ?? 0, picture = sent > devPictures;
+    devPictures = sent;
+    devTranscript.record({speaker: profile?.name ?? input.profileKey, provider: mistral.applied, picture,
+      user: input.reaction ? `(automatic ${input.reaction.kind ?? 'reaction'})` : (typeof result.userText === 'string' && result.userText.trim() ? result.userText : input.text), reply: result.text,
+      where: turnContextWhere(input, turnContextOptions(input, isAmbientProfile(input.profileKey)))});
+  } catch { /* a transcript never affects a reply */ }
+}
+// Named places measured in the game with the developer probe (runtime/quest-place-capture.json, bridge/named-places.mjs): read when the file changes, never on a turn.
+const placeCaptures = placeCaptureReader({path: resolve(runtime, 'quest-place-capture.json'), log: line => console.error('[TurnContext] ' + line)});
 // A player's V voice mod (docs/V_VOICE.md, "V voice mods"): the reference built from the mod's own lines replaces the shipped clip of that gender. The player's own clip
 // for V (the editor) wins over both. Here, at start, only the references an earlier scan built are read (two small files per gender: no archive is listed, no process is
 // started, so the ready signal waits for nothing); the scan itself (startVVoiceModScan, below) runs once, in the background, only while V's voice is on. `source` on each
@@ -596,12 +614,14 @@ const omniResidentMiB = () => !localVoice.remoteWanted && localVoice.clientBacke
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
+// The setting "Allow Local AI to use RAM" (localOffload, off by default): the chosen model is kept when it does not fit the free graphics memory, with part of it on the processor.
+let localOffloadAllowed = false;
 // Models the player added by hand (manifest.custom.json in %LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai and in the Local AI folder, docs/LOCAL_AI.md "Add your own model"): a few stats and one small JSON read each, with
 // the GGUF header read only for a file that changed. Looked at on the settings poll (at most every 5 s) and when a model is about to load.
 const customScanner = new CustomModelScanner({project, log: message => console.error('[LocalAI] ' + message)});
 let customScan = {models: [], problems: []}, cardTotalMiB = null, cardAskedAt = 0;
 const scanCustomModels = () => (customScan = customScanner.scan({totalVramMiB: localServer.totalVramMiB ?? cardTotalMiB}));
-const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
+const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, keepChosen: localOffloadAllowed, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
 // The model servers a bridge that died hard (a V8 out-of-memory, a crash, "End task") left running are stopped before ours start, so the card's memory is free for them
 // (bridge/child-registry.mjs: only a process that is exactly the exe and the start we wrote down, whose bridge is gone). Ours are written down as they start.
 const childrenFile = resolve(stateDirectory, CHILDREN_FILE);
@@ -642,6 +662,14 @@ localServer.on('offload-slow', ({id, model, share}) => {
   if (cpuHeavyNoted.has(id)) return;
   cpuHeavyNoted.add(id); mistral.noteLocalCpuHeavy();
   console.error(`[LocalAI] ${model} runs mostly on the processor (about ${Math.round((share ?? 0) * 100)}% of its layers on the graphics card): replies will be slow`);
+});
+// The player allowed partial offload to RAM and the chosen model did not fit the free graphics memory: it was kept with part on the processor. The game says so once per model, with the next reply
+// (mod/init.lua, 'local-offload'), because replies are slower than from the card alone.
+const offloadKeptNoted = new Set();
+localServer.on('offload-kept', ({id, model, share}) => {
+  if (offloadKeptNoted.has(id)) return;
+  offloadKeptNoted.add(id); mistral.noteLocalOffloadKept(model);
+  console.error(`[LocalAI] ${model} is kept as chosen with part of it on the processor (about ${Math.round((share ?? 0) * 100)}% of its layers on the graphics card): replies will be slower`);
 });
 // The model that had gone into shared memory (or partly onto the CPU) is whole on the graphics card again: the game says so once, with the next reply (mod/init.lua, 'local-gpu').
 localServer.on('returned-to-card', ({model, fromSharedMiB, contextSize}) => {
@@ -764,6 +792,7 @@ const keyNotice = () => {
     ...(keyNotice === 'local-model-fallback' && mistral.noticeMemory ? {keyNoticeNeedMiB: mistral.noticeMemory.needMiB, keyNoticeAvailableMiB: mistral.noticeMemory.availableMiB} : {}),
     // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.
     ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {}),
+    ...(keyNotice === 'local-offload' && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
     // The folder of the Hugging Face packs page the missing vision file is in (data, so the sentence is the only string to translate): local-ai or mature.
     ...(keyNotice === 'vision-local-no-file' ? {keyNoticeFolder: localServer.visionState().folder === 'mature' ? 'mature' : 'local-ai'} : {})} : {};
 };
@@ -2487,6 +2516,7 @@ async function publishResult(input, profile, result, current = async () => true,
     // The game already received admission, live text and the consumed-sample
     // clock. Publishing a second ordinary reply would replay or replace it.
     realtimeSessions.set(sessionKey(input), result.sessionID);
+    recordDevTurn(input, profile, result);
     commitExchange(input); gearTold(); publishEddies(input, result);
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
@@ -2506,6 +2536,7 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
+  recordDevTurn(input, profile, result);
   commitExchange(input); gearTold(); publishEddies(input, result);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face: undefined, signal: result.expressionSignal});
@@ -3814,6 +3845,8 @@ const localModelSizeMiB = file => {
 const installedLocalModels = () => describeLocalModels(listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}), localModelSizeMiB);
 // The model the settings page shows as selected when none was chosen (the largest that fits) and the one turning Mature content on selects.
 // The free memory is what the last start saw before it loaded its model; until there was a start, the card's total stands in.
+// The id of the model Local AI actually loaded (it can differ from the chosen one: a model that does not fit is replaced), for the model row, or null while none is loaded.
+const localModelInUse = () => { try { return localServer.status().state === 'ready' ? localServer.modelId ?? null : null; } catch { return null; } };
 const localModelDefaults = () => defaultModelIds({models: listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}),
   matureOn: matureContent.enabled, freeMiB: localServer.lastFreeMiB ?? localServer.totalVramMiB ?? cardTotalMiB, totalMiB: localServer.totalVramMiB ?? cardTotalMiB, sizeOf: localModelSizeMiB});
 // Models a pack's marker names whose file is not there (a zip that was not fully extracted): they are not in the list, and with only Mature models left and
@@ -3851,7 +3884,8 @@ function syncLocalModelChoice(settings) {
   if (!settings || typeof settings !== 'object') return;   // a partial settings write: keep what is chosen
   const pin = normalisePin(settings.localModel);
   if (pin !== localModelPin) { localModelPin = pin; localModelFallbackNoted = ''; console.error(`[LocalAI] model choice is now ${pin}`); }
-  const choiceKey = `${localModelPin}|${matureContent.enabled}|${matureContent.pack}`;
+  if ((settings.localOffload === true) !== localOffloadAllowed) { localOffloadAllowed = settings.localOffload === true; offloadKeptNoted.clear(); console.error(`[LocalAI] partial offload to RAM is now ${localOffloadAllowed ? 'allowed' : 'not allowed'}`); }
+  const choiceKey = `${localModelPin}|${localOffloadAllowed}|${matureContent.enabled}|${matureContent.pack}`;
   if (choiceKey !== localModelChoiceKey) {
     const first = localModelChoiceKey === null;
     localModelChoiceKey = choiceKey;
@@ -3884,7 +3918,7 @@ async function publishLocalModelList() {
     scanCustomModels();
     retryLocalAfterInstall();
     await learnCardTotal();
-    const listKey = JSON.stringify([installedLocalModels(), localModelDefaults(), customModelProblems()]);
+    const listKey = JSON.stringify([installedLocalModels(), localModelDefaults(), customModelProblems(), localModelInUse()]);
     if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
   }
 }
@@ -3988,6 +4022,8 @@ async function pollSettings(checkShutdown = true) {
     void pocketLanguages.refresh().catch(() => {});
     // Developer mode: the last reply's audio and reference are kept (bridge/last-reply-capture.mjs).
     if (replyCapture.update(settings)) console.error(`[Debug] keeping the last spoken reply is now ${replyCapture.enabled ? 'on' : 'off'}`);
+    if (devTranscript.update(settings)) console.error(`[Debug] the Developer mode transcript is now ${devTranscript.enabled ? 'on' : 'off'}`);
+    void placeCaptures.poll();
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     // Settings > Dynamic info: the kinds of live game info the context may carry (bridge/dynamic-info.mjs); read by every provider's context builder.
@@ -4058,7 +4094,7 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  localStatus: localAiStatus, localReason: localAiReason, localDetail: () => { const {state, reason, detail} = localServer.status(); return state === 'failed' ? unavailableDetail(reason, detail) ?? null : null; }, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  localStatus: localAiStatus, localReason: localAiReason, localDetail: () => { const {state, reason, detail} = localServer.status(); return state === 'failed' ? unavailableDetail(reason, detail) ?? null : null; }, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelInUse, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 // The custom provider's settings page: three pastes and a connection test (bridge/custom-endpoint.mjs). Idle until the page writes a command.
 const customControl = await new CustomControl({custom: customEndpoint, provider: mistral, commandPath: resolve(runtime, 'custom-provider-command.json'),
   publish: value => atomic(resolve(runtime, 'custom-provider-state.json'), JSON.stringify(value)),

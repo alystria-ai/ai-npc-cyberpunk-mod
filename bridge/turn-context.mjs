@@ -29,6 +29,7 @@
 // their place; a stranger and Johnny in V's head have none. On a phone or a call it also lifts the "name no place of your own" rule for that one place.
 // Settings > Dynamic info (bridge/dynamic-info.mjs): `off`, the kinds the player turned off, are taken out of the snapshot before it is worded.
 import {describePlace} from './place-names.mjs';
+import {namedPlaceAt, parsePosition} from './named-places.mjs';
 import {headOf} from './johnny-head.mjs';
 import {sceneryMemory, asksAboutWeapon, asksAboutSelf} from './scenery-memory.mjs';
 import {gearNudity} from './player-gear.mjs';
@@ -156,6 +157,9 @@ export function parseTurnContext(value) {
   }
   // Whether V is inside a building (an unconfirmed native read, so it is absent when the game could not say). It only sharpens the place.
   if (typeof value.indoors === 'boolean' && result.district) result.indoors = value.indoors;
+  // V's world position (mod/turn-context.lua, read when the turn is built): only used here, to find the named place V stands in (bridge/named-places.mjs). Never worded, never logged.
+  const position = parsePosition(value.position);
+  if (position && result.district) result.position = position;
   if (Object.hasOwn(GENDERS, value.gender)) result.gender = value.gender;
   if (Object.hasOwn(GENDERS, value.voice)) result.voice = value.voice;
   if (Object.hasOwn(LIFEPATHS, value.lifepath)) result.lifepath = value.lifepath;
@@ -214,7 +218,8 @@ export function timeOfDay(hour, minute) {
 
 const listOf = names => names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 // Where V is: {text, inside, kind} (bridge/place-names.mjs), or null. A named place only when the game's own record says V is there.
-const placeOf = snapshot => describePlace({district: snapshot.district, area: snapshot.area, indoors: snapshot.indoors});
+const placeOf = snapshot => describePlace({district: snapshot.district, area: snapshot.area, indoors: snapshot.indoors,
+  named: snapshot.position ? namedPlaceAt(snapshot.position, {district: snapshot.district}) : null});
 
 // Where V (or the companion in person) is, as one modest sentence of its own: [subject, verb] is ['You', 'are'] or ['V', 'is']. A named interior
 // (V's apartment, a bar, a clinic) says "inside"; the Badlands say "outdoors"; a plain neighbourhood says indoors or outdoors when the game's
@@ -223,6 +228,8 @@ const placeOf = snapshot => describePlace({district: snapshot.district, area: sn
 function whereSentence(place, [who, be], vehicle = false) {
   if (!place) return null;
   if (place.kind === 'home' || place.kind === 'venue') return `${who} ${be} inside ${place.text}.`;
+  // A named place found from V's position (the game's record for it is only the neighbourhood): inside when the game says V is indoors, near it in a vehicle, else at it.
+  if (place.kind === 'named') return `${who} ${be} ${vehicle ? 'near' : place.inside === true ? 'inside' : 'at'} ${place.text}.`;
   if (place.kind === 'wild') return `${who} ${be} outdoors in ${place.text}, out in open country.`;
   if (place.inside === true) return `${who} ${be} indoors, in a building in ${place.text}; which building is not given.`;
   // In a vehicle the game's interior flag says nothing about the air around the car: no "open air" then.
@@ -459,6 +466,19 @@ export function vixenProbeLines(input, options) {
     lines[tag] = `${tag}: ${note} switch=${on ? 'on' : 'off'} asked=${asksAboutSelf(input.text) ? 'yes' : 'no'} sent=${on ? modsBy?.[key] ?? 'none(no context)' : 'none(switch off)'}`;
   }
   return lines;
+}
+
+/**
+ * The sentence that says where V is for this turn, exactly as the context carries it ("You are inside the Afterlife, a merc bar in Little China, Watson."), or ''.
+ * For the Developer mode transcript (bridge/dev-transcript.mjs). Same inputs as describeTurnContext; no position or number appears in it.
+ */
+export function turnContextWhere(input, options = {}) {
+  try {
+    if (!input || input.turnContext === undefined) return '';
+    const snapshot = stripSnapshot(parseTurnContext(input.turnContext), options.off ?? NO_KINDS);
+    if (!snapshot || snapshot.status !== 'ready') return '';
+    return whereSentence(placeOf(snapshot), YOU, snapshot.vehicle === true) ?? '';
+  } catch { return ''; }
 }
 
 // One line per reply for the bridge log (stderr): whether this turn's context carried the block, or why not. Counts only.

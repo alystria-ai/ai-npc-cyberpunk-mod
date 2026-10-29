@@ -967,7 +967,7 @@ export class LocalLlmServer extends EventEmitter {
       if (!forced) throw new LocalAiUnavailable('not-installed', 'no ' + this.tierSetting + ' model');
       return {model: forced, sizeMiB: Number(sizeOf(forced.file)) || 0, profile: forced.tier, pinned: true, fellBack: null};
     }
-    const choice = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB, totalMiB: this.#totalMiB, sizeOf, realFit});
+    const choice = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB, totalMiB: this.#totalMiB, sizeOf, realFit, keepChosen: selected.keepChosen});
     this.#announce(choice, selected, memory);
     return choice;
   }
@@ -1071,7 +1071,7 @@ export class LocalLlmServer extends EventEmitter {
     models = usableModels(models, pack);
     for (const model of models) if (model.custom && this.#broken.get(model.id) === this.#sizeKey(model)) model.broken = true;
     for (const model of models) if (this.#stalled.has(model.id)) model.stalled = true;
-    return {models, pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true, ownEngineMissing};
+    return {models, pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true, keepChosen: picked?.keepChosen === true, ownEngineMissing};
   }
 
   // Is the choice a server the player runs? Decided without the graphics card (such a server uses none of ours): a pinned server, or one
@@ -1388,6 +1388,11 @@ export class LocalLlmServer extends EventEmitter {
         this.log('[local] ' + choice.model.name + ' cannot run partly on the processor: about ' + Math.round(ram) + ' MiB of system memory are needed for its CPU part and cache, ' + Math.round(freeRam)
           + ' MiB are free: close programs, or choose a smaller model in Settings, or use the Custom provider');
         throw new LocalAiUnavailable('start-failed', LOW_RAM);
+      }
+      if (choice.keptOffload === true && !placement.hopeless) {
+        // The player allowed partial offload (the setting): the chosen model stays and part of it runs from system memory. Said once (the 'local-offload' notice), with the numbers in the log.
+        this.log('[local] ' + choice.model.name + ' is kept as chosen (partial offload to RAM is allowed): ' + (placement.share === null ? 'part' : 'about ' + Math.round(placement.share * 100) + '%') + ' of its layers on the card, the rest on the processor; replies will be slower');
+        this.emit('offload-kept', {id: choice.model.id, model: choice.model.loadedName ?? choice.model.name, share: placement.share});
       }
       if (placement.hopeless) {
         this.log('[local] ' + choice.model.name + ' will run mostly on the processor: only about ' + Math.round(placement.share * 100) + '% of its layers fit the graphics card with ' + placement.targetMiB

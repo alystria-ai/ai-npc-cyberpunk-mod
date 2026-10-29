@@ -505,3 +505,18 @@ test('the bridge logs the provider setting and a failed turn on the fallback car
   assert.match(source, /textProvider: invitationTextProvider, connectionWanted: \(\) => !mistral\.pending, provider: \(\) => mistral\.requested/);
   assert.match(source, /log: line => console\.error\('\[CyberpunkConvai\] ' \+ line\)/);
 });
+
+test('local-offload: the chosen model was kept with part of it in system memory (the setting is on): said once with its name, only while Local AI is chosen, and a new choice drops it', () => {
+  const model = new MistralProvider({});
+  model.setPreference('local'); model.apply();
+  model.noteLocalOffloadKept('Gemma 4 E4B');
+  assert.equal(model.takeNotice(), 'local-offload');
+  assert.equal(model.noticeModel, 'Gemma 4 E4B');
+  assert.equal(model.takeNotice(), undefined, 'once');
+  model.noteLocalOffloadKept('Gemma 4 E4B');
+  model.setPreference('convai'); model.setPreference('local');
+  assert.equal(model.takeNotice(), undefined, 'a new choice drops it');
+  const other = new MistralProvider({});
+  other.noteLocalOffloadKept('x');
+  assert.equal(other.takeNotice(), undefined, 'only while Local AI is the chosen provider');
+});
