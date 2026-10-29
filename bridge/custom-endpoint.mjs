@@ -25,15 +25,16 @@ import {reasoningSteps, noThinkingFields} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
-export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'preset-groq']);
-// One-press setups for the free cloud plans (2026-10-30, after Mistral stopped giving free keys to new accounts): the settings page fills in the
-// endpoint and the model id, the player only pastes a key. Still the Custom provider, nothing else changes. The model ids are the ones that answered
+export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'preset-groq', 'clear-preset-gemini', 'clear-preset-groq']);
+// One-press setups for the free cloud plans (2026-10-30, after Mistral stopped giving free keys to new accounts): with the key copied, one press of Add saves
+// the endpoint, the model id and the key (read from the clipboard), and Remove deletes all three. Still the Custom provider, nothing else changes. The model ids are the ones that answered
 // live on 2026-10-30. Gemini's `-latest` alias keeps working when Google retires a version (gemini-2.5-flash-lite already answers 404).
 export const PRESETS = Object.freeze({
   gemini: Object.freeze({endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-flash-lite-latest'}),
   groq: Object.freeze({endpoint: 'https://api.groq.com/openai/v1', model: 'qwen/qwen3.8-27b'}),
 });
 const PRESET_OF = Object.freeze(Object.fromEntries(Object.keys(PRESETS).map(name => [`preset-${name}`, name])));
+const CLEAR_PRESET_OF = Object.freeze(Object.fromEntries(Object.keys(PRESETS).map(name => [`clear-preset-${name}`, name])));
 // Only OpenRouter gets its two optional attribution headers (https://openrouter.ai/docs: HTTP-Referer, X-Title). Never any other host.
 export const OPENROUTER_HOST = 'openrouter.ai';
 export const OPENROUTER_HEADERS = Object.freeze({'HTTP-Referer': 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs', 'X-Title': 'AI NPC Cyberpunk Mod'});
@@ -322,6 +323,8 @@ export function describeFailure(error) {
  */
 export async function testConnection(custom, {chat = streamChat, adapt = newAdaptation(), fetchImpl, now = () => performance.now()} = {}) {
   if (!custom?.ready) return {state: 'failed', code: 'no-setup', ms: 0};
+  // A host on the internet (every preset, any https address) answers a request with no key by an error that does not say so (Google: a 400). No request is made: the player is told to paste the key first.
+  if (!custom.key && !custom.local) return {state: 'failed', code: 'no-key', ms: 0};
   const began = now();
   try {
     await chat({apiKey: custom.key ?? undefined, model: custom.model, provider: 'custom', endpoint: custom.chatUrl, trustedOrigin: custom.origin,
@@ -349,7 +352,7 @@ export function parseCustomCommand(raw, now = Date.now()) {
 }
 
 const FIELD_OF = {'paste-url': 'url', 'clear-url': 'url', 'paste-key': 'key', 'clear-key': 'key', 'paste-model': 'model', 'clear-model': 'model',
-  'preset-gemini': 'preset', 'preset-groq': 'preset'};
+  'preset-gemini': 'preset', 'preset-groq': 'preset', 'clear-preset-gemini': 'preset', 'clear-preset-groq': 'preset'};
 const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits']);
 
 /**
@@ -405,12 +408,26 @@ export class CustomControl {
     if (action === 'clear-url') { await c.clearUrl(); this.testResult = null; return {state: 'cleared'}; }
     if (action === 'clear-key') { await c.clearKey(); this.testResult = null; return {state: 'cleared'}; }
     if (action === 'clear-model') { await c.clearModel(); this.testResult = null; return {state: 'cleared'}; }
-    // A one-press setup: the address and the model id come from PRESETS, not from the clipboard. The saved key follows the usual rule (it stays only on the same host).
+    // Remove on a free setup: its endpoint, its model id and its key go (only when that plan is the one saved; a stale press changes nothing).
+    const removed = CLEAR_PRESET_OF[action];
+    if (removed) {
+      if (c.preset === removed) { await c.clearUrl(); await c.clearModel(); await c.clearKey(); }
+      this.testResult = null;
+      return {state: 'cleared'};
+    }
+    // A one-press setup: the address and the model id come from PRESETS, the key from the clipboard (copied from the provider first; nothing is saved without one, so a press
+    // can never leave a plan with no key behind). The key is bound to the plan's host.
     const preset = PRESETS[PRESET_OF[action]];
     if (preset) {
+      let copied;
+      try { copied = await this.readClipboard(); } catch { return {state: 'unreadable'}; }
+      if (typeof copied !== 'string' || !copied.trim()) return {state: 'invalid', reason: 'empty'};
+      const key = parseCustomKey(copied);
+      if (!key) return {state: 'invalid', reason: 'not-a-key'};
+      this.testResult = null;
       await c.setUrl(parseEndpointUrl(preset.endpoint));
       await c.setModel(preset.model);
-      this.testResult = null;
+      await c.setKey(key);
       return {state: 'saved'};
     }
     let text;

@@ -4,7 +4,8 @@
 --
 --   * It writes one small command file when the player chooses something (runtime/custom-provider-command.json): paste-url, paste-key
 --     and paste-model (the service reads the clipboard itself), clear-url, clear-key, clear-model, test, and preset-gemini and preset-groq
---     (the service fills in the endpoint and the model id of that free plan; the player only pastes a key).
+--     (the service reads the key from the clipboard and fills in the endpoint, the model id and the key of that free plan in one go), with
+--     clear-preset-gemini and clear-preset-groq to remove that plan, its key included.
 --   * It reads the status file the service answers in (runtime/custom-provider-state.json), at most every 1.5 s and only when the page
 --     asks for it: nothing here runs per frame and nothing is read while no page is drawn. The key never reaches either file; only its
 --     last four characters (a key of 16 or more characters) are ever shown.
@@ -22,14 +23,15 @@ local TEST_STALE = 200
 
 -- The field each command changes; `test` changes none.
 local FIELD_OF = {['paste-url'] = 'url', ['clear-url'] = 'url', ['paste-key'] = 'key', ['clear-key'] = 'key',
-    ['paste-model'] = 'model', ['clear-model'] = 'model', ['preset-gemini'] = 'preset', ['preset-groq'] = 'preset', test = false}
+    ['paste-model'] = 'model', ['clear-model'] = 'model', ['preset-gemini'] = 'preset', ['preset-groq'] = 'preset',
+    ['clear-preset-gemini'] = 'preset', ['clear-preset-groq'] = 'preset', test = false}
 local FIELDS = {url = true, key = true, model = true, preset = true}
 -- The one-press setups of the free cloud plans (bridge/custom-endpoint.mjs PRESETS); the service says which one is saved.
 local PRESETS = {gemini = true, groq = true}
 local RESULT_STATES = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local REASONS = {empty = true, ['not-a-url'] = true, scheme = true, insecure = true, extras = true, long = true,
     ['not-a-key'] = true, ['not-a-model'] = true}
-local TEST_CODES = {['no-setup'] = true, key = true, credits = true, model = true, limit = true, unreachable = true,
+local TEST_CODES = {['no-setup'] = true, ['no-key'] = true, key = true, credits = true, model = true, limit = true, unreachable = true,
     timeout = true, server = true, empty = true, request = true, redirect = true, daily = true, reasoning = true,
     webpage = true, ['webpage-openrouter'] = true}
 local LIMITS = {rate = true, daily = true, invalid = true, model = true, credits = true}
@@ -226,6 +228,7 @@ function M.new(options)
     local function testSentence(test)
         local code = test.code
         if code == 'no-setup' then return ui.t('Add an endpoint URL and a model ID first.') end
+        if code == 'no-key' then return ui.t('No API key is saved yet. Copy your key from your provider, press Paste API key, then test again.') end
         if code == 'key' then return ui.t('The endpoint did not accept your API key.') end
         if code == 'credits' then return ui.t('The account is out of credits. Add credits with your provider.') end
         if code == 'model' then return ui.t('The endpoint does not know that model ID.') end
@@ -256,21 +259,21 @@ function M.new(options)
         local result, test = state.result, state.test
         local rows = {}
 
-        -- The free setups: one press fills in the endpoint URL and the model ID of a free cloud plan, so only the key is left to paste.
+        -- The free setups: with the key on the clipboard, one press saves the endpoint URL, the model ID and the key of a free cloud plan. The button is Add, and Remove while this plan is the one
+        -- saved (it deletes the endpoint, the model and the key).
         do
             local message = failure(result, 'preset')
-            local function presetRow(id, name, label, help, action)
+            local function presetRow(id, name, label, addHelp)
+                local saved = state.preset == name
+                local help = saved and ui.t('Deletes this free setup: the endpoint URL, the model ID and the API key saved with it.') or addHelp
                 if message then help = message .. '\n\n' .. help end
-                -- The button reads Added while this plan is the one saved (pressing it again fills the same values in again).
-                rows[#rows + 1] = {id = id, field = 'preset', label = label, value = state.preset == name and ui.t('Added') or ui.t('Use'),
-                    help = help, enabled = true, action = action}
+                rows[#rows + 1] = {id = id, field = 'preset', label = label, value = saved and ui.t('Remove') or ui.t('Add'),
+                    help = help, enabled = true, action = (saved and 'clear-preset-' or 'preset-') .. name}
             end
             presetRow('custom-preset-gemini', 'gemini', ui.t('Google Gemini (free)'),
-                ui.t('Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.'),
-                'preset-gemini')
+                ui.t('Copy your free key from aistudio.google.com/apikey first (a Google account is enough, no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite) and saves your key from the clipboard.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.'))
             presetRow('custom-preset-groq', 'groq', ui.t('Groq (free)'),
-                ui.t('Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.'),
-                'preset-groq')
+                ui.t('Copy your free key from console.groq.com/keys first (no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Groq (Qwen) and saves your key from the clipboard.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country.'))
         end
 
         -- The endpoint URL.
@@ -297,7 +300,7 @@ function M.new(options)
             local message = failure(result, 'key')
             local info
             if saved then info = state.tail and ('…' .. state.tail) or ui.t('Added')
-            elseif message or state.keyForgotten then info = ui.t('Not added') end
+            elseif message or state.keyForgotten or state.preset then info = ui.t('Not added') end
             local help
             if saved then
                 help = ui.t('Deletes the saved key. Replies from the custom provider are then asked for without a key.')
@@ -306,7 +309,10 @@ function M.new(options)
                 help = ui.t('Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.')
             end
             if message then help = message .. '\n\n' .. help
-            elseif state.keyForgotten then help = ui.t('New address saved. Paste your API key again for it.') .. '\n\n' .. help end
+            elseif state.keyForgotten then help = ui.t('New address saved. Paste your API key again for it.') .. '\n\n' .. help
+            -- Right after a free setup is added the key is the one step left (a key pasted before it was for the old address and was forgotten).
+            elseif not saved and state.preset == 'gemini' then help = ui.t('Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.') .. '\n\n' .. help
+            elseif not saved and state.preset == 'groq' then help = ui.t('Next step: copy your Groq key from console.groq.com/keys, then press Paste API key.') .. '\n\n' .. help end
             rows[#rows + 1] = {id = 'custom-key', field = 'key', label = ui.t('Custom API key') .. (info and (' (' .. info .. ')') or ''),
                 value = saved and ui.t('Remove') or ui.t('Paste API key'), help = help, enabled = true,
                 action = saved and 'clear-key' or 'paste-key'}

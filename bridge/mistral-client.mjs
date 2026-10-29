@@ -230,6 +230,10 @@ export function resetClock(at, now = Date.now()) {
   return `${two(date.getHours())}:${two(date.getMinutes())}`;
 }
 
+// What a 400 says when the key is the problem: Google's reason code and sentence, and the common ways other servers say a key is missing, wrong or expired.
+const KEY_REFUSAL = /api_key_invalid|api[ _-]?key (?:is |was )?(?:not valid|invalid|incorrect|missing|expired|required|not found)|(?:invalid|incorrect|missing|expired|no) api[ _-]?key|please pass a valid api key/;
+const safeJson = value => { try { return JSON.stringify(value) ?? ''; } catch { return ''; } };
+
 /** Maps what the custom provider answered: the same few kinds, plus 402 (no credit), a daily limit, and a refused request field. */
 function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
   // Google's OpenAI-compatible endpoint answers an error as a list of one error object.
@@ -245,6 +249,8 @@ function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
     return error;
   };
   if (status === 401 || status === 403) return make('key', 'did not accept the API key');
+  // Google's OpenAI-compatible endpoint answers a missing or wrong key with a 400 (status INVALID_ARGUMENT, reason API_KEY_INVALID, "API key not valid. Please pass a valid API key."), not a 401.
+  if (status === 400 && KEY_REFUSAL.test(`${lower} ${safeJson(first).toLowerCase()}`)) return make('key', 'did not accept the API key');
   // Some providers answer an account that has spent its credit with 429 ("insufficient_quota") instead of 402.
   const freeDaily = status === 429 && FREE_DAILY.test(lower);
   if (status === 402 || (status === 429 && !freeDaily && CREDIT_WORDS.test(lower))) {
