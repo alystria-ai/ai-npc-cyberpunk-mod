@@ -1704,6 +1704,21 @@ including content created for the purposes of pornography or sexual gratificatio
 uncensored candidates (`Qwen3.5-*-Uncensored-HauhauCS-*`, `gemma-4-E4B-it-ultra-uncensored-heretic`, any name with uncensored,
 abliterated or heretic) are full and flagged `uncensored`.
 
+#### Real people, not a push (2026-10-29, replaces the 14 Oct "on every turn" tone)
+
+A player report (Nexus: "everyone wants to talk about sex with V all the time") and the owner's decision of 29 Oct changed what Mature means: the freedom stays, the push goes. Characters
+are adults who can talk about anything, sex included and explicit, when V takes it there, when a romance that fits the character and the bond calls for it, or when the place does (a club, a
+brothel, close friends joking). They do not bring up sex, flirt with V or remark on V's body unprompted, and a stranger, a shopkeeper, a cop or a coworker never propositions V. Swearing
+and crude talk follow who the character is (a ganger swears freely, a doctor or a shopkeeper little). The word bank is now a vocabulary for when it fits, not an instruction. Changed in
+`bridge/mature-content.mjs`: the speech, palette, romance, tone and closing lines (`MATURE_DEFAULTS`), the partner text `MATURE_USE` (leans in when the moment is personal, not on any turn),
+and in `bridge/prompt-profiles.mjs` rule 6 and the facts rule of the Mature variants ("if V flirts or brings up desire or sex, answer that in your own voice and never dodge it"). No new
+content cue or refusal was added. Unchanged word for word: the adults-only line, the HARD LIMITS line, the guard, and the prompt with Mature off (the off hashes in
+`bridge/prompt-pinned.test.mjs` and `bridge/prompt-profiles-pinned.test.mjs` did not move). The layer is about 120 tokens longer (about 720 by the repo estimate).
+
+Measured on the two Mature models with `scripts/Eval-MatureTone.mjs` and `scripts/Judge-MatureTone.mjs` (120 neutral replies per model, 36 flirty): neutral replies that steer to sex or flirt
+went from 39% to 0% (Qwen3.5-4B) and 69% to 0% (Gemma 4 E4B), and explicit asks are still all answered (22 of 22, explicit in 17 of 22 on Qwen and 11 of 22 on Gemma, against 16 and 17
+before). See `docs/MATURE_SAMPLES_V5_2026-10-29.md`. Not changed: the settings help text and the character editor's Mature layer help still say "crude, forward wording" (translated text).
+
 #### The hard-limit guard
 
 An uncensored model has no limits of its own and ignores the one in the prompt: in the 2026-10-13 test (`docs/MATURE_MODELS_RESEARCH.md`
