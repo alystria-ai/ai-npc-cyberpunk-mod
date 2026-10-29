@@ -232,6 +232,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/speech-punctuation.mjs',
   'bridge/speech-state-cache.mjs',
   'bridge/stage-marker.mjs',
+  'bridge/story-knowledge-data.mjs',
+  'bridge/story-knowledge.mjs',
   'bridge/stt-activity.mjs',
   'bridge/support-report.mjs',
   'bridge/system-browser.mjs',

@@ -253,7 +253,7 @@ test('llama-server\'s refusal of a long prompt is an overflow with the counted t
 test('the world blocks of a named character carry the keys the trimming order uses', () => {
   const blocks = conversationContextBlocks({profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'private', text: 'hi', requestId: 'r1'});
   const keys = blocks.filter(block => block.tier === 'world' && block.key).map(block => block.key);
-  assert.deepEqual(keys, ['knowledge', 'recency', 'history', 'jobs', 'journal', 'gear', 'authority']);
+  assert.deepEqual(keys, ['knowledge', 'story', 'recency', 'history', 'jobs', 'journal', 'gear', 'authority']);
 });
 
 test('the world facts ranked by V\'s words come after the blocks that only change on game events, so a turn does not re-read the whole world block', () => {
@@ -262,7 +262,7 @@ test('the world facts ranked by V\'s words come after the blocks that only chang
   assert.equal(world.find(block => block.key)?.key, 'knowledge', 'the Convai context keeps its own order');
   const ordered = worldBlocksInCacheOrder(world);
   assert.equal(ordered.length, world.length, 'nothing is added or dropped');
-  assert.deepEqual(ordered.filter(block => block.key).map(block => block.key), ['recency', 'history', 'jobs', 'journal', 'gear', 'knowledge', 'authority']);
+  assert.deepEqual(ordered.filter(block => block.key).map(block => block.key), ['story', 'recency', 'history', 'jobs', 'journal', 'gear', 'knowledge', 'authority']);
   assert.deepEqual(worldBlocksInCacheOrder([{key: 'gear', text: 'a'}, {text: 'b'}]), [{key: 'gear', text: 'a'}, {text: 'b'}], 'no knowledge block: as it was');
   assert.deepEqual(worldBlocksInCacheOrder([{key: 'knowledge', text: 'k'}, {key: 'gear', text: 'g'}]).map(block => block.key), ['gear', 'knowledge'], 'no authority sentence: the facts go last');
   assert.deepEqual(worldBlocksInCacheOrder(undefined), []);
