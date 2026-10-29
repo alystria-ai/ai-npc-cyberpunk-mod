@@ -24,7 +24,7 @@ import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
-import {CompanionVision} from './companion-vision.mjs';
+import {CompanionVision, visionDisabledByEnv} from './companion-vision.mjs';
 import {VisionCapture} from './vision-capture.mjs';
 import {MicrophoneSession, microphoneErrorState} from './microphone-session.mjs';
 import {createAddonVoice} from './addon-voice.mjs';
@@ -755,7 +755,9 @@ const keyNotice = () => {
   pocketNotice = undefined;
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take() ?? (pocketNotice = pocketLanguageNotice.take())?.keyNotice
     // Windows draws its yellow capture border for the "Companions can see" pictures (docs/COMPANION_VISION.md): said once, with the next reply.
-    ?? (companionVision.takeBorderNotice() ? 'vision-border' : undefined);
+    ?? (companionVision.takeBorderNotice() ? 'vision-border' : undefined)
+    // The setting is on and the provider cannot take pictures (a Local AI model with no vision projector, a Custom endpoint that refused one): said once per case, with the next reply.
+    ?? companionVision.takeSightNotice() ?? undefined;
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'pocket-language-pack' ? {keyNoticeLanguage: pocketNotice.keyNoticeLanguage} : {}), ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
     ...(keyNotice === 'local-model-fallback' && mistral.noticeMemory ? {keyNoticeNeedMiB: mistral.noticeMemory.needMiB, keyNoticeAvailableMiB: mistral.noticeMemory.availableMiB} : {}),
@@ -1115,15 +1117,36 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
     return `convai=allowed:${e.allowed} privateManual:${e.privateManual} verified:${e.verified} armed:${e.armed} published:${seen.published}`
       + ` accepted:${seen.accepted} skipped:${seen.skipped} skip:${seen.lastSkip ?? '-'} ack:${seen.contextAck ?? '-'}`;
   }});
-// "Companions can see" (docs/COMPANION_VISION.md): always on, Convai only. Every conversation turn carries a recent picture of
-// V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking;
-// it is published on the page ahead of the line. companionVision.attachToNextTurn(images) lets other features show the companion
-// something (e.g. a TV picture).
+// "Companions can see" (docs/COMPANION_VISION.md): one setting, off by default (Settings > Conversations), for every conversation provider. Every conversation turn carries a recent
+// picture of V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking. With Convai it is published on the page ahead
+// of the line, with Mistral, Local AI and Custom it is an image_url part of the last user message (bridge/vision-message.mjs). With the setting off nothing is captured and the helper is not
+// started. companionVision.attachToNextTurn(images) lets other features show the companion something (e.g. a TV picture).
 const visionLog = message => console.error('[Vision] ' + message);
 let speechPlayingAt = 0;
 // Development: CYBERPUNK_CONVAI_VISION_DEBUG_LAST=1 (or "visionDebugLastSent": true in settings.json) keeps the last picture handed to
 // Convai in runtime/vision-last-sent.jpg, with runtime/vision-last-sent.json saying when it was taken and how it was sent.
-const companionVision = new CompanionVision({capture: new VisionCapture({log: visionLog}), isConvai: () => !mistral.active,
+// What the text provider that answers can take: Mistral's models all have vision (bridge/mistral-client.mjs VISION_MODELS), Local AI only with a model that has a projector that fits
+// (LocalLlmServer.visionState, remembered state only, no I/O), a Custom endpoint until it refuses a picture.
+const visionSees = () => {
+  switch (mistral.route) {
+    case 'mistral': return true;
+    case 'local': { const state = localServer.visionState(); return state.available === true && state.reason !== 'no-room' && state.reason !== 'start-failed'; }
+    case 'custom': return textRoutes.custom.visionAllowed() === true;
+    default: return false;
+  }
+};
+// Local AI with the setting on and a model that cannot see: the player is told once per model and cause (mod/init.lua 'vision-local-no-model'). Nothing for a model that is not installed:
+// Local AI has its own notices for that.
+const visionBlocker = () => {
+  if (mistral.route !== 'local') return null;
+  const state = localServer.visionState();
+  if (!state.wanted || !state.model || (state.available && state.reason !== 'no-room' && state.reason !== 'start-failed')) return null;
+  const cause = state.reason ?? 'no-projector';
+  return {code: 'vision-local-no-model', key: `local:${state.model}:${cause}`,
+    why: `${state.model} cannot see (${cause === 'no-room' ? 'its vision projector does not fit beside it on the graphics card' : cause === 'start-failed' ? 'llama-server could not use its vision projector' : 'it has no vision projector'})`};
+};
+const companionVision = new CompanionVision({capture: new VisionCapture({log: visionLog}), isConvai: () => !mistral.active, sees: visionSees, blocker: visionBlocker,
+  provider: () => mistral.active ? mistral.route : 'convai',
   lastSentPath: resolve(runtime, 'vision-last-sent.jpg'),
   isNear: () => !connections.stale && (connections.profiles.length > 0 || connections.nearby.length > 0 || connections.partners.length > 0),
   isConversing: () => !!(active || mic.current || micPolling || connections.composer) || Date.now() - speechPlayingAt < 1500,
@@ -1143,9 +1166,10 @@ const realtime = new RealtimeHost({browserPriority: turnPriority, onCompanionAct
 // The prompt limits a cloud provider named when it refused a prompt as too long (bridge/prompt-fit.mjs), per provider and model, kept for three days so the next session starts from them.
 const promptLimits = new LearnedLimits({file: resolve(stateDirectory, 'prompt-limits.json')});
 const textRoutes = {
-  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12), limits: promptLimits, log: line => console.error(line)}),
-  local: localRoute({server: localServer, provider: mistral, log: message => console.error(message.startsWith('[PromptFit]') ? message : '[TextProvider] ' + message)}),
-  custom: customRoute({provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console.error(line)}),
+  mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12), limits: promptLimits, log: line => console.error(line),
+    onImagesRejected: kind => companionVision.noteRefused(kind)}),
+  local: localRoute({server: localServer, provider: mistral, log: message => console.error(message.startsWith('[PromptFit]') ? message : '[TextProvider] ' + message), onImagesRejected: kind => companionVision.noteRefused(kind)}),
+  custom: customRoute({provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console.error(line), onImagesRejected: kind => companionVision.noteRefused(kind)}),
 };
 const providerOfCharacter = new Map();
 const profileOfCharacter = config => {
@@ -3976,6 +4000,9 @@ async function pollSettings(checkShutdown = true) {
     const vSettings = vSettingsFor(settings, {cloudUsable: matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
     if (vVoice.update(vSettings)) console.error(`[VVoice] typed lines ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}, microphone lines ${vVoice.micEnabled ? 'on' : 'off'}`);
     if (vVoice.active) startVVoiceModScan();
+    // Companions can see: Local AI loads its vision projector only while the setting is on (and restarts without it when it goes off, bridge/local-llm-server.mjs setVision), so the server is
+    // told before the policy looks at what the model can do.
+    if (settings && typeof settings === 'object') localServer.setVision(settings.companionVision === true && !visionDisabledByEnv());
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));

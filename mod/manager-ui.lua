@@ -2257,6 +2257,9 @@ local function schema()
                     or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 4,
                 'Companions in your party sometimes start talking on their own, at a calm moment or after a scene. With two or more near you, it is often a short chat between up to three of them, and you can join in by talking. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often (the default): about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
                 {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
+            -- Companions can see (docs/COMPANION_VISION.md): off by default, every conversation provider. The bridge does all the work out of process.
+            setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision == true, false,
+                'Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured.'),
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
         table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
@@ -2811,7 +2814,7 @@ function M.apply(changes)
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
-            or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
+            or key == 'matureContent' or key == 'errorReports' or key == 'companionVision' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
             values.voiceVolume = change.value

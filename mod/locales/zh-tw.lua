@@ -1055,7 +1055,6 @@ return {
     ["Voice files"] = "語音檔案",
     ["The voice files are incomplete. Reinstall the Full download from Nexus Mods."] = "語音檔案不完整。請從 Nexus Mods 重新安裝完整安裝 zip。",
     ["The voice files are incomplete, so the voices and the microphone cannot start. Reinstall the Full download from Nexus Mods: extract it into the Cyberpunk 2077 folder and let it replace the files, then restart the game."] = "語音檔案不完整，因此語音和麥克風無法啟動。請從 Nexus Mods 重新安裝完整安裝 zip：解壓縮到 Cyberpunk 2077 資料夾並取代檔案，然後重新啟動遊戲。",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "黃色邊框是 Windows 正在擷取畫面。選擇 Mistral 或 Local AI 即可停止。",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "只會變更本模組的選單和提示。\n\n角色語音與你的對話語言是分開設定的。麥克風會把這個語言作為非英語語音的提示。",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral 將不再發聲；儲存金鑰之前，夥伴的回覆會以文字顯示。",
     ["Conversations go back to Convai free tier."] = "對話將改回使用 Convai（免費方案）。",
@@ -1740,4 +1739,9 @@ return {
     ["An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself."] = "標示 (!) 的輸入看起來像是迴路或虛擬輸入，例如 Stereo Mix、CABLE Output 或混音器的輸出。它可能會傳入其他應用程式的聲音，例如通話另一端的聲音，所以模組從不自行選擇這類輸入。",
     ["The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone."] = "你選擇的輸入看起來不只傳入你的聲音，還會傳入電腦的聲音。如果角色聽得到你的通話，請選擇你真正的麥克風。",
     ["{name} looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone."] = "{name}，看起來不只傳入你的聲音，還會傳入通話等電腦聲音。請在 設定 > 語音 > 麥克風 中選擇你真正的麥克風。",
+    ["Companions can see"] = "同伴看得見",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "每句對話還會附上一張最近的周遭環境畫面，在你開口前從遊戲視窗擷取。適用於所有對話提供者。Local AI 需要支援影像的模型，不支援的模型只會收到你的話語。\n\n只擷取遊戲視窗，只在有人靠近時擷取，短暫保存在記憶體中。關閉後則不擷取任何內容。",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "黃色邊框是 Windows 正在擷取畫面。關閉同伴看得見即可停止。",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "此 Local AI 模型無法辨識圖片，因此回覆只使用你的文字。",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "你的 Custom 端點不接受圖片，因此回覆只使用你的文字。",
 }

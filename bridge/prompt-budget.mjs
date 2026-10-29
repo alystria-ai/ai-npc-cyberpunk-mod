@@ -595,10 +595,13 @@ export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, 
       try {
         const result = await chat({...options, messages: fit.messages});
         noteLearned('ok');
-        base.meter?.observe(fit.messages, result?.usage?.prompt_tokens, {raw: fit.raw, exact: fit.exact});
-        const gap = base.meter?.lastGap;
-        if (gap >= BUDGET.mismatchLog) { try { onMismatch?.({raw: fit.raw, real: Number(result.usage.prompt_tokens), gap, exact: fit.exact, bias: base.meter.bias}, options); } catch { /* a log line never fails a request */ } }
-        try { base.speed?.observe(result?.trace); } catch { /* a measurement never fails a request */ }
+        // A request that carried a picture (`imageTokens`): the server's count includes the picture's tokens and its time includes the image encoder, so neither teaches the token ratio or the reading speed.
+        if (!(base.imageTokens > 0)) {
+          base.meter?.observe(fit.messages, result?.usage?.prompt_tokens, {raw: fit.raw, exact: fit.exact});
+          const gap = base.meter?.lastGap;
+          if (gap >= BUDGET.mismatchLog) { try { onMismatch?.({raw: fit.raw, real: Number(result.usage.prompt_tokens), gap, exact: fit.exact, bias: base.meter.bias}, options); } catch { /* a log line never fails a request */ } }
+          try { base.speed?.observe(result?.trace); } catch { /* a measurement never fails a request */ }
+        }
         return result;
       } catch (error) {
         // A request that was stuck reading the prompt says how far it got: the next turn is fitted to what this machine reads.

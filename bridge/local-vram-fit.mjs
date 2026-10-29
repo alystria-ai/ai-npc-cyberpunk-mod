@@ -98,6 +98,19 @@ export async function fitLadder({freeMiB, marginMiB = FIT_LIMITS.marginMiB, prob
     try { projectedMiB = await probe(rung); } catch { /* no projection */ }
     return {contextSize: rung.contextSize, kvType: rung.kvType, projectedMiB: Number.isFinite(projectedMiB) && projectedMiB > 0 ? projectedMiB : null};
   }));
+  return settleLadder(projections, freeMiB, marginMiB);
+}
+
+/**
+ * The same ladder worked out again for another amount of free memory, from projections that were already asked for (no tool run): a vision projector takes memory the model cannot have
+ * (docs/LOCAL_AI.md, "Pictures (Companions can see)"), so the rung that fits is looked for against what is left. `fit` is a result of fitLadder (with or without `marginMiB`). Returns a new
+ * {projections, pick, share, marginMiB}.
+ */
+export function fitAgainst(fit, freeMiB, marginMiB = fit?.marginMiB ?? FIT_LIMITS.marginMiB) {
+  return {...settleLadder(Array.isArray(fit?.projections) ? fit.projections : [], freeMiB, marginMiB), marginMiB};
+}
+
+function settleLadder(projections, freeMiB, marginMiB) {
   const pick = projections.find(rung => rung.projectedMiB !== null && Number.isFinite(freeMiB) && rung.projectedMiB + marginMiB <= freeMiB) ?? null;
   // The placement a model that does not fit whole gets is the offload one (context 8,192, the 8-bit cache, the game's room kept free): the share is worked out for it (offloadPlan).
   const reference = projections.find(rung => rung.projectedMiB !== null && rung.contextSize === FIT_LIMITS.offloadContext && rung.kvType === FIT_LIMITS.offloadKvType)

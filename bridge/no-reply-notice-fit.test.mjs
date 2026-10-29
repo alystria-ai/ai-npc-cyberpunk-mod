@@ -12,7 +12,9 @@ const NOTICES = [
   ['Not enough free graphics memory to start Local AI. Try a smaller model in Settings.', ['init.lua', 'phone-chat.lua']],
   ['Local AI runs mostly on your processor here, so replies will be slow.', ['init.lua']],   // 'local-cpu': a model mostly on the processor; the bridge's few words after it are data
   ['Local AI is back on your graphics card, so replies are faster again.', ['init.lua']],   // 'local-gpu': the model is whole on the card again
-  ['The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.', ['init.lua']],   // 'vision-border': Windows' capture border around the game (Companions can see, Convai)
+  ['The yellow border is Windows showing a capture. Turn off Companions can see to stop it.', ['init.lua']],   // 'vision-border': Windows' capture border around the game (Companions can see)
+  ['This Local AI model cannot see pictures, so replies use only your words.', ['init.lua']],   // 'vision-local-no-model': Companions can see is on and the Local AI model has no vision
+  ['Your Custom endpoint does not accept pictures, so replies use only your words.', ['init.lua']],   // 'vision-custom-no-images': the Custom endpoint refused a picture
   ['Local AI is still loading its model. Try again in a moment.', ['service-status.lua']],
   ['Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.', ['service-status.lua']],
   ['Local AI is not ready, so Convai took that message and did not answer in time.', ['service-status.lua']],

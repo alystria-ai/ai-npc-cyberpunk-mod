@@ -242,3 +242,38 @@ test('the manifest is looked for in the dev Local AI folder when the real folder
   assert.equal(new CustomModelScanner({project: real, environment: {[LOCAL_AI_ENV.dev]: dev}}).scan().root, join(real, 'local-ai'));
   assert.equal(new CustomModelScanner({project: real, environment: {[LOCAL_AI_ENV.root]: join(real, 'local-ai'), [LOCAL_AI_ENV.dev]: dev}}).scan().models.length, 0);
 });
+
+// ---- A vision projector named in an entry (bridge/local-projector.mjs, docs/LOCAL_AI.md "Pictures (Companions can see)") -----------------------------
+test('an entry may name its vision projector with the rules of its own file; a bad path costs the projector, not the model', () => {
+  const ok = validateEntry(root, valid({mmproj: 'custom/My-Model-mmproj-F16.gguf'})).entry;
+  assert.equal(ok.mmproj, resolve(root, 'custom/My-Model-mmproj-F16.gguf'));
+  assert.equal(ok.mmprojProblem, undefined);
+  assert.equal('mmproj' in validateEntry(root, valid()).entry, false, 'no entry, no field: the models without one are exactly as before');
+  for (const [value, pattern] of [['C:/models/mmproj.gguf', /relative/], ['/etc/mmproj.gguf', /relative/], ['custom/../../mmproj.gguf', /\.\./], ['custom/mmproj.bin', /\.gguf/], [42, /"mmproj"/]]) {
+    const checked = validateEntry(root, valid({mmproj: value}));
+    assert.ok(checked.entry, 'the model is still valid: ' + value);
+    assert.equal(checked.entry.mmproj, undefined);
+    assert.match(checked.entry.mmprojProblem, pattern);
+  }
+  // The outside folder's manifest may use a full path with a drive letter, like `file`.
+  const outside = validateEntry(root, valid({file: 'C:/models/x.gguf', mmproj: 'D:/models/x-mmproj.gguf'}), {allowAbsolute: true}).entry;
+  assert.equal(outside.mmproj, resolve('D:/models/x-mmproj.gguf'));
+});
+
+test('the scanner hands the projector on, and one log line says when it is ignored', t => {
+  const f = folder(t);
+  f.model('a.gguf', chatHeader('llama'));
+  f.model('b.gguf', chatHeader('llama'));
+  f.manifest({version: 1, models: [{file: 'custom/a.gguf', name: 'A', mmproj: 'custom/a-mmproj.gguf'}, {file: 'custom/b.gguf', name: 'B', mmproj: '../escape.gguf'}]});
+  const scanner = f.scanner();
+  const models = scanner.scan().models;
+  assert.deepEqual(models.map(model => [model.name, model.mmproj ?? null]), [['A', join(f.directory, 'custom', 'a-mmproj.gguf')], ['B', null]]);
+  assert.equal(models.some(model => 'mmprojProblem' in model), false);
+  scanner.scan();
+  assert.equal(f.logs.filter(line => /vision projector is ignored/.test(line)).length, 1, 'said once');
+  assert.ok(f.logs.some(line => /"custom\/b\.gguf": the vision projector is ignored/.test(line)));
+  // A projector file in the folder is not a chat model on its own: its architecture is clip.
+  f.model('mmproj-F16.gguf', chatHeader('clip'));
+  f.manifest({version: 1, models: [{file: 'custom/mmproj-F16.gguf', name: 'Projector'}]});
+  assert.deepEqual([f.scanner().scan().models.length, f.scanner().scan().problems[0]?.reason], [0, 'embedding']);
+});

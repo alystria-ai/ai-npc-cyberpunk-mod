@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {FIT_LIMITS, SMALL_CARD_ROOM, describeFit, fitLadder, fitToolPath, gameRoomMiB, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
+import {FIT_LIMITS, SMALL_CARD_ROOM, describeFit, fitAgainst, fitLadder, fitToolPath, gameRoomMiB, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {chooseLocalModel, listLocalModels} from './local-model-choice.mjs';
 
 // The line llama-fit-params prints at -lv 4, as measured 2026-10-20 (RTX 4080 Laptop, build 11560, Gemma 4 E4B Mature good at 16,384 context; the same line and the same projections to the MiB on build 11782, 2026-10-21).
@@ -284,4 +284,20 @@ test('the 24,463 MiB RTX 5090 Laptop of the 2026-10-29 report: the model\'s room
   assert.equal(smallCardRoom({totalMiB: 16376, freeMiB: 15000}).modelMiB, smallCardRoom({totalMiB: 16376, freeMiB: 15000, limits: before}).modelMiB);
   assert.equal(smallCardRoom({totalMiB: 11997, freeMiB: 11229}).modelMiB, 3791, 'the 12 GB card of the tests is untouched');
   assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 7461}).modelMiB, 2933, 'and so is the 8 GB card');
+});
+
+test('the ladder worked out again for less room keeps its projections and picks the rung that still fits (a vision projector takes memory first)', () => {
+  const projections = [{contextSize: 16384, kvType: null, projectedMiB: 3734}, {contextSize: 8192, kvType: null, projectedMiB: 3598}, {contextSize: 8192, kvType: 'q8_0', projectedMiB: 3520}];
+  const fit = {projections, pick: projections[0], share: 1, marginMiB: 512};
+  assert.equal(fitAgainst(fit, 4246).pick.contextSize, 16384, 'with the room it had');
+  const less = fitAgainst(fit, 4246 - 100);
+  assert.deepEqual([less.pick.contextSize, less.pick.kvType], [8192, null], '100 MiB less: the next rung');
+  assert.deepEqual([fitAgainst(fit, 4246 - 180).pick.contextSize, fitAgainst(fit, 4246 - 180).pick.kvType], [8192, 'q8_0'], '180 MiB less: the 8-bit cache');
+  assert.equal(fitAgainst(fit, 4031).pick, null, 'no rung fits');
+  assert.equal(fitAgainst(fit, 4031).share < 1, true, 'and the share of the layers on the card is worked out for the offload placement');
+  assert.deepEqual(fitAgainst(fit, 4246).projections, projections);
+  assert.equal(fitAgainst(fit, 5000, 100).marginMiB, 100);
+  assert.equal(fitAgainst(fit, 4300).marginMiB, 512, 'the margin of the first look is kept');
+  assert.deepEqual(fitAgainst(null, 5000), {projections: [], pick: null, share: null, marginMiB: FIT_LIMITS.marginMiB});
+  assert.deepEqual(fitAgainst(fit, NaN).pick, null);
 });

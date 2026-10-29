@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {LlamaProcess, LocalLlmServer, LocalAiUnavailable, buildServerArgs, chooseTier, defaultCacheRamMiB, fillerText, isIntegratedGpu, parseDeviceList, tierNeedMiB,
   pickDevice, unavailableDetail, looksBlocked, BLOCKED, isAsciiPath, withoutKeyFile, serverEnvironment} from './local-llm-server.mjs';
 import {SPILL_LIMITS} from './gpu-memory.mjs';
+import {ggufFile} from './fixtures/gguf-header.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
 const DEVICES = `Available devices:
@@ -620,7 +621,7 @@ test('beforeStart is awaited before free VRAM is read, and a hook that never ret
 
 // ---- The model choice (bridge/local-model-choice.mjs): which installed model loads, and a reload when the choice changes ----------
 // Sizes by file name: standard 5280 MiB (needs 6480 free), lite 1311 (2011), a big uncensored model 5400 (6600), a small one 1400 (2100).
-const CHOICE_SIZES = {'q4.gguf': 5280, 'q2.gguf': 1311, 'big-u.gguf': 5400, 'small-u.gguf': 1400};
+const CHOICE_SIZES = {'q4.gguf': 5280, 'q2.gguf': 1311, 'big-u.gguf': 5400, 'small-u.gguf': 1400, 'mm.gguf': 900};
 function choiceHarness(t, {selected = {}, mature = true, freeMiB = 24000, ...options} = {}) {
   const state = {pin: 'auto', matureOn: false, matureModels: [], ...selected};
   const made = harness(t, {freeVramMiB: () => freeMiB, selection: () => state,
@@ -2181,4 +2182,286 @@ test('back to the card: a card whose free memory cannot be read (no nvidia-smi) 
   h.clock.now += 1500;
   assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\): the free graphics memory is unknown/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
   assert.deepEqual([h.calls.length, h.returned.length], [1, 0]);
+});
+
+// ---- Pictures (Companions can see): the vision projector loads only while the setting is on (docs/LOCAL_AI.md, "Pictures (Companions can see)") ------------------------------------
+// The projector is `mm.gguf` (900 MiB by CHOICE_SIZES, so 900 + 384 MiB of encoder buffer are counted: 1,284). No real projector exists on the development machine: these tests use a stand-in file
+// with a clip header and the fake server, so the arguments, the memory arithmetic and the restarts are what is measured, never llama-server's own use of a projector.
+const PROJECTOR_MIB = 1284;
+function visionHarness(t, {factory = choiceHarness, projector = true, selected = {pin: 'standard'}, ...options} = {}) {
+  const h = factory(t, {mature: false, selected, ...options});
+  const path = join(h.directory, 'mm.gguf');
+  writeFileSync(path, ggufFile('clip'));
+  if (projector) h.pack.tiers.standard.mmproj = path;
+  const mmprojOf = call => (call.args.includes('--mmproj') ? argValue(call, '--mmproj') : null);
+  return {...h, path, mmprojOf};
+}
+
+test('buildServerArgs: --mmproj and --image-max-tokens only when a projector is given, and nothing else changes', () => {
+  const plain = buildServerArgs({model: 'M.gguf', port: 5123, keyFile: 'K', device: 'Vulkan1'});
+  assert.equal(plain.includes('--mmproj'), false);
+  assert.deepEqual(buildServerArgs({model: 'M.gguf', port: 5123, keyFile: 'K', device: 'Vulkan1', mmproj: null, imageMaxTokens: 320}), plain, 'a size without a projector is ignored');
+  const withProjector = buildServerArgs({model: 'M.gguf', port: 5123, keyFile: 'K', device: 'Vulkan1', mmproj: 'P.gguf', imageMaxTokens: 320});
+  assert.deepEqual(withProjector.filter(word => !['--mmproj', 'P.gguf', '--image-max-tokens', '320'].includes(word)), plain, 'only those four words are added');
+  assert.equal(withProjector[withProjector.indexOf('--mmproj') + 1], 'P.gguf');
+  assert.equal(withProjector[withProjector.indexOf('--image-max-tokens') + 1], '320');
+  assert.ok(withProjector.indexOf('--mmproj') < withProjector.indexOf('--host'), 'before the host and the key file');
+  for (const bad of [0, -3, 1.5, '320', NaN, null]) {
+    assert.equal(buildServerArgs({model: 'M', port: 1, keyFile: 'K', device: 'V', mmproj: 'P.gguf', imageMaxTokens: bad}).includes('--image-max-tokens'), false, String(bad));
+  }
+  assert.deepEqual(buildServerArgs({model: 'M', port: 1, keyFile: 'K', device: 'V', mmproj: 'P.gguf'}).filter(word => word === '--mmproj' || word === '--image-max-tokens'), ['--mmproj']);
+});
+
+test('pictures off (the default): no projector anywhere, whatever the model has, and the handle and diagnostics say so', async t => {
+  const h = visionHarness(t);
+  assert.deepEqual(h.server.visionState(), {wanted: false, loaded: false, available: true, model: 'Qwen3.5-4B', reason: null}, 'asking before any start spawns nothing');
+  assert.equal(h.calls.length, 0);
+  const info = await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[0]), null);
+  assert.equal(h.calls[0].args.includes('--image-max-tokens'), false);
+  assert.deepEqual([info.vision, info.imageMaxTokens], [false, null]);
+  assert.deepEqual(h.server.diagnostics().vision, {wanted: false, loaded: false, projector: null, projectorMiB: null, reason: null});
+  assert.deepEqual(h.server.visionState(), {wanted: false, loaded: false, available: true, model: 'Qwen3.5-4B', reason: null});
+  assert.equal(h.logs.some(line => /pictures/.test(line)), false, 'nothing about pictures is logged while they are off');
+});
+
+test('pictures on before the start: the projector loads with the model, counted at its size plus the encoder buffer, and only its file name is published', async t => {
+  const h = visionHarness(t);
+  assert.equal(h.server.setVision(true), false, 'nothing is loaded: the next start reads the flag');
+  assert.equal(h.server.setVision(true), false, 'the same value again does nothing');
+  const info = await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[0]), h.path);
+  assert.equal(argValue(h.calls[0], '--image-max-tokens'), '320');
+  assert.deepEqual([info.vision, info.imageMaxTokens], [true, 320]);
+  assert.deepEqual(h.server.diagnostics().vision, {wanted: true, loaded: true, projector: 'mm.gguf', projectorMiB: PROJECTOR_MIB, reason: null});
+  assert.equal(JSON.stringify(h.server.diagnostics()).includes('local-llm-test-'), false, 'no path in the diagnostics');
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: true, available: true, model: 'Qwen3.5-4B', reason: null});
+  assert.ok(h.logs.some(line => /pictures: Qwen3\.5-4B is loaded with its vision projector mm\.gguf \(900 MiB file, 1284 MiB counted/.test(line)), h.logs.join('|'));
+  assert.ok(h.logs.some(line => /model ready: .*vision projector mm\.gguf/.test(line)));
+});
+
+test('turning pictures on and off restarts the server: the old one exits (confirmed in the log) before the new one starts, with the projector and then without it', async t => {
+  const h = visionHarness(t);
+  await h.server.ensure();
+  const first = h.calls[0].child;
+  assert.equal(h.server.setVision(true), true, 'a restart is waiting for its idle moment');
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true, h.logs.join('|'));
+  assert.notEqual(first.exitCode ?? first.signalCode, null, 'the old server is gone');
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+  assert.ok(h.logs.some(line => /pictures turned on: Qwen3\.5-4B is restarted with its vision projector/.test(line)));
+  assert.ok(h.logs.some(line => /the previous model server \(pid \d+\) exited: its graphics memory is back/.test(line)), 'the exit is confirmed and logged');
+  assert.equal((await h.server.ensure()).vision, true);
+  assert.equal(h.server.visionState().loaded, true);
+  assert.equal(h.server.setVision(true), false);
+  await sleep(150);
+  assert.equal(h.calls.length, 2, 'the same value again restarts nothing');
+  // And off: restarted without it, the old server (and the projector memory) gone first.
+  const second = h.calls[1].child;
+  assert.equal(h.server.setVision(false), true);
+  assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
+  assert.notEqual(second.exitCode ?? second.signalCode, null);
+  assert.equal(h.mmprojOf(h.calls[2]), null, 'no --mmproj anywhere once pictures are off');
+  assert.equal(h.calls[2].args.includes('--image-max-tokens'), false);
+  assert.deepEqual([(await h.server.ensure()).vision, h.server.visionState().loaded, h.server.diagnostics().vision.projector], [false, false, null]);
+  assert.equal(h.logs.filter(line => /exited: its graphics memory is back/.test(line)).length, 2);
+  assert.equal(h.server.setVision(false), false);
+  await sleep(150);
+  assert.equal(h.calls.length, 3);
+  assert.equal(h.failures.length, 0);
+});
+
+test('the restart never happens while a request is in flight, and a stop leaves none pending', async t => {
+  const h = visionHarness(t);
+  await h.server.ensure();
+  const release = h.server.begin();
+  assert.equal(h.server.setVision(true), true);
+  assert.deepEqual([h.server.visionState().reason, h.server.visionState().wanted], ['reloading', true], 'the change is waiting');
+  await sleep(200);
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].child.exitCode, null, 'the server answers its request');
+  assert.equal(h.server.inflight, 1);
+  release();
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+  assert.equal(h.server.visionState().reason, null, 'settled');
+
+  // A stop (another provider is chosen) clears a change that is waiting: nothing is started again.
+  const release2 = h.server.begin();
+  h.server.setVision(false);
+  await h.server.stop();
+  release2();
+  await sleep(250);
+  assert.equal(h.calls.length, 2);
+  assert.deepEqual([h.server.status().state, h.server.visionState().reason], ['stopped', null]);
+  // The next start reads the flag itself: without the projector.
+  await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[2]), null);
+});
+
+test('a turn that comes while the server is restarted waits for the new one instead of starting a load of its own', async t => {
+  const h = visionHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '300'} : {})});
+  await h.server.ensure();
+  h.server.setVision(true);
+  await sleep(20);
+  const info = await h.server.ensure();
+  assert.equal(h.calls.length, 2, 'one new server, not two');
+  assert.equal(info.vision, true);
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+});
+
+test('a model with no projector says so, and pictures on restart nothing', async t => {
+  const h = visionHarness(t, {projector: false});
+  await h.server.ensure();
+  h.server.setVision(true);
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: false, available: false, model: 'Qwen3.5-4B', reason: 'no-projector'});
+  await sleep(150);
+  assert.equal(h.calls.length, 1);
+  const again = visionHarness(t, {projector: false});
+  again.server.setVision(true);
+  await again.server.ensure();
+  assert.equal(again.mmprojOf(again.calls[0]), null);
+  assert.deepEqual([again.server.diagnostics().vision.reason, again.server.visionState().reason], ['no-projector', 'no-projector']);
+  assert.ok(again.logs.some(line => /Qwen3\.5-4B has no vision projector/.test(line)));
+  // A projector file that is not a projector (a chat model header) counts as none.
+  const wrong = visionHarness(t);
+  writeFileSync(wrong.path, ggufFile('gemma4'));
+  wrong.server.setVision(true);
+  await wrong.server.ensure();
+  assert.equal(wrong.mmprojOf(wrong.calls[0]), null);
+  assert.equal(wrong.server.visionState().reason, 'no-projector');
+});
+
+test('the projector is counted against the model\'s room: with room it loads, a context that no longer fits steps down, and a model that fits only without it goes without ("no-room")', async t => {
+  // Standard (5,280 MiB file) needs 6,480 free, its largest context needs 6,616. The projector takes 1,284 of what the model may have.
+  const roomy = visionHarness(t, {freeMiB: 9000});
+  roomy.server.setVision(true);
+  await roomy.server.ensure();
+  assert.deepEqual([roomy.mmprojOf(roomy.calls[0]) !== null, argValue(roomy.calls[0], '-c')], [true, '16384']);
+  // 7,774 less 1,284 leaves 6,490: the model fits, and only the 8,192 context.
+  const tight = visionHarness(t, {freeMiB: 7774});
+  tight.server.setVision(true);
+  await tight.server.ensure();
+  assert.deepEqual([tight.mmprojOf(tight.calls[0]) !== null, argValue(tight.calls[0], '-c'), tight.server.modelId], [true, '8192', 'standard'], 'the ladder saw the projector');
+  const without = visionHarness(t, {freeMiB: 7774});
+  await without.server.ensure();
+  assert.equal(argValue(without.calls[0], '-c'), '16384', 'the same card without pictures keeps its context');
+  // 7,000 holds the model (6,480) and not the projector too: the model keeps its place and the projector is dropped.
+  const none = visionHarness(t, {freeMiB: 7000});
+  none.server.setVision(true);
+  const info = await none.server.ensure();
+  assert.deepEqual([none.mmprojOf(none.calls[0]), none.server.modelId, info.vision, info.model], [null, 'standard', false, 'Qwen3.5-4B'], 'never a smaller model for the projector');
+  assert.deepEqual(none.server.visionState(), {wanted: true, loaded: false, available: true, model: 'Qwen3.5-4B', reason: 'no-room'});
+  assert.equal(none.server.diagnostics().vision.reason, 'no-room');
+  assert.deepEqual(none.fallbacks, [], 'no model-fallback notice for a projector that did not fit');
+  assert.ok(none.logs.some(line => /pictures: Qwen3\.5-4B is loaded without its vision projector mm\.gguf: 1284 MiB more do not fit/.test(line)));
+  assert.equal(none.server.setVision(true), false, 'unchanged: no restart loop');
+  await sleep(150);
+  assert.equal(none.calls.length, 1);
+});
+
+test('a model that cannot be placed whole never gets the projector (it would only push more of it off the card)', async t => {
+  const h = visionHarness(t, {freeMiB: 1000, lite: false});
+  h.server.setVision(true);
+  await h.server.ensure();
+  assert.equal(argValue(h.calls[0], '-fit'), 'on', 'loaded with part of its layers on the CPU');
+  assert.equal(h.mmprojOf(h.calls[0]), null);
+  assert.equal(h.server.visionState().reason, 'no-room');
+  assert.equal(h.server.diagnostics().vision.loaded, false);
+});
+
+test('the free-memory fit sees the projector: the rung that fits the smaller room is used, and a model that fits only without it loses the projector', async t => {
+  // Standard projects 3,562 / 3,426 / 3,348 MiB (16,384 / 8,192 / 8,192 with the 8-bit cache), plus the 512 MiB margin: 4,074 / 3,938 / 3,860 needed.
+  const plain = visionHarness(t, {factory: fitHarness, free: {value: 5200}});
+  await plain.server.ensure();
+  assert.deepEqual([argValue(plain.calls[0], '-c'), plain.calls[0].args.includes('-ctk')], ['16384', false], 'without pictures the whole model fits at the full context');
+  const rung = visionHarness(t, {factory: fitHarness, free: {value: 5200}});
+  rung.server.setVision(true);
+  await rung.server.ensure();
+  assert.deepEqual([rung.mmprojOf(rung.calls[0]) !== null, argValue(rung.calls[0], '-c'), argValue(rung.calls[0], '-ctk')], [true, '8192', 'q8_0'], '1,284 MiB less: 3,916 left, only the 8-bit rung fits');
+  assert.equal(rung.server.diagnostics().vision.loaded, true);
+  const roomy = visionHarness(t, {factory: fitHarness, free: {value: 5600}});
+  roomy.server.setVision(true);
+  await roomy.server.ensure();
+  assert.deepEqual([roomy.mmprojOf(roomy.calls[0]) !== null, argValue(roomy.calls[0], '-c'), roomy.calls[0].args.includes('-ctk')], [true, '16384', false]);
+  const tooTight = visionHarness(t, {factory: fitHarness, free: {value: 4800}});
+  tooTight.server.setVision(true);
+  await tooTight.server.ensure();
+  assert.equal(tooTight.mmprojOf(tooTight.calls[0]), null, 'fits without (4,800 holds 4,074), not with (3,516 left holds no rung)');
+  assert.deepEqual([tooTight.calls[0].args.includes('-ngl'), argValue(tooTight.calls[0], '-fit'), tooTight.server.visionState().reason], [true, 'off', 'no-room'], 'the model is still whole on the card');
+});
+
+test('llama-server that cannot start with the projector is started again without it, once: no failure, the model is not marked broken, the reason is start-failed', async t => {
+  const h = visionHarness(t, {env: {FAKE_LLAMA_EXIT_WITH_MMPROJ: '1'}});
+  h.server.setVision(true);
+  const info = await h.server.ensure();
+  assert.equal(h.calls.length, 2);
+  assert.notEqual(h.mmprojOf(h.calls[0]), null, 'the first start had the projector');
+  assert.equal(h.mmprojOf(h.calls[1]), null, 'the second one did not');
+  assert.deepEqual([info.vision, h.server.modelId, h.server.status().state, h.failures, h.fallbacks], [false, 'standard', 'ready', [], []]);
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: false, available: true, model: 'Qwen3.5-4B', reason: 'start-failed'});
+  assert.equal(h.server.diagnostics().vision.reason, 'start-failed');
+  assert.ok(h.logs.some(line => /llama-server did not start with the vision projector mm\.gguf \(exited\): Qwen3\.5-4B is started again without it/.test(line)), h.logs.join('|'));
+  // It is not tried again this session, and reset() gives it another chance.
+  h.server.setVision(false); h.server.setVision(true);
+  await sleep(100);
+  assert.equal(h.calls.length, 2);
+  await h.server.stop();
+  await h.server.ensure();
+  assert.equal(h.mmprojOf(h.calls[2]), null);
+  h.server.reset();
+  await h.server.stop();
+  await h.server.ensure();
+  assert.notEqual(h.mmprojOf(h.calls[3]), null, 'after reset() the projector is tried again');
+});
+
+test('visionState is cheap and never starts anything: it can be asked every half second, with the server stopped, and when the selection is broken', async t => {
+  const h = visionHarness(t);
+  for (let index = 0; index < 50; index++) h.server.visionState();
+  assert.equal(h.calls.length, 0);
+  assert.deepEqual(Object.keys(h.server.visionState()), ['wanted', 'loaded', 'available', 'model', 'reason']);
+  const broken = new LocalLlmServer({pack: {installed: false}, selection: () => { throw new Error('broken hook'); }, command: process.execPath, argsPrefix: [FAKE]});
+  assert.deepEqual(broken.visionState(), {wanted: false, loaded: false, available: false, model: null, reason: null});
+  broken.setVision(true);
+  assert.deepEqual(broken.visionState(), {wanted: true, loaded: false, available: false, model: null, reason: 'no-projector'});
+});
+
+test('back to the card: the second server carries the projector when pictures are on, and the diagnostics still say so', async t => {
+  const h = visionHarness(t, {factory: homeHarness, free: {value: 6200}, envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '200'} : {})});
+  h.server.setVision(true);
+  await spilledAndKept(h);
+  assert.notEqual(h.mmprojOf(h.calls[0]), null, 'the first load had it');
+  await roomTwice(h);
+  assert.equal(await until(() => h.returned.length === 1), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.equal(h.mmprojOf(h.calls[1]), h.path, 'the same model, whole on the card, with its projector');
+  assert.equal((await h.server.ensure()).vision, true);
+  assert.deepEqual(h.server.diagnostics().vision, {wanted: true, loaded: true, projector: 'mm.gguf', projectorMiB: PROJECTOR_MIB, reason: null});
+  await h.server.stop();
+});
+
+test('back to the card with less room: the model returns whole on the card without the projector when only the model fits ("no-room"), instead of not returning', async t => {
+  const h = visionHarness(t, {factory: homeHarness, free: {value: 6200}, envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '100'} : {})});
+  h.server.setVision(true);
+  await spilledAndKept(h);
+  assert.notEqual(h.mmprojOf(h.calls[0]), null);
+  // 5,600 MiB read (the harness takes the running model's 2,200 off): 4,576 for the model after the room kept for the game. It needs 4,074 for a rung, and 5,358 with the projector.
+  h.free.value = 7800;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.returned.length === 1), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.equal(h.mmprojOf(h.calls[1]), null, 'the model came back, the projector did not');
+  assert.deepEqual([(await h.server.ensure()).vision, h.server.visionState().reason, h.server.diagnostics().vision.reason], [false, 'no-room', 'no-room']);
+  await h.server.stop();
+});
+
+test('pictures turned on while the server is still starting: that start ends as it began, and the restart with the projector follows once it is ready', async t => {
+  const h = visionHarness(t, {envFor: n => (n === 0 ? {FAKE_LLAMA_DELAY_MS: '400'} : {})});
+  const starting = h.server.ensure();
+  assert.equal(await until(() => h.calls.length === 1), true);
+  assert.equal(h.server.setVision(true), true, 'a check is waiting for the end of the start');
+  await starting;
+  assert.equal(h.mmprojOf(h.calls[0]), null, 'it began with pictures off');
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true, h.logs.join('|'));
+  assert.equal(h.mmprojOf(h.calls[1]), h.path);
+  assert.equal(h.server.visionState().loaded, true);
 });

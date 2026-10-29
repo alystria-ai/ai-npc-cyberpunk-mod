@@ -965,9 +965,10 @@ local function loadSettings()
     -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
-    -- The retired Companions can see setting (docs/COMPANION_VISION.md): vision is always on with Convai now. An old saved key is
-    -- dropped; the bridge ignores it either way.
-    if settings.companionVision ~= nil then settings.companionVision, settingsNeedSave = nil, true end
+    -- Companions can see (docs/COMPANION_VISION.md): off by default, for every conversation provider (Convai had it always on until 2026-10-29, when this setting came back and
+    -- Convai joined it, so a player who had pictures with Convai starts with them off). Each conversation turn then carries a recent picture of V's surroundings. The bridge does all
+    -- the work out of process: with the setting off nothing is captured and no helper runs. Nothing in the game runs for it.
+    if type(settings.companionVision) ~= 'boolean' then settings.companionVision, settingsNeedSave = false, true end
     -- Mature content (off by default): lets the Local AI and Custom providers write adult language and themes (not Convai, not Mistral). Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Mature content and Convai (free tier or API key) exclude each other (Convai prompting cannot take it): a saved pairing comes back with Mature content off.
@@ -2225,6 +2226,7 @@ function M.snapshot(player)
             lootReactions = settings.lootReactions,
             decisionLedger = settings.decisionLedger,
             witnessReceipts = settings.witnessReceipts,
+            companionVision = settings.companionVision == true,
             errorReports = settings.errorReports ~= false,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
@@ -2308,7 +2310,7 @@ function M.applySettings(player, values)
         if key == 'lootReactions' then nextSettings.lootReactionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
-            or key == 'naturalSpeech' or key == 'errorReports'
+            or key == 'companionVision' or key == 'naturalSpeech' or key == 'errorReports'
             or key == 'vVoice' or key == 'vVoiceMic' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value

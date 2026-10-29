@@ -43,9 +43,11 @@ import {tmpdir, freemem, totalmem, setPriority, cpus, constants as osConstants} 
 import {nodePriority, priorityGate} from './process-priority.mjs';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
-import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
+import {FIT_LIMITS, describeFit, fitAgainst, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
 import {RETURN_LIMITS, lookRefusal, returnAvailableMiB, returnBackoffMs, returnCandidate, returnVerdict} from './local-return.mjs';
+import {LOCAL_VISION, projectorNeedMiB} from './local-vision.mjs';
+import {defaultProjectorFinder, noProjector} from './local-projector.mjs';
 import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, engineMissingForOwnModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies, usableModels} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
@@ -218,8 +220,10 @@ export function withoutKeyFile(args) {
 // `kvType` ('q8_0'): the KV cache type, only when the free-memory fit (bridge/local-vram-fit.mjs) needed the smaller cache to keep the whole model on the card.
 // `fitTargetMiB` / `threads` (an offloaded load only; nothing changes for a model that is wholly on the card): `-fitt`, the free memory the fit pass leaves on the card for the game
 // (llama-server's own default is 1,024), and `-t`, the CPU threads (about half the physical cores, so the game's CPU is not starved by the layers that run on it).
+// `mmproj` (the model's vision projector, bridge/local-projector.mjs) and `imageMaxTokens`: `--mmproj <file>` and, for a positive whole number, `--image-max-tokens <n>` (most tokens one picture may cost
+// a model with dynamic resolution). Only while Companions can see is on and the projector fits (LocalLlmServer #visionPlan). Nothing changes when `mmproj` is unset.
 export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1', chatTemplate = null, offload = false, kvType = null,
-    fitTargetMiB = null, threads = null, swaFull = false}) {
+    fitTargetMiB = null, threads = null, swaFull = false, mmproj = null, imageMaxTokens = null}) {
   if (!model || !port || !keyFile || !device) throw TypeError('model, port, keyFile and device are required');
   return ['-m', model, ...(offload ? [] : ['-ngl', '99']), '-fa', 'on', ...(swaFull ? ['--swa-full'] : []), '-c', String(contextSize), ...(kvType ? ['-ctk', String(kvType), '-ctv', String(kvType)] : []), '-np', '1', '--reasoning', 'off',
     // -fit off: the layers, context and device are all given, so llama-server's fit pass (which loads the model a second time to
@@ -227,6 +231,7 @@ export function buildServerArgs({model, port, keyFile, device, contextSize = LOC
     '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '-fit', offload ? 'on' : 'off',
     ...(offload && fitTargetMiB ? ['-fitt', String(Math.round(fitTargetMiB))] : []), ...(offload && threads ? ['-t', String(Math.round(threads))] : []), '--device', device, '--no-webui',
     ...(chatTemplate ? ['--chat-template', String(chatTemplate)] : []),
+    ...(mmproj ? ['--mmproj', String(mmproj), ...(Number.isInteger(imageMaxTokens) && imageMaxTokens > 0 ? ['--image-max-tokens', String(imageMaxTokens)] : [])] : []),
     '--host', host, '--port', String(port), '--api-key-file', keyFile];
 }
 
@@ -621,10 +626,16 @@ function abortable(promise, signal) {
 // The supervisor
 
 const CONTEXT_FLOOR = 2048;   // the least a server's context is stepped down to when a refusal does not say what it has
+// A start with no vision projector: pictures off, or no projector for the model, or it does not fit (LocalLlmServer #visionPlan).
+const NO_VISION = Object.freeze({use: false, reason: null, path: null, file: null, sizeMiB: 0, needMiB: 0, fit: null});
+
 export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
   #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #serverWhy = null; #broken = new Map();
+  // Pictures (setVision): whether Companions can see is on, a change that waits for an idle moment, the restart that follows it, the projectors that made a start fail (kept for the session,
+  // reset() clears them) and a short memory of which model has a projector (visionState is asked every half second).
+  #visionWanted = false; #visionPending = false; #visionRestarting = false; #projectorFailed = new Set(); #visionMemo = null;
   #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0}; #prewarming = null;
   // What a start is doing right now and since when (loadProgress): one word-string per stage, set a handful of times per start, never per request or per frame.
   #phase = {name: null, at: 0}; #launchedAt = null;
@@ -669,7 +680,7 @@ export class LocalLlmServer extends EventEmitter {
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, deviceListRetryMs = LOCAL_LLM_LIMITS.deviceListRetryMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
-      beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
+      beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, findProjector = defaultProjectorFinder, environment = process.env, command, argsPrefix = [], processOptions = {},
       externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length, gameRoom = null,
       // Back to the card (bridge/local-return.mjs): `homeLimits` overrides RETURN_LIMITS (tests), `homeTimer` is the timer of the looks alone (a test compresses it without touching the idle or header timers),
       // `voiceMemory()` -> {dedicatedMiB, sharedMiB} | null reads the OmniVoice worker's graphics-memory counters once when the model is found in shared memory (diagnostics only).
@@ -681,7 +692,7 @@ export class LocalLlmServer extends EventEmitter {
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, deviceListRetryMs, argsPrefix, processOptions, freeMemMiB,
-      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs, cpuCount, gameRoom});
+      beforeStart, beforeStartMs, fileSizeMiB, findProjector, externalProbeMs, backgroundQuietMs, cpuCount, gameRoom});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
     // CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB: the free system memory the supervisor sees (tests of a real bridge process: the check before a load with part on the CPU, LOW_RAM).
@@ -733,6 +744,8 @@ export class LocalLlmServer extends EventEmitter {
     // a model that was loaded again, perhaps with less graphics memory free, is measured anew.
     return {endpoint: info.endpoint, apiKey: info.apiKey, model: this.#model, tier: this.#tier, contextSize: this.#learnedContext(info) ?? info.contextSize,
       loadedAt: this.#loaded?.readyAt ?? 0, offload: this.#loaded?.offload === true, cpuBound: this.#hopelessOffload(),
+      // Pictures: the loaded server has a vision projector (the caller may send a picture with a turn) and the most tokens one picture costs it.
+      vision: Boolean(this.#loaded?.mmproj), imageMaxTokens: this.#loaded?.mmproj ? LOCAL_VISION.imageMaxTokens : null,
       ...(info.external ? {external: true, requestModel: info.requestModel, trustedOrigin: info.trustedOrigin} : {})};
   }
 
@@ -847,6 +860,7 @@ export class LocalLlmServer extends EventEmitter {
     this.#broken.clear();   // a custom model that failed to start gets another chance
     this.#serverWhy = null;
     this.#deviceLosses = 0; this.#lostProc = null;
+    this.#projectorFailed.clear(); this.#visionMemo = null;   // a projector that made a start fail is tried again too
     this.#stalled.clear(); this.#stalls = 0;   // so does a model that stalled the turns: Local AI is chosen again, the whole choice is tried
     this.#refitted.clear(); this.#refitPlan = null; this.#forcedOffload = null; this.#offloadTried.clear();   // and a model that spilled into shared memory may be fitted again
     this.#dropHome(); this.#returns = 0;
@@ -1048,10 +1062,11 @@ export class LocalLlmServer extends EventEmitter {
   // The models to choose from now. Without an installed pack only what needs no pack can answer: the servers the player runs, and the player's own model files when the Runtime's
   // engine is there to run them (usableModels). `ownEngineMissing`: the player has a model file of their own and there is no engine to run it.
   // A custom model that failed to start (until its file changes or reset()) is marked broken.
-  #selected(pack) {
+  // `projectors`: look for each model's vision projector (the disk is read, remembered for a few seconds). Only while pictures are wanted, or when asked (visionState), so nothing is read otherwise.
+  #selected(pack, projectors = this.#visionWanted) {
     let picked = null;
     try { picked = typeof this.selection === 'function' ? this.selection() : null; } catch { /* a broken hook means no choice */ }
-    let models = listLocalModels({pack, matureModels: picked?.matureModels, customModels: picked?.customModels});
+    let models = listLocalModels({pack, matureModels: picked?.matureModels, customModels: picked?.customModels, findProjector: projectors ? this.findProjector : noProjector});
     const ownEngineMissing = engineMissingForOwnModel({pack, customModels: picked?.customModels});
     models = usableModels(models, pack);
     for (const model of models) if (model.custom && this.#broken.get(model.id) === this.#sizeKey(model)) model.broken = true;
@@ -1130,14 +1145,15 @@ export class LocalLlmServer extends EventEmitter {
   // Reloads when a reselect is pending, the loaded model no longer satisfies the choice, the server is ready and no reply is in flight. While
   // it is starting or warming up (a turn may be waiting for it, and a stop would refuse that turn) the check is repeated once it is ready.
   async #reloadIfIdle() {
-    if (!this.#reselectPending || this.#inflight > 0 || this.#state !== 'ready') return false;
+    if ((!this.#reselectPending && !this.#visionPending) || this.#inflight > 0 || this.#state !== 'ready') return false;
+    if (!this.#reselectPending) return this.#reloadForVision();   // only the pictures changed
     const selected = this.#selected(this.pack);
-    if (stillSatisfies({loadedId: this.#modelId, models: selected.models, pin: selected.pin, matureOn: selected.matureOn})) { this.#reselectPending = false; return false; }
+    if (stillSatisfies({loadedId: this.#modelId, models: selected.models, pin: selected.pin, matureOn: selected.matureOn})) { this.#reselectPending = false; return this.#visionPending ? this.#reloadForVision() : false; }
     this.#reselectPending = false;
     const generation = this.#generation;
     // A pinned model that does not fit the memory the card would have without ours is replaced by the default, which may be the model that is loaded: a reload would only read
     // the same 5 GB again (2026-10-20). Needs a free-memory reading; without one (no NVIDIA card) the reload is done as before.
-    if (await this.#reloadWouldKeep(selected)) return false;
+    if (await this.#reloadWouldKeep(selected)) return this.#visionPending ? this.#reloadForVision() : false;
     // Stopped while the memory was read (leaving Local AI turns Mature content off too, so the choice changes in the same moment): no reload, or the model would come back on the card under another provider.
     if (generation !== this.#generation || this.#state !== 'ready') return false;
     this.log('[local] the model choice changed: reloading');
@@ -1146,19 +1162,176 @@ export class LocalLlmServer extends EventEmitter {
     return true;
   }
 
+  // --- pictures (docs/LOCAL_AI.md, "Pictures (Companions can see)") -------------------------------------------------
+
+  /**
+   * Companions can see turned on or off (a boolean, the same value again does nothing). The vision projector is loaded only while it is on: when the loaded server's state differs from the
+   * wanted one (pictures wanted, the model has a projector and the server has none, or the other way round) the server is restarted at an idle moment, the same way a changed model choice
+   * reloads it (never while a request is in flight, the old server is stopped with its exit confirmed and logged, then started again). With nothing loaded the next start reads the flag.
+   * Returns whether a restart is now waiting for its idle moment.
+   */
+  setVision(on) {
+    const wanted = on === true;
+    if (wanted === this.#visionWanted) return this.#visionPending;
+    this.#visionWanted = wanted; this.#visionMemo = null;
+    const loaded = this.#loaded;
+    // A load that has no projector and is not asked for one any more forgets why: asking again later looks at the room again.
+    if (!wanted && loaded && !loaded.mmproj) { loaded.visionWanted = false; loaded.visionReason = null; }
+    const live = this.#state === 'ready' || this.#state === 'warming' || this.#state === 'starting';
+    if (!live || this.#info?.external) { this.#visionPending = false; return false; }
+    // A start that is still under way is checked once it is ready (its flag was read when it began): the check repeats then.
+    const waiting = this.#visionPending = this.#state === 'ready' ? this.#visionStale() : true;
+    if (waiting) void this.#reloadIfIdle();
+    return waiting;
+  }
+
+  /**
+   * What the pictures are doing, plain data and cheap (a short memory of the model list, no process, never starts a server, never throws): {wanted, loaded, available, model, reason}.
+   *   wanted     the value of setVision
+   *   loaded     the server that is up has a vision projector
+   *   available  the model that is up (else the one the next start would pick) has a usable projector
+   *   model      that model's name, or null
+   *   reason     null, or 'no-projector' (wanted and the model has none), 'no-room' (it has one, it did not fit beside the model, so it is loaded without), 'start-failed' (llama-server could
+   *              not use the projector, the model runs without it) or 'reloading' (the server is being restarted for the change)
+   */
+  visionState() {
+    try {
+      const loaded = this.#loaded, up = Boolean(loaded) && !loaded.external && (this.#state === 'ready' || this.#state === 'warming');
+      const hasLoaded = up && Boolean(loaded.mmproj), candidate = this.#visionCandidate();
+      let reason = this.#visionReasonOf(up ? loaded : null);
+      if (reason === null && this.#visionWanted && !hasLoaded) reason = !candidate.available ? 'no-projector' : candidate.failed ? 'start-failed' : null;
+      return {wanted: this.#visionWanted, loaded: hasLoaded, available: hasLoaded || candidate.available, model: up ? String(loaded.name ?? '') || null : candidate.name, reason};
+    } catch { return {wanted: this.#visionWanted, loaded: false, available: false, model: null, reason: null}; }
+  }
+
+  // The reason shown for the pictures: a restart in progress or waiting, else why the loaded server has no projector although it is wanted.
+  #visionReasonOf(loaded) {
+    if (this.#visionRestarting || (this.#visionPending && this.#visionStale())) return 'reloading';
+    if (!this.#visionWanted || loaded?.mmproj) return null;
+    return loaded?.visionReason ?? null;
+  }
+
+  // The model that is up (or the one the next start would pick) and whether it has a usable projector. Remembered for 2 s and until the model changes: visionState is asked every half second,
+  // and the model list and the folder of the projector are not read each time.
+  #visionCandidate() {
+    const at = this.now(), up = this.#state === 'ready' || this.#state === 'warming', loadedId = up ? this.#modelId : null, memo = this.#visionMemo;
+    if (memo && memo.loadedId === loadedId && at >= memo.at && at - memo.at < 2000) return memo;
+    let value = {at, loadedId, id: null, name: null, available: false, failed: false};
+    try {
+      const selected = this.#selected(this.pack, true);
+      let model = null;
+      if (loadedId) model = selected.models.find(item => item.id === loadedId) ?? null;
+      else if (selected.models.length) {
+        if (this.tierSetting === 'standard' || this.tierSetting === 'lite') model = selected.models.find(item => item.id === this.tierSetting) ?? null;
+        else model = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB: this.#lastFreeMiB ?? this.#totalMiB, totalMiB: this.#totalMiB, sizeOf: file => this.fileSizeMiB(file)}).model;
+      }
+      const found = model ? this.#projectorOf(model) : null;
+      value = {...value, id: model?.id ?? null, name: model ? (model.loadedName ?? model.name) : null, available: Boolean(found?.projector) || found?.reason === 'start-failed', failed: found?.reason === 'start-failed'};
+    } catch { /* no model to name */ }
+    this.#visionMemo = value;
+    return value;
+  }
+
+  // Does the loaded server differ from what is wanted in a way a restart changes? A load with a projector that is not wanted any more: yes. A load without one: only when it was started with
+  // pictures off and they are wanted now, the model has a projector and it did not fail (a load that was asked for a projector and went without ('no-room') is settled, no loop).
+  #visionStale() {
+    const loaded = this.#loaded;
+    if (!loaded || loaded.external || this.#info?.external) return false;
+    if (loaded.mmproj) return !this.#visionWanted;
+    if (!this.#visionWanted || loaded.visionWanted !== false) return false;
+    const candidate = this.#visionCandidate();
+    return candidate.available && !candidate.failed && candidate.id === loaded.id;
+  }
+
+  // The projector of a model: {projector: {path, file, sizeMiB, needMiB, key}} or {reason}: 'no-projector' (none, a server of the player's, or an empty file), 'start-failed' (it made a start fail this session).
+  #projectorOf(model) {
+    if (!model || model.external === true || !model.mmproj) return {reason: 'no-projector'};
+    const sizeMiB = Number(this.fileSizeMiB(model.mmproj)) || 0;
+    if (!(sizeMiB > 0)) return {reason: 'no-projector'};
+    const key = `${model.id}|${model.mmproj}|${Math.round(sizeMiB)}`;
+    if (this.#projectorFailed.has(key)) return {reason: 'start-failed'};
+    return {projector: {path: model.mmproj, file: basename(String(model.mmproj)), sizeMiB, needMiB: projectorNeedMiB(sizeMiB), key}};
+  }
+
+  // The projector of this start, once the model is chosen: whether it loads with the model and how much room it takes out of the model's. Called only while pictures are wanted.
+  // Returns {use, reason, path, file, sizeMiB, needMiB, fit}: `reason` is null, 'no-projector', 'no-room' or 'start-failed'. `fit` is the model's ladder worked out again for the room that is left.
+  // The rule: the projector is counted (projectorNeedMiB) against the memory the model may take. A model that is placed with layers on the CPU never gets one (it would only push more of the
+  // model off the card). A model that fits whole without it but not with it goes without it ('no-room'). One that fits with it gets the context and cache the smaller room allows.
+  async #visionPlan({choice, placement, modelFreeMiB, realFit, selected, device}) {
+    const model = choice.model, found = this.#projectorOf(model);
+    if (!found.projector) return {...NO_VISION, reason: found.reason};
+    const {projector} = found, base = {path: projector.path, file: projector.file, sizeMiB: projector.sizeMiB, needMiB: projector.needMiB};
+    const without = reason => ({...NO_VISION, ...base, reason});
+    if (choice.offload === true || placement) return without('no-room');
+    // The older fixed-tier option does no memory check at all, and with the card unreadable there is nothing to compare: the projector loads.
+    const left = Number.isFinite(modelFreeMiB) ? modelFreeMiB - projector.needMiB : NaN;
+    if (this.tierSetting === 'standard' || this.tierSetting === 'lite' || !Number.isFinite(left)) return {...NO_VISION, ...base, use: true, fit: realFit[model.id] ?? null};
+    const sizeOf = file => this.fileSizeMiB(file);
+    let fit = realFit[model.id] ? fitAgainst(realFit[model.id], left) : null;
+    // The file-size rule says the model does not fit beside the projector: what the model really takes (llama-fit-params) in what is left decides, as it does for a model chosen by the player.
+    if (!fit && left < modelNeedMiB(model, Number(choice.sizeMiB) || 0)) {
+      try { fit = await this.#fitFor(model, left, FIT_LIMITS.marginMiB, device); } catch { fit = null; }
+    }
+    let still = null;
+    try { still = chooseLocalModel({models: selected.models, pin: model.id, matureOn: selected.matureOn, freeMiB: left, totalMiB: this.#totalMiB, sizeOf, realFit: fit ? {[model.id]: fit} : {}}); } catch { /* it does not fit */ }
+    if (!(still && still.model.id === model.id && still.offload !== true && still.fellBack === null)) return without('no-room');
+    return {...NO_VISION, ...base, use: true, fit};
+  }
+
+  #logVision(vision, tier, contextSize) {
+    const name = tier.loadedName ?? tier.name;
+    if (vision.use) this.log('[local] pictures: ' + name + ' is loaded with its vision projector ' + vision.file + ' (' + Math.round(vision.sizeMiB) + ' MiB file, ' + vision.needMiB + ' MiB counted with the image encoder buffer), context ' + contextSize);
+    else if (vision.reason === 'no-room') this.log('[local] pictures: ' + name + ' is loaded without its vision projector ' + vision.file + ': ' + vision.needMiB + ' MiB more do not fit beside the model on the graphics card (the model stays whole on the card)');
+    else if (vision.reason === 'start-failed') this.log('[local] pictures: ' + name + ' is loaded without a vision projector, because llama-server could not use the last one');
+    else this.log('[local] pictures: ' + name + ' has no vision projector, so it cannot see (a projector file beside the model, or named in its manifest entry, adds it)');
+  }
+
+  // llama-server did not start with the projector: remember it for the session, so the start that follows goes without it, and say why. The model is not marked broken.
+  #projectorFailedFor(tier, vision, why) {
+    const found = this.#projectorOf(tier);
+    this.#projectorFailed.add(found.projector?.key ?? `${tier.id}|${vision.path}|${Math.round(vision.sizeMiB)}`);
+    this.#visionMemo = null;
+    this.log('[local] llama-server did not start with the vision projector ' + vision.file + ' (' + why + '): ' + (tier.loadedName ?? tier.name) + ' is started again without it');
+  }
+
+  // Pictures went on or off while the model is loaded: restart it at an idle moment (never with a request in flight). The exit of the old server is confirmed before the new one starts, and a
+  // turn that comes meanwhile waits for the restart instead of starting a load of its own (the step gate).
+  async #reloadForVision() {
+    if (!this.#visionPending || this.#inflight > 0 || this.#state !== 'ready') return false;
+    if (!this.#visionStale()) { this.#visionPending = false; return false; }
+    this.#visionPending = false;
+    const wanted = this.#visionWanted, old = this.#proc;
+    this.log('[local] pictures turned ' + (wanted ? 'on' : 'off') + ': ' + this.#model + ' is restarted ' + (wanted ? 'with' : 'without') + ' its vision projector' + (wanted ? '' : ', so its graphics memory is back'));
+    let generation = this.#generation;
+    this.#beginStep();
+    try {
+      await this.stop();
+      generation = this.#generation;
+      this.#visionRestarting = true;
+      if (old) await this.#stopConfirmed(old, 'previous');
+    } finally { this.#endStep(); }
+    // Stopped for good meanwhile (another provider, shutdown): nothing is started again.
+    if (generation !== this.#generation) { this.#visionRestarting = false; return false; }
+    void this.ensure().catch(() => {}).finally(() => { this.#visionRestarting = false; });
+    return true;
+  }
+
   // The llama-server child for one load of `tier`: the arguments of buildServerArgs, the supervisor's process options (priority, registry, environment). Used by #startOnce and by the
   // server prepared beside the running one (#returnToCard).
-  #makeProcess({tier, device, contextSize, cacheRamMiB, kvType = null, swaFull = false, offload = false, fitTargetMiB = null, threads = null}) {
+  #makeProcess({tier, device, contextSize, cacheRamMiB, kvType = null, swaFull = false, offload = false, fitTargetMiB = null, threads = null, mmproj = null}) {
     return new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
       startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
-      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload, kvType, swaFull, fitTargetMiB, threads}),
+      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload, kvType, swaFull, fitTargetMiB, threads,
+        ...(mmproj ? {mmproj, imageMaxTokens: LOCAL_VISION.imageMaxTokens} : {})}),
       ...this.processOptions, env: {...serverEnvironment(process.env), ...(this.processOptions?.env ?? {})}});
   }
 
   async #startOnce() {
     const generation = this.#generation;
     const pack = this.pack;
-    const selected = this.#selected(pack);
+    // Whether pictures are wanted is read once for this start: a change while it runs is seen by the check after it is ready (the flag it started under is kept in `visionWanted`).
+    const picturesWanted = this.#visionWanted;
+    const selected = this.#selected(pack, picturesWanted);
     const early = this.#externalChoice(selected);
     // No pack, no model file of the player's own that can start and no server of theirs to use: not installed. The player's own model files count (2026-10-29): the Runtime's engine runs them with
     // no pack. A server that was tried and failed is that server's failure; one marked uncensored is not the default while Mature content is off (it runs when it is chosen in the row, or once
@@ -1216,17 +1389,21 @@ export class LocalLlmServer extends EventEmitter {
         this.emit('offload-slow', {id: choice.model.id, model: choice.model.loadedName ?? choice.model.name, share: placement.share});
       }
     }
+    // Pictures: does the vision projector load with this model, and how much room does it take out of the model's? Nothing here runs (not even an await) while pictures are off.
+    let vision = NO_VISION;
+    if (picturesWanted) { vision = await this.#visionPlan({choice, placement, modelFreeMiB, realFit, selected, device}); this.#guard(generation); }
+    const lessVision = value => (vision.use && Number.isFinite(value) ? value - vision.needMiB : value);
     if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: choice.model.name});
     this.#announceStep(choice.model.id, choice.model.name);
     const tierKey = choice.profile, tier = choice.model;
     // The free-memory fit, when it was looked at (the file-size rule said no room): its context and cache type keep the whole model on the card; with no rung that fits the model is
     // loaded with layers on the CPU (the offload placement below: context 8,192, the 8-bit cache).
-    const fit = realFit[tier.id] ?? null;
+    const fit = vision.use ? vision.fit : realFit[tier.id] ?? null;
     const fitted = fit?.pick && !tier.contextSize && !this.contextSize && choice.offload !== true ? fit.pick : null;
     const kvType = placement ? placement.kvType : fitted?.kvType ?? null;
-    const contextSize = tier.contextSize ?? this.contextSize ?? (placement ? placement.contextSize : fitted?.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB}));
+    const contextSize = tier.contextSize ?? this.contextSize ?? (placement ? placement.contextSize : fitted?.contextSize ?? chooseContext({tier: tierKey, freeMiB: lessVision(freeMiB), sizeMiB: choice.sizeMiB}));
     const threads = placement ? offloadThreads(Number(this.cpuCount())) : null;
-    const swaFull = !placement && choice.offload !== true ? await this.#swaFullPlan(tier, contextSize, kvType, device, modelFreeMiB) : false;
+    const swaFull = !placement && choice.offload !== true ? await this.#swaFullPlan(tier, contextSize, kvType, device, lessVision(modelFreeMiB)) : false;
     this.#guard(generation);
     if (placement) this.log('[local] partial offload: ' + (tier.loadedName ?? tier.name) + ', ' + (placement.share === null ? 'the share of its layers on the card is unknown' : 'about ' + Math.round(placement.share * 100) + '% of its layers on the card')
       + (placement.projectedMiB === null ? '' : ' (' + (placement.estimated ? 'estimated from the file, ' : 'projected ') + placement.projectedMiB + ' MiB at ' + placement.contextSize + ' ' + placement.kvType + ' against ' + (Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?') + ' MiB free)')
@@ -1250,10 +1427,13 @@ export class LocalLlmServer extends EventEmitter {
       kvType, swaFull, fit: fit ? {pick: fit.pick ? {contextSize: fit.pick.contextSize, kvType: fit.pick.kvType, projectedMiB: fit.pick.projectedMiB} : null, share: fit.share ?? null, marginMiB: fit.marginMiB ?? null} : null,
       gpuShare: choice.offload === true && Number.isFinite(placement?.share) ? placement.share : null,
       forcedOffload: forced !== null && forced === choice.model.id,
+      // Pictures: the projector this load carries (the path stays here, diagnostics() gives the file name only), the flag it was started under and why it is not loaded when it is wanted.
+      mmproj: vision.use ? {path: vision.path, file: vision.file, sizeMiB: vision.sizeMiB, needMiB: vision.needMiB} : null, visionWanted: picturesWanted, visionReason: picturesWanted ? vision.reason : null,
       offloadPlan: placement ? {share: placement.share === null ? null : Math.round(placement.share * 100) / 100, projectedMiB: placement.projectedMiB, estimated: placement.estimated, fitTargetMiB: placement.targetMiB, threads} : null};
     this.#turns.sinceStart = 0; this.#stalls = 0;
     const began = this.now();
-    const proc = this.#makeProcess({tier, device, contextSize, cacheRamMiB, kvType, swaFull, offload: choice.offload === true, fitTargetMiB: placement?.targetMiB ?? null, threads});
+    if (picturesWanted) this.#logVision(vision, tier, contextSize);
+    const proc = this.#makeProcess({tier, device, contextSize, cacheRamMiB, kvType, swaFull, offload: choice.offload === true, fitTargetMiB: placement?.targetMiB ?? null, threads, mmproj: vision.use ? vision.path : null});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));
     this.#mark('loading the model into the server (waiting for it to answer)');
@@ -1265,6 +1445,8 @@ export class LocalLlmServer extends EventEmitter {
       this.#guard(generation);
       this.log('[local] llama-server did not start: ' + (error?.code || error?.message) + ' (' + this.#loaded.file + ', context ' + contextSize + ')');
       this.#logTail(proc, 'it did not start');
+      // A projector llama-server cannot use makes the start fail: the same model is started again without it (once, the model itself is not marked), and visionState says 'start-failed'.
+      if (vision.use && error?.code !== 'stopped') { this.#projectorFailedFor(tier, vision, error?.code || 'error'); return this.#startOnce(); }
       if (tier.custom && error?.code !== 'stopped') { this.#modelFailed(tier, error?.code || 'error'); return this.#startOnce(); }
       throw new LocalAiUnavailable('start-failed', looksBlocked(error) ? BLOCKED : error?.code);
     }
@@ -1291,6 +1473,7 @@ export class LocalLlmServer extends EventEmitter {
       if (this.#proc === proc) this.#proc = null;
       await proc.stop();
       this.#logTail(proc, 'it stopped while warming up');
+      if (vision.use) { this.#projectorFailedFor(tier, vision, 'stopped while warming up'); return this.#startOnce(); }
       if (tier.custom) { this.#modelFailed(tier, 'stopped while warming up'); return this.#startOnce(); }
       throw new LocalAiUnavailable('crashed');
     }
@@ -1306,7 +1489,7 @@ export class LocalLlmServer extends EventEmitter {
     if (this.#loaded.offload === true) this.#watchHome('it runs partly on the processor');
     this.emit('diagnostics', this.diagnostics());
     // A choice that changed while it was loading is checked a moment later, after the turn that waited for it has marked itself in flight.
-    if (this.#reselectPending) { const timer = this.setTimer(() => { void this.#reloadIfIdle(); }, 250); timer?.unref?.(); }
+    if (this.#reselectPending || this.#visionPending) { const timer = this.setTimer(() => { void this.#reloadIfIdle(); }, 250); timer?.unref?.(); }
     return this.#handle();
   }
 
@@ -1421,7 +1604,7 @@ export class LocalLlmServer extends EventEmitter {
     if (!loaded) return 'nothing';
     const template = loaded.template ? `${loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf'} ${loaded.template.chars} chars sha ${loaded.template.sha}` : (loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported');
     return [`file ${loaded.file ?? 'a server you run'}`, `name "${loaded.name}"`, `id ${loaded.id}`, `family ${loaded.family ?? 'unknown'}`,
-      loaded.sizeMiB ? `${loaded.sizeMiB} MiB` : null, `context ${loaded.contextSize}`, loaded.kvType ? `${loaded.kvType} cache` : null, loaded.offload ? 'part on the CPU' : null,
+      loaded.sizeMiB ? `${loaded.sizeMiB} MiB` : null, `context ${loaded.contextSize}`, loaded.kvType ? `${loaded.kvType} cache` : null, loaded.offload ? 'part on the CPU' : null, loaded.mmproj ? `vision projector ${loaded.mmproj.file} (${loaded.mmproj.needMiB} MiB counted)` : null,
       loaded.fit?.pick ? `whole model on the card by the free-memory fit (${loaded.fit.pick.projectedMiB} MiB projected)` : null,
       loaded.offload && Number.isFinite(loaded.gpuShare) ? `about ${Math.round(loaded.gpuShare * 100)}% of the layers on the card` : null,
       loaded.offloadPlan ? `fit target ${loaded.offloadPlan.fitTargetMiB} MiB free for the game, ${loaded.offloadPlan.threads} CPU threads` : null,
@@ -1460,6 +1643,7 @@ export class LocalLlmServer extends EventEmitter {
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},
       turns: {ok: this.#turns.ok, failed: this.#turns.failed}, lastTurn: this.#lastTurn, lastExit: this.#lastExit,
       queue: {...this.#queue, inflight: this.#inflight},
+      vision: {wanted: this.#visionWanted, loaded: Boolean(loaded.mmproj), projector: loaded.mmproj?.file ?? null, projectorMiB: loaded.mmproj?.needMiB ?? null, reason: this.#visionReasonOf(loaded)},
       ...(this.#stalled.size ? {steppedDown: [...this.#stalled].slice(0, 4)} : {})};
   }
 
@@ -1703,7 +1887,7 @@ export class LocalLlmServer extends EventEmitter {
   end() {
     if (this.#inflight > 0) this.#inflight--;
     if (this.#inflight === 0) {
-      this.#holdThenLower(); this.touch(); if (this.#reselectPending) void this.#reloadIfIdle();
+      this.#holdThenLower(); this.touch(); if (this.#reselectPending || this.#visionPending) void this.#reloadIfIdle();
       // A request ended: a look at the free graphics memory may be due (it waits for the quiet moment itself), and a new server that is ready waits for exactly this.
       if (this.#home) this.#scheduleHomeLook();
       this.#flushIdleWaiters();
@@ -1910,8 +2094,16 @@ export class LocalLlmServer extends EventEmitter {
       home.lastFreeMiB = Number.isFinite(free) ? Math.round(free) : null;
       let voiceMiB = 0;
       try { voiceMiB = Number(this.gameRoom?.voiceMiB?.() ?? 0) || 0; } catch { /* no voice engine to wait for */ }
-      const available = returnAvailableMiB({freeMiB: free, voiceMiB, limits});
-      const verdict = await this.#homeVerdict(home, available);
+      const roomMiB = returnAvailableMiB({freeMiB: free, voiceMiB, limits});
+      // Pictures: the projector the new server would carry is counted out of the room first (nothing changes while pictures are off). When the model fits without it and not with it, it goes
+      // back to the card without the projector.
+      const picture = {...this.#returnProjector()};
+      let available = picture.projector && Number.isFinite(roomMiB) ? roomMiB - picture.projector.needMiB : roomMiB;
+      let verdict = await this.#homeVerdict(home, available);
+      if (picture.projector && !verdict.enough && this.#homeValid(home) && generation === this.#generation) {
+        available = roomMiB; picture.projector = null; picture.reason = 'no-room';
+        verdict = await this.#homeVerdict(home, available);
+      }
       if (!this.#homeValid(home) || generation !== this.#generation) return;
       if (!verdict.enough) { this.#homeNotYet(home, free, available, verdict.why ?? (verdict.needMiB === null ? 'what the model needs is not known' : 'the model needs ' + verdict.needMiB + ' MiB')); return; }
       const freeRam = Number(this.freeMemMiB());
@@ -1935,11 +2127,19 @@ export class LocalLlmServer extends EventEmitter {
           home.sharedMiB = memory.sharedMiB;
         }
       }
-      await this.#returnToCard(home, verdict.pick, available);
+      await this.#returnToCard(home, verdict.pick, available, picture);
     } catch (error) {
       this.log('[local] back to the card: the look failed (' + oneLine(error?.message || 'error', 120) + ')');
       if (this.#home === home) this.#homeNotYet(home, home.lastFreeMiB, null, 'the look failed');
     } finally { home.busy = false; }
+  }
+
+  // Pictures: the projector a model that goes back to the card would carry. {projector: null, reason: null} while pictures are off.
+  #returnProjector() {
+    const wanted = this.#visionWanted;
+    if (!wanted) return {projector: null, reason: null, wanted};
+    const found = this.#projectorOf(this.#selected(this.pack, true).models.find(model => model.id === this.#modelId));
+    return {projector: found.projector ?? null, reason: found.projector ? null : found.reason, wanted};
   }
 
   // The projections of the model's context ladder are asked of llama-fit-params once (1 to 3 s, nothing allocated) and kept: later looks only compare numbers. Without the tool the file-size rule stands.
@@ -1972,9 +2172,9 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // Loads the same model, whole, beside the running one; switches at an idle moment; releases the old one with its exit confirmed. Returns whether the model moved.
-  async #returnToCard(home, pick, available) {
+  async #returnToCard(home, pick, available, picture = {projector: null, reason: null, wanted: false}) {
     const limits = this.homeLimits, generation = this.#generation, oldProc = this.#proc, oldLoaded = this.#loaded;
-    const tier = this.#selected(this.pack).models.find(model => model.id === this.#modelId);
+    const tier = this.#selected(this.pack, picture.wanted === true).models.find(model => model.id === this.#modelId);
     const device = this.#device;
     if (!tier || tier.external === true || !tier.file || !device || !oldProc || !oldLoaded) { this.#dropHome(); return false; }
     const fixed = tier.contextSize ?? this.contextSize ?? null;
@@ -1986,7 +2186,7 @@ export class LocalLlmServer extends EventEmitter {
     this.log('[local] back to the card: ' + this.#model + ' is loaded again whole onto the graphics card beside the running one (' + Math.round(home.lastFreeMiB ?? 0) + ' MiB free, '
       + Math.round(available) + ' MiB for the model, context ' + contextSize + (kvType ? ', ' + kvType + ' cache' : '') + (swaFull ? ', full sliding-window cache' : '') + '); the running one keeps answering until the new one is ready');
     const began = this.now();
-    const proc = this.#makeProcess({tier, device, contextSize, cacheRamMiB, kvType, swaFull});
+    const proc = this.#makeProcess({tier, device, contextSize, cacheRamMiB, kvType, swaFull, mmproj: picture.projector?.path ?? null});
     this.#homing = true; this.#fresh = proc;
     proc.on('exit', info => this.#onExit(proc, info));
     const alive = () => generation === this.#generation && this.#proc === oldProc && this.#state === 'ready' && this.#fresh === proc;
@@ -2027,7 +2227,9 @@ export class LocalLlmServer extends EventEmitter {
         ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: false, custom: oldLoaded.custom, templateFlag: oldLoaded.templateFlag,
         template: props.template ?? null, bos: props.bos ?? null, eos: props.eos ?? null, build: props.build ?? null, ftype: props.ftype ?? null, loadMs: this.now() - began, warmMs: null,
         firstTime: false, readyAt: this.now(), kvType, swaFull, fit: pick ? {pick: {contextSize, kvType, projectedMiB: pick.projectedMiB ?? null}, share: 1, marginMiB: FIT_LIMITS.marginMiB} : null,
-        gpuShare: null, forcedOffload: false, offloadPlan: null, returned: true};
+        gpuShare: null, forcedOffload: false, offloadPlan: null, returned: true,
+        mmproj: picture.projector ? {path: picture.projector.path, file: picture.projector.file, sizeMiB: picture.projector.sizeMiB, needMiB: picture.projector.needMiB} : null,
+        visionWanted: picture.wanted === true, visionReason: picture.wanted === true ? picture.reason ?? null : null};
       this.#dropHold(); this.#raised = false;
       this.#proc = proc; this.#info = info; this.#contextSize = props.contextSize; this.#loaded = loaded;
       loaded.priority = proc.lower() ? 'below-normal' : 'normal';
@@ -2043,6 +2245,7 @@ export class LocalLlmServer extends EventEmitter {
       return true;
     } catch (error) {
       if (!alive()) return await fail('the running server changed meanwhile', false);
+      if (picture.projector) { this.#projectorFailed.add(picture.projector.key); this.#visionMemo = null; }   // the next look goes without it
       return await fail('it did not start: ' + oneLine(error?.code || error?.message || 'error', 80));
     } finally {
       this.#homing = false;
@@ -2394,6 +2597,7 @@ export class LocalLlmServer extends EventEmitter {
   async stop() {
     this.#generation++;
     this.#reselectPending = false;   // the next start reads the current choice itself
+    this.#visionPending = false; this.#visionRestarting = false;   // and the current state of the pictures
     this.#disarm(); this.#dropHold(); this.noteHeaders();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#setState('stopped');
@@ -2407,6 +2611,7 @@ export class LocalLlmServer extends EventEmitter {
   // For process exit handlers: no awaiting.
   killSync() {
     this.#generation++;
+    this.#visionPending = false; this.#visionRestarting = false;
     this.#disarm(); this.#dropHold();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#state = 'stopped';

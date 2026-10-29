@@ -1048,7 +1048,6 @@ return {
     ["Voice files"] = "음성 파일",
     ["The voice files are incomplete. Reinstall the Full download from Nexus Mods."] = "음성 파일이 불완전합니다. Nexus Mods에서 전체 설치 zip을 다시 설치하세요.",
     ["The voice files are incomplete, so the voices and the microphone cannot start. Reinstall the Full download from Nexus Mods: extract it into the Cyberpunk 2077 folder and let it replace the files, then restart the game."] = "음성 파일이 불완전해서 음성과 마이크를 시작할 수 없습니다. Nexus Mods에서 전체 설치 zip을 받아 Cyberpunk 2077 폴더에 다시 풀고 파일을 덮어쓴 다음 게임을 다시 시작하세요.",
-    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "노란 테두리는 Windows 화면 캡처 표시입니다. Mistral 또는 Local AI를 고르면 꺼집니다.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "이 모드의 메뉴와 알림만 변경합니다.\n\n캐릭터 음성과 대화하는 언어는 별개입니다. 마이크는 영어가 아닌 음성을 인식할 때 이 언어를 힌트로 사용합니다.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral이 말하지 않게 되며, 키를 저장할 때까지 동료의 답변은 텍스트로 표시됩니다.",
     ["Conversations go back to Convai free tier."] = "대화는 다시 Convai (무료 플랜)을 사용합니다.",
@@ -1740,4 +1739,9 @@ return {
     ["An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself."] = "(!) 표시가 붙은 입력은 Stereo Mix, CABLE Output, 믹서의 출력 같은 루프백 또는 가상 입력처럼 보입니다. 통화 상대의 목소리처럼 다른 앱의 소리도 담길 수 있어서, 모드가 혼자서 고르는 일은 없습니다.",
     ["The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone."] = "고른 입력에 목소리뿐 아니라 PC 소리도 담기는 것으로 보입니다. 캐릭터들이 내 통화를 듣고 있다면 실제 마이크를 골라 주세요.",
     ["{name} looks like it carries PC sound, such as a call, not only your voice. Choose your real microphone in Settings > Voices > Microphone."] = "{name}에는 목소리뿐 아니라 통화 같은 PC 소리도 담기는 것으로 보입니다. 설정 > 음성 > 마이크에서 실제 마이크를 골라 주세요.",
+    ["Companions can see"] = "동료의 시야",
+    ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "각 대사에는 말하기 직전 게임 창에서 찍은 주변의 최근 화면도 함께 전달됩니다. 모든 대화 제공자와 함께 작동합니다. Local AI에는 화면을 볼 수 있는 모델이 필요합니다. 볼 수 없는 모델은 말만 받습니다.\n\n게임 창만, 누군가 근처에 있을 때만, 잠시 메모리에 보관됩니다. 끄면 아무것도 캡처되지 않습니다.",
+    ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "노란 테두리는 Windows 화면 캡처 표시입니다. 동료의 시야를 끄면 꺼집니다.",
+    ["This Local AI model cannot see pictures, so replies use only your words."] = "이 Local AI 모델은 사진을 볼 수 없어서 응답에는 플레이어의 말만 사용됩니다.",
+    ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Custom 엔드포인트가 사진을 받지 않아서 응답에는 플레이어의 말만 사용됩니다.",
 }
