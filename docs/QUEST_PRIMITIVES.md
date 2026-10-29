@@ -12,8 +12,8 @@ rolled back on an earlier save (the phase 2 runner, `bridge/bond-pack-runner.mjs
 happened. They talk through two small files in the mod's `runtime` folder, like every other feature:
 
 ```
-bridge/bond-pack-runner.mjs  --- runtime/quest-play.json  --->  mod/quest-play.lua   (the stage to execute, written when it changes)
-bridge/quest-link.mjs        <-- runtime/quest-events.json ----  mod/quest-play.lua   (what the game saw, written when something happened)
+bridge/bond-pack-runner.mjs  writes  runtime/quest-play.json    and  mod/quest-play.lua reads it   (the stage to execute, written when it changes)
+mod/quest-play.lua           writes  runtime/quest-events.json  and  bridge/quest-link.mjs reads it (what the game saw, written when something happened)
 ```
 
 * **Nothing per frame.** `mod/quest-play.lua` has one entry, `update(player, delta)`, called from the existing 0.1 s tick. With no quest it is a nil
@@ -144,8 +144,71 @@ character's memory as her own words after they play (a synthetic exchange).
 
 ## 6. Status of each piece
 
-The table is kept current by the commit that changes a piece. "Offline" means unit tests on a fake game. "Live" is what only the game can show.
+"Offline" means unit tests on a fake game or a fake bridge. "Live" is what only the game can show (the numbered list is section 8).
 
 | Piece | Where | Status |
 |---|---|---|
-| Format 2 validator, primitives registry | `bridge/bond-packs.mjs`, `bridge/quest-primitives.mjs` | see the end of this file |
+| Format 2 validator (places, lines, gaps, images, `do`, `script`, event choices, history) | `bridge/bond-packs.mjs`, `bridge/quest-format.mjs`, `bridge/quest-primitives.mjs` | built, offline |
+| Runner: events, gap (note, tags from V's words, restore), history, stage timeout, closing rows, `lineFor`, play file, commands | `bridge/bond-pack-runner.mjs`, `bridge/quest-link.mjs`, `bridge/quest-poller.mjs` | built, offline |
+| `line`: prepared WAV audio through the renderer, subtitle when the file is missing, live voice only in Developer mode | `bridge/prepared-voice.mjs`, `bridge/quest-lines.mjs`, `runScriptedTurn` in `bridge/convai-bridge.mjs` | built, offline. Opus or ogg is not decoded (WAV only). Precomputed face rows are not used (the live face model runs on the audio). The Phone Chat line for a missing file is not added (subtitle only) |
+| `line` on the game side: queue, one voice, bark and plot rules, the request | `mod/quest-lines.lua`, glue in `mod/init.lua` | built, offline. Rule 2 of section 5 (a live reply heard after the line) is not built: V talking cancels the line and a plot line is replayed |
+| `gap`: open, note, resume by tag, timer, event or command | `mod/quest-lines.lua`, runner | built, offline. The `idle` pose is not played (no simple gesture call) |
+| `place`, `pin` | `mod/quest-places.lua`, `mod/quest-world.lua` | built, offline. The map pin and the ground ray are unverified |
+| `text` (Phone Chat message, with a picture row) | `mod/phone-chat.lua` `deliverScripted` | built, offline. The picture needs the picture archive (in no package) and the PNGs |
+| `call-in` | rows | text fallback only. An incoming holocall started by the mod is not built |
+| `timer`, `party`, `together`, `seat`, `cast` | `mod/quest-prims.lua` | built, offline. A cast copy of a character is placed through the party queue as a visitor and joins V's party in a `party` stage. Unverified |
+| `squad`, `hostage` (floor form), `escortee` | `mod/quest-prims-action.lua`, `mod/quest-world-action.lua` | built, offline. All natives unverified. The kneel form of hostage, squad vehicles, patrol points, `hold-until` and `unseen` as its own primitive are not built (a relaxed squad's `hostile` event covers unseen) |
+| `ride`, `post`, `remote`, `runner`, `tail`, `check` | `mod/quest-prims-drive.lua`, `mod/quest-world-drive.lua` | built, offline. `post` works on a cast copy only and cannot fight from its spot (companion tactics has no hold flag). Stance prone is crouch. `runner` and `tail` need a driver record in the spec |
+| `history` | runner, `forgetHistory` on a memory reset | built, offline |
+| `image` | row field, picture table, `phone-chat.lua` | plumbing only |
+| Developer probe (`status`, `capture:<place>`, `event:<name>`, `line:<pack>:<line>`, `reap`) | `mod/quest-probe.lua` | built, offline, Developer mode only |
+| Not built | | `race`, `convoy`, `bout`, `hold-until`, `dead-zone` as its own primitive (the `remote` field `deadZone` covers it), `apart`, `memory-share`, `gift`, `garage`, `reach-out`, `hangout`, `npc-react` outcome events, the pay-an-NPC flow, `workspot`, `music`, `sfx`, `anim`, `call-script`, `gate-plus` |
+
+The pilot quest is P1 "Coffee at the Sunset", `characters/bond-packs/panam-sunset-coffee.json` (tests: `bridge/quest-pilot-panam.test.mjs` through the runner and the link,
+`bridge/quest-pilot-lua.test.mjs` through the real game modules). It is in the repository folder of the shipped packs but NOT in `packaging/release.config.json`, so no
+package carries it until its places are captured and its lines have audio.
+
+## 7. Install the build over the 2.5 game for a live test
+
+Close the game first. Nothing here touches `mod/diagnostics.lua`. The game is a player install: the bridge runs from the Runtime's `app\`, so the bridge files go there.
+
+| From the repository | To |
+|---|---|
+| `mod/*.lua` that changed: `bonds.lua`, `init.lua`, `phone-chat.lua`, `companion-seating.lua`, `johnny-probe.lua` and the new `quest-world.lua`, `quest-world-action.lua`, `quest-world-drive.lua`, `quest-places.lua`, `quest-prims.lua`, `quest-prims-action.lua`, `quest-prims-drive.lua`, `quest-lines.lua`, `quest-play.lua`, `quest-probe.lua` | the CET folder `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\` |
+| `r6/scripts/CyberpunkConvai/PhoneChat.reds` | `r6\scripts\CyberpunkConvai\PhoneChat.reds` (only needed for the picture row, the game recompiles at start) |
+| `bridge/bond-pack-runner.mjs`, `bond-packs.mjs`, `bonds.mjs`, `convai-bridge.mjs`, `protocol.mjs`, `prepared-voice.mjs`, `quest-lines.mjs`, `quest-poller.mjs`, `quest-link.mjs`, `quest-format.mjs`, `quest-primitives.mjs` | the Runtime's `app\bridge\` (see `packaging/runtime-layout.mjs`) |
+| `characters/bond-packs/panam-sunset-coffee.json` | the folder that holds `panam-truck-ransom.json` in the installed Runtime |
+
+Never copy `mod/diagnostics.lua`. Restart the bridge (the service) after copying. Undo afterwards by restoring the shipped copies of the same files.
+
+## 8. Live checks (do X, check Y)
+
+Setup: Settings, Gameplay, Character bonds and Story packs on, Immersive invitations on, Developer mode on for the probe. Panam in the roster, bond 3 or more with her, `q104_02_av_chase` finished
+in the save. The probe is `scripts/Send-JohnnyProbe.ps1 quest <action>`.
+
+1. Stand at the Sunset Motel forecourt in Rocky Ridge. Run `quest capture:sunset`. Walk to the lookout behind it. Run `quest capture:lookout`. Check `runtime/quest-place-capture.json` holds both with x, y, z, a radius and the district.
+2. Talk to Panam in person (or text her) until she brings up the coffee. Check the bridge log says `pack=panam-sunset-coffee started`, `runtime/quest-play.json` exists with stage `invite`, and a text from Panam ("Motel coffee tastes like engine coolant...") is in her Chat thread.
+3. Open the map. Check a pin sits on the motel forecourt. Save, load the save. Check the pin is there again (it must be registered again after a load).
+4. Drive toward Rocky Ridge, no closer than 200 m. Check no copy of Panam is there. Come within 150 m. Check her copy appears at the motel (standing, not in the road).
+5. Walk into the forecourt. Check she greets V with "You actually came. Here. It's terrible, drink it anyway." The audio does not exist yet, so check it appears as a subtitle (with Developer mode on it is spoken by the live voice), the pin disappears, and the log shows `place:sunset:arrived` then stage `walk`.
+6. Walk around with her for 20 game minutes (a time skip is fine if you stay close). Check she follows as a party member, says the tour line at the start and the lookout line when you reach the lookout, and stage `sit` starts after about 20 game minutes.
+7. In another run walk more than 20 m away from her for 90 seconds. Check the quest ends with "Leaving already? Fine. Next coffee's on you." and her bond rises by the `left` amount (15).
+8. In the `sit` stage sit on the motel bench or couch. Check she sits too and says "Sun's coming. Shut up a minute, this is the good part." Check the log shows `seat:seated` and `gap:g1:open`.
+9. While the gap is open, talk to her. Check she answers with her question in mind (what V would do if V were not running jobs) and holds back that she is pleased. Say something real and long. Check the short line "Huh. Didn't figure you for that." is spoken, the log shows `gap:g1:shared`, and the stage becomes `last-sip-warm`. Repeat in another run with a bare "nice view": check `gap:g1:light`.
+10. While a scripted line plays, hold the talk key or type in the composer. Check the line does not play over V, and a waiting line shows as a subtitle after about 20 seconds.
+11. Leave the forecourt. Check the ending runs: a text from Panam arrives ("Proof the view was worth it."), the bond goes up by 45 (55 with the warm answer), and her next talk mentions the motel mornings (the history line).
+12. A new save: start the quest and never go to the motel. Check after 3 game hours the cold-coffee ending: the text "Drank both coffees. You owe me." and the bond drops by 5.
+13. Start the quest, load an earlier save. Check the next turn's log rewinds or forgets the quest, the pin and her cast copy are gone, and the play file has no quest.
+14. Turn Story packs off in the middle of a stage. Check the pin and the cast copy are removed and no quest line appears afterwards.
+15. FPS: in a crowd, with the quest in the `walk` stage and with it off, compare the counter. Check there is no difference. With no quest active check `runtime/quest-events.json` is not rewritten and the bridge log shows no quest polling.
+16. Probe checks: `quest status` lists the armed quest, `quest event:place:sunset:arrived` moves it on without walking, `quest line:panam-sunset-coffee:P1.walk.02` plays one line, `quest reap` removes everything. Check each does what it says.
+17. Picture row (needs the picture archive built as in `docs/PHONE_IMAGES.md` and a `sunset-coffee` PNG, otherwise skip): check the sunrise text arrives with the picture under the caption, and as text only without the archive, with no crash.
+18. The other primitives (squads, hostages, escorts, rides, runners, posts) have no quest to play yet. To try one, copy the pilot and put one in a `do` list, or inject events with the probe. Check a squad of 4 spawns only after you come within 150 m and out of sight, turns hostile on `squad:<id>:go`, counts down when defeated and is removed on a stage change. Check FPS with a full wave on screen against the same scene without it.
+
+## 9. Libraries that could make a primitive better (not added, for the owner)
+
+The requirements today are CET, redscript, RED4ext, Codeware and ArchiveXL. Nothing below is used.
+
+* **TweakXL** (custom records). For: Kerry's Guinevere or any gift with a custom item, a neutral-affiliation copy of a vehicle for `runner` and `tail` so a chase car is boardable and has no police icon, custom `UIIcon` records that would let a Phone Chat picture use the game's own picture route instead of our row. Against: it was dropped once because game patches broke it. Vanilla records need none of it, and every primitive built here uses only vanilla records. The case is only worth making for gifts with new items and for a chase vehicle.
+* **A quest graph route (ArchiveXL plus WolvenKit questphases)** for a real journal entry, a gold route marker and objective text. For: native tracking and the road route line. Against: the owner chose mod-side state, an archive per quest is heavy, and our pins cover the map.
+* **A choice hub library** for "press F to free the hostage" prompts. For: the standard interaction look. Against: the hostage is freed by standing close for a moment, which needs no prompt, and a new dependency is not worth one prompt.
