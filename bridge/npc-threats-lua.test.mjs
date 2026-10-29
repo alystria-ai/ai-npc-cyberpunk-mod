@@ -918,3 +918,23 @@ test('natives: the workspot read, V\'s gun, the weapon switch, the friends who j
   local later = N.walkTo(npc, {x = 2, y = 0, z = 0}, 'Run', true)
   assert(first.useStart == true and later.useStart == false and later.movementType == 'moveMovementType.Run')
 `));
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// The outcome sink of the bond quests (options.onOutcome(kind, entityKey)): the threat and command kinds, raw (the quest maps a command to obey)
+
+test('outcome sink: brawl, cower and the three commands are each reported once where the reaction starts, as the raw kind', () => withService(`
+  local function startedKind(kind, base, category, setup)
+    local seen = {}
+    if setup then setup() end
+    local S = build({onOutcome = function(k, key) seen[#seen + 1] = k .. '@' .. tostring(key) end})
+    assert(S.start(kind, offerFor(S, base, category), '44ULL', 'r' .. kind), kind)
+    assert(#seen == 0, 'accepted is not started')
+    run(S, 4)
+    return seen
+  end
+  local brawl = startedKind('brawl', 'maelstrom', 'gang'); assert(#brawl == 1 and brawl[1] == 'brawl@44ULL', table.concat(brawl, ','))
+  local cower = startedKind('cower', 'street-resident', 'resident'); assert(#cower == 1 and cower[1] == 'cower@44ULL', table.concat(cower, ','))
+  local down = startedKind('get-down', 'street-resident', 'resident'); assert(#down == 1 and down[1] == 'get-down@44ULL', table.concat(down, ','))
+  local stop = startedKind('stop', 'street-resident', 'resident'); assert(#stop == 1 and stop[1] == 'stop@44ULL', table.concat(stop, ','))
+  local out = startedKind('exit-vehicle', 'street-resident', 'resident', function() state.refused = 'vehicle' end); assert(#out == 1 and out[1] == 'exit-vehicle@44ULL', table.concat(out, ','))
+`));

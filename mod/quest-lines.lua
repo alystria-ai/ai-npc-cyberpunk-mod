@@ -17,9 +17,17 @@
 --   busy() -> true when V talks (key held, composer with text), any reply is produced or heard, an automatic remark plays or a scene, call or fight runs,
 --   start(entry) -> requestId | nil, why   (builds the private turn of the speaking copy: reaction {kind = 'scripted', pack, line, channel, expiresAt}),
 --   alive(requestId) -> bool   (the request is still in the air), subtitle(profileKey, text), phone(profileKey, text, image) -> bool (Phone Chat),
---   idle(profileKey, idleKey, on) (optional), emit(pack, name) (an event for the quest), onChange(), log(line).
+--   idle(profileKey, idleKey, on, situation) (optional: the pose of a talk gap), emit(pack, name) (an event for the quest), onChange(), log(line).
+--   The idle hook is asked ONCE when a gap opens with an `idle` (a seat kind or an idle key of assets/gestures/gestures.json) and/or a `situation` (nervous, celebrating, grieving,
+--   angry, relaxed, working), with on = true, and once more with on = false when the gap closes. idleKey is the gap's idle, else the idle its situation stands for (M.SITUATIONS),
+--   or nil (a situation with no pose of its own: the face and gesture bias is the hook's business). The hook may return a function: the line player calls it once a second
+--   (never per frame) until it answers true, which is how an asynchronous pose (a device that streams in) gets started. A failure of the hook or of the pose is silent.
 local M = {BARK_WAIT = 4, PLOT_SUBTITLE = 20, PLOT_GIVE_UP = 600, PLOT_RETRIES = 2, PLOT_QUEUE = 4, STEP = 0.5, BETWEEN = 1,
-    MAX_PACKS = 16, TEXT_TRIES = 10, TEXT_RETRY = 2, LOST_CHECKS = 3}
+    MAX_PACKS = 16, TEXT_TRIES = 10, TEXT_RETRY = 2, LOST_CHECKS = 3, IDLE_STEP = 1}
+
+-- The situations of BOND_QUESTS.md 19.1 and the idle each one stands for when the gap names none (false: no pose of its own, the hook still hears the situation).
+-- Every key is an idle key of assets/gestures/gestures.json idleWorkspots.
+M.SITUATIONS = {nervous = false, celebrating = 'panam_beer', grieving = 'generic_front', angry = 'generic_arms_crossed', relaxed = false, working = 'judy_coffee'}
 
 local function plainId(value) return type(value) == 'string' and #value > 0 and #value <= 80 and value:match('^[%w][%w%.:_%-]*$') ~= nil end
 local function speakerKey(value) return type(value) == 'string' and #value <= 80 and value:match('^[a-z0-9][a-z0-9%-]*$') ~= nil end
@@ -224,9 +232,18 @@ function M.new(options)
         local old = gaps[pack]
         local spec = packs[pack].gaps[gapId]
         if type(spec) ~= 'table' then spec = {} end
-        if not old then gapCount = gapCount + 1 end
-        gaps[pack] = {id = gapId, spec = spec, gameAt = restoredAt or gameTime(), clockAt = clock(), profileKey = profileOf(pack)}
-        if type(options.idle) == 'function' and type(spec.idle) == 'string' then pcall(options.idle, profileOf(pack), spec.idle, true) end
+        if not old then gapCount = gapCount + 1
+        elseif old.idleStarted and type(options.idle) == 'function' then pcall(options.idle, old.profileKey, old.idleKey, false, old.situation) end   -- one pose at a time
+        local g = {id = gapId, spec = spec, gameAt = restoredAt or gameTime(), clockAt = clock(), profileKey = profileOf(pack)}
+        gaps[pack] = g
+        -- The pose of the gap, started once (a gap restored after a load starts it again): its own idle, else the one its situation stands for.
+        local situation = type(spec.situation) == 'string' and M.SITUATIONS[spec.situation] ~= nil and spec.situation or nil
+        local idleKey = type(spec.idle) == 'string' and spec.idle or (situation and M.SITUATIONS[situation]) or nil
+        if type(options.idle) == 'function' and (idleKey or situation) then
+            g.idleKey, g.situation, g.idleStarted = idleKey, situation, true
+            local ok, stepper = pcall(options.idle, g.profileKey, idleKey, true, situation)
+            if ok and type(stepper) == 'function' then g.idleStep, g.idleNext = stepper, clock() + M.IDLE_STEP end
+        end
         if not restoredAt then emit(pack, 'gap:' .. gapId .. ':open') end
         changed()
         return true
@@ -242,7 +259,8 @@ function M.new(options)
         local g = gaps[pack]
         if not g or (gapId ~= nil and g.id ~= gapId) then return false end
         gaps[pack], gapCount = nil, gapCount - 1
-        if type(options.idle) == 'function' and type(g.spec.idle) == 'string' then pcall(options.idle, g.profileKey, g.spec.idle, false) end
+        g.idleStep = nil
+        if type(options.idle) == 'function' and g.idleStarted then pcall(options.idle, g.profileKey, g.idleKey, false, g.situation) end
         changed()
         if emitResume ~= false then emit(pack, 'gap:' .. g.id .. ':resume') end
         return true
@@ -284,6 +302,14 @@ function M.new(options)
                 end
             end
             for _, row in ipairs(expired) do L.closeGap(row[1], row[2], true) end
+            -- A pose that needs a few seconds to start is stepped once a second until it answers done (or fails): the only repeated call, and only while it is starting.
+            for _, g in pairs(gaps) do
+                if g.idleStep and now >= g.idleNext then
+                    g.idleNext = now + M.IDLE_STEP
+                    local ok, done = pcall(g.idleStep)
+                    if not ok or done == true then g.idleStep = nil end
+                end
+            end
         end
         -- Phone rows that waited for the saved chats.
         for index = #texts, 1, -1 do

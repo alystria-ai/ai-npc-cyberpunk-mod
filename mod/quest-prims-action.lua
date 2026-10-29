@@ -12,7 +12,8 @@
 -- these primitives only act on their own spawns.
 --
 -- Events (all go through ctx:emit):
---   squad:<id>:spawned, :hostile, :wave<N>, :down, :fled        and listened: squad:<id>:go (a relaxed squad turns hostile)
+--   squad:<id>:spawned, :hostile, :wave<N>, :down, :fled        and listened: squad:<id>:go (a relaxed squad turns hostile), squad:<id>:stand-down (no more waves,
+--                                                               the hold-until primitive of mod/quest-prims-scene.lua says it once its hour is reached)
 --   hostage:<id>:down, :freed, :dead                            and listened: hostage:<id>:exposed (the pack's timer lifts her protection), spec.on (frees her)
 --   escortee:<id>:arrived, :bolted, :back, :lost                and listened: escortee:<id>:bolt, :calm, :swap
 local M = {SPAWN_DISTANCE = 150, FLED_DISTANCE = 200, FLED_AFTER = 60, SIGHT_PATIENCE = 20, SIGHT_NEAR = 25, SIGHT_FORCE = 40, UNSEEN_MIN = 60,
@@ -359,7 +360,7 @@ function M.install(R, env)
         -- Waves.
         local priorSpawned = true
         for _, wave in ipairs(state.waves) do
-            if not wave.spawned then
+            if not wave.spawned and not state.standDown then
                 local fire = false
                 if wave.whenDown then
                     fire = priorSpawned and state.seenAny and alive == 0 and pending == 0
@@ -376,7 +377,7 @@ function M.install(R, env)
         end
 
         local wavesLeft = false
-        for _, wave in ipairs(state.waves) do if not wave.spawned then wavesLeft = true end end
+        for _, wave in ipairs(state.waves) do if not wave.spawned and not state.standDown then wavesLeft = true end end
         if state.seenAny and not wavesLeft and alive == 0 and pending == 0 then
             local settled = true
             for _, group in ipairs(state.groups) do if not group.emitted then settled = false end end
@@ -385,6 +386,21 @@ function M.install(R, env)
                 squadEmit(ctx, state, 'down')
             end
         end
+    end
+
+    -- The live squads of the armed stages by pack:id, and a read-only view of their members for a primitive that only looks (the unseen primitive of
+    -- mod/quest-prims-scene.lua): the handles of the members that were seen and are neither down nor given up, as the world gave them (plain data, never an entity).
+    local squads = {}
+    function R.squadMembers(pack, id)
+        local state = squads[tostring(pack) .. ':' .. tostring(id)]
+        local list = {}
+        if not state then return list end
+        for _, group in ipairs(state.groups) do
+            for _, m in ipairs(group.members) do
+                if m.handle ~= nil and m.seen and not (m.down or m.lost) then list[#list + 1] = m.handle end
+            end
+        end
+        return list
     end
 
     R.defs.squad = {
@@ -419,7 +435,13 @@ function M.install(R, env)
                 if state.over then return end
                 if state.phase == 'live' then becomeHostile(ctx, state, 'go') else state.hostile, state.reason = true, 'go' end
             end)
+            -- No more waves (hold-until says it when its hour is reached). The members already placed stay as they are.
+            ctx:on('squad:' .. id .. ':stand-down', function() state.standDown = true end)
+            squads[ctx.pack .. ':' .. id] = state
             return state
+        end,
+        disarm = function(ctx, spec, state)
+            if state and squads[ctx.pack .. ':' .. state.id] == state then squads[ctx.pack .. ':' .. state.id] = nil end
         end,
         tick = function(ctx, spec, state)
             if state.over then return end
