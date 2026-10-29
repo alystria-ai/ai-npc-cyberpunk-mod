@@ -5,7 +5,11 @@
 --
 --   L.setPack(pack, info)          info {character, lines, gaps, images, serial}: what the pack's lines, gaps and pictures are (replaced at each stage start)
 --   L.say(pack, lineId, opts)      a scripted line is queued for its speaker (opts.bark). A bark waits at most 4 s and is then dropped, a plot line waits
---                                  (after 20 s it is also shown as a subtitle, and it is played at the next silence)
+--                                  (after 20 s it is also shown as a subtitle, and it is played at the next silence). opts.channel replaces the line's channel, opts.call
+--                                  (true, or a function that answers whether the call is still on) marks a line of a scripted holocall (mod/quest-prims-calls.lua): it waits
+--                                  for the silence like a plot line but is never shown or sent as a text, a line cut twice counts as heard so the call goes on, and once
+--                                  the call is not on any more it is dropped without a word
+--   L.dropCall(pack)               the call lines of that pack that still wait are dropped (the call ended), returns how many
 --   L.text(pack, lineId, imageKey) a Phone Chat message from the character, with a picture when the pack has one under that key
 --   L.openGap / L.closeGap         the talk gap: the script waits, her idle plays, it ends by resumeAfterSeconds, a resumeOn event or a gap:<id>:* event
 --   L.onEvent(pack, name)          the quest module tells every event, so a gap can end by one
@@ -103,7 +107,10 @@ function M.new(options)
         local profileKey = speakerKey(meta.speaker) and meta.speaker or info.character
         if not speakerKey(profileKey) then log('line ' .. tostring(lineId) .. ' has no speaker'); return false end
         local bark = (opts and opts.bark == true) or meta.bark == true or meta.kind == 'bark'
-        local entry = {pack = pack, id = lineId, profileKey = profileKey, bark = bark, channel = type(meta.channel) == 'string' and meta.channel or 'own',
+        local call = opts and (opts.call == true or type(opts.call) == 'function') and opts.call or nil
+        if call then bark = false end
+        local channel = type(opts and opts.channel) == 'string' and opts.channel or (type(meta.channel) == 'string' and meta.channel or 'own')
+        local entry = {pack = pack, id = lineId, profileKey = profileKey, bark = bark, channel = channel, call = call,
             emotion = meta.emotion, gesture = meta.gesture, text = shortText(meta.text), queuedAt = clock(), retries = 0, fails = 0}
         -- One slot per speaker for a bark (a newer one replaces an older waiting one, and none waits behind a plot line). A plot line is never lost:
         -- they queue in order, four deep per speaker.
@@ -142,6 +149,13 @@ function M.new(options)
         return nil
     end
 
+    -- A call line belongs to its call: it is alive while the call is on (true, or the function the call gave answers true).
+    local function callAlive(entry)
+        if entry.call == true then return true end
+        local ok, value = pcall(entry.call)
+        return ok and value == true
+    end
+
     -- A line that cannot be played is shown instead (the pack's text, as a subtitle), and the script moves on.
     local function showText(entry)
         if entry.text and not entry.shown then
@@ -178,6 +192,17 @@ function M.new(options)
         lastEnd = clock()
         if reason == 'finished' then
             emit(entry.pack, 'line:' .. entry.id .. ':done')
+        elseif entry.call then
+            if not callAlive(entry) then
+                log('call line ' .. entry.id .. ' was cut (' .. tostring(reason) .. '), the call is over')
+            elseif entry.retries < M.PLOT_RETRIES then
+                entry.retries = entry.retries + 1
+                table.insert(waiting, 1, entry)
+                log('call line ' .. entry.id .. ' was cut (' .. tostring(reason) .. '), it waits to be played again')
+            else
+                emit(entry.pack, 'line:' .. entry.id .. ':done')
+                log('call line ' .. entry.id .. ' could not be played (' .. tostring(reason) .. '), the call goes on')
+            end
         elseif not entry.bark then
             if entry.retries < M.PLOT_RETRIES then
                 entry.retries = entry.retries + 1
@@ -337,6 +362,9 @@ function M.new(options)
                     table.remove(waiting, index)
                     log('bark ' .. e.id .. ' dropped after ' .. string.format('%.1f', age) .. ' s' .. (e.why and (' (' .. tostring(e.why) .. ')') or ''))
                 end
+            elseif e.call then
+                if not callAlive(e) then table.remove(waiting, index)
+                elseif age >= M.PLOT_GIVE_UP then table.remove(waiting, index); emit(e.pack, 'line:' .. e.id .. ':done'); log('call line ' .. e.id .. ' given up after ' .. math.floor(age) .. ' s') end
             else
                 if age >= M.PLOT_SUBTITLE then showText(e) end
                 if age >= M.PLOT_GIVE_UP then
@@ -381,6 +409,16 @@ function M.new(options)
         local g = gaps[pack]
         if g then L.closeGap(pack, g.id, false) end
         changed()
+    end
+
+    -- A scripted call ended or its stage did: the call lines of the pack that still wait are dropped without a word (the one in the air ends with the call's speech).
+    function L.dropCall(pack)
+        local dropped = 0
+        for index = #waiting, 1, -1 do
+            if waiting[index].pack == pack and waiting[index].call then table.remove(waiting, index); dropped = dropped + 1 end
+        end
+        if dropped > 0 then changed() end
+        return dropped
     end
 
     -- The world changed or the setting went off: nothing is kept, and nothing is told to the quest.

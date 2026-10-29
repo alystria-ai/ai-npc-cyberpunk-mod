@@ -194,10 +194,10 @@ convaiQuestPlayRevision(); assert(#game.loads == 0, 'a play revision with the se
 
 test('glue: with the setting on the five modules are built once, the stage is read once (after a sweep), and each tick passes its delta to update', () => withGlue(`
 convaiQuestTick('V', 0.1)
-assert(table.concat(game.loads, ',') == 'quest-world.lua,quest-places.lua,quest-prims.lua,quest-lines.lua,quest-play.lua,quest-prims-action.lua,quest-prims-drive.lua,quest-prims-race.lua,quest-prims-scene.lua,quest-prims-systems.lua', table.concat(game.loads, ','))
+assert(table.concat(game.loads, ',') == 'quest-world.lua,quest-places.lua,quest-prims.lua,quest-lines.lua,quest-play.lua,quest-prims-action.lua,quest-prims-drive.lua,quest-prims-race.lua,quest-prims-scene.lua,quest-prims-systems.lua,quest-prims-calls.lua,quest-audio.lua', table.concat(game.loads, ','))
 assert(game.sweeps == 1 and game.restores == 1 and convaiQuestPlay ~= nil and convaiQuestLines ~= nil and convaiQuestWorld ~= nil)
 convaiQuestTick('V', 0.1); convaiQuestTick('V', 0.2)
-assert(#game.loads == 10 and game.restores == 1 and #game.updates == 3 and game.updates[3] == 0.2)
+assert(#game.loads == 12 and game.restores == 1 and #game.updates == 3 and game.updates[3] == 0.2)
 local options = game.built.play
 assert(options.enabled() == true and options.places and options.lines and options.prims)
 game.on = false; assert(options.enabled() == false, 'the setting is read each time')
