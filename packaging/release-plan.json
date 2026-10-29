@@ -194,6 +194,18 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-drive.lua"
         },
         {
+          "source": "mod/quest-world-race.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-world-race.lua"
+        },
+        {
+          "source": "mod/quest-prims-race.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-prims-race.lua"
+        },
+        {
+          "source": "mod/quest-tweak.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-tweak.lua"
+        },
+        {
           "source": "mod/quest-lines.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-lines.lua"
         },
