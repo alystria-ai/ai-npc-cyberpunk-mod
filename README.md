@@ -207,7 +207,7 @@ Each paste reads the clipboard once, checks it and saves it on your computer; **
 
 ### Convai free tier
 
-Nothing to set up: this is what you get the moment you install. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The 500 a day reset at local midnight, and **Settings > Conversation provider** shows how many are left. That is the only limit: every kind of turn counts the same, with no separate share for group chat, speaking up, reactions or rides, and no limit on how fast you talk. When they run out a notice says so. Wait for tomorrow, or switch to Local AI or Mistral and keep going. The local voices never count against it.
+Nothing to set up: this is what you get the moment you install. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The 500 a day reset once a day at 00:00 UTC (5:30 AM in India, early evening in the Americas), the same moment the sign-in service starts its day, and **Settings > Conversation provider** shows how many are left. That is the only limit: every kind of turn counts the same, with no separate share for group chat, speaking up, reactions or rides, and no limit on how fast you talk. When they run out a notice says so. Wait for tomorrow, or switch to Local AI or Mistral and keep going. The local voices never count against it.
 
 ### Convai API key
 
