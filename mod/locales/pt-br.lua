@@ -179,7 +179,6 @@ return {
     ["Please wait for the current requests to finish."] = "Aguarde a conclusão das solicitações atuais.",
     ["Press Enter to write  /  Esc to close"] = "Pressione Enter para escrever  /  Esc para fechar",
     ["Profile only"] = "Somente perfil",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Devolve cada configuração de Configurações, Relacionamentos, Info ao vivo e Atalhos de teclas ao padrão. Pressione o botão duas vezes para confirmar.",
     ["React to battles"] = "Reagir a combates",
     ["React to collected loot"] = "Reagir ao saque coletado",
     ["Reading installed models…"] = "Lendo modelos instalados…",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (concluída)",
     ["{title}: {label}"] = "{title}: {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Personagens com quem você tem proximidade podem te escrever ou ligar primeiro de vez em quando, e Johnny pode falar na sua cabeça. Isso só acontece em momentos tranquilos, nunca numa luta, numa cena ou numa ligação, e só algumas vezes por dia.\n\nExige Pacotes de história. Só seus personagens e canais. Desativado por padrão.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Devolve cada configuração de Configurações, Relacionamentos românticos, Info ao vivo e Atalhos de teclas ao padrão. Pressione o botão duas vezes para confirmar.",
+    ["Romantic relationships"] = "Relacionamentos românticos",
 }

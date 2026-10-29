@@ -298,7 +298,7 @@ local function schema()
         -- MCM 0.10.6 wraps a label that does not fit (and Add to favorites is hidden there), so the whole name fits.
         local label = newUi.presentation and ui.t('Restore defaults') or ui.t('Defaults')
         footer[#footer + 1] = action(DEFAULTS_ID, label, restoreArmed and ui.t('Confirm') or label,
-            ui.t('Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.'))
+            ui.t('Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.'))
     end
     -- Home's Back (MCM 0.10.6): the footer button that closes MCM's screen, like the Back of the pages under it. It is not the page's
     -- back action (no backActionId), so Escape stays MCM's own close.

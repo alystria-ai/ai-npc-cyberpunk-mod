@@ -242,7 +242,6 @@ return {
     ["Preparing to drive"] = "Przygotowanie do jazdy",
     ["Press Enter to write  /  Esc to close"] = "Naciśnij Enter, aby pisać  /  Esc, aby zamknąć",
     ["Profile only"] = "Tylko profil",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Przywraca każde ustawienie w Ustawieniach, Relacjach, Informacjach na żywo i Przypisaniach klawiszy do wartości domyślnej. Naciśnij przycisk dwa razy, aby potwierdzić.",
     ["RED4ext logs"] = "Logi RED4ext",
     ["RED4ext writes its logs in {path}"] = "RED4ext zapisuje swoje logi w: {path}",
     ["React to battles"] = "Reaguj na walki",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (zakończona)",
     ["{title}: {label}"] = "{title}: {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Postacie, z którymi jesteś blisko, mogą czasem pierwsze napisać lub zadzwonić, a Johnny może odezwać się w twojej głowie. Dzieje się to tylko w spokojnych chwilach, nigdy podczas walki, sceny ani rozmowy, i tylko kilka razy dziennie.\n\nWymaga Pakietów historii. Tylko twoje postacie i kanały. Domyślnie wyłączone.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Przywraca każde ustawienie w Ustawieniach, Relacjach romantycznych, Informacjach na żywo i Przypisaniach klawiszy do wartości domyślnej. Naciśnij przycisk dwa razy, aby potwierdzić.",
+    ["Romantic relationships"] = "Relacje romantyczne",
 }

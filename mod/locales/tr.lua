@@ -242,7 +242,6 @@ return {
     ["Preparing to drive"] = "Sürüşe hazırlanılıyor",
     ["Press Enter to write  /  Esc to close"] = "Yazmak için Enter  /  Kapatmak için Esc",
     ["Profile only"] = "Yalnızca profil",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Ayarlar, İlişkiler, Canlı bilgiler ve Tuş atamaları sayfasındaki her ayarı varsayılanına döndürür. Onaylamak için düğmeye iki kez bas.",
     ["RED4ext logs"] = "RED4ext günlükleri",
     ["RED4ext writes its logs in {path}"] = "RED4ext günlüklerini şuraya yazar: {path}",
     ["React to battles"] = "Çatışmalara tepki ver",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (tamamlandı)",
     ["{title}: {label}"] = "{title}: {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Yakın olduğun karakterler ara sıra sana önce mesaj atabilir veya arayabilir, Johnny de kafanın içinde seslenebilir. Bu yalnızca sakin anlarda olur, asla bir çatışmada, sahnede ya da aramada olmaz ve günde yalnızca birkaç kez olur.\n\nHikâye paketleri gerekir. Yalnızca kendi karakterlerin ve kanalların. Varsayılan kapalı.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Ayarlar, Romantik ilişkiler, Canlı bilgiler ve Tuş atamaları sayfasındaki her ayarı varsayılanına döndürür. Onaylamak için düğmeye iki kez bas.",
+    ["Romantic relationships"] = "Romantik ilişkiler",
 }

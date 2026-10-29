@@ -476,6 +476,8 @@ test('manager home owns the five destinations and every inner page has one paren
     -- Relationships is a page that opens from Conversations (a button beside Memory), with one Back to Settings.
     local open = row('relationships')
     assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled and not row('relationship:judy-alvarez'))
+    -- Named for what it is, so it is not taken for the Relationships page of the Companion Manager home (30 Oct).
+    assert(open.label == 'Romantic relationships', tostring(open.label))
     assert(invoke('relationships').ok)
     inner('relationships', 'relationships:back')
     assert(row('relationship:judy-alvarez') and not row('relationships') and not row('archetypeConversations'))

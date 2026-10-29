@@ -342,7 +342,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Setting | Page | Default |
 |---|---|---|
 | Interface language | Interface | Automatic (follows the game) |
-| Memory, Relationships | Conversations | Relationships: Auto |
+| Memory, Romantic relationships | Conversations | Relationships: Auto |
 | Dynamic info (twelve switches) | Conversations | All on except Other mods’ state |
 | Immersive invitations (switch, how she arrives, when, how long she waits, waypoint, texts) | Gameplay > Immersive invitations | Off; Walk, Right now, 5 minutes, waypoint on, texts on |
 | Housemates (switch, Housemates talk to each other, Move-in apartment, Pause between chats, Housemates in one chat, Evict all housemates button) | Gameplay > Housemates | Off; chat on, Ask me, 2 minutes, 2 people |

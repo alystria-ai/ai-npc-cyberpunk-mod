@@ -177,7 +177,6 @@ return {
     ["Please wait for the current requests to finish."] = "请等待当前请求完成。",
     ["Press Enter to write  /  Esc to close"] = "按 Enter 输入  /  Esc 关闭",
     ["Profile only"] = "仅对话设定",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "将“设置”、“关系”、“动态信息”和“按键绑定”中的每项设置恢复为默认值。需按两次按钮确认。",
     ["React to battles"] = "战斗反应",
     ["React to collected loot"] = "拾取物品反应",
     ["Reading installed models…"] = "正在读取已安装的模型…",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title}（已完成）",
     ["{title}: {label}"] = "{title}：{label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "与你亲近的角色可能会时不时主动给你发短信或打电话，强尼也可能在你脑海中开口。这只会发生在平静的时刻，绝不会在战斗、场景或通话中出现，每天也只有几次。\n\n需要开启“剧情包”。仅限你自己的角色和渠道。默认关闭。",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "将“设置”、“恋爱关系”、“动态信息”和“按键绑定”中的每项设置恢复为默认值。需按两次按钮确认。",
+    ["Romantic relationships"] = "恋爱关系",
 }

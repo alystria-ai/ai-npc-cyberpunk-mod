@@ -58,7 +58,7 @@
     ]
   },
   "counts": {
-    "strings": 1794,
+    "strings": 1795,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -976,7 +976,7 @@
     "Problems found: {count}. Select a line marked Problem to read what to do.": "Problems found: {count}. Select a line marked Problem to read what to do.",
     "Profile only": "Profile only",
     "Prompting": "Prompting",
-    "Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.": "Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.",
+    "Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.": "Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.",
     "PyTorch is not installed in it": "PyTorch is not installed in it",
     "Pyjamas": "Pyjamas",
     "Quest and journal": "Quest and journal",
@@ -1044,6 +1044,7 @@
     "Right-now sentence": "Right-now sentence",
     "Romance line": "Romance line",
     "Romantic": "Romantic",
+    "Romantic relationships": "Romantic relationships",
     "Rule {n}": "Rule {n}",
     "Rule {n} is empty. Write the rule or delete it.": "Rule {n} is empty. Write the rule or delete it.",
     "Rule {n} is too long. Keep each one under {max} characters.": "Rule {n} is too long. Keep each one under {max} characters.",
@@ -2148,7 +2149,6 @@
       "Opens your Convai billing page in your browser. Sign in with the same Convai account to change or cancel your plan.",
       "Press again",
       "Press again to delete this saved party. Anything else cancels.",
-      "Relationships",
       "Remove",
       "Remove from favorites",
       "Remove only this copy from your group.",
@@ -2159,6 +2159,7 @@
       "Replaces the characters of this saved party with the ones in your party now.",
       "Return to Companion Manager.",
       "Return to conversation settings.",
+      "Romantic relationships",
       "Save",
       "Save current party",
       "Saves a report file you can send to the developer.\n\nAPI keys, tokens, IDs, microphone audio and conversation text are left out. Without the conversation service, a shorter report is made from the files the game can read.",
@@ -2231,6 +2232,7 @@
       "Relationships",
       "Render the OmniVoice voices on another PC or graphics card that runs the OmniVoice server.",
       "Report for the developer",
+      "Romantic relationships",
       "Run OmniVoice on your AMD Radeon card with AMD’s ROCm: one download, set up from here.",
       "Saved party: {name}",
       "Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.",
@@ -3292,7 +3294,7 @@
       "Problem",
       "Problems found: {count}. Select a line marked Problem to read what to do.",
       "Prompting",
-      "Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.",
+      "Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.",
       "PyTorch is not installed in it",
       "Pyjamas",
       "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.",
@@ -11593,7 +11595,7 @@
         "mod/character-editor.lua:312"
       ]
     },
-    "Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.": {
+    "Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm.": {
       "contexts": [
         "ui.localized"
       ],
@@ -11756,13 +11758,10 @@
     },
     "Relationships": {
       "contexts": [
-        "page.action",
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:2276",
-        "mod/manager-ui.lua:2385",
-        "mod/manager-ui.lua:2438"
+        "mod/manager-ui.lua:2276"
       ]
     },
     "Remote OmniVoice": {
@@ -12175,6 +12174,16 @@
       "references": [
         "mod/manager-ui.lua:1664",
         "mod/manager-ui.lua:543"
+      ]
+    },
+    "Romantic relationships": {
+      "contexts": [
+        "page.action",
+        "page.category"
+      ],
+      "references": [
+        "mod/manager-ui.lua:2385",
+        "mod/manager-ui.lua:2438"
       ]
     },
     "Rule {n}": {

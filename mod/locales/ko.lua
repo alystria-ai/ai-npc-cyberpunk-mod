@@ -170,7 +170,6 @@ return {
   ["Please wait for the current requests to finish."] = "진행 중인 요청이 끝날 때까지 기다리세요.",
   ["Press Enter to write  /  Esc to close"] = "Enter로 작성  /  Esc로 닫기",
   ["Profile only"] = "프로필만",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "설정, 관계, 실시간 정보, 키 바인딩의 모든 항목을 기본값으로 되돌립니다. 버튼을 두 번 누르면 확정됩니다.",
   ["React to battles"] = "전투에 반응",
   ["React to collected loot"] = "획득한 전리품에 반응",
   ["Reading installed models…"] = "설치된 모델 불러오는 중…",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (완료)",
     ["{title}: {label}"] = "{title}: {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "가까운 캐릭터가 가끔 먼저 문자를 보내거나 전화를 걸 수 있고, 조니가 머릿속에서 말을 걸 수도 있습니다. 차분한 순간에만 일어나며 전투, 장면, 통화 중에는 절대 일어나지 않고 하루에 몇 번뿐입니다.\n\n“스토리 팩”이 필요합니다. 당신의 캐릭터와 채널에서만 작동합니다. 기본값은 꺼짐입니다.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "설정, 연애 관계, 실시간 정보, 키 바인딩의 모든 항목을 기본값으로 되돌립니다. 버튼을 두 번 누르면 확정됩니다.",
+  ["Romantic relationships"] = "연애 관계",
 }

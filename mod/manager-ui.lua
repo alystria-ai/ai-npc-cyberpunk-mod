@@ -2382,7 +2382,7 @@ local function schema()
             'Run OmniVoice on your AMD Radeon card with AMD’s ROCm: one download, set up from here.')
     elseif view == 'relationships' then
         local rows = relationshipRows(snapshot)
-        if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
+        if #rows > 0 then categories[#categories + 1] = category('relationships', 'Romantic relationships', rows) end
     elseif view == 'immersive-invitations' then
         categories[#categories + 1] = category('immersive-invitations', 'Immersive invitations', immersiveRows(snapshot),
             'Invite a companion and she really travels to you: she appears out of sight, walks or drives in, texts you when she is there and waits for you.')
@@ -2435,7 +2435,7 @@ local function schema()
             function() return navigate('dynamic-info') end))
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then
-            table.insert(conversations.settings, 2, action('relationships', 'Relationships', 'Open',
+            table.insert(conversations.settings, 2, action('relationships', 'Romantic relationships', 'Open',
                 'Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.',
                 function() return navigate('relationships') end))
         end

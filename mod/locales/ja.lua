@@ -170,7 +170,6 @@ return {
   ["Please wait for the current requests to finish."] = "進行中の要求が終わるまでお待ちください。",
   ["Press Enter to write  /  Esc to close"] = "Enterで入力  /  Escで閉じる",
   ["Profile only"] = "プロフィールのみ",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "「設定」「関係」「リアルタイム情報」「キー割り当て」のすべての項目を初期設定に戻します。ボタンを2回押すと確定します。",
   ["React to battles"] = "戦闘への反応",
   ["React to collected loot"] = "拾った戦利品への反応",
   ["Reading installed models…"] = "インストール済みモデルを読み込み中…",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title}（完了）",
     ["{title}: {label}"] = "{title}：{label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "親しいキャラクターが、ときどき先にメッセージを送ったり電話をかけてきたりします。ジョニーが頭の中で話しかけてくることもあります。落ち着いた場面だけで、戦闘、シーン、通話の最中には起こらず、1日に数回までです。\n\n「ストーリーパック」が必要です。対象はあなた自身のキャラクターとチャンネルだけです。初期設定はオフです。",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "「設定」「恋愛関係」「リアルタイム情報」「キー割り当て」のすべての項目を初期設定に戻します。ボタンを2回押すと確定します。",
+  ["Romantic relationships"] = "恋愛関係",
 }

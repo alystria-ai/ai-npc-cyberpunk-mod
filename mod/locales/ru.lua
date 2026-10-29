@@ -177,7 +177,6 @@ return {
     ["Please wait for the current requests to finish."] = "Дождитесь завершения текущих запросов.",
     ["Press Enter to write  /  Esc to close"] = "Enter — написать  /  Esc — закрыть",
     ["Profile only"] = "Только профиль",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Возвращает каждую настройку в разделах «Настройки», «Отношения», «Живая информация» и «Назначение клавиш» к значению по умолчанию. Для подтверждения нажмите кнопку дважды.",
     ["React to battles"] = "Реакции на бои",
     ["React to collected loot"] = "Реакции на добычу",
     ["Reading installed models…"] = "Чтение установленных моделей…",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (завершено)",
     ["{title}: {label}"] = "{title}: {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Близкие вам персонажи могут время от времени первыми написать или позвонить, а Джонни может заговорить в вашей голове. Это бывает только в спокойные моменты, никогда во время боя, сцены или звонка, и лишь несколько раз в день.\n\nТребуются «Сюжетные пакеты». Только ваши персонажи и каналы. Выключено по умолчанию.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Возвращает каждую настройку в разделах «Настройки», «Романтические отношения», «Живая информация» и «Назначение клавиш» к значению по умолчанию. Для подтверждения нажмите кнопку дважды.",
+    ["Romantic relationships"] = "Романтические отношения",
 }

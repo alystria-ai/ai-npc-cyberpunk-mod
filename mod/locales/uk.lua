@@ -242,7 +242,6 @@ return {
     ["Preparing to drive"] = "Підготовка до поїздки",
     ["Press Enter to write  /  Esc to close"] = "Натисни Enter, щоб писати  /  Esc, щоб закрити",
     ["Profile only"] = "Лише профіль",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Повертає кожен параметр на сторінках «Налаштування», «Стосунки», «Жива інформація» та «Призначення клавіш» до типового значення. Щоб підтвердити, натисни кнопку двічі.",
     ["RED4ext logs"] = "Журнали RED4ext",
     ["RED4ext writes its logs in {path}"] = "RED4ext записує свої журнали тут: {path}",
     ["React to battles"] = "Реагувати на бої",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (завершено)",
     ["{title}: {label}"] = "{title}: {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Близькі вам персонажі можуть час від часу першими написати або зателефонувати, а Johnny може озватися у вашій голові. Це буває лише у спокійні моменти, ніколи під час бою, сцени чи дзвінка, і лише кілька разів на день.\n\nПотрібні «Сюжетні пакети». Лише ваші персонажі й канали. За замовчуванням вимкнено.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Повертає кожен параметр на сторінках «Налаштування», «Романтичні стосунки», «Жива інформація» та «Призначення клавіш» до типового значення. Щоб підтвердити, натисни кнопку двічі.",
+    ["Romantic relationships"] = "Романтичні стосунки",
 }

@@ -177,7 +177,6 @@ return {
     ["Please wait for the current requests to finish."] = "Attendez la fin des demandes en cours.",
     ["Press Enter to write  /  Esc to close"] = "Enter pour écrire  /  Esc pour fermer",
     ["Profile only"] = "Profil uniquement",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Remet chaque paramètre des Paramètres, des Relations, des Infos en direct et des Raccourcis à sa valeur par défaut. Appuyez deux fois sur le bouton pour confirmer.",
     ["React to battles"] = "Réagir aux combats",
     ["React to collected loot"] = "Réagir au butin ramassé",
     ["Reading installed models…"] = "Lecture des modèles installés…",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (terminée)",
     ["{title}: {label}"] = "{title} : {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Les personnages dont tu es proche peuvent de temps en temps t’écrire ou t’appeler en premier, et Johnny peut se manifester dans ta tête. Cela n’arrive qu’à des moments calmes, jamais pendant un combat, une scène ou un appel, et seulement quelques fois par jour.\n\nNécessite Histoires de personnages. Seulement tes personnages et canaux. Désactivé par défaut.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Remet chaque paramètre des Paramètres, des Relations romantiques, des Infos en direct et des Raccourcis à sa valeur par défaut. Appuyez deux fois sur le bouton pour confirmer.",
+    ["Romantic relationships"] = "Relations romantiques",
 }

@@ -242,7 +242,6 @@ return {
     ["Preparing to drive"] = "Příprava na jízdu",
     ["Press Enter to write  /  Esc to close"] = "Stiskni Enter pro psaní  /  Esc pro zavření",
     ["Profile only"] = "Jen profil",
-    ["Puts every setting on Settings, Relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Vrátí každé nastavení na stránkách Nastavení, Vztahy, Živé informace a Klávesy na výchozí hodnotu. Pro potvrzení stiskni tlačítko dvakrát.",
     ["RED4ext logs"] = "Logy RED4ext",
     ["RED4ext writes its logs in {path}"] = "RED4ext zapisuje své logy do: {path}",
     ["React to battles"] = "Reagovat na bitvy",
@@ -1794,4 +1793,6 @@ return {
     ["{title} (finished)"] = "{title} (dokončeno)",
     ["{title}: {label}"] = "{title}: {label}",
     ["Characters you are close to can text or call you first now and then, and Johnny can speak up in your head. It only happens at calm moments, never in a fight, a scene or a call, and only a few times a day.\n\nNeeds Story packs. Own characters and channels only. Off by default."] = "Postavy, ke kterým máš blízko, ti mohou čas od času napsat nebo zavolat první a Johnny se může ozvat v tvé hlavě. Děje se to jen v klidných chvílích, nikdy v boji, scéně ani hovoru, a jen několikrát za den.\n\nVyžaduje Příběhové oblouky. Jen tvé vlastní postavy a kanály. Ve výchozím stavu vypnuto.",
+    ["Puts every setting on Settings, Romantic relationships, Dynamic info and Key bindings back to its default. Press the button twice to confirm."] = "Vrátí každé nastavení na stránkách Nastavení, Romantické vztahy, Živé informace a Klávesy na výchozí hodnotu. Pro potvrzení stiskni tlačítko dvakrát.",
+    ["Romantic relationships"] = "Romantické vztahy",
 }

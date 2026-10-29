@@ -53,11 +53,11 @@ Mods screen (Esc > Mods)
 | Immersive invitations | Settings | Immersive invitations (six rows: the switch, how she arrives, when, how long she waits, the waypoint, her texts; `docs/IMMERSIVE_INVITATIONS.md`) |
 | Housemates | Settings | Housemates (six rows and a button: the switch, Off by default, Housemates talk to each other, Move-in apartment, Pause between chats, Housemates in one chat, and Evict all housemates; `docs/HOUSEMATES.md`) |
 
-The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the others (Memory, Relationships, Dynamic info, Help, paid tier, Custom endpoint, Immersive invitations, Housemates). It is the first row of
-the first section, so it is always the first row of the page. Memory (Manage), Dynamic info (Open, since 2026-10-22) and Relationships (Open) are rows of Settings > Conversations, Help and support is
+The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the others (Memory, Romantic relationships, Dynamic info, Help, paid tier, Custom endpoint, Immersive invitations, Housemates). It is the first row of
+the first section, so it is always the first row of the page. Memory (Manage), Dynamic info (Open, since 2026-10-22) and Romantic relationships (Open, renamed 2026-10-30 so it is not taken for the Relationships page of the home) are rows of Settings > Conversations, Help and support is
 the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row, and Custom endpoint (Open, since 2026-10-20) a row of the same section right after the Mistral key row. The Help
 entry is absent when `mod/support-report.lua` did not load, the paid tier entry when `mod/convai-paid-tier.lua` did not (both are loaded
-behind `pcall`). Relationships is absent when no character has a relationship setting.
+behind `pcall`). Romantic relationships is absent when no character has a relationship setting.
 
 A row of the page is one of four kinds, built by `setting(...)`, `action(...)` and `readonly(...)` in `mod/manager-ui.lua`:
 
@@ -112,7 +112,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
     context can carry (Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, Recent game
     dialogue, and since 2026-10-25 Time since last talk (`lastTalk`), Music and TV (`media`) and Other mods' state (`mods`)), all on by default except Other mods' state (`mods`). Row ids `dynamic:<kind>`; saved as `dynamicInfo.<kind>`; the rows apply through `M.apply` as one `dynamicInfo` table (`manager.applySettings`).
     What each switch removes, on the game side and in every provider's prompt, is in `docs/DYNAMIC_INFO.md`.
-  - Relationships (a page of its own, opened by the Relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
+  - Romantic relationships (a page of its own, opened by the Romantic relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
     one the player muted earlier stays muted, since nothing resets the saved value.
   - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, Custom endpoint (a button that
@@ -241,7 +241,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     among up to three of them that stops when you talk. One scheduler
     (`mod/speak-up.lua`) paces both lists; see `docs/COMPANION_SPEAK_UP.md`.
 - **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
-  page, the Relationships page, the Dynamic info page and the Key bindings page it applies every saved row of all four pages that is not at
+  page, the Romantic relationships page, the Dynamic info page and the Key bindings page it applies every saved row of all four pages that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits; the own key bindings are cleared in the same
   save as one change, `keyBindings:clear`), then says "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says
   "Open Settings to restore its defaults."
@@ -435,12 +435,12 @@ MCM 0.10.6 added (`close`, `setActionVisibility`, three presentation options) ar
 **The page.** Every category of the page is a category of MCM, each row a setting: `bool`, `select`, `int` rows are drafts
 (capabilities read, write, draft; NO default: MCM draws a row purple only when it has a default and differs from it, and the same rows
 look alike without it; MCM's own Defaults button and Modified counter go with the defaults, so the host has its own **Restore defaults**
-footer button on Settings, Relationships and Dynamic info, pressed twice because MCM's public API has no confirmation, applying `manager-ui.lua`
+footer button on Settings, Romantic relationships and Dynamic info, pressed twice because MCM's public API has no confirmation, applying `manager-ui.lua`
 `M.defaults()` through `M.apply`), actions are MCM actions (with `disabled` rows not runnable), read-only rows are `string` settings
 without write; the Settings page has no read-only line (Voice status and Johnny's standing were removed 2026-10-20, and with them the
 status-button workaround that drew such lines at the size of the other rows), so the other pages' lines are plain MCM text rows. Two alignments remain that no public option
 changes in MCM 0.10.5: a setting's label is in MCM's marker column (x 48, `MCMLayout.reds` `contentLabelX`) and an action's is flush left (x 20); MCM 0.10.6 moves the first with `labelIndent` (see "MCM 0.10.6" below).
-Relationships is a page of its own (view `relationships`, back to Settings), opened by a Relationships button in Conversations; Dynamic info is built the same way (view `dynamic-info`).
+Romantic relationships is a page of its own (view `relationships`, back to Settings), opened by a Romantic relationships button in Conversations; Dynamic info is built the same way (view `dynamic-info`).
 The Memory page's Forget all row reads "Forget all memories (N characters)" with the one-word button "Forget": the count is in the row's name, within `BUTTON_LABEL_UNITS` (29, the figure `mod/nsui.lua` cuts a button row's name to); a translation or a count that does not fit it is only the number ("Forget all memories (12)"), then the name alone. The line under the way back (the result of the last action) is MCM's
 status line (`api.ui.setStatus`, kind info), sent only when it changes. The way back is the page's back action: `setNavigation` gives
 it as `backActionId` (Escape goes back) and `setFooterActions` puts it in MCM's footer; the `pageId` is `view|page|group`, so MCM scrolls to
