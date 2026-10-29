@@ -26,7 +26,7 @@ export function run(code) {
   lualib.luaL_openlibs(state);
   // The CET module environment has no _G: match it so that class of bug fails here.
   const source = '_G = nil; ' + uiLocaleBootstrap + code;
-  const status = lauxlib.luaL_dostring(state, to_luastring(source));
+  const status = lauxlib.luaL_dostring(state, to_luastring('convaiPlayer = function() return Game.GetPlayer() end ' + source));
   // An error that is not a string (a table raised by the code under test) is described instead of breaking the report.
   let error = status === lua.LUA_OK ? '' : (lua.lua_type(state, -1) === lua.LUA_TSTRING ? to_jsstring(lua.lua_tostring(state, -1)) : to_jsstring(lauxlib.luaL_tolstring(state, -1)));
   // Name the failing Lua line: the message only carries its number in the generated chunk.

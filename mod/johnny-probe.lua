@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Developer probes for Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): the live evidence the offline tests cannot
 -- give (the Relic's status effects, the cost of combat hooks, the district V is read in).
 --
@@ -25,7 +26,7 @@ function M.parse(request)
 end
 
 local function environment(log)
-    return {player = Game.GetPlayer(), now = os.time(), clock = os.clock(), log = log}
+    return {player = convaiPlayer(), now = os.time(), clock = os.clock(), log = log}
 end
 
 -- The place feature lives here: what the district sample reads now and what it would make of it, and a test arrival that puts one

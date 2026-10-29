@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Combat feats, the cost study (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2, "Cool combat feats"). Players asked Johnny to remark on what V
 -- pulls off in a fight: multi-kills, headshots, a Sandevistan or a Kerenzikov, quickhack chains. He stays quiet in fights, so a remark
 -- would come after one; the question is what it costs to know what happened. This developer probe answers it in a real fight:
@@ -197,7 +198,7 @@ end
 -- for `this` and its event). A batch that does not move the clock gives an upper bound (1 ms over the batch), never zero.
 function M.calibrate(nativeCall)
     clock = os.clock
-    nativeCall = nativeCall or function() return Game.GetPlayer() end
+    nativeCall = nativeCall or function() return convaiPlayer() end
     local function perCall(seconds, count)
         if seconds > 0 then return 1e6 * seconds / count, false end
         return 1e6 * 0.001 / count, true

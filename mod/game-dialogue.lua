@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Recent in-game dialogue for mod conversations (docs/GAME_DIALOGUE_CONTEXT.md).
 -- Read-only. Observes the game's subtitle line feed and V's chosen dialogue
 -- options, keeps a short bounded buffer of plain strings (never a native
@@ -53,7 +54,7 @@ local function nativeAdapter()
         local ok, value = pcall(Enum.new, kind, name)
         return ok and value or nil
     end
-    function N.player() return Game.GetPlayer() end
+    function N.player() return convaiPlayer() end
     function N.ready(player)
         return player ~= nil and player:IsAttached() and not player:IsDeadNoStatPool()
     end

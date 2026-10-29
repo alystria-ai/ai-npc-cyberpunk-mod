@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- One utterance owns playback. Its renderer's heard position (the continuous browser PCM the bridge feeds, mod/continuous-speech.lua)
 -- drives faces and captions. A temporary buffer gap never advances the group to another speaker.
 -- available: the continuous adapter loaded, the only way a reply is voiced (published in speech-state.json).
@@ -40,7 +41,7 @@ local screenFace = {
 -- at most FACE_RETRIES times, and the face joins at the heard position. Every other reply never retries.
 local FACE_RETRY, FACE_RETRIES = .25, 40
 local function findScreenFace(profileKey, context)
-    local ok, npc, pending = pcall(M.faceSource, profileKey, Game.GetPlayer())
+    local ok, npc, pending = pcall(M.faceSource, profileKey, convaiPlayer())
     local known, entity = false, nil
     if ok and npc then known, entity = pcall(function() return tostring(npc:GetEntityID().hash) end) end
     if not (known and type(entity) == 'string' and entity:match('^%d+ULL$')) then return false, ok and pending == true end
@@ -244,12 +245,12 @@ function M.start(context, reply)
     end
     if type(reply.continuous) ~= 'table' then
         -- A reply without a continuous voice has none: its text shows as the voice notice promises (never played from reply.audio).
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if voiceEnabled(player) then showUnvoiced(M.reactionReply, context.name, reply.text, M.target, context.entity)
         else captions.show(context.name, reply.text, M.target, context.entity) end
         return false
     end
-    local controller, player, actor = continuousAdapter(), Game.GetPlayer(), M.target
+    local controller, player, actor = continuousAdapter(), convaiPlayer(), M.target
     if not controller or not voiceEnabled(player) then
         -- No voice by the player's choice keeps the Subtitles setting; no voice engine to play it is a failure: the text shows.
         if voiceEnabled(player) then showUnvoiced(M.reactionReply, context.name, reply.text, actor, context.entity)
@@ -469,7 +470,7 @@ local function updateSpeech(delta, framePlayer)
         publish()
     end
     if not M.requestId then return end
-    player = player or Game.GetPlayer()
+    player = player or convaiPlayer()
     if not player then M.abandon(); return end
     local identity = identityDue(delta)
     if identity then

@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The Companion Manager inside Native Settings UI (nativeSettings, Nexus Mods 3518, tested with 1.96). This is the host: it registers
 -- one tab, "AI NPC Cyberpunk Mod", on the Mods screen (Esc > Mods) and keeps it equal to the page that mod/manager-ui.lua builds. The
 -- pages, the actions and the rules for applying a setting are in manager-ui.lua; nothing here knows what a setting means.
@@ -635,7 +636,7 @@ end
 local function notify(kind)
     if kind ~= 'mcm-list' then return end
     pcall(function()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if player and type(convaiNotices) == 'table' then
             convaiNotices.sendLines(player, {{id = 'manager-in-mcm-list', text = ui.t('Open AI NPC Cyberpunk Mod in the Mods list.')}})
         end
@@ -781,7 +782,7 @@ end
 -- to update it).
 local function postNeedsHost(old)
     pcall(function()
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if player and type(convaiNotices) == 'table' then
             local text = old and ui.t('Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI')
                 or ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI')

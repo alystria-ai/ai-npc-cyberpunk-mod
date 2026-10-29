@@ -5444,6 +5444,7 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
     local manager = {developerMode = function() return developer end}
     local convaiNotices = {send = function(who, id, text) sent[#sent + 1] = {id = id, text = text}; return true end}
     local Game = {GetPlayer = function() return player end}
+    local convaiPlayer = function() return Game.GetPlayer() end
     local function log(message) logged[#logged + 1] = message end
     local speech = {}
     ${init.slice(textStart, textEnd)}

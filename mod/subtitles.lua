@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Native subtitles, owned by one reply and one exact world speaker at a time.
 -- Overhead projection/layout stays in the game. We only advance owned lines.
 -- Native line IDs (CRUID(0x436F6E760000 + serial)) must never repeat in one
@@ -204,7 +205,7 @@ end
 local function invoke(object, method) return object[method](object) end
 -- framePlayer: the V the caller already holds this frame (a speaking frame asks about the setting several times); nil asks the game.
 function M.enabled(framePlayer)
-    local player = framePlayer or Game.GetPlayer()
+    local player = framePlayer or convaiPlayer()
     if not player then return false end
     local ok, enabled = pcall(invoke, player, 'ConvaiManagerSubtitles')
     return not ok or enabled
@@ -528,15 +529,15 @@ local function prepare(speaker, text, actor, expected)
     -- is no head for an overhead caption. When its anchor is not a character, V owns the line, as with V's live words.
     if M.voiceOnly == true then
         M.mode, M.fallback = 'dialogue', 'voice-only'
-        if not M.actor then M.liveOwner = Game.GetPlayer() end
+        if not M.actor then M.liveOwner = convaiPlayer() end
     end
     -- A holocall (mod/holocall.lua): the speaker is on the phone, never overhead. V owns the line when the speaker has
     -- no body here (a voice call) or the live picture's copy is far away.
     if M.holocall == true then
         M.mode, M.fallback = 'dialogue', 'holocall'
-        if not M.actor then M.liveOwner = Game.GetPlayer() end
+        if not M.actor then M.liveOwner = convaiPlayer() end
     end
-    if M.mode == 'overhead' and vehicleConversation(Game.GetPlayer()) then
+    if M.mode == 'overhead' and vehicleConversation(convaiPlayer()) then
         M.mode, M.fallback = 'dialogue', 'vehicle-interior'
     end
     if M.mode == 'overhead' then
@@ -563,7 +564,7 @@ local function prepare(speaker, text, actor, expected)
         local ok, marked = pcall(M.markProvider, M.voiceProfile, speaker)
         if ok and type(marked) == 'string' then speaker = marked end
     end
-    M.playerID, M.speaker, M.page = identity(Game.GetPlayer()), speaker, 1
+    M.playerID, M.speaker, M.page = identity(convaiPlayer()), speaker, 1
     return true
 end
 
@@ -591,7 +592,7 @@ function M.showLive(speaker, text)
     if type(text) ~= 'string' then return false end
     text = clean(text)
     if text == '' or not M.enabled() then return false end
-    if M.live and M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.clear() end
+    if M.live and M.playerID and identity(convaiPlayer()) ~= M.playerID then M.clear() end
     if not M.live then
         -- V's own words never carry an add-on speaker's tag, and are never a voice-only or holocall line: speech.lua sets these for each
         -- reply and clears its own copy at the end of one, so the last reply's flags are still here when V next speaks.
@@ -601,7 +602,7 @@ function M.showLive(speaker, text)
         M.mode, M.fallback, M.anchor, M.paginationStyle = 'dialogue', nil, nil, 'dialogue'
         M.pages, M.pageRanges = M.split(text, 'dialogue')
         if #M.pages == 0 then M.abandon(); return false end
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         M.live, M.liveOwner = true, player
     else
         local pages, ranges = M.split(text, M.paginationStyle or 'dialogue')
@@ -630,7 +631,7 @@ function M.showTyped(text)
     M.mode, M.fallback, M.anchor, M.paginationStyle = 'dialogue', nil, nil, 'dialogue'
     M.pages, M.pageRanges = M.split(text, 'dialogue')
     if #M.pages == 0 then M.abandon(); return false end
-    M.live, M.liveOwner = true, Game.GetPlayer()
+    M.live, M.liveOwner = true, convaiPlayer()
     M.page = 1
     return showPage()
 end
@@ -649,7 +650,7 @@ function M.reviseTimed(text, duration, position, captions)
     -- its text or final duration must not briefly render the first page again.
     if not M.timed or not finite(duration) or duration <= 0 or duration > 120
         or not finite(position) or position < 0 then return false end
-    if M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.abandon(); return false end
+    if M.playerID and identity(convaiPlayer()) ~= M.playerID then M.abandon(); return false end
     if not (M.forced or M.enabled()) or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
     -- Switching an ongoing utterance from overhead to the cabin HUD must not
     -- change page boundaries on the next streamed transcript revision.
@@ -696,7 +697,7 @@ function M.update(delta, framePlayer)
     if not M.pages then return end
     -- init.lua passes the V it fetched for this frame; a caller without it (a test) asks the game.
     local player, ok = framePlayer, true
-    if not player then ok, player = pcall(function() return Game.GetPlayer() end) end
+    if not player then ok, player = pcall(function() return convaiPlayer() end) end
     if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
     if not (M.forced or M.enabled(player)) or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
     if M.mode == 'overhead' and vehicleConversation(player) then

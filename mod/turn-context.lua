@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- What is going on around V right now, for mod conversations (docs/DYNAMIC_CONTEXT_AUDIT.md, bridge/turn-context.mjs):
 -- the game clock, the district, who is with V and whether V is in a vehicle, and V's gender and lifepath.
 -- Read-only and on demand, in the style of player-gear.lua: the snapshot is read when a conversation turn is built and reused
@@ -191,7 +192,7 @@ end
 -- Default native adapter. Every call is guarded by the caller; tests replace it.
 local function nativeAdapter()
     local N = {}
-    function N.player() return Game.GetPlayer() end
+    function N.player() return convaiPlayer() end
     function N.ready(player)
         return player ~= nil and player:IsAttached() and not player:IsDeadNoStatPool() and not player:IsReplacer()
     end

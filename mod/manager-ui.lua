@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Companion Manager pages, actions and settings, with no knowledge of the screen that shows them. mod/nsui.lua is the host: it puts
 -- the pages built here into Native Settings UI and turns a widget change or a button press back into the calls below. Everything a
 -- page shows is a row of one of four kinds (the same shapes the pages always had, so a row added for a provider is one more
@@ -126,7 +127,7 @@ local function readLoads()
 end
 
 local function player()
-    local ok, value = pcall(function() return Game.GetPlayer() end)
+    local ok, value = pcall(function() return convaiPlayer() end)
     return ok and value or nil
 end
 

@@ -7,7 +7,7 @@ import {companionEngine} from './companion-fixture.mjs';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 function run(code) {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
-  const result = lauxlib.luaL_dostring(state, to_luastring(code));
+  const result = lauxlib.luaL_dostring(state, to_luastring('convaiPlayer = function() return Game.GetPlayer() end ' + code));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 }

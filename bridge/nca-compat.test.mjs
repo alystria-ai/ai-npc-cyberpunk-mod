@@ -212,7 +212,7 @@ test('no refusal for NCA followers: the "busy" gate belongs to game-placed story
   const policy = init.slice(policyStart, init.indexOf('    protected = function(npc)', policyStart));
   assert.match(policy, /if convaiSpawnedCharacters ~= nil and convaiSpawnedCharacters:is\(npc\) then return false end/);
   assert.match(init, /if primary\.story then\s*local why = convaiWorldTalk:refusal\(npc, player, nil, key\)/);
-  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
+  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, convaiPlayer()\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
   // The world-talk module itself reads facts only; it never commands anything.
   const worldTalk = read('../mod/world-talk.lua');
   assert.doesNotMatch(worldTalk, /SendCommand|AIMountCommand|AIHoldPositionCommand|QueueEvent|Teleport|Workspot\(\):Play|LookAt/);

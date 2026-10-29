@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- The game side of revenge ambushes (docs/AMBUSHES.md): the native calls mod/revenge-ambush.lua asks for, each one guarded, none of them run per frame.
 -- They are read or made only when the ambush module asks: a look every 30 s while the setting is on (world), a spot search (four steps of the invitation
 -- code's own search), a spawn, and one step a second while a squad exists.
@@ -30,7 +31,7 @@ function M.new(deps)
         if sample.combat then return 'combat' end
         if sample.blocked then return sample.vehicle and 'vehicle' or sample.call and 'call' or 'scene' end
         if sample.vehicle then return 'vehicle' end
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return 'unreadable' end
         local okHeat, heat = pcall(wanted)
         if not okHeat then return 'unreadable' end
@@ -69,7 +70,7 @@ function M.new(deps)
 
     -- A hidden, walkable spot V can be reached from: the invitation code's own search (45 m out, then nearer), a few queries a step.
     function W.findSpot(state, relax)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return nil, 'World is not ready' end
         local at = player:GetWorldPosition()
         return companions.findVisitorSpot(M.BODY_KEY, {destination = {x = at.x, y = at.y, z = at.z}, mode = 'walk', relax = relax, maxDistance = 70}, state)
@@ -77,7 +78,7 @@ function M.new(deps)
 
     -- One fighter at the spot (a pace to the side for each after the first, on walkable ground). Returns the entity ID, or nil + why.
     function W.create(record, spot, index, count)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         local system = Game.GetDynamicEntitySystem()
         if not player or not system or not system:IsReady() then return nil, 'World is not ready' end
         local position = spot.position
@@ -129,7 +130,7 @@ function M.new(deps)
 
     function W.playerNear(npc)
         local ok, metres = pcall(function()
-            local a, b = npc:GetWorldPosition(), Game.GetPlayer():GetWorldPosition()
+            local a, b = npc:GetWorldPosition(), convaiPlayer():GetWorldPosition()
             return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2 + (a.z - b.z) ^ 2)
         end)
         return ok and finite(metres) and metres or nil
@@ -138,7 +139,7 @@ function M.new(deps)
     -- Hostile to V at the agent level (never the attitude group), then the person's own combat start against V, then the forced fight state: the three
     -- asks mod/npc-reactions.lua makes for an attack (live-checked there 2026-10-21). True when it reads back hostile and one fight ask was accepted.
     function W.arm(npc)
-        local player = Game.GetPlayer()
+        local player = convaiPlayer()
         if not player then return false end
         local hostile = pcall(function()
             npc:GetAttitudeAgent():SetAttitudeTowards(player:GetAttitudeAgent(), Enum.new('EAIAttitude', 'AIA_Hostile'))

@@ -1,3 +1,4 @@
+local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 -- Setup check (docs/MANAGER_UI.md, "Setup check"): what the game can see of this mod's installation, and what the conversation
 -- service found (runtime/setup-check.json, written by bridge/setup-check.mjs), as one line per check with a one-line fix.
 -- Shown first on the Help page (mod/manager-ui.lua), as one notice at the first load when something critical is wrong, and, without
@@ -263,7 +264,7 @@ local function frameworks()
     -- This mod's own scripts (r6/scripts/CyberpunkConvai): ConvaiRequirements says they loaded and which frameworks they were
     -- compiled with; scripts of 0.2.1 and older only have ConvaiPhoneIsOpen, which proves they loaded. nil while there is no player
     -- to ask. found.requirements stays nil for old scripts and for none.
-    local player = try(function() return Game.GetPlayer() end)
+    local player = try(function() return convaiPlayer() end)
     if player then
         local set = readRequirements(player)
         requirementSet = set
@@ -1043,7 +1044,7 @@ end
 -- word: 'codeware', 'codeware-ui' or 'codeware-textinput'. player: the caller's, when it has one.
 function M.requirement(word, player)
     if requirementSet == nil then
-        player = player or try(function() return Game.GetPlayer() end)
+        player = player or try(function() return convaiPlayer() end)
         if not player then return nil end
         requirementSet = readRequirements(player)
     end
