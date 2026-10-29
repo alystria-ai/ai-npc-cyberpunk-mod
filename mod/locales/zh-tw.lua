@@ -1743,5 +1743,6 @@ return {
     ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "每句對話還會附上一張最近的周遭環境畫面，在你開口前從遊戲視窗擷取。適用於所有對話提供者。Local AI 需要支援影像的模型，不支援的模型只會收到你的話語。\n\n只擷取遊戲視窗，只在有人靠近時擷取，短暫保存在記憶體中。關閉後則不擷取任何內容。",
     ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "黃色邊框是 Windows 正在擷取畫面。關閉同伴看得見即可停止。",
     ["This Local AI model cannot see pictures, so replies use only your words."] = "此 Local AI 模型無法辨識圖片，因此回覆只使用你的文字。",
+    ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "安裝 Hugging Face 上 {folder}/vision 的 vision 檔案後，此模型即可辨識圖片。",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "你的 Custom 端點不接受圖片，因此回覆只使用你的文字。",
 }

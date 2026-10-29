@@ -1743,5 +1743,6 @@ return {
     ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "К каждой реплике прикладывается свежий снимок окружения из окна игры. Работает с любым провайдером разговоров. Для Local AI нужна модель, которая умеет видеть. Если не умеет, получает только твои слова.\n\nТолько окно игры, только когда кто-то рядом, ненадолго в памяти. Выключено, ничего не снимается.",
     ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "Жёлтая рамка: Windows показывает снимок. Отключите Спутники видят, чтобы её убрать.",
     ["This Local AI model cannot see pictures, so replies use only your words."] = "Модель Local AI не видит картинки, поэтому учитываются только ваши слова.",
+    ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "Эта модель видит картинки с vision-файлом из {folder}/vision на Hugging Face.",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Ваш Custom-эндпоинт не принимает картинки, поэтому учитываются только ваши слова.",
 }

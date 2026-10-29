@@ -5902,6 +5902,11 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'vision-local-no-model' then
         return 'vision-local-no-model', ui.t('This Local AI model cannot see pictures, so replies use only your words.')
     end
+    -- Companions can see is on and the Local AI model can see with its vision file, which is not installed (a separate download, the vision folder of local-ai or mature on Hugging Face): said once per model, with the next reply.
+    if reply.keyNotice == 'vision-local-no-file' then
+        local folder = reply.keyNoticeFolder == 'mature' and 'mature' or 'local-ai'
+        return 'vision-local-no-file', ui.t('This model can see pictures with its vision file, from {folder}/vision on Hugging Face.', {folder = folder})
+    end
     -- Companions can see is on and the Custom endpoint refused a picture (a model with no vision): none is sent to it again this session, said once.
     if reply.keyNotice == 'vision-custom-no-images' then
         return 'vision-custom-no-images', ui.t('Your Custom endpoint does not accept pictures, so replies use only your words.')
@@ -5991,6 +5996,7 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'local-gpu' then convaiNotices.send(player, 'local-gpu', keyText)
     elseif keyId == 'vision-border' then convaiNotices.send(player, 'vision-border', keyText)
     elseif keyId == 'vision-local-no-model' then convaiNotices.send(player, 'vision-local-no-model', keyText)
+    elseif keyId == 'vision-local-no-file' then convaiNotices.send(player, 'vision-local-no-file', keyText)
     elseif keyId == 'vision-custom-no-images' then convaiNotices.send(player, 'vision-custom-no-images', keyText)
     elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
     elseif keyId == 'pocket-pack-fr' then convaiNotices.send(player, 'pocket-pack-fr', keyText)
@@ -7705,7 +7711,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-gpu' or keyId == 'local-stepdown' or keyId == 'vision-border' or keyId == 'vision-local-no-model' or keyId == 'vision-custom-no-images' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-gpu' or keyId == 'local-stepdown' or keyId == 'vision-border' or keyId == 'vision-local-no-model' or keyId == 'vision-local-no-file' or keyId == 'vision-custom-no-images' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                         -- A plan limit or a refused key: a turn V asked for says so; an automatic reaction (battle, loot) just stops.

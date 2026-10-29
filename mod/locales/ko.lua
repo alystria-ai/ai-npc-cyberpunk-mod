@@ -1743,5 +1743,6 @@ return {
     ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "각 대사에는 말하기 직전 게임 창에서 찍은 주변의 최근 화면도 함께 전달됩니다. 모든 대화 제공자와 함께 작동합니다. Local AI에는 화면을 볼 수 있는 모델이 필요합니다. 볼 수 없는 모델은 말만 받습니다.\n\n게임 창만, 누군가 근처에 있을 때만, 잠시 메모리에 보관됩니다. 끄면 아무것도 캡처되지 않습니다.",
     ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "노란 테두리는 Windows 화면 캡처 표시입니다. 동료의 시야를 끄면 꺼집니다.",
     ["This Local AI model cannot see pictures, so replies use only your words."] = "이 Local AI 모델은 사진을 볼 수 없어서 응답에는 플레이어의 말만 사용됩니다.",
+    ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "Hugging Face {folder}/vision의 vision 파일을 설치하면 이 모델이 사진을 볼 수 있습니다.",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Custom 엔드포인트가 사진을 받지 않아서 응답에는 플레이어의 말만 사용됩니다.",
 }

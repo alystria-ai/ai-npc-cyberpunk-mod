@@ -79,6 +79,10 @@ const safeId = file => basename(String(file)).replace(/\.gguf$/i, '').toLowerCas
 /** The part of a model id made from a file name (letters, digits, `. _ -`, at most 60). */
 export const safeModelId = safeId;
 
+// A pack manifest NAMES the projector its model sees with (a separate vision file, in the `vision` folder of the pack's folder on Hugging Face). The name stays on the model even when the file
+// is not installed, so the bridge can tell "this model has no projector" from "its vision file is missing" and say where to get it (`visionFolder`: local-ai or mature).
+const namedProjector = (entry, visionFolder) => (typeof entry?.mmproj === 'string' && entry.mmproj ? {mmprojNamed: entry.mmproj, visionFolder} : {});
+
 /**
  * Every installed chat model, in a stable order: standard, lite, then the Mature pack's models in the marker's order, then the custom ones.
  * `pack` is the result of detectLocalAiPack; `matureModels` the `models` of detectMaturePack (an empty list or undefined when that pack is
@@ -88,13 +92,13 @@ export const safeModelId = safeId;
  *   tier         'standard' | 'lite' for the Local AI packs' models, null for a Mature model (its headroom follows its size)
  *   loadedName   the name the loaded server reports (what the Mature allowance reads): an uncensored model's name always says so
  * Every file model also carries `mmproj`: the absolute path of its vision projector, or null (bridge/local-projector.mjs: the one its manifest entry names, else the one beside it. A Mature
- * model has one only when its marker names it). `findProjector(file, declared, {auto})` is that lookup (the default remembers its answers for a few seconds), `noProjector` skips the disk.
+ * model has one only when its marker names it; a model whose manifest names a projector also carries `mmprojNamed` (that path, installed or not) and `visionFolder`). `findProjector(file, declared, {auto})` is that lookup (the default remembers its answers for a few seconds), `noProjector` skips the disk.
  */
 export function listLocalModels({pack, matureModels = [], customModels = [], findProjector = defaultProjectorFinder} = {}) {
   const models = [];
   for (const tier of ['standard', 'lite']) {
     const entry = pack?.tiers?.[tier];
-    if (entry?.file) models.push({id: tier, name: entry.name, file: entry.file, tier, uncensored: false, loadedName: entry.name, mmproj: findProjector(entry.file, entry.mmproj ?? null)});
+    if (entry?.file) models.push({id: tier, name: entry.name, file: entry.file, tier, uncensored: false, loadedName: entry.name, mmproj: findProjector(entry.file, entry.mmproj ?? null), ...namedProjector(entry, 'local-ai')});
   }
   const taken = new Set(models.map(model => model.id));
   // The Mature pack has exactly two models, `lite` and `good` (bridge/mature-pack.mjs); their ids are stable (`mature:lite`, `mature:good`), so a
@@ -107,7 +111,7 @@ export function listLocalModels({pack, matureModels = [], customModels = [], fin
     taken.add(id);
     const name = entry.name || basename(entry.file).replace(/\.gguf$/i, '');
     models.push({id, name, file: entry.file, tier: null, matureTier, uncensored: true, loadedName: UNCENSORED_NAME.test(name) ? name : name + ' (uncensored)',
-      mmproj: findProjector(entry.file, entry.mmproj ?? null, {auto: false})});
+      mmproj: findProjector(entry.file, entry.mmproj ?? null, {auto: false}), ...namedProjector(entry, 'mature')});
   }
   for (const entry of Array.isArray(customModels) ? customModels : []) {
     if (!(entry?.file || (entry?.external === true && entry.endpoint)) || typeof entry.id !== 'string' || taken.has(entry.id)) continue;

@@ -1191,7 +1191,7 @@ export class LocalLlmServer extends EventEmitter {
    *   loaded     the server that is up has a vision projector
    *   available  the model that is up (else the one the next start would pick) has a usable projector
    *   model      that model's name, or null
-   *   reason     null, or 'no-projector' (wanted and the model has none), 'no-room' (it has one, it did not fit beside the model, so it is loaded without), 'start-failed' (llama-server could
+   *   reason     null, or 'no-projector' (wanted and the model has none), 'file-missing' (its manifest names a vision file that is not installed: `file` and `folder`, local-ai or mature, say which and where), 'no-room' (it has one, it did not fit beside the model, so it is loaded without), 'start-failed' (llama-server could
    *              not use the projector, the model runs without it) or 'reloading' (the server is being restarted for the change)
    */
   visionState() {
@@ -1199,8 +1199,10 @@ export class LocalLlmServer extends EventEmitter {
       const loaded = this.#loaded, up = Boolean(loaded) && !loaded.external && (this.#state === 'ready' || this.#state === 'warming');
       const hasLoaded = up && Boolean(loaded.mmproj), candidate = this.#visionCandidate();
       let reason = this.#visionReasonOf(up ? loaded : null);
-      if (reason === null && this.#visionWanted && !hasLoaded) reason = !candidate.available ? 'no-projector' : candidate.failed ? 'start-failed' : null;
-      return {wanted: this.#visionWanted, loaded: hasLoaded, available: hasLoaded || candidate.available, model: up ? String(loaded.name ?? '') || null : candidate.name, reason};
+      if (reason === null && this.#visionWanted && !hasLoaded) reason = !candidate.available ? (candidate.missing ? 'file-missing' : 'no-projector') : candidate.failed ? 'start-failed' : null;
+      // 'file-missing' also names the file and the folder of the Hugging Face packs page it is in (the notice says where to get it).
+      const missing = reason === 'file-missing' && candidate.missing ? {file: candidate.missing.file, folder: candidate.missing.folder} : null;
+      return {wanted: this.#visionWanted, loaded: hasLoaded, available: hasLoaded || candidate.available, model: up ? String(loaded.name ?? '') || null : candidate.name, reason, ...(missing ?? {})};
     } catch { return {wanted: this.#visionWanted, loaded: false, available: false, model: null, reason: null}; }
   }
 
@@ -1226,7 +1228,8 @@ export class LocalLlmServer extends EventEmitter {
         else model = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB: this.#lastFreeMiB ?? this.#totalMiB, totalMiB: this.#totalMiB, sizeOf: file => this.fileSizeMiB(file)}).model;
       }
       const found = model ? this.#projectorOf(model) : null;
-      value = {...value, id: model?.id ?? null, name: model ? (model.loadedName ?? model.name) : null, available: Boolean(found?.projector) || found?.reason === 'start-failed', failed: found?.reason === 'start-failed'};
+      value = {...value, id: model?.id ?? null, name: model ? (model.loadedName ?? model.name) : null, available: Boolean(found?.projector) || found?.reason === 'start-failed', failed: found?.reason === 'start-failed',
+        missing: found?.reason === 'file-missing' ? {file: basename(String(model.mmprojNamed)), folder: model.visionFolder === 'mature' ? 'mature' : 'local-ai'} : null};
     } catch { /* no model to name */ }
     this.#visionMemo = value;
     return value;
@@ -1243,9 +1246,11 @@ export class LocalLlmServer extends EventEmitter {
     return candidate.available && !candidate.failed && candidate.id === loaded.id;
   }
 
-  // The projector of a model: {projector: {path, file, sizeMiB, needMiB, key}} or {reason}: 'no-projector' (none, a server of the player's, or an empty file), 'start-failed' (it made a start fail this session).
+  // The projector of a model: {projector: {path, file, sizeMiB, needMiB, key}} or {reason}: 'no-projector' (none, a server of the player's, or an empty file), 'file-missing' (its manifest names one that is not installed), 'start-failed' (it made a start fail this session).
   #projectorOf(model) {
-    if (!model || model.external === true || !model.mmproj) return {reason: 'no-projector'};
+    if (!model || model.external === true) return {reason: 'no-projector'};
+    // The pack's manifest names its vision file but it is not installed (a separate download, the vision folder of local-ai or mature on Hugging Face): the player is told where to get it.
+    if (!model.mmproj) return {reason: model.mmprojNamed && !(Number(this.fileSizeMiB(model.mmprojNamed)) > 0) ? 'file-missing' : 'no-projector'};
     const sizeMiB = Number(this.fileSizeMiB(model.mmproj)) || 0;
     if (!(sizeMiB > 0)) return {reason: 'no-projector'};
     const key = `${model.id}|${model.mmproj}|${Math.round(sizeMiB)}`;
@@ -1283,6 +1288,7 @@ export class LocalLlmServer extends EventEmitter {
     if (vision.use) this.log('[local] pictures: ' + name + ' is loaded with its vision projector ' + vision.file + ' (' + Math.round(vision.sizeMiB) + ' MiB file, ' + vision.needMiB + ' MiB counted with the image encoder buffer), context ' + contextSize);
     else if (vision.reason === 'no-room') this.log('[local] pictures: ' + name + ' is loaded without its vision projector ' + vision.file + ': ' + vision.needMiB + ' MiB more do not fit beside the model on the graphics card (the model stays whole on the card)');
     else if (vision.reason === 'start-failed') this.log('[local] pictures: ' + name + ' is loaded without a vision projector, because llama-server could not use the last one');
+    else if (vision.reason === 'file-missing') this.log('[local] pictures: ' + name + ' has no vision projector installed: its manifest names one, which is a separate download (the vision folder of the pack on Hugging Face)');
     else this.log('[local] pictures: ' + name + ' has no vision projector, so it cannot see (a projector file beside the model, or named in its manifest entry, adds it)');
   }
 

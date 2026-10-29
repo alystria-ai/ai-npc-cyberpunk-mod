@@ -814,6 +814,25 @@ test('text providers: a provider that cannot see captures nothing and starts no 
   assert.equal(vision.takeSightNotice(), null);
 });
 
+test('text providers: a model whose vision file is not installed is told once with its own notice, per model, and with the setting off nobody is told', async () => {
+  const missing = {code: 'vision-local-no-file', key: 'local:Gemma 4 E4B:file-missing', why: 'Gemma 4 E4B can see with its vision file, which is not installed'};
+  const state = {blocker: missing};
+  const {vision, capture, state: scenery, run} = scene({blocker: () => state.blocker});
+  scenery.convai = false; scenery.sees = false;
+  await run(FRAME_INTERVAL_MS * 3);
+  assert.equal(capture.calls, 0, 'nothing is captured for a model that cannot see yet');
+  assert.equal(vision.takeSightNotice(), 'vision-local-no-file');
+  assert.equal(vision.takeSightNotice(), null, 'said once');
+  await run(2000);
+  assert.equal(vision.takeSightNotice(), null, 'the same model is not told again');
+  state.blocker = {...missing, key: 'local:Qwen3.5-4B:file-missing'};
+  await run(1000);
+  assert.equal(vision.takeSightNotice(), 'vision-local-no-file', 'another model is a new case');
+  state.blocker = {...missing, key: 'local:Bonsai 2 4B:file-missing'};
+  await run(1000, {companionVision: false});
+  assert.equal(vision.takeSightNotice(), null, 'with the setting off nobody is told');
+});
+
 test('text providers: an endpoint that refused a picture is told once, and the Custom case only', async () => {
   const {vision, state, run} = scene();
   state.convai = false; state.sees = true;

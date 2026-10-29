@@ -762,7 +762,9 @@ const keyNotice = () => {
   return keyNotice ? {keyNotice, ...(keyNotice === 'pocket-language-pack' ? {keyNoticeLanguage: pocketNotice.keyNoticeLanguage} : {}), ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
     ...(keyNotice === 'local-model-fallback' && mistral.noticeMemory ? {keyNoticeNeedMiB: mistral.noticeMemory.needMiB, keyNoticeAvailableMiB: mistral.noticeMemory.availableMiB} : {}),
     // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.
-    ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {})} : {};
+    ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {}),
+    // The folder of the Hugging Face packs page the missing vision file is in (data, so the sentence is the only string to translate): local-ai or mature.
+    ...(keyNotice === 'vision-local-no-file' ? {keyNoticeFolder: localServer.visionState().folder === 'mature' ? 'mature' : 'local-ai'} : {})} : {};
 };
 const LOCAL_CPU_DETAIL = 'a smaller model or the Custom provider is faster';
 // The game's code for a turn Local AI could not take (never a hand-over to another provider): not enough free graphics memory, or any other reason it could not start.
@@ -1142,6 +1144,8 @@ const visionBlocker = () => {
   const state = localServer.visionState();
   if (!state.wanted || !state.model || (state.available && state.reason !== 'no-room' && state.reason !== 'start-failed')) return null;
   const cause = state.reason ?? 'no-projector';
+  // The pack's manifest names a vision file that is not installed: the model can see with it, and the player is told once where to get it ('vision-local-no-file', the folder comes with the reply).
+  if (cause === 'file-missing') return {code: 'vision-local-no-file', key: `local:${state.model}:${cause}`, why: `${state.model} can see with its vision file, which is not installed (${state.file ?? 'no name'}, the vision folder of ${state.folder ?? 'local-ai'} on Hugging Face)`};
   return {code: 'vision-local-no-model', key: `local:${state.model}:${cause}`,
     why: `${state.model} cannot see (${cause === 'no-room' ? 'its vision projector does not fit beside it on the graphics card' : cause === 'start-failed' ? 'llama-server could not use its vision projector' : 'it has no vision projector'})`};
 };
