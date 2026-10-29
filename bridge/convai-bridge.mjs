@@ -153,6 +153,7 @@ import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 import {AddonContent} from './addon-content.mjs';
 import {memoryScopes, scopedMemory} from './memory-scope.mjs';
+import {readGpuProcessMemory} from './gpu-memory.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -608,6 +609,8 @@ const childRegistry = new ChildRegistry({file: childrenFile, log: message => con
 const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection, processOptions: {registry: childRegistry, raiseLevel: turnPriority},
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   gameRoom: {voiceMiB: omniStillToLoadMiB, residentVoiceMiB: omniResidentMiB},
+  // The OmniVoice worker's graphics-memory counters, read once when the chat model is found in shared memory (diagnostics: is the voice starved, or spilled too?).
+  voiceMemory: async () => { const pid = localVoice.clientBackend === 'omni' ? localVoice.client?.child?.pid : null; return pid ? readGpuProcessMemory(pid) : null; },
   log: message => console.error('[LocalAI] ' + message)});
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
 localServer.on('failed', ({reason}) => {
@@ -638,6 +641,11 @@ localServer.on('offload-slow', ({id, model, share}) => {
   if (cpuHeavyNoted.has(id)) return;
   cpuHeavyNoted.add(id); mistral.noteLocalCpuHeavy();
   console.error(`[LocalAI] ${model} runs mostly on the processor (about ${Math.round((share ?? 0) * 100)}% of its layers on the graphics card): replies will be slow`);
+});
+// The model that had gone into shared memory (or partly onto the CPU) is whole on the graphics card again: the game says so once, with the next reply (mod/init.lua, 'local-gpu').
+localServer.on('returned-to-card', ({model, fromSharedMiB, contextSize}) => {
+  mistral.noteLocalReturned();
+  console.error(`[LocalAI] ${model} is back on the graphics card${Number.isFinite(fromSharedMiB) ? ` (it had ${fromSharedMiB} MiB in shared system memory)` : ''}, context ${contextSize}: replies are fast again`);
 });
 localServer.on('state', status => {
   // The model server is running: whatever failed before is over (a later turn found memory again, or the retry of a turn started it), so turns stop failing with the old reason.
@@ -1335,7 +1343,8 @@ const slowTurns = new SlowTurnWatch({onSlow: data => errorEvents.slowTurns(data)
   turnContext: () => ({provider: mistral.route ?? 'convai', voice: localVoice.provider}),
   reportContext: () => {
     const warm = connections.diagnostic();
-    return {freeVideoMemoryMiB: localServer.lastFreeMiB,
+    // `lastFreeMiB` is the free memory the model's LAST LOAD saw (often the game's start, long before the report); `local` is what the watch knows now (bridge/local-return.mjs).
+    return {freeVideoMemoryMiB: localServer.lastFreeMiB, local: localServer.homeState(),
       background: {warmConnections: warm.ready, connectingConnections: warm.connecting, turnsInFlight: [...turnClocks.values()].filter(clock => !clock.has('published')).length}};
   }});
 // Voice playback is on and the replies of this run never made a sound: one `voice-failed` report (bridge/voice-silence.mjs). Judged from the stage clock after each turn.

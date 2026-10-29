@@ -1957,3 +1957,228 @@ test('a model with a sliding-window cache gets --swa-full when the larger projec
   await tight.server.ensure();
   assert.ok(!tight.calls[0].args.includes('--swa-full'));
 });
+
+// ---- Back to the card (bridge/local-return.mjs; report 931d4563: the model was in shared memory for the whole session) ------------------------------------------------------
+// A model the driver moved into shared memory stays loaded and answering (nothing can replace it while the game holds the card). The free graphics memory is read again at idle moments,
+// and when there is room a second server is loaded BESIDE it, the switch is made at an idle moment and the old one is stopped with its exit confirmed.
+function homeHarness(t, {free = {value: 4500}, spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}}, counters = null, reads = {count: 0}, limits = {}, ...options} = {}) {
+  const clock = {now: 1_000_000};
+  let hh = null;
+  const running = () => hh.calls.some(serverAlive);
+  const freeVramMiB = async () => { reads.count++; return free.value - (running() ? Number(spill.value.dedicatedMiB) || 0 : 0); };
+  const gpuMemory = async pid => (counters ? counters(pid, hh) : pid === hh.calls[0]?.child.pid ? spill.value : {dedicatedMiB: 3400, sharedMiB: 90});
+  hh = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free, clock, freeVramMiB, gpuMemory,
+    homeLimits: {firstLookMs: 1000, backoffMs: [1000, 2000, 4000], quietMs: 500, confirmGapMs: 1000, releaseGraceMs: 30, prepareMaxMs: 20_000, retireMaxMs: 2000, ...limits},
+    homeTimer: (fn, ms) => setTimeout(fn, Math.min(ms, 15)), ...options});
+  const returned = [];
+  hh.server.on('returned-to-card', event => returned.push(event));
+  return {...hh, reads, returned, clock};
+}
+// The model is up, the game takes the card, a slow reply finds it in shared memory and nothing can replace it: the watch starts.
+async function spilledAndKept(h) {
+  const info = await h.server.ensure();
+  h.free.value = 2800;
+  h.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => h.logs.some(line => /is not wholly on the graphics card \(it is in shared system memory\)/.test(line))), true, h.logs.join('|'));
+  return info;
+}
+// A request that ends is what makes the next look due (nothing polls).
+const turn = h => { h.server.begin()(); };
+// The game gave the card back: one reading with room is not enough, the second one (a second later) is.
+async function roomTwice(h) {
+  h.free.value = 24000;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  h.clock.now += 1100;
+}
+
+test('back to the card: a spilled model is loaded again beside the running one when the memory is free twice in a row, the old one answers until the new one is ready, then it is stopped with its exit confirmed, and the player is told once', async t => {
+  const h = homeHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '700'} : {})});
+  const first = await spilledAndKept(h);
+  assert.deepEqual([h.calls.length, h.returned.length], [1, 0], 'nothing moves while the card is full');
+  h.free.value = 24000;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /looking once more in 1 s before anything is loaded/.test(line))), true, 'the first reading with room is confirmed by a second one');
+  assert.equal(h.calls.length, 1, 'one reading with room loads nothing');
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true, 'the second reading: the new server is started');
+  // While it loads (700 ms) the old server is the one that answers.
+  assert.equal(serverAlive(h.calls[0]), true);
+  assert.equal((await h.server.ensure()).endpoint, first.endpoint, 'the running server is still the one handed out');
+  assert.equal(h.returned.length, 0);
+  assert.equal(await until(() => h.returned.length === 1), true, 'the switch is made once the new server is up');
+  assert.deepEqual([h.returned[0].model, h.returned[0].fromSharedMiB, h.returned[0].contextSize], ['Qwen3.5-4B', 1100, 16384]);
+  const second = await h.server.ensure();
+  assert.notEqual(second.endpoint, first.endpoint, 'the next turn goes to the new server');
+  assert.deepEqual([h.server.status().state, h.server.diagnostics().engine.returned.count, h.server.homeState().watching], ['ready', 1, false]);
+  const args = h.calls[1];
+  assert.deepEqual([args.args.includes('-ngl'), argValue(args, '-fit'), argValue(args, '-c')], [true, 'off', '16384'], 'the whole model, every layer on the card, the context the room allows');
+  // The old server is released after the switch and its exit is seen.
+  assert.equal(await until(() => !serverAlive(h.calls[0])), true, 'the old server was stopped');
+  assert.equal(await until(() => h.logs.some(line => /the previous model server \(pid \d+\) exited: its graphics memory is back/.test(line))), true, h.logs.filter(line => /previous|back to the card/.test(line)).join('|'));
+  assert.equal(serverAlive(h.calls[1]), true);
+  assert.deepEqual([h.failures, h.returned.length], [[], 1], 'no failure, one notice');
+  assert.ok(h.logs.some(line => /back on the graphics card/.test(line)));
+  await h.server.stop();
+  assert.equal(await until(() => !serverAlive(h.calls[1])), true, 'a stop works on the new server too');
+});
+
+test('back to the card: never while a turn is being served, and not within the quiet time after the last one; the end of the turn asks again', async t => {
+  const h = homeHarness(t);
+  await spilledAndKept(h);
+  const done = h.server.begin();   // a turn
+  await sleep(100);
+  h.free.value = 24000;
+  const reads = h.reads.count;
+  h.clock.now += 5000;
+  await sleep(250);
+  assert.deepEqual([h.reads.count, h.calls.length], [reads, 1], 'no reading and no load while the reply is being written');
+  done();   // the reply is published
+  h.clock.now += 100;
+  await sleep(250);
+  assert.deepEqual([h.reads.count, h.calls.length], [reads, 1], 'a turn that ended a moment ago: still quiet');
+  h.clock.now += 600;   // past the quiet moment
+  assert.equal(await until(() => h.reads.count > reads), true, 'now the free memory is read');
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true);
+  assert.equal(await until(() => h.returned.length === 1), true);
+});
+
+test('back to the card: a turn that comes while the new server loads is answered by the old one, and the switch waits for the end of it', async t => {
+  const h = homeHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '400'} : {})});
+  const first = await spilledAndKept(h);
+  await roomTwice(h);
+  assert.equal(await until(() => h.calls.length === 2), true);
+  const done = h.server.begin();   // a turn arrives while the new server is loading
+  assert.equal((await h.server.ensure()).endpoint, first.endpoint);
+  await sleep(1200);               // the new server is up long ago
+  assert.deepEqual([h.returned.length, serverAlive(h.calls[0]), serverAlive(h.calls[1])], [0, true, true], 'the turn is not interrupted: no switch while a request is in flight');
+  assert.equal((await h.server.ensure()).endpoint, first.endpoint);
+  done();
+  assert.equal(await until(() => h.returned.length === 1), true, 'the switch is made at the idle moment');
+  assert.equal(await until(() => !serverAlive(h.calls[0])), true);
+});
+
+test('back to the card: the room is judged by the smallest projection plus the margin, a look inside the back-off reads nothing, the gaps grow, and the fit tool is run once', async t => {
+  const h = homeHarness(t);
+  await spilledAndKept(h);
+  // The standard model projects 3,562 MiB at 16,384, 3,426 at 8,192 and 3,348 with the 8-bit cache. With the 512 MiB margin and the 1,024 MiB kept for the game the smallest placement
+  // needs 3,348 + 512 + 1,024 = 4,884 MiB free. 4,883 is one short.
+  h.free.value = 4883 + 2200;   // the old server's own 2,200 MiB are not free
+  const probes = h.probes.length, reads = h.reads.count;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\)/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.ok(h.logs.some(line => /not yet \(look 1\): 4883 MiB of graphics memory free, 3859 MiB for the model, the model needs 3860 MiB/.test(line)), h.logs.filter(line => /not yet/.test(line)).join('|'));
+  assert.equal(h.reads.count, reads + 1);
+  const afterFirst = h.probes.length;
+  assert.ok(afterFirst > probes, 'the ladder was asked once');
+  // A look is made after a request ended (nothing polls): a turn ends, the quiet moment passes, and the back-off of 1 s is still running.
+  turn(h);
+  h.clock.now += 800;
+  await sleep(150);
+  assert.equal(h.reads.count, reads + 1, 'inside the back-off nothing is read');
+  h.clock.now += 200;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 2\)/.test(line))), true);
+  turn(h);
+  h.clock.now += 1900;
+  await sleep(150);
+  assert.equal(h.reads.count, reads + 2, 'the second gap is longer: 2 s, not 1');
+  assert.equal(h.probes.length, afterFirst, 'the projections are kept: later looks only compare numbers');
+  // One MiB more: room for the smallest placement, confirmed, loaded in the largest context that fits (8,192 with the 8-bit cache, not the 16,384 of a roomy card).
+  h.free.value = 4884 + 2200;
+  h.clock.now += 300;
+  turn(h);
+  h.clock.now += 600;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true);
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true);
+  assert.equal(await until(() => h.returned.length === 1), true);
+  assert.deepEqual([argValue(h.calls[1], '-c'), argValue(h.calls[1], '-ctk'), h.calls[1].args.includes('-ngl')], ['8192', 'q8_0', true]);
+});
+
+test('back to the card: a voice engine still to load is not free memory', async t => {
+  let voice = 0;
+  const big = 'Available devices:\n  Vulkan1: NVIDIA GeForce RTX 5090 (32607 MiB, 4500 MiB free)\n';   // a card above 24 GB keeps no room for the game at the start: the model loads whole
+  const h = homeHarness(t, {listDevices: async () => big, gameRoom: {voiceMiB: () => voice, residentVoiceMiB: () => 0}});
+  await spilledAndKept(h);
+  voice = 2500;
+  h.free.value = 7000 + 2200;   // 7,000 free: 7,000 - 2,500 - 1,024 = 3,476 for the model, which needs 3,860
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\)/.test(line))), true);
+  assert.equal(h.calls.length, 1);
+  voice = 0;   // the voice engine loaded and is in the used memory already
+  h.free.value = 8000 + 2200;
+  turn(h);
+  h.clock.now += 1600;
+  assert.equal(await until(() => h.logs.some(line => /looking once more/.test(line))), true);
+  h.clock.now += 1100;
+  assert.equal(await until(() => h.calls.length === 2), true);
+});
+
+test('back to the card: a model loaded with part of its layers on the CPU is watched from its start', async t => {
+  const small = 'Available devices:\n  Vulkan1: NVIDIA GeForce RTX 4080 Laptop GPU (11997 MiB, 4500 MiB free)\n';
+  const h = homeHarness(t, {gameRoom: {voiceMiB: () => 2500, residentVoiceMiB: () => 0}, listDevices: async () => small});
+  await h.server.ensure();
+  assert.equal(h.server.diagnostics().model.offload, true, 'the small-card room put part of the model on the CPU');
+  assert.ok(h.logs.some(line => /is not wholly on the graphics card \(it runs partly on the processor\)/.test(line)));
+  assert.equal(h.server.homeState().watching, true);
+});
+
+test('back to the card: a model the driver already moved back needs nothing', async t => {
+  const state = {healthy: false};
+  const h = homeHarness(t, {counters: (pid, hh) => (state.healthy ? {dedicatedMiB: 3400, sharedMiB: 90} : {dedicatedMiB: 2200, sharedMiB: 1100})});
+  await spilledAndKept(h);
+  state.healthy = true;
+  await roomTwice(h);
+  assert.equal(await until(() => h.logs.some(line => /is no longer in shared system memory \(3400 MiB on the card, 90 MiB shared\): nothing to move/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.deepEqual([h.calls.length, h.server.homeState().watching, h.server.diagnostics().engine.spill.spilled], [1, false, false], 'nothing was loaded, the watch ended, the fresh reading is kept');
+});
+
+test('back to the card: a new server that comes up in shared memory too is dropped with its exit confirmed, and the old one never stops answering', async t => {
+  const h = homeHarness(t, {counters: () => ({dedicatedMiB: 800, sharedMiB: 2600})});
+  const info = await spilledAndKept(h);
+  await roomTwice(h);
+  assert.equal(await until(() => h.logs.some(line => /the new server was dropped \(it came up in shared system memory too: 800 MiB on the card, 2600 MiB shared\)/.test(line))), true, h.logs.filter(line => /back to the card|new model/.test(line)).join('|'));
+  assert.equal(await until(() => h.calls.length === 2 && !serverAlive(h.calls[1])), true, 'the new server was stopped');
+  assert.ok(h.logs.some(line => /the new model server \(pid \d+\) exited: its graphics memory is back/.test(line)));
+  assert.deepEqual([h.returned.length, serverAlive(h.calls[0]), (await h.server.ensure()).endpoint === info.endpoint, h.failures], [0, true, true, []]);
+  assert.equal(h.server.homeState().watching, true, 'the watch goes on with a longer gap');
+});
+
+test('back to the card: a stop while the new server is loading ends both servers, and the limit of returns a session ends the watch', async t => {
+  const h = homeHarness(t, {envFor: n => (n === 1 ? {FAKE_LLAMA_DELAY_MS: '1500'} : {})});
+  await spilledAndKept(h);
+  await roomTwice(h);
+  assert.equal(await until(() => h.calls.length === 2), true);
+  await h.server.stop();
+  assert.equal(await until(() => !serverAlive(h.calls[0]) && !serverAlive(h.calls[1])), true, 'both servers are gone');
+  await sleep(100);
+  assert.deepEqual([h.returned.length, h.server.status().state], [0, 'stopped']);
+
+  // A model that was returned the allowed number of times and is pushed out again stays where it is.
+  const state = {pushedOut: false};
+  const capped = homeHarness(t, {limits: {maxReturns: 1}, counters: (pid, hh) => (pid === hh.calls[0]?.child.pid || state.pushedOut ? {dedicatedMiB: 2200, sharedMiB: 1100} : {dedicatedMiB: 3400, sharedMiB: 90})});
+  await spilledAndKept(capped);
+  await roomTwice(capped);
+  assert.equal(await until(() => capped.returned.length === 1), true);
+  state.pushedOut = true;
+  capped.free.value = 2800; capped.clock.now += 700_000;
+  capped.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => capped.logs.filter(line => /nothing can replace it/.test(line)).length === 2), true, 'the new server was found in shared memory too');
+  await sleep(100);
+  assert.equal(capped.logs.filter(line => /is not wholly on the graphics card/.test(line)).length, 1, 'no second watch');
+  assert.deepEqual([capped.server.homeState().watching, capped.server.homeState().returns], [false, 1]);
+});
+
+test('back to the card: a card whose free memory cannot be read (no nvidia-smi) is never moved, and says so in the log', async t => {
+  const state = {unknown: false};
+  const h = homeHarness(t);
+  // The reading is answered by the harness; swap it for one that has none once the watch runs.
+  const original = h.server.freeVramMiB;
+  h.server.freeVramMiB = async () => (state.unknown ? null : original());
+  await spilledAndKept(h);
+  state.unknown = true;
+  h.clock.now += 1500;
+  assert.equal(await until(() => h.logs.some(line => /not yet \(look 1\): the free graphics memory is unknown/.test(line))), true, h.logs.filter(line => /back to the card/.test(line)).join('|'));
+  assert.deepEqual([h.calls.length, h.returned.length], [1, 0]);
+});

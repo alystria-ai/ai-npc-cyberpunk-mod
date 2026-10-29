@@ -464,6 +464,20 @@ test('local-cpu: a model that runs mostly on the processor is said once with the
   assert.equal(other.takeNotice(), undefined, 'only while Local AI is the chosen provider');
 });
 
+test('local-gpu: a model that is whole on the graphics card again is said once with the next reply, only while Local AI is chosen, and a new choice drops it', () => {
+  const model = new MistralProvider({});
+  model.setPreference('local'); model.apply();
+  model.noteLocalReturned();
+  assert.equal(model.takeNotice(), 'local-gpu');
+  assert.equal(model.takeNotice(), undefined, 'once');
+  model.noteLocalReturned();
+  model.setPreference('convai'); model.setPreference('local');
+  assert.equal(model.takeNotice(), undefined, 'a new choice drops it');
+  const other = new MistralProvider({});
+  other.noteLocalReturned();
+  assert.equal(other.takeNotice(), undefined, 'only while Local AI is the chosen provider');
+});
+
 test('a chosen provider that cannot be used names why Convai answers (fallbackReason), so the fallback is never silent', async () => {
   const {provider} = memoryProvider(null);
   await provider.load();

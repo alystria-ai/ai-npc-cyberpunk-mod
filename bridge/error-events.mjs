@@ -178,6 +178,15 @@ function slowTurn(row) {
  * The `slow` section of a slow-turn record (bridge/slow-turns.mjs), rebuilt field by field: numbers, fixed names and nothing else, each
  * bounded, so no text can ride along. null when there is nothing usable.
  */
+/** The `local` group of a slow-turn record (bridge/slow-turns.mjs localFacts): numbers and flags only, each bounded. */
+function slowLocal(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const numbers = (object, keys) => without(Object.fromEntries(keys.map(key => [key, slowNumber(object?.[key], 1e6)])));
+  const voice = value.voice && typeof value.voice === 'object' ? without({...numbers(value.voice, ['dedicatedMiB', 'sharedMiB']), spilled: value.voice.spilled === true ? true : undefined}) : undefined;
+  const clean = without({...numbers(value, ['looks', 'lastFreeMiB', 'returns', 'dedicatedMiB', 'sharedMiB']), watching: value.watching === true ? true : undefined,
+    voice: voice && Object.keys(voice).length ? voice : undefined});
+  return Object.keys(clean).length ? clean : undefined;
+}
 export function cleanSlow(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const rows = list => (Array.isArray(list) ? list.slice(0, 8).map(slowTurn).filter(Boolean) : []);
@@ -190,6 +199,7 @@ export function cleanSlow(value) {
   const clean = without({reason: slowWord(value.reason), thresholds: group(value.thresholds, ['windowTurns', 'slowInWindow', 'slowMs', 'extremeMs']),
     turns: slowNumber(value.turns, 1e6), excluded: group(value.excluded, ['failed', 'paused']), minutes: slowNumber(value.minutes, 1e6),
     provider: slowWord(value.provider), voice: slowWord(value.voice), freeVideoMemoryMiB: slowNumber(value.freeVideoMemoryMiB, 1e6),
+    local: slowLocal(value.local),
     background: Object.keys(background).length ? background : undefined,
     recentSoundMs: Array.isArray(value.recentSoundMs) ? value.recentSoundMs.slice(0, 12).map(item => slowNumber(item)).filter(item => item !== undefined) : undefined,
     first: rows(value.first), slow: rows(value.slow)});
