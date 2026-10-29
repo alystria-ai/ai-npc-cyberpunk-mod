@@ -10,6 +10,7 @@ import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {browserMissing, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
+import {MediaHost} from './media-host.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
 import {BrowserPriority} from './process-priority.mjs';
@@ -105,6 +106,10 @@ export const PCM_MODULES = Object.freeze([
   'continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs',
   'local-pcm-client.mjs',
 ]);
+
+// The media page (a story pack's music and sound effects, bridge/media-host.mjs) has three page modules of its own. They are read the first time that page is opened, not when the
+// browser starts, so a bridge that never plays pack audio never needs them and the speech page's start is exactly what it was.
+export const MEDIA_MODULES = Object.freeze(['media-engine.mjs', 'media-mix.mjs', 'media-pcm-client.mjs']);
 
 const pageKey = transportKey;
 // A recording with less audio than this (from the moment the microphone opened to the key release) holds no word.
@@ -266,6 +271,7 @@ export class RealtimeHost {
     // the plan (the other resident of a profile the plan holds one route for, a turn started while the audio service was not ready) is swept when
     // its turn is over, not out from under the call it is running.
     this.pinned = new Map();
+    this.media = null;  // the MediaHost of the current browser (created with it, closed with it)
     this.running = 0;   // calls that are starting or running (runOnce): the browser is not released under them
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
@@ -389,10 +395,10 @@ export class RealtimeHost {
   }
   async initialize(epoch) {
     // A crashed browser must not leave its local server or stale leases behind.
-    const previousPool = this.pool, previousLocal = this.localPcm, previousVoiceLine = this.vPcm;
+    const previousPool = this.pool, previousLocal = this.localPcm, previousVoiceLine = this.vPcm, previousMedia = this.media;
     const previousBrowser = this.browser, previousServer = this.server;
-    this.pool = this.localPcm = this.vPcm = this.browser = this.server = null;
-    await Promise.allSettled([previousPool?.close(), previousLocal?.close(), previousVoiceLine?.close(), previousBrowser?.close()]);
+    this.pool = this.localPcm = this.vPcm = this.browser = this.server = this.media = null;
+    await Promise.allSettled([previousPool?.close(), previousLocal?.close(), previousVoiceLine?.close(), previousMedia?.close(), previousBrowser?.close()]);
     previousServer?.close();
     // One hidden browser: eight party private pages plus three optional group
     // pages. No key endpoint, microphone permission or visible user profile.
@@ -404,6 +410,7 @@ export class RealtimeHost {
     ]);
     const audioModules = new Map(PCM_MODULES
       .map((name, index) => ['/' + name, modules[index]]));
+    const mediaModules = new Map();   // '/media-engine.mjs' -> bytes, filled when the media page is first opened
     if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
     const server = createServer((req, res) => {
       res.setHeader('Cache-Control', 'no-store');
@@ -412,6 +419,10 @@ export class RealtimeHost {
         res.setHeader('Content-Type', 'text/javascript'); res.end(bundle);
       } else if (audioModules.has(req.url)) {
         res.setHeader('Content-Type', 'text/javascript'); res.end(audioModules.get(req.url));
+      } else if (mediaModules.has(req.url)) {
+        res.setHeader('Content-Type', 'text/javascript'); res.end(mediaModules.get(req.url));
+      } else if (req.url === '/media' && mediaModules.size) {
+        res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><script type="module" src="/media-pcm-client.mjs"></script>');
       } else if (req.url === '/') {
         res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><script type="module" src="/client.js"></script>');
       } else if (req.url === '/local') {
@@ -454,10 +465,37 @@ export class RealtimeHost {
           return page;
         } catch (error) { await page.close({runBeforeUnload: false}).catch(() => {}); throw error; }
       };
-      this.localPcm = new LocalPcmHost({createPage: createLocalPage, label: 'companion', levelLog: line => console.error(line)});
+      // The media page: music and sound effects of a story pack (bridge/media-host.mjs), a page of its own with its own audio context. It only answers its three modules.
+      const createMediaPage = async ({onEvent}) => {
+        if (epoch !== this.epoch || this.closing) throw cancelled();
+        if (!mediaModules.size) {
+          const files = await Promise.all(MEDIA_MODULES.map(name => readFile(this.clientAssetsDirectory ? resolve(this.clientAssetsDirectory, name) : new URL(name, import.meta.url))));
+          MEDIA_MODULES.forEach((name, index) => mediaModules.set('/' + name, files[index]));
+        }
+        const page = await browser.newPage(), origin = `http://127.0.0.1:${server.address().port}`;
+        try {
+          await page.route('**/*', async route => {
+            const request = route.request(); let url;
+            try { url = new URL(request.url()); } catch { await route.abort('failed'); return; }
+            if (request.method() === 'GET' && url.origin === origin && !url.search && (url.pathname === '/media' || MEDIA_MODULES.includes(url.pathname.slice(1)))) await route.continue();
+            else await route.abort('failed');
+          });
+          // The page tells the bridge when a sound ends (an event, not a poll).
+          await page.exposeFunction('mediaEvent', event => { try { onEvent(event); } catch { /* a list the bridge keeps is corrected by its next command */ } });
+          if (epoch !== this.epoch || this.closing) throw cancelled();
+          await page.goto(origin + '/media');
+          this.priorityKeeper?.request();
+          await page.waitForFunction(() => !!window.mediaPcm, undefined, {timeout: 5000});
+          if (epoch !== this.epoch || this.closing) throw cancelled();
+          return page;
+        } catch (error) { await page.close({runBeforeUnload: false}).catch(() => {}); throw error; }
+      };
+      this.media = new MediaHost({createPage: createMediaPage, log: message => console.error('[Media] ' + message)});
+      const onSpeech = on => this.media?.speech(on);
+      this.localPcm = new LocalPcmHost({createPage: createLocalPage, label: 'companion', levelLog: line => console.error(line), onSpeech});
       // The player's own typed line (V's voice, bridge/v-voice.mjs) plays on a page of its own, so it never waits for, or takes
       // the place of, the companion's utterance. Nothing is opened until a V line is played or warmed.
-      this.vPcm = new LocalPcmHost({createPage: createLocalPage, label: 'V', levelLog: line => console.error(line)});
+      this.vPcm = new LocalPcmHost({createPage: createLocalPage, label: 'V', levelLog: line => console.error(line), onSpeech});
       this.pool = new TransportPool({limit: CONNECTION_LIMIT, create: async () => {
         const page = await browser.newPage();
         try {
@@ -747,6 +785,13 @@ export class RealtimeHost {
   // True while a local PCM turn still owns the single renderer page, including
   // its drain and retirement after the audible end.
   get localPcmBusy() { return !!this.localPcm?.active; }
+  // ---- Story pack music and sound effects (bridge/media-host.mjs, bridge/media-link.mjs) ----
+  // The MediaHost of the running browser, starting the browser when it is not up (a sound is wanted). Stops and fades use peekMedia() and never start anything.
+  async mediaHost({signal} = {}) { await this.start({signal}); if (!this.media) throw Error('The media channel is not available'); this.lastUsedAt = Date.now(); return this.media; }
+  peekMedia() { return this.media; }
+  get mediaBusy() { return !!this.media?.busy; }
+  // The media page closes after `idleMs` with nothing playing (the bridge's 500 ms due-check calls it; no timer of its own).
+  async releaseMediaIfIdle({idleMs = 30000} = {}) { return (await this.media?.releaseIfIdle({idleMs})) === true; }
   // Starts the hidden browser and opens the local voice's renderer page before the first turn needs it (about a second on a cold
   // start, which a text route otherwise pays in front of its first reply). Never throws and never interrupts a turn.
   async prewarmLocal({signal} = {}) {
@@ -826,6 +871,8 @@ export class RealtimeHost {
     // The microphone tap's device lives in this browser (bridge/mic-tap.mjs): an open microphone is in use.
     if (this.micTap && (this.micTap.state !== 'closed' || this.micTap.lingering)) return false;
     for (const host of [this.localPcm, this.vPcm]) if (host && (host.active || host.warming || host.closing)) return false;
+    // A sound of a story pack that plays (a music bed can run for minutes) keeps the browser.
+    if (this.media?.busy) return false;
     if (now - (this.lastUsedAt ?? 0) < idleMs) return false;
     await this.close();
     return true;
@@ -1069,18 +1116,18 @@ export class RealtimeHost {
     // The microphone tap's device lives in this browser (bridge/mic-tap.mjs): it goes with it.
     try { this.onClosed?.(); } catch { /* an observer never breaks the close */ }
     this.connectOwners = new WeakMap();
-    const pool = this.pool, local = this.localPcm, voiceLine = this.vPcm, browser = this.browser, server = this.server, starting = this.starting;
+    const pool = this.pool, local = this.localPcm, voiceLine = this.vPcm, media = this.media, browser = this.browser, server = this.server, starting = this.starting;
     this.closing = (async () => {
       // Retire every ready page in parallel; total grace is one deadline, not
       // one deadline per companion. Closing the pool immediately fences leases.
       const grace = Promise.allSettled([...pool?.entries.values() || []]
         .map(entry => this.disconnectPage(entry.value)));
       const disposing = pool?.close();
-      const localDisposing = local?.close(), voiceLineDisposing = voiceLine?.close();
+      const localDisposing = local?.close(), voiceLineDisposing = voiceLine?.close(), mediaDisposing = media?.close();
       await grace;
-      await Promise.allSettled([disposing, localDisposing, voiceLineDisposing, browser?.close(), starting]);
+      await Promise.allSettled([disposing, localDisposing, voiceLineDisposing, mediaDisposing, browser?.close(), starting]);
       server?.close();
-      this.pool = this.localPcm = this.vPcm = this.browser = this.server = this.voiceLease = null;
+      this.pool = this.localPcm = this.vPcm = this.media = this.browser = this.server = this.voiceLease = null;
     })().finally(() => { this.closing = null; });
     return this.closing;
   }

@@ -108,28 +108,34 @@ test('expressionSignalFor: the mod\'s emotion categories become an ordered emoti
   assert.equal(plan.summary.family, 'anger', 'the ordered label sets the line\'s mood');
 });
 
-test('scriptedResult: a line with audio carries its path, one without is missing audio and is marked for the live voice only in Developer mode', () => {
+test('scriptedResult: a line with audio carries its path, one without is missing audio (and is never marked for a live voice, in Developer mode or not)', () => {
   const resolved = {text: ' You actually came. ', audioPath: 'C:/packs/p/audio/P1.walk.01.wav', emotion: 'happy', gesture: 'happy', channel: 'own', speaker: 'panam-palmer'};
   const withAudio = scriptedResult(resolved);
   assert.deepEqual(withAudio, {text: 'You actually came.', model: 'scripted', finishReason: 'stop', transport: 'local',
     expressionSignal: {version: 1, correlated: true, sequence: 0, emotion: 'happy', scale: 2, basis: 'ordered'}, audioPath: 'C:/packs/p/audio/P1.walk.01.wav'});
   assert.equal(scriptedResult(resolved, {developerMode: true}).liveVoice, undefined, 'a line with audio is always the prepared voice');
+  assert.equal(scriptedResult(resolved).missingAudio, undefined, 'a line with audio is not missing audio');
   const none = scriptedResult({...resolved, audioPath: null, emotion: 'neutral'});
   assert.deepEqual(none, {text: 'You actually came.', model: 'scripted', finishReason: 'stop', transport: 'local', missingAudio: true});
   assert.equal('expressionSignal' in none, false);
-  assert.equal(scriptedResult({...resolved, audioPath: undefined}, {developerMode: true}).liveVoice, true);
-  assert.equal(scriptedResult({...resolved, audioPath: ''}, {developerMode: false}).liveVoice, undefined);
-  assert.equal(scriptedResult({...resolved, audioPath: ''}, {developerMode: 'yes'}).liveVoice, undefined, 'only a real true');
+  // Owner decision of 29 Oct 2026: prepared audio always plays, a line without it is never spoken by a live voice (the Developer mode exception of round 1 is gone).
+  for (const developerMode of [true, false, 'yes']) {
+    const missing = scriptedResult({...resolved, audioPath: undefined}, {developerMode});
+    assert.equal(missing.missingAudio, true);
+    assert.equal('liveVoice' in missing, false, 'no live voice flag exists any more, Developer mode ' + developerMode);
+  }
+  assert.equal(scriptedResult({...resolved, audioPath: ''}).missingAudio, true, 'an empty path is a missing file');
   for (const bad of [null, undefined, 'x', [], {}, {text: ''}, {text: '   '}, {text: 5}]) assert.equal(scriptedResult(bad), null, JSON.stringify(bad));
 });
 
-test('scriptedRoute: the prepared voice whatever the player chose, text when voice playback is off, the live voice only in Developer mode with no file', () => {
+test('scriptedRoute: the prepared voice whatever the player chose, text when voice playback is off or the file is missing, never a live voice', () => {
   const resolved = {text: 'Line.', audioPath: '/a.wav'};
   assert.equal(scriptedRoute(scriptedResult(resolved)), 'prepared');
   assert.equal(scriptedRoute(scriptedResult(resolved), {playbackEnabled: true}), 'prepared');
   assert.equal(scriptedRoute(scriptedResult(resolved), {playbackEnabled: false}), 'text', 'a player who turned voice playback off gets text only');
   assert.equal(scriptedRoute(scriptedResult({text: 'Line.'})), 'text', 'no file: shown, never the live voice');
-  assert.equal(scriptedRoute(scriptedResult({text: 'Line.'}, {developerMode: true})), 'live');
+  assert.equal(scriptedRoute(scriptedResult({text: 'Line.'}, {developerMode: true})), 'text', 'Developer mode does not bring a live voice back');
+  assert.equal(scriptedRoute({text: 'Line.', missingAudio: true, liveVoice: true}), 'text', 'even a reply that carries the old flag');
   assert.equal(scriptedRoute(scriptedResult({text: 'Line.'}, {developerMode: true}), {playbackEnabled: false}), 'text');
   assert.equal(scriptedRoute(null), 'text');
 });
@@ -149,11 +155,15 @@ test('the bridge answers a scripted line before any profile, knowledge or Convai
   assert.match(run, /if \(input\.reaction\?\.kind !== 'scripted'\) warmTalkTargets\(/, 'no live voice is warmed for a prepared line');
   const turn = between('async function runScriptedTurn(', 'async function synthesizePrepared(');
   assert.match(turn, /bondPacks\.lineFor\?\.\(pack, line\)/);
-  assert.match(turn, /scriptedResult\(resolved, \{developerMode: replyCapture\.enabled\}\)/);
+  assert.match(turn, /scriptedResult\(resolved\)/);
+  assert.ok(!/replyCapture|developerMode|liveVoice|route === 'live'/.test(turn), 'no Developer mode exception: a line without a file is never given to a live voice');
   assert.match(turn, /fail\('', 'scripted-line'\)/);
   assert.match(turn, /scriptedRoute\(reply, \{playbackEnabled: localVoice\.playbackEnabled !== false\}\)/);
-  assert.match(turn, /scriptedPackError\(input, 'no prepared audio for'\)/);
-  assert.match(between('const scriptedPackError', 'function rememberScripted('), /\[QuestLines\] pack error: /);
+  assert.match(turn, /scriptedPackError\(input, 'the line has no prepared audio file, it is shown as a subtitle and is not spoken'\)/);
+  const logged = between('const scriptedPackError', 'function rememberScripted(');
+  assert.match(logged, /\[QuestLines\] ERROR pack=\$\{input\.reaction\.pack\} line=\$\{input\.reaction\.line\}: /, 'an ERROR line with the pack id and the line id');
+  assert.match(logged, /if \(scriptedLogged\.has\(key\)\) return;/, 'once per pack and line');
+  assert.ok(!/\|\$\{message\}/.test(logged), 'the once-only key is the pack and line, not the message');
   for (const forbidden of ['mistralHost.reply', 'realtime.reply', 'addonTextHost', 'knowledgeRouter', 'connections.', 'respond(', 'convaiReply', 'allowance']) {
     assert.ok(!turn.includes(forbidden), `a scripted turn never touches ${forbidden}`);
   }
@@ -169,7 +179,8 @@ test('the prepared branch sits at the top of the voice route, below the voice pl
   assert.ok(off > 0 && prepared > off, 'voice playback off still gives text only');
   const voice = between('async function synthesizePrepared(', 'let lastAudioHeartbeat');
   assert.match(voice, /createPreparedVoice\(\{load: async \(\) => pcm\}\)/);
-  assert.match(voice, /decodePreparedWav\(await readPreparedFile\(audioPath\)\)/);
+  assert.match(voice, /preparedAudio\.decode\(await readPreparedFile\(audioPath\)\)/, 'the file is decoded by prepared-audio (WAV in JavaScript, Ogg and the rest by ffmpeg or the Runtime Python)');
+  assert.match(voice, /return \{\.\.\.textOnly, missingAudio: true\}/, 'a file that cannot be decoded is shown and flagged for the game, not spoken by a live voice');
   assert.match(voice, /engine: 'prepared'/);
   assert.ok(!/localVoice\.(synthesize|prepareProfile)|omniVoiceFor|voxtral/.test(voice), 'a prepared line never reaches a live voice engine');
   assert.match(bridge, /customCharacters\.has\(input\.profileKey\) \|\| input\.reaction\?\.kind === 'scripted'\)/, 'a scripted line has no knowledge receipt, like an add-on line');
@@ -194,4 +205,12 @@ test('the quest link is wired where the pack state changes, and its files are th
   assert.match(bridge, /Convai conversation bridge ready'\);[\s\S]{0,200}questSync\(\);/, 'a quest left active in the save is handed to the game at start');
   assert.match(bridge, /questPoller\.stop\(\);/, 'the timer ends with the service');
   assert.ok(!/setInterval\([^)]*quest/i.test(bridge), 'no quest timer is created outside the poller');
+});
+
+test('the reply file the game reads carries missingAudio for a scripted line that was not heard, and nothing else changes', () => {
+  const publish = between('async function publishResult(', 'const micPath');
+  assert.match(publish, /\.\.\.\(result\.missingAudio === true \? \{missingAudio: true\} : \{\}\),\s*updated: Date\.now\(\)/, 'a backward compatible optional field of the ordinary reply');
+  const turn = between('async function runScriptedTurn(', 'async function synthesizePrepared(');
+  assert.match(turn, /const \{audioPath: _file, \.\.\.written\} = reply; result = \{\.\.\.written, ttsEnabled: false\}/, 'voice playback off or no file: the reply keeps missingAudio when it had it');
+  assert.match(bridge, /const preparedAudio = createPreparedAudio\(\{cache: createDecodeCache\(\{directory: resolve\(stateDirectory, 'prepared-audio-cache'\)\}\)/, 'the decoded-sample cache lives in the state folder');
 });

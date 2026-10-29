@@ -184,3 +184,25 @@ test('a prepared line that cannot be played before its first sample does not fai
   assert.equal(reply.audio, undefined); assert.deepEqual(reply.faces, []);
   assert.ok(!reply.continuous);
 });
+
+test('a decoder option turns any file (an Ogg, say) into the samples that are sent, and its failure is a plain Error with nothing sent', async () => {
+  const asked = [], packets = [];
+  const voice = createPreparedVoice({load: async () => Buffer.from('OggS fake file'), decode: async (bytes, options) => { asked.push([bytes.toString(), options]); return tone(.5); }});
+  await voice.synthesizeStream('judy-alvarez', 'x', {onPcm: packet => packets.push(packet)});
+  assert.deepEqual(asked, [['OggS fake file', {maxSeconds: PREPARED_MAX_SECONDS}]]);
+  assert.equal(packets.reduce((sum, packet) => sum + packet.frames, 0), 12000);
+  assert.equal(packets[0].sampleRate, 24000);
+  const sunk = [], onPcm = packet => sunk.push(packet);
+  const failing = createPreparedVoice({load: async () => Buffer.from('x'), decode: async () => { throw Error('needs ffmpeg'); }});
+  await assert.rejects(failing.synthesizeStream('judy-alvarez', 'x', {onPcm}), /needs ffmpeg/);
+  await assert.rejects(createPreparedVoice({load: async () => Buffer.from('x'), decode: async () => { throw 'odd'; }}).synthesizeStream('judy-alvarez', 'x', {onPcm}), /cannot be decoded/);
+  await assert.rejects(createPreparedVoice({load: async () => Buffer.from('x'), decode: async () => tone(PREPARED_MAX_SECONDS + 1)}).synthesizeStream('judy-alvarez', 'x', {onPcm}), /longer than 60 seconds/);
+  await assert.rejects(createPreparedVoice({load: async () => Buffer.from('x'), decode: async () => new Float32Array(0)}).synthesizeStream('judy-alvarez', 'x', {onPcm}), /empty/);
+  assert.deepEqual(sunk, []);
+  assert.throws(() => createPreparedVoice({load: async () => null, decode: 'ffmpeg'}), /decoder must be a function/);
+  // Samples already decoded skip the decoder; a cancelled signal stops before the decoder is asked.
+  let calls = 0;
+  const skip = createPreparedVoice({load: async () => tone(.1), decode: async () => { calls++; return tone(.1); }});
+  await skip.synthesizeStream('judy-alvarez', 'x', {onPcm: () => {}});
+  assert.equal(calls, 0);
+});

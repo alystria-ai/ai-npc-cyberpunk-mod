@@ -327,7 +327,7 @@
     "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py", "bridge/local-stt-worker.py",
     "bridge/choice-keys.py"
   ],
-  "clientModules": ["continuous-pcm-player.mjs", "continuous-pcm-worklet.mjs", "continuous-pcm-core.mjs", "local-pcm-client.mjs"],
+  "clientModules": ["continuous-pcm-player.mjs", "continuous-pcm-worklet.mjs", "continuous-pcm-core.mjs", "local-pcm-client.mjs", "media-engine.mjs", "media-mix.mjs", "media-pcm-client.mjs"],
   "nodePackages": ["playwright", "playwright-core"],
   "releaseData": {
     "managed": ["characters.json", "multilingual-profiles.json"],

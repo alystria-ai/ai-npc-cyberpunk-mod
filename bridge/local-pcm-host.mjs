@@ -83,10 +83,12 @@ export async function localSnapshotForHost(page, token, signal) {
 // One page is independent of every Convai transport lease and session. A turn
 // owns it from startup through device drain; failures retire it before reuse.
 export class LocalPcmHost {
+  // onSpeech(true | false): optional, told once when a turn's first audio is accepted by the renderer and once when that turn ends. It is the media channel's only link to the
+  // speech path (bridge/media-host.mjs ducks a story pack's music under any voice): a synchronous call with nothing awaited, after the packet was accepted.
   constructor({createPage, pollMs = 40, timeoutMs = 150000, commandTimeoutMs = 5000,
-    cleanupTimeoutMs = 2500, now = () => performance.now(), levelLog = null, label = 'voice'} = {}) {
+    cleanupTimeoutMs = 2500, now = () => performance.now(), levelLog = null, label = 'voice', onSpeech = null} = {}) {
     if (typeof createPage !== 'function') throw Error('Local PCM page factory is required');
-    Object.assign(this, {createPage, pollMs, timeoutMs, commandTimeoutMs, cleanupTimeoutMs, now, levelLog, label});
+    Object.assign(this, {createPage, pollMs, timeoutMs, commandTimeoutMs, cleanupTimeoutMs, now, levelLog, label, onSpeech});
     this.active = null; this.page = null; this.epoch = 0; this.retirements = new WeakMap(); this.freeWaiters = [];
   }
 
@@ -147,7 +149,8 @@ export class LocalPcmHost {
     arm(this.timeoutMs);
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
     const faceCopies = {};   // the last facial prefix's row arrays and their owned copy (ownedFaceCopy)
-    let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null, sentMakeup, levelLogged = false;
+    let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null, sentMakeup, levelLogged = false, speaking = false;
+    const signalSpeech = on => { if (!this.onSpeech || speaking === on) return; speaking = on; try { this.onSpeech(on); } catch { /* the media channel never affects speech */ } };
     // Ends the clock poll's sleep the moment the renderer accepts the first audio: that snapshot is the one that publishes the reply,
     // so it should not wait out the rest of a 40 ms sleep (docs/perf, LATENCY.md: 20 to 45 ms per reply in the live records).
     let firstAudio = null, audioRepolled = false;
@@ -177,7 +180,7 @@ export class LocalPcmHost {
             || ack.offsetFrames !== frames || ack.frames !== expected.frames || ack.receivedFrames !== frames + expected.frames)
           throw Error('Local PCM renderer did not acknowledge the owned copy');
         frames += expected.frames; index = expected.index; identity = owned.identity; progressAt = this.now();
-        if (firstAcceptedMs === null) { firstAcceptedMs = this.now() - started; markStage('firstPcmAccepted'); firstAudio?.(); }
+        if (firstAcceptedMs === null) { firstAcceptedMs = this.now() - started; markStage('firstPcmAccepted'); firstAudio?.(); signalSpeech(true); }
         return ack;
       } finally { emitting = false; }
     };
@@ -276,6 +279,7 @@ export class LocalPcmHost {
           localPcmFirstAcceptedMs: firstAcceptedMs, localPcmDeviceDrainMs: this.now() - started}};
     } finally {
       controller.abort(); clearTimeout(deadline); signal?.removeEventListener('abort', cancel);
+      signalSpeech(false);
       void producerTask?.catch(() => {}); void pump?.catch(() => {});
       // Let an aborted startup settle so its page is either known here or
       // already handed to the late-page disposal above.

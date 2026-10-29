@@ -163,15 +163,16 @@ export function sniffAudio(bytes) {
 /**
  * Converts an MP3, OGG or FLAC file to a 24 kHz mono 16-bit WAV with ffmpeg, through pipes (no temporary file), or resolves to null when it
  * fails. Only those four demuxers may read the input (-format_whitelist), only the first audio stream is used, and at most a second more
- * than the longest clip is decoded, so a long or odd file costs no more than a short one.
+ * than the longest clip is decoded, so a long or odd file costs no more than a short one. `rate` and `seconds` (default 24000 and 21) let another caller
+ * (bridge/prepared-audio.mjs: a quest line, a music bed) ask for its own output rate and cut-off.
  */
-export function convertWithFfmpeg(bytes, ffmpeg, {run = execFile, timeoutMs = CLIP.convertMs} = {}) {
+export function convertWithFfmpeg(bytes, ffmpeg, {run = execFile, timeoutMs = CLIP.convertMs, rate = CLIP.convertRate, seconds = CLIP.maxSeconds + 1} = {}) {
   if (!ffmpeg) return Promise.resolve(null);
   return new Promise(resolve => {
     try {
       const child = run(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-format_whitelist', 'wav,flac,ogg,mp3', '-i', 'pipe:0', '-map', '0:a:0',
-        '-t', String(CLIP.maxSeconds + 1), '-ac', '1', '-ar', String(CLIP.convertRate), '-c:a', 'pcm_s16le', '-fflags', '+bitexact', '-flags:a', '+bitexact',
-        '-f', 'wav', 'pipe:1'], {encoding: 'buffer', windowsHide: true, timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024},
+        '-t', String(seconds), '-ac', '1', '-ar', String(rate), '-c:a', 'pcm_s16le', '-fflags', '+bitexact', '-flags:a', '+bitexact',
+        '-f', 'wav', 'pipe:1'], {encoding: 'buffer', windowsHide: true, timeout: timeoutMs, maxBuffer: Math.max(8 * 1024 * 1024, Math.ceil(seconds * rate * 2) + 4096)},
       (error, stdout) => resolve(error || !stdout?.length ? null : Buffer.from(stdout)));
       child?.on?.('error', () => resolve(null));
       child?.stdin?.on?.('error', () => {});
