@@ -1208,6 +1208,17 @@ const questLink = new QuestLink({packs: bondPacks, readEvents: () => readFile(re
 const questPoller = createQuestPoller({link: questLink, stopped: () => stopped, onError: error => pollLog('[CyberpunkConvai] Quest link:', error)});
 // The pack state may have changed (a turn, a meeting): the play file follows it (a revision compare when nothing changed), and the poll runs while a quest is active.
 const questSync = () => { void questPoller.sync(); };
+// The prepared audio decoder and the media link. Made here, after the quest poller they read and before the voice routing code: the code between is evaluated piece by piece by tests.
+const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
+  onLog: message => console.error('[PreparedAudio] ' + message)});
+// Music and sound effects of a story pack (docs/BOND_QUESTS.md 19.2 and 19.3, bridge/media-link.mjs): the game writes runtime/media-command.json, the bridge decodes the pack's file
+// and plays it on the media page of the hidden browser (a second stream beside the voice, ducked under speech). A file of its own and not the request file, because a media request
+// written over the request of a running talk turn would cancel that turn. No timer: the loop below calls maybePoll(), which looks only while a quest runs or a sound plays.
+const mediaLink = new MediaLink({path: resolve(runtime, 'media-command.json'), bondPacks, audio: preparedAudio, fs: {stat, readFile},
+  host: () => realtime.mediaHost(), peek: () => realtime.peekMedia(), wanted: () => questPoller.armed || realtime.mediaBusy,
+  log: message => console.error('[Media] ' + message)});
+const MEDIA_IDLE_MS = 30_000;
+await mediaLink.open();   // remembers the command file of an earlier session, which is never played
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
   memoryKeyFor: memoryNamespace.keyFor,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
@@ -4301,17 +4312,6 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 questSync();
 // A poll is one stat of the request file until Lua replaces it, so a short
 // interval costs little and removes up to 150 ms from every turn's start.
-// The prepared audio decoder and the media link are made here, after the declarations the voice code above evaluates in its tests (they are only used by calls made later).
-const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
-  onLog: message => console.error('[PreparedAudio] ' + message)});
-// Music and sound effects of a story pack (docs/BOND_QUESTS.md 19.2 and 19.3, bridge/media-link.mjs): the game writes runtime/media-command.json, the bridge decodes the pack's file
-// and plays it on the media page of the hidden browser (a second stream beside the voice, ducked under speech). A file of its own and not the request file, because a media request
-// written over the request of a running talk turn would cancel that turn. No timer: the loop below calls maybePoll(), which looks only while a quest runs or a sound plays.
-const mediaLink = new MediaLink({path: resolve(runtime, 'media-command.json'), bondPacks, audio: preparedAudio, fs: {stat, readFile},
-  host: () => realtime.mediaHost(), peek: () => realtime.peekMedia(), wanted: () => questPoller.armed || realtime.mediaBusy,
-  log: message => console.error('[Media] ' + message)});
-const MEDIA_IDLE_MS = 30_000;
-await mediaLink.open();   // remembers the command file of an earlier session, which is never played
 // The media link looks at its command file from this loop, not awaited, only while a quest runs or a sound plays (bridge/media-link.mjs).
 const timer = setInterval(() => { mediaLink.maybePoll(); return tick(); }, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)); }, 150);
