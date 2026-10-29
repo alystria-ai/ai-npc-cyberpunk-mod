@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {MicDevicesControl, cleanDeviceLabel, parseListCommand, settingMicDevice, MAX_LABEL_BYTES} from './mic-devices-control.mjs';
-import {matchInput, createLocalSttChannel, describeInput, MIC_DEVICE_NOTE} from './local-stt-capture.mjs';
+import {matchInput, createLocalSttChannel, describeInput, MIC_DEVICE_NOTE, MIC_LOOPBACK_NOTE, inputNote} from './local-stt-capture.mjs';
+import {looksLikeLoopback} from './mic-match.mjs';
 
 // Settings > Voices > Microphone: the list of audio inputs the settings page asks for, the label match against what the browser lists, and the note a recording
 // carries when the chosen input was not there.
@@ -45,7 +46,7 @@ test('a command lists the inputs: listing, then the answer with each label once,
   write(command('g:mic:1'));
   await control.poll();
   assert.deepEqual(published.map(document => document.state), ['idle', 'listing', 'ok']);
-  assert.deepEqual(published.at(-1), {version: 1, updated: 1_000_000, id: 'g:mic:1', state: 'ok', inputs: ['Mic A', 'Mic B'], current: 'Mic B'});
+  assert.deepEqual(published.at(-1), {version: 1, updated: 1_000_000, id: 'g:mic:1', state: 'ok', inputs: ['Mic A', 'Mic B'], loopback: [], current: 'Mic B'});
   const count = published.length;
   await control.poll();
   assert.equal(published.length, count, 'the same command is not run twice');
@@ -98,11 +99,11 @@ test('the summary names labels only and says when the chosen input was not found
   const capture = {listDevices: async () => ({}), lastInput: null};
   const {control} = harness(capture);
   assert.equal(control.summary(''), null, 'nothing opened and nothing chosen: no row');
-  assert.deepEqual(control.summary('Headset'), {chosen: 'Headset', device: null, missing: false});
+  assert.deepEqual(control.summary('Headset'), {chosen: 'Headset', device: null, missing: false, loopback: false});
   capture.lastInput = {device: 'Microphone (Realtek)', requested: null, missing: null};
-  assert.deepEqual(control.summary(''), {chosen: null, device: 'Microphone (Realtek)', missing: false});
+  assert.deepEqual(control.summary(''), {chosen: null, device: 'Microphone (Realtek)', missing: false, loopback: false});
   capture.lastInput = {device: 'Microphone (Realtek)', requested: 'Headset', missing: 'Headset'};
-  assert.deepEqual(control.summary('Headset'), {chosen: 'Headset', device: 'Microphone (Realtek)', missing: true});
+  assert.deepEqual(control.summary('Headset'), {chosen: 'Headset', device: 'Microphone (Realtek)', missing: true, loopback: false});
   assert.equal(control.summary('Other').missing, false, 'a missing input the player has since replaced is not reported');
 });
 
@@ -141,4 +142,55 @@ test('a recording whose chosen input was not found carries the note the game tur
   assert.ok(logs.some(line => line.includes('chosen "Headset" not found, default used')), logs.join(' | '));
   assert.ok(logs.some(line => line.includes('chosen in Settings')));
   assert.equal(describeInput({device: 'Mic', sampleRate: 16000, inputs: ['Mic']}).includes('chosen'), false, 'no choice, no extra words');
+});
+
+test('looksLikeLoopback: loopbacks, virtual cables and mixer outputs are flagged, real microphones are not', () => {
+  for (const label of ['Stereo Mix (Realtek(R) Audio)', 'Default - Stereo Mix (Realtek High Definition Audio)', 'What U Hear (Sound Blaster Z)', 'CABLE Output (VB-Audio Virtual Cable)',
+      'CABLE-A Input (VB-Audio Cable A)', 'VoiceMeeter Output (VB-Audio VoiceMeeter VAIO)', 'Voicemeeter Out B1 (VB-Audio Voicemeeter VAIO)', 'Voicemeeter Aux Output (VB-Audio Voicemeeter AUX VAIO)',
+      'Broadcast Stream Mix (TC-HELICON GoXLR)', 'Sample (TC-HELICON GoXLR)', 'System (GoXLR)', 'Music (GoXLR)', 'Wave Link Stream (Elgato Virtual Audio)', 'SteelSeries Sonar - Stream',
+      'Voicemod Virtual Audio Device (WDM)', 'Discord Audio Capture', 'Mixage stéréo (Realtek High Definition Audio)', 'Mezcla estéreo (Realtek Audio)', 'Stereomix (Realtek Audio)', 'ステレオ ミキサー (Realtek Audio)', 'Loopback (Some Driver)']) {
+    assert.equal(looksLikeLoopback(label), true, label);
+  }
+  for (const label of ['Microphone (Realtek(R) Audio)', 'Default - Headset Mic (USB Audio Device)', 'Chat Mic (TC-HELICON GoXLR)', 'Microphone (NVIDIA Broadcast)', 'Microphone (Elgato Wave:3)',
+      'Wave Link MicrophoneFX', 'Headset Microphone (Logitech G PRO X)', 'Line In (Realtek Audio)',
+      'Microphone Array (Intel Smart Sound Technology)', 'External Mic (Cable Matters USB Audio)', '', null, undefined]) {
+    assert.equal(looksLikeLoopback(label), false, String(label));
+  }
+});
+
+test('the settings list publishes which inputs look like loopbacks; the summary says it for the input in use', async () => {
+  const published = [];
+  const capture = {lastInput: null, listDevices: async () => ({inputs: ['Microphone (USB)', 'Stereo Mix (Realtek Audio)', 'CABLE Output (VB-Audio Virtual Cable)'], current: null})};
+  const control = await new MicDevicesControl({capture, commandPath: 'x', publish: async doc => { published.push(doc); }, read: async () => command('s:mic:1')}).open();
+  control.observed = '';
+  await control.poll();
+  assert.deepEqual(published.at(-1).inputs, ['Microphone (USB)', 'Stereo Mix (Realtek Audio)', 'CABLE Output (VB-Audio Virtual Cable)'], 'every input stays listed, none is left out');
+  assert.deepEqual(published.at(-1).loopback, ['Stereo Mix (Realtek Audio)', 'CABLE Output (VB-Audio Virtual Cable)']);
+  capture.lastInput = {device: 'Default - Stereo Mix (Realtek Audio)', requested: null, missing: null, loopback: true};
+  assert.equal(control.summary('').loopback, true, 'the Windows default that opened is a loopback');
+  capture.lastInput = {device: 'Microphone (USB)', requested: 'Microphone (USB)', missing: null, loopback: false};
+  assert.equal(control.summary('Microphone (USB)').loopback, false);
+  capture.lastInput = null;
+  assert.equal(control.summary('CABLE Output (VB-Audio Virtual Cable)').loopback, true, 'a chosen loopback is told before anything opened');
+});
+
+test('inputNote: a gone input first, then a default that looks like a loopback, never for an input the player chose', () => {
+  assert.equal(inputNote({missing: 'Headset', loopback: true}), MIC_DEVICE_NOTE);
+  assert.equal(inputNote({device: 'Stereo Mix', requested: null, loopback: true}), MIC_LOOPBACK_NOTE);
+  assert.equal(inputNote({device: 'Stereo Mix', requested: 'Stereo Mix', loopback: true}), undefined, 'chosen on purpose: the row already warned');
+  assert.equal(inputNote({device: 'Mic', requested: null, loopback: false}), undefined);
+  assert.equal(inputNote(null), undefined);
+});
+
+test('a recording on a loopback-looking default carries the loopback note, and the log line says so', async () => {
+  const stt = {availability: () => ({available: true}), start: async () => {}, cancel: async () => {}, pushAudio() {}, heard: () => '', finish: async () => ({text: 'hello', seconds: 1})};
+  const logs = [];
+  const capture = {begin: async () => ({device: 'Default - CABLE Output (VB-Audio Virtual Cable)', loopback: true, requested: null, missing: null}), end: async () => {}, abort: async () => {}};
+  const channel = createLocalSttChannel({stt, capture, log: line => logs.push(line)})();
+  const opened = await channel.beginVoice({requestId: 'r1'});
+  assert.equal(opened.note, MIC_LOOPBACK_NOTE);
+  assert.ok(logs.some(line => line.includes('LOOKS LIKE A LOOPBACK')), logs.join(' | '));
+  await channel.close();
+  assert.ok(describeInput({device: 'Mic', settings: {echoCancellation: false}}).includes('echo cancellation is NOT active'));
+  assert.ok(!describeInput({device: 'Mic', settings: {echoCancellation: true}}).includes('NOT active'));
 });

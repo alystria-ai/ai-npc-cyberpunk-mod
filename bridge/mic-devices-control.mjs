@@ -5,11 +5,13 @@
 // (bridge/local-stt-capture.mjs): Chromium's labels are the names the choice is matched against when the device is opened.
 //
 //   runtime/microphone-devices-command.json   the settings page asks: {version: 1, id, action: 'list', issuedAt}
-//   runtime/microphone-devices.json           the answer: {version: 1, updated, id, state: 'idle' | 'listing' | 'ok' | 'failed', inputs: [label], current: label | null}
+//   runtime/microphone-devices.json           the answer: {version: 1, updated, id, state: 'idle' | 'listing' | 'ok' | 'failed', inputs: [label], loopback: [label], current: label | null}
+// `loopback` is the part of `inputs` whose name looks like a loopback or virtual device (bridge/mic-match.mjs): the settings row marks them. Never used to pick or refuse an input.
 //
 // The page asks when the settings open (never per frame, at most once in a few seconds). Nothing here runs on the way to a recording: the poll is one read of a small file
 // that is unchanged almost always, and the listing happens only for a command.
 import {readFile} from 'node:fs/promises';
+import {looksLikeLoopback} from './mic-match.mjs';
 
 export const MIC_DEVICES_COMMAND = 'microphone-devices-command.json';
 export const MIC_DEVICES_STATE = 'microphone-devices.json';
@@ -58,7 +60,7 @@ export class MicDevicesControl {
     return this;
   }
   document() {
-    return {version: 1, updated: this.now(), id: this.id, state: this.state, inputs: this.inputs, current: this.current};
+    return {version: 1, updated: this.now(), id: this.id, state: this.state, inputs: this.inputs, loopback: this.inputs.filter(looksLikeLoopback), current: this.current};
   }
   publishState() {
     this.writing = this.writing.catch(() => {}).then(() => this.publish(this.document()));
@@ -113,11 +115,13 @@ export class MicDevicesControl {
   /**
    * What the setup check and the support report say about the microphone (labels only, never an id): null before any input has been opened or chosen.
    *   chosen   the player's choice ('' for the Windows default)   device  the input the latest recording opened   missing  the chosen input was not found
+   *   loopback the input in use (the latest open, else the chosen one) looks like a loopback or virtual input that may carry the PC's sound
    */
   summary(chosen) {
     const last = this.capture.lastInput;
     const wanted = cleanDeviceLabel(chosen);
     if (!last && !wanted) return null;
-    return {chosen: wanted || null, device: cleanDeviceLabel(last?.device) || null, missing: !!(wanted && last?.missing && last.requested === wanted)};
+    const device = cleanDeviceLabel(last?.device) || null;
+    return {chosen: wanted || null, device, missing: !!(wanted && last?.missing && last.requested === wanted), loopback: looksLikeLoopback(device ?? wanted)};
   }
 }

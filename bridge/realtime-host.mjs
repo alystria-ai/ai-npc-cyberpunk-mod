@@ -10,6 +10,7 @@ import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {browserMissing, browserOutputLines, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
+import {inputNote} from './mic-match.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
 import {BrowserPriority} from './process-priority.mjs';
@@ -957,7 +958,7 @@ export class RealtimeHost {
       const relay = process.env.CYBERPUNK_CONVAI_MIC_RELAY !== '0' && tap && tapOwner !== null && tap.isOwner(tapOwner);
       lease.tapOwner = relay ? tapOwner : null;
       const beginning = lease.value.evaluate(([config, options]) => window.convaiRealtime.beginVoice(config, options),
-        [credentialed, {relay: !!relay, device: ''}]);
+        [credentialed, {relay: !!relay, device: '', micDevice: this.micTap?.capture?.preferred?.() ?? ''}]);
       beginning.catch(() => {});
       if (relay) lease.pump = this.startRelayPump(lease, tap, tapOwner);
       const result = await beginning;
@@ -973,7 +974,7 @@ export class RealtimeHost {
           throwIfCancelled(signal);
           if (info?.device) result.device = info.device;
           // The input the player chose was not there and the default opened: the game tells them once (bridge/local-stt-capture.mjs MIC_DEVICE_NOTE).
-          if (info?.missing && !result.note) result.note = 'mic-device-gone';
+          if (!result.note) { const note = inputNote(info); if (note) result.note = note; }
         }
       }
       this.sessions.accept(config);

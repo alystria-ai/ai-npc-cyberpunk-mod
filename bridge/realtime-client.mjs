@@ -7,6 +7,7 @@ import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';
 import {PcmRelay} from './pcm-relay.mjs';
+import {matchInput} from './mic-match.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
 // "Instant push-to-talk": the current voice turn's PcmRelay (the bridge pushes the microphone it captured from the key press into it), or null.
@@ -929,12 +930,42 @@ async function dropMicrophone(connection) {
   }
 }
 
-// enableAudio() with the SDK's getUserMedia answered by the relay's stream (audio-only requests), restored in every case.
-async function enableAudioFrom(connection, own) {
+// The constraints the page's OWN microphone path (the fallback when the relay cannot open) asks the browser for when the player chose an input in Settings > Voices >
+// Microphone: the SDK's constraints with echo cancellation, noise suppression and gain control on, and that input (matched by label, bridge/mic-match.mjs) as an exact
+// device. The labels are empty until the page has had the microphone once, so one short probe of the default unlocks them. An input that is not listed leaves the default.
+// Runs only when the fallback opens the device, never on the relay path and never per frame.
+async function chosenInputConstraints(devices, original, constraints, label) {
+  const audio = constraints.audio === true ? {} : {...constraints.audio};
+  audio.echoCancellation = true; audio.noiseSuppression = true; audio.autoGainControl = true;
+  const listed = async () => (await devices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+  try {
+    let found = matchInput(await listed(), label);
+    if (!found) {
+      const probe = await original.call(devices, {audio: true});
+      for (const track of probe.getTracks()) track.stop();
+      found = matchInput(await listed(), label);
+    }
+    if (found) audio.deviceId = {exact: found.deviceId};
+  } catch { /* the default input opens */ }
+  return {...constraints, audio};
+}
+
+// enableAudio() with the SDK's getUserMedia answered by the relay's stream (audio-only requests), restored in every case. Without a relay (`own` null) and with a chosen input
+// (`micDevice`, a label) the SDK's request is rewritten to ask for that input, with a retry on the default if the browser refuses it.
+async function enableAudioFrom(connection, own, micDevice = '') {
   const devices = navigator.mediaDevices;
   const saved = Object.getOwnPropertyDescriptor(devices, 'getUserMedia'), original = devices.getUserMedia;
   devices.getUserMedia = function (constraints, ...rest) {
-    if (constraints && constraints.audio && !constraints.video) return Promise.resolve(own.stream);
+    if (constraints && constraints.audio && !constraints.video) {
+      if (own) return Promise.resolve(own.stream);
+      if (micDevice) return chosenInputConstraints(devices, original, constraints, micDevice).then(wanted => original.call(this, wanted, ...rest).catch(error => {
+        if (wanted.audio?.deviceId && (error?.name === 'OverconstrainedError' || error?.name === 'NotFoundError')) {
+          const plain = {...wanted, audio: {...wanted.audio}}; delete plain.audio.deviceId;
+          return original.call(this, plain, ...rest);
+        }
+        throw error;
+      }));
+    }
     return original.call(this, constraints, ...rest);
   };
   try { await connection.audioControls.enableAudio(); }
@@ -950,7 +981,7 @@ function liveMicrophone(connection) {
 }
 
 // options.relay: the microphone comes from a PcmRelay the bridge pushes into (pushAudio) instead of the SDK opening the device.
-// options.device: the real microphone's name, for the log. Any relay failure falls back once to the SDK's own microphone.
+// options.device: the real microphone's name, for the log. options.micDevice: the label of the input chosen in Settings, for the page's own microphone (the fallback). Any relay failure falls back once to the SDK's own microphone.
 async function beginVoice(config, options = {}) {
   if (turn || admitting) throw Error('A conversation turn is already active');
   const admission = admitting = {};
@@ -982,7 +1013,9 @@ async function beginVoice(config, options = {}) {
       }
     }
     if (!viaRelay) {
-      await client.audioControls.enableAudio();
+      // The page's own microphone: the input chosen in Settings (options.micDevice) when there is one, else the SDK's default exactly as before.
+      if (typeof options?.micDevice === 'string' && options.micDevice) await enableAudioFrom(client, null, options.micDevice);
+      else await client.audioControls.enableAudio();
       if (turn !== current || current.epoch !== epoch || client !== connection) throw Error('Microphone startup cancelled');
       pub = liveMicrophone(client);
     }

@@ -35,7 +35,8 @@ const clientSource = readFileSync(new URL('./realtime-client.mjs', import.meta.u
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
   .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';", '')
-  .replace("import {PcmRelay} from './pcm-relay.mjs';", '');
+  .replace("import {PcmRelay} from './pcm-relay.mjs';", '')
+  .replace("import {matchInput} from './mic-match.mjs';", '');
 
 // Run the actual host and lease pool. Each page executes the host's browser
 // callbacks against its own window, without launching a browser or SDK network.

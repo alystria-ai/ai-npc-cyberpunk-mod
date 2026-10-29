@@ -135,6 +135,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/memory-store.mjs',
   'bridge/mic-devices-control.mjs',
   'bridge/mic-live.mjs',
+  'bridge/mic-match.mjs',
   'bridge/mic-tap.mjs',
   'bridge/mic-v-line.mjs',
   'bridge/microphone-session.mjs',
