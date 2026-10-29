@@ -1,3 +1,5 @@
+// First, so a full disk or a closed output can never end this process through a log line (bridge/safe-streams.mjs, error report 1cbe337a5144ebbd).
+import './safe-streams-install.mjs';
 import {readFile, stat, mkdir} from 'node:fs/promises';
 import {readFileSync, statSync} from 'node:fs';
 import {decisionLedgerReader} from './game-dialogue.mjs';

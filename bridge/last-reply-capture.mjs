@@ -8,7 +8,7 @@
 //
 // It costs nothing while Developer mode is off: `begin` answers undefined, and the callers write `capture?.push(packet)`. Nothing is held in memory past one
 // reply, and a reply is kept to MAX_SECONDS of audio. A file is overwritten by the next reply of that engine; the folder is never cleared by the bridge.
-import {mkdir, rename, writeFile} from 'node:fs/promises';
+import {mkdir, rename, rm, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {decodeWav, encodeWav16} from './voxtral-reference.mjs';
 
@@ -84,8 +84,8 @@ export class LastReplyCapture {
       await mkdir(this.directory, {recursive: true});
       // The audio first, then the note about it: a reader that finds the note finds the audio.
       for (const [name, bytes] of [[`${base}.wav`, wav], [`${base}.json`, JSON.stringify(info, null, 1) + '\n']]) {
-        await writeFile(`${name}.tmp`, bytes);
-        await rename(`${name}.tmp`, name);
+        try { await writeFile(`${name}.tmp`, bytes); await rename(`${name}.tmp`, name); }
+        catch (error) { await rm(`${name}.tmp`, {force: true}).catch(() => {}); throw error; }   // a full disk leaves no half file behind
       }
     }).catch(error => { try { this.log(`last reply not kept (${error?.code ?? error?.message})`); } catch {} });
     return this.queue;

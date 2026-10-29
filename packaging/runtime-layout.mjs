@@ -212,6 +212,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/runtime-integrity.mjs',
   'bridge/runtime-paths.mjs',
   'bridge/runtime-steps.mjs',
+  'bridge/safe-streams-install.mjs',
+  'bridge/safe-streams.mjs',
   'bridge/sampler-extras.mjs',
   'bridge/scenery-memory.mjs',
   'bridge/setup-check.mjs',

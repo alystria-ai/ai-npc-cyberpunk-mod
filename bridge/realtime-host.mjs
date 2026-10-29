@@ -1,7 +1,7 @@
 import {createServer} from 'node:http';
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {readFileSync, renameSync, rmSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
@@ -59,9 +59,15 @@ function graphicsRefused(key, now) {
   return true;
 }
 const saveSandboxState = (statePath, reason) => {
+  const temporary = `${statePath}.${process.pid}.tmp`;
   try {
-    writeFileSync(statePath, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), graphicsOff: Object.fromEntries(graphicsRefusals), reason: String(reason).slice(0, 160)}));
-  } catch { /* read-only: remembered for this process only */ }
+    // A temporary file and a rename: a full disk leaves the old file as it was.
+    writeFileSync(temporary, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), graphicsOff: Object.fromEntries(graphicsRefusals), reason: String(reason).slice(0, 160)}));
+    renameSync(temporary, statePath);
+  } catch {
+    // Read-only or full: remembered for this process only.
+    try { rmSync(temporary, {force: true}); } catch { /* nothing to remove */ }
+  }
 };
 // `persist` false: found out in this process only (a timeout says the PC was slow, not that the sandbox cannot work: it is not written for 30 days).
 function rememberSandboxRefusal(key, statePath, now, reason, persist = true) {

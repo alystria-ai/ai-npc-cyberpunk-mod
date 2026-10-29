@@ -3,6 +3,7 @@
 //     [--key-file FILE] [--build-voice-client] --game-root DIR
 //     [--game-pid PID] [--lifeline stdin]
 // It runs hidden with no console output; see <state>/bridge-service.log.
+import '../bridge/safe-streams-install.mjs';
 import {appendFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';

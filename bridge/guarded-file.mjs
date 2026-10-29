@@ -1,8 +1,8 @@
-import {open, rm} from 'node:fs/promises';
+import {open, readFile, rename as renameAsync, rm, writeFile} from 'node:fs/promises';
 import {renameSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 
-const defaultFiles = {open, rename: renameSync, rm};
+const defaultFiles = {open, rename: renameSync, rm, readFile};
 const retryable = new Set(['EPERM', 'EACCES', 'EBUSY']);
 // Windows refuses to rename over a file another process (the game's Lua reader, an
 // indexer, antivirus) has open at that instant. Six tries with this backoff wait
@@ -42,9 +42,22 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
 
   const temp = path + '.' + randomUUID() + '.tmp';
   let handle, owned = false, committed = false;
+  // In place, the file is emptied first, so a write that fails (a full disk) would leave it empty. The old bytes are read first and put back
+  // when the write fails; the error is still thrown. The temporary file written above is complete, so a full disk is already known by now
+  // and this rarely runs, but a file that is lost is a player's settings or memories.
   const writeInPlace = async () => {
+    let previous = null;
+    try { previous = await io.readFile(path); } catch { /* no old file, or one that cannot be read: nothing to put back */ }
     const target = await io.open(path, 'w');
-    try { await target.writeFile(data); } finally { await target.close().catch(() => {}); }
+    try { await target.writeFile(data); }
+    catch (error) {
+      await target.close().catch(() => {});
+      if (previous) {
+        try { const again = await io.open(path, 'w'); try { await again.writeFile(previous); } finally { await again.close().catch(() => {}); } } catch { /* the disk is still full */ }
+      }
+      throw error;
+    }
+    await target.close().catch(() => {});
   };
   try {
     handle = await io.open(temp, 'wx');
@@ -99,5 +112,22 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
   } finally {
     if (handle) await handle.close().catch(() => {});
     if (owned && !committed) await io.rm(temp, {force: true, maxRetries: 3, retryDelay: 25}).catch(() => {});
+  }
+}
+
+/**
+ * Writes `data` to `path` without ever leaving a half-written file: a temporary file next to it, then a rename. A write that fails (a full
+ * disk: ENOSPC) removes the temporary file and throws, and the old file is as it was. For the files `atomicFile` is too much for (no
+ * cancellation, no retries on a refused rename); `files` is a test seam.
+ */
+export async function safeWriteFile(path, data, {files} = {}) {
+  const io = {writeFile, rename: renameAsync, rm, ...files};
+  const temp = `${path}.${randomUUID()}.tmp`;
+  try {
+    await io.writeFile(temp, data);
+    await io.rename(temp, path);
+  } catch (error) {
+    await io.rm(temp, {force: true}).catch(() => {});
+    throw error;
   }
 }
