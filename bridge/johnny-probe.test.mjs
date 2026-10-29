@@ -17,7 +17,7 @@ function run(code) {
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 }
 // A world with a fake mailbox: json.encode keeps the last body, io.open records what was written where.
-const world = code => run(`
+const world = (code, setup = '') => run(`
   local developer, written, logged, loads = true, {}, {}, {}
   manager = {developerMode = function() return developer end, johnnyInHead = function() return true end,
     johnnyRemarks = function() return 'normal' end}
@@ -34,6 +34,7 @@ const world = code => run(`
   local fake = {calls = {}, ticks = 0, keep = 2}
   function fake.run(action, env) fake.calls[#fake.calls + 1] = action; assert(env.player and env.now and env.log); return {seen = action} end
   function fake.tick(env) fake.ticks = fake.ticks + 1; fake.keep = fake.keep - 1; return fake.keep > 0 end
+  ${setup}
   local P = (function() ${probeSource} end)()
   function dofile(path) loads[#loads + 1] = path; return fake end
 ${code}`);
@@ -97,7 +98,7 @@ test('place: what the sample reads now, and a test arrival queued with its coold
 `));
 
 test('wiring: the mailbox runs it in Developer mode only; the tick rides the 0.5 s battle sample; nothing per frame', () => {
-  assert.match(init, /if nonce:find\('\^notice:'\) then pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end/);
+  assert.match(init, /if nonce:find\('\^notice:'\) then dispatched, problem = pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then dispatched, problem = pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end\s+if not dispatched then log\('Developer request failed: ' \.\. tostring\(problem\)\) end/);
   assert.match(init, /function convaiJohnnyProbeRun\(request\)\s+if not manager\.developerMode\(\) then return false end\s+local ok, probe = pcall\(dofile, 'johnny-probe\.lua'\)/);
   assert.match(init, /if convaiJohnnyPlaceSample then convaiJohnnyGuarded\('place sample'[^\n]*\s+if convaiJohnnyFight then[^\n]*\s+-- [^\n]*\s+if convaiJohnnyProbeTick then pcall\(convaiJohnnyProbeTick\) end/);
   assert.doesNotMatch(probeSource, /registerForEvent|onUpdate|Observe|Override/, 'no hook of its own');
@@ -119,4 +120,41 @@ test('the probe script can send the quest feature and its actions (status, captu
   const questProbe = read('../mod/quest-probe.lua');
   for (const action of ['status', 'capture', 'event', 'line', 'reap', 'gifts', 'reach']) assert.match(questProbe, new RegExp(`${action} = true`), action);
   assert.match(script, /"johnny-probe:\$\{Feature\}:\$\{Action\}:"/);
+});
+
+// 30 Oct live test: the probe never answered in the game. init.lua's `manager` is a local of that file, so a file it dofile's saw no `manager`, johnny-probe.lua failed on its first
+// line, the mailbox's pcall dropped the error and nothing was written or logged. The tests above gave the files a global `manager`, which the game does not.
+test('run: in the game shape (no global manager, the settings handed over as convaiSettings) the probe answers and writes johnny-probe.json', () => world(`
+  assert.ok(manager == nil, 'the game has no global manager')
+  assert(P.run('johnny-probe:relic:start:2'))
+  assert(written['runtime/johnny-probe.json'] == 'encoded' and lastBody.ok == true and lastBody.report.seen == 'start')
+  assert(logged[1] == 'Johnny probe: relic start')
+`.replace("assert.ok(manager == nil, 'the game has no global manager')", "assert(manager == nil, 'the game has no global manager')"),
+`convaiSettings = manager; manager = nil`));
+
+test('run: without the hand-over the probe would fail on its first line (what the game did), so the hand-over is what makes it answer', () => {
+  assert.throws(() => world(`P.run('johnny-probe:relic:start:2')`, `manager = nil`), /manager/);
+});
+
+test('place: the district probe reads the settings through the hand-over too', () => world(`
+  convaiJohnnyHeadService = function() return nil end
+  assert(P.run('johnny-probe:place:read:6'))
+  assert(lastBody.report.johnnyInHead == true and lastBody.report.johnnyRemarks == 'normal')
+`, `convaiSettings = manager; manager = nil`));
+
+test('wiring: init.lua hands the settings manager to the files it dofile\'s before the mailbox can run, and every probe that reads settings takes it from there', () => {
+  const lf = text => text.split(String.fromCharCode(13)).join('');
+  const startup = lf(init);
+  assert.match(startup, /\nconvaiSettings = manager\n/);
+  assert.ok(startup.indexOf('\nconvaiSettings = manager\n') < startup.indexOf("io.open('runtime/diagnostic-request.txt', 'rb')"), 'set during start-up, before the mailbox poll');
+  for (const file of ['../mod/johnny-probe.lua', '../mod/johnny-relic-probe.lua']) {
+    const source = lf(read(file));
+    assert.match(source, /\nlocal manager = convaiSettings or manager\n/, file);
+    assert.ok(source.indexOf('local manager = convaiSettings or manager') < source.indexOf('manager.'), `${file}: the hand-over comes before the first use`);
+  }
+  // No other developer probe reads init.lua's local `manager` as a global.
+  for (const file of ['phone-image-probe', 'quest-probe', 'media-probe', 'combat-feats-probe', 'face-probe', 'gesture-probe', 'loot-probe', 'knowledge-probe', 'lua-heap-probe',
+    'fact-identity-probe', 'save-identity-probe', 'speech-cadence-probe']) {
+    assert.doesNotMatch(read(`../mod/${file}.lua`).replace(/^\s*--.*$/gm, ''), /\bmanager\./, file);
+  }
 });

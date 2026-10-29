@@ -9,6 +9,8 @@
 -- Observers cannot be unregistered: the two are registered once per Lua state, at the first start, inside pcall (mod/loot-probe.lua),
 -- and return at once while no watch runs. Everything is bounded: time, rows, tags per row, distinct records. No native handle is kept.
 local M = convaiJohnnyRelicProbe or {active = false, hooks = {}, serial = 0}
+-- init.lua's `manager` is a local there and not seen from a dofile'd file: it is handed over as convaiSettings.
+local manager = convaiSettings or manager
 convaiJohnnyRelicProbe = M
 M.WATCH_SECONDS, M.MAX_EVENTS, M.MAX_CANDIDATES, M.MAX_RECORDS, M.MAX_EFFECTS, M.MAX_EMITS = 300, 200, 60, 80, 64, 10
 local unavailable = 'unavailable'

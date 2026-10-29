@@ -1,4 +1,6 @@
 local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
+-- init.lua's own `manager` is a local there and a file dofile'd from it cannot see it: it hands the settings manager over as convaiSettings.
+local manager = convaiSettings or manager
 -- Developer probes for Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): the live evidence the offline tests cannot
 -- give (the Relic's status effects, the cost of combat hooks, the district V is read in).
 --

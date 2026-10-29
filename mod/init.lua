@@ -707,6 +707,8 @@ do
     if not attached then convaiNoticeLog('Manager: the Mod Configuration Menu host did not load: ' .. tostring(attachError)) end
 end
 convaiManager = managerUi
+-- The settings manager for the files dofile'd from here (the developer probes read the settings through it): `manager` above is a local of this file and is not seen by them.
+convaiSettings = manager
 local catalog = characterCatalog.build(profiles, archetypes)
 -- The record IDs of a record-cloning mod's copies ("NCA.Character.Judy", characterCatalog.CLONE_PREFIXES): a global table, read by
 -- the spawned-character check below (an NCA follower counts as spawned whatever the dynamic entity system answers for it).
@@ -7961,10 +7963,13 @@ registerForEvent('onUpdate', function(delta)
                 -- "lua-heap:<nonce>" writes the Lua heap report (runtime/lua-heap.json, see convaiLuaHeapReport), "notice:<id>:<nonce>"
                 -- shows one notice on demand (Developer mode only), "johnny-probe:..." runs a Johnny probe (mod/johnny-probe.lua,
                 -- Developer mode only); anything else is a diagnostic capture.
-                if nonce:find('^lua%-heap:') then pcall(convaiLuaHeapReport, nonce)
-                elseif nonce:find('^notice:') then pcall(speech.devNotice, nonce)
-                elseif nonce:find('^johnny%-probe:') then pcall(convaiJohnnyProbeRun, nonce)
+                -- A request that fails says so in the log (it used to vanish: a probe file read a global that is local here, and nothing answered).
+                local dispatched, problem = true, nil
+                if nonce:find('^lua%-heap:') then dispatched, problem = pcall(convaiLuaHeapReport, nonce)
+                elseif nonce:find('^notice:') then dispatched, problem = pcall(speech.devNotice, nonce)
+                elseif nonce:find('^johnny%-probe:') then dispatched, problem = pcall(convaiJohnnyProbeRun, nonce)
                 else captureDiagnostic() end
+                if not dispatched then log('Developer request failed: ' .. tostring(problem)) end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end
