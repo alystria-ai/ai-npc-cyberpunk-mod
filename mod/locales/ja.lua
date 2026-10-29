@@ -1235,7 +1235,7 @@ return {
     ["Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter."] = "モデルが読む量を減らすと、返答が速くなります。MOD 本来の上限は引き続き適用されるため、ここでは短くすることしかできません。",
     ["Stop texts"] = "停止テキスト",
     ["Mature layer"] = "成人向けレイヤー",
-    ["The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "成人向けコンテンツがオンのときに追加される、露骨で直接的な表現です。読み込まれたモデルが許可する範囲で、MODが各行の明示的版か示唆的版を選ぶので、お使いのモデルが使う版を編集してください。欄を空にすると、その行は外されます。成人限定の行と絶対的な制限は常に最後に追加され、編集できません。",
+    ["The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "成人向けコンテンツがオンのときに追加される表現です。読み込まれたモデルが許可する範囲で、MODが各行の明示的版か示唆的版を選ぶので、お使いのモデルが使う版を編集してください。欄を空にすると、その行は外されます。成人限定の行と絶対的な制限は常に最後に追加され、編集できません。",
     ["Speech line"] = "発話の一行",
     ["Word bank"] = "語彙リスト",
     ["Romance line"] = "恋愛の一行",

@@ -1242,7 +1242,7 @@ return {
     ["Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter."] = "Zkrať to, co model čte, a odpovědi budou rychlejší. Platí i vlastní limity modu, takže tohle může jen zkracovat.",
     ["Stop texts"] = "Stop texty",
     ["Mature layer"] = "Vrstva pro dospělé",
-    ["The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "Drsná a přímá slova, která se přidávají, když je zapnutý obsah pro dospělé. Mod podle načteného modelu vybere explicitní nebo naznačenou verzi řádku, takže uprav verzi, kterou tvůj model používá. Prázdné pole řádek vynechá. Řádek jen pro dospělé a pevné hranice se vždy přidají na konec a nelze je upravit.",
+    ["The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "Slova, která se přidávají, když je zapnutý obsah pro dospělé. Mod podle načteného modelu vybere explicitní nebo naznačenou verzi řádku, takže uprav verzi, kterou tvůj model používá. Prázdné pole řádek vynechá. Řádek jen pro dospělé a pevné hranice se vždy přidají na konec a nelze je upravit.",
     ["Speech line"] = "Řádek řeči",
     ["Word bank"] = "Slovník slov",
     ["Romance line"] = "Řádek o romanci",

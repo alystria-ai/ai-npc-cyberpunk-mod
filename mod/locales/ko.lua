@@ -1235,7 +1235,7 @@ return {
     ["Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter."] = "모델이 읽는 분량을 줄이면 응답이 빨라집니다. 모드 자체의 제한은 그대로 적용되므로, 여기서는 더 짧게만 할 수 있습니다.",
     ["Stop texts"] = "중단 문구",
     ["Mature layer"] = "성인 레이어",
-    ["The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "성인 콘텐츠가 켜져 있을 때 추가되는 노골적이고 직접적인 표현입니다. 모드는 불러온 모델이 허용하는 범위에서 각 대사의 명시적 버전이나 암시적 버전을 고르므로, 사용하는 모델이 쓰는 버전을 편집하세요. 칸을 비우면 그 대사는 빠집니다. 성인 전용 문장과 기본 제한은 항상 마지막에 추가되며 편집할 수 없습니다.",
+    ["The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "성인 콘텐츠가 켜져 있을 때 추가되는 표현입니다. 모드는 불러온 모델이 허용하는 범위에서 각 대사의 명시적 버전이나 암시적 버전을 고르므로, 사용하는 모델이 쓰는 버전을 편집하세요. 칸을 비우면 그 대사는 빠집니다. 성인 전용 문장과 기본 제한은 항상 마지막에 추가되며 편집할 수 없습니다.",
     ["Speech line"] = "말투 문장",
     ["Word bank"] = "단어 목록",
     ["Romance line"] = "로맨스 문장",

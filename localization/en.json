@@ -1277,7 +1277,6 @@
     "The conversation service was started and never reported back. A security program probably stopped it at once, or Node cannot run on this PC. Allow red4ext/plugins/AiNpcCyberpunkMod/app/node/node.exe in your security program, then restart the game.": "The conversation service was started and never reported back. A security program probably stopped it at once, or Node cannot run on this PC. Allow red4ext/plugins/AiNpcCyberpunkMod/app/node/node.exe in your security program, then restart the game.",
     "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}": "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}",
     "The copy could not be dismissed.": "The copy could not be dismissed.",
-    "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.": "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.",
     "The custom provider did not accept your key. Check it in Settings > Conversation provider.": "The custom provider did not accept your key. Check it in Settings > Conversation provider.",
     "The custom provider did not answer. Check its address in Settings, or try again.": "The custom provider did not answer. Check its address in Settings, or try again.",
     "The custom provider does not know that model ID. Check it in Settings.": "The custom provider does not know that model ID. Check it in Settings.",
@@ -1392,6 +1391,7 @@
     "The voice files are incomplete, so the voices and the microphone cannot start. Reinstall the Full download from Nexus Mods: extract it into the Cyberpunk 2077 folder and let it replace the files, then restart the game.": "The voice files are incomplete, so the voices and the microphone cannot start. Reinstall the Full download from Nexus Mods: extract it into the Cyberpunk 2077 folder and let it replace the files, then restart the game.",
     "The voice files are incomplete. Reinstall the Full download from Nexus Mods.": "The voice files are incomplete. Reinstall the Full download from Nexus Mods.",
     "The voice model did not load. Check the voice in Settings or choose another one, then invite again.": "The voice model did not load. Check the voice in Settings or choose another one, then invite again.",
+    "The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.": "The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.",
     "The words said in the clip are too long. Keep them under {max} characters.": "The words said in the clip are too long. Keep them under {max} characters.",
     "The world rules are too long. Keep them under {max} characters.": "The world rules are too long. Keep them under {max} characters.",
     "The yellow border is Windows showing a capture. Turn off Companions can see to stop it.": "The yellow border is Windows showing a capture. Turn off Companions can see to stop it.",
@@ -3427,7 +3427,6 @@
       "The conversation service was started and never reported back. A security program probably stopped it at once, or Node cannot run on this PC. Allow red4ext/plugins/AiNpcCyberpunkMod/app/node/node.exe in your security program, then restart the game.",
       "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}",
       "The copy could not be dismissed.",
-      "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.",
       "The custom provider did not accept your key. Check it in Settings > Conversation provider.",
       "The custom provider did not answer. Check its address in Settings, or try again.",
       "The custom provider does not know that model ID. Check it in Settings.",
@@ -3512,6 +3511,7 @@
       "The voice files are incomplete, so the voices and the microphone cannot start. Reinstall the Full download from Nexus Mods: extract it into the Cyberpunk 2077 folder and let it replace the files, then restart the game.",
       "The voice files are incomplete. Reinstall the Full download from Nexus Mods.",
       "The voice model did not load. Check the voice in Settings or choose another one, then invite again.",
+      "The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.",
       "The words said in the clip are too long. Keep them under {max} characters.",
       "The world rules are too long. Keep them under {max} characters.",
       "The yellow border is Windows showing a capture. Turn off Companions can see to stop it.",
@@ -14027,14 +14027,6 @@
         "mod/manager.lua:2146"
       ]
     },
-    "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/character-editor.lua:283"
-      ]
-    },
     "The custom provider did not accept your key. Check it in Settings > Conversation provider.": {
       "contexts": [
         "phone.chat",
@@ -14996,6 +14988,14 @@
       ],
       "references": [
         "mod/manager-party.lua:114"
+      ]
+    },
+    "The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:283"
       ]
     },
     "The words said in the clip are too long. Keep them under {max} characters.": {

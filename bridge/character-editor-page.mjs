@@ -917,7 +917,7 @@ export function editorClient() {
       if (!(row.id.startsWith('mature-') || row.provider === 'custom')) return null;
       const box = key => textBox('p-mature-' + key, names['matureLayer.' + key], d.matureLayer[key], L.matureText, 'matureLayer:' + key, value => { d.matureLayer[key] = value; });
       const keys = [...MATURE_LINES.flatMap(key => [key + 'Full', key + 'Suggestive']), 'tone', 'use', 'limits'];
-      return section('matureLayer', T('Mature layer'), T('The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.'), ...keys.map(box));
+      return section('matureLayer', T('Mature layer'), T('The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.'), ...keys.map(box));
     };
     return [
       section('rules', T('Output rules'), T('The numbered rules the model reads before every reply. Use {name} for the character’s name and {words} for the reply length of a speaker that has one.', tokens), ...rulesField()),

@@ -1242,7 +1242,7 @@ return {
     ["Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter."] = "縮短模型讀取的內容，可使回覆更快。模組本身的限制仍然適用，因此這裡只能讓內容變得更短。",
     ["Stop texts"] = "停止文字",
     ["Mature layer"] = "成人層",
-    ["The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "開啟成人內容時加入的直白、露骨措辭。模組會依已載入模型允許的範圍，為每句台詞選擇明確版或暗示版，因此請編輯你的模型所用的那個版本。清空輸入框會去掉該句。僅限成人的台詞和硬性限制一律放在最後，無法編輯。",
+    ["The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "開啟成人內容時加入的措辭。模組會依已載入模型允許的範圍，為每句台詞選擇明確版或暗示版，因此請編輯你的模型所用的那個版本。清空輸入框會去掉該句。僅限成人的台詞和硬性限制一律放在最後，無法編輯。",
     ["Speech line"] = "語句",
     ["Word bank"] = "詞庫",
     ["Romance line"] = "戀愛台詞",

@@ -1242,7 +1242,7 @@ return {
     ["Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter."] = "Modelin okuduklarını kısalt; yanıtlar hızlanır. Modun kendi sınırları da geçerli kalır, bu yüzden bunlar yalnızca kısaltabilir.",
     ["Stop texts"] = "Stop metinleri",
     ["Mature layer"] = "Yetişkin katmanı",
-    ["The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "Yetişkin içerik açıkken eklenen sert ve doğrudan ifadeler. Mod, yüklü modelin izin verdiğine göre bir satırın açık ya da ima içeren sürümünü seçer; bu yüzden modelinin kullandığı sürümü düzenle. Boşaltılan kutu o satırı çıkarır. Yalnızca yetişkinlere yönelik satır ve sabit sınırlar her zaman en sona eklenir ve düzenlenemez.",
+    ["The wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited."] = "Yetişkin içerik açıkken eklenen ifadeler. Mod, yüklü modelin izin verdiğine göre bir satırın açık ya da ima içeren sürümünü seçer; bu yüzden modelinin kullandığı sürümü düzenle. Boşaltılan kutu o satırı çıkarır. Yalnızca yetişkinlere yönelik satır ve sabit sınırlar her zaman en sona eklenir ve düzenlenemez.",
     ["Speech line"] = "Konuşma satırı",
     ["Word bank"] = "Kelime bankası",
     ["Romance line"] = "Romantik satır",
