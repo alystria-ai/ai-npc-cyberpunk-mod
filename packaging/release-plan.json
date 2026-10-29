@@ -1030,6 +1030,7 @@
             "bridge/audio-output-probe.ps1",
             "bridge/error-reports.mjs",
             "bridge/report-secrets.mjs",
+            "bridge/cet-log.mjs",
             "bridge/system-facts.mjs",
             "bridge/log-cap.mjs"
           ]

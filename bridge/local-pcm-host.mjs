@@ -1,7 +1,11 @@
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {markStage} from './turn-clock.mjs';
-import {pcmReason} from './continuous-pcm-core.mjs';
 
+// The renderer's own reason as a short printable suffix (the same as pcmReason in continuous-pcm-core.mjs, which is a browser file: the service does not import it).
+const pcmReason = reason => {
+  const text = typeof reason === 'string' ? reason.replace(/[^\x20-\x7e]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : '';
+  return text ? ` (${text})` : '';
+};
 const TOKEN = /^[A-Za-z0-9_-]{1,128}$/;
 const SHA = /^[a-f0-9]{64}$/;
 const OWNER = /^[a-f0-9]{32}$/;
