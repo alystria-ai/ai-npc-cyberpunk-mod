@@ -25,11 +25,13 @@ import {reasoningSteps, noThinkingFields} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
-export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'clear-preset-gemini']);
-// One-press setups for the free cloud plans (2026-10-30, after Mistral stopped giving free keys to new accounts): with the key copied, one press of Add saves
-// the endpoint, the model id and the key (read from the clipboard), and Remove deletes all three. Still the Custom provider, nothing else changes. The model ids are the ones that answered
-// live on 2026-10-30. Gemini's `-latest` alias keeps working when Google retires a version (gemini-2.5-flash-lite already answers 404).
+export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'clear-preset-gemini', 'preset-mistral', 'clear-preset-mistral']);
+// One-press setups: with the key copied, one press of Add saves the endpoint, the model id and the key (read from the clipboard), and Remove deletes all three.
+// `mistral` is the preset row of the Custom page (2026-10-30: Mistral stopped giving free keys to new accounts, so it left the provider list; its model is the first of
+// bridge/mistral-client.mjs DEFAULT_MODELS). `gemini` is the endpoint and model of the Google Gemini provider (bridge/gemini-provider.mjs), which has the same one-press setup on its
+// own page and its own saved key. The model ids are the ones that answered live on 2026-10-30. Gemini's `-latest` alias keeps working when Google retires a version (gemini-2.5-flash-lite already answers 404).
 export const PRESETS = Object.freeze({
+  mistral: Object.freeze({endpoint: 'https://api.mistral.ai/v1', model: 'ministral-8b-latest'}),
   gemini: Object.freeze({endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-flash-lite-latest'}),
 });
 const PRESET_OF = Object.freeze(Object.fromEntries(Object.keys(PRESETS).map(name => [`preset-${name}`, name])));
@@ -351,7 +353,7 @@ export function parseCustomCommand(raw, now = Date.now()) {
 }
 
 const FIELD_OF = {'paste-url': 'url', 'clear-url': 'url', 'paste-key': 'key', 'clear-key': 'key', 'paste-model': 'model', 'clear-model': 'model',
-  'preset-gemini': 'preset', 'clear-preset-gemini': 'preset'};
+  'preset-gemini': 'preset', 'clear-preset-gemini': 'preset', 'preset-mistral': 'preset', 'clear-preset-mistral': 'preset'};
 const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits']);
 
 /**
@@ -360,10 +362,15 @@ const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits']);
  * the settings poll never waits for it.
  */
 export class CustomControl {
+  /**
+   *   presets   the one-press setups (PRESETS names) this page answers: the Custom page has `mistral`, the Google Gemini page `gemini`; a command for any other is refused
+   *   route     the provider route this page belongs to ('custom' or 'gemini'): a limit is shown on the page only while that route answers
+   *   onPreset  (name, key) after a one-press setup saved; onClearPreset (name) after one was removed (the Mistral preset keeps the key of the cloud voice in step)
+   */
   constructor({custom, provider, commandPath, publish, readClipboard = readClipboardText, test, read = file => readFile(file, 'utf8'), now = Date.now,
-    log = () => {}} = {}) {
+    log = () => {}, presets = Object.keys(PRESETS), route = 'custom', onPreset, onClearPreset} = {}) {
     if (!custom || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid custom provider configuration');
-    Object.assign(this, {custom, provider, commandPath, publish, readClipboard, read, now, log});
+    Object.assign(this, {custom, provider, commandPath, publish, readClipboard, read, now, log, presets, route, onPreset, onClearPreset});
     this.test = test ?? (() => testConnection(custom));
     this.observed = ''; this.result = null; this.testResult = null; this.busy = false; this.testing = false; this.writing = Promise.resolve();
   }
@@ -374,7 +381,7 @@ export class CustomControl {
     return this;
   }
   status() {
-    const c = this.custom, limit = this.provider?.applied === 'custom' ? this.provider.limit?.kind : null;
+    const c = this.custom, limit = this.provider?.applied === this.route ? this.provider.limit?.kind : null;
     return {version: 1, updated: this.now(), ready: c.ready, host: c.host, secure: c.secure, local: c.local, model: c.model,
       keySaved: !!c.key, tail: c.tail, preset: c.preset, ...(c.keyForgotten && !c.key ? {keyForgotten: true} : {}),
       ...(this.result ? {result: this.result} : {}), ...(this.testResult ? {test: this.testResult} : {}),
@@ -410,7 +417,11 @@ export class CustomControl {
     // Remove on a free setup: its endpoint, its model id and its key go (only when that plan is the one saved; a stale press changes nothing).
     const removed = CLEAR_PRESET_OF[action];
     if (removed) {
-      if (c.preset === removed) { await c.clearUrl(); await c.clearModel(); await c.clearKey(); }
+      if (!this.presets.includes(removed)) return {state: 'invalid', reason: 'not-here'};
+      if (c.preset === removed) {
+        await c.clearUrl(); await c.clearModel(); await c.clearKey();
+        try { await this.onClearPreset?.(removed); } catch (error) { this.log(`removing the ${removed} setup: ${error?.code ?? 'failed'}`); }
+      }
       this.testResult = null;
       return {state: 'cleared'};
     }
@@ -418,6 +429,7 @@ export class CustomControl {
     // can never leave a plan with no key behind). The key is bound to the plan's host.
     const preset = PRESETS[PRESET_OF[action]];
     if (preset) {
+      if (!this.presets.includes(PRESET_OF[action])) return {state: 'invalid', reason: 'not-here'};
       let copied;
       try { copied = await this.readClipboard(); } catch { return {state: 'unreadable'}; }
       if (typeof copied !== 'string' || !copied.trim()) return {state: 'invalid', reason: 'empty'};
@@ -427,6 +439,7 @@ export class CustomControl {
       await c.setUrl(parseEndpointUrl(preset.endpoint));
       await c.setModel(preset.model);
       await c.setKey(key);
+      try { await this.onPreset?.(PRESET_OF[action], key); } catch (error) { this.log(`saving the ${PRESET_OF[action]} setup: ${error?.code ?? 'failed'}`); }
       return {state: 'saved'};
     }
     let text;

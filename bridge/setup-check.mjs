@@ -38,8 +38,8 @@ const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 const MOD_NAME = 'AiNpcCyberpunkMod';
 
-/** The host each service is reached at: Convai, Mistral (its text and the Voxtral voice). */
-export const SERVICE_HOSTS = Object.freeze({convai: 'api.convai.com', mistral: 'api.mistral.ai'});
+/** The host each service is reached at: Convai, Mistral (the Voxtral voice, and its text for a player who chose it before it left the list), Google Gemini. */
+export const SERVICE_HOSTS = Object.freeze({convai: 'api.convai.com', mistral: 'api.mistral.ai', gemini: 'generativelanguage.googleapis.com'});
 
 const clip = (value, size = 120) => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, size) : null;
 // Version order of two release strings (0.3.4 before 0.3.10): negative when a is older; non-numeric parts count as 0.
@@ -421,11 +421,12 @@ const settingsOf = async source => {
  */
 export function neededServices(settings, {custom = null} = {}) {
   const chosen = settings?.conversationProvider;
-  const conversation = chosen === 'mistral' || chosen === 'local' ? chosen : chosen === 'custom' && custom ? 'custom' : 'convai';
+  const conversation = chosen === 'mistral' || chosen === 'local' ? chosen : chosen === 'custom' && custom ? 'custom' : chosen === 'gemini' && custom ? 'gemini' : 'convai';
   const services = [];
   if (conversation === 'convai') services.push('convai');
   else if (conversation === 'mistral') services.push('mistral');
   else if (conversation === 'custom') services.push('custom');
+  else if (conversation === 'gemini') services.push('gemini');
   // The Convai cloud voice is only available while Convai answers; with another provider the bridge speaks with Pocket instead.
   const voice = settings?.voiceProvider;
   if (voice === 'voxtral') services.push('mistral');
@@ -577,6 +578,8 @@ export async function collectSetupCheck(options = {}) {
     // The custom provider's endpoint is asked for only while that provider is the chosen one (nothing is contacted otherwise).
     let custom = null;
     if (settings?.conversationProvider === 'custom') { try { custom = await call('custom'); } catch { custom = null; } }
+    // Google Gemini's address is fixed (SERVICE_HOSTS), but it counts only while it has a key, as the Custom provider counts only while it is set up.
+    if (settings?.conversationProvider === 'gemini') { try { custom = await call('custom'); } catch { custom = null; } }
     if (!(typeof custom?.hostname === 'string' && custom.hostname)) custom = null;
     const services = neededServices(settings, {custom});
     if (!services.length) return {state: 'ok', code: 'not-needed', service: null, host: null};

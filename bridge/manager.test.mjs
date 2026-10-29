@@ -1492,7 +1492,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(manager.voiceLabel('voxtral') == 'Mistral cloud voice (Voxtral)')
     local before = saved.voiceProvider
     local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}})
-    assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', result.error)
+    assert(result.ok == false and result.error == 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)', result.error)
     assert(saved.voiceProvider == before)
     assert(not manager.applySettings(player, {voiceProvider = 'voxtral'}))
     -- A key is saved (the Conversation provider stays Convai, the default): the entry is a plain label and can be applied.
@@ -1541,13 +1541,13 @@ test('Mature content is a settings row with or without the Mature pack: the help
     assert(row('conversationProvider') ~= nil)
     assert(tostring(noPack.description):find('safety check', 1, true), 'the help says the minors check runs on every model')
     assert(tostring(noPack.description):find('Pack: not installed', 1, true), 'the help says the uncensored models are not installed')
-    assert(tostring(noPack.description):find('From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices. Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.', 1, true),
-      'the help names what turning it on from Convai or Mistral selects, never Mistral, and what happens to a Voxtral voice')
+    assert(tostring(noPack.description):find('From Convai or Google Gemini, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices. Choosing Convai or Google Gemini turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.', 1, true),
+      'the help names what turning it on from Convai or Google Gemini selects, never Mistral, and what happens to a Voxtral voice')
     assert(not tostring(noPack.description):find('Mistral or Custom when Local AI', 1, true), 'Mistral is never selected')
     assert(not tostring(noPack.description):find('local voice instead of a cloud one', 1, true), 'the old voice sentence is gone')
     assert(not tostring(noPack.description):find('recommended', 1, true))
     assert(tostring(noPack.description):find('Hugging Face page', 1, true), 'and where to get them')
-    assert(tostring(noPack.description):find('Choosing Convai or Mistral turns it off.', 1, true), 'the help says Convai and Mistral turn it off')
+    assert(tostring(noPack.description):find('Choosing Convai or Google Gemini turns it off.', 1, true), 'the help says Convai and Google Gemini turn it off')
     assert(tostring(noPack.description):find('Needs Local AI or Custom.', 1, true), 'the help names the two providers')
     assert(not tostring(noPack.description):find('no effect yet', 1, true))
     -- Usable without the pack, beside the Local AI provider (index 4); beside a cloud provider it is saved as off.
@@ -1567,7 +1567,7 @@ test('Mature content is a settings row with or without the Mature pack: the help
     state('other', {provider = 'mistral', effective = 'mistral', saved = true, maturePack = true, localAi = 'ready'})
     loaded = registered.loadMod('manager')
     assert(not tostring(row('matureContent').description):find('Not using Local AI', 1, true), 'the retired warning is gone')
-    assert(tostring(row('matureContent').description):find('Choosing Convai or Mistral turns it off.', 1, true))
+    assert(tostring(row('matureContent').description):find('Choosing Convai or Google Gemini turns it off.', 1, true))
     assert(tostring(row('matureContent').description):find('Needs Local AI or Custom.', 1, true), 'the help names the two providers')
     assert(not tostring(row('matureContent').description):find('Works with Local AI, Mistral and Custom.', 1, true), 'Mistral is not named as a provider for it')
     assert(not tostring(row('matureContent').description):find('Local AI only', 1, true))
@@ -4057,7 +4057,7 @@ test('V’s voice is one row (Off, Pocket, Voxtral, OmniVoice): Voxtral needs th
     assert(engine.description:find('Pocket', 1, true) and engine.description:find('Voxtral', 1, true) and engine.description:find('Mistral key', 1, true))
     -- No key: refused with the one short reason, nothing changes.
     local result = registered.applyBatch('manager', {{id = 'vVoice', value = 3}})
-    assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', result.error)
+    assert(result.ok == false and result.error == 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)', result.error)
     assert(saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
     assert(not manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and manager.vVoiceEngine() == 'pocket')
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 5}}).ok == false)
@@ -4457,22 +4457,22 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
   `);
 });
 
-test('the Convai and Mistral key rows are always listed, whichever provider is chosen, with or without Developer mode, and the old switch is gone', () => {
-  run(`${nsuiFixture}
+test('the Convai and Google Gemini key rows are always listed, whichever provider is chosen, with or without Developer mode, and the old switch is gone', () => {
+  run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}
     local clock = 1000; os.clock = function() return clock end
     assert(invoke('tab:settings').ok)
-    local ids = {'own-key', 'mistral-key'}
+    local ids = {'own-key', 'gemini-key'}
     for _, id in ipairs(ids) do assert(row(id) and row(id).type == 'action', id .. ' is listed without Developer mode') end
     assert(row('conversationProvider'))
     assert(row('useOwnConvaiKey') == nil, 'the separate switch is gone')
-    for _, id in ipairs({'own-key-status', 'own-key:paste', 'own-key:remove', 'own-key-using', 'mistral-key-status', 'mistral-key:paste', 'mistral-key:remove', 'local-ai-status'}) do
+    for _, id in ipairs({'own-key-status', 'own-key:paste', 'own-key:remove', 'own-key-using', 'mistral-key', 'mistral-key-status', 'mistral-key:paste', 'mistral-key:remove', 'gemini-key-status', 'local-ai-status'}) do
       assert(row(id) == nil, id .. ' is still offered')
     end
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
     for _, id in ipairs(ids) do assert(row(id), id .. ' is still listed in Developer mode') end
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = false}}).ok); loaded = registered.loadMod('manager')
     for _, id in ipairs(ids) do assert(row(id), id .. ' is listed with Developer mode off') end
-    -- Every provider entry (free tier, Convai API key, Mistral, Local) keeps both key rows.
+    -- Every provider entry (free tier, Convai API key, Google Gemini, Local) keeps both key rows.
     for index = 1, 4 do
       clock = clock + 2
       assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = index}}).ok); loaded = registered.loadMod('manager')
@@ -4482,10 +4482,10 @@ test('the Convai and Mistral key rows are always listed, whichever provider is c
     -- The switch is not a setting any more: the selector entry sets it (see the provider setting test).
     clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'useOwnConvaiKey', value = true}}).ok == false, 'useOwnConvaiKey is not an accepted setting id')
-    -- The player-facing text never names the embedded key or a paid Convai plan. The Mistral row says a paid Mistral plan is needed for a key (true).
-    for _, id in ipairs({'own-key', 'mistral-key', 'conversationProvider'}) do
+    -- The player-facing text never names the embedded key or a paid Convai plan. The Google Gemini key row may say the free plan has a daily limit, so 'paid' is only checked on the other rows.
+    for _, id in ipairs({'own-key', 'gemini-key', 'conversationProvider'}) do
       local text = (row(id).label or '') .. ' ' .. tostring(row(id).description or '') .. ' ' .. tostring(row(id).value or '')
-      for _, word in ipairs(id == 'mistral-key' and {'embedded', 'shipped', 'premium', 'subscription'} or {'embedded', 'shipped', 'paid', 'premium', 'subscription'}) do
+      for _, word in ipairs(id == 'gemini-key' and {'embedded', 'shipped', 'premium', 'subscription'} or {'embedded', 'shipped', 'paid', 'premium', 'subscription'}) do
         assert(not text:lower():find(word, 1, true), id .. ' mentions ' .. word)
       end
     end
@@ -4493,7 +4493,7 @@ test('the Convai and Mistral key rows are always listed, whichever provider is c
 });
 
 test('Settings sections: Relationships is a button in Conversations, Conversation provider follows Conversations and sits before Voices, Development keeps Developer mode, the Voices category has no Voice status row', () => {
-  run(`${nsuiFixture}
+  run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}
     assert(invoke('tab:settings').ok)
     local order = {}
     for _, category in ipairs(loaded.categories) do order[#order + 1] = category.id end
@@ -4508,7 +4508,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
         end
       end
     end
-    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'localOffload', 'mistral-key', 'own-key'}, ','),
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'localOffload', 'gemini-key', 'gemini-test', 'custom-endpoint', 'own-key'}, ','),
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
@@ -4516,7 +4516,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
     for _, id in ipairs(voices) do assert(id ~= 'voice-pack' and id ~= 'voice-status', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements
-    assert(#elements == 5 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral' and elements[4] == 'Local AI'
+    assert(#elements == 5 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Google Gemini (free plan)' and elements[4] == 'Local AI'
       and elements[5] == 'Custom (OpenAI-compatible)')
     assert(not tostring(row('conversationProvider').description):find('Groq', 1, true))
     -- Developer mode adds no row to Development.
@@ -4608,7 +4608,7 @@ test('The Convai API key row: Paste or Remove with the state in brackets, the fa
 });
 
 test('The provider row says when the player key runs without memory or cannot hold the conversations at all', () => {
-  run(`${nsuiFixture}
+  run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}
     local clock = 1000; os.clock = function() return clock end
     
     local NL2 = string.char(10, 10)
@@ -4656,23 +4656,23 @@ test('The provider row says when the player key runs without memory or cannot ho
     state({saved = false, active = 'shared', daily = {limit = 100, left = 63, blocked = false}}, 'daily')
     assert(note() == 'Convai free tier: 63 of 100 left today', tostring(note()))
     state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true}}, 'blocked')
-    -- The provider help ends with the status. What to do ends the Mistral key row's help (the provider help has no room for it in
-    -- every language): the limit (from the server), the reset, Local AI without a limit, Mistral with the player's own key.
+    -- The provider help ends with the status. What to do ends the Google Gemini key row's help (the provider help has no room for it in
+    -- every language): the limit (from the server), the reset, Local AI without a limit, Google Gemini with the player's own key.
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
-    local mistralHelp = row('mistral-key').description
+    local geminiHelp = row('gemini-key').description
     -- It says when the turns come back on this computer's clock (the next 00:00 UTC, convaiUiLocale.dailyResetClock), not "tomorrow".
     local resetAt = convaiUiLocale.dailyResetClock()
     assert(resetAt and resetAt:match('^%d%d:%d%d$'), tostring(resetAt))
-    assert(mistralHelp:find('You have used today’s 100 turns, which come back at ' .. resetAt .. '.', 1, true) and not mistralHelp:find('tomorrow', 1, true)
-      and mistralHelp:find('Local AI (unlimited) or Mistral (with your own key).', 1, true), mistralHelp)
-    assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
-    local limitText = lastParagraph(mistralHelp)
+    assert(geminiHelp:find('You have used today’s 100 turns, which come back at ' .. resetAt .. '.', 1, true) and not geminiHelp:find('tomorrow', 1, true)
+      and geminiHelp:find('Local AI (unlimited) or Google Gemini (with your own key).', 1, true), geminiHelp)
+    assert(lastParagraph(geminiHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Google Gemini key help')
+    local limitText = lastParagraph(geminiHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)
     state({saved = false, active = 'shared', daily = {limit = 150, left = 0, blocked = true}}, 'blocked150')
-    assert(row('mistral-key').description:find('today’s 150 turns', 1, true), 'the number is the one the bridge reports')
+    assert(row('gemini-key').description:find('today’s 150 turns', 1, true), 'the number is the one the bridge reports')
     state({saved = false, active = 'shared', daily = {limit = 100, left = 63, blocked = false}}, 'daily-again')
     assert(note() == 'Convai free tier: 63 of 100 left today', 'the extra text appears only while the limit is reached')
-    assert(not row('mistral-key').description:find('You have used today’s', 1, true), 'the Mistral key help has it only while the limit is reached')
+    assert(not row('gemini-key').description:find('You have used today’s', 1, true), 'the Google Gemini key help has it only while the limit is reached')
     state({saved = false, active = 'shared', daily = {limit = 100, left = 0, blocked = true}}, 'blocked-again')
     state({saved = true, tail = 'wxyz', active = 'player', daily = {limit = 100, left = 0, blocked = true}}, 'own')
     assert(note() == nil, 'an own key is never shown as limited')
@@ -4695,7 +4695,7 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     ${init.slice(start, end)}
     local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
     local id, text = notice({errorCode = 'quota-shared'})
-    assert(id == 'quota-exhausted' and text:find('Mistral', 1, true) and text:find('Settings > Conversation provider', 1, true), text)
+    assert(id == 'quota-exhausted' and text:find('Google Gemini', 1, true) and text:find('Settings > Conversation provider', 1, true), text)
     assert(not text:find('convai.com', 1, true) and not text:find('free API key', 1, true) and not text:find('Convai key', 1, true))
     assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shipped', 1, true))
     id, text = notice({errorCode = 'quota-own'}); assert(id == 'quota-exhausted' and text:find('plan limit', 1, true))
@@ -4703,13 +4703,13 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
     id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
     id, text = notice({errorCode = 'daily-limit', error = 'x'})
     -- The notice names today's turns (the limit the backend set, never a number written in the code) and the two ways on: Local AI
-    -- (unlimited) and Mistral with the player's own key. It is two lines with a forced break in the game's warning frame, the first
+    -- (unlimited) and Google Gemini with the player's own key. It is two lines with a forced break in the game's warning frame, the first
     -- sentence on line 1 and the detailed choice starting on a fresh line 2 (the width itself is checked in bridge/daily-notice-fit.test.mjs).
-    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used.\\nTry Local AI (unlimited) or Mistral (your own key).', text)
+    assert(id == 'daily-limit' and text == 'Today’s 100 Convai turns are used.\\nTry Local AI (unlimited) or Google Gemini (your own key).', text)
     ownKey = {daily = {limit = 150, left = 0, blocked = true}}
     id, text = notice({errorCode = 'daily-limit', error = 'x'}); assert(text:find('Today’s 150 Convai turns', 1, true), 'the limit the status reports: ' .. text)
     ownKey = {}; id, text = notice({errorCode = 'daily-limit', error = 'x'})
-    assert(text == 'Today’s Convai turns are used.\\nTry Local AI (unlimited) or Mistral (your own key).' and not text:find('{', 1, true), 'no limit known: ' .. text)
+    assert(text == 'Today’s Convai turns are used.\\nTry Local AI (unlimited) or Google Gemini (your own key).' and not text:find('{', 1, true), 'no limit known: ' .. text)
     ownKey = 'error'; id, text = notice({errorCode = 'daily-limit', error = 'x'})
     assert(text:find('Today’s Convai turns are used.', 1, true), 'the status could not be read: ' .. text)
     ownKey = {daily = {limit = 100, left = 0, blocked = true}}
@@ -4727,8 +4727,8 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
   `);
 });
 
-test('The Conversation provider section offers the provider, Mature content, the Local AI model and one Paste or Remove row for Convai and for Mistral: Convai free tier by default, two commands, a status that never shows the key', () => {
-  run(`${nsuiFixture}
+test('The Conversation provider section offers the provider, Mature content, the Local AI model and one Paste or Remove row for Convai and for Google Gemini: Convai free tier by default, two commands, a status that never shows the key', () => {
+  run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}
     local clock = 1000; os.clock = function() return clock end
     
     local NL2 = string.char(10, 10)
@@ -4747,16 +4747,19 @@ test('The Conversation provider section offers the provider, Mature content, the
     local provider = row('conversationProvider')
     assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
     assert(#provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
-      and provider.elements[3] == 'Mistral' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
+      and provider.elements[3] == 'Google Gemini (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
     assert(provider.description:find('memory stays on this computer', 1, true) and provider.description:find('Convai API key uses your own key', 1, true))
-    assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
+    assert(not provider.description:lower():find('text only', 1, true), 'Google Gemini is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
-    assert(provider.description:find('With Mistral, Local AI or Custom, Convai', 1, true), 'the voice paragraph names the options Local AI and Custom')
+    assert(provider.description:find('With Google Gemini, Local AI or Custom, Convai', 1, true), 'the voice paragraph names the options Local AI and Custom')
     assert(not provider.description:find('needs Local AI pack', 1, true) and not provider.description:find('Recommended', 1, true) and not provider.description:find('recommended', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
-    local mistral = row('mistral-key')
-    assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral API key' and mistral.value == 'Paste', mistral.label)
-    assert(mistral.description:find('paid plan', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and not mistral.description:find('free', 1, true))
+    -- The Mistral key row left this page (the Mistral preset is a row of the Custom endpoint page now). Google Gemini has its key row and the connection test.
+    assert(row('mistral-key') == nil, 'the Mistral key row is gone')
+    local gemini = row('gemini-key')
+    assert(gemini and gemini.type == 'action' and gemini.label == 'Google Gemini API key' and gemini.value == 'Add', gemini and gemini.label)
+    assert(gemini.description:find('aistudio.google.com/apikey', 1, true) and gemini.description:find('daily limit', 1, true) and not gemini.description:find('player-mistral-key.txt', 1, true))
+    assert(row('gemini-test') and row('gemini-test').type == 'action' and row('gemini-test').label == 'Test connection')
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(firstParagraph(provider.description) == firstParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')
@@ -4764,7 +4767,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', table.concat(order, ','))
     local function refresh() clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager') end
     local function answer(tag, state)
       jsonFixtures['or-state-' .. tag] = state
@@ -4773,40 +4776,66 @@ test('The Conversation provider section offers the provider, Mature content, the
     end
     local function note() return firstParagraph(row('conversationProvider').description) end
     local base = provider.description
-    -- Paste and Remove are two commands of one row, on their own channel, never the memory or the Convai key channel.
-    assert(invoke('mistral-key').ok)
-    local command = jsonFixtures[files['runtime/mistral-key-command.json']]
-    assert(command.version == 1 and command.action == 'paste' and command.id:find(':mkey:1', 1, true))
-    assert(files['runtime/memory-command.json'] == nil and files['runtime/own-key-command.json'] == nil)
+    -- Paste and Remove are two commands of one row, on the Google Gemini page's own channel (the second instance of the Custom provider module),
+    -- never the memory, the Convai key, the Mistral key or the Custom endpoint channel.
+    local function geminiState(tag, state)
+      jsonFixtures['gemini-state-' .. tag] = state
+      files['runtime/gemini-provider-state.json'] = 'gemini-state-' .. tag
+      refresh()
+    end
+    assert(invoke('gemini-key').ok)
+    local command = jsonFixtures[files['runtime/gemini-provider-command.json']]
+    assert(command.version == 1 and command.action == 'preset-gemini' and command.id:find(':cust:1', 1, true))
+    assert(files['runtime/memory-command.json'] == nil and files['runtime/own-key-command.json'] == nil and files['runtime/mistral-key-command.json'] == nil
+      and files['runtime/custom-provider-command.json'] == nil)
     local function id(number) return (command.id:gsub(':1$', ':' .. number)) end
-    answer('invalid', {version = 1, provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'invalid'}})
-    mistral = row('mistral-key')
-    assert(mistral.label == 'Mistral API key (Not added)' and mistral.value == 'Paste' and firstParagraph(mistral.description) == 'Mistral did not accept that key.', mistral.label)
-    answer('unreadable', {provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'unreadable'}})
-    assert(firstParagraph(row('mistral-key').description) == 'The clipboard could not be read.')
-    answer('failed', {provider = 'convai', effective = 'convai', saved = false, result = {id = id(1), state = 'failed'}})
-    assert(firstParagraph(row('mistral-key').description) == 'The key could not be saved.')
-    assert(invoke('mistral-key').ok)
-    answer('saved', {version = 1, provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', stt = false,
-      model = 'mistral-small-latest', result = {id = id(2), state = 'saved'}})
-    mistral = row('mistral-key')
-    assert(mistral.label == 'Mistral API key (…abcd)' and mistral.value == 'Remove', mistral.label)
-    assert(mistral.description:find('Deletes the saved key', 1, true) and mistral.description:find('last four characters', 1, true))
-    assert(not mistral.description:find('Mistral did not accept', 1, true))
-    answer('no-tail', {provider = 'mistral', effective = 'mistral', saved = true})
-    assert(row('mistral-key').label == 'Mistral API key (Added)' and row('mistral-key').value == 'Remove')
-    -- An answer to an older command is not shown, a damaged status reads as Convai without a key.
-    answer('old', {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', result = {id = 'x:mkey:9', state = 'invalid'}})
-    assert(row('mistral-key').label == 'Mistral API key (…abcd)' and not row('mistral-key').description:find('Mistral did not accept', 1, true))
+    geminiState('invalid', {version = 1, ready = false, keySaved = false, result = {id = id(1), state = 'invalid', reason = 'not-a-key'}})
+    gemini = row('gemini-key')
+    assert(gemini.label == 'Google Gemini API key (Not added)' and gemini.value == 'Add' and firstParagraph(gemini.description) == 'The clipboard does not hold an API key.', gemini.label)
+    geminiState('empty', {version = 1, keySaved = false, result = {id = id(1), state = 'invalid', reason = 'empty'}})
+    assert(firstParagraph(row('gemini-key').description) == 'The clipboard is empty. Copy your key first.')
+    geminiState('unreadable', {version = 1, keySaved = false, result = {id = id(1), state = 'unreadable'}})
+    assert(firstParagraph(row('gemini-key').description) == 'The clipboard could not be read.')
+    geminiState('failed', {version = 1, keySaved = false, result = {id = id(1), state = 'failed'}})
+    assert(firstParagraph(row('gemini-key').description) == 'The key could not be saved.')
+    assert(invoke('gemini-key').ok)
+    assert(jsonFixtures[files['runtime/gemini-provider-command.json']].action == 'preset-gemini')
+    geminiState('saved', {version = 1, ready = true, host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite', keySaved = true, tail = 'abcd', preset = 'gemini',
+      result = {id = id(2), state = 'saved'}})
+    gemini = row('gemini-key')
+    assert(gemini.label == 'Google Gemini API key (…abcd)' and gemini.value == 'Remove', gemini.label)
+    assert(gemini.description:find('Deletes the saved key', 1, true) and gemini.description:find('last four characters', 1, true))
+    assert(not gemini.description:find('The clipboard', 1, true))
+    geminiState('no-tail', {version = 1, keySaved = true, preset = 'gemini'})
+    assert(row('gemini-key').label == 'Google Gemini API key (Added)' and row('gemini-key').value == 'Remove')
+    -- A key saved for another preset (a Custom endpoint key) is not the Google Gemini key.
+    geminiState('other-preset', {version = 1, keySaved = true, tail = 'zzzz', preset = 'mistral'})
+    assert(row('gemini-key').label == 'Google Gemini API key' and row('gemini-key').value == 'Add')
+    -- An answer to an older command is not shown, a damaged status reads as no key.
+    geminiState('old', {version = 1, keySaved = true, tail = 'abcd', preset = 'gemini', result = {id = 'x:cust:9', state = 'invalid', reason = 'empty'}})
+    assert(row('gemini-key').label == 'Google Gemini API key (…abcd)' and not row('gemini-key').description:find('The clipboard', 1, true))
+    geminiState('garbled', {version = 1, keySaved = 'yes', tail = 5, preset = 7, host = {}, model = 12})
+    assert(row('gemini-key').label == 'Google Gemini API key' and row('gemini-key').value == 'Add')
+    -- The Mistral snapshot (which Voxtral uses) is not the Google Gemini key: a damaged one reads as Convai without a key and changes nothing here.
     answer('garbled', {provider = 7, effective = {}, saved = 'yes', tail = 5, limit = 'sometimes', stt = 'yes', model = 12})
     local state = manager.mistral()
     assert(state.provider == 'convai' and state.effective == 'convai' and state.saved == false and state.tail == nil
       and state.limit == nil and state.stt == false and state.model == nil and state.result == nil)
-    assert(row('mistral-key').label == 'Mistral API key' and row('mistral-key').value == 'Paste')
+    assert(row('gemini-key').label == 'Google Gemini API key' and row('gemini-key').value == 'Add')
+    answer('mistral-saved', {version = 1, provider = 'convai', effective = 'convai', saved = true, tail = 'mnop'})
+    assert(manager.mistral().saved == true and manager.mistral().tail == 'mnop' and row('gemini-key').value == 'Add', 'the Mistral key (for Voxtral) does not fill the Google Gemini row')
     -- Limits and the waiting state are told in the first paragraph of the provider row's help.
+    for limit, text in pairs({rate = 'Google Gemini: limit reached for now', daily = 'Google Gemini: limit reached for now',
+      invalid = 'Google Gemini: key not accepted', model = 'Google Gemini: model unavailable'}) do
+      answer('limit-' .. limit, {provider = 'gemini', effective = 'gemini', saved = true, tail = 'abcd', limit = limit})
+      assert(note() == text, limit .. ': ' .. note())
+    end
+    answer('gemini-fine', {provider = 'gemini', effective = 'gemini', saved = true, tail = 'abcd'})
+    assert(row('conversationProvider').description == base, 'Google Gemini answering with no problem needs no note')
+    -- A saved legacy Mistral keeps its own notes.
     for limit, text in pairs({rate = 'Mistral: limit reached for now', daily = 'Mistral: limit reached for now',
       invalid = 'Mistral: key not accepted', model = 'Mistral: model unavailable'}) do
-      answer('limit-' .. limit, {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', limit = limit})
+      answer('mistral-limit-' .. limit, {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', limit = limit})
       assert(note() == text, limit .. ': ' .. note())
     end
     answer('mistral-fine', {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd'})
@@ -4879,8 +4908,9 @@ test('The Conversation provider section offers the provider, Mature content, the
     clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok); loaded = registered.loadMod('manager')
     assert(row('conversationProvider').value == 3)
-    answer('mistral-no-key', {provider = 'mistral', effective = 'convai', saved = false})
-    assert(note() == 'Convai: Mistral has no key yet', note())
+    assert(saved.conversationProvider == 'gemini', 'entry 3 stores Google Gemini')
+    answer('gemini-no-key', {provider = 'gemini', effective = 'convai', saved = false})
+    assert(note() == 'Convai: Google Gemini has no key yet', note())
     clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok); loaded = registered.loadMod('manager')
     assert(row('conversationProvider').value == 2 and saved.useOwnConvaiKey == true)
@@ -4889,8 +4919,9 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(row('conversationProvider').value == 1 and saved.useOwnConvaiKey == false)
     answer('pending', {provider = 'convai', effective = 'convai', saved = true, tail = 'abcd', pending = true})
     assert(note() == 'Waiting for the conversation to end')
-    assert(row('mistral-key').value == 'Remove')
-    assert(invoke('mistral-key').ok and jsonFixtures[files['runtime/mistral-key-command.json']].action == 'clear')
+    geminiState('pending', {version = 1, ready = true, keySaved = true, tail = 'abcd', preset = 'gemini'})
+    assert(row('gemini-key').value == 'Remove')
+    assert(invoke('gemini-key').ok and jsonFixtures[files['runtime/gemini-provider-command.json']].action == 'clear-preset-gemini')
   `);
 });
 
@@ -4900,14 +4931,31 @@ test('the Conversation provider setting: five entries stored as a provider and t
     local function settings() return manager.snapshot(player).settings end
     assert(invoke('tab:settings').ok)
     assert(settings().conversationProvider == 'convai' and settings().useOwnConvaiKey == false)
-    -- 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local, 5 Custom.
+    -- 1 Convai free tier, 2 Convai API key, 3 Google Gemini, 4 Local, 5 Custom.
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
-    assert(settings().conversationProvider == 'mistral' and saved.conversationProvider == 'mistral' and saved.useOwnConvaiKey == false)
-    for _, bad in ipairs({6, 0, -1, 2.5, 'mistral', 'local', 'custom', 'groq', true}) do
+    assert(settings().conversationProvider == 'gemini' and saved.conversationProvider == 'gemini' and saved.useOwnConvaiKey == false)
+    loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 3 and row('conversationProvider').elements[3] == 'Google Gemini (free plan)', 'a saved Google Gemini reads as the third entry')
+    for _, bad in ipairs({6, 0, -1, 2.5, 'mistral', 'gemini', 'local', 'custom', 'groq', true}) do
       assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = bad}}).ok, tostring(bad))
     end
     assert(not manager.applySettings(player, {conversationProvider = 'other'}))
-    assert(settings().conversationProvider == 'mistral', 'a refused value changes nothing')
+    assert(settings().conversationProvider == 'gemini', 'a refused value changes nothing')
+    -- A saved Mistral (the entry left the list on 2026-10-30) is still a valid provider: it keeps the third position under its own label and works as before,
+    -- and picking the third entry again while it is shown keeps Mistral. Any other choice leaves it for good.
+    assert(manager.applySettings(player, {conversationProvider = 'mistral'}) and settings().conversationProvider == 'mistral' and saved.conversationProvider == 'mistral')
+    loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 3 and row('conversationProvider').elements[3] == 'Mistral (your key)', row('conversationProvider').elements[3])
+    assert(#row('conversationProvider').elements == 5 and row('conversationProvider').elements[1] == 'Convai free tier' and row('conversationProvider').elements[4] == 'Local AI')
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok and settings().conversationProvider == 'mistral', 'the shown Mistral entry stores Mistral')
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 1}}).ok)
+    loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').elements[3] == 'Google Gemini (free plan)', 'Mistral is gone from the list once another entry is chosen')
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok and settings().conversationProvider == 'gemini')
+    assert(manager.applySettings(player, {conversationProvider = 'gemini'}) and settings().conversationProvider == 'gemini')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok)
     assert(settings().conversationProvider == 'local' and saved.conversationProvider == 'local' and saved.useOwnConvaiKey == false)
     assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 6}}).ok, 'there is no sixth provider')
@@ -4930,12 +4978,12 @@ test('the Conversation provider setting: five entries stored as a provider and t
     assert(settings().conversationProvider == 'convai' and settings().useOwnConvaiKey == false and saved.useOwnConvaiKey == false)
     loaded = registered.loadMod('manager')
     assert(row('conversationProvider').value == 1)
-    -- Mistral and Local leave the own-key choice as it was, so it comes back with the Convai entry the player used last.
+    -- Google Gemini and Local leave the own-key choice as it was, so it comes back with the Convai entry the player used last.
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok)
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
-    assert(settings().conversationProvider == 'mistral' and settings().useOwnConvaiKey == true)
+    assert(settings().conversationProvider == 'gemini' and settings().useOwnConvaiKey == true)
     loaded = registered.loadMod('manager')
-    assert(row('conversationProvider').value == 3, 'Mistral wins over a stored own-key choice')
+    assert(row('conversationProvider').value == 3, 'Google Gemini wins over a stored own-key choice')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok and settings().useOwnConvaiKey == true)
     -- Both stored settings change together in one transaction, and a failed save changes neither.
     failSave = true
@@ -4947,7 +4995,7 @@ test('the Conversation provider setting: five entries stored as a provider and t
   `);
 });
 
-test('the voice key waits for Convai only while Mistral is in use and this computer cannot recognise speech', () => {
+test('the voice key waits for Convai only while Google Gemini or Mistral is in use and this computer cannot recognise speech', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function status(tag, value)
@@ -4956,23 +5004,23 @@ test('the voice key waits for Convai only while Mistral is in use and this compu
       clock = clock + 2
     end
     local function choose(index) assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = index}}).ok) end
-    local MISTRAL, LOCAL = 3, 4
+    local GEMINI, LOCAL = 3, 4
     assert(manager.voiceNeedsConvai() == false, 'Convai is the default')
-    status('a', {provider = 'mistral', effective = 'mistral', saved = true, stt = false})
+    status('a', {provider = 'gemini', effective = 'gemini', saved = true, stt = false})
     assert(manager.voiceNeedsConvai() == false, 'the setting is still Convai')
     choose(2)
     assert(manager.voiceNeedsConvai() == false, 'the Convai API key entry is Convai too')
-    choose(MISTRAL)
+    choose(GEMINI)
     assert(manager.voiceNeedsConvai() == true)
-    status('b', {provider = 'mistral', effective = 'mistral', saved = true, stt = true})
+    status('b', {provider = 'gemini', effective = 'gemini', saved = true, stt = true})
     assert(manager.voiceNeedsConvai() == false, 'local speech recognition makes the voice key work')
-    status('c', {provider = 'mistral', effective = 'convai', saved = false, stt = false})
+    status('c', {provider = 'gemini', effective = 'convai', saved = false, stt = false})
     assert(manager.voiceNeedsConvai() == false, 'no key saved: Convai is used, so the voice key works')
-    status('d', {provider = 'mistral', effective = 'mistral', saved = true})
+    status('d', {provider = 'gemini', effective = 'gemini', saved = true})
     assert(manager.voiceNeedsConvai() == true, 'a status without stt means no local speech recognition')
     files['runtime/mistral-state.json'] = nil; clock = clock + 2
     assert(manager.voiceNeedsConvai() == false, 'no status file: the safe default')
-    status('e', {provider = 'mistral', effective = 'mistral', saved = true, stt = false})
+    status('e', {provider = 'gemini', effective = 'gemini', saved = true, stt = false})
     choose(1)
     assert(manager.voiceNeedsConvai() == false)
     -- Local AI follows the same logic: only while it is the chosen provider and the bridge reports it in use without speech recognition.
@@ -4983,11 +5031,19 @@ test('the voice key waits for Convai only while Mistral is in use and this compu
     assert(manager.voiceNeedsConvai() == false, 'local speech recognition makes the voice key work')
     status('h', {provider = 'local', effective = 'convai', localAi = 'not-installed', stt = false})
     assert(manager.voiceNeedsConvai() == false, 'Local AI could not start: Convai answers, so the voice key works')
-    status('i', {provider = 'mistral', effective = 'mistral', saved = true, stt = false})
+    status('i', {provider = 'gemini', effective = 'gemini', saved = true, stt = false})
     assert(manager.voiceNeedsConvai() == false, 'the bridge is on another provider than the chosen one')
-    choose(MISTRAL)
+    choose(GEMINI)
     status('j', {provider = 'local', effective = 'local', localAi = 'ready', stt = false})
-    assert(manager.voiceNeedsConvai() == false, 'Mistral chosen, Local AI reported: not this check')
+    assert(manager.voiceNeedsConvai() == false, 'Google Gemini chosen, Local AI reported: not this check')
+    -- A saved legacy Mistral follows the same logic.
+    assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
+    status('k', {provider = 'mistral', effective = 'mistral', saved = true, stt = false})
+    assert(manager.voiceNeedsConvai() == true, 'Mistral without local speech recognition: the voice key waits for Convai')
+    status('l', {provider = 'mistral', effective = 'mistral', saved = true, stt = true})
+    assert(manager.voiceNeedsConvai() == false)
+    status('m', {provider = 'gemini', effective = 'gemini', saved = true, stt = false})
+    assert(manager.voiceNeedsConvai() == false, 'the bridge is on Google Gemini while Mistral is chosen')
   `);
 });
 
@@ -5044,7 +5100,8 @@ test('the voice key follows the status file the bridge really publishes for Mist
       files['runtime/mistral-state.json'] = 'voice-' .. tag
       clock = clock + 2
     end
-    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
+    -- The Mistral provider is a saved legacy choice now (it left the selector on 2026-10-30), the bridge still publishes its status for it.
+    assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
     status('with', ${lua(withStt)})
     assert(manager.mistral().effective == 'mistral' and manager.mistral().stt == true)
     assert(manager.voiceNeedsConvai() == false, 'Mistral with local speech recognition: the voice key works')
@@ -5603,13 +5660,20 @@ test('Mature content and Voxtral: turning it on moves a companion voice and V fr
     result = core.apply({{id = 'matureContent', value = true}})
     assert(result.ok and saved.vVoice == false and saved.vVoiceEngine == 'pocket' and saved.voiceProvider == 'pocket', 'V Off: the saved engine still moves, V stays off')
     pageOff()
-    -- Mistral text with Mature content: it is Local AI (the pack is installed) that Mature content selects, and the voices move with it.
+    -- Google Gemini text with Mature content: it is Local AI (the pack is installed) that Mature content selects, and the voices move with it.
+    assert(manager.applySettings(player, {conversationProvider = 'gemini', voiceProvider = 'voxtral', vVoice = true, vVoiceEngine = 'voxtral'}))
+    result = core.apply({{id = 'matureContent', value = true}})
+    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'local' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
+    assert(saved.matureRestore.conversationProvider.before == 'gemini')
+    pageOff()
+    assert(saved.conversationProvider == 'gemini' and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', 'turning it off puts Google Gemini and Voxtral back')
+    -- A saved legacy Mistral is moved the same way (the record names it).
     assert(manager.applySettings(player, {conversationProvider = 'mistral', voiceProvider = 'voxtral', vVoice = true, vVoiceEngine = 'voxtral'}))
     result = core.apply({{id = 'matureContent', value = true}})
     assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'local' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
     assert(saved.matureRestore.conversationProvider.before == 'mistral')
     pageOff()
-    assert(saved.conversationProvider == 'mistral' and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', 'turning it off puts Mistral and Voxtral back')
+    assert(saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', 'turning it off puts Voxtral back')
     -- The key is removed while it is on: turning it off still works (no refusal loop) and the voices stay on Pocket.
     assert(manager.applySettings(player, {conversationProvider = 'local', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
     assert(core.apply({{id = 'matureContent', value = true}}).ok)
@@ -5859,7 +5923,7 @@ const customReadyFixture = `
   end
 `;
 
-test('Mature content on from Convai or Mistral without the Local AI pack: a ready Custom endpoint selects Custom, else it is refused, never Mistral, whatever key is saved; Local AI still comes first; choosing Convai or Mistral in the same batch is refused', () => {
+test('Mature content on from Convai or Google Gemini without the Local AI pack: a ready Custom endpoint selects Custom, else it is refused, never Google Gemini or Mistral, whatever key is saved; Local AI still comes first; choosing Convai or Google Gemini in the same batch is refused', () => {
   run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}${matureStateFixture}${customReadyFixture}
     assert(invoke('tab:settings').ok)
     local REFUSED = 'Needs Local AI or Custom.'
@@ -5871,7 +5935,10 @@ test('Mature content on from Convai or Mistral without the Local AI pack: a read
     assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.matureRestore == nil, tostring(saved.conversationProvider))
     assert(shown() == REFUSED, tostring(shown()))
     loaded = registered.loadMod('manager'); assert(row('matureContent').value == false)
-    -- The same from Mistral itself: refused, and it stays on Mistral.
+    -- The same from Google Gemini itself (and from a saved legacy Mistral): refused, and it stays where it is.
+    assert(manager.applySettings(player, {conversationProvider = 'gemini'}))
+    result = mature(true)
+    assert(result.refusal == REFUSED and saved.matureContent == false and saved.conversationProvider == 'gemini')
     assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
     result = mature(true)
     assert(result.refusal == REFUSED and saved.matureContent == false and saved.conversationProvider == 'mistral')
@@ -5892,13 +5959,20 @@ test('Mature content on from Convai or Mistral without the Local AI pack: a read
     result = mature(false)
     assert(result.ok and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true and saved.matureContent == false)
     assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = false}))
-    -- From Mistral with a ready Custom endpoint: Custom, and turning it off goes back to Mistral.
+    -- From Google Gemini with a ready Custom endpoint: Custom, and turning it off goes back to Google Gemini.
+    assert(manager.applySettings(player, {conversationProvider = 'gemini'}))
+    result = mature(true)
+    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'custom')
+    assert(saved.matureRestore.conversationProvider.before == 'gemini' and saved.matureRestore.conversationProvider.set == 'custom')
+    result = mature(false)
+    assert(result.ok and saved.conversationProvider == 'gemini' and saved.matureContent == false, 'back to Google Gemini')
+    -- From a saved legacy Mistral: Custom as well, and the record names Mistral.
     assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
     result = mature(true)
     assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'custom')
     assert(saved.matureRestore.conversationProvider.before == 'mistral' and saved.matureRestore.conversationProvider.set == 'custom')
     result = mature(false)
-    assert(result.ok and saved.conversationProvider == 'mistral' and saved.matureContent == false, 'back to Mistral')
+    assert(result.ok and saved.matureContent == false and saved.matureRestore == nil)
     assert(manager.applySettings(player, {conversationProvider = 'convai'}))
     -- An endpoint that is not ready (no address or model ID) counts as none; the Convai API key entry is refused the same way.
     withoutLocalAi(true); custom(false)
@@ -5912,13 +5986,13 @@ test('Mature content on from Convai or Mistral without the Local AI pack: a read
     assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'local', tostring(saved.conversationProvider))
     assert(saved.matureRestore.conversationProvider.set == 'local' and table.concat(result.names, ', ') == 'Local AI, Uncensored model')
     assert(mature(false).ok and saved.conversationProvider == 'convai')
-    -- The same batch choosing Convai or Mistral: the player's choice stays and Mature content is refused, whatever else is set up.
+    -- The same batch choosing Convai or Google Gemini: the player's choice stays and Mature content is refused, whatever else is set up.
     for _, case in ipairs({{true, 'key + Local AI'}, {false, 'Custom only'}}) do
       if case[1] then withLocalAi(true) else withoutLocalAi(false); custom(true) end
       for _, entry in ipairs({1, 2, 3}) do
         result = core.apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = entry}})
         assert(result.ok and result.refusal == REFUSED, case[2] .. ' ' .. entry .. ': ' .. tostring(result.refusal))
-        assert(saved.matureContent == false and saved.conversationProvider == (entry == 3 and 'mistral' or 'convai') and saved.useOwnConvaiKey == (entry == 2), case[2] .. ' ' .. entry)
+        assert(saved.matureContent == false and saved.conversationProvider == (entry == 3 and 'gemini' or 'convai') and saved.useOwnConvaiKey == (entry == 2), case[2] .. ' ' .. entry)
         assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = false}))
       end
     end
@@ -5927,9 +6001,9 @@ test('Mature content on from Convai or Mistral without the Local AI pack: a read
     assert(manager.applySettings(player, {conversationProvider = 'custom'}))
     result = mature(true)
     assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'custom' and #result.names == 0 and result.refusal == nil)
-    -- Choosing Mistral while it is on turns it off, and puts nothing else back it did not change.
+    -- Choosing Google Gemini while it is on turns it off, and puts nothing else back it did not change.
     result = core.apply({{id = 'conversationProvider', value = 3}})
-    assert(result.ok and saved.conversationProvider == 'mistral' and saved.matureContent == false)
+    assert(result.ok and saved.conversationProvider == 'gemini' and saved.matureContent == false)
     -- Choosing Convai (either entry) while it is on turns it off as before.
     assert(manager.applySettings(player, {conversationProvider = 'custom'}))
     assert(mature(true).ok and saved.matureContent == true)
@@ -5939,39 +6013,34 @@ test('Mature content on from Convai or Mistral without the Local AI pack: a read
 });
 
 
-test('the Mistral key row\'s Remove help says what the key still powers: the conversations on Mistral, the companions on Voxtral, V on Voxtral, both, or nothing; the Convai key rows keep their old help', () => {
-  run(`${nsuiFixture}${matureStateFixture}
+test('the Google Gemini key row\'s Remove help is the fixed sentence and the privacy line whatever the provider and the voices are (the old Mistral "what removing it changes" sentences are gone with that row); the Convai key row keeps its old help', () => {
+  run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}${matureStateFixture}
     local NL2 = string.char(10, 10)
     local TAIL = NL2 .. 'Saved on this computer only. Only the last four characters are ever shown.'
     local FIXED = 'Deletes the saved key.'
     bridge({provider = 'convai', effective = 'convai', saved = true, tail = 'abcd'})
+    jsonFixtures['gemini-saved'] = {version = 1, ready = true, keySaved = true, tail = 'wxyz', preset = 'gemini'}
+    files['runtime/gemini-provider-state.json'] = 'gemini-saved'
     assert(invoke('tab:settings').ok); loaded = registered.loadMod('manager')
-    local function help() loaded = registered.loadMod('manager'); return row('mistral-key').description end
+    local function help() loaded = registered.loadMod('manager'); return row('gemini-key').description end
     local function set(values) assert(manager.applySettings(player, values)); return help() end
-    assert(row('mistral-key').value == 'Remove')
-    -- Nothing depends on it: Convai text, Pocket companions, V on Pocket.
-    assert(help() == FIXED .. ' Nothing you use now depends on it.' .. TAIL, help())
-    -- Conversations on Mistral only.
-    assert(set({conversationProvider = 'mistral'}) == FIXED .. ' Conversations go back to Convai free tier.' .. TAIL, help())
-    -- Companions on Voxtral only.
-    assert(set({conversationProvider = 'convai', voiceProvider = 'voxtral'}) == FIXED .. ' Voxtral stops speaking; companion replies show as text until a key is saved.' .. TAIL, help())
-    -- V on Voxtral only (V's voice on).
-    assert(set({voiceProvider = 'pocket', vVoiceEngine = 'voxtral'}) == FIXED .. ' V’s voice switches from Voxtral to Pocket.' .. TAIL, help())
-    -- V's voice off keeps the engine, but it powers nothing.
-    assert(set({vVoice = false}) == FIXED .. ' Nothing you use now depends on it.' .. TAIL, help())
-    assert(set({vVoice = true}) == FIXED .. ' V’s voice switches from Voxtral to Pocket.' .. TAIL)
-    -- Mistral and Voxtral together: both sentences, in that order.
-    assert(set({conversationProvider = 'mistral', voiceProvider = 'voxtral', vVoiceEngine = 'pocket'})
-      == FIXED .. ' Conversations go back to Convai free tier. Voxtral stops speaking; companion replies show as text until a key is saved.' .. TAIL, help())
-    assert(set({conversationProvider = 'mistral', voiceProvider = 'pocket', vVoiceEngine = 'voxtral'})
-      == FIXED .. ' Conversations go back to Convai free tier. V’s voice switches from Voxtral to Pocket.' .. TAIL, help())
-    assert(set({voiceProvider = 'voxtral'})
-      == FIXED .. ' Conversations go back to Convai free tier. Voxtral stops speaking; companion replies show as text until a key is saved. V’s voice switches from Voxtral to Pocket.' .. TAIL, help())
+    assert(row('gemini-key').value == 'Remove' and row('gemini-key').label == 'Google Gemini API key (…wxyz)')
+    assert(row('mistral-key') == nil, 'no Mistral key row any more')
+    -- Convai text, Pocket companions, V on Pocket: the fixed sentence and the privacy line, nothing else.
+    assert(help() == FIXED .. TAIL, help())
+    -- The same with conversations on Google Gemini or a saved legacy Mistral, companions on Voxtral and V on Voxtral: nothing is said about what else changes.
+    assert(set({conversationProvider = 'gemini'}) == FIXED .. TAIL, help())
+    assert(set({conversationProvider = 'mistral'}) == FIXED .. TAIL, help())
+    assert(set({conversationProvider = 'convai', voiceProvider = 'voxtral'}) == FIXED .. TAIL, help())
+    assert(set({voiceProvider = 'pocket', vVoiceEngine = 'voxtral'}) == FIXED .. TAIL, help())
+    assert(set({voiceProvider = 'voxtral', conversationProvider = 'gemini'}) == FIXED .. TAIL, help())
     -- Without a saved key the row is the paste row and says nothing about removal.
-    bridge({provider = 'convai', effective = 'convai', saved = false})
+    jsonFixtures['gemini-none'] = {version = 1, ready = false, keySaved = false}
+    files['runtime/gemini-provider-state.json'] = 'gemini-none'
+    clock = clock + 2
     loaded = registered.loadMod('manager')
-    assert(row('mistral-key').value == 'Paste' and not row('mistral-key').description:find('Deletes the saved key', 1, true))
-    -- The Convai API key row keeps its own help, whatever Mistral powers.
+    assert(row('gemini-key').value == 'Add' and not row('gemini-key').description:find('Deletes the saved key', 1, true))
+    -- The Convai API key row keeps its own help.
     local token = 'own-saved'
     jsonFixtures[token] = {saved = true, tail = 'wxyz', active = 'player'}
     files['runtime/own-key-state.json'] = token
@@ -6324,16 +6393,16 @@ test('Battle and loot reactions are on by default; an unchosen saved false moves
   `);
 });
 
-test('Custom endpoint is one button after the Mistral key row that opens a page of its own: the rows of the Custom provider, Back to Settings, absent without the module, and the page follows the custom state', () => {
+test('Custom endpoint is one button after the Google Gemini rows that opens a page of its own: the rows of the Custom provider, Back to Settings, absent without the module, and the page follows the custom state', () => {
   run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}${matureStateFixture}${customReadyFixture}
     assert(invoke('tab:settings').ok)
     custom(false)
-    -- The button sits right after the Mistral key row; the four Custom rows are not on the Settings page any more.
+    -- The button sits right after the Google Gemini rows (the key and the connection test); the four Custom rows are not on the Settings page any more.
     local order = {}
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,custom-endpoint,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', table.concat(order, ','))
     for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is still on Settings') end
     local button = row('custom-endpoint')
     assert(button.type == 'action' and button.label == 'Custom endpoint' and button.value == 'Open', button.label)
@@ -6346,7 +6415,8 @@ test('Custom endpoint is one button after the Mistral key row that opens a page 
     assert(page and page.name == 'Custom endpoint', 'the page category')
     local ids = {}
     for _, item in ipairs(page.settings) do ids[#ids + 1] = item.id end
-    assert(table.concat(ids, ',') == 'custom-preset-gemini,custom-url,custom-key,custom-model,custom-test', table.concat(ids, ','))
+    assert(table.concat(ids, ',') == 'custom-preset-mistral,custom-url,custom-key,custom-model,custom-test', table.concat(ids, ','))
+    assert(page.settings[1].label == 'Mistral' and row('custom-preset-gemini') == nil, 'the Mistral preset is on this page, the Google Gemini one is not')
     for _, item in ipairs(page.settings) do assert(item.type == 'action', item.id) end
     local rows = dofile('custom-provider.lua').new({readJSON = function() return nil end}).rows()
     assert(#rows == 5, 'the module has five rows')
@@ -6409,7 +6479,7 @@ test('Home offers the Character editor as the fourth row, then Key bindings, abo
     local open = row('character-editor:home')
     assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
     assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
-    assert(open.description:find('Mistral, Local AI and Custom, not Convai', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
+    assert(open.description:find('Google Gemini, Local AI and Custom, not Convai', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
     -- Ids are unique on the page and the navigations keep theirs.
     local seen = {}
     for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end
@@ -6906,7 +6976,7 @@ test('V’s voice for microphone lines is a select beside typed lines: all four 
     clock = clock + 2
     manager.snapshot(player)
     result = apply({'vVoiceMic', 3})
-    assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(result.error))
+    assert(result.ok == false and result.error == 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)', tostring(result.error))
     for _, invalid in ipairs({0, 5, 1.5, '2', true, false}) do
       result = apply({'vVoiceMic', invalid})
       assert(result.ok == false and result.error == 'Choose one of the listed voices for V.', tostring(invalid) .. ' ' .. tostring(result.error))

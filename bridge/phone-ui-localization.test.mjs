@@ -379,7 +379,7 @@ assert(#calls==before and hint.text==external)
 test('the daily-limit status with its reset time is translated from its template, in the language chosen later, and a look-alike is left alone', () => runLua(setup + `
 local m=(function()${phone}end)()
 local n,c,hint=popup('judy')
-local template='You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.'
+local template='You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.'
 translations.fr[template]='Limite atteinte. Retour à {time}.'
 translations.ja[template]='上限です。{time}に戻ります。'
 local status=template:gsub('{time}','05:30')

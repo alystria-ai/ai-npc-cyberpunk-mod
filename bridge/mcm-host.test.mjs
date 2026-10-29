@@ -1470,7 +1470,10 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   ${customState}
   press('Settings')
   assert(mcm.row('Custom endpoint').type == 'action' and mcm.row('Custom endpoint').value == 'Open', 'one button on Settings')
-  for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(mcm.row(label) == nil, label .. ' is not on Settings any more') end
+  for _, label in ipairs({${customRows.filter(label => label !== 'Test connection').map(label => `'${label}'`).join(', ')}}) do assert(mcm.row(label) == nil, label .. ' is not on Settings any more') end
+  -- The Google Gemini key row and its own Test connection row are on Settings (the Gemini test row is not the Custom one).
+  assert(mcm.row('Google Gemini API key') and mcm.row('Test connection'), 'the Gemini rows are on Settings')
+  assert(mcm.row('Mistral API key') == nil, 'no Mistral key row on Settings any more')
   press('Custom endpoint')
   local config = mcm.config()
   assert(config.navigation.pageId == 'custom-endpoint|1|1' and config.navigation.backActionId == 'custom-endpoint:back' and config.navigation.escapeBack == true,
@@ -1707,7 +1710,7 @@ for (const locale of ['en', 'cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl'
 test('MCM: the Character editor row of Home writes one editor command, the page stays on Home and the status line carries the notice', () => withScreen(`
   local row = mcm.row('Character editor')
   assert(row and row.type == 'action' and row.value == 'Open' and row.id == 'character-editor:home' and row.capabilities.action == true)
-  assert(row.description:find('Mistral, Local AI and Custom, not Convai', 1, true) and row.description:find('prompting for each AI option', 1, true))
+  assert(row.description:find('Google Gemini, Local AI and Custom, not Convai', 1, true) and row.description:find('prompting for each AI option', 1, true))
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
   local before = commandWrites()
   press('Character editor')

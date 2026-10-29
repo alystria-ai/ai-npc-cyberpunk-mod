@@ -73,6 +73,8 @@ M.catalog = {
     ['custom-unreachable'] = {class = PLAYER, repeatS = 60}, -- the endpoint did not answer
     ['custom-no-setup'] = {class = PLAYER, repeatS = 86400}, -- Custom is chosen but the endpoint URL or the model ID is missing, so Convai is used: once per game session
     ['custom-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Custom replies, once per game session
+    ['gemini-no-key'] = {class = PLAYER, repeatS = 86400},  -- Google Gemini is chosen but has no key, so Convai is used: once per game session
+    ['gemini-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Google Gemini replies, once per game session
     ['voice-language'] = {class = PLAYER, repeatS = 86400}, -- a text provider replied in a language the chosen voice cannot speak (Pocket always, Voxtral for the languages it does not list): shown as text, OmniVoice speaks it; once per game session
     ['pocket-pack-fr'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session
     ['pocket-pack-it'] = {class = PLAYER, repeatS = 86400}, -- the PocketTTS model for this language is installed but its multilingual pack is not: replies show as text; once per game session

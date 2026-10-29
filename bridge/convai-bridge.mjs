@@ -119,8 +119,9 @@ import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryReco
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, PACKAGED_AUTH_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, LimitStore, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
-import {MISTRAL_KEY_FILE, MistralControl, MistralProvider, PROVIDERS} from './mistral-key.mjs';
+import {MISTRAL_KEY_FILE, MistralControl, MistralProvider, PROVIDERS, parseMistralKey} from './mistral-key.mjs';
 import {CUSTOM_FILE, CustomControl, CustomEndpoint, testConnection as testCustomConnection} from './custom-endpoint.mjs';
+import {activeEndpoint, migrateEarlierSetups, openGeminiEndpoint} from './gemini-provider.mjs';
 import {TextProviderHost, attachTextProvider, customRoute, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
@@ -590,10 +591,16 @@ const quota = new QuotaWatch({keys});
 // The player's custom OpenAI-compatible endpoint (docs/CUSTOM_PROVIDER.md): address, optional key and model id in player-custom-endpoint.txt in this state
 // folder. Reading it is a file read and nothing more: no request is made to the endpoint unless the player chooses this provider or presses Test connection.
 const customEndpoint = await new CustomEndpoint({path: resolve(stateDirectory, CUSTOM_FILE), log: message => console.error('[Custom] ' + message)}).load();
-const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), custom: customEndpoint}).load();
+// Google Gemini (bridge/gemini-provider.mjs): the same client on a second endpoint with its own saved key (player-gemini-endpoint.txt), a provider of its own in the list.
+const geminiEndpoint = await openGeminiEndpoint(stateDirectory, message => console.error('[Gemini] ' + message));
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), custom: customEndpoint, gemini: geminiEndpoint}).load();
 // runtime/mistral-state.json is not written until the first settings poll has applied the saved provider (released after it, at the end of
 // start-up): until then the provider is the default, Convai, and the game would read that as the player's choice for a moment.
 mistral.statusHeld = true;
+// The endpoint the turns use: Google Gemini's while that provider is applied, the Custom provider's otherwise (follows the provider's idle boundary).
+const turnEndpoint = activeEndpoint({provider: mistral, custom: customEndpoint, gemini: geminiEndpoint});
+// Earlier setups moved once (bridge/gemini-provider.mjs): a Gemini plan a test build saved on the Custom page, a saved Mistral key into the Mistral preset.
+await migrateEarlierSetups({custom: customEndpoint, gemini: geminiEndpoint, mistralKey: mistral.key, log: message => console.error('[Gemini] ' + message)});
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
@@ -1164,6 +1171,7 @@ const visionSees = () => {
     case 'mistral': return true;
     case 'local': { const state = localServer.visionState(); return state.available === true && state.reason !== 'no-room' && state.reason !== 'start-failed'; }
     case 'custom': return textRoutes.custom.visionAllowed() === true;
+    case 'gemini': return textRoutes.gemini.visionAllowed() === true;
     default: return false;
   }
 };
@@ -1204,6 +1212,7 @@ const textRoutes = {
     onImagesRejected: kind => companionVision.noteRefused(kind)}),
   local: localRoute({server: localServer, provider: mistral, log: message => console.error(message.startsWith('[PromptFit]') ? message : '[TextProvider] ' + message), onImagesRejected: kind => companionVision.noteRefused(kind)}),
   custom: customRoute({provider: mistral, custom: customEndpoint, limits: promptLimits, log: line => console.error(line), onImagesRejected: kind => companionVision.noteRefused(kind)}),
+  gemini: customRoute({provider: mistral, custom: geminiEndpoint, name: 'gemini', limits: promptLimits, log: line => console.error(line), onImagesRejected: kind => companionVision.noteRefused(kind)}),
 };
 const providerOfCharacter = new Map();
 const profileOfCharacter = config => {
@@ -1238,7 +1247,7 @@ maturePackInstalled(true);
 const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, 'prompt-overrides'), log: message => console.error('[PromptProfiles] ' + message),
   packs: addonContent.installed ? addonContent : null,
   active: () => ({route: mistral.route, tier: localServer.status?.().tier ?? null, mature: matureContent.enabled === true,
-    custom: customEndpoint.ready ? {origin: customEndpoint.origin, model: customEndpoint.model} : null})});
+    custom: turnEndpoint.ready ? {origin: turnEndpoint.origin, model: turnEndpoint.model} : null})});
 // A content pack whose manifest says memory "separate" (API 1.1) gives the characters a memory of their own while it is on: the text providers keep it under `<profile key>@<pack id>`
 // (bridge/memory-scope.mjs). This is the one place the mapping is made: a turn takes its key once when it starts, the character editor reads the memory in use, Forget acts on it.
 // Convai's own memory is not part of it (a pack's Convai twins have ids of their own); an add-on speaker's and a player-made character's keys are never changed.
@@ -1339,8 +1348,8 @@ voiceChoice = createVoiceChoice({speech: mistralSpeech, tap: micTap, readHub: re
   log: line => console.error('[CyberpunkConvai] ' + line)});
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
 // The custom provider warms its own https origin (none for a server on this computer or the home network, which has no TLS to open).
-const warmTurnConnections = options => options?.provider === 'custom'
-  ? (customEndpoint.warmOrigin ? warmConnection({...options, origin: customEndpoint.warmOrigin, connections: 2}) : Promise.resolve(false))
+const warmTurnConnections = options => options?.provider === 'custom' || options?.provider === 'gemini'
+  ? (() => { const endpoint = options.provider === 'gemini' ? geminiEndpoint : customEndpoint; return endpoint.warmOrigin ? warmConnection({...options, provider: 'custom', origin: endpoint.warmOrigin, connections: 2}) : Promise.resolve(false); })()
   : warmConnection({...options, connections: 2});
 for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
 // Add-on speakers (docs/ADDON_API.md) answer through the player's Custom provider when it is the one in use and ready, else through Mistral or the
@@ -1369,13 +1378,13 @@ function addonTextHost(route, profileKey) {
 const addonRouteState = () => {
   const local = addonHost.active ? localAiStatus() : 'not-installed';
   return {applied: mistral.applied, mistralKey: !!mistral.apiKey && mistral.limit?.kind !== 'invalid',
-    localReady: !['not-installed', 'no-memory', 'failed'].includes(local), customReady: customEndpoint.ready === true};
+    localReady: !['not-installed', 'no-memory', 'failed'].includes(local), customReady: customEndpoint.ready === true, geminiReady: mistral.geminiUsable};
 };
 // The game asked to warm a speaker (handle:prepare): open the Mistral connection, or load the speaker's prompt into the local AI.
 addonHost.onWarm = profileKey => {
   const route = addonHost.routeFor(profileKey, addonRouteState());
   if (route === 'mistral') void warmConnection({provider: 'mistral'}).catch(() => {});
-  else if (route === 'custom') void warmTurnConnections({provider: 'custom'}).catch(() => {});
+  else if (route === 'custom' || route === 'gemini') void warmTurnConnections({provider: route}).catch(() => {});
   else if (route === 'local') void addonTextHost(route, profileKey).prewarm({local: {profileKey}});
 };
 function localTurn(input, prepared = preparedInputs.get(input)) {
@@ -3273,7 +3282,7 @@ function warmCustom(profileKey) {
 // answering there is no route for it: the game closes the Chat with its own line, and a message that still arrives is refused with the code the talk path uses.
 async function customPhoneReply(options) {
   const profile = profileFor({profileKey: options.profileKey}, roster);
-  if (!profile || !mistral.active) throw Object.assign(Error('This character needs Mistral, Local AI or Custom to answer.'), {code: 'custom-provider'});
+  if (!profile || !mistral.active) throw Object.assign(Error('This character needs Google Gemini, Local AI or Custom to answer.'), {code: 'custom-provider'});
   const input = {...options.input, profileKey: options.profileKey, channel: 'phone'};
   noteTurn(input);
   const blocks = intrinsicConversationContext.blocks(input);
@@ -3284,7 +3293,7 @@ async function runCustomTurn(request, input, profile, current, clock, {userText 
   const {controller} = request, ahead = request.lookahead, signal = controller.signal;
   if (!mistral.active) {
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: `${profile.name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.`, errorCode: 'custom-provider'}),
+      error: `${profile.name} is one of your own characters. They need Google Gemini, Local AI or Custom: choose one under Conversation provider in the settings.`, errorCode: 'custom-provider'}),
     {signal, isCurrent: current, isCurrentSync: current.sync});
     return;
   }
@@ -3759,13 +3768,14 @@ function lightApplyProvider() {
   mistral.apply();
   providerTeardownDue = true;
   // The cloud provider's connection (DNS, TCP, TLS) opens now, not in front of the first turn (docs/LATENCY_2026-10-13.md, 4.5/4.7).
-  if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'custom')) void warmTurnConnections({provider: mistral.route});
+  if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'custom' || mistral.route === 'gemini')) void warmTurnConnections({provider: mistral.route});
   dropPrefetch(); prefetchObserved = '';
   console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
   // Local AI is chosen and down: its turns stay here (never Mistral or Convai) and say why.
   if (mistral.localDown) logLocalDown();
   // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
   if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);
+  if (mistral.applied === 'gemini') console.error(`[Gemini] host ${geminiEndpoint.host}, model ${geminiEndpoint.model}, key ${geminiEndpoint.key ? 'saved' : 'none'}`);
   // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
   if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
   else void localServer.stop().catch(() => {});
@@ -3930,9 +3940,10 @@ async function adoptProviderSetting(settings) {
   if (!settings) return false;
   // Choosing the custom provider reads its file again first: a player may have written the address by hand while the game ran.
   if (settings.conversationProvider === 'custom' && mistral.preference !== 'custom') await customEndpoint.load().catch(() => {});
+  if (settings.conversationProvider === 'gemini' && mistral.preference !== 'gemini') await geminiEndpoint.load().catch(() => {});
   if (!mistral.setPreference(settings.conversationProvider)) return false;
   // Said once per change, so a setting that did not take effect (Mistral without a key answers with Convai) shows in the log.
-  console.error(`[CyberpunkConvai] Conversation provider setting: ${mistral.preference}${mistral.fallbackReason ? ` (${mistral.fallbackReason === 'mistral-no-key' ? 'no Mistral key is saved' : 'the custom provider has no address or model ID'}, so Convai answers)` : ''}`);
+  console.error(`[CyberpunkConvai] Conversation provider setting: ${mistral.preference}${mistral.fallbackReason ? ` (${mistral.fallbackReason === 'mistral-no-key' ? 'no Mistral key is saved' : mistral.fallbackReason === 'gemini-no-key' ? 'no Google Gemini key is saved' : 'the custom provider has no address or model ID'}, so Convai answers)` : ''}`);
   if (mistral.preference === 'local') prepareLocal();
   // Choosing another provider unloads the local model at once when it is not answering turns (it was loaded ahead by prepareLocal and
   // never applied, or the player changed their mind); when it is answering, applyProviderChoice unloads it at the next idle boundary.
@@ -3980,6 +3991,7 @@ async function pollSettings(checkShutdown = true) {
       await adoptProviderSetting(settings);
       await mistralControl.poll().catch(() => {});
       await customControl.poll().catch(() => {});
+      await geminiControl.poll().catch(() => {});
       await remoteOmniControl.poll().catch(() => {});
       adoptMicDevice(settings);
       await micDevicesControl.poll().catch(() => {});
@@ -4101,8 +4113,15 @@ const mistralControl = await new MistralControl({provider: mistral, commandPath:
 const customControl = await new CustomControl({custom: customEndpoint, provider: mistral, commandPath: resolve(runtime, 'custom-provider-command.json'),
   publish: value => atomic(resolve(runtime, 'custom-provider-state.json'), JSON.stringify(value)),
   test: () => testCustomConnection(customEndpoint, {adapt: textRoutes.custom.adaptation()}),
+  // The Mistral preset of this page keeps the cloud voice's key (player-mistral-key.txt, bridge/voxtral-voice.mjs) in step: Add saves it there too, Remove deletes it.
+  presets: ['mistral'], onPreset: async (name, key) => { if (name === 'mistral' && parseMistralKey(key)) await mistral.save(key); }, onClearPreset: async name => { if (name === 'mistral' && mistral.key) await mistral.remove(); },
   log: message => console.error('[Custom] ' + message)}).open();
-mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); void customControl.publishStatus().catch(() => {}); });
+// Google Gemini's page (Settings > Conversation provider > Google Gemini): Add reads the key from the clipboard, Remove deletes it, Test connection sends one tiny request (the same control as the Custom page).
+const geminiControl = await new CustomControl({custom: geminiEndpoint, provider: mistral, route: 'gemini', presets: ['gemini'], commandPath: resolve(runtime, 'gemini-provider-command.json'),
+  publish: value => atomic(resolve(runtime, 'gemini-provider-state.json'), JSON.stringify(value)),
+  test: () => testCustomConnection(geminiEndpoint, {adapt: textRoutes.gemini.adaptation()}),
+  log: message => console.error('[Gemini] ' + message)}).open();
+mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); void customControl.publishStatus().catch(() => {}); void geminiControl.publishStatus().catch(() => {}); });
 // Settings > Voices > OmniVoice for AMD (bridge/omni-amd-setup.mjs, docs/OMNIVOICE_AMD.md): one download of AMD's ROCm PyTorch, tested like omni-python.txt.
 // Idle until the page writes a command, apart from one card list read a little after start-up when the OmniVoice pack is installed.
 omniAmdSetup = await new OmniAmdSetup({stateDirectory, commandPath: resolve(runtime, 'omni-amd-command.json'),
@@ -4186,8 +4205,8 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     // The microphone in use (labels only): the input the latest recording opened and the one chosen in Settings; null before any (bridge/mic-devices-control.mjs summary).
     microphone: () => micDevicesControl.summary(micPreferred),
     // The saved endpoint of the custom provider (host, port), asked for only while that provider is chosen: its host is the one the internet check looks up.
-    custom: () => customEndpoint.ready ? {hostname: customEndpoint.address.hostname, host: customEndpoint.host, secure: customEndpoint.secure,
-      port: Number(new URL(customEndpoint.origin).port) || (customEndpoint.secure ? 443 : 80)} : null,
+    custom: () => { const chosen = mistral.preference === 'gemini' ? geminiEndpoint : customEndpoint;
+      return chosen.ready ? {hostname: chosen.address.hostname, host: chosen.host, secure: chosen.secure, port: Number(new URL(chosen.origin).port) || (chosen.secure ? 443 : 80)} : null; },
     browser: () => cachedBrowserName(), graphics: () => cachedGraphicsCards(), modManagers: () => cachedModManagers({game}),
     nestedPacks: () => findNestedPacks({game, modRoot: resolve(runtime, '..'), plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod')}),
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});

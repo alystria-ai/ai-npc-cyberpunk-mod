@@ -32,6 +32,8 @@
     "editor-status.json",
     "error-events.json",
     "expression-receipt.json",
+    "gemini-provider-command.json",
+    "gemini-provider-state.json",
     "group-prefetch.json",
     "knowledge-active.json",
     "knowledge-history.json",

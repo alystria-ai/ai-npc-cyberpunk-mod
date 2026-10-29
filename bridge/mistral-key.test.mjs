@@ -387,7 +387,7 @@ test('the bridge unloads the local model server when the provider leaves Local A
   assert.match(apply, /if \(mistral\.applied === 'local'\) void localServer\.ensure\(\{background: true\}\)\.catch\(\(\) => \{\}\);\n\s*else void localServer\.stop\(\)\.catch\(\(\) => \{\}\);/);
   // The preference is adopted in adoptProviderSetting (the settings poll and a newly submitted turn both call it).
   const pollAt = source.indexOf('if (!mistral.setPreference(settings.conversationProvider)) return false;');
-  const poll = source.slice(pollAt, pollAt + 900);
+  const poll = source.slice(pollAt, pollAt + 1100);
   assert.match(poll, /if \(mistral\.preference === 'local'\) prepareLocal\(\);\n(\s*\/\/[^\n]*\n)+\s*else if \(mistral\.localUnused\) void localServer\.stop\(\)\.catch\(\(\) => \{\}\);/);
   // The tiny memory embedder is a different process (localEmbedder): the idle switch stops it only when Convai is the provider again and no
   // add-on (whose speakers use the text routes whatever the provider is) is installed (docs/RESOURCE_LIFECYCLE.md); the early stop never does.

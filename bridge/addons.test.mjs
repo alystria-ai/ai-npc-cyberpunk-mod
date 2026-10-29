@@ -629,7 +629,7 @@ test('the runtime packages and the main manifests ship the add-on host but never
 
 test('Custom: an add-on speaker follows the player\'s Custom provider like a companion, while its endpoint is ready; the manifest list stays Mistral and the local AI', () => {
   assert.deepEqual(ADDON_PROVIDERS, ['mistral', 'local'], 'a manifest still lists only these two');
-  assert.deepEqual(ADDON_ROUTES, ['mistral', 'local', 'custom']);
+  assert.deepEqual(ADDON_ROUTES, ['mistral', 'local', 'custom', 'gemini']);
   assert.throws(() => validateManifest(manifest({providers: ['custom']}), tmpdir()), /must list "mistral" and\/or "local"/, 'Custom is never listed: every speaker follows it');
   const host = new AddonHost({addons: [skippy(), validateManifest(manifest({id: 'cab', name: 'Delamain', providers: ['local'],
     speakers: [{id: 'delamain', name: 'Delamain', persona: {backstory: 'A cab AI.'}}]}), tmpdir())]});
@@ -647,6 +647,12 @@ test('Custom: an add-on speaker follows the player\'s Custom provider like a com
     assert.equal(route(key, {applied: 'local', customReady: true, mistralKey: true, localReady: true}), 'local');
   }
   assert.equal(route('addon-skippy-gun', {applied: 'custom', customReady: false, mistralKey: true, localReady: true}), 'mistral');
+  // Google Gemini is followed like Custom while it has its key (geminiReady), by every speaker whatever its manifest lists.
+  for (const key of ['addon-skippy-gun', 'addon-cab-delamain']) {
+    assert.equal(route(key, {applied: 'gemini', geminiReady: true, mistralKey: false, localReady: false}), 'gemini', key);
+    assert.equal(route(key, {applied: 'gemini', geminiReady: false, mistralKey: false, localReady: false}), null, key);
+    assert.equal(route(key, {applied: 'convai', geminiReady: true, mistralKey: false, localReady: false}), null, key);
+  }
   assert.equal(route('addon-cab-delamain', {applied: 'custom', customReady: false, mistralKey: true, localReady: false}), null, 'a local-only speaker never uses a Mistral key');
   assert.equal(route('addon-skippy-gun', {applied: 'mistral', customReady: true, mistralKey: true, localReady: true}), 'mistral');
   assert.equal(route('addon-skippy-gun', {applied: 'custom', mistralKey: true, localReady: true}), 'mistral', 'a state with no customReady is not ready');
@@ -659,7 +665,7 @@ test('Custom: an add-on speaker follows the player\'s Custom provider like a com
   // The bridge feeds the state from the endpoint, warms its connection, and keeps stock lines on Mistral only.
   const bridge = read('./convai-bridge.mjs');
   assert.match(bridge, /customReady: customEndpoint\.ready === true/);
-  assert.match(bridge, /else if \(route === 'custom'\) void warmTurnConnections\(\{provider: 'custom'\}\)/);
+  assert.match(bridge, /else if \(route === 'custom' \|\| route === 'gemini'\) void warmTurnConnections\(\{provider: route\}\)/);
   assert.match(bridge, /route: profileKey => \{ const route = addonHost\.routeFor\(profileKey, addonRouteState\(\)\); return route === 'mistral' \? route : null; \}/, 'stock stays on Mistral');
 });
 

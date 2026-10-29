@@ -34,12 +34,12 @@ local OMNI_LABELS = {
     ['32:long'] = 'OmniVoice · Ultra Quality',
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
-local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
+local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)'
 -- V's voice engine (Settings > Voices): which voice speaks V's typed line, whatever the companions use. Pocket is the default.
 local V_VOICE_ENGINES = {'pocket', 'voxtral', 'omni'}
 -- OmniVoice for V runs on the GPU voice the companions use: it needs the optional pack and a saved companion voice that is OmniVoice.
 local V_OMNI_NEEDS_VOICE = 'Requires the Companion voices to be an OmniVoice choice'
--- Mature content (bridge/mature-content.mjs, MATURE_PROVIDERS): the Local AI and Custom text providers may have it; Convai and Mistral never (owner
+-- Mature content (bridge/mature-content.mjs, MATURE_PROVIDERS): the Local AI and Custom text providers may have it; Convai, Mistral and Google Gemini never (owner
 -- decision 2026-10-20, after Mistral's Voxtral voice refused Mature lines in a live test: "let's not risk their API key").
 local function matureProvider(provider) return provider == 'local' or provider == 'custom' end
 -- Nor does a Voxtral voice (Mistral's cloud voice) speak beside it, for the companions or V: turning Mature content on moves them to Pocket and says so,
@@ -54,7 +54,7 @@ local RETIRED_SETTINGS = {'autoConnectNearby', 'expressiveEmotions', 'expressive
 local RETIRED_SET = {}
 for _, key in ipairs(RETIRED_SETTINGS) do RETIRED_SET[key] = true end
 -- The Convai cloud voice cannot carry Natural speech's tags (they would be read aloud), and it is only the voice that speaks on the Convai
--- providers: beside Mistral, Local AI or Custom the bridge plays Pocket for it (bridge/convai-bridge.mjs, the settings poll), so the tags work there.
+-- providers: beside Google Gemini, Local AI or Custom the bridge plays Pocket for it (bridge/convai-bridge.mjs, the settings poll), so the tags work there.
 local function cloudVoiceBlocksTags(settings)
     return settings.voiceProvider == 'convai' and settings.conversationProvider == 'convai'
 end
@@ -475,7 +475,7 @@ local mistralResults = {saved = true, cleared = true, invalid = true, unreadable
 local mistralLimits = {rate = true, daily = true, invalid = true, model = true, credits = true}
 local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
 local function providerName(value)
-    return (value == 'mistral' or value == 'local' or value == 'custom') and value or 'convai'
+    return (value == 'mistral' or value == 'local' or value == 'custom' or value == 'gemini') and value or 'convai'
 end
 
 -- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
@@ -836,10 +836,11 @@ local function loadSettings()
         end
     end
     -- Who writes the replies: 'convai' (default), 'mistral' (the player's own Mistral key), 'local' (the optional Local AI pack, on this
-    -- computer) or 'custom' (any OpenAI-compatible endpoint, mod/custom-provider.lua). Any other saved value is Convai, a saved 'groq' (an
+    -- computer), 'gemini' (Google Gemini, a free key from Google AI Studio) or 'custom' (any OpenAI-compatible endpoint, mod/custom-provider.lua). A saved 'mistral'
+    -- (it left the list on 2026-10-30) keeps working and is shown while it is the saved choice. Any other saved value is Convai, a saved 'groq' (an
     -- option that was removed) included, as in the bridge. The bridge reads this from settings.json and applies it when no conversation
     -- is running.
-    if settings.conversationProvider ~= 'convai' and settings.conversationProvider ~= 'mistral'
+    if settings.conversationProvider ~= 'convai' and settings.conversationProvider ~= 'mistral' and settings.conversationProvider ~= 'gemini'
         and settings.conversationProvider ~= 'local' and settings.conversationProvider ~= 'custom' then
         settings.conversationProvider, settingsNeedSave = 'convai', true
     end
@@ -965,7 +966,7 @@ local function loadSettings()
         settings.speakUpOftenGiven, settingsNeedSave = true, true
     end
     -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
-    -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
+    -- player's voice) and the setting is turned off below. (Beside Google Gemini, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
     -- Companions can see (docs/COMPANION_VISION.md): off by default, for every conversation provider (Convai had it always on until 2026-10-29, when this setting came back and
     -- Convai joined it, so a player who had pictures with Convai starts with them off). Each conversation turn then carries a recent picture of V's surroundings. The bridge does all
@@ -1336,7 +1337,7 @@ function M.characterVoiceLabel(profile, view, pack)
         end
         return written()
     end
-    -- The bridge has not answered: what the settings say. The Convai voice choice plays Pocket beside Mistral, Local AI and Custom.
+    -- The bridge has not answered: what the settings say. The Convai voice choice plays Pocket beside Google Gemini, Local AI and Custom.
     if cloud then return M.voiceLabel('voxtral') end
     if chosen == 'omni' then return M.voiceLabel('omni', settings.omniSteps, settings.omniReference) end
     if chosen == 'convai' and (settings.conversationProvider or 'convai') == 'convai' then return profile.voiceName or ui.t('Convai voice') end
@@ -1422,7 +1423,7 @@ function M.developerMode()
     return settings ~= nil and settings.developerMode == true
 end
 
--- True when speaking to a companion cannot work right now: the player chose Mistral, Local AI or Custom, the bridge says that
+-- True when speaking to a companion cannot work right now: the player chose Google Gemini, Local AI or Custom, the bridge says that
 -- provider is in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
 -- frame); the bridge status is re-read at most once every 1.5 s.
 -- The Conversation provider the player has chosen ('convai', 'mistral', 'local' or 'custom'), for the request the game writes: the bridge follows it for that
@@ -1435,7 +1436,7 @@ end
 function M.voiceNeedsConvai()
     loadSettings()
     local chosen = settings.conversationProvider
-    if chosen ~= 'mistral' and chosen ~= 'local' and chosen ~= 'custom' then return false end
+    if chosen ~= 'mistral' and chosen ~= 'local' and chosen ~= 'custom' and chosen ~= 'gemini' then return false end
     local state = M.mistral()
     return state.effective == chosen and state.stt ~= true
 end
@@ -1495,7 +1496,7 @@ function M.vVoiceActive()
 end
 
 -- Natural speech and the Convai cloud voice exclude each other where that voice is what speaks (cloudVoiceBlocksTags: the Convai voice on a Convai
--- provider; beside Mistral, Local AI or Custom the bridge plays Pocket for it, so the pairing stands there). An Apply that makes the pairing
+-- provider; beside Google Gemini, Local AI or Custom the bridge plays Pocket for it, so the pairing stands there). An Apply that makes the pairing
 -- (it chooses the voice, or it chooses a Convai provider while the voice is the cloud voice) keeps the choice it made and turns Natural speech
 -- off instead of refusing or moving the voice (`after` is changed in place). If the pairing was already there, Natural speech turned on beside
 -- it wins instead (the voice moves to a local one, as before). Returns the one notice to show, or nil. Natural speech is off by default, so
@@ -2439,7 +2440,7 @@ function M.applySettings(player, values)
         elseif RETIRED_SET[key] then
             -- A setting that is gone (RETIRED_SETTINGS): an old caller's value is ignored, nothing is saved for it.
         elseif key == 'conversationProvider' then
-            if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' and value ~= 'custom' then return false, 'Choose one of the listed conversation providers.' end
+            if value ~= 'convai' and value ~= 'mistral' and value ~= 'gemini' and value ~= 'local' and value ~= 'custom' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value
         elseif key == 'audioDelay' then
             if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end
@@ -2536,7 +2537,7 @@ function M.applySettings(player, values)
     -- Natural speech needs a local voice. It is judged as it will be after this Apply: making the pairing with the Convai cloud voice on a
     -- Convai provider (choosing the voice, or choosing the provider) keeps the choice and turns Natural speech off (honourCloudVoice, one
     -- notice), while turning it on beside a saved pairing moves the voice to Pocket TTS with a notice. Natural speech turned on in the same
-    -- Apply that chooses the voice loses to the voice. Beside Mistral, Local AI or Custom the cloud voice selection plays Pocket, so it all works.
+    -- Apply that chooses the voice loses to the voice. Beside Google Gemini, Local AI or Custom the cloud voice selection plays Pocket, so it all works.
     local cloudNotice = honourCloudVoice(settings, nextSettings)
     local switchedVoice = nextSettings.naturalSpeech == true
         and cloudVoiceBlocksTags(nextSettings)

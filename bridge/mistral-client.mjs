@@ -230,8 +230,8 @@ export function resetClock(at, now = Date.now()) {
   return `${two(date.getHours())}:${two(date.getMinutes())}`;
 }
 
-// What a 400 says when the key is the problem: Google's reason code and sentence, and the common ways other servers say a key is missing, wrong or expired.
-const KEY_REFUSAL = /api_key_invalid|api[ _-]?key (?:is |was )?(?:not valid|invalid|incorrect|missing|expired|required|not found)|(?:invalid|incorrect|missing|expired|no) api[ _-]?key|please pass a valid api key/;
+// What a 400 says when the key is the problem: Google's reason code and sentence (a key of the newer "AQ." format that Google does not know is "Invalid Auth key."), and the common ways other servers say a key is missing, wrong or expired.
+const KEY_REFUSAL = /api_key_invalid|api[ _-]?key (?:is |was )?(?:not valid|invalid|incorrect|missing|expired|required|not found)|(?:invalid|incorrect|missing|expired|no) api[ _-]?key|please pass a valid api key|invalid auth key/;
 const safeJson = value => { try { return JSON.stringify(value) ?? ''; } catch { return ''; } };
 
 /** Maps what the custom provider answered: the same few kinds, plus 402 (no credit), a daily limit, and a refused request field. */

@@ -753,7 +753,7 @@ do
             end})
         if created and type(service) == 'table' then
             convaiCustomCharacters = service
-            -- A Chat with one of them is open only while Mistral, Local AI or Custom answers (asked when the chat is painted, never per frame).
+            -- A Chat with one of them is open only while Google Gemini, Local AI or Custom answers (asked when the chat is painted, never per frame).
             phoneChat.contactBlocked = function(key) return service.has(key) and not service.providerReady() end
             if type(manager.configureCustom) == 'function' then manager.configureCustom(function(key) return service.has(key) end) end
             pcall(service.refresh, true)
@@ -2372,7 +2372,7 @@ do
             -- asked only on a talk start.
             noConnection = function()
                 local ok, state = pcall(manager.mistral)
-                return ok and type(state) == 'table' and (state.effective == 'mistral' or state.effective == 'local' or state.effective == 'custom')
+                return ok and type(state) == 'table' and (state.effective == 'mistral' or state.effective == 'local' or state.effective == 'custom' or state.effective == 'gemini')
             end,
             log = function(line) log(line) end})
         -- convaiAutoConnect.promote(key): a conversation partner asked to follow leaves the partner role.
@@ -3250,7 +3250,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears, t
         if not convaiCustomNoted[skipped.key] then
             convaiCustomNoted[skipped.key] = true
             convaiNotices.send(player, 'custom-needs-provider',
-                ui.t('{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.', {name = skipped.name}))
+                ui.t('{name} is one of your own characters. They need Google Gemini, Local AI or Custom, so with Convai they talk as an ordinary person.', {name = skipped.name}))
         end
     end
     if not key or not supportedProfiles[key] then
@@ -3832,7 +3832,7 @@ if convaiHolocall then
         -- The caller's conversation is ready: the same check as the "Preparing connection" notice (mod/auto-connect.lua).
         ready = function(key) return autoConnect == nil or autoConnect.ready(key) end,
         -- A Chat row the journal has no contact for (a character the player made, Rita Wheeler and the roster) can be called too: the window shows
-        -- her name and the unknown-caller picture. A character the player made needs Mistral, Local AI or Custom, as her Chat does.
+        -- her name and the unknown-caller picture. A character the player made needs Google Gemini, Local AI or Custom, as her Chat does.
         -- The record of her game definition (the invite list's, or the roster's), when she has one, is the body filmed for a video call.
         chatRow = function(contact)
             local row = convaiPhoneChat and convaiPhoneChat.callRow(contact) or nil
@@ -5828,19 +5828,19 @@ local function dailyLimitText()
     local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
     if at then
         if type(limit) == 'number' then
-            return ui.t('Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).', {limit = limit, time = at})
+            return ui.t('Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Google Gemini (your own key).', {limit = limit, time = at})
         end
-        return ui.t('Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Mistral (your own key).', {time = at})
+        return ui.t('Today’s Convai turns are used.\nIt resets at {time}. Try Local AI (unlimited) or Google Gemini (your own key).', {time = at})
     end
     if type(limit) == 'number' then
-        return ui.t('Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).', {limit = limit})
+        return ui.t('Today’s {limit} Convai turns are used.\nTry Local AI (unlimited) or Google Gemini (your own key).', {limit = limit})
     end
-    return ui.t('Today’s Convai turns are used.\nTry Local AI (unlimited) or Mistral (your own key).')
+    return ui.t('Today’s Convai turns are used.\nTry Local AI (unlimited) or Google Gemini (your own key).')
 end
 
 local function keyNoticeText(code)
     if code == 'quota-shared' then
-        return ui.t('The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.')
+        return ui.t('The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider.')
     elseif code == 'quota-own' then
         return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.')
     elseif code == 'key-rejected' then
@@ -5868,7 +5868,7 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'daily-limit' then return 'daily-limit', dailyLimitText() end
     -- The shared Convai account could not be signed in to (the sign-in backend did not answer, refused, or the package has none): a turn V asked for says so.
     if reply.errorCode == 'convai-unavailable' then
-        return 'convai-unavailable', ui.t('Convai could not sign in. Try again in a moment, or choose Mistral or Local AI in Settings > Conversation provider.')
+        return 'convai-unavailable', ui.t('Convai could not sign in. Try again in a moment, or choose Google Gemini or Local AI in Settings > Conversation provider.')
     end
     -- Mistral: three failures the bridge names, and two one-time notices on the first reply.
     if reply.errorCode == 'mistral-key' then
@@ -5999,6 +5999,10 @@ local function keyReplyNotice(reply)
         return 'custom-no-setup', ui.t('The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings.')
     elseif reply.keyNotice == 'custom-voice' then
         return 'custom-voice', ui.t('Custom provider replies are spoken by a local voice instead of the Convai cloud voice.')
+    elseif reply.keyNotice == 'gemini-no-key' then
+        return 'gemini-no-key', ui.t('Google Gemini has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
+    elseif reply.keyNotice == 'gemini-voice' then
+        return 'gemini-voice', ui.t('Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.')
     end
     local text = keyNoticeText(reply.errorCode)
     if text then return 'quota-exhausted', text end
@@ -6016,7 +6020,7 @@ local function replyErrorText(reply)
     elseif reply.errorCode == 'custom-provider' and type(text) == 'string' then
         local name = text:match('^(.-) is one of your own characters%.')
         if name and name ~= '' and #name <= 160 and not name:find('%c') then
-            return ui.t('{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.', {name = name})
+            return ui.t('{name} is one of your own characters. They need Google Gemini, Local AI or Custom: choose one under Conversation provider in the settings.', {name = name})
         end
     elseif type(text) == 'string' then
         local name = text:match('^(.-) does not have a conversation profile configured yet%.$')
@@ -6040,6 +6044,8 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
     elseif keyId == 'custom-no-setup' then convaiNotices.send(player, 'custom-no-setup', keyText)
     elseif keyId == 'custom-voice' then convaiNotices.send(player, 'custom-voice', keyText)
+    elseif keyId == 'gemini-no-key' then convaiNotices.send(player, 'gemini-no-key', keyText)
+    elseif keyId == 'gemini-voice' then convaiNotices.send(player, 'gemini-voice', keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
     elseif keyId == 'local-cpu' then convaiNotices.send(player, 'local-cpu', keyText)
     elseif keyId == 'local-gpu' then convaiNotices.send(player, 'local-gpu', keyText)
@@ -7761,7 +7767,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-gpu' or keyId == 'local-offload' or keyId == 'local-stepdown' or keyId == 'vision-border' or keyId == 'vision-local-no-model' or keyId == 'vision-local-no-file' or keyId == 'vision-custom-no-images' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'gemini-no-key' or keyId == 'gemini-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-gpu' or keyId == 'local-offload' or keyId == 'local-stepdown' or keyId == 'vision-border' or keyId == 'vision-local-no-model' or keyId == 'vision-local-no-file' or keyId == 'vision-custom-no-images' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                         -- A plan limit or a refused key: a turn V asked for says so; an automatic reaction (battle, loot) just stops.

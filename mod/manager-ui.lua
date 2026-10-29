@@ -68,6 +68,8 @@ local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
 -- without the file its rows and notes are not shown. `factory` is what the file returned (or the error text), `instance` is made in
 -- M.configure.
 local customProvider = {factory = select(2, pcall(dofile, 'custom-provider.lua'))}
+-- The Google Gemini page's own instance of the same module (kind 'gemini': its command and state files, two rows).
+local geminiProvider = {}
 -- Remote OmniVoice (mod/remote-omni.lua, docs/REMOTE_OMNIVOICE.md): the server address and the connection test, on the Custom voices page. Optional like the Custom provider.
 local remoteOmni = {factory = select(2, pcall(dofile, 'remote-omni.lua'))}
 -- OmniVoice for AMD (mod/omni-amd.lua, docs/OMNIVOICE_AMD.md): the one-button setup of OmniVoice on an AMD Radeon card and the MIOpen choice. Optional like Remote OmniVoice.
@@ -437,7 +439,7 @@ local function profileDescription(profile, snapshot, shared, count)
     -- A character the player made (mod/custom-characters.lua, docs/CHARACTER_EDITOR.md): no roster voice, memory or relationship lines, just what it is and how it talks.
     if profile.custom then
         local lines = {ui.t('Your own character, made in the character editor.') .. '\n',
-            ui.t('They join as a copy of the model they were made from. They talk with Mistral, Local AI or Custom; with Convai they talk as an ordinary person.')}
+            ui.t('They join as a copy of the model they were made from. They talk with Google Gemini, Local AI or Custom; with Convai they talk as an ordinary person.')}
         if count > 0 then lines[#lines + 1] = ui.t('In your party: {count}', {count = count}) end
         return table.concat(lines, '\n')
     end
@@ -509,10 +511,12 @@ end
 -- What was changed is kept in the saved settings (manager: matureRestore). stageMature computes all of it from the saved settings and the batch of
 -- changes; it runs when a change is applied and costs nothing otherwise.
 -- The provider list in menu order; PROVIDER_IDS names them for the restore record ('convai-key' is Convai with the player's own key).
-local PROVIDER_IDS = {'convai', 'convai-key', 'mistral', 'local', 'custom'}
+-- The third entry is Google Gemini; a player who chose Mistral before it left the list (2026-10-30) sees it there, as "Mistral (your key)", while it is the saved choice
+-- (providerIndexOf keeps PROVIDER_IDS[3] in step with the saved settings).
+local PROVIDER_IDS = {'convai', 'convai-key', 'gemini', 'local', 'custom'}
 local LOCAL_PROVIDER = 4
 local CUSTOM_PROVIDER = 5
--- Positions of the providers that take Mature content as they are (Custom); Local AI is LOCAL_PROVIDER. Convai (1, 2) and Mistral (3) never do.
+-- Positions of the providers that take Mature content as they are (Custom); Local AI is LOCAL_PROVIDER. Convai (1, 2) and Google Gemini or Mistral (3) never do.
 local MATURE_CLOUD_PROVIDERS = {[5] = true}
 -- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
 local function customProblemText(reason)
@@ -562,11 +566,12 @@ local function modelIndexOf(id)
     for index, choice in ipairs(manager.localModelChoices()) do if choice.id == id then return index end end
 end
 
--- The Conversation provider selector's index of the saved settings: 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local, 5 Custom.
+-- The Conversation provider selector's index of the saved settings: 1 Convai free tier, 2 Convai API key, 3 Google Gemini (Mistral, while that is the saved choice), 4 Local, 5 Custom.
 local function providerIndexOf(settings)
+    PROVIDER_IDS[3] = settings.conversationProvider == 'mistral' and 'mistral' or 'gemini'
     if settings.conversationProvider == 'custom' then return 5 end
     if settings.conversationProvider == 'local' then return 4 end
-    if settings.conversationProvider == 'mistral' then return 3 end
+    if settings.conversationProvider == 'mistral' or settings.conversationProvider == 'gemini' then return 3 end
     return settings.useOwnConvaiKey == true and 2 or 1
 end
 
@@ -574,7 +579,9 @@ end
 -- batch with what Mature content needs added or put back, the record of what turning it on changed (the caller saves it with the
 -- settings), the names of what was changed besides the player's own choice, a refusal text when the switch cannot be turned on, and a note (a
 -- sentence) when the batch turned Mature content off because the player chose a model that is not a Mature model.
+local restoreMistral = false   -- set by stageMature when turning Mature content off puts a player back on Mistral (entry 3 then stands for Mistral in the same Apply)
 local function stageMature(changes, snapshot)
+    restoreMistral = false
     local saved = snapshot.settings
     -- `explicit`: the rows the batch itself sets (the player's own choice in it, or Restore defaults). Turning Mature content off never puts one
     -- of those back: what the batch asks for wins.
@@ -627,6 +634,8 @@ local function stageMature(changes, snapshot)
                 if id == part.set then was = index end
                 if id == part.before then back = index end
             end
+            -- A player who chose Mistral before it left the list goes back to it: the third entry stands for Mistral again for this change (providerIndexOf puts Google Gemini back once Mistral is not the saved choice).
+            if part.before == 'mistral' then back = 3; restoreMistral = true end
             if now('conversationProvider', providerIndexOf(saved)) == was and back then
                 stage('conversationProvider', back); names[#names + 1] = ui.t('Conversation provider')
             end
@@ -866,7 +875,7 @@ local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove, lastP
     end
     if key.message then help = key.message .. '\n\n' .. help end
     if lastParagraph then help = help .. '\n\n' .. lastParagraph end
-    return action(id, ui.t(name) .. (info and (' (' .. info .. ')') or ''), key.saved and ui.t('Remove') or ui.t('Paste'), help,
+    return action(id, ui.t(name) .. (info and (' (' .. info .. ')') or ''), key.saved and ui.t('Remove') or (key.add and ui.t('Add') or ui.t('Paste')), help,
         key.saved and remove or paste, nil, {label = true, value = true, description = true})
 end
 
@@ -973,19 +982,36 @@ local function omniAmdRows(snapshot)
     return rows
 end
 
--- What removing the Mistral key changes, as the sentences after "Deletes the saved key." (the row's Remove help): the key powers the text
--- provider when Mistral is chosen, the companions' Voxtral voice when that is the voice, and V's voice when it is set to Voxtral (V then
--- speaks with Pocket). Only what is in use now is named; a key nothing depends on says so.
-local function mistralRemoval(snapshot)
-    local settings, parts = snapshot.settings, {}
-    if settings.conversationProvider == 'mistral' then parts[#parts + 1] = ui.t('Conversations go back to Convai free tier.') end
-    if settings.voiceProvider == 'voxtral' then parts[#parts + 1] = ui.t('Voxtral stops speaking; companion replies show as text until a key is saved.') end
-    if settings.vVoice == true and settings.vVoiceEngine == 'voxtral' then parts[#parts + 1] = ui.t('V’s voice switches from Voxtral to Pocket.') end
-    if #parts == 0 then parts[1] = ui.t('Nothing you use now depends on it.') end
-    return table.concat(parts, ' ')
+-- The Google Gemini key as one row of the provider page (the Add reads the key from the clipboard and fills in the fixed endpoint and model; Remove deletes the key), then the connection test.
+-- Everything they say comes from mod/custom-provider.lua (the second instance, kind 'gemini'); empty without it.
+local function geminiRows(lastParagraph)
+    local rows = {}
+    local instance = geminiProvider.instance
+    if not instance then return rows end
+    local read, state = pcall(instance.state)
+    state = read and type(state) == 'table' and state or {}
+    local saved = state.keySaved == true and state.preset == 'gemini'
+    local message
+    if state.result and state.result.state == 'unreadable' then message = ui.t('The clipboard could not be read.')
+    elseif state.result and state.result.state == 'failed' then message = ui.t('The key could not be saved.')
+    elseif state.result and state.result.state == 'invalid' then message = state.result.reason == 'empty' and ui.t('The clipboard is empty. Copy your key first.') or ui.t('The clipboard does not hold an API key.') end
+    rows[#rows + 1] = keyRow('Google Gemini API key',
+        'Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 1,000 replies, is not offered in every country, and Google may use free-plan chats to improve its products.',
+        'Deletes the saved key.',
+        'gemini-key', {saved = saved, tail = state.tail, message = message, add = true},
+        function() return instance.request('preset-gemini') end, function() return instance.request('clear-preset-gemini') end, lastParagraph)
+    local made, items = pcall(instance.rows)
+    if made and type(items) == 'table' then
+        for _, item in ipairs(items) do
+            if item.id == 'gemini-test' then
+                rows[#rows + 1] = action('gemini-test', item.label, item.value, item.help, function() return instance.request(item.action) end, item.enabled, {label = true, value = true, description = true})
+            end
+        end
+    end
+    return rows
 end
 
--- Settings > Conversation provider: the provider, Mature content, the Local AI model and the key rows of Convai and Mistral
+-- Settings > Conversation provider: the provider, Mature content, the Local AI model and the key rows of Convai and Google Gemini
 -- (docs/OWN_CONVAI_KEY.md for the Convai key). The text shown here about a key is its status, never the key: only its last four
 -- characters, which the bridge publishes, are ever displayed.
 local function ownKeyRows(snapshot)
@@ -997,10 +1023,6 @@ local function ownKeyRows(snapshot)
     elseif result == 'invalid' then ownMessage = ui.t('Convai did not accept that key.')
     elseif result == 'clipboard' then ownMessage = ui.t('The clipboard could not be read.')
     elseif result == 'failed' then ownMessage = ui.t('The key could not be saved.') end
-    local mistralMessage, mistralResult = nil, mistral.result
-    if mistralResult == 'invalid' then mistralMessage = ui.t('Mistral did not accept that key.')
-    elseif mistralResult == 'unreadable' then mistralMessage = ui.t('The clipboard could not be read.')
-    elseif mistralResult == 'failed' then mistralMessage = ui.t('The key could not be saved.') end
     -- Who answers right now, as the last paragraph of the provider row's help: only what the player has to act on or could not guess
     -- (a limit, a rejected key, a wait, a fallback, the free tier's allowance). The selected provider is the row's own value, and a
     -- key is never counted against the daily allowance (bridge/shared-key-guard.mjs).
@@ -1010,11 +1032,14 @@ local function ownKeyRows(snapshot)
         if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: limit reached for now')
         elseif mistral.limit == 'invalid' then note = ui.t('Mistral: key not accepted')
         elseif mistral.limit == 'model' then note = ui.t('Mistral: model unavailable') end
+    elseif mistral.effective == 'gemini' then
+        note = geminiProvider.instance and geminiProvider.instance.geminiNoteFor(mistral.limit) or nil
     elseif mistral.effective == 'custom' then
         note = customProvider.instance and customProvider.instance.noteFor(mistral.limit) or nil
     elseif mistral.effective == 'local' then note = nil
     elseif snapshot.settings.conversationProvider == 'local' then note = ui.t('Convai: Local AI is not ready')
     elseif snapshot.settings.conversationProvider == 'mistral' then note = ui.t('Convai: Mistral has no key yet')
+    elseif snapshot.settings.conversationProvider == 'gemini' then note = ui.t('Convai: Google Gemini has no key yet')
     elseif snapshot.settings.conversationProvider == 'custom' then
         note = customProvider.instance and customProvider.instance.notSetUpNote() or nil
     elseif own.limit == 'used-up' and own.limitOwn then note = ui.t('Your key: plan limit reached')
@@ -1031,15 +1056,15 @@ local function ownKeyRows(snapshot)
         -- When they come back: the next 00:00 UTC on this computer's clock (ui.dailyResetClock), else "tomorrow".
         local at = type(ui.dailyResetClock) == 'function' and ui.dailyResetClock() or nil
         if at then
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).', {limit = own.daily.limit, time = at})
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Local AI (unlimited) or Google Gemini (with your own key).', {limit = own.daily.limit, time = at})
         else
-            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Mistral (with your own key).', {limit = own.daily.limit})
+            limitHelp = ui.t('You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Local AI (unlimited) or Google Gemini (with your own key).', {limit = own.daily.limit})
         end
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
-        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Mistral uses your own Mistral key, and its memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Google Gemini uses your own free key, and its memory stays on this computer.\n\nWith Google Gemini, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key. Google Gemini uses your own free key, and its memory stays on this computer.\n\nWith Google Gemini, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     -- The note comes first: the description area holds only so much, and who answers right now is what the player acts on.
     if note then providerHelp = note .. '\n\n' .. providerHelp end
     -- Mature content is part of the main mod (off by default). It works with Local AI and Custom only: turning it on beside Convai or Mistral selects
@@ -1053,8 +1078,8 @@ local function ownKeyRows(snapshot)
         matureHelp = matureHelp .. '\n\n' .. (mistral.maturePack == true
             and ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.')
             or ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).'))
-        matureHelp = matureHelp .. '\n\n' .. ui.t('From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.')
-            .. ' ' .. ui.t('Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.')
+        matureHelp = matureHelp .. '\n\n' .. ui.t('From Convai or Google Gemini, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.')
+            .. ' ' .. ui.t('Choosing Convai or Google Gemini turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.')
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
     -- Which installed Local AI model loads: each installed model by its manifest name, smallest file first (the bridge reports the list); the sizes
@@ -1153,18 +1178,17 @@ local function ownKeyRows(snapshot)
         modelRow = setting('localModel', label, 'select', selected, modelIndexOf('auto') or 1, modelHelp, labels, {elements = true, description = true, label = true})
     end
     local rows = {
-        setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
-            {'Convai free tier', 'Convai API key', 'Mistral', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
+        -- Mistral left the list on 2026-10-30: a player who chose it before keeps it as the third entry while it is the saved choice, everyone else sees Google Gemini there.
+        snapshot.settings.conversationProvider == 'mistral'
+            and setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
+                {'Convai free tier', 'Convai API key', 'Mistral (your key)', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true})
+            or setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
+                {'Convai free tier', 'Convai API key', 'Google Gemini (free plan)', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
         matureRow,
         modelRow,
         -- Allow Local AI to use RAM (off by default): the chosen model stays when it does not fit the graphics memory, with part of it in system memory.
         setting('localOffload', 'Allow Local AI to use RAM', 'bool', snapshot.settings.localOffload == true, false,
             'Off: when the Local AI model you chose does not fit the free graphics memory beside the game, a smaller model that fits is loaded instead, with one notice.\n\nOn: your chosen model is kept and part of it runs from system memory (RAM) on the processor. Replies are slower, and you are told once. It needs enough free RAM, and the game may have less processor time.'),
-        keyRow('Mistral API key',
-            'Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.',
-            'Deletes the saved key.',
-            'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage, removeMore = mistralRemoval(snapshot)},
-            function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
         keyRow('Convai API key',
             'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
             'Deletes the saved key. Conversations go back to Convai free tier.',
@@ -1172,10 +1196,18 @@ local function ownKeyRows(snapshot)
             function() return manager.pasteOwnKey() end, function() return manager.removeOwnKey() end),
     }
     -- Custom (OpenAI-compatible): its endpoint URL, API key, model ID and the connection test are a page of their own (customEndpointRows,
-    -- opened from this one button), right under the Mistral key row, like the Convai paid tier below. Shown whenever the module is there.
+    -- opened from this one button), right under the Google Gemini rows, like the Convai paid tier below. Shown whenever the module is there.
+    do
+        -- Google Gemini: its key (Add / Remove) and the connection test, right under the localOffload row (where the Mistral key row was).
+        local at = #rows + 1
+        for index, item in ipairs(rows) do if item.id == 'localOffload' then at = index + 1 end end
+        for offset, row in ipairs(geminiRows(limitHelp)) do table.insert(rows, at + offset - 1, row) end
+    end
     if customProvider.instance then
         local at = #rows + 1
-        for index, item in ipairs(rows) do if item.id == 'mistral-key' then at = index + 1 end end
+        for _, anchor in ipairs({'localOffload', 'gemini-key', 'gemini-test'}) do
+            for index, item in ipairs(rows) do if item.id == anchor then at = index + 1 end end
+        end
         table.insert(rows, at, action('custom-endpoint', 'Custom endpoint', 'Open', 'The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.',
             function()
                 -- The page reads the bridge's answer again at once, not at the next poll.
@@ -1196,7 +1228,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     return rows
@@ -1427,6 +1459,10 @@ local function pageSignature(snapshot)
         if customProvider.instance then
             local read, signature = pcall(customProvider.instance.signature)
             add('custom:' .. (read and signature or ''))
+        end
+        if geminiProvider.instance then
+            local read, signature = pcall(geminiProvider.instance.signature)
+            add('gemini:' .. (read and signature or ''))
         end
         -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
         if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end
@@ -1934,7 +1970,7 @@ local function schema()
             if tab[1] == 'editor' then
                 if editor then
                     nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
-                        'Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
+                        'Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Google Gemini, Local AI and Custom, not Convai. Changes apply from the next reply.',
                         function() return editor.request() end)
                 end
             else
@@ -2239,7 +2275,7 @@ local function schema()
             'Characters you tell they can stay at your place move into your apartments and live there.')
     elseif view == 'dynamic-info' then
         categories[#categories + 1] = category('dynamic-info', 'Dynamic info', dynamicInfoRows(snapshot),
-            'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).')
+            'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Google Gemini, Local AI and Custom).')
     elseif view == 'key-bindings' then
         for _, section in ipairs(keyBindingSections(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'settings' then
@@ -2470,7 +2506,7 @@ local function schema()
                     -- Beside Mature content Voxtral is not used, whatever the key (this reason comes before the key's).
                     greyed[3], reason = true, ui.t('Voxtral is not used with Mature content.')
                 elseif not (snapshot.mistral or {}).saved then
-                    greyed[3], reason = true, ui.t('Requires a Mistral key (add it in Settings > Conversation provider)')
+                    greyed[3], reason = true, ui.t('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
                 end
                 -- OmniVoice carries its own reason (a string), so it never takes Voxtral's; the pack's comes first.
                 if vOmniBlock then
@@ -2499,7 +2535,7 @@ local function schema()
             local list = {}
             for _, pack in ipairs(convaiAddons.contentPacks()) do
                 list[#list + 1] = setting('addon:' .. pack.id .. ':contentEnabled', pack.name, 'bool', pack.enabled, true,
-                    ui.t('Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Mistral, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.', {name = pack.name}),
+                    ui.t('Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Google Gemini, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.', {name = pack.name}),
                     nil, {label = true, description = true})
             end
             if #list > 0 then categories[#categories + 1] = category('addon-content', 'Content packs', list, 'Add-ons that change how the characters talk.') end
@@ -2590,6 +2626,8 @@ function M.configure(domain, companions, queueFactory, readiness)
     if type(customFactory) == 'table' and type(customFactory.new) == 'function' then
         local created, instance = pcall(customFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession})
         customProvider.instance = created and type(instance) == 'table' and instance or nil
+        local madeGemini, gemini = pcall(customFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession, kind = 'gemini'})
+        geminiProvider.instance = madeGemini and type(gemini) == 'table' and gemini or nil
     end
 end
 
@@ -2848,10 +2886,10 @@ function M.apply(changes)
             end
             values.micDevice = stored[change.value]
         elseif key == 'conversationProvider' then
-            -- Order: 1 Convai free tier (stored 'convai', own key off), 2 Convai API key (stored 'convai', own key on), 3 Mistral
-            -- (stored 'mistral'), 4 Local (stored 'local'), 5 Custom (stored 'custom'). The own-key choice only changes with a Convai
+            -- Order: 1 Convai free tier (stored 'convai', own key off), 2 Convai API key (stored 'convai', own key on), 3 Google Gemini
+            -- (stored 'gemini'; 'mistral' while that is the saved choice), 4 Local (stored 'local'), 5 Custom (stored 'custom'). The own-key choice only changes with a Convai
             -- entry, so it comes back when the player returns to Convai from Mistral, Local or Custom.
-            local providers = {'convai', 'convai', 'mistral', 'local', 'custom'}
+            local providers = {'convai', 'convai', restoreMistral and 'mistral' or PROVIDER_IDS[3], 'local', 'custom'}
             local provider = type(change.value) == 'number' and providers[change.value] or nil
             if not provider then return refused('Choose one of the listed conversation providers.') end
             values.conversationProvider = provider
@@ -2883,7 +2921,7 @@ function M.apply(changes)
             -- loop against the companion voice the batch leaves). One row writes both stored settings; Off keeps the engine that was saved.
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose one of the listed voices for V.') end
             if change.value == 3 and not manager.mistral().saved then
-                return refused('Requires a Mistral key (add it in Settings > Conversation provider)')
+                return refused('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
             end
             values.vVoice = change.value ~= 1
             if change.value ~= 1 then
@@ -2896,7 +2934,7 @@ function M.apply(changes)
             -- as they are, and the other way round. Choosing an engine here is choosing it for V's one engine, so typed lines that are on follow it (named in the result).
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose one of the listed voices for V.') end
             if change.value == 3 and not manager.mistral().saved then
-                return refused('Requires a Mistral key (add it in Settings > Conversation provider)')
+                return refused('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
             end
             values.vVoiceMic = change.value ~= 1
             if change.value ~= 1 then
@@ -2914,7 +2952,7 @@ function M.apply(changes)
             end
             -- Likewise the Mistral cloud voice needs a Mistral key (it works with any conversation provider).
             if choice.provider == 'voxtral' and not manager.mistral().saved then
-                return refused('Requires a Mistral key (add it in Settings > Conversation provider)')
+                return refused('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
             end
             values.voiceProvider = choice.provider
             if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end

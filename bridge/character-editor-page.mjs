@@ -534,7 +534,7 @@ export function editorClient() {
         [['', T('Normal')], ['plain', T('Plain stances only, no props like a cup or a cigarette')], ['none', T('None: they keep the stance they have')]]),
       toggle('sit', T('Sit down and take a place'), T('Takes a seat beside you when you sit, and a seat or a spot in your flat at home. Switched off, they stay on their feet beside you.')),
       toggle('react', T('Comment on fights and loot'), T('Switched off, they say nothing about fights or about what you pick up.')),
-      choice('length', T('Reply length'), T('The longest reply, in words. Works with Mistral, Local AI and Custom, not Convai.'),
+      choice('length', T('Reply length'), T('The longest reply, in words. Works with Google Gemini, Local AI and Custom, not Convai.'),
         [['', T('Normal')], ['short', T('Shorter: up to about {words} words', {words: words.short})], ['brief', T('Very short: up to about {words} words', {words: words.brief})]]),
       h('p', {class: 'help'}, T('A saved choice counts within a few seconds. Clothes change when nobody is looking.')),
       h('div', {class: 'actions bar'}, save, undo));
@@ -550,7 +550,7 @@ export function editorClient() {
     gender.addEventListener('change', () => { draft.gender = gender.value; });
     const facing = model.state.facing !== false ? h('div', {class: 'actions'}, h('button', {type: 'button', class: 'secondary', onclick: facingFill}, T('Use the character I’m facing'))) : null;
     return h('div', {},
-      h('p', {class: 'help'}, T('Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.')),
+      h('p', {class: 'help'}, T('Your own characters talk only with Google Gemini, Local AI or Custom. With Convai they speak as an ordinary person.')),
       textField('name', T('Name'), T('The name the character goes by. They give it when somebody asks who they are.'), ctx),
       h('div', {class: 'field'}, h('label', {for: 'f-gender'}, T('Gender')), h('p', {class: 'help', id: 'h-gender'}, T('It picks the voice when the character has no clip.')), gender),
       h('div', {class: 'field'}, h('h3', {}, T('How the game finds this character')),
@@ -1121,7 +1121,7 @@ export function editorClient() {
     document.title = T('Character editor');
     document.documentElement.lang = boot.language || 'en';
     $('title').textContent = T('Character editor');
-    $('sub').textContent = T('Your changes work with Mistral, Local AI and Custom. They do not apply to Convai.');
+    $('sub').textContent = T('Your changes work with Google Gemini, Local AI and Custom. They do not apply to Convai.');
     $('close').textContent = T('Close editor');
     $('search').placeholder = T('Search characters');
     $('search').setAttribute('aria-label', T('Search characters'));
@@ -1141,7 +1141,7 @@ export function editorClient() {
   function drawBanner() {
     const banner = $('banner');
     // The Look and moves tab has its own sentence about Convai (most of its choices work with it), so the warning about the text edits is left out there.
-    if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.'); }
+    if (model.state.provider === 'convai' && !model.world && !(model.tab === 'look' && model.look)) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Google Gemini, Local AI or Custom as the conversation provider in the settings.'); }
     else banner.hidden = true;
   }
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });

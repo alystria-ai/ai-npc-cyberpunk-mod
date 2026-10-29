@@ -79,7 +79,7 @@ test('nothing published yet: four rows to paste into, a Test row that waits for 
   assert(state.available == false and state.ready == false and state.host == nil and state.model == nil and state.keySaved == false
     and state.tail == nil and state.result == nil and state.test == nil and state.limit == nil and state.action == nil)
   local items = provider.rows()
-  assert(#items == 5 and items[1].id == 'custom-preset-gemini' and items[2].id == 'custom-url'
+  assert(#items == 5 and items[1].id == 'custom-preset-mistral' and items[2].id == 'custom-url'
     and items[3].id == 'custom-key' and items[4].id == 'custom-model' and items[5].id == 'custom-test')
   local rows = rowsOf(provider)
   assert(rows['custom-url'].label == 'Custom endpoint URL' and rows['custom-url'].value == 'Paste endpoint URL' and rows['custom-url'].action == 'paste-url'
@@ -103,65 +103,71 @@ test('nothing published yet: four rows to paste into, a Test row that waits for 
   assert(provider.lastCommand() == nil)
 `));
 
-test('the free setup comes first: one press sends its command, the service says it is saved, and a failed save is told on its row', () => run(`${moduleFixture}
+test('the Mistral preset comes first: one press sends its command, the service says it is saved, and a failed save is told on its row', () => run(`${moduleFixture}
   local provider = make()
   local rows = rowsOf(provider)
-  assert(rows['custom-preset-gemini'].label == 'Google Gemini (free)' and rows['custom-preset-gemini'].value == 'Add' and rows['custom-preset-gemini'].action == 'preset-gemini'
-    and rows['custom-preset-gemini'].enabled == true and rows['custom-preset-gemini'].field == 'preset')
-  -- Each help names where the free key is made, that it is copied first and Add saves it from the clipboard, and what the plan costs the player in limits.
-  for _, part in ipairs({'aistudio.google.com/apikey', 'no card', 'press Add', 'saves your key from the clipboard', 'daily limit', 'not offered in every country', 'improve its products'}) do
-    assert(rows['custom-preset-gemini'].help:find(part, 1, true), 'Gemini help lacks: ' .. part)
+  assert(rows['custom-preset-mistral'].label == 'Mistral' and rows['custom-preset-mistral'].value == 'Add' and rows['custom-preset-mistral'].action == 'preset-mistral'
+    and rows['custom-preset-mistral'].enabled == true and rows['custom-preset-mistral'].field == 'preset')
+  -- The help says the key is copied first, that Add saves it from the clipboard, that the same key powers the Voxtral voice, and that new accounts may have no free key.
+  for _, part in ipairs({'Copy your Mistral API key first', 'press Add', 'saves your key from the clipboard', 'Voxtral', 'may not get a free API key'}) do
+    assert(rows['custom-preset-mistral'].help:find(part, 1, true), 'Mistral help lacks: ' .. part)
   end
-  assert(rows['custom-preset-groq'] == nil, 'no Groq row')
-  for _, id in ipairs({'custom-preset-gemini'}) do
-    assert(not rows[id].help:lower():find('recommend', 1, true) and not rows[id].label:lower():find('recommend', 1, true), id)
-  end
+  assert(rows['custom-preset-gemini'] == nil and rows['custom-preset-groq'] == nil, 'no Gemini or Groq row on the Custom page')
+  assert(not rows['custom-preset-mistral'].help:lower():find('recommend', 1, true) and not rows['custom-preset-mistral'].label:lower():find('recommend', 1, true))
   -- Pressing one writes its command; nothing else changes until the service answers.
-  local ok, message = provider.request('preset-gemini')
-  assert(ok == true and lastCommand().action == 'preset-gemini' and provider.lastCommand().action == 'preset-gemini', tostring(message))
+  local ok, message = provider.request('preset-mistral')
+  assert(ok == true and lastCommand().action == 'preset-mistral' and provider.lastCommand().action == 'preset-mistral', tostring(message))
   assert(provider.request('preset-groq') == false, 'the Groq setup is gone: its command is not sent')
   assert(provider.request('preset-nothing') == false, 'an unknown setup is not sent')
-  -- The service names the saved plan (only a known name counts); the row says Added and the others do not.
-  publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini', keySaved = false, tail = NONE}))
+  -- The service names the saved preset (only a known name counts); its button turns into Remove and sends the clear command.
+  publish(base({host = 'api.mistral.ai', model = 'ministral-8b-latest', preset = 'mistral', keySaved = false, tail = NONE}))
   rows = rowsOf(provider)
-  -- The saved plan's button turns into Remove and sends the clear command (not a dead "Added").
-  assert(rows['custom-preset-gemini'].value == 'Remove' and rows['custom-preset-gemini'].action == 'clear-preset-gemini' and rows['custom-preset-gemini'].label == 'Google Gemini (free)')
-  assert(first(rows['custom-preset-gemini'].help) == 'Deletes this free setup: the endpoint URL, the model ID and the API key saved with it.', rows['custom-preset-gemini'].help)
-  assert(provider.request('clear-preset-gemini') and lastCommand().action == 'clear-preset-gemini')
+  assert(rows['custom-preset-mistral'].value == 'Remove' and rows['custom-preset-mistral'].action == 'clear-preset-mistral' and rows['custom-preset-mistral'].label == 'Mistral')
+  assert(first(rows['custom-preset-mistral'].help) == 'Deletes this free setup: the endpoint URL, the model ID and the API key saved with it.', rows['custom-preset-mistral'].help)
+  assert(provider.request('clear-preset-mistral') and lastCommand().action == 'clear-preset-mistral')
   assert(provider.request('clear-preset-groq') == false, 'the Groq command is gone')
-  assert(provider.state().preset == 'gemini')
+  assert(provider.state().preset == 'mistral')
   for _, bad in ipairs({'other', '', 7, true, {}, 'groq'}) do
     publish(base({preset = bad}))
     assert(provider.state().preset == nil, tostring(bad))
-    assert(rowsOf(provider)['custom-preset-gemini'].value == 'Add')
+    assert(rowsOf(provider)['custom-preset-mistral'].value == 'Add')
   end
   local before = (publish(base({preset = NONE})) or provider.signature())
-  local after = (publish(base({preset = 'gemini'})) or provider.signature())
-  assert(before ~= after, 'a new saved plan redraws the page')
-  -- The answer to the latest press: saved shows nothing odd, failed puts its sentence first on the free-setup rows.
-  assert(provider.request('preset-gemini'))
+  local after = (publish(base({preset = 'mistral'})) or provider.signature())
+  assert(before ~= after, 'a new saved preset redraws the page')
+  -- The answer to the latest press: failed puts its sentence first on the preset row.
+  assert(provider.request('preset-mistral'))
   publish(base({result = {id = lastCommand().id, field = 'preset', state = 'saved'}}))
   assert(provider.state().result.field == 'preset' and provider.state().result.state == 'saved')
-  assert(first(rowsOf(provider)['custom-preset-gemini'].help):find('Copy your free key', 1, true))
   publish(base({result = {id = lastCommand().id, field = 'preset', state = 'invalid', reason = 'not-a-key'}}))
-  assert(first(rowsOf(provider)['custom-preset-gemini'].help) == 'The clipboard does not hold an API key.', rowsOf(provider)['custom-preset-gemini'].help)
+  assert(first(rowsOf(provider)['custom-preset-mistral'].help) == 'The clipboard does not hold an API key.', rowsOf(provider)['custom-preset-mistral'].help)
   publish(base({result = {id = lastCommand().id, field = 'preset', state = 'failed'}}))
-  assert(first(rowsOf(provider)['custom-preset-gemini'].help) == 'It could not be saved.', rowsOf(provider)['custom-preset-gemini'].help)
+  assert(first(rowsOf(provider)['custom-preset-mistral'].help) == 'It could not be saved.', rowsOf(provider)['custom-preset-mistral'].help)
   -- An answer that belongs to an older press is not shown.
   publish(base({result = {id = 'sess-1:cust:999', field = 'preset', state = 'failed'}}))
   assert(provider.state().result == nil)
-  -- Right after a plan is added with no key, the key row says the key is the next step (Google Gemini); a saved key, or no plan, shows the usual text.
-  publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini', keySaved = false, tail = NONE}))
-  local keyRow = rowsOf(provider)['custom-key']
-  assert(first(keyRow.help) == 'Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.', keyRow.help)
-  assert(keyRow.label == 'Custom API key (Not added)' and keyRow.value == 'Paste API key' and keyRow.action == 'paste-key', keyRow.label)
-  assert(keyRow.help:find('read from the clipboard once', 1, true), 'the usual key help follows')
-  publish(base({host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite-latest', preset = 'gemini'}))
-  keyRow = rowsOf(provider)['custom-key']
-  assert(keyRow.value == 'Remove' and not keyRow.help:find('Next step', 1, true), 'a saved key needs no next step')
-  publish(base({keySaved = false, tail = NONE}))
-  keyRow = rowsOf(provider)['custom-key']
-  assert(keyRow.label == 'Custom API key' and not keyRow.help:find('Next step', 1, true), 'no plan, no hint')
+`));
+
+test('the Google Gemini page (second instance, kind gemini): its own channel, a key row with Add and Remove, a Test row, and the notes and notices of the provider', () => run(`${moduleFixture}
+  local sentTo
+  local gemini = factory.new({ui = ui, kind = 'gemini', clock = function() return clock end, session = function() return 'sess-1' end,
+    readJSON = function(path) assert(path == 'runtime/gemini-provider-state.json', path); return nil end,
+    writeCommand = function(path, value) sentTo = path; written[#written + 1] = value; return true end})
+  local rows = {}
+  for _, item in ipairs(gemini.rows()) do rows[item.id] = item end
+  assert(#gemini.rows() == 2 and gemini.rows()[1].id == 'gemini-key' and gemini.rows()[2].id == 'gemini-test')
+  assert(rows['gemini-key'].label == 'Google Gemini API key' and rows['gemini-key'].value == 'Add' and rows['gemini-key'].action == 'preset-gemini')
+  for _, part in ipairs({'Google AI Studio', 'aistudio.google.com/apikey', 'no card', 'read from the clipboard once', 'about 1,000 replies', 'not offered in every country', 'improve its products'}) do
+    assert(rows['gemini-key'].help:find(part, 1, true), 'Gemini help lacks: ' .. part)
+  end
+  assert(not rows['gemini-key'].help:lower():find('recommend', 1, true))
+  local ok = gemini.request('preset-gemini')
+  assert(ok == true and lastCommand().action == 'preset-gemini' and sentTo == 'runtime/gemini-provider-command.json', tostring(sentTo))
+  assert(gemini.geminiNoteFor('rate') == 'Google Gemini: limit reached for now' and gemini.geminiNoteFor('daily') == 'Google Gemini: limit reached for now'
+    and gemini.geminiNoteFor('invalid') == 'Google Gemini: key not accepted' and gemini.geminiNoteFor('model') == 'Google Gemini: model unavailable' and gemini.geminiNoteFor('credits') == nil and gemini.geminiNoteFor(nil) == nil)
+  assert(gemini.notice('gemini-no-key') == 'Google Gemini has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
+  assert(gemini.notice('gemini-voice') == 'Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.')
+  assert(#factory.GEMINI_NOTICE_IDS == 2)
 `));
 
 test('saved values: the host, the last four characters or Added, the model; an unencrypted address says so; Test is enabled', () => run(`${moduleFixture}
@@ -693,13 +699,13 @@ const stateFixture = `
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
 `;
 
-test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custom endpoint button sits right under the Mistral key row and opens a page with the four rows', () => run(`${pageFixture()}${stateFixture}
+test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custom endpoint button sits right under the Google Gemini rows and opens a page with the four rows', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   local provider = row('conversationProvider')
   assert(provider.type == 'select' and #provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
-    and provider.elements[3] == 'Mistral' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
+    and provider.elements[3] == 'Google Gemini (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
   assert(provider.value == 1 and provider.defaultValue == 1)
-  assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,custom-endpoint,own-key', providerIds())
+  assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', providerIds())
   for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is not on the Settings page any more') end
   assert(row('custom-endpoint').type == 'action' and row('custom-endpoint').value == 'Open' and row('custom-endpoint').label == 'Custom endpoint')
   assert(not (row('custom-endpoint').description .. row('custom-endpoint').label):lower():find('recommend', 1, true))
@@ -710,8 +716,8 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custo
   for _, category in ipairs(loaded.categories) do
     if category.id == 'custom-endpoint' then for _, item in ipairs(category.settings) do pageIds[#pageIds + 1] = item.id end end
   end
-  assert(table.concat(pageIds, ',') == 'custom-preset-gemini,custom-url,custom-key,custom-model,custom-test', table.concat(pageIds, ','))
-  for _, id in ipairs({'custom-preset-gemini', 'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do
+  assert(table.concat(pageIds, ',') == 'custom-preset-mistral,custom-url,custom-key,custom-model,custom-test', table.concat(pageIds, ','))
+  for _, id in ipairs({'custom-preset-mistral', 'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do
     assert(row(id).type == 'action', id)
     assert(not (row(id).description .. row(id).label .. row(id).value):lower():find('recommend', 1, true), id)
   end
@@ -721,9 +727,9 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custo
   -- The help of the provider row names Custom only where it would otherwise be wrong (the description area holds only so much): Custom too
   -- replaces Convai's cloud voice with a local one (2026-10-20 settings audit; bridge/description-fit.test.mjs keeps it within the area).
   local _, customs = provider.description:gsub('Custom', '')
-  assert(customs == 1 and provider.description:find('With Mistral, Local AI or Custom, Convai’s cloud voice', 1, true), provider.description)
+  assert(customs == 1 and provider.description:find('With Google Gemini, Local AI or Custom, Convai’s cloud voice', 1, true), provider.description)
   -- The existing elements keep their numbers.
-  for _, case in ipairs({{1, 'convai', false}, {2, 'convai', true}, {3, 'mistral'}, {4, 'local'}, {5, 'custom'}}) do
+  for _, case in ipairs({{1, 'convai', false}, {2, 'convai', true}, {3, 'gemini'}, {4, 'local'}, {5, 'custom'}}) do
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = case[1]}}).ok, tostring(case[1]))
     assert(manager.snapshot(player).settings.conversationProvider == case[2], tostring(case[1]))
     if case[3] ~= nil then assert(manager.snapshot(player).settings.useOwnConvaiKey == case[3]) end
@@ -739,7 +745,7 @@ test('without the module file (or with a module that fails) the page still shows
   run(`${pageFixture(false)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(#row('conversationProvider').elements == 5)
-    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,own-key', providerIds())
+    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,own-key', providerIds())
     assert(row('custom-endpoint') == nil and not invoke('custom-endpoint').ok, 'the page is not offered without the module')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
     -- No module, no custom notes: the provider row is the same as with no limit at all.
@@ -753,7 +759,7 @@ test('without the module file (or with a module that fails) the page still shows
   const raising = customSource.replace('function self.rows()', 'function self.rows() error("boom") end\n    function self.unusedRows()');
   run(`${pageFixture(true, raising)}${stateFixture}
     assert(invoke('tab:settings').ok)
-    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,custom-endpoint,own-key', providerIds())
+    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,custom-endpoint,own-key', providerIds())
     assert(invoke('custom-endpoint').ok and managerUi.inspect().view == 'custom-endpoint')
     assert(row('custom-url') == nil and row('custom-test') == nil and row('custom-endpoint:back'), 'the page opens without rows, with its way back')
     assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings')
@@ -762,7 +768,7 @@ test('without the module file (or with a module that fails) the page still shows
   const broken = customSource.replace('function M.new(options)', 'function M.new(options) error("no instance")');
   run(`${pageFixture(true, broken)}${stateFixture}
     assert(invoke('tab:settings').ok)
-    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,mistral-key,own-key', providerIds())
+    assert(providerIds() == 'conversationProvider,matureContent,localModel,localOffload,own-key', providerIds())
   `);
 });
 
@@ -1004,7 +1010,7 @@ test('choosing Custom while Mature content is on keeps it on in the same save; L
   assert(apply({{id = 'conversationProvider', value = 5}, {id = 'matureContent', value = true}}).ok)
   assert(saved.conversationProvider == 'custom' and saved.matureContent == true)
   -- The Mature content help names Local AI and Custom, and that Convai or Mistral turns it off.
-  assert(row('matureContent').description:find('Choosing Convai or Mistral turns it off.', 1, true))
+  assert(row('matureContent').description:find('Choosing Convai or Google Gemini turns it off.', 1, true))
   assert(row('matureContent').description:find('Needs Local AI or Custom.', 1, true))
 `));
 

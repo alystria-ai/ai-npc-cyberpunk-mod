@@ -18,7 +18,7 @@ test('every status the phone shows for a provider failure is translated by the p
 
 test('the Conversation provider options are translated (the catalogue has them in every language)', () => {
   const page = read('../mod/manager-ui.lua');
-  const row = page.slice(page.indexOf("{'Convai free tier', 'Convai API key', 'Mistral'"));
+  const row = page.slice(page.indexOf("{'Convai free tier', 'Convai API key', 'Google Gemini (free plan)'"));
   assert.match(row.slice(0, 220), /'Local AI', 'Custom \(OpenAI-compatible\)'\}, \{elements = true, description = true\}\)/);
   assert.ok(!/groq/i.test(row.slice(0, 200)), 'Groq was removed as a provider');
 });

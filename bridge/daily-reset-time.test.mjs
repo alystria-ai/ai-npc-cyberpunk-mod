@@ -52,7 +52,7 @@ test('the reset time is the next 00:00 UTC on this computer\'s clock in every ti
       assert.equal(row.direct, want, `${label}: given a time`);
       assert.equal(row.viaClock, want, `${label}: from the real clock (os.time)`);
       // The notice carries the same time, filled in once, in the form the custom provider uses.
-      assert.equal(row.text, `Today’s 500 Convai turns are used./It resets at ${want}. Try Local AI (unlimited) or Mistral (your own key).`, label);
+      assert.equal(row.text, `Today’s 500 Convai turns are used./It resets at ${want}. Try Local AI (unlimited) or Google Gemini (your own key).`, label);
       assert.match(row.direct, /^\d\d:\d\d$/);
     });
   }
@@ -107,13 +107,13 @@ test('an unreadable clock gives no time, and every message then keeps its wordin
     local manager = {ownKey = function() return {daily = {limit = limit}} end}
     local ui = {t = convaiUiLocale.t, dailyResetClock = function() return nil end}
     ${init.slice(start, end)}
-    assert(dailyLimitText() == 'Today’s 500 Convai turns are used.\\nTry Local AI (unlimited) or Mistral (your own key).')
+    assert(dailyLimitText() == 'Today’s 500 Convai turns are used.\\nTry Local AI (unlimited) or Google Gemini (your own key).')
     limit = nil
-    assert(dailyLimitText() == 'Today’s Convai turns are used.\\nTry Local AI (unlimited) or Mistral (your own key).')
+    assert(dailyLimitText() == 'Today’s Convai turns are used.\\nTry Local AI (unlimited) or Google Gemini (your own key).')
     -- a limit unknown but a clock readable: the time without a number
     ui.dailyResetClock = function() return '05:30' end
-    assert(dailyLimitText() == 'Today’s Convai turns are used.\\nIt resets at 05:30. Try Local AI (unlimited) or Mistral (your own key).')
+    assert(dailyLimitText() == 'Today’s Convai turns are used.\\nIt resets at 05:30. Try Local AI (unlimited) or Google Gemini (your own key).')
     limit = 500
-    assert(dailyLimitText() == 'Today’s 500 Convai turns are used.\\nIt resets at 05:30. Try Local AI (unlimited) or Mistral (your own key).')
+    assert(dailyLimitText() == 'Today’s 500 Convai turns are used.\\nIt resets at 05:30. Try Local AI (unlimited) or Google Gemini (your own key).')
   `);
 });

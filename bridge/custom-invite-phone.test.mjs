@@ -39,7 +39,7 @@ test('a character the player made is listed under Characters to invite and invit
   assert(looks == 1, 'opening the page looks at the characters file once, so a character made a moment ago is listed')
   local ana = assert(row('invite:custom-ana-aaaa'), 'a row for her')
   assert(ana.label == 'Ana' and ana.value == 'Invite' and not ana.disabled, ana.label .. '/' .. tostring(ana.value))
-  assert(ana.description:find('Your own character, made in the character editor.', 1, true) and ana.description:find('Mistral, Local AI or Custom', 1, true))
+  assert(ana.description:find('Your own character, made in the character editor.', 1, true) and ana.description:find('Google Gemini, Local AI or Custom', 1, true))
   assert(not row('invite:custom-byname-bbbb'), 'a character with no record is not in the invite list')
   -- Invite: the copy of that model joins; the profile is none yet (the settle sweep gives it the custom key afterwards).
   assert(invoke('invite:custom-ana-aaaa').ok)
@@ -182,9 +182,9 @@ test('Lua: the Chat tab lists them under their own names, texts go to the custom
     -- Convai answers: the chat is listed, closed, and says why; a send is refused with the same line.
     chat.pending = nil; blocked = true; chat.dirty = true; frames()
     shown = presented[#presented]
-    assert(shown.canType == false and shown.status == 'This character needs Mistral, Local AI or Custom to answer.', tostring(shown.status))
+    assert(shown.canType == false and shown.status == 'This character needs Google Gemini, Local AI or Custom to answer.', tostring(shown.status))
     submissions[1] = {contact = 'custom-ana-aaaa', text = 'anyone there?'}; frames()
-    assert(chat.pending == nil and chat.errors['custom-ana-aaaa'] == 'This character needs Mistral, Local AI or Custom to answer.')
+    assert(chat.pending == nil and chat.errors['custom-ana-aaaa'] == 'This character needs Google Gemini, Local AI or Custom to answer.')
     -- A shipped character is never held back by it.
     open = 'judy-alvarez'; chat.dirty = true; frames()
     assert(presented[#presented].contact == 'judy-alvarez' and presented[#presented].canType == true)
@@ -271,7 +271,7 @@ const callWiring = (() => {
   return initSource.slice(start, start + match.index + match[0].length);
 })();
 
-test('init.lua: the call key on a Chat row with no journal contact rings her by name, under Mistral, Local AI or Custom, and is refused under Convai', () => {
+test('init.lua: the call key on a Chat row with no journal contact rings her by name, under Google Gemini, Local AI or Custom, and is refused under Convai', () => {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
   const program = `
     local files = {['phone-contacts.json'] = 'x'}
@@ -343,7 +343,7 @@ test('init.lua: the call key on a Chat row with no journal contact rings her by 
     -- Convai answers: a character the player made is refused with the Chat's line, and nothing rings; Rita is not held back.
     provider = false
     ask('custom-ana-aaaa')
-    assert(holocallModule.call == nil and #began == 2 and notices[#notices].text == 'This character needs Mistral, Local AI or Custom to answer.')
+    assert(holocallModule.call == nil and #began == 2 and (notices[#notices].text or ''):find('^This character needs .+, Local AI or Custom to answer%.$') ~= nil)
     ask('rita-wheeler'); assert(holocallModule.call ~= nil and #began == 3)
     holocallModule.finish(player, 'hangup')
     provider = true

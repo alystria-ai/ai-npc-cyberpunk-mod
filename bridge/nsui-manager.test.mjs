@@ -190,7 +190,7 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   frames(8); ns.verify()
   assert(saved.lootReactions == false, 'the change that could be made was made')
   assert(ns.find('Companion voices').selectedElementIndex == 2, 'the refused voice went back to the saved one')
-  assert(managerUi.inspect().shown == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(managerUi.inspect().shown))
+  assert(managerUi.inspect().shown == 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)', tostring(managerUi.inspect().shown))
   assert(ns.sections()[1].options[2].label:find('Requires a Mistral key', 1, true) == 1, 'the line is under the way back')
   -- A rule that moves another row: Natural speech beside the cloud voice moves the voice, in place, with the notice.
   ns.interact.select(ns.find('Companion voices'), 8)   -- Convai cloud voice
@@ -278,7 +278,7 @@ test('Mature content turned off while the model row is on an uncensored model (n
   assert(ns.find('Local AI model').selectedElementIndex == 1, 'the default is shown, not the uncensored model')
 `));
 
-test('Mature content beside Mistral: turning it on selects Local AI and says so (never Mistral), choosing Mistral or Convai turns it off; beside Custom it is just turned on, and a Voxtral voice moves to Pocket in the same save', () => run(`${harness()}
+test('Mature content beside Google Gemini or a saved legacy Mistral: turning it on selects Local AI and says so (never Mistral), choosing Google Gemini or Convai turns it off; beside Custom it is just turned on, and a Voxtral voice moves to Pocket in the same save', () => run(`${harness()}
   local function bridge(tag, value) jsonFixtures['m-' .. tag] = value; files['runtime/mistral-state.json'] = 'm-' .. tag; clock = clock + 2; manager.snapshot(player) end
   bridge('ready', {provider = 'mistral', effective = 'mistral', localAi = 'ready', saved = true,
     localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}},
@@ -287,20 +287,20 @@ test('Mature content beside Mistral: turning it on selects Local AI and says so 
   files['runtime/local-voice-state.json'] = 'voice-state'
   press('Settings')
   frames(20)
-  -- Mistral: Mature content cannot be on beside it, so turning it on selects Local AI and the uncensored model, and names them.
+  -- A saved legacy Mistral (shown as the third entry): Mature content cannot be on beside it, so turning it on selects Local AI and the uncensored model, and names them.
   assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
   frames(8)
   local mature = ns.find('Mature content')
-  assert(ns.find('Conversation provider').selectedElementIndex == 3 and mature.state == false)
+  assert(ns.find('Conversation provider').selectedElementIndex == 3 and ns.find('Conversation provider').elements[3] == 'Mistral (your key)' and mature.state == false)
   ns.interact.toggle(mature); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc', tostring(saved.conversationProvider))
   assert(saved.matureRestore.conversationProvider.before == 'mistral' and saved.matureRestore.conversationProvider.set == 'local')
   assert(ns.find('Conversation provider').selectedElementIndex == 4 and ns.find('Mature content').state == true)
   assert(managerUi.inspect().shown == 'Also changed: Local AI, Uncensored model.', tostring(managerUi.inspect().shown))
-  -- Choosing Mistral while it is on turns it off (and the rest stays as the player chose it).
+  -- Choosing the third entry (Google Gemini now, Mistral has left the list) while it is on turns it off (and the rest stays as the player chose it).
   ns.interact.select(ns.find('Conversation provider'), 3); frames(8); ns.verify()
-  assert(saved.conversationProvider == 'mistral' and saved.matureContent == false, 'Mistral turns it off')
-  assert(ns.find('Mature content').state == false)
+  assert(saved.conversationProvider == 'gemini' and saved.matureContent == false, 'Google Gemini turns it off')
+  assert(ns.find('Mature content').state == false and ns.find('Conversation provider').elements[3] == 'Google Gemini (free plan)')
   -- Custom: it is just turned on; switching from Local AI to Custom keeps it on; Convai turns it off.
   assert(manager.applySettings(player, {conversationProvider = 'custom'}))
   frames(8)
@@ -897,7 +897,7 @@ test('a draw of the tab never rebuilds what has not changed: a value changed fro
 `));
 
 // ---------------------------------------------------------------------------------------------------- settings decisions of 2026-10-20
-const customRows = ['Google Gemini (free)', 'Custom endpoint URL', 'Custom API key', 'Custom model ID', 'Test connection'];
+const customRows = ['Mistral', 'Custom endpoint URL', 'Custom API key', 'Custom model ID'];
 const withoutCustomModule = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'custom-provider.lua'));
 const customState = `
   files['runtime/custom-provider-command.json'] = ''
@@ -906,6 +906,12 @@ const customState = `
     clock = clock + 2; frames(4); ns.verify()
   end
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
+  files['runtime/gemini-provider-command.json'] = ''
+  local function geminiService(tag, value)
+    jsonFixtures['gemini-' .. tag] = value; files['runtime/gemini-provider-state.json'] = 'gemini-' .. tag
+    clock = clock + 2; frames(4); ns.verify()
+  end
+  local function geminiCommand() return jsonFixtures[files['runtime/gemini-provider-command.json']] end
 `;
 
 test('Custom endpoint is a page of its own: one button on Settings where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => run(`${harness()}
@@ -913,6 +919,17 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   press('Settings')
   assert(ns.find('Custom endpoint').buttonText == 'Open', 'one button on Settings')
   for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(ns.find(label) == nil, label .. ' is not on Settings any more') end
+  -- The Google Gemini key and its connection test are rows of Settings (a second instance of the same module, on its own files). Add sends preset-gemini, a saved key shows its last four characters.
+  assert(ns.find('Mistral API key') == nil and ns.find('Google Gemini (free)') == nil)
+  assert(ns.find('Google Gemini API key').buttonText == 'Add' and ns.find('Test connection').buttonText == 'Test')
+  press('Google Gemini API key'); assert(geminiCommand().action == 'preset-gemini', tostring(geminiCommand() and geminiCommand().action))
+  assert(files['runtime/custom-provider-command.json'] == '', 'the Custom endpoint channel is not used')
+  geminiService('saved', {version = 1, ready = true, host = 'generativelanguage.googleapis.com', model = 'gemini-flash-lite', keySaved = true, tail = 'wxyz', preset = 'gemini'})
+  assert(ns.find('Google Gemini API key (…wxyz)').buttonText == 'Remove', shownOutline())
+  press('Google Gemini API key (…wxyz)'); assert(geminiCommand().action == 'clear-preset-gemini', tostring(geminiCommand() and geminiCommand().action))
+  geminiService('removed', {version = 1, ready = false, keySaved = false})
+  assert(ns.find('Google Gemini API key').buttonText == 'Add')
+  press('Test connection'); assert(geminiCommand().action == 'test', tostring(geminiCommand() and geminiCommand().action))
   press('Custom endpoint')
   assert(managerUi.inspect().view == 'custom-endpoint')
   local sections = ns.sections()
@@ -921,9 +938,9 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   assert(dense(ns.data[TAB]))
   local shown = {}
   for _, option in ipairs(sections[2].options) do shown[#shown + 1] = option.label end
-  assert(table.concat(shown, ' | ') == 'Google Gemini (free) | Custom endpoint URL | Custom API key | Custom model ID | Test connection', table.concat(shown, ' | '))
+  assert(table.concat(shown, ' | ') == 'Mistral | Custom endpoint URL | Custom API key | Custom model ID | Test connection', table.concat(shown, ' | '))
   assert(ns.find('Conversation provider') == nil and ns.find('Subtitles') == nil, 'nothing of Settings is on the page')
-  press('Google Gemini (free)'); assert(command().action == 'preset-gemini', tostring(command() and command().action))
+  press('Mistral'); assert(command().action == 'preset-mistral', tostring(command() and command().action))
   press('Custom endpoint URL'); assert(command().action == 'paste-url', tostring(command() and command().action))
   press('Custom API key'); assert(command().action == 'paste-key')
   press('Custom model ID'); assert(command().action == 'paste-model')
@@ -1010,7 +1027,7 @@ test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; choosing Voxtral
   assert(managerUi.inspect().shown == 'Requires the Companion voices to be an OmniVoice choice', tostring(managerUi.inspect().shown))
   assert(ns.find(name).selectedElementIndex == 2 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused OmniVoice choice went back')
   ns.interact.select(ns.find(name), 3); frames(8); ns.verify()
-  assert(managerUi.inspect().shown == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(managerUi.inspect().shown))
+  assert(managerUi.inspect().shown == 'Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)', tostring(managerUi.inspect().shown))
   assert(ns.find(name).selectedElementIndex == 2 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused choice went back')
   ns.interact.select(ns.find(name), 1); frames(8); ns.verify()
   assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket' and saved.vVoiceChosen == true, tostring(saved.vVoice))

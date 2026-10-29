@@ -218,7 +218,7 @@ export const isCustomProfileId = id => typeof id === 'string' && /^custom-[a-z0-
 export function profileIdFor({route, tier = null, mature = false, custom = null} = {}) {
   if (route === 'mistral') return 'mistral';
   if (route === 'local') return `${mature ? 'mature' : 'local'}-${tier === 'lite' ? 'lite' : 'standard'}`;
-  if (route === 'custom') return customProfileId(custom?.origin, custom?.model);
+  if (route === 'custom' || route === 'gemini') return customProfileId(custom?.origin, custom?.model);
   return null;
 }
 

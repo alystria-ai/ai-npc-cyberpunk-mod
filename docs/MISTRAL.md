@@ -1,5 +1,7 @@
 # Mistral as a conversation provider
 
+> **Status since 2026-10-30.** Mistral stopped giving free API keys to new accounts, so it is no longer in the Conversation provider list. It is a preset (**Mistral**) on the Custom endpoint page now: Add reads the key from the clipboard and fills in `https://api.mistral.ai/v1` and `ministral-8b-latest` ([CUSTOM_PROVIDER.md](CUSTOM_PROVIDER.md), "Presets"). Google Gemini took Mistral's place in the list ([GEMINI.md](GEMINI.md)). The internal Mistral provider described below stays for players who chose it before: it is listed as "Mistral (your key)" while it is their saved choice, and its prompt, memory, pacing and failure handling are unchanged. The Voxtral cloud voice still needs a Mistral key, which now comes from the Mistral preset. The sections below describe the provider as it was built, including the free-key setup, which a new account may no longer be able to follow.
+
 For a player who has used up the shared Convai conversations (or who prefers it), companions can answer through
 [Mistral](https://mistral.ai) (La Plateforme, `api.mistral.ai`) with the player's own free Mistral key. Convai free tier stays the default.
 It works with no setup and gives better quality responses. Mistral replaces only the text that companions say; everything after the
