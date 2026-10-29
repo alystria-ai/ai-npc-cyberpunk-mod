@@ -70,6 +70,51 @@
       "when": {"kind": "weather", "is": "rain"},
       "cooldownDays": 4,
       "note": "The weather."
+    },
+    {
+      "id": "sb-hangout-shared-radio",
+      "via": "text",
+      "text": "Park somewhere and tune your radio. I'm going to pick a station by memory, and I'll be wrong.",
+      "after": [{"kind": "bond", "level": 2}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-shared-radio",
+      "note": "She is asking V to park somewhere, tune the radio and listen along with her."
+    },
+    {
+      "id": "sb-hangout-card-count",
+      "via": "text",
+      "text": "I can't hack a table. I can count. Sit down at the card table and describe each hand to me.",
+      "after": [{"kind": "bond", "level": 3}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-card-count",
+      "note": "She cannot hack a card table, so she asks V to sit down and describe each hand to her."
+    },
+    {
+      "id": "sb-hangout-window-shopping",
+      "via": "text",
+      "text": "I want to choose things. Small things. Take me to a place with shops.",
+      "after": [{"kind": "bond", "level": 4}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-window-shopping",
+      "note": "She wants to choose small things and asks V to take her somewhere with shops."
+    },
+    {
+      "id": "sb-hangout-colour-hunt",
+      "via": "text",
+      "text": "Dogtown is grey. I'd like five colours. Find them for me, and tell me what they feel like.",
+      "after": [{"kind": "bond", "level": 6}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-colour-hunt",
+      "note": "Dogtown feels grey to her. She asks V to find five colours and say what they feel like."
+    },
+    {
+      "id": "sb-hangout-keep-watch",
+      "via": "text",
+      "text": "I haven't slept in two days. I can't tonight unless somebody keeps watch. Would you?",
+      "after": [{"kind": "bond", "level": 8}],
+      "cooldownDays": 3,
+      "offer": "songbird-hangout-keep-watch",
+      "note": "She has not slept in two days and asks V to keep watch while she sleeps."
     }
   ]
 }

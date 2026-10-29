@@ -50,7 +50,7 @@
       "id": "tk-bond8",
       "via": "call",
       "text": "I have been thinking about loyalty. I would like your view. Over tea.",
-      "after": [{"kind": "bond", "level": 8}],
+      "after": [{"kind": "bond", "level": 8}, {"kind": "pack", "id": "takemura-word-of-honour"}],
       "once": true,
       "note": "The pier, the clerk, and his word."
     },
@@ -61,6 +61,51 @@
       "after": [{"kind": "idle-days", "days": 10}],
       "cooldownDays": 10,
       "note": "The last topic."
+    },
+    {
+      "id": "th1-invite",
+      "via": "text",
+      "text": "There is a tea garden above a shop in Japantown. I wish to see whether you can be taught three courtesies.",
+      "minBond": 2,
+      "once": true,
+      "offer": "takemura-hangout-three-courtesies",
+      "note": "The tea garden, the three courtesies and the old host."
+    },
+    {
+      "id": "th2-invite",
+      "via": "text",
+      "text": "A small bar in Japantown has a machine that sings back. I am told this is entertainment.",
+      "minBond": 3,
+      "once": true,
+      "offer": "takemura-hangout-enka-night",
+      "note": "The karaoke bar, the enka he insists on and the pop machine."
+    },
+    {
+      "id": "th3-invite",
+      "via": "text",
+      "text": "There is a cherry tree in a corporate garden. It is closed. I would like to see it. Politely.",
+      "minBond": 4,
+      "once": true,
+      "offer": "takemura-hangout-polite-trespass",
+      "note": "The closed garden, the cherry tree and the guard who bows."
+    },
+    {
+      "id": "th4-invite",
+      "via": "text",
+      "text": "I have one coat. A man with one coat is a man in trouble. Accompany me to a tailor.",
+      "minBond": 5,
+      "once": true,
+      "offer": "takemura-hangout-right-coat",
+      "note": "The tailor, the three coats and his one old coat."
+    },
+    {
+      "id": "th5-invite",
+      "via": "text",
+      "text": "I propose a contest. The one who speaks first loses. The loser buys tea.",
+      "minBond": 6,
+      "once": true,
+      "offer": "takemura-hangout-stillness",
+      "note": "The silence contest on the Wellsprings bench and the performer who tries to make you laugh."
     }
   ]
 }

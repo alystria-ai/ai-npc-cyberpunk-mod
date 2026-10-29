@@ -19,7 +19,7 @@ import {finished, questState, inventoryComplete} from './bonds.mjs';
 import {wantedFacts} from './quest-facts.mjs';
 
 export const REACH_FORMAT = 1;
-export const REACH_LIMITS = Object.freeze({triggers: 12, text: 240, note: 300, after: 4, levels: 10, ids: 8, cooldownDays: [0.1, 365]});
+export const REACH_LIMITS = Object.freeze({triggers: 16, text: 240, note: 300, after: 4, levels: 10, ids: 8, cooldownDays: [0.1, 365]});
 export const VIAS = Object.freeze(['text', 'call', 'voice']);
 /** One per game hour and three per game day across all characters (the game enforces the same caps; the bridge hides the list while they are used up). */
 export const REACH_CAPS = Object.freeze({perHour: 1, perDay: 3});

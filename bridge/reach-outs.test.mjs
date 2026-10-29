@@ -21,7 +21,7 @@ function journal(rows, {tracked = {status: 'untracked'}} = {}) {
 const trigger = (extra = {}) => ({id: 'xx-one', via: 'text', text: 'Hello there.', after: [{kind: 'bond', level: 3}], ...extra});
 const file = (triggers, extra = {}) => ({format: 1, character: 'panam-palmer', triggers, ...extra});
 
-test('the shipped files: ten characters, valid, English, at most 12 triggers each, unique ids, every quest path a known quest', () => {
+test('the shipped files: ten characters, valid, English, at most 16 triggers each, unique ids, every quest path a known quest', () => {
   const files = shippedReachFiles();
   assert.equal(files.length, 10);
   const ids = new Set();
@@ -63,8 +63,8 @@ test('the validator: one example per rule', () => {
   bad(data => { data.format = 2; }, /format must be 1/);
   bad(data => { data.character = 'nobody'; }, /not on the roster/);
   bad(data => { data.extra = 1; }, /no field "extra"/);
-  bad(data => { data.triggers = []; }, /1 to 12/);
-  bad(data => { data.triggers = Array.from({length: 13}, (_, n) => trigger({id: `xx-${n}a`})); }, /1 to 12/);
+  bad(data => { data.triggers = []; }, /1 to 16/);
+  bad(data => { data.triggers = Array.from({length: 17}, (_, n) => trigger({id: `xx-${n}a`})); }, /1 to 16/);
   bad(data => { data.requires = {questsFinished: ['nope']}; }, /requires\.questsFinished/);
   bad(data => { data.requires = {facts: {'takemura-alive': 'yes'}}; }, /true or false/);
   bad(data => { data.requires = {eddies: true}; }, /requires has no field "eddies"/);

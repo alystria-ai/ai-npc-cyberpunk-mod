@@ -58,6 +58,51 @@
       "after": [{"kind": "idle-days", "days": 10}],
       "cooldownDays": 10,
       "note": "The last topic and any open promise."
+    },
+    {
+      "id": "rwh1-offer-tin-cans",
+      "via": "text",
+      "text": "Dry gulch off the Red Peaks road. Tin cans, two guns, one bad loser. Me.",
+      "after": [{"kind": "bond", "level": 2}],
+      "once": true,
+      "offer": "river-hangout-tin-can-alley",
+      "note": "A shooting range of tin cans in a dry gulch, and River keeps score."
+    },
+    {
+      "id": "rwh2-offer-witness",
+      "via": "text",
+      "text": "A diner in Santo Domingo. Four witnesses, one stolen tip jar. Come hungry and suspicious.",
+      "after": [{"kind": "bond", "level": 3}],
+      "once": true,
+      "offer": "river-hangout-friendliest-witness",
+      "note": "A staged theft at a diner in Santo Domingo, with four witnesses."
+    },
+    {
+      "id": "rwh3-offer-scrapyard",
+      "via": "text",
+      "text": "Scrapyard south of the city. Five wrecks, one quiz. Loser buys the coffee.",
+      "after": [{"kind": "bond", "level": 4}],
+      "once": true,
+      "offer": "river-hangout-scrapyard-appraisal",
+      "note": "A wreck field south of the city, with a quiz about the cars."
+    },
+    {
+      "id": "rwh4-offer-time-capsule",
+      "via": "text",
+      "text": "Badlands west road, a pullout with one tree. Bring something you won't miss and something you will.",
+      "after": [{"kind": "bond", "level": 5}],
+      "once": true,
+      "offer": "river-hangout-time-capsule",
+      "note": "A pullout on the Badlands west road where River wants to bury a tin."
+    },
+    {
+      "id": "rwh5-offer-cover-story",
+      "via": "text",
+      "text": "Santo Domingo night market. I'll give you an alias. Get a free coffee with it. If you can.",
+      "after": [{"kind": "bond", "level": 6}],
+      "once": true,
+      "offer": "river-hangout-cover-story",
+      "note": "A night market in Santo Domingo, where River tests a cover story."
     }
   ]
 }

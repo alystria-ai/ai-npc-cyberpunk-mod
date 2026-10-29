@@ -58,6 +58,51 @@
       "text": "That went fine. Don't tell the others it went well.",
       "after": [{"kind": "pack", "ids": ["rogue-terms", "rogue-hiring-day", "rogue-four-questions", "rogue-say-left", "rogue-whos-listening", "rogue-never-said"]}],
       "note": "The quest just finished."
+    },
+    {
+      "id": "rr-hang-spot",
+      "via": "text",
+      "text": "Charter Hill. A terrace. Sit and watch. I'll tell you why after.",
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "rogue-hangout-spot-the-plant",
+      "note": "An invitation to sit on a terrace and spot who is carrying something."
+    },
+    {
+      "id": "rr-hang-table",
+      "via": "text",
+      "text": "Downtown. Seven. There's no table. Get us one. I won't help.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "rogue-hangout-table-for-two",
+      "note": "An invitation to a busy restaurant where V has to get a table with words alone."
+    },
+    {
+      "id": "rr-hang-gallery",
+      "via": "call",
+      "text": "Charter Hill. A gallery opens tonight. I like to see what rich people buy. Come.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "rogue-hangout-pretty-things",
+      "note": "An invitation to a gallery opening, where she likes to see what rich people buy."
+    },
+    {
+      "id": "rr-hang-tail",
+      "via": "text",
+      "text": "Someone's following us. Walk with me and lose him. Don't look back.",
+      "minBond": 6,
+      "cooldownDays": 3,
+      "offer": "rogue-hangout-shake-the-tail",
+      "note": "An invitation to lose a follower on the streets of City Center Downtown."
+    },
+    {
+      "id": "rr-hang-last-light",
+      "via": "text",
+      "text": "Sunset. A bar I keep for myself. I'll buy. You tell me a story.",
+      "minBond": 8,
+      "cooldownDays": 3,
+      "offer": "rogue-hangout-last-light",
+      "note": "An invitation to a high-rise bar at sunset, where she tells one story and V tells one."
     }
   ]
 }

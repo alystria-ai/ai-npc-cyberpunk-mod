@@ -79,6 +79,51 @@
       "minBond": 6,
       "cooldownDays": 4,
       "note": "She is restless and nothing is wrong. She may suggest a hangout."
+    },
+    {
+      "id": "pr-hang-mackinaw",
+      "via": "text",
+      "text": "Truck's making a noise. Come hand me things and pretend you know what they are.",
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-fixing-mackinaw",
+      "note": "The Mackinaw is making a noise and she wants V in the Jackson Plains garage to hand her parts."
+    },
+    {
+      "id": "pr-hang-billboard",
+      "via": "text",
+      "text": "I'm sitting on a billboard with two beers. One's getting warm. Figure out how to get up here.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-billboard-beers",
+      "note": "She is on a billboard with two beers and V has to work out how to climb up."
+    },
+    {
+      "id": "pr-hang-stargazing",
+      "via": "text",
+      "text": "Clear sky tonight. I know where the turbines hum. Bring a jacket.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-stargazing-turbines",
+      "note": "A clear night near the turbines, and she wants V to lie in the grass and look at the sky."
+    },
+    {
+      "id": "pr-hang-diner",
+      "via": "text",
+      "text": "I'm hungry and I'm buying. That's not a joke, I'm actually buying.",
+      "minBond": 6,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-diner-rules",
+      "note": "She is hungry and buying at the diner by the old turbine farm road."
+    },
+    {
+      "id": "pr-hang-dust-run",
+      "via": "text",
+      "text": "Bikes. Lakebed. Loser buys fuel.",
+      "minBond": 8,
+      "cooldownDays": 3,
+      "offer": "panam-hangout-dust-run",
+      "note": "A short race across the dry lakebed east of the dam road, and the loser buys the fuel."
     }
   ]
 }

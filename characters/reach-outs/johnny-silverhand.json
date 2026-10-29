@@ -59,6 +59,52 @@
       "text": "That was fine. I'll deny it. But it was fine.",
       "after": [{"kind": "pack", "ids": ["johnny-street-poll", "johnny-dial-surf", "johnny-field-manual", "johnny-licensed", "johnny-the-count", "johnny-soundcheck"]}],
       "note": "The quest just finished, its ending, and what he took from it."
+    },
+    {
+      "id": "inv-perimeter",
+      "via": "voice",
+      "text": "Suburbs. Disgusting. But I want to know how I'd hold a cul-de-sac. Come on.",
+      "when": {"kind": "district", "is": "Santo Domingo"},
+      "minBond": 3,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-perimeter",
+      "note": "Johnny invites V to a timed walk through a Santo Domingo cul-de-sac."
+    },
+    {
+      "id": "inv-bet",
+      "via": "voice",
+      "text": "Here's a game. I bet how a stranger reacts. You make it happen. Loser buys nothing.",
+      "minBond": 4,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-bet-bystander",
+      "note": "Johnny invites V to a bet on how strangers in Arroyo will react."
+    },
+    {
+      "id": "inv-wardrobe",
+      "via": "voice",
+      "text": "That jacket. No. We're going shopping. Don't argue.",
+      "minBond": 5,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-wardrobe-veto",
+      "note": "Johnny invites V to an arcade near Corpo Plaza to try on looks he will judge."
+    },
+    {
+      "id": "inv-what-i-know",
+      "via": "voice",
+      "text": "Sit at a bar. Order something. I'll tell you four things about you. One is a lie.",
+      "minBond": 6,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-what-i-know",
+      "note": "Johnny invites V to a Heywood bar for a game where he names four things about V and one is false."
+    },
+    {
+      "id": "inv-shakedown",
+      "via": "voice",
+      "text": "Three punks are leaning on a cart vendor. Not my fight. Not my body. Your call.",
+      "minBond": 7,
+      "cooldownDays": 3,
+      "offer": "johnny-hangout-shakedown",
+      "note": "Johnny tells V about three punks leaning on a cart vendor in Heywood and leaves the choice to V."
     }
   ]
 }
