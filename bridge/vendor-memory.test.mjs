@@ -372,7 +372,7 @@ const flush = () => new Promise(done => setImmediate(done));
 async function bridge(t, {memory} = {}) {
   const {dir, path} = await sandbox(t);
   const f = {dir, path, now: 100000, live: true, calls: [], resets: 0, vendorMemory: memory ?? await open(path)};
-  const sandboxed = {EddiesDecisions: class {}, Date: {now: () => f.now}, vendorMemory: f.vendorMemory, vendorMemoryKey, mistralMemory: {forget: () => 0, flush: async () => {}}, lastTalk: {forget: () => 0}, bonds: {forget: () => 0}, memoryNamespace: {scope: () => null, keyFor: key => key},
+  const sandboxed = {EddiesDecisions: class {}, Date: {now: () => f.now}, vendorMemory: f.vendorMemory, vendorMemoryKey, mistralMemory: {forget: () => 0, flush: async () => {}}, lastTalk: {forget: () => 0}, bonds: {forget: () => 0}, bondPacks: {forgetHistory: () => 0}, memoryNamespace: {scope: () => null, keyFor: key => key},
     readSpeechState: async () => ({}),
     throwIfCancelled: () => {},
     resetLiveRoutes: async () => { f.resets++; },
