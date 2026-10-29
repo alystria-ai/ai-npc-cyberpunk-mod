@@ -538,6 +538,8 @@ your new song and was only nice about it; it is still in a drawer." `file` (+10)
 
 ## 16. Decisions for the owner
 
+Settled by the owner on 2026-10-29: all seven as recommended below (talk part from memory, story part from the save; warmth never decays, hurt fades over 10 game days; level notice on, with the number and title; residents only as recruits; no journal entries; squads later).
+
 1. **Should the bond follow the memory or the save?** Recommended: as built, the talk part follows the memory (no contradiction with what the
    character remembers), the story part and packs follow the save.
 2. **Decay**: recommended as built, warmth never decays and hurt fades (10 game days). The alternative (slow decay without contact) punishes a
