@@ -1745,8 +1745,6 @@ return {
     ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "安裝 Hugging Face 上 {folder}/vision 的 vision 檔案後，此模型即可辨識圖片。",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "你的 Custom 端點不接受圖片，因此回覆只使用你的文字。",
     ["Google Gemini (free)"] = "Google Gemini（免費）",
-    ["Groq (free)"] = "Groq（免費）",
     ["Use"] = "使用",
     ["Fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite). Then make a free key at aistudio.google.com/apikey (a Google account is enough, no card) and paste it below.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products."] = "填入 Google Gemini 免費方案（Flash-Lite）的端點 URL 與模型 ID。接著到 aistudio.google.com/apikey 建立一組免費 API 金鑰（只需 Google 帳號，不需要信用卡），再貼到下方。\n\n免費方案每天有使用上限，並非在所有國家或地區都能使用，而且 Google 可能會使用免費方案的對話內容來改進其產品。",
-    ["Fills in the endpoint URL and the model ID for the free plan of Groq (Qwen). Then make a free key at console.groq.com/keys (no card) and paste it below.\n\nReplies come very fast, but the free plan is small: about one reply a minute and a few dozen a day. It is not offered in every country."] = "填入 Groq 免費方案（Qwen）的端點 URL 與模型 ID。接著到 console.groq.com/keys 建立一組免費 API 金鑰（不需要信用卡），再貼到下方。\n\n回覆速度非常快，但免費方案的額度很少：大約每分鐘一則回覆，每天幾十則。並非在所有國家或地區都能使用。",
 }

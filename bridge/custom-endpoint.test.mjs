@@ -291,8 +291,8 @@ test('the real file is written with the key in it, nowhere else, and is read bac
 
 const command = (id, action, issuedAt = 1_000_000) => JSON.stringify({version: 1, id, action, issuedAt});
 
-test('commands: only the nine known actions, a well-formed id and a recent time are accepted', () => {
-  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'preset-groq']);
+test('commands: only the eight known actions, a well-formed id and a recent time are accepted', () => {
+  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini']);
   for (const action of COMMANDS) assert.deepEqual(parseCustomCommand(command('s:cust:1', action), 1_000_100), {id: 's:cust:1', action});
   assert.equal(parseCustomCommand(command('s:cust:1', 'paste'), 1_000_100), null);
   assert.equal(parseCustomCommand(command('bad id', 'test'), 1_000_100), null);
@@ -363,8 +363,8 @@ test('the settings page: three pastes, each checked and saved, and the status it
   assert.ok(!JSON.stringify(c.published).includes(KEY));
 });
 
-test('the free setups: one press fills in the endpoint and the model id (nothing from the clipboard), the key stays only on the same host, and the request is the usual one', async () => {
-  assert.deepEqual(Object.keys(PRESETS), ['gemini', 'groq']);
+test('the free setup: one press fills in the endpoint and the model id (nothing from the clipboard), the key stays only on the same host, and the request is the usual one', async () => {
+  assert.deepEqual(Object.keys(PRESETS), ['gemini']);
   for (const preset of Object.values(PRESETS)) {
     assert.equal(parseEndpointUrl(preset.endpoint).endpoint, preset.endpoint, 'the address is accepted as it is');
     assert.ok(parseModelId(preset.model), 'the model id is accepted');
@@ -394,19 +394,19 @@ test('the free setups: one press fills in the endpoint and the model id (nothing
   assert.equal(requests[0].body.reasoning_effort, undefined, 'Gemini refuses reasoning_effort none, and the model id does not look like a reasoning model');
   assert.equal(new Headers(requests[0].headers).get('x-title'), null, 'the attribution headers are OpenRouter only');
   assert.ok(!JSON.stringify(c.published).includes(KEY));
-  // The same plan again keeps the key (same host). Another plan is another host: the key is forgotten and the key row says to paste it again.
+  // The same plan again keeps the key (same host). Another address is another host: the key is forgotten and the key row says to paste it again.
   status = await c.send('preset-gemini');
   assert.equal(status.keySaved, true);
-  status = await c.send('preset-groq');
-  assert.deepEqual([status.host, status.model, status.preset, status.keySaved, status.keyForgotten], ['api.groq.com', 'qwen/qwen3.8-27b', 'groq', false, true]);
-  assert.ok(!c.s.text.includes(KEY), 'the Google key is not kept beside Groq\'s address');
-  assert.match(c.s.text, /endpoint=https:\/\/api\.groq\.com\/openai\/v1\n/);
+  c.clipboard(async () => 'https://openrouter.ai/api/v1\n');
+  status = await c.send('paste-url');
+  assert.deepEqual([status.host, status.keySaved, status.keyForgotten, status.preset], ['openrouter.ai', false, true, null]);
+  assert.ok(!c.s.text.includes(KEY), "the Google key is not kept beside OpenRouter's address");
   // A key pasted before any address is bound to the plan chosen after it.
   const d = await control();
   d.clipboard(async () => KEY);
   await d.send('paste-key');
-  status = await d.send('preset-groq');
-  assert.deepEqual([status.keySaved, status.keyForgotten, status.preset], [true, undefined, 'groq']);
+  status = await d.send('preset-gemini');
+  assert.deepEqual([status.keySaved, status.keyForgotten, status.preset], [true, undefined, 'gemini']);
   // Changing a field by hand leaves no plan marked.
   d.clipboard(async () => 'llama3.2');
   status = await d.send('paste-model');
