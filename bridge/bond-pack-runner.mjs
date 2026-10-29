@@ -539,7 +539,7 @@ export class BondPacks {
       }
       const timeoutAt = stage.timeout && whole(last.at) ? last.at + stage.timeout.gameHours * HOUR : undefined;
       quests.push({pack: id, character: pack.character, stage: stage.id, serial: entry.trail.length, since: last.at, places, do: stage.do ?? [], script: stage.script ?? [],
-        ...this.#lineTables(pack, refs), gaps, gap: entry.gap, ...(timeoutAt !== undefined ? {timeoutAt} : {})});
+        ...this.#lineTables(pack, refs), gaps, gap: entry.gap ?? null, ...(timeoutAt !== undefined ? {timeoutAt} : {})});
     }
     const closing = this.closing.map(item => ({pack: item.pack, character: item.character, ending: item.ending, serial: item.serial, script: item.script, lines: item.lines, images: item.images}));
     const known = new Set(quests.map(quest => quest.pack));

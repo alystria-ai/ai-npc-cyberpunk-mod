@@ -163,7 +163,10 @@ game.visitors = {{appointmentId = 'quest:pk:tom', state = 'visiting', serial = 3
 local found = world.castLookup(handle); assert(found.position.x == 4 and found.serial == 31)
 world.castDelete(handle); assert(game.dismissed[1] == '31:module' and #game.queueDismissed == 0)
 -- Not yet made: the invitation job is cancelled instead.
-game.visitors = {}; world.castDelete(handle); assert(game.queueDismissed[1] == 'job1')
+game.visitors = {}; handle.profileKey = 'joined-nobody'; world.castDelete(handle); assert(game.queueDismissed[1] == 'job1')
+-- A copy that joined V's party since is V's companion: the quest does not dismiss her.
+handle.profileKey = 'panam-palmer'; world.castDelete(handle); assert(#game.queueDismissed == 1)
+assert(world.partyJoin(5) == false, 'the fake companions have no join call')
 -- Refused by the queue, raising, or no queue.
 game.inviteResult = {false, 'That character model is unavailable.'}
 local h, w = world.castSpawn({id = 'b', who = 'judy-alvarez', profileKey = 'judy-alvarez', x = 1, y = 2, z = 3}); assert(h == nil and w == 'That character model is unavailable.')

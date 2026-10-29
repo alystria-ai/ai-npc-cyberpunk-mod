@@ -315,14 +315,35 @@ function M.new(options)
             timeoutAt = type(q.timeoutAt) == 'number' and q.timeoutAt == q.timeoutAt and q.timeoutAt >= 0 and q.timeoutAt or nil}
     end
 
-    local function endQuest(q)
+    local function endQuest(q, final)
         q.dead = true
         if quests[q.pack] == q then quests[q.pack] = nil end
+        if q.ctx and final then q.ctx.final = true end
         if q.ctx then q.ctx:reap() end
+        if final and prims and type(prims.dropCarried) == 'function' then pcall(prims.dropCarried, q.pack) end
         if lines then lines.dropPack(q.pack) end
     end
 
+    -- A place the pack ships without a position takes the one the developer probe captured in this game (runtime/quest-place-capture.json), so a pack can be tried
+    -- before its positions are pasted in. Read once per stage start, and only when a place of the stage has no position.
+    local function capturedPlaces(c)
+        local missing = false
+        for _, place in pairs(c.places) do if type(place) == 'table' and place.x == nil then missing = true end end
+        if not missing then return end
+        local raw = read('runtime/quest-place-capture.json')
+        local value = type(raw) == 'string' and raw ~= '' and #raw <= M.MAX_FILE and decode(raw) or nil
+        if type(value) ~= 'table' or type(value.places) ~= 'table' then return end
+        for id, place in pairs(c.places) do
+            local got = type(place) == 'table' and place.x == nil and value.places[id] or nil
+            if type(got) == 'table' and type(got.x) == 'number' and type(got.y) == 'number' and type(got.z) == 'number' then
+                place.x, place.y, place.z = got.x, got.y, got.z
+                if place.district == nil then place.district = got.district end
+            end
+        end
+    end
+
     local function startQuest(c)
+        capturedPlaces(c)
         c.fired = {}
         closingScopes[c.pack] = nil
         c.ctx = newCtx(c)
@@ -389,7 +410,7 @@ function M.new(options)
         end
         local gone = {}
         for pack, q in pairs(quests) do if not wanted[pack] then gone[#gone + 1] = q end end
-        for _, q in ipairs(gone) do endQuest(q) end
+        for _, q in ipairs(gone) do endQuest(q, true) end
         for _, c in ipairs(list(value.closing)) do
             if type(c) == 'table' and plainId(c.pack) and keyName(c.character) and plainId(c.ending) and whole(c.serial, 0, 1e9) then
                 local key = c.pack .. '#' .. c.serial .. '#' .. c.ending
@@ -414,7 +435,7 @@ function M.new(options)
     local function reapAll()
         local all = {}
         for _, q in pairs(quests) do all[#all + 1] = q end
-        for _, q in ipairs(all) do endQuest(q) end
+        for _, q in ipairs(all) do endQuest(q, true) end
         rearm()
     end
 

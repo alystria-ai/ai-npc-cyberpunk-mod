@@ -133,7 +133,15 @@ function M.new(deps)
                 owner = 'quest', flexible = true}})
         if not ok then return nil, tostring(accepted) end
         if not accepted then return nil, tostring(message) end
-        return {kind = 'copy', appointment = appointment, job = job}
+        return {kind = 'copy', appointment = appointment, job = job, profileKey = request.profileKey}
+    end
+
+    -- A visiting copy of the quest joins V's party (the same call the invitations make when V reaches her). false + why when she cannot.
+    function W.partyJoin(serial)
+        if serial == nil or type(companions.joinVisitor) ~= 'function' then return false, 'no join call' end
+        local ok, done, why = pcall(companions.joinVisitor, serial)
+        if not ok then return false, tostring(done) end
+        return done == true, why
     end
 
     -- The cast member once the game has attached it ({position}), else nil.
@@ -165,6 +173,11 @@ function M.new(deps)
         end
         local row = visitorRow(handle.appointment)
         if row then pcall(companions.dismissVisitor, row.serial, 'module') end
+        -- A copy that joined V's party since is V's companion now like any invited friend: V dismisses her, the quest does not.
+        if not row and handle.profileKey and type(companions.partyMemberOf) == 'function' then
+            local okMember, member = pcall(companions.partyMemberOf, handle.profileKey)
+            if okMember and member then return end
+        end
         local queue = type(deps.queue) == 'function' and deps.queue() or nil
         if queue and handle.job and not row then pcall(queue.dismiss, handle.job, true) end
     end

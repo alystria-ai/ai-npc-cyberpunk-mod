@@ -25,7 +25,7 @@ const STAGE_TYPE = /^[a-z][a-z0-9-]{1,31}$/;
 export const IMAGE_FILE = /^images\/[a-z0-9][a-z0-9_\/-]{0,80}\.(?:png|jpe?g|webp)$/;
 export const MEET_PLACES = Object.freeze(['here', 'home', 'waypoint']);
 /** How a choice is taken: the character's tag (checked against V's words), an Eddies transfer of a flow, or an invitation's outcome. */
-export const CHOICE_ON = /^(?:tag|eddies:(?:loanToV|loanFromV|repayByV|repayToV|giftFromV|giftToV)|meet:(?:met|stood-up)|event:[a-z0-9][a-z0-9:_.-]{0,79})$/;
+export const CHOICE_ON = /^(?:tag|eddies:(?:loanToV|loanFromV|repayByV|repayToV|giftFromV|giftToV)|meet:(?:met|stood-up)|event:[A-Za-z0-9][A-Za-z0-9:_.-]{0,79})$/;
 const ID = /^[a-z][a-z0-9-]{2,47}$/;
 const STAGE_ID = /^[a-z][a-z0-9-]{0,31}$/;
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;

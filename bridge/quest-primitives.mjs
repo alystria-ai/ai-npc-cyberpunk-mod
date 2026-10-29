@@ -5,7 +5,7 @@
 // A field type is one of: 'place' (a key of the pack's `places`), 'places' (a list of them), 'id' (a short name), 'event' (an event name), 'record' (a TweakDB record
 // name), 'bool', 'text', 'int:lo:hi', 'num:lo:hi', 'enum:a|b|c', or 'any' (a bounded plain value, for fields whose shape the game side owns).
 const ID = /^[a-z][a-z0-9-]{0,31}$/;
-const EVENT = /^[a-z0-9][a-z0-9:_.-]{0,79}$/;
+const EVENT = /^[A-Za-z0-9][A-Za-z0-9:_.-]{0,79}$/;
 const RECORD = /^[A-Za-z][A-Za-z0-9_.]{2,80}$/;
 
 /** Every primitive: its fields, the ones that must be there, the places it refers to, and the events it raises (`<id>` is the spec's own id). */
@@ -17,7 +17,7 @@ export const PRIMITIVES = Object.freeze({
   together:  {fields: {id: 'id', minutes: 'num:0.5:600', metres: 'num:1:30', breakSeconds: 'num:10:3600', seated: 'bool', at: 'place'}, required: ['id', 'minutes'],
     events: ['together:<id>:done', 'together:<id>:broken']},
   seat:      {fields: {}, required: [], events: ['seat:seated', 'seat:stood']},
-  cast:      {fields: {id: 'id', who: 'text', at: 'place', x: 'num:-100000:100000', y: 'num:-100000:100000', z: 'num:-10000:10000', facing: 'any', record: 'record', archetype: 'text'},
+  cast:      {fields: {id: 'id', who: 'text', at: 'place', x: 'num:-100000:100000', y: 'num:-100000:100000', z: 'num:-10000:10000', facing: 'any', record: 'record', archetype: 'text', carry: 'bool'},
     required: ['id', 'who'], events: ['cast:<id>:arrived']},
   squad:     {fields: {id: 'id', at: 'place', faction: 'text', kinds: 'any', count: 'int:1:8', hostile: 'bool', waves: 'any', points: 'any', shared: 'bool', alertAfterSeconds: 'num:1:3600'},
     required: ['id', 'at', 'faction'], events: ['squad:<id>:spawned', 'squad:<id>:hostile', 'squad:<id>:down', 'squad:<id>:fled', 'squad:<id>:wave<N>'], listens: ['squad:<id>:go']},

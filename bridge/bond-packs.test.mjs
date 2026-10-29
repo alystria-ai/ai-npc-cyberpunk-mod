@@ -18,14 +18,15 @@ function journal(rows, {complete = true} = {}) {
       state, lane: state === 'active' ? 'active' : 'history', observedAtMs: 1000, objectivesComplete: state !== 'active', objectives: []}))});
 }
 
-test('the three example packs are shipped, one per character, and pass the validator', () => {
-  assert.deepEqual(packs.map(({pack}) => pack.id).sort(), ['judy-dinner-dress', 'kerry-new-song', 'panam-truck-ransom']);
+test('the three example packs and the pilot quest are shipped and pass the validator', () => {
+  assert.deepEqual(packs.map(({pack}) => pack.id).sort(), ['judy-dinner-dress', 'kerry-new-song', 'panam-sunset-coffee', 'panam-truck-ransom']);
   for (const {file, pack} of packs) {
     assert.equal(file, `${pack.id}.json`);
     const result = validatePack(pack, {characters: roster});
     assert.deepEqual(result.errors, [], file);
     // Every stage carries a fixed English line for the moments no model may be called (the shared Convai key).
-    for (const stage of pack.stages) assert(stage.say?.en, `${pack.id} ${stage.id}: a fixed line`);
+    // (A format 2 quest speaks through its lines table instead.)
+    if (pack.format === 1) for (const stage of pack.stages) assert(stage.say?.en, `${pack.id} ${stage.id}: a fixed line`);
   }
   assert.equal(byId['panam-truck-ransom'].requires.eddies, true, 'the ransom asks for eddies');
   assert(byId['panam-truck-ransom'].stages[0].effects.some(effect => effect.kind === 'vehicleBlocked'), 'her truck is blocked while it is stolen');

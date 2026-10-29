@@ -8,7 +8,7 @@
 --
 -- env: {places, world, clock, gameTime, log}. world: playerPosition(), copyOf(profileKey) -> {kind, serial, position} | nil, seated(profileKey) ->
 -- {v, copy}, castSpawn(request) -> handle | nil, why, castLookup(handle) -> {position} | nil, castDelete(handle).
-local M = {SPAWN_DISTANCE = 150, SPAWN_TRIES = 5, SPAWN_RETRY = 3, TOGETHER_STEP = 10, TOGETHER_CLAMP = 600, LOST_AFTER = 2, NEVER_SEEN = 30}
+local M = {JOIN_TRIES = 6, SPAWN_DISTANCE = 150, SPAWN_TRIES = 5, SPAWN_RETRY = 3, TOGETHER_STEP = 10, TOGETHER_CLAMP = 600, LOST_AFTER = 2, NEVER_SEEN = 30}
 
 local function finite(value) return type(value) == 'number' and value == value and math.abs(value) < 1e7 end
 local function point(p) return type(p) == 'table' and finite(p.x) and finite(p.y) and finite(p.z) end
@@ -94,9 +94,14 @@ function M.new(options)
     -- (not found twice in a row after it was seen, or never found for 30 s).
     R.defs.party = {
         interval = 5,
-        arm = function(ctx) return {seen = false, miss = 0, lost = false, since = clock()} end,
+        arm = function(ctx) return {seen = false, miss = 0, lost = false, since = clock(), joins = 0} end,
         tick = function(ctx, spec, state)
             local copy = world('copyOf', ctx.character)
+            -- The quest's own visiting copy joins V's party here (a few tries), the way an invited friend does when V reaches her. unverified in the game.
+            if type(copy) == 'table' and copy.kind == 'visitor' and copy.serial ~= nil and state.joins < M.JOIN_TRIES then
+                state.joins = state.joins + 1
+                if world('partyJoin', copy.serial) then copy = world('copyOf', ctx.character) end
+            end
             if type(copy) == 'table' and copy.kind == 'party' then
                 state.seen, state.miss = true, 0
                 if state.lost then state.lost = false end
@@ -197,8 +202,16 @@ function M.new(options)
                 at = env.places.snap({x = spec.x, y = spec.y, z = spec.z, radius = 1})
             end
             if not at then log('cast ' .. id .. ' has no place'); return nil end
+            -- carry: the cast member stays through the next stages of the quest (a companion who walks with V after meeting V) and is removed when the quest ends.
+            local key = ctx.pack .. ':' .. id
+            local kept = spec.carry == true and R.carried[key] or nil
+            if kept then
+                R.carried[key] = nil
+                ctx:track('cast', kept, function(h) if ctx.final then world('castDelete', h) else R.carried[key] = h end end)
+                return {id = id, who = who, at = {x = at.x, y = at.y, z = at.z}, handle = kept, arrived = true, tries = 0, nextTry = 0, carry = true}
+            end
             return {id = id, who = who, at = {x = at.x, y = at.y, z = at.z}, facing = type(spec.facing) == 'table' and spec.facing or nil,
-                record = spec.record or spec.archetype, tries = 0, nextTry = 0, handle = nil, arrived = false}
+                record = spec.record or spec.archetype, tries = 0, nextTry = 0, handle = nil, arrived = false, carry = spec.carry == true}
         end,
         tick = function(ctx, spec, state)
             if state.arrived then return end
@@ -214,7 +227,10 @@ function M.new(options)
                     x = state.at.x, y = state.at.y, z = state.at.z, facing = state.facing, tag = ctx.tag})
                 if handle then
                     state.handle = handle
-                    ctx:track('cast', handle, function(h) world('castDelete', h) end)
+                    local key = ctx.pack .. ':' .. state.id
+                    ctx:track('cast', handle, function(h)
+                        if state.carry and not ctx.final then R.carried[key] = h else world('castDelete', h) end
+                    end)
                 else
                     log('cast ' .. state.id .. ' spawn try ' .. state.tries .. ' failed: ' .. tostring(why))
                 end
@@ -228,6 +244,14 @@ function M.new(options)
             end
         end,
     }
+
+    -- Cast members that carry on into the next stage (spec.carry), by pack:id. The quest module drops them when the quest ends.
+    R.carried = {}
+    function R.dropCarried(pack)
+        for key, handle in pairs(R.carried) do
+            if key:sub(1, #pack + 1) == pack .. ':' then R.carried[key] = nil; world('castDelete', handle) end
+        end
+    end
 
     function R.get(name) return R.defs[name] end
     -- Later primitives live in their own files (mod/quest-prims-action.lua, mod/quest-prims-drive.lua): each exports install(R, env) and adds its defs to R.defs
