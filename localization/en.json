@@ -57,7 +57,7 @@
     ]
   },
   "counts": {
-    "strings": 1741,
+    "strings": 1742,
     "dynamicTemplates": 52,
     "contexts": 39
   },
@@ -1425,6 +1425,7 @@
     "This manager action is unavailable. Reopen the manager and try again.": "This manager action is unavailable. Reopen the manager and try again.",
     "This menu has no text box, so the party keeps its name. Mod Configuration Menu has one: type the name in its Search box.": "This menu has no text box, so the party keeps its name. Mod Configuration Menu has one: type the name in its Search box.",
     "This mod is for game {other}, yours is {game}. Get the full install zip for {game}.": "This mod is for game {other}, yours is {game}. Get the full install zip for {game}.",
+    "This model can see pictures with its vision file, from {folder}/vision on Hugging Face.": "This model can see pictures with its vision file, from {folder}/vision on Hugging Face.",
     "This model spends its reply on thinking. Choose a non-reasoning model in Settings.": "This model spends its reply on thinking. Choose a non-reasoning model in Settings.",
     "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.": "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.",
     "This must be a JSON object, for example {example}.": "This must be a JSON object, for example {example}.",
@@ -3539,6 +3540,7 @@
       "This key has no paid plan. Choose a plan below.",
       "This menu has no text box, so the party keeps its name. Mod Configuration Menu has one: type the name in its Search box.",
       "This mod is for game {other}, yours is {game}. Get the full install zip for {game}.",
+      "This model can see pictures with its vision file, from {folder}/vision on Hugging Face.",
       "This model spends its reply on thinking. Choose a non-reasoning model in Settings.",
       "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.",
       "This must be a JSON object, for example {example}.",
@@ -4186,7 +4188,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6659"
+        "mod/init.lua:6665"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -4194,7 +4196,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6413"
+        "mod/init.lua:6419"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -4202,7 +4204,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6459"
+        "mod/init.lua:6465"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -4210,7 +4212,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6412"
+        "mod/init.lua:6418"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -4218,7 +4220,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6458"
+        "mod/init.lua:6464"
       ]
     },
     "AI NPC Cyberpunk Mod: talk to Johnny by text": {
@@ -4226,7 +4228,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6461"
+        "mod/init.lua:6467"
       ]
     },
     "AI NPC Cyberpunk Mod: talk to Johnny by voice": {
@@ -4234,7 +4236,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:6462"
+        "mod/init.lua:6468"
       ]
     },
     "AMD’s ROCm PyTorch does not support this card yet.": {
@@ -5055,7 +5057,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5979"
+        "mod/init.lua:5984"
       ]
     },
     "Characters": {
@@ -6629,7 +6631,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:364",
-        "mod/init.lua:5947"
+        "mod/init.lua:5952"
       ]
     },
     "Custom voices": {
@@ -7533,7 +7535,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5934",
+        "mod/init.lua:5939",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -7680,7 +7682,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5934",
+        "mod/init.lua:5939",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -8452,7 +8454,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5934",
+        "mod/init.lua:5939",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -8854,7 +8856,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5926"
+        "mod/init.lua:5931"
       ]
     },
     "Local AI, Lite": {
@@ -9262,7 +9264,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5941"
+        "mod/init.lua:5946"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -9270,7 +9272,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5943"
+        "mod/init.lua:5948"
       ]
     },
     "Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.": {
@@ -9710,7 +9712,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:6561"
+        "mod/init.lua:6567"
       ]
     },
     "No problem found. Select a line to see what was checked.": {
@@ -9734,7 +9736,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:7604"
+        "mod/init.lua:7610"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -10904,7 +10906,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5934",
+        "mod/init.lua:5939",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -11511,7 +11513,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5930"
+        "mod/init.lua:5935"
       ]
     },
     "Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.": {
@@ -12511,7 +12513,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5934",
+        "mod/init.lua:5939",
         "mod/manager-ui.lua:213"
       ]
     },
@@ -12552,7 +12554,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:6560"
+        "mod/init.lua:6566"
       ]
     },
     "Speaking rules": {
@@ -12645,7 +12647,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:6229"
+        "mod/init.lua:6235"
       ]
     },
     "Start the OmniVoice server on the other PC. Its window shows the address to use, for example 192.168.1.20:8765. Copy it, then choose Paste address. It is read from the clipboard once and saved on this computer.\n\nOn the same PC use 127.0.0.1:8765. You can also write address=192.168.1.20:8765 in player-remote-omnivoice.txt in the conversation service folder.\n\nNothing is sent to it until Remote OmniVoice is on and OmniVoice is chosen, or you press Test.": {
@@ -13374,7 +13376,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5919"
+        "mod/init.lua:5924"
       ]
     },
     "The Local AI model you chose needs about {need} MB of graphics memory, but only {available} MB are available for it beside the game, so {model} was used instead.": {
@@ -13382,7 +13384,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5917"
+        "mod/init.lua:5922"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -13860,7 +13862,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5959"
+        "mod/init.lua:5964"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -14075,7 +14077,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:363",
-        "mod/init.lua:5945"
+        "mod/init.lua:5950"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -15167,7 +15169,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5978",
+        "mod/init.lua:5983",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:490"
       ]
     },
@@ -15266,6 +15268,14 @@
       ],
       "references": [
         "mod/setup-check.lua:918"
+      ]
+    },
+    "This model can see pictures with its vision file, from {folder}/vision on Hugging Face.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:5908"
       ]
     },
     "This model spends its reply on thinking. Choose a non-reasoning model in Settings.": {
@@ -15555,7 +15565,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:6559"
+        "mod/init.lua:6565"
       ]
     },
     "Type a message first.": {
@@ -16015,7 +16025,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:6507"
+        "mod/init.lua:6513"
       ]
     },
     "Voice conversation failed. Check your microphone and try again.": {
@@ -16023,7 +16033,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5961"
+        "mod/init.lua:5966"
       ]
     },
     "Voice files": {
@@ -16952,7 +16962,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5907"
+        "mod/init.lua:5912"
       ]
     },
     "Your Custom models and APIs": {
@@ -17354,8 +17364,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5912",
-        "mod/init.lua:5925"
+        "mod/init.lua:5917",
+        "mod/init.lua:5930"
       ]
     },
     "at home": {
@@ -17699,7 +17709,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5937"
+        "mod/init.lua:5942"
       ]
     },
     "{message} The change is active, but could not be saved for next time.": {
@@ -17844,7 +17854,7 @@
       ],
       "references": [
         "mod/init.lua:3220",
-        "mod/init.lua:5970"
+        "mod/init.lua:5975"
       ]
     },
     "{name} has moved out.": {
@@ -17987,7 +17997,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:6304"
+        "mod/init.lua:6310"
       ]
     },
     "{name} is not in your head right now.": {
@@ -18037,7 +18047,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:5965"
+        "mod/init.lua:5970"
       ]
     },
     "{name} joined your group.": {
@@ -18889,7 +18899,7 @@
       ],
       "references": [
         "mod/init.lua:3220",
-        "mod/init.lua:5970"
+        "mod/init.lua:5975"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -18913,7 +18923,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:6304"
+        "mod/init.lua:6310"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

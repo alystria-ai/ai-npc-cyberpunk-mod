@@ -6,7 +6,7 @@ The **Mature content** setting is part of the main mod and works without these p
 
 ## What it adds
 
-- **Two packs, each with one uncensored model for Local AI: Mature lite and Mature standard.** The standard Local AI models are trained to refuse most adult content, so the full effect needs an uncensored model. **Mature lite** (about 2.8 GB) is for smaller graphics cards; **Mature standard** (about 6.0 GB) writes better. Each is a single zip file with everything it needs, so it works on its own, and you can install both. The models are community fine-tunes of Apache-2.0 base models. They run on your own graphics card, on your own computer.
+- **Two packs, each with one uncensored model for Local AI: Mature lite and Mature standard.** The standard Local AI models are trained to refuse most adult content, so the full effect needs an uncensored model. **Mature lite** (about 2.8 GB) is for smaller graphics cards; **Mature standard** (about 5.5 GB) writes better. Each is a single zip file with everything it needs, so it works on its own, and you can install both. The models are community fine-tunes of Apache-2.0 base models. They run on your own graphics card, on your own computer.
 - **The engine is in the Runtime.** The packs hold the model and the same memory model as the Local AI packs, byte for byte, and run on the llama.cpp engine that comes with the Runtime of version 0.2.7 or newer. Installing a Mature pack over a Local AI pack, or a Local AI pack over a Mature pack, only overwrites identical files, and installing both Mature packs shares them too.
 - **Local AI only.** The setting applies to the Local AI provider. Convai and Mistral never get it, with the setting on or off. Choosing Convai or Mistral as the Conversation provider turns the setting off, and turning it on selects Local AI.
 
@@ -32,7 +32,7 @@ The uncensored models have no limits of their own, so the mod holds these in thr
 - You are 18 or older.
 - The main mod, **AI NPC Cyberpunk Mod** (Scripts and Runtime, the same version number as this pack, and in any case the Runtime of version 0.2.7 or newer: the engine that runs the model is part of the Runtime), and everything it needs.
 - A graphics card with free memory for the model you use: about 3.4 GB for lite, about 6.5 GB for standard. No Local AI pack is needed. If you also have one (standard or lite from the same Hugging Face page), its models stay available for when Mature content is off.
-- Free disk space: about 2.8 GB for Mature lite, about 6.0 GB for Mature standard (about 8.7 GB for both, which share the memory model). Mature standard includes the Gemma 4 E4B vision projector, loaded only while Companions can see is on.
+- Free disk space: about 2.8 GB for Mature lite, about 5.5 GB for Mature standard (about 8.2 GB for both, which share the memory model). The vision files (optional, for Companions can see) are separate small downloads in the `vision` folder of the same Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mature/vision: `Vision-Qwen3.5-4B-projector.zip` for Mature lite (about 0.68 GB) and `Vision-Gemma-4-E4B-projector.zip` for Mature standard (about 0.56 GB). Extract one like a pack. The file is read only while Companions can see is on. Without it the model answers from your words alone, and the game tells you once where to get it.
 
 ## Install
 

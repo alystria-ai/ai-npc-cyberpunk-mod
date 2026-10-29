@@ -1743,5 +1743,6 @@ return {
     ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Minden sorhoz kap egy friss képet is a környezetedről a játékablakból. Minden beszélgetési szolgáltatóval működik. A Local AI-hoz olyan modell kell, amely lát. Ha nem lát, csak a szavaidat kapja.\n\nCsak a játékablak, csak ha valaki a közelben van, rövid ideig a memóriában marad. Kikapcsolva semmi nem kerül rögzítésre.",
     ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "A sárga keret a Windows felvételét jelzi. Leállításhoz kapcsold ki: A társak látnak.",
     ["This Local AI model cannot see pictures, so replies use only your words."] = "Ez a Local AI modell nem lát képeket, ezért csak a szavaidat kapja.",
+    ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "Ez a modell a Hugging Face {folder}/vision mappájában lévő vision fájllal lát képeket.",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "A Custom végpontod nem fogad képeket, ezért csak a szavaidat kapja.",
 }

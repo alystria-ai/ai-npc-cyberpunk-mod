@@ -1743,5 +1743,6 @@ return {
     ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Každý řádek dostane i čerstvý obraz okolí z okna hry. Funguje s každým poskytovatelem konverzace. Local AI potřebuje model, který umí vidět. Model, který nemůže, dostane jen tvoje slova.\n\nPouze okno hry, pouze když je někdo poblíž, krátce uložené v paměti. Vypnuto znamená, že se nic nezachytává.",
     ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "Žlutý rámeček je Windows, který ukazuje záznam. Zastav ho vypnutím volby Společníci vidí.",
     ["This Local AI model cannot see pictures, so replies use only your words."] = "Tento model Local AI neumí vidět obrázky, odpovědi tedy berou jen tvá slova.",
+    ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "S vision souborem z {folder}/vision na Hugging Face tento model uvidí obrázky.",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Tvůj Custom koncový bod nepřijímá obrázky, odpovědi tedy berou jen tvá slova.",
 }

@@ -2331,6 +2331,25 @@ test('a model with no projector says so, and pictures on restart nothing', async
   assert.equal(wrong.server.visionState().reason, 'no-projector');
 });
 
+test('a model whose manifest names a vision file that is not installed says so, with the file and the folder to get it from', async t => {
+  const h = visionHarness(t, {projector: false});
+  const named = join(h.directory, 'mmproj-named.gguf');
+  h.pack.tiers.standard.mmproj = named;
+  await h.server.ensure();
+  h.server.setVision(true);
+  assert.deepEqual(h.server.visionState(), {wanted: true, loaded: false, available: false, model: 'Qwen3.5-4B', reason: 'file-missing', file: 'mmproj-named.gguf', folder: 'local-ai'});
+  await sleep(150);
+  assert.equal(h.calls.length, 1, 'nothing is restarted for a file that is not there');
+  // Started with pictures on: the log says it is a separate download, and the reason stays.
+  const again = visionHarness(t, {projector: false});
+  again.pack.tiers.standard.mmproj = join(again.directory, 'mmproj-gemma.gguf');
+  again.server.setVision(true);
+  await again.server.ensure();
+  assert.equal(again.mmprojOf(again.calls[0]), null);
+  assert.ok(again.logs.some(line => /has no vision projector installed/.test(line)), 'the log says it is a separate download');
+  assert.deepEqual([again.server.diagnostics().vision.reason, again.server.visionState().reason], ['file-missing', 'file-missing']);
+});
+
 test('the projector is counted against the model\'s room: with room it loads, a context that no longer fits steps down, and a model that fits only without it goes without ("no-room")', async t => {
   // Standard (5,280 MiB file) needs 6,480 free, its largest context needs 6,616. The projector takes 1,284 of what the model may have.
   const roomy = visionHarness(t, {freeMiB: 9000});

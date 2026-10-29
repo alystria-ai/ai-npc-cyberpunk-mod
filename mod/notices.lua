@@ -84,6 +84,7 @@ M.catalog = {
     ['local-context'] = {class = PLAYER, repeatS = 30},     -- the player's own model server has a context too small for the character: raise it there
     ['vision-border'] = {class = PLAYER, repeatS = 86400},  -- Windows draws its yellow capture border for the Companions-can-see pictures: what it is and how to stop it; once per game session, with the next reply
     ['vision-local-no-model'] = {class = PLAYER, repeatS = 86400},   -- Companions can see is on and the Local AI model cannot take pictures (no vision file, or none that fits the card): once per game session, with the next reply
+    ['vision-local-no-file'] = {class = PLAYER, repeatS = 86400},    -- Companions can see is on and the Local AI model's vision file is not installed (a separate download): once per game session, with the next reply, says where to get it
     ['vision-custom-no-images'] = {class = PLAYER, repeatS = 86400}, -- Companions can see is on and the Custom endpoint refused a picture: none is sent again this session; once, with the next reply
     ['local-restarted'] = {class = PLAYER, repeatS = 300},   -- the Local AI model server stopped by itself and was started again: about once per five minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)

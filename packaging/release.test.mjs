@@ -565,7 +565,7 @@ const jobOf = (workflow, name) => new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n
 
 test('optional packs are one zip each with no parts: the builder never splits a file or a pack, and says which packs are optional', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'micpack-european', 'micpack-asian'\]\)/);
+  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'vision-gemma', 'vision-bonsai', 'vision-qwen', 'micpack-european', 'micpack-asian'\]\)/);
   assert.doesNotMatch(builder, /splitLargeFiles|\.part\$\{index\}|\.parts\.json|splitPartBytes|splitFileBytes/, 'no file is split into .partN files and no .parts.json is written');
   assert.match(builder, /writeArchives\(pkg, [^\n]*\{single: OPTIONAL_PACKAGE_IDS\.has\(id\)\}\)/, 'an optional pack is written as a single zip');
   assert.match(builder, /if \(!single && writer\.count && /, 'only a non-optional package may roll over to a next zip');
@@ -658,7 +658,8 @@ test('the optional packs are uploaded to Hugging Face, one zip each in the folde
   // The names come from the packFiles block of the config (the model's name and size are in them, test below).
   assert.match(uploader, /PACK_FILES\["packs"\]\.items\(\)/);
   assert.deepEqual(Object.entries(config.packFiles.packs).map(([id, pack]) => [id, pack.folder]), [['omni', 'voice'], ['localai-standard', 'local-ai'], ['localai-lite', 'local-ai'],
-    ['mature-lite', 'mature'], ['mature-standard', 'mature'], ['micpack-european', 'mic'], ['micpack-asian', 'mic']]);
+    ['mature-lite', 'mature'], ['mature-standard', 'mature'], ['micpack-european', 'mic'], ['micpack-asian', 'mic'], ['vision-gemma', 'local-ai/vision'], ['vision-bonsai', 'local-ai/vision'],
+    ['vision-qwen', 'mature/vision']]);
   assert.match(uploader, /f"\{folder\}\/\{title\}\.zip"/);
   assert.doesNotMatch(uploader, /sha256sums|sums_name/i, 'no checksum file is uploaded');
   assert.match(uploader, /The HF_PACKS_TOKEN secret cannot write to the Hugging Face repository \{repository\}\./);
@@ -706,7 +707,7 @@ test('the release workflow builds the Mature packs only in an opt-in job: off by
 test('the Mature packs are their own packages: built only on request, never in the default set, and nothing of it in the Runtime package or the main page text', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
   assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature-lite', 'mature-standard'/, 'the two Mature packs are package ids beside the Local AI packs');
-  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\) && !id\.startsWith\('micpack'\)\)/, 'the default set leaves them out (and the voice-input packs too)');
+  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\) && !id\.startsWith\('micpack'\) && !id\.startsWith\('vision'\)\)/, 'the default set leaves them out (and the voice-input packs and the vision files too)');
   assert.match(builder, /value\('--packages', DEFAULT_PACKAGE_IDS\.join\(','\)\)/, 'a plain build uses the default set');
   // The release workflow produces the Mature pack only in its own opt-in job (see the workflow test below).
   // Nothing in the release plan or the runtime layout (the Runtime package) is the pack's marker, README, release notes or models.
@@ -806,8 +807,8 @@ test('the Mature packs carry the Local AI engine: the same shared files as the L
   for (const rel of ['packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_RELEASE_NOTES.md']) {
     const text = await readFile(resolve(project, rel), 'utf8');
     assert.match(text, /no Local AI pack is needed|you do not need a Local AI pack|works without a Local AI pack/i, `${rel}: works on its own`);
-    assert.match(text, /about 2\.8 GB/, rel); assert.match(text, /about 6\.0 GB/, rel);
-    assert.doesNotMatch(text, /about 2\.7 GB|about 2\.9 GB|about 5\.3 GB|about 5\.5 GB|needs a Local AI pack|Local AI must be working/i, `${rel}: the old sizes and the old requirement are gone`);
+    assert.match(text, /about 2\.8 GB/, rel); assert.match(text, /about 5\.5 GB/, rel);
+    assert.doesNotMatch(text, /about 2\.7 GB|about 2\.9 GB|about 5\.3 GB|about 6\.0 GB|needs a Local AI pack|Local AI must be working/i, `${rel}: the old sizes and the old requirement are gone`);
     assert.match(text, /llama\.cpp/, rel); assert.match(text, /Granite/, rel);
     // Since 0.2.9 the packs carry models only (localAi.server.inPacks false): the text says the engine is the Runtime's and which Runtime it needs.
     assert.match(text, /Runtime of version 0\.2\.7 or newer/, `${rel}: the pack needs the 0.2.7 Runtime`);
@@ -863,11 +864,11 @@ test('the main page texts say the Mature packs work alone and give their new siz
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const nexus = (await readFile(resolve(project, 'docs/NEXUS_PAGE.md'), 'utf8')).replaceAll('\r\n', '\n');
   const row = name => readme.split('\n').find(line => line.includes(`**${name}**`) && line.includes('/blob/main/'));
-  assert.match(row('Mature lite'), /about 2\.8 GB/); assert.match(row('Mature standard'), /about 6\.0 GB/);
+  assert.match(row('Mature lite'), /about 2\.8 GB/); assert.match(row('Mature standard'), /about 5\.5 GB/);
   for (const name of ['Mature lite', 'Mature standard']) assert.doesNotMatch(row(name), /needs a Local AI pack/);
   assert.match(row('Mature lite'), /works on its own/); assert.match(row('Mature standard'), /works on its own/);
   const optional = nexus.split('\n').find(line => line.includes('[b]Mature lite[/b]'));
-  assert.match(optional, /about 2\.8 GB/); assert.match(optional, /about 6\.0 GB/); assert.match(optional, /work on their own|works on its own|each works alone|no Local AI pack is needed/i);
+  assert.match(optional, /about 2\.8 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone|no Local AI pack is needed/i);
   assert.doesNotMatch(optional, /They need a Local AI pack/);
   // The Nexus page's Recommended settings block (owner's choice, 2026-10-20) is the one place the word is allowed.
   const nexusNeutral = nexus.replace('[size=4][b]Recommended settings[/b][/size]', '');
@@ -1012,8 +1013,8 @@ test('the release notes open with where the download files are, and a rebuild re
 // ---------------------------------------------------------------- the voice-input packs (docs/PACKAGING.md, "Voice-input packs")
 test('the voice-input packs are two opt-in packages: ids, titles, one zip each, never in the default set, never Nexus', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'mature-standard', 'micpack-european', 'micpack-asian'\]/, 'the two packs are package ids after the Mature packs');
-  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\) && !id\.startsWith\('micpack'\)\)/, 'the default set leaves them out');
+  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'mature-standard', 'vision-gemma', 'vision-bonsai', 'vision-qwen', 'micpack-european', 'micpack-asian'\]/, 'the two packs are package ids after the Mature packs and the vision files');
+  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\) && !id\.startsWith\('micpack'\) && !id\.startsWith\('vision'\)\)/, 'the default set leaves them out');
   assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\[[^\]]*'micpack-european', 'micpack-asian'\]\)/, 'they are optional packs: one zip each, hosted on Hugging Face');
   assert.match(builder, /packTitle\(config, id\)/, 'the titles (packFiles in the config) name the zips');
   assert.match(builder, /'micpack-european': \(\) => micPackage\(source, config, 'european'\)/);
@@ -1021,7 +1022,7 @@ test('the voice-input packs are two opt-in packages: ids, titles, one zip each, 
   const header = builder.slice(0, builder.indexOf('// Options:'));
   assert.match(header, /\n\/\/   MicPack-European-Parakeet-TDT-0\.6B-v3-<v>\.zip[^\n]*--packages micpack-european/);
   assert.match(header, /\n\/\/   MicPack-Asian-SenseVoice-Small-234M-<v>\.zip[^\n]*--packages micpack-asian/);
-  assert.match(builder, /--packages LIST    comma list of [^\n]*mature-standard,micpack-european,micpack-asian \(default: the first five\)/);
+  assert.match(builder, /--packages LIST    comma list of [^\n]*mature-standard,vision-gemma,vision-bonsai,vision-qwen,micpack-european,micpack-asian \(default: the first five\)/);
   assert.match(builder, /--mic-pack-source DIR/); assert.match(builder, /CYBERPUNK_CONVAI_MIC_PACKS_DEV/);
   // The Runtime builder never reads the packs' pins or files, and the Runtime keeps its own Moonshine folder to itself.
   const runtimeBuilder = builder.slice(builder.indexOf('async function runtimePackage'), builder.indexOf('async function omniPackage'));
@@ -1125,7 +1126,13 @@ test('the model packs carry the model name and parameter count in their file nam
     'micpack-european': ['mic', 'MicPack-European-Parakeet-TDT-0.6B-v3', 'MicPack-European'],
     'micpack-asian': ['mic', 'MicPack-Asian-SenseVoice-Small-234M', 'MicPack-Asian'],
   };
-  assert.deepEqual(Object.keys(config.packFiles.packs), Object.keys(expected));
+  // The vision files (a model's projector as a small zip of its own, 2026-10-29) have no tier and no old name: <Type>-<Model>-<Params>-projector.
+  const vision = {'vision-gemma': ['local-ai/vision', 'Vision-Gemma-4-E4B-projector'], 'vision-bonsai': ['local-ai/vision', 'Vision-Bonsai-2-4B-projector'], 'vision-qwen': ['mature/vision', 'Vision-Qwen3.5-4B-projector']};
+  assert.deepEqual(Object.keys(config.packFiles.packs), [...Object.keys(expected), ...Object.keys(vision)]);
+  for (const [id, [folder, title]] of Object.entries(vision)) {
+    assert.equal(packTitle(config, id), title); assert.equal(legacyPackTitle(config, id), null); assert.deepEqual(packTitles(config, id), [title]);
+    assert.equal(hfPath(config, id), `${folder}/${title}.zip`); assert.equal(packIdOfName(config, `${title}-0.3.5.zip`), id); assert.equal(packIdOfName(config, `${title}.zip`), id);
+  }
   for (const [id, [folder, title, legacy]] of Object.entries(expected)) {
     assert.equal(packTitle(config, id), title); assert.equal(legacyPackTitle(config, id), legacy);
     assert.deepEqual(packTitles(config, id), [title, legacy], 'new name first, then the old one');
@@ -1134,7 +1141,7 @@ test('the model packs carry the model name and parameter count in their file nam
     // Both names, with or without a version, find the pack id.
     for (const name of [title, legacy]) { assert.equal(packIdOfName(config, `${name}-0.3.4.zip`), id); assert.equal(packIdOfName(config, `${name}.zip`), id); }
   }
-  assert.equal(new Set(Object.values(config.packFiles.packs).map(pack => pack.title)).size, 7, 'no two packs share a name');
+  assert.equal(new Set(Object.values(config.packFiles.packs).map(pack => pack.title)).size, 10, 'no two packs share a name');
   assert.equal(config.micPacks.packs.european.title, packTitle(config, 'micpack-european'));
   assert.equal(config.micPacks.packs.asian.title, packTitle(config, 'micpack-asian'));
   assert.equal(pocketModelTitle(config, 'French'), 'PocketTTS-Model-100M-French');

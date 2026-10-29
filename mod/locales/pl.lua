@@ -1743,5 +1743,6 @@ return {
     ["Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured."] = "Każda kwestia dostaje też świeży obraz otoczenia z okna gry. Działa z każdym dostawcą rozmów. Local AI potrzebuje modelu, który potrafi widzieć. Model, który nie potrafi, dostaje tylko twoje słowa.\n\nTylko okno gry, tylko gdy ktoś jest w pobliżu, krótko w pamięci. Wyłączone: nic nie jest przechwytywane.",
     ["The yellow border is Windows showing a capture. Turn off Companions can see to stop it."] = "Żółta ramka: Windows pokazuje przechwycenie. Wyłącz Towarzysze widzą, aby ją zatrzymać.",
     ["This Local AI model cannot see pictures, so replies use only your words."] = "Ten model Local AI nie widzi obrazów, więc dostaje tylko twoje słowa.",
+    ["This model can see pictures with its vision file, from {folder}/vision on Hugging Face."] = "Ten model widzi obrazy dzięki plikowi vision z {folder}/vision na Hugging Face.",
     ["Your Custom endpoint does not accept pictures, so replies use only your words."] = "Twój endpoint Custom nie przyjmuje obrazów, więc dostaje tylko twoje słowa.",
 }
