@@ -1120,6 +1120,18 @@ local function ownKeyRows(snapshot)
         if #problems > 0 then modelHelp = modelHelp .. '\n\n' .. ui.t('Not usable: {models}. See the Local AI notes, "Add your own model".', {models = table.concat(problems, '; ')}) end
         local state, status = mistral.localAi, nil
         local label = ui.t('Local AI model')
+        -- The model that really loaded can differ from the chosen one (one that does not fit beside the game is replaced, with a notice): the row names it, and the choice stays as it was.
+        do
+            local inUse, chosen = manager.localModelInUseId(), choices[selected]
+            if inUse and chosen and chosen.id ~= inUse then
+                for _, choice in ipairs(choices) do
+                    if choice.id == inUse then
+                        label = label .. ' (' .. ui.t('Using {model}', {model = choice.name}) .. ')'
+                        modelHelp = ui.t('{model} is in use because the model you chose did not fit beside the game. Your choice is unchanged.', {model = choice.name}) .. '\n\n' .. modelHelp
+                    end
+                end
+            end
+        end
         if state == 'warming' then label, status = label .. ' (' .. ui.t('Warming up') .. ')', loadingText('local-ai', 'loading')
         elseif state == 'no-memory' then label, status = label .. ' (' .. ui.t('Not enough memory') .. ')', loadingText('local-ai', 'no-memory')
         elseif state == 'failed' then
@@ -1145,6 +1157,9 @@ local function ownKeyRows(snapshot)
             {'Convai free tier', 'Convai API key', 'Mistral', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
         matureRow,
         modelRow,
+        -- Allow Local AI to use RAM (off by default): the chosen model stays when it does not fit the graphics memory, with part of it in system memory.
+        setting('localOffload', 'Allow Local AI to use RAM', 'bool', snapshot.settings.localOffload == true, false,
+            'Off: when the Local AI model you chose does not fit the free graphics memory beside the game, a smaller model that fits is loaded instead, with one notice.\n\nOn: your chosen model is kept and part of it runs from system memory (RAM) on the processor. Replies are slower, and you are told once. It needs enough free RAM, and the game may have less processor time.'),
         keyRow('Mistral API key',
             'Copy your key from Mistral first (new Mistral accounts need a paid plan for an API key). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder.',
             'Deletes the saved key.',
@@ -2815,7 +2830,7 @@ function M.apply(changes)
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
-            or key == 'matureContent' or key == 'errorReports' or key == 'companionVision' then values[key] = change.value
+            or key == 'matureContent' or key == 'errorReports' or key == 'companionVision' or key == 'localOffload' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
             values.voiceVolume = change.value

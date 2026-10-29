@@ -134,6 +134,7 @@
     "native-verify.txt",
     "perf-probe.json",
     "probe.log",
+    "quest-place-capture.json",
     "vision-last-sent.jpg",
     "vision-last-sent.json"
   ],

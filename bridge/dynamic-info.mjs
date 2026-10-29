@@ -26,7 +26,7 @@ export const NO_KINDS = Object.freeze(new Set());
 
 // The fields of a turn-context snapshot (bridge/turn-context.mjs parseTurnContext) each kind owns.
 const SNAPSHOT_FIELDS = Object.freeze({
-  location: ['district', 'area', 'indoors'], time: ['hour', 'minute', 'weather'], company: ['party', 'vehicle', 'driving', 'motion', 'housemate'],
+  location: ['district', 'area', 'indoors', 'position'], time: ['hour', 'minute', 'weather'], company: ['party', 'vehicle', 'driving', 'motion', 'housemate'],
   condition: ['health', 'heat'], money: ['money'], about: ['gender', 'lifepath'], lastTalk: ['gameTime'], media: ['media'], mods: ['mods', 'modsRead', 'facRead', 'injRead']});
 
 /** The snapshot without what the off kinds own; the same object when nothing applies. `voice` and `dialogueVolume` always stay. */

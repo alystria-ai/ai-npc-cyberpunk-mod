@@ -163,7 +163,7 @@ test('the per-turn diagnostic says whether the block was in the context, or why 
   assert.equal(turnContextDiagnostic(undefined), 'Turn context: none (no input)');
   assert.doesNotMatch(turnContextDiagnostic(input), /Judy|Watson/, 'counts only');
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /import \{turnContextDiagnostic(?:, modsProbeLine)?(?:, vixenProbeLines)?\} from '\.\/turn-context\.mjs'/);
+  assert.match(bridge, /import \{turnContextDiagnostic(?:, turnContextWhere)?(?:, modsProbeLine)?(?:, vixenProbeLines)?\} from '\.\/turn-context\.mjs'/);
   assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, voice \? \{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicInfo\.off\} : turnContextOptions\(input, isAmbientProfile\(input\.profileKey\)\)\)\}`\)/);
 });
 
@@ -874,7 +874,8 @@ local function counted(name, fn) return function(...) calls[name] = (calls[name]
 local player = Game.GetPlayer()
 Game.GetPlayer = function() return {IsAttached = function() return true end, IsDeadNoStatPool = function() return false end,
   IsReplacer = function() return false end, GetResolvedGenderName = function() return {cname = 'Female'} end,
-  GetMountedVehicle = function() return nil end, GetEntityID = function() return 'v-id' end} end
+  GetMountedVehicle = function() return nil end, GetEntityID = function() return 'v-id' end,
+  GetWorldPosition = counted('position', function() return {x = -1385.04, y = 1270.02, z = 123.06} end)} end
 Game.GetWeatherSystem = function()
   local system = {}
   if fake.state then system[fake.state:gsub('^%l', string.upper)] = counted('weatherState', function() return fake.stateValue end) end
@@ -928,6 +929,9 @@ test('the default adapter reads the weather, health, heat and money from the gam
   ctx:reset('test'); ctx:capture()
   assert(calls.weatherState == before + 1 and calls.heat == 2)
   assert(calls.interior == 2, 'one call per real read: ' .. calls.interior)
+  -- V's position (for the named places): one native call per real read, rounded to a tenth of a metre, never in the log line.
+  assert(calls.position == 2 and snap.position and snap.position.x == -1385 and snap.position.y == 1270 and snap.position.z == 123.1, tostring(calls.position))
+  assert(not lines[1]:find('1270', 1, true) and not lines[1]:find('1385', 1, true), 'the position is not logged')
 `));
 
 test('the default adapter falls back: another state getter name, the value over the maximum, the second heat name, rain-only weather, an enum heat', () => runLua(`${weatherGame}

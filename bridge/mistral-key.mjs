@@ -56,7 +56,7 @@ export class MistralProvider {
     Object.assign(this, {keyPath, readText, writeText, removeFile, custom});
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
-    this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localGpuNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.localModelNoticeMemory = null; this.lastNoticeModel = ''; this.lastNoticeMemory = null;
+    this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localGpuNoticePending = false; this.localOffloadNoticePending = false; this.localOffloadNoticeName = ''; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.localModelNoticeMemory = null; this.lastNoticeModel = ''; this.lastNoticeMemory = null;
     this.localBroken = null; // why the local AI cannot be used right now (null: it can); it decides the failure code and the status, never the provider
     this.localStepNoticePending = false; this.localStepNoticeName = '';   // turns stalled: a smaller model was loaded (its name)
     // The bridge holds the status file until its first settings poll has applied the saved provider, so the game never reads the defaults
@@ -84,7 +84,7 @@ export class MistralProvider {
     const next = PROVIDERS.includes(value) ? value : 'convai', changed = next !== this.preference;
     this.preference = next;
     if (changed) {
-      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localGpuNoticePending = false; this.localStepNoticePending = false;
+      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localGpuNoticePending = false; this.localOffloadNoticePending = false; this.localStepNoticePending = false;
     }
     return changed;
   }
@@ -153,6 +153,8 @@ export class MistralProvider {
   noteLocalRestarted() { if (this.applied === 'local') this.localRestartNoticePending = true; }
   /** Local AI's model runs mostly on the processor (bridge/local-llm-server.mjs 'offload-slow': under FIT_LIMITS.hopelessShare of its layers on the card): one notice ('local-cpu') with the next reply. */
   noteLocalCpuHeavy() { if (this.applied === 'local' || this.preference === 'local') this.localCpuNoticePending = true; }
+  /** The player allowed partial offload to RAM and the chosen model was kept with part of it on the processor (bridge/local-llm-server.mjs 'offload-kept'): one notice ('local-offload') with the next reply; `noticeModel` holds its name. */
+  noteLocalOffloadKept(name = '') { if (this.applied === 'local' || this.preference === 'local') { this.localOffloadNoticePending = true; this.localOffloadNoticeName = String(name || ''); } }
   /** Local AI's model was in shared system memory or partly on the CPU and is whole on the graphics card again (bridge/local-llm-server.mjs 'returned-to-card'): one notice ('local-gpu') with the next reply. */
   noteLocalReturned() { if (this.applied === 'local' || this.preference === 'local') this.localGpuNoticePending = true; }
   /**
@@ -197,13 +199,14 @@ export class MistralProvider {
   secrets() { return [this.key, ...(this.custom?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
-  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-stepdown', 'local-model-fallback', 'local-restarted', 'local-cpu' or 'local-gpu' once each (the game shows them with the next reply), else undefined. */
+  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-stepdown', 'local-model-fallback', 'local-restarted', 'local-cpu', 'local-offload' or 'local-gpu' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
     if (this.localStepNoticePending && this.applied === 'local') { this.localStepNoticePending = false; this.lastNoticeModel = this.localStepNoticeName || ''; this.lastNoticeMemory = null; return 'local-stepdown'; }
     if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; this.lastNoticeMemory = this.localModelNoticeMemory; this.localModelNoticeMemory = null; return 'local-model-fallback'; }
     if (this.localRestartNoticePending && this.applied === 'local') { this.localRestartNoticePending = false; return 'local-restarted'; }
     if (this.localCpuNoticePending && this.applied === 'local') { this.localCpuNoticePending = false; return 'local-cpu'; }
     if (this.localGpuNoticePending && this.applied === 'local') { this.localGpuNoticePending = false; return 'local-gpu'; }
+    if (this.localOffloadNoticePending && this.applied === 'local') { this.localOffloadNoticePending = false; this.lastNoticeModel = this.localOffloadNoticeName || ''; this.lastNoticeMemory = null; return 'local-offload'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }
     if (this.noSetupPending && this.applied === 'convai') { this.noSetupPending = false; return 'custom-no-setup'; }
     if (this.voicePending && this.applied === 'mistral' && cloudVoice) { this.voicePending = false; return 'mistral-voice'; }
@@ -231,9 +234,9 @@ export function parseKeyCommand(raw, now = Date.now()) {
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
     read = path => readFile(path, 'utf8'), now = Date.now, localStatus, localReason, localDetail,
-    maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics} = {}) {
+    maturePack, localModels, localModelDefaults, localModelInUse, localModelProblems, localDiagnostics} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, localDetail, maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, localDetail, maturePack, localModels, localModelDefaults, localModelInUse, localModelProblems, localDiagnostics});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
@@ -262,6 +265,8 @@ export class MistralControl {
       // selects (the largest uncensored one that fits): ids, each only when there is such a model.
       ...(typeof this.localModelDefaults === 'function' ? (defaults => ({
         ...(defaults?.default ? {localModelDefault: defaults.default} : {}), ...(defaults?.mature ? {localModelMatureDefault: defaults.mature} : {})}))(this.localModelDefaults()) : {}),
+      // The model Local AI actually loaded (an id of the list above), only while it is ready: the model row shows it beside the chosen one when they differ.
+      ...(typeof this.localModelInUse === 'function' ? (id => (typeof id === 'string' && id ? {localModelInUse: id} : {}))(this.localModelInUse()) : {}),
       // Custom models that cannot be used, [{name, reason}] with reason 'missing' | 'bad-gguf' | 'embedding' | 'unreadable' (bridge/custom-models.mjs); only when there are some.
       ...(typeof this.localModelProblems === 'function' && this.localModelProblems().length ? {localModelProblems: this.localModelProblems()} : {}),
       // What the local model server loaded and how its turns went (bridge/local-llm-server.mjs diagnostics): file names, family, template length and hash, timings.

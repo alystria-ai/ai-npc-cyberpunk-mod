@@ -2484,3 +2484,27 @@ test('pictures turned on while the server is still starting: that start ends as 
   assert.equal(h.mmprojOf(h.calls[1]), h.path);
   assert.equal(h.server.visionState().loaded, true);
 });
+
+test('Allow Local AI to use RAM: a chosen model that does not fit is kept with part of it on the processor (said once), and without the setting a smaller model takes its place', async t => {
+  // Standard needs 4,400 MiB or so here and only 3,000 are free (the game already holds the rest of the card).
+  const kept = choiceHarness(t, {selected: {pin: 'standard', keepChosen: true}, freeMiB: 5100, mature: false});
+  const said = [];
+  kept.server.on('offload-kept', event => said.push(event));
+  const info = await kept.server.ensure();
+  assert.deepEqual([info.model, kept.server.modelId, kept.loaded(), kept.fallbacks], ['Qwen3.5-4B', 'standard', ['q4.gguf'], []], 'the chosen model stays, no fallback notice');
+  assert.deepEqual([argValue(kept.calls[0], '-fit'), argValue(kept.calls[0], '-c')], ['on', '8192'], 'part of it on the processor');
+  assert.equal(kept.server.diagnostics().model.offload, true);
+  assert.deepEqual(said.map(event => event.id), ['standard'], 'the player is told once');
+  assert.ok(kept.logs.some(line => /Qwen3\.5-4B is kept as chosen \(partial offload to RAM is allowed\)/.test(line)));
+  assert.deepEqual(kept.failures, []);
+  // The setting off: the old behaviour, the smaller model that fits, with its fallback notice.
+  const off = choiceHarness(t, {selected: {pin: 'standard'}, freeMiB: 5100, mature: false});
+  const none = [];
+  off.server.on('offload-kept', event => none.push(event));
+  await off.server.ensure();
+  assert.deepEqual([off.loaded(), off.fallbacks.map(event => event.reason), none], [['q2.gguf'], ['low-memory'], []]);
+  // A model that fits is not offloaded, setting on or not.
+  const fits = choiceHarness(t, {selected: {pin: 'standard', keepChosen: true}, freeMiB: 24000, mature: false});
+  await fits.server.ensure();
+  assert.ok(fits.calls[0].args.includes('-ngl') && argValue(fits.calls[0], '-fit') === 'off');
+});

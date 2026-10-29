@@ -239,6 +239,8 @@ function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
  *   freeMiB    free graphics memory, or null/NaN when unknown (the smallest model of the candidates is taken then)
  *   sizeOf     file => size in MiB (0 when unknown)
  *   totalMiB   the graphics card's total memory when known: a custom model that needs more is never chosen (by the default or a pin)
+ *   keepChosen the player allowed partial offload to RAM (the setting localOffload): a PINNED model that does not fit the free graphics memory is kept anyway, loaded with part of its layers
+ *              on the CPU (`offload`, and `keptOffload` is true), instead of another model that fits taking its place. Off by default. A model the player never chose (the default rule) is not affected.
  *   realFit    {modelId: {pick}} from bridge/local-vram-fit.mjs for the models whose file-size need exceeds the free memory but whose projected memory (the real
  *              figure: a Gemma 4 E4B keeps about 1.7 GB of its file in system memory) fits whole: such a model counts as fitting, so a chosen one is kept and
  *              a Mature one is loaded whole instead of with layers on the CPU. The caller probes only the chosen model and the uncensored ones.
@@ -250,7 +252,7 @@ function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
  * LocalAiUnavailable('not-installed') with no model, ('mature-off') when only Mature pack models are installed and Mature content is off,
  * ('low-memory') when no model is left to try (every one is broken or stepped down).
  */
-export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0, realFit = {}} = {}) {
+export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0, realFit = {}, keepChosen = false} = {}) {
   if (!models.length) throw new LocalAiUnavailable('not-installed', 'no model');
   if (matureOffBlocks(models, matureOn)) throw new LocalAiUnavailable('mature-off', 'only Mature models are installed and Mature content is off');
   // Mature content off: a Mature pack model never loads, pinned or not (a pin of it stays in the settings, and is used again when Mature content is on).
@@ -279,6 +281,9 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
         const target = next ? sized.find(candidate => candidate.model.id === next.id) : null;
         if (target && (target.model.uncensored || fits(target))) return {...target, pinned: false, fellBack: 'too-slow', offload: target.model.uncensored === true && !fits(target)};
         fellBack = 'too-slow';
+      } else if (!fits(item) && keepChosen === true && item.model.external !== true) {
+        // The player allowed partial offload: the chosen model stays, with part of it on the CPU (the caller places it and warns once that replies are slower).
+        return {...item, pinned: true, fellBack: null, offload: true, keptOffload: true};
       } else if (!fits(item)) { fellBack = 'low-memory'; lowMemory = {needMiB: Math.ceil(needOf(item)), ...(known(freeMiB) ? {availableMiB: Math.max(0, Math.floor(freeMiB))} : {})}; }
       else return {...item, pinned: true, fellBack: null, offload: false};
     }

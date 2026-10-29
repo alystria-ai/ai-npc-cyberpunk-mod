@@ -253,7 +253,7 @@ export const freshSettings = {
   // A first start gives the five actions that have a default key their key, once (keyDefaultsGiven); the two Johnny actions have none.
   keyBindings: {manager: 'IK_F4', text: 'IK_F6', voice: 'IK_F7', group_text: 'IK_F8', group_voice: 'IK_F10'}, keyDefaultsGiven: true, companionOutfits: false, characterEddies: false,
   naturalSpeech: false,
-  matureContent: false, localModel: 'auto',
+  matureContent: false, localModel: 'auto', localOffload: false,
   vVoiceChosen: false, vVoice: true, vVoiceEngine: 'pocket', vVoiceMic: false, vVoiceMicOwn: true,
   enabledByKey: {'viktor-vektor': true, 'misty-olszewski': true, 'judy-alvarez': true, 'panam-palmer': true, 'resident-male': true,
     'resident-female': true, 'johnny-silverhand': true},

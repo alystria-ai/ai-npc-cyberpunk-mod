@@ -618,6 +618,8 @@ function M.mistral()
         -- The model shown as selected when none was chosen (the largest that fits), and the one turning Mature content on selects.
         localModelDefault = listedModelId(state.localModelDefault, localModels),
         localModelMatureDefault = listedModelId(state.localModelMatureDefault, localModels),
+        -- The model Local AI actually loaded, when it is one of the list: the model row names it beside the chosen one when they differ.
+        localModelInUse = listedModelId(state.localModelInUse, localModels),
         localModelProblems = localModelProblemList(state.localModelProblems),
         saved = state.saved == true, tail = tail, pending = state.pending == true,
         result = mistralResults[result] and result or nil,
@@ -977,6 +979,9 @@ local function loadSettings()
     -- loads the largest model that fits the free graphics memory, the settings page shows that model as selected, and the next Apply saves its
     -- id. The bridge falls back to the same model, with one notice, when the chosen one is missing, does not fit or does not start.
     if not validModelId(settings.localModel) then settings.localModel, settingsNeedSave = 'auto', true end
+    -- Allow Local AI to use RAM (off by default): the chosen model is kept when it does not fit the free graphics memory beside the game, with part of it on the processor (slower replies),
+    -- instead of a smaller model that fits taking its place. Read by the bridge on change only.
+    if type(settings.localOffload) ~= 'boolean' then settings.localOffload, settingsNeedSave = false, true end
     -- What turning Mature content on changed (provider, model), so turning it off can put them back (see cleanMatureRestore; an old record's voice parts are dropped).
     -- Only meaningful while Mature content is on.
     do
@@ -1621,6 +1626,9 @@ end
 -- The id of the model the row shows as selected while none was chosen (the largest that fits the free graphics memory), or nil.
 function M.localModelDefaultId() return M.mistral().localModelDefault end
 
+-- The id of the model Local AI actually loaded (it can differ from the chosen one), or nil.
+function M.localModelInUseId() return M.mistral().localModelInUse end
+
 -- The id of the model turning Mature content on selects (the largest uncensored one that fits), or nil when there is none.
 function M.localModelMatureId() return M.mistral().localModelMatureDefault end
 
@@ -2246,6 +2254,7 @@ function M.snapshot(player)
             matureContent = settings.matureContent == true,
             matureRestore = cleanMatureRestore(settings.matureRestore),
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
+            localOffload = settings.localOffload == true,
             archetypeConversations = settings.archetypeConversations,
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
@@ -2310,7 +2319,7 @@ function M.applySettings(player, values)
         if key == 'lootReactions' then nextSettings.lootReactionsChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
-            or key == 'companionVision' or key == 'naturalSpeech' or key == 'errorReports'
+            or key == 'companionVision' or key == 'naturalSpeech' or key == 'errorReports' or key == 'localOffload'
             or key == 'vVoice' or key == 'vVoiceMic' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value

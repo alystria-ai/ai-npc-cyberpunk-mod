@@ -44,14 +44,17 @@ const APARTMENT = /^[A-Za-z]+_(?:Apartment|VApartment)$/;
  *   text    the place as a phrase that follows "in" or "through": "Arroyo, Santo Domingo", "Lizzie's Bar, Kabuki, Watson"
  *   inside  true when the game's own record names an interior, false in the Badlands (open country), else the game's interior reading
  *           (`indoors`, true or false) or null when nothing says
- *   kind    'home' | 'venue' | 'wild' | 'neighborhood' | 'district'
+ *   kind    'home' | 'venue' | 'wild' | 'neighborhood' | 'district' | 'named'
+ * `named`: a place found from V's world position (bridge/named-places.mjs namedPlaceAt). It names the spot when the game's own record for V's position does
+ * not (a record of the neighbourhood only, or none); a record that names an interior or a flat is kept as it is.
  */
-export function describePlace({district, area, indoors} = {}) {
+export function describePlace({district, area, indoors, named = null} = {}) {
   if (typeof district !== 'string' || !PLACE.test(district)) return null;
   const root = NAMES[district] ?? placeName(district) ?? district;
   const sub = typeof area === 'string' && PLACE.test(area) && area !== district ? area : null;
   const reading = typeof indoors === 'boolean' ? indoors : null;
-  if (!sub) return {text: root, inside: reading, kind: 'district'};
+  const fromPosition = () => named && typeof named.phrase === 'string' ? {text: named.phrase, inside: named.home === true ? true : reading, kind: named.home === true ? 'home' : 'named'} : null;
+  if (!sub) return fromPosition() ?? {text: root, inside: reading, kind: 'district'};
   if (Object.hasOwn(HOME_PLACES, sub)) return {text: HOME_PLACES[sub], inside: true, kind: 'home'};
   if (APARTMENT.test(sub)) return {text: `an apartment in ${root}`, inside: true, kind: 'venue'};
   if (Object.hasOwn(INTERIORS, sub)) return {text: `${INTERIORS[sub]}, ${root}`, inside: true, kind: 'venue'};
@@ -60,6 +63,7 @@ export function describePlace({district, area, indoors} = {}) {
   if (/^(?:Badlands|NorthBadlands|SouthBadlands|MorroRock)(?:_|$)/.test(sub) || district === 'Badlands') {
     return {text: `${name}, ${root}`, inside: reading === true ? true : false, kind: 'wild'};
   }
-  // A sub-record the table does not know by name: stated as it is, with whatever the game says about being indoors.
+  // A sub-record the table does not know by name: stated as it is, with whatever the game says about being indoors. A named place found by position is better than a bare neighbourhood.
+  if (!sub.includes('_')) { const spot = fromPosition(); if (spot) return spot; }
   return {text: `${name}, ${root}`, inside: reading, kind: sub.includes('_') ? 'venue' : 'neighborhood'};
 }
