@@ -301,6 +301,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   // values to scrub and the RED4ext plugin versions is loaded the same way.
   'bridge/error-reports.mjs',
   'bridge/report-secrets.mjs',
+  'bridge/cet-log.mjs',
   'bridge/system-facts.mjs',
   'bridge/log-cap.mjs', // the supervisor's log size caps (bridge/bridge-supervisor.mjs); not in the bridge's import closure
 ]);
