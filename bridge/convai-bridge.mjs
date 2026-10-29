@@ -22,6 +22,7 @@ import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {scriptedResult, scriptedRoute} from './quest-lines.mjs';
 import {createPreparedVoice, readPreparedFile} from './prepared-voice.mjs';
 import {createPreparedAudio, createDecodeCache} from './prepared-audio.mjs';
+import {MediaLink} from './media-link.mjs';
 import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
@@ -2973,6 +2974,7 @@ const noteSubmitted = requestId => { submittedRequests.delete(requestId); submit
 const preparedRequests = new Map();
 
 async function tick() {
+  mediaLink.maybePoll();
   if (polling || stopped || voiceRouteReservation || relationshipRouteReservation) return;
   polling = true;
   try {
@@ -3468,6 +3470,14 @@ async function runInput(request, prepared, clock) {
 // Ogg, FLAC and MP3 files are decoded by bridge/prepared-audio.mjs (ffmpeg, else the Runtime Python); its decoded-sample cache lives in the state folder and is bounded.
 const preparedAudio = createPreparedAudio({cache: createDecodeCache({directory: resolve(stateDirectory, 'prepared-audio-cache')}),
   onLog: message => console.error('[PreparedAudio] ' + message)});
+// Music and sound effects of a story pack (docs/BOND_QUESTS.md 19.2 and 19.3, bridge/media-link.mjs): the game writes runtime/media-command.json, the bridge decodes the pack's file
+// and plays it on the media page of the hidden browser (a second stream beside the voice, ducked under speech). A file of its own and not the request file, because a media request
+// written over the request of a running talk turn would cancel that turn. No timer: the loop below calls maybePoll(), which looks only while a quest runs or a sound plays.
+const mediaLink = new MediaLink({path: resolve(runtime, 'media-command.json'), bondPacks, audio: preparedAudio, fs: {stat, readFile},
+  host: () => realtime.mediaHost(), peek: () => realtime.peekMedia(), wanted: () => questPoller.armed || realtime.mediaBusy,
+  log: message => console.error('[Media] ' + message)});
+await mediaLink.open();
+const MEDIA_IDLE_MS = 30_000;
 const scriptedLogged = new Set();
 // One ERROR line per pack and line (the pack id and the line id are in it), however often the line is asked for.
 const scriptedPackError = (input, message) => {
@@ -3904,6 +3914,9 @@ async function releaseUnused() {
   try {
     const muted = localVoice.silent;
     if (jaliFace) { if (muted) await jaliFace.suspend(); else if (!jaliFace.active) void jaliFace.resume(); }
+    // A story pack that stopped running takes its music and sounds with it, and the media page closes after a quiet half minute.
+    await mediaLink.reconcile().catch(() => {});
+    await realtime.releaseMediaIfIdle({idleMs: MEDIA_IDLE_MS}).catch(() => {});
     if (voiceBoundaryBusy() || voiceRouteReservation || keySwitching || providerSwitching) return;
     await realtime.releaseRendererPages({line: !vVoice.active || !vVoice.available, companion: muted});
     const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
