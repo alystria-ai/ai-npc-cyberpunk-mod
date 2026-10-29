@@ -135,7 +135,7 @@
     }
   },
   "localAi": {
-    "notes": "The two optional Local AI downloads (docs/LOCAL_AI.md, docs/LOCAL_MODEL_CHOICE.md), hosted on Hugging Face, in its local-ai/ folder, as one zip each. The llama.cpp engine (server, llama-fit-params, libraries) ships in the RUNTIME, in app/<server.runtimeFolder>/ (server.inPacks is false since 0.2.9: the packs carry models only and their manifests name no server, so they need the Runtime of 0.2.7 or newer; set it true and each pack carries a copy in llama/ again, for a pack used with an older Runtime). Each pack carries the embedding model and its own chat model whole (no parts), plus a manifest fragment that bridge/local-ai-pack.mjs merges. Every file is the unmodified upstream file, checked against the SHA-256 recorded here. With --models local, a developer folder (--local-ai-source, or CYBERPUNK_CONVAI_LOCAL_AI_DEV) is used instead of downloading, and each file in it is checked against the same hash.",
+    "notes": "The two optional Local AI downloads (docs/LOCAL_AI.md, docs/LOCAL_MODEL_CHOICE.md), hosted on Hugging Face, in its local-ai/ folder, as one zip each. The llama.cpp engine (server, llama-fit-params, libraries) ships in the RUNTIME, in app/<server.runtimeFolder>/ (server.inPacks is false since 0.2.9: the packs carry models only and their manifests name no server, so they need the Runtime of 0.2.7 or newer; set it true and each pack carries a copy in llama/ again, for a pack used with an older Runtime). Each pack carries the embedding model and its own chat model whole (no parts), plus a manifest fragment that bridge/local-ai-pack.mjs merges. Every file is the unmodified upstream file, checked against the SHA-256 recorded here. Each chat model also ships its vision projector (`mmproj` on the tier: the Q8_0 projector made for that model, pinned the same way, written into models/ and named by `mmproj` in the pack's manifest so bridge/local-llm-server.mjs loads it without guessing, and it is loaded only while Companions can see is on, see docs/LOCAL_AI.md, 'Pictures'. packaging/lib/pack-projector.mjs checks its size and hash). With --models local, a developer folder (--local-ai-source, or CYBERPUNK_CONVAI_LOCAL_AI_DEV) is used instead of downloading, and each file in it is checked against the same hash.",
     "server": {
       "name": "llama.cpp llama-server (Vulkan build)",
       "version": "b11782",
@@ -171,7 +171,17 @@
         "size": 5154941280,
         "sha256": "676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee",
         "local": "dl-gemma4-e4b/gemma-4-E4B_q4_0-it.gguf",
-        "license": "Apache-2.0"
+        "license": "Apache-2.0",
+        "mmproj": {
+          "name": "Gemma 4 E4B vision projector (Q8_0)",
+          "repository": "ggml-org/gemma-4-E4B-it-GGUF",
+          "revision": "a69f018d7678a2b9f5e705f8903d6fb29b9b25dc",
+          "file": "mmproj-gemma-4-E4B-it-Q8_0.gguf",
+          "size": 559874816,
+          "sha256": "197f49a93027f9843772bd24a6a9e0be2a32a788de5a3def330e9c585d86edd1",
+          "local": "dl-gemma4-e4b/mmproj-gemma-4-E4B-it-Q8_0.gguf",
+          "license": "Apache-2.0"
+        }
       },
       "lite": {
         "name": "Bonsai 2 4B",
@@ -182,7 +192,17 @@
         "sha256": "64a5183b44921bdb5ac4a6f5f92007821d6ebe5c66997d3c147fd214ab9433d4",
         "local": "dl-bonsai2-4b/Ternary-Bonsai-2-4B-Q2_0.gguf",
         "license": "Apache-2.0",
-        "publisher": "PrismML"
+        "publisher": "PrismML",
+        "mmproj": {
+          "name": "Bonsai 2 4B vision projector (Q8_0)",
+          "repository": "prism-ml/Ternary-Bonsai-2-4B-gguf",
+          "revision": "8d6557168168f91ea6697a4a49ed2ef622b53adb",
+          "file": "Ternary-Bonsai-2-4B-mmproj-Q8_0.gguf",
+          "size": 366894624,
+          "sha256": "db939d5f9b7014137810205e91d05e5f54afd72b0b3af9d33bd7d82f7906a55d",
+          "local": "dl-bonsai2-4b/Ternary-Bonsai-2-4B-mmproj-Q8_0.gguf",
+          "license": "Apache-2.0"
+        }
       }
     }
   },
@@ -191,7 +211,7 @@
     "runtimeClips": "packaging/pack-listings/runtime-omni-clips-0.2.9.json"
   },
   "maturePack": {
-        "notes": "The optional Mature packs (docs/LOCAL_AI.md, 'Mature content'; packaging/MATURE_PACK_README.md): two optional downloads, Mature lite and Mature standard, each ONE zip holding one uncensored model file (lite and good like the Local AI packs) and its own marker (manifest.mature-lite.json, manifest.mature-standard.json) that the main mod reads to say in the setting's help whether a Mature model is installed and to offer it in the Local AI model row (turning Mature content on selects the good one if it fits, else the lite one); each works alone, and the Mature content setting itself is part of the main mod and works without the packs. They are distributed ONLY as files on the project's Hugging Face repository (alystria-ai/ai-npc-cyberpunk-mod-packs, in its mature/ folder; packaging/upload-packs.py), never on Nexus Mods and not on the GitHub release (packaging/MATURE_PACK_RELEASE_NOTES.md has the text for the Hugging Face page). The release workflow builds and uploads them only when its opt-in 'mature' input is set (never on a tag push), one matrix job per pack; by hand they are built with --packages mature-lite or mature-standard. They are never part of the default set, and nothing of them is in the Runtime package. Both models are pinned by revision, size and SHA-256 from the Hugging Face file listing (2026-10-14; both downloaded, SHA-256 checked and run in docs/MATURE_SAMPLES_V3_2026-10-14.md); 'remote' is the file's path inside the repository when it is in a folder. They were chosen from the community data in docs/MATURE_MODELS_V2_2026-10-14.md and confirmed with scripts/Eval-MatureSamples.mjs (third round: docs/MATURE_SAMPLES_V3_2026-10-14.md).",
+        "notes": "The optional Mature packs (docs/LOCAL_AI.md, 'Mature content'; packaging/MATURE_PACK_README.md): two optional downloads, Mature lite and Mature standard, each ONE zip holding one uncensored model file (lite and good like the Local AI packs) and its own marker (manifest.mature-lite.json, manifest.mature-standard.json) that the main mod reads to say in the setting's help whether a Mature model is installed and to offer it in the Local AI model row (turning Mature content on selects the good one if it fits, else the lite one); each works alone, and the Mature content setting itself is part of the main mod and works without the packs. They are distributed ONLY as files on the project's Hugging Face repository (alystria-ai/ai-npc-cyberpunk-mod-packs, in its mature/ folder; packaging/upload-packs.py), never on Nexus Mods and not on the GitHub release (packaging/MATURE_PACK_RELEASE_NOTES.md has the text for the Hugging Face page). The release workflow builds and uploads them only when its opt-in 'mature' input is set (never on a tag push), one matrix job per pack; by hand they are built with --packages mature-lite or mature-standard. They are never part of the default set, and nothing of them is in the Runtime package. The Mature standard model (Gemma 4 E4B fine-tune) also ships the Gemma 4 E4B vision projector, the same pinned file as the Local AI standard pack's (same path, same bytes, so installing one pack over the other overwrites identical bytes), and it loaded and described a picture with the fine-tune (docs/COMPANION_VISION.md, section 2c). Mature lite (Qwen3.5-4B) ships none yet: its projector is a 644 MiB BF16 file that has not been downloaded or checked. Both models are pinned by revision, size and SHA-256 from the Hugging Face file listing (2026-10-14; both downloaded, SHA-256 checked and run in docs/MATURE_SAMPLES_V3_2026-10-14.md); 'remote' is the file's path inside the repository when it is in a folder. They were chosen from the community data in docs/MATURE_MODELS_V2_2026-10-14.md and confirmed with scripts/Eval-MatureSamples.mjs (third round: docs/MATURE_SAMPLES_V3_2026-10-14.md).",
     "status": "pinned",
     "mirror": {"bucket": "mature/", "manifest": "mature/MANIFEST.json", "notes": "Copies of the two model files in the private bucket (outside final/, so the trained-model fetch never downloads them), so a takedown of the community repositories cannot break a build. --models hf takes each model from here (SHA-256 checked against the pins above) and falls back to the pinned public URL when the mirror lacks it."},
     "markers": {"lite": "manifest.mature-lite.json", "good": "manifest.mature-standard.json"},
@@ -223,7 +243,17 @@
         "size": 5335290656,
         "sha256": "e67009205385bd00852f4aa722cf4c49dcf6892cd34c29c265c36a3014906cc2",
         "local": "mature/Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf",
-        "license": "Apache-2.0"
+        "license": "Apache-2.0",
+        "mmproj": {
+          "name": "Gemma 4 E4B vision projector (Q8_0)",
+          "repository": "ggml-org/gemma-4-E4B-it-GGUF",
+          "revision": "a69f018d7678a2b9f5e705f8903d6fb29b9b25dc",
+          "file": "mmproj-gemma-4-E4B-it-Q8_0.gguf",
+          "size": 559874816,
+          "sha256": "197f49a93027f9843772bd24a6a9e0be2a32a788de5a3def330e9c585d86edd1",
+          "local": "dl-gemma4-e4b/mmproj-gemma-4-E4B-it-Q8_0.gguf",
+          "license": "Apache-2.0"
+        }
       }
     }
   },
