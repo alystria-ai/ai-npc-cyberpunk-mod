@@ -14,6 +14,8 @@
 --                 and a pedestrian walking a route with the move command.
 --   postWalk, postHold, postStance, postCar*   the visitor calls of mod/companions.lua for a copy placed through a cast, and a stationary tagged car for a post.
 --   remoteHold    needs the hook holdWhile(channel, fn) on mod/quest-lines.lua, absent today: it answers nil and the dead zone only reports its events.
+--   postFight     the hold-position fight of mod/companion-tactics.lua (T.fightFrom), asked with the visiting copy's NPC looked up fresh.
+--   driveSpawn    with request.neutral the car is a clone of the vehicle record with no police affiliation (mod/quest-tweak.lua, its own list of what is unverified).
 local M = {TAG = 'CyberpunkConvaiQuest', SEAT = 'seat_front_left', DRIVER_SEATS = {seat_front_left = true, seat_front = true},
     FALLBACK_CAR = 'Vehicle.v_standard2_archer_hella_player'}
 
@@ -62,12 +64,12 @@ local function find(id)
     return nil
 end
 
--- deps: companions (the companions module, else the global convaiCompanions), log(line).
+-- deps: companions (the companions module, else the global convaiCompanions), tweak (a mod/quest-tweak.lua instance, else it is loaded), log(line).
 function M.new(deps)
     deps = deps or {}
     local W = {}
     local heatMethod, weatherMethod, rainTypeMethod, rainMethod
-    local turnContext
+    local turnContext, tweak
 
     local function log(line) if type(deps.log) == 'function' then pcall(deps.log, 'Quest drive: ' .. line) end end
     local function companions() return deps.companions or global('convaiCompanions') end
@@ -78,6 +80,22 @@ function M.new(deps)
             turnContext = ok and type(module) == 'table' and module or false
         end
         return turnContext or nil
+    end
+    -- The neutral clone of a vehicle record (mod/quest-tweak.lua), loaded once. It is the record itself when the clone cannot be made or the module is missing.
+    local function neutralRecord(record)
+        if tweak == nil then
+            tweak = deps.tweak or false
+            if not tweak then
+                local ok, module = pcall(dofile, 'quest-tweak.lua')
+                if ok and type(module) == 'table' and type(module.new) == 'function' then
+                    local built, instance = pcall(module.new, {log = deps.log})
+                    if built and type(instance) == 'table' then tweak = instance end
+                end
+            end
+        end
+        if not tweak or type(tweak.neutralVehicle) ~= 'function' then return record end
+        local ok, name = pcall(tweak.neutralVehicle, record)
+        return ok and type(name) == 'string' and name or record
     end
     local function firstMethod(memo, object, names)
         if memo[1] then return object[memo[1]](object), memo[1] end
@@ -247,12 +265,14 @@ function M.new(deps)
         return true
     end
 
-    -- A fight from the post goes through companion tactics once they have a hold-position flag (they have none yet): true only when that hook exists.
+    -- A fight from the post goes through the hold-position flag of companion tactics (T.fightFrom): the copy's NPC is looked up fresh and handed over for this
+    -- one call only. True only when that hook exists and takes it.
     function W.postFight(serial, on)
         local c = companions()
         local tactics = c and c.tactics
-        if type(tactics) == 'table' and type(tactics.fightFrom) == 'function' then return tactics.fightFrom(serial, on == true) == true end
-        return false
+        if type(tactics) ~= 'table' or type(tactics.fightFrom) ~= 'function' then return false end
+        local npc = type(c.residentNpc) == 'function' and c.residentNpc(serial) or nil
+        return tactics.fightFrom(serial, on == true, npc) == true
     end
 
     -- The copy sits in a stationary car at the post (the handle of driveSpawn with no driver). mount and unmount are the animated ones of the invitation car.
@@ -285,7 +305,8 @@ function M.new(deps)
         return id
     end
 
-    -- request: {kind = 'car' | 'foot', vehicle = record, appearance, driver = record (a car with no driver: nil), x, y, z, yaw, tag}.
+    -- request: {kind = 'car' | 'foot', vehicle = record, neutral = true (a clone of the record with no police affiliation), appearance, driver = record (a car with
+    -- no driver: nil), x, y, z, yaw, tag}.
     -- The handle holds IDs only: {kind, system, entityID, id (the car's), driverID}. A car with the same fields is what the visitor mount calls take.
     function W.driveSpawn(request)
         if type(request) ~= 'table' or not finite(request.x) or not finite(request.y) or not finite(request.z) then return nil, 'bad place' end
@@ -295,7 +316,9 @@ function M.new(deps)
         if type(request.tag) == 'string' and request.tag ~= '' then tags[2] = request.tag end
         local handle = {kind = request.kind == 'foot' and 'foot' or 'car', system = system}
         if handle.kind == 'car' then
-            local carId, why = create(system, request.vehicle or M.FALLBACK_CAR, request.appearance, request.x, request.y, request.z, request.yaw, tags)
+            local record = request.vehicle or M.FALLBACK_CAR
+            if request.neutral == true then record = neutralRecord(record) end
+            local carId, why = create(system, record, request.appearance, request.x, request.y, request.z, request.yaw, tags)
             if not carId then return nil, why end
             handle.entityID, handle.id = carId, idText(carId)
         end

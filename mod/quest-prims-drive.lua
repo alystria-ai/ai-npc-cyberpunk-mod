@@ -14,6 +14,7 @@
 --   runner    runner:<id>:stopped, runner:<id>:caught, runner:<id>:lost
 --   tail      tail:<id>:noticed, tail:<id>:lost
 --   check     check:<id>:<value> with a bounded vocabulary (in: check:<id>:go)
+-- A runner or tail car asks for the neutral clone of its vehicle record (request.neutral, mod/quest-tweak.lua through the natives): boardable, no police marker.
 local M = {
     RIDE_FOOT = 120,          -- real seconds V does not drive before the ride is abandoned
     RIDE_COPY_OUT = 20,       -- real seconds the copy is out of the car before the ride is abandoned
@@ -31,7 +32,7 @@ local M = {
 local STANCES = {stand = true, prone = true, car = true}
 local WEATHER = {clear = true, cloudy = true, rain = true, ['heavy-rain'] = true, ['toxic-rain'] = true, fog = true, smog = true, sandstorm = true}
 local SLOTS = {head = true, face = true, outerTorso = true, innerTorso = true, legs = true, feet = true, outfit = true}
-local CHECKS = {hour = true, weather = true, heat = true, song = true, gear = true, item = true}
+local CHECKS = {hour = true, weather = true, heat = true, song = true, gear = true, item = true, district = true, radio = true}
 local atan2 = math.atan2 or function(y, x) return math.atan(y, x) end
 
 local function finite(value) return type(value) == 'number' and value == value and math.abs(value) < 1e7 end
@@ -231,7 +232,8 @@ function M.install(R, env)
     -- The stage's copy walks to the spot of a place and holds it, with the visitor calls of the housemates (the copy must be one placed through a cast, a
     -- party member is moved by the party and cannot be posted: post:<id>:lost at once). stance: 'stand', 'prone' (the lowest stance the game has for an NPC)
     -- or 'car' (a stationary tagged car at the spot, the copy sits in it). spec.release names an event that frees her (post:<id>:released). With fightFrom the
-    -- event post:<id>:fight asks companion tactics to engage from the post (post:<id>:fighting if they take it, which needs a hold flag they do not have yet).
+    -- event post:<id>:fight asks companion tactics to engage from the post (post:<id>:fighting when they take it: the hold-position flag T.fightFrom, which gives her an
+    -- aggressive reaction preset and leaves every move order to this primitive, which sends none while she fights). The release event and the ctx turn it off again.
     R.defs.post = {
         interval = 2,
         arm = function(ctx, spec)
@@ -251,6 +253,7 @@ function M.install(R, env)
                 if state.over or state.released then return end
                 state.released = true
                 if state.stance == 'car' and state.handle and state.serial then call('postCarMount', state.serial, state.handle, true) end
+                if state.fightOn then state.fightOn = false; call('postFight', state.serial, false) end
                 ctx:emit('post:' .. id .. ':released')
             end
             if eventName(spec.release) then ctx:on(spec.release, release) end
@@ -258,8 +261,16 @@ function M.install(R, env)
                 ctx:on('post:' .. id .. ':fight', function()
                     if state.over or state.released or state.fighting then return end
                     state.fighting = true
-                    if call('postFight', state.serial, true) == true then ctx:emit('post:' .. id .. ':fighting')
-                    else log('post ' .. id .. ': companion tactics cannot fight from a post yet, she is free to fight on her own') end
+                    if call('postFight', state.serial, true) == true then
+                        -- The flag is taken back whatever ends the post: the stage ending, a reload, the setting going off.
+                        state.fightOn = true
+                        ctx:track('post-fight', state, function(held)
+                            if held.fightOn then held.fightOn = false; call('postFight', held.serial, false) end
+                        end)
+                        ctx:emit('post:' .. id .. ':fighting')
+                    else
+                        log('post ' .. id .. ': companion tactics did not take the fight from the post, she is free to fight on her own')
+                    end
                 end)
             end
             return state
@@ -423,7 +434,7 @@ function M.install(R, env)
             return {id = id, kind = kind, route = route, leg = 2, sentLeg = 0, speed = number(spec.speed, 1, 60, kind == 'car' and 14 or 3.5),
                 caught = number(spec.caughtMetres, 2, 100, 12), stoppedAfter = number(spec.stoppedSeconds, 1, 120, 4),
                 tries = 0, nextTry = 0, spawnAt = route[1], yaw = math.deg(atan2(-dx, dy)), mountTries = 0, nextMount = 0,
-                request = {kind = kind, vehicle = kind == 'car' and spec.vehicle or nil, driver = driver, tag = ctx.tag},
+                request = {kind = kind, vehicle = kind == 'car' and spec.vehicle or nil, driver = driver, tag = ctx.tag, neutral = kind == 'car'},
                 seen = false, miss = 0, moved = false, slowFor = 0, stopped = false, farFor = 0, resends = 0, lastSend = 0, over = false, prev = nil, prevAt = nil}
         end,
         tick = function(ctx, spec, state)
@@ -547,7 +558,7 @@ function M.install(R, env)
             return {id = id, gap = gap, notice = number(spec.noticeMetres, 3, 200, math.max(8, gap / 2)), lostAt = number(spec.lostMetres, 20, 2000, math.max(150, gap * 6)),
                 tries = 0, nextTry = 0, spawnAt = spawnAt, behind = gap + M.TAIL_BEHIND, mountTries = 0, nextMount = 0, nextFollow = 0, nearCount = 0, farFor = 0,
                 noticed = false, seen = false, miss = 0, over = false, prevAt = nil,
-                request = {kind = 'car', vehicle = type(spec.vehicle) == 'string' and spec.vehicle or nil, driver = driver, tag = ctx.tag}}
+                request = {kind = 'car', vehicle = type(spec.vehicle) == 'string' and spec.vehicle or nil, driver = driver, tag = ctx.tag, neutral = true}}
         end,
         tick = function(ctx, spec, state)
             if state.over then return end
@@ -610,6 +621,8 @@ function M.install(R, env)
     --   song     silent | playing, or with args.match (a word or a list of words) match | other
     --   gear     args.weapon: armed | unarmed. args.slot (head face outerTorso innerTorso legs feet outfit): empty | worn, with args.match: empty | match | other
     --   item     args.item (an Items.* record): have | none (args.min, default 1)
+--   district the district V is in (world.district) as one token: lowercase, spaces and other characters to hyphens, e.g. little-china
+--   radio    the radio station playing (the song read) as one token: lowercase with hyphens, e.g. 89-7-growl-fm, or off
     --   anything that cannot be read or does not fit the vocabulary: unknown
     local function words(match)
         local list = {}
@@ -629,6 +642,15 @@ function M.install(R, env)
             end
         end
         return false
+    end
+
+    -- A name as one event token: lowercase, every run of other characters one hyphen, none at the ends, 40 characters at most. nil when nothing is left.
+    local function token(text)
+        if type(text) ~= 'string' then return nil end
+        local out = text:lower():gsub('[^%w]+', '-')
+        out = out:gsub('^%-+', ''):gsub('%-+$', '')
+        if #out > 40 then out = out:sub(1, 40):gsub('%-+$', '') end
+        return #out > 0 and out or nil
     end
 
     local function classify(what, args)
@@ -653,6 +675,15 @@ function M.install(R, env)
             local list = words(args.match)
             if #list == 0 then return 'playing' end
             return contains(list, song.station, song.song) and 'match' or 'other'
+        elseif what == 'district' then
+            local where = call('district')
+            if type(where) ~= 'table' then return nil end
+            return token(where.district) or token(where.area)
+        elseif what == 'radio' then
+            local song = call('readSong')
+            if type(song) ~= 'table' then return nil end
+            if song.playing ~= true then return 'off' end
+            return token(song.station) or 'unknown'
         elseif what == 'gear' then
             local gear = call('readGear')
             if type(gear) ~= 'table' then return nil end

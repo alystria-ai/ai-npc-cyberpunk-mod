@@ -15,7 +15,7 @@ local game = {now = 0, gameClock = 100000, rate = 30, tick = 0, vpos = {x = 0, y
   ride = {mounted = true, driving = true, vehicleId = 'car1', at = {x = 0, y = 0, z = 0}, copy = 'aboard'}, rideFails = false,
   copy = nil, heat = 0, hour = 12, weather = 'clear', song = {playing = false}, gear = nil, items = {}, readFails = false,
   units = {}, nextUnit = 1, spawnFail = 0, mountWorks = true, driveAccepted = true, autoAttach = true, deletes = {}, spawns = {},
-  remoteSupported = true, hold = nil, holdReleased = 0, postCar = {mounted = false}, walks = 0, holds = 0, stances = {}, fights = 0, fightTaken = false, mounts = {}}
+  remoteSupported = true, hold = nil, holdReleased = 0, postCar = {mounted = false}, walks = 0, holds = 0, stances = {}, fights = 0, fightTaken = false, mounts = {}, fightOn = {}, district = nil}
 -- A row of the world is good for the tick it was made in: using it later is the mistake this fake exists to catch.
 local function fresh(t)
   local gen = game.tick
@@ -54,7 +54,8 @@ local world = {
   postWalk = counted('postWalk', function(serial, target, gait) game.walks = game.walks + 1; game.walkTarget = plainOf(target); return true end),
   postHold = counted('postHold', function(serial) game.holds = game.holds + 1; return true end),
   postStance = counted('postStance', function(serial, stance) game.stances[#game.stances + 1] = stance; return true end),
-  postFight = counted('postFight', function(serial, on) game.fights = game.fights + 1; return game.fightTaken end),
+  postFight = counted('postFight', function(serial, on) game.fights = game.fights + 1; game.fightOn[#game.fightOn + 1] = on; return game.fightTaken end),
+  district = counted('district', function() if game.readFails then error('no district') end return game.district end),
   postCarMount = counted('postCarMount', function(serial, handle, unmount)
     game.mounts[#game.mounts + 1] = unmount and 'out' or 'in'
     if not unmount and game.postCar.mountWorks then game.postCar.mounted = true end
@@ -305,7 +306,7 @@ local insts = drive(ctx, {{p = 'post', id = 'ow', at = 'spot', release = 'stage:
 game.copy = {profileKey = 'panam-palmer', kind = 'visitor', position = {x = 40, y = 0, z = 0}}
 advance(ctx, insts, 3); assert(ctx:count('post:ow:set') == 1)
 ctx:emit('post:ow:fight')
-assert(game.fights == 1 and ctx:count('post:ow:fighting') == 0 and logged('cannot fight from a post yet'), 'tactics did not take it')
+assert(game.fights == 1 and ctx:count('post:ow:fighting') == 0 and logged('did not take the fight from the post'), 'tactics did not take it')
 local holds = game.holds
 advance(ctx, insts, 60); assert(game.holds == holds, 'a fighting copy is not held any more')
 ctx:emit('post:ow:fight'); assert(game.fights == 1, 'asked once')
@@ -318,7 +319,7 @@ assert(c2:count('post:ow2:released') == 1)
 local h = game.holds; advance(c2, more, 60); assert(game.holds == h and c2:count('post:ow2:lost') == 0, 'a released post is left alone')
 local c3 = stageCtx('panam-palmer')
 local third = drive(c3, {{p = 'post', id = 'plain', at = 'spot'}})
-c3:emit('post:plain:fight'); assert(game.fights == 2, 'no fightFrom, no fight')
+c3:emit('post:plain:fight'); assert(game.fights == 3, 'no fightFrom, no fight (the third ask was the release of the second post turning its flag off)')
 `));
 
 test('post: stance car puts a tagged car at the spot when V is near, mounts the copy and checks the seat, release gets her out, the ctx removes the car', () => withGame(`
@@ -917,3 +918,111 @@ test('the modules are plain Lua 5.1 with no semicolon in a comment and name no o
     assert.ok(!/onUpdate|GameSession|\bonDraw\b/.test(text), name + ' has no per-frame hook');
   }
 });
+
+// ---- post: the fight from the post (the hold-position flag of companion tactics), and the district and radio checks ---------------------------------------------------------------
+
+test('post fight: taken, post:<id>:fighting once, the flag is turned off again by the release event, and a copy that fights is not held or walked back', () => withGame(`
+game.fightTaken = true
+local ctx = stageCtx('panam-palmer')
+local insts = drive(ctx, {{p = 'post', id = 'ow', at = 'spot', release = 'stage:go', fightFrom = true}})
+game.copy = {profileKey = 'panam-palmer', kind = 'visitor', position = {x = 40, y = 0, z = 0}}
+advance(ctx, insts, 3); assert(ctx:count('post:ow:set') == 1)
+ctx:emit('post:ow:fight')
+assert(ctx:count('post:ow:fighting') == 1 and #game.fightOn == 1 and game.fightOn[1] == true, 'asked on')
+assert(#ctx.tracked == 1 and ctx.tracked[1].kind == 'post-fight', 'the flag is owned by the ctx')
+local walks, holds = game.walks, game.holds
+game.copy.position = {x = 70, y = 0, z = 0}
+advance(ctx, insts, 60)
+assert(game.walks == walks and game.holds == holds, 'a fighting copy is neither walked back nor held')
+ctx:emit('stage:go')
+assert(#game.fightOn == 2 and game.fightOn[2] == false and ctx:count('post:ow:released') == 1, 'the release turns it off')
+ctx:reap()
+assert(#game.fightOn == 2, 'the reap does not turn it off a second time')
+`));
+
+test('post fight: the ctx turns the flag off when the stage ends while she fights, a post that never fought asks for nothing, one that tactics refused leaves nothing to undo', () => withGame(`
+game.fightTaken = true
+local ctx = stageCtx('panam-palmer')
+local insts = drive(ctx, {{p = 'post', id = 'a', at = 'spot', fightFrom = true}})
+game.copy = {profileKey = 'panam-palmer', kind = 'visitor', position = {x = 40, y = 0, z = 0}}
+advance(ctx, insts, 3)
+ctx:emit('post:a:fight')
+assert(#game.fightOn == 1)
+ctx:reap()
+assert(#game.fightOn == 2 and game.fightOn[2] == false, 'the reap took the flag back')
+local c2 = stageCtx('panam-palmer')
+local i2 = drive(c2, {{p = 'post', id = 'b', at = 'spot', fightFrom = true, release = 'stage:go'}})
+advance(c2, i2, 3)
+c2:emit('stage:go'); c2:reap()
+assert(#game.fightOn == 2, 'never fought, nothing to turn off')
+game.fightTaken = false
+local c3 = stageCtx('panam-palmer')
+local i3 = drive(c3, {{p = 'post', id = 'c', at = 'spot', fightFrom = true, release = 'stage:go'}})
+advance(c3, i3, 3)
+c3:emit('post:c:fight')
+assert(c3:count('post:c:fighting') == 0 and #c3.tracked == 0 and #game.fightOn == 3, 'refused')
+c3:emit('stage:go'); c3:reap()
+assert(#game.fightOn == 3, 'a refused fight is not turned off')
+`));
+
+test('check: district is one token, lowercase with hyphens, and unknown when it cannot be read', () => withGame(`
+local function once(spec, set)
+  local ctx = stageCtx('panam-palmer')
+  drive(ctx, {spec})
+  set()
+  ctx:emit('check:' .. spec.id .. ':go')
+  local out = {}
+  for _, e in ipairs(ctx.events) do if e ~= 'check:' .. spec.id .. ':go' then out[#out + 1] = e end end
+  assert(#out == 1, 'exactly one result: ' .. table.concat(out, ','))
+  return out[1]
+end
+local spec = {p = 'check', id = 'd', what = 'district'}
+assert(once(spec, function() game.district = {district = 'Watson', area = 'Kabuki'} end) == 'check:d:watson')
+assert(once(spec, function() game.district = {district = 'Little China', area = 'Watson'} end) == 'check:d:little-china')
+assert(once(spec, function() game.district = {district = 'Rancho Coronado', area = 'Santo Domingo'} end) == 'check:d:rancho-coronado')
+assert(once(spec, function() game.district = {district = 'Dogtown / Pacifica', area = 'x'} end) == 'check:d:dogtown-pacifica')
+assert(once(spec, function() game.district = {area = 'Badlands'} end) == 'check:d:badlands', 'the area when there is no district')
+assert(once(spec, function() game.district = {district = '  ', area = ''} end) == 'check:d:unknown')
+assert(once(spec, function() game.district = nil end) == 'check:d:unknown')
+assert(once(spec, function() game.district = {district = 7} end) == 'check:d:unknown')
+assert(#once(spec, function() game.district = {district = string.rep('abc ', 30)} end) <= #'check:d:' + 40)
+game.readFails = true
+assert(once(spec, function() end) == 'check:d:unknown')
+game.readFails = false
+`));
+
+test('check: radio is the station as one token or off, silent radio is off, a station with no name is unknown', () => withGame(`
+local function once(set)
+  local ctx = stageCtx('panam-palmer')
+  drive(ctx, {{p = 'check', id = 'r', what = 'radio'}})
+  set()
+  ctx:emit('check:r:go')
+  return ctx.events[2]
+end
+assert(once(function() game.song = {playing = false} end) == 'check:r:off')
+assert(once(function() game.song = {playing = true, station = '89.7 Growl FM'} end) == 'check:r:89-7-growl-fm')
+assert(once(function() game.song = {playing = true, station = 'Radio PEBKAC', song = 'Whatever'} end) == 'check:r:radio-pebkac')
+assert(once(function() game.song = {playing = true, station = 'Morro Rock Radio'} end) == 'check:r:morro-rock-radio')
+assert(once(function() game.song = {playing = true} end) == 'check:r:unknown')
+assert(once(function() game.song = {playing = true, station = '!!!'} end) == 'check:r:unknown')
+assert(once(function() game.song = nil end) == 'check:r:unknown')
+game.readFails = true
+assert(once(function() end) == 'check:r:unknown')
+game.readFails = false
+local none = stageCtx('panam-palmer')
+assert(#drive(none, {{p = 'check', id = 'z', what = 'mood'}}) == 0 and logged('unknown kind mood'), 'a kind that is still unknown is still refused')
+`));
+
+test('natives: postFight hands the visiting copy to companion tactics, looked up fresh, and says false without the hook or the flag', () => withNatives(`
+local seen = {}
+local npcs = {[7] = {name = 'copy'}}
+convaiCompanions.residentNpc = function(serial) return npcs[serial] end
+convaiCompanions.tactics = {fightFrom = function(serial, on, npc) seen[#seen + 1] = {serial, on, npc and npc.name}; return npc ~= nil and on end}
+assert(W.postFight(7, true) == true and seen[1][1] == 7 and seen[1][2] == true and seen[1][3] == 'copy')
+assert(W.postFight(7, false) == false and seen[2][2] == false, 'off is passed on, tactics answers for itself')
+assert(W.postFight(9, true) == false and seen[3][3] == nil, 'a copy that is not there: tactics is told so')
+convaiCompanions.tactics = {}
+assert(W.postFight(7, true) == false, 'tactics without the hook')
+convaiCompanions.tactics = nil
+assert(W.postFight(7, true) == false, 'no tactics')
+`));
