@@ -317,7 +317,7 @@ test('the probe line of a turn says what the game saw, the switch, whether V ask
 test('wiring: the bridge writes the probe line at the start of a typed turn, and the reply carries it to the game, which logs it next to the result', async () => {
   const {readFileSync} = await import('node:fs');
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /import \{turnContextDiagnostic, modsProbeLine, vixenProbeLines\} from '\.\/turn-context\.mjs'/);
+  assert.match(bridge, /import \{(?=[^}]*\bturnContextDiagnostic\b)(?=[^}]*\bmodsProbeLine\b)(?=[^}]*\bvixenProbeLines\b)[^}]*\} from '\.\/turn-context\.mjs'/);
   assert.match(bridge, /console\.error\(`\[Turn\] received[^\n]*\n\s*logDarkFuture\(input\);/, 'once per submitted turn, never a look-ahead');
   assert.equal((bridge.match(/\.\.\.dfNote\(/g) ?? []).length, 2, 'the continuous reply and the written reply both carry it');
   // Live 2026-10-27: the fac: and inj: lines were logged as [DarkFuture]. Each line carries its own mod's tag.
