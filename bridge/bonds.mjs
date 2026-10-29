@@ -35,7 +35,7 @@ export const LEVELS = Object.freeze([
 ].map(Object.freeze));
 
 /** Points per exchange heard to the end, by how V and the character talked. */
-export const TALK_POINTS = Object.freeze({own: 4, holocall: 3, story: 2});
+export const TALK_POINTS = Object.freeze({own: 4, holocall: 3, phone: 3, story: 2});
 /** Points a threat or an insult at the character costs (and that exchange gains nothing). */
 export const HURT_POINTS = Object.freeze({kill: 25, hurt: 15, insult: 8});
 /** Talk caps per character: the first FULL exchanges of a game day count in full, the next HALF count half (at least 1), then nothing; at most REAL a real day. */
@@ -69,20 +69,24 @@ export function levelOf(points) {
 
 /**
  * The `bonds` block of a request (mod/bonds.lua attach): {version: 1, on: true, copy?}, sent only while the setting is on, for a private turn V sends.
- * `copy`: 'party' | 'visitor' | 'housemate' when the character is one of V's own copies. Returns {on: true, copy} or null.
+ * `copy`: 'party' | 'visitor' | 'housemate' when the character is one of V's own copies. Phase 2 adds three flags, each present only when true:
+ * `packs` (Settings > Gameplay > Story packs is on), `invitations` (Immersive invitations is on), `eddies` (Eddies with characters is on) and `busy` (a scene, a dialogue choice, combat, a game
+ * call or a chase: no pack starts or moves now). Returns {on: true, copy, packs?, invitations?, busy?} or null.
  */
 export function parseBonds(value) {
   if (!plain(value) || value.version !== 1 || value.on !== true) return null;
-  return {on: true, copy: COPIES.has(value.copy) ? value.copy : null};
+  return {on: true, copy: COPIES.has(value.copy) ? value.copy : null, ...(value.packs === true ? {packs: true} : {}),
+    ...(value.invitations === true ? {invitations: true} : {}), ...(value.eddies === true ? {eddies: true} : {}), ...(value.busy === true ? {busy: true} : {})};
 }
 
 /** Who gets a bond: a named character (not an ordinary NPC, an add-on voice or a model-only copy). */
 export const bondable = profileKey => typeof profileKey === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(profileKey)
   && !AMBIENT.test(profileKey) && !profileKey.startsWith('addon-');
 
-/** How V and the character talk this turn: 'holocall', 'own' (one of V's own copies in person) or 'story' (a character the game placed). */
+/** How V and the character talk this turn: 'holocall', 'phone' (Phone Chat), 'own' (one of V's own copies in person) or 'story' (a character the game placed). */
 export function channelOf(input) {
   if (input?.holocall) return 'holocall';
+  if (input?.channel === 'phone') return 'phone';
   return input?.bonds?.copy ? 'own' : 'story';
 }
 
@@ -136,6 +140,15 @@ export function arcPoints(profileKey, history, arcs = shippedBondArcs()) {
   let points = 0;
   for (const [path, weight] of Object.entries(arc.quests)) if (finished(questState(history, path))) points += weight;
   return points;
+}
+
+/** How many of a character's arc quests are finished, and how many the arc has: {done, total} (0, 0 without an arc; done is 0 without a complete inventory). */
+export function arcCounts(profileKey, history, arcs = shippedBondArcs()) {
+  const arc = arcs?.arcs?.[profileKey];
+  if (!arc) return {done: 0, total: 0};
+  const paths = Object.keys(arc.quests);
+  if (!inventoryComplete(history)) return {done: 0, total: paths.length};
+  return {done: paths.filter(path => finished(questState(history, path))).length, total: paths.length};
 }
 
 /** The money points from the Eddies ledger row of the turn (bridge/eddies.mjs parseEddies row), 0 without one. */
@@ -201,7 +214,8 @@ export function sharedPart(entry, gameSeconds) {
 // ---- the store ----------------------------------------------------------------------------------------------------------------------------
 const MAX_FILE_CHARS = 2_000_000;
 const SETTABLE = ['path', 'keyFor', 'now', 'limit', 'debounceMs', 'read', 'write', 'timers', 'log'];
-const freshEntry = () => ({warm: 0, hurt: 0, hurtAt: null, day: null, dayCount: 0, realDay: null, realPoints: 0});
+const freshEntry = () => ({warm: 0, hurt: 0, hurtAt: null, day: null, dayCount: 0, realDay: null, realPoints: 0,
+  profileKey: null, name: '', story: 0, arcDone: 0, arcTotal: 0, lastAt: 0, seenAt: null});
 
 function cleanEntry(row) {
   if (!plain(row)) return null;
@@ -214,6 +228,14 @@ function cleanEntry(row) {
   entry.dayCount = Number.isSafeInteger(row.dayCount) && row.dayCount >= 0 ? row.dayCount : 0;
   entry.realDay = Number.isSafeInteger(row.realDay) && row.realDay >= 0 ? row.realDay : null;
   entry.realPoints = number(row.realPoints, 0, 1e6) ?? 0;
+  // What the Relationships page shows (phase 2): who this is, the story part and arc counts as of the last turn, and when that was.
+  entry.profileKey = typeof row.profileKey === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(row.profileKey) ? row.profileKey : null;
+  entry.name = typeof row.name === 'string' && !/\p{Cc}/u.test(row.name) ? row.name.slice(0, 80) : '';
+  entry.story = number(row.story, 0, 1000) ?? 0;
+  entry.arcDone = Number.isSafeInteger(row.arcDone) && row.arcDone >= 0 && row.arcDone <= 64 ? row.arcDone : 0;
+  entry.arcTotal = Number.isSafeInteger(row.arcTotal) && row.arcTotal >= 0 && row.arcTotal <= 64 ? row.arcTotal : 0;
+  entry.lastAt = number(row.lastAt, 0, 1e14) ?? 0;
+  entry.seenAt = gameSecondsOf(row.seenAt) ?? null;
   return entry;
 }
 
@@ -268,7 +290,7 @@ export class BondStore {
   get size() { return this.entries.size; }
 
   /** Add one exchange's value to a memory key: {talk (after caps), hurt}. Returns the entry. Nothing waits for the disk. */
-  add(key, {talk = 0, hurt = 0} = {}, {gameSeconds, nowMs = this.now()} = {}) {
+  add(key, {talk = 0, hurt = 0} = {}, {gameSeconds, nowMs = this.now(), meta = null} = {}) {
     if (typeof key !== 'string' || !MEMORY_KEY.test(key)) return null;
     const entry = this.entries.get(key) ?? freshEntry();
     this.entries.delete(key); this.entries.set(key, entry);
@@ -279,9 +301,28 @@ export class BondStore {
       entry.hurt = Math.min(1e7, fadedHurt(entry, gameSeconds) + hurt);
       entry.hurtAt = gameSeconds ?? entry.hurtAt;
     }
+    if (meta) {
+      if (meta.profileKey) entry.profileKey = meta.profileKey;
+      if (meta.name) entry.name = meta.name;
+      for (const field of ['story', 'arcDone', 'arcTotal']) if (Number.isFinite(meta[field])) entry[field] = meta[field];
+      entry.lastAt = nowMs;
+      if (gameSeconds !== undefined) entry.seenAt = gameSeconds;
+    }
     this.#trim();
     this.dirty = true; this.#schedule();
     return {entry, gained};
+  }
+
+  /** A pack's reward or penalty, straight onto the shared part (no talk caps): points above 0 are warmth, below 0 are hurt that fades. Returns the entry. */
+  award(key, points, {gameSeconds} = {}) {
+    if (typeof key !== 'string' || !MEMORY_KEY.test(key) || !Number.isFinite(points) || points === 0) return null;
+    const entry = this.entries.get(key) ?? freshEntry();
+    this.entries.delete(key); this.entries.set(key, entry);
+    if (points > 0) entry.warm = Math.min(1e7, entry.warm + points);
+    else { entry.hurt = Math.min(1e7, fadedHurt(entry, gameSeconds) - points); entry.hurtAt = gameSeconds ?? entry.hurtAt; }
+    this.#trim();
+    this.dirty = true; this.#schedule();
+    return entry;
   }
 
   /** Forget: these memory keys, or (`all`) every key of the memory `scope` ('' or null: the normal one). Returns how many were removed. */
@@ -336,6 +377,7 @@ export function bondLine(level, hurt = 0) {
 }
 
 const CHANGE_LIMIT = 8;
+const CHARACTER_LIMIT = 60;
 
 /**
  * The bonds of the session: the line of a turn (decided once per turn id, as the context is built several times), the record of a published turn, and
@@ -345,18 +387,21 @@ export class Bonds {
   constructor({store = new BondStore(), statusPath = null, write = (file, text) => atomicFile(file, text), log = () => {}, arcs = null,
     now = Date.now, turns = 64} = {}) {
     Object.assign(this, {store, statusPath, write, log, arcs, now, turnLimit: turns});
-    this.turns = new Map();       // request id -> {line, key, story, level, gameSeconds}
+    this.turns = new Map();       // request id -> {line, view}
     this.levels = new Map();      // memory key -> {profileKey, name, level, points}, the last level told to the game
     this.changes = [];            // the last level changes, newest last
     // Change ids go on from the session's start time, so an id is never reused after a bridge restart (the game shows a change whose id is newer
     // than the newest it has seen).
     this.revision = Math.floor(now() / 1000) * 1000;
     this.statusChain = Promise.resolve();
+    this.clock = undefined;       // the newest game clock seen on a turn (the Relationships page fades the hurt to it)
+    /** Story packs (bridge/bond-pack-runner.mjs) fill the pack lines of the status: {active() -> {profileKey: {id, title, stage}}, list(profileKey) -> rows, effectsRevision() -> n}. */
+    this.packSource = null;
   }
 
-  /** The turn's view: {key, story, shared, points, level, hurt} or null when bonds are not in this turn. */
+  /** The turn's view: {key, story, shared, points, level, hurt, gameSeconds} or null when bonds are not in this turn. Group rounds count (each speaker has its own line). */
   #view(input, facts = {}) {
-    if (!input?.bonds?.on || input.group || input.reaction || input.head || !bondable(input.profileKey)) return null;
+    if (!input?.bonds?.on || input.reaction || input.head || !bondable(input.profileKey)) return null;
     const key = this.store.memoryKey(input.profileKey);
     if (!key) return null;
     const gameSeconds = gameSecondsOf(input.turnContext?.gameTime);
@@ -368,31 +413,45 @@ export class Bonds {
     return {key, story, shared, points, level: levelOf(points).level, hurt: fadedHurt(entry, gameSeconds), gameSeconds};
   }
 
-  /** The line for this turn's context, '' when bonds are not in it. The first build of a turn decides; later builds get the same line. */
-  contextFor(input, facts = {}) {
+  /** The turn's view, decided once per request id (the first build wins): the bond level and what the packs and Eddies need. null when bonds are not in the turn. */
+  viewFor(input, facts = {}) {
     const id = typeof input?.requestId === 'string' && input.requestId ? input.requestId : null;
-    if (id && this.turns.has(id)) return this.turns.get(id).line;
+    if (id && this.turns.has(id)) return this.turns.get(id).view;
     const view = this.#view(input, facts);
-    const line = view ? bondLine(view.level, view.hurt) : '';
     if (id && view) {
-      this.turns.set(id, {line, view});
+      this.turns.set(id, {view});
       while (this.turns.size > this.turnLimit) this.turns.delete(this.turns.keys().next().value);
     }
-    return line;
+    return view;
+  }
+
+  /** The bond level of this turn's character (1 to 10), or null when bonds are not in the turn. */
+  levelFor(input, facts = {}) { return this.viewFor(input, facts)?.level ?? null; }
+
+  /** The line for this turn's context, '' when bonds are not in it. The first build of a turn decides; later builds get the same line. */
+  contextFor(input, facts = {}) {
+    const view = this.viewFor(input, facts);
+    return view ? bondLine(view.level, view.hurt) : '';
   }
 
   /**
    * A reply was published (heard or shown): add the exchange to the shared part and tell the game when the level changed. `userText`: the spoken
-   * transcript when there is one. Returns the change {profileKey, name, from, to, title} or null. Never throws.
+   * transcript when there is one. Returns the change {profileKey, name, from, to, title} or null. Never throws. In a group round only the first speaker
+   * records (one line of V's, one exchange).
    */
   recordTurn(input, userText, facts = {}) {
     try {
+      if (input?.group && input.group.index !== 1) return null;
       const before = this.#view(input, facts);
       if (!before) return null;
       const words = typeof userText === 'string' && userText.trim() ? userText : input.text;
       const value = exchangeValue(channelOf(input), words);
-      const added = this.store.add(before.key, value, {gameSeconds: before.gameSeconds, nowMs: this.now()});
+      const name = typeof input.name === 'string' ? input.name.slice(0, 80) : '';
+      const arc = arcCounts(input.profileKey, input.journalHistory, this.arcs ?? undefined);
+      const added = this.store.add(before.key, value, {gameSeconds: before.gameSeconds, nowMs: this.now(),
+        meta: {profileKey: input.profileKey, name, story: before.story.points, arcDone: arc.done, arcTotal: arc.total}});
       if (!added) return null;
+      if (before.gameSeconds !== undefined) this.clock = before.gameSeconds;
       const shared = sharedPart(added.entry, before.gameSeconds);
       const points = clamp(before.story.points + shared, 0, MAX_POINTS);
       const level = levelOf(points);
@@ -400,8 +459,6 @@ export class Bonds {
         + ` gained=${added.gained}${value.threat ? ` hurt=${value.hurt}(${value.threat})` : ''} level=${level.level}`);
       // The level the game knows: the first turn of a character this session only sets it (no notice for a level V already had).
       const known = this.levels.get(before.key);
-      const name = typeof input.name === 'string' ? input.name.slice(0, 80) : '';
-      const firstSeen = !known;
       const from = known ? known.level : before.level;
       this.levels.set(before.key, {profileKey: input.profileKey, name, level: level.level, points});
       let change = null;
@@ -410,12 +467,22 @@ export class Bonds {
         this.changes.push(change);
         while (this.changes.length > CHANGE_LIMIT) this.changes.shift();
       }
-      if (change || firstSeen) this.#publish();
+      // The Relationships page reads the status when it opens, so every recorded turn refreshes it (a small atomic write, after the reply is out).
+      this.publish();
       return change;
     } catch (error) {
       this.log(`record failed: ${String(error?.message ?? error).slice(0, 120)}`);
       return null;
     }
+  }
+
+  /** A finished pack's reward (docs 7.3): points onto the shared part of this character. */
+  award(profileKey, points, gameSeconds) {
+    const key = this.store.memoryKey(profileKey);
+    if (!key || !bondable(profileKey)) return false;
+    const done = this.store.award(key, points, {gameSeconds});
+    if (done) this.publish();
+    return !!done;
   }
 
   /** Forget (the memory reset): the shared part of these characters, and their known levels. */
@@ -425,17 +492,41 @@ export class Bonds {
       const mine = options.scope || '';
       for (const key of [...this.levels.keys()]) if (scopeOf(key) === mine) this.levels.delete(key);
     } else for (const key of options.profileKeys ?? []) this.levels.delete(key);
+    if (removed) this.publish();
     return removed;
   }
 
-  /** The status the game reads (mod/bonds.lua): the revision, the levels known this session and the last changes. */
+  /** The characters V has interacted with, most recent first, for the Relationships page (one row per profile). */
+  characters() {
+    const seen = new Map();
+    for (const entry of this.store.entries.values()) {
+      if (!entry.profileKey || !(entry.lastAt > 0)) continue;
+      const known = seen.get(entry.profileKey);
+      if (!known || entry.lastAt > known.lastAt) seen.set(entry.profileKey, entry);
+    }
+    const rows = [...seen.values()].sort((a, b) => b.lastAt - a.lastAt).slice(0, CHARACTER_LIMIT);
+    return rows.map(entry => {
+      const clock = this.clock ?? entry.seenAt ?? undefined;
+      const hurt = fadedHurt(entry, clock), shared = sharedPart(entry, clock);
+      const points = clamp(entry.story + shared, 0, MAX_POINTS), row = levelOf(points);
+      const next = LEVELS.find(item => item.level === row.level + 1);
+      return {profileKey: entry.profileKey, name: entry.name || entry.profileKey, level: row.level, title: row.title, points, from: row.from, next: next ? next.from : null,
+        warm: Math.round(entry.warm), hurt: Math.round(hurt), hurtDays: hurt >= 1 ? Math.ceil(HURT_HALF_LIFE_DAYS * Math.log2(hurt)) : 0,
+        story: entry.story, talk: shared, arcDone: entry.arcDone, arcTotal: entry.arcTotal, lastAt: entry.lastAt,
+        packs: this.packSource?.list?.(entry.profileKey) ?? []};
+    });
+  }
+
+  /** The status the game reads (mod/bonds.lua): the revision, the levels known this session, the last changes, the characters V has met and the active packs. */
   status() {
     const levels = {};
     for (const row of this.levels.values()) levels[row.profileKey] = {level: row.level, title: levelOf(row.points).title};
-    return {version: 1, revision: this.revision, levels, changes: this.changes.map(change => ({...change}))};
+    return {version: 1, revision: this.revision, levels, changes: this.changes.map(change => ({...change})),
+      characters: this.characters(), packs: this.packSource?.active?.() ?? {}, effectsRevision: this.packSource?.effectsRevision?.() ?? 0};
   }
 
-  #publish() {
+  /** Write the status file (after a recorded turn, a level change or a pack change). Never awaited by a turn. */
+  publish() {
     if (!this.statusPath) return;
     const text = JSON.stringify(this.status());
     this.statusChain = this.statusChain.then(() => this.write(this.statusPath, text)).catch(error => {

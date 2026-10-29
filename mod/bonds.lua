@@ -4,7 +4,7 @@
 -- character, shows one notice when a level changes, and carries out the few things a pack stage can make the game do (section 7.4 of the doc).
 --   attach(context)  once per private turn V sends to a named character (typed, spoken, on a holocall, in a group round or in Phone Chat), while the
 --                    setting is On: a `bonds` block {version = 1, on = true, copy = 'party' | 'visitor' | 'housemate' | nil, packs = true | nil,
---                    invitations = true | nil, busy = true | nil} and a short watch for the bridge's status file. All of it is computed once, at the turn.
+--                    invitations = true | nil, eddies = true | nil, busy = true | nil} and a short watch for the bridge's status file. All of it is computed once, at the turn.
 --   update(player)   from the 10 Hz tick, nothing unless a watch is armed: runtime/bonds-status.json is read at most once a second for 30 s after a
 --                    turn. A level change newer than the last one seen is shown as one notice ("Bond with Judy: level 5, Good friend"), and a new
 --                    `effectsRevision` makes the game read runtime/bond-effects.json once (items to give or take, outfits). The watch ends 3 s after the
@@ -25,7 +25,7 @@ local WATCH_SECONDS, POLL_SECONDS, GRACE_SECONDS, MAX_FILE, EFFECTS_MAX = 30, 1,
 local VIEW_SECONDS, RESTORE_SECONDS, MAX_DONE, SLACK = 5, 600, 60, 120
 local COPIES = {party = true, visitor = true, housemate = true}
 
--- options: enabled() -> bool; storyPacks() -> bool; invitations() -> bool (Immersive invitations on); busy() -> bool (a scene, dialogue choice, combat,
+-- options: enabled() -> bool; storyPacks() -> bool; invitations() -> bool (Immersive invitations on); eddies() -> bool (Eddies with characters on); busy() -> bool (a scene, dialogue choice, combat,
 -- game call or vehicle chase); ownCopy(entity, profileKey) -> 'party' | 'visitor' | 'housemate' | nil; clock() -> seconds (os.clock);
 -- gameTime() -> V's game clock in seconds or nil; read(path) -> text | nil; write(path, text) -> bool; encode / decode (json); player() -> V;
 -- give(player, record, quantity), remove(player, record, quantity), quantity(player, record) (the game's transaction calls by default);
@@ -295,6 +295,7 @@ function M.new(options)
         local block = {version = 1, on = true, copy = copy}
         if packsOn() then block.packs = true end
         if flag(options.invitations) then block.invitations = true end
+        if flag(options.eddies) then block.eddies = true end
         if flag(options.busy) then block.busy = true end
         context.bonds = block
         -- The first turn of a session learns where the level changes stand, so a change from before it is not shown again. (The effects are not

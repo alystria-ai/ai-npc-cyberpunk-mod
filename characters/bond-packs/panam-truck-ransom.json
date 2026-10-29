@@ -20,6 +20,7 @@
   "stages": [
     {
       "id": "ask",
+      "label": "Her truck is held for ransom",
       "know": "Last night a scav crew took your Mackinaw from outside a bar in the Badlands. They know whose truck it is: they sent a message wanting 6,000 eddies by the day after tomorrow, or they strip it for parts. They work out of a junkyard near Rocky Ridge. The clan is away on a run, and going in shooting alone while they hold your truck is stupid, and you know it. Losing your ride is a shame for an Aldecaldo, and it stings.",
       "wants": "You would take a loan from V for the ransom and pay every eddie back, or V's help getting the truck back. You will not beg, and you ask sideways.",
       "say": {"en": "Those scav bastards took my truck, V. They want six grand by the day after tomorrow or they strip it. I hate asking... but I'm asking."},
@@ -28,13 +29,14 @@
       "effects": [{"kind": "vehicleBlocked"}],
       "choices": [
         {"id": "paid", "on": "eddies:loanFromV", "next": "repay"},
-        {"id": "help", "on": "tag", "means": "V offers to go to the junkyard with you and take the truck back", "next": "recover"},
-        {"id": "refuse", "on": "tag", "means": "V says no, or tells you to wait for the clan or handle it yourself", "next": "alone"}
+        {"id": "help", "on": "tag", "kind": "yes", "means": "V offers to go to the junkyard with you and take the truck back", "next": "recover"},
+        {"id": "refuse", "on": "tag", "kind": "no", "means": "V says no, or tells you to wait for the clan or handle it yourself", "next": "alone"}
       ],
       "timeout": {"gameHours": 48, "next": "alone"}
     },
     {
       "id": "recover",
+      "label": "Planning to take the truck back with you",
       "know": "V offered to take the truck back with you. The junkyard near Rocky Ridge has a handful of scavs and one gate; you have watched it. You want to go at night, quietly first, loud if you must.",
       "wants": "V to meet you near the junkyard, armed, at the place V marks on the map.",
       "say": {"en": "Mark the spot near the junkyard and meet me there tonight. Bring something loud, just in case."},
@@ -47,6 +49,7 @@
     },
     {
       "id": "repay",
+      "label": "Truck is back, she is paying you back",
       "know": "V lent you the 6,000. You paid the scavs and the truck is back, scratched but whole. You owe V, and an Aldecaldo pays her debts.",
       "wants": "To pay V back in parts as you get the money, without making a speech of it.",
       "say": {"en": "Truck's back. Every eddie you lent me, you'll get back. That's a promise."},
@@ -57,6 +60,7 @@
     },
     {
       "id": "alone",
+      "label": "She got the truck back herself",
       "know": "V did not help with the truck. You got it back your own way: you traded a favour with a rival clan, and that favour will cost you later. You are a little cool with V about it.",
       "wants": "Nothing from V about it now. You do not want to talk about it much.",
       "say": {"en": "Got the truck back. Cost me a favour I didn't want to owe. Don't worry about it."},
@@ -65,6 +69,7 @@
     },
     {
       "id": "back",
+      "label": "Truck taken back together",
       "know": "You and V took your truck back from the scavs together. They scattered when they saw the two of you. You are in a great mood and you drove it out yourself.",
       "wants": "To celebrate a little with V.",
       "say": {"en": "Did you see their faces? Best night I've had in weeks. First round's on me."},

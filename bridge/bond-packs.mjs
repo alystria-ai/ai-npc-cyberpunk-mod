@@ -1,18 +1,25 @@
 // Story packs (docs/RELATIONSHIPS_AND_QUESTS.md, section 7): short arcs a character starts at a bond threshold once their own story is done.
 //
-// Phase 1 holds the FORMAT only: the validator every pack file must pass (shipped packs in characters/bond-packs/, and later a content pack's
-// bond-packs/ folder), and the plot-safety gate (section 8) as a pure function. Nothing here runs in a turn yet: the runner (start, notes, choice
-// tags, timers, endings, the rollback-guarded state) is phase 2. No I/O except reading the shipped folder when asked.
+// The FORMAT: the validator every pack file must pass (shipped packs in characters/bond-packs/, and later a content pack's bond-packs/ folder), and the
+// plot-safety gate (section 8) as a pure function. The runner (start, notes, choices, timers, endings, the rollback-guarded state) is
+// bridge/bond-pack-runner.mjs. No I/O except reading the shipped folder when asked.
 import {readFileSync, readdirSync} from 'node:fs';
 import {EDDIES_CAP, FLOWS} from './eddies.mjs';
 import {shippedBondArcs, inventoryComplete, questState, questStates, finished} from './bonds.mjs';
 
 export const PACK_FORMAT = 1;
 export const PACK_LIMITS = Object.freeze({stages: 8, choices: 4, effects: 4, know: 600, wants: 300, bringUp: 400, memory: 300, line: 240,
-  title: 80, summary: 200, paths: 24, gameHours: 24 * 14, bondReward: 150});
+  title: 80, summary: 200, label: 80, alt: 200, paths: 24, gameHours: 24 * 14, bondReward: 150});
 export const CHANNELS = Object.freeze(['own', 'phone', 'holocall']);
 export const RELATIONSHIPS = Object.freeze(['any', 'partner', 'not-partner']);
 export const EFFECTS = Object.freeze(['vehicleBlocked', 'vehicleReturned', 'outfit', 'giveItem', 'takeItem']);
+/** How V answers a stage, read from V's own words (bridge/bond-intent.mjs): a tag choice names one of these as its `kind`. */
+export const CHOICE_KINDS = Object.freeze(['yes', 'no', 'honest', 'flatter']);
+/** The stage types the runner plays. Any other `type` is accepted by the validator (a later build adds it) and skipped by the runner, logged once. */
+export const KNOWN_STAGE_TYPES = Object.freeze(['talk']);
+const STAGE_TYPE = /^[a-z][a-z0-9-]{1,31}$/;
+/** A stage's picture: a file shipped inside the pack, made ahead of time (nothing is generated while playing). Data only: nothing shows it yet. */
+export const IMAGE_FILE = /^images\/[a-z0-9][a-z0-9_\/-]{0,80}\.(?:png|jpe?g|webp)$/;
 export const MEET_PLACES = Object.freeze(['here', 'home', 'waypoint']);
 /** How a choice is taken: the character's tag (checked against V's words), an Eddies transfer of a flow, or an invitation's outcome. */
 export const CHOICE_ON = /^(?:tag|eddies:(?:loanToV|loanFromV|repayByV|repayToV|giftFromV|giftToV)|meet:(?:met|stood-up))$/;
@@ -29,7 +36,7 @@ const text = (value, max) => typeof value === 'string' && value.trim() !== '' &&
  * English sentence with the place ("stage ask: ...").
  */
 export function validatePack(pack, {characters = null, arcs = shippedBondArcs()} = {}) {
-  const errors = [];
+  const errors = [], warnings = [];
   const fail = message => { errors.push(message); };
   if (!plain(pack)) return {ok: false, errors: ['the pack is not an object']};
   if (pack.format !== PACK_FORMAT) fail(`format must be ${PACK_FORMAT}`);
@@ -93,6 +100,17 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
     const where = `stage ${stage.id}`, next = [];
     if (!text(stage.know, PACK_LIMITS.know)) fail(`${where}: know must be 1 to ${PACK_LIMITS.know} characters`);
     if (stage.wants !== undefined && !text(stage.wants, PACK_LIMITS.wants)) fail(`${where}: wants must be 1 to ${PACK_LIMITS.wants} characters`);
+    if (stage.label !== undefined && !text(stage.label, PACK_LIMITS.label)) fail(`${where}: label must be 1 to ${PACK_LIMITS.label} characters`);
+    if (stage.type !== undefined) {
+      if (typeof stage.type !== 'string' || !STAGE_TYPE.test(stage.type)) fail(`${where}: type must be lowercase letters, digits or hyphens`);
+      else if (!KNOWN_STAGE_TYPES.includes(stage.type)) warnings.push(`${where}: type ${stage.type} is not played yet and will be skipped`);
+      if (stage.params !== undefined && !plain(stage.params)) fail(`${where}: params must be an object`);
+    }
+    if (stage.image !== undefined) {
+      if (!plain(stage.image) || typeof stage.image.file !== 'string' || !IMAGE_FILE.test(stage.image.file) || (stage.image.alt !== undefined && !text(stage.image.alt, PACK_LIMITS.alt))) {
+        fail(`${where}: image needs file (images/<name>.png, .jpg or .webp inside the pack) and an optional alt of up to ${PACK_LIMITS.alt} characters`);
+      }
+    }
     if (stage.say !== undefined) checkLine(stage.say, `${where}: say`, fail);
     if (stage.text !== undefined) {
       if (!plain(stage.text) || stage.text.when !== 'start') fail(`${where}: text.when must be "start"`);
@@ -126,12 +144,14 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
     if (stage.choices !== undefined) {
       if (!Array.isArray(stage.choices) || stage.choices.length === 0 || stage.choices.length > PACK_LIMITS.choices) fail(`${where}: choices must be a list of 1 to ${PACK_LIMITS.choices}`);
       else {
-        const seen = new Set();
+        const seen = new Set(), kinds = new Set();
         for (const choice of stage.choices) {
           if (!plain(choice) || typeof choice.id !== 'string' || !STAGE_ID.test(choice.id) || seen.has(choice.id)) { fail(`${where}: every choice needs its own id`); continue; }
           seen.add(choice.id);
           if (typeof choice.on !== 'string' || !CHOICE_ON.test(choice.on)) fail(`${where}: choice ${choice.id}: on must be tag, eddies:<flow> or meet:met / meet:stood-up`);
           if (choice.on === 'tag' && !text(choice.means, 200)) fail(`${where}: choice ${choice.id}: a tag choice needs means (what V does, up to 200 characters)`);
+          if (choice.on === 'tag' && !CHOICE_KINDS.includes(choice.kind)) fail(`${where}: choice ${choice.id}: a tag choice needs a kind (${CHOICE_KINDS.join(', ')})`);
+          if (choice.on === 'tag' && CHOICE_KINDS.includes(choice.kind)) { if (kinds.has(choice.kind)) fail(`${where}: two choices have the kind ${choice.kind}`); kinds.add(choice.kind); }
           if (String(choice.on).startsWith('meet:') && !plain(stage.meet)) fail(`${where}: choice ${choice.id}: a meeting outcome needs a meet in the stage`);
           next.push(choice.next);
         }
@@ -167,7 +187,7 @@ export function validatePack(pack, {characters = null, arcs = shippedBondArcs()}
     for (const id of stageIds) if (!ends.has(id)) fail(`stage ${id} never reaches an ending`);
   }
   if (hasMeet && requires?.invitations === false) fail('a pack with a meeting cannot say it does not need invitations');
-  return {ok: errors.length === 0, errors};
+  return {ok: errors.length === 0, errors, warnings};
 }
 
 function checkLine(value, where, fail) {

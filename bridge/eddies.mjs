@@ -30,6 +30,8 @@ export const ASK_COOLDOWN_DAYS = 3;
 const ASK_CHANCE = Object.freeze({never: 0, rarely: 0.04, sometimes: 0.08});
 const REPAY_CHANCE = 0.3;
 
+/** A story pack's mark on a transfer: "<pack id>:<stage id>". */
+export const STORY_TAG = /^[a-z0-9][a-z0-9-]{1,47}:[a-z0-9][a-z0-9-]{0,31}$/;
 const whole = (value, min = 0, max = Number.MAX_SAFE_INTEGER) => Number.isSafeInteger(value) && value >= min && value <= max;
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -46,7 +48,9 @@ function parseRow(value) {
     asked: whole(value.asked, 0) ? value.asked : 0, recent: []};
   if (plain(value.last) && FLOWS.includes(value.last.flow) && whole(value.last.amount, 1, EDDIES_CAP) && RESULTS.has(value.last.result) && whole(value.last.at, 0)) {
     row.last = {flow: value.last.flow, amount: value.last.amount, result: value.last.result, at: value.last.at,
-      ...(value.last.origin === 'asked' || value.last.origin === 'offered' ? {origin: value.last.origin} : {})};
+      ...(value.last.origin === 'asked' || value.last.origin === 'offered' ? {origin: value.last.origin} : {}),
+      // The story pack and stage this transfer belonged to ("<pack id>:<stage id>", docs/RELATIONSHIPS_AND_QUESTS.md 7.5).
+      ...(typeof value.last.story === 'string' && STORY_TAG.test(value.last.story) ? {story: value.last.story} : {})};
   }
   return row;
 }
@@ -107,8 +111,10 @@ export function roundDown(value) {
  * relationship the save confirms or the player turned on, bridge/relationship-routing.mjs), how long they have known V (`familiarity`, days since their
  * ledger row was made), and V's record with money (paid back before, owes now, said no when they asked).
  */
-export function trustOf({copy = null, romance = null, familiarity = 0, row = null} = {}) {
+export function trustOf({copy = null, romance = null, familiarity = 0, row = null, bondLevel = null} = {}) {
   let trust = 0.3;
+  // The bond with V (docs/RELATIONSHIPS_AND_QUESTS.md section 6): each level above 3 adds 0.03, each below subtracts 0.05. No bond block: no change.
+  if (Number.isInteger(bondLevel)) trust += bondLevel > 3 ? (bondLevel - 3) * 0.03 : -(3 - bondLevel) * 0.05;
   trust += copy === 'housemate' ? 0.2 : copy === 'party' ? 0.15 : copy === 'visitor' ? 0.1 : 0;
   trust += romance === 'partner' ? 0.3 : romance === 'casual' ? 0.1 : 0;
   trust += Math.min(0.15, Math.max(0, familiarity) * 0.005);
@@ -430,8 +436,9 @@ export class EddiesDecisions {
     }
     // How long the character has known V in this mod (days since their first money-aware turn), unless the caller knows better.
     const familiarity = Number.isFinite(facts.familiarity) ? facts.familiarity : row?.met ? Math.floor(Math.max(0, now - row.met) / DAY) : 0;
-    const trust = trustOf({copy: block.copy, romance: facts.romance ?? null, familiarity, row});
-    const context = {finance, row, now, balance: block.balance, trust};
+    const trust = trustOf({copy: block.copy, romance: facts.romance ?? null, familiarity, row, bondLevel: facts.bondLevel ?? null});
+    const story = facts.story ?? null;   // a story pack's stage that asks for eddies or pays them back (bridge/bond-pack-runner.mjs), own copies only
+    const context = {finance, row, now, balance: block.balance, trust, story};
     const have = purse(finance, row, now), ledger = ledgerLine(row, now);
     const parts = ['Eddies (game-verified, this turn):', meansLine(finance, have), ledger];
     let move = null, trace;
@@ -452,13 +459,25 @@ export class EddiesDecisions {
     }
     // The character's own move (pay V back, ask for a loan) only on a typed line that is not about money: a spoken line's words are not known yet, and the
     // reply must not ask V for money while answering V's own request.
-    if (!move && typed && !screen?.about && !this.initiative.has(input.profileKey)) {
+    if (!move && typed && !screen?.about && !story && !this.initiative.has(input.profileKey)) {
       move = decideInitiative({...context, random: this.random});
       if (move) { this.initiative.add(input.profileKey); trace = (trace ? trace + '+' : '') + `initiative:${move.flow}`; }
     }
+    // The story's own money beat: it pays V back a part, once a game day (the pack says when it is due).
+    if (!move && story?.repay?.due && !screen?.about) {
+      const {owesV} = debts(row), amount = Math.min(story.repay.part, owesV);
+      if (amount > 0) {
+        move = {say: `You have the eddies to pay V back ${amount === owesV ? 'the' : sum(amount) + ' of the'} ${sum(owesV)} you owe. Do it in this reply, briefly and in your own way.`,
+          flow: 'repayToV', amount, origin: 'offered'};
+        trace = (trace ? trace + '+' : '') + 'story:repay';
+      }
+    }
+    if (move && story?.ask && move.flow === story.ask.flow && move.amount >= story.ask.amount) move.story = story.tag;
+    if (move && story?.repay && move.flow === 'repayToV') move.story = story.tag;
+    if (story?.ask && !move) parts.push(`You need ${sum(story.ask.amount)} for ${story.ask.reason}. If V offers to lend it, accept in your own way; nothing moves unless V agrees in their own words.`);
     if (move) parts.push(move.say);
     // Nothing about money this turn and nothing between them: no note at all (ordinary talk pays nothing).
-    if (!move && !screen?.about && typed && !ledger) return null;
+    if (!move && !screen?.about && typed && !ledger && !story) return null;
     if (!move && typed && !screen?.about) parts.splice(1, 1);   // only the ledger: the means line is for turns about money
     parts.push(RULE);
     const proposal = move?.flow && whole(move.amount, 1, EDDIES_CAP) ? this.#proposal(input, move) : null;
@@ -468,7 +487,8 @@ export class EddiesDecisions {
 
   #proposal(input, move) {
     return {version: 1, id: 'ed-' + Math.floor(this.random() * 1e12).toString(36) + Date.now().toString(36), requestId: input.requestId, entity: input.entity,
-      profileKey: input.profileKey, name: typeof input.name === 'string' ? input.name.slice(0, 80) : '', flow: move.flow, amount: move.amount, origin: move.origin};
+      profileKey: input.profileKey, name: typeof input.name === 'string' ? input.name.slice(0, 80) : '', flow: move.flow, amount: move.amount, origin: move.origin,
+      ...(move.story ? {story: move.story} : {})};
   }
 
   /**
@@ -483,6 +503,8 @@ export class EddiesDecisions {
       const screen = screenWords(userText);
       if (screen.intent) {
         const move = decideWords(screen, decision.context);
+        const story = decision.context.story;
+        if (move && story?.ask && move.flow === story.ask.flow && move.amount >= story.ask.amount) move.story = story.tag;
         this.log(`profile=${input.profileKey} heard=${screen.intent}${screen.amount ? ':' + screen.amount : ''}${move?.flow ? ` propose=${move.flow}:${move.amount}` : ''}`);
         if (move?.flow && whole(move.amount, 1, EDDIES_CAP)) return this.#proposal(input, move);
         return null;

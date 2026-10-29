@@ -11,6 +11,7 @@ import {parseTurnContext} from './turn-context.mjs';
 import {describePhoneFailure} from './phone-failure.mjs';
 import {parseMeetOffer, parseMeetEvent, screenMeet, meetInstruction, splitMeetTags, meetAction} from './meet-requests.mjs';
 import {eventTrigger} from './appointment-events.mjs';
+import {parseBonds} from './bonds.mjs';
 import {parseHomeOffer, screenHome, homeInstruction, splitHomeTags, homeAction, HomePicks} from './home-requests.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -143,6 +144,8 @@ export function parsePhoneState(raw) {
   const homeOffer = event ? null : parseHomeOffer(state.request.homeOffer);
   result.request = {id, contact, text: text.trim(), saveIdentity: requestBinding,
     ...(event ? {event} : {}), ...(meetOffer ? {meetOffer} : {}), ...(homeOffer ? {homeOffer} : {}),
+    // Character bonds and story packs (docs/RELATIONSHIPS_AND_QUESTS.md): a typed message counts; a message the character starts (an event) does not.
+    ...(!event && parseBonds(state.request.bonds) ? {bonds: parseBonds(state.request.bonds)} : {}),
     ...(memoryReset?{memoryReset}:{}),...(recent?{recentConversation:recent}:{}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(worldKnowledge ? {worldKnowledge} : {}),
     ...(journalHistory ? {journalHistory} : {}), ...(gameDialogue ? {gameDialogue} : {}), ...(turnContext ? {turnContext} : {})};

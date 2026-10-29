@@ -113,8 +113,8 @@ function parseRequest(raw) {
   const reputation = value.reputation === undefined ? null : parseReputationSnapshot(value.reputation);
   // Eddies with characters (docs/EDDIES.md): sent only while the setting is on, for a private turn V sends (never a group round, a reaction, a call or Johnny in V's head).
   const eddies = value.eddies === undefined || group || reaction || holocall || head ? null : parseEddies(value.eddies, profileKey);
-  // Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): sent only while the setting is on, for a private turn V sends (a holocall too; never a group round, a reaction or Johnny in V's head).
-  const bonds = value.bonds === undefined || group || reaction || head ? null : parseBonds(value.bonds);
+  // Character bonds (docs/RELATIONSHIPS_AND_QUESTS.md): sent only while the setting is on, for a private turn V sends (a holocall too) or a group round (each speaker has its own line); never a reaction or Johnny in V's head.
+  const bonds = value.bonds === undefined || reaction || head ? null : parseBonds(value.bonds);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}), ...(eddies ? {eddies} : {}), ...(bonds ? {bonds} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),

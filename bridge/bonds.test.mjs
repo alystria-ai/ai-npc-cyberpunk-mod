@@ -162,9 +162,11 @@ test('a turn: the line is decided once per request; no line without the block, f
   assert.match(line, /How close you are to V/);
   assert.match(line, /you like V/, '100 story points: level 3, Friendly');
   assert.equal(bonds.contextFor(input), line, 'the same turn gets the same line');
-  for (const extra of [{bonds: undefined}, {group: {index: 1}}, {reaction: {kind: 'battle'}}, {head: {stage: 1}}, {profileKey: 'npc-valentinos-male'}]) {
+  for (const extra of [{bonds: undefined}, {reaction: {kind: 'battle'}}, {head: {stage: 1}}, {profileKey: 'npc-valentinos-male'}]) {
     assert.equal(bonds.contextFor(turn(extra)), '', JSON.stringify(Object.keys(extra)));
   }
+  // A group round's speaker has its own line (phase 2).
+  assert.match(bonds.contextFor(turn({group: {index: 2}, requestId: 'g-1'})), /How close you are to V/);
   // A romance the save confirms raises the story part.
   assert.match(bonds.contextFor(turn(), {romance: 'partner'}), /good friend/i, '100 + 150: level 5');
 });
@@ -205,7 +207,7 @@ test('recording turns: a level change is told to the game once, up and down, wit
 test('the bridge wiring: the line is a world block, the record runs after a published reply on both publish paths, Forget and shutdown reach the store', () => {
   const bridge = read('./convai-bridge.mjs');
   assert.match(bridge, /block\('world', bondNote\(input, prepared, admitted\)\)/);
-  assert.equal(bridge.match(/commitExchange\(input\); gearTold\(\); publishEddies\(input, result\); publishBonds\(input, result\);/g)?.length, 2);
+  assert.equal(bridge.match(/commitExchange\(input\); gearTold\(\); publishBonds\(input, result, publishEddies\(input, result\)\); publishMeeting\(input\);/g)?.length, 2);
   assert.match(bridge, /bonds\.forget\(\{all: scope === 'all'/);
   assert.match(bridge, /await bondStore\.flush\(\)/);
   assert.match(bridge, /resolve\(stateDirectory, 'bonds\.json'\)/);

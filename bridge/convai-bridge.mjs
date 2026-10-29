@@ -104,6 +104,7 @@ import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-
 import {RelationshipRouting, retireRelationshipConnections, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {EddiesDecisions, romanceOf} from './eddies.mjs';
 import {Bonds, BondStore} from './bonds.mjs';
+import {BondPacks} from './bond-pack-runner.mjs';
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions, driveLimitNote} from './companion-actions.mjs';
@@ -988,6 +989,8 @@ const phone = new PhoneChat({
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
+    // Character bonds: a typed message counts as an exchange, and a story pack reads it against its stage (after the reply, no model is asked).
+    publishBonds(prepared.input, result); publishPhoneEvent(options.input, options.profileKey);
     return result;
   },
   publish: (value, options) => atomic(phoneOutput, JSON.stringify(value), options),
@@ -1167,6 +1170,12 @@ await lastTalk.configure({path: resolve(stateDirectory, 'last-talk.json'), keyFo
 const bondStore = new BondStore();
 await bondStore.configure({path: resolve(stateDirectory, 'bonds.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[Bonds] ' + message)});
 const bonds = new Bonds({store: bondStore, statusPath: resolve(runtime, 'bonds-status.json'), log: line => console.error('[Bonds] ' + line)});
+// Story packs (Settings > Gameplay > Story packs, bridge/bond-pack-runner.mjs): short arcs a character starts at a bond level once their own story is done. Their state follows the save
+// (<state>/bond-packs.json, every step stamped with the game clock); what the game is asked to do goes to runtime/bond-effects.json.
+const bondPacks = new BondPacks({characters: new Set(roster.map(row => row.key)), path: resolve(stateDirectory, 'bond-packs.json'), effectsPath: resolve(runtime, 'bond-effects.json'),
+  bonds, log: line => console.error('[BondPacks] ' + line)});
+await bondPacks.load().catch(() => {});
+bonds.packSource = bondPacks.source();
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
   memoryKeyFor: memoryNamespace.keyFor,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
@@ -1602,23 +1611,47 @@ const vendorScope = prepared => {
 // setting is on) and V's words; its proposal is written after the reply is published (publishResult). The relationship the turn was admitted with counts.
 const eddiesDecisions = new EddiesDecisions({log: line => console.error('[Eddies] ' + line)});
 const eddiesNote = (input, prepared, admitted) => input.eddies
-  ? eddiesDecisions.forTurn(input, {romance: romanceOf(admitted ? prepared.relationship : null, RELATIONSHIP_PROFILES)})?.note ?? '' : '';
+  ? eddiesDecisions.forTurn(input, {romance: romanceOf(admitted ? prepared.relationship : null, RELATIONSHIP_PROFILES),
+    // The bond with V counts as trust, and a story pack's stage may ask for eddies or pay them back (bridge/bond-pack-runner.mjs).
+    bondLevel: input.bonds ? bonds.levelFor(input, bondFacts(input, prepared, admitted)) : null, story: packTurn(input, prepared, admitted)?.story ?? null})?.note ?? '' : '';
 // The proposal of a published turn (a spoken turn's words are read now), for the game to carry out (mod/eddies.lua). Never awaited, never in front of a reply.
 // Character bonds: the turn's line (world tier: it changes only with a level, so prefix caches keep working) and the record of a published turn, which is made after the
 // reply is out and never waits on anything. The relationship the turn was admitted with counts, as for Eddies.
 const bondFacts = (input, prepared, admitted) => ({romance: romanceOf(admitted ? prepared?.relationship : null, RELATIONSHIP_PROFILES)});
 const bondNote = (input, prepared, admitted) => input.bonds ? bonds.contextFor(input, bondFacts(input, prepared, admitted)) : '';
-function publishBonds(input, result) {
+// The turn's story pack decision (a start, or the stage in progress), made once per turn; null while Story packs is off or the turn is not a private one with a named character.
+const packTurn = (input, prepared, admitted) => {
+  if (!input.bonds?.packs) { if (input.bonds) bondPacks.on = false; return null; }
+  const facts = bondFacts(input, prepared, admitted);
+  return bondPacks.forTurn(input, {...facts, level: bonds.levelFor(input, facts) ?? 0});
+};
+function publishBonds(input, result, proposal = null) {
   if (!input?.bonds) return;
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   bonds.recordTurn(input, result?.userText, bondFacts(input, prepared, admitted));
+  // The pack the turn started, or V's words read against the stage (after the reply is out; no model is asked).
+  if (input.bonds.packs) bondPacks.afterTurn(input, result?.userText, proposal);
+}
+// A meeting the character kept or gave up on (the appointment events of Phone Chat): a story pack that waits on it moves on.
+function publishPhoneEvent(input, profileKey) {
+  const kind = input?.event?.kind;
+  if (kind !== 'arrived' && kind !== 'stood-up') return;
+  const gameSeconds = Number.isSafeInteger(input.turnContext?.gameTime) ? input.turnContext.gameTime : undefined;
+  bondPacks.noteMeeting(profileKey, kind === 'arrived' ? 'met' : 'stood-up', gameSeconds);
+}
+// The greeting at a meeting (V reached the character): a story pack that waits on the meeting moves on.
+function publishMeeting(input) {
+  if (input?.reaction?.kind !== 'meet') return;
+  const gameSeconds = Number.isSafeInteger(input.turnContext?.gameTime) ? input.turnContext.gameTime : undefined;
+  bondPacks.noteMeeting(input.profileKey, 'met', gameSeconds);
 }
 function publishEddies(input, result) {
-  if (!input?.eddies) return;
+  if (!input?.eddies) return null;
   try {
     const proposal = eddiesDecisions.finish(input, result?.userText);
     if (proposal) void atomic(resolve(runtime, 'eddies-offer.json'), JSON.stringify(proposal)).catch(() => {});
-  } catch (error) { console.error('[Eddies] proposal failed: ' + String(error?.message ?? error).slice(0, 120)); }
+    return proposal;
+  } catch (error) { console.error('[Eddies] proposal failed: ' + String(error?.message ?? error).slice(0, 120)); return null; }
 }
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
@@ -1630,6 +1663,7 @@ const conversationBlocks = input => {
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
     block('world', bondNote(input, prepared, admitted)),
+    block('volatile', packTurn(input, prepared, admitted)?.note ?? ''),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
@@ -2446,7 +2480,7 @@ async function publishResult(input, profile, result, current = async () => true,
     // The game already received admission, live text and the consumed-sample
     // clock. Publishing a second ordinary reply would replay or replace it.
     realtimeSessions.set(sessionKey(input), result.sessionID);
-    commitExchange(input); gearTold(); publishEddies(input, result); publishBonds(input, result);
+    commitExchange(input); gearTold(); publishBonds(input, result, publishEddies(input, result)); publishMeeting(input);
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
       stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : result.timing?.voiceProvider === 'omni' ? 'omni-continuous' : 'convai-continuous', complete: true},
@@ -2465,7 +2499,7 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
     updated: Date.now(), ...keyNotice(), ...dfNote(input.requestId)}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
-  commitExchange(input); gearTold(); publishEddies(input, result); publishBonds(input, result);
+  commitExchange(input); gearTold(); publishBonds(input, result, publishEddies(input, result)); publishMeeting(input);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face: undefined, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
@@ -4207,6 +4241,7 @@ async function shutdown() {
   await mistralMemory.flush().catch(() => {});
   await lastTalk.flush().catch(() => {});
   await bondStore.flush().catch(() => {});
+  await bondPacks.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);
   await reputation.flush().catch(() => {});
   await vendorMemory.idle().catch(() => {});

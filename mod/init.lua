@@ -6783,6 +6783,7 @@ do
                 enabled = function() return manager.characterBonds() end,
                 storyPacks = function() return type(manager.storyPacks) == 'function' and manager.storyPacks() end,
                 invitations = function() return manager.immersive().enabled == true end,
+                eddies = function() return type(manager.characterEddies) == 'function' and manager.characterEddies() end,
                 -- Not now (docs/RELATIONSHIPS_AND_QUESTS.md section 8, item 4): a scene, a dialogue choice, a fight or a call of the game's own. Read once,
                 -- when a turn is built, from the battle sample the 0.5 s observer already holds: no new polling.
                 busy = function()

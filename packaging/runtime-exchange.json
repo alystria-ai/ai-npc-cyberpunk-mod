@@ -5,6 +5,8 @@
     "addons-status.json",
     "audio-delay.json",
     "battle-cancellations.json",
+    "bond-effects.json",
+    "bond-effects-done.json",
     "bonds-status.json",
     "bridge-latency.json",
     "bridge-service.json",

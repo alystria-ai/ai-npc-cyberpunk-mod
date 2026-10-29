@@ -318,6 +318,7 @@
   ],
   "appData": [
     "characters/roster.json", "characters/archetype-roster.json", "characters/world-knowledge.json", "characters/phone-contacts.json",
+    "characters/bond-packs/judy-dinner-dress.json", "characters/bond-packs/kerry-new-song.json", "characters/bond-packs/panam-truck-ransom.json",
     "research/cyberpunk/generated/quest-catalog.json"
   ],
   "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs"],
