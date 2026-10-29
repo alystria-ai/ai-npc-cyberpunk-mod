@@ -55,7 +55,7 @@ test('D1 (2026-10-20, revised after a live test): Mature content turned on with 
   assert(ns.find('Mature content').state == false)
 `));
 
-test('Mature content moves only a Voxtral voice: the Convai cloud voice and OmniVoice stay, with or without the OmniVoice pack, on Local AI and Custom; Mistral and Convai text turn it off', () => run(`${harness()}
+test('Mature content moves only a Voxtral voice: the Convai cloud voice and OmniVoice stay, with or without the OmniVoice pack, on Local AI and Custom; Google Gemini, Mistral and Convai text turn it off', () => run(`${harness()}
   bridge('ready', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
@@ -75,10 +75,16 @@ test('Mature content moves only a Voxtral voice: the Convai cloud voice and Omni
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
-  -- Choosing Mistral again turns it off, and puts Voxtral back for both (nothing was changed since).
-  ns.interact.select(ns.find('Conversation provider'), 3); frames(8); ns.verify()
+  -- Turning it off again brings the saved legacy Mistral choice back, and puts Voxtral back for both (nothing was changed since).
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.conversationProvider == 'mistral' and saved.matureContent == false and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral',
-    tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
+    tostring(saved.conversationProvider) .. ' ' .. tostring(saved.matureContent) .. ' ' .. tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
+  -- Mature content on again selects Local AI. Entry 3 is Google Gemini now (the saved provider is not Mistral any more): choosing it turns Mature content off, and Voxtral comes back.
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
+  ns.interact.select(ns.find('Conversation provider'), 3); frames(8); ns.verify()
+  assert(saved.conversationProvider == 'gemini' and saved.matureContent == false and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral',
+    tostring(saved.conversationProvider) .. ' ' .. tostring(saved.matureContent) .. ' ' .. tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
 `));
 
 test('V on OmniVoice (voiceProvider x vVoiceEngine x pack): Mature content leaves it alone; the pack going away reads as Pocket; the companions leaving OmniVoice from the page sets V to Pocket in the same save with the notice', () => run(`${harness()}

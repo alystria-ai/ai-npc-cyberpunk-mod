@@ -532,14 +532,15 @@ export async function localAiSection({runtime, project, environment = process.en
  * the two status files the bridge publishes; only the fields named here are copied. Never the address's path or query, never the key (not even its tail).
  */
 export async function conversationSection({runtime, settings}) {
-  const chosen = ['convai', 'mistral', 'local', 'custom'].includes(settings?.conversationProvider) ? settings.conversationProvider : 'convai';
+  const chosen = ['convai', 'mistral', 'local', 'custom', 'gemini'].includes(settings?.conversationProvider) ? settings.conversationProvider : 'convai';
   const provider = await readSmallJson(join(runtime, 'mistral-state.json'));
-  const custom = await readSmallJson(join(runtime, 'custom-provider-state.json'));
+  // The page of the provider that is chosen: Google Gemini's has the same fields as the Custom provider's (its endpoint and model are fixed).
+  const custom = await readSmallJson(join(runtime, chosen === 'gemini' ? 'gemini-provider-state.json' : 'custom-provider-state.json'));
   const state = custom.value && typeof custom.value === 'object' ? custom.value : {};
   const test = state.test && typeof state.test === 'object' ? state.test : null;
   return {provider: chosen,
-    effective: ['convai', 'mistral', 'local', 'custom'].includes(provider.value?.effective) ? provider.value.effective : null,
-    ...(chosen === 'custom' || state.ready === true ? {custom: {
+    effective: ['convai', 'mistral', 'local', 'custom', 'gemini'].includes(provider.value?.effective) ? provider.value.effective : null,
+    ...(chosen === 'custom' || chosen === 'gemini' || state.ready === true ? {custom: {
       host: clip(typeof state.host === 'string' ? state.host.replace(/[/?#].*$/, '') : null, 80) ?? null, model: clip(state.model, 120) ?? null,
       ready: state.ready === true, keySaved: state.keySaved === true, secure: state.secure === true, local: state.local === true,
       limit: typeof state.limit === 'string' ? clip(state.limit, 20) : null,

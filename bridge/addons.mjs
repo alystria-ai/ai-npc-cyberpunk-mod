@@ -42,7 +42,7 @@ export const ADDON_PROVIDERS = Object.freeze(['mistral', 'local']);
  * endpoint; decision 2026-10-20). Custom is never listed in a manifest: every speaker follows it when it is the player's chosen provider and
  * its endpoint is ready, like the companions, so no add-on needs an edit.
  */
-export const ADDON_ROUTES = Object.freeze([...ADDON_PROVIDERS, 'custom']);
+export const ADDON_ROUTES = Object.freeze([...ADDON_PROVIDERS, 'custom', 'gemini']);
 /**
  * Seconds between two remark starts of one add-on on the local AI while the player keeps the default "Time between remarks"
  * (10 s). Each remark is a GPU burst of about 0.3 to 0.7 s beside the game (docs/LOCAL_MODEL_CHOICE.md: 79 to 143 tokens/s,
@@ -785,11 +785,13 @@ export class AddonHost {
    *   mistralKey     a Mistral key is saved and was not refused
    *   localReady     the Local AI pack is installed and has not failed to start (only decides the fallbacks below; not the player's own Local AI choice)
    *   customReady    the Custom provider's endpoint is set up (address and model)
+   *   geminiReady    Google Gemini has its key (its address and model are fixed); it is followed like the Custom provider
    */
-  routeFor(profileKey, {applied, mistralKey = false, localReady = false, customReady = false} = {}) {
+  routeFor(profileKey, {applied, mistralKey = false, localReady = false, customReady = false, geminiReady = false} = {}) {
     const owner = this.speakers.get(profileKey);
     if (!owner) return null;
     if (applied === 'custom' && customReady) return 'custom';
+    if (applied === 'gemini' && geminiReady) return 'gemini';
     const allowed = owner.speaker.providers;
     if (applied === 'local' && allowed.includes('local')) return 'local';
     // A player on Local AI never has a line, or the speaker's context, sent to Mistral, whatever the add-on's providers list says (owner rule: Local AI

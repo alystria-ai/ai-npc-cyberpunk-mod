@@ -9,10 +9,10 @@ import {run, nsuiHarness} from './manager-fixture.mjs';
 // service would publish. Nothing here reaches Convai, Stripe or a browser.
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
 const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua'), editorSource = read('character-editor.lua');
-const paidSource = read('convai-paid-tier.lua');
+const paidSource = read('convai-paid-tier.lua'), customSource = read('custom-provider.lua');
 
 const pageFixture = (withSupport = true) => nsuiHarness({
-  modules: {'service-status.lua': serviceSource, 'character-editor.lua': editorSource, 'convai-paid-tier.lua': paidSource,
+  modules: {'service-status.lua': serviceSource, 'character-editor.lua': editorSource, 'convai-paid-tier.lua': paidSource, 'custom-provider.lua': customSource,
     ...(withSupport ? {'support-report.lua': supportSource} : {})},
   absent: withSupport ? [] : ['support-report.lua'],
 }) + `
@@ -332,15 +332,16 @@ test('each of the four plan rows shows its own quota, whatever the running servi
   assert(quotas() == want, 'current plan: ' .. quotas())
 `));
 
-test('Conversation provider: the Mistral API key row sits above the Convai API key row, the paid tier entry right under the Convai key', () => run(`${paidFixture}
+test('Conversation provider: the Google Gemini API key row sits above the Convai API key row (no Mistral key row any more), the paid tier entry right under the Convai key', () => run(`${paidFixture}
   jsonFile('runtime/own-key-state.json', {version = 1, saved = false, active = 'shared'})
   service({keySaved = false})
   assert(invoke('tab:settings').ok)
   local at = {}
   for index, item in ipairs(category('conversation-provider').settings) do at[item.id] = index end
-  assert(at['mistral-key'] and at['own-key'] and at['paid-tier'], 'all three rows are there')
-  assert(at['mistral-key'] < at['own-key'] and at['paid-tier'] == at['own-key'] + 1, 'Mistral, then Convai, then the paid tier entry')
-  assert(row('mistral-key').label == 'Mistral API key', row('mistral-key').label)
+  assert(at['gemini-key'] and at['own-key'] and at['paid-tier'], 'all three rows are there')
+  assert(at['mistral-key'] == nil, 'the Mistral key row is gone from this page')
+  assert(at['gemini-key'] < at['own-key'] and at['paid-tier'] == at['own-key'] + 1, 'Gemini, then Convai, then the paid tier entry')
+  assert(row('gemini-key').label == 'Google Gemini API key', row('gemini-key').label)
   assert(row('own-key').label == 'Convai API key')
-  assert(not (row('mistral-key').label .. row('mistral-key').description):lower():find('recommend'))
+  assert(not (row('gemini-key').label .. row('gemini-key').description):lower():find('recommend'))
 `));

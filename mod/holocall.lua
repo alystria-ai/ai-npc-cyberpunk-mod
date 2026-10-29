@@ -770,11 +770,11 @@ function M.start(player, contact, sample, waited)
     if type(M.env.profileEnabled) == 'function' and not M.env.profileEnabled(entry.key) then
         return refuse(player, contact, 'disabled', ui.t('Conversations are disabled for this contact.'))
     end
-    -- A character the player made has no Convai character: her calls, like her texts, need Mistral, Local AI or Custom (the same line as her Chat).
+    -- A character the player made has no Convai character: her calls, like her texts, need Google Gemini, Local AI or Custom (the same line as her Chat).
     if type(M.env.blocked) == 'function' then
         local asked, needs = pcall(M.env.blocked, entry.key)
         if asked and needs == true then
-            return refuse(player, contact, 'needs-provider', ui.t('This character needs Mistral, Local AI or Custom to answer.'))
+            return refuse(player, contact, 'needs-provider', ui.t('This character needs Google Gemini, Local AI or Custom to answer.'))
         end
     end
     local blocked = M.blocked(sample)

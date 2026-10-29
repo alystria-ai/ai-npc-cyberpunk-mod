@@ -29,7 +29,7 @@ export function profileFor(input, roster) {
 }
 
 // A game request, plus the optional archetype facts of an unnamed NPC (docs/NPC_ARCHETYPES.md).
-const PROVIDER_NAMES = Object.freeze(['convai', 'mistral', 'local', 'custom']);
+const PROVIDER_NAMES = Object.freeze(['convai', 'mistral', 'local', 'custom', 'gemini']);
 export function parseInput(raw) {
   const input = parseRequest(raw);
   if (!input) return input;

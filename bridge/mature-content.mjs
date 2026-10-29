@@ -27,7 +27,7 @@
 import {ROMANCE_LIMITS, ROMANCE_USE} from './romance-context.mjs';
 
 /** Providers that may get the layer (the route names of bridge/text-provider-host.mjs; Convai prompting cannot take it, and Mistral is kept out on purpose: see above). */
-export const MATURE_PROVIDERS = Object.freeze({local: true, custom: true, mistral: false, convai: false});
+export const MATURE_PROVIDERS = Object.freeze({local: true, custom: true, mistral: false, gemini: false, convai: false});
 
 /**
  * May a cloud voice (Voxtral, a request to Mistral) speak while the setting is on? Never (owner decision 2026-10-20): Mistral's voice refused Mature

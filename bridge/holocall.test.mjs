@@ -753,7 +753,7 @@ test('a Chat row is refused for Johnny, an unsupported or disabled profile, a ba
   -- Convai is answering: the call is refused with the Chat's own line, before anything rings or warms.
   needsProvider['custom-ana-aaaa'] = true; ask('custom-ana-aaaa')
   assert(holocall.call == nil and logged('refused contact=custom%-ana%-aaaa reason=needs%-provider'), tostring(logs[#logs]))
-  assert(lastNotice().id == 'holocall-refused' and lastNotice().text == 'This character needs Mistral, Local AI or Custom to answer.')
+  assert(lastNotice().id == 'holocall-refused' and lastNotice().text == 'This character needs Google Gemini, Local AI or Custom to answer.')
   assert(game.beganCalls == nil and #warmed == 0 and game.ends == 0)
   needsProvider['custom-ana-aaaa'] = nil; ask('custom-ana-aaaa'); assert(holocall.call ~= nil and game.beganCalls == 1, 'then it rings')
 `));

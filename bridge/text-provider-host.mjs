@@ -150,8 +150,10 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  * provider documents a field for it, and a reply it spent on thinking is asked again with more room (bridge/reasoning.mjs). A daily limit (OpenRouter's free models) is
  * not retried and says so. The Mature layer follows MATURE_PROVIDERS (the Custom provider has it, #matureLevel).
  *   custom      the CustomEndpoint (address, key, model id)
+ *   name        'custom', or 'gemini' for the Google Gemini provider (bridge/gemini-provider.mjs): the same client and the same handling of failures, but its own route name, so the Mature
+ *               layer (MATURE_PROVIDERS has no 'gemini': a cloud provider never gets it) and the settings page tell the two apart
  */
-export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}, onImagesRejected} = {}) {
+export function customRoute({provider, custom, name = 'custom', chat = streamChat, now = () => Date.now(), onFailure, onSuccess, limits, log = () => {}, onImagesRejected} = {}) {
   // A prompt the endpoint refuses as too long (a Groq plan of 8,000 tokens a minute, an 8k context) is cut to the limit it names, sent again once, and the limit is remembered for this model.
   chat = learnedLimitChat(chat, {limits: limits ?? new LearnedLimits(), log});
   const adaptations = new Map();
@@ -163,7 +165,7 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
   // A Retry-After pause belongs to the address, model and key it was given for: a new key (another account) or model is asked at once.
   let pausedUntil = 0, pausedScope = null;
   const scope = () => `${custom.origin}|${custom.model}|${custom.key ?? ''}`;
-  return {name: 'custom', provider: 'custom', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, holdingLines: false,
+  return {name, provider: 'custom', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, holdingLines: false,
     // A server on this computer or the home network answers one request at a time: the action decision does not overlap the reply.
     get parallel() { return !custom.local; },
     get chatDefaults() { return custom.local ? CUSTOM_SERVER_LIMITS : CUSTOM_CLOUD_LIMITS; },
@@ -194,7 +196,7 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
       provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'daily' ? 'daily' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
-    label: 'The custom provider'};
+    label: name === 'gemini' ? 'Google Gemini' : 'The custom provider'};
 }
 
 const seconds = ms => (Number.isFinite(ms) ? (ms / 1000).toFixed(1) : '?') + ' s';
@@ -1390,7 +1392,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     // composer, the talk key and the turn itself warm it when V starts to talk (bridge/convai-bridge.mjs warmTalkTargets).
     if (provider.route === 'local' && options?.role !== 'nearby') void textHost.prewarm?.(config);
     // A cloud route's connection is kept open for 60 s after its last use: opening the composer renews it (an unauthenticated request).
-    else if (warmCloud && (provider.route === 'mistral' || provider.route === 'custom')) void warmCloud({provider: provider.route});
+    else if (warmCloud && (provider.route === 'mistral' || provider.route === 'custom' || provider.route === 'gemini')) void warmCloud({provider: provider.route});
     // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
     if (typeof prewarmVoice === 'function' ? prewarmVoice() : prewarmVoice) void this.prewarmLocal?.();
     return Promise.resolve({connectionMs: 0, provider: provider.route});

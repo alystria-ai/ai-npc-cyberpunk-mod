@@ -65,7 +65,7 @@ test('the Mature pack does not gate the setting: it works without the pack, and 
 });
 
 test('the local AI and Custom may have it; Convai and Mistral never do (nor does a removed provider), with the setting on or off', () => {
-  assert.deepEqual({...MATURE_PROVIDERS}, {local: true, custom: true, mistral: false, convai: false});
+  assert.deepEqual({...MATURE_PROVIDERS}, {local: true, custom: true, mistral: false, gemini: false, convai: false});
   const setting = withPack({matureContent: true});
   for (const provider of ['convai', 'mistral', 'groq', 'anything']) {
     assert.equal(setting.forTurn(provider, 'qwen3.5-2b'), null, provider);

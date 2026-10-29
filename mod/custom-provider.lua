@@ -3,9 +3,11 @@
 -- everything the settings page needs to know about the provider in one place, so the page itself only draws rows.
 --
 --   * It writes one small command file when the player chooses something (runtime/custom-provider-command.json): paste-url, paste-key
---     and paste-model (the service reads the clipboard itself), clear-url, clear-key, clear-model, test, and preset-gemini
---     (the service reads the key from the clipboard and fills in the endpoint, the model id and the key of that free plan in one go), with
---     clear-preset-gemini to remove that plan, its key included.
+--     and paste-model (the service reads the clipboard itself), clear-url, clear-key, clear-model, test, and preset-mistral
+--     (the service reads the key from the clipboard and fills in the endpoint, the model id and the key of that preset in one go), with
+--     clear-preset-mistral to remove it, its key included.
+--   * A second instance (options.kind = 'gemini') is the page of the Google Gemini provider: runtime/gemini-provider-command.json and
+--     runtime/gemini-provider-state.json, the same protocol, two rows (the key, Add and Remove through preset-gemini and clear-preset-gemini, and the test).
 --   * It reads the status file the service answers in (runtime/custom-provider-state.json), at most every 1.5 s and only when the page
 --     asks for it: nothing here runs per frame and nothing is read while no page is drawn. The key never reaches either file; only its
 --     last four characters (a key of 16 or more characters) are ever shown.
@@ -16,6 +18,7 @@
 local M = {version = 1}
 
 local COMMAND, STATE = 'runtime/custom-provider-command.json', 'runtime/custom-provider-state.json'
+local GEMINI_COMMAND, GEMINI_STATE = 'runtime/gemini-provider-command.json', 'runtime/gemini-provider-state.json'
 local READ_EVERY = 1.5
 -- A test still "running" this long after it was sent (the service stopped, the game was reloaded under it) is no longer shown as running.
 -- Longer than the longest real test: a server on this computer gets 90 s, and once more as long when it refuses a request field.
@@ -24,10 +27,10 @@ local TEST_STALE = 200
 -- The field each command changes; `test` changes none.
 local FIELD_OF = {['paste-url'] = 'url', ['clear-url'] = 'url', ['paste-key'] = 'key', ['clear-key'] = 'key',
     ['paste-model'] = 'model', ['clear-model'] = 'model', ['preset-gemini'] = 'preset',
-    ['clear-preset-gemini'] = 'preset', test = false}
+    ['clear-preset-gemini'] = 'preset', ['preset-mistral'] = 'preset', ['clear-preset-mistral'] = 'preset', test = false}
 local FIELDS = {url = true, key = true, model = true, preset = true}
 -- The one-press setups of the free cloud plans (bridge/custom-endpoint.mjs PRESETS); the service says which one is saved.
-local PRESETS = {gemini = true}
+local PRESETS = {gemini = true, mistral = true}
 local RESULT_STATES = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local REASONS = {empty = true, ['not-a-url'] = true, scheme = true, insecure = true, extras = true, long = true,
     ['not-a-key'] = true, ['not-a-model'] = true}
@@ -39,6 +42,8 @@ local LIMITS = {rate = true, daily = true, invalid = true, model = true, credits
 -- The ids of the notices this provider adds (mod/notices.lua, docs/NOTIFICATIONS.md): seven failures of a turn V asked for and two
 -- one-time notices on the first reply.
 M.NOTICE_IDS = {'custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-daily', 'custom-reasoning', 'custom-unreachable', 'custom-no-setup', 'custom-voice'}
+-- The two one-time notices of the Google Gemini provider (notice() words them too).
+M.GEMINI_NOTICE_IDS = {'gemini-no-key', 'gemini-voice'}
 
 local function readJSON(path)
     local ok, value = pcall(function()
@@ -117,6 +122,8 @@ end
 function M.new(options)
     options = options or {}
     local ui = options.ui or plainTranslator()
+    local isGemini = options.kind == 'gemini'
+    local COMMAND, STATE = isGemini and GEMINI_COMMAND or COMMAND, isGemini and GEMINI_STATE or STATE
     local read = type(options.readJSON) == 'function' and options.readJSON or readJSON
     local writeCommand = type(options.writeCommand) == 'function' and options.writeCommand or defaultWrite
     local clock = type(options.clock) == 'function' and options.clock or function() return os.clock() end
@@ -201,7 +208,7 @@ function M.new(options)
         readAt = nil
         if action == 'test' then return true, ui.t('Testing the connection…') end
         if action == 'clear-url' then return true, ui.t('The endpoint URL was removed.') end
-        if action == 'clear-key' then return true, ui.t('Your key was removed.') end
+        if action == 'clear-key' or action == 'clear-preset-gemini' or action == 'clear-preset-mistral' then return true, ui.t('Your key was removed.') end
         if action == 'clear-model' then return true, ui.t('The model ID was removed.') end
         return true, ui.t('Checking…')
     end
@@ -255,6 +262,7 @@ function M.new(options)
     -- The five rows (the free setup, then the endpoint URL, key, model ID and test), in the order they are drawn: {id, field, label, value, help, enabled, action}. `action` is what choosing the row
     -- sends through request(). The texts are already translated.
     function self.rows()
+        if isGemini then return self.geminiRows() end
         local state = self.state()
         local result, test = state.result, state.test
         local rows = {}
@@ -270,8 +278,8 @@ function M.new(options)
                 rows[#rows + 1] = {id = id, field = 'preset', label = label, value = saved and ui.t('Remove') or ui.t('Add'),
                     help = help, enabled = true, action = (saved and 'clear-preset-' or 'preset-') .. name}
             end
-            presetRow('custom-preset-gemini', 'gemini', ui.t('Google Gemini (free)'),
-                ui.t('Copy your free key from aistudio.google.com/apikey first (a Google account is enough, no card), then press Add. It fills in the endpoint URL and the model ID for the free plan of Google Gemini (Flash-Lite) and saves your key from the clipboard.\n\nThe free plan has a daily limit, is not offered in every country, and Google may use free-plan chats to improve its products.'))
+            presetRow('custom-preset-mistral', 'mistral', ui.t('Mistral'),
+                ui.t('Copy your Mistral API key first, then press Add. It fills in the endpoint URL and the model ID for Mistral (Ministral 8B) and saves your key from the clipboard. The same key powers the Voxtral cloud voice.\n\nNew Mistral accounts may not get a free API key any more.'))
         end
 
         -- The endpoint URL.
@@ -308,8 +316,7 @@ function M.new(options)
             end
             if message then help = message .. '\n\n' .. help
             elseif state.keyForgotten then help = ui.t('New address saved. Paste your API key again for it.') .. '\n\n' .. help
-            -- Right after a free setup is added the key is the one step left (a key pasted before it was for the old address and was forgotten).
-            elseif not saved and state.preset == 'gemini' then help = ui.t('Next step: copy your Google AI Studio key from aistudio.google.com/apikey, then press Paste API key.') .. '\n\n' .. help end
+            end
             rows[#rows + 1] = {id = 'custom-key', field = 'key', label = ui.t('Custom API key') .. (info and (' (' .. info .. ')') or ''),
                 value = saved and ui.t('Remove') or ui.t('Paste API key'), help = help, enabled = true,
                 action = saved and 'clear-key' or 'paste-key'}
@@ -357,6 +364,42 @@ function M.new(options)
         return rows
     end
 
+    -- The two rows of the Google Gemini page: the key (Add reads it from the clipboard and fills in the fixed endpoint and model, Remove deletes all three) and the connection test.
+    function self.geminiRows()
+        local state = self.state()
+        local result, test = state.result, state.test
+        local rows = {}
+        do
+            local saved = state.preset == 'gemini' and state.keySaved
+            local message = failure(result, 'preset')
+            local info = saved and (state.tail and ('…' .. state.tail) or ui.t('Added')) or (message and ui.t('Not added') or nil)
+            local help = saved and (ui.t('Deletes the saved key.') .. '\n\n' .. ui.t('Saved on this computer only. Only the last four characters are ever shown.'))
+                or ui.t('Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 1,000 replies, is not offered in every country, and Google may use free-plan chats to improve its products.')
+            if message then help = message .. '\n\n' .. help end
+            rows[#rows + 1] = {id = 'gemini-key', field = 'preset', label = ui.t('Google Gemini API key') .. (info and (' (' .. info .. ')') or ''),
+                value = saved and ui.t('Remove') or ui.t('Add'), help = help, enabled = true, action = saved and 'clear-preset-gemini' or 'preset-gemini'}
+        end
+        do
+            local info, first
+            if not state.available then
+                first = ui.t('The conversation service is not running, so nothing can be tested. Restart the game.')
+            elseif test and test.state == 'testing' then
+                info, first = ui.t('Testing…'), ui.t('Waiting for the endpoint to answer…')
+            elseif test and test.state == 'ok' then
+                info, first = ui.t('OK'), ui.t('The connection works. The endpoint accepted your model and key.')
+                if test.ms then first = first .. ' ' .. ui.t('It answered in {ms} ms.', {ms = test.ms}) end
+            elseif test and test.state == 'failed' then
+                info, first = ui.t('Failed'), testSentence(test)
+                if test.detail then first = first .. '\n\n' .. ui.t('The provider said: {detail}', {detail = test.detail}) end
+            end
+            local help = ui.t('Sends one tiny message to your endpoint with the saved model ID and key, and shows how it answered. It uses next to nothing of your credits.')
+            if first then help = first .. '\n\n' .. help end
+            rows[#rows + 1] = {id = 'gemini-test', field = 'test', label = ui.t('Test connection') .. (info and (' (' .. info .. ')') or ''),
+                value = ui.t('Test'), help = help, enabled = state.available and not (test and test.state == 'testing'), action = 'test'}
+        end
+        return rows
+    end
+
     -- The last paragraph of the provider row's help while Custom answers and a limit is on (the stored `limit` of the provider state).
     function self.noteFor(limit)
         if limit == 'rate' then return ui.t('Custom: rate limited for now') end
@@ -364,6 +407,14 @@ function M.new(options)
         if limit == 'invalid' then return ui.t('Custom: key not accepted') end
         if limit == 'model' then return ui.t('Custom: model unavailable') end
         if limit == 'credits' then return ui.t('Custom: out of credits') end
+        return nil
+    end
+
+    -- The same for Google Gemini.
+    function self.geminiNoteFor(limit)
+        if limit == 'rate' or limit == 'daily' then return ui.t('Google Gemini: limit reached for now') end
+        if limit == 'invalid' then return ui.t('Google Gemini: key not accepted') end
+        if limit == 'model' then return ui.t('Google Gemini: model unavailable') end
         return nil
     end
 
@@ -385,6 +436,8 @@ function M.new(options)
         if id == 'custom-unreachable' then return ui.t('The custom provider did not answer. Check its address in Settings, or try again.') end
         if id == 'custom-no-setup' then return ui.t('The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings.') end
         if id == 'custom-voice' then return ui.t('Custom provider replies are spoken by a local voice instead of the Convai cloud voice.') end
+        if id == 'gemini-no-key' then return ui.t('Google Gemini has no key yet, so Convai is used. Add your key in Settings > Conversation provider.') end
+        if id == 'gemini-voice' then return ui.t('Google Gemini replies are spoken by a local voice instead of the Convai cloud voice.') end
         return nil
     end
 

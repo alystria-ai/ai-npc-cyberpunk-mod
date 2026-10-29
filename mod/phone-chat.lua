@@ -6,10 +6,10 @@ local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}, names 
 pcall(dofile, 'favorites.lua')
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
-local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.'
+local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.'
 -- The same with the time it resets (the next 00:00 UTC on this computer's clock, ui-locale dailyResetClock); the status row shows it filled in, and
 -- phone-chat-style.lua translates it from this template. DAILY_LIMIT_STATUS stays for a clock that cannot be read.
-local DAILY_LIMIT_STATUS_AT = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Mistral works with your own key.'
+local DAILY_LIMIT_STATUS_AT = 'You’ve reached today’s Convai free tier limit. It resets at {time}. To keep talking now, choose another provider in Settings > Conversation provider. Local AI is unlimited and runs on your PC. Google Gemini works with your own key.'
 -- The status row's text for a daily-limit reply, worked out when the reply arrives (never per frame).
 local function dailyLimitStatus()
     local locale = convaiUiLocale
@@ -31,7 +31,7 @@ local MISTRAL_STATUS = {
     ['custom-unreachable'] = 'The custom provider did not answer. Check its address in Settings, or try again.',
     ['local-fallback'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
     -- Convai's own limits, in the words of the game's notices (init.lua keyNoticeText).
-    ['quota-shared'] = 'The conversation limit has been reached. Try again later, or choose Local AI or Mistral in Settings > Conversation provider.',
+    ['quota-shared'] = 'The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider.',
     ['quota-own'] = 'Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.',
     ['key-rejected'] = 'Convai did not accept your API key. Check it in Settings > Conversation provider.',
     ['key-memory-needed'] = 'Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.',
@@ -441,9 +441,9 @@ local function rebuildContacts()
     end
     M.registered = false
 end
--- A character the player made has no Convai character: its Chat answers only through Mistral, Local AI or Custom (docs/CHARACTER_EDITOR.md). M.contactBlocked(key) is set by
+-- A character the player made has no Convai character: its Chat answers only through Google Gemini, Local AI or Custom (docs/CHARACTER_EDITOR.md). M.contactBlocked(key) is set by
 -- init.lua and asks the provider now; it is called when a Chat is painted or a message is sent, never per frame. Convai answering: the Chat is listed, closed, with this line.
-local CUSTOM_NEEDS_PROVIDER = 'This character needs Mistral, Local AI or Custom to answer.'
+local CUSTOM_NEEDS_PROVIDER = 'This character needs Google Gemini, Local AI or Custom to answer.'
 local function customNeedsProvider(key)
     if type(M.contactBlocked) ~= 'function' then return false end
     local ok, blocked = pcall(M.contactBlocked, key)

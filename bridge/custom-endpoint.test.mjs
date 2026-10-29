@@ -292,7 +292,7 @@ test('the real file is written with the key in it, nowhere else, and is read bac
 const command = (id, action, issuedAt = 1_000_000) => JSON.stringify({version: 1, id, action, issuedAt});
 
 test('commands: only the known actions, a well-formed id and a recent time are accepted', () => {
-  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'clear-preset-gemini']);
+  assert.deepEqual(COMMANDS, ['paste-url', 'paste-key', 'paste-model', 'clear-url', 'clear-key', 'clear-model', 'test', 'preset-gemini', 'clear-preset-gemini', 'preset-mistral', 'clear-preset-mistral']);
   for (const action of COMMANDS) assert.deepEqual(parseCustomCommand(command('s:cust:1', action), 1_000_100), {id: 's:cust:1', action});
   assert.equal(parseCustomCommand(command('s:cust:1', 'paste'), 1_000_100), null);
   assert.equal(parseCustomCommand(command('bad id', 'test'), 1_000_100), null);
@@ -311,7 +311,8 @@ async function control(options = {}) {
   const published = [];
   let now = 2_000_000, raw = options.raw ?? '', clipboard = async () => KEY;
   const instance = new CustomControl({custom: s.endpoint, provider, commandPath: 'c.json', now: () => now, read: async () => raw,
-    publish: async value => { published.push(JSON.parse(JSON.stringify(value))); }, readClipboard: () => clipboard(), test: options.test, log: line => published.logs?.push(line)});
+    publish: async value => { published.push(JSON.parse(JSON.stringify(value))); }, readClipboard: () => clipboard(), test: options.test, log: line => published.logs?.push(line),
+    ...(options.presets ? {presets: options.presets} : {}), ...(options.route ? {route: options.route} : {}), onPreset: options.onPreset, onClearPreset: options.onClearPreset});
   await instance.open();
   let sequence = 0;
   return {s, provider, instance, published,
@@ -364,7 +365,7 @@ test('the settings page: three pastes, each checked and saved, and the status it
 });
 
 test('the free setups: Add saves the endpoint, the model id and the key from the clipboard in one press, Remove deletes all three, and the request is the usual one', async () => {
-  assert.deepEqual(Object.keys(PRESETS), ['gemini']);
+  assert.deepEqual(Object.keys(PRESETS), ['mistral', 'gemini']);
   for (const preset of Object.values(PRESETS)) {
     assert.equal(parseEndpointUrl(preset.endpoint).endpoint, preset.endpoint, 'the address is accepted as it is');
     assert.ok(parseModelId(preset.model), 'the model id is accepted');
@@ -734,4 +735,50 @@ test('the status names the limit that is on while Custom answers: rate, daily, i
   c.provider.noteLimit('daily');
   c.provider.applied = 'mistral';
   assert.equal(c.instance.status().limit, null, 'a limit of another provider is not Custom\'s');
+});
+
+test('the Mistral preset (2026-10-30: Mistral left the provider list): Add saves the Mistral endpoint, its first model and the key, hands the key to the cloud voice, and Remove deletes all of it', async () => {
+  assert.deepEqual(PRESETS.mistral, {endpoint: 'https://api.mistral.ai/v1', model: 'ministral-8b-latest'});
+  const handed = [], removed = [];
+  const c = await control({presets: ['mistral'], onPreset: async (name, key) => { handed.push([name, key]); }, onClearPreset: async name => { removed.push(name); }});
+  c.clipboard(async () => KEY);
+  let status = await c.send('preset-mistral');
+  assert.deepEqual([status.result.state, status.host, status.model, status.preset, status.keySaved, status.ready], ['saved', 'api.mistral.ai', 'ministral-8b-latest', 'mistral', true, true]);
+  assert.deepEqual(handed, [['mistral', KEY]], 'the key also goes to the Mistral key file the Voxtral voice reads');
+  assert.ok(c.s.text.includes('key-origin=https://api.mistral.ai'));
+  assert.ok(!JSON.stringify(c.published).includes(KEY), 'no status ever holds the key');
+  assert.equal(c.provider.requested, 'convai', 'a preset does not choose the provider');
+  // This page answers only its own preset: the Gemini one is refused here and nothing changes.
+  const before = c.s.text;
+  status = await c.send('preset-gemini');
+  assert.deepEqual([status.result.state, status.result.reason, status.preset], ['invalid', 'not-here', 'mistral']);
+  assert.equal(c.s.text, before);
+  status = await c.send('clear-preset-gemini');
+  assert.deepEqual([status.result.state, status.preset], ['invalid', 'mistral']);
+  status = await c.send('clear-preset-mistral');
+  assert.deepEqual([status.result.state, status.host, status.keySaved, status.preset], ['cleared', null, false, null]);
+  assert.deepEqual(removed, ['mistral']);
+  assert.equal(c.s.text, null, 'nothing left: the file is gone');
+  // A Remove that is not for the saved setup removes nothing and does not touch the cloud voice's key.
+  c.clipboard(async () => 'https://example.com/v1');
+  await c.send('paste-url');
+  await c.send('clear-preset-mistral');
+  assert.deepEqual(removed, ['mistral']);
+});
+
+test('the Google Gemini page: its control answers only the Gemini preset, reports its limits on the gemini route, and a 400 API_KEY_INVALID reads as a key it did not accept', async () => {
+  const c = await control({presets: ['gemini'], route: 'gemini'});
+  c.provider.applied = 'gemini'; c.provider.limit = {kind: 'invalid', at: 1};
+  c.clipboard(async () => 'AIza' + 'SyB-1234567890abcdefghijklmnopqrstu');
+  let status = await c.send('preset-mistral');
+  assert.deepEqual([status.result.state, status.result.reason, status.host], ['invalid', 'not-here', null]);
+  status = await c.send('preset-gemini');
+  assert.deepEqual([status.result.state, status.host, status.model, status.preset, status.limit], ['saved', 'generativelanguage.googleapis.com', 'gemini-flash-lite-latest', 'gemini', 'invalid']);
+  // Both key formats Google hands out are keys: "AQ." and "AIza".
+  assert.ok(parseCustomKey('AQ.Ab8RN6KjXy_ZqW3-eAb8RN6KjXy_ZqW3-eAb8RN6KjXy_ZqW3'));
+  assert.ok(parseCustomKey('AIzaSyB-1234567890abcdefghijklmnopqrstu'));
+  const fetchImpl = async () => new Response(JSON.stringify([{error: {code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT',
+    details: [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'API_KEY_INVALID', domain: 'googleapis.com'}]}}]), {status: 400, headers: {'content-type': 'application/json'}});
+  const outcome = await testConnection(c.s.endpoint, {fetchImpl});
+  assert.deepEqual([outcome.state, outcome.code, outcome.status], ['failed', 'key', 400]);
 });
