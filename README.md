@@ -207,7 +207,7 @@ Each paste reads the clipboard once, checks it and saves it on your computer; **
 
 ### Convai free tier
 
-Nothing to set up: this is what you get the moment you install. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The 500 a day reset once a day at 00:00 UTC (5:30 AM in India, early evening in the Americas), the same moment the sign-in service starts its day, and **Settings > Conversation provider** shows how many are left. That is the only limit: every kind of turn counts the same, with no separate share for group chat, speaking up, reactions or rides, and no limit on how fast you talk. When they run out a notice says so. Wait for tomorrow, or switch to Local AI or Mistral and keep going. The local voices never count against it.
+Nothing to set up: this is what you get the moment you install. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The 500 a day reset once a day at 00:00 UTC (5:30 AM in India, early evening in the Americas), the same moment the sign-in service starts its day, and **Settings > Conversation provider** shows how many are left. That is the only limit: every kind of turn counts the same, with no separate share for group chat, speaking up, reactions or rides, and no limit on how fast you talk. When they run out a notice says so, and when they come back in your own time. Wait until then, or switch to Local AI or Mistral and keep going. The local voices never count against it.
 
 ### Convai API key
 
@@ -343,7 +343,7 @@ English speech is recognised on your computer by a small model that is already i
 
 **A character does not answer.** Give the game a moment after launch: the background service starts with it. **Settings > Help > Help and support** shows the service status; if it is not running, restart the game. With Mistral, check that the key row says it was accepted. With Local AI, check that the **Local AI model** row does not read "(Warming up)", "(Not enough memory)" or "(Unavailable)".
 
-**"Today's turns are used."** The free tier's daily turns are spent and come back tomorrow. To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local AI** (with a Local AI pack) as the Conversation provider. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
+**"Today's turns are used."** The free tier's daily turns are spent and come back at the time the message gives (00:00 UTC, in your time). To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local AI** (with a Local AI pack) as the Conversation provider. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
 
 **The microphone does nothing, or says "needs Convai for now".** Check that **talk by voice** has a key in CET's Bindings. Hold it while you speak, then let go. Windows must let desktop apps use the microphone, and yours should be the Windows **default** input device. With Mistral or Local AI your speech is recognised on your computer, in English, and the recogniser takes a moment to load the first time: if it is not ready yet you see "Speaking to companions needs Convai for now". Try again in a moment, type, or switch to Convai.
 

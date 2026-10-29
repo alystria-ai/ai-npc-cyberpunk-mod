@@ -140,3 +140,67 @@ test('Phone Chat keeps the long version, which has room, and both are in the cat
   assert(catalog.strings[long[1]], 'the long text is no longer in the catalogue');
   for (const code of codes) assert(localeTable(code)[long[1]], `${code}: the long Phone Chat text lost its translation`);
 });
+
+// With the clock readable the notice also says when the turns come back, in the player's time (mod/ui-locale.lua dailyResetClock, "HH:MM" like the custom
+// provider's): the sentence starts line 2, which is allowed two rendered lines, so the notice is still at most three lines. The two texts above stay as the
+// wording for a clock that cannot be read.
+const timed = /return ui\.t\('([^'\n]*)', \{limit = limit, time = at\}\)[\s\S]*?return ui\.t\('([^'\n]*)', \{time = at\}\)/.exec(init);
+assert(timed, 'dailyLimitText no longer wraps the two strings with a reset time');
+const [timedWithLimit, timedWithoutLimit] = [timed[1], timed[2]].map(text => text.replaceAll('\\n', '\n'));
+const withTime = (text, limit, time) => text.replace('{limit}', String(limit)).replace('{time}', time);
+// The widest clock texts: a four-digit limit and the digits 00:00 / 23:59 (the digit widths differ a little).
+const SAMPLES = [[100, '05:30'], [1500, '23:59'], [500, '00:00'], [500, '20:08']];
+
+test('the English notice with a reset time keeps line 1 on one line and fits three lines in all', () => {
+  assert.equal(timedWithLimit, 'Today’s {limit} Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).');
+  assert.equal(timedWithoutLimit, 'Today’s Convai turns are used.\nIt resets at {time}. Try Mistral (free key, ~5,000 a day) or Local AI (unlimited).');
+  for (const [limit, time] of SAMPLES) {
+    for (const text of [withTime(timedWithLimit, limit, time), withTime(timedWithoutLimit, limit, time)]) {
+      assert.deepEqual(problems(text, LINE_ENGLISH), [], text);
+      assert(text.length / 15 <= showS + 1.4, `reading time ${text.length / 15} s: ${text}`);
+    }
+  }
+  assert(catalog.strings[timedWithLimit] && catalog.strings[timedWithoutLimit], 'the timed notice is missing from localization/en.json');
+});
+
+test('every language has the notice with a reset time: both placeholders once, the same line 1 as before, the choice on line 2, and it fits', () => {
+  const tooLong = [];
+  for (const code of codes) {
+    const table = localeTable(code);
+    for (const [source, plain, hasLimit] of [[timedWithLimit, withLimit, true], [timedWithoutLimit, withoutLimit, false]]) {
+      const text = table[source];
+      assert(typeof text === 'string' && text.length > 0, `${code}: no translation of ${source.slice(0, 40)}`);
+      assert.notEqual(text, source, `${code}: still English`);
+      assert.equal(text.split('{time}').length - 1, 1, `${code}: {time} count: ${text}`);
+      assert.equal(text.split('{limit}').length - 1, hasLimit ? 1 : 0, `${code}: {limit} count: ${text}`);
+      const rest = text.replace('{limit}', '').replace('{time}', '');
+      assert(THOUSANDS.test(rest) && !/[{}]/.test(rest) && !/\d/.test(rest.replace(THOUSANDS, '')), `${code}: a stray placeholder or number: ${text}`);
+      assert(!rest.includes(';') && text === text.trim(), `${code}: a semicolon or stray space: ${text}`);
+      const lines = text.split('\n');
+      assert.equal(lines.length, FORCED, `${code}: needs exactly one line break: ${JSON.stringify(text)}`);
+      assert(lines[1].includes('Mistral') && !lines[0].includes('Mistral'), `${code}: the choice belongs on line 2: ${JSON.stringify(text)}`);
+      assert.equal(lines[0], table[plain].split('\n')[0], `${code}: line 1 changed from the notice without a time`);
+      assert(lines[1].indexOf('{time}') < lines[1].indexOf('Mistral'), `${code}: the time comes before the choice: ${text}`);
+      for (const [limit, time] of SAMPLES) for (const found of problems(withTime(text, limit, time), LINE_TRANSLATION)) tooLong.push(`${code}: ${found}`);
+    }
+  }
+  assert.deepEqual(tooLong, [], 'notices with a reset time that do not fit line 1 on one line and the rest in three lines');
+});
+
+test('the settings help, the invitation failure and the Phone Chat status have a reset-time version in every language', () => {
+  const sources = [
+    'You have used today’s {limit} turns, which come back at {time}. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).',
+    'The Convai daily limit is used up. It resets at {time}. Choose another provider in Settings, or invite again then.',
+    read('../mod/phone-chat.lua').match(/local DAILY_LIMIT_STATUS_AT = '([^'\n]*)'/)?.[1],
+  ];
+  for (const source of sources) {
+    assert(source && catalog.strings[source], `not in localization/en.json: ${source}`);
+    for (const code of codes) {
+      const text = localeTable(code)[source];
+      assert(typeof text === 'string' && text !== source, `${code}: not translated: ${source.slice(0, 40)}`);
+      assert.equal(text.split('{time}').length - 1, 1, `${code}: {time} count: ${text}`);
+      assert.equal(text.split('{limit}').length - 1, source.includes('{limit}') ? 1 : 0, `${code}: {limit} count: ${text}`);
+      assert(!text.includes(';'), `${code}: a semicolon: ${text}`);
+    }
+  }
+});

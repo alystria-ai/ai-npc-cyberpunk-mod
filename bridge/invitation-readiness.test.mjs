@@ -403,7 +403,8 @@ local reasons = {
     {'memory', 'The memory service did not respond. Check your connection, then invite again.'},
     {'connection', 'The conversation connection did not open. Check your connection, then invite again.'},
     {'signin', 'Convai sign-in is busy right now. Wait a few minutes, then invite again.'},
-    {'daily', 'The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.'}}
+    -- The daily limit says when it resets on this computer's clock (the next 00:00 UTC, convaiUiLocale.dailyResetClock), so the expected time is read the same way.
+    {'daily', 'The Convai daily limit is used up. It resets at ' .. tostring(convaiUiLocale.dailyResetClock()) .. '. Choose another provider in Settings, or invite again then.'}}
 for _, case in ipairs(reasons) do
     assert(queue.invite('judy'))
     local id = queue.list()[1].id

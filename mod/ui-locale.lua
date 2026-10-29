@@ -161,6 +161,22 @@ function M.t(source, args)
     end))
 end
 
+-- When the shared Convai key's daily turns come back, as "HH:MM" on this computer's clock (the same form the custom provider's reset time
+-- uses): the next 00:00 UTC after `now` (default: the real clock, in seconds), because the sign-in backend and bridge/shared-key-guard.mjs
+-- count per UTC day. The instant is plain arithmetic on the epoch (no os.time(table), whose broken-down time would be read in the local
+-- zone and break on DST days); os.date turns that one instant into local time, so half-hour zones and DST come out right. Called only when
+-- a message is shown, never per frame. nil when the clock cannot be read.
+function M.dailyResetClock(now)
+    if now == nil then
+        local read, value = pcall(os.time)
+        now = read and value or nil
+    end
+    if type(now) ~= 'number' or now ~= now or now < 0 or now > 32503680000 then return nil end
+    local read, clock = pcall(os.date, '%H:%M', (math.floor(now / 86400) + 1) * 86400)
+    if read and type(clock) == 'string' and clock:match('^%d%d:%d%d$') then return clock end
+    return nil
+end
+
 function M.selection() return selected end
 
 -- CET scopes these functions to our mod. Read on demand: bindings can change
