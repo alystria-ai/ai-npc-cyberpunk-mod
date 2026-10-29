@@ -252,9 +252,9 @@ export class RealtimeHost {
   //   connectConfig() -> null | {transport}: whether pages connect with Convai's vision channel (read when a page is called);
   //   imagesForTurn(config, {phase: 'reply' | 'finish'}) -> images or null: the picture(s) for this turn, from memory;
   //   turnWaitMs() -> null | ms: the page's cap on waiting for Convai to buffer a picture not staged ahead.
-  // audioRates: {characterId: {declared, actual}} remembered from earlier sessions, and onAudioRate(map): called when it changed (the bridge saves it). Convai's multilingual twin sends 44.1 kHz audio
-  // in packets that say 24 kHz (error reports 14e50b97 and others); the first turn finds out when the statistics arrive, later turns of that character are told the rate (config.audioRate) and play right at once.
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision, audioRates, onAudioRate, audioRateSeed,
+  // audioRates: {characterId: {declared, actual}} remembered from earlier sessions, and onAudioRate(map): called when it changed (the bridge saves it). Audio that arrives at another rate than its
+  // packets say is found out by the first turn when its bytes and the statistics have arrived; later turns of that character are told the rate (config.audioRate) and play right at once.
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision, audioRates, onAudioRate,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
@@ -287,7 +287,7 @@ export class RealtimeHost {
     this.guard = guard;
     this.credential = typeof credential === 'function' ? credential : null;
     this.vision = vision && typeof vision === 'object' ? vision : null;
-    this.audioRates = new AudioRates({initial: audioRates, seed: audioRateSeed, onChange: onAudioRate, log: line => this.log(line)});
+    this.audioRates = new AudioRates({initial: audioRates, onChange: onAudioRate, log: line => this.log(line)});
   }
   // The page config with the current vision setting applied (and any stale vision fields from the caller removed).
   withVision(config) {

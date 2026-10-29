@@ -271,10 +271,11 @@ if (multilingualProfiles.skipped.length) console.error('[CyberpunkConvai] Multil
 const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingual: multilingualProfiles.twins,
   packTwins: addonContent.convaiTwins({ids, taken: Object.values(multilingualProfiles.twins)}),
   packTwinFor: profileKey => (keys.singleSession ? null : addonContent.twinFor(profileKey))});
-// The sample rate Convai's audio really arrives at, per Convai character (bridge/convai-audio-rates.mjs): the twin sends 44.1 kHz audio labelled 24 kHz. Learned from the first turn's
-// statistics, kept here between sessions (convai-audio-rates.json in the state folder; a missing or unreadable file is an empty memory), and handed to every later turn of that character.
+// The sample rate Convai's audio really arrives at, per Convai character, where the packets' label is wrong (bridge/convai-audio-rates.mjs). Learned from a turn's bytes and statistics, kept
+// here between sessions (convai-audio-rates.json in the state folder; a missing or unreadable file is an empty memory), and handed to every later turn of that character. Version 2: the
+// first version of the file (a plain map) held the 44.1 kHz guess for every multilingual twin, which played their lines 1.84 times too fast, so it is not read.
 const audioRatesPath = resolve(stateDirectory, 'convai-audio-rates.json');
-const savedAudioRates = await readFile(audioRatesPath, 'utf8').then(text => JSON.parse(text), () => null).catch(() => null);
+const savedAudioRates = await readFile(audioRatesPath, 'utf8').then(text => { const file = JSON.parse(text); return file?.version === 2 ? file.rates : null; }, () => null).catch(() => null);
 let audioRatesWriting = Promise.resolve();
 // Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
 // the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
@@ -1159,8 +1160,8 @@ const companionVision = new CompanionVision({capture: new VisionCapture({log: vi
   log: visionLog});
 const realtime = new RealtimeHost({browserPriority: turnPriority, onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime]),
-  audioRates: savedAudioRates, audioRateSeed: {ids: Object.values(multilingualProfiles.twins), hint: {declared: 24000, actual: 44100}}, log: line => console.error('[Convai audio] ' + line),
-  onAudioRate: rates => { audioRatesWriting = audioRatesWriting.catch(() => {}).then(() => mkdir(stateDirectory, {recursive: true}).then(() => atomic(audioRatesPath, JSON.stringify(rates)))).catch(() => {}); }});
+  audioRates: savedAudioRates, log: line => console.error('[Convai audio] ' + line),
+  onAudioRate: rates => { audioRatesWriting = audioRatesWriting.catch(() => {}).then(() => mkdir(stateDirectory, {recursive: true}).then(() => atomic(audioRatesPath, JSON.stringify({version: 2, rates})))).catch(() => {}); }});
 // Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names
 // the character, the channel and (for an ordinary NPC) its conversation, so the host can recall the right history; the Convai path
