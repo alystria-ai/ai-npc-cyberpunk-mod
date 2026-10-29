@@ -201,7 +201,7 @@ export class BondPacks {
     const gapId = plain(row.gap) && typeof row.gap.id === 'string' ? row.gap.id : null;
     const gap = !ended && gapId && pack.gaps?.[gapId] ? {id: gapId, openedAt: whole(row.gap.openedAt) ? row.gap.openedAt : null} : null;
     const variation = typeof row.variation === 'string' && pack.hangout?.variations?.some(item => item.id === row.variation) ? row.variation : null;
-    return {status: ended ? 'done' : 'active', trail, presented: row.presented === true, beat: whole(row.beat) ? row.beat : null, gap, ...(variation ? {variation} : {})};
+    return {status: ended ? 'done' : 'active', trail, presented: row.presented === true, beat: whole(row.beat) ? row.beat : null, gap, ...(variation ? {variation} : {}), ...(CHANNELS.includes(row.via) ? {via: row.via} : {})};
   }
 
   #schedule() {
@@ -222,7 +222,7 @@ export class BondPacks {
     this.dirty = false;
     try {
       const entries = {}, meta = {};
-      for (const [id, entry] of this.entries) entries[id] = {trail: entry.trail, presented: entry.presented, beat: entry.beat, ...(entry.gap ? {gap: entry.gap} : {}), ...(entry.variation ? {variation: entry.variation} : {})};
+      for (const [id, entry] of this.entries) entries[id] = {trail: entry.trail, presented: entry.presented, beat: entry.beat, ...(entry.gap ? {gap: entry.gap} : {}), ...(entry.variation ? {variation: entry.variation} : {}), ...(entry.via ? {via: entry.via} : {})};
       for (const [key, row] of this.meta) {
         meta[key] = {rolled: row.rolled, endedAt: row.endedAt, ...(row.history?.length ? {history: row.history} : {}), ...(row.talkedAt !== null ? {talkedAt: row.talkedAt} : {}),
           ...(row.romance ? {romance: row.romance} : {}), ...(row.hangoutDay !== null ? {hangoutDay: row.hangoutDay} : {}), ...(row.cap ? {cap: row.cap} : {}),
@@ -591,7 +591,7 @@ export class BondPacks {
         const known = this.entries.get(pack.id);
         if (known && (!decision.start.restart || known.status === 'active')) return;
         const variation = decision.start.variation;
-        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null}], presented: true, beat: null, ...(variation ? {variation} : {})};
+        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null}], presented: true, beat: null, ...(variation ? {variation} : {}), ...(CHANNELS.includes(decision.channel) ? {via: decision.channel} : {})};
         this.entries.set(pack.id, entry);
         const meta = this.#meta(pack.character);
         if (pack.kind === 'hangout') {
@@ -929,7 +929,7 @@ export class BondPacks {
       const timeoutAt = stage.timeout && whole(last.at) ? last.at + stage.timeout.gameHours * HOUR : undefined;
       const gifts = doList.some(spec => spec?.p === 'gift' && spec.dir === 'give') ? likesFor(pack.character) : null;
       quests.push({pack: id, character: pack.character, stage: stage.id, serial: entry.trail.length, since: last.at, places, do: doList, script,
-        ...this.#lineTables(pack, refs), gaps, gap: entry.gap ?? null, ...(timeoutAt !== undefined ? {timeoutAt} : {}),
+        ...this.#lineTables(pack, refs), gaps, gap: entry.gap ?? null, ...(timeoutAt !== undefined ? {timeoutAt} : {}), ...(entry.via ? {via: entry.via} : {}),
         ...(Object.keys(calls).length ? {calls} : {}), ...(stage.music ? {music: swap ? remapSounds(stage.music, swap) : stage.music} : {}),
         ...(stage.sfx ? {sfx: swap ? remapSounds(stage.sfx, swap) : stage.sfx} : {}), ...(stage.situation ? {situation: stage.situation} : {}), ...(gifts ? {gifts} : {})});
     }

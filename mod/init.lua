@@ -7043,6 +7043,7 @@ do
             -- Not now: the test the scripted line player uses (a scene, a quest dialogue, a game call, a fight or a chase, V talking, a reply on its way).
             busy = function() return convaiQuestLineBusy() end,
             text = function(profileKey, text, image) return convaiQuestPhone(profileKey, text, image) end,
+            near = function(profileKey) return convaiQuestNear(profileKey) end,
             -- A call: mod/quest-calls.lua provides convaiQuestCallIn when it is there (a nil answer means it is absent, the text goes instead).
             call = function(item)
                 if type(convaiQuestCallIn) ~= 'function' then return nil end
@@ -7092,7 +7093,8 @@ do
             if type(prims.env) == 'table' then prims.env.lines = lines end
             local play = modules[5].new({enabled = settingOn, clock = os.clock, gameTime = gameClock, places = places, lines = lines, prims = prims, log = log,
                 -- The play file's reach block (mod/quest-reach.lua): handed over whenever a play file is applied, or nil when it is gone.
-                onReach = function(block) if convaiReach then convaiReach.setBlock(block) end end})
+                onReach = function(block) if convaiReach then convaiReach.setBlock(block) end end,
+                near = function(profileKey) return convaiQuestNear(profileKey) end})
             convaiQuestWorld, convaiQuestLines, convaiQuestPrims = world, lines, prims
             return play
         end)
@@ -7311,6 +7313,15 @@ do
         if convaiQuestMissingSeen == pending.requestId then return false end
         convaiQuestMissingSeen = pending.requestId
         return convaiQuestPhone(pending.profileKey, reply.text, nil)
+    end
+    -- One of V's own copies of this character stands within talking distance of V (a text row or a reach-out from her would be odd). Asked at a row or a 60 s tick, never per frame.
+    function convaiQuestNear(profileKey)
+        local player = convaiPlayer()
+        if not player or type(profileKey) ~= 'string' then return false end
+        local ok, list = pcall(companions.conversationCandidates, player, 10)
+        if not ok or type(list) ~= 'table' then return false end
+        for _, row in ipairs(list) do if row.profileKey == profileKey then return true end end
+        return false
     end
     -- A text row of a quest: into her Phone Chat thread, with a notice like the appointment texts have.
     function convaiQuestPhone(profileKey, text, image)

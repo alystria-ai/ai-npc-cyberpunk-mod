@@ -97,3 +97,21 @@ test('the reasons read as words: bond level, channel, journal, busy and the dice
     "panam-palmer waits: story never starts a pack (a pack starts on one of V's own copies, a phone chat or a holocall)"]);
   assert.equal(explainGate({open: false, why: 'quest-not-finished', path: 'quests/a/q104_02_av_chase'}, pilot), 'q104_02_av_chase is not finished');
 });
+
+test('the play file says how V began the quest (in person, Phone Chat or a holocall), and it survives a save and a load', async () => {
+  for (const [bondsBlock, extra, via] of [[{copy: 'party'}, {}, 'own'], [{}, {channel: 'phone'}, 'phone'], [{}, {holocall: {active: true}}, 'holocall']]) {
+    const files = {};
+    const make2 = () => new BondPacks({packs: [pilot], characters: roster, random: () => 0, log() {}, bonds: {award() {}, publish() {}}, debounceMs: 0, path: 'p.json',
+      read: async file => files[file], write: async (file, text) => { files[file] = text; }, exists: () => false});
+    const runner = make2();
+    const input = turn(30 * DAY, DONE, {bonds: {on: true, packs: true, invitations: true, ...bondsBlock}, ...extra});
+    const decision = runner.forTurn(input, {level: 7});
+    assert.equal(decision.pack?.id, 'panam-sunset-coffee', via);
+    runner.afterTurn(input, 'ok');
+    assert.equal(runner.playState().quests[0].via, via);
+    await runner.flush();
+    const again = make2();
+    await again.load();
+    assert.equal(again.playState().quests[0].via, via, 'kept in the state file');
+  }
+});

@@ -208,11 +208,19 @@ function M.new(options)
     end
 
     -- ---- rows and events ----------------------------------------------------------------------------------------------------------------
+    -- A text from a character who stands beside V is odd: a quest that V began in person (not by Phone Chat or a holocall) says it in her reply, so a plain text row
+    -- (no picture) is left out while she is near (options.near, asked here at the row, never per frame). The row still counts as done for the script.
+    local function textInPerson(q, row)
+        if q.via == 'phone' or q.via == 'holocall' or row.image ~= nil or type(options.near) ~= 'function' then return false end
+        local ok, near = pcall(options.near, q.character)
+        return ok and near == true
+    end
+
     local function runRow(q, row)
         if type(row) ~= 'table' then return end
         if lines then
             if type(row.say) == 'string' then lines.say(q.pack, row.say, {bark = row.bark == true}) end
-            if type(row.text) == 'string' then lines.text(q.pack, row.text, type(row.image) == 'string' and row.image or nil) end
+            if type(row.text) == 'string' then lines.text(q.pack, row.text, type(row.image) == 'string' and row.image or nil, textInPerson(q, row)) end
             if type(row.gap) == 'string' then lines.openGap(q.pack, row.gap) end
         end
         if type(row.event) == 'string' then P.emit(q, row.event) end
@@ -403,6 +411,7 @@ function M.new(options)
     local function clean(q)
         if type(q) ~= 'table' or not plainId(q.pack) or not keyName(q.character) or not plainId(q.stage) or not whole(q.serial, 0, 1e9) then return nil end
         return {pack = q.pack, character = q.character, stage = q.stage, serial = q.serial, since = q.since,
+            via = (q.via == 'own' or q.via == 'phone' or q.via == 'holocall') and q.via or nil,   -- how V began the quest: in person, Phone Chat or a holocall
             places = type(q.places) == 'table' and q.places or {}, doList = list(q['do']), rows = list(q.script), lines = list(q.lines),
             gaps = list(q.gaps), images = list(q.images), gap = type(q.gap) == 'table' and q.gap or nil,
             gifts = type(q.gifts) == 'table' and q.gifts or nil,   -- the character's likes rules for a gift primitive (loved, liked, disliked)

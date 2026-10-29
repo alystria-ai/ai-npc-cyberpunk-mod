@@ -216,6 +216,13 @@ function M.new(options)
         return ok and done == true
     end
 
+    -- The character stands beside V (options.near, init.lua: one of V's copies within talking distance). Asked only for an item that is otherwise ready.
+    local function beside(profileKey)
+        if type(options.near) ~= 'function' then return false end
+        local ok, near = pcall(options.near, profileKey)
+        return ok and near == true
+    end
+
     -- One evaluation at a moment ('tick', 'district' or 'fight-end'). Returns the id delivered, or nil and why.
     local function consider(moment)
         if tickAt == nil then return nil, 'off' end
@@ -228,7 +235,8 @@ function M.new(options)
         if needDwell then noteDistrict(read('district'), now) end
         local ready = {}
         for _, item in ipairs(items) do
-            if not delivered[item.id] and holds(item.when, now, read) then ready[#ready + 1] = item end
+            -- A text or a call from someone who stands beside V is odd: it waits (still listed, tried again at the next tick) until she is not near.
+            if not delivered[item.id] and holds(item.when, now, read) and not (item.via ~= 'voice' and beside(item.character)) then ready[#ready + 1] = item end
         end
         if #ready == 0 then return nil, 'no-match' end
         local busy = true

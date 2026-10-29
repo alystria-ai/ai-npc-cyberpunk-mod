@@ -10,7 +10,7 @@
 --                                  for the silence like a plot line but is never shown or sent as a text, a line cut twice counts as heard so the call goes on, and once
 --                                  the call is not on any more it is dropped without a word
 --   L.dropCall(pack)               the call lines of that pack that still wait are dropped (the call ended), returns how many
---   L.text(pack, lineId, imageKey) a Phone Chat message from the character, with a picture when the pack has one under that key
+--   L.text(pack, lineId, imageKey, inPerson) a Phone Chat message from the character, with a picture when the pack has one under that key (not sent when inPerson: she is beside V)
 --   L.openGap / L.closeGap         the talk gap: the script waits, her idle plays, it ends by resumeAfterSeconds, a resumeOn event or a gap:<id>:* event
 --   L.onEvent(pack, name)          the quest module tells every event, so a gap can end by one
 --   L.stopped(requestId, reason)   the speech of the request ended ('finished' = heard to its end)
@@ -233,9 +233,15 @@ function M.new(options)
         return ok and sent == true
     end
 
-    function L.text(pack, lineId, imageKey)
+    -- `inPerson`: she stands beside V and the quest began in person, so the text is not sent (she says it in her reply), and the row still counts as done.
+    function L.text(pack, lineId, imageKey, inPerson)
         local meta = lineOf(pack, lineId)
         if not meta then log('unknown text line ' .. tostring(lineId) .. ' of ' .. tostring(pack)); return false end
+        if inPerson == true then
+            log('text ' .. tostring(lineId) .. ' left out: she is beside V')
+            emit(pack, 'line:' .. lineId .. ':done')
+            return true
+        end
         local item = {pack = pack, id = lineId, image = imageKey, tries = 1, nextAt = clock() + M.TEXT_RETRY}
         if sendText(item) then
             emit(pack, 'line:' .. lineId .. ':done')
