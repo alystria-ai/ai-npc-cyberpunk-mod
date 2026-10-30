@@ -990,7 +990,7 @@ async function localAiPackage(source, config, tierKey) {
   const chatPath = await localAiFile(tier, huggingFace(tier), tier.file);
   pkg.file(`${root}/models/${tier.file}`, chatPath);
   // Its vision projector is NOT in this pack (a separate zip, visionPackage): the manifest only names the file it expects in models/, so the bridge loads it when it is there (only
-  // while Companions can see is on) and tells the player where to get it when it is not.
+  // while Companion vision is on) and tells the player where to get it when it is not.
   const projector = tierProjector(tier, `Local AI ${tierKey}`);
 
   pkg.json(`${root}/manifest.${tierKey}.json`, {version: 1, ...(engine.server ? {server: engine.server} : {}), [tierKey]: {file: `models/${tier.file}`, name: tier.name, ...projectorField(projector)}, embed: engine.embed});

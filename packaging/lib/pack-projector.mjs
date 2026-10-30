@@ -1,9 +1,9 @@
-// The vision projector of a Local AI or Mature model (docs/LOCAL_AI.md, "Pictures (Companions can see)"; docs/PACKAGING.md, "Vision files").
+// The vision projector of a Local AI or Mature model (docs/LOCAL_AI.md, "Vision (Companion vision)"; docs/PACKAGING.md, "Vision files").
 //
 // A projector is a SEPARATE small download, not part of a pack (owner decision 2026-10-29): one zip per projector (release.config.json, "visionFiles"; the vision/ folder of
 // local-ai and mature on Hugging Face) that writes the file to models/, beside the model files. The pack's manifest NAMES the file it expects (`mmproj: 'models/<file>'` on the
 // model's entry), so bridge/local-llm-server.mjs finds it without guessing: a pack folder holds several .gguf files (the other model, the embedding model), which the
-// auto-discovery beside a single model could never sort out. The projector is loaded only while Companions can see is on, and a missing one is told to the player once.
+// auto-discovery beside a single model could never sort out. The projector is loaded only while Companion vision is on, and a missing one is told to the player once.
 //
 // Pure helpers, no network: the builder (packaging/build-release.mjs) fetches the file with its own helper and hands the path here to be checked.
 import {createReadStream} from 'node:fs';
@@ -56,7 +56,7 @@ export async function verifyProjectorFile(path, spec, {sizeOf = async file => (a
 }
 
 /** The line a pack's THIRD-PARTY-NOTICES names a projector with. `owner` is who made the model it belongs to (for the notice text). */
-export const projectorNotice = (spec, owner) => `${spec.name} (GGUF, made for ${owner}'s model, loaded only while Companions can see is on) - ${spec.license}: licenses/Apache-2.0.txt - https://huggingface.co/${spec.repository}`;
+export const projectorNotice = (spec, owner) => `${spec.name} (GGUF, made for ${owner}'s model, loaded only while Companion vision is on) - ${spec.license}: licenses/Apache-2.0.txt - https://huggingface.co/${spec.repository}`;
 
 /** What a vision zip's receipt (vision-<id>.json) records about its projector: where it came from and its hash. */
 export const projectorReceipt = spec => (spec ? {projector: `${spec.repository}@${spec.revision}`, projectorFile: spec.file, projectorSha256: spec.sha256} : {});
@@ -113,6 +113,6 @@ export const visionNoticePath = (root, title) => `${root}/vision/THIRD-PARTY-NOT
 /** The text of a vision zip's notices file. */
 export const visionNoticeText = (zip, product) => [`${product} vision file ${zip.title} - third-party components`, '',
   `- ${projectorNotice(zip.spec, zip.owner)}`,
-  '- The file is the unmodified upstream file. It is used only with the model it was made for, and only while Companions can see is on.',
+  '- The file is the unmodified upstream file. It is used only with the model it was made for, and only while Companion vision is on.',
   `- It is part of the vision folder of the Hugging Face packs page. The model packs it goes with: ${zip.usedBy.join(', ')}.`,
   `- ${product} itself: see LICENSE.txt in the Local AI folder of the packs.`, ''].join('\r\n');
