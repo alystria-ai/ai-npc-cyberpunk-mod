@@ -19,22 +19,23 @@ test('the prompt Mistral and the local AI build is byte for byte what it was (ha
   // right-now sentence before V's words no longer names the place (the system message's block still does). The roster text itself is unchanged here (PersonaBook `lean` is off in this fixture).
   // Re-taken again on 2026-10-22 on the merge with feat/dynamic-info: the right-now block's own where-sentence (the place is a second sentence, never in the first) and its one
   // guidance sentence ("mention a place or the time only if it matters to what V says"; docs/DYNAMIC_INFO.md), on top of the response audit's changes above.
+  // Re-taken on 2026-10-31 (fix/talk-repetition-gear): the copy of the right-now sentence before V's words adds "Never announce that you are here or beside V, or that V is here." (a partner said "I'm still here, standing right beside you" to someone next to her).
   // Re-taken on 2026-10-30 (fix/natural-talk, docs/NATURAL_TALK_RESEARCH_2026-10-30.md): the world heading says the facts are what she already knows, as background, and V's
   // money band is told only when V's words are about money. Re-taken on the merge into main (2026-10-30) on top of the Natural speech re-take above.
   const expected = {
-    a: 'e7f631fd314860ed26210edf71bda8e2c5180ec695b59ebb0b92300a9497fd2e',
-    b: 'adfac732febe2746cf0a2463d2f0578308664c9d07fc479c5d3612e01d109425',
-    c: '51eabd30e30ee913c0bfd061cc768e6ab3a754704a63e6157a8a2f6a1710da67',
-    d: '125900a9b963a7bc439fadb5686db30b1dd0aa4398c101207758bcd6d5d3f50a',
-    e: '5217f1d89301a72b14b865b962a632024f7beb24ad228165abd486a7cd018afe',
-    f: '2c302ac5121216163649d52268d38046cb7175771f67a5a0123bd7f4906b22bf',
-    g: '201324ac78651be8aa9d9da5d15bbfcb315c7d5589cbd002365d8f57a54671f9',
+    a: 'ecdd7b1aa0d971a673e8355fb5716a6345266936a1bc0d7e1bd24d5cc4323337',
+    b: '20896a98390e237cc5b6de2fbe8b6925623787cff9fa677091dba0b70fbc1939',
+    c: '57e7c6fc686ea8d78436430bd42a74f978f20a0eda6938a4212424cf8ad17d7b',
+    d: 'f58e33938c43ae3b808821cfb84056f01cc525fdade32612f4f170f2b84a38bc',
+    e: '308ee20b4a7f78ee72cfe782e5719dc2a8acdd6f4d1e32329fb8926799dd94f4',
+    f: '2731b5d9c283c8e0eec923670bdf21bb2fae725175ecc4787afdd734e0d96384',
+    g: '7b0467247d97bd75bec26a9bb5302046a53f3607579cea740eddffce8fa0ccb6',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
   assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'da97a53ed834c7460ce047ccd35b20deff739664192e7a6d7c37030cbbfe8360');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
     'b73c697299ad24497e5a7b9fa8d1a6d8287f13173efdcc9ff0bbf9a2e21c7d5f');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '539b1340b00553033b4cce17f2e5d53439a778da8203672f49e12837b06562e3');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '242e27cc32634f51a2840034033d9847acaf7f334757e23efd4001f2f64261f9');
   assert.equal(sha(systemHead({persona: prompt.persona})), 'e280e404f9a7f4db6cf79db635db722f61f92b3189b561a30b75fe257938c856');
 });
 

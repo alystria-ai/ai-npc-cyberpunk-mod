@@ -164,6 +164,9 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   return result;
 }
 
+/** Is V's gear line part of this turn's prompt? Only when V's words are about clothes, V or gear (the change note and the nudity note come on their own). The bridge log says so (bridge/player-gear.mjs gearDiagnostic). */
+export const gearWantedFor = input => dynamicInfo.on('gear') && (asksAboutClothes(input?.text) || asksAboutSelf(input?.text) || asksAboutGear(input?.text));
+
 // The options the right-now block of a turn is built (and logged) with. `off`: the kinds Settings > Dynamic info turned off (bridge/dynamic-info.mjs).
 // `gap`: the time since V last talked to this character (Time since last talk; built once per turn id, so the several builds of one turn agree).
 export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input, undefined, dynamicInfo.off), off: dynamicInfo.off,
@@ -191,7 +194,7 @@ export function conversationContextBlocks(input) {
   // V's gear is said only when V's words are about it (2026-10-30, docs/NATURAL_TALK_RESEARCH_2026-10-30.md): told on every turn, a model narrated it ("you're wearing that suit
   // like a second skin" in answer to "I wouldn't mind coffee"). A turn that asks gets it in its own notes; a change still comes as the change note, and V topless or naked as the
   // right-now note. Out of the world part, the system message no longer changes when V changes clothes, so the prompt cache keeps it.
-  const gearWanted = on('gear') && (asked || asksAboutGear(input?.text));
+  const gearWanted = on('gear') && (asked || asksAboutGear(input?.text));   // gearWantedFor(input) says the same
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {

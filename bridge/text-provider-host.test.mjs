@@ -1211,3 +1211,79 @@ test('attachTextProvider: the picture of a turn comes from the vision policy, th
   assert.equal(phone.seen[0].visionImages, undefined, 'the phone host has no vision policy');
   assert.equal(calls.length, 1, 'turnImages was asked once in all');
 });
+
+// ---- A character does not say her own recent lines again (live 2026-10-31, Panam: "Oh, you're still here, huh?" in most replies; bridge/reply-variety.mjs) -----------------------
+
+const PANAM = {local: {profileKey: 'panam-palmer', name: 'Panam Palmer', channel: 'private'}};
+const PANAM_EARLIER = [
+  ['how are you these days', 'Oh, you’re still here, huh? I’m fine, just tired of Mitch’s grumbling. You wanna hear about it, or are you just gonna stand there looking all smug?'],
+  ['what happened?', 'Oh, you’re still here, huh? Fine. You wanna settle this bet, you’re gonna have to beat my time on that route. But you’re gonna need more than just a suit and a prayer.'],
+  ['what bet?', 'Five hundred eddies, huh? Well, you’re gonna need more than that to buy my silence. If you don’t drive that route with me in that damn suit, I’m gonna call you a coward in front of the whole damn camp.'],
+];
+const inPersonParts = (extra = {}) => parts({now: 'Right now (from the game, this turn only): You are with V in person. You are somewhere in Little China, Watson; exactly where is not given.', ...extra});
+
+test('the prompt of a character who repeats herself carries a note on her openers and phrases after V\'s words, and the exchanges shown leave out the later repeats', async () => {
+  const {server, memory, host, logs, close} = await harness(() => 'Mitch is bringing the truck round at dawn, so bring coffee.');
+  try {
+    for (const [v, r] of PANAM_EARLIER) memory.record({profileKey: 'panam-palmer', v, r});
+    await host.reply({...turn('so where do we meet', PANAM), contextParts: parts()});
+    const messages = server.requests.at(-1).body.messages;
+    const last = messages.at(-1).content;
+    assert.match(last, /Your last replies repeat themselves, so say this one in fresh words\. Do not open with "oh you're still here"/);
+    assert.match(last, /leave them out unless V asks/, 'two replies talked about a suit');
+    assert(last.indexOf('V says: so where do we meet') < last.indexOf('Your last replies repeat'), 'after V\'s words');
+    const shown = messages.filter(message => message.role === 'assistant').map(message => message.content);
+    assert.equal(shown.length, 3);
+    assert.match(shown[0], /^Oh, you’re still here, huh\?/, 'the first stays');
+    assert.doesNotMatch(shown[1], /^Oh, you’re still here, huh\?/, 'the second does not feed the pattern');
+    assert.equal(memory.recall({profileKey: 'panam-palmer'}).turns[1].r, PANAM_EARLIER[1][1], 'the memory keeps what was said');
+    assert(logs.some(line => /^Reply variety: profile=panam-palmer note of \d+ chars$/.test(line)), logs.join('|'));
+  } finally { await close(); }
+});
+
+test('a reply that opens with an opener she used before loses it, with no second request', async () => {
+  const {server, memory, host, logs, close} = await harness(() => 'Oh, you’re still here, huh? Mitch is bringing the truck round at dawn, so bring coffee.');
+  try {
+    for (const [v, r] of PANAM_EARLIER) memory.record({profileKey: 'panam-palmer', v, r});
+    const result = await host.reply({...turn('so where do we meet', PANAM), contextParts: inPersonParts()});
+    assert.equal(server.requests.length, 1);
+    assert.equal(result.text, 'Mitch is bringing the truck round at dawn, so bring coffee.');
+    assert(logs.some(line => line.includes('Reply variety: left 1 repeated sentence out of the reply')), logs.join('|'));
+    assert.equal(memory.recall({profileKey: 'panam-palmer'}).turns.at(-1).r, 'Mitch is bringing the truck round at dawn, so bring coffee.', 'the memory holds the reply that was spoken');
+  } finally { await close(); }
+});
+
+test('a sentence that only announces she is here goes in a talk in person, and stays on the phone', async () => {
+  const reply = 'I’m still here, standing right beside you. Mitch is bringing the truck round at dawn, so bring coffee.';
+  const person = await harness(() => reply);
+  try {
+    const result = await person.host.reply({...turn('so where do we meet', PANAM), contextParts: inPersonParts()});
+    assert.equal(result.text, 'Mitch is bringing the truck round at dawn, so bring coffee.');
+  } finally { await person.close(); }
+  const phone = await harness(() => reply);
+  try {
+    const result = await phone.host.reply({...turn('so where do we meet', {local: {...PANAM.local, channel: 'phone'}}), contextParts: parts({now: 'Right now (from the game, this turn only): You are messaging V by text on the phone, not talking to V in person.'})});
+    assert.equal(result.text, reply);
+  } finally { await phone.close(); }
+});
+
+test('clothes may come up again when V asks about them or the game read a change; otherwise the note says to leave them', async () => {
+  for (const [text, extra, allowed] of [['what do you think of my jacket', {}, true], ['so where do we meet', {volatile: 'Changed since you last saw V, and true right now: V is wearing a jacket.'}, true], ['so where do we meet', {}, false]]) {
+    const {server, memory, host, close} = await harness(() => 'Mitch is bringing the truck round at dawn, so bring coffee.');
+    try {
+      for (const [v, r] of PANAM_EARLIER) memory.record({profileKey: 'panam-palmer', v, r});
+      await host.reply({...turn(text, PANAM), contextParts: inPersonParts(extra)});
+      assert.equal(/leave them out unless V asks/.test(server.requests.at(-1).body.messages.at(-1).content), !allowed, text);
+    } finally { await close(); }
+  }
+});
+
+test('a battle or loot reaction carries no variety note and loses nothing', async () => {
+  const {server, memory, host, close} = await harness(() => 'Oh, you’re still here, huh? Watch the left side.');
+  try {
+    for (const [v, r] of PANAM_EARLIER) memory.record({profileKey: 'panam-palmer', v, r});
+    const result = await host.reply({...turn('[battle] a Maelstrom gonk is coming round the left', PANAM), reaction: {kind: 'battle'}, contextParts: inPersonParts()});
+    assert.doesNotMatch(server.requests.at(-1).body.messages.at(-1).content, /repeat themselves/);
+    assert.match(result.text, /^Oh, you’re still here, huh\?/);
+  } finally { await close(); }
+});

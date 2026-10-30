@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {parseGear, gearContext, gearDiagnostic, asksAboutGear, MAX_CHARS, GUIDANCE} from './player-gear.mjs';
 import {parseInput} from './protocol.mjs';
-import {conversationContext} from './quest-context.mjs';
+import {conversationContext, gearWantedFor} from './quest-context.mjs';
 import {turnKey} from './group-lookahead.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
@@ -139,7 +139,7 @@ test('the per-turn diagnostic says whether the gear line was in the context, or 
 test('the bridge logs the diagnostic once per reply, never for a reaction', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{gearDiagnostic, gearSeen\} from '\.\/player-gear\.mjs'/);
-  assert.match(bridge, /logNaturalSpeech\(input, result\);[^]*?const voice = addonHost\.usesVoiceContext\(input\.profileKey\);\s+try \{ if \(!input\.reaction\) console\.error\(`\[PlayerGear\] profile=\$\{input\.profileKey\} \$\{voice \? 'Player gear: none \(voice speaker\)' : gearDiagnostic\(input, \{memory: gearMemory, visible: isAmbientProfile\(input\.profileKey\)\}\)\}`\)/);
+  assert.match(bridge, /logNaturalSpeech\(input, result\);[^]*?const voice = addonHost\.usesVoiceContext\(input\.profileKey\);\s+try \{ if \(!input\.reaction\) console\.error\(`\[PlayerGear\] profile=\$\{input\.profileKey\} \$\{voice \? 'Player gear: none \(voice speaker\)' : gearDiagnostic\(input, \{memory: gearMemory, visible: isAmbientProfile\(input\.profileKey\), told: gearWantedFor\(input\)\}\)\}`\)/);
 });
 
 test('a recaptured snapshot never changes which group turn is which', () => {
@@ -1053,3 +1053,18 @@ test('the Outfit slot: the hidden flags failing to read leave the equipment desc
   local snap = gear:capture()
   assert(names(snap.clothing):find('outfit=Suit', 1, true) and snap.nudity == nil, names(snap.clothing))
 `));
+
+test('the bridge log says whether the gear line was in the prompt: read every turn, told only when the words of V are about it', () => {
+  const small = parseInput(JSON.stringify(turn({gear: gear(), text: 'how are you these days'})));
+  const asking = parseInput(JSON.stringify(turn({gear: gear(), text: 'what do you think of my jacket?'})));
+  assert.equal(gearWantedFor(small), false);
+  assert.equal(gearWantedFor(asking), true);
+  assert.match(gearDiagnostic(small, {told: gearWantedFor(small)}), /^Player gear: \d+ items, \d+ chars \(read, not in the prompt: the talk is not about it\)$/);
+  assert.match(gearDiagnostic(asking, {told: gearWantedFor(asking)}), /^Player gear: \d+ items, \d+ chars$/);
+  assert.match(gearDiagnostic(small), /^Player gear: \d+ items, \d+ chars$/, 'told by default');
+});
+
+test('eight turns of small talk in a row never carry the gear line, so a character has nothing to keep mentioning the suit', () => {
+  for (const text of ['how are you these days', 'what happened?', 'what bet?', 'so how do we resolve the bet', 'okay where', 'here 500 eddies', 'okay i accept the bet', 'so what is the plan for the route?'])
+    assert.ok(!/V's current gear|suit/i.test(conversationContext(parseInput(JSON.stringify(turn({gear: gear(), text}))))), text);
+});

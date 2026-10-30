@@ -45,7 +45,7 @@ const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 const LIFEPATHS = {nomad: 'Nomad', streetkid: 'Street Kid', corpo: 'Corpo'};
 // What a companion is doing, after "You are with V in person".
 const ACTIVITIES = {
-  following: ', on foot, following V', standing: ', standing near V', combat: ', in a fight alongside V',
+  following: ', on foot, following V', standing: '', combat: ', in a fight alongside V',
   'to-seat': ', walking over to sit down beside V', seated: ', sitting beside V',
   'getting-up': ', getting up from your seat beside V', passenger: ", riding along in V's vehicle",
   driving: ", driving V's vehicle", boarding: ", getting into V's vehicle",
@@ -74,7 +74,7 @@ const CALL_SUFFIX = " Treat this as fact: you are on a call, not with V, and you
 // told she was somewhere else kept asking V to come over while V stood beside her (live 2026-10-30). The first sentence is also the one said again right before V's words (bridge/mistral-prompt.mjs HERE).
 const NEAR_HOW = {phone: 'V is texting you on the phone instead of talking out loud', audio: 'V has you on a voice call on the phone instead of just talking to you',
   holo: 'V has you on a holocall on the phone instead of just talking to you'};
-const NEAR_NOTE = 'You can see and hear V right beside you. Answer as you would to V next to you: never ask V to come over or come here, never say you miss V or talk as if V were far away, and never say you cannot see V.';
+const NEAR_NOTE = 'You can see and hear V right beside you. Answer as you would to V next to you: never ask V to come over or come here, never say you miss V or talk as if V were far away, never say you cannot see V, and never point out that you are beside V.';
 // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body and goes where V goes. He knows what V sees and feels, so he gets
 // what a companion in person gets (company, health, heat, money), but never a place or a doing of his own.
 const HEAD_SUFFIX = ' Treat this as fact: you have no body here and go wherever V goes; never claim to be anywhere else, to touch, carry or'

@@ -127,7 +127,7 @@ test('battleTrigger and battleContext: a speak-up goes to its own trigger and ha
 
 test('a speak-up gets the right-now block, the tracked quest and (scene) the scene lines; no combat block, no V message, the automatic-reaction policy', () => {
   const calm = text(withInfo(null, () => conversationContextBlocks(parse(speak('calm')))));
-  assert.match(calm, /Right now \(from the game, this turn only\)/); assert.match(calm, /You are with V in person, standing near V/); assert.match(calm, /Heywood/);
+  assert.match(calm, /Right now \(from the game, this turn only\)/); assert.match(calm, /You are with V in person/); assert.match(calm, /Heywood/);
   assert.match(calm, /The Heist/); assert.match(calm, /Reach the vault door/);
   assert.doesNotMatch(calm, /Recent in-game conversation/, 'a calm moment has no scene');
   assert.doesNotMatch(calm, /Verified combat observations/);

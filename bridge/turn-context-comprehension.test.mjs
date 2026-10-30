@@ -35,7 +35,7 @@ test('a stranger and a phone contact get the money note too', () => {
 
 test('a companion in person is told what she is doing, who is with V and what is in her hand', () => {
   const text = turnContext(turn());
-  assert.match(text, /You are with V in person, standing near V\./);
+  assert.match(text, /You are with V in person\./);
   assert.match(text, /You have a weapon drawn in your hand\./);
   assert.match(text, /Also with V: Panam\./);
   const held = (holding, weapon) => turnContext(turn({turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding, weapon}]})}));
