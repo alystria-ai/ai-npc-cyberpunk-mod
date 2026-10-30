@@ -14,6 +14,7 @@ Needs Settings > Companions > Character bonds. Nothing changes while it is off.
    * `sting`: open and close enough, but V threatened or insulted them recently (more than the bond's hurt note level): not now.
    * `refuse`: a character who never would says no for their own reason, in their own way, and keeps the friendship. At any level.
    * `end`: V ends it (only while together): react in character, accept that it is over, no begging unless that is who they are.
+   * `already`: V asks (or says they love them) while the two are together already, a game romance on Auto included: answer as V's partner would, never a first yes or a not yet. Nothing changes.
    A spoken turn has no words yet when the context is built (the game sends a placeholder), so it carries the same decision as a condition ("If V says now that they love you ...") and only the transcript read after the reply can start or end anything.
 4. **After the reply** the decision is carried out once: the state is kept for the session (`RomanceBond.overlay`) and handed to the game as a change in `runtime/bonds-status.json` (`romance.changes`, ids newer than any a session had). Mod side: `mod/bonds.lua` writes the change into the save.
 

@@ -31,6 +31,9 @@ const BODY = Object.freeze({
   sting: 'V is asking you to be together, or has told you they love you. V hurt or insulted you recently and it still stings, so this is not the moment: say so in your own way and in your own voice, without cruelty, and without ruling out the future.',
   refuse: 'V is asking you to be together, or has told you they love you. You would not, and never will: {reason} Say no in your own way and in your own voice, plainly and without a lecture, '
     + 'and keep the friendship as it stands. Do not give in, do not leave the door open, do not apologise for who you are, and do not make a speech.',
+  // V asks again, or says they love you, while the two are together already (a game romance on Auto, or one that started here): the answer of a partner, never a first yes or a not yet.
+  already: 'V is asking you to be together, or has told you they love you, and you two are together already. Answer the way V\'s partner would, in your own way and in your own voice, in a sentence or two '
+    + '(warm, teasing, plain, whatever is true of you). Do not treat it as something new, and do not hold back or say it is too soon.',
   end: 'V is ending the relationship between you. It is over, and you accept that: react the way you truly would, in your own voice (hurt, angry, calm, sad, relieved, dignified), in a sentence or two. '
     + 'Do not beg, bargain, threaten or try to talk V out of it unless that is truly who you are, and do not make a speech.',
 });
@@ -106,7 +109,7 @@ export class RomanceBond {
       // The decision a proposal would get now (a spoken turn: the one it would get if V proposes), and the break up (only while together).
       const propose = decideProposal({trait, level, hurt, state});
       if (!spoken) {
-        const decision = kind === 'end' ? (together ? 'end' : null) : kind === 'propose' ? propose : null;
+        const decision = kind === 'end' ? (together ? 'end' : null) : kind === 'propose' ? (together ? 'already' : propose) : null;
         if (decision) turn = {decision, spoken: false, kind, note: decisionNote(decision, trait)};
       } else if (together || (propose && level >= SPOKEN_FROM_LEVEL)) {
         // Both a proposal and a break up may be spoken; only the one that can happen now gets a note.
