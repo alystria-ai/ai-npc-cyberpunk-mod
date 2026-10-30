@@ -399,7 +399,7 @@ function M.new(options)
         local message = failure(result, 'preset') or (saved and checkSentence(check) or nil)
         local info = saved and (check and check.state == 'checking' and ui.t('Checking…') or (state.tail and ('…' .. state.tail) or ui.t('Added'))) or (message and ui.t('Not added') or nil)
         local help = saved and (ui.t('Deletes the saved key.') .. '\n\n' .. ui.t('Saved on this computer only. Only the last four characters are ever shown.'))
-            or ui.t('Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 1,000 replies, is not offered in every country, and Google may use free-plan chats to improve its products.')
+            or ui.t('Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 500 replies, is not offered in every country, and Google may use free-plan chats to improve its products.')
         if message then help = message .. '\n\n' .. help end
         rows[#rows + 1] = {id = 'gemini-key', field = 'preset', label = ui.t('Google Gemini API key') .. (info and (' (' .. info .. ')') or ''),
             value = saved and ui.t('Remove') or ui.t('Add'), help = help, enabled = true, action = saved and 'clear-preset-gemini' or 'preset-gemini'}

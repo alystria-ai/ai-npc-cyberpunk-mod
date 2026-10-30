@@ -359,7 +359,7 @@ Notes:
 
 * **Why no function calling on the text routes**: measured earlier, a tool-calling turn returns only the tool call without spoken text, and models call tools nobody asked for. A classifier that sees
   V's line, her reply and a short list is the reliable form, and it is already the repo's pattern.
-* **Gemini limits** (GEMINI.md): about 15 requests a minute and roughly 1,000 replies a day on the free plan. The screen keeps the classifier to a tiny fraction of turns (a line must contain a verb stem and a slot
+* **Gemini limits** (GEMINI.md): about 15 requests a minute and roughly 500 replies a day on the free plan. The screen keeps the classifier to a tiny fraction of turns (a line must contain a verb stem and a slot
   word of a piece), and the two optional remarks per plan are the only other calls. A 429 ends the attempt silently.
 * **Local AI**: the request is one extra short generation of 12 tokens with at most 3 choices, which small models handle. It runs after the reply is published and yields to any live turn.
 * **Convai and the cap**: the shared key's 500 a day is untouched. The plan costs nothing beyond the turn V already made. The finish line on Convai is a templated Phone Chat or subtitle line.

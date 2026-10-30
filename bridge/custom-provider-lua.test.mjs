@@ -171,7 +171,7 @@ test('the Google Gemini page (second instance, kind gemini): its own channel, on
   for _, item in ipairs(gemini.rows()) do rows[item.id] = item end
   assert(#gemini.rows() == 1 and gemini.rows()[1].id == 'gemini-key' and rows['gemini-test'] == nil, 'the key row only: Test connection is gone')
   assert(rows['gemini-key'].label == 'Google Gemini API key' and rows['gemini-key'].value == 'Add' and rows['gemini-key'].action == 'preset-gemini')
-  for _, part in ipairs({'Google AI Studio', 'aistudio.google.com/apikey', 'no card', 'read from the clipboard once', 'about 1,000 replies', 'not offered in every country', 'improve its products'}) do
+  for _, part in ipairs({'Google AI Studio', 'aistudio.google.com/apikey', 'no card', 'read from the clipboard once', 'about 500 replies', 'not offered in every country', 'improve its products'}) do
     assert(rows['gemini-key'].help:find(part, 1, true), 'Gemini help lacks: ' .. part)
   end
   assert(not rows['gemini-key'].help:lower():find('recommend', 1, true))

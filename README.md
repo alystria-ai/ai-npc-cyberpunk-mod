@@ -27,7 +27,7 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 ## Free, three ways
 
 - **Fully local and free.** Download a Local AI pack, extract it into the game folder, and your characters think and speak entirely on your own PC (no server or other app to set up), with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
-- **Google Gemini, the free cloud option.** Fast replies, about a second to the first words, and light on your PC. Make a free key at Google AI Studio (a Google account is enough, no card), choose **Google Gemini (free plan)** in **Settings > AI provider**, press **Add** and you are done ([details](#google-gemini-free-plan)). About 1,000 replies a day, up to 15 a minute (Google sets the exact number). It is not offered in every country, and Google may use free-plan chats to improve its products.
+- **Google Gemini, the free cloud option.** Fast replies, about a second to the first words, and light on your PC. Make a free key at Google AI Studio (a Google account is enough, no card), choose **Google Gemini (free plan)** in **Settings > AI provider**, press **Add** and you are done ([details](#google-gemini-free-plan)). About 500 replies a day, up to 15 a minute (Google sets the exact number). It is not offered in every country, and Google may use free-plan chats to improve its products.
 - **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 500 turns a day. Install, start the game, talk.
 
 **Mistral.** Mistral used to give everyone a free API key with about 5,000 turns a day, but new accounts don't seem to get one any more. Still worth a try for that allowance and its Voxtral voice cloning: add it with the **Mistral** preset on the **Custom endpoint** page ([details](#mistral)).
@@ -155,7 +155,7 @@ The microphone only ever starts when you press the key. A recording stops by its
 | **Setup** | Download a Local AI pack | A free Google AI Studio key, press Add | None | Paste your own Convai key | Paste an endpoint URL, a model ID and (for most) a key, or press Add on the Mistral preset |
 | **Cost** | Free | Free | Free | Your Convai plan | What your provider charges. A server on your PC is free |
 | **Internet** | **Not needed** | Needed | Needed | Needed | Needed for a cloud endpoint, not for a server on your PC |
-| **Limit** | None | About 1,000 replies a day, up to 15 a minute (Google sets the exact number) | 500 turns a day (the service can change this), no other limit | Your Convai plan's limits | Your provider's |
+| **Limit** | None | About 500 replies a day, up to 15 a minute (Google sets the exact number) | 500 turns a day (the service can change this), no other limit | Your Convai plan's limits | Your provider's |
 | **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. A small fast model holds a character less tightly and sometimes invents details | Most refined: stays in character best | Same as the free tier | Depends on the model you choose |
 | **Reply speed** | Fast once the model is warm. The first reply after idle is slower | Fast cloud text: about a second to the first words, so the voice can start a second or two after you send | A few seconds (2 to 3.5 s measured) | Same | Depends on the endpoint and model |
 | **Memory kept** | On your computer | On your computer | On Convai's servers | On Convai's servers | On your computer |
@@ -202,7 +202,7 @@ The free cloud option: fast replies, about a second to the first words, and ligh
 | | **Google Gemini (free plan)** |
 | --- | --- |
 | Key | [aistudio.google.com/apikey](https://aistudio.google.com/apikey), a Google account, no card |
-| Limit | About 1,000 replies a day, up to 15 a minute. Google sets the exact number |
+| Limit | About 500 replies a day, up to 15 a minute. Google sets the exact number |
 | Speed | About a second to the first words, with an occasional slow one |
 | Where it is not offered | Russia (not on Google's list of countries) |
 | Your chats | Google may use free-plan chats to improve its products |

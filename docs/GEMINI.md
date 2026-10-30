@@ -59,7 +59,7 @@ The page has one row: the key (Add or Remove).
 
 ### Limits
 
-The free plan has a daily and a per-minute cap per key. Measured with the owner's key: 15 requests a minute. Google does not publish the exact daily number (trackers say 500 to 1,500 for Flash-Lite), so the player documents say about 1,000 replies a day, up to 15 a minute, and that Google sets the exact number. The plan is not offered in every country (Russia is not on Google's list), and Google may use free-plan chats to improve its products. Replies start in about 1 to 1.5 s, with an occasional slow one. Research and numbers: [FREE_CLOUD_OPTION_RESEARCH.md](FREE_CLOUD_OPTION_RESEARCH.md), "Update 2026-10-30".
+The free plan has a daily and a per-minute cap per key. Measured with the owner's key: 15 requests a minute. Google does not publish the exact daily number, but its 429 names it: on 30 Oct 2026 a used-up key answered `limit: 500` with quotaId `GenerateRequestsPerDayPerProjectPerModel-FreeTier` for `gemini-flash-lite-latest` (the same for `gemini-3.5-flash-lite`). So the player documents say about 500 replies a day, up to 15 a minute, and that Google sets the exact number. The allowance is per model: `gemini-3.5-flash` still answered on the same key. The plan is not offered in every country (Russia is not on Google's list), and Google may use free-plan chats to improve its products. Replies start in about 1 to 1.5 s, with an occasional slow one. Research and numbers: [FREE_CLOUD_OPTION_RESEARCH.md](FREE_CLOUD_OPTION_RESEARCH.md), "Update 2026-10-30".
 
 ## Moving earlier setups (`migrateEarlierSetups`)
 
