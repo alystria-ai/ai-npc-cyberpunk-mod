@@ -20,6 +20,7 @@ import {packGate, explainGate, validatePack, shippedPacks, blockingQuest, tracke
 import {intentKind} from './bond-intent.mjs';
 import {debts} from './eddies.mjs';
 import {channelOf} from './bonds.mjs';
+import {QUEST_NEAR_NOTE} from './turn-context.mjs';
 import {questStates, questState, finished, inventoryComplete} from './bonds.mjs';
 import {placesOf, referencesOf} from './quest-format.mjs';
 import {ReachOuts} from './reach-outs.mjs';
@@ -33,6 +34,14 @@ const DAY = 86400, HOUR = 3600;
 export const ROLLBACK_SLACK = 120;
 export const MAX_ACTIVE = 2;
 export const COOLDOWN_DAYS = 7;
+/**
+ * The dice of a pack start. They used to be thrown once per game day per character, so one lost roll silenced the character for the whole day, and a player who
+ * talked to Panam for an hour with the gate open could still never be invited (live test 30 Oct). Now an eligible private turn (the gate of some pack is open)
+ * rolls at the pack's `start.chance`, but only every ROLL_EVERY_TURNS eligible turns (a long talk is a few chances, not one per sentence) and at most
+ * DAILY_ROLLS rolls per character per game day (the cap that keeps it rare: a character who can start a quest starts one on about half the days at a chance of 0.5,
+ * never on every turn). Spam is held down further by the quiet days after a quest (COOLDOWN_DAYS), one hangout a game day and MAX_ACTIVE.
+ */
+export const DAILY_ROLLS = 3, ROLL_EVERY_TURNS = 3;
 export const ENDING_NOTE_DAYS = 3;
 /** Lasting lines of shared history kept per character, and how many of them a turn's note carries. */
 export const HISTORY_KEEP = 8, HISTORY_NOTE = 3;
@@ -148,7 +157,7 @@ export class BondPacks {
   }
 
   #blankMeta() {
-    return {rolled: null, endedAt: null, history: [], talkedAt: null, romance: null, hangoutDay: null, cap: null, gifts: {used: [], day: null}, reachNote: null, offer: null, hangouts: {}};
+    return {rolled: null, rolls: 0, idle: ROLL_EVERY_TURNS - 1, endedAt: null, history: [], talkedAt: null, romance: null, hangoutDay: null, cap: null, gifts: {used: [], day: null}, reachNote: null, offer: null, hangouts: {}};
   }
 
   /** The meta row of a character (made when it is not there yet). */
@@ -161,6 +170,8 @@ export class BondPacks {
   #cleanMeta(row) {
     const meta = this.#blankMeta();
     meta.rolled = whole(row.rolled) ? row.rolled : null;
+    meta.rolls = whole(row.rolls) ? Math.min(row.rolls, DAILY_ROLLS) : 0;
+    meta.idle = whole(row.idle) ? Math.min(row.idle, ROLL_EVERY_TURNS) : ROLL_EVERY_TURNS - 1;
     meta.endedAt = whole(row.endedAt) ? row.endedAt : null;
     meta.history = this.#cleanHistory(row.history);
     meta.talkedAt = whole(row.talkedAt) ? row.talkedAt : null;
@@ -224,7 +235,7 @@ export class BondPacks {
       const entries = {}, meta = {};
       for (const [id, entry] of this.entries) entries[id] = {trail: entry.trail, presented: entry.presented, beat: entry.beat, ...(entry.gap ? {gap: entry.gap} : {}), ...(entry.variation ? {variation: entry.variation} : {}), ...(entry.via ? {via: entry.via} : {})};
       for (const [key, row] of this.meta) {
-        meta[key] = {rolled: row.rolled, endedAt: row.endedAt, ...(row.history?.length ? {history: row.history} : {}), ...(row.talkedAt !== null ? {talkedAt: row.talkedAt} : {}),
+        meta[key] = {rolled: row.rolled, rolls: row.rolls, idle: row.idle, endedAt: row.endedAt, ...(row.history?.length ? {history: row.history} : {}), ...(row.talkedAt !== null ? {talkedAt: row.talkedAt} : {}),
           ...(row.romance ? {romance: row.romance} : {}), ...(row.hangoutDay !== null ? {hangoutDay: row.hangoutDay} : {}), ...(row.cap ? {cap: row.cap} : {}),
           ...(row.gifts.used.length || row.gifts.day !== null ? {gifts: row.gifts} : {}), ...(row.reachNote ? {reachNote: row.reachNote} : {}), ...(row.offer ? {offer: row.offer} : {}),
           ...(Object.keys(row.hangouts).length ? {hangouts: row.hangouts} : {})};
@@ -259,7 +270,7 @@ export class BondPacks {
     const limit = gameSeconds + ROLLBACK_SLACK, limitDay = Math.floor(limit / DAY);
     for (const row of this.meta.values()) {
       if (row.history?.some(item => item.at !== null && item.at > limit)) { row.history = row.history.filter(item => item.at === null || item.at <= limit); changed = true; }
-      if (row.rolled !== null && row.rolled > limitDay) { row.rolled = null; changed = true; }
+      if (row.rolled !== null && row.rolled > limitDay) { row.rolled = null; row.rolls = 0; changed = true; }
       if (row.endedAt !== null && row.endedAt > limit) { row.endedAt = null; changed = true; }
       if (row.talkedAt !== null && row.talkedAt > limit) { row.talkedAt = null; changed = true; }
       if (row.hangoutDay !== null && row.hangoutDay > limitDay) { row.hangoutDay = null; changed = true; }
@@ -395,7 +406,11 @@ export class BondPacks {
     const id = turnId(input);
     if (id && this.turns.has(id)) return this.turns.get(id);
     let decision = null;
-    try { decision = this.#decide(input, facts); } catch (error) { this.log(`turn failed: ${String(error?.message ?? error).slice(0, 120)}`); }
+    try {
+      decision = this.#decide(input, facts);
+      // She is beside V (the game's snapshot): a quest's invitation or a reach-out's note must not tell her to ask V to come over (facts.near, bridge/turn-context.mjs besideV).
+      if (facts.near === true && decision?.note) decision.note = `${decision.note}\n${QUEST_NEAR_NOTE}`;
+    } catch (error) { this.log(`turn failed: ${String(error?.message ?? error).slice(0, 120)}`); }
     if (id) {
       this.turns.set(id, decision);
       while (this.turns.size > 64) this.turns.delete(this.turns.keys().next().value);
@@ -485,7 +500,7 @@ export class BondPacks {
           decision.pack = pack; decision.entry = entry;
           // A stage reached just now was not shown yet, so V's words this turn do not answer it.
           if (!entry.presented) decision.evaluate = false;
-          lines.unshift(this.#stageNote(pack, stage, {channel, settings: {invitations: bonds.invitations === true}}, entry));
+          lines.unshift(this.#stageNote(pack, stage, {channel, near: facts.near === true, settings: {invitations: bonds.invitations === true}}, entry));
           if (entry.gap && pack.gaps?.[entry.gap.id]) decision.gap = {id: entry.gap.id, tags: pack.gaps[entry.gap.id].tags ?? []};
           decision.story = this.#storyFacts(pack, stage, entry, {channel, gameSeconds, eddies: bonds.eddies === true});
         } else {
@@ -497,7 +512,7 @@ export class BondPacks {
       const start = this.#tryStart(mine, input, {channel, gameSeconds, level: facts.level ?? 0, romance: facts.romance ?? null});
       if (start) {
         decision.start = start; decision.pack = start.pack;
-        lines.unshift(`${start.pack.start.bringUp} ${this.#stageNote(start.pack, start.pack.stages[0], {channel, settings: {invitations: bonds.invitations === true}}, null, start.variation)}`);
+        lines.unshift(`${start.pack.start.bringUp} ${this.#stageNote(start.pack, start.pack.stages[0], {channel, near: facts.near === true, settings: {invitations: bonds.invitations === true}}, null, start.variation)}`);
         decision.story = this.#storyFacts(start.pack, start.pack.stages[0], null, {channel, gameSeconds, eddies: bonds.eddies === true});
       }
     } else if (!activeRow) {
@@ -527,6 +542,7 @@ export class BondPacks {
     const bonds = input.bonds;
     // Story packs first, then hangouts; the pack an offer names comes before both.
     const ordered = [...mine.filter(pack => pack.id === offer?.pack), ...mine.filter(pack => pack.id !== offer?.pack && pack.kind !== 'hangout'), ...mine.filter(pack => pack.id !== offer?.pack && pack.kind === 'hangout')];
+    let ticked = false;
     for (const pack of ordered) {
       const hangout = pack.kind === 'hangout', offered = offer?.pack === pack.id, entry = this.entries.get(pack.id);
       if (hangout) {
@@ -535,14 +551,17 @@ export class BondPacks {
         const repeat = (pack.hangout?.repeatDays ?? HANGOUT_DEFAULTS.repeatDays) * DAY;
         if (entry && !(entry.status === 'done' && whole(entry.trail.at(-1).at) && gameSeconds >= entry.trail.at(-1).at + repeat)) { this.#waits(pack.id, gameSeconds, 'played not long ago'); continue; }
       } else if (entry || (quiet && !offered)) { this.#waits(pack.id, gameSeconds, entry ? `already ${entry.status === 'done' ? 'played' : 'running'}` : `quiet days after the last quest (${COOLDOWN_DAYS} game days)`); continue; }
-      if (!offered && meta.rolled === today) { this.#waits(pack.id, gameSeconds, 'the dice already rolled today'); continue; }
       const gate = packGate(pack, {level, journalHistory: input.journalHistory, romance, channel, finishedPacks, busy: bonds.busy === true,
         settings: {eddies: bonds.eddies === true, invitations: bonds.invitations === true}, facts: pack.requires?.facts ? this.#facts() : null});
       if (!gate.open) { this.#waits(pack.id, gameSeconds, explainGate(gate, pack, {level, channel, romance})); continue; }
-      // The dice are thrown once a game day per character, only when a pack could start.
+      // The dice (DAILY_ROLLS above): only when a pack could start, every ROLL_EVERY_TURNS eligible turns, at most DAILY_ROLLS a game day per character.
       if (!offered) {
-        meta.rolled = today; this.#schedule();
-        if (this.random() >= pack.start.chance) { this.#waits(pack.id, gameSeconds, `the dice said no today (chance ${pack.start.chance})`); return null; }
+        if (meta.rolled !== today) { meta.rolled = today; meta.rolls = 0; meta.idle = ROLL_EVERY_TURNS - 1; }   // the first eligible turn of a game day rolls at once
+        if (meta.rolls >= DAILY_ROLLS) { this.#waits(pack.id, gameSeconds, `the ${DAILY_ROLLS} rolls of today are used`); return null; }
+        if (!ticked) { meta.idle += 1; ticked = true; this.#schedule(); }
+        if (meta.idle < ROLL_EVERY_TURNS) { this.#waits(pack.id, gameSeconds, `the next roll comes after ${ROLL_EVERY_TURNS - meta.idle} more talk turns`); return null; }
+        meta.rolls += 1; meta.idle = 0; this.#schedule();
+        if (this.random() >= pack.start.chance) { this.#waits(pack.id, gameSeconds, `the dice said no (chance ${pack.start.chance}, roll ${meta.rolls} of ${DAILY_ROLLS} today)`); return null; }
       }
       return {pack, offered, restart: !!entry, variation: hangout ? this.#nextVariation(pack, meta) : null};
     }
@@ -550,13 +569,14 @@ export class BondPacks {
   }
 
   /** The words the character is given for a stage. Second person, no pack or stage talk. A hangout's variation adds its own know and wants. */
-  #stageNote(pack, stage, {channel, settings}, entry = null, variationId = entry?.variation ?? null) {
+  #stageNote(pack, stage, {channel, settings, near = false}, entry = null, variationId = entry?.variation ?? null) {
     const variation = variationId ? pack.hangout?.variations?.find(item => item.id === variationId) : null;
     const parts = [`What is going on between you and V right now (your own story with V, never call it a story, a quest or a stage): ${stage.know}${variation?.know ? ` ${variation.know}` : ''}`];
     if (stage.wants || variation?.wants) parts.push(`What you want from V: ${[stage.wants, variation?.wants].filter(Boolean).join(' ')}`);
     if (stage.meet) {
       parts.push(settings.invitations || pack.requires?.invitations !== true
-        ? `You would like V to meet you ${WHERE[stage.meet.where]}, within about ${stage.meet.inGameHours} game hours. V arranges it with you in V's own words.`
+        ? near ? `You would like to go ${stage.meet.where === 'here' ? 'somewhere' : WHERE[stage.meet.where].replace(/^at /, 'to ')} together with V, within about ${stage.meet.inGameHours} game hours. V is beside you, so you go from here, and V arranges it with you in V's own words.`
+        : `You would like V to meet you ${WHERE[stage.meet.where]}, within about ${stage.meet.inGameHours} game hours. V arranges it with you in V's own words.`
         : 'You would like to meet V, but meetings cannot be arranged now: say you will sort it out yourself.');
     }
     if (stage.ask && channel !== 'own') parts.push('Eddies can only change hands when V is with you in person: if V offers money, say V should come to you.');
@@ -680,7 +700,9 @@ export class BondPacks {
       if (!found) return false;
       if (whole(at)) this.lastClock = Math.max(this.lastClock ?? 0, at);
       const {character, trigger} = found;
-      const note = `You have just reached out to V first, with this message: "${trigger.text}" ${trigger.note ? `What is behind it: ${trigger.note} ` : ''}V's next words are the answer to it. Answer as the one who wrote it, in your own words, and do not repeat the message.`;
+      // The line that was shown: a partner got the partnerText (bridge/reach-outs.mjs eligible), and her answer must be to those words.
+      const sent = trigger.partnerText && this.meta.get(character)?.romance === 'partner' ? trigger.partnerText : trigger.text;
+      const note = `You have just reached out to V first, with this message: "${sent}" ${trigger.note ? `What is behind it: ${trigger.note} ` : ''}V's next words are the answer to it. Answer as the one who wrote it, in your own words, and do not repeat the message.`;
       this.#meta(character).reachNote = {text: note.slice(0, 850), left: REACH_NOTE_TURNS, at: whole(at) ? at : null};
       if (trigger.offer) this.offer(trigger.offer, at);
       this.log(`reach=${id} delivered`);

@@ -100,16 +100,26 @@ test('a pack starts on a private turn of V\'s only when the gate is open, the di
   assert.match(noteOf(runner, turn('panam-palmer', t0 + 60, base)), /scav crew took your Mackinaw/);
 });
 
-test('the dice are thrown once a game day; a lost roll waits for the next day; Phone Chat and a holocall start it, a game-placed character does not', () => {
-  let roll = 0.9;
-  const {runner} = make({random: () => roll});
+test('the dice: the first eligible turn of a game day rolls, a lost roll waits for 3 more eligible turns, 3 rolls a day at most; Phone Chat and a holocall start it, a game-placed character does not', () => {
+  let roll = 0.9, rolls = 0;
+  const {runner} = make({random: () => { rolls++; return roll; }});
   const base = {journalHistory: journal(JUDY_DONE)};
   const phone = (at, extra = {}) => turn('judy-alvarez', at, {...base, channel: 'phone', id: `p-${at}`, requestId: undefined, ...extra}, {copy: null});
-  assert.equal(noteOf(runner, phone(10 * DAY), {level: 6}), '', 'the dice said no');
+  const say = at => noteOf(runner, phone(at), {level: 6});
+  assert.equal(say(10 * DAY), '', 'the dice said no');
+  assert.equal(rolls, 1);
+  // One lost roll no longer silences the day: the next rolls come after 3 more eligible turns (not on the turns between).
+  assert.equal(say(10 * DAY + 100), ''); assert.equal(say(10 * DAY + 200), '');
+  assert.equal(rolls, 1, 'two turns later: still the first roll');
+  assert.equal(say(10 * DAY + 300), ''); assert.equal(rolls, 2, 'the third eligible turn after a roll rolls again');
+  for (let i = 1; i <= 3; i++) say(10 * DAY + 400 + i);
+  assert.equal(rolls, 3, 'the third roll of the day');
+  for (let i = 1; i <= 12; i++) say(10 * DAY + 500 + i);
+  assert.equal(rolls, 3, 'never more than 3 rolls a game day, however long the talk');
   roll = 0;
-  assert.equal(noteOf(runner, phone(10 * DAY + 100), {level: 6}), '', 'no second roll the same game day');
+  assert.equal(say(10 * DAY + 900), '', 'the rolls of the day are used, even with the dice for it');
   const next = phone(11 * DAY);
-  assert.match(noteOf(runner, next, {level: 6}), /dinner party coming up/);
+  assert.match(noteOf(runner, next, {level: 6}), /dinner party coming up/, 'the first eligible turn of the next day rolls at once');
   runner.afterTurn(next, 'hi');
   assert.equal(runner.entries.get('judy-dinner-dress').status, 'active');
   const call = make().runner;
@@ -118,6 +128,18 @@ test('the dice are thrown once a game day; a lost roll waits for the next day; P
   assert.equal(noteOf(make().runner, turn('judy-alvarez', 12 * DAY, base, {copy: null}), {level: 6}), '');
   // A phone message the character starts (an event) never starts a pack.
   assert.equal(noteOf(make().runner, turn('judy-alvarez', 12 * DAY, {...base, channel: 'phone', event: {kind: 'arrived'}}, {copy: null}), {level: 6}), '');
+});
+
+test('a fair chance: at 0.5 a long talk with the gate open invites within a few turns, and the rolls and the spacing are saved with the save', () => {
+  const rolls = [0.9, 0.9, 0.2];
+  const {runner} = make({random: () => rolls.shift() ?? 0.9});
+  const base = {journalHistory: journal(JUDY_DONE)};
+  const phone = at => turn('judy-alvarez', at, {...base, channel: 'phone', id: `q-${at}`, requestId: undefined}, {copy: null});
+  let started = null;
+  for (let i = 0; i < 12 && !started; i++) started = runner.forTurn(phone(20 * DAY + i * 60), {level: 6}).pack?.id ?? null;
+  assert.equal(started, 'judy-dinner-dress', 'the third roll (turn 7) was the lucky one: the talk is not lost to one bad roll');
+  const meta = runner.meta.get('judy-alvarez');
+  assert.deepEqual([meta.rolled, meta.rolls], [20, 3]);
 });
 
 test('Panam: the ask carries the Eddies story; V\'s loan moves her to repay, the repayments end it, the bond is rewarded, the ending is remembered for 3 days', async () => {

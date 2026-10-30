@@ -75,6 +75,18 @@ const CALL_SUFFIX = " Treat this as fact: you are on a call, not with V, and you
 const NEAR_HOW = {phone: 'V is texting you on the phone instead of talking out loud', audio: 'V has you on a voice call on the phone instead of just talking to you',
   holo: 'V has you on a holocall on the phone instead of just talking to you'};
 const NEAR_NOTE = 'You can see and hear V right beside you. Answer as you would to V next to you: never ask V to come over or come here, never say you miss V or talk as if V were far away, and never say you cannot see V.';
+/**
+ * Is the character of this turn standing within a few metres of V (the party row of the game's snapshot says `near`)? Phone Chat and calls answer as in person then (above),
+ * and so must everything else that tells her what she wants of V: a quest's invitation, a reach-out V is answering (bridge/bond-pack-runner.mjs).
+ */
+export function besideV(input) {
+  try {
+    const snapshot = input?.turnContext === undefined ? undefined : parseTurnContext(input.turnContext);
+    return snapshot?.status === 'ready' && (snapshot.party ?? []).some(row => row.key === input.profileKey && row.near === true);
+  } catch { return false; }
+}
+/** The sentence a quest or reach-out note gets when she is beside V: the plan is something to do together from here, not somewhere V has to come to. */
+export const QUEST_NEAR_NOTE = "V is right beside you at this moment, even if V is writing or calling. Whatever you want from V in all of this, say it as someone standing next to V: an invitation is 'let's go' or 'come with me' (together, from here), never 'come over', 'come here', 'where are you' or 'I miss you', and never talk as if V were far away.";
 // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body and goes where V goes. He knows what V sees and feels, so he gets
 // what a companion in person gets (company, health, heat, money), but never a place or a doing of his own.
 const HEAD_SUFFIX = ' Treat this as fact: you have no body here and go wherever V goes; never claim to be anywhere else, to touch, carry or'

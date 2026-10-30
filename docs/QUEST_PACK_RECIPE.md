@@ -25,7 +25,7 @@ mod's translation, but pack text is data and stays English.
 | `requires.invitations` | true when the quest says it needs Immersive invitations (any quest that places her copy or meets V) |
 | `requires.eddies` | true when a stage asks for or pays eddies |
 | `start.channels` | `["own","phone","holocall"]` unless the quest says otherwise |
-| `start.chance` | 0.5 for a light quest, 0.35 for a deep one |
+| `start.chance` | the chance of each roll (up to 3 a game day, one per 3 eligible turns): 0.5 for a light quest, 0.35 for a deep one |
 | `start.bringUp` | the Premise, in the second person, ending with how she brings it up in her own way |
 
 ## 2. Places, lines, gaps, images
