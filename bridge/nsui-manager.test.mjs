@@ -210,14 +210,20 @@ test('a change is applied for real after a moment, as one transaction; rows the 
 test('a slider is applied once, after it stops moving, and the page is not drawn again while it is held', () => run(`${harness()}
   press('Settings')
   local volume = ns.find('Voice volume (%)')
-  assert(volume.type == 'rangeInt' and volume.min == 50 and volume.max == 200 and volume.step == 5)
+  assert(volume.type == 'rangeInt' and volume.min == 50 and volume.max == 300 and volume.step == 5)
+  local vVolume = ns.find('V’s voice volume (%)')
+  assert(vVolume.type == 'rangeInt' and vVolume.min == 50 and vVolume.max == 300 and vVolume.step == 5 and vVolume.currentValue == 150 and volume.currentValue == 150, "V's own slider, same range, default 150")
   ns.resetCalls()
-  for _, value in ipairs({105, 110, 120, 135, 150}) do ns.interact.slide(volume, value); frames(2, 0.1) end
-  assert(manager.snapshot(player).settings.voiceVolume == 100, 'nothing saved while it moves')
+  for _, value in ipairs({155, 160, 180, 235, 300}) do ns.interact.slide(volume, value); frames(2, 0.1) end
+  assert(manager.snapshot(player).settings.voiceVolume == 150, 'nothing saved while it moves')
   frames(10)
-  assert(saved.voiceVolume == 150, tostring(saved.voiceVolume))
-  assert(ns.find('Voice volume (%)') == volume and volume.currentValue == 150)
+  assert(saved.voiceVolume == 300 and saved.vVoiceVolume == 150, tostring(saved.voiceVolume) .. ' / ' .. tostring(saved.vVoiceVolume))
+  assert(ns.find('Voice volume (%)') == volume and volume.currentValue == 300)
   assert(ns.callCount('removeOption') == 0, 'the slider was not rebuilt')
+  -- V's slider is applied the same way and leaves the other one alone.
+  ns.interact.slide(vVolume, 250); frames(10)
+  assert(saved.vVoiceVolume == 250 and saved.voiceVolume == 300, tostring(saved.vVoiceVolume) .. ' / ' .. tostring(saved.voiceVolume))
+  assert(ns.find('V’s voice volume (%)') == vVolume and vVolume.currentValue == 250 and ns.callCount('removeOption') == 0)
   -- Several quick drags in a row never wait for ever: the wait is capped.
   for value = 100, 160, 5 do ns.interact.slide(volume, value); frames(1, 0.5) end
   frames(10)
@@ -350,16 +356,16 @@ test('Restore defaults goes through the same validated path, only on the Setting
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
   press('Settings')
-  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
+  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, subtitleStyle = 'overhead', voiceVolume = 200, vVoiceVolume = 80, voiceProvider = 'convai',
     naturalSpeech = false}))
   frames(20)
   assert(ns.find('React to battles').state == false and ns.find('Subtitles').selectedElementIndex == 3)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
+  assert(settings.lootReactions == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 150 and settings.vVoiceVolume == 150 and settings.battleReactions == true)
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
-  assert(ns.find('React to collected loot').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
+  assert(ns.find('React to collected loot').state == true and ns.find('Voice volume (%)').currentValue == 150 and ns.find('V’s voice volume (%)').currentValue == 150 and ns.find('Battle reactions') == nil)
   assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 2)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
   -- Restore defaults after the cloud voice was chosen puts the default voice back.

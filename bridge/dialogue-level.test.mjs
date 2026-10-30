@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {DIALOGUE_MAKEUP_DB, activeMakeupDb, applyGainLimited, dbToGain, dialogueLevel, integratedLoudness,
-  kWeighting, levelWav, updateDialogueLevel} from './dialogue-level.mjs';
+  kWeighting, levelWav, updateDialogueLevel, updateVoiceVolume} from './dialogue-level.mjs';
 import {readPcmWav, silentWav} from './speech-audio.mjs';
 import {ContinuousPcmPlayer, LIMITER, airCutoff} from './continuous-pcm-player.mjs';
 import {playbackControl} from './continuous-pcm-core.mjs';
@@ -65,6 +65,7 @@ test('levelWav, the offline helper, adds the level to any supported WAV and writ
 
 test('runtime/dialogue-level.json switches matching off, sets a calibrated level, and is clamped', () => {
   try {
+    updateVoiceVolume({voiceVolume: 100});   // the level file alone: the Voice volume at 100 adds nothing (its default is 150)
     assert.equal(updateDialogueLevel(''), false);
     assert.deepEqual(dialogueLevel(), {enabled: true, makeupDb: DIALOGUE_MAKEUP_DB});
     assert.equal(updateDialogueLevel('{"enabled": false}'), true);
@@ -73,14 +74,14 @@ test('runtime/dialogue-level.json switches matching off, sets a calibrated level
     updateDialogueLevel('{"makeupDb": 40}'); assert.equal(activeMakeupDb(), 12);
     // A partial write keeps the previous choice instead of resetting it.
     assert.equal(updateDialogueLevel('{"enab'), false); assert.equal(activeMakeupDb(), 12);
-  } finally { updateDialogueLevel(''); }
+  } finally { updateDialogueLevel(''); updateVoiceVolume({}); }
 });
 
 test('playback control accepts the level fields and rejects nonsense', () => {
   assert.deepEqual(playbackControl({allow: true, paused: false, volume: .5, pan: 0}),
     {allow: true, paused: false, volume: .5, pan: 0, makeupDb: 0, distance: null, delayMs: 0});
   assert.equal(playbackControl({allow: true, paused: false, makeupDb: 6, distance: 3.5}).distance, 3.5);
-  for (const bad of [{makeupDb: -7}, {makeupDb: 19}, {makeupDb: NaN}, {distance: -1}, {distance: Infinity}])
+  for (const bad of [{makeupDb: -7}, {makeupDb: 22}, {makeupDb: NaN}, {distance: -1}, {distance: Infinity}])
     assert.throws(() => playbackControl({allow: true, paused: false, ...bad}));
   assert.equal(airCutoff(2, 12000), 12000);
   assert.ok(Math.abs(airCutoff(30, 24000) - 5000) < 1);

@@ -3309,48 +3309,115 @@ test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and mi
   `);
 });
 
-test('Voice volume is a Voices slider (50 to 200, steps of 5, 100 by default) saved for the bridge', () => {
+test("Voice volume and V's voice volume are two Voices sliders (50 to 300, steps of 5, 150 by default) saved for the bridge", () => {
   run(`${nsuiFixture}
-    assert(manager.snapshot(player).settings.voiceVolume == 100)
+    assert(manager.snapshot(player).settings.voiceVolume == 150 and manager.snapshot(player).settings.vVoiceVolume == 150)
     assert(invoke('tab:settings').ok)
-    local item = assert(row('voiceVolume'))
-    assert(item.type == 'int' and item.value == 100 and item.defaultValue == 100)
-    assert(item.min == 50 and item.max == 200 and item.step == 5, 'a slider range, not a list of steps')
-    assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: the page shows only the number')
-    assert(not item.description:lower():find('recommended', 1, true))
-    -- It sits in the Voices category, after the voice and delay rows.
-    local category
+    for _, id in ipairs({'voiceVolume', 'vVoiceVolume'}) do
+      local item = assert(row(id), id)
+      assert(item.type == 'int' and item.value == 150 and item.defaultValue == 150, id)
+      assert(item.min == 50 and item.max == 300 and item.step == 5, 'a slider range, not a list of steps')
+      assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: the page shows only the number')
+      assert(not item.description:lower():find('recommended', 1, true))
+    end
+    assert(row('vVoiceVolume').label == 'V’s voice volume (%)')
+    assert(row('voiceVolume').description:find('companions', 1, true) and not row('voiceVolume').description:find('typed lines', 1, true), 'the Voice volume text names the companions, not V')
+    assert(row('vVoiceVolume').description:find('V’s own voice', 1, true))
+    -- Both sit in the Voices category, V's right under the Voice volume.
+    local category, at, vAt
     for _, c in ipairs(registered.loadMod('manager').categories or {}) do
-      for _, s in ipairs(c.settings) do if s.id == 'voiceVolume' then category = c.id end end
+      for index, s in ipairs(c.settings) do
+        if s.id == 'voiceVolume' then category, at = c.id, index end
+        if s.id == 'vVoiceVolume' then vAt = index; assert(c.id == 'voices') end
+      end
     end
     assert(category == 'voices', 'found in ' .. tostring(category))
+    assert(vAt == at + 1, "V's voice volume is the row right under the Voice volume: " .. tostring(at) .. ' and ' .. tostring(vAt))
     saved = nil
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 150}}).ok)
-    assert(manager.snapshot(player).settings.voiceVolume == 150)
-    assert(saved and saved.voiceVolume == 150, 'runtime/settings.json carries the value the bridge polls')
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 53}}).ok)
-    assert(manager.snapshot(player).settings.voiceVolume == 55, 'a value between steps lands on the nearest step')
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 200}}).ok and manager.snapshot(player).settings.voiceVolume == 200)
-    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 50}}).ok and manager.snapshot(player).settings.voiceVolume == 50)
-    for _, bad in ipairs({49, 201, 'loud', 0 / 0}) do
-      assert(not registered.applyBatch('manager', {{id = 'voiceVolume', value = bad}}).ok, 'refused: ' .. tostring(bad))
-      assert(not manager.applySettings(player, {voiceVolume = bad}))
+    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 120}}).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 120 and manager.snapshot(player).settings.vVoiceVolume == 150, 'the Voice volume leaves V alone')
+    assert(saved and saved.voiceVolume == 120 and saved.vVoiceVolume == 150, 'runtime/settings.json carries the values the bridge polls')
+    assert(registered.applyBatch('manager', {{id = 'vVoiceVolume', value = 250}}).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 120 and manager.snapshot(player).settings.vVoiceVolume == 250, "V's volume leaves the companions alone")
+    assert(saved.voiceVolume == 120 and saved.vVoiceVolume == 250)
+    for _, id in ipairs({'voiceVolume', 'vVoiceVolume'}) do
+      assert(registered.applyBatch('manager', {{id = id, value = 53}}).ok)
+      assert(manager.snapshot(player).settings[id] == 55, 'a value between steps lands on the nearest step')
+      assert(registered.applyBatch('manager', {{id = id, value = 300}}).ok and manager.snapshot(player).settings[id] == 300, 'the top is 300')
+      assert(registered.applyBatch('manager', {{id = id, value = 50}}).ok and manager.snapshot(player).settings[id] == 50)
+      assert(registered.applyBatch('manager', {{id = id, value = 100}}).ok and manager.snapshot(player).settings[id] == 100, 'a deliberate 100 is allowed')
+      for _, bad in ipairs({49, 301, 1000, 'loud', 0 / 0}) do
+        assert(not registered.applyBatch('manager', {{id = id, value = bad}}).ok, id .. ' refused: ' .. tostring(bad))
+        assert(not manager.applySettings(player, {[id] = bad}))
+      end
+      assert(manager.snapshot(player).settings[id] == 100, 'a refused value changes nothing')
     end
-    assert(manager.snapshot(player).settings.voiceVolume == 50, 'a refused value changes nothing')
+    -- Restore defaults puts both back on 150.
+    assert(registered.applyBatch('manager', core.defaults()).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 150 and manager.snapshot(player).settings.vVoiceVolume == 150)
   `);
 });
 
 test('a saved Voice volume survives loading, and a hand-edited value is brought back into range', () => {
-  for (const [stored, expected, rewritten] of [[130, 130, false], [999, 100, true], [133, 135, true]]) {
+  // [stored, expected, rewritten]: a hand-edited value goes back to the default or the nearest step (the old default 100 has its own test below).
+  for (const [stored, expected, rewritten] of [[130, 130, true], [300, 300, true], [999, 150, true], [301, 150, true], [133, 135, true], [49, 150, true], [150, 150, true]]) {
     run(`${managerFixture}
       seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, voiceVolume = ${stored}}
       for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
       files['runtime/settings.json'], saved = 'seed', nil
-      manager.reset(); manager.configure(api, profiles)
+      manager.reset(); manager.configure(api, profiles); manager.prepare(player)
       assert(manager.snapshot(player).settings.voiceVolume == ${expected}, 'loaded ' .. tostring(manager.snapshot(player).settings.voiceVolume))
-      if ${rewritten} then assert(saved ~= nil and saved.voiceVolume == ${expected}, 'a repaired value is written back') end
+      assert(manager.snapshot(player).settings.vVoiceVolume == ${expected}, "V starts from the player's Voice volume: " .. tostring(manager.snapshot(player).settings.vVoiceVolume))
+      if ${rewritten} then assert(saved ~= nil and saved.voiceVolume == ${expected} and saved.vVoiceVolume == ${expected}, 'a repaired value is written back') end
     `);
   }
+});
+
+test("the default Voice volume moved from 100 to 150: a saved 100 moves once, a later 100 and every other value stay, and V's voice volume starts from the Voice volume", () => {
+  run(`${managerFixture}
+    local function load(fields)
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}}
+      for key, value in pairs(fields) do seed[key] = value end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      return manager.snapshot(player).settings
+    end
+    -- A file from before the move (no voiceVolume150Given): the old default 100 becomes 150, for V too, and the marker is saved.
+    local s = load({voiceVolume = 100})
+    assert(s.voiceVolume == 150 and s.vVoiceVolume == 150, 'old default: ' .. tostring(s.voiceVolume) .. ' / ' .. tostring(s.vVoiceVolume))
+    assert(saved.voiceVolume == 150 and saved.vVoiceVolume == 150 and saved.voiceVolume150Given == true and saved.future.keep == 'unchanged')
+    -- Any other saved value stays, whatever it is, and V starts from it.
+    for _, value in ipairs({50, 55, 95, 105, 120, 150, 200, 300}) do
+      s = load({voiceVolume = value})
+      assert(s.voiceVolume == value and s.vVoiceVolume == value, 'kept ' .. value .. ': ' .. tostring(s.voiceVolume) .. ' / ' .. tostring(s.vVoiceVolume))
+      assert(saved.voiceVolume == value and saved.vVoiceVolume == value and saved.voiceVolume150Given == true)
+    end
+    -- No voiceVolume at all (a new install, or a file from long ago): 150 for both, with the marker.
+    s = load({})
+    assert(s.voiceVolume == 150 and s.vVoiceVolume == 150 and saved.voiceVolume150Given == true)
+    -- A file that has been through it: a deliberate 100 is kept (and V's own value too), and nothing is rewritten.
+    s = load({voiceVolume = 100, voiceVolume150Given = true, vVoiceVolume = 100})
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 100, 'a deliberate 100 stays: ' .. tostring(s.voiceVolume))
+    assert(saved == nil or (saved.voiceVolume == 100 and saved.vVoiceVolume == 100), 'a marked file is not changed')
+    s = load({voiceVolume = 100, voiceVolume150Given = true, vVoiceVolume = 220})
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 220, "V's own value is kept: " .. tostring(s.vVoiceVolume))
+    -- A marked file with the Voice volume but no V value (a file written by a build in between): V starts from the Voice volume.
+    s = load({voiceVolume = 100, voiceVolume150Given = true})
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 100 and saved.vVoiceVolume == 100, "V starts from the Voice volume: " .. tostring(s.vVoiceVolume))
+    -- V's value that is out of range or not a number is brought back to the Voice volume, not to 150.
+    for _, bad in ipairs({999, 49, 'loud', true}) do
+      s = load({voiceVolume = 80, voiceVolume150Given = true, vVoiceVolume = bad})
+      assert(s.voiceVolume == 80 and s.vVoiceVolume == 80 and saved.vVoiceVolume == 80, 'bad V value ' .. tostring(bad) .. ': ' .. tostring(s.vVoiceVolume))
+    end
+    -- The move happens one time only: the player puts the Voice volume on 100 after it, restarts, and it stays; V's own choice stays as well.
+    load({voiceVolume = 100})
+    assert(manager.applySettings(player, {voiceVolume = 100, vVoiceVolume = 75}) and saved.voiceVolume == 100 and saved.vVoiceVolume == 75)
+    assert(saved.voiceVolume150Given == true)
+    seed = saved; files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    s = manager.snapshot(player).settings
+    assert(s.voiceVolume == 100 and s.vVoiceVolume == 75, 'a later choice of 100 is kept: ' .. tostring(s.voiceVolume) .. ' / ' .. tostring(s.vVoiceVolume))
+  `);
 });
 
 test('Current party shows no Play or game voice row under Dismiss, in Developer mode or out of it', () => {

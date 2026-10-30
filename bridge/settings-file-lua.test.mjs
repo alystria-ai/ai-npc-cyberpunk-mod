@@ -15,7 +15,7 @@ const luaString = text => `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").r
 
 // A normalized settings table that differs from the defaults in values that matter to the bridge (provider, Mature, model, voice).
 const customised = {
-  ...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 150,
+  ...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 200, vVoiceVolume: 80,
   voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyInHead: true, johnnyRemarks: 'rare', subtitleStyle: 'overhead',
   naturalSpeech: true, replyLanguage: 'ja',
 };
@@ -81,7 +81,7 @@ for (const [label, text] of Object.entries(unreadable)) {
       report('settings', snapshot.settings)
       report('writes', writes('runtime/settings.json.tmp'))
     `);
-    for (const key of ['voice', 'conversationProvider', 'matureContent', 'localModel', 'voiceVolume', 'voiceProvider', 'omniSteps',
+    for (const key of ['voice', 'conversationProvider', 'matureContent', 'localModel', 'voiceVolume', 'vVoiceVolume', 'voiceProvider', 'omniSteps',
       'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'replyLanguage']) {
       assert.deepEqual(out.settings[key], customised[key], `${key} came back from the backup`);
     }
@@ -196,7 +196,8 @@ test('out-of-range and over-long values are replaced: model ids over 80 characte
     report('settings', snapshot.settings)
   `);
   assert.equal(out.settings.localModel, 'auto');
-  assert.equal(out.settings.voiceVolume, 100);
+  assert.equal(out.settings.voiceVolume, 150, 'a voice volume out of range is the default');
+  assert.equal(out.settings.vVoiceVolume, 150, 'and V starts from it');
   assert.equal(out.settings.audioDelay, 'auto');
   assert.equal(out.settings.eyeContactHeight, 0);
   assert.equal(out.settings.voiceProvider, 'pocket', 'any Pocket variant name is the one Pocket entry');
@@ -384,7 +385,7 @@ test('a crash at any step of the save leaves the old or the new settings for the
     `);
     assert.equal(out.crashed, true, `step ${crash} existed`);
     // One apply is one file: both of its values come back together or not at all.
-    assert.ok((out.provider === 'convai' && out.volume === 100) || (out.provider === 'local' && out.volume === 80), `step ${crash}: ${out.provider} ${out.volume}`);
+    assert.ok((out.provider === 'convai' && out.volume === 150) || (out.provider === 'local' && out.volume === 80), `step ${crash}: ${out.provider} ${out.volume}`);
     if (crash <= 4) assert.equal(out.provider, 'convai', `before the new file is in place (step ${crash}) the old settings stand`);
     if (crash === 6) assert.equal(out.provider, 'local', 'once the new file is in place the new settings stand');
   }

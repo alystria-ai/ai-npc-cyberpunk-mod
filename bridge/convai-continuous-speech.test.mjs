@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {DIALOGUE_MAKEUP_DB as MAKEUP, updateDialogueLevel, updateVoiceVolume} from './dialogue-level.mjs';
 
+// The default Voice volume (150%) on top of the dialogue level: what a control carries when nothing was chosen.
+const DEFAULT_MAKEUP = MAKEUP + 20 * Math.log10(1.5);
 const QUIET = {allow: false, paused: true, volume: 0, pan: 0};
 const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
 const poses = duration => Array.from({length: Math.round(duration * 30) + 1}, (_, i) => {
@@ -34,10 +36,14 @@ function fixture(input = owner, extra = {}) {
 test('the companion renderer control carries the Voice volume on top of the dialogue level, live between polls', async () => {
   try {
     const f = fixture(); f.control({distance: 6});
-    assert.equal((await f.stream.frame(f.snapshot({receivedFrames: 1920}))).makeupDb, MAKEUP, '100% is the dialogue level alone');
+    assert.ok(Math.abs((await f.stream.frame(f.snapshot({receivedFrames: 1920}))).makeupDb - (MAKEUP + 3.5218)) < 1e-3, 'the default 150% is +3.52 dB on the dialogue level');
+    updateVoiceVolume({voiceVolume: 100});
+    assert.equal((await f.stream.frame(f.snapshot({receivedFrames: 1920 + 1}))).makeupDb, MAKEUP, '100% is the dialogue level alone');
     updateVoiceVolume({voiceVolume: 200});
     const doubled = await f.stream.frame(f.snapshot({receivedFrames: 1920 * 2}));
     assert.ok(Math.abs(doubled.makeupDb - (MAKEUP + 6.0206)) < 1e-3, `${doubled.makeupDb}`);
+    updateVoiceVolume({voiceVolume: 300, vVoiceVolume: 50});
+    assert.ok(Math.abs((await f.stream.frame(f.snapshot({receivedFrames: 1920 * 2 + 1}))).makeupDb - (MAKEUP + 9.5424)) < 1e-3, "300%, and V's own volume is not part of it");
     updateVoiceVolume({voiceVolume: 50});
     assert.ok(Math.abs((await f.stream.frame(f.snapshot({receivedFrames: 1920 * 3}))).makeupDb - (MAKEUP - 6.0206)) < 1e-3);
     // Level matching off keeps the distance low-pass open, whatever the volume does to the gain.
@@ -96,7 +102,7 @@ test('continuous admission waits for PCM and text then publishes one descriptor 
   f.onPublished = () => f.control();
   // One validated packet (80 ms) admits the game lease; the renderer, not this
   // admission, withholds sound until its 400 ms startup prefix is buffered.
-  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 1920})), {allow: true, paused: false, volume: .8, pan: .2, makeupDb: MAKEUP});
+  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 1920})), {allow: true, paused: false, volume: .8, pan: .2, makeupDb: DEFAULT_MAKEUP});
   assert.deepEqual(f.events, ['state', 'reply', 'published', 'control']);
   assert.deepEqual(f.replies[0].continuous, {version: 1, id: 'continuous-1'});
   assert.equal(f.replies[0].profile, 'judy-alvarez');
@@ -183,7 +189,7 @@ test('duplicate and older control sequences cannot renew the game lease despite 
 test('a fresh matching pause and distance gain update preserves the same stream', async () => {
   const f = fixture(); f.control(); await f.stream.frame(f.snapshot());
   f.now += 300; f.control({sequence: 2, paused: true, volume: .1, pan: -1});
-  assert.deepEqual(await f.stream.frame(f.snapshot()), {allow: true, paused: true, volume: .1, pan: -1, makeupDb: MAKEUP});
+  assert.deepEqual(await f.stream.frame(f.snapshot()), {allow: true, paused: true, volume: .1, pan: -1, makeupDb: DEFAULT_MAKEUP});
   assert.equal(f.replies.length, 1);
 });
 
@@ -297,7 +303,7 @@ test('a sharing violation skips one publication instead of failing the utterance
   // After admission a skipped state keeps the current lease rather than stopping speech.
   failState = 1; f.control({sequence: 2});
   assert.deepEqual(await f.stream.frame(f.snapshot({positionSeconds: .1, state: 'playing'})),
-    {allow: true, paused: false, volume: .8, pan: .2, makeupDb: MAKEUP});
+    {allow: true, paused: false, volume: .8, pan: .2, makeupDb: DEFAULT_MAKEUP});
 });
 
 test('the final drained state is retried, and persistent or other write errors still fail', async () => {

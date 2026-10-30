@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {runInNewContext} from 'node:vm';
 import {DIALOGUE_MAKEUP_DB, LIMITER_CEILING_DB, MAX_TOTAL_DB, MIN_TOTAL_DB, VOICE_VOLUME, activeMakeupDb, applyGainLimited,
-  dbToGain, levelWav, updateDialogueLevel, updateVoiceVolume, voiceVolumeDb, voiceVolumeDbOf, voiceVolumePercent, voiceVolumePercentNow} from './dialogue-level.mjs';
+  dbToGain, levelWav, updateDialogueLevel, updateVoiceVolume, vVoiceVolumeDb, voiceVolumeDb, voiceVolumeDbOf, voiceVolumePercent, voiceVolumePercentNow,
+  vVoiceVolumePercentNow} from './dialogue-level.mjs';
 import {readPcmWav} from './speech-audio.mjs';
 import {playbackControl} from './continuous-pcm-core.mjs';
 import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
@@ -35,28 +36,51 @@ function wav16(samples, rate) {
 const pcmOf = bytes => { const {data} = readPcmWav(bytes); return Float32Array.from({length: data.length / 2}, (_, i) => data.readInt16LE(i * 2) / 32768); };
 const reset = () => { updateVoiceVolume({}); updateDialogueLevel(''); };
 
-test('the percent becomes dB: 100 is exactly unity, 200 is +6.02 dB, 50 is -6.02 dB; nonsense means 100', () => {
+test('the percent becomes dB: 100 is exactly unity, 300 is +9.54 dB, 50 is -6.02 dB; the default is 150; nonsense means 150', () => {
   try {
-    assert.deepEqual(VOICE_VOLUME, {min: 50, max: 200, step: 5, default: 100});
+    assert.deepEqual(VOICE_VOLUME, {min: 50, max: 300, step: 5, default: 150});
     assert.equal(voiceVolumeDbOf(100), 0);
-    assert.ok(Math.abs(voiceVolumeDbOf(200) - 6.0206) < 1e-3 && Math.abs(voiceVolumeDbOf(50) + 6.0206) < 1e-3);
-    assert.equal(voiceVolumePercent(undefined), 100); assert.equal(voiceVolumePercent('150'), 100); assert.equal(voiceVolumePercent(NaN), 100);
-    assert.equal(voiceVolumePercent(10), 50); assert.equal(voiceVolumePercent(900), 200); assert.equal(voiceVolumePercent(137.4), 137);
-    assert.equal(voiceVolumeDb(), 0, 'the default is untouched');
-    assert.equal(updateVoiceVolume({voiceVolume: 150}), true); assert.equal(voiceVolumePercentNow(), 150);
-    assert.equal(updateVoiceVolume({voiceVolume: 150}), false, 'an unchanged poll reports no change');
-    assert.equal(updateVoiceVolume(undefined), false, 'an unreadable settings file keeps the choice'); assert.equal(voiceVolumePercentNow(), 150);
-    assert.equal(updateVoiceVolume({}), true); assert.equal(voiceVolumePercentNow(), 100, 'a file without the key is 100');
+    assert.ok(Math.abs(voiceVolumeDbOf(300) - 9.5424) < 1e-3 && Math.abs(voiceVolumeDbOf(50) + 6.0206) < 1e-3 && Math.abs(voiceVolumeDbOf(150) - 3.5218) < 1e-3);
+    assert.equal(voiceVolumePercent(undefined), 150); assert.equal(voiceVolumePercent('100'), 150); assert.equal(voiceVolumePercent(NaN), 150);
+    assert.equal(voiceVolumePercent(10), 50); assert.equal(voiceVolumePercent(300), 300); assert.equal(voiceVolumePercent(305), 300); assert.equal(voiceVolumePercent(900), 300);
+    assert.equal(voiceVolumePercent(137.4), 137);
+    assert.equal(voiceVolumePercentNow(), 150, 'the start is the default'); assert.ok(Math.abs(voiceVolumeDb() - 3.5218) < 1e-3, 'the default is +3.52 dB');
+    assert.equal(updateVoiceVolume({voiceVolume: 100}), true); assert.equal(voiceVolumePercentNow(), 100); assert.equal(voiceVolumeDb(), 0, '100% is untouched');
+    assert.equal(updateVoiceVolume({voiceVolume: 100}), false, 'an unchanged poll reports no change');
+    assert.equal(updateVoiceVolume(undefined), false, 'an unreadable settings file keeps the choice'); assert.equal(voiceVolumePercentNow(), 100);
+    assert.equal(updateVoiceVolume({}), true); assert.equal(voiceVolumePercentNow(), 150, 'a file without the key is the default');
+  } finally { reset(); }
+});
+
+test("V's voice volume is its own value: separate from the Voice volume, clamped 50 to 300, and following the Voice volume only when the file has none", () => {
+  try {
+    assert.equal(vVoiceVolumePercentNow(), 150, 'the start is the default');
+    assert.equal(updateVoiceVolume({voiceVolume: 100, vVoiceVolume: 250}), true);
+    assert.equal(voiceVolumePercentNow(), 100); assert.equal(vVoiceVolumePercentNow(), 250);
+    assert.equal(voiceVolumeDb(), 0, 'the companions stay at unity'); assert.ok(Math.abs(vVoiceVolumeDb() - voiceVolumeDbOf(250)) < 1e-9);
+    assert.equal(updateVoiceVolume({voiceVolume: 100, vVoiceVolume: 250}), false, 'an unchanged poll reports no change');
+    assert.equal(updateVoiceVolume({voiceVolume: 100, vVoiceVolume: 100}), true, 'a change of V alone is a change'); assert.equal(vVoiceVolumeDb(), 0, '100% is untouched');
+    assert.equal(updateVoiceVolume({voiceVolume: 300, vVoiceVolume: 100}), true); assert.equal(vVoiceVolumeDb(), 0, 'the Voice volume never moves V');
+    assert.equal(updateVoiceVolume({voiceVolume: 50, vVoiceVolume: 900}), true); assert.equal(vVoiceVolumePercentNow(), 300, 'above 300 clamps');
+    assert.ok(Math.abs(vVoiceVolumeDb() - 9.5424) < 1e-3); assert.equal(updateVoiceVolume({voiceVolume: 50, vVoiceVolume: 3}), true); assert.equal(vVoiceVolumePercentNow(), 50, 'below 50 clamps');
+    // A file without vVoiceVolume (or with one that is not a number) gives V the Voice volume, so V keeps the loudness it had.
+    updateVoiceVolume({voiceVolume: 120}); assert.equal(vVoiceVolumePercentNow(), 120);
+    updateVoiceVolume({voiceVolume: 90, vVoiceVolume: 'loud'}); assert.equal(vVoiceVolumePercentNow(), 90);
+    assert.equal(updateVoiceVolume({}), true); assert.equal(vVoiceVolumePercentNow(), 150, 'an empty file is the default for both');
+    assert.equal(updateVoiceVolume(undefined), false);
   } finally { reset(); }
 });
 
 test('the voice volume adds to the dialogue level and the sum stays inside what the renderers accept', () => {
   try {
-    assert.equal(activeMakeupDb(), DIALOGUE_MAKEUP_DB, '100% leaves the dialogue level exactly as it was');
+    assert.ok(Math.abs(activeMakeupDb() - (DIALOGUE_MAKEUP_DB + 3.5218)) < 1e-3, 'the default 150% adds +3.52 dB to the dialogue level');
+    updateVoiceVolume({voiceVolume: 100}); assert.equal(activeMakeupDb(), DIALOGUE_MAKEUP_DB, '100% leaves the dialogue level exactly as it was');
     updateVoiceVolume({voiceVolume: 200});
     assert.ok(Math.abs(activeMakeupDb() - (DIALOGUE_MAKEUP_DB + 6.0206)) < 1e-3);
-    updateDialogueLevel('{"makeupDb": 12}'); assert.ok(Math.abs(activeMakeupDb() - MAX_TOTAL_DB) < 1e-9);
-    updateDialogueLevel('{"enabled": false}'); assert.ok(Math.abs(activeMakeupDb() - 6.0206) < 1e-3, 'matching off still takes the boost');
+    updateVoiceVolume({voiceVolume: 300, vVoiceVolume: 50});
+    assert.ok(Math.abs(activeMakeupDb() - (DIALOGUE_MAKEUP_DB + 9.5424)) < 1e-3, "300% is +9.54 dB, and V's own volume is not part of it");
+    updateDialogueLevel('{"makeupDb": 12}'); assert.ok(Math.abs(activeMakeupDb() - MAX_TOTAL_DB) < 1e-9); assert.ok(Math.abs(MAX_TOTAL_DB - 21.5424) < 1e-3);
+    updateDialogueLevel('{"enabled": false}'); assert.ok(Math.abs(activeMakeupDb() - 9.5424) < 1e-3, 'matching off still takes the boost');
     updateVoiceVolume({voiceVolume: 50}); assert.ok(Math.abs(activeMakeupDb() - MIN_TOTAL_DB) < 1e-9);
     updateVoiceVolume({voiceVolume: 100}); assert.equal(activeMakeupDb(), 0, 'matching off at 100% is the original path');
     // The player's admission takes every value the bridge can produce, and nothing beyond.
@@ -65,10 +89,11 @@ test('the voice volume adds to the dialogue level and the sum stays inside what 
   } finally { reset(); }
 });
 
-test('levelWav (the offline helper) with the active level: 100% is untouched loudness, 200% never clips, 50% is half amplitude', () => {
+test('levelWav (the offline helper) with the active level: 100% is untouched loudness, 200% and 300% never clip, 50% is half amplitude', () => {
   const rate = 24000;
   try {
     updateDialogueLevel('{"enabled": false}');   // the volume alone, without the dialogue-level gain
+    updateVoiceVolume({voiceVolume: 100});
     const quiet = wav16(sine(rate, 1.5, .1), rate), loud = wav16(sine(rate, 1.5, .95), rate);
     const at = source => pcmOf(levelWav(readPcmWav(source), activeMakeupDb()));
     assert.ok(Math.abs(rms(at(quiet)) / rms(pcmOf(quiet)) - 1) < .001, '100% with matching off keeps the loudness');
@@ -81,14 +106,19 @@ test('levelWav (the offline helper) with the active level: 100% is untouched lou
     assert.ok(peak(clipped) <= dbToGain(LIMITER_CEILING_DB) + 1e-3, `peak ${peak(clipped)} stays under the limiter ceiling`);
     assert.ok(peak(clipped) < .91 && peak(clipped) > .5, 'the limiter holds the peak down instead of flattening it to full scale');
 
+    updateVoiceVolume({voiceVolume: 300});
+    assert.ok(Math.abs(rms(at(quiet)) / rms(pcmOf(quiet)) - 3) < .02, 'below the ceiling 300% is three times the amplitude');
+    const tripled = at(loud);
+    assert.ok(peak(tripled) <= dbToGain(LIMITER_CEILING_DB) + 1e-3, `peak ${peak(tripled)} at 300% stays under the limiter ceiling`);
+
     updateVoiceVolume({voiceVolume: 50});
     assert.ok(Math.abs(rms(at(quiet)) / rms(pcmOf(quiet)) - .5) < .01);
   } finally { reset(); }
 });
 
-test('the worst case (full-scale speech, the most dialogue level, 200%) cannot reach full scale', () => {
+test('the worst case (full-scale speech, the most dialogue level, 300%) cannot reach full scale', () => {
   const rate = 24000, source = sine(rate, 1, 1);
-  for (const db of [6.0206, DIALOGUE_MAKEUP_DB + 6.0206, MAX_TOTAL_DB]) {
+  for (const db of [6.0206, 9.5424, DIALOGUE_MAKEUP_DB + 9.5424, MAX_TOTAL_DB]) {
     const out = applyGainLimited(source, rate, db);
     assert.ok(peak(out) <= dbToGain(LIMITER_CEILING_DB) + 1e-6, `${db.toFixed(2)} dB peaks at ${peak(out)}`);
   }
@@ -98,9 +128,10 @@ test('the worst case (full-scale speech, the most dialogue level, 200%) cannot r
   assert.equal(out.indexOf(Math.max(...out)), 2400);
 });
 
-test("V's voice: the renderer's control carries the Voice volume, and 100% adds nothing", async () => {
-  const controlsAt = async percent => {
-    updateVoiceVolume({voiceVolume: percent});
+test("V's voice: the renderer's control carries V's voice volume (not the Voice volume), and 100% adds nothing", async () => {
+  // The companions' Voice volume is set to something else every time: it must not reach V's control.
+  const controlsAt = async (percent, companions = percent === 100 ? 300 : 100) => {
+    updateVoiceVolume({voiceVolume: companions, vVoiceVolume: percent});
     const controls = [];
     const made = new VLine({input: {requestId: 'r1', profileKey: 'judy-alvarez', text: 'Hello Judy.'}, key: 'v-male', text: 'Hello Judy.',
       plan: {engine: 'pocket', language: 'en'}, volume: .6, clock: new TurnClock(), log: () => {},
@@ -114,8 +145,13 @@ test("V's voice: the renderer's control carries the Voice volume, and 100% adds 
   try {
     for (const control of await controlsAt(100)) assert.deepEqual(control, {allow: true, paused: false, volume: .6, pan: 0});
     for (const control of await controlsAt(200)) assert.ok(Math.abs(control.makeupDb - 6.0206) < 1e-3 && control.volume === .6);
+    for (const control of await controlsAt(300)) assert.ok(Math.abs(control.makeupDb - 9.5424) < 1e-3 && control.volume === .6, 'the most V can be given');
     for (const control of await controlsAt(50)) assert.ok(Math.abs(control.makeupDb + 6.0206) < 1e-3);
-    for (const control of await controlsAt(150)) playbackControl(control);   // and the renderer accepts it
+    for (const control of await controlsAt(150)) assert.ok(Math.abs(control.makeupDb - 3.5218) < 1e-3, 'the default is +3.52 dB');
+    for (const percent of [50, 100, 150, 300]) for (const control of await controlsAt(percent)) playbackControl(control);   // and the renderer accepts it
+    // The same companions' volume with a different V volume: V follows its own setting alone.
+    for (const control of await controlsAt(100, 50)) assert.deepEqual(control, {allow: true, paused: false, volume: .6, pan: 0});
+    for (const control of await controlsAt(300, 50)) assert.ok(Math.abs(control.makeupDb - 9.5424) < 1e-3);
   } finally { reset(); }
 });
 
@@ -169,7 +205,7 @@ async function omniControls(percent) {
   }});
   const current = async () => true; current.sync = () => true;
   try {
-    updateVoiceVolume({voiceVolume: percent});
+    updateVoiceVolume({voiceVolume: percent, vVoiceVolume: 300});   // V's own volume never reaches a companion's lease
     const speech = new ConvaiContinuousSpeech({input, profile, current, token: `${input.requestId}-token`, faceBuilder: ownedPocketFace,
       writeState: async () => true, writeReply: async () => true,
       readControl: async () => JSON.stringify({version: 1, id: `${input.requestId}-token`, requestId: input.requestId, entity: input.entity,
@@ -185,7 +221,7 @@ async function omniControls(percent) {
 }
 
 test('an OmniVoice reply carries the Voice volume to the renderer in every lease control, and 100% is the dialogue level alone', async () => {
-  for (const [percent, extra] of [[100, 0], [200, 6.0206], [50, -6.0206]]) {
+  for (const [percent, extra] of [[100, 0], [150, 3.5218], [200, 6.0206], [300, 9.5424], [50, -6.0206]]) {
     const controls = await omniControls(percent);
     assert.ok(controls.length > 0, `${percent}%: the renderer was admitted`);
     for (const control of controls) {

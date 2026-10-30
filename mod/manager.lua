@@ -73,9 +73,10 @@ local audioDelays = {'auto', 0, 50, 100, 150, 200, 250}
 -- (the bridge detects it from what you write), then the mod's other languages. A voice setting: with Voice playback off it does nothing.
 local replyLanguages = {'en', 'auto', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh'}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
--- Voice volume, in percent (Settings > Voices): a slider. 100 is the unchanged level; the bridge turns it into gain behind a
--- peak limiter for every voice, V's included (bridge/dialogue-level.mjs). Stored as a whole number of percent, in steps of 5.
-local voiceVolume = {min = 50, max = 200, step = 5, default = 100}
+-- Voice volume and V's voice volume, in percent (Settings > Voices): two sliders, 50 to 300. 100 is the unchanged level; the bridge turns each into gain behind a
+-- peak limiter (bridge/dialogue-level.mjs): Voice volume for every voice but V's, V's voice volume for V's spoken lines alone. Stored as a whole number of percent,
+-- in steps of 5. The default has been 150 since 2026-10-30 (it was 100): oldDefault is what a file from before that holds.
+local voiceVolume = {min = 50, max = 300, step = 5, default = 150, oldDefault = 100}
 local function cleanVoiceVolume(value)
     if type(value) ~= 'number' or value ~= value or value < voiceVolume.min or value > voiceVolume.max then return nil end
     return math.floor(value / voiceVolume.step + 0.5) * voiceVolume.step
@@ -821,6 +822,17 @@ local function loadSettings()
         if volume == nil or volume ~= settings.voiceVolume then
             settingsNeedSave = settingsNeedSave or settings.voiceVolume ~= nil
             settings.voiceVolume = volume or voiceVolume.default
+        end
+        -- The default moved from 100 to 150 (2026-10-30). The old default was saved as 100 and cannot be told from a choice of 100, so a file that has not been
+        -- through this (voiceVolume150Given) and holds 100 moves to 150 once; every other value stays. Afterwards the marker is set and a later choice of 100 is kept.
+        if settings.voiceVolume150Given ~= true then
+            if settings.voiceVolume == voiceVolume.oldDefault then settings.voiceVolume = voiceVolume.default end
+            settings.voiceVolume150Given, settingsNeedSave = true, true
+        end
+        -- V's voice volume starts from the player's (migrated) Voice volume, so V keeps the loudness relative to the companions that it had.
+        local vVolume = cleanVoiceVolume(settings.vVoiceVolume)
+        if vVolume == nil or vVolume ~= settings.vVoiceVolume then
+            settings.vVoiceVolume, settingsNeedSave = vVolume or settings.voiceVolume, true
         end
     end
     if settings.disappearingMessages ~= nil then
@@ -2296,6 +2308,7 @@ function M.snapshot(player)
             replyLanguage = settings.replyLanguage,
             micDevice = validMicLabel(settings.micDevice) and settings.micDevice or nil,
             voiceVolume = settings.voiceVolume,
+            vVoiceVolume = settings.vVoiceVolume,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps,
             omniReference = settings.omniReference,
@@ -2507,8 +2520,12 @@ function M.applySettings(player, values)
             nextSettings.micDevice = value ~= '' and value or nil
         elseif key == 'voiceVolume' then
             local volume = cleanVoiceVolume(value)
-            if not volume then return false, 'Choose a voice volume from 50 to 200 percent.' end
+            if not volume then return false, 'Choose a voice volume from 50 to 300 percent.' end
             nextSettings.voiceVolume = volume
+        elseif key == 'vVoiceVolume' then
+            local volume = cleanVoiceVolume(value)
+            if not volume then return false, 'Choose V’s voice volume from 50 to 300 percent.' end
+            nextSettings.vVoiceVolume = volume
         elseif key == 'subtitleStyle' then
             if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose one of the listed subtitle displays.' end
             nextSettings.subtitleStyle = value

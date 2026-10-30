@@ -240,7 +240,7 @@ export const managerLua = `
 // Every key a first start writes, with the value it gets when nothing is saved (mod/manager.lua loadSettings). The roster above gives
 // the seven enabledByKey entries. The legacy six-place "enabled" projection is written with them.
 export const freshSettings = {
-  version: 2, uiLanguage: 'auto', voice: true, subtitles: true, errorReports: true, subtitleStyle: 'dialogue', audioDelay: 'auto', replyLanguage: 'en', voiceVolume: 100,
+  version: 2, uiLanguage: 'auto', voice: true, subtitles: true, errorReports: true, subtitleStyle: 'dialogue', audioDelay: 'auto', replyLanguage: 'en', voiceVolume: 150, voiceVolume150Given: true, vVoiceVolume: 150,
   relationshipModes: {'judy-alvarez': 'auto', 'panam-palmer': 'auto', 'river-ward': 'auto', 'kerry-eurodyne': 'auto', 'meredith-stout': 'auto'},
   dynamicInfo: {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: false},
   immersive: {enabled: false, arrival: 'walk', delay: 0, wait: 5, waypoint: true, texts: true},

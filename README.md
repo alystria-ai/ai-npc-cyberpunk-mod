@@ -303,7 +303,7 @@ Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32.
 
 If the local voice you chose cannot run (OmniVoice or Pocket), your companions' replies show as text with one notice, and the voice comes back by itself when it recovers. The mod never moves you to a cloud voice behind your back: the Convai voice speaks only when you chose it. Voxtral has no fallback either, local or cloud: a line it cannot voice (no key, a cool-down, a language it does not speak) is shown as text, with one notice, and it speaks again by itself when it can.
 
-The same page also holds **Subtitles** (Off, Cinematic subtitles or Above the speaker), **Voice volume** (a slider from 50 to 200 percent for every mod voice, V's included; the game's own audio is untouched), **Lip sync delay (Bluetooth)**, **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default) and **V's voice for typed lines** and **V's voice for microphone lines**. Each of the last two is one list: **Off**, **Pocket · On your PC** (the default; it runs on your processor and starts in about 0.2 s) or **Voxtral · Mistral cloud** (made in the cloud with your Mistral key, loads nothing on your PC, speaks English and many other languages, and greyed out until you save a key). The choice is separate from the companions' voice, so any mix works: Pocket for V beside Voxtral companions, or Voxtral for V beside Pocket companions. V's voice is prepared before your first line, so it is normally audible well before the reply. If it is still not ready when the reply is, the reply waits at most 0.6 s for it and then goes on without it, and V's words always show as a subtitle.
+The same page also holds **Subtitles** (Off, Cinematic subtitles or Above the speaker), **Voice volume** (a slider from 50 to 300 percent, 150 by default, for the companions' and characters' voices), **V's voice volume** (its own slider right under it, 50 to 300 percent, 150 by default, for V's spoken lines only, and the game's own audio is untouched), **Lip sync delay (Bluetooth)**, **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default) and **V's voice for typed lines** and **V's voice for microphone lines**. Each of the last two is one list: **Off**, **Pocket · On your PC** (the default; it runs on your processor and starts in about 0.2 s) or **Voxtral · Mistral cloud** (made in the cloud with your Mistral key, loads nothing on your PC, speaks English and many other languages, and greyed out until you save a key). The choice is separate from the companions' voice, so any mix works: Pocket for V beside Voxtral companions, or Voxtral for V beside Pocket companions. V's voice is prepared before your first line, so it is normally audible well before the reply. If it is still not ready when the reply is, the reply waits at most 0.6 s for it and then goes on without it, and V's words always show as a subtitle.
 
 ## Smooth frames, fast replies
 
@@ -359,7 +359,8 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Eye contact height | Companion behavior | Default |
 | Head tracking strength | Companion behavior | Gentle |
 | Companion voices (Off, then the voices) | Voices | Pocket · Performance |
-| Voice volume (%) | Voices | 100 (50 to 200) |
+| Voice volume (%) | Voices | 150 (50 to 300) |
+| V's voice volume (%) | Voices | 150 (50 to 300) |
 | Lip sync delay (Bluetooth) | Voices | Auto |
 | Natural speech | Voices | Off |
 | V's voice for typed lines (Off, Pocket, Voxtral, OmniVoice) | Voices | Pocket |
@@ -1259,7 +1260,8 @@ The Settings page groups its rows in this order, one NSUI section each: Interfac
 | `voice` | Companion voices: Off (the first entry of the list) | on |
 | `voiceProvider`, `omniSteps`, `omniReference` | Companion voices | `pocket`, 16, `long` |
 | `audioDelay` | Lip sync delay: auto, 0, 50, 100, 150, 200, 250 ms | `auto` |
-| `voiceVolume` | Voice volume slider, 50 to 200 percent, for every mod voice and V's typed lines | 100 |
+| `voiceVolume` | Voice volume slider, 50 to 300 percent, for every mod voice except V's | 150 (a file saved with the old default 100 moves to 150 once, `voiceVolume150Given`) |
+| `vVoiceVolume` | V's voice volume slider, 50 to 300 percent, for V's spoken lines only (typed and microphone lines, every engine) | 150 (a new value starts from `voiceVolume`) |
 | `naturalSpeech` | Natural speech | off |
 | `dynamicInfo.*` (12: `location`, `time`, `company`, `condition`, `money`, `gear`, `about`, `quest`, `dialogue`, `lastTalk`, `media`, `mods`; all on except `mods`) | Settings > Conversations > Dynamic info (a page of its own: one switch per kind of live game info a turn can carry) | all on |
 | `immersive.*` (`enabled`, `arrival` walk/car, `delay` 0/2/5/10, `wait` 2/5/10, `waypoint`, `texts`) | Settings > Gameplay > Immersive invitations (a page of its own) | off, walk, 0, 5, on, on |
