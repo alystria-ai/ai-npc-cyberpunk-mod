@@ -6,15 +6,15 @@ latency equally, then everything else. The engine is llama.cpp `llama-server`, V
 
 How this was checked. The flag list and defaults were read from the llama.cpp server README on master and from `llama-server --help` of the b11560 build in `local-ai/llama-vulkan`
 (b11782 itself was not run for this note: every flag below is also in the master README, and the bench script fails loudly when a build refuses a flag). Checkpoint behaviour
-was read from `tools/server/server-context.cpp` on master. Earlier measurements of this project are cited with their dates. Nothing was measured on a GPU for this note,
-because the owner's machine was in use for a live game test. The measurements still owed are in "Measuring" at the end.
+was read from `tools/server/server-context.cpp` on master. Earlier measurements of this project are cited with their dates. The first version of this note was written without
+a GPU run because the owner's machine was in use. The measurements were then made on 2026-10-31 and are in "Measured" at the end.
 
 ## The short version
 
 Most of the proven strategies are already in the launch line. What made the player's stutter (AetherAmoris, RTX 5090 Laptop, Gemma 4 12B) was reading about 5,000 to 6,500
 prompt tokens again on every turn, and that was fixed on 29 Oct (stable world blocks, `--swa-full` where the card has room). KoboldCpp does not stutter for him because
 it keeps the whole prompt cache and reuses the start of the prompt (its FastForwarding and ContextShift), and its sliding-window cache is off unless asked for, which is
-the same thing `--swa-full` gives us. This branch adds no new default flag. It adds one switch, `CYBERPUNK_CONVAI_LOCAL_TUNING`, for the few flags that might still help and
+the same thing `--swa-full` gives us. The measurements below found no variant that clearly wins, so this branch changes no default flag. It adds one switch, `CYBERPUNK_CONVAI_LOCAL_TUNING`, for the few flags that might still help and
 are cheap to try, and a bench script that compares launch lines on a realistic mod conversation. A default is changed only when a bench run on a card shows a gain.
 
 ## The launch line today
@@ -71,6 +71,39 @@ or priority, with no spike over 25 ms. An open item stays open: a PresentMon cap
 - `scripts/Bench-LocalAiLaunch.mjs`: the measurement.
 - Tests: `bridge/local-launch-tuning.test.mjs` (the parse, ranges, order, offload and repeat rules, the defaults, `buildServerArgs` with and without extras) and one test in
   `bridge/local-llm-server.test.mjs` (the variable reaches the command line and the log of a real supervisor start on the fake server, and is absent without it).
+
+## Measured (2026-10-31, RTX 4080 Laptop 12 GB, llama.cpp b11782, Balanced power plan, game closed)
+
+`scripts/Bench-LocalAiLaunch.mjs`, one server per variant, the same scripted Judy conversation (about 5,400 tokens of system message and history, the right-now block changing once). Other agents ran
+small unit tests now and then, so differences under about 15 percent are noise. The first request of a talk reads the whole prompt in every variant: 3,052 new tokens (after the persona warm-up's 2,394),
+and every later turn reads 77 to 131 new tokens. The switch scenario's return to Judy after Panam read 131 new tokens too, so the RAM prompt cache works.
+
+Gemma 4 E4B standard (q4_0), 16,384 context, `--swa-full` on. Time to the first token in ms (median of the later turns) in the talk, switch and mixed scenarios, writing speed, graphics memory the
+server took, CPU seconds over the three scenarios:
+
+| Variant | talk | switch | mixed | tokens/s | VRAM MiB | CPU s |
+|---|---|---|---|---|---|---|
+| main (today) | 104 | 91 | 100 | 83.7 | 3,767 | 9.4 |
+| kvq8 (8-bit cache) | 105 | 90 | 109 | 78.7 | 3,331 | 33 |
+| checkpoint-step=256 | 94 | 90 | 109 | 83.9 | 3,767 | 8.8 |
+| poll=0 | 108 | 110 | 119 | 81.3 | 3,767 | 10.0 |
+| threads=4 | 106 | 108 | 89 | 83.0 | 3,767 | 8.7 |
+| ubatch=1024 | 96 | 85 | 111 | 85.9 | 3,887 | 8.5 |
+| backend-sampling | 227 | 271 | 218 | 90.4 | 3,770 | 12.3 |
+
+Bonsai 2 4B lite (no `--swa-full`), same conversation, two runs with the order changed to see drift. Time to the first token 138 to 183 ms for every variant, with the same variant differing by up to 30
+ms between runs (main 153, 140, 140 in talk, threads=4 141, 167, 158). New tokens per turn identical for `checkpoint-step` 8,192 (today), 256 and 0 in all three scenarios, graphics memory 1,831 MiB for
+all, CPU seconds 5.6 to 10.6 with the highest in the first run of the session.
+
+What this says:
+
+- Every variant of Gemma is inside the noise on the time to the first token, which is about 100 ms at any turn after the first. There is nothing to win there, and the user-visible cost is the first read
+  of a talk (see docs/PROMPT_GROWTH.md for turns 1 to 100).
+- 8-bit cache: saves 436 MiB and costs 6 percent of the writing speed and 3.5 times the CPU seconds. The CPU cost makes it a bad default next to a game. It stays a fit-only measure.
+- `ubatch=1024` costs 120 MiB for no change. `backend-sampling` writes 8 percent faster but doubles the time to the first token. Neither is wanted.
+- `checkpoint-step`: no change in tokens read, so the spacing does not matter in a conversation of this length even for the lite model. The 8,192 default stays.
+- `poll=0` and `threads=4`: no consistent gain (the lite model's second run had them slower than main), and the CPU seconds are not lower in any repeatable way. Left off.
+- Decision: no default changed. The switch stays for a player or a later measurement on other hardware (an AMD or Intel card, an offloaded model), where `threads` and `poll` could differ.
 
 ## Measuring
 

@@ -209,16 +209,18 @@ const state = await machineState();
 console.log(`device ${device}, context ${contextSize}, ${sliding ? 'sliding-window model (main passes --swa-full)' : 'no --swa-full in main'}`);
 console.log(`power: ${state.power}\ngame running: ${state.gameRunning}`);
 const results = [];
+const out = resolve(project, option('out', `runtime/bench-local-ai/${label}.json`));
+await mkdir(dirname(out), {recursive: true});
+// The file is rewritten after every variant, so a run that is stopped keeps what it measured.
+const save = () => writeFile(out, JSON.stringify({label, at: new Date().toISOString(), engine, model, device, contextSize, sliding, state, results}, null, 1));
 for (let round = 1; round <= rounds; round++) {
   for (const variant of variants) {
     console.log(`round ${round}: ${variant.name} ...`);
     try { results.push({round, ...await runVariant(variant, {engine, model, device})}); }
     catch (error) { console.log(`  failed: ${String(error.message ?? error).slice(0, 200)}`); results.push({round, variant: variant.name, failed: String(error.message ?? error)}); }
+    await save();
   }
 }
-const out = resolve(project, option('out', `runtime/bench-local-ai/${label}.json`));
-await mkdir(dirname(out), {recursive: true});
-await writeFile(out, JSON.stringify({label, at: new Date().toISOString(), engine, model, device, contextSize, sliding, state, results}, null, 1));
 console.log(summarise(results.filter(item => !item.failed)));
 console.log(`\nwritten ${out}`);
 process.exit(0);
