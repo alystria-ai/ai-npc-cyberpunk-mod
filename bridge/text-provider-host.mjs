@@ -58,6 +58,20 @@ const FRESH_WORDS_NUDGE = '\n\n(Answer again in fresh words: do not repeat an ex
 // 6 s for the first attempt, one retry with 8 s, a stream that goes quiet for 8 s is cut. The worst case is about 14.5 s, then the
 // reply is a short line in the character's voice instead of an error (HOLDING_LINES). The 2026-10-13 record had one hung request
 // wait the old 25 s limit, then a retry that answered in 2 s: 30 s for a reply.
+/**
+ * The prompt size a cloud endpoint reported, from the `usage` object of its reply: {total, cachedTokens, newTokens}, or null when it gave none.
+ * OpenAI-style endpoints (and Gemini's compatible one) put the cache hit in `prompt_tokens_details.cached_tokens` (`input_tokens_details` in OpenAI's Responses API, `prompt_cache_hit_tokens` at DeepSeek),
+ * Gemini's own field is `cached_content_token_count`.
+ */
+export function promptUsage(usage) {
+  const total = Number(usage?.prompt_tokens ?? usage?.input_tokens ?? usage?.promptTokenCount);
+  if (!Number.isFinite(total) || total <= 0) return null;
+  const reported = Number(usage?.prompt_tokens_details?.cached_tokens ?? usage?.input_tokens_details?.cached_tokens ?? usage?.prompt_cache_hit_tokens ?? usage?.cached_content_token_count
+    ?? usage?.cachedContentTokenCount ?? 0);
+  const cachedTokens = Number.isFinite(reported) ? Math.min(total, Math.max(0, Math.round(reported))) : 0;
+  return {total: Math.round(total), cachedTokens, newTokens: Math.round(total) - cachedTokens};
+}
+
 export const CLOUD_CHAT_LIMITS = Object.freeze({firstByteMs: 6000, retryFirstByteMs: 8000, stallMs: 8000, retries: 1, backoffMs: [300]});
 
 // How long the local AI may take, and how it is told when it takes too long (docs/LOCAL_AI.md, "When a local turn fails"). The game gives up on a
@@ -184,7 +198,9 @@ export function customRoute({provider, custom, name = 'custom', chat = streamCha
       return {apiKey: custom.key ?? undefined, endpoint: custom.chatUrl, requestModel: custom.model, trustedOrigin: custom.origin,
         headers: custom.extraHeaders, adapt: adaptation(), reasoning: custom.reasoning, noThinking: custom.noThinking};
     },
-    cacheBody: () => ({}),
+    // A cloud endpoint is asked for the usage of the prompt in the closing chunk (OpenAI-style `stream_options`), so the log can say how much of it the provider's prefix cache answered
+    // (promptUsage). An endpoint that refuses the field has it dropped and is asked again, as for every optional field (DROPPABLE in bridge/mistral-client.mjs). A server on this computer is left alone.
+    cacheBody: () => custom.local ? {} : {stream_options: {include_usage: true}},
     // The endpoint and model asked now: the prompt profile of a Custom endpoint is chosen by them (bridge/prompt-profiles.mjs customProfileId).
     describe: () => ({origin: custom.origin, model: custom.model}),
     jsonBody: () => ({response_format: {type: 'json_object'}}),
@@ -790,8 +806,12 @@ export class TextProviderHost {
         }
         markStage('replyReturned');
         // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
+        // A cloud endpoint reports its own count in the closing chunk's `usage` (OpenAI-style, which Gemini's compatible endpoint and Mistral share): the tokens it read new and the ones its
+        // implicit prefix cache answered. A local llama-server reports the same through `timings`.
+        const used = promptUsage(response.usage);
         currentClock()?.annotate({provider: route.name, model: response.model ?? route.models()[0]?.id,
-          promptTokens: response.trace?.timings?.promptTokens, cachedTokens: response.trace?.timings?.cachedTokens});
+          promptTokens: response.trace?.timings?.promptTokens ?? used?.newTokens, cachedTokens: response.trace?.timings?.cachedTokens ?? used?.cachedTokens});
+        if (used && route.name !== 'local') this.log(`[CloudTurn] ${route.name} prompt ${used.newTokens} new + ${used.cachedTokens} cached tokens (${Math.round(100 * used.cachedTokens / Math.max(1, used.total))}% from the provider's prefix cache)${Number.isFinite(response.trace?.firstTokenMs) ? `, first word ${Math.round(response.trace.firstTokenMs)} ms` : ''}`);
         if (deciding || byWords?.code) { const settled = byWords?.code ? byWords : await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
