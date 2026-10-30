@@ -18,7 +18,7 @@ function memoryEpochsFor(value) {
   return {version:1,globalEpoch:value.globalEpoch,characterEpochs:{...value.characterEpochs}};
 }
 function familiesFor(value = {}) {
-  if (!plain(value) || Object.keys(value).length > 1024
+  if (!plain(value) || Object.keys(value).length > 4096
       || Object.entries(value).some(([key, family]) => !PROFILE.test(key) || !PROFILE.test(family))) throw Error('Invalid Chat reset families');
   if (Object.values(value).some(family=>Object.hasOwn(value,family)&&value[family]!==family)) throw Error('Invalid Chat reset families');
   return {...value};
@@ -39,7 +39,7 @@ function parse(raw) {
   let value; try { value = JSON.parse(raw); } catch { throw Error('Invalid Chat reset journal'); }
   if (!plain(value) || value.version !== 1 || !Number.isSafeInteger(value.revision) || value.revision < 0
       || !Number.isFinite(value.updated) || typeof value.blockAll !== 'boolean'
-      || !Array.isArray(value.blockedProfiles) || value.blockedProfiles.length > 1024
+      || !Array.isArray(value.blockedProfiles) || value.blockedProfiles.length > 4096
       || value.blockedProfiles.some(key => !PROFILE.test(key))
       || new Set(value.blockedProfiles).size !== value.blockedProfiles.length) throw Error('Invalid Chat reset journal');
   for (const key of ['baseline', 'tracked', 'receipts', 'pending']) {
