@@ -157,7 +157,7 @@ test('validate stores nothing and answers with the codes; save refuses what vali
     [{labels: {nonsense: 'x'}}, {field: 'labels', key: 'nonsense', code: 'unknown-field'}],
     [{sampling: {temperature: 2.5}}, {field: 'sampling', key: 'temperature', code: 'out-of-range', min: 0, max: 2}],
     [{sampling: {topP: 1.5}}, {field: 'sampling', key: 'topP', code: 'out-of-range', min: 0, max: 1}],
-    [{sampling: {repeatPenalty: 0.5}}, {field: 'sampling', key: 'repeatPenalty', code: 'out-of-range', min: 1, max: 2}],
+    [{sampling: {repeatPenalty: 0.5}}, {field: 'sampling', key: 'repeatPenalty', code: 'not-for-mistral'}],   // Mistral takes no repeat penalty (fix/report-mistral-repeat), so it is refused before the range is looked at
     [{sampling: {maxTokens: 5}}, {field: 'sampling', key: 'maxTokens', code: 'out-of-range', min: 16, max: 2000}],
     [{sampling: {maxTokens: 100.5}}, {field: 'sampling', key: 'maxTokens', code: 'out-of-range', min: 16, max: 2000}],
     [{sampling: {temperature: '0.5'}}, {field: 'sampling', key: 'temperature', code: 'out-of-range', min: 0, max: 2}],

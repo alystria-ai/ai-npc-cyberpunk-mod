@@ -93,12 +93,13 @@ test('beginFocus: only our copies and a character the talk path resolved are tur
 test('passive gaze: V merely looking at an ordinary NPC does not turn it; our companions still respond', () => run(`
   ${world}
   convaiAttentionProbe = nil
-  local focusMode, focusEntity, gazePoll, gazeCandidate, gazeDwell, gazeLost = nil, nil, 0, nil, 0, 0
+  local focusMode, focusEntity = nil, nil
+  local gazeState = {candidate = nil, dwell = 0, lost = 0, poll = 0}
   local tactics = {busy = function() return false end}
   local looked
   local function gameplayCanAcquire() return true end
   local function targetAtCrosshair() return looked end
-  local function resetGaze() gazeCandidate, gazeDwell, gazeLost = nil, 0, 0 end
+  local function resetGaze() gazeState.candidate, gazeState.dwell, gazeState.lost = nil, 0, 0 end
   local supportedProfiles = {['resident-female'] = true, ['judy-alvarez'] = true}
   local manager = {profileEnabled = function(k) return k ~= nil end}
   local function profileIdentity(n) return ({['5'] = 'resident-female', ['6'] = 'judy-alvarez'})[n.hash], n.name end
@@ -126,13 +127,14 @@ test('passive gaze: V merely looking at an ordinary NPC does not turn it; our co
 test('gaze scan: at the 10 Hz tick the native query runs on the half-way tick and the measuring on the next, with the gathered list handed over', () => run(`
   ${world}
   convaiAttentionProbe = nil
-  local focusMode, focusEntity, gazePoll, gazeCandidate, gazeDwell, gazeLost = nil, nil, 0, nil, 0, 0
+  local focusMode, focusEntity = nil, nil
+  local gazeState = {candidate = nil, dwell = 0, lost = 0, poll = 0}
   local canAcquire = true
   local function gameplayCanAcquire() return canAcquire end
   local gathers, measures, handed = 0, 0, {}
   local function gatherTargets() gathers = gathers + 1; return {tag = gathers} end
   local function targetAtCrosshair(gathered) measures = measures + 1; handed[#handed + 1] = gathered and gathered.tag or 'none'; return nil end
-  local function resetGaze() gazeCandidate, gazeDwell, gazeLost = nil, 0, 0 end
+  local function resetGaze() gazeState.candidate, gazeState.dwell, gazeState.lost = nil, 0, 0 end
   local supportedProfiles, manager = {}, {profileEnabled = function() return false end}
   local function profileIdentity() return nil end
   local function beginFocus() return true end
