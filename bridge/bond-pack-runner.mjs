@@ -38,10 +38,10 @@ export const COOLDOWN_DAYS = 7;
  * The dice of a pack start. They used to be thrown once per game day per character, so one lost roll silenced the character for the whole day, and a player who
  * talked to Panam for an hour with the gate open could still never be invited (live test 30 Oct). Now an eligible private turn (the gate of some pack is open)
  * rolls at the pack's `start.chance`, but only every ROLL_EVERY_TURNS eligible turns (a long talk is a few chances, not one per sentence) and at most
- * DAILY_ROLLS rolls per character per game day (the cap that keeps it rare: a character who can start a quest starts one on about half the days at a chance of 0.5,
- * never on every turn). Spam is held down further by the quiet days after a quest (COOLDOWN_DAYS), one hangout a game day and MAX_ACTIVE.
+ * DAILY_ROLLS rolls per character per game day (never on every turn). Raised on 31 Oct 2026 by the owner from every 3rd turn and 3 rolls, which felt too rare: at a
+ * chance of 0.35 a day of talk with the gate open now starts the quest about 9 times in 10, about 6 in 10 within the first three talks. Spam is held down further by the quiet days after a quest (COOLDOWN_DAYS), one hangout a game day and MAX_ACTIVE.
  */
-export const DAILY_ROLLS = 3, ROLL_EVERY_TURNS = 3;
+export const DAILY_ROLLS = 5, ROLL_EVERY_TURNS = 2;
 export const ENDING_NOTE_DAYS = 3;
 /** Lasting lines of shared history kept per character, and how many of them a turn's note carries. */
 export const HISTORY_KEEP = 8, HISTORY_NOTE = 3;

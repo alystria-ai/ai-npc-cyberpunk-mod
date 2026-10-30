@@ -304,7 +304,7 @@ Code: `bridge/bond-pack-runner.mjs` (the runner), `bridge/bond-intent.mjs` (V's 
 
 * **Gate and start** on V's own private turn to the character (in person with one of V's own copies, Phone Chat, a holocall; never a group round, a reaction, a
   message the character starts, or the game's own placed character): the gate of section 8 from the turn's data (bond level, journal inventory, relationship,
-  channel, the `busy` flag the game sends, the Eddies and Invitations settings), then the dice, thrown on an eligible turn, **every 3rd eligible turn and at most 3 times per game day per character**, only when a
+  channel, the `busy` flag the game sends, the Eddies and Invitations settings), then the dice, thrown on an eligible turn, **every 2nd eligible turn and at most 5 times per game day per character** (raised by the owner on 31 Oct 2026 from every 3rd and 3 a day, which felt too rare), only when a
   pack could start. The turn's volatile note carries `start.bringUp`, the first stage's `know` and `wants`. The pack is recorded once the reply is
   published. At most 2 packs are active, one per character, with a cooldown of 7 game days after an ending.
 * **State** in `<state>/bond-packs.json`: per pack the **trail** of steps (stage, game clock, the choice that led there). The state follows the save: a turn whose
@@ -614,7 +614,7 @@ the Lua side on a fake game (the block flags, the watch, `vehicleBlocked`, one-s
 ### 17.3 Live checks for the owner (each: do X, check Y)
 1. Settings > Companions: turn on Character bonds and Story packs. Check both rows are there, off by default, and the Relationships button sits right after Model browser.
 2. Open Relationships before talking to anyone. Check the empty state. Talk to an invited character twice, reopen it. Check one entry with level, progress, warmth, "From their story ... from talking ...".
-3. On a save past Queen of the Highway with Eddies with characters on, and Panam as an invited party member at bond 5 or more: talk to her for a while (the dice roll on the first eligible turn of a game day and then every 3rd eligible turn, 3 rolls a day at most). Check the bridge log shows `[BondPacks] pack=panam-truck-ransom started`, and she brings up the stolen truck in that reply.
+3. On a save past Queen of the Highway with Eddies with characters on, and Panam as an invited party member at bond 5 or more: talk to her for a while (the dice roll on the first eligible turn of a game day and then every 2nd eligible turn, 5 rolls a day at most). Check the bridge log shows `[BondPacks] pack=panam-truck-ransom started`, and she brings up the stolen truck in that reply.
 4. Tell Panam "I'll lend you 6000". Check the eddies move (6,000 leave your wallet), the next turn's log says `stage=repay`, and over the following game days she pays back 2,000 at a time.
 5. While the truck is held, ask Panam to drive you, or call a car convoy with her in the party. Check her truck is not used (the fallback car or the next person's is).
 6. Start the pack again (another save) and answer "no, sort it out yourself". Check the stage becomes "alone" and, at the ending, her bond falls by 10.
@@ -625,7 +625,7 @@ the Lua side on a fake game (the block flags, the watch, `vehicleBlocked`, one-s
 
 ### 17.4 Defaults picked (the owner may change them)
 * Choices are read from V's words after the reply, not from a tag in the reply (reason in 7.3). English plus short lists for the 14 other languages; a line the screens cannot place does nothing.
-* The dice are thrown at the pack's `chance` on the first eligible turn of a game day and every 3rd eligible turn after that, at most 3 times per game day per character; the cooldown is 7 game days; at most 2 packs run at once; an ending is remembered for 3 game days.
+* The dice are thrown at the pack's `chance` on the first eligible turn of a game day and every 2nd eligible turn after that, at most 5 times per game day per character; the cooldown is 7 game days; at most 2 packs run at once; an ending is remembered for 3 game days.
 * A pack requires Character bonds and Story packs both on (Eddies and Invitations when the pack says so); money moves only in person.
 * The Relationships page shows stories only while Story packs is on, lists at most 60 characters, and reads the status file the bridge rewrites after every recorded turn.
 * Pack titles and stage labels are English data (shown as they are in every menu language). Translating them is a later job.
