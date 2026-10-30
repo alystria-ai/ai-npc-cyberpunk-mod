@@ -45,7 +45,7 @@ const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 const LIFEPATHS = {nomad: 'Nomad', streetkid: 'Street Kid', corpo: 'Corpo'};
 // What a companion is doing, after "You are with V in person".
 const ACTIVITIES = {
-  following: ', on foot, following V', standing: ', standing near V', combat: ', in a fight alongside V',
+  following: ', on foot, following V', standing: '', combat: ', in a fight alongside V',
   'to-seat': ', walking over to sit down beside V', seated: ', sitting beside V',
   'getting-up': ', getting up from your seat beside V', passenger: ", riding along in V's vehicle",
   driving: ", driving V's vehicle", boarding: ", getting into V's vehicle",
@@ -76,7 +76,7 @@ const callSuffix = mode => " Treat this as fact: you are on a call, not with V, 
 // told she was somewhere else kept asking V to come over while V stood beside her (live 2026-10-30). The first sentence is also the one said again right before V's words (bridge/mistral-prompt.mjs HERE).
 const NEAR_HOW = {phone: 'V is texting you on the phone instead of talking out loud', audio: 'V has you on a voice call on the phone instead of just talking to you',
   holo: 'V has you on a holocall on the phone instead of just talking to you'};
-const NEAR_NOTE = 'You can see and hear V right beside you. Answer as you would to V next to you: never ask V to come over or come here, never say you miss V or talk as if V were far away, and never say you cannot see V.';
+const NEAR_NOTE = 'You can see and hear V right beside you. Answer as you would to V next to you: never ask V to come over or come here, never say you miss V or talk as if V were far away, never say you cannot see V, and never point out that you are beside V.';
 /**
  * Is the character of this turn standing within a few metres of V (the party row of the game's snapshot says `near`)? Phone Chat and calls answer as in person then (above),
  * and so must everything else that tells her what she wants of V: a quest's invitation, a reach-out V is answering (bridge/bond-pack-runner.mjs).

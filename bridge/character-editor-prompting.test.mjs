@@ -359,6 +359,7 @@ test('an override saved through the editor is in the next turn\'s prompt and req
   assert.equal(system(back), system(shipped), 'the system message is the shipped one, byte for byte');
   assert.equal(JSON.stringify({...back, messages: back.messages.slice(0, 1)}), JSON.stringify({...shipped, messages: shipped.messages.slice(0, 1)}), 'and so is the rest of the request');
   assert(last(back).includes('V says: fourth'));
-  assert.equal(last(back).replace('fourth', 'first'), last(shipped), 'the last line is the shipped one too');
+  // The answers of this fake model are all the same, so from the third turn on the last message also carries the note about her repeating herself (bridge/reply-variety.mjs): not part of the profile.
+  assert.equal(last(back).replace('fourth', 'first').replace(/\n\nYour last replies repeat themselves[^\n]*/, ''), last(shipped), 'the last line is the shipped one too');
   assert.deepEqual(await b.files(), [], 'the file is gone');
 });

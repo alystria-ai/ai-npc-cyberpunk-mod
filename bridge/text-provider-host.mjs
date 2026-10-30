@@ -34,6 +34,9 @@ import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
 import {profileSignature} from './prompt-profiles.mjs';
 import {extraFields} from './sampler-extras.mjs';
 import {baseOf} from './memory-scope.mjs';
+import {varietyNote, freshenReply, headRepeats, dedupeHistory} from './reply-variety.mjs';
+import {asksAboutGear} from './player-gear.mjs';
+import {asksAboutClothes} from './scenery-memory.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -1107,10 +1110,29 @@ export class TextProviderHost {
     const chosen = {kind: null};
     const cutEcho = this.echoCut && !reaction;
     // An earlier reply of the speaker that opened with V's words (stored before this was cut) is shown to the model without them: a model copies the pattern of its own history.
-    const history = cutEcho ? recalled.turns.map(turn => ({...turn, r: stripPlayerEcho(turn.r, turn.v)})) : recalled.turns;
+    let recentSpoken = [];
+    if (!reaction && this.spokenLines) { try { recentSpoken = this.spokenLines(profileKey) ?? []; } catch { recentSpoken = []; } }
+    const spokenTurns = cutEcho ? recalled.turns.map(turn => ({...turn, r: stripPlayerEcho(turn.r, turn.v)})) : recalled.turns;
+    // The exchanges as shown to the model leave out an opener or sentence an earlier reply of the list already had (the memory keeps what was said): a model continues the replies it reads.
+    // A talk in person (the right-now block says so): two people standing together do not announce that they are here, so such a sentence is left out of the reply too.
+    const inPerson = !reaction && /You are with V in person/.test(config.contextParts?.now ?? '');
+    let history = spokenTurns;
+    if (!reaction) { try { history = dedupeHistory(spokenTurns, {inPerson}); } catch { history = spokenTurns; } }
+    // The character's own last replies: what a small model continues if it is not told otherwise (bridge/reply-variety.mjs). The note goes right after V's words (the closing tier),
+    // once per turn, so every build of the turn (a retry too) carries the same one. Clothes may come up again when V asks about them or the game read a change of gear.
+    const ownReplies = reaction ? [] : [...spokenTurns.map(turn => turn.r), ...recentSpoken];
+    const clothesOk = asksAboutGear(text) || asksAboutClothes(text) || /Changed since you last saw V|clothes:/.test(`${config.contextParts?.volatile ?? ''} ${config.contextParts?.freshCodes ?? ''}`);
+    let variety = '';
+    try { variety = reaction ? '' : varietyNote(ownReplies, {clothesOk}); } catch { variety = ''; /* a note about variety never affects a reply */ }
+    if (variety) this.log(`Reply variety: profile=${profileKey ?? persona.name} note of ${variety.length} chars`);
+    // `notes` can change between builds (an NPC's reaction chosen, the decision of an action), so the parts are put together for each build.
+    const partsOf = () => {
+      const withNotes = notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts;
+      return variety && withNotes ? {...withNotes, closing: joinBlocks([withNotes.closing, variety])} : withNotes;
+    };
     const build = nudge => buildMessages({persona, memory: recalled.summary, history,
       context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
-      contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
+      contextParts: partsOf(),
       remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits,
       ...(profile ? {profile} : {}), ...(mature ? {mature} : guard ? {guard: true} : {})});
     // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
@@ -1125,8 +1147,6 @@ export class TextProviderHost {
     // An add-on speaker never says V's words: a reply that starts with V's line (or V's label) is held back from the voice until it moves on.
     // An add-on speaker's own recent lines (its remarks as well as its replies, which the conversation memory does not hold): a reply that
     // says one again is held back from the voice while it still matches, and is written once more if it turns out to be one.
-    let recentSpoken = [];
-    if (!reaction && this.spokenLines) { try { recentSpoken = this.spokenLines(profileKey) ?? []; } catch { recentSpoken = []; } }
     const visible = soFar => {
       // A reply that opens with V's own words asked back ("Dex?") loses them, for every speaker (rule 4 of the output rules); held back from the voice while it could still be one. Judged on the
       // cleaned text, as the finished reply is (a speaker label or a *stage direction* before the echo must not hide it from the stream, or the voice would start on it and the finished reply,
@@ -1205,7 +1225,8 @@ export class TextProviderHost {
     const said = reaction ? [] : [...persona.samples, ...recalled.turns.map(turn => turn.r), ...recentSpoken];
     // V trying to make the character say it is an AI or a script: the reply must not take those words up, even to deny them.
     const provoked = !reaction && provokesAiTalk(text);
-    const refuseHead = said.length || provoked ? head => repeatsLine(head, said) || (provoked && takesUpAiTalk(head)) : null;
+    // A first sentence that opens as one of her last replies did, or says a sentence of one, is not spoken early either: the finished reply has it left out (freshenReply below).
+    const refuseHead = said.length || provoked || ownReplies.length || inPerson ? head => repeatsLine(head, said) || headRepeats(head, ownReplies, {inPerson}) || (provoked && takesUpAiTalk(head)) : null;
     // With the guard on, a first sentence that flags is never committed to the voice either.
     if (feed && typeof feed === 'object') feed.reject = guard ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
     let outcome;
@@ -1223,6 +1244,18 @@ export class TextProviderHost {
     // started is not tried again: that sentence was checked before it was spoken, so it stands and the rest is dropped.
     // A reply that says a line already said (an example line, its own last reply) gets the same one more try.
     const repeated = repeatsLine(outcome.reply, said), echoed = provoked && takesUpAiTalk(outcome.reply);
+    // A reply that is nearly one earlier line is handled below (asked again, or its repeated sentence left out). Any other reply loses the opener she has used before, a sentence she has
+    // already said, and (in person) a sentence that only announces who is here: no request, so no time (bridge/reply-variety.mjs). Not when the voice already began with the first
+    // sentence (it passed headRepeats), unless what is left still starts with it.
+    if (!repeated && (ownReplies.length || inPerson)) {
+      try {
+        const fresher = freshenReply(outcome.reply, ownReplies, {inPerson});
+        if (fresher && (!feed.committed || fresher.reply.startsWith(feed.head))) {
+          this.log(`Reply variety: left ${fresher.dropped} repeated sentence${fresher.dropped === 1 ? '' : 's'} out of the reply`);
+          outcome = {...outcome, reply: fresher.reply};
+        }
+      } catch { /* the reply stands as it was */ }
+    }
     if ((breaksCharacter(outcome.reply) || leaksReasoning(outcome.reply) || looksCut(outcome.reply) || repeated || echoed) && !signal?.aborted) {
       // A reply whose only fault is a line said again. Asking once more doubles the turn: a slow local turn (2026-10-20 report: the text complete at 38.5 s, the voice at 74.8 s) is
       // not worth a second one. The repeated sentence is left out when words of the reply's own remain (nothing to wait for); otherwise the first reply is kept when the first

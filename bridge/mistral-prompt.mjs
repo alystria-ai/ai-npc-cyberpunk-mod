@@ -376,7 +376,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
         ? "You are not with V; never say you are there, close or nearby, and name no place or task of your own right now. V's place is not yours: never talk as if you stood beside V."
         : here.startsWith("You are in V's head")
           ? 'You have no body; you go where V goes and never claim to be anywhere else or to be doing something of your own.'
-          : 'That is all you are doing; never claim to be anywhere else.'}]` : '',
+          : 'That is all you are doing; never claim to be anywhere else. Never announce that you are here or beside V, or that V is here.'}]` : '',
     volatile && !notesAfter ? `[${profile.labels.thisTurn}]\n${volatile}` : '',
     facts.length ? `[${profile.labels.things}]\n${facts.join('\n')}` : '',
     ...(notesAfter ? [says, `[${profile.labels.thisTurn}]\n${volatile}`, fresh, tail, finish] : [fresh, message])].filter(Boolean).join('\n\n')});
