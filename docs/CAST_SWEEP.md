@@ -39,7 +39,7 @@ character and twin. A sweep row (`"minor": true`, `"invite": false`) names an or
 7. `compile.mjs apply`: dossier (`research/cyberpunk/dossiers/<key>.json`, `firstPersonNative: true`: no third-person text exists to rewrite, so
    there is no `first-person-profiles.json` entry), roster row, profile text, appearance, twin voice assignment, build report, coverage,
    knowledge pack `profileKeys` (the pack limit was raised from 256 to 1024 in `bridge/world-knowledge.mjs`), `cast-sweep-voices.json`.
-   Then `node scripts/cast-sweep/finances.mjs` (a minor profile takes the money row of its fallback archetype, `MINOR_FINANCE_BASES` in
+   Then `node scripts/Build-GameRoster.mjs` (the lean file the game decodes, see Costs), `node scripts/cast-sweep/finances.mjs` (a minor profile takes the money row of its fallback archetype, `MINOR_FINANCE_BASES` in
    `bridge/eddies-finances.mjs`), `node scripts/Build-FacialGraphs.mjs --reds` (no change expected) and `node scripts/cast-sweep/name-pools.mjs` followed by
    `node scripts/Build-NpcNamePools.mjs` (generated names and street handles stay clear of the new names).
 8. `stems.py` and `voices.py`: voice stems that start with the person's full name (never a voice tag alone), `vo` folder only, news,
@@ -59,13 +59,26 @@ add the three config rows (the recipe in `docs/CAST_EXPANSION_RECIPE.md` step 3 
 `voice.localProfiles`. Nothing is uploaded or merged by this branch. Convai originals and twins for the 575 keys:
 `Provision-Characters.mjs --apply` and `Create-MultilingualProfiles.mjs --apply --roster named`.
 
-## Costs the owner should know
+## Costs, and the lean game file
 
-* `characters/roster.json` grows from 1.4 MB to 3.9 MB. The game decodes it once at start (`conversation-characters.json`) and drops the research
-  text fields, so the resident Lua table grows by about 1 MB (estimated from the 0.25 MB the first 128 rows cost, not measured in the game) and the one-time decode takes longer.
-  If that matters, ship a lean copy of the sweep rows to the game.
-* The Characters page lists 575 more "Profile only" rows.
-* Sweep rows are first-person from the start and short; where the sources give nothing the card says so and invents nothing.
+* `characters/roster.json` (what the bridge reads) is 3.9 MB with the 575 rows. The GAME does not decode that: `characters/game-roster.json`
+  (`node scripts/Build-GameRoster.mjs`, checked by `bridge/game-roster.test.mjs`) is what packaging and the development installer ship as
+  `conversation-characters.json`. Its 575 minor rows hold only `key`, `name`, `records`, `kind`, `invite` and `minor` (an alias list that
+  repeats the name, the summary, the voice fields and all profile text stay on the bridge side). The other 128 rows are copied unchanged.
+  Measured with LuaJIT 2.1 (`lua51.dll` from OBS) and CET's own `json.lua`, `scripts/cast-sweep/measure-roster.py`, median of 7 fresh states:
+
+  | File | Bytes | Decode | Allocated by the decode | Kept after init.lua drops its fields |
+  |---|---|---|---|---|
+  | roster before the sweep (128 rows) | 1,460,437 | 18 ms | 23.4 MB | 803 KB |
+  | roster with the sweep (703 rows, what the game would have decoded) | 3,898,325 | 42 ms | 37.6 MB | 2,245 KB |
+  | game roster (703 rows, lean) | 1,430,797 | 18 ms | 23.7 MB | 1,173 KB |
+
+  Re-run it after any change to the roster. The decode runs once at start and again on a CET reload.
+* The Companion Manager's Characters to invite list does not carry minor profiles (`mod/manager.lua` `invitableProfiles`, and the older Characters tab).
+  The memory page and the profile assignment list still list every profile, and the search finds them.
+* The character editor picker has a "Minor characters" chip (role `minor`, `bridge/character-editor.mjs` `roleOfRow`). The minor characters are
+  not in All or the other chips until the search box has text, so the default list stays short.
+* Sweep rows are first-person from the start and short, where the sources give nothing the card says so and invents nothing.
 
 ## Continuing
 

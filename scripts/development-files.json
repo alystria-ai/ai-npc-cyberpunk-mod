@@ -555,7 +555,7 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/group-chat.lua"
     },
     {
-      "source": "characters/roster.json",
+      "source": "characters/game-roster.json",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/conversation-characters.json"
     },
     {
