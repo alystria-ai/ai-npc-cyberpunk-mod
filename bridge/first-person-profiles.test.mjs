@@ -100,9 +100,20 @@ test('the rewrite checker accepts a faithful first-person copy and flags the usu
   flagged(o => { o.style[0].text = 'My vocabulary.'; }, /length ratio/);
 });
 
+// The 2026-10-30 cast sweep (docs/CAST_SWEEP.md) writes its dossiers in the first person from the start: no third-person text exists to
+// rewrite, so there is no stored copy. Such a dossier says so (`firstPersonNative`), and its row is still checked like the others.
+async function nativeKeys(roster, store) {
+  const keys = roster.filter(row => !store.characters[row.key]).map(row => row.key);
+  for (const key of keys) {
+    const dossier = await json(`../research/cyberpunk/dossiers/${key}.json`);
+    assert.equal(dossier.firstPersonNative, true, `${key} has no stored first-person copy and its dossier is not first-person native`);
+  }
+  return keys;
+}
+
 test('every checked-in profile opens in the first person, none in the second or third', async () => {
-  const roster = await json('../characters/roster.json');
-  assert.equal(roster.length, 128);
+  const roster = await json('../characters/roster.json'), store = await json('../characters/first-person-profiles.json');
+  assert.equal(roster.length, Object.keys(store.characters).length + (await nativeKeys(roster, store)).length, 'every row has a stored copy or is written in the first person');
   for (const row of roster) {
     // The generic residents use the archetype format (IDENTITY, then "You are an unnamed ..."), 2026-10-22.
     if (/^resident-/u.test(row.key)) assert.match(row.backstory, /^IDENTITY\nYou are an unnamed ordinary Night City local/u, row.key);
@@ -115,6 +126,14 @@ test('the checked-in first-person copies are what the roster and the profile tex
   const roster = await json('../characters/roster.json'), store = await json('../characters/first-person-profiles.json');
   const keys = Object.keys(store.characters);
   assert.equal(keys.length, 128);
+  const native = await nativeKeys(roster, store);
+  for (const key of native) {
+    const row = roster.find(item => item.key === key);
+    assert.equal(row.backstoryWords, row.backstory.split(/\s+/).length, key);
+    const text = (await readFile(new URL(`../characters/profile-text/${key}.txt`, import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
+    assert(text.includes(row.backstory) && text.includes(row.speakingStyleDescription), key + ' profile-text');
+    assert(row.backstory.endsWith(`[CyberpunkConvai profile v2:${key}]`), key);
+  }
   for (const key of keys) {
     const row = roster.find(item => item.key === key), copy = store.characters[key];
     assert(row, key);
@@ -128,5 +147,5 @@ test('the checked-in first-person copies are what the roster and the profile tex
     assert(row.backstory.endsWith(`[CyberpunkConvai profile v2:${key}]`), key);
   }
   assert.equal(roster.filter(isThirdPerson).length, 0, 'nothing is left to extract');
-  assert.deepEqual(keys.sort(), roster.map(row => row.key).sort(), 'every profile has a stored first-person copy');
+  assert.deepEqual([...keys, ...native].sort(), roster.map(row => row.key).sort(), 'every profile has a stored first-person copy or is first-person native');
 });

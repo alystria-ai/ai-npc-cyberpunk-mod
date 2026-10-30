@@ -85,9 +85,12 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   assert.equal(await page.locator('#pickerhead').textContent(), 'Choose a character to start editing.');
   assert.deepEqual(await groupTitles(page), ['Romances', 'Companions', 'Story', 'Side characters', 'V’s voice']);
   assert.deepEqual(await page.locator('#chips .fchip').evaluateAll(nodes => nodes.map(node => node.firstElementChild.tagName === 'svg' ? node.children[1].textContent : node.firstElementChild.textContent)),
-    ['All', 'Romances', 'Companions', 'Story', 'Side characters'], 'a chip is shown only when there is something under it');
-  assert.equal(await page.locator('#list button.pick').count(), rows.length + 2);
-  assert.equal(await page.locator('#resultcount').textContent(), `${rows.length + 2} of ${rows.length + 2}`);
+    ['All', 'Romances', 'Companions', 'Story', 'Side characters', 'Minor characters'], 'a chip is shown only when there is something under it');
+  // The cast sweep's minor characters (docs/CAST_SWEEP.md) are not in the default list: they have their own chip and a search still finds them.
+  const minors = rows.filter(row => row.minor === true).length, listed = rows.length - minors + 2;
+  assert(minors > 500, 'the roster holds the minor characters: ' + minors);
+  assert.equal(await page.locator('#list button.pick').count(), listed);
+  assert.equal(await page.locator('#resultcount').textContent(), `${listed} of ${listed}`);
   await e.shot('01-start');
 
   // Search narrows the list; choosing a character shows the shipped bio and a counter.
@@ -970,6 +973,7 @@ test('Look and moves: the outfit and the moves of a story character are chosen, 
 // ---- the picker (the redesign of 2026-10-30): no endless sidebar, a panel with search, chips and a compact list
 test('the picker with a roster of 300+ characters: the facing character and the edited ones on top, filter chips, search, and the keyboard all the way', {skip, timeout: 240000}, async t => {
   const crowd = 130, total = rows.length + crowd + 2, side = rows.filter(row => row.kind !== 'named').length + crowd;
+  const minors = rows.filter(row => row.minor === true).length, listed = total - minors;
   const e = await open(t, {crowd, facing: {record: 'Character.Rogue', name: 'Rogue Amendiares', gender: 'female'}});
   const {page} = e;
   assert(total >= 300, 'a long roster: ' + total);
@@ -980,10 +984,10 @@ test('the picker with a roster of 300+ characters: the facing character and the 
   await page.locator('#list .sect.quick').first().waitFor();
   assert.deepEqual(await page.locator('#list .sect.quick h3.group > span:not(.n)').allTextContents(), ['In front of you', 'Recently edited']);
   assert.deepEqual(await page.locator('#list .sect.quick button.pick .name').allTextContents(), ['Rogue Amendiares', 'Jackie Welles']);
-  assert.equal(await page.locator('#list .sect:not(.quick) button.pick').count(), total, 'every character once');
-  assert.equal(await page.locator('#resultcount').textContent(), `${total} of ${total}`);
+  assert.equal(await page.locator('#list .sect:not(.quick) button.pick').count(), listed, 'every character once, the minor characters aside');
+  assert.equal(await page.locator('#resultcount').textContent(), `${listed} of ${listed}`);
   assert.deepEqual(await page.locator('#chips .fchip').evaluateAll(nodes => nodes.map(node => node.querySelector('span:not(.n)').textContent + ' ' + node.querySelector('.n').textContent)),
-    ['All ' + total, 'Romances 4', 'Companions 22', 'Story 100', 'Side characters ' + side, 'Edited 1']);
+    ['All ' + listed, 'Romances 4', 'Companions 22', 'Story ' + (rows.filter(row => row.kind === 'named' && row.minor !== true).length - 4 - 22), 'Side characters ' + side, 'Minor characters ' + minors, 'Edited 1']);
   await e.shot('30-picker-many');
 
   // A chip narrows the list to one role, and says so in its state.
@@ -992,6 +996,15 @@ test('the picker with a roster of 300+ characters: the facing character and the 
   assert.deepEqual(await page.locator('#list h3.group > span:not(.n)').allTextContents(), ['Side characters']);
   assert.equal(await page.locator('#list button.pick').count(), side);
   assert.equal(await page.locator('#list .sect.quick').count(), 0, 'the top sections belong to the unfiltered list');
+  // The minor characters have a chip of their own and are found by search from the default list.
+  await page.locator('#chips').getByRole('button', {name: /^Minor characters/}).click();
+  assert.deepEqual(await page.locator('#list h3.group > span:not(.n)').allTextContents(), ['Minor characters']);
+  assert.equal(await page.locator('#list button.pick').count(), minors);
+  await page.locator('#chips').getByRole('button', {name: /^All/}).click();
+  await page.fill('#search', 'mateo lorenzo');
+  assert.deepEqual(await page.locator('#list button.pick .name').allTextContents(), ['Mateo Lorenzo']);
+  assert.equal(await page.locator('#resultcount').textContent(), `1 of ${total}`);
+  await page.fill('#search', '');
   await page.locator('#chips').getByRole('button', {name: /^Edited/}).click();
   assert.deepEqual(await page.locator('#list button.pick .name').allTextContents(), ['Jackie Welles']);
   await page.locator('#chips').getByRole('button', {name: /^All/}).click();

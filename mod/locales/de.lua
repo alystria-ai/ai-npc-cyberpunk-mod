@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "Romanzen",
     ["Side character"] = "Nebencharakter",
     ["Side characters"] = "Nebencharaktere",
+    ["Minor character"] = "Kleine Rolle",
+    ["Minor characters"] = "Kleine Rollen",
     ["Story"] = "Story",
     ["Story character"] = "Story-Charakter",
     ["Unsaved changes"] = "Nicht gespeicherte Änderungen",

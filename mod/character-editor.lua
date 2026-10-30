@@ -173,6 +173,8 @@ function M.new(options)
         ['Romances'] = ui.t('Romances'),
         ['Side character'] = ui.t('Side character'),
         ['Side characters'] = ui.t('Side characters'),
+        ['Minor character'] = ui.t('Minor character'),
+        ['Minor characters'] = ui.t('Minor characters'),
         ['Story'] = ui.t('Story'),
         ['Story character'] = ui.t('Story character'),
         ['Unsaved changes'] = ui.t('Unsaved changes'),

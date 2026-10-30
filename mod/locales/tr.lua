@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "Romantikler",
     ["Side character"] = "Yan karakter",
     ["Side characters"] = "Yan karakterler",
+    ["Minor character"] = "Küçük karakter",
+    ["Minor characters"] = "Küçük karakterler",
     ["Story"] = "Hikâye",
     ["Story character"] = "Hikâye karakteri",
     ["Unsaved changes"] = "Kaydedilmemiş değişiklikler",

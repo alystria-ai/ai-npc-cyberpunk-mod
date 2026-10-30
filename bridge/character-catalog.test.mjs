@@ -425,3 +425,30 @@ test('noProfileReason names the few people nobody can talk to, and a roster char
     eq((api.resolve(catalog,{world=true,name='Rogue Amendiares',record='Character.Rogue',bodyType='WomanAverage'})),nil)
   `);
 });
+
+// The 2026-10-30 cast sweep (docs/CAST_SWEEP.md): a minor profile names an ordinary person. It answers for a character a mod spawns from the record
+// at once, for the game's own copy only while Talk to story characters is on, and it never makes that person a protected story character.
+test('a minor profile resolves for a spawned copy, for the game copy only with Talk to story characters, and is not protected',()=>{
+  runLua(`
+    local archetypes=api.buildArchetypes(api.ARCHETYPES)
+    local catalog=api.build({
+      {key='mateo-lorenzo',name='Mateo Lorenzo',aliases={'Mateo Lorenzo'},records={'Character.q000_kid_bar_patron_male_03'},minor=true},
+      {key='judy-alvarez',name='Judy Alvarez',records={'Character.Judy'}}
+    },archetypes)
+    local facts={recordName='Character.q000_kid_bar_patron_male_03',affiliation='Valentinos',bodyType='ManAverage',human=true}
+    local mateo={record='Character.q000_kid_bar_patron_male_03',name='Mateo',facts=facts,bodyType='ManAverage'}
+    eq((api.resolve(catalog,mateo)),'mateo-lorenzo','not world-placed: a record a mod spawns')
+    mateo.spawned=true
+    eq((api.resolve(catalog,mateo)),'mateo-lorenzo','spawned by another mod')
+    mateo.spawned=nil; mateo.world=true
+    local off=api.resolve(catalog,mateo)
+    assert(off~='mateo-lorenzo','the game copy keeps its archetype while the setting is off')
+    assert(off~=nil,'and still has a conversation')
+    mateo.story=true
+    eq((api.resolve(catalog,mateo)),'mateo-lorenzo','story talk on')
+    assert(api.protectedReason(catalog,{record=mateo.record,name='Mateo',facts=facts})~='named','a minor profile is not a named story character')
+    eq(api.protectedReason(catalog,{record='Character.Judy',name='Judy',facts={recordName='Character.Judy'}}),'named','a story profile still does')
+    local judy={record='Character.Judy',name='Judy',world=true,facts={recordName='Character.Judy'}}
+    eq((api.resolve(catalog,judy)),nil,'a story character is still refused while the setting is off')
+  `);
+});

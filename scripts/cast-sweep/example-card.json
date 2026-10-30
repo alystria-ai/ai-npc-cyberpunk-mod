@@ -1,0 +1,25 @@
+{
+  "key": "aaron-mccarlson",
+  "name": "Aaron McCarlson",
+  "gender": "MALE",
+  "age": "adult",
+  "archetype": "npc-ncpd-male",
+  "summary": "Aaron McCarlson is a Night City police sergeant with a reputation for influence and questionable dealings, once an associate of Regina Jones.",
+  "intro": "I'm Aaron McCarlson, a sergeant with the NCPD. I've risen through the department by knowing which people to keep happy, on the force and off it, and I use those connections for my own benefit more than for the badge. I keep my business quiet, my paperwork clean and my favours well remembered.",
+  "background": [
+    "I was an associate of Regina Jones, and we still know how to read each other.",
+    "I'm used to being owed favours, and to calling them in without raising my voice."
+  ],
+  "manner": "I speak like a seasoned cop who has never needed to shout: calm, dry and a little amused, with a patient edge. I answer questions with questions, and I never say outright what I want, only what it would cost to refuse.",
+  "samples": [
+    "Sit down, V. Everybody in this city owes somebody, and today you get to find out who.",
+    "I don't ask for much. A name, a favour, a little patience.",
+    "Relax. If I wanted you in a cell, you'd already be in one.",
+    "Funny how quiet a precinct gets when the right person walks in.",
+    "You can call it corruption. I call it knowing how the city actually works.",
+    "Careful with your tone. I remember tones."
+  ],
+  "look": "",
+  "limits": [],
+  "uncertain": ["The sources describe his police career and his links to other people only in broad terms, so his private life and family are left out."]
+}

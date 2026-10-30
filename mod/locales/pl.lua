@@ -1803,6 +1803,8 @@ return {
     ["Romances"] = "Romanse",
     ["Side character"] = "Postać poboczna",
     ["Side characters"] = "Postacie poboczne",
+    ["Minor character"] = "Postać epizodyczna",
+    ["Minor characters"] = "Postacie epizodyczne",
     ["Story"] = "Fabuła",
     ["Story character"] = "Postać fabularna",
     ["Unsaved changes"] = "Niezapisane zmiany",

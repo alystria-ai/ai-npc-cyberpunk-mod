@@ -1,0 +1,2413 @@
+{
+  "version": 1,
+  "characters": {
+    "aaron-mccarlson": {
+      "fallback": "npc-ncpd-male",
+      "clip": {
+        "stem": "aaron_mccarlson_scene_aaron_mccarlson_default",
+        "id": "1976728667578273792",
+        "seconds": 7.36
+      }
+    },
+    "adam-brocki": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "adam-finlay": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "adam-giles": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "agent-orange": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "agent-weiss": {
+      "fallback": "npc-nusa-male",
+      "clip": null
+    },
+    "aiko-harada": {
+      "fallback": "npc-worker-resident-female",
+      "clip": null
+    },
+    "airi-okawa": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "akane-ito": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "akari-yamakage": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "akira": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "alamini-davis": {
+      "fallback": "npc-medic-vendor-male",
+      "clip": null
+    },
+    "alan-crank": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "alberto-ruiz": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "alec-johnson": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "alex-pushkin": {
+      "fallback": "npc-biotechnica-male",
+      "clip": null
+    },
+    "alexandre-batisma": {
+      "fallback": "npc-homeless-male",
+      "clip": null
+    },
+    "alma-maria": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "alois-daquin": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "aluna": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "alva": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "amat-escalante": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "andrew-bolt": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "andrew-moore": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "andrew-newman": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "anel-duffault": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "angel": {
+      "fallback": "npc-joytoy-male",
+      "clip": null
+    },
+    "angie-pakeha-mielech": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "anna-hamill": {
+      "fallback": "npc-ncpd-female",
+      "clip": null
+    },
+    "anna-nox": {
+      "fallback": "npc-mox-female",
+      "clip": null
+    },
+    "annie-capolino": {
+      "fallback": "npc-nightlife-resident-female",
+      "clip": null
+    },
+    "anthony-anderson": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": {
+        "stem": "anthony_anderson_sts_ep1_01",
+        "id": "3314221865337528320",
+        "seconds": 7.14
+      }
+    },
+    "anthony-harris": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "anton-kolev": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "aoki-sonoda": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "arabelle-luvasha": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "archibald-crane": {
+      "fallback": "npc-militech-male",
+      "clip": null
+    },
+    "arden-bentzen": {
+      "fallback": "npc-militech-male",
+      "clip": null
+    },
+    "arif-iqbal": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "arif-koneczko": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "arlene-anwyl": {
+      "fallback": "npc-worker-resident-female",
+      "clip": null
+    },
+    "arnold-haponik": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "asa-risu": {
+      "fallback": "npc-worker-resident-female",
+      "clip": null
+    },
+    "ash": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "asher-peterson": {
+      "fallback": "npc-maxtac-male",
+      "clip": null
+    },
+    "august": {
+      "fallback": "npc-nusa-male",
+      "clip": null
+    },
+    "axel-mankievicz": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "ayden-daniels": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "ayo-zarin": {
+      "fallback": "npc-voodoo-boys-female",
+      "clip": null
+    },
+    "aziz-masee": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "barry-alken": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "barry-lewis": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "bart": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "bartolomeo-mordellini": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "ben-azaria": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "ben-debaillon": {
+      "fallback": "npc-voodoo-boys-male",
+      "clip": null
+    },
+    "benedict-mcadams": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "benjamin-stone": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "bickle": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "big-joe": {
+      "fallback": "npc-street-goon-male",
+      "clip": null
+    },
+    "big-pete": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "bill-jablonsky": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "blake-croyle": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "booker-updike": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "boris-ribakov": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "brad-stacy": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "bradley-burrows": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "brandon-frost": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "brandon-soto": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "brittany-hayes": {
+      "fallback": "npc-joytoy-female",
+      "clip": null
+    },
+    "bruce-ward": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "bruce-welby": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": {
+        "stem": "bruce_welby_sts_bls_ina_05",
+        "id": "1650258298608775168",
+        "seconds": 7.75
+      }
+    },
+    "buck-arnold": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "camilo-castilla": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "captain-joan-by-the-book-mcclane": {
+      "fallback": "npc-ncpd-female",
+      "clip": null
+    },
+    "captain-sherman": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "carlos-rubio": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "carter-smith": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "cassius-ryder": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "catherina-byrn": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "cedric-muller": {
+      "fallback": "npc-nomad-resident-male",
+      "clip": null
+    },
+    "cesar-diego-ruiz": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "charlene-fox": {
+      "fallback": "npc-joytoy-female",
+      "clip": null
+    },
+    "charles-bucks": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "charles-graham": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "charles-wilson": {
+      "fallback": "npc-ncpd-male",
+      "clip": {
+        "stem": "charles_wilson_sts_ep1_10",
+        "id": "3282543794005053440",
+        "seconds": 6.2
+      }
+    },
+    "chase-coley": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "cheri-nowlin": {
+      "fallback": "npc-nightlife-resident-female",
+      "clip": null
+    },
+    "chester-hamilton": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "chiyo-omoto": {
+      "fallback": "npc-ripperdoc-female",
+      "clip": null
+    },
+    "chris-dupont": {
+      "fallback": "npc-weapons-dealer-male",
+      "clip": null
+    },
+    "christine-markov": {
+      "fallback": "npc-market-stall-female",
+      "clip": null
+    },
+    "chuck-dermond": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "chuck-segel": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "claudio-moreno": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "cody-crosby": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "corey-aldwyn": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "costin-lahovary": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "cross": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "crox-alvarado": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "dallas-foster": {
+      "fallback": "npc-maxtac-male",
+      "clip": null
+    },
+    "damir-kovac": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "dan-thoss": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "daniel-duarte": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "daniel-lark": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "danilo-ruiz": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "dao-hyunh": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "darius-clarke": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "darius-dupont": {
+      "fallback": "npc-weapons-dealer-male",
+      "clip": null
+    },
+    "darius-miles": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "darline-boucicault": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "darrell-zhou": {
+      "fallback": "npc-food-vendor-male",
+      "clip": null
+    },
+    "davarius-washington": {
+      "fallback": "npc-junk-dealer-male",
+      "clip": null
+    },
+    "david-beemer": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "david-dover": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "david-walker": {
+      "fallback": "npc-clothing-vendor-male",
+      "clip": null
+    },
+    "dennis-chavez": {
+      "fallback": "npc-street-goon-male",
+      "clip": null
+    },
+    "denzel-cryer": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "deputy-mayor-weldon-holt": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": {
+        "stem": "weldon_holt_q303",
+        "id": "3116034837389119488",
+        "seconds": 7.52
+      }
+    },
+    "desi-abdi": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "det-harold-han": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "diana-floyd": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "diego-ramirez": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "dietlinde": {
+      "fallback": "npc-maelstrom-female",
+      "clip": null
+    },
+    "dirk-brooks": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "donnie-carter": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "dorian": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "doris-soto": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "dorothy-allred": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "dotty": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "dr-ensai-yajima": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "dr-kinuko-taniguchi": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "dr-yawen-packard": {
+      "fallback": "npc-ncpd-female",
+      "clip": null
+    },
+    "drausin": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "driss-scorpion-meriana": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "dustbunny": {
+      "fallback": "npc-trauma-team-male",
+      "clip": null
+    },
+    "dusty-lowe": {
+      "fallback": "npc-joytoy-male",
+      "clip": null
+    },
+    "earl-diaz": {
+      "fallback": "npc-street-goon-male",
+      "clip": null
+    },
+    "el-chamuco-endiablado": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "el-gallo": {
+      "fallback": "npc-worker-resident-male",
+      "clip": {
+        "stem": "el_gallo_glenn",
+        "id": "1903953634669154304",
+        "seconds": 5.91
+      }
+    },
+    "elektra-ovirova": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "elijah-olsen": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "elis-hauk": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "elizabeth-roider": {
+      "fallback": "npc-militech-female",
+      "clip": null
+    },
+    "ellie": {
+      "fallback": "npc-aldecaldos-female",
+      "clip": null
+    },
+    "ellis-carter": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "emilie-massenat": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "emily-scooter": {
+      "fallback": "npc-aldecaldos-female",
+      "clip": null
+    },
+    "emma-li": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "emmanuel-cadelus": {
+      "fallback": "npc-food-vendor-male",
+      "clip": null
+    },
+    "emmerick-bronson": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "emon-fujikura": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "enrique-lozano": {
+      "fallback": "npc-nusa-male",
+      "clip": null
+    },
+    "eric": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "ernesto-munoz": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "ernie-hawkins": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "eron-acedo": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "ertha-ojasma": {
+      "fallback": "npc-voodoo-boys-female",
+      "clip": null
+    },
+    "esquerdo-certo": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "euralio-alma": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "evan-mcray": {
+      "fallback": "npc-militech-male",
+      "clip": null
+    },
+    "eve-martinez": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "fae-nesheim": {
+      "fallback": "npc-barghest-female",
+      "clip": null
+    },
+    "farah-bleus": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "faye-russo": {
+      "fallback": "npc-maxtac-female",
+      "clip": null
+    },
+    "faye-spiegel": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "fiona-vargas": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": {
+        "stem": "fiona_vargas_sts_ep1_13",
+        "id": "3231550382041042944",
+        "seconds": 7.26
+      }
+    },
+    "flavio-dos-santos": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "forrest-lee": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "frank-osmani": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "freddie-burns": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "fredrik-persson": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "fujo": {
+      "fallback": "npc-worker-resident-female",
+      "clip": null
+    },
+    "futoshi-yamada": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "garry-bates": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "gaston-phillips": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "gauge-harris": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "gawker-hawk": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "george-cooke": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "george-prosky": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "georgina-zembinsky": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": {
+        "stem": "georgina_zembinsky_sts_ep1_06",
+        "id": "3346312412177715200",
+        "seconds": 7.23
+      }
+    },
+    "gillean-jordan": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": {
+        "stem": "gillean_jordan_sq004_01_nomads_clash",
+        "id": "1745844929275944960",
+        "seconds": 8.02
+      }
+    },
+    "gina-barnes": {
+      "fallback": "npc-worker-resident-female",
+      "clip": null
+    },
+    "gloria-el-ahmar": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "gorira": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "gottfrid-persson": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "grace": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "grant-gibson": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "greg-wilson": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "gregory-schulz": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "griselda-martinez": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "gustaf-ekland": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "gustav-asensio": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "gustavo-orta": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "hal-cantos": {
+      "fallback": "npc-worker-resident-male",
+      "clip": {
+        "stem": "hal_cantos_sts_wat_nid_01",
+        "id": "1892234861851496448",
+        "seconds": 5.94
+      }
+    },
+    "hank-davis": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "harry-lyon": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "haruhiro-o-connell": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "haruyoshi-nishikata": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "helen-wandoo": {
+      "fallback": "npc-food-vendor-female",
+      "clip": null
+    },
+    "henry-blake": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "henry-sanchez": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "henry-stints": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "herold-lowe": {
+      "fallback": "npc-weapons-dealer-male",
+      "clip": null
+    },
+    "hideo-nishio": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "hideshi-hino": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "hideyoshi-oshima": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "hilary-mckenna": {
+      "fallback": "npc-sixth-street-female",
+      "clip": null
+    },
+    "hiromi-sato": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "hiroto-saiki": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "holden-mccoy": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "hugo-selvig": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "hutch-spindler": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "hwangbo-dong-gun": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "ian-cimino": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "ignacio-vega": {
+      "fallback": "npc-street-goon-male",
+      "clip": null
+    },
+    "ilsa-grabmen": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "imad-toma": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "imogen": {
+      "fallback": "npc-market-stall-female",
+      "clip": null
+    },
+    "irene-hermoso": {
+      "fallback": "npc-aldecaldos-female",
+      "clip": null
+    },
+    "iria-zeiram": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "isabella-fuscino": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "isao-suzuki": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "ivan-guerreiro": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "jack-mausser": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "jack-paul": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "jackal": {
+      "fallback": "npc-nomad-resident-male",
+      "clip": null
+    },
+    "jacob-bernard": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "jacob-tomchak": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "jacqueline-peele": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "jae-hyun-lee": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "jaime": {
+      "fallback": "npc-nomad-resident-male",
+      "clip": null
+    },
+    "jake-scooter": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "jakub-luigi-antonowicz": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "james-ito": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "jan-woycicki": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "janet-brewer": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "jared-cortes": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "jasmine-dixon": {
+      "fallback": "npc-ncpd-female",
+      "clip": {
+        "stem": "jasmine_dixon_sts_std_rcr_02",
+        "id": "1925805821506408448",
+        "seconds": 6.92
+      }
+    },
+    "jason-foreman": {
+      "fallback": "npc-dogtown-resident-male",
+      "clip": null
+    },
+    "jason-wildriver": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "jasper-collins": {
+      "fallback": "npc-maxtac-male",
+      "clip": null
+    },
+    "jax-forgrave": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "jax-morgan": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "jean-rochelin": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "jeff": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "jeremy-sutton": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "jermaine-norton": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "jerry-fawlter": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "jesse-sabara": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "jessica-yu": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "jessie-turner": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "jet-white": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "jill-sanchez": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "jim-smith": {
+      "fallback": "npc-street-goon-male",
+      "clip": null
+    },
+    "jiro-oba": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "joanne-koch": {
+      "fallback": "npc-biotechnica-female",
+      "clip": {
+        "stem": "joanne_koch_sts_cct_dtn_04",
+        "id": "1409717993454465024",
+        "seconds": 7.74
+      }
+    },
+    "joe-carrillo": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "joe-kaneshiro": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "john-crimi": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "john-king": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "john-lipczynsky": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "john-lucas": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "john-milard": {
+      "fallback": "npc-food-vendor-male",
+      "clip": null
+    },
+    "john-quaid": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "johnnie-peterson": {
+      "fallback": "npc-bartender-male",
+      "clip": null
+    },
+    "jorge-ron": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "jose-gonzalez": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "jose-luis": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "joseph-j-odman": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "josh-floyd": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "josh-kavorkin": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": {
+        "stem": "josh_kavorkin_ybimb_5",
+        "id": "1752958276475609088",
+        "seconds": 7.49
+      }
+    },
+    "jotaro-shobo": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "journey-ruiz": {
+      "fallback": "npc-market-stall-female",
+      "clip": null
+    },
+    "joyce-marchal": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "juan-esteban-abasto": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "juan-mendez": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "juan-peque": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "juanita-tseng": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": {
+        "stem": "juanita_tseng_sq017_03_kerry_collaboration",
+        "id": "1802312161880162304",
+        "seconds": 6.75
+      }
+    },
+    "jude-night": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "jules-carrel": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "julia-bonet": {
+      "fallback": "npc-sixth-street-female",
+      "clip": null
+    },
+    "julia-young": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "julius-garrett": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "jumbo-josh": {
+      "fallback": "npc-homeless-male",
+      "clip": null
+    },
+    "jun-azegami": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "justin-anderson": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "justin-leduc": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "kaiser-herzog": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "kajetan-zilevski": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "kamala-smith": {
+      "fallback": "npc-sixth-street-female",
+      "clip": null
+    },
+    "kameal-hawk": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "kaoru": {
+      "fallback": "npc-corpo-security-female",
+      "clip": null
+    },
+    "karim-noel": {
+      "fallback": "npc-market-stall-male",
+      "clip": null
+    },
+    "karina-lee": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": {
+        "stem": "karina_lee_q001_01_arasaka_chip_debate",
+        "id": "1795291318276833280",
+        "seconds": 6.96
+      }
+    },
+    "karl-ginsky": {
+      "fallback": "npc-kang-tao-male",
+      "clip": null
+    },
+    "karl-hopfen": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "karolina-vinthir": {
+      "fallback": "npc-trauma-team-female",
+      "clip": null
+    },
+    "karubo-barei": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "katherine-mccannon": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "kathryn-o-brien": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "kean-broughton": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "keegan-kelly": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "keenan": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "keisuke-kagawa": {
+      "fallback": "npc-food-vendor-male",
+      "clip": null
+    },
+    "kelvin-strickland": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "kenji-sakura": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "kevin-flores": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "kevin-king": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "kikil-ivakin": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "kimiko-sanchez": {
+      "fallback": "npc-merc-female",
+      "clip": null
+    },
+    "kirk-sawyer": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "kovachek": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "kuniko-aso": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "kunio-shiki": {
+      "fallback": "npc-food-vendor-male",
+      "clip": null
+    },
+    "kyle-araujo": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "lana-prince": {
+      "fallback": "npc-nomad-resident-female",
+      "clip": null
+    },
+    "lance-hardy": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "laura-may": {
+      "fallback": "npc-junk-dealer-female",
+      "clip": null
+    },
+    "lauren-costigan": {
+      "fallback": "npc-street-resident-female",
+      "clip": {
+        "stem": "lauren_costigan_japantown",
+        "id": "1701222507917709312",
+        "seconds": 4.74
+      }
+    },
+    "leah-gladen": {
+      "fallback": "npc-netrunner-vendor-female",
+      "clip": null
+    },
+    "lely-hein": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "lena-dominguez": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "lenny-nero": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "leon-watson": {
+      "fallback": "npc-weapons-dealer-male",
+      "clip": null
+    },
+    "leslie-wawuda": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "leszek-pea": {
+      "fallback": "npc-trauma-team-male",
+      "clip": null
+    },
+    "lieutenant-mower": {
+      "fallback": "npc-militech-male",
+      "clip": null
+    },
+    "lilayah": {
+      "fallback": "npc-nightlife-resident-female",
+      "clip": null
+    },
+    "linda-spencer": {
+      "fallback": "npc-nightlife-resident-female",
+      "clip": null
+    },
+    "logan-garcia": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "logan-scott": {
+      "fallback": "npc-joytoy-male",
+      "clip": null
+    },
+    "lori": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "lt-carter-reynolds": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "lt-crazy-henry-callahan": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "lucas-fletcher": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "lucas-palmer": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "lucas-vasiley": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "luciano-duarte": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "lucius-thoran": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "luka-soto": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "luke-anderson": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "maggie-isley": {
+      "fallback": "npc-dogtown-resident-female",
+      "clip": null
+    },
+    "marcelo-azevedo": {
+      "fallback": "npc-kang-tao-male",
+      "clip": null
+    },
+    "marcus-barros": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "marcus-ichida": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "margaret-skoczynski": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "margot-wojciechowicz": {
+      "fallback": "npc-aldecaldos-female",
+      "clip": null
+    },
+    "maria-jimenez": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "marilyn": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "mark-muratovich": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "markus-ayers": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "marlon-fuscino": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "marta-liu": {
+      "fallback": "npc-food-vendor-female",
+      "clip": null
+    },
+    "martha-devis": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "martha-young": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "martin-coleman": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "martin-tin": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "masao-adams": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "mat-duda": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "mateo-lorenzo": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "matilda-k-rose": {
+      "fallback": "npc-animals-female",
+      "clip": null
+    },
+    "matt-dupont": {
+      "fallback": "npc-weapons-dealer-male",
+      "clip": null
+    },
+    "matt-liaw": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "maurice": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "maximum-mike": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "mayor-lucius-rhyne": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": {
+        "stem": "lucius_rhyne_sq012",
+        "id": "1873619209528397824",
+        "seconds": 6.86
+      }
+    },
+    "meghan-hattori": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "melissa-rory": {
+      "fallback": "npc-maxtac-female",
+      "clip": null
+    },
+    "melissa-wellingham": {
+      "fallback": "npc-bartender-female",
+      "clip": null
+    },
+    "mia": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "micaela-ruiz": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "michael-maldonado": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "michael-marcinkowsky": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "michiko-arasaka": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "miguel-rodrigez": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "mike-edwards": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "mike-kowalsky": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "mike-kruger": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "mikey": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "mikhail-akulov": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "miles-toast": {
+      "fallback": "npc-bartender-male",
+      "clip": null
+    },
+    "milko": {
+      "fallback": "npc-voodoo-boys-male",
+      "clip": null
+    },
+    "milt-nauman": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "misha-orlova": {
+      "fallback": "npc-scavengers-female",
+      "clip": null
+    },
+    "mitzi-sparks": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "mokomichi-motorboy-yamada": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "monique-ashka": {
+      "fallback": "npc-trauma-team-female",
+      "clip": null
+    },
+    "mr-kipper": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "myaku-janowski": {
+      "fallback": "npc-trauma-team-female",
+      "clip": null
+    },
+    "myriam-glesile": {
+      "fallback": "npc-food-vendor-female",
+      "clip": null
+    },
+    "nachtigall": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "nadezhda-tiurina": {
+      "fallback": "npc-merc-female",
+      "clip": null
+    },
+    "nadia-petrova": {
+      "fallback": "npc-ncpd-female",
+      "clip": null
+    },
+    "nash": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "needles": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "neil-white": {
+      "fallback": "npc-junk-dealer-male",
+      "clip": null
+    },
+    "nell-rees": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "nigel-hamilton": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "nika-yankovich": {
+      "fallback": "npc-scavengers-female",
+      "clip": {
+        "stem": "nika_yankovich_sts_ep1_01",
+        "id": "3266475819243970560",
+        "seconds": 6.1
+      }
+    },
+    "nils-dahlberg": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "nina-kraviz": {
+      "fallback": "npc-ripperdoc-female",
+      "clip": {
+        "stem": "nina_kraviz_ripperdoc_wbr_hil_ripdoc_01",
+        "id": "2098425842961727488",
+        "seconds": 7.63
+      }
+    },
+    "noah": {
+      "fallback": "npc-bartender-male",
+      "clip": null
+    },
+    "noel-ducael": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "norio-akuhara": {
+      "fallback": "npc-street-goon-male",
+      "clip": null
+    },
+    "nova-maccaster": {
+      "fallback": "npc-worker-resident-female",
+      "clip": null
+    },
+    "octavio-delgado": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "odell-blanco": {
+      "fallback": "npc-dogtown-resident-male",
+      "clip": null
+    },
+    "officer-eric-wolfson": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "officer-vasquez": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "ogawa": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "ola-murasaki": {
+      "fallback": "npc-trauma-team-female",
+      "clip": null
+    },
+    "old-elliot": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "oleg-darkevich": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "olga-cygan": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "olga-elisabeth-longmead": {
+      "fallback": "npc-sixth-street-female",
+      "clip": null
+    },
+    "oliver-cooper": {
+      "fallback": "npc-netrunner-vendor-male",
+      "clip": null
+    },
+    "oliver-fernandez": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "olivier-o-brien": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "pablo-delgado": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "patrick-horman": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "patrick-sylap": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "paul-craven": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "paul-roberts": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "pedro-lopez": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "percival-wemys-madison": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "peter-horvath": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "peter-pj-sampson": {
+      "fallback": "npc-militech-male",
+      "clip": null
+    },
+    "peter-upmann": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "piggy": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "prof-sachiko-kusama": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "purple-force": {
+      "fallback": "npc-nightlife-resident-female",
+      "clip": {
+        "stem": "purple_force_sq017_02_us_cracks_at_ziggys",
+        "id": "1802302587961851904",
+        "seconds": 5.46
+      }
+    },
+    "qian-si-hu": {
+      "fallback": "npc-market-stall-male",
+      "clip": null
+    },
+    "quincy-rivers": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "rafael-perez": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "ralph-logan": {
+      "fallback": "npc-bartender-male",
+      "clip": null
+    },
+    "randy-kutcher": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "razor-hughes": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "rebeca-price": {
+      "fallback": "npc-medic-vendor-female",
+      "clip": null
+    },
+    "red-menace": {
+      "fallback": "npc-nightlife-resident-female",
+      "clip": {
+        "stem": "red_menace_sq017",
+        "id": "1806693747545300992",
+        "seconds": 7.14
+      }
+    },
+    "reginald": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "reverend-colver": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "rhino": {
+      "fallback": "npc-animals-female",
+      "clip": null
+    },
+    "richard-fresh": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "rick-gobrat": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "rick-martinez": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "rick-the-cripple": {
+      "fallback": "npc-homeless-male",
+      "clip": null
+    },
+    "rick-waters": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "rick-young": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "robert-rainwater": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "rodrigo-martinez": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "rogelio-cruz": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "roger-wang": {
+      "fallback": "npc-medic-vendor-male",
+      "clip": null
+    },
+    "roh-chi-won": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "ronald-typhoon-malone": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "rony-lafleur": {
+      "fallback": "npc-medic-vendor-male",
+      "clip": null
+    },
+    "rose-horrigan": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "rosi": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "rosie-harper": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "ross-austin": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "ross-ulmer": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "roxanne-colton": {
+      "fallback": "npc-merc-female",
+      "clip": null
+    },
+    "roxanne-sumner": {
+      "fallback": "npc-joytoy-female",
+      "clip": null
+    },
+    "ruby": {
+      "fallback": "npc-nightlife-resident-female",
+      "clip": null
+    },
+    "rufus-mcbride": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "russell-bora": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "russell-greene": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "ruth-dzeng": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": {
+        "stem": "ruth_dzeng_q113_02_comedy_show_about_yorinobu",
+        "id": "1792189662581661696",
+        "seconds": 8.64
+      }
+    },
+    "ryan-baxter": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "ryoko-kumi": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "saburo-arasaka": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "saki-seo": {
+      "fallback": "npc-medic-vendor-female",
+      "clip": null
+    },
+    "sam-jacobs": {
+      "fallback": "npc-dogtown-resident-male",
+      "clip": null
+    },
+    "samantha-samu": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "sammy-taylor": {
+      "fallback": "npc-netrunner-vendor-male",
+      "clip": null
+    },
+    "sandley-lebreton": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "sandra-butler": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "santiago-molina": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "sarah-balbo": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "sarah-remmeuer": {
+      "fallback": "npc-ncpd-female",
+      "clip": null
+    },
+    "satoshi-ueno": {
+      "fallback": "npc-clothing-vendor-male",
+      "clip": null
+    },
+    "saulo-capon": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "scott-hammer": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "seamus-horgan": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "seamus-sawicki": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "seamus-smooth": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "sean-diaz": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "sean-mcmillan": {
+      "fallback": "npc-dogtown-resident-male",
+      "clip": null
+    },
+    "shaitan": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "sheila": {
+      "fallback": "npc-animals-female",
+      "clip": null
+    },
+    "shinobu-imai": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "simon": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "simone": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "siri": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "skye": {
+      "fallback": "npc-joytoy-female",
+      "clip": null
+    },
+    "sofia-ramirez": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "sofia-rossi": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "sogo-watanabe": {
+      "fallback": "npc-ripperdoc-male",
+      "clip": null
+    },
+    "sophia-dupont": {
+      "fallback": "npc-weapons-dealer-female",
+      "clip": null
+    },
+    "spector-cheng": {
+      "fallback": "npc-melee-vendor-male",
+      "clip": null
+    },
+    "spencer-harris": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "spencer-young": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "spike-valentine": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "stanislaus-zbyszko": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "stanley-carlson": {
+      "fallback": "npc-barghest-male",
+      "clip": null
+    },
+    "stanley-judith": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "stefan": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "stella-ramos": {
+      "fallback": "npc-ncpd-female",
+      "clip": {
+        "stem": "stella_ramos_sts_ep1_10",
+        "id": "3276848973789630464",
+        "seconds": 7.34
+      }
+    },
+    "sue-glover": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "susan-abernathy": {
+      "fallback": "npc-corpo-resident-female",
+      "clip": null
+    },
+    "susana-brito": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "susanna-mack": {
+      "fallback": "npc-medic-vendor-female",
+      "clip": null
+    },
+    "susanna-quinn": {
+      "fallback": "npc-mox-female",
+      "clip": null
+    },
+    "sweet-prince": {
+      "fallback": "npc-trauma-team-male",
+      "clip": null
+    },
+    "taco": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "takeshi-kazou": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "taki-kenmochi": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "tamara-cosby": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "tang-tai": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "tasha-rodriquez": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "tatiana-gilligan": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "tatsuya-nyasha": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "tatsuya-takei": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "taylor-gibbs": {
+      "fallback": "npc-dogtown-resident-male",
+      "clip": null
+    },
+    "ted-fox": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": {
+        "stem": "ted_fox_sts_std_arr_05",
+        "id": "1724379770561024000",
+        "seconds": 6.84
+      }
+    },
+    "terry-hall": {
+      "fallback": "npc-street-goon-male",
+      "clip": null
+    },
+    "theo-price": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    },
+    "thiago-brichta": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "thomas-hays": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "ti-neptune": {
+      "fallback": "npc-voodoo-boys-male",
+      "clip": null
+    },
+    "tim-anderson": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "tim-autry": {
+      "fallback": "npc-animals-male",
+      "clip": null
+    },
+    "tim-robitel": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "timothee-lebeau": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "timothy-malek": {
+      "fallback": "npc-wraiths-male",
+      "clip": null
+    },
+    "tom-ayer": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "tom-caldera": {
+      "fallback": "npc-joytoy-male",
+      "clip": null
+    },
+    "tomiko-sawaya": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "tommie-walker": {
+      "fallback": "npc-street-resident-male",
+      "clip": {
+        "stem": "tommie_walker_sts_ep1_13",
+        "id": "3176726234203750400",
+        "seconds": 6.82
+      }
+    },
+    "toshiro": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "towfiq-iqbal": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": {
+        "stem": "towfiq_iqbal_q112_01_hanako_arrives",
+        "id": "1743077839198277632",
+        "seconds": 5.61
+      }
+    },
+    "tracy-phillips": {
+      "fallback": "npc-merc-female",
+      "clip": null
+    },
+    "trevor-brass": {
+      "fallback": "npc-aldecaldos-male",
+      "clip": null
+    },
+    "tsutomu": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "tucker-albach": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "tyler-brown": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "tyler-zan": {
+      "fallback": "npc-merc-male",
+      "clip": null
+    },
+    "vance-noren": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "vic-vega": {
+      "fallback": "npc-corpo-security-male",
+      "clip": null
+    },
+    "vicious-volaju": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "vortex": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "walt-alda": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "wayne-johnson": {
+      "fallback": "npc-maelstrom-male",
+      "clip": null
+    },
+    "wayne-sludge": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "wesley-avedon": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "wesley-hunt": {
+      "fallback": "npc-street-resident-male",
+      "clip": null
+    },
+    "william-becker": {
+      "fallback": "npc-ncpd-male",
+      "clip": null
+    },
+    "william-correy": {
+      "fallback": "npc-worker-resident-male",
+      "clip": null
+    },
+    "william-hare": {
+      "fallback": "npc-militech-male",
+      "clip": null
+    },
+    "willy-mccoy": {
+      "fallback": "npc-corpo-resident-male",
+      "clip": null
+    },
+    "wyatt-alken": {
+      "fallback": "npc-sixth-street-male",
+      "clip": null
+    },
+    "xavi-velez": {
+      "fallback": "npc-valentinos-male",
+      "clip": null
+    },
+    "yasha-ivanov": {
+      "fallback": "npc-scavengers-male",
+      "clip": null
+    },
+    "yelena-sidorova": {
+      "fallback": "npc-scavengers-female",
+      "clip": null
+    },
+    "yishen-rhee": {
+      "fallback": "npc-merc-female",
+      "clip": null
+    },
+    "yoko-tsuru": {
+      "fallback": "npc-netrunner-vendor-female",
+      "clip": null
+    },
+    "yuri-shaku": {
+      "fallback": "npc-tyger-claws-female",
+      "clip": null
+    },
+    "yusaku-ogata": {
+      "fallback": "npc-tyger-claws-male",
+      "clip": null
+    },
+    "zane-jagger": {
+      "fallback": "npc-clothing-vendor-male",
+      "clip": {
+        "stem": "zane_jagger_mq030",
+        "id": "1812458886474194944",
+        "seconds": 6.92
+      }
+    },
+    "zaria-hughes": {
+      "fallback": "npc-maelstrom-female",
+      "clip": null
+    },
+    "zeke-daniels": {
+      "fallback": "npc-nightlife-resident-male",
+      "clip": null
+    },
+    "zhan-qiu": {
+      "fallback": "npc-junk-dealer-male",
+      "clip": null
+    },
+    "zion-wylde": {
+      "fallback": "npc-nomad-resident-male",
+      "clip": null
+    },
+    "zoe-alonzo": {
+      "fallback": "npc-valentinos-female",
+      "clip": null
+    },
+    "zuleikha-el-ahmar": {
+      "fallback": "npc-street-resident-female",
+      "clip": null
+    }
+  }
+}
