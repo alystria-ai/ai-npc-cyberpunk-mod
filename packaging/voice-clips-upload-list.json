@@ -1,9 +1,9 @@
 {
  "repository": "alystria-ai/ai-npc-cyberpunk-mod-packs",
- "note": "Not uploaded.  The bridge downloads voice-clips/<kind>/<key>.wav and checks the SHA-256 against characters/voice-clips-manifest.json.",
- "files": 936,
- "bytes": 622617580,
- "castSweepNote": "These 27 side characters have no shipped voice entry yet (no transcript in the voice lists), so nothing reads them; upload with the cast sweep release.",
+ "note": "Uploaded 2026-10-30 and read back (every size and SHA-256 equal to this list).  The bridge downloads voice-clips/<kind>/<key>.wav and checks the SHA-256 against characters/voice-clips-manifest.json.",
+ "files": 1017,
+ "bytes": 649451116,
+ "castSweepNote": "The 27 cast sweep side characters are included (the same bytes at the three kinds' paths); their sources are the cast sweep clips on the offload drive and the staged copies in runtime/voice-references/picked/autobest.",
  "rows": [
   {
    "path": "voice-clips/omni-short/8ug8ear.wav",
@@ -40,6 +40,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\aaron.wav",
    "bytes": 792006,
    "sha256": "e020a8e18bc40e7b067d842245484265b57e6ea457ba5aedd9c4285e406372b6"
+  },
+  {
+   "path": "voice-clips/omni-short/aaron-mccarlson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\aaron-mccarlson.wav",
+   "bytes": 353200,
+   "sha256": "605e70518359221c77b6282dcdafe2856b1470aef09972e9b51580cbf8827b8d"
+  },
+  {
+   "path": "voice-clips/omni-long/aaron-mccarlson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\aaron-mccarlson.wav",
+   "bytes": 353200,
+   "sha256": "605e70518359221c77b6282dcdafe2856b1470aef09972e9b51580cbf8827b8d"
+  },
+  {
+   "path": "voice-clips/pocket/aaron-mccarlson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\aaron-mccarlson.wav",
+   "bytes": 353200,
+   "sha256": "605e70518359221c77b6282dcdafe2856b1470aef09972e9b51580cbf8827b8d"
   },
   {
    "path": "voice-clips/omni-short/adam-smasher.wav",
@@ -184,6 +202,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\angelica-whelan.wav",
    "bytes": 772050,
    "sha256": "699863f0593b2eee8879fdba13c913564b05bc81ab1879a72ec2dfdf40711fa6"
+  },
+  {
+   "path": "voice-clips/omni-short/anthony-anderson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\anthony-anderson.wav",
+   "bytes": 342688,
+   "sha256": "003473ea52cb0d754fb069eac220cef6df1587e324d09c6fb75e1e59e00fc8ee"
+  },
+  {
+   "path": "voice-clips/omni-long/anthony-anderson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\anthony-anderson.wav",
+   "bytes": 342688,
+   "sha256": "003473ea52cb0d754fb069eac220cef6df1587e324d09c6fb75e1e59e00fc8ee"
+  },
+  {
+   "path": "voice-clips/pocket/anthony-anderson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\anthony-anderson.wav",
+   "bytes": 342688,
+   "sha256": "003473ea52cb0d754fb069eac220cef6df1587e324d09c6fb75e1e59e00fc8ee"
   },
   {
    "path": "voice-clips/omni-short/anthony-gilchrist.wav",
@@ -402,6 +438,24 @@
    "sha256": "663082e55fdaaa96fb86c4e53c4b9b9eaa689b5a2159535c9ab250a33ade10e0"
   },
   {
+   "path": "voice-clips/omni-short/bruce-welby.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\bruce-welby.wav",
+   "bytes": 371936,
+   "sha256": "1a65c1c7f9e94bf20bd4343730fc90b86391f61975c0e654b6a97d863c165ca4"
+  },
+  {
+   "path": "voice-clips/omni-long/bruce-welby.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\bruce-welby.wav",
+   "bytes": 371936,
+   "sha256": "1a65c1c7f9e94bf20bd4343730fc90b86391f61975c0e654b6a97d863c165ca4"
+  },
+  {
+   "path": "voice-clips/pocket/bruce-welby.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\bruce-welby.wav",
+   "bytes": 371936,
+   "sha256": "1a65c1c7f9e94bf20bd4343730fc90b86391f61975c0e654b6a97d863c165ca4"
+  },
+  {
    "path": "voice-clips/omni-short/bryce-mosley.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\bryce-mosley.wav",
    "bytes": 402004,
@@ -490,6 +544,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\chang-hoon-nam.wav",
    "bytes": 491738,
    "sha256": "f0ad51987fd4431e519c2d9886c5754d41f4f1a0741ccf70030d6922944ccfab"
+  },
+  {
+   "path": "voice-clips/omni-short/charles-wilson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\charles-wilson.wav",
+   "bytes": 297506,
+   "sha256": "fe566c339b69b1d9161b217cd0274217c7f42a379efd3828a65fdda05c699c3b"
+  },
+  {
+   "path": "voice-clips/omni-long/charles-wilson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\charles-wilson.wav",
+   "bytes": 297506,
+   "sha256": "fe566c339b69b1d9161b217cd0274217c7f42a379efd3828a65fdda05c699c3b"
+  },
+  {
+   "path": "voice-clips/pocket/charles-wilson.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\charles-wilson.wav",
+   "bytes": 297506,
+   "sha256": "fe566c339b69b1d9161b217cd0274217c7f42a379efd3828a65fdda05c699c3b"
   },
   {
    "path": "voice-clips/omni-short/chester-bennett.wav",
@@ -636,6 +708,24 @@
    "sha256": "1e0aeb9a5e8a0b0347f8fc78f134d06c2243451746144c30e666faaf758e45e8"
   },
   {
+   "path": "voice-clips/omni-short/deputy-mayor-weldon-holt.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\deputy-mayor-weldon-holt.wav",
+   "bytes": 361126,
+   "sha256": "90f2272ae1a6e4177f05cde5a10b0af0fa2fca802d18afbd6905c791c7630c7a"
+  },
+  {
+   "path": "voice-clips/omni-long/deputy-mayor-weldon-holt.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\deputy-mayor-weldon-holt.wav",
+   "bytes": 361126,
+   "sha256": "90f2272ae1a6e4177f05cde5a10b0af0fa2fca802d18afbd6905c791c7630c7a"
+  },
+  {
+   "path": "voice-clips/pocket/deputy-mayor-weldon-holt.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\deputy-mayor-weldon-holt.wav",
+   "bytes": 361126,
+   "sha256": "90f2272ae1a6e4177f05cde5a10b0af0fa2fca802d18afbd6905c791c7630c7a"
+  },
+  {
    "path": "voice-clips/omni-short/dexter-deshawn.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\dexter-deshawn.wav",
    "bytes": 475126,
@@ -726,6 +816,24 @@
    "sha256": "43f4645cb36ae2ae7968a8e17d574ced514c7fa9a02707b2f320f4d0ec1a3534"
   },
   {
+   "path": "voice-clips/omni-short/el-gallo.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\el-gallo.wav",
+   "bytes": 283880,
+   "sha256": "cf294a6d0c15a4f3c6ec2cd829a5d914c70df2e964cbf291905227bfd9515014"
+  },
+  {
+   "path": "voice-clips/omni-long/el-gallo.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\el-gallo.wav",
+   "bytes": 283880,
+   "sha256": "cf294a6d0c15a4f3c6ec2cd829a5d914c70df2e964cbf291905227bfd9515014"
+  },
+  {
+   "path": "voice-clips/pocket/el-gallo.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\el-gallo.wav",
+   "bytes": 283880,
+   "sha256": "cf294a6d0c15a4f3c6ec2cd829a5d914c70df2e964cbf291905227bfd9515014"
+  },
+  {
    "path": "voice-clips/omni-short/elizabeth-peralez.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\elizabeth-peralez.wav",
    "bytes": 450474,
@@ -798,6 +906,24 @@
    "sha256": "4bb098782975b9863254b861505585c570db72395cb3364a1d71773d28fb9e3b"
   },
   {
+   "path": "voice-clips/omni-short/fiona-vargas.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\fiona-vargas.wav",
+   "bytes": 348386,
+   "sha256": "1b2f88d5a30c3dac53c4b8f61986aa163fb70da3d533281d3a408aebf83a6d24"
+  },
+  {
+   "path": "voice-clips/omni-long/fiona-vargas.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\fiona-vargas.wav",
+   "bytes": 348386,
+   "sha256": "1b2f88d5a30c3dac53c4b8f61986aa163fb70da3d533281d3a408aebf83a6d24"
+  },
+  {
+   "path": "voice-clips/pocket/fiona-vargas.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\fiona-vargas.wav",
+   "bytes": 348386,
+   "sha256": "1b2f88d5a30c3dac53c4b8f61986aa163fb70da3d533281d3a408aebf83a6d24"
+  },
+  {
    "path": "voice-clips/omni-short/frank-nostra.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\frank-nostra.wav",
    "bytes": 417876,
@@ -834,6 +960,42 @@
    "sha256": "91b180144ab27014cbbf4ee60d46a9c72633eeb579c0b8be95acf5bcd333c6d2"
   },
   {
+   "path": "voice-clips/omni-short/georgina-zembinsky.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\georgina-zembinsky.wav",
+   "bytes": 347314,
+   "sha256": "0bc72b383161edd67ffae99ba78dc07029586c966ba6da274aaf09e4e642ee5b"
+  },
+  {
+   "path": "voice-clips/omni-long/georgina-zembinsky.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\georgina-zembinsky.wav",
+   "bytes": 347314,
+   "sha256": "0bc72b383161edd67ffae99ba78dc07029586c966ba6da274aaf09e4e642ee5b"
+  },
+  {
+   "path": "voice-clips/pocket/georgina-zembinsky.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\georgina-zembinsky.wav",
+   "bytes": 347314,
+   "sha256": "0bc72b383161edd67ffae99ba78dc07029586c966ba6da274aaf09e4e642ee5b"
+  },
+  {
+   "path": "voice-clips/omni-short/gillean-jordan.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\gillean-jordan.wav",
+   "bytes": 385180,
+   "sha256": "f97be6b7d209d3e53e829effeac243e71aaaa0147fabecb01c0bcca73aafdada"
+  },
+  {
+   "path": "voice-clips/omni-long/gillean-jordan.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\gillean-jordan.wav",
+   "bytes": 385180,
+   "sha256": "f97be6b7d209d3e53e829effeac243e71aaaa0147fabecb01c0bcca73aafdada"
+  },
+  {
+   "path": "voice-clips/pocket/gillean-jordan.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\gillean-jordan.wav",
+   "bytes": 385180,
+   "sha256": "f97be6b7d209d3e53e829effeac243e71aaaa0147fabecb01c0bcca73aafdada"
+  },
+  {
    "path": "voice-clips/omni-short/grayson.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\grayson.wav",
    "bytes": 353234,
@@ -850,6 +1012,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\grayson.wav",
    "bytes": 828422,
    "sha256": "92f64ecca74abad3bc7b615f0f538cc40a08facff2a57288f155627811a73d23"
+  },
+  {
+   "path": "voice-clips/omni-short/hal-cantos.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\hal-cantos.wav",
+   "bytes": 285368,
+   "sha256": "87d734f321a306fcb54bc43b90d891a470750bfd41021d8565f27ea995fe897e"
+  },
+  {
+   "path": "voice-clips/omni-long/hal-cantos.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\hal-cantos.wav",
+   "bytes": 285368,
+   "sha256": "87d734f321a306fcb54bc43b90d891a470750bfd41021d8565f27ea995fe897e"
+  },
+  {
+   "path": "voice-clips/pocket/hal-cantos.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\hal-cantos.wav",
+   "bytes": 285368,
+   "sha256": "87d734f321a306fcb54bc43b90d891a470750bfd41021d8565f27ea995fe897e"
   },
   {
    "path": "voice-clips/omni-short/hanako-arasaka.wav",
@@ -996,6 +1176,24 @@
    "sha256": "bf0716fa388188008604941db9f1312f9f744645b5e7a88816492ab9d343f131"
   },
   {
+   "path": "voice-clips/omni-short/jasmine-dixon.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\jasmine-dixon.wav",
+   "bytes": 332420,
+   "sha256": "1311af4c4754bc1b31f411b8f09e0c9bbe649cb1e7caa44df7a69505695a2de8"
+  },
+  {
+   "path": "voice-clips/omni-long/jasmine-dixon.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\jasmine-dixon.wav",
+   "bytes": 332420,
+   "sha256": "1311af4c4754bc1b31f411b8f09e0c9bbe649cb1e7caa44df7a69505695a2de8"
+  },
+  {
+   "path": "voice-clips/pocket/jasmine-dixon.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\jasmine-dixon.wav",
+   "bytes": 332420,
+   "sha256": "1311af4c4754bc1b31f411b8f09e0c9bbe649cb1e7caa44df7a69505695a2de8"
+  },
+  {
    "path": "voice-clips/omni-short/jefferson-peralez.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\jefferson-peralez.wav",
    "bytes": 373248,
@@ -1050,6 +1248,24 @@
    "sha256": "48a96efdf3feef67e34565c92abfeeada1741e060352deaac20a8b505a29faf4"
   },
   {
+   "path": "voice-clips/omni-short/joanne-koch.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\joanne-koch.wav",
+   "bytes": 371626,
+   "sha256": "769c056ff2c6d93da7ca5aefa005e0f2683c3d7f0ba68123d194ab798c95581e"
+  },
+  {
+   "path": "voice-clips/omni-long/joanne-koch.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\joanne-koch.wav",
+   "bytes": 371626,
+   "sha256": "769c056ff2c6d93da7ca5aefa005e0f2683c3d7f0ba68123d194ab798c95581e"
+  },
+  {
+   "path": "voice-clips/pocket/joanne-koch.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\joanne-koch.wav",
+   "bytes": 371626,
+   "sha256": "769c056ff2c6d93da7ca5aefa005e0f2683c3d7f0ba68123d194ab798c95581e"
+  },
+  {
    "path": "voice-clips/omni-short/johnny-silverhand.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\johnny-silverhand.wav",
    "bytes": 439406,
@@ -1066,6 +1282,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\johnny-silverhand.wav",
    "bytes": 939766,
    "sha256": "da939160e51724235d04b4e447cfc3ad4686555f05622ac179a9583db5e323b7"
+  },
+  {
+   "path": "voice-clips/omni-short/josh-kavorkin.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\josh-kavorkin.wav",
+   "bytes": 359614,
+   "sha256": "9282c2fe750f84f9c2e6b4d8a7fd0b3cac5feced90e686e8689c15566eb1abb2"
+  },
+  {
+   "path": "voice-clips/omni-long/josh-kavorkin.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\josh-kavorkin.wav",
+   "bytes": 359614,
+   "sha256": "9282c2fe750f84f9c2e6b4d8a7fd0b3cac5feced90e686e8689c15566eb1abb2"
+  },
+  {
+   "path": "voice-clips/pocket/josh-kavorkin.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\josh-kavorkin.wav",
+   "bytes": 359614,
+   "sha256": "9282c2fe750f84f9c2e6b4d8a7fd0b3cac5feced90e686e8689c15566eb1abb2"
   },
   {
    "path": "voice-clips/omni-short/joshua-stephenson.wav",
@@ -1104,6 +1338,24 @@
    "sha256": "b326ec477ec1fdb466084c8e94fbac79a4d6c8566ab25a6a5cc0a93bdae8320b"
   },
   {
+   "path": "voice-clips/omni-short/juanita-tseng.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\juanita-tseng.wav",
+   "bytes": 324268,
+   "sha256": "2ac44e9a479e6d18afa8034a79d6f3e44860e99de15f46dae3c985368570da10"
+  },
+  {
+   "path": "voice-clips/omni-long/juanita-tseng.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\juanita-tseng.wav",
+   "bytes": 324268,
+   "sha256": "2ac44e9a479e6d18afa8034a79d6f3e44860e99de15f46dae3c985368570da10"
+  },
+  {
+   "path": "voice-clips/pocket/juanita-tseng.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\juanita-tseng.wav",
+   "bytes": 324268,
+   "sha256": "2ac44e9a479e6d18afa8034a79d6f3e44860e99de15f46dae3c985368570da10"
+  },
+  {
    "path": "voice-clips/omni-short/judy-alvarez.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\judy-alvarez.wav",
    "bytes": 373882,
@@ -1120,6 +1372,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\judy-alvarez.wav",
    "bytes": 609838,
    "sha256": "30474d9fc9a1ba4baf072fcf2364c33c8e8df06a45ca09e75ac1e70887ffb168"
+  },
+  {
+   "path": "voice-clips/omni-short/karina-lee.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\karina-lee.wav",
+   "bytes": 334312,
+   "sha256": "2f4d720cacea5ce9d335b54dfc740a5e0720f805872a96cb0f9b495ba6b7d66f"
+  },
+  {
+   "path": "voice-clips/omni-long/karina-lee.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\karina-lee.wav",
+   "bytes": 334312,
+   "sha256": "2f4d720cacea5ce9d335b54dfc740a5e0720f805872a96cb0f9b495ba6b7d66f"
+  },
+  {
+   "path": "voice-clips/pocket/karina-lee.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\karina-lee.wav",
+   "bytes": 334312,
+   "sha256": "2f4d720cacea5ce9d335b54dfc740a5e0720f805872a96cb0f9b495ba6b7d66f"
   },
   {
    "path": "voice-clips/omni-short/kerry-eurodyne.wav",
@@ -1156,6 +1426,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\kurt-hansen.wav",
    "bytes": 838280,
    "sha256": "0328447795eaa605e34a5125e6a49f5e1f0c11b5ea12bb856c8c1376bd440dbe"
+  },
+  {
+   "path": "voice-clips/omni-short/lauren-costigan.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\lauren-costigan.wav",
+   "bytes": 227608,
+   "sha256": "90ca3ad79553064d4f4c5a8db5cda36789f2bd0993a7228a7267edc8705e06a7"
+  },
+  {
+   "path": "voice-clips/omni-long/lauren-costigan.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\lauren-costigan.wav",
+   "bytes": 227608,
+   "sha256": "90ca3ad79553064d4f4c5a8db5cda36789f2bd0993a7228a7267edc8705e06a7"
+  },
+  {
+   "path": "voice-clips/pocket/lauren-costigan.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\lauren-costigan.wav",
+   "bytes": 227608,
+   "sha256": "90ca3ad79553064d4f4c5a8db5cda36789f2bd0993a7228a7267edc8705e06a7"
   },
   {
    "path": "voice-clips/omni-short/leon-rinder.wav",
@@ -1356,6 +1644,24 @@
    "sha256": "643518cd1662ffadc329661b5b568ad84baaffd148cf5f78c5f0beca04552736"
   },
   {
+   "path": "voice-clips/omni-short/mayor-lucius-rhyne.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\mayor-lucius-rhyne.wav",
+   "bytes": 329330,
+   "sha256": "2cfef56b07d43e3079c353cdb703bdb4f2617923f9cb58c48a8c1987a9d6b313"
+  },
+  {
+   "path": "voice-clips/omni-long/mayor-lucius-rhyne.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\mayor-lucius-rhyne.wav",
+   "bytes": 329330,
+   "sha256": "2cfef56b07d43e3079c353cdb703bdb4f2617923f9cb58c48a8c1987a9d6b313"
+  },
+  {
+   "path": "voice-clips/pocket/mayor-lucius-rhyne.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\mayor-lucius-rhyne.wav",
+   "bytes": 329330,
+   "sha256": "2cfef56b07d43e3079c353cdb703bdb4f2617923f9cb58c48a8c1987a9d6b313"
+  },
+  {
    "path": "voice-clips/omni-short/meredith-stout.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\meredith-stout.wav",
    "bytes": 437552,
@@ -1498,6 +1804,42 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\nele-springer.wav",
    "bytes": 393742,
    "sha256": "9d53c21002fba0aac6d352710e59f6cdd0abaa80615d2ebbf8b59d8334fd5577"
+  },
+  {
+   "path": "voice-clips/omni-short/nika-yankovich.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nika-yankovich.wav",
+   "bytes": 292950,
+   "sha256": "e75533266d11ab27922c744196b20f89b07676a239f158e785777f38255e7973"
+  },
+  {
+   "path": "voice-clips/omni-long/nika-yankovich.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nika-yankovich.wav",
+   "bytes": 292950,
+   "sha256": "e75533266d11ab27922c744196b20f89b07676a239f158e785777f38255e7973"
+  },
+  {
+   "path": "voice-clips/pocket/nika-yankovich.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nika-yankovich.wav",
+   "bytes": 292950,
+   "sha256": "e75533266d11ab27922c744196b20f89b07676a239f158e785777f38255e7973"
+  },
+  {
+   "path": "voice-clips/omni-short/nina-kraviz.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nina-kraviz.wav",
+   "bytes": 366508,
+   "sha256": "718b6cbdef0250840eb35aa72433193c1e8e0d2f979afbf044757a6645f0b364"
+  },
+  {
+   "path": "voice-clips/omni-long/nina-kraviz.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nina-kraviz.wav",
+   "bytes": 366508,
+   "sha256": "718b6cbdef0250840eb35aa72433193c1e8e0d2f979afbf044757a6645f0b364"
+  },
+  {
+   "path": "voice-clips/pocket/nina-kraviz.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nina-kraviz.wav",
+   "bytes": 366508,
+   "sha256": "718b6cbdef0250840eb35aa72433193c1e8e0d2f979afbf044757a6645f0b364"
   },
   {
    "path": "voice-clips/omni-short/nix.wav",
@@ -4956,6 +5298,24 @@
    "sha256": "4177c6a0cfb9eda0bd0e283ddd3affe77df46525b0fac2c326fdd4e2b48cfb6f"
   },
   {
+   "path": "voice-clips/omni-short/purple-force.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\purple-force.wav",
+   "bytes": 262266,
+   "sha256": "50350c7abf4ac60d5af143ebcc6fd22a142b24f809c6adf5b6d2c0bca5a6fcf3"
+  },
+  {
+   "path": "voice-clips/omni-long/purple-force.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\purple-force.wav",
+   "bytes": 262266,
+   "sha256": "50350c7abf4ac60d5af143ebcc6fd22a142b24f809c6adf5b6d2c0bca5a6fcf3"
+  },
+  {
+   "path": "voice-clips/pocket/purple-force.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\purple-force.wav",
+   "bytes": 262266,
+   "sha256": "50350c7abf4ac60d5af143ebcc6fd22a142b24f809c6adf5b6d2c0bca5a6fcf3"
+  },
+  {
    "path": "voice-clips/omni-short/r3n0.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\r3n0.wav",
    "bytes": 361596,
@@ -4990,6 +5350,24 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\rachel-casich.wav",
    "bytes": 1063236,
    "sha256": "88470198a6a2ad794977ff2907aa1a7f3f4b14ea5b12ece4ee19c1133294427c"
+  },
+  {
+   "path": "voice-clips/omni-short/red-menace.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\red-menace.wav",
+   "bytes": 342648,
+   "sha256": "e43ca50d6d27ede16023fd9215821e29ac31b73314d98f727cdc40e132b178af"
+  },
+  {
+   "path": "voice-clips/omni-long/red-menace.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\red-menace.wav",
+   "bytes": 342648,
+   "sha256": "e43ca50d6d27ede16023fd9215821e29ac31b73314d98f727cdc40e132b178af"
+  },
+  {
+   "path": "voice-clips/pocket/red-menace.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\red-menace.wav",
+   "bytes": 342648,
+   "sha256": "e43ca50d6d27ede16023fd9215821e29ac31b73314d98f727cdc40e132b178af"
   },
   {
    "path": "voice-clips/omni-short/regina-jones.wav",
@@ -5226,6 +5604,24 @@
    "sha256": "eed82226e8bc10680d660350dc09b05995964b7aa27acb979b4defc65d0f971c"
   },
   {
+   "path": "voice-clips/omni-short/ruth-dzeng.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ruth-dzeng.wav",
+   "bytes": 414526,
+   "sha256": "cbd8f79da82d099b0909f24fdb00d438a246fb015a2dd68bd159b740d7f903a1"
+  },
+  {
+   "path": "voice-clips/omni-long/ruth-dzeng.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ruth-dzeng.wav",
+   "bytes": 414526,
+   "sha256": "cbd8f79da82d099b0909f24fdb00d438a246fb015a2dd68bd159b740d7f903a1"
+  },
+  {
+   "path": "voice-clips/pocket/ruth-dzeng.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ruth-dzeng.wav",
+   "bytes": 414526,
+   "sha256": "cbd8f79da82d099b0909f24fdb00d438a246fb015a2dd68bd159b740d7f903a1"
+  },
+  {
    "path": "voice-clips/omni-short/sandra-dorsett.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\sandra-dorsett.wav",
    "bytes": 369348,
@@ -5352,6 +5748,24 @@
    "sha256": "6886cf913beb5773e561598687a6b336a69b5a45176fef36a0520be2a2688611"
   },
   {
+   "path": "voice-clips/omni-short/stella-ramos.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\stella-ramos.wav",
+   "bytes": 352262,
+   "sha256": "cb1e0152d01ffb8224a2e206d017c581c63a8c1d8da1cb554469a3724a747667"
+  },
+  {
+   "path": "voice-clips/omni-long/stella-ramos.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\stella-ramos.wav",
+   "bytes": 352262,
+   "sha256": "cb1e0152d01ffb8224a2e206d017c581c63a8c1d8da1cb554469a3724a747667"
+  },
+  {
+   "path": "voice-clips/pocket/stella-ramos.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\stella-ramos.wav",
+   "bytes": 352262,
+   "sha256": "cb1e0152d01ffb8224a2e206d017c581c63a8c1d8da1cb554469a3724a747667"
+  },
+  {
    "path": "voice-clips/omni-short/steve.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\steve.wav",
    "bytes": 427150,
@@ -5424,6 +5838,24 @@
    "sha256": "35eccc65307afcc7ae0f550a44f382d4706bc5deec25d07ae53c6f0647218e1c"
   },
   {
+   "path": "voice-clips/omni-short/ted-fox.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ted-fox.wav",
+   "bytes": 328498,
+   "sha256": "264bdf977fed51ae9e29acc69c0e31aa33657fb384e09ad1130fc1459ee50351"
+  },
+  {
+   "path": "voice-clips/omni-long/ted-fox.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ted-fox.wav",
+   "bytes": 328498,
+   "sha256": "264bdf977fed51ae9e29acc69c0e31aa33657fb384e09ad1130fc1459ee50351"
+  },
+  {
+   "path": "voice-clips/pocket/ted-fox.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ted-fox.wav",
+   "bytes": 328498,
+   "sha256": "264bdf977fed51ae9e29acc69c0e31aa33657fb384e09ad1130fc1459ee50351"
+  },
+  {
    "path": "voice-clips/omni-short/teddy.wav",
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\teddy.wav",
    "bytes": 420502,
@@ -5476,6 +5908,42 @@
    "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\tiny-mike.wav",
    "bytes": 804068,
    "sha256": "23162fc39c017b446c3f9ba4d57934f457089a0634ecb10286f073f1cce12b0e"
+  },
+  {
+   "path": "voice-clips/omni-short/tommie-walker.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\tommie-walker.wav",
+   "bytes": 327528,
+   "sha256": "bd8c80a80bfa21d87fcc525311548452d3be8f44bbef1583237a5518273f7b65"
+  },
+  {
+   "path": "voice-clips/omni-long/tommie-walker.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\tommie-walker.wav",
+   "bytes": 327528,
+   "sha256": "bd8c80a80bfa21d87fcc525311548452d3be8f44bbef1583237a5518273f7b65"
+  },
+  {
+   "path": "voice-clips/pocket/tommie-walker.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\tommie-walker.wav",
+   "bytes": 327528,
+   "sha256": "bd8c80a80bfa21d87fcc525311548452d3be8f44bbef1583237a5518273f7b65"
+  },
+  {
+   "path": "voice-clips/omni-short/towfiq-iqbal.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\towfiq-iqbal.wav",
+   "bytes": 269248,
+   "sha256": "91baefabc47c10e7e022c36f770c13b0b581c627b082b79b54c853ac321a5a81"
+  },
+  {
+   "path": "voice-clips/omni-long/towfiq-iqbal.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\towfiq-iqbal.wav",
+   "bytes": 269248,
+   "sha256": "91baefabc47c10e7e022c36f770c13b0b581c627b082b79b54c853ac321a5a81"
+  },
+  {
+   "path": "voice-clips/pocket/towfiq-iqbal.wav",
+   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\towfiq-iqbal.wav",
+   "bytes": 269248,
+   "sha256": "91baefabc47c10e7e022c36f770c13b0b581c627b082b79b54c853ac321a5a81"
   },
   {
    "path": "voice-clips/omni-short/viktor-vektor.wav",
@@ -5604,494 +6072,6 @@
    "sha256": "bd42473853045482c49c28db83e26cc0365f54f18538ce38666f65a45608467f"
   },
   {
-   "path": "voice-clips/omni-short/ziggy-q.wav",
-   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\ziggy-q.wav",
-   "bytes": 415658,
-   "sha256": "63a4858068c120dcd2058d61c867424c0cb6d38b56e31cc242cb38eeeca262fe"
-  },
-  {
-   "path": "voice-clips/omni-long/ziggy-q.wav",
-   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-long\\ziggy-q.wav",
-   "bytes": 843620,
-   "sha256": "99398e1360eae58880e86521bbffec2075e8fde2595113e66e6ce35008cf0b1c"
-  },
-  {
-   "path": "voice-clips/pocket/ziggy-q.wav",
-   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\ziggy-q.wav",
-   "bytes": 843620,
-   "sha256": "99398e1360eae58880e86521bbffec2075e8fde2595113e66e6ce35008cf0b1c"
-  }
- ],
- "castSweep": [
-  {
-   "path": "voice-clips/omni-short/aaron-mccarlson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\aaron-mccarlson.wav",
-   "bytes": 353200,
-   "sha256": "605e70518359221c77b6282dcdafe2856b1470aef09972e9b51580cbf8827b8d"
-  },
-  {
-   "path": "voice-clips/omni-long/aaron-mccarlson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\aaron-mccarlson.wav",
-   "bytes": 353200,
-   "sha256": "605e70518359221c77b6282dcdafe2856b1470aef09972e9b51580cbf8827b8d"
-  },
-  {
-   "path": "voice-clips/pocket/aaron-mccarlson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\aaron-mccarlson.wav",
-   "bytes": 353200,
-   "sha256": "605e70518359221c77b6282dcdafe2856b1470aef09972e9b51580cbf8827b8d"
-  },
-  {
-   "path": "voice-clips/omni-short/anthony-anderson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\anthony-anderson.wav",
-   "bytes": 342688,
-   "sha256": "003473ea52cb0d754fb069eac220cef6df1587e324d09c6fb75e1e59e00fc8ee"
-  },
-  {
-   "path": "voice-clips/omni-long/anthony-anderson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\anthony-anderson.wav",
-   "bytes": 342688,
-   "sha256": "003473ea52cb0d754fb069eac220cef6df1587e324d09c6fb75e1e59e00fc8ee"
-  },
-  {
-   "path": "voice-clips/pocket/anthony-anderson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\anthony-anderson.wav",
-   "bytes": 342688,
-   "sha256": "003473ea52cb0d754fb069eac220cef6df1587e324d09c6fb75e1e59e00fc8ee"
-  },
-  {
-   "path": "voice-clips/omni-short/bruce-welby.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\bruce-welby.wav",
-   "bytes": 371936,
-   "sha256": "1a65c1c7f9e94bf20bd4343730fc90b86391f61975c0e654b6a97d863c165ca4"
-  },
-  {
-   "path": "voice-clips/omni-long/bruce-welby.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\bruce-welby.wav",
-   "bytes": 371936,
-   "sha256": "1a65c1c7f9e94bf20bd4343730fc90b86391f61975c0e654b6a97d863c165ca4"
-  },
-  {
-   "path": "voice-clips/pocket/bruce-welby.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\bruce-welby.wav",
-   "bytes": 371936,
-   "sha256": "1a65c1c7f9e94bf20bd4343730fc90b86391f61975c0e654b6a97d863c165ca4"
-  },
-  {
-   "path": "voice-clips/omni-short/charles-wilson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\charles-wilson.wav",
-   "bytes": 297506,
-   "sha256": "fe566c339b69b1d9161b217cd0274217c7f42a379efd3828a65fdda05c699c3b"
-  },
-  {
-   "path": "voice-clips/omni-long/charles-wilson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\charles-wilson.wav",
-   "bytes": 297506,
-   "sha256": "fe566c339b69b1d9161b217cd0274217c7f42a379efd3828a65fdda05c699c3b"
-  },
-  {
-   "path": "voice-clips/pocket/charles-wilson.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\charles-wilson.wav",
-   "bytes": 297506,
-   "sha256": "fe566c339b69b1d9161b217cd0274217c7f42a379efd3828a65fdda05c699c3b"
-  },
-  {
-   "path": "voice-clips/omni-short/deputy-mayor-weldon-holt.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\deputy-mayor-weldon-holt.wav",
-   "bytes": 361126,
-   "sha256": "90f2272ae1a6e4177f05cde5a10b0af0fa2fca802d18afbd6905c791c7630c7a"
-  },
-  {
-   "path": "voice-clips/omni-long/deputy-mayor-weldon-holt.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\deputy-mayor-weldon-holt.wav",
-   "bytes": 361126,
-   "sha256": "90f2272ae1a6e4177f05cde5a10b0af0fa2fca802d18afbd6905c791c7630c7a"
-  },
-  {
-   "path": "voice-clips/pocket/deputy-mayor-weldon-holt.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\deputy-mayor-weldon-holt.wav",
-   "bytes": 361126,
-   "sha256": "90f2272ae1a6e4177f05cde5a10b0af0fa2fca802d18afbd6905c791c7630c7a"
-  },
-  {
-   "path": "voice-clips/omni-short/el-gallo.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\el-gallo.wav",
-   "bytes": 283880,
-   "sha256": "cf294a6d0c15a4f3c6ec2cd829a5d914c70df2e964cbf291905227bfd9515014"
-  },
-  {
-   "path": "voice-clips/omni-long/el-gallo.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\el-gallo.wav",
-   "bytes": 283880,
-   "sha256": "cf294a6d0c15a4f3c6ec2cd829a5d914c70df2e964cbf291905227bfd9515014"
-  },
-  {
-   "path": "voice-clips/pocket/el-gallo.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\el-gallo.wav",
-   "bytes": 283880,
-   "sha256": "cf294a6d0c15a4f3c6ec2cd829a5d914c70df2e964cbf291905227bfd9515014"
-  },
-  {
-   "path": "voice-clips/omni-short/fiona-vargas.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\fiona-vargas.wav",
-   "bytes": 348386,
-   "sha256": "1b2f88d5a30c3dac53c4b8f61986aa163fb70da3d533281d3a408aebf83a6d24"
-  },
-  {
-   "path": "voice-clips/omni-long/fiona-vargas.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\fiona-vargas.wav",
-   "bytes": 348386,
-   "sha256": "1b2f88d5a30c3dac53c4b8f61986aa163fb70da3d533281d3a408aebf83a6d24"
-  },
-  {
-   "path": "voice-clips/pocket/fiona-vargas.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\fiona-vargas.wav",
-   "bytes": 348386,
-   "sha256": "1b2f88d5a30c3dac53c4b8f61986aa163fb70da3d533281d3a408aebf83a6d24"
-  },
-  {
-   "path": "voice-clips/omni-short/georgina-zembinsky.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\georgina-zembinsky.wav",
-   "bytes": 347314,
-   "sha256": "0bc72b383161edd67ffae99ba78dc07029586c966ba6da274aaf09e4e642ee5b"
-  },
-  {
-   "path": "voice-clips/omni-long/georgina-zembinsky.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\georgina-zembinsky.wav",
-   "bytes": 347314,
-   "sha256": "0bc72b383161edd67ffae99ba78dc07029586c966ba6da274aaf09e4e642ee5b"
-  },
-  {
-   "path": "voice-clips/pocket/georgina-zembinsky.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\georgina-zembinsky.wav",
-   "bytes": 347314,
-   "sha256": "0bc72b383161edd67ffae99ba78dc07029586c966ba6da274aaf09e4e642ee5b"
-  },
-  {
-   "path": "voice-clips/omni-short/gillean-jordan.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\gillean-jordan.wav",
-   "bytes": 385180,
-   "sha256": "f97be6b7d209d3e53e829effeac243e71aaaa0147fabecb01c0bcca73aafdada"
-  },
-  {
-   "path": "voice-clips/omni-long/gillean-jordan.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\gillean-jordan.wav",
-   "bytes": 385180,
-   "sha256": "f97be6b7d209d3e53e829effeac243e71aaaa0147fabecb01c0bcca73aafdada"
-  },
-  {
-   "path": "voice-clips/pocket/gillean-jordan.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\gillean-jordan.wav",
-   "bytes": 385180,
-   "sha256": "f97be6b7d209d3e53e829effeac243e71aaaa0147fabecb01c0bcca73aafdada"
-  },
-  {
-   "path": "voice-clips/omni-short/hal-cantos.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\hal-cantos.wav",
-   "bytes": 285368,
-   "sha256": "87d734f321a306fcb54bc43b90d891a470750bfd41021d8565f27ea995fe897e"
-  },
-  {
-   "path": "voice-clips/omni-long/hal-cantos.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\hal-cantos.wav",
-   "bytes": 285368,
-   "sha256": "87d734f321a306fcb54bc43b90d891a470750bfd41021d8565f27ea995fe897e"
-  },
-  {
-   "path": "voice-clips/pocket/hal-cantos.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\hal-cantos.wav",
-   "bytes": 285368,
-   "sha256": "87d734f321a306fcb54bc43b90d891a470750bfd41021d8565f27ea995fe897e"
-  },
-  {
-   "path": "voice-clips/omni-short/jasmine-dixon.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\jasmine-dixon.wav",
-   "bytes": 332420,
-   "sha256": "1311af4c4754bc1b31f411b8f09e0c9bbe649cb1e7caa44df7a69505695a2de8"
-  },
-  {
-   "path": "voice-clips/omni-long/jasmine-dixon.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\jasmine-dixon.wav",
-   "bytes": 332420,
-   "sha256": "1311af4c4754bc1b31f411b8f09e0c9bbe649cb1e7caa44df7a69505695a2de8"
-  },
-  {
-   "path": "voice-clips/pocket/jasmine-dixon.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\jasmine-dixon.wav",
-   "bytes": 332420,
-   "sha256": "1311af4c4754bc1b31f411b8f09e0c9bbe649cb1e7caa44df7a69505695a2de8"
-  },
-  {
-   "path": "voice-clips/omni-short/joanne-koch.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\joanne-koch.wav",
-   "bytes": 371626,
-   "sha256": "769c056ff2c6d93da7ca5aefa005e0f2683c3d7f0ba68123d194ab798c95581e"
-  },
-  {
-   "path": "voice-clips/omni-long/joanne-koch.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\joanne-koch.wav",
-   "bytes": 371626,
-   "sha256": "769c056ff2c6d93da7ca5aefa005e0f2683c3d7f0ba68123d194ab798c95581e"
-  },
-  {
-   "path": "voice-clips/pocket/joanne-koch.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\joanne-koch.wav",
-   "bytes": 371626,
-   "sha256": "769c056ff2c6d93da7ca5aefa005e0f2683c3d7f0ba68123d194ab798c95581e"
-  },
-  {
-   "path": "voice-clips/omni-short/josh-kavorkin.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\josh-kavorkin.wav",
-   "bytes": 359614,
-   "sha256": "9282c2fe750f84f9c2e6b4d8a7fd0b3cac5feced90e686e8689c15566eb1abb2"
-  },
-  {
-   "path": "voice-clips/omni-long/josh-kavorkin.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\josh-kavorkin.wav",
-   "bytes": 359614,
-   "sha256": "9282c2fe750f84f9c2e6b4d8a7fd0b3cac5feced90e686e8689c15566eb1abb2"
-  },
-  {
-   "path": "voice-clips/pocket/josh-kavorkin.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\josh-kavorkin.wav",
-   "bytes": 359614,
-   "sha256": "9282c2fe750f84f9c2e6b4d8a7fd0b3cac5feced90e686e8689c15566eb1abb2"
-  },
-  {
-   "path": "voice-clips/omni-short/juanita-tseng.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\juanita-tseng.wav",
-   "bytes": 324268,
-   "sha256": "2ac44e9a479e6d18afa8034a79d6f3e44860e99de15f46dae3c985368570da10"
-  },
-  {
-   "path": "voice-clips/omni-long/juanita-tseng.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\juanita-tseng.wav",
-   "bytes": 324268,
-   "sha256": "2ac44e9a479e6d18afa8034a79d6f3e44860e99de15f46dae3c985368570da10"
-  },
-  {
-   "path": "voice-clips/pocket/juanita-tseng.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\juanita-tseng.wav",
-   "bytes": 324268,
-   "sha256": "2ac44e9a479e6d18afa8034a79d6f3e44860e99de15f46dae3c985368570da10"
-  },
-  {
-   "path": "voice-clips/omni-short/karina-lee.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\karina-lee.wav",
-   "bytes": 334312,
-   "sha256": "2f4d720cacea5ce9d335b54dfc740a5e0720f805872a96cb0f9b495ba6b7d66f"
-  },
-  {
-   "path": "voice-clips/omni-long/karina-lee.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\karina-lee.wav",
-   "bytes": 334312,
-   "sha256": "2f4d720cacea5ce9d335b54dfc740a5e0720f805872a96cb0f9b495ba6b7d66f"
-  },
-  {
-   "path": "voice-clips/pocket/karina-lee.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\karina-lee.wav",
-   "bytes": 334312,
-   "sha256": "2f4d720cacea5ce9d335b54dfc740a5e0720f805872a96cb0f9b495ba6b7d66f"
-  },
-  {
-   "path": "voice-clips/omni-short/lauren-costigan.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\lauren-costigan.wav",
-   "bytes": 227608,
-   "sha256": "90ca3ad79553064d4f4c5a8db5cda36789f2bd0993a7228a7267edc8705e06a7"
-  },
-  {
-   "path": "voice-clips/omni-long/lauren-costigan.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\lauren-costigan.wav",
-   "bytes": 227608,
-   "sha256": "90ca3ad79553064d4f4c5a8db5cda36789f2bd0993a7228a7267edc8705e06a7"
-  },
-  {
-   "path": "voice-clips/pocket/lauren-costigan.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\lauren-costigan.wav",
-   "bytes": 227608,
-   "sha256": "90ca3ad79553064d4f4c5a8db5cda36789f2bd0993a7228a7267edc8705e06a7"
-  },
-  {
-   "path": "voice-clips/omni-short/mayor-lucius-rhyne.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\mayor-lucius-rhyne.wav",
-   "bytes": 329330,
-   "sha256": "2cfef56b07d43e3079c353cdb703bdb4f2617923f9cb58c48a8c1987a9d6b313"
-  },
-  {
-   "path": "voice-clips/omni-long/mayor-lucius-rhyne.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\mayor-lucius-rhyne.wav",
-   "bytes": 329330,
-   "sha256": "2cfef56b07d43e3079c353cdb703bdb4f2617923f9cb58c48a8c1987a9d6b313"
-  },
-  {
-   "path": "voice-clips/pocket/mayor-lucius-rhyne.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\mayor-lucius-rhyne.wav",
-   "bytes": 329330,
-   "sha256": "2cfef56b07d43e3079c353cdb703bdb4f2617923f9cb58c48a8c1987a9d6b313"
-  },
-  {
-   "path": "voice-clips/omni-short/nika-yankovich.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nika-yankovich.wav",
-   "bytes": 292950,
-   "sha256": "e75533266d11ab27922c744196b20f89b07676a239f158e785777f38255e7973"
-  },
-  {
-   "path": "voice-clips/omni-long/nika-yankovich.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nika-yankovich.wav",
-   "bytes": 292950,
-   "sha256": "e75533266d11ab27922c744196b20f89b07676a239f158e785777f38255e7973"
-  },
-  {
-   "path": "voice-clips/pocket/nika-yankovich.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nika-yankovich.wav",
-   "bytes": 292950,
-   "sha256": "e75533266d11ab27922c744196b20f89b07676a239f158e785777f38255e7973"
-  },
-  {
-   "path": "voice-clips/omni-short/nina-kraviz.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nina-kraviz.wav",
-   "bytes": 366508,
-   "sha256": "718b6cbdef0250840eb35aa72433193c1e8e0d2f979afbf044757a6645f0b364"
-  },
-  {
-   "path": "voice-clips/omni-long/nina-kraviz.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nina-kraviz.wav",
-   "bytes": 366508,
-   "sha256": "718b6cbdef0250840eb35aa72433193c1e8e0d2f979afbf044757a6645f0b364"
-  },
-  {
-   "path": "voice-clips/pocket/nina-kraviz.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\nina-kraviz.wav",
-   "bytes": 366508,
-   "sha256": "718b6cbdef0250840eb35aa72433193c1e8e0d2f979afbf044757a6645f0b364"
-  },
-  {
-   "path": "voice-clips/omni-short/purple-force.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\purple-force.wav",
-   "bytes": 262266,
-   "sha256": "50350c7abf4ac60d5af143ebcc6fd22a142b24f809c6adf5b6d2c0bca5a6fcf3"
-  },
-  {
-   "path": "voice-clips/omni-long/purple-force.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\purple-force.wav",
-   "bytes": 262266,
-   "sha256": "50350c7abf4ac60d5af143ebcc6fd22a142b24f809c6adf5b6d2c0bca5a6fcf3"
-  },
-  {
-   "path": "voice-clips/pocket/purple-force.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\purple-force.wav",
-   "bytes": 262266,
-   "sha256": "50350c7abf4ac60d5af143ebcc6fd22a142b24f809c6adf5b6d2c0bca5a6fcf3"
-  },
-  {
-   "path": "voice-clips/omni-short/red-menace.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\red-menace.wav",
-   "bytes": 342648,
-   "sha256": "e43ca50d6d27ede16023fd9215821e29ac31b73314d98f727cdc40e132b178af"
-  },
-  {
-   "path": "voice-clips/omni-long/red-menace.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\red-menace.wav",
-   "bytes": 342648,
-   "sha256": "e43ca50d6d27ede16023fd9215821e29ac31b73314d98f727cdc40e132b178af"
-  },
-  {
-   "path": "voice-clips/pocket/red-menace.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\red-menace.wav",
-   "bytes": 342648,
-   "sha256": "e43ca50d6d27ede16023fd9215821e29ac31b73314d98f727cdc40e132b178af"
-  },
-  {
-   "path": "voice-clips/omni-short/ruth-dzeng.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ruth-dzeng.wav",
-   "bytes": 414526,
-   "sha256": "cbd8f79da82d099b0909f24fdb00d438a246fb015a2dd68bd159b740d7f903a1"
-  },
-  {
-   "path": "voice-clips/omni-long/ruth-dzeng.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ruth-dzeng.wav",
-   "bytes": 414526,
-   "sha256": "cbd8f79da82d099b0909f24fdb00d438a246fb015a2dd68bd159b740d7f903a1"
-  },
-  {
-   "path": "voice-clips/pocket/ruth-dzeng.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ruth-dzeng.wav",
-   "bytes": 414526,
-   "sha256": "cbd8f79da82d099b0909f24fdb00d438a246fb015a2dd68bd159b740d7f903a1"
-  },
-  {
-   "path": "voice-clips/omni-short/stella-ramos.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\stella-ramos.wav",
-   "bytes": 352262,
-   "sha256": "cb1e0152d01ffb8224a2e206d017c581c63a8c1d8da1cb554469a3724a747667"
-  },
-  {
-   "path": "voice-clips/omni-long/stella-ramos.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\stella-ramos.wav",
-   "bytes": 352262,
-   "sha256": "cb1e0152d01ffb8224a2e206d017c581c63a8c1d8da1cb554469a3724a747667"
-  },
-  {
-   "path": "voice-clips/pocket/stella-ramos.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\stella-ramos.wav",
-   "bytes": 352262,
-   "sha256": "cb1e0152d01ffb8224a2e206d017c581c63a8c1d8da1cb554469a3724a747667"
-  },
-  {
-   "path": "voice-clips/omni-short/ted-fox.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ted-fox.wav",
-   "bytes": 328498,
-   "sha256": "264bdf977fed51ae9e29acc69c0e31aa33657fb384e09ad1130fc1459ee50351"
-  },
-  {
-   "path": "voice-clips/omni-long/ted-fox.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ted-fox.wav",
-   "bytes": 328498,
-   "sha256": "264bdf977fed51ae9e29acc69c0e31aa33657fb384e09ad1130fc1459ee50351"
-  },
-  {
-   "path": "voice-clips/pocket/ted-fox.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\ted-fox.wav",
-   "bytes": 328498,
-   "sha256": "264bdf977fed51ae9e29acc69c0e31aa33657fb384e09ad1130fc1459ee50351"
-  },
-  {
-   "path": "voice-clips/omni-short/tommie-walker.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\tommie-walker.wav",
-   "bytes": 327528,
-   "sha256": "bd8c80a80bfa21d87fcc525311548452d3be8f44bbef1583237a5518273f7b65"
-  },
-  {
-   "path": "voice-clips/omni-long/tommie-walker.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\tommie-walker.wav",
-   "bytes": 327528,
-   "sha256": "bd8c80a80bfa21d87fcc525311548452d3be8f44bbef1583237a5518273f7b65"
-  },
-  {
-   "path": "voice-clips/pocket/tommie-walker.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\tommie-walker.wav",
-   "bytes": 327528,
-   "sha256": "bd8c80a80bfa21d87fcc525311548452d3be8f44bbef1583237a5518273f7b65"
-  },
-  {
-   "path": "voice-clips/omni-short/towfiq-iqbal.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\towfiq-iqbal.wav",
-   "bytes": 269248,
-   "sha256": "91baefabc47c10e7e022c36f770c13b0b581c627b082b79b54c853ac321a5a81"
-  },
-  {
-   "path": "voice-clips/omni-long/towfiq-iqbal.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\towfiq-iqbal.wav",
-   "bytes": 269248,
-   "sha256": "91baefabc47c10e7e022c36f770c13b0b581c627b082b79b54c853ac321a5a81"
-  },
-  {
-   "path": "voice-clips/pocket/towfiq-iqbal.wav",
-   "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\towfiq-iqbal.wav",
-   "bytes": 269248,
-   "sha256": "91baefabc47c10e7e022c36f770c13b0b581c627b082b79b54c853ac321a5a81"
-  },
-  {
    "path": "voice-clips/omni-short/zane-jagger.wav",
    "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\zane-jagger.wav",
    "bytes": 332316,
@@ -6108,6 +6088,24 @@
    "source": "E:\\CyberpunkConvai-offload\\work\\cast-sweep\\zane-jagger.wav",
    "bytes": 332316,
    "sha256": "007d2af153fe043d8e300855e16cac8244958922c5e0bccdd179edbbe9b58ff4"
+  },
+  {
+   "path": "voice-clips/omni-short/ziggy-q.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-short\\ziggy-q.wav",
+   "bytes": 415658,
+   "sha256": "63a4858068c120dcd2058d61c867424c0cb6d38b56e31cc242cb38eeeca262fe"
+  },
+  {
+   "path": "voice-clips/omni-long/ziggy-q.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\omni-long\\ziggy-q.wav",
+   "bytes": 843620,
+   "sha256": "99398e1360eae58880e86521bbffec2075e8fde2595113e66e6ce35008cf0b1c"
+  },
+  {
+   "path": "voice-clips/pocket/ziggy-q.wav",
+   "source": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-references\\picked\\autobest\\pocket\\ziggy-q.wav",
+   "bytes": 843620,
+   "sha256": "99398e1360eae58880e86521bbffec2075e8fde2595113e66e6ce35008cf0b1c"
   }
  ]
 }
