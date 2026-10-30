@@ -619,6 +619,8 @@ test('a companion touching a prop steps clear and then follows instead of being 
 `));
 
 test('left behind on the old floor: she appears out of view near V once V steps out of the car',()=>run(world+car+`
+  -- A copy that has stood beside V for over 30 s: the placement check of a fresh invitation (mod/companions.lua) is over.
+  play(64,0)
   -- She is held 20 m back behind a locked door: too far to be taken along.
   local front=door(-9,{locked=true})
   npc.pos=Vector4.new(0,-12,0); play(2)
@@ -877,6 +879,8 @@ test('a far follower V keeps watching rejoins after about 6 s, behind V and out 
 `));
 
 test('a far follower out of V\'s view still leaves after the short wait, not the in-view wait',()=>run(world+`
+  -- A copy that has stood beside V for over 30 s: the placement check of a fresh invitation (mod/companions.lua) is over.
+  play(64,0)
   player.pos=Vector4.new(0,0,0); player.forward=Vector4.new(0,1)
   npc.pos=Vector4.new(0,-90,0)
   play(8,0)
@@ -895,6 +899,8 @@ test('a far follower in view never lands where V can see it, even with no hidden
 `));
 
 test('a follower under 60 m back is left to walk, in view or not',()=>run(world+`
+  -- A copy that has stood beside V for over 30 s: the placement check of a fresh invitation (mod/companions.lua) is over.
+  play(64,0)
   player.pos=Vector4.new(0,0,0); player.forward=Vector4.new(0,-1)
   npc.pos=Vector4.new(0,-45,0)
   play(20,0)
