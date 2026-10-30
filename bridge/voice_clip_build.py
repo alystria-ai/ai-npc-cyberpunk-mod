@@ -173,7 +173,36 @@ def dequantise(samples: np.ndarray) -> np.ndarray:
 
 
 def resample_torch_style(signal: np.ndarray, source_rate: int, target_rate: int = RATE) -> np.ndarray:
-    """torchaudio.functional.resample with its defaults (sinc_interp_hann, lowpass_filter_width 6, rolloff 0.99), in float32 numpy."""
+    """torchaudio.functional.resample with its defaults (sinc_interp_hann, lowpass_filter_width 6, rolloff 0.99), float32.
+
+    The same torch operations torchaudio runs (its kernel in float32, then one strided conv1d), written out here because the Runtime carries torch and not torchaudio.
+    The result is the sample-for-sample result of torchaudio on the same torch build.  Without torch, `resample_torch_numpy` (within one 16-bit step) is used.
+    """
+    try:
+        import torch
+    except ImportError:
+        return resample_torch_numpy(signal, source_rate, target_rate)
+    divisor = math.gcd(source_rate, target_rate)
+    orig, new = source_rate // divisor, target_rate // divisor
+    base = min(orig, new) * 0.99
+    width = math.ceil(6 * orig / base)
+    with torch.no_grad():
+        idx = torch.arange(-width, width + orig, dtype=torch.float32)[None, None] / orig
+        t = torch.arange(0, -new, -1, dtype=torch.float32)[:, None, None] / new + idx
+        t *= base
+        t = t.clamp_(-6, 6)
+        window = torch.cos(t * math.pi / 6 / 2) ** 2
+        t *= math.pi
+        kernels = torch.where(t == 0, torch.tensor(1.0).to(t), t.sin() / t)
+        kernels *= window * (base / orig)
+        wave = torch.from_numpy(np.ascontiguousarray(signal, dtype=np.float32))[None]
+        padded = torch.nn.functional.pad(wave, (width, width + orig))
+        out = torch.nn.functional.conv1d(padded[:, None], kernels, stride=orig).transpose(1, 2).reshape(1, -1)
+        return out[0, : math.ceil(new * len(signal) / orig)].numpy().copy()
+
+
+def resample_torch_numpy(signal: np.ndarray, source_rate: int, target_rate: int = RATE) -> np.ndarray:
+    """The same resampler in float32 numpy, for a machine without torch (a few samples in a clip differ by one 16-bit step from torchaudio's)."""
     divisor = math.gcd(source_rate, target_rate)
     orig, new = source_rate // divisor, target_rate // divisor
     base = np.float32(min(orig, new) * 0.99)
@@ -253,6 +282,33 @@ def apply_gain(samples: np.ndarray, gain_db: float) -> np.ndarray:
     """The loudness stage of 2026-10-14 (scripts/clip-search/loud43/apply_loud43.py) on a clip as written (int16): read back, one linear gain, rounded to 16 bits."""
     raw = dequantise(samples).astype(np.float64)
     return (np.round(np.clip(raw * 10 ** (gain_db / 20), -1, 1) * 32767) / 32767).astype(np.float32)
+
+
+def exact_gain(raw: np.ndarray, shipped: np.ndarray) -> float | None:
+    """The gain in dB that turns `raw` (int16, the clip before the loudness stage) into `shipped` (int16) with every sample equal, or None when no gain does.
+
+    The stage computed its gain from the clip's loudness and the manifest keeps only what is needed to repeat it: each sample says in which interval the linear gain must lie
+    (round(raw * gain * 32767) must hit the sample), the intervals are intersected and the middle of what is left is taken.  `quantise_sf` writes k/32767 one step lower for
+    a negative k, which is undone here to find k.
+    """
+    if len(raw) != len(shipped):
+        return None
+    r = raw.astype(np.float64) / 32768.0
+    k = np.where(shipped < 0, shipped.astype(np.int64) + 1, shipped.astype(np.int64)).astype(np.float64)
+    live = r != 0
+    if (k[~live] != 0).any():
+        return None
+    r, k = r[live], k[live]
+    low, high = (k - 0.5) / (32767.0 * r), (k + 0.5) / (32767.0 * r)
+    low, high = np.minimum(low, high), np.maximum(low, high)
+    clipped = np.abs(k) == 32767                       # a sample at the ceiling only says the gain is at least this large
+    low[clipped] = 32766.5 / (32767.0 * np.abs(r[clipped]))
+    high[clipped] = np.inf
+    lo, hi = float(low.max()), float(high.min())
+    if not lo <= hi:
+        return None
+    middle = (lo + hi) / 2 if math.isfinite(hi) else lo * 1.0000001
+    return 20 * math.log10(middle)
 
 
 # ---- one clip ---------------------------------------------------------------------------------------------------------

@@ -127,7 +127,7 @@ def recover_one(sources: Sources, wem_paths, ids: list[str], gain_db, shipped: n
     best_result = None
     tolerance = 1 + (math.ceil(10 ** (gain_db / 20)) if gain_db and gain_db > 0 else 0)     # a gain multiplies the decoder noise of the old pool by itself
     for writer in WRITERS:
-        offset, lines, worst, fail, fitted = 0, [], 0, None, None
+        offset, lines, worst, fail, fitted, raws = 0, [], 0, None, None, []
         for at, clip_id in enumerate(ids):
             options = candidates(clip_id, wem_paths)
             if not options:
@@ -140,6 +140,7 @@ def recover_one(sources: Sources, wem_paths, ids: list[str], gain_db, shipped: n
                     if audio is None:
                         continue
                     piece = V.QUANTISERS[writer](audio)
+                    raw_piece = piece
                     window = shipped[offset:offset + len(piece)]
                     if gain_db:
                         if fitted is None:
@@ -151,11 +152,12 @@ def recover_one(sources: Sources, wem_paths, ids: list[str], gain_db, shipped: n
                     else:
                         used, score = None, score_of(piece, window)
                     if best is None or score < best[0]:
-                        best = (score, path, how, len(piece), used)
+                        best = (score, path, how, len(piece), used, raw_piece)
             if best is None:
                 fail = f"{clip_id} is not in the game archives"
                 break
-            score, path, how, size, used = best
+            score, path, how, size, used, raw_piece = best
+            raws.append(raw_piece)
             fitted = used if gain_db else None
             worst = max(worst, score[0])
             lines.append({"path": path, "archive": "ep1" if path.startswith("ep1\\") else "content", "how": how, "_max": score[0], "_n": score[1], "_len": size})
@@ -165,7 +167,19 @@ def recover_one(sources: Sources, wem_paths, ids: list[str], gain_db, shipped: n
                 break
         if fail is None and offset != len(shipped):
             fail = f"length {offset} against shipped {len(shipped)}"
-        result = {"ok": fail is None, "reason": fail, "lines": lines, "maxDiff": worst, "writer": writer, "gainDb": fitted, "differing": sum(l["_n"] for l in lines)}
+        differing = sum(l["_n"] for l in lines)
+        if fail is None and gain_db:
+            joined = np.concatenate([part for at, raw in enumerate(raws) for part in ((raw, np.zeros(V.GAP_SAMPLES, np.int16)) if at < len(raws) - 1 else (raw,))])
+            exact = V.exact_gain(joined, shipped)
+            if exact is not None:
+                fitted = exact
+                final = V.quantise_sf(V.apply_gain(joined, exact))
+                diff = np.abs(final.astype(np.int32) - shipped.astype(np.int32))
+                worst, differing = int(diff.max()), int((diff > 0).sum())
+                for line in lines:
+                    line["_n"] = 0
+                lines[0]["_n"] = differing
+        result = {"ok": fail is None, "reason": fail, "lines": lines, "maxDiff": worst, "writer": writer, "gainDb": fitted, "differing": differing}
         if result["ok"] and (best_result is None or not best_result["ok"] or result["differing"] < best_result["differing"]):
             best_result = result
         elif best_result is None or (not best_result["ok"] and len(result["lines"]) > len(best_result["lines"])):
