@@ -145,7 +145,7 @@ const reviewed = {
   // The switches of Settings > Dynamic info (mod/manager-ui.lua dynamicInfoRows passes each text to one local helper).
   'page.dynamic-info': [
     'Location',
-    'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.',
+    'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected.',
     'Time and weather',
     'The hour of the day and the weather in Night City.\n\nOff: nobody is told the time or the weather, and the mod stops reading them from the game.',
     'Company and vehicle',
@@ -169,6 +169,11 @@ const reviewed = {
     'Other mods’ state',
     'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example. Also what V visibly wears while an Equipment-EX outfit is on, so characters describe the outfit and not the clothes it hides.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.',
   ],
+  // The one-line help of each Open row on Settings and the Back row of a category page (mod/manager-ui.lua settingsPages.list; action() passes each text through ui.t).
+  'page.settings-pages': [
+    'Who writes the replies.', 'How everyone sounds, and how you talk.', 'Who you can talk to and what they know.', 'Life with your party.', 'How the world reacts to V.',
+    'The language of the menus and how subtitles look.', 'Error reports, developer mode and help.', 'Return to the settings categories.',
+  ],
   // The words of Companion Manager > Key bindings that are a key's own name: mod/key-bindings.lua holds them as literals and mod/manager-ui.lua keyText
   // passes each through ui.t. A letter, a digit or a symbol is the same in every language and is not listed. Cancel is the key button's text while it waits for a key.
   'page.key-bindings': [
@@ -188,7 +193,7 @@ const reviewed = {
   'page.validation': [
     'Reopen the manager; that action is no longer available.', 'Choose one of the listed subtitle displays.',
     'Choose one of the listed companion voices.', 'Requires the optional OmniVoice pack (GPU)', 'Choose 16 or 32 voice steps.',
-    'Choose a short or a long voice reference.', 'Choose an eye contact option.', 'That setting is read-only.',
+    'Choose a short or a long voice reference.', 'That setting is read-only.',
     'Choose one of the listed reply languages.',
   ],
   // The choices of Settings > Voices > Voice language (mod/manager-ui.lua REPLY_LANGUAGE_NAMES; each goes through ui.t).
