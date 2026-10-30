@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {parseInput, parseHolocall} from './protocol.mjs';
-import {turnContext, turnContextDiagnostic, MAX_CHARS} from './turn-context.mjs';
+import {turnContext, turnContextDiagnostic, turnContextWhere, MAX_CHARS} from './turn-context.mjs';
 import {buildMessages} from './mistral-prompt.mjs';
 
 // Holocalls (docs/HOLOCALL.md): the bridge words a call turn, mod/holocall.lua runs the call, Holocall.reds drives the
@@ -38,7 +38,7 @@ test('a holocall field is carried for a private turn and dropped when malformed 
 test('a voice call says she is on a call and elsewhere, with nothing of V\'s company, heat, money or injury', () => {
   const text = turnContext(turn({holocall: {contact: 'judy', mode: 'audio'}, turnContext: scene()}));
   assert.ok(text.startsWith('Right now (from the game, this turn only): You are on a voice call with V on the phone, not talking to V in person. '
-    + 'You are somewhere else; where you are and what you are doing are not given. V is somewhere in Kabuki, Watson; exactly where is not given. It is late night'), text);
+    + "You are somewhere else, in your own place and not V's. Where you are and what you are doing are not given. V is calling from somewhere in Kabuki, Watson; exactly where is not given. It is late night"), text);
   assert.match(text, /V is walking\./);
   assert.match(text, /Treat this as fact: you are on a call, not with V, and you do not know how near or far you are/);
   assert.doesNotMatch(text, /Also with V|Panam|police|MaxTac|rich|eddies|hurt|with V in person in|never claim to be anywhere else/);
@@ -48,7 +48,7 @@ test('a voice call says she is on a call and elsewhere, with nothing of V\'s com
 test('a live-picture holocall says they see and hear each other, and the diagnostic names the call', () => {
   const input = turn({holocall: {contact: 'judy', mode: 'holo'}, turnContext: scene()});
   const text = turnContext(input);
-  assert.match(text, /^Right now \(from the game, this turn only\): You are on a holocall with V \(a video call on the phone\): you see and hear each other, but you are not with V in person\. You are somewhere else; where you are and what you are doing are not given\. V is somewhere in Kabuki, Watson; exactly where is not given\./);
+  assert.match(text, /^Right now \(from the game, this turn only\): You are on a holocall with V \(a video call on the phone\): you see V's face and V sees yours, but you are not with V in person\. You are somewhere else, in your own place and not V's. Where you are and what you are doing are not given\. V is calling from somewhere in Kabuki, Watson; exactly where is not given\./);
   assert.doesNotMatch(text, /Also with V|Panam/);
   assert.match(turnContextDiagnostic(input), /^Turn context: \d+ facts, \d+ chars holocall=holo$/);
   assert.doesNotMatch(turnContextDiagnostic(turn({turnContext: scene()})), /holocall/);
@@ -58,11 +58,40 @@ test('a live-picture holocall says they see and hear each other, and the diagnos
   assert.match(turnContext(turn({turnContext: scene()})), /You are with V in person\. You are somewhere in Kabuki, Watson; exactly where is not given\./);
 });
 
+test('a holocall turn frames the call: her own place is not V\'s, she sees V\'s face and not V\'s surroundings, and V\'s place is worded as where V calls from', () => {
+  const outdoors = scene({indoors: false});
+  const holo = turnContext(turn({holocall: {contact: 'judy', mode: 'holo'}, turnContext: outdoors}));
+  assert.match(holo, /You are somewhere else, in your own place and not V's\. Where/);
+  assert.match(holo, /V is calling from outdoors in Kabuki, Watson, in the open air, not inside a building\./);
+  assert.match(holo, /You see only V's face, not V's surroundings: never talk as if you stood beside V \(no "right here", "standing here"\)/);
+  assert.doesNotMatch(holo, /(?:^|\. )V is outdoors|You are outdoors/);
+  const audio = turnContext(turn({holocall: {contact: 'judy', mode: 'audio'}, turnContext: outdoors}));
+  assert.match(audio, /V is calling from outdoors in Kabuki/);
+  assert.match(audio, /You hear V but cannot see V or V's surroundings: never talk as if you stood beside V/);
+  // Phone Chat words V's place the same way.
+  assert.match(turnContext(turn({channel: 'phone', turnContext: outdoors})), /V is texting from outdoors in Kabuki, Watson, in the open air/);
+  // An in-person turn carries none of it, and its place stays hers.
+  const person = turnContext(turn({turnContext: outdoors}));
+  assert.doesNotMatch(person, /calling from|texting from|not V's|never talk as if you stood beside V|V's face/);
+  assert.match(person, /You are outdoors in Kabuki, Watson, in the open air/);
+  assert.ok(holo.length <= MAX_CHARS && audio.length <= MAX_CHARS);
+});
+
+test('the Developer mode where line words the place as the prompt does: V\'s on a call or a text chat, hers in person or beside V', () => {
+  const outdoors = scene({indoors: false});
+  assert.equal(turnContextWhere(turn({holocall: {contact: 'judy', mode: 'holo'}, turnContext: outdoors})), 'V is calling from outdoors in Kabuki, Watson, in the open air, not inside a building.');
+  assert.equal(turnContextWhere(turn({channel: 'phone', turnContext: outdoors})), 'V is texting from outdoors in Kabuki, Watson, in the open air, not inside a building.');
+  assert.equal(turnContextWhere(turn({turnContext: outdoors})), 'You are outdoors in Kabuki, Watson, in the open air, not inside a building.');
+  // A character within a few metres answers as in person, even over a call.
+  const beside = scene({indoors: false, party: [{key: 'judy-alvarez', name: 'Judy', near: true}]});
+  assert.equal(turnContextWhere(turn({holocall: {contact: 'judy', mode: 'holo'}, turnContext: beside})), 'You are outdoors in Kabuki, Watson, in the open air, not inside a building.');
+});
+
 test('Mistral repeats the call sentence right before V\'s words, with the remote reminder', () => {
   const now = turnContext(turn({holocall: {contact: 'judy', mode: 'audio'}, turnContext: scene()}));
   const messages = buildMessages({persona: {name: 'Judy', ambient: false, backstory: 'A braindance editor.', style: 'Warm.', samples: ['V: Hi. Judy: Hey.']}, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'Hey'});
   const last = messages.at(-1).content;
-  assert.match(last, /\[YOU, RIGHT NOW: You are on a voice call with V on the phone[^\]]*You are not with V; never say you are there, close or nearby/);
+  assert.match(last, /\[YOU, RIGHT NOW: You are on a voice call with V on the phone[^\]]*You are not with V; never say you are there, close or nearby[^\]]*V's place is not yours: never talk as if you stood beside V/);
   assert.doesNotMatch(last, /That is all you are doing/);
 });
 

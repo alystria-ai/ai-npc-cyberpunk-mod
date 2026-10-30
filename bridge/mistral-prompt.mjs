@@ -358,7 +358,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
     here && profile.layout.youNow ? `[${profile.labels.youNow}: ${here} ${here.startsWith('You are messaging')
       ? 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.'
       : here.startsWith('You are on a')
-        ? 'You are not with V; never say you are there, close or nearby, and name no place or task of your own right now.'
+        ? "You are not with V; never say you are there, close or nearby, and name no place or task of your own right now. V's place is not yours: never talk as if you stood beside V."
         : here.startsWith("You are in V's head")
           ? 'You have no body; you go where V goes and never claim to be anywhere else or to be doing something of your own.'
           : 'That is all you are doing; never claim to be anywhere else.'}]` : '',

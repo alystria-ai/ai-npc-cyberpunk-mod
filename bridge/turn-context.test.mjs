@@ -102,7 +102,7 @@ test('the addressed character is not listed among the people with V, and the blo
 test('a phone message says it is a text chat, the time, where V is and what V does, and that she is elsewhere with her own place not given', () => {
   const text = turnContext(turn({channel: 'phone', turnContext: scene({party: [], vehicle: false, motion: 'walking'})}));
   assert.equal(text, 'Right now (from the game, this turn only): You are messaging V by text on the phone, not talking to V in person. '
-    + 'You are somewhere else; where you are and what you are doing are not given. V is somewhere in Kabuki, Watson; exactly where is not given. It is late night, about 2 AM. V is walking. V is a woman (she/her), lifepath Street Kid. '
+    + 'You are somewhere else; where you are and what you are doing are not given. V is texting from somewhere in Kabuki, Watson; exactly where is not given. It is late night, about 2 AM. V is walking. V is a woman (she/her), lifepath Street Kid. '
     + "Treat this as fact: you are not with V and cannot see V's surroundings, and you do not know how near or far you are, so never say you are there, close or nearby. "
     + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it, and mention a place or the time only if it matters to what V says.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
@@ -1064,7 +1064,7 @@ test('a named place is never invented: no record, no name; a bad indoor value is
   // A phone chat or a holocall says it about V and nothing of her own place: she is somewhere else, with her place not given.
   for (const input of [{channel: 'phone'}, {holocall: {mode: 'audio'}}]) {
     const text = turnContext(street({indoors: false}, input));
-    assert.match(text, /You are somewhere else; where you are and what you are doing are not given\. V is outdoors in Arroyo, Santo Domingo, in the open air, not inside a building\./, JSON.stringify(input));
+    assert.match(text, /You are somewhere else[^.]*[;.] [Ww]here you are and what you are doing are not given\. V is (?:texting|calling) from outdoors in Arroyo, Santo Domingo, in the open air, not inside a building\./, JSON.stringify(input));
     assert.doesNotMatch(text, /You are (?:outdoors|indoors|inside|somewhere in)|usual workplace/, JSON.stringify(input));
   }
   // A stranger is told about its own place, in the same words, and never her haunts.

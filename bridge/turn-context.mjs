@@ -67,7 +67,9 @@ const PHONE_SUFFIX = " Treat this as fact: you are not with V and cannot see V's
   + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine).' + MENTION;
 // A holocall (docs/HOLOCALL.md): V called her from the phone and they talk by voice, with or without the live picture. Like a phone
 // contact she is somewhere else with her own place and doing not given, and learns nothing of V's company, heat or wallet.
-const CALL_SUFFIX = " Treat this as fact: you are on a call, not with V, and you do not know how near or far you are, so never say you are there, close or nearby. "
+const CALL_SEES = {holo: "You see only V's face, not V's surroundings", audio: "You hear V but cannot see V or V's surroundings"};
+const callSuffix = mode => " Treat this as fact: you are on a call, not with V, and you do not know how near or far you are, so never say you are there, close or nearby. "
+  + `${CALL_SEES[mode]}: never talk as if you stood beside V (no "right here", "standing here"). `
   + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine).' + MENTION;
 // A phone chat or a call with a character whose own body is within a few metres of V (mod/turn-context.lua NEAR_RADIUS: the party row says `near`): V is texting or calling the person
 // standing right there. She is told so, in her own words, and gets the in-person form of the block (she sees V, V's company and condition) instead of the "somewhere else" one: a partner
@@ -245,16 +247,18 @@ const placeOf = snapshot => describePlace({district: snapshot.district, area: sn
 // otherwise fills the gap with that workplace (live 2026-10-15), and one told "standing in Little China" said so while V was indoors (2026-10-22).
 function whereSentence(place, [who, be], vehicle = false) {
   if (!place) return null;
+  // On a call or a text chat V is the one who is somewhere ("V is calling from outdoors in ..."): worded as a source, never as a place she could take for hers.
+  const from = /from$/.test(be);
   if (place.kind === 'home' || place.kind === 'venue') return `${who} ${be} inside ${place.text}.`;
   // A named place found from V's position (the game's record for it is only the neighbourhood): inside when the game says V is indoors, near it in a vehicle, else at it.
-  if (place.kind === 'named') return `${who} ${be} ${vehicle ? 'near' : place.inside === true ? 'inside' : 'at'} ${place.text}.`;
+  if (place.kind === 'named') return `${who} ${be} ${vehicle ? 'near ' : place.inside === true ? 'inside ' : from ? '' : 'at '}${place.text}.`;
   if (place.kind === 'wild') return `${who} ${be} outdoors in ${place.text}, out in open country.`;
   if (place.inside === true) return `${who} ${be} indoors, in a building in ${place.text}; which building is not given.`;
   // In a vehicle the game's interior flag says nothing about the air around the car: no "open air" then.
   if (place.inside === false && !vehicle) return `${who} ${be} outdoors in ${place.text}, in the open air, not inside a building.`;
   return `${who} ${be} somewhere in ${place.text}; exactly where is not given.`;
 }
-const YOU = ['You', 'are'], V = ['V', 'is'];
+const YOU = ['You', 'are'], V = ['V', 'is'], V_CALLING = ['V', 'is calling from'], V_TEXTING = ['V', 'is texting from'];
 
 // A holocall turn's call (bridge/protocol.mjs parseHolocall), or null.
 const holocallOf = input => plain(input.holocall) && (input.holocall.mode === 'audio' || input.holocall.mode === 'holo') ? input.holocall : null;
@@ -370,14 +374,15 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
     if (mine?.holding) sentences.push(!speaksUp(input) && asksAboutWeapon(input.text) ? `V asks what you are armed with. The true answer: ${HOLDING[mine.holding](mine.weapon)} Answer from this, in your own words.` : HOLDING[mine.holding](mine.weapon));
     if (mine?.outfit) sentences.push(OUTFITS[mine.outfit]);
   } else if (call) {
-    const where = '. You are somewhere else; where you are and what you are doing are not given.';
+    // Her own place is her own: V's surroundings are on V's side of the call (live 2026-10-31: a holocall answered as if she stood beside V).
+    const where = ". You are somewhere else, in your own place and not V's. Where you are and what you are doing are not given.";
     sentences.push(call.mode === 'holo'
-      ? `You are on a holocall with V (a video call on the phone): you see and hear each other, but you are not with V in person${where}`
+      ? `You are on a holocall with V (a video call on the phone): you see V's face and V sees yours, but you are not with V in person${where}`
       : `You are on a voice call with V on the phone, not talking to V in person${where}`);
-    pushWhere(V);
+    pushWhere(V_CALLING);
   } else if (!ambient && phone) {
     sentences.push('You are messaging V by text on the phone, not talking to V in person. You are somewhere else; where you are and what you are doing are not given.');
-    pushWhere(V);
+    pushWhere(V_TEXTING);
   }
   // Where the appointment sentence goes: right after the sentences about who she is and where (below), never lost to the budget cut.
   const lead = sentences.length;
@@ -444,7 +449,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const prefix = 'Right now (from the game, this turn only): ';
   let suffix = ambient
     ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
-    : head ? HEAD_SUFFIX : phone ? (call ? CALL_SUFFIX : PHONE_SUFFIX) : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
+    : head ? HEAD_SUFFIX : phone ? (call ? callSuffix(call.mode) : PHONE_SUFFIX) : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
       + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them.' + MENTION;
   // Over budget: drop whole sentences from the end, never cut one in half. The meeting sentence (and its exception) has room of its own: the other facts
   // keep the budget they have without it, and it is never the one dropped.
@@ -506,7 +511,13 @@ export function turnContextWhere(input, options = {}) {
     if (!input || input.turnContext === undefined) return '';
     const snapshot = stripSnapshot(parseTurnContext(input.turnContext), options.off ?? NO_KINDS);
     if (!snapshot || snapshot.status !== 'ready') return '';
-    return whereSentence(placeOf(snapshot), YOU, snapshot.vehicle === true) ?? '';
+    // Worded as the prompt words it: V's place for a call, a text chat or V's head, her own for a talk in person (a character beside V answers as in person).
+    const ambient = options.ambient === true, head = !ambient && input.channel !== 'phone' ? headOf(input) : null;
+    const call = !ambient && !head && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
+    const remote = input.channel === 'phone' || call !== null;
+    const near = remote && !ambient && !head && (snapshot.party ?? []).find(row => row.key === input.profileKey)?.near === true;
+    const who = head ? V : ambient || !remote || near ? YOU : call ? V_CALLING : V_TEXTING;
+    return whereSentence(placeOf(snapshot), who, snapshot.vehicle === true) ?? '';
   } catch { return ''; }
 }
 

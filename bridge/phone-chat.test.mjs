@@ -66,7 +66,7 @@ test('the right-now facts of a phone message reach the character as a text-chat 
   assert.equal(calls.length, 1);
   const block = calls[0].context.split('\n\n').find(part => part.startsWith('Right now'));
   assert.ok(block, calls[0].context.slice(0, 300));
-  assert.match(block, /You are messaging V by text on the phone, not talking to V in person\. You are somewhere else; where you are and what you are doing are not given\. V is somewhere in Kabuki, Watson; exactly where is not given\./);
+  assert.match(block, /You are messaging V by text on the phone, not talking to V in person\. You are somewhere else; where you are and what you are doing are not given\. V is texting from somewhere in Kabuki, Watson; exactly where is not given\./);
   // The clock is scenery: a Background line of its own, after the block (bridge/scenery-memory.mjs).
   assert.doesNotMatch(block, /late night/);
   assert.match(calls[0].context.split('\n\n').find(part => part.startsWith('Background')), /^Background \(mention only if it matters or V asks\): It is late night, about 2 AM\.$/);
