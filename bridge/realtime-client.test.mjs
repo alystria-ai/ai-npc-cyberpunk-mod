@@ -1871,21 +1871,32 @@ test('a microphone turn with a tiny final transcript and no reply ends as no spe
   await slow.api.close();
 });
 
-// Triage 2026-10-30 (error signature d1deacf2 and its kin): Convai never answers a transcript of one or two characters, and the resend did not rescue it, so the player waited 30 s for a failure.
-// A FINISHED transcript of 1 or 2 letters or digits ends the voice turn at once as no speech: no resend, no wait, the microphone listens again (bridge/tiny-transcript.mjs).
-test('a finished voice transcript of 1 or 2 characters ends the turn at once as no speech, with no resend; a typed line of that size is still sent', async () => {
+// Triage 2026-10-30 (error signature d1deacf2 and its kin): Convai never answers a transcript of one character, and the resend did not rescue it, so the player waited 30 s for a failure.
+// A FINISHED transcript of 1 letter or digit (or none) ends the voice turn at once as no speech: no resend, no wait, the microphone listens again (bridge/tiny-transcript.mjs).
+test('a finished voice transcript of 1 character ends the turn at once as no speech, with no resend; two characters (no, ok) and a typed line of that size are still sent', async () => {
   const transcribe = (client, content, isStreaming = false) => client.handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming}]);
-  for (const content of ['k', 'ok', ' Hm. ', '?', '\u{1f600}\u{1f600}\u{1f600}', 'no!']) {
+  for (const content of ['k', ' M. ', '?', '\u{1f600}\u{1f600}\u{1f600}', '7!']) {
     const {api, clients, events} = fixture({allowMic: true});
     const request = {...config, ttsEnabled: false};
     await api.beginVoice(request);
     const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
     transcribe(clients[0], content);
-    await assert.rejects(pending, error => /^No speech was heard \(the finished transcript held only 1 or 2 characters/.test(error.message)
+    await assert.rejects(pending, error => /^No speech was heard \(the finished transcript held only 1 character/.test(error.message)
       && !/did not finish/.test(error.message) && !error.message.includes(content.trim()), JSON.stringify(content));
     assert.equal(events.some(event => event[0] === 'message'), false, 'nothing is resent: ' + JSON.stringify(content));
     assert.equal(clients[0].isBotReady, false);
     await api.close();
+  }
+  // Two characters are a real answer: "no" and "ok" reach the character and its reply comes back.
+  for (const content of ['no', 'ok']) {
+    const two = fixture({allowMic: true});
+    const req = {...config, ttsEnabled: false};
+    await two.api.beginVoice(req);
+    const heard = two.api.finishVoice(req); heard.catch(() => {}); await flush();
+    two.clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content, isStreaming: false},
+      {id: 'reply', type: 'bot-llm-text', content: 'Sure.', isStreaming: false}]);
+    assert.equal((await heard).text, 'Sure.', content);
+    await two.api.close();
   }
   // Three characters keep the 15 s rule, and a transcript that is still being written (not finished) is never dropped early.
   let offset = 0;
@@ -1921,7 +1932,7 @@ test('a finished voice transcript of 1 or 2 characters ends the turn at once as 
     assert.equal((await heard).text, 'Hi.', content);
     await cjk.api.close();
   }
-  // A typed line (no microphone) of one or two characters is sent as before.
+  // A typed line (no microphone) of one character is sent as before.
   const typed = fixture(); await typed.api.warm({...config, ttsEnabled: false});
   const line = typed.api.reply({...config, ttsEnabled: false, text: 'k'}); line.catch(() => {}); await flush();
   assert.deepEqual(typed.events.filter(event => event[0] === 'message'), [['message', 'k']]);

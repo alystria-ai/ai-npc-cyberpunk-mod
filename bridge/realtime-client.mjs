@@ -47,10 +47,10 @@ const HEARD_WITHOUT_FINAL_MS = 4000;
 // longer transcripts keep the 60 s rule.
 const TINY_TRANSCRIPT_CHARACTERS = 3;
 const NO_SPEECH_ERROR = 'No speech was heard';
-// A FINISHED transcript of one or two letters or digits (bridge/tiny-transcript.mjs) is dropped at once as no speech: Convai never answers one, and the resend does not rescue it
+// A FINISHED transcript of one letter or digit, or none, (bridge/tiny-transcript.mjs) is dropped at once as no speech: Convai never answers one, and the resend does not rescue it
 // (it used to cost the player 30 s and then a report). The message keeps the words of NO_SPEECH_ERROR, so the bridge treats it as no speech (no report, the microphone listens again),
 // and the microphone's onError (convai-bridge.mjs) logs it as the one line that says why. Never the transcript itself.
-const TINY_TRANSCRIPT_DROPPED = NO_SPEECH_ERROR + ' (the finished transcript held only 1 or 2 characters, so the turn was dropped)';
+const TINY_TRANSCRIPT_DROPPED = NO_SPEECH_ERROR + ' (the finished transcript held only 1 character, so the turn was dropped)';
 // A microphone turn that has a final transcript (more than TINY_TRANSCRIPT_CHARACTERS characters) and shows no sign of a reply (no reply text, Convai not thinking) this long after the transcript last changed or Convai last thought: Convai took the audio and
 // answered nothing (error signature cbb775b3: 37 reports, "transcript=true text=false"). The same transcript is sent once to the same character as a typed line, instead of waiting for
 // the 60 s ceiling and failing. A normal reply comes in a few seconds, so nothing waits longer for it. The resend gets RESEND_WAIT_MS for a reply of its own; only when that
@@ -712,7 +712,7 @@ async function collect(current) {
       if (current.error) throw Error(current.error);
       if (current.epoch !== epoch || turn !== current) throw Error('Conversation cancelled');
       if (current.dataAudio?.error && current.audioLost === undefined) throw current.dataAudio.error;
-      // A finished transcript of 1 or 2 characters: dropped now, before any resend or wait (a typed turn has no microphone flag and is never judged here).
+      // A finished transcript of 1 character or none: dropped now, before any resend or wait (a typed turn has no microphone flag and is never judged here).
       if (current.microphone && current.userFinal === true && current.userText && !current.text && isTinyVoiceTranscript(current.userText)) throw Error(TINY_TRANSCRIPT_DROPPED);
       if (current.microphone && !current.userText && !current.text && !client.state.isThinking) {
         const waited = performance.now() - started;
