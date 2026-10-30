@@ -29,10 +29,10 @@ import {accessViolationFailed, endedFromOutsideFailed, missingFilesFailed, pagin
 // A LOCAL voice (OmniVoice, Pocket) that fails is never replaced by a cloud voice (owner rule 2026-10-21, after a player's report of surprise cloud
 // use): the fallback is a local retry, the other local engine only if it is already loaded (none is loaded for this), else the route 'text' below
 // (the reply is shown as written text and the game says so once). The voice comes back by itself when the local engine recovers.
-export const CLOUD_VOICES = Object.freeze(['voxtral']);
-// A settings file saved while a since-removed cloud voice existed still names it: it resolves to Pocket, the default voice (no error, no log).
-const REMOVED_VOICES = Object.freeze(['inworld']);
-export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : CLOUD_VOICES.includes(value) || REMOVED_VOICES.includes(value) ? 'pocket' : value;
+// The Inworld cloud voice (bridge/inworld-voice.mjs, docs/INWORLD.md) is the same kind of choice on the player's own Inworld key: it speaks a reply with
+// Inworld's text-to-speech in a voice cloned from the character's clip, and loads nothing locally either.
+export const CLOUD_VOICES = Object.freeze(['voxtral','inworld']);
+export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : CLOUD_VOICES.includes(value) ? 'pocket' : value;
 export const cloudVoiceChoice = value => CLOUD_VOICES.includes(value) ? value : null;
 // OmniVoice reads either its short (up to 10 s) or its long (up to 18 s) searched reference per character.
 export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ? value : null;
@@ -72,7 +72,7 @@ export const TEXT_ROUTE = 'text';
 // place (the remote voice is chosen on purpose), and no failure of it files an error report (the player's own network is not a bug of the mod).
 const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
-export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 6000});
+export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 6000, inworld: 9000});
 const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
 export const CLOUD_WAIT_OUT_MS = 1500;
 // A chosen OmniVoice that fails or times out is not given up on. Routing falls to the next voice at once, then Omni
@@ -127,6 +127,7 @@ export class VoiceSelection {
     // The Mistral cloud voice: `cloud` is the committed choice, `requestedCloud` the saved setting waiting for an idle boundary.
     this.cloud=this.requestedCloud=null;
     this.voxtral=options.voxtral||null;
+    this.inworld=options.inworld||null;
     // The language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
@@ -150,7 +151,7 @@ export class VoiceSelection {
     this.omniReference=this.requestedOmniReference=DEFAULT_OMNI_REFERENCE;
     this.activateOmni();
     // Voxtral clones each character from the OmniVoice long reference; it reports when it falls back or recovers.
-    for(const cloud of [this.voxtral]){
+    for(const cloud of [this.voxtral,this.inworld]){
       if(!cloud)continue;
       cloud.setReferences?.([this.omniVariants.long.registry,this.omniVariants.short.registry,pocketRegistry]);
       const previous=cloud.onChange;
@@ -328,7 +329,7 @@ export class VoiceSelection {
     // What was prepared for the changed characters before this (the client's list, or a cloud voice's cached reference): prepared again after.
     const warm = new Set();
     for (const key of changed) {
-      if (this.client?.prepared?.has(key) || this.voxtral?.hasCachedReference?.(key)) warm.add(key);
+      if (this.client?.prepared?.has(key) || this.voxtral?.hasCachedReference?.(key) || this.inworld?.hasCachedReference?.(key)) warm.add(key);
     }
     const next = {...(this.live ?? {pocket: undefined, omni: {}}), dir, omni: {...(this.live?.omni ?? {})}};
     if (pending.pocket && this.pocketBase) {
@@ -355,7 +356,7 @@ export class VoiceSelection {
     this.routeKeys = withoutVariants(new Set([...this.routeKeys, ...Object.keys(this.configs.pocket.voices ?? {}),
       ...OMNI_REFERENCES.flatMap(reference => Object.keys(this.omniVariants[reference].snapshot.voices ?? {}))])).sort();
     // The cloud voices read their clips through the same registries: they follow, and forget only the characters that changed.
-    for (const cloud of [this.voxtral]) {
+    for (const cloud of [this.voxtral, this.inworld]) {
       cloud?.replaceReferences?.([this.omniVariants.long.registry, this.omniVariants.short.registry, this.registries.pocket], changed);
     }
     // Every running worker is sent the difference (behind whatever it is doing); the standard availability commit follows each answer.
@@ -418,7 +419,7 @@ export class VoiceSelection {
   get textOnly(){return this.provider===TEXT_ROUTE;}
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
   // The cloud voice speaks replies: chosen and committed; its route is Pocket's (packet format and routing only, no Pocket worker).
-  get cloudEngine(){return this.cloud==='voxtral'?this.voxtral:null;}
+  get cloudEngine(){return this.cloud==='inworld'?this.inworld:this.cloud==='voxtral'?this.voxtral:null;}
   get cloudActive(){return !!this.cloudEngine&&this.provider==='pocket';}
   // The player chose a cloud voice (committed or waiting for the idle boundary). No local voice model is loaded for it.
   get cloudWanted(){return this.requestedCloud!==null;}
@@ -656,6 +657,8 @@ export class VoiceSelection {
       cloudVoice:this.cloudActive?this.cloud:null,
       voxtral:this.voxtral?{key:this.voxtral.hasKey,degraded:this.voxtral.degraded?.reason??null,spoke:this.voxtral.spoke,
         fellBack:this.voxtral.fellBack}:null,
+      inworld:this.inworld?{key:this.inworld.hasKey,degraded:this.inworld.degraded?.reason??null,spoke:this.inworld.spoke,
+        fellBack:this.inworld.fellBack,characters:this.inworld.chars}:null,
       playbackEnabled:this.playbackEnabled,
       omniSteps:this.omniSteps,requestedOmniSteps:this.requestedOmniSteps,
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
@@ -1275,24 +1278,25 @@ export class VoiceSelection {
     const relay = () => own.abort(options.signal.reason);
     options.signal?.addEventListener('abort', relay, {once: true});
     if (options.signal?.aborted) relay();
-    void utterance.decision.then(engine => { if (engine !== 'voxtral') own.abort(cancelled()); });
+    const name = this.cloud, engine = this.cloudEngine;
+    void utterance.decision.then(decided => { if (decided !== name) own.abort(cancelled()); });
     const held = [];
-    let open = utterance.engine === 'voxtral';
+    let open = utterance.engine === name;
     const sink = packet => { if (open) return options.onPcm(packet); held.push(packet); return undefined; };
     // Once the head is known to be the cloud voice, what arrived early is handed on, in order, before anything newer.
-    const opening = utterance.decision.then(async engine => {
-      if (engine !== 'voxtral') { held.length = 0; return; }
+    const opening = utterance.decision.then(async decided => {
+      if (decided !== name) { held.length = 0; return; }
       while (held.length) await options.onPcm(held.shift());
       open = true;
     });
     opening.catch(() => {});
     let cloud, failure;
-    try { cloud = await this.voxtral.synthesizeStream(profile, spoken, {signal: own.signal, onPcm: sink, continuation: true, ahead: options.ahead === true, language: options.language}); }
+    try { cloud = await engine.synthesizeStream(profile, spoken, {signal: own.signal, onPcm: sink, continuation: true, ahead: options.ahead === true, language: options.language}); }
     catch (error) { failure = error; }
     finally { options.signal?.removeEventListener('abort', relay); }
     throwIfCancelled(options.signal);
     // The head may not have decided yet (its first audio is still on the way): the rest waits for it.
-    if (await utterance.decision !== 'voxtral') {
+    if (await utterance.decision !== name) {
       if (failure?.sink) throw failure;
       return unvoiced();
     }
@@ -1369,6 +1373,7 @@ export class VoiceSelection {
       // encoded now, so the first reply is not waiting for it.
       if (this.cloudActive) {
         if (this.cloud === 'voxtral' && this.voxtral?.ready) void this.voxtral.reference(voice);
+        if (this.cloud === 'inworld') this.inworld.warm?.(voice);
         return {provider: 'pocket', ready: true, profile, cloudVoice: this.cloud};
       }
       const startingBackend=this.provider;let startedClient;

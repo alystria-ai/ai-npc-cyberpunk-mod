@@ -1513,7 +1513,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     -- entry in the reordered list (Voxtral directly after Pocket), so no one's voice changes with the order.
     local choices = dofile('voice-preview.lua')
     assert(choices.indexOf({voiceProvider = 'voxtral'}) == 2 and choices.indexOf({voiceProvider = 'pocket'}) == 1)
-    assert(choices.indexOf({voiceProvider = 'convai'}) == 7 and #choices.CHOICES == 7)
+    assert(choices.indexOf({voiceProvider = 'convai'}) == 7 and choices.indexOf({voiceProvider = 'inworld'}) == 8 and #choices.CHOICES == 8)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'short'}) == 3)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'long'}) == 4)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 32, omniReference = 'short'}) == 5)
@@ -1671,52 +1671,74 @@ test('select option width: every option of every select fits the focused budget 
   `);
 });
 
-test('the removed Inworld voice: the list has seven entries with or without Developer mode, no Inworld key row, an Apply for it is refused, and a saved Inworld voice loads as Pocket TTS once, with the file corrected and no Apply loop', () => {
+test('the Inworld voice: listed last in Companion voices only once its key is saved (or while it is the saved voice), refused without a key, kept as saved, and read as Pocket beside Mature content', () => {
   run(`${nsuiFixture}
     local clock = 1000
     os.clock = function() return clock end
     os.time = function() return clock end
-    local function ids(category)
-      local list = {}
-      for _, item in ipairs(loaded.categories) do
-        if item.id == category then for _, setting in ipairs(item.settings) do list[#list + 1] = setting.id end end
-      end
-      return table.concat(list, ',')
+    local function published(tag, value)
+      jsonFixtures['mistral-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'mistral-' .. tag
+      clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager')
     end
+    local NEEDS = 'Requires an Inworld key (add it in Settings > Voices > Custom voices)'
     assert(invoke('tab:settings').ok)
     local function menu() return row('voiceProvider').elements end
-    for _, developer in ipairs({false, true}) do
-      assert(manager.applySettings(player, {developerMode = developer}))
-      loaded = registered.loadMod('manager')
-      assert(#menu() == 8 and menu()[1] == 'Off' and menu()[8] == 'Convai · Cloud voice', table.concat(menu(), '|'))
-      for _, label in ipairs(menu()) do assert(not label:find('Inworld', 1, true), label) end
-      assert(row('inworld-key') == nil and ids('development') == 'developerMode', ids('development'))
-      assert(not row('voiceProvider').description:find('Inworld', 1, true))
-      -- A stale draft index past the end saves nothing, and the removed name is not a voice to choose.
-      local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}})
-      assert(result.ok == false and saved.voiceProvider == 'pocket', 'there is no eighth voice')
-      assert(manager.applySettings(player, {voiceProvider = 'inworld'}) == false and saved.voiceProvider == 'pocket')
-    end
-    -- A settings file that still names the removed voice loads as the default voice, with or without Developer mode, and is corrected
-    -- once: loading the corrected file saves nothing more, and the page shows the default voice as the saved one (nothing pending).
-    for _, developer in ipairs({true, false}) do
-      seed = {version = 2, voiceProvider = 'inworld', developerMode = developer, enabledByKey = {}, future = {keep = 'unchanged'}}
+    -- No key: Off and the seven voices, Convai last, nothing about Inworld in the list or in the voice help.
+    assert(#menu() == 8 and menu()[1] == 'Off' and menu()[8] == 'Convai · Cloud voice', table.concat(menu(), '|'))
+    for _, label in ipairs(menu()) do assert(not label:find('Inworld', 1, true), label) end
+    assert(manager.voiceLabel('inworld') == 'Inworld cloud voice')
+    -- The ninth place would be Inworld: refused without a key, in the page and in the manager.
+    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}})
+    assert(result.ok == false and result.error == NEEDS and saved.voiceProvider == 'pocket', tostring(result.error))
+    local refused, message = manager.applySettings(player, {voiceProvider = 'inworld'})
+    assert(refused == false and message == NEEDS and saved.voiceProvider == 'pocket', tostring(message))
+    -- A Mistral key alone does not unlock it.
+    published('mistral', {provider = 'convai', effective = 'convai', saved = true})
+    assert(#menu() == 8 and manager.mistral().inworld.saved == false)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok == false)
+    -- The Inworld key is saved: the entry is the last one, a plain label, and it applies.
+    published('key', {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = true, tail = 'wxyz'}})
+    assert(manager.mistral().inworld.saved == true and manager.mistral().inworld.tail == 'wxyz')
+    assert(#menu() == 9 and menu()[8] == 'Convai · Cloud voice' and menu()[9] == 'Inworld · Cloud voice', table.concat(menu(), '|'))
+    assert(not row('voiceProvider').description:lower():find('recommend', 1, true))
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok)
+    assert(saved.voiceProvider == 'inworld' and manager.snapshot(player).settings.voiceProvider == 'inworld')
+    loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').value == 9, 'the saved Inworld voice is the ninth entry')
+    assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'inworld'}) == 8 and #dofile('voice-preview.lua').CHOICES == 8)
+    -- The key is removed while the voice is chosen: the entry stays (the row never shows another voice than the saved one) and says it needs a key.
+    published('gone', {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = false}})
+    assert(#menu() == 9 and menu()[9] == 'Inworld · needs key' and row('voiceProvider').value == 9, table.concat(menu(), '|'))
+    -- Another voice is chosen: without the key the entry goes again.
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok and saved.voiceProvider == 'pocket')
+    loaded = registered.loadMod('manager')
+    assert(#menu() == 8)
+    -- A settings file that names Inworld loads as Inworld (a cloud voice loads no local model, key or not) and is not rewritten.
+    for _, key in ipairs({true, false}) do
+      published(key and 'with' or 'without', {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = key}})
+      seed = {version = 2, voiceProvider = 'inworld', enabledByKey = {}, future = {keep = 'unchanged'}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket', tostring(developer))
-      assert(saved.future.keep == 'unchanged' and manager.takeNaturalSpeechNotice() == nil)
-      seed, saved = saved, nil
-      files['runtime/settings.json'] = 'seed'
-      manager.configure(api, profiles); manager.prepare(player)
-      assert(saved == nil, 'the corrected file is saved again')
-      loaded = registered.loadMod('manager')
-      assert(row('voiceProvider').value == 2 and row('voiceProvider').defaultValue == 2 and #menu() == 8)
+      assert(manager.snapshot(player).settings.voiceProvider == 'inworld', tostring(key))
+      assert(saved == nil or saved.voiceProvider == 'inworld')
     end
-    -- A retired Multilingual value beside it changes nothing: the removed name still ends at the default voice.
-    seed = {version = 2, voiceProvider = 'inworld', multilingualConversations = true, enabledByKey = {}}
+    -- Mature content: Inworld is a cloud voice, so it is not used beside it. A file with both loads as Pocket (and is saved so),
+    -- turning Mature content on beside it moves the voice to Pocket, and choosing it while it stays on is refused.
+    seed = {version = 2, voiceProvider = 'inworld', matureContent = true, conversationProvider = 'local', enabledByKey = {}}
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket' and saved.multilingualConversations == nil)
+    assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket')
+    published('mature', {provider = 'local', effective = 'local', saved = false, inworld = {saved = true, tail = 'wxyz'}})
+    local chosen, why = manager.applySettings(player, {voiceProvider = 'inworld'})
+    assert(chosen == false and why == 'Inworld is not used with Mature content.' and saved.voiceProvider == 'pocket', tostring(why))
+    assert(#menu() == 9 and menu()[9] == 'Inworld · not with Mature' and row('voiceProvider').disabledElements and row('voiceProvider').disabledElements[9] ~= nil)
+    local blocked = registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}})
+    assert(blocked.ok == false and blocked.error == 'Inworld is not used with Mature content.', tostring(blocked.error))
+    assert(manager.applySettings(player, {matureContent = false}))
+    assert(manager.applySettings(player, {voiceProvider = 'inworld'}) and saved.voiceProvider == 'inworld')
+    local ok, err, notice, reload = manager.applySettings(player, {conversationProvider = 'local', matureContent = true})
+    assert(ok and saved.voiceProvider == 'pocket' and reload == true, tostring(err))
   `);
 });
 
@@ -2144,7 +2166,7 @@ test('a saved Groq provider (the option was removed) reads as Convai free tier, 
   `);
 });
 
-test('a fallback reported from the removed Inworld voice is ignored: no notice is shown for a voice that is no longer offered', () => {
+test('an Inworld cloud voice that fell back to Pocket is announced once, with the usual wording and its own name', () => {
   run(`${nsuiFixture}${managerPopupFixture}
     popupStep = 1
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = nil, routedProfiles = {'johnny-silverhand'},
@@ -2153,9 +2175,10 @@ test('a fallback reported from the removed Inworld voice is ignored: no notice i
     files['runtime/local-voice-state.json'] = 'voice-runtime'
     popupTick(false); popupTick(false)
     popupTick(true)
+    assert(#popups == 1 and popups[1] == 'Inworld cloud voice is not ready yet. Companions are using Pocket · Performance for now.', popups[1])
     state.fallback.temporary = false
     for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 0, table.concat(popups, '|'))
+    assert(#popups == 2 and popups[2] == 'Inworld cloud voice is unavailable. Companions are using Pocket · Performance instead.', popups[2])
   `);
 });
 
@@ -3965,8 +3988,8 @@ test('V’s voice for typed lines is on by default and a saved choice is kept; w
     assert(manager.vVoiceActive() == true)
     -- A case is {saved vVoice, saved voice, expected vVoice, developer mode (default off), the voice it loads as (default: as saved)}.
     for _, case in ipairs({{'missing', 'pocket', true}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true},
-        -- The removed Inworld voice: a saved one loads as Pocket TTS, with or without developer mode.
-        {true, 'inworld', true, false, 'pocket'}, {true, 'inworld', true, true, 'pocket'}, {false, 'inworld', false, false, 'pocket', true},
+        -- The Inworld voice is kept as saved, whatever the key.
+        {true, 'inworld', true}, {false, 'inworld', false, false, nil, true},
         -- Only an explicit false stays off; a value that is not a boolean is the default (on).
         {false, 'pocket', false, false, nil, true}, {false, 'convai', false, false, nil, true}, {false, 'pocket', true}, {false, 'omni', true}, {false, 'convai', true},
         {'yes', 'pocket', true}, {1, 'pocket', true},

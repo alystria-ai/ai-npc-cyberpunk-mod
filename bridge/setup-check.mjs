@@ -38,8 +38,8 @@ const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 const MOD_NAME = 'AiNpcCyberpunkMod';
 
-/** The host each service is reached at: Convai, Mistral (the Voxtral voice, and its text for a player who chose it before it left the list), Google Gemini. */
-export const SERVICE_HOSTS = Object.freeze({convai: 'api.convai.com', mistral: 'api.mistral.ai', gemini: 'generativelanguage.googleapis.com'});
+/** The host each service is reached at: Convai, Mistral (the Voxtral voice, and its text for a player who chose it before it left the list), Google Gemini, Inworld (its voice only). */
+export const SERVICE_HOSTS = Object.freeze({convai: 'api.convai.com', mistral: 'api.mistral.ai', gemini: 'generativelanguage.googleapis.com', inworld: 'api.inworld.ai'});
 
 const clip = (value, size = 120) => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, size) : null;
 // Version order of two release strings (0.3.4 before 0.3.10): negative when a is older; non-numeric parts count as 0.
@@ -430,6 +430,7 @@ export function neededServices(settings, {custom = null} = {}) {
   // The Convai cloud voice is only available while Convai answers; with another provider the bridge speaks with Pocket instead.
   const voice = settings?.voiceProvider;
   if (voice === 'voxtral') services.push('mistral');
+  else if (voice === 'inworld') services.push('inworld');
   else if (voice === 'convai' && conversation === 'convai') services.push('convai');
   return [...new Set(services)];
 }

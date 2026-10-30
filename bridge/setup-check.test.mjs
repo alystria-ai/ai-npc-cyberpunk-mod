@@ -294,8 +294,8 @@ test('reachability: a name that does not resolve, a refused connection, silence 
   assert.equal(other.calls[0].port, 8443);
   assert.equal(await checkReachable('x', {lookup: resolves, connect: () => { throw Object.assign(Error('denied'), {code: 'EACCES'}); }}), 'blocked');
   assert.equal(await checkReachable('x', {lookup: resolves, connect: () => { throw Error('odd'); }}), 'timeout');
-  assert.deepEqual(Object.keys(SERVICE_HOSTS), ['convai', 'mistral', 'gemini']);
-  assert.deepEqual(Object.values(SERVICE_HOSTS), ['api.convai.com', 'api.mistral.ai', 'generativelanguage.googleapis.com']);
+  assert.deepEqual(Object.keys(SERVICE_HOSTS), ['convai', 'mistral', 'gemini', 'inworld']);
+  assert.deepEqual(Object.values(SERVICE_HOSTS), ['api.convai.com', 'api.mistral.ai', 'generativelanguage.googleapis.com', 'api.inworld.ai']);
 });
 
 // ---------------------------------------------------------------- the document

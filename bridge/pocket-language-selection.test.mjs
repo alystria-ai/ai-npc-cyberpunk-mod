@@ -161,7 +161,7 @@ test('the bridge finds the models in the folder the Pocket worker reads, looks a
   assert.match(bridgeSource, /const pocketLanguages = new PocketLanguageModels\(\{roots: \[voiceConfig\.runtime\?\.referenceDirectory\], packs: languagePacks,/);
   assert.match(bridgeSource, /await pocketLanguages\.scan\(\)/);
   assert.match(bridgeSource, /void pocketLanguages\.refresh\(\)\.catch\(\(\) => \{\}\);/);
-  assert.match(bridgeSource, /voxtral:voxtralVoice,languagePacks,pocketLanguages,/);
+  assert.match(bridgeSource, /voxtral:voxtralVoice,inworld:inworldVoice,languagePacks,pocketLanguages,/);
   assert.match(bridgeSource, /pocket: \{speaks: language => pocketLanguages\.speaks\(language\), packMissing: language => pocketLanguages\.packMissing\(language\)\}/);
   assert.match(bridgeSource, /voiceLanguagePacks: languagePacks\.report\(\), pocketLanguageModels: pocketLanguages\.report\(\)/);
 });
