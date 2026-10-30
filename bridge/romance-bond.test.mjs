@@ -147,8 +147,10 @@ test('a line that proposes nothing, a group round, a reaction and a turn without
   assert.equal(romance.noteFor(turnOf('goro', 'be my partner', {bonds: undefined}), {level: 9}), '');
   assert.equal(romance.noteFor(turnOf('Bad Key', 'be my partner'), {level: 9}), '');
   assert.equal(romance.noteFor(turnOf('addon-someone', 'be my partner'), {level: 9}), '');
-  // Already together: asking again changes nothing.
-  assert.equal(romance.noteFor(turnOf('goro', 'be my partner'), {level: 9, together: true}), '');
+  // Already together: asking again is answered as a partner would, and changes nothing.
+  const again = turnOf('goro', 'be my partner');
+  assert.match(romance.noteFor(again, {level: 9, together: true}), /^V is asking you to be together, or has told you they love you, and you two are together already\. Answer the way V's partner would/);
+  assert.equal(romance.afterTurn(again, 'be my partner', BOUNDARY), null);
 });
 
 test('a spoken turn has no words yet: it carries the answer as a condition, and the transcript decides after the reply', () => {
