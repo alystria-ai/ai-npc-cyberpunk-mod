@@ -27,6 +27,7 @@ import {worldRulesBlock} from './world-rules.mjs';
 import {LearnedLimits, learnedLimitChat, promptFitLine} from './prompt-fit.mjs';
 import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs, BUDGET} from './prompt-budget.mjs';
 import {imageReserveTokens} from './local-vision.mjs';
+import {pictureForTurn} from './vision-message.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
@@ -1372,8 +1373,10 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
   const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
   // "Companions can see" (bridge/companion-vision.mjs): the picture for this turn comes from the frames already in memory (the host's turnImages never waits and never throws), and goes
   // with the config as `visionImages`. Only the in-person host has a vision policy (the phone host has none), and only while the setting is on and the provider can see. Not a reaction.
+  // Only when V's words are about what is around them (bridge/vision-message.mjs pictureForTurn): a view sent with every turn became the topic of every reply.
   const withPictures = (config, send) => {
     if (!host.vision?.active || typeof host.turnImages !== 'function' || !config || config.reaction || config.phoneEvent) return send(config);
+    if (!pictureForTurn({text: config.text})) return send(config);
     return host.turnImages(config, 'reply').then(images => send(images ? {...config, visionImages: images} : config), () => send(config));
   };
   host.reply = function reply(config, options) {
