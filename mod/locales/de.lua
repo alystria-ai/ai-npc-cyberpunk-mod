@@ -1876,6 +1876,5 @@ return {
     ["Who you can talk to and what they know."] = "Mit wem du sprechen kannst und was sie wissen.",
     ["Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice AI and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks."] = "Deine AMD Radeon-Karte kann OmniVoice ausführen. Richte es in Einstellungen > Sprach-KI und Mikrofon > OmniVoice für AMD ein: ein Download, danach startet es von selbst. Bis dahin spricht Pocket.",
     ["Your Custom endpoint does not accept vision, so replies use only your words."] = "Dein Custom-Endpunkt akzeptiert keine Sicht, daher enthalten Antworten nur deine Worte.",
-    ["Search"] = "Suchen",
     ["Type a name to search"] = "Namen zum Suchen eingeben",
 }
