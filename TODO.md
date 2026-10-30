@@ -53,7 +53,7 @@ The single working document for development: open items first, then a dated log,
 - **Merged into release/quests on 31 Oct** (the 0.4.0 quest update, not on main yet): fix/remote-start-packs, fix/holocall-presence, fix/vision-covered-log, fix/main-char-placement, feat/phone-chat-search. Their live checks are not listed here (check).
 
 ### 0.4.0 release steps
-- **Rename to "AI Companions using Large Language Models (ChatGPT)"** (owner, 31 Oct, zip slug AI-Companions-LLM-ChatGPT): zips and texts on branch `feat/rename-ai-llm-companions`, the owner retitles the Nexus page on the site.
+- **Rename to "AI Companions using Large Language Models"** (owner, 31 Oct, zip slug AI-Companions-LLM): zips and texts on branch `feat/rename-ai-llm-companions`, the owner retitles the Nexus page on the site.
 - Raise `runtimeBase.required` at the 0.4.0 release (approved by the owner on 31 Oct).
 - Rebuild and re-upload the four Local AI and Mature packs to Hugging Face. They carry no embedding model now.
 - Gemini prompt-cache study after the key reset: `node scripts/Study-PromptGrowth.mjs --gemini --turns 30`.
