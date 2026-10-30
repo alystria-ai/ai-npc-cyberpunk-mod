@@ -5194,7 +5194,7 @@
         "mod/phone-chat-style.lua:221",
         "mod/phone-chat-style.lua:321",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:694",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:842"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:844"
       ]
     },
     "CLOSE PHONE TO CONTINUE": {
@@ -5464,7 +5464,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:290",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:743"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:745"
       ]
     },
     "Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.": {
@@ -7780,7 +7780,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:293",
-        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:764"
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:766"
       ]
     },
     "Favorites": {
@@ -13040,8 +13040,8 @@
       "references": [
         "mod/phone-chat-style.lua:297",
         "mod/phone-chat-style.lua:300",
-        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:668",
-        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:815"
+        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:701",
+        "r6/scripts/CyberpunkConvai/PhoneChatSearch.reds:848"
       ]
     },
     "Search characters": {

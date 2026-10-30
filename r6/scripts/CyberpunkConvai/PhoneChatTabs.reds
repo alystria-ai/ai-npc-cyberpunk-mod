@@ -300,6 +300,8 @@ private final func ConvaiShowChatContacts(opt selectId: String) -> Void {
     // The search row is the first row of the Chat list on a keyboard (PhoneChatSearch.reds); it is there before the rows are, so its word is translated with them.
     this.ConvaiSearchRowSync();
     this.m_contactListLogicController.PopulateListData(shown);
+    // One line in the probe log per build of the list (not per frame): what was built and what is shown, so a list that comes up empty says why.
+    this.m_player.ConvaiPhoneChatTrace("chat list: " + IntToString(ArraySize(contacts)) + " rows, " + IntToString(ArraySize(shown)) + " shown, search " + (this.m_convaiSearchOpen ? "on" : "off"));
     // A list built again for one contact (her favorite changed) keeps the selection on her, wherever the new order puts her.
     if StrLen(selectId) > 0 { this.m_contactListLogicController.ConvaiSelectChatContact(selectId); };
     this.m_contactListLogicController.ConvaiShowChatTab(ArraySize(shown) == 0);
