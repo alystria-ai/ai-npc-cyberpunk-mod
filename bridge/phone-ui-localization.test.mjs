@@ -20,7 +20,7 @@ local language, generation, calls = 'fr', 1, {}
 local translations = {
   fr={['TALK TO {character}']='PARLER À {character}',
     ['Type your message to the character.']='Écrivez votre message au personnage.',
-    ['CHAT']='DISCUSSION',['Chat']='Discuter',['Favorite']='Favori',['Search']='Rechercher',
+    ['CHAT']='DISCUSSION',['Chat']='Discuter',['Favorite']='Favori',['Search']='Rechercher',['Type a name to search']='Tapez un nom à rechercher',
     ['Press Enter to write  /  Esc to close']='Entrée : écrire / Échap : fermer',
     ['Write a message...  /  Enter to send  /  Esc to stop typing']='Écrire... / Entrée : envoyer / Échap : arrêter',
     ['Message sent. Waiting for reply.']='Message envoyé. En attente de réponse.',
@@ -414,8 +414,8 @@ m.action(nested,{convaiChat=true},true);assert(search.text=='Rechercher',search.
 search.text='Anything else';m.action(nested,{convaiChat=true},true);assert(search.text=='Anything else')
 -- The word of the search row (the first row of the Chat list) is translated the same way, wherever it sits in the window, and only while it holds the English word.
 local list=widget('contentPanel');list:Reparent(root);local contents=widget('contents');contents:Reparent(list)
-local rowWidget=widget('convaiPhoneSearchRow');rowWidget:Reparent(contents);local word=widget('convaiSearchPlaceholder');word:Reparent(rowWidget);word.text='Search'
-m.action(nested,{convaiChat=true},true);assert(word.text=='Rechercher',word.text)
+local rowWidget=widget('convaiPhoneSearchRow');rowWidget:Reparent(contents);local word=widget('convaiSearchPlaceholder');word:Reparent(rowWidget);word.text='Type a name to search'
+m.action(nested,{convaiChat=true},true);assert(word.text=='Tapez un nom à rechercher',word.text)
 word.text='Typed';m.action(nested,{convaiChat=true},true);assert(word.text=='Typed')
 `));
 
