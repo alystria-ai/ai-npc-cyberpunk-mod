@@ -11,6 +11,7 @@ import {INSTALL_NOTE_PATH} from './pack-overlap.mjs';
 import {GAME_VARIANTS, LEGACY_GAME} from './game-variants.mjs';
 import {BASE_MARKER, archiveEntry, forbiddenEntry} from './package-guards.mjs';
 import {shippedButWritten} from './package-writes.mjs';
+import {longRuntimePaths} from './runtime-prune.mjs';
 
 // The names are the mod page's name on Nexus Mods (owner decision 2026-10-28).
 //   Full install   AI-Companions-LLM-<version>[-for-2.31].zip                       (Hugging Face: AI-Companions-LLM.zip)
@@ -114,6 +115,8 @@ export function planFull({update, runtime, config, game, version}) {
     if (archive) problems.push(`${entry.name} ${archive}: the main file holds no archive.`);
     if (entry.name.length > layout.maxPathLength - layout.maxGameRootLength - 1) problems.push(`${entry.name} is too long for a typical game folder.`);
   }
+  const longRuntime = longRuntimePaths(runtime.entries.map(entry => entry.name), layout.maxRuntimeEntryPath);
+  if (longRuntime.length) problems.push(`The Runtime base has ${longRuntime.length} path(s) over ${layout.maxRuntimeEntryPath} characters (a mod manager folder named after the mod would pass Windows' limit): ${longRuntime.slice(0, 3).join(', ')}.`);
   const written = shippedButWritten(union.map(entry => entry.name), {layout, game, codeRemoves: update.extra?.removes ?? [], removes: runtime.extra?.removes ?? []});
   if (written.length) problems.push(`The Full package would ship files our own code writes or deletes (the Vortex rule): ${written.slice(0, 5).map(item => `${item.name} (${item.why})`).join('; ')}.`);
 

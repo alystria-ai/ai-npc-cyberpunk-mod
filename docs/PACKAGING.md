@@ -322,7 +322,7 @@ RED4ext loads DLLs only from `red4ext/plugins/*.dll` and `red4ext/plugins/<name>
 (PluginSystem.cpp stops at depth 1), so the Python, torch and Chrome DLLs under `app/` are never
 loaded into the game. Keeping the application there also keeps paths short: the build refuses any
 entry whose game-relative path would exceed 255 characters under a 70-character game folder
-(the default Steam path is 61). Windows' built-in zip extractor fails beyond 260.
+(the default Steam path is 61), and any Runtime entry over 140 characters ("Path length" below). Windows' built-in zip extractor fails beyond 260.
 
 ## How it starts
 
@@ -697,6 +697,22 @@ What 0.3.5 carried, and what became of each:
 | `python/Lib/site-packages/scipy-1.18.1-cp312-cp312-win_amd64.whl` (zero bytes) | Pruned (`stray-wheel`). |
 
 All four paths are also in `packaging/runtime-removals.json`, so an install that has them loses them at its next start.
+
+**Path length (0.4.0, 2026-10-31).** Mod Organizer 2 names its mod folder after the Nexus title by default, and the title is now 41 characters ("AI Companions using Large Language Models", it was 21), so
+a player's paths look like `C:\Users\<name>\AppData\Local\ModOrganizer\Cyberpunk 2077\mods\AI Companions using Large Language Models\red4ext\plugins\...`. Vortex stages under
+`...\AppData\Roaming\Vortex\cyberpunk2077\mods\<archive name>`. The longest entry of the 0.3.5 Runtime was 154 characters inside the zip, which makes 273 under the second MO2 base above (20 character user
+name) against Windows' 259 (260 with the end mark); ten files were over 140. What the runtime itself needs: nothing, because it runs under the game's own folder (about 61 characters on Steam, and under
+Mod Organizer 2 the virtual game folder) and the native plugin and the launcher use the `\\?\` prefix, Node adds it for long paths, and `python.exe` carries the `longPathAware` manifest. The exposed step is the
+extraction and deployment by the mod manager (or Windows' own zip extractor, which fails beyond 260). So:
+- the build refuses a Runtime entry over **140** characters (`layout.maxRuntimeEntryPath` in `release.config.json`, `longRuntimePaths` in `packaging/lib/runtime-prune.mjs`): in `writeArchives` for the Runtime
+  package and in `planFull` (the Full zip) for the Runtime base's entries. 140 leaves room for a mod folder up to the 41 character title under the 77 character AppData base above;
+- seven torch files nothing imports were pruned (rules `torch-lightning-callbacks`, `torch-cutlass-extensions`, `torch-rpc-example`, `torch-shard-embedding-bag`, `torch-elastic-subprocess-handler`). After them
+  `torch.distributed._shard.sharded_tensor`, `torch.distributed.fsdp` and `torch.distributed.elastic.multiprocessing` no longer import (multi-GPU training and the torchrun launcher, none of it ours).
+  Checked on a scratch copy of the 0.3.5 Runtime Python with the files deleted: numpy, scipy, scipy.signal, torch, torch.nn, yaml, safetensors, sherpa_onnx, pocket_tts and bridge/pocket_voice_runtime import,
+  and the Pocket model loads and generates the same audio (same SHA-1 with a fixed seed) as with the files;
+- the three numpy licence texts that were over 140 (libdivide, pythoncapi-compat, x86-simd-sort, BSD or zlib notices that go with the binary) are NOT dropped: `pythonRenamed` moves each up its dist-info folder
+  (`numpy-2.5.3.dist-info/licenses/x86-simd-sort-LICENSE.md`), text unchanged. Nothing reads them; pip's RECORD, which only an uninstall reads, lists the old paths;
+- the ten old paths are in `packaging/runtime-removals.json`, so an install made from the 0.3.5 Runtime loses them at its next start (a Runtime update zip lists them anyway).
 
 ### The Python standard library (0.3.4, and the check for it)
 

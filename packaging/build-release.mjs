@@ -80,7 +80,7 @@ import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {packFiles, packTitle} from './lib/pack-names.mjs';
 import {DEFAULT_GAME, GAME_VARIANTS, forGame, gameOverlay} from './lib/game-variants.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
-import {PYTHON_SKIP, nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
+import {PYTHON_SKIP, longRuntimePaths, nodePackagePruned, pocketShipped, pythonPruned, pythonRenamed} from './lib/runtime-prune.mjs';
 import {assertPythonShipped, assertStdlibUnzipped} from './lib/python-stdlib.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
@@ -203,8 +203,16 @@ class Package {
   file(name, source) { this.add(name, {source}); }
   text(name, text) { this.add(name, {buffer: Buffer.from(text, 'utf8')}); }
   json(name, value) { this.text(name, JSON.stringify(value, null, 2) + '\n'); }
-  async tree(prefix, directory, {skip} = {}) {
-    for (const rel of await walk(directory, {skip})) this.file(`${prefix}/${rel}`, join(directory, rel));
+  // `rename`: rel => a new rel, or null to keep the path (the file is read from where it is and added under the new name).
+  async tree(prefix, directory, {skip, rename} = {}) {
+    const rels = await walk(directory, {skip});
+    const taken = new Set(rels);
+    for (const rel of rels) {
+      const renamed = rename ? rename(rel) : null;
+      if (renamed && taken.has(renamed)) throw Error(`${prefix}/${rel} would be renamed to ${renamed}, which is already a file of the tree`);
+      if (renamed) taken.add(renamed);
+      this.file(`${prefix}/${renamed ?? rel}`, join(directory, rel));
+    }
   }
 }
 
@@ -535,7 +543,9 @@ async function runtimePackage(source, config, models, auth) {
   await installPython(tool.python, resolve(source.root, tool.python.lock), pythonDir, ['..\\bridge'], {unzipStdlib: true});
   // Besides PYTHON_SKIP, the Runtime leaves out what nothing loads (packaging/lib/runtime-prune.mjs): the sherpa-onnx wheel's second DLL copy, torch/bin's
   // duplicates and the packages' own tests folders.
-  await pkg.tree(`${app}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || pythonPruned(rel)});
+  // A licence text that would pass the Runtime's path limit (config.layout.maxRuntimeEntryPath) moves up its dist-info folder (pythonRenamed).
+  const pythonPrefix = `${app}/python/`.length, entryLimit = config.layout.maxRuntimeEntryPath;
+  await pkg.tree(`${app}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || pythonPruned(rel), rename: rel => pythonRenamed(rel, pythonPrefix, entryLimit)});
   // What the package now holds of the Python is exactly what a player gets: it must have every file the voice workers import (the skip and prune rules took nothing they load).
   assertPythonShipped([...pkg.entries.keys()].filter(name => name.startsWith(`${app}/python/`)).map(name => name.slice(`${app}/python/`.length)), {what: 'the Runtime'});
   notices.push(`Python ${tool.python.version} embeddable distribution - PSF License: app/python/LICENSE.txt - ${tool.python.url}`);
@@ -1211,6 +1221,9 @@ async function writeArchives(pkg, baseName, config, timestamp, {single = false} 
   const limitPath = config.layout.maxPathLength - config.layout.maxGameRootLength - 1;
   const tooLong = names.filter(name => name.length > limitPath);
   if (tooLong.length) throw Error(`${tooLong.length} paths are too long for a typical game folder, e.g. ${tooLong[0]}`);
+  // The Runtime's entries sit deeper than any other package's (the Python), and a mod manager folder named after the mod takes most of what is left of 260.
+  const longRuntime = pkg.id === 'runtime' ? longRuntimePaths(names, config.layout.maxRuntimeEntryPath) : [];
+  if (longRuntime.length) throw Error(`${longRuntime.length} Runtime path(s) are over ${config.layout.maxRuntimeEntryPath} characters (a Mod Organizer 2 or Vortex mod folder named after the mod would pass Windows' limit), e.g. ${longRuntime[0]}. Prune or rename them (packaging/lib/runtime-prune.mjs).`);
   const archives = [];
   let writer = null, index = 0;
   const open = async () => { index++; writer = await ZipWriter.create(resolve(directory, `${baseName}.${index}.tmp`), {timestamp}); };

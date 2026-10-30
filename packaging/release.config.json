@@ -8,6 +8,7 @@
     "pluginDll": "CyberpunkConvai.dll",
     "maxGameRootLength": 70,
     "maxPathLength": 255,
+    "maxRuntimeEntryPath": 140,
     "nativeDirectory": "red4ext/plugins/AiNpcCyberpunkModNative",
     "nativeDll": "CyberpunkConvaiNative.dll",
     "localAiDirectory": "red4ext/plugins/AiNpcCyberpunkMod/app/local-ai"

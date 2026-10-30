@@ -3,13 +3,14 @@
 // carries every pruned path and the start step deletes them. Fixture files in a temporary folder; no real Runtime.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {extractEntry} from './lib/zip-entry.mjs';
-import {POCKET_SHIPPED_FILES, POCKET_SHIPPED_PREFIX, PYTHON_PRUNE_RULES, nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
+import {MAX_RUNTIME_ENTRY_PATH, POCKET_SHIPPED_FILES, POCKET_SHIPPED_PREFIX, PYTHON_PRUNE_RULES, longRuntimePaths, nodePackagePruned, pocketShipped, pythonPruned, pythonRenamed} from './lib/runtime-prune.mjs';
 import {parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals} from './lib/runtime-removals.mjs';
 import {PLUGIN, applyRuntimeRemovals} from './runtime/apply-removals.mjs';
@@ -21,6 +22,20 @@ const APP = `${PLUGIN}/app`;
 const PY = `${APP}/python`;
 const SITE = 'Lib/site-packages';
 const quiet = () => {};
+// The seven files of the 0.3.5 Runtime that were over 140 characters inside the zip besides the three numpy licence texts, relative to the Python folder.
+const LONG_TORCH_FILES = [
+  `${SITE}/torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/__init__.py`,
+  `${SITE}/torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/_data_sparstity_utils.py`,
+  `${SITE}/torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/data_sparsity.py`,
+  `${SITE}/torch/_inductor/codegen/cuda/cutlass_lib_extensions/gemm_operation_extensions.py`,
+  `${SITE}/torch/testing/_internal/distributed/rpc/examples/reinforcement_learning_rpc_test.py`,
+  `${SITE}/torch/distributed/_shard/sharding_spec/chunk_sharding_spec_ops/embedding_bag.py`,
+  `${SITE}/torch/distributed/elastic/multiprocessing/subprocess_handler/subprocess_handler.py`];
+const LONG_LICENCES = [
+  `${SITE}/numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt`,
+  `${SITE}/numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING`,
+  `${SITE}/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md`];
+const PYTHON_PREFIX = `${PY}/`.length;
 
 test('the Python rules leave out the sherpa-onnx wheel\'s second copy, torch/bin and the packages\' tests folders', () => {
   for (const rel of [`${SITE}/Scripts/onnxruntime.dll`, `${SITE}/Scripts/sherpa-onnx-c-api.dll`, `${SITE}/Scripts/sherpa-onnx-cxx-api.lib`,
@@ -28,7 +43,9 @@ test('the Python rules leave out the sherpa-onnx wheel\'s second copy, torch/bin
     `${SITE}/numpy/_core/tests/test_dtype.py`, `${SITE}/scipy/special/tests/data/boost.npz`, `${SITE}/networkx/algorithms/flow/tests/test_maxflow.py`,
     `${SITE}/sympy/core/tests/test_basic.py`, `${SITE}/mpmath/tests/test_basic_ops.py`, `${SITE}/setuptools/_distutils/tests/support.py`,
     // The archives the main file must not hold (packaging/lib/package-guards.mjs).
-    `${SITE}/networkx/generators/atlas.dat.gz`, `${SITE}/scipy/stats/_sobol_direction_numbers.npz`, `${SITE}/scipy-1.18.1-cp312-cp312-win_amd64.whl`]) {
+    `${SITE}/networkx/generators/atlas.dat.gz`, `${SITE}/scipy/stats/_sobol_direction_numbers.npz`, `${SITE}/scipy-1.18.1-cp312-cp312-win_amd64.whl`,
+    // The torch files with the longest paths of the 0.3.5 Runtime (docs/PACKAGING.md, "Path length").
+    ...LONG_TORCH_FILES]) {
     assert.equal(pythonPruned(rel), true, rel);
   }
 });
@@ -44,7 +61,48 @@ test('the Python rules keep what is loaded: the DLLs torch and sherpa-onnx use, 
     `${SITE}/scipy/stats/_qmc.py`, `${SITE}/scipy/_lib/other.npz`, `${SITE}/scipy/sub/x.whl`, 'python312.dll', 'python312.zip', 'python312._pth', 'Lib/Scripts/a.dll']) {
     assert.equal(pythonPruned(rel), false, rel);
   }
-  assert.deepEqual(PYTHON_PRUNE_RULES.map(rule => rule.id), ['sherpa-core-scripts', 'torch-bin', 'package-tests', 'networkx-atlas', 'scipy-sobol-numbers', 'stray-wheel']);
+  assert.deepEqual(PYTHON_PRUNE_RULES.map(rule => rule.id), ['sherpa-core-scripts', 'torch-bin', 'package-tests', 'networkx-atlas', 'scipy-sobol-numbers', 'stray-wheel',
+    'torch-lightning-callbacks', 'torch-cutlass-extensions', 'torch-rpc-example', 'torch-shard-embedding-bag', 'torch-elastic-subprocess-handler']);
+});
+
+test('the long-path rules leave their neighbours alone: the rest of torch.distributed, torch.ao and the inductor files that are imported', () => {
+  for (const rel of [`${SITE}/torch/ao/pruning/__init__.py`, `${SITE}/torch/ao/pruning/_experimental/data_sparsifier/base_data_sparsifier.py`,
+    `${SITE}/torch/ao/pruning/_experimental/data_sparsifier/lightning/__init__.py`,
+    `${SITE}/torch/_inductor/codegen/cuda/cutlass_lib_extensions/__init__.py`, `${SITE}/torch/_inductor/codegen/cuda/cutlass_utils.py`,
+    `${SITE}/torch/distributed/_shard/sharding_spec/chunk_sharding_spec_ops/embedding.py`, `${SITE}/torch/distributed/_shard/sharding_spec/chunk_sharding_spec_ops/__init__.py`,
+    `${SITE}/torch/distributed/elastic/multiprocessing/api.py`, `${SITE}/torch/distributed/elastic/multiprocessing/subprocess_handler/__init__.py`,
+    `${SITE}/torch/distributed/elastic/multiprocessing/subprocess_handler/handlers.py`, `${SITE}/torch/testing/_internal/common_utils.py`,
+    // Licence texts are not pruned: they move (pythonRenamed).
+    ...LONG_LICENCES]) assert.equal(pythonPruned(rel), false, rel);
+});
+
+test('a licence text that would pass the Runtime path limit moves up its dist-info folder and keeps its text, the others stay where they are', () => {
+  assert.equal(MAX_RUNTIME_ENTRY_PATH, 140);
+  assert.equal(pythonRenamed(LONG_LICENCES[0], PYTHON_PREFIX), `${SITE}/numpy-2.5.3.dist-info/licenses/libdivide-LICENSE.txt`);
+  assert.equal(pythonRenamed(LONG_LICENCES[1], PYTHON_PREFIX), `${SITE}/numpy-2.5.3.dist-info/licenses/pythoncapi-compat-COPYING`);
+  assert.equal(pythonRenamed(LONG_LICENCES[2], PYTHON_PREFIX), `${SITE}/numpy-2.5.3.dist-info/licenses/x86-simd-sort-LICENSE.md`);
+  for (const rel of LONG_LICENCES) assert(PYTHON_PREFIX + pythonRenamed(rel, PYTHON_PREFIX).length <= MAX_RUNTIME_ENTRY_PATH, rel);
+  // One that fits stays (140 characters is the limit itself), the top licence file and other files never move.
+  assert.equal(pythonRenamed(`${SITE}/numpy-2.5.3.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt`, PYTHON_PREFIX), null);
+  assert.equal(pythonRenamed(`${SITE}/numpy-2.5.3.dist-info/licenses/LICENSE.txt`, PYTHON_PREFIX), null);
+  assert.equal(pythonRenamed(`${SITE}/torch/ao/pruning/${'a/'.repeat(60)}x.py`, PYTHON_PREFIX), null, 'only licence texts of a dist-info move');
+});
+
+test('the build\'s release guard refuses a Runtime entry over the limit and names it, and passes one at the limit', () => {
+  const at = 'x'.repeat(MAX_RUNTIME_ENTRY_PATH), over = 'x'.repeat(MAX_RUNTIME_ENTRY_PATH + 1);
+  assert.deepEqual(longRuntimePaths([at, 'short.txt']), []);
+  assert.deepEqual(longRuntimePaths([at, over, 'short.txt']), [over]);
+  assert.deepEqual(longRuntimePaths([over], 200), []);
+  assert.equal(JSON.parse(readFileSync(resolve(project, 'packaging/release.config.json'), 'utf8')).layout.maxRuntimeEntryPath, MAX_RUNTIME_ENTRY_PATH, 'the config and the code name one limit');
+});
+
+test('the declared removals carry the long-path files, so an install made from the 0.3.5 Runtime loses them (and the licence texts at their old place) at its next start', async () => {
+  const declared = JSON.parse(await readFile(resolve(project, DECLARED_REMOVALS), 'utf8')).removes;
+  for (const rel of [...LONG_TORCH_FILES, ...LONG_LICENCES]) assert(declared.includes(`${PY}/${rel}`), rel);
+  assert.deepEqual(checkRemovals(declared).refused.filter(item => item.why !== 'code the Scripts install'), []);
+  // Nothing the new Runtime ships: a moved licence text is declared at its OLD path only.
+  const shipped = new Set(LONG_LICENCES.map(rel => `${PY}/${pythonRenamed(rel, PYTHON_PREFIX)}`));
+  assert.deepEqual(checkRemovals(declared, shipped).refused.filter(item => item.why === 'the new Runtime ships it'), []);
 });
 
 test('the Pocket TTS rule ships the package and the licence of the pinned revision and nothing else', async () => {

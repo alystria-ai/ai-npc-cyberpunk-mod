@@ -167,6 +167,7 @@ test('the install note must be the same in both, and every other guard runs over
     ['a Convai key file', {runtime: {[`${PLUGIN}/app/convai-key.txt`]: 'k'}}, /forbidden file|key file/],
     ['the development launcher', {update: {'red4ext/plugins/CyberpunkConvaiLauncher/launcher.dll': 'x'}}, /unexpected RED4ext plugin file/],
     ['developer material', {runtime: {'misc/notes.txt': 'x'}}, /developer-only material/],
+    ['a Runtime path over the limit', {runtime: {[`${PLUGIN}/app/python/Lib/site-packages/${'deep/'.repeat(30)}file.py`]: 'x'}}, /Runtime base has 1 path\(s\) over 140 characters/],
     ['a plugin DLL of the Runtime', {runtime: {[`${PLUGIN}/CyberpunkConvai.dll`]: 'old launcher'}}, /unexpected RED4ext plugin file|writes or deletes/],
   ];
   for (const [name, set, pattern] of cases) {

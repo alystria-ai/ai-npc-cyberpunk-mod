@@ -21,6 +21,16 @@
   "red4ext/plugins/AiNpcCyberpunkMod/app/models/lipsync/face-lexicon.txt.gz",
   "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/networkx/generators/atlas.dat.gz",
   "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/scipy/stats/_sobol_direction_numbers.npz",
-  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/scipy-1.18.1-cp312-cp312-win_amd64.whl"
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/scipy-1.18.1-cp312-cp312-win_amd64.whl",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/__init__.py",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/_data_sparstity_utils.py",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/torch/ao/pruning/_experimental/data_sparsifier/lightning/callbacks/data_sparsity.py",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/torch/_inductor/codegen/cuda/cutlass_lib_extensions/gemm_operation_extensions.py",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/torch/testing/_internal/distributed/rpc/examples/reinforcement_learning_rpc_test.py",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/torch/distributed/_shard/sharding_spec/chunk_sharding_spec_ops/embedding_bag.py",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/torch/distributed/elastic/multiprocessing/subprocess_handler/subprocess_handler.py",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/python/Lib/site-packages/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md"
  ]
 }
