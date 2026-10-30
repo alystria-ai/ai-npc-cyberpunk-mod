@@ -1482,6 +1482,15 @@ test('a failure that carries the worker graphics memory passes it on to the obse
   assert.deepEqual(h.failures.map(info => info.cause), ['timeout', 'unknown']);
 });
 
+test('a worker that Windows ended from outside as the game closed is not passed on as a failure, a real fault is (reports 24332da7, 8df15641)', () => {
+  const h = retryFixture({omni: ['hold']});
+  h.voice.noteFailure('pocket', 'Pocket worker exited (1073807364)');
+  h.voice.noteFailure('v-helper', 'Pocket worker exited (3221226091)');
+  assert.deepEqual(h.failures, [], 'terminated by a debugger and a start while the session ends are not reported');
+  h.voice.noteFailure('pocket', 'Pocket worker exited (3221225477 = access violation (0xC0000005))');
+  assert.deepEqual(h.failures.map(info => info.engine), ['pocket']);
+});
+
 test('the player\'s own Python (omni-python.txt) runs the Omni worker only after its self-test passed, with the pack\'s OmniVoice code', async () => {
   const PY = 'C:/Users/Player/omni-rocm/.venv/Scripts/python.exe', SOURCE = 'C:/Game/app/omni/python/Lib/site-packages/omnivoice';
   let own = null;

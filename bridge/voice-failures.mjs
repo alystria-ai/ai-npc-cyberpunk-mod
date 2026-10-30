@@ -12,6 +12,24 @@ const EXIT_CODES = new Map([
   [0xC000013A, 'stopped with Ctrl+C'], [0xE06D7363, 'unhandled C++ exception'], [0xC06D007E, 'a module was not found'],
 ]);
 
+// Exit codes of a process that Windows ended from outside while the player closed the game or logged off: STATUS_CONTROL_C_EXIT (0xC000013A, a console closing),
+// DBG_TERMINATE_PROCESS (0x40010004, "terminated by a debugger", what the process gets when its job or session is torn down) and STATUS_DLL_INIT_FAILED_LOGOFF
+// (0xC000026B, a process that starts while the session ends). None of them is a fault of the mod: reports of 29 and 30 Oct 2026 (24332da7, 5aff7ff8, 3d7ebef0)
+// all fell on the second the game process ended, in five installs, and carried nothing to fix.
+const ENDED_FROM_OUTSIDE = new Set([0xC000013A, 0x40010004, 0xC000026B]);
+
+/** True for an exit code that means "ended from outside" (the game closed or the session ended), never a crash worth a report. */
+export function endedFromOutsideCode(code) {
+  if (!Number.isInteger(code)) return false;
+  return ENDED_FROM_OUTSIDE.has(code < 0 ? code + 2 ** 32 : code);
+}
+
+/** A worker's failure line ("Pocket worker exited (1073807364)", also with the code in words) whose exit code is one of those. */
+export const endedFromOutsideFailed = reason => {
+  const match = /\bexited \((-?\d+)\b/.exec(String(reason ?? ''));
+  return !!match && endedFromOutsideCode(Number(match[1]));
+};
+
 /** The exit code in words for the log and the report: "3221225477 = access violation (0xC0000005)", or just the number. */
 export function describeExitCode(code) {
   if (!Number.isInteger(code)) return String(code ?? 'unknown');
