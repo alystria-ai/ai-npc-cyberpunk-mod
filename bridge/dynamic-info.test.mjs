@@ -39,7 +39,7 @@ await lastTalk.configure({path: null, now: () => REAL_NOW, keyFor: key => key});
 const seedLastTalk = () => lastTalk.record('judy-alvarez', GAME_NOW - 3 * 86400, REAL_NOW - 4 * 86400_000);
 let serial = 100;
 function rawTurn(extra = {}, entity = `${++serial}ULL`) {
-  return {requestId: `${serial}-1-${entity}`, generation: 1, entity, profileKey: 'judy-alvarez', name: 'Judy', bodyType: 'WomanAverage', text: 'So what now?',
+  return {requestId: `${serial}-1-${entity}`, generation: 1, entity, profileKey: 'judy-alvarez', name: 'Judy', bodyType: 'WomanAverage', text: 'So what now? Can we afford it, and does this jacket still look good on me?',
     journal: {version: 1, status: 'active', quest: {id: '123', title: 'The Heist', objectives: [{id: '1', text: 'Reach the vault door', tracked: true}]}},
     journalHistory: {version: 1, status: 'unavailable'}, worldKnowledge: {version: 1, status: 'unavailable'},
     gear: {version: 1, status: 'ready', clothing: [{slot: 'outerTorso', name: 'Samurai Jacket'}], weapons: [{slot: 'hand', name: 'Kyubi'}]},
