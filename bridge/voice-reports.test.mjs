@@ -201,6 +201,85 @@ test('"the voice never played" in a run whose hidden browser would not start say
   } finally { await f.cleanup(); }
 });
 
+// Triage 2026-10-30 (install 0d0750): the V line's browser failure (fallback 'silent') and the "voice never played, hidden browser" row were filed in the same second for one fault.
+test('"the voice never played" says nothing more when the hidden browser\'s start failure was reported, whatever the fallback was; other silences are still reported', async () => {
+  const browser = {message: 'Microsoft Edge was found but would not start: Target page, context or browser has been closed (exit code 3221225477)', diagnostic: ['first try, with the sandbox']};
+  const silent = {engine: 'pocket', requested: 'pocket', active: 'pocket', fellBackTo: 'pocket', turns: 3, silentTurns: 3, playedTurns: 0, lastStage: 'published', reasons: ['pocket'], browser};
+  const failure = {engine: 'v-line', reason: browser.message, cause: 'browser-failed', requested: 'pocket', active: 'pocket'};
+  const rows = async (f, count) => { await untilQueued(f, count); await new Promise(done => setTimeout(done, 40)); return (await readQueue(f.state, {now: START})).map(record => record.frame).sort(); };
+  for (const fellBackTo of ['silent', 'pocket', 'text']) {
+    const f = await folders();
+    try {
+      const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+      events.voiceFailed({...failure, fellBackTo});
+      events.voiceSilent({...silent, fellBackTo, active: fellBackTo === 'text' ? 'text' : 'pocket'});
+      assert.deepEqual(await rows(f, 1), ['voice-selection'], `fallback ${fellBackTo}: one row for one fault`);
+    } finally { await f.cleanup(); }
+  }
+  // The same browser failure noted again (already queued) still counts as reported.
+  let f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({...failure, fellBackTo: 'silent'});
+    events.voiceFailed({...failure, fellBackTo: 'silent'});
+    events.voiceSilent({...silent, fellBackTo: 'silent'});
+    assert.deepEqual(await rows(f, 1), ['voice-selection']);
+  } finally { await f.cleanup(); }
+  // A silence that is not about the browser (it runs now) is still reported after a browser failure, and so is a browser silence with no failure behind it.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({...failure, fellBackTo: 'silent'});
+    events.voiceSilent({...silent, browser: undefined});
+    assert.deepEqual(await rows(f, 2), ['voice-selection', 'voice-silence']);
+  } finally { await f.cleanup(); }
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceSilent(silent);
+    assert.deepEqual(await rows(f, 1), ['voice-silence']);
+  } finally { await f.cleanup(); }
+  // Another voice failure (not the browser) does not hide the browser silence.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({engine: 'omni', reason: 'OmniVoice timed out', cause: 'timeout', requested: 'omni', active: 'omni', fellBackTo: 'pocket'});
+    events.voiceSilent(silent);
+    assert.deepEqual(await rows(f, 2), ['voice-selection', 'voice-silence']);
+  } finally { await f.cleanup(); }
+});
+
+// Triage 2026-10-30 (signature 600c87b4, installs 5905ef, 60d462, afd170): OmniVoice needs CUDA on an AMD card, the replies fall back to text and the settings point to "OmniVoice for AMD".
+test('OmniVoice without CUDA on an AMD card files no row, and its text fallback hides the "voice never played" row too; any other card is still reported', async () => {
+  const noCuda = {engine: 'omni', reason: 'Local voice worker needs CUDA (no NVIDIA graphics card that works)', cause: 'no-cuda', requested: 'omni', active: 'text', fellBackTo: 'text', silent: false};
+  const silent = {engine: 'omni', requested: 'omni', active: 'text', fellBackTo: 'text', turns: 3, silentTurns: 3, playedTurns: 0, lastStage: 'published', reasons: ['omni']};
+  const settle = async f => { await new Promise(done => setTimeout(done, 60)); return (await readQueue(f.state, {now: START})).map(record => record.frame); };
+  let f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn(), voiceHardware: async () => ({gpuVendors: ['amd'], vramTotalMiB: 16304})});
+    events.voiceFailed({...noCuda, amdCard: true});
+    events.voiceSilent(silent);
+    assert.deepEqual(await settle(f), [], 'nothing is queued for an expected fallback');
+  } finally { await f.cleanup(); }
+  // Any other card (Intel only, an AMD part that is not on the AMD route, no card list): the failure is reported as before.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn(), voiceHardware: async () => ({gpuVendors: ['intel']})});
+    events.voiceFailed(noCuda);
+    await untilQueued(f, 1);
+    const [record] = await readQueue(f.state, {now: START});
+    assert.deepEqual([record.kind, record.voice.cause, record.voice.fellBackToText], ['voice-failed', 'no-cuda', true]);
+  } finally { await f.cleanup(); }
+  // The flag is only about the missing CUDA: another failure on the same PC is reported.
+  f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn(), voiceHardware: async () => ({gpuVendors: ['amd']})});
+    events.voiceFailed({...noCuda, reason: 'OmniVoice timed out', cause: 'timeout', amdCard: true});
+    await untilQueued(f, 1);
+    assert.equal((await readQueue(f.state, {now: START})).length, 1);
+  } finally { await f.cleanup(); }
+});
+
 test('a failure of the hidden browser is its own cause for a V line or a voice report', () => {
   assert.equal(voiceFailureCause('Microsoft Edge was found but would not start: Target page, context or browser has been closed'), 'browser-failed');
   assert.equal(voiceFailureCause('Brave is set as the browser but its program is not there'), 'browser-failed');
