@@ -144,11 +144,69 @@ Quality is serviceable and the speed is as good as Gemini's, so Cohere is a viab
 
 ## What to build next (if the owner wants the local improvement)
 
-1. **Make the embedder swappable per model and give each model its own cut-off.** `memory-store.mjs` already rejects vectors of another embedder id and re-embeds in the background. Add EmbeddingGemma-300M Q8 (with its query and document prefixes) as an option in the Local AI pack and a per-model `minScore` (0.40 works for it here, granite effectively has none). Fixing the cut-off alone gives "no memories injected on small talk", which today never happens.
+1. **Make the embedder swappable per model and give each model its own cut-off** (done 2026-10-30, see "Follow-up: the cut-off"). `memory-store.mjs` already rejects vectors of another embedder id and re-embeds in the background. Add EmbeddingGemma-300M Q8 (with its query and document prefixes) as an option in the Local AI pack and a per-model `minScore` (0.40 works for it here, granite effectively has none). Fixing the cut-off alone gives "no memories injected on small talk", which today never happens.
 2. **Measure the +231 ms inside a running game before shipping**, and try to hide it: start the query embedding the moment V's line is final and let it overlap the knowledge and journal assembly that happens before the model call. The embed server runs one thread, so a second thread, a shorter query clip (V's lines are short, the clip is 500 characters) are the knobs. Do this as an owner live check of response time and FPS, not by estimate.
 3. **Leave granite the default** until step 2 shows the added latency is hidden. It is 14 times faster and the quality gap only matters once a character holds more than a few dozen memories.
 4. **Separate project: semantic search over the knowledge stores.** Facts and quest briefings are chosen by keyword overlap and regex today. On the same queries embeddings beat keyword ranking on facts (0.83 to 0.92 against 0.63) and on story and quest lines, so an embedded index of the rule statements would likely pick better facts, but those rules are conditional on game state and need their own design.
 5. **Optional, for Gemini and Custom players without the Local AI pack** (no lasting memories at all today): a cloud embedder is the only route, and it should be a separate opt in with its own notice, off by default and never used while Local AI is the text provider. Cohere's trial limits make it a poor fit, a paid or a Gemini embedding key is a better candidate to test first. I did not evaluate that.
+
+## Follow-up: the cut-off (fixed 2026-10-30)
+
+The defect above is fixed in `bridge/memory-store.mjs`. Script: `scripts/eval-retrieval/calibrate-cutoff.mjs` (lines in `data/cutoff-lines.json`). Nothing was added to the hot path: no model, no network, one extra pass over scores the flat scan already computes (microseconds for 600 records).
+
+**What changed**
+- The cut-off is stored per embedder (`RETRIEVAL_RULES`, matched by the start of the model id). Granite: the best memory must reach a cosine of 0.70 and only memories within 0.10 of it are kept. EmbeddingGemma: 0.40 as before. An unknown model keeps 0.40 until it is calibrated. A caller's own `minScore` still replaces the rule.
+- A line made only of greeting, thanks, yes/no or goodbye words (at most 5 words, English plus the common words of five other languages) searches nothing and makes no embed call. Everything else is left to the embedding rule, so this is a tiny word list and no classifier. The bridge has no existing small talk classifier.
+- The unwired warm is wired: `MemoryStore.warmFor(profileKey)` starts the embedder when a private talk is about to start (`warmTalkTargets` and `warmCustom` in `convai-bridge.mjs`), but only on a text route and only for a character that has stored memories under the current embedder. Before this the first line after a cold start always found the embedder not running (the existing cold path started it for the next turn). It is on demand, never per frame, one process spawn, and the server still exits 300 s after its last use.
+
+**Data.** 149 lines: 30 pure greetings and acknowledgements, 20 open small talk lines, 15 in-game remarks and commands, the 8 small talk lines of the eval, 48 questions about memories (the eval's 16 plus 32 new ones written from other memories) and 28 questions about facts, stories, quests and places. Pools: the 4 synthetic characters (90 memories each) and the owner's 4 real granite pools of 21, 9, 5 and 3 memories (read through the data folder, only counts printed, no text copied anywhere). A line "passes" when at least one memory would be put in the prompt.
+
+**The best cosine of a line against the pool** (granite):
+
+| Lines | min | median | p90 | max |
+|---|---|---|---|---|
+| pure greetings | 0.448 | 0.558 | 0.605 | 0.660 |
+| open small talk | 0.511 | 0.635 | 0.695 | 0.736 |
+| in-game remarks | 0.507 | 0.608 | 0.656 | 0.693 |
+| questions about a memory | 0.671 | 0.779 to 0.817 | 0.80 to 0.90 | 0.90 |
+| questions about facts, quests, places | 0.634 | 0.68 to 0.72 | 0.75 to 0.79 | 0.79 |
+
+**Rules tried** (granite, small talk pass rate over all 73 non-question lines and all pools, question recall@4 over the 48 memory questions, memories put in the prompt per turn):
+
+| Rule | small talk pass | memories per small talk turn | question recall@4 | memories per question turn |
+|---|---|---|---|---|
+| before: cosine 0.40 | 100 percent | 3.88 | 92 percent | 4.00 |
+| absolute 0.60 | 49 percent | 1.41 | 92 percent | 4.00 |
+| absolute 0.65 | 20 percent | 0.45 | 92 percent | 3.83 |
+| absolute 0.70 | 3 percent | 0.05 | 90 percent | 2.31 |
+| best must reach 0.65, margin 0.10 | 20 percent | 0.78 | 92 percent | 2.52 |
+| lift (best minus pool mean) 0.10 to 0.15, margin 0.08 | 26 to 41 percent | 0.9 to 1.4 | 81 to 90 percent | 1.5 to 1.8 |
+| word list gate alone (0.40) | 63 percent | 2.44 | 92 percent | 4.00 |
+| **chosen: gate + best must reach 0.70 + margin 0.10** | **3 percent** | **0.13** | **92 percent** | **2.27** |
+
+- The word list gate alone stops 90 percent of the pure greetings but nothing else, so it is a saving (no embed call) and not the fix.
+- A relative rule (margin of the best) alone does not reject anything, it only cuts how many memories pass. The floor on the best memory is what separates small talk from questions. Margin 0.10 then drops the 4 memories of a question turn to 2.3 on average.
+- A "lift over the pool mean" rule is worse: it needs a big pool and drops recall to 81 percent. Centring the vectors on the pool mean spreads questions out more than small talk and was dropped.
+- Half and half check (even and odd lines): small talk pass 3 and 4 percent, question recall 83 and 100 percent (16 questions each, the baseline 0.40 gives the same 83 and 100, so the spread is the sample and not the rule).
+- The owner's real memories: of the 73 small talk lines, 3 pass for the 21-memory character, 1 for the 9, 0 for the 5 and 3 (before: all 73 pass everywhere).
+
+**It depends on how many memories a character has.** The best cosine of unrelated lines rises with the pool, so the same floor lets more small talk through as pools grow (random pools of n memories, floor 0.70 with margin 0.10, lines the word list lets through):
+
+| memories | small talk pass | question recall@4 (gold always in the pool) |
+|---|---|---|
+| 10 | 2 percent | 91 percent |
+| 30 | 5 percent | 91 percent |
+| 90 | 10 percent | 91 percent |
+| 200 | 14 percent | 90 percent |
+| 360 | 17 percent | 88 percent |
+
+Recall here falls with pool size because four slots are cut from a bigger pool, the same without a cut-off. Raising the floor to 0.72 would cut small talk at 360 memories to 9 percent, at no recall cost there but 4 points of recall at 90 memories. Characters hold 21 memories at most today, so 0.70 stays. Revisit it when pools of a hundred or more appear.
+
+**EmbeddingGemma at 0.40 is fine** as the eval said: 1 percent of small talk lines pass (5 percent against a merged 360-memory pool), question recall@4 94 percent. Best-score medians: small talk 0.23 to 0.30, memory questions 0.51 to 0.62.
+
+**Is EmbeddingGemma still worth +231 ms?** Not now. With granite's cut-off working, the defect that made it attractive is gone: both models drop small talk (3 percent against 1 percent) and keep recall within 2 points (92 against 94 percent). What remains is ranking, where EmbeddingGemma is clearly better (recall@4 over the 48 memory questions with no cut-off at all: 100 against 92 percent, and +0.12 recall@5 on the mixed pool), but only matters once a character holds more than a few dozen memories, and the reply test found no measurable difference in replies. The price is 231 ms on every turn that is not a bare greeting (the embed is awaited before the reply is asked for), 334 MB against 121 MB, and an 11 times slower re-embed of the whole store. Under the latency rule that is not a trade to make for a gain nobody can hear yet. Keep granite. Reconsider EmbeddingGemma if characters grow large pools and the query embedding can be overlapped with the other prompt assembly (it cannot today, `retrieve` is awaited before the model is asked).
+
+**Docs fixed:** `docs/LOCAL_OPTION_DESIGN.md` (records: JSON with base64 vectors per player and character, 600 records, 120 characters, 3 MB, the per-model cut-off, 300 s idle), `docs/LOCAL_AI.md` (300 s idle) and the two README lines about the 0.40 score.
 
 ## Caveats
 
