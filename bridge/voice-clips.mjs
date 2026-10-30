@@ -67,6 +67,23 @@ export function readManifest(text) {
   return voices;
 }
 
+/**
+ * The words of each character's clips (characters/voice-clips-words.json, written by scripts/voice-extract/write_words.mjs): {key: {pocket, short, long}}. A voice table
+ * names a clip with its words, and a character that is not in the shipped configurations (an older Runtime) has none to take them from. Entries that are not well formed are left out.
+ */
+export function readWords(text) {
+  const words = Object.create(null);
+  let parsed = null;
+  try { parsed = JSON.parse(String(text).replace(/^﻿/, '')); } catch { return words; }
+  if (!plain(parsed) || !plain(parsed.voices)) return words;
+  for (const [key, row] of Object.entries(parsed.voices)) {
+    if (!KEY.test(key) || !plain(row)) continue;
+    const engines = Object.keys(ENGINE_KINDS);
+    if (engines.every(engine => typeof row[engine] === 'string' && row[engine].trim())) words[key] = Object.freeze(Object.fromEntries(engines.map(engine => [engine, row[engine]])));
+  }
+  return words;
+}
+
 /** The text that says which game files the clips came from: the English voice archives' sizes and times (a stat each, never a read). */
 export async function gameFingerprint(gameDirectory, files = {stat}) {
   const parts = [];
@@ -114,16 +131,17 @@ export class GameVoiceClips {
    *   stateDirectory   the service's data folder (the index lives in it)
    *   python, script, vgmstream   the Runtime's Python, bridge/voice_clip_build.py and vgmstream-cli.exe
    *   manifestPath     the manifest file the builder reads
+   *   words            readWords(): the words of each character's clips, for a character the shipped tables have no row for
    *   shippedPresent   async (reference path) => boolean: is that shipped clip on disk (default: a stat under referenceRoot)
    *   shippedPresentSync  the same, synchronous, for the stand-in voices at start and per reply (default: existsSync under referenceRoot; a file check only)
    *   prefer           true: build the game's clips even when shipped ones exist (CYBERPUNK_CONVAI_GAME_CLIPS=1)
    *   download         false, or {fetch, repository}: fetch the clips from Hugging Face when the game cannot give them
    *   onBuilt          (key) => void: a character's clips are ready (the bridge makes the voice tables follow, bridge/live-voices.mjs)
    */
-  constructor({manifest = {}, gameDirectory = null, referenceRoot, mirrorRoots = [], stateDirectory, python = null, script = null, vgmstream = null, manifestPath = null,
+  constructor({manifest = {}, words = {}, gameDirectory = null, referenceRoot, mirrorRoots = [], stateDirectory, python = null, script = null, vgmstream = null, manifestPath = null,
     shippedPresent = null, shippedPresentSync = null, prefer = false, download = false, onBuilt = () => {}, log = () => {}, run = runBuilder, now = Date.now,
     files = {readFile, writeFile, mkdir, rename, rm, stat, copyFile}} = {}) {
-    Object.assign(this, {manifest, gameDirectory, referenceRoot, mirrorRoots: mirrorRoots.filter(root => typeof root === 'string' && root), stateDirectory, python, script, vgmstream, manifestPath, prefer, download, onBuilt, log, run, now, files});
+    Object.assign(this, {manifest, words, gameDirectory, referenceRoot, mirrorRoots: mirrorRoots.filter(root => typeof root === 'string' && root), stateDirectory, python, script, vgmstream, manifestPath, prefer, download, onBuilt, log, run, now, files});
     this.shippedPresentSync = shippedPresentSync ?? (reference => existsSync(join(referenceRoot, reference.slice(REFERENCE_NAMESPACE.length))));
     this.shippedPresent = shippedPresent ?? (async reference => this.shippedPresentSync(reference));
     this.index = Object.create(null);     // key -> {kind: {sha256, samples, source}}
@@ -183,15 +201,15 @@ export class GameVoiceClips {
 
   /**
    * The descriptors of a ready character's clips, as the voice tables name them: {pocket, short, long}, each {reference, sha256, transcript}. The words are the
-   * shipped descriptors' (`shipped` = {pocket, short, long} descriptors of the same character: the same lines are said in the generated clip). Null when the
-   * character is not ready or a shipped descriptor has no words to give.
+   * shipped descriptors' (`shipped` = {pocket, short, long} descriptors of the same character: the same lines are said in the generated clip), else the manifest's
+   * words file (a character the shipped tables have no row for). Null when the character is not ready or neither has words to give.
    */
   descriptors(key, shipped = {}) {
     const row = this.index[key];
     if (!row) return null;
     const out = {};
     for (const [engine, kind] of Object.entries(ENGINE_KINDS)) {
-      const transcript = shipped[engine]?.transcript;
+      const own = shipped[engine]?.transcript, transcript = typeof own === 'string' && own.trim() ? own : this.words?.[key]?.[engine];
       if (typeof transcript !== 'string' || !transcript.trim()) return null;
       out[engine] = {reference: generatedReference(kind, key), sha256: row[kind].sha256, transcript};
     }
@@ -331,6 +349,7 @@ export class GameVoiceClips {
  * shipped clip of the character is not on disk. `shipped` = {pocket, short, long} descriptors of the character (as the shipped configurations have them), `tables` = {pocket,
  * short, long} voices objects that hold the two stand-in voices. Null when the character is not in the manifest, is ready, is itself a stand-in, or no engine needs one
  * (its shipped clips are there, so it keeps them), or the stand-in voice has no file either. Pure file checks, no process.
+ * A character with no shipped row in an engine's table counts as having no shipped clip there.
  */
 export function standInDescriptors(clips, key, shipped, tables, gender = null) {
   if (!clips.has(key) || clips.ready(key) || Object.values(STAND_IN_VOICES).includes(key)) return null;
@@ -338,7 +357,8 @@ export function standInDescriptors(clips, key, shipped, tables, gender = null) {
   const out = {};
   for (const engine of Object.keys(ENGINE_KINDS)) {
     const own = shipped?.[engine], spare = tables?.[engine]?.[spareKey];
-    if (!plain(own) || !plain(spare) || clips.isShipped(own.reference)) continue;
+    // A character with no row at all (an older Runtime that predates it) has no shipped clip either: it speaks with the stand-in too.
+    if ((own !== null && own !== undefined && !plain(own)) || !plain(spare) || (plain(own) && clips.isShipped(own.reference))) continue;
     if (!clips.isShipped(spare.reference) || typeof spare.sha256 !== 'string' || typeof spare.transcript !== 'string') continue;
     out[engine] = {reference: spare.reference, sha256: spare.sha256, transcript: spare.transcript};
   }
