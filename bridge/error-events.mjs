@@ -524,13 +524,17 @@ export class ErrorEvents {
     Object.assign(this, {stateDirectory, runtime, now, defer, voiceHardware});
     this.seen = new Set();
   }
+  // Returns true when the event is now known to the run's reports: queued just now, or already queued earlier under the same signature. False for an event that is dropped.
   record(event) {
     const record = queueRecord(event, this.now());
-    if (!record || this.seen.has(record.signature) || this.seen.size >= QUEUE_MAX) return;
+    if (!record) return false;
+    if (this.seen.has(record.signature)) return true;
+    if (this.seen.size >= QUEUE_MAX) return false;
     this.seen.add(record.signature);
     this.defer(() => {
       void errorReportsEnabled(this.runtime).then(on => on ? recordErrorEvent(this.stateDirectory, event, {now: this.now()}) : null).catch(() => {});
     });
+    return true;
   }
   /** A provider turn that failed (after its failure reply was written). provider: the route that answered (convai, mistral, local, custom). */
   turnFailed(error, {provider = 'convai', errorCode, localReason, microphone = false} = {}) {
@@ -551,10 +555,15 @@ export class ErrorEvents {
     // A render that ran out of time carries its worker's graphics memory (numbers only), so the report says whether the card was over-committed.
     const memory = Number.isFinite(gpu?.dedicatedMiB) && Number.isFinite(gpu?.sharedMiB)
       ? {gpuDedicatedMiB: Math.max(0, Math.round(gpu.dedicatedMiB)), gpuSharedMiB: Math.max(0, Math.round(gpu.sharedMiB))} : {};
-    const send = hardware => this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name, ...memory},
-      voice: {requested, active, fellBackTo, silent, cause, tail, ...hardware}});
+    const send = hardware => {
+      const known = this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name, ...memory},
+        voice: {requested, active, fellBackTo, silent, cause, tail, ...hardware}});
+      // The replies of this run are now text because of a failure that has its report: a "voice never played" report after it would only repeat it (voiceSilent).
+      if (known && fellBackTo === 'text') this.#voiceFellBackToText = true;
+    };
     this.#withHardware(send);
   }
+  #voiceFellBackToText = false;
   // The card and its free memory are read when the failure is noted, not on a turn's path (one short query, only for a failed voice); a failed read sends the rest.
   #withHardware(send) {
     if (typeof this.voiceHardware !== 'function') { send({}); return; }
@@ -569,10 +578,16 @@ export class ErrorEvents {
     // browser's own words (its first line, then what it printed and how it ended) below.
     const browser = data?.browser && typeof data.browser.message === 'string' ? data.browser : null;
     const tail = browser ? [browser.message, ...(Array.isArray(browser.diagnostic) ? browser.diagnostic : [])] : data?.tail;
-    this.#withHardware(hardware => this.record({kind: 'voice-failed', message: browser ? 'voice never played this session: the hidden browser would not start' : 'voice never played this session',
-      frame: 'voice-silence', detail: {engine: slowWord(data?.engine) ?? 'voice'},
-      voice: {requested: data?.requested, active: data?.active, fellBackTo: data?.fellBackTo, silent: false, cause: browser ? 'browser-failed' : 'never-played', turns: data?.turns, silentTurns: data?.silentTurns,
-        playedTurns: data?.playedTurns, lastStage: data?.lastStage, reasons: data?.reasons, tail, ...hardware}}));
+    this.#withHardware(hardware => {
+      // The voice has fallen back to text after a voice failure that was itself reported (voiceFailed): that report already says why nothing was heard, so this one would be a second row
+      // for one fault (4 of the 9 reports of 28 to 30 Oct 2026). Read here, when the report is made, so a failure noted while the hardware was being read counts. A silent voice with no
+      // failure behind it, or one that did not end as text, is still reported.
+      if (this.#voiceFellBackToText && (data?.active === 'text' || data?.fellBackTo === 'text')) return;
+      this.record({kind: 'voice-failed', message: browser ? 'voice never played this session: the hidden browser would not start' : 'voice never played this session',
+        frame: 'voice-silence', detail: {engine: slowWord(data?.engine) ?? 'voice'},
+        voice: {requested: data?.requested, active: data?.active, fellBackTo: data?.fellBackTo, silent: false, cause: browser ? 'browser-failed' : 'never-played', turns: data?.turns, silentTurns: data?.silentTurns,
+          playedTurns: data?.playedTurns, lastStage: data?.lastStage, reasons: data?.reasons, tail, ...hardware}});
+    });
   }
   /**
    * Replies are slow and stay slow (bridge/slow-turns.mjs decides; `data` is its report section). The message is the same every time, so
