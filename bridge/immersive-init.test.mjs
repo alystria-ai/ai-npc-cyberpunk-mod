@@ -45,7 +45,7 @@ test('the Contacts J key and the manager route through the appointment only whil
   assert.match(init, /local immersive = convaiImmersiveGet and convaiImmersiveGet\(\) or nil/);
   assert.match(init, /local taken, why = immersive\.requestInvite\(key\)\s+if taken ~= nil then/);
   const ui = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
-  assert.equal((ui.match(/function\(\) return inviteKey\(key\) end/g) || []).length, 2, 'the Characters and Model browser buttons');
+  assert.equal((ui.match(/function\(\) return inviteKey\(key\) end/g) || []).length, 3, 'the Main characters, Side characters and Model browser buttons');
   assert.doesNotMatch(ui, /function\(\) return queue\.invite\(key\) end/);
 });
 
