@@ -109,6 +109,15 @@ Mistral's cloud voice keeps a prepared slot per clip, keyed by the SHA-256 of th
 
 A character is built at its invitation (the invitation waits up to a minute, a build takes 3 to 9 s) or at the first sign of a talk (in the background). Before its clips are ready the tables name, for each engine whose shipped clip is not on disk, the clip of the stand-in voice of its gender (`resident-female`, or `resident-male` for every other gender word, `bridge/voice-clips.mjs` `applyStandIns`). The voice workers therefore see a clip that exists, the character is available, and a line needed before the build is done is spoken in that archetype voice, with no error and no written-reply notice. When the build ends the live tables swap the character's own clips in (`LiveVoices` `generated` hook, the same machinery as the editor's clips), the worker drops only that character's prepared voice and prepares it again at once in the background. A build that fails (no English voice files and no download) leaves the stand-in for the session. The stand-in logic reads file names only. It runs once at start (about a thousand file checks, a few milliseconds) and when a character's clips change, never per frame and never per reply.
 
+### Characters the shipped tables have no row for
+
+A manifest character can be missing from the voice configurations of an older Runtime (the 27 side characters, for a Runtime that predates them). Two things follow, both handled in `bridge/voice-clips.mjs`:
+
+- Before its clips are built it speaks with the stand-in voice of its gender, like a character whose shipped clip is only missing on disk (`standInDescriptors` no longer needs a shipped row), so it is routed and the Companion Manager names the voice instead of "Text only (no voice)".
+- When its clips are built, a voice table names a clip together with its words, and there are no shipped words to take. They come from `characters/voice-clips-words.json` (`readWords`, passed to `GameVoiceClips.open`), one set per engine, each taken from the configuration row whose clip hash is the manifest's hash. Without them the live change dropped the key (the log said "voices changed while running (1 character)" and the character stayed unrouted, 30 Oct 2026). A character with a shipped row keeps the shipped words, as before.
+
+Write the file again after the manifest or the configurations change: `node scripts/voice-extract/write_words.mjs --runtime <folder with the autobest configurations>` (`--check` writes nothing). A test fails when it is out of step with the manifest. It ships in `appData` of `packaging/release.config.json`.
+
 ## Risks
 
 - **Scipy and torch in the Runtime.** The `poly` and `torch` recipes need scipy or torch in the Runtime's Python. Both are in every Runtime since the first release builder, and the file check now asks for `scipy`, `scipy/signal` and `torch/nn`, so a broken Runtime is reported (the character then keeps a stand-in voice or downloads). Without torch the numpy port is used and a few samples differ by one step.
