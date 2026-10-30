@@ -3,6 +3,7 @@
 //
 //   node scripts/Extract-CompanionOutfitEvidence.mjs --game "E:\SteamLibrary\steamapps\common\Cyberpunk 2077" --game "E:\SteamLibrary\Cyberpunk2077-2.31"
 //   node scripts/Extract-CompanionOutfitEvidence.mjs --game <root> [--game <root>] --check      (compare with the committed file, write nothing)
+//   node scripts/Extract-CompanionOutfitEvidence.mjs --game <root> --survey <out.json>      (the whole roster: every Character.* record, its template, its appearances, and the ones the list leaves out)
 //   options: --wolvenkit <WolvenKit.CLI.exe>   (default vendor\wolvenkit-console-9.0.1\WolvenKit.CLI.exe of the main checkout, found through git)
 //
 // Read-only on the game folders. Nothing is installed: the template of a record is read from the shipped REDmod tweak sources (tools/redmod/tweaks,
@@ -75,7 +76,7 @@ function wolvenKit(explicit) {
   return resolve(root, common, '..', 'vendor', 'wolvenkit-console-9.0.1', 'WolvenKit.CLI.exe');
 }
 
-function readGame(gameRoot, templates, tool) {
+function readGame(gameRoot, templates, tool, lenient = false) {
   const out = mkdtempSync(join(tmpdir(), 'outfit-evidence-'));
   try {
     const paths = [...new Set(Object.values(templates).filter(Boolean))];
@@ -91,11 +92,28 @@ function readGame(gameRoot, templates, tool) {
     const result = {};
     for (const path of paths) {
       const file = join(out, ...path.split('\\')) + '.json';
-      if (!existsSync(file)) throw new Error(`${gameRoot}: ${path} was not found in the archives`);
+      if (!existsSync(file)) {
+        if (lenient) continue;
+        throw new Error(`${gameRoot}: ${path} was not found in the archives`);
+      }
       result[path] = appearancesOf(JSON.parse(readFileSync(file, 'utf8')));
     }
     return result;
   } finally { rmSync(out, {recursive: true, force: true}); }
+}
+
+/** The survey of a whole roster: per `Character.*` record the template, the default and the appearances, with the ones `list` does not use. */
+export function buildSurvey(records, list, game) {
+  const out = {};
+  for (const record of records) {
+    const template = game.templates[record];
+    const row = template && game.read[template];
+    if (!row) { out[record] = {template: template ?? null, found: false}; continue; }
+    const used = new Set(list[record]?.outfits ?? []);
+    out[record] = {template: template.replace(/\\/g, '/'), found: true, default: row.default, listed: row.names.length,
+      inList: used.size > 0, unused: row.names.filter(name => !used.has(name)).sort()};
+  }
+  return out;
 }
 
 export function buildEvidence(list, games) {
@@ -123,10 +141,22 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (args[i] === '--game') roots.push(resolve(args[++i]));
     else if (args[i] === '--wolvenkit') flags.wolvenkit = args[++i];
     else if (args[i] === '--check') flags.check = true;
+    else if (args[i] === '--survey') flags.survey = resolve(args[++i]);
   }
   if (!roots.length) { console.error('usage: node scripts/Extract-CompanionOutfitEvidence.mjs --game <game folder> [--game <second game folder>] [--check]'); process.exit(2); }
   const list = readOutfitList(readFileSync(DATA, 'utf8'));
   const tool = wolvenKit(flags.wolvenkit);
+  if (flags.survey) {
+    // Read only, writes the one file asked for: the roster's model records (other namespaces are not ours to dress) against the first game given.
+    const roster = JSON.parse(readFileSync(join(root, 'characters', 'roster.json'), 'utf8'));
+    const records = [...new Set(roster.flatMap(row => row.records ?? []).filter(record => /^Character\./.test(record)))].sort();
+    const templates = templatesOf(roots[0], records);
+    const read = readGame(roots[0], templates, tool, true);
+    const survey = buildSurvey(records, list, {templates, read});
+    writeFileSync(flags.survey, JSON.stringify(survey, null, 1) + '\n');
+    console.log(`${records.length} roster records surveyed, ${Object.values(survey).filter(row => row.found).length} templates read, written to ${flags.survey}`);
+    process.exit(0);
+  }
   const games = roots.map(gameRoot => {
     const templates = templatesOf(gameRoot, Object.keys(list));
     return {root: gameRoot, templates, read: readGame(gameRoot, templates, tool)};

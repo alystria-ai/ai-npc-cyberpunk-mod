@@ -9,7 +9,7 @@
 //
 //   record   the model record the game spawns for the character ("Character.Judy")
 //   base     the look the character wears when nothing chooses for it (the one its appearance text describes)
-//   looks    [name, kind, label]; kind is the list's own (any, day, night, home), label the English sentence the page translates
+//   looks    [name, kind, label]; kind is the list's own (any, day, night, home, formal), label the English sentence the page translates
 //
 // Only a copy the mod itself made (a party companion, a resident of V's flat) is ever dressed. A character the game placed is never changed.
 export const OUTFITS = Object.freeze({
@@ -36,25 +36,27 @@ export const OUTFITS = Object.freeze({
   'Character.Jackie': {base: 'jackie_welles_default', looks: [
     ['jackie_welles_default', 'any', 'Usual look'],
     ['jackie_welles_default_collar_down', 'day', 'Collar down'],
-    ['jackie_welles_valentino', 'night', 'Valentino look'],
-    ['jackie_welles__q005_suit', 'night', 'Suit'],
+    ['jackie_welles_valentino_collar_down', 'night', 'Valentino look, collar open'],
     ['jackie_welles__q000_lizzies_club_no_jacket', 'night', 'Club night, no jacket'],
+    ['jackie_welles_valentino', 'formal', 'Valentino look'],
+    ['jackie_welles__q005_suit', 'formal', 'Suit'],
   ]},
   'Character.Rogue': {base: 'rogue_rogue_old', looks: [
     ['rogue_rogue_old', 'any', 'Usual look'],
     ['rogue_rogue_old_solo', 'day', 'Solo look'],
-    ['rogue_rogue_date', 'night', 'Date night'],
+    ['rogue_rogue_date', 'formal', 'Date night'],
   ]},
   'Character.reed': {base: 'reed_default', looks: [
     ['reed_default', 'any', 'Usual look'],
     ['reed_tshirt', 'day', 'T-shirt'],
     ['reed_vest', 'day', 'Vest'],
-    ['reed_paradise', 'night', 'Paradise look'],
+    ['reed_vest_with_bag', 'day', 'Vest and rucksack'],
+    ['reed_paradise', 'formal', 'Paradise look'],
   ]},
   'Character.alex': {base: 'alex_default', looks: [
     ['alex_default', 'any', 'Usual look'],
     ['alex_bartender', 'night', 'Bartender'],
-    ['alex__q304__date', 'night', 'Date night'],
+    ['alex__q304__date', 'formal', 'Date night'],
   ]},
   'Character.Evelyn': {base: 'evelyn_default', looks: [
     ['evelyn_default', 'any', 'Usual look'],
@@ -63,6 +65,7 @@ export const OUTFITS = Object.freeze({
   'Character.Takemura': {base: 'goro_takemura_ronin_shirt', looks: [
     ['goro_takemura_ronin_shirt', 'any', 'Usual look'],
     ['goro_takemura_ronin_trench', 'any', 'Trench coat'],
+    ['goro_takemura_saburo_bodyguard', 'formal', 'Arasaka work clothes, no jacket'],
   ]},
   'Character.Thompson': {base: 'thompson_coat', looks: [
     ['thompson_coat', 'any', 'Usual look'],
@@ -84,6 +87,24 @@ export const OUTFITS = Object.freeze({
   'Character.Ozob': {base: 'ozob_default', looks: [
     ['ozob_default', 'any', 'Usual look'],
     ['ozob_no_jacket', 'day', 'No jacket'],
+  ]},
+  'Character.Hanako': {base: 'hanako_default', looks: [
+    ['hanako_default', 'any', 'Usual look'],
+    ['hanako_parade', 'formal', 'Red parade dress'],
+    ['hanako_parade_no_coat', 'formal', 'Red parade dress with bracelets'],
+  ]},
+  'Character.songbird': {base: 'songbird_default', looks: [
+    ['songbird_default', 'any', 'Usual look'],
+    ['songbird_paradise', 'formal', 'Party dress'],
+  ]},
+  'Character.mq306_aaron': {base: 'man_big__mq306__aaron_default', looks: [
+    ['man_big__mq306__aaron_default', 'any', 'Usual look'],
+    ['man_big__mq306__aaron_shirt', 'day', 'Tank top'],
+    ['man_big__mq306__aaron_casual', 'any', 'Street clothes'],
+  ]},
+  'Character.dante': {base: 'man_average__mq305__dante', looks: [
+    ['man_average__mq305__dante', 'any', 'Usual look'],
+    ['man_average__mq305__dante_merc', 'night', 'Merc look'],
   ]},
 });
 

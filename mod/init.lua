@@ -6742,6 +6742,20 @@ function convaiOutfitModule()
             return seconds and seconds / 3600 or nil
         end,
         place = function() local where = currentDistrict(); return where and (where.area or where.district) or nil end,
+        -- The last look each character put on in each situation (runtime/outfit-rotation.json): read once, written when a pick changes (a few times per game day).
+        load = function()
+            local file = io.open('runtime/outfit-rotation.json', 'rb')
+            if not file then return nil end
+            local raw = file:read('*a'); file:close()
+            local ok, decoded = pcall(json.decode, raw)
+            return ok and type(decoded) == 'table' and decoded.picks or nil
+        end,
+        save = function(picks)
+            local ok, encoded = pcall(json.encode, {version = 1, picks = picks})
+            if not ok then return end
+            local file = io.open('runtime/outfit-rotation.json', 'wb')
+            if file then file:write(encoded); file:close() end
+        end,
         -- Ordinary gameplay: no fight, scene, call, vehicle or V as a replacer (battle-observer's read, once per check that has a change to make).
         world = function()
             local sample = battleObserver.sample(convaiPlayer())
