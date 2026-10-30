@@ -533,7 +533,11 @@ Needs a full game restart (redscript).
 - `bridge/turn-context.mjs` describes the call as remote. It drops the party, health, heat and money
   lines and says:
   - audio: "You are on a voice call with V on the phone, not talking to V in person; ..."
-  - holo: "You are on a holocall with V (a video call on the phone): you see and hear each other, ..."
+  - holo: "You are on a holocall with V (a video call on the phone): you see V's face and V sees yours, but you are not with V in person. You are somewhere else, in your own place and not V's. ..."
+  - V's place is worded as where V calls from ("V is calling from outdoors in Little China, Watson, ..."), and a Phone Chat turn says "V is texting from ...", so a
+    model never takes V's surroundings for her own (live 2026-10-31: "I'm right here", "out here just like you"). The call suffix adds that she sees only V's face
+    (a voice call: hears V), not V's surroundings, and must not talk as if she stood beside V. The Developer mode transcript's `where:` line is worded the same way.
+    A character within 10 m of V still answers as in person (see `NEAR_NOTE`).
 - The diagnostic line gains ` holocall=<mode>`.
 - The channel stays private, so memory is shared with face-to-face talk.
 - `bridge/mistral-prompt.mjs` treats these sentences as a "where" line.
