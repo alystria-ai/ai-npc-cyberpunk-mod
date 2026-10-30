@@ -152,3 +152,15 @@ test('characters/voice-clips-words.json has the words of every character of the 
   assert.deepEqual(Object.keys(words).sort(), [...manifest].sort(), 'run node scripts/voice-extract/write_words.mjs after the manifest changes');
   assert(JSON.parse(read('../packaging/release.config.json')).appData.includes('characters/voice-clips-words.json'), 'the words ship with the code');
 });
+
+test('the bridge starts the voice workers on the edited configurations: they are written out before the voice service is built', () => {
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  const standIn = source.indexOf('applyStandIns(gameVoiceClips, tables, genderOfVoiceKey)');
+  const written = source.indexOf('await clipVoiceConfigPaths(');
+  const voiceService = source.indexOf('const localVoice = new VoiceSelection(');
+  assert(standIn > 0 && written > standIn && voiceService > written, 'edit, write, then build the service');
+  assert(source.includes('voiceTablesEdited ||= waiting.length > 0'));
+  assert(/new VoiceSelection\(voiceConfig, \{project, configPath: localVoiceConfigPath,/.test(source), 'Pocket is started on the written file');
+  assert(source.includes('omniConfigPaths:omniVoiceConfigPaths,'), 'and so are the two OmniVoice workers');
+  assert(!source.includes('omniConfigPaths:voiceConfigPaths.omni'));
+});

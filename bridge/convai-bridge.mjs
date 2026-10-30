@@ -104,7 +104,7 @@ import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
-import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, readManifest as readVoiceClipManifest, readWords as readVoiceClipWords, standInDescriptors} from './voice-clips.mjs';
+import {GameVoiceClips, STAND_IN_VOICES, applyReadyClips, applyStandIns, builderFiles, clipVoiceConfigPaths, readManifest as readVoiceClipManifest, readWords as readVoiceClipWords, standInDescriptors} from './voice-clips.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -354,7 +354,9 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
   if (error.code === 'ENOENT') return '{}';
   throw error;
 }));
-const localVoiceConfigPath = voiceConfigPaths.pocket;
+// The files the voice workers are started with: the configurations, or (below) the same configurations with the clip edits in them.
+let localVoiceConfigPath = voiceConfigPaths.pocket;
+let omniVoiceConfigPaths = voiceConfigPaths.omni;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
 // The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md, bridge/pocket-language-models.mjs): <Pocket references>/multilingual-pocket/<lang>, the folder the Pocket worker reads;
@@ -373,6 +375,7 @@ const genderOfVoiceKey = key => {
   const gender = String(roster.find(row => row?.key === key)?.gender ?? '').toLowerCase();
   return gender === 'female' || gender === 'male' ? gender : /(^|-)female(-|$)/.test(String(key)) ? 'female' : 'male';
 };
+let voiceTablesEdited = false;
 try {
   const manifestPath = resolve(project, 'characters/voice-clips-manifest.json');
   const manifest = existsSync(manifestPath) ? readVoiceClipManifest(await readFile(manifestPath, 'utf8')) : {};
@@ -388,11 +391,21 @@ try {
   // The stand-in voices (the two archetype voices that always ship) as the shipped tables have them, kept for the live tables (standInDescriptors).
   for (const engine of Object.keys(tables)) standInVoices[engine] = Object.fromEntries(Object.values(STAND_IN_VOICES).map(key => [key, tables[engine]?.[key]]).filter(([, row]) => row));
   const named = applyReadyClips(gameVoiceClips, tables);
+  voiceTablesEdited = named.length > 0;
   if (named.length) console.error(`[VoiceClips] ${named.length} character(s) speak with clips built from the game's files`);
   // Packages without the clips (voiceClips.fromGame): a character whose clips are not built yet speaks with the stand-in voice of its gender until they are, with no error.
   const waiting = applyStandIns(gameVoiceClips, tables, genderOfVoiceKey);
+  voiceTablesEdited ||= waiting.length > 0;
   if (waiting.length) console.error(`[VoiceClips] ${waiting.length} character(s) speak with a stand-in voice until their clips are built from the game's files`);
 } catch (error) { gameVoiceClips = null; console.error('[VoiceClips] unavailable:', error?.message ?? error); }
+// The workers read their voices from a file, so the edited tables are written out and the workers are started on those files (once, at start, a few small writes).
+if (voiceTablesEdited) {
+  const written = await clipVoiceConfigPaths({paths: {pocket: voiceConfigPaths.pocket, omni: voiceConfigPaths.omni}, stateDirectory,
+    configs: {pocket: voiceConfig, short: omniVoiceConfigs.short, long: omniVoiceConfigs.long}}).catch(error => ({pocket: voiceConfigPaths.pocket, omni: voiceConfigPaths.omni, warnings: [String(error?.message ?? error)]}));
+  for (const warning of written.warnings) console.error('[VoiceClips] ' + warning);
+  localVoiceConfigPath = written.pocket;
+  omniVoiceConfigPaths = written.omni;
+}
 // A character is wanted (invited, or the first sign of a talk): its clips are made in the background if it has none. Never throws, never waits unless asked to.
 const wantVoiceClips = (profile, reason) => {
   if (!gameVoiceClips) return null;
@@ -579,7 +592,7 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
-  omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
+  omniConfigs:omniVoiceConfigs,omniConfigPaths:omniVoiceConfigPaths,previewSettleMs:1500,
   voxtral:voxtralVoice,inworld:inworldVoice,languagePacks,pocketLanguages,keepsReference:vModKeepsReference,
   // OmniVoice's start does not warm the English startup voices when every reply is in a fixed language that a voice pack speaks (they would only delay the first line).
   skipStartupWarm: () => { const fixed = multilingual.fixed; return !!fixed && fixed !== 'en' && languagePacks.installed; },
