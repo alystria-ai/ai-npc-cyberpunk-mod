@@ -59,9 +59,11 @@ const helpFixture = (withSupport = true, withSetup = false, withNsui = true) => 
 
 test('Settings offers Help, and the Help page has one parent Back, guidance, the report actions and every log location', () => run(`${helpFixture()}
   assert(invoke('tab:settings').ok)
+  -- Help and support is a row of Privacy and help, the last page of the Settings list.
   local help = row('help')
-  assert(help and help.value == 'Open' and not help.disabled and category('help') and category('help').name == 'Help')
+  assert(help and help.value == 'Open' and help.label == 'Help and support' and not help.disabled and managerUi.inspect().view == 'settings-privacy')
   assert(invoke('help').ok and managerUi.inspect().view == 'help')
+  assert(loaded.categories[1].settings[1].description:find('Privacy and help', 1, true), 'the Back row names the page it returns to: ' .. loaded.categories[1].settings[1].description)
   assert(loaded.categories[1].id == 'navigation' and loaded.categories[1].settings[1].id == 'help:back' and countBack() == 1,
     'one parent Back, the first row of the page')
   assert(#category('navigation').settings == 1 and not row('party-count'))
@@ -83,13 +85,13 @@ test('Settings offers Help, and the Help page has one parent Back, guidance, the
   local early = invoke('help:copy')
   assert(not early.ok and early.error == 'Create a report first.' and not files['runtime/clipboard-request.json'])
   assert(row('help:generate').value == 'Create' and not row('help:generate').disabled)
-  assert(invoke('help:back').ok and managerUi.inspect().view == 'settings' and row('help'))
+  assert(invoke('help:back').ok and managerUi.inspect().view == 'settings-privacy' and row('help'), 'Back returns to Privacy and help, not to the list')
   assert(not invoke('help:generate').ok, 'a stale Help action stayed callable after leaving the page')
 `));
 
 test('with the conversation service running the page asks it for a report, shows the path and announces it once in gameplay', () => run(`${helpFixture()}
   jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(row('help-service').value == 'Running')
   local result = invoke('help:generate')
   assert(result.ok)
@@ -145,7 +147,7 @@ test('with the conversation service running the page asks it for a report, shows
 
 test('with the conversation service stopped the page writes a short report itself and says so', () => run(`${helpFixture()}
   jsonFile('runtime/bridge-service.json', {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(row('help-service').value == 'Not running')
   assert(invoke('help:generate').ok)
   assert(not files['runtime/report-request.json'], 'no request is sent to a service that is not running')
@@ -172,7 +174,7 @@ test('with the conversation service stopped the page writes a short report itsel
 
 test('before the service has published its folders the page says where the data and the reports are now, outside the game folder', () => run(`${helpFixture()}
   files['runtime/support-paths.json'] = nil
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(row('help-log-bridge').description:find('%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\data', 1, true), row('help-log-bridge').description)
   assert(row('help-log-reports').description:find('%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\reports', 1, true), row('help-log-reports').description)
   assert(row('help-log-launcher').description:find('red4ext\\\\plugins\\\\AiNpcCyberpunkCode\\\\launcher.log', 1, true), row('help-log-launcher').description)
@@ -182,6 +184,7 @@ test('before the service has published its folders the page says where the data 
 test('without the support module the manager is unchanged and shows no Help entry', () => run(`${helpFixture(false)}
   assert(invoke('tab:settings').ok)
   assert(not row('help') and not category('help'))
+  assert(row('errorReports') and managerUi.inspect().view == 'settings-privacy', 'Privacy and help keeps its other rows')
 `));
 // ---- Settings > Edit characters (docs/CHARACTER_EDITOR.md): one action that writes one small command file, and nothing else
 const editorPageSource = readFileSync(new URL('../bridge/character-editor-page.mjs', import.meta.url), 'utf8');
@@ -190,7 +193,7 @@ const catalogStrings = JSON.parse(readFileSync(new URL('../localization/en.json'
 
 test('Settings offers Edit characters, and Open writes one fresh command with every sentence of the page and the interface language', () => run(`${helpFixture()}
   jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
   local open = row('character-editor:open')
   assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled, 'the Open row is offered')
   assert(open.label == 'Edit characters', 'the row label')
@@ -219,7 +222,7 @@ test('Settings offers Edit characters, and Open writes one fresh command with ev
 
 test('Open says so when the conversation service is not running, and writes nothing', () => run(`${helpFixture()}
   jsonFile('runtime/bridge-service.json', {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
   local result = invoke('character-editor:open')
   assert(not result.ok and result.error == 'The conversation service is not running, so the editor cannot open. Restart the game.', tostring(result.error))
   assert(not files['runtime/editor-command.json'])
@@ -227,7 +230,7 @@ test('Open says so when the conversation service is not running, and writes noth
 
 test('a failed write is reported, and without the module the settings page is unchanged', () => run(`${helpFixture()}
   jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
   failSave = true
   local result = invoke('character-editor:open')
   assert(not result.ok and result.error == 'The editor could not be opened. Try again.', tostring(result.error))
@@ -251,26 +254,26 @@ test('the page sentences, the module and the catalogue agree, and every one is i
 test('a service that never started for want of a browser says so on the Local AI model row and on Help (Settings has no status line), and a plain stop does not', () => run(`${helpFixture()}
   local sentence = 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.'
   jsonFile('runtime/bridge-service.json', {state = 'failed', code = 'browser-missing', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:provider').ok)
   -- Settings has no status line (the Voice status row was removed 2026-10-20); the Local AI model row must not claim "No model installed"
   -- while nothing is running.
   assert(row('voice-status') == nil, 'the Settings page has no Voice status row')
   local model = row('localModel')
   assert(model.elements[1] == 'Service not running' and model.description:sub(1, #sentence) == sentence, tostring(model.elements[1]))
-  assert(invoke('help').ok)
+  assert(invoke('settings-provider:back').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(row('help-service').value == 'Needs a browser' and row('help-service').description == sentence)
   -- A plain stop: the row says the service is not running with the ordinary sentence.
   jsonFile('runtime/bridge-service.json', {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
   os.time = (function(real) return function() return real() + 2 end end)(os.time)
-  assert(invoke('help:back').ok)
+  assert(invoke('help:back').ok and managerUi.inspect().view == 'settings-privacy')
   assert(row('voice-status') == nil)
   assert(row('localModel').elements[1] == 'Service not running' and row('localModel').description:find('is not running', 1, true))
-  assert(invoke('help').ok)
+  assert(invoke('settings-provider:back').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(row('help-service').value == 'Not running' and row('help-service').description:find('restart the game', 1, true))
 `));
 
 test('with no service at all the page writes the short report at once, and Copy path shows the whole path instead of copying', () => run(`${helpFixture()}
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(row('help:copy').description == 'Create a report first, then copy its path.')
   assert(invoke('help:generate').ok)
   assert(not files['runtime/report-request.json'], 'no request is sent to a service that never started')
@@ -298,7 +301,7 @@ test('with no service at all the page writes the short report at once, and Copy 
 
 test('with the service up the Copy row keeps its ordinary help, and shows the path once the service has gone quiet', () => run(`${helpFixture()}
   jsonFile('runtime/bridge-service.json', {state = 'ready', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 30000})
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(invoke('help:generate').ok)
   assert(files['runtime/report-request.json'] and row('help:generate').disabled == true, 'a service that is up is asked, and the page shows the wait')
   local request = jsonFixtures[files['runtime/report-request.json']]
@@ -344,7 +347,7 @@ const setupWorld = `
 
 test('the Help page opens with the setup check: the service row, one line per check, and a count in the description', () => run(`${helpFixture(true, true)}
   ${setupWorld}
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   local first = loaded.categories[2]
   assert(loaded.categories[1].id == 'navigation' and first.id == 'help-setup' and first.name == 'Setup check', first.id)
   assert(first.description == 'No problem found. Select a line to see what was checked.', first.description)
@@ -368,7 +371,7 @@ test('a missing framework, a missing file and a service that never started are P
   Codeware = nil; convaiNative = {present = true}; function player:ConvaiRequirements() return '' end
   files['phone-contacts.json'] = nil
   files['runtime/knowledge-status.json'] = nil
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(row('help-service').value == 'Not running' and row('help-service').description:find('full install zip (AI-NPC-LLM-Companions) straight into the Cyberpunk 2077 folder', 1, true), row('help-service').description)
   assert(setupRow('codeware').value == 'Problem' and setupRow('codeware').description == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
   assert(setupRow('files').value == 'Problem' and setupRow('files').description:find('Missing: phone-contacts.json.', 1, true))
@@ -382,7 +385,7 @@ test('opening the page runs the check again and asks a running service once; the
   pump(false, 2)
   assert(not files['runtime/setup-check-request.json'], 'nothing is asked while the page is closed')
   serviceUp()
-  assert(invoke('help').ok)
+  assert(invoke('settings:privacy').ok and invoke('help').ok)
   assert(not setupRow('browser'), 'no answer of the service yet')
   assert(requestWrites() == 0, 'not inside the menu callback')
   pump(false, 1)
@@ -406,7 +409,7 @@ test('opening the page runs the check again and asks a running service once; the
 `));
 
 test('without the setup module the Help page keeps its groups and shows only the Conversation service row first', () => run(`${helpFixture()}
-  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok)
   assert(loaded.categories[2].id == 'help-setup' and #loaded.categories[2].settings == 1 and loaded.categories[2].description == '')
   assert(row('help-service') and row('help-steps') and not row('setup:files') and not convaiSetupCheck)
 `));
@@ -494,7 +497,7 @@ test('a player with none of the scripts’ methods: the menu update and the mana
   end
   frames(60)
   assert(#written == 0, 'a menu is open: nothing is shown yet')
-  assert(invoke('tab:settings').ok and invoke('help').ok, 'the settings and the Help page still open')
+  assert(invoke('tab:settings').ok and invoke('settings:privacy').ok and invoke('help').ok, 'the settings and the Help page still open')
   assert(setupRow('redscript').value == 'Problem' and setupRow('redscript').description:find('r6/logs/redscript_rCURRENT.log', 1, true), setupRow('redscript').description)
   assert(setupRow('redscript').description:find('If the error names another mod, that mod is the problem.', 1, true))
   assert(setupRow('codeware').value == 'OK' or setupRow('codeware').value == 'Unknown')

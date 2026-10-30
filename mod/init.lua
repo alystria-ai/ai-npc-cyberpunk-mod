@@ -5960,20 +5960,20 @@ local function keyReplyNotice(reply)
     end
     -- Windows draws its yellow capture border around the game for the "Companions can see" pictures (docs/COMPANION_VISION.md): said once, with the next reply.
     if reply.keyNotice == 'vision-border' then
-        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Turn off Companions can see to stop it.')
+        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Turn off Companion vision to stop it.')
     end
     -- Companions can see is on and the Local AI model cannot take pictures (no vision file beside it, or none that fits the graphics card): said once per model, with the next reply.
     if reply.keyNotice == 'vision-local-no-model' then
-        return 'vision-local-no-model', ui.t('This Local AI model cannot see pictures, so replies use only your words.')
+        return 'vision-local-no-model', ui.t('This Local AI model has no vision, so replies use only your words.')
     end
     -- Companions can see is on and the Local AI model can see with its vision file, which is not installed (a separate download, the vision folder of local-ai or mature on Hugging Face): said once per model, with the next reply.
     if reply.keyNotice == 'vision-local-no-file' then
         local folder = reply.keyNoticeFolder == 'mature' and 'mature' or 'local-ai'
-        return 'vision-local-no-file', ui.t('This model can see pictures with its vision file, from {folder}/vision on Hugging Face.', {folder = folder})
+        return 'vision-local-no-file', ui.t('This model has vision with its vision file, from {folder}/vision on Hugging Face.', {folder = folder})
     end
     -- Companions can see is on and the Custom endpoint refused a picture (a model with no vision): none is sent to it again this session, said once.
     if reply.keyNotice == 'vision-custom-no-images' then
-        return 'vision-custom-no-images', ui.t('Your Custom endpoint does not accept pictures, so replies use only your words.')
+        return 'vision-custom-no-images', ui.t('Your Custom endpoint does not accept vision, so replies use only your words.')
     end
     -- The Local AI model the player chose is missing, does not fit or did not start, and another was used (the reply names it): said once per choice.
     if reply.keyNotice == 'local-model-fallback' then

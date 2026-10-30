@@ -20,7 +20,7 @@
 //   family       optional label (letters, digits, `. _ -` and spaces, at most 40) used for the Mature allowance table (e.g. 'qwen')
 //   contextSize  optional whole number 2048 to 262144: the context the server starts with (else the usual ladder by free memory)
 //   chatTemplate optional name of a llama.cpp built-in chat template (`--chat-template`); for a file without a usable template of its own
-//   mmproj       optional vision projector of the model (docs/LOCAL_AI.md, "Pictures (Companions can see)"): a .gguf path with the same rules as `file`. Loaded only while Companions can see is on.
+//   mmproj       optional vision projector of the model (docs/LOCAL_AI.md, "Vision (Companion vision)"): a .gguf path with the same rules as `file`. Loaded only while Companions can see is on.
 //                A projector that is not usable (missing, not a clip file) is ignored with one log line and never makes the model unusable. Without this entry a single
 //                `mmproj` file beside the model, when the model is the only other .gguf in its folder, is found by itself (bridge/local-projector.mjs).
 // An entry can instead name a server the player already runs (KoboldCpp, LM Studio, Ollama, a llama.cpp server, anything with an

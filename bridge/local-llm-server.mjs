@@ -1162,7 +1162,7 @@ export class LocalLlmServer extends EventEmitter {
     return true;
   }
 
-  // --- pictures (docs/LOCAL_AI.md, "Pictures (Companions can see)") -------------------------------------------------
+  // --- pictures (docs/LOCAL_AI.md, "Vision (Companion vision)") -------------------------------------------------
 
   /**
    * Companions can see turned on or off (a boolean, the same value again does nothing). The vision projector is loaded only while it is on: when the loaded server's state differs from the

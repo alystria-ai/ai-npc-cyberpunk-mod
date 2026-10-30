@@ -667,12 +667,12 @@ test('nothing runs per frame: with nothing pending the update is one check, and 
   assert(next(calls) == nil, 'no native call without a conversation')
 `));
 
-test('the wiring: the switch is read from the manager, off by default, shown on the settings page, and the lease takes the larger offer', () => {
+test('the wiring: the switch is read from the manager, on by default, shown on the Night City page, and the lease takes the larger offer', () => {
   const init = read('../mod/init.lua'), manager = read('../mod/manager.lua'), ui = read('../mod/manager-ui.lua'), actions = read('../mod/gameplay-actions.lua');
   assert.match(init, /threats = function\(\) return type\(manager\.npcThreats\) == 'function' and manager\.npcThreats\(\) == true end/);
   assert.match(manager, /function M\.npcThreats\(\)\r?\n {4}loadSettings\(\)\r?\n {4}return settings\.npcThreats == true/);
-  assert.match(manager, /if type\(settings\.npcThreats\) ~= 'boolean' then settings\.npcThreats, settingsNeedSave = false, true end/);
-  assert.match(ui, /setting\('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot\.settings\.npcThreats == true, false,/);
+  assert.match(manager, /if type\(settings\.npcThreats\) ~= 'boolean' then settings\.npcThreats, settingsNeedSave = true, true end/);
+  assert.match(ui, /setting\('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot\.settings\.npcThreats == true, true,/);
   assert.match(actions, /#reaction\.kinds > 8\) then reaction = nil end/);
 });
 

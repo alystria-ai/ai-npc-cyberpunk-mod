@@ -8,6 +8,8 @@ local convaiPlayer = convaiPlayer or function() return Game.GetPlayer() end
 --   readonly type string                a line of text: `label` and `value`
 -- Nothing here runs per frame: M.update does a few comparisons, and the page is built when it opens or when something it shows changes.
 local M = {}
+-- The category pages of Settings (built further down, where their rows are): declared here because the page signature below asks which views are Settings pages.
+local settingsPages = {byView = {}}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local LABEL = 'Companion Manager'
 -- Rows per page of a long list (the characters to invite, the model browser, the memory picker and a large party). The pages are
@@ -421,12 +423,10 @@ end
 local function sharedCharacterLines(snapshot)
     local settings, speech, behavior = snapshot.settings, {}, {}
     if settings.naturalSpeech then speech[#speech + 1] = ui.t('Natural speech') end
-    if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
-    if settings.vVoiceMic then speech[#speech + 1] = ui.t('V’s voice for microphone lines') end
+    if settings.vVoice or settings.vVoiceMic then speech[#speech + 1] = ui.t('V’s voice') end
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
-    if settings.battleReactions then behavior[#behavior + 1] = ui.t('React to battles') end
-    if settings.lootReactions then behavior[#behavior + 1] = ui.t('React to collected loot') end
+    if settings.battleReactions or settings.lootReactions then behavior[#behavior + 1] = ui.t('Companions react') end
     return {talk = talk,
         behavior = #behavior > 0 and ui.t('Behavior: {list}', {list = table.concat(behavior, ' · ')}) or nil,
         pack = manager.omniPack()}
@@ -549,15 +549,12 @@ local function voiceIndexOf(record)
     return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
 end
 
--- V's voice row as it is held (1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice) for the saved settings (typed lines; `microphone` true: the microphone lines row, same list). The row shows what is saved, whatever the Mistral key (V's voice follows
--- its own setting; without a key the entry reads "Voxtral · needs Mistral key" and V's line is skipped, no Pocket worker loads for it, 2026-10-22). With Mature content on
--- a Voxtral engine reads as Pocket (it is not used); so does a saved OmniVoice engine that cannot be used now (`omniOk` false: the companions are not on OmniVoice, or its pack is missing).
-local function savedVIndex(settings, keySaved, omniOk, microphone)
-    local on = settings.vVoice
-    if microphone then on = settings.vVoiceMic end
-    if on ~= true then return 1 end
-    if settings.vVoiceEngine == 'omni' and omniOk then return 4 end
-    return settings.vVoiceEngine == 'voxtral' and settings.matureContent ~= true and 3 or 2
+-- V's voice engine row as it is held (1 Pocket, 2 Voxtral, 3 OmniVoice) for the saved settings. The row shows what is saved, whatever the Mistral key (V's voice follows its own setting, without a key
+-- the entry reads "Voxtral · needs Mistral key" and V's line is skipped, no Pocket worker loads for it, 2026-10-22). With Mature content on a Voxtral engine reads as Pocket (it is not used),
+-- so does a saved OmniVoice engine that cannot be used now (`omniOk` false: the companions are not on OmniVoice, or its pack is missing).
+local function savedVIndex(settings, omniOk)
+    if settings.vVoiceEngine == 'omni' and omniOk then return 3 end
+    return settings.vVoiceEngine == 'voxtral' and settings.matureContent ~= true and 2 or 1
 end
 
 -- Is the custom endpoint set up (an address and a model ID, mod/custom-provider.lua state `ready`)? Read from the file the bridge writes, at most
@@ -628,10 +625,8 @@ local function stageMature(changes, snapshot)
         end
     end
     local keySaved = (snapshot.mistral or {}).saved == true
-    -- V's voice row as the batch leaves it: 1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice.
-    local vNow = now('vVoice', savedVIndex(saved, keySaved, not manager.vOmniBlock(saved)))
-    -- The microphone lines row beside it, the same list. The engine is one setting, so a Voxtral engine is moved (and put back) through whichever row shows it.
-    local vMicNow = now('vVoiceMic', savedVIndex(saved, keySaved, not manager.vOmniBlock(saved), true))
+    -- V's voice engine row as the batch leaves it: 1 Pocket, 2 Voxtral, 3 OmniVoice (the engine is one setting for V's typed and spoken lines).
+    local vEngineNow = now('vVoiceEngine', savedVIndex(saved, not manager.vOmniBlock(saved)))
     -- `keepProvider`: Mature content goes off because of a model the player chose on Local AI, so the provider stays on Local AI (it is not put back).
     local function turnedOff(keepProvider)
         local restore = saved.matureRestore
@@ -669,14 +664,10 @@ local function stageMature(changes, snapshot)
             end
         end
         part = restore.vVoiceEngine
-        -- V's engine goes back to Voxtral only if V still speaks with Pocket (not Off, not changed by the player in this batch) and the key is saved.
-        if part and part.before == 'voxtral' and not explicit.vVoice and vNow == 2 and keySaved then
-            stage('vVoice', 3); vNow = 3
-            names[#names + 1] = ui.t('V’s voice for typed lines')
-        end
-        if part and part.before == 'voxtral' and not explicit.vVoiceMic and vMicNow == 2 and keySaved then
-            stage('vVoiceMic', 3); vMicNow = 3
-            names[#names + 1] = ui.t('V’s voice for microphone lines')
+        -- V's engine goes back to Voxtral only if it still is Pocket (not changed by the player in this batch) and the key is saved.
+        if part and part.before == 'voxtral' and not explicit.vVoiceEngine and vEngineNow == 1 and keySaved then
+            stage('vVoiceEngine', 2); vEngineNow = 2
+            names[#names + 1] = ui.t('V’s voice engine')
         end
         if not keepProvider then leaveUncensoredModel() end
     end
@@ -722,15 +713,10 @@ local function stageMature(changes, snapshot)
                 local chosen = VOICE_CHOICES[1]
                 names[#names + 1] = manager.voiceLabel(chosen.provider, chosen.steps, chosen.reference)
             end
-            if vNow == 3 then
-                stage('vVoice', 2); vNow = 2
+            if vEngineNow == 2 then
+                stage('vVoiceEngine', 1); vEngineNow = 1
                 record.vVoiceEngine = {before = 'voxtral', set = 'pocket'}
-                names[#names + 1] = ui.t('V’s voice for typed lines')
-            end
-            if vMicNow == 3 then
-                stage('vVoiceMic', 2); vMicNow = 2
-                record.vVoiceEngine = {before = 'voxtral', set = 'pocket'}
-                names[#names + 1] = ui.t('V’s voice for microphone lines')
+                names[#names + 1] = ui.t('V’s voice engine')
             end
             record = next(record) and record or nil
         end
@@ -1469,7 +1455,7 @@ local function pageSignature(snapshot)
         local module = keyBinds()
         if module then add('keys:' .. tostring(module.capturing()) .. '|' .. module.list(snapshot.settings.keyBindings)) end
     end
-    if view == 'settings' then
+    if settingsPages.isSettingsView(view) then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
         -- when the voice service changes state; every row when its saved value changes.
@@ -1640,7 +1626,7 @@ local function dynamicInfoRows(snapshot)
     end
     return {
         row('location', 'Location',
-            'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.'),
+            'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The vision Convai has of what V sees, and an add-on’s own text, are not affected.'),
         row('time', 'Time and weather',
             'The hour of the day and the weather in Night City.\n\nOff: nobody is told the time or the weather, and the mod stops reading them from the game.'),
         row('company', 'Company and vehicle',
@@ -1993,6 +1979,330 @@ function M.partyRows(rows, categories, list, canInvite)
     end
 end
 
+-- Settings (2026-10-30): a short list of category pages, each one built only when it is opened (never per frame). `list` is the order of the rows on Settings and
+-- `byView` finds a page by its view name. Every row keeps its stored key; the pages Memory, Dynamic info, Relationships, Immersive invitations, Housemates, Custom voices,
+-- OmniVoice for AMD, Convai paid tier, Custom endpoint and Help open from a row of a category page and go back to it (BACK in schema).
+settingsPages.list = {
+    {view = 'settings-provider', id = 'provider', name = 'AI provider', description = 'Who writes the replies.'},
+    {view = 'settings-voice', id = 'voice', name = 'Voice and microphone', description = 'How everyone sounds, and how you talk.'},
+    {view = 'settings-conversations', id = 'conversations', name = 'Conversations', description = 'Who you can talk to and what they know.'},
+    {view = 'settings-companions', id = 'companions', name = 'Companions', description = 'Life with your party.'},
+    {view = 'settings-night-city', id = 'night-city', name = 'Night City', description = 'How the world reacts to V.'},
+    {view = 'settings-interface', id = 'interface', name = 'Interface', description = 'The language of the menus and how subtitles look.'},
+    {view = 'settings-content-packs', id = 'content-packs', name = 'Content packs', description = 'Add-ons that change how the characters talk.'},
+    {view = 'settings-privacy', id = 'privacy', name = 'Privacy and help', description = 'Error reports, developer mode and help.'},
+}
+for _, page in ipairs(settingsPages.list) do settingsPages.byView[page.view] = page end
+
+-- The Content packs page exists only while an add-on has settings of its own or the bridge listed a content pack (as the sections did on the one long page).
+function settingsPages.packsShown()
+    if not convaiAddons then return false end
+    if convaiAddons.live and #convaiAddons.settingsSections() > 0 then return true end
+    return type(convaiAddons.contentPacks) == 'function' and #convaiAddons.contentPacks() > 0
+end
+
+-- Is this view Settings or one of its category pages (the pages Restore defaults covers, with the sub-pages that have rows of their own)?
+function settingsPages.isSettingsView(name)
+    return name == 'settings' or settingsPages.byView[name] ~= nil
+end
+
+-- The rows of the Settings page itself: one Open row for each category.
+function settingsPages.listRows()
+    local rows = {}
+    for _, page in ipairs(settingsPages.list) do
+        if page.view ~= 'settings-content-packs' or settingsPages.packsShown() then
+            local target = page.view
+            rows[#rows + 1] = action('settings:' .. page.id, page.name, 'Open', page.description, function() return navigate(target) end)
+        end
+    end
+    return rows
+end
+
+-- AI provider: who writes the replies, Mature content, Local AI and the provider keys (ownKeyRows, with the Convai paid tier and Custom endpoint pages).
+settingsPages['settings-provider'] = function(snapshot)
+    return {category('conversation-provider', 'AI provider', ownKeyRows(snapshot))}
+end
+
+-- Voice and microphone. The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral), OmniVoice Balanced / Quality (16 steps, short / long reference),
+-- High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
+settingsPages['settings-voice'] = function(snapshot)
+    local voiceIndex = savedVoiceIndex(snapshot.settings)
+    -- Lip sync delay (Bluetooth): Auto, Off, then milliseconds (bridge/audio-delay.mjs).
+    local delays, delayLabels, delayIndex = manager.audioDelayChoices(), {}, 1
+    for index, value in ipairs(delays) do
+        delayLabels[index] = value == 'auto' and ui.t('Auto') or value == 0 and ui.t('Off') or (tostring(value) .. ' ms')
+        if snapshot.settings.audioDelay == value then delayIndex = index end
+    end
+    local voiceRange = manager.voiceVolumeRange()
+    -- The microphone list is asked for when this page is built (at most once in 15 s, the answer redraws the page): never per frame, never per turn.
+    pcall(manager.requestMicrophoneInputs)
+    local micLabels, _, micIndex, micAnyMarked, micSavedMarked = microphoneChoices(snapshot.settings)
+    -- Voice language: English (the default), Automatic, then the mod's other languages, in the bridge's order (manager.replyLanguageChoices).
+    local replyCodes, replyLabels, replyIndex = manager.replyLanguageChoices(), {}, 1
+    for index, code in ipairs(replyCodes) do
+        replyLabels[index] = ui.t(REPLY_LANGUAGE_NAMES[code] or code)
+        if snapshot.settings.replyLanguage == code then replyIndex = index end
+    end
+    local pack = manager.omniPack()
+    -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
+    local voiceName = ui.t('Companion voices')
+    if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')'
+    -- The bridge knows this PC has no NVIDIA graphics card: the OmniVoice entries stay choosable (they fall back), the row says what they need.
+    elseif pack.amdRoute then voiceName = voiceName .. ' (' .. ui.t('OmniVoice on AMD: set up first') .. ')'
+    elseif pack.noNvidia then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs NVIDIA') .. ')'
+    -- The NVIDIA card has under 12 GB (the bridge's card list): the entries stay choosable, the row says what OmniVoice needs.
+    elseif pack.smallCard then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs 12 GB') .. ')' end
+    -- Why OmniVoice cannot speak for V now ('pack' before 'voice'), from the saved settings; nil when it can.
+    local vOmniBlock = manager.vOmniBlock(snapshot.settings)
+    -- V's voice is one list over the two stored settings vVoice (typed lines) and vVoiceMic (spoken lines): 1 Off, 2 Typed lines, 3 Typed and spoken lines.
+    -- The engine is its own row (stored vVoiceEngine, shared by both kinds of line): 1 Pocket, 2 Voxtral (greyed out until a Mistral key is saved, and with Mature content on),
+    -- 3 OmniVoice (greyed out until the OmniVoice pack is installed and the saved companion voice is OmniVoice; the pack comes first). A saved Voxtral shows as Voxtral
+    -- without a key too (its entry says it needs one, V's line is skipped meanwhile and no Pocket worker loads for it). A saved OmniVoice that cannot be used reads as
+    -- Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
+    local vModeIndex = snapshot.settings.vVoiceMic == true and 3 or snapshot.settings.vVoice == true and 2 or 1
+    local vEngineIndex = (snapshot.settings.vVoiceEngine == 'voxtral' and snapshot.settings.matureContent ~= true) and 2
+        or (snapshot.settings.vVoiceEngine == 'omni' and not vOmniBlock) and 3 or 1
+    local vEngineElements = {ui.t('Pocket · On your PC'), snapshot.settings.matureContent == true and ui.t('Voxtral · not with Mature')
+        or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key'),
+        vOmniBlock == 'pack' and ui.t('OmniVoice · needs Omni pack') or vOmniBlock == 'voice' and ui.t('OmniVoice · needs Omni voice')
+        or ui.t('OmniVoice')}
+    local rows = {
+        -- One list for both stored settings (voice, voiceProvider): 1 Off (replies are text only and no voice is generated), then the companion voices in
+        -- voicePreviewModule.CHOICES order, so a voice is the list position plus one. Off keeps the voice that was saved, so turning it back on restores it.
+        setting('voiceProvider', voiceName, 'select', snapshot.settings.voice == false and 1 or voiceIndex + 1, 2,
+            ui.t('Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.') .. '\n\n'
+                .. ui.t('Pocket: the lightest, on your CPU, about 0.2 s to the first word.\n\nOmniVoice: richer, needs a capable GPU and its pack, 1 to 2.5 s.\n\nVoxtral: cloud voices with your Mistral key. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run shows replies as text.'),
+            voiceMenuLabels(pack, snapshot.mistral, snapshot.settings.matureContent == true, snapshot.settings.voiceProvider), {elements = true, label = true, description = true}),
+        -- Shown with Companion voices Off too, greyed by its own words: the description says it only counts while voices are on.
+        setting('replyLanguage', 'Voice language', 'select', replyIndex, 1,
+            'The language the characters speak. Counts only while Companion voices is not Off; with it Off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.',
+            replyLabels, {elements = true}),
+        -- Two sliders, 50 to 300 in steps of 5, the page shows the number so the unit is in the name. The bridge applies the companions' volume to every voice but
+        -- V's (companions, NPCs, add-ons) and V's voice volume to V's spoken lines alone, each as gain behind a peak limiter, it takes effect on the next reply.
+        setting('voiceVolume', 'Companion voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
+            'How loud the companions’ and characters’ voices are. 100 is the normal level, 150 the default.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. V’s voice has its own setting below, and the game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
+            nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
+        setting('vVoice', 'V’s voice', 'select', vModeIndex, 2,
+            'Off: V is silent.\n\nTyped lines: the lines you type are spoken out loud too, in the V voice that matches yours, then the companion answers.\n\nTyped and spoken lines: what you say by microphone (hold to talk or Voice activation) is also spoken by V, and the reply follows V’s line.\n\nV’s line is always waited for, up to about 30 s without audio. The next row picks the voice engine.',
+            {'Off', 'Typed lines', 'Typed and spoken lines'}),
+        setting('vVoiceEngine', 'V’s voice engine', 'select', vEngineIndex, 1,
+            'The voice V speaks with, whatever the companions use. It counts only while V’s voice is not Off.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.',
+            vEngineElements, {elements = true}),
+        setting('vVoiceVolume', 'V’s voice volume (%)', 'int', snapshot.settings.vVoiceVolume, voiceRange.default,
+            'How loud V’s own voice is, for V’s typed and microphone lines. 100 is the normal level, 150 the default.\n\nAbove 100 the voice gets louder, with a limiter so it does not crackle. The companions’ voices and the game’s own dialogue and sounds do not change.\n\nThe next line uses it.',
+            nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
+        setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
+            'Companions now and then pause, hesitate, laugh or sigh, as their personality would. It stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
+        -- The input device for every way of talking (key, Voice activation). The list comes from the voice browser's capture page. Inputs that look like a loopback
+        -- or virtual device are marked and explained below the usual text (only when one is listed or chosen), and the chosen one gets a plain warning.
+        setting('micDevice', 'Microphone', 'select', micIndex, 1,
+            ui.t('The input the mod listens to for the talk keys and Voice activation.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.')
+                .. (micAnyMarked and '\n\n' .. ui.t('An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself.') or '')
+                .. (micSavedMarked and '\n\n' .. ui.t('The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone.') or ''),
+            micLabels, {elements = true, description = true}),
+        -- Off by default: talk with no key (docs/VOICE_INPUT.md). The microphone is closed while it is off.
+        setting('voiceActivation', 'Voice activation', 'bool', snapshot.settings.voiceActivation == true, false,
+            'Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.'),
+        -- Off by default: say one of the game's dialogue choices to pick it (docs/VOICE_CHOICES.md). It sits with the microphone rows (2026-10-30); the stored key is unchanged.
+        setting('voiceChoices', 'Speak dialogue choices', 'bool', snapshot.settings.voiceChoices == true, false,
+            'Say a dialogue choice to pick it: its words, a part of them, or its number ("two", "the last one"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best.'),
+        setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
+            'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
+            delayLabels, {elements = true}),
+    }
+    -- Custom voices (Remote OmniVoice and the server address) and OmniVoice for AMD are pages of their own, opened from here, last on the page.
+    if remoteOmni.instance then
+        rows[#rows + 1] = action('custom-voices', 'Custom voices', 'Open', 'Render Pocket and OmniVoice voices on another PC or graphics card: the on/off switch, the server address and a connection test. It works whichever of those voices is chosen above.',
+            function()
+                -- The page reads the bridge's answer again at once, not at the next poll.
+                pcall(remoteOmni.instance.state, true)
+                return navigate('custom-voices')
+            end)
+    end
+    -- OmniVoice for AMD: shown only when the service says this PC offers it (or has it).
+    if omniAmd.instance then
+        local asked, visible = pcall(omniAmd.instance.visible)
+        if asked and visible == true then
+            rows[#rows + 1] = action('omni-amd', 'OmniVoice for AMD', 'Open', 'Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.',
+                function()
+                    -- The page reads the bridge's answer again at once, not at the next poll.
+                    pcall(omniAmd.instance.state, true)
+                    return navigate('omni-amd')
+                end)
+        end
+    end
+    for _, voiceRow in ipairs(rows) do
+        if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
+            voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
+        end
+        -- First paragraph, so a long description that is cut keeps it.
+        if voiceRow.id == 'voiceProvider' and pack.amdRoute then
+            voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voice and microphone > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.')
+                .. '\n\n' .. voiceRow.description
+        elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
+            voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
+                .. '\n\n' .. voiceRow.description
+        elseif voiceRow.id == 'voiceProvider' and pack.smallCard then
+            voiceRow.description = ui.t('The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait.')
+                .. '\n\n' .. voiceRow.description
+        end
+        if voiceRow.id == 'vVoiceEngine' then
+            local greyed, reason = {}, nil
+            if snapshot.settings.matureContent == true then
+                -- Beside Mature content Voxtral is not used, whatever the key (this reason comes before the key's).
+                greyed[2], reason = true, ui.t('Voxtral is not used with Mature content.')
+            elseif not (snapshot.mistral or {}).saved then
+                greyed[2], reason = true, ui.t('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
+            end
+            -- OmniVoice carries its own reason (a string), so it never takes Voxtral's, the pack's comes first.
+            if vOmniBlock then
+                greyed[3] = vOmniBlock == 'pack' and ui.t('Requires the optional OmniVoice pack (GPU)') or ui.t('Requires the Companion voices to be an OmniVoice choice')
+                reason = reason or greyed[3]
+            end
+            if next(greyed) then voiceRow.disabledElements, voiceRow.disabledReason = greyed, reason end
+        end
+    end
+    return {category('voices', 'Voice and microphone', rows)}
+end
+
+-- Conversations: who can be talked to and what they know.
+settingsPages['settings-conversations'] = function(snapshot)
+    local rows = {
+        setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
+            'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
+        -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
+        setting('johnnyInHead', 'Johnny in your head', 'select',
+            snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
+                or snapshot.settings.johnnyRemarks == 'medium' and 4 or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
+            'Johnny Silverhand answers the Talk to Johnny keys, as the voice in V’s head, once the story has him there. Give Talk to Johnny a key on the Key bindings page: none is set by default.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
+            {'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
+        -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
+        setting('companionSpeakUp', 'Companions speak up', 'select',
+            snapshot.settings.companionSpeakUp == 'normal' and 4 or snapshot.settings.companionSpeakUp == 'medium' and 3
+                or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 4,
+            'Companions in your party sometimes start talking on their own, at a calm moment or after a scene. With two or more near you, it is often a short chat between up to three of them, and you can join in by talking. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often (the default): about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
+            {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
+        -- Companion vision (docs/COMPANION_VISION.md): off by default, every conversation provider. The bridge does all the work out of process.
+        setting('companionVision', 'Companion vision', 'bool', snapshot.settings.companionVision == true, false,
+            'Each line also comes with vision: a recent view of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model with vision. A model without it just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured.'),
+        -- Which live game info the characters are told: a page of its own (one switch per kind).
+        action('dynamic-info', 'Dynamic info', 'Open',
+            'Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default except other mods’ state, which is off. An off kind is not sent to any conversation provider.',
+            function() return navigate('dynamic-info') end),
+    }
+    -- Who speaks as a partner: a page of its own (one row per character who can).
+    if #relationshipRows(snapshot) > 0 then
+        rows[#rows + 1] = action('relationships', 'Relationships', 'Open',
+            'Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.',
+            function() return navigate('relationships') end)
+    end
+    rows[#rows + 1] = action('memory', 'Memory', 'Manage',
+        'See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves.',
+        function() return navigate('memory') end)
+    return {category('conversation-controls', 'Conversations', rows)}
+end
+
+-- Companions: life with the party. Eye contact height and Head tracking strength have no row any more (they use their defaults), and the one switch Companions react
+-- writes both stored settings battleReactions and lootReactions.
+settingsPages['settings-companions'] = function(snapshot)
+    return {category('companions', 'Companions', {
+        action('immersive-invitations', 'Immersive invitations', 'Open',
+            'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
+            function() return navigate('immersive-invitations') end),
+        action('housemates', 'Housemates', 'Open',
+            'Characters you tell they can stay at your place move into your apartments and live there.\n\nOff by default.',
+            function() return navigate('housemates') end),
+        -- Off by default (the owner's call, 2026-10-25): party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
+        setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits == true, false,
+            'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
+        -- Off by default (docs/EDDIES.md): borrow, lend and pay back eddies with your own characters, the eddies move when the character agrees. Off: nothing is read or sent.
+        setting('characterEddies', 'Eddies with characters', 'bool', snapshot.settings.characterEddies == true, false,
+            'Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.'),
+        -- On by default (2026-10-30): one switch for the two kinds of comment, stored as battleReactions and lootReactions. On when either was on.
+        setting('companionReactions', 'Companions react', 'bool', snapshot.settings.battleReactions == true or snapshot.settings.lootReactions == true, true,
+            'A nearby companion makes a short comment as combat starts and another afterward, and comments after you finish collecting loot from the world. Storage transfers stay silent.\n\nTen-minute cooldown after a fight, and ordinary loot comments are ten minutes apart. Newly acquired Legendary gear has its own two-minute cooldown, and pickups made during a fight are folded into one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.'),
+    })}
+end
+
+-- Night City: how the world reacts to V. Street reputation and NPCs react to threats and commands are on for new players (2026-10-30), a saved choice is kept.
+settingsPages['settings-night-city'] = function(snapshot)
+    return {category('night-city', 'Night City', {
+        setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, true,
+            'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
+        setting('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot.settings.npcThreats == true, true,
+            'Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.'),
+        -- Off by default: a gang V keeps killing may send a small squad after V, now and then, with a threat of its own to shout (mod/revenge-ambush.lua).
+        setting('revengeAmbushes', 'Revenge ambushes', 'bool', snapshot.settings.revengeAmbushes == true, false,
+            'A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted.'),
+    })}
+end
+
+-- Interface: the language of the mod's menus, and Subtitles (moved here from Voices).
+settingsPages['settings-interface'] = function(snapshot)
+    local choices, languageElements, languageIndex = ui.choices(), {}, 1
+    for index, choice in ipairs(choices) do
+        languageElements[index] = choice.label
+        if choice.value == snapshot.settings.uiLanguage then languageIndex = index end
+    end
+    return {category('interface', 'Interface', {
+        setting('uiLanguage', 'Interface language', 'select', languageIndex, 1,
+            'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.',
+            languageElements, {elements = true}),
+        -- One list for both stored settings (subtitles, subtitleStyle): 1 Off (the old switch), 2 Cinematic subtitles (stored 'dialogue'), 3 Above the speaker (stored 'overhead').
+        -- Off keeps the style that was saved, so turning it back on restores it.
+        setting('subtitleStyle', 'Subtitles', 'select', snapshot.settings.subtitles == false and 1 or snapshot.settings.subtitleStyle == 'overhead' and 3 or 2, 2,
+            'Off: no subtitles.\n\nCinematic subtitles: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nWith Companion voices Off as well, automatic reactions stay silent.',
+            {'Off', 'Cinematic subtitles', 'Above the speaker'}),
+    })}
+end
+
+-- Content packs: one section per installed add-on that has settings (docs/ADDON_API.md, the add-on wrote its own labels), then one On/Off row for each content pack
+-- (add-on API 1.1, docs/ADDON_API.md): on by default, the bridge applies it from the next reply. Their names are the add-on's own and are shown as written.
+settingsPages['settings-content-packs'] = function(snapshot)
+    local categories = {}
+    if convaiAddons and convaiAddons.live then
+        local own = {label = true, description = true, elements = true}
+        for _, section in ipairs(convaiAddons.settingsSections()) do
+            local list = {}
+            for _, item in ipairs(section.items) do
+                list[#list + 1] = setting(item.rowId, item.label, item.kind, item.value, item.default, item.description,
+                    item.elements, own)
+            end
+            categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
+        end
+    end
+    if convaiAddons and convaiAddons.contentPacks then
+        local list = {}
+        for _, pack in ipairs(convaiAddons.contentPacks()) do
+            list[#list + 1] = setting('addon:' .. pack.id .. ':contentEnabled', pack.name, 'bool', pack.enabled, true,
+                ui.t('Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Google Gemini, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.', {name = pack.name}),
+                nil, {label = true, description = true})
+        end
+        if #list > 0 then categories[#categories + 1] = category('addon-content', 'Content packs', list, 'Add-ons that change how the characters talk.') end
+    end
+    return categories
+end
+
+-- Privacy and help: Help and support, the automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua, on by default, the help says what is sent and what never
+-- is) and Developer mode.
+settingsPages['settings-privacy'] = function(snapshot)
+    local rows = {}
+    if support then
+        rows[#rows + 1] = action('help', 'Help and support', 'Open',
+            'Find the log files and create a report to send to the developer if something goes wrong.',
+            function()
+                -- The setup check runs again from the next slow update (never inside this menu callback).
+                if convaiSetupCheck then pcall(convaiSetupCheck.refresh) end
+                return navigate('help')
+            end)
+    end
+    rows[#rows + 1] = setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
+        'When something in the mod goes wrong, a short report goes to the developer.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, settings, PC details (graphics card, processor, Windows, security software, drive, screen), mod names, setup check, reply timings and nearby log lines (for setup and script errors also the Cyber Engine Tweaks log).')
+    rows[#rows + 1] = setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
+        'For testing and bug reports; leave it off for normal play.\n\nShows routine popups, writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nFailures, preparation progress and joined notices stay visible when it is off.')
+    return {category('privacy', 'Privacy and help', rows)}
+end
+
 local function schema()
     local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
@@ -2008,9 +2318,14 @@ local function schema()
     local canInvite = owner ~= nil
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
-    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings', ['custom-voices'] = 'settings', ['omni-amd'] = 'settings',
-        ['immersive-invitations'] = 'settings', housemates = 'settings'}
+    -- Each category page goes back to Settings. A page that opens from a row of a category page goes back to that page, not to Settings.
+    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home',
+        ['settings-provider'] = 'settings', ['settings-voice'] = 'settings', ['settings-conversations'] = 'settings', ['settings-companions'] = 'settings',
+        ['settings-night-city'] = 'settings', ['settings-interface'] = 'settings', ['settings-content-packs'] = 'settings', ['settings-privacy'] = 'settings',
+        memory = 'settings-conversations', relationships = 'settings-conversations', ['dynamic-info'] = 'settings-conversations',
+        ['immersive-invitations'] = 'settings-companions', housemates = 'settings-companions',
+        ['custom-voices'] = 'settings-voice', ['omni-amd'] = 'settings-voice',
+        ['paid-tier'] = 'settings-provider', ['custom-endpoint'] = 'settings-provider', help = 'settings-privacy'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
@@ -2036,9 +2351,12 @@ local function schema()
     elseif BACK[view] then
         local parent = BACK[view]
         local id = view == 'memory' and 'memory:settings' or (view .. ':back')
+        local page = settingsPages.byView[parent]
         nav[#nav + 1] = parent == 'home'
             and action(id, 'Back to Companion Manager', 'Back', 'Return to Companion Manager.', function() return navigate('home') end)
-            or action(id, 'Back to settings', 'Back', 'Return to conversation settings.', function() return navigate('settings') end)
+            -- A category page goes back to the Settings list. A page opened from one goes back to that category page, and the description says which.
+            or action(id, 'Back to settings', 'Back', page and ui.t('Return to {page}.', {page = ui.t(page.name)}) or 'Return to the settings categories.',
+                function() return navigate(parent) end, nil, page and {description = true} or nil)
     end
     if view == 'home' then
         -- Nothing more: the destinations are the page.
@@ -2329,291 +2647,9 @@ local function schema()
     elseif view == 'key-bindings' then
         for _, section in ipairs(keyBindingSections(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'settings' then
-        local choices, languageElements, languageIndex = ui.choices(), {}, 1
-        for index, choice in ipairs(choices) do
-            languageElements[index] = choice.label
-            if choice.value == snapshot.settings.uiLanguage then languageIndex = index end
-        end
-        categories[#categories + 1] = category('interface', 'Interface', {
-            setting('uiLanguage', 'Interface language', 'select', languageIndex, 1,
-                'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.',
-                languageElements, {elements=true}),
-        })
-        local conversations = category('conversation-controls', 'Conversations', {
-            action('memory', 'Memory', 'Manage',
-                'See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves.',
-                function() return navigate('memory') end),
-            setting('archetypeConversations', 'Talk to ordinary NPCs', 'bool', snapshot.settings.archetypeConversations ~= false, true,
-                'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
-            setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
-                'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
-            -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
-            setting('johnnyInHead', 'Johnny in your head', 'select',
-                snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
-                    or snapshot.settings.johnnyRemarks == 'medium' and 4 or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
-                'Johnny Silverhand answers the Talk to Johnny keys, as the voice in V’s head, once the story has him there. Give Talk to Johnny a key on the Key bindings page: none is set by default.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
-                {'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
-            -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
-            setting('companionSpeakUp', 'Companions speak up', 'select',
-                snapshot.settings.companionSpeakUp == 'normal' and 4 or snapshot.settings.companionSpeakUp == 'medium' and 3
-                    or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 4,
-                'Companions in your party sometimes start talking on their own, at a calm moment or after a scene. With two or more near you, it is often a short chat between up to three of them, and you can join in by talking. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often (the default): about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
-                {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
-            -- Companions can see (docs/COMPANION_VISION.md): off by default, every conversation provider. The bridge does all the work out of process.
-            setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision == true, false,
-                'Each line also gets a recent picture of your surroundings, taken from the game window just before you talk. Works with every conversation provider. Local AI needs a model that can see. A model that cannot just gets your words.\n\nOnly the game window, only while someone is near, kept briefly in memory. Off means nothing is captured.'),
-        })
-        -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
-        table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
-            'Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default except other mods’ state, which is off. An off kind is not sent to any conversation provider.',
-            function() return navigate('dynamic-info') end))
-        -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
-        if #relationshipRows(snapshot) > 0 then
-            table.insert(conversations.settings, 2, action('relationships', 'Relationships', 'Open',
-                'Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.',
-                function() return navigate('relationships') end))
-        end
-        categories[#categories + 1] = conversations
-        -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys.
-        local providerRows = ownKeyRows(snapshot)
-        categories[#categories + 1] = category('conversation-provider', 'Conversation provider', providerRows)
-
-        local heights,strengths=manager.gazeChoices()
-        local heightIndex,strengthIndex=3,3
-        for index,value in ipairs(heights) do if snapshot.settings.eyeContactHeight==value then heightIndex=index end end
-        for index,value in ipairs(strengths) do if snapshot.settings.headFollowStrength==value then strengthIndex=index end end
-        categories[#categories + 1] = category('companion-behavior', 'Companion behavior', {
-            setting('eyeContactHeight', 'Eye contact height', 'select', heightIndex, 3,
-                'Use it if companions seem to look above or below your eyes.',
-                {'10 cm lower', '5 cm lower', 'Default', '5 cm higher', '10 cm higher'}),
-            setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
-                'Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.',
-                {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
-        })
-        -- Settings > Gameplay (2026-10-28): what the world and the companions DO, as against what the characters say. Only the page moved: every row keeps its
-        -- stored key and its saved value. Revenge ambushes (docs/AMBUSHES.md) is new and off by default.
-        categories[#categories + 1] = category('gameplay', 'Gameplay', {
-            setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
-                'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
-            setting('npcThreats', 'NPCs react to threats and commands', 'bool', snapshot.settings.npcThreats == true, false,
-                'Ordinary people you threaten run, cower or fight back, as their kind would: gang members and guards use their fists for an insult and their weapons for a death threat.\n\nThey may also do what you tell them, if they would: get down, stop, or get out of the vehicle.\n\nOnly ordinary people, never named or story characters, and never during scenes, quests or fights.'),
-            -- Off by default (the owner's call, 2026-10-25): party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
-            setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits == true, false,
-                'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
-            -- Off by default (docs/EDDIES.md): borrow, lend and pay back eddies with your own characters; the eddies move when the character agrees. Off: nothing is read or sent.
-            -- It sits in Settings > Gameplay (moved there when the section was made); the stored key is unchanged.
-            setting('characterEddies', 'Eddies with characters', 'bool', snapshot.settings.characterEddies == true, false,
-                'Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.'),
-            action('immersive-invitations', 'Immersive invitations', 'Open',
-                'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
-                function() return navigate('immersive-invitations') end),
-            action('housemates', 'Housemates', 'Open',
-                'Characters you tell they can stay at your place move into your apartments and live there.\n\nOff by default.',
-                function() return navigate('housemates') end),
-            -- Off by default: a gang V keeps killing may send a small squad after V, now and then, with a threat of its own to shout (mod/revenge-ambush.lua).
-            setting('revengeAmbushes', 'Revenge ambushes', 'bool', snapshot.settings.revengeAmbushes == true, false,
-                'A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted. The threats need Talk to ordinary NPCs.'),
-            -- Off by default: say one of the game's dialogue choices to pick it (docs/VOICE_CHOICES.md). It moved from Voices to Gameplay when that section was made; the stored key is unchanged.
-            setting('voiceChoices', 'Speak dialogue choices', 'bool', snapshot.settings.voiceChoices == true, false,
-                'Say a dialogue choice to pick it: its words, a part of them, or its number ("two", "the last one"). If nothing fits clearly, nothing is picked. No character answers.\n\nPresses the arrow keys and Enter, so the game must be in front. Needs speech recognition on this PC. Headphones work best.'),
-            -- Moved here from the Automatic reactions section (2026-10-28), which held only these two rows: stored keys unchanged, both on by default.
-            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
-                'A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.'),
-            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
-                'Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.'),
-        })
-        -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
-        -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
-        local voiceIndex = savedVoiceIndex(snapshot.settings)
-        -- Lip sync delay (Bluetooth): Auto, Off, then milliseconds (bridge/audio-delay.mjs).
-        local delays, delayLabels, delayIndex = manager.audioDelayChoices(), {}, 1
-        for index, value in ipairs(delays) do
-            delayLabels[index] = value == 'auto' and ui.t('Auto') or value == 0 and ui.t('Off') or (tostring(value) .. ' ms')
-            if snapshot.settings.audioDelay == value then delayIndex = index end
-        end
-        local voiceRange = manager.voiceVolumeRange()
-        -- The microphone list is asked for when this page is built (at most once in 15 s; the answer redraws the page): never per frame, never per turn.
-        pcall(manager.requestMicrophoneInputs)
-        local micLabels, _, micIndex, micAnyMarked, micSavedMarked = microphoneChoices(snapshot.settings)
-        -- Voice language: English (the default), Automatic, then the mod's other languages, in the bridge's order (manager.replyLanguageChoices).
-        local replyCodes, replyLabels, replyIndex = manager.replyLanguageChoices(), {}, 1
-        for index, code in ipairs(replyCodes) do
-            replyLabels[index] = ui.t(REPLY_LANGUAGE_NAMES[code] or code)
-            if snapshot.settings.replyLanguage == code then replyIndex = index end
-        end
-        local pack = manager.omniPack()
-        -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
-        local voiceName = ui.t('Companion voices')
-        if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')'
-        -- The bridge knows this PC has no NVIDIA graphics card: the OmniVoice entries stay choosable (they fall back), the row says what they need.
-        elseif pack.amdRoute then voiceName = voiceName .. ' (' .. ui.t('OmniVoice on AMD: set up first') .. ')'
-        elseif pack.noNvidia then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs NVIDIA') .. ')'
-        -- The NVIDIA card has under 12 GB (the bridge's card list): the entries stay choosable, the row says what OmniVoice needs.
-        elseif pack.smallCard then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs 12 GB') .. ')' end
-        -- Why OmniVoice cannot speak for V now ('pack' before 'voice'), from the saved settings; nil when it can.
-        local vOmniBlock = manager.vOmniBlock(snapshot.settings)
-        -- V's two voice rows (typed lines, microphone lines) are one list: 1 Off, 2 Pocket, 3 Voxtral (greyed out until a Mistral key is saved), 4 OmniVoice (greyed
-        -- out until the OmniVoice pack is installed and the saved companion voice is OmniVoice; the pack comes first). The engine is shared, each row has its own Off.
-        -- A saved Voxtral shows as Voxtral without a key too (its entry says it needs one; V's line is skipped meanwhile and no Pocket worker loads for it). A saved
-        -- OmniVoice that cannot be used reads as Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
-        local function vRowIndex(on)
-            if not on then return 1 end
-            return (snapshot.settings.vVoiceEngine == 'voxtral' and snapshot.settings.matureContent ~= true) and 3
-                or (snapshot.settings.vVoiceEngine == 'omni' and not vOmniBlock) and 4 or 2
-        end
-        local vRowElements = {ui.t('Off'), ui.t('Pocket · On your PC'), snapshot.settings.matureContent == true and ui.t('Voxtral · not with Mature')
-            or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key'),
-            vOmniBlock == 'pack' and ui.t('OmniVoice · needs Omni pack') or vOmniBlock == 'voice' and ui.t('OmniVoice · needs Omni voice')
-            or ui.t('OmniVoice')}
-        local voicesCategory = category('voices', 'Voices', {
-            -- One list for both stored settings (voice, voiceProvider): 1 Off (replies are text only and no voice is generated), then the companion voices in
-            -- voicePreviewModule.CHOICES order, so a voice is the list position plus one. Off keeps the voice that was saved, so turning it back on restores it.
-            setting('voiceProvider', voiceName, 'select', snapshot.settings.voice == false and 1 or voiceIndex + 1, 2,
-                ui.t('Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.') .. '\n\n'
-                    .. ui.t('Pocket: the lightest, on your CPU, about 0.2 s to the first word.\n\nOmniVoice: richer, needs a capable GPU and its pack, 1 to 2.5 s.\n\nVoxtral: cloud voices with your Mistral key. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run shows replies as text.'),
-                voiceMenuLabels(pack, snapshot.mistral, snapshot.settings.matureContent == true, snapshot.settings.voiceProvider), {elements = true, label = true, description = true}),
-            -- Shown with Companion voices Off too, greyed by its own words: the description says it only counts while voices are on.
-            setting('replyLanguage', 'Voice language', 'select', replyIndex, 1,
-                'The language the characters speak. Counts only while Companion voices is not Off; with it Off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.',
-                replyLabels, {elements = true}),
-            -- One list for both stored settings (subtitles, subtitleStyle): 1 Off (the old switch), 2 Cinematic subtitles (stored 'dialogue'), 3 Above the speaker (stored 'overhead').
-            -- Off keeps the style that was saved, so turning it back on restores it.
-            setting('subtitleStyle', 'Subtitles', 'select', snapshot.settings.subtitles == false and 1 or snapshot.settings.subtitleStyle == 'overhead' and 3 or 2, 2,
-                'Off: no subtitles.\n\nCinematic subtitles: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nWith Companion voices Off as well, automatic reactions stay silent.',
-                {'Off', 'Cinematic subtitles', 'Above the speaker'}),
-            setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
-                'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
-                delayLabels, {elements = true}),
-            -- Two sliders, 50 to 300 in steps of 5; the page shows the number, so the unit is in the name. The bridge applies Voice volume to every voice but
-            -- V's (companions, NPCs, add-ons) and V's voice volume to V's spoken lines alone, each as gain behind a peak limiter; it takes effect on the next reply.
-            setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
-                'How loud the companions’ and characters’ voices are. 100 is the normal level, 150 the default.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. V’s voice has its own setting below, and the game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
-                nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
-            setting('vVoiceVolume', 'V’s voice volume (%)', 'int', snapshot.settings.vVoiceVolume, voiceRange.default,
-                'How loud V’s own voice is, for V’s typed and microphone lines. 100 is the normal level, 150 the default.\n\nAbove 100 the voice gets louder, with a limiter so it does not crackle. The companions’ voices and the game’s own dialogue and sounds do not change.\n\nThe next line uses it.',
-                nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
-            -- The input device for every way of talking (key, Voice activation). The list comes from the voice browser's capture page. Inputs that look like a loopback
-            -- or virtual device are marked and explained below the usual text (only when one is listed or chosen), and the chosen one gets a plain warning.
-            setting('micDevice', 'Microphone', 'select', micIndex, 1,
-                ui.t('The input the mod listens to for the talk keys and Voice activation.\n\nWindows default follows the input Windows picks. Choose another if the default never hears you, for example when a mixer app routes your microphone elsewhere.\n\nA change counts the next time the microphone opens. A missing input falls back to the default.')
-                    .. (micAnyMarked and '\n\n' .. ui.t('An input marked (!) looks like a loopback or virtual input, such as Stereo Mix, CABLE Output or a mixer’s Out. It can carry other apps’ sound, for example the far side of a call, so the mod never picks one by itself.') or '')
-                    .. (micSavedMarked and '\n\n' .. ui.t('The input you chose looks like it carries PC sound, not only your voice. If characters hear your calls, choose your real microphone.') or ''),
-                micLabels, {elements = true, description = true}),
-            -- Off by default: talk with no key (docs/VOICE_INPUT.md). The microphone is closed while it is off.
-            setting('voiceActivation', 'Voice activation', 'bool', snapshot.settings.voiceActivation == true, false,
-                'Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens.'),
-            setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
-                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. It stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
-            setting('vVoice', 'V’s voice for typed lines', 'select', vRowIndex(snapshot.settings.vVoice == true), 2,
-                'Your typed lines are spoken out loud too, in the V voice that matches yours, then the companion answers. V’s line is always waited for, up to about 30 s without audio.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.',
-                vRowElements, {elements = true}),
-            -- The same kind of row for what the player says by microphone (stored vVoiceMic, vVoiceEngine). Independent of the typed row: either one, both or neither
-            -- may be Off. Off by default (push-to-talk never replayed V: you had just said it yourself). The engine is one setting, shared by both rows.
-            setting('vVoiceMic', 'V’s voice for microphone lines', 'select', vRowIndex(snapshot.settings.vVoiceMic == true), 1,
-                'After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Off by default, because you just said it yourself.\n\nThis works on its own, whether or not typed lines are spoken. The choices are the same as for typed lines, and V speaks with one engine: choosing one here changes it for typed lines too, unless those are Off.',
-                vRowElements, {elements = true}),
-        })
-        -- Remote OmniVoice and the server address are a page of their own, opened from here.
-        if remoteOmni.instance then
-            local at = 1
-            for index, voiceRow in ipairs(voicesCategory.settings) do if voiceRow.id == 'voiceProvider' then at = index + 1 end end
-            table.insert(voicesCategory.settings, at, action('custom-voices', 'Custom voices', 'Open', 'Render Pocket and OmniVoice voices on another PC or graphics card: the on/off switch, the server address and a connection test. It works whichever of those voices is chosen above.',
-                function()
-                    -- The page reads the bridge's answer again at once, not at the next poll.
-                    pcall(remoteOmni.instance.state, true)
-                    return navigate('custom-voices')
-                end))
-        end
-        -- OmniVoice for AMD sits right under the voice list, before Custom voices: shown only when the service says this PC offers it (or has it).
-        if omniAmd.instance then
-            local asked, visible = pcall(omniAmd.instance.visible)
-            if asked and visible == true then
-                local at = 1
-                for index, voiceRow in ipairs(voicesCategory.settings) do if voiceRow.id == 'voiceProvider' then at = index + 1 end end
-                table.insert(voicesCategory.settings, at, action('omni-amd', 'OmniVoice for AMD', 'Open', 'Set up OmniVoice on your AMD Radeon card with one download, and choose how it runs.',
-                    function()
-                        -- The page reads the bridge's answer again at once, not at the next poll.
-                        pcall(omniAmd.instance.state, true)
-                        return navigate('omni-amd')
-                    end))
-            end
-        end
-        for _, voiceRow in ipairs(voicesCategory.settings) do
-            if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
-                voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
-            end
-            -- First paragraph, so a long description that is cut keeps it.
-            if voiceRow.id == 'voiceProvider' and pack.amdRoute then
-                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice. Set it up in Settings > Voices > OmniVoice for AMD: one download, then it starts by itself. Until then Pocket speaks.')
-                    .. '\n\n' .. voiceRow.description
-            elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
-                voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
-                    .. '\n\n' .. voiceRow.description
-            elseif voiceRow.id == 'voiceProvider' and pack.smallCard then
-                voiceRow.description = ui.t('The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait.')
-                    .. '\n\n' .. voiceRow.description
-            end
-            if voiceRow.id == 'vVoice' or voiceRow.id == 'vVoiceMic' then
-                local greyed, reason = {}, nil
-                if snapshot.settings.matureContent == true then
-                    -- Beside Mature content Voxtral is not used, whatever the key (this reason comes before the key's).
-                    greyed[3], reason = true, ui.t('Voxtral is not used with Mature content.')
-                elseif not (snapshot.mistral or {}).saved then
-                    greyed[3], reason = true, ui.t('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
-                end
-                -- OmniVoice carries its own reason (a string), so it never takes Voxtral's; the pack's comes first.
-                if vOmniBlock then
-                    greyed[4] = vOmniBlock == 'pack' and ui.t('Requires the optional OmniVoice pack (GPU)') or ui.t('Requires the Companion voices to be an OmniVoice choice')
-                    reason = reason or greyed[4]
-                end
-                if next(greyed) then voiceRow.disabledElements, voiceRow.disabledReason = greyed, reason end
-            end
-        end
-        categories[#categories + 1] = voicesCategory
-        -- One section per installed add-on that has settings (docs/ADDON_API.md). The add-on wrote its own labels.
-        if convaiAddons and convaiAddons.live then
-            local own = {label = true, description = true, elements = true}
-            for _, section in ipairs(convaiAddons.settingsSections()) do
-                local list = {}
-                for _, item in ipairs(section.items) do
-                    list[#list + 1] = setting(item.rowId, item.label, item.kind, item.value, item.default, item.description,
-                        item.elements, own)
-                end
-                categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
-            end
-        end
-        -- Content packs (add-on API 1.1, docs/ADDON_API.md): add-ons that only change how the characters talk. One On/Off row for each, on by default; the bridge
-        -- applies it from the next reply. Their names are the add-on's own and are shown as written.
-        if convaiAddons and convaiAddons.contentPacks then
-            local list = {}
-            for _, pack in ipairs(convaiAddons.contentPacks()) do
-                list[#list + 1] = setting('addon:' .. pack.id .. ':contentEnabled', pack.name, 'bool', pack.enabled, true,
-                    ui.t('Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Google Gemini, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.', {name = pack.name}),
-                    nil, {label = true, description = true})
-            end
-            if #list > 0 then categories[#categories + 1] = category('addon-content', 'Content packs', list, 'Add-ons that change how the characters talk.') end
-        end
-        -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
-        categories[#categories + 1] = category('privacy', 'Privacy', {
-            setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
-                'When something in the mod goes wrong, a short report goes to the developer.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, settings, PC details (graphics card, processor, Windows, security software, drive, screen), mod names, setup check, reply timings and nearby log lines (for setup and script errors also the Cyber Engine Tweaks log).'),
-        })
-        local development = {
-            setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
-                'For testing and bug reports; leave it off for normal play.\n\nShows routine popups, writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nFailures, preparation progress and joined notices stay visible when it is off.'),
-        }
-        categories[#categories + 1] = category('development', 'Development', development)
-        if support then
-            categories[#categories + 1] = category('help', 'Help', {
-                action('help', 'Help and support', 'Open',
-                    'Find the log files and create a report to send to the developer if something goes wrong.',
-                    function()
-                        -- The setup check runs again from the next slow update (never inside this menu callback).
-                        if convaiSetupCheck then pcall(convaiSetupCheck.refresh) end
-                        return navigate('help')
-                    end),
-            })
-        end
+        categories[#categories + 1] = category('settings-categories', 'Settings', settingsPages.listRows())
+    elseif settingsPages.byView[view] then
+        for _, section in ipairs(settingsPages[view](snapshot)) do categories[#categories + 1] = section end
     end
     -- The line of the last action (or of an invitation being prepared) sits under the way back.
     local feedback = M.feedback()
@@ -2690,8 +2726,16 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
     relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['custom-voices'] = true, ['omni-amd'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
+for name in pairs(settingsPages.byView) do PAGES[name] = true end
 
 function M.view() return view end
+
+-- Does Restore defaults cover the page on screen (Settings and its category pages, Relationships, Dynamic info, Key bindings, Immersive invitations, Housemates)?
+local DEFAULTS_PAGES = {relationships = true, ['dynamic-info'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
+function M.hasDefaults(name)
+    name = name or view
+    return settingsPages.isSettingsView(name) or DEFAULTS_PAGES[name] == true
+end
 
 -- The page on screen as one short text (the view, the page of its long list, the letter group and the search text): a host that scrolls to
 -- the top on a new page compares it.
@@ -2724,6 +2768,8 @@ function M.search() return modelFind.text end
 function M.setView(name)
     if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier)
         or (name == 'custom-endpoint' and not customProvider.instance) or (name == 'custom-voices' and not remoteOmni.instance) or (name == 'omni-amd' and not omniAmd.instance) then name = 'home' end
+    -- A Content packs page that has nothing to show is not there: Settings is shown instead.
+    if name == 'settings-content-packs' and not settingsPages.packsShown() then name = 'settings' end
     if view == 'key-bindings' and name ~= view and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     local changed = name ~= view or listPage ~= 1 or listGroup ~= 1 or modelFind.text ~= ''
     view, listPage, listGroup = name, 1, 1
@@ -2830,7 +2876,10 @@ function M.defaults()
     local previous = view
     local changes, atDefault, turningMatureOff, listed = {}, {}, false, {}
     -- Settings, and the Relationships and Dynamic info pages that open from it, and Key bindings.
-    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates'}) do
+    local pageNames = {}
+    for _, page in ipairs(settingsPages.list) do pageNames[#pageNames + 1] = page.view end
+    for _, name in ipairs({'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates'}) do pageNames[#pageNames + 1] = name end
+    for _, name in ipairs(pageNames) do
         view = name
         local ok, model = pcall(schema)
         if not ok then lastError = tostring(model); break end
@@ -2855,7 +2904,7 @@ function M.defaults()
     -- Turning Mature content off puts back what turning it on changed (stageMature). Here the defaults are wanted instead: the rows it would put
     -- back are named in the batch at their default, so they stay there.
     if turningMatureOff then
-        for _, id in ipairs({'conversationProvider', 'localModel', 'voiceProvider', 'vVoice'}) do
+        for _, id in ipairs({'conversationProvider', 'localModel', 'voiceProvider', 'vVoiceEngine'}) do
             if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
         end
     end
@@ -2973,31 +3022,18 @@ function M.apply(changes)
             end
             values.uiLanguage = choices[change.value].value
         elseif key == 'vVoice' then
-            -- Order: 1 Off, 2 Pocket (stored 'pocket'), 3 Voxtral (stored 'voxtral', needs the Mistral key), 4 OmniVoice (stored 'omni', judged after the
-            -- loop against the companion voice the batch leaves). One row writes both stored settings; Off keeps the engine that was saved.
-            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose one of the listed voices for V.') end
-            if change.value == 3 and not manager.mistral().saved then
+            -- Order: 1 Off, 2 Typed lines, 3 Typed and spoken lines. One row writes both stored settings the bridge reads (vVoice typed lines, vVoiceMic spoken lines).
+            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose how V’s voice is used.') end
+            values.vVoice, values.vVoiceMic = change.value ~= 1, change.value == 3
+        elseif key == 'vVoiceEngine' then
+            -- Order: 1 Pocket (stored 'pocket'), 2 Voxtral (stored 'voxtral', needs the Mistral key), 3 OmniVoice (stored 'omni', judged after the loop against the companion voice
+            -- the batch leaves). One engine speaks every line of V's, typed or spoken.
+            local engine = ({'pocket', 'voxtral', 'omni'})[change.value]
+            if not engine or change.value ~= math.floor(change.value) then return refused('Choose one of the listed voices for V.') end
+            if engine == 'voxtral' and not manager.mistral().saved then
                 return refused('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
             end
-            values.vVoice = change.value ~= 1
-            if change.value ~= 1 then
-                local engine = change.value == 4 and 'omni' or change.value == 3 and 'voxtral' or 'pocket'
-                if values.vVoiceEngine ~= nil and values.vVoiceEngine ~= engine then return refused('V’s typed and microphone lines use the same voice. Choose the same one for both, or Off for one.') end
-                values.vVoiceEngine = engine
-            end
-        elseif key == 'vVoiceMic' then
-            -- The same list for what the player says by microphone (stored vVoiceMic, and the shared vVoiceEngine). Independent of the typed row: Off here leaves typed lines
-            -- as they are, and the other way round. Choosing an engine here is choosing it for V's one engine, so typed lines that are on follow it (named in the result).
-            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose one of the listed voices for V.') end
-            if change.value == 3 and not manager.mistral().saved then
-                return refused('Requires a Mistral key (add it with the Mistral preset on the Custom endpoint page)')
-            end
-            values.vVoiceMic = change.value ~= 1
-            if change.value ~= 1 then
-                local engine = change.value == 4 and 'omni' or change.value == 3 and 'voxtral' or 'pocket'
-                if values.vVoiceEngine ~= nil and values.vVoiceEngine ~= engine then return refused('V’s typed and microphone lines use the same voice. Choose the same one for both, or Off for one.') end
-                values.vVoiceEngine = engine
-            end
+            values.vVoiceEngine = engine
         elseif key == 'voiceProvider' then
             local choice = type(change.value) == 'number' and VOICE_CHOICES[change.value] or nil
             if not choice then return refused('Choose one of the listed companion voices.') end
@@ -3016,14 +3052,6 @@ function M.apply(changes)
             end
             values.voiceProvider = choice.provider
             if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end
-        elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
-            local heights, strengths = manager.gazeChoices()
-            local choices = key == 'eyeContactHeight' and heights or strengths
-            if type(change.value) ~= 'number' or change.value ~= change.value or change.value < 1 or change.value > #choices
-                or change.value ~= math.floor(change.value) then
-                return refused('Choose an eye contact option.')
-            end
-            values[key] = choices[change.value]
         elseif key:sub(1, 13) == 'relationship:' then
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then
                 return refused('Choose one of the listed relationship options.')
@@ -3060,6 +3088,10 @@ function M.apply(changes)
             values.dynamicInfo[key:sub(9)] = change.value
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
+        elseif key == 'companionReactions' then
+            -- One switch for the two stored settings battleReactions and lootReactions.
+            if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+            values.battleReactions, values.lootReactions = change.value, change.value
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
         elseif key == 'voiceChoices' then values.voiceChoices = change.value
         elseif key == 'remoteOmni' then values.remoteOmni = change.value
@@ -3088,11 +3120,6 @@ function M.apply(changes)
         else return refused('That setting is read-only.') end
         applied[#applied + 1] = key
     end
-    -- V's engine is one setting, shared by the typed and the microphone row: a choice made on one moves the other too when that one is on (and not in the batch).
-    if values.vVoiceEngine ~= nil and values.vVoiceEngine ~= snapshot.settings.vVoiceEngine then
-        if values.vVoice == nil and snapshot.settings.vVoice == true then names[#names + 1] = ui.t('V’s voice for typed lines') end
-        if values.vVoiceMic == nil and snapshot.settings.vVoiceMic == true then names[#names + 1] = ui.t('V’s voice for microphone lines') end
-    end
     -- V on OmniVoice needs the pack (named first) and the companion voice as this batch leaves it to be OmniVoice: otherwise it is refused, nothing is saved.
     if values.vVoiceEngine == 'omni' then
         local block = manager.vOmniBlock({voiceProvider = values.voiceProvider or snapshot.settings.voiceProvider, remoteOmni = (values.remoteOmni ~= nil) and values.remoteOmni or snapshot.settings.remoteOmni})
@@ -3100,8 +3127,10 @@ function M.apply(changes)
         if block == 'voice' then return refused('Requires the Companion voices to be an OmniVoice choice') end
     end
     -- A batch that moves the companions off OmniVoice while V speaks with it: manager.applySettings sets V to Pocket in the same save, and this says so.
-    local omniLeft = values.vVoiceEngine == nil and values.vVoice ~= false and values.voiceProvider ~= nil and values.voiceProvider ~= 'omni'
-        and (snapshot.settings.vVoice == true or snapshot.settings.vVoiceMic == true) and snapshot.settings.vVoiceEngine == 'omni' and not manager.vOmniBlock(snapshot.settings)
+    local vSpeaks = snapshot.settings.vVoice == true or snapshot.settings.vVoiceMic == true
+    if values.vVoice ~= nil then vSpeaks = values.vVoice == true or values.vVoiceMic == true end
+    local omniLeft = values.vVoiceEngine == nil and vSpeaks and values.voiceProvider ~= nil and values.voiceProvider ~= 'omni'
+        and snapshot.settings.vVoiceEngine == 'omni' and not manager.vOmniBlock(snapshot.settings)
     -- No Voxtral voice beside Mature content: choosing one while the setting is on (or stays on) is refused and nothing is saved. A batch that turns
     -- the setting on never gets here with one: stageMature moved it to Pocket.
     local matureFinal = values.matureContent

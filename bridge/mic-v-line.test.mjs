@@ -86,28 +86,29 @@ test('the setting is off by default and only an explicit true turns it on; it is
   assert.equal(bare.micWanted, false, 'no clips: nothing to say');
 });
 
-test('Settings > Voices carries the setting under V\'s voice for typed lines as the same four-choice list, off by default, with the reason push-to-talk never replayed V and the reply following V\'s line, in all 15 languages', () => {
+test('Settings > Voice and microphone carries the setting inside V\'s voice, a three-choice list (Off, Typed lines, Typed and spoken lines) with no row of its own for microphone lines, and the reason push-to-talk never replayed V', () => {
   const ui = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
-  const row = /setting\('vVoiceMic', 'V’s voice for microphone lines', 'select', vRowIndex\(snapshot\.settings\.vVoiceMic == true\), 1,\s*\r?\n\s*'([^\r\n]*)',\s*\r?\n\s*vRowElements, \{elements = true\}\)/.exec(ui);
-  assert(row, 'the row exists, a select over the same elements as the typed row, default 1 (Off)');
-  assert(ui.indexOf("setting('vVoice', ") < ui.indexOf("setting('vVoiceMic', "), 'under V\'s voice');
-  const NEW = 'After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Off by default, because you just said it yourself.\\n\\nThis works on its own, whether or not typed lines are spoken. The choices are the same as for typed lines, and V speaks with one engine: choosing one here changes it for typed lines too, unless those are Off.';
-  assert.equal(row[1], NEW);
-  assert.match(row[1], /Off by default, because you just said it yourself/, 'the reason for the default');
-  assert.match(row[1], /the reply follows V’s line/);
-  assert.match(row[1], /works on its own, whether or not typed lines are spoken/, 'independent of the typed row');
-  assert.doesNotMatch(row[1], /Needs V’s voice on/, 'the old dependency is gone');
+  const row = /setting\('vVoice', 'V’s voice', 'select', vModeIndex, 2,\s*\r?\n\s*'([^\r\n]*)',\s*\r?\n\s*\{'Off', 'Typed lines', 'Typed and spoken lines'\}\)/.exec(ui);
+  assert(row, 'the row exists, a select over Off, Typed lines and Typed and spoken lines, default 2 (Typed lines)');
+  assert(!/setting\('vVoiceMic'/.test(ui), 'there is no row of its own for microphone lines any more');
+  assert.match(ui, /local vModeIndex = snapshot\.settings\.vVoiceMic == true and 3 or snapshot\.settings\.vVoice == true and 2 or 1/, 'spoken lines on reads as Typed and spoken lines');
+  assert.match(row[1], /Typed and spoken lines: what you say by microphone \(hold to talk or Voice activation\) is also spoken by V, and the reply follows V’s line\./);
+  assert.match(row[1], /V’s line is always waited for/, 'the reply follows V’s line');
   for (const dropped of [/never waits/i, /cut short/i, /Convai/, /Not available/]) assert.doesNotMatch(row[1], dropped, 'the old promise and exclusions are gone: ' + dropped);
   assert(row[1].length < 520, 'fits the description area without being cut');
-  for (const code of ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko']) {
-    const file = readFileSync(new URL(`../mod/locales/${code}.lua`, import.meta.url), 'utf8');
-    assert(file.includes('["V’s voice for microphone lines"] = "'), code + ' label');
-    assert(file.includes('["' + NEW + '"] = "'), code + ' description');
-    assert(!file.includes('V speaks your microphone lines'), code + ': no old label left');
-  }
   const lua = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
   assert.match(lua, /if type\(settings\.vVoiceMic\) ~= 'boolean' then settings\.vVoiceMic, settingsNeedSave = false, true end/, 'saved off by default');
   assert.match(lua, /vVoiceMic = settings\.vVoiceMic == true,/);
+  // The list writes both stored keys: Off = neither, Typed lines = typed only, Typed and spoken lines = both.
+  assert.match(ui, /values\.vVoice, values\.vVoiceMic = change\.value ~= 1, change\.value == 3/, 'the list sets vVoice (typed) and vVoiceMic (spoken) together');
+});
+
+test('the new V\'s voice texts (label, the three choices, the engine row) are in all 15 dictionaries', () => {
+  for (const code of ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko']) {
+    const file = readFileSync(new URL(`../mod/locales/${code}.lua`, import.meta.url), 'utf8');
+    for (const text of ['Typed lines', 'Typed and spoken lines', 'V’s voice engine']) assert(file.includes('["' + text + '"] = "'), code + ': ' + text);
+    assert(!file.includes('V speaks your microphone lines'), code + ': no old label left');
+  }
 });
 
 // ---- what gets a V line ---------------------------------------------------------------------------------------------------

@@ -243,7 +243,7 @@ test('the manifest is looked for in the dev Local AI folder when the real folder
   assert.equal(new CustomModelScanner({project: real, environment: {[LOCAL_AI_ENV.root]: join(real, 'local-ai'), [LOCAL_AI_ENV.dev]: dev}}).scan().models.length, 0);
 });
 
-// ---- A vision projector named in an entry (bridge/local-projector.mjs, docs/LOCAL_AI.md "Pictures (Companions can see)") -----------------------------
+// ---- A vision projector named in an entry (bridge/local-projector.mjs, docs/LOCAL_AI.md "Vision (Companion vision)") -----------------------------
 test('an entry may name its vision projector with the rules of its own file; a bad path costs the projector, not the model', () => {
   const ok = validateEntry(root, valid({mmproj: 'custom/My-Model-mmproj-F16.gguf'})).entry;
   assert.equal(ok.mmproj, resolve(root, 'custom/My-Model-mmproj-F16.gguf'));
