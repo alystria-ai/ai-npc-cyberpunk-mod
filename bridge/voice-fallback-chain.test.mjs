@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {readFileSync} from 'node:fs';
-import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {PassThrough, Writable} from 'node:stream';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -164,4 +164,99 @@ test('the routes follow the engine: with no alias option the side characters sta
   assert.equal(voice.usesProfile('adam-brocki'), false);
   assert.deepEqual(states.at(-1).routedProfiles, ['judy-alvarez', 'npc-corpo-resident-male']);
   const closing = voice.close(); await tick(); worker.spawned.forEach(child => child.emit('close', 0)); await closing;
+});
+
+// ---- the invitation: prepareInvitedVoice and invitedVoiceCurrent (bridge/convai-bridge.mjs) -----------------------------------------
+
+// The checks the bridge makes of the voice service receipt before it lets an invitation through: the receipt names the REQUESTED profile (not the voice that speaks it),
+// the route is the receipt provider, and the profile is routed and ready.
+const invitationAccepts = (voice, profile, receipt) => receipt?.ready === true && ['pocket', 'omni'].includes(receipt.provider) && receipt.profile === profile
+  && receipt.provider === voice.provider && voice.usesProfile(profile) && voice.profileReady(profile);
+
+test('the bridge still checks the invitation receipt against the requested profile (the tests below stand in for those lines)', async () => {
+  const source = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(source, /receipt\.profile === profile/);
+  assert.match(source, /receipt\.profile !== profile/);
+});
+
+test('whole chain (Pocket): inviting a side character with only a fallback archetype prepares and reports ready under its own key, and a manifest character whose clips are built during the invitation too', async () => {
+  const fallbacks = readFallbacks(JSON.stringify({version: 1, characters: {
+    'adam-brocki': {fallback: 'npc-corpo-resident-male', clip: null}, 'aaron-mccarlson': {fallback: 'npc-ncpd-male', clip: {stem: 'aaron'}}}}));
+  const manifest = readManifest(JSON.stringify({version: 1, voices: {'aaron-mccarlson': {'omni-short': clipSpec(1), 'omni-long': clipSpec(2), pocket: {sameAs: 'omni-long'}}}}));
+  const words = readWords(JSON.stringify({version: 1, voices: {'aaron-mccarlson': {pocket: 'Aaron pocket.', short: 'Aaron short.', long: 'Aaron long.'}}}));
+  const tablesOf = prefix => ({'judy-alvarez': shipped(prefix + 'judy'), 'npc-corpo-resident-male': shipped(prefix + 'corpo'), 'npc-ncpd-male': shipped(prefix + 'ncpd')});
+  const shippedTables = {pocket: tablesOf(''), short: tablesOf('short-'), long: tablesOf('long-')};
+  const settings = pocketSettings({...shippedTables.pocket});
+  const startTables = {pocket: settings.voices, short: {...shippedTables.short}, long: {...shippedTables.long}};
+  const dir = await mkdtemp(join(tmpdir(), 'live-invite-'));
+  const live = {};
+  const builder = async (command, args) => {
+    const out = args[args.indexOf('--out') + 1], key = args[args.indexOf('--key') + 1];
+    for (const kind of Object.values(KINDS)) {
+      await mkdir(join(out, kind), {recursive: true});
+      await writeFile(join(out, kind, `${key}.wav`), Buffer.alloc(60, kind.length + key.length));
+    }
+    return {code: 0, stdout: '', stderr: ''};
+  };
+  const clips = new GameVoiceClips({manifest, words, gameDirectory: join(dir, 'game'), referenceRoot: join(dir, 'references'), stateDirectory: join(dir, 'state'), python: 'python.exe',
+    script: 'build.py', manifestPath: 'manifest.json', run: builder, shippedPresentSync: () => false, onBuilt: key => live.voices.refresh(key)});
+  const worker = scriptedPocket(settings);
+  const voice = new VoiceSelection(settings, {project: process.cwd(), configPath: resolve('live-fixture/config.json'), pythonExecutable: resolve('live-fixture/python.exe'),
+    spawnImpl: worker.spawnImpl, aliases: fallbackAliases(fallbacks), profileKeys: ['judy-alvarez', 'adam-brocki', 'aaron-mccarlson', 'agent-weiss']});
+  live.voices = new LiveVoices({players: {extras: async () => []}, folder: join(dir, 'player'), voices: startTables, shipped: async () => shippedTables, apply: update => voice.setVoices(update),
+    generated: (key, shippedRows) => clips.descriptors(key, shippedRows)});
+  try {
+    voice.request({voiceProvider: 'pocket'}); voice.applyWhenIdle(false);
+    await voice.start();
+    voice.applyWhenIdle(false);
+    const adam = await voice.prepareProfile('adam-brocki', {required: true});
+    assert.equal(adam.ready, true);
+    assert.equal(adam.provider, 'pocket');
+    assert.equal(adam.profile, 'adam-brocki', 'the receipt names the invited character, not the archetype voice that speaks for it');
+    assert.equal(invitationAccepts(voice, 'adam-brocki', adam), true);
+    assert.ok(worker.prepared.includes('npc-corpo-resident-male'));
+    // Aaron: his clips are made first (the invitation waits for them), then his voice is prepared.
+    assert.equal(await clips.ensure('aaron-mccarlson'), 'ready');
+    await live.voices.chain; await tick(); await tick();
+    voice.applyWhenIdle(false); await tick(); await tick();
+    const aaron = await voice.prepareProfile('aaron-mccarlson', {required: true});
+    assert.equal(aaron.profile, 'aaron-mccarlson');
+    assert.equal(invitationAccepts(voice, 'aaron-mccarlson', aaron), true);
+    assert.equal(voice.voiceOf('aaron-mccarlson'), 'aaron-mccarlson', 'his own clips speak');
+    assert.ok(worker.prepared.includes('aaron-mccarlson'));
+    // A character no voice speaks keeps the answer it had: a written reply, no profile, no error.
+    const weiss = await voice.prepareProfile('agent-weiss', {required: true});
+    assert.equal(weiss.ready, true);
+    assert.equal(invitationAccepts(voice, 'agent-weiss', weiss), false);
+    const closing = voice.close(); await tick(); worker.spawned.forEach(child => child.emit('close', 0)); await closing;
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('whole chain (OmniVoice): inviting a side character with only a fallback archetype prepares and reports ready under its own key', async () => {
+  const voices = {'judy-alvarez': shipped('judy'), 'npc-corpo-resident-male': shipped('corpo')};
+  const omniConfig = {version: 2, provider: 'hybrid', engine: 'omnivoice', steps: 16, voices};
+  const asked = [];
+  const make = backend => (config, hooks) => {
+    let loaded = false;
+    return {backend, hooks, get loaded() { return loaded; }, hasProfile: key => Object.hasOwn(config.voices, key), profileReady(key) { return loaded && this.hasProfile(key); },
+      setSteps() {}, setKeepPrepared() {}, async setVoices() { return true; },
+      // Like the real clients, the answer names the voice it was asked for.
+      async prepareProfile(profile) { asked.push(profile); return {provider: 'omnivoice', ready: true, profile}; },
+      async synthesize() { return {}; }, async synthesizeStream() { return {}; },
+      async start() { loaded = true; hooks.onState({state: 'ready', resident: false, engine: backend === 'omni' ? 'omnivoice' : 'pocket-tts'}); },
+      async close() { loaded = false; hooks.onState({state: 'stopped'}); }};
+  };
+  const fallbacks = readFallbacks(JSON.stringify({version: 1, characters: {'adam-brocki': {fallback: 'npc-corpo-resident-male'}, 'agent-weiss': {fallback: 'npc-nusa-male'}}}));
+  const voice = new VoiceSelection(pocketSettings(voices), {factory: make('pocket'), omniFactory: make('omni'), omniConfig, omniPack: () => ({installed: true}),
+    omniRemoteAddress: () => '192.168.1.20:8765', aliases: fallbackAliases(fallbacks), profileKeys: ['judy-alvarez', 'adam-brocki', 'agent-weiss']});
+  voice.update({voiceProvider: 'omni', remoteOmni: true}, null, false);
+  await voice.start();
+  assert.equal(voice.provider, 'omni');
+  const adam = await voice.prepareProfile('adam-brocki', {required: true});
+  assert.equal(adam.provider, 'omni');
+  assert.equal(adam.profile, 'adam-brocki');
+  assert.equal(invitationAccepts(voice, 'adam-brocki', adam), true);
+  assert.deepEqual(asked, ['npc-corpo-resident-male'], 'the worker is asked for the archetype voice only');
+  assert.equal(invitationAccepts(voice, 'agent-weiss', await voice.prepareProfile('agent-weiss', {required: true})), false, 'an archetype the table lacks: written, no error');
+  await voice.close();
 });

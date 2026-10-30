@@ -145,7 +145,7 @@ test('a key with no voice of its own is spoken by its alias: one voice for good,
   assert.equal(h.voice.voiceKeyFor('custom-own-aaaa', '111ULL'), 'custom-own-aaaa');
   assert.equal(h.voice.voiceKeyFor('judy-alvarez', '111ULL'), 'judy-alvarez');
   // The worker is asked for the alias's voice, never for a key it does not know.
-  assert.equal((await h.voice.prepareProfile('custom-he-cccc')).profile, 'resident-male');
+  assert.equal((await h.voice.prepareProfile('custom-he-cccc')).profile, 'custom-he-cccc', 'the receipt names the profile asked for, the alias voice is what the worker prepares');
   await h.voice.synthesizeStream('custom-he-cccc', 'Hi there.');
   await h.voice.synthesizeStream(voice, 'And again.');
   await h.voice.synthesizeStream('custom-own-aaaa', 'My own voice.');
