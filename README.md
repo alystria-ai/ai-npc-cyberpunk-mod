@@ -26,7 +26,7 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 
 ## Free, three ways
 
-- **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
+- **Fully local and free.** Download a Local AI pack, extract it into the game folder, and your characters think and speak entirely on your own PC (no server or other app to set up), with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
 - **Google Gemini, the free cloud option.** Fast replies, about a second to the first words, and light on your PC. Make a free key at Google AI Studio (a Google account is enough, no card), choose **Google Gemini (free plan)** in **Settings > Conversation provider**, press **Add** and you are done ([details](#google-gemini-free-plan)). About 1,000 replies a day, up to 15 a minute (Google sets the exact number). It is not offered in every country, and Google may use free-plan chats to improve its products.
 - **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 500 turns a day. Install, start the game, talk.
 
@@ -168,7 +168,7 @@ Measured on one laptop; yours will differ, and Google's allowance is Google's to
 
 ### Local AI
 
-The language model runs on your own graphics card. No account, no key, no internet.
+The language model runs on your own graphics card. No account, no key, no internet. Nothing else to set up: extract the pack into the game folder like the mod itself, and the mod starts the AI, loads the model and stops it again by itself. No server, no Ollama or LM Studio, no command line.
 
 1. Download a Local AI pack from the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs) and extract it into the game folder ([Install](#install)).
 2. Start the game. The **Local AI model** row shows "(Warming up)" while your card prepares the model, about a minute the first time.
@@ -234,7 +234,7 @@ Each paste reads the clipboard once, checks it and saves it on your computer; **
 
 ### Run the AI on another PC
 
-An old PC with a graphics card can write the replies while your gaming PC keeps all its power for the game. The two PCs talk over a network cable (or your router), and the mod asks the second PC for every reply through the Custom provider. This guide shows one way only: llama.cpp's own server, with the same small model as Local AI lite. It runs on any graphics card with Vulkan, a GTX 1060 6 GB included, and you download two files.
+**Only for a second PC.** On your gaming PC, Local AI needs none of this: extract a Local AI pack into the game folder and choose Local AI. An old PC with a graphics card can write the replies while your gaming PC keeps all its power for the game. The two PCs talk over a network cable (or your router), and the mod asks the second PC for every reply through the Custom provider. This guide shows one way only: llama.cpp's own server, with the same small model as Local AI lite. It runs on any graphics card with Vulkan, a GTX 1060 6 GB included, and you download two files.
 
 **What you need.** A second Windows PC with a graphics card (a GTX 1060 6 GB is plenty), 8 GB of RAM, 2 GB of free disk space, and a network cable between the two PCs, or both PCs on the same router. If Ollama runs on that PC, quit it first (right-click its tray icon, Quit), so it does not hold the card.
 
