@@ -472,7 +472,7 @@ function M.removeMistralKey()
 end
 
 local mistralResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
-local mistralLimits = {rate = true, daily = true, invalid = true, model = true, credits = true}
+local mistralLimits = {rate = true, daily = true, invalid = true, model = true, credits = true, region = true}
 local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
 local function providerName(value)
     return (value == 'mistral' or value == 'local' or value == 'custom' or value == 'gemini') and value or 'convai'

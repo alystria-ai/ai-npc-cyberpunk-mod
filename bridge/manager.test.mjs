@@ -4508,7 +4508,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
         end
       end
     end
-    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'localOffload', 'gemini-key', 'gemini-test', 'custom-endpoint', 'own-key'}, ','),
+    assert(table.concat(idsOf('conversation-provider'), ',') == table.concat({'conversationProvider', 'matureContent', 'localModel', 'localOffload', 'gemini-key', 'custom-endpoint', 'own-key'}, ','),
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
@@ -4754,12 +4754,12 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(provider.description:find('With Google Gemini, Local AI or Custom, Convai', 1, true), 'the voice paragraph names the options Local AI and Custom')
     assert(not provider.description:find('needs Local AI pack', 1, true) and not provider.description:find('Recommended', 1, true) and not provider.description:find('recommended', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
-    -- The Mistral key row left this page (the Mistral preset is a row of the Custom endpoint page now). Google Gemini has its key row and the connection test.
+    -- The Mistral key row left this page (the Mistral preset is a row of the Custom endpoint page now). Google Gemini has its key row only: the key is tried once when it is added, and there is no connection test.
     assert(row('mistral-key') == nil, 'the Mistral key row is gone')
     local gemini = row('gemini-key')
     assert(gemini and gemini.type == 'action' and gemini.label == 'Google Gemini API key' and gemini.value == 'Add', gemini and gemini.label)
     assert(gemini.description:find('aistudio.google.com/apikey', 1, true) and gemini.description:find('daily limit', 1, true) and not gemini.description:find('player-mistral-key.txt', 1, true))
-    assert(row('gemini-test') and row('gemini-test').type == 'action' and row('gemini-test').label == 'Test connection')
+    assert(row('gemini-test') == nil, 'the Test connection row of Google Gemini is gone')
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(firstParagraph(provider.description) == firstParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')
@@ -4767,7 +4767,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,custom-endpoint,own-key', table.concat(order, ','))
     local function refresh() clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager') end
     local function answer(tag, state)
       jsonFixtures['or-state-' .. tag] = state
@@ -4825,8 +4825,8 @@ test('The Conversation provider section offers the provider, Mature content, the
     answer('mistral-saved', {version = 1, provider = 'convai', effective = 'convai', saved = true, tail = 'mnop'})
     assert(manager.mistral().saved == true and manager.mistral().tail == 'mnop' and row('gemini-key').value == 'Add', 'the Mistral key (for Voxtral) does not fill the Google Gemini row')
     -- Limits and the waiting state are told in the first paragraph of the provider row's help.
-    for limit, text in pairs({rate = 'Google Gemini: limit reached for now', daily = 'Google Gemini: limit reached for now',
-      invalid = 'Google Gemini: key not accepted', model = 'Google Gemini: model unavailable'}) do
+    for limit, text in pairs({rate = 'Google Gemini: rate limited for a minute', daily = 'Google Gemini: free allowance used up for today',
+      invalid = 'Google Gemini: key not accepted', region = 'Google Gemini: not available in your region', model = 'Google Gemini: model unavailable'}) do
       answer('limit-' .. limit, {provider = 'gemini', effective = 'gemini', saved = true, tail = 'abcd', limit = limit})
       assert(note() == text, limit .. ': ' .. note())
     end
@@ -6402,7 +6402,7 @@ test('Custom endpoint is one button after the Google Gemini rows that opens a pa
     for _, category in ipairs(loaded.categories) do
       if category.id == 'conversation-provider' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
     end
-    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,gemini-test,custom-endpoint,own-key', table.concat(order, ','))
+    assert(table.concat(order, ',') == 'conversationProvider,matureContent,localModel,localOffload,gemini-key,custom-endpoint,own-key', table.concat(order, ','))
     for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is still on Settings') end
     local button = row('custom-endpoint')
     assert(button.type == 'action' and button.label == 'Custom endpoint' and button.value == 'Open', button.label)

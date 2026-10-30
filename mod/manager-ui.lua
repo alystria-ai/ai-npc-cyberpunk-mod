@@ -982,8 +982,9 @@ local function omniAmdRows(snapshot)
     return rows
 end
 
--- The Google Gemini key as one row of the provider page (the Add reads the key from the clipboard and fills in the fixed endpoint and model; Remove deletes the key), then the connection test.
--- Everything they say comes from mod/custom-provider.lua (the second instance, kind 'gemini'); empty without it.
+-- The Google Gemini key as one row of the provider page (the Add reads the key from the clipboard, fills in the fixed endpoint and model and has the service try the key once with a tiny
+-- request, which the row itself tells; Remove deletes the key). There is no Test connection row.
+-- Everything it says comes from mod/custom-provider.lua (the second instance, kind 'gemini'); empty without it.
 local function geminiRows(lastParagraph)
     local rows = {}
     local instance = geminiProvider.instance
@@ -994,20 +995,17 @@ local function geminiRows(lastParagraph)
     local message
     if state.result and state.result.state == 'unreadable' then message = ui.t('The clipboard could not be read.')
     elseif state.result and state.result.state == 'failed' then message = ui.t('The key could not be saved.')
-    elseif state.result and state.result.state == 'invalid' then message = state.result.reason == 'empty' and ui.t('The clipboard is empty. Copy your key first.') or ui.t('The clipboard does not hold an API key.') end
+    elseif state.result and state.result.state == 'invalid' then message = state.result.reason == 'empty' and ui.t('The clipboard is empty. Copy your key first.') or ui.t('The clipboard does not hold an API key.')
+    elseif saved and state.check then
+        -- The one-time check of the key just added: accepted, refused (with what to do) or not possible now.
+        local sentenced, sentence = pcall(instance.keyCheckSentence, state.check)
+        message = sentenced and sentence or nil
+    end
     rows[#rows + 1] = keyRow('Google Gemini API key',
         'Copy your key from Google AI Studio first (aistudio.google.com/apikey, a Google account is enough, no card). It is read from the clipboard once and saved on this computer.\n\nThe free plan has a daily limit of about 1,000 replies, is not offered in every country, and Google may use free-plan chats to improve its products.',
         'Deletes the saved key.',
-        'gemini-key', {saved = saved, tail = state.tail, message = message, add = true},
+        'gemini-key', {saved = saved, tail = state.tail, message = message, add = true, checking = saved and state.check ~= nil and state.check.state == 'checking'},
         function() return instance.request('preset-gemini') end, function() return instance.request('clear-preset-gemini') end, lastParagraph)
-    local made, items = pcall(instance.rows)
-    if made and type(items) == 'table' then
-        for _, item in ipairs(items) do
-            if item.id == 'gemini-test' then
-                rows[#rows + 1] = action('gemini-test', item.label, item.value, item.help, function() return instance.request(item.action) end, item.enabled, {label = true, value = true, description = true})
-            end
-        end
-    end
     return rows
 end
 
@@ -1198,14 +1196,14 @@ local function ownKeyRows(snapshot)
     -- Custom (OpenAI-compatible): its endpoint URL, API key, model ID and the connection test are a page of their own (customEndpointRows,
     -- opened from this one button), right under the Google Gemini rows, like the Convai paid tier below. Shown whenever the module is there.
     do
-        -- Google Gemini: its key (Add / Remove) and the connection test, right under the localOffload row (where the Mistral key row was).
+        -- Google Gemini: its key (Add / Remove), right under the localOffload row (where the Mistral key row was).
         local at = #rows + 1
         for index, item in ipairs(rows) do if item.id == 'localOffload' then at = index + 1 end end
         for offset, row in ipairs(geminiRows(limitHelp)) do table.insert(rows, at + offset - 1, row) end
     end
     if customProvider.instance then
         local at = #rows + 1
-        for _, anchor in ipairs({'localOffload', 'gemini-key', 'gemini-test'}) do
+        for _, anchor in ipairs({'localOffload', 'gemini-key'}) do
             for index, item in ipairs(rows) do if item.id == anchor then at = index + 1 end end
         end
         table.insert(rows, at, action('custom-endpoint', 'Custom endpoint', 'Open', 'The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.',
