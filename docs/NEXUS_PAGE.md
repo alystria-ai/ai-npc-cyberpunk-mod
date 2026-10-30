@@ -30,6 +30,7 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 [*][b]Phone Chat and holocalls.[/b] Text any character with a profile here, your own characters included, from the Chat tab on V's phone (on a contact: T text, H call, J invite, L dismiss, F favorite), or call them and watch them pick up on screen.
 [/list][b]Companions[/b][list]
 [*][b]Invite almost anyone[/b] from Characters to invite, plus hundreds more character models from the Model browser. No party size limit. Favorites go first in the list and on the phone, and Companion Manager > Parties saves your party for one-press Spawn party.
+[*][b]Night City Allies followers talk[/b] as themselves, and Lucy and Rita Wheeler have their own voices and memory.
 [*][b]They live alongside you.[/b] They follow through doors, lifts and fast travel, sit on couches and bar stools, ride in your car and fight with the game's own combat AI. At a calm moment they speak up, and two or more near chat among themselves (Settings > Conversations > Companions speak up). Ask one to drive ("can you drive us to the waypoint?") and they take the wheel.
 [*][b]Orders and reactions.[/b] Tag an enemy with your scanner (or look at them) and tell them to attack, or to leave (or use Dismiss in Current party). They comment on fights and loot (Settings > Gameplay, on by default).
 [*][b]Immersive invitations (off by default).[/b] Settings > Gameplay: inviting becomes an appointment. They come on foot or by car and text when they arrive.
