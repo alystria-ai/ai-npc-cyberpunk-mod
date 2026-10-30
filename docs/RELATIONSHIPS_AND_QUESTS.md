@@ -113,7 +113,10 @@ because the story part already places the characters V has done their quests wit
 
 The arcs data lists 12 characters for phase 1 (Judy, Panam, Kerry, River, Rogue, Johnny, Takemura, Jackie, Misty, Viktor, Claire, Alt), with paths
 taken from `research/cyberpunk/quest-premises.json`, the same paths the quest briefings were checked against on the owner's save. A quest
-that is not in the inventory, or an inventory that is not complete, counts nothing (a lower bond, never a higher one). Every other named character
+that is not in the inventory counts nothing (a lower bond, never a higher one). An inventory that is not complete yet (the first turn after a game load or a Skip Time) says nothing
+about the quests, so that turn falls back on the character's arc points from the last complete read, which are kept with the bond state (`arc` in `<state>/bonds.json`). The level
+never drops because of an unfinished read, the Relationships page does not zero its quest counts, and the next complete read always wins, also when it is lower (an earlier save was loaded).
+A turn with an unfinished read also starts no pack and spends no dice roll: the gate is shut while the inventory is incomplete. Every other named character
 starts at 0 story points.
 
 Because the story part comes from the save, a new playthrough starts every character back at 0 story points, and loading an earlier save gives
@@ -310,6 +313,7 @@ Code: `bridge/bond-pack-runner.mjs` (the runner), `bridge/bond-intent.mjs` (V's 
 * **State** in `<state>/bond-packs.json`: per pack the **trail** of steps (stage, game clock, the choice that led there). The state follows the save: a turn whose
   clock is earlier than steps of a pack rewinds it to the stage that clock had it at (a pack that had not started yet is forgotten); 120 game seconds of slack.
   A new playthrough whose clock passes an old entry's would inherit it: there is no save identity in the turn (the Eddies ledger has the same limit).
+* **On the phone**: a stage that needs her in person (her own lines, a talk gap, a ride) cannot be played while she is only a voice on a Phone Chat or a holocall. Her note then tells V where to meet her, the gap's question is asked in her own words, V's answer on the same channel is read against the gap's tags, the stage clock gets a travel allowance and the play file gets a cast and a pin that stand down when she already has a copy of V's. All of it is in docs/QUEST_PRIMITIVES.md section 11.
 * **Notes**: while a pack is active on a channel it allows, every turn carries one volatile note: the stage's `know` and `wants`, the meeting it hopes for, the
   money it needs, in the second person, with the instruction never to call it a story, a quest or a stage. It pauses (no note, no new stage, no timer)
   while a quest of the character is active, the main story is at its end, the journal is unknown, or the game is busy (a scene, a choice, a fight, a game call).

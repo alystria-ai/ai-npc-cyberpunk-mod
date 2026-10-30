@@ -242,3 +242,58 @@ test('the bridge wiring: the line is a world block, the record runs after a publ
   const exchange = JSON.parse(read('../packaging/runtime-exchange.json'));
   assert(exchange.exchange.includes('bonds-status.json'), 'the status file is an exchange file, never shipped');
 });
+
+// ---- an unfinished journal read keeps the last known arc (a game load or a Skip Time) -------------------------------------------------------------
+
+test('an incomplete journal read (the first turn after a load) falls back on the last known arc: the level never drops, the note says so, and a complete read wins', () => {
+  const logs = [];
+  const store = new BondStore();
+  const bonds = new Bonds({store, now: () => 0, log: line => logs.push(line)});
+  const full = turn({journalHistory: journal(PANAM_DONE), turnContext: {gameTime: 30 * DAY}});
+  const settled = bonds.recordTurn(full, undefined, {romance: 'partner'});
+  const known = store.peek('panam-palmer');
+  assert.equal(known.arc, 350, 'the complete read is kept with the bond state');
+  const levelBefore = bonds.viewFor(turn({journalHistory: journal(PANAM_DONE)}), {romance: 'partner'}).level;
+  // The next turn: the inventory is partial. Without the fallback the arc would be 0 and the level would fall.
+  const partial = turn({journalHistory: journal(PANAM_DONE, {complete: false}), turnContext: {gameTime: 30 * DAY + 60}});
+  const view = bonds.viewFor(partial, {romance: 'partner'});
+  assert.equal(view.story.arc, 350);
+  assert.equal(view.story.kept, true);
+  assert.equal(view.journalComplete, false);
+  assert.equal(view.level, levelBefore, 'the level is the one the complete read gave');
+  assert(settled === null || settled.to >= 1);
+  // Recording that turn changes nothing about the remembered arc and tells the game of no level change.
+  const change = bonds.recordTurn(partial, undefined, {romance: 'partner'});
+  assert.equal(change, null, 'no level change from an unfinished read');
+  const after = store.peek('panam-palmer');
+  assert.equal(after.arc, 350);
+  assert.equal(after.arcDone, known.arcDone, 'the arc counts of the Relationships page are not zeroed either');
+  assert(logs.some(line => /journal not complete: kept the last known arc/.test(line)), logs.join('\n'));
+  // A missing inventory is the same.
+  assert.equal(bonds.viewFor(turn({journalHistory: undefined}), {romance: 'partner'}).story.arc, 350);
+  // The next complete read wins, also when it is lower (an earlier save was loaded).
+  const earlier = bonds.viewFor(turn({journalHistory: journal(PANAM_DONE.slice(0, 1))}), {romance: 'partner'});
+  assert(earlier.story.arc < 350 && earlier.journalComplete === true);
+});
+
+test('with no last known arc an incomplete read counts 0 as before, and a character without an arc is not touched', () => {
+  const bonds = new Bonds({store: new BondStore(), now: () => 0});
+  const first = bonds.viewFor(turn({journalHistory: journal(PANAM_DONE, {complete: false})}));
+  assert.equal(first.story.arc, 0);
+  assert.equal(first.story.kept, undefined);
+  const stranger = bonds.viewFor(turn({profileKey: 'some-new-person', journalHistory: journal(PANAM_DONE, {complete: false})}));
+  assert.equal(stranger.story.points, 0);
+});
+
+test('the remembered arc is saved and loaded with the bond state', async () => {
+  const files = new Map();
+  const store = new BondStore({path: 'bonds.json', write: async (file, text) => { files.set(file, text); }, read: async file => files.get(file), debounceMs: 1});
+  const bonds = new Bonds({store, now: () => 0});
+  bonds.recordTurn(turn({journalHistory: journal(PANAM_DONE)}));
+  await store.flush();
+  const again = new BondStore({path: 'bonds.json', read: async file => files.get(file)});
+  await again.load();
+  assert.equal(again.peek('panam-palmer').arc, 350);
+  const view = new Bonds({store: again, now: () => 0}).viewFor(turn({journalHistory: journal(PANAM_DONE, {complete: false})}));
+  assert.equal(view.story.arc, 350, 'after a bridge restart too');
+});

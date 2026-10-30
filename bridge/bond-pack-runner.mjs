@@ -28,6 +28,7 @@ import {wantedFacts} from './quest-facts.mjs';
 import {resolveGive, likesFor, giftBond, TIERS} from './gift-tables.mjs';
 import {screenGift, giftWords} from './gift-intent.mjs';
 import {payNote, readPay, payData} from './quest-pay.mjs';
+import {inPerson, rendezvousSpecs, travelGrace} from './quest-rendezvous.mjs';
 
 const DAY = 86400, HOUR = 3600;
 /** Game seconds of slack before an entry counts as later than the loaded save (the clock read and the stamp are a moment apart). */
@@ -117,6 +118,7 @@ export class BondPacks {
     this.loggedTypes = new Set();
     this.timer = null; this.dirty = false; this.chain = Promise.resolve();
     this.effectsText = ''; this.effectsRevision = 0; this.effectsChain = Promise.resolve();
+    this.remoteTurn = false;       // true while V's words over the phone or a holocall (she is not beside V) move a pack: a stage that needs her in person gets a travel allowance
     this.on = false;               // Story packs was on at the last turn (a meeting's outcome moves a pack only then)
     this.lastClock = undefined;
     // The quest files (docs/QUEST_PRIMITIVES.md): commands for the game (events the bridge decided), the closing rows of quests that just ended, the play file's revision.
@@ -205,7 +207,8 @@ export class BondPacks {
     const trail = [];
     for (const step of row.trail) {
       if (!plain(step) || typeof step.stage !== 'string' || !(whole(step.at) || step.at === null)) return null;
-      trail.push({stage: step.stage, at: step.at, ...(typeof step.choice === 'string' ? {choice: step.choice.slice(0, 40)} : {}), ...(step.ending === true ? {ending: true} : {})});
+      trail.push({stage: step.stage, at: step.at, ...(typeof step.choice === 'string' ? {choice: step.choice.slice(0, 40)} : {}), ...(step.ending === true ? {ending: true} : {}),
+        ...(whole(step.grace) && step.grace <= 48 * HOUR ? {grace: step.grace} : {})});
     }
     const last = trail.at(-1), ended = last.ending === true;
     if (ended ? !(last.stage in pack.endings) : !pack.stages.some(stage => stage.id === last.stage)) return null;
@@ -347,7 +350,9 @@ export class BondPacks {
       if (next in pack.endings) { this.#finish(pack, entry, next, gameSeconds, choice); break; }
       const stage = pack.stages.find(item => item.id === next);
       if (!stage) { this.#finish(pack, entry, Object.keys(pack.endings)[0], gameSeconds, choice); break; }
-      entry.trail.push({stage: next, at: gameSeconds ?? null, ...(choice ? {choice} : {})});
+      // A stage that needs her in person, entered by V's words over the phone: its clock gets a travel allowance (bridge/quest-rendezvous.mjs).
+      const grace = this.remoteTurn ? travelGrace(pack, stage) : 0;
+      entry.trail.push({stage: next, at: gameSeconds ?? null, ...(choice ? {choice} : {}), ...(grace ? {grace} : {})});
       entry.presented = false; entry.beat = null; entry.gap = null;
       this.log(`pack=${pack.id} stage=${next}${choice ? ` via ${choice}` : ''}`);
       this.#enter(pack, stage, gameSeconds);
@@ -373,7 +378,7 @@ export class BondPacks {
         const flow = item.on.slice(7), last = eddiesRow?.last;
         if (last?.story === tag && last.flow === flow && last.result === 'done' && (flow !== 'repayToV' || debts(eddiesRow).owesV === 0)) { next = item.next; choice = item.id; break; }
       }
-      if (!next && whole(gameSeconds) && whole(at) && stage.timeout && gameSeconds >= at + stage.timeout.gameHours * HOUR) { next = stage.timeout.next; choice = 'timeout'; }
+      if (!next && whole(gameSeconds) && whole(at) && stage.timeout && gameSeconds >= at + stage.timeout.gameHours * HOUR + (entry.trail.at(-1).grace ?? 0)) { next = stage.timeout.next; choice = 'timeout'; }
       if (!next && !stage.choices && !stage.timeout && typeof stage.next === 'string' && entry.presented) { next = stage.next; choice = 'next'; }
       if (!next) break;
       this.#go(pack, entry, next, gameSeconds, choice);
@@ -479,7 +484,7 @@ export class BondPacks {
       this.#schedule();
     }
     const allowed = CHANNELS.includes(channel);
-    const decision = {note: '', story: null, evaluate: false, pack: null, entry: null, start: null, gameSeconds, channel, eddiesRow: input.eddies?.row ?? null, gap: null};
+    const decision = {note: '', story: null, evaluate: false, pack: null, entry: null, start: null, gameSeconds, channel, near: facts.near === true, eddiesRow: input.eddies?.row ?? null, gap: null};
     if (!mine.length) {
       decision.note = lines.join('\n');
       return decision.note ? decision : null;
@@ -502,6 +507,12 @@ export class BondPacks {
           if (!entry.presented) decision.evaluate = false;
           lines.unshift(this.#stageNote(pack, stage, {channel, near: facts.near === true, settings: {invitations: bonds.invitations === true}}, entry));
           if (entry.gap && pack.gaps?.[entry.gap.id]) decision.gap = {id: entry.gap.id, tags: pack.gaps[entry.gap.id].tags ?? []};
+          else if (decision.evaluate && channel !== 'own' && facts.near !== true) {
+            // She is only a voice on the phone, so the stage's opening lines have not been said by anyone and its talk gap has not opened in the game: the question was asked
+            // in the note instead, and V's words on this remote channel answer it (docs/QUEST_PRIMITIVES.md section 11).
+            const found = inPerson(pack, stage);
+            if (found.gapId && !found.placed) decision.gap = {id: found.gapId, tags: pack.gaps[found.gapId].tags ?? [], remote: true};
+          }
           decision.story = this.#storyFacts(pack, stage, entry, {channel, gameSeconds, eddies: bonds.eddies === true});
         } else {
           const last = entry.trail.at(-1);
@@ -579,6 +590,10 @@ export class BondPacks {
         : `You would like V to meet you ${WHERE[stage.meet.where]}, within about ${stage.meet.inGameHours} game hours. V arranges it with you in V's own words.`
         : 'You would like to meet V, but meetings cannot be arranged now: say you will sort it out yourself.');
     }
+    if (!stage.meet && channel !== 'own' && !near) {
+      const found = inPerson(pack, stage);
+      if (found.needs) parts.push(this.#inPersonNote(pack, found, {channel, invitations: settings.invitations === true, entry}));
+    }
     if (stage.ask && channel !== 'own') parts.push('Eddies can only change hands when V is with you in person: if V offers money, say V should come to you.');
     const gap = entry?.gap ? pack.gaps?.[entry.gap.id] : null;
     if (gap) {
@@ -588,6 +603,32 @@ export class BondPacks {
       parts.push(note.slice(0, 700));
     }
     return parts.join(' ');
+  }
+
+  /**
+   * The note of a stage that needs her in person (bridge/quest-rendezvous.mjs) while she is only on the phone or a holocall: she cannot do it from here, so she tells V where to
+   * meet her (the stage's place by name) or offers to come over (Immersive invitations), and asks the stage's opening question in her own words, because her scripted lines will
+   * only be said once she is beside V. V's answer is read against the gap's tags on the next remote turn.
+   */
+  #inPersonNote(pack, found, {channel, invitations, entry}) {
+    const place = found.place ? pack.places?.[found.place]?.name : null;
+    const how = channel === 'holocall' ? 'on this call' : 'over the phone';
+    const bits = [`This needs you and V together in person, and you are only with V ${how} right now, so do not carry it on from here.`];
+    // A stage that places her at the spot itself (a cast) is not one she comes over for: V goes to her.
+    const offer = invitations && !found.placed;
+    if (place && offer) bits.push(`Tell V to come to ${place}, or offer to come over to where V is instead, and let V arrange it in V's own words.`);
+    else if (place) bits.push(`Tell V to come to ${place}.`);
+    else if (offer) bits.push("Offer to come over to where V is, and let V arrange it in V's own words.");
+    else bits.push('Tell V to come and find you.');
+    const gap = found.gapId && !found.placed ? pack.gaps?.[found.gapId] : null;
+    if (gap) {
+      const asked = entry?.presented === true;
+      bits.push(asked
+        ? `You have just asked V: "${gap.asks}" Once V has answered, do not ask it again.`
+        : `Ask V this, in your own words, before anything else: "${gap.asks}"`);
+      bits.push(`What you know now: ${gap.know}${gap.wants ? ` What you want from V: ${gap.wants}` : ''}`);
+    }
+    return bits.join(' ');
   }
 
   /** What Eddies is told for a stage that asks for eddies or pays them back (in person with an own copy only, where Eddies runs). */
@@ -607,11 +648,14 @@ export class BondPacks {
       const decision = id ? this.turns.get(id) : this.forTurn(input);
       if (!decision?.pack) return;
       const {pack, gameSeconds} = decision;
+      // V's words over the phone or a holocall (she is not beside V) move the pack: a stage that needs her in person gets its travel allowance.
+      this.remoteTurn = decision.channel !== 'own' && decision.near !== true;
       if (decision.start) {
         const known = this.entries.get(pack.id);
         if (known && (!decision.start.restart || known.status === 'active')) return;
         const variation = decision.start.variation;
-        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null}], presented: true, beat: null, ...(variation ? {variation} : {}), ...(CHANNELS.includes(decision.channel) ? {via: decision.channel} : {})};
+        const grace = this.remoteTurn ? travelGrace(pack, pack.stages[0]) : 0;
+        const entry = {status: 'active', trail: [{stage: pack.stages[0].id, at: gameSeconds ?? null, ...(grace ? {grace} : {})}], presented: true, beat: null, ...(variation ? {variation} : {}), ...(CHANNELS.includes(decision.channel) ? {via: decision.channel} : {})};
         this.entries.set(pack.id, entry);
         const meta = this.#meta(pack.character);
         if (pack.kind === 'hangout') {
@@ -633,7 +677,7 @@ export class BondPacks {
       const give = (stage.do ?? []).find(spec => spec?.p === 'gift' && spec.dir === 'give');
       if (give && screenGift(words).offer) this.#command(pack, entry, {cmd: 'event', name: `gift:${give.id}:offer`, data: {words: giftWords(words)}});
       // An open talk gap: V's words against its tags (the same screens as a choice). A match ends the gap, tells the game and moves a stage that waits on it.
-      if (decision.gap && entry.gap?.id === decision.gap.id && decision.gap.tags.length) {
+      if (decision.gap && decision.gap.tags.length && (decision.gap.remote ? decision.evaluate && !entry.gap : entry.gap?.id === decision.gap.id)) {
         const kind = intentKind(words, decision.gap.tags.map(tag => tag.kind));
         const tag = kind ? decision.gap.tags.find(item => item.kind === kind) : null;
         if (tag) { this.#gapTag(pack, entry, decision.gap.id, tag.id, gameSeconds); return; }
@@ -649,6 +693,8 @@ export class BondPacks {
       if (!entry.presented) { entry.presented = true; this.#schedule(); }
     } catch (error) {
       this.log(`record failed: ${String(error?.message ?? error).slice(0, 120)}`);
+    } finally {
+      this.remoteTurn = false;
     }
   }
 
@@ -898,7 +944,10 @@ export class BondPacks {
     const meta = this.meta.get(pack.character);
     const used = (meta?.gifts.used ?? []).map(item => item.tier);
     const places = this.#variationOf(pack, entry)?.places;
-    return (stage.do ?? []).map(spec => {
+    // A stage that V's words over the phone brought on (it carries a travel allowance) and that needs her in person gets the means of getting her to V: a pin and a cast of her
+    // at the meeting place (both only while she has no copy of V's), a party join for a ride. A stage entered in person or by the game is the pack's own business.
+    const remote = entry.trail.at(-1).grace > 0;
+    return [...(stage.do ?? []), ...(remote ? rendezvousSpecs(pack, stage) : [])].map(spec => {
       let out = spec;
       if (spec?.p === 'gift' && spec.dir === 'receive') {
         const given = spec.tier ? resolveGive(pack.character, spec.tier, {used}) : null;
@@ -948,7 +997,7 @@ export class BondPacks {
         if (gap) gaps[key] = {...(gap.idle ? {idle: gap.idle} : {}), ...(gap.situation ? {situation: gap.situation} : {}), ...(gap.resumeAfterSeconds ? {resumeAfterSeconds: gap.resumeAfterSeconds} : {}),
           ...(gap.resumeOn ? {resumeOn: swap ? gap.resumeOn.map(name => remapName(name, swap)) : gap.resumeOn} : {})};
       }
-      const timeoutAt = stage.timeout && whole(last.at) ? last.at + stage.timeout.gameHours * HOUR : undefined;
+      const timeoutAt = stage.timeout && whole(last.at) ? last.at + stage.timeout.gameHours * HOUR + (last.grace ?? 0) : undefined;
       const gifts = doList.some(spec => spec?.p === 'gift' && spec.dir === 'give') ? likesFor(pack.character) : null;
       quests.push({pack: id, character: pack.character, stage: stage.id, serial: entry.trail.length, since: last.at, places, do: doList, script,
         ...this.#lineTables(pack, refs), gaps, gap: entry.gap ?? null, ...(timeoutAt !== undefined ? {timeoutAt} : {}), ...(entry.via ? {via: entry.via} : {}),

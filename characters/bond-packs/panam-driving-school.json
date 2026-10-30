@@ -77,6 +77,7 @@
     {
       "id": "run",
       "type": "play",
+      "meetAt": "meet",
       "label": "V drives the kids' route with Panam in the passenger seat",
       "know": "V is at the wheel of the car and Panam is in the passenger seat. The route runs through the riverbed, the turbines, the ramp and the old rail bridge, back to the Sunset Motel. The time limit is six game minutes.",
       "wants": "V to run the route under Panam's time.",

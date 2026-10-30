@@ -219,7 +219,8 @@ function M.new(options)
     local function runRow(q, row)
         if type(row) ~= 'table' then return end
         if lines then
-            if type(row.say) == 'string' then lines.say(q.pack, row.say, {bark = row.bark == true}) end
+            -- A line of an ending (the scope of an ended quest) cannot wait for her to come: the line player sends it as a text when her copy is not here.
+            if type(row.say) == 'string' then lines.say(q.pack, row.say, {bark = row.bark == true, final = q.closing == true}) end
             if type(row.text) == 'string' then lines.text(q.pack, row.text, type(row.image) == 'string' and row.image or nil, textInPerson(q, row)) end
             if type(row.gap) == 'string' then lines.openGap(q.pack, row.gap) end
         end
@@ -470,7 +471,7 @@ function M.new(options)
     local function runClosing(c)
         local script, ending = list(c.script), c.ending
         if lines then lines.setPack(c.pack, {character = c.character, lines = list(c.lines), images = list(c.images), serial = c.serial}) end
-        local scope = {pack = c.pack, serial = c.serial, character = c.character, rows = script, fired = {}}
+        local scope = {pack = c.pack, serial = c.serial, character = c.character, rows = script, fired = {}, closing = true}
         closingScopes[c.pack] = scope
         P.emit(scope, 'ending:' .. ending)
     end

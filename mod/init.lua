@@ -7199,6 +7199,7 @@ do
             local lines = modules[4].new({clock = os.clock, gameTime = gameClock, log = log,
                 busy = function() return convaiQuestLineBusy() end,
                 start = function(entry) return convaiQuestLineStart(entry) end,
+                present = function(profileKey, channel) return convaiQuestSpeakerExists(profileKey) end,
                 alive = function(requestId) return automatic ~= nil and automatic.requestId == requestId end,
                 subtitle = function(profileKey, text) return convaiQuestSubtitle(profileKey, text) end,
                 phone = function(profileKey, text, image) return convaiQuestPhone(profileKey, text, image) end,
@@ -7332,6 +7333,16 @@ do
         local controller = convaiHousemates and convaiHousemates.controller
         if controller ~= nil and controller.chatActive ~= nil and controller.chatActive() == true then return true end
         return not (battleOutputs or reactionOutputs(player)).enabled
+    end
+    -- Whether the speaker of a scripted line has a copy of V's anywhere (the same lookup as convaiQuestLineStart): false while she is only a voice on the phone, so her
+    -- in-person lines wait for her (mod/quest-lines.lua present). nil when the game cannot tell (the line player then assumes she is there). Asked once a second at most.
+    function convaiQuestSpeakerExists(profileKey)
+        local player = convaiPlayer()
+        if not player or type(profileKey) ~= 'string' then return nil end
+        local ok, list = pcall(companions.conversationCandidates, player, 100000)
+        if not ok or type(list) ~= 'table' then return nil end
+        for _, row in ipairs(list) do if row.profileKey == profileKey then return true end end
+        return false
     end
     -- The request of a scripted line: a private automatic turn of the speaking copy, no model behind it (the bridge takes the words and the prepared audio
     -- from the pack). Returns the request id, or nil and why.

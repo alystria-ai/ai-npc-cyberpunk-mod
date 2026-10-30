@@ -11,7 +11,7 @@ import {MIC_PLACEHOLDER} from './call-meet.mjs';
 const B = String.raw`(?<![\p{L}\p{N}])`;
 const YES = {
   words: String.raw`yes|yeah|yep|yup|sure|ok(?:ay)?|alright|all right|will do|deal|on it|got it|you bet|of course|absolutely|definitely|happy to|glad to|count me in|`
-    + String.raw`i'?ll (?:come|be there|be right there|help|go|do it|take it|get it|bring|pay|handle|see)|i'?m (?:in|on my way|coming|there)|i can help|let'?s (?:go|do|get|take)|sounds good|`
+    + String.raw`i'?ll (?:come|be there|be right there|help|go|do it|take it|get it|bring|pay|handle|see)|i'?m (?:in|on my way|coming|there)|i can help|let'?s (?:go|do|get|take)|sounds good|you(?:'re| are) on(?![\p{L}])(?!\s+(?:the|a|an|my|your|his|her|their|our|this|that|it)(?![\p{L}]))|i'?m game|game on|challenge accepted|it'?s a deal|you got a deal|i'?ll take (?:that|the|your) (?:bet|dare|deal|offer)|`
     + String.raw`ja(?![\p{L}])|klar|gerne|mach ich|ich komme|bin dabei|abgemacht|nat[uü]rlich|`
     + String.raw`oui|d'accord|bien s[uû]r|je viens|j'arrive|compte sur moi|volontiers|avec plaisir|`
     + String.raw`s[ií](?![\p{L}])|claro|vale|de acuerdo|voy|cuenta conmigo|por supuesto|con gusto|ahora voy|`

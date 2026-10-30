@@ -229,6 +229,8 @@ export function checkStagePlay(stage, ctx, where, fail, warn) {
   if (Array.isArray(stage.do)) checkReferences(stage.do, ctx, where, fail);
   if (stage.script !== undefined) checkRows(stage.script, stage, ctx, where, fail);
   if (stage.situation !== undefined && !SITUATIONS.includes(stage.situation)) fail(`${where}: situation must be one of ${SITUATIONS.join(', ')}`);
+  // The place she is got to when the stage needs her in person and V is not with her (bridge/quest-rendezvous.mjs). Optional: the pin's place, else the first place, is used.
+  if (stage.meetAt !== undefined && !(typeof stage.meetAt === 'string' && ctx.places.has(stage.meetAt))) fail(`${where}: meetAt must name a place of the pack`);
   if (stage.music !== undefined) checkSounds(stage.music, 'music', stage, ctx, where, fail);
   if (stage.sfx !== undefined) checkSounds(stage.sfx, 'sfx', stage, ctx, where, fail);
 }

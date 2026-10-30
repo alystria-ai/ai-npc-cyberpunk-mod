@@ -5,7 +5,10 @@
 --
 --   L.setPack(pack, info)          info {character, lines, gaps, images, serial}: what the pack's lines, gaps and pictures are (replaced at each stage start)
 --   L.say(pack, lineId, opts)      a scripted line is queued for its speaker (opts.bark). A bark waits at most 4 s and is then dropped, a plot line waits
---                                  (after 20 s it is also shown as a subtitle, and it is played at the next silence). opts.channel replaces the line's channel, opts.call
+--                                  (after 20 s it is also shown as a subtitle, and it is played at the next silence). A plot line on the own or remote channel whose speaker has no
+--                                  copy of V's (options.present answers false: she is only a voice on the phone, or far away) waits for her without ageing, shows no subtitle and
+--                                  is not given up: it plays when her copy is there, and is dropped with its stage (dropPack). opts.final marks a line of an ending: it cannot
+--                                  wait for her, so it goes to her Phone Chat thread after 20 s and counts as done. opts.channel replaces the line's channel, opts.call
 --                                  (true, or a function that answers whether the call is still on) marks a line of a scripted holocall (mod/quest-prims-calls.lua): it waits
 --                                  for the silence like a plot line but is never shown or sent as a text, a line cut twice counts as heard so the call goes on, and once
 --                                  the call is not on any more it is dropped without a word
@@ -21,13 +24,15 @@
 --   busy() -> true when V talks (key held, composer with text), any reply is produced or heard, an automatic remark plays or a scene, call or fight runs,
 --   start(entry) -> requestId | nil, why   (builds the private turn of the speaking copy: reaction {kind = 'scripted', pack, line, channel, expiresAt}),
 --   alive(requestId) -> bool   (the request is still in the air), subtitle(profileKey, text), phone(profileKey, text, image) -> bool (Phone Chat),
+--   present(profileKey, channel) -> true | false | nil (optional: whether a copy of V of the speaker exists, nil or no function = assume yes. Asked once a second
+--   while a plot line on the own or remote channel waits, never per frame),
 --   idle(profileKey, idleKey, on, situation) (optional: the pose of a talk gap), emit(pack, name) (an event for the quest), onChange(), log(line).
 --   The idle hook is asked ONCE when a gap opens with an `idle` (a seat kind or an idle key of assets/gestures/gestures.json) and/or a `situation` (nervous, celebrating, grieving,
 --   angry, relaxed, working), with on = true, and once more with on = false when the gap closes. idleKey is the gap's idle, else the idle its situation stands for (M.SITUATIONS),
 --   or nil (a situation with no pose of its own: the face and gesture bias is the hook's business). The hook may return a function: the line player calls it once a second
 --   (never per frame) until it answers true, which is how an asynchronous pose (a device that streams in) gets started. A failure of the hook or of the pose is silent.
 local M = {BARK_WAIT = 4, PLOT_SUBTITLE = 20, PLOT_GIVE_UP = 600, PLOT_RETRIES = 2, PLOT_QUEUE = 4, STEP = 0.5, BETWEEN = 1,
-    MAX_PACKS = 16, TEXT_TRIES = 10, TEXT_RETRY = 2, LOST_CHECKS = 3, IDLE_STEP = 1}
+    MAX_PACKS = 16, TEXT_TRIES = 10, TEXT_RETRY = 2, LOST_CHECKS = 3, IDLE_STEP = 1, PRESENT_STEP = 1}
 
 -- The situations of BOND_QUESTS.md 19.1 and the idle each one stands for when the gap names none (false: no pose of its own, the hook still hears the situation).
 -- Every key is an idle key of assets/gestures/gestures.json idleWorkspots.
@@ -46,6 +51,7 @@ function M.new(options)
     local gaps = {}           -- pack -> {id, spec, gameAt, clockAt, profileKey}
     local gapCount = 0
     local acc, lastEnd = 0, -1e9
+    local presentAt = -1e9
 
     local function clock()
         local ok, value = pcall(options.clock or os.clock)
@@ -110,7 +116,7 @@ function M.new(options)
         local call = opts and (opts.call == true or type(opts.call) == 'function') and opts.call or nil
         if call then bark = false end
         local channel = type(opts and opts.channel) == 'string' and opts.channel or (type(meta.channel) == 'string' and meta.channel or 'own')
-        local entry = {pack = pack, id = lineId, profileKey = profileKey, bark = bark, channel = channel, call = call,
+        local entry = {pack = pack, id = lineId, profileKey = profileKey, bark = bark, channel = channel, call = call, final = opts and opts.final == true,
             emotion = meta.emotion, gesture = meta.gesture, text = shortText(meta.text), queuedAt = clock(), retries = 0, fails = 0}
         -- One slot per speaker for a bark (a newer one replaces an older waiting one, and none waits behind a plot line). A plot line is never lost:
         -- they queue in order, four deep per speaker.
@@ -144,9 +150,36 @@ function M.new(options)
         return false
     end
     local function pick()
-        for index, e in ipairs(waiting) do if not e.bark and not held(e) then return index, e end end
-        for index, e in ipairs(waiting) do if not held(e) then return index, e end end
+        for index, e in ipairs(waiting) do if not e.bark and not held(e) and not e.absent then return index, e end end
+        for index, e in ipairs(waiting) do if not held(e) and not e.absent then return index, e end end
         return nil
+    end
+
+    -- A plot line said in person (own channel) or by a copy's voice (remote) needs a copy of V's of its speaker. Barks and call lines do not wait for one.
+    local function needsSpeaker(e)
+        return not e.bark and not e.call and (e.channel == 'own' or e.channel == 'remote')
+    end
+    -- Once a second, while such a line waits: is her copy there? Absent lines wait without ageing (the subtitle and the give-up are for a line that CAN play and
+    -- is held up), and the moment she is there their clock starts again.
+    local function checkPresence(now)
+        if type(options.present) ~= 'function' or now - presentAt < M.PRESENT_STEP - 1e-6 then return end
+        presentAt = now
+        local answers = {}
+        for _, e in ipairs(waiting) do
+            if needsSpeaker(e) then
+                local key = e.profileKey .. '|' .. e.channel
+                if answers[key] == nil then
+                    local ok, value = pcall(options.present, e.profileKey, e.channel)
+                    answers[key] = (not ok or value ~= false) and 1 or 0
+                end
+                if answers[key] == 0 then
+                    if not e.absent then e.absent = true; log('line ' .. e.id .. ' waits: ' .. e.profileKey .. ' has no copy of V here') end
+                elseif e.absent then
+                    e.absent = false; e.queuedAt = now
+                    log('line ' .. e.id .. ' can play: ' .. e.profileKey .. ' is here')
+                end
+            elseif e.absent then e.absent = false end
+        end
     end
 
     -- A call line belongs to its call: it is alive while the call is on (true, or the function the call gave answers true).
@@ -359,11 +392,21 @@ function M.new(options)
             end
         end
         -- Waiting lines: a bark is dropped after 4 s, a plot line is shown after 20 s and kept (given up after ten minutes).
+        checkPresence(now)
         for index = #waiting, 1, -1 do
             local e = waiting[index]
             if #holds > 0 and held(e) then e.queuedAt = now end   -- held lines do not age: a bark is not dropped and a plot line is not shown while the hold lasts
             local age = now - e.queuedAt
-            if e.bark then
+            if e.absent then
+                -- Her copy is not here. A line of the stage waits for her (it is dropped with the stage), a line of an ending cannot, so it goes to her Phone Chat thread.
+                if not e.final then e.queuedAt = now
+                elseif age >= M.PLOT_SUBTITLE then
+                    table.remove(waiting, index)
+                    if type(options.phone) == 'function' and e.text then pcall(options.phone, e.profileKey, e.text, nil) end
+                    emit(e.pack, 'line:' .. e.id .. ':done')
+                    log('ending line ' .. e.id .. ' sent as a text: ' .. e.profileKey .. ' is not here')
+                end
+            elseif e.bark then
                 if age > M.BARK_WAIT then
                     table.remove(waiting, index)
                     log('bark ' .. e.id .. ' dropped after ' .. string.format('%.1f', age) .. ' s' .. (e.why and (' (' .. tostring(e.why) .. ')') or ''))
@@ -410,7 +453,8 @@ function M.new(options)
     -- A pack's stage ended: its barks go, plot lines stay (they were scripted for the story, not for the stage), its gap is closed without a word.
     function L.dropPack(pack)
         for index = #waiting, 1, -1 do
-            if waiting[index].pack == pack and waiting[index].bark then table.remove(waiting, index) end
+            local e = waiting[index]
+            if e.pack == pack and (e.bark or (e.absent and not e.final)) then table.remove(waiting, index) end
         end
         local g = gaps[pack]
         if g then L.closeGap(pack, g.id, false) end
@@ -451,7 +495,7 @@ function M.new(options)
     function L.status()
         local rows = {}
         for _, e in ipairs(waiting) do
-            rows[#rows + 1] = {pack = e.pack, id = e.id, bark = e.bark, waited = math.floor((clock() - e.queuedAt) * 10) / 10, why = e.why}
+            rows[#rows + 1] = {pack = e.pack, id = e.id, bark = e.bark, waited = math.floor((clock() - e.queuedAt) * 10) / 10, why = e.why, absent = e.absent == true}
         end
         local openGaps = {}
         for pack, g in pairs(gaps) do openGaps[#openGaps + 1] = {pack = pack, id = g.id} end

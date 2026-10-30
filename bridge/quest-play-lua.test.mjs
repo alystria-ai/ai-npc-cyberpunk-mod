@@ -45,7 +45,8 @@ local prims = Prims.new({places = places, world = world, clock = clock, gameTime
 local play
 local lines = Lines.new({clock = clock, gameTime = function() return game.gameClock end, log = log,
   busy = function() return game.busy end,
-  start = function(entry) local id = 'r' .. game.nextRequest; game.nextRequest = game.nextRequest + 1; game.started[#game.started + 1] = entry; return id end,
+  present = function(key) if game.absent then return false end return nil end,
+  start = function(entry) if game.startFail then return nil, game.startFail end local id = 'r' .. game.nextRequest; game.nextRequest = game.nextRequest + 1; game.started[#game.started + 1] = entry; return id end,
   subtitle = function(key, text) game.subtitles[#game.subtitles + 1] = text end,
   phone = function(key, text, image) game.phones[#game.phones + 1] = {key = key, text = text, image = image}; return true end,
   emit = function(pack, name) play.emitPack(pack, name) end,
@@ -420,4 +421,43 @@ local value = events()
 assert(value.at == 100000, 'at: ' .. tostring(value.at))
 game.gameClock = 100500; play.inject('probe:z')
 assert(events().at == 100500)
+`));
+
+test('a stage whose opening lines have nobody to say them (she is only a voice on the phone) waits for her: no subtitle, no gap, and the lines are dropped with the stage', () => withGame(`
+game.absent = true; game.startFail = 'no-speaker'
+local lineTable = {['P3.dare.01'] = say, ['P3.dare.02'] = say}
+local q = quest({gaps = {g1 = {}}, lines = lineTable, script = {{when = 'stage:enter', say = 'P3.dare.01'}, {when = 'stage:enter', say = 'P3.dare.02'}, {when = 'line:P3.dare.02:done', gap = 'g1'}}})
+file({q}); play.restore()
+step(60)
+assert(#game.started == 0 and #game.subtitles == 0 and #game.phones == 0 and not lines.gapOpen(), 'nobody speaks, nothing is shown, the gap stays shut')
+-- The bridge moves the quest to another stage (V answered over the phone): the lines of the old stage are gone.
+local q2 = quest({stage = 'run', serial = 2, lines = {['P3.run.01'] = say}, script = {{when = 'stage:enter', say = 'P3.run.01'}}})
+file({q2}, {revision = 2}); play.onPlayRevision(); step(2)
+game.absent = false; game.startFail = nil; step(3)
+assert(#game.started == 1 and game.started[1].id == 'P3.run.01', 'only the new stage line plays: ' .. #game.started)
+`));
+
+test('the same stage, her copy arrives: the lines play in order and the gap opens after the last of them', () => withGame(`
+game.absent = true; game.startFail = 'no-speaker'
+local q = quest({gaps = {g1 = {}}, lines = {['P3.dare.01'] = say, ['P3.dare.02'] = say}, script = {{when = 'stage:enter', say = 'P3.dare.01'}, {when = 'stage:enter', say = 'P3.dare.02'}, {when = 'line:P3.dare.02:done', gap = 'g1'}}})
+file({q}); play.restore(); step(30)
+assert(#game.started == 0)
+game.absent = false; game.startFail = nil; step(2)
+assert(#game.started == 1 and game.started[1].id == 'P3.dare.01')
+lines.stopped('r1', 'finished'); step(2)
+assert(#game.started == 2 and game.started[2].id == 'P3.dare.02')
+lines.stopped('r2', 'finished'); step(1)
+assert(lines.gapOpen() and names():find('gap:g1:open', 1, true), names())
+`));
+
+test('a line of an ending whose speaker is not here goes to her thread after 20 s and counts as done', () => withGame(`
+game.absent = true; game.startFail = 'no-speaker'
+file({}); play.restore()
+file({}, {closing = {{pack = 'panam-sunset-coffee', character = 'panam-palmer', ending = 'chicken', serial = 6, lines = {['P3.c'] = say},
+  script = {{when = 'ending:chicken', say = 'P3.c'}}}}, revision = 2})
+play.onPlayRevision(); step(5)
+assert(#game.phones == 0 and #game.subtitles == 0)
+step(20)
+assert(#game.phones == 1 and game.phones[1].text == 'Words.' and #game.subtitles == 0 and #game.started == 0)
+local e = events().events; assert(e[#e].name == 'line:P3.c:done' and e[#e].serial == 6, e[#e].name)
 `));
