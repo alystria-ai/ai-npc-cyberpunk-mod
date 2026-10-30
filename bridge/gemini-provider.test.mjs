@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {streamChat} from './mistral-client.mjs';
+import {streamChat, errorCodeFor, errorExtrasFor, failureKind, googleQuota, nextPacificMidnight, MistralError} from './mistral-client.mjs';
 import {TextProviderHost, customRoute} from './text-provider-host.mjs';
 import {CustomEndpoint, parseEndpointUrl, PRESETS} from './custom-endpoint.mjs';
 import {MistralProvider, PROVIDERS} from './mistral-key.mjs';
@@ -183,6 +183,96 @@ test('Google answers a key of the newer AQ. format it does not know with a 400 "
     assert.equal(error.kind, 'key');
     assert.equal(provider.limit?.kind, 'invalid');
   } finally { host.close(); await mock.close(); }
+});
+
+// Google's real answers (ai.google.dev/gemini-api/docs/api-errors, /rate-limits): the OpenAI-compatible endpoint answers an error as a list of one object.
+const quotaBody = (quotaId, retryDelay, message = 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.') =>
+  [{error: {code: 429, message, status: 'RESOURCE_EXHAUSTED', details: [
+    {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{quotaMetric: 'generativelanguage.googleapis.com/generate_content_free_tier_requests', quotaId, quotaDimensions: {model: 'gemini-flash-lite', location: 'global'}, quotaValue: '20'}]},
+    {'@type': 'type.googleapis.com/google.rpc.Help', links: [{description: 'Learn more about Gemini API quotas', url: 'https://ai.google.dev/gemini-api/docs/rate-limits'}]},
+    {'@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay}]}}];
+
+test('Gemini has its own notice for each answer Google gives, and none of them is the Custom wording', async () => {
+  const mock = await startOpenAiMock();
+  const {host, provider, gemini} = await harness(mock);
+  try {
+    const cases = [
+      // [what Google answered, kind, notice code, provider limit, requests]
+      [{status: 400, body: [{error: {code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT', details: [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'API_KEY_INVALID'}]}}]}, 'key', 'gemini-key', 'invalid', 1],
+      [{status: 403, body: [{error: {code: 403, message: 'Your API key was reported as leaked. Please use another API key.', status: 'PERMISSION_DENIED'}}]}, 'key', 'gemini-key', 'invalid', 1],
+      [{status: 401, body: [{error: {code: 401, message: 'Request had invalid authentication credentials.', status: 'UNAUTHENTICATED'}}]}, 'key', 'gemini-key', 'invalid', 1],
+      // The daily allowance: "exceeded your current quota" is not about credit here, and a wait of seconds would not help (no retry).
+      [{status: 429, body: quotaBody('GenerateRequestsPerDayPerProjectPerModel-FreeTier', '37s')}, 'daily', 'gemini-daily', 'daily', 1],
+      // A per-minute limit that clears within the wait the client allows is waited out once (the second request answers 429 again).
+      [{status: 429, body: quotaBody('GenerateRequestsPerMinutePerProjectPerModel-FreeTier', '1s')}, 'limit', 'gemini-limit', 'rate', 2],
+      [{status: 429, body: quotaBody('GenerateContentInputTokensPerModelPerMinute-FreeTier', '45s')}, 'limit', 'gemini-limit', 'rate', 1],
+      [{status: 400, body: [{error: {code: 400, message: 'User location is not supported for the API use.', status: 'FAILED_PRECONDITION'}}]}, 'region', 'gemini-region', 'region', 1],
+      [{status: 400, body: [{error: {code: 400, message: 'Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.', status: 'FAILED_PRECONDITION'}}]}, 'region', 'gemini-region', 'region', 1],
+      [{status: 503, body: [{error: {code: 503, message: 'The model is overloaded. Please try again later.', status: 'UNAVAILABLE'}}]}, 'network', 'gemini-server', null, 2],
+      [{status: 500, body: [{error: {code: 500, message: 'An internal error has occurred.', status: 'INTERNAL'}}]}, 'network', 'gemini-server', null, 2],
+      [{status: 504, body: [{error: {code: 504, message: 'The request timed out.', status: 'DEADLINE_EXCEEDED'}}]}, 'network', 'gemini-server', null, 2],
+      [{status: 404, body: [{error: {code: 404, message: 'models/gemini-old is not found for API version v1beta', status: 'NOT_FOUND'}}]}, 'model', 'gemini-model', 'model', 1],
+    ];
+    let turns = 0;
+    for (const [plan, kind, code, limit, requests] of cases) {
+      mock.requests.length = 0;
+      provider.noteLimit(null);
+      // A wait Google asked for pauses the route for that key: each case is asked with a key of its own.
+      await gemini.setKey(KEY + (turns++));
+      mock.behave(() => plan);
+      const error = await host.reply(turn('Hello.')).catch(caught => caught);
+      const label = JSON.stringify(plan).slice(0, 140);
+      assert.ok(error instanceof MistralError, label);
+      assert.equal(error.kind, kind, label);
+      assert.equal(failureKind(error), kind, label);
+      assert.equal(errorCodeFor(error), code, label);
+      assert.equal(provider.limit?.kind ?? null, limit, label);
+      assert.equal(mock.requests.length, requests, label);
+      assert.ok(!/custom/i.test(code));
+    }
+    // The daily allowance comes back at midnight on the Pacific clock: the reply can say when, on this computer's clock.
+    mock.behave(() => ({status: 429, body: quotaBody('GenerateRequestsPerDayPerProjectPerModel-FreeTier', '37s')}));
+    const daily = await host.reply(turn('Hello.')).catch(caught => caught);
+    assert.match(errorExtrasFor(daily).errorResetTime ?? '', /^\d\d:\d\d$/);
+    // No connection at all: the server is gone.
+    const dead = await startOpenAiMock(); const deadHarness = await harness(dead); await dead.close();
+    const gone = await deadHarness.host.reply(turn('Hello.')).catch(caught => caught);
+    assert.equal(errorCodeFor(gone), 'gemini-unreachable');
+    deadHarness.host.close();
+  } finally { host.close(); await mock.close(); }
+});
+
+test('a Custom route keeps the Custom wording for the same answers (the Gemini tag is added by the gemini route only)', async () => {
+  const mock = await startOpenAiMock();
+  const custom = new CustomEndpoint({path: null});
+  await custom.setUrl(parseEndpointUrl(mock.url)); await custom.setModel('m'); await custom.setKey(KEY);
+  const provider = await new MistralProvider({keyPath: 'k', readText: none, writeText: async () => {}, custom}).load();
+  provider.setPreference('custom'); provider.apply();
+  const route = customRoute({provider, custom, chat: options => streamChat({...options, ...quick})});
+  const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: new PersonaBook(roster), routes: {custom: route}, log: () => {}});
+  try {
+    for (const [plan, code] of [
+      [{status: 400, body: [{error: {code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT'}}]}, 'custom-key'],
+      [{status: 429, body: quotaBody('GenerateRequestsPerDayPerProjectPerModel-FreeTier', '37s')}, 'custom-daily'],
+      [{status: 503, body: 'down'}, 'custom-unreachable']]) {
+      mock.behave(() => plan);
+      assert.equal(errorCodeFor(await host.reply(turn('Hello.')).catch(caught => caught)), code);
+    }
+  } finally { host.close(); await mock.close(); }
+});
+
+test('Google quota answers: the per-day and per-minute quotas, the wait Google names, and the next midnight on the Pacific clock', () => {
+  assert.deepEqual(googleQuota(quotaBody('GenerateRequestsPerDayPerProjectPerModel-FreeTier', '37s')[0]), {daily: true, retryMs: 37000});
+  assert.deepEqual(googleQuota(quotaBody('GenerateRequestsPerMinutePerProjectPerModel-FreeTier', '21.5s')[0]), {daily: false, retryMs: 21500});
+  assert.deepEqual(googleQuota({error: {status: 'RESOURCE_EXHAUSTED', message: 'Resource has been exhausted (e.g. check quota).'}}, 'resource has been exhausted (e.g. check quota).'), {daily: false});
+  assert.deepEqual(googleQuota({error: {message: 'Please retry in 12.5s'}}, 'quota exceeded for metric: generativelanguage.googleapis.com/x. please retry in 12.5s.'), {daily: false, retryMs: 12500});
+  assert.equal(googleQuota({error: {message: 'Rate limit exceeded: free-models-per-day'}}, 'rate limit exceeded: free-models-per-day'), null, 'not Google: OpenRouter keeps its own handling');
+  // Midnight in Los Angeles: 07:00 UTC in winter (PST), 07:00 UTC in summer is 00:00 PDT. Always within the next 24 hours and on a whole minute.
+  const winter = Date.UTC(2026, 0, 15, 12, 0, 0), summer = Date.UTC(2026, 6, 15, 12, 0, 0);
+  assert.equal(nextPacificMidnight(winter), Date.UTC(2026, 0, 16, 8, 0, 0));
+  assert.equal(nextPacificMidnight(summer), Date.UTC(2026, 6, 16, 7, 0, 0));
+  const now = Date.now(), at = nextPacificMidnight(now);
+  assert.ok(at > now && at - now <= 24 * 3600_000 + 1000);
 });
 
 test('earlier setups: a Gemini preset saved on the Custom page moves to the Gemini provider, and a saved Mistral key fills the Mistral preset', async () => {

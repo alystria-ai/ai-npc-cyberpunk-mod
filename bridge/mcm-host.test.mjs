@@ -1471,8 +1471,8 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   press('Settings')
   assert(mcm.row('Custom endpoint').type == 'action' and mcm.row('Custom endpoint').value == 'Open', 'one button on Settings')
   for _, label in ipairs({${customRows.filter(label => label !== 'Test connection').map(label => `'${label}'`).join(', ')}}) do assert(mcm.row(label) == nil, label .. ' is not on Settings any more') end
-  -- The Google Gemini key row and its own Test connection row are on Settings (the Gemini test row is not the Custom one).
-  assert(mcm.row('Google Gemini API key') and mcm.row('Test connection'), 'the Gemini rows are on Settings')
+  -- The Google Gemini key row is on Settings; it has no Test connection row (Add tries the key once instead).
+  assert(mcm.row('Google Gemini API key') and mcm.row('Test connection') == nil, 'the Gemini key row is on Settings, with no Test connection row')
   assert(mcm.row('Mistral API key') == nil, 'no Mistral key row on Settings any more')
   press('Custom endpoint')
   local config = mcm.config()

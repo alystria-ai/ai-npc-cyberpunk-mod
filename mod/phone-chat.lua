@@ -29,6 +29,13 @@ local MISTRAL_STATUS = {
     ['custom-daily'] = 'The free daily limit for this model was reached. Try again after it resets.',
     ['custom-reasoning'] = 'This model spends its reply on thinking. Choose a non-reasoning model in Settings.',
     ['custom-unreachable'] = 'The custom provider did not answer. Check its address in Settings, or try again.',
+    ['gemini-key'] = 'Google did not accept your Gemini key. Check it in Google AI Studio and add it again.',
+    ['gemini-daily'] = 'Your free Gemini allowance for today is used up. It resets tomorrow. Use Convai or Local AI.',
+    ['gemini-limit'] = 'Google Gemini is rate limiting you. Wait a minute, then try again.',
+    ['gemini-region'] = 'Google Gemini is not available in your region. Use Convai or Local AI.',
+    ['gemini-server'] = 'Google Gemini is busy or had an error. Wait a minute, then try again.',
+    ['gemini-unreachable'] = 'Google Gemini could not be reached. Check your internet connection, then try again.',
+    ['gemini-model'] = 'The Gemini model is not available right now. Try again later or use Local AI.',
     ['local-fallback'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
     -- Convai's own limits, in the words of the game's notices (init.lua keyNoticeText).
     ['quota-shared'] = 'The conversation limit has been reached. Try again later, or choose Local AI or Google Gemini in Settings > Conversation provider.',
