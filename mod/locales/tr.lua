@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Hikâye",
     ["Story character"] = "Hikâye karakteri",
     ["Unsaved changes"] = "Kaydedilmemiş değişiklikler",
+    ["Together"] = "Birlikte",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Siz ve {name} birliktesisiniz. Bu konuşmalardan gelişmiş ve bu oyunda saklanmıştır. Bunu sona erdirmek için, ona söyleyin.",
 }

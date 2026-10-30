@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Történet",
     ["Story character"] = "Történetbeli szereplő",
     ["Unsaved changes"] = "Nem mentett módosítások",
+    ["Together"] = "Együtt",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Te és {name} együtt vagytok. Ez a beszélgetésekből alakult ki és ebben a mentésben tárolódik. A lezárásához mondd el.",
 }

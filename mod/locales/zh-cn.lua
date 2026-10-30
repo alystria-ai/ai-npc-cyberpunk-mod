@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "剧情",
     ["Story character"] = "剧情角色",
     ["Unsaved changes"] = "未保存的更改",
+    ["Together"] = "在一起",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "你和{name}在一起。这源自对话，保存在这个存档中。要结束它，请告诉对方。",
 }

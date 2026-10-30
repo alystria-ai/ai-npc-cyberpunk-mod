@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Histoire",
     ["Story character"] = "Personnage de l’histoire",
     ["Unsaved changes"] = "Modifications non enregistrées",
+    ["Together"] = "Ensemble",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Vous et {name} êtes ensemble. Cela s'est construit par les conversations et est sauvegardé dans cet enregistrement. Pour terminer, dites-le.",
 }

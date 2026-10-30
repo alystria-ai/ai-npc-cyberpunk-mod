@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "ストーリー",
     ["Story character"] = "ストーリーキャラクター",
     ["Unsaved changes"] = "未保存の変更",
+    ["Together"] = "一緒",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "あなたと{name}は一緒です。これは会話から生まれ、このセーブに保存されています。終わらせるには、伝えてください。",
 }

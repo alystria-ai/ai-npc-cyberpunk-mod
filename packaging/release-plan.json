@@ -454,6 +454,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-registry.lua"
         },
         {
+          "source": "mod/romance-registry.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/romance-registry.lua"
+        },
+        {
           "source": "mod/housemate-plan.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-plan.lua"
         },
@@ -1077,7 +1081,11 @@
             "bridge/request-ownership.mjs",
             "bridge/resident-phone-analysis.mjs",
             "bridge/resident-voice.mjs",
+            "bridge/romance-bond.mjs",
             "bridge/romance-context.mjs",
+            "bridge/romance-intent-languages.mjs",
+            "bridge/romance-intent.mjs",
+            "bridge/romance-traits.mjs",
             "bridge/runtime-files.mjs",
             "bridge/runtime-integrity.mjs",
             "bridge/runtime-paths.mjs",

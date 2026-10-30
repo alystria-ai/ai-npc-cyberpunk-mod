@@ -1850,4 +1850,6 @@ return {
     ["Story"] = "Historia",
     ["Story character"] = "Personaje de la historia",
     ["Unsaved changes"] = "Cambios sin guardar",
+    ["Together"] = "Juntos",
+    ["You and {name} are together. This grew from talking and is kept in this save. To end it, tell them."] = "Tú y {name} estáis juntos. Esto surgió de las conversaciones y se guarda en esta partida. Para terminarlo, díselo.",
 }

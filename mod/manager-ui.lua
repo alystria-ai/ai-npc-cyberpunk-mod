@@ -1713,6 +1713,18 @@ local function relationshipRows(snapshot)
             mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
             {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
     end
+    -- Romances that grew from talk (Settings > Gameplay > Character bonds, bridge/romance-bond.mjs): one read-only row each, below the five. They end when V tells the character.
+    local native = {}
+    for _, profile in ipairs(manager.relationshipChoices()) do native[profile.key] = true end
+    local ok, list = false, nil
+    if type(convaiBondsRomances) == 'function' then ok, list = pcall(convaiBondsRomances) end
+    for _, item in ipairs(ok and type(list) == 'table' and list or {}) do
+        if type(item) == 'table' and type(item.profileKey) == 'string' and not native[item.profileKey] and type(item.name) == 'string' then
+            rows[#rows + 1] = readonly('romance:' .. item.profileKey, item.name, 'Together',
+                ui.t('You and {name} are together. This grew from talking and is kept in this save. To end it, tell them.', {name = item.name}),
+                {label = true, description = true})
+        end
+    end
     return rows
 end
 
