@@ -82,7 +82,7 @@
     "A memory clear is awaiting its result. It will not be sent again.": "A memory clear is awaiting its result. It will not be sent again.",
     "A memory is too long. Keep each one under {max} characters.": "A memory is too long. Keep each one under {max} characters.",
     "A model ID is a short name like that, not a web address.": "A model ID is a short name like that, not a web address.",
-    "A nearby companion makes a short comment as combat starts and another afterward, and comments after you finish collecting loot from the world. Storage transfers stay silent.\n\nTen-minute cooldown after a fight, and ordinary loot comments are ten minutes apart. Newly acquired Legendary gear has its own two-minute cooldown, and pickups made during a fight are folded into one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.": "A nearby companion makes a short comment as combat starts and another afterward, and comments after you finish collecting loot from the world. Storage transfers stay silent.\n\nTen-minute cooldown after a fight, and ordinary loot comments are ten minutes apart. Newly acquired Legendary gear has its own two-minute cooldown, and pickups made during a fight are folded into one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.",
+    "A nearby companion comments as combat starts and ends, and after you collect loot from the world. Storage transfers stay silent.\n\nCooldowns: ten minutes after a fight and between ordinary loot comments, two minutes for new Legendary gear. Pickups during a fight become one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.": "A nearby companion comments as combat starts and ends, and after you collect loot from the world. Storage transfers stay silent.\n\nCooldowns: ten minutes after a fight and between ordinary loot comments, two minutes for new Legendary gear. Pickups during a fight become one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.",
     "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.": "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.",
     "A new vehicle summon interrupted the trip.": "A new vehicle summon interrupted the trip.",
     "A pack is one folder too deep. See Help in Settings.": "A pack is one folder too deep. See Help in Settings.",
@@ -463,7 +463,7 @@
     "End": "End",
     "English": "English",
     "Enter": "Enter",
-    "Error reports go to the developer automatically. Turn them off in Settings > Privacy.": "Error reports go to the developer automatically. Turn them off in Settings > Privacy.",
+    "Error reports go to the developer. Turn them off in Settings > Privacy and help.": "Error reports go to the developer. Turn them off in Settings > Privacy and help.",
     "Error reports, developer mode and help.": "Error reports, developer mode and help.",
     "Every character who lives at your place moves out at once, from every apartment. Party members who do not live there are not touched. A housemate who is with you stays in your party.": "Every character who lives at your place moves out at once, from every apartment. Party members who do not live there are not touched. A housemate who is with you stays in your party.",
     "Everyday people do not keep memories of your talks.": "Everyday people do not keep memories of your talks.",
@@ -2500,7 +2500,7 @@
     ],
     "page.setting": [
       "A gang you keep killing may rarely send a small squad after you, with a short threat to shout. A long wait follows each one.\n\nNever in a fight, scene, call, vehicle, indoors, safe zone or while wanted.",
-      "A nearby companion makes a short comment as combat starts and another afterward, and comments after you finish collecting loot from the world. Storage transfers stay silent.\n\nTen-minute cooldown after a fight, and ordinary loot comments are ten minutes apart. Newly acquired Legendary gear has its own two-minute cooldown, and pickups made during a fight are folded into one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.",
+      "A nearby companion comments as combat starts and ends, and after you collect loot from the world. Storage transfers stay silent.\n\nCooldowns: ten minutes after a fight and between ordinary loot comments, two minutes for new Legendary gear. Pickups during a fight become one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.",
       "Allow Local AI to use RAM",
       "Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.",
       "Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.",
@@ -2952,7 +2952,7 @@
       "Dress without the fur coat",
       "Earlier turns kept",
       "Edited",
-      "Error reports go to the developer automatically. Turn them off in Settings > Privacy.",
+      "Error reports go to the developer. Turn them off in Settings > Privacy and help.",
       "Everyday people do not keep memories of your talks.",
       "Everything together is too long. Shorten something so it stays under {max} characters.",
       "Example lines",
@@ -4120,7 +4120,7 @@
         "mod/custom-provider.lua:350"
       ]
     },
-    "A nearby companion makes a short comment as combat starts and another afterward, and comments after you finish collecting loot from the world. Storage transfers stay silent.\n\nTen-minute cooldown after a fight, and ordinary loot comments are ten minutes apart. Newly acquired Legendary gear has its own two-minute cooldown, and pickups made during a fight are folded into one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.": {
+    "A nearby companion comments as combat starts and ends, and after you collect loot from the world. Storage transfers stay silent.\n\nCooldowns: ten minutes after a fight and between ordinary loot comments, two minutes for new Legendary gear. Pickups during a fight become one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.": {
       "contexts": [
         "page.setting"
       ],
@@ -7358,7 +7358,7 @@
         "mod/key-bindings.lua:66"
       ]
     },
-    "Error reports go to the developer automatically. Turn them off in Settings > Privacy.": {
+    "Error reports go to the developer. Turn them off in Settings > Privacy and help.": {
       "contexts": [
         "ui.localized"
       ],

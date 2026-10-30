@@ -1,6 +1,6 @@
 # Automatic error reports
 
-When the mod hits an error, it sends a small, redacted error report to the project's backend, so the developer sees the problem without asking players for logs. It is on by default. **Companion Manager > Settings > Privacy > Send error reports automatically** turns it off; then nothing is recorded or sent, and anything already waiting is deleted.
+When the mod hits an error, it sends a small, redacted error report to the project's backend, so the developer sees the problem without asking players for logs. It is on by default. **Companion Manager > Settings > Privacy and help > Send error reports automatically** turns it off; then nothing is recorded or sent, and anything already waiting is deleted.
 
 ## For players
 

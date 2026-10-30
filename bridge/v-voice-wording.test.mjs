@@ -30,9 +30,9 @@ test('the player docs do not say that nothing local runs once the companions use
   for (const file of ['../README.md', '../packaging/PLAYER_README.md']) {
     const text = read(file);
     for (const line of text.split('\n').filter(item => /Nothing runs on your PC/.test(item))) {
-      assert(/V's voice for typed lines to Off or Voxtral/.test(line), `${file}: ${line.slice(0, 80)}`);
+      assert(/V's voice to Off, or V's voice engine to Voxtral/.test(line), `${file}: ${line.slice(0, 80)}`);
     }
   }
   const readme = read('../README.md');
-  assert(readme.includes("The companions' voice loads no local model (V's typed lines follow V's own voice setting, Pocket by default)"));
+  assert(readme.includes("The companions' voice loads no local model (V's typed lines follow V's own voice engine setting, Pocket by default)"));
 });

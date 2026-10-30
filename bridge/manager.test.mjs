@@ -7135,7 +7135,7 @@ test('Companions react is the last row of Companions, on by default, applies on 
     assert(companions and #companions.settings == 5)
     local react = companions.settings[#companions.settings]
     assert(react.id == 'companionReactions' and react.label == 'Companions react' and react.type == 'bool' and react.value == true and react.defaultValue == true)
-    assert(react.description:find('Ten-minute cooldown after a fight', 1, true) and react.description:find('Storage transfers stay silent', 1, true))
+    assert(react.description:find('Cooldowns: ten minutes after a fight', 1, true) and react.description:find('Storage transfers stay silent', 1, true))
     assert(registered.applyBatch('manager', {{id = 'companionReactions', value = false}}).ok and saved.battleReactions == false and saved.lootReactions == false)
     local at = {}
     for _, change in ipairs(core.defaults()) do at[change.id] = change.value end

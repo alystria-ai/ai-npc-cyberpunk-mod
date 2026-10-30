@@ -3,7 +3,7 @@
 --   * the first-load setup check's critical problems and the game-side versions (setup-check.lua, once per game session).
 -- The service's supervisor reads that file (bridge/error-reports.mjs), turns events into reports and sends them; nothing is sent
 -- from the game. Its own Lua errors are found by the supervisor in the mod's logs, so nothing here watches for them.
--- Nothing is recorded while Settings > Privacy > "Send error reports automatically" is off.
+-- Nothing is recorded while Settings > Privacy and help > "Send error reports automatically" is off.
 -- It also shows the one notice that says error reports are sent: once, at the first load after updating, in gameplay.
 --
 -- Cost: nothing per frame. A record is one small file read and write; tick() is one boolean test
@@ -142,7 +142,7 @@ function M.tick(worldReady)
     local ok, due = pcall(manager.errorReportsNoticeDue)
     if not ok or due ~= true then return nil end
     pcall(manager.markErrorReportsNoticed)
-    return ui.t('Error reports go to the developer automatically. Turn them off in Settings > Privacy.')
+    return ui.t('Error reports go to the developer. Turn them off in Settings > Privacy and help.')
 end
 
 -- Tests only.

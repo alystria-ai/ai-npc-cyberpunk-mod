@@ -2220,7 +2220,7 @@ settingsPages['settings-companions'] = function(snapshot)
             'Borrow eddies from your characters, lend them eddies and pay each other back, by talking. Each character has money of their own, as their story has it, and decides by how they feel about you. Now and then they ask you for a loan.\n\nEddies change hands as soon as a character agrees, and only with your own characters (party, invited visitors, housemates). The game’s own characters only talk about it. Off by default.'),
         -- On by default (2026-10-30): one switch for the two kinds of comment, stored as battleReactions and lootReactions. On when either was on.
         setting('companionReactions', 'Companions react', 'bool', snapshot.settings.battleReactions == true or snapshot.settings.lootReactions == true, true,
-            'A nearby companion makes a short comment as combat starts and another afterward, and comments after you finish collecting loot from the world. Storage transfers stay silent.\n\nTen-minute cooldown after a fight, and ordinary loot comments are ten minutes apart. Newly acquired Legendary gear has its own two-minute cooldown, and pickups made during a fight are folded into one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.'),
+            'A nearby companion comments as combat starts and ends, and after you collect loot from the world. Storage transfers stay silent.\n\nCooldowns: ten minutes after a fight and between ordinary loot comments, two minutes for new Legendary gear. Pickups during a fight become one comment at its end. Conversations and story scenes come first. Loading a save resets the cooldowns.'),
     })}
 end
 

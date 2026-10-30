@@ -6,8 +6,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {noticeProblems} from './notice-fit.mjs';
 
-export const NOTICE = 'Error reports go to the developer automatically. Turn them off in Settings > Privacy.';
-const ROW = ['Privacy', 'Send error reports automatically'];
+export const NOTICE = 'Error reports go to the developer. Turn them off in Settings > Privacy and help.';
+const ROW = ['Privacy and help', 'Send error reports automatically'];
 const CODES = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const unescape = text => text.replace(/\\(["\\n])/g, (_, char) => char === 'n' ? '\n' : char);
